@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
+  </ItemGroup>
+</Project>

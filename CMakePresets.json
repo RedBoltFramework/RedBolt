@@ -1,0 +1,37 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Dev",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Debug",
+      "configurePreset": "dev",
+      "configuration": "Debug",
+      "targets": [
+        "redbolt-stage0"
+      ]
+    },
+    {
+      "name": "Release",
+      "configurePreset": "dev",
+      "configuration": "Release",
+      "targets": [
+        "redbolt-stage0"
+      ]
+    }
+  ]
+}

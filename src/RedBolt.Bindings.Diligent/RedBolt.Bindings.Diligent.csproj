@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Bindings.Diligent</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/diligent')">
+    <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs" LinkBase="Generated" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" />
+  </ItemGroup>
+</Project>

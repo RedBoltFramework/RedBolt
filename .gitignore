@@ -1,0 +1,24 @@
+# Local OpenCode state and packages.
+.opencode/ralph-loop.local.md
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+
+# CMake and build outputs.
+out/
+build/
+CMakeUserPresets.json
+compile_commands.json
+
+# .NET outputs.
+bin/
+obj/
+
+# Editor and OS noise.
+.cache/
+.vs/
+.vscode/
+*.user
+*.swp
+*~

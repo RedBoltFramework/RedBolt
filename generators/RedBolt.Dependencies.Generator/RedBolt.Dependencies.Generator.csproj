@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Dependencies.Generator</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Model/SharpCpp.Model.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" />
+  </ItemGroup>
+</Project>
