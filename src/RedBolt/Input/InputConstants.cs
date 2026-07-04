@@ -147,3 +147,46 @@ public enum MouseMode
     Free,
     Invalid
 }
+
+[Flags]
+public enum HatPosition : uint
+{
+    Center = 0,
+    Up = 1,
+    Right = 2,
+    Down = 4,
+    Left = 8,
+    RightUp = Right | Up,
+    RightDown = Right | Down,
+    LeftUp = Left | Up,
+    LeftDown = Left | Down
+}
+
+public enum ControllerButton : uint
+{
+    A,
+    B,
+    X,
+    Y,
+    Back,
+    Guide,
+    Start,
+    LeftStick,
+    RightStick,
+    LeftShoulder,
+    RightShoulder,
+    DPadUp,
+    DPadDown,
+    DPadLeft,
+    DPadRight
+}
+
+public enum ControllerAxis : uint
+{
+    LeftX,
+    LeftY,
+    RightX,
+    RightY,
+    TriggerLeft,
+    TriggerRight
+}

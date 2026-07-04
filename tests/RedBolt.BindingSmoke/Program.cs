@@ -671,10 +671,34 @@ sealed class SmokeHeadlessApplication : Application
         Input.SetKey(Key.A, Scancode.A, false);
         if (Input.GetKeyDown(Key.A) || Input.GetScancodeDown(Scancode.A))
             throw new InvalidOperationException("Input did not preserve rbfx-style key release state setters.");
+        var inputMap = new InputMap("Input/Smoke", Input);
+        inputMap.SetDeadZone(-1.0f);
+        inputMap.MapKeyboardKey("Jump", Scancode.A);
+        Input.SetKey(Key.A, Scancode.A, true);
+        if (!MathDefs.ApproximatelyEquivalent(inputMap.GetDeadZone(), 0.0f) || !MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("Jump"), 1.0f))
+            throw new InvalidOperationException("InputMap did not preserve rbfx-style keyboard action evaluation.");
+        inputMap.MapKeyboardKey("Move", Scancode.A);
+        if (!MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("Jump"), 0.0f) || !MathDefs.ApproximatelyEquivalent(inputMap.EvaluateByHash(new StringHash("Move")), 1.0f))
+            throw new InvalidOperationException("InputMap did not preserve rbfx-style unique keyboard remapping.");
+        Input.SetKey(Key.A, Scancode.A, false);
         Input.SetMouseButton(MouseButton.Left, true);
         Input.SetMouseWheel(2);
         if (!Input.GetMouseButtonDown(MouseButton.Left) || !Input.GetMouseButtonPress(MouseButton.Left) || Input.GetMouseMoveWheel() != 2)
             throw new InvalidOperationException("Input did not preserve rbfx-style managed mouse state setters.");
+        inputMap.MapMouseButton("Fire", MouseButton.Left);
+        inputMap.MapControllerButton("Fire", ControllerButton.A);
+        inputMap.MapControllerAxis("Throttle", ControllerAxis.TriggerRight, 0.0f, 1.0f);
+        inputMap.MapHat("Menu", HatPosition.Up);
+        inputMap.MapScreenButton("TouchFire", "FireButton");
+        inputMap.AddMetadata("Sensitivity", 2.0f);
+        var fireMapping = inputMap.GetMapping("Fire");
+        var throttleMapping = inputMap.GetMappingByHash(new StringHash("Throttle"));
+        if (!MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("Fire"), 1.0f) || fireMapping.MouseButtons.SingleOrDefault() != MouseButton.Left || fireMapping.ControllerButtons.SingleOrDefault().GetControllerButton() != ControllerButton.A)
+            throw new InvalidOperationException("InputMap did not preserve rbfx-style mouse/controller mapping helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(throttleMapping.ControllerAxes.Single().Translate(0.5f, inputMap.GetDeadZone()), 0.5f) || inputMap.GetMapping("Menu").ControllerHats.SingleOrDefault() != HatPosition.Up || inputMap.GetMapping("TouchFire").ScreenButtons.SingleOrDefault() != "FireButton")
+            throw new InvalidOperationException("InputMap did not preserve rbfx-style axis, hat, or screen mapping helpers.");
+        if (!inputMap.HasMetadata() || !Equals(inputMap.GetMetadata("Sensitivity"), 2.0f) || !InputMap.GetScanCodeNames().Contains(nameof(Scancode.A)) || !InputMap.GetMouseButtonNames().Contains(nameof(MouseButton.Left)))
+            throw new InvalidOperationException("InputMap did not preserve rbfx-style metadata or name-list helpers.");
         Input.BeginFrame();
         Input.SetMouseButton(MouseButton.Left, false, clicks: 1);
         if (Input.GetMouseButtonDown(MouseButton.Left) || !Input.GetMouseButtonClick(MouseButton.Left))
