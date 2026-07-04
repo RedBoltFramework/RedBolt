@@ -11,8 +11,7 @@
     <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/RedBolt.BindingSmoke.Tests/RedBolt.BindingSmoke.Tests.csproj" />
-    <Project Path="tests/RedBolt.BindingSmoke/RedBolt.BindingSmoke.csproj" />
+    <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
   </Folder>
   <Folder Name="/SharpCpp/" />
   <Folder Name="/SharpCpp/src/">
