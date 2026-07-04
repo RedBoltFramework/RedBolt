@@ -756,6 +756,42 @@ sealed class SmokeHeadlessApplication : Application
         if (!octree.GetLocked() || octree.GetAllDrawables().Contains(manualDrawable))
             throw new InvalidOperationException("Octree did not preserve rbfx-style lock helpers.");
         octree.SetLocked(false);
+        var lightNode = scene.CreateChild("Light");
+        var light = lightNode.CreateComponent<Light>();
+        light.SetColor(new Color(0.5f, 0.25f, 0.125f));
+        light.SetBrightness(2.0f);
+        light.SetSpecularIntensity(-1.0f);
+        light.SetRange(-1.0f);
+        light.SetFov(200.0f);
+        light.SetAspectRatio(0.0f);
+        light.SetShadowBias(new BiasParameters(2.0f, 20.0f, -1.0f));
+        light.SetShadowCascade(new CascadeParameters(-1.0f, 5.0f, 10.0f, 0.0f, -1.0f, 2.0f));
+        light.SetShadowFocus(new FocusParameters(true, false, false, 0.0f, 0.0f));
+        light.SetShadowIntensity(2.0f);
+        light.SetShadowResolution(0.0f);
+        light.SetShadowNearFarRatio(1.0f);
+        light.SetShadowMaxExtrusion(-1.0f);
+        light.SetLightImportance(LightImportance.NotImportant);
+        light.SetLightMode(LightMode.Baked);
+        if (light.GetDrawableFlags() != DrawableFlags.Light || light.GetLightType() != LightType.Point || light.GetLightImportance() != LightImportance.NotImportant || light.GetLightMode() != LightMode.Baked)
+            throw new InvalidOperationException("Light did not preserve rbfx-style type, mode, or importance helpers.");
+        if (light.GetLightMaskEffective() != 0u || !light.GetPerVertex() || !MathDefs.ApproximatelyEquivalent(light.GetRange(), 0.0f) || !MathDefs.ApproximatelyEquivalent(light.GetFov(), MathDefs.MaxFov))
+            throw new InvalidOperationException("Light did not preserve rbfx-style effective mask or range/FOV clamping helpers.");
+        if (!light.GetEffectiveColor().ApproximatelyEquivalent(new Color(1.0f, 0.5f, 0.25f, 1.0f)) || !MathDefs.ApproximatelyEquivalent(light.GetEffectiveSpecularIntensity(), 0.0f))
+            throw new InvalidOperationException("Light did not preserve rbfx-style effective color or specular helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(light.GetAspectRatio(), MathDefs.Epsilon) || light.GetShadowBias() != new BiasParameters(1.0f, 16.0f, 0.0f))
+            throw new InvalidOperationException("Light did not preserve rbfx-style aspect ratio or shadow bias validation helpers.");
+        if (light.GetNumShadowSplits() != 2 || !MathDefs.ApproximatelyEquivalent(light.GetShadowCascade().FadeStart, MathDefs.Epsilon) || !MathDefs.ApproximatelyEquivalent(light.GetShadowFocus().Quantize, Light.ShadowMinQuantize))
+            throw new InvalidOperationException("Light did not preserve rbfx-style shadow cascade or focus validation helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(light.GetShadowIntensity(), 1.0f) || !MathDefs.ApproximatelyEquivalent(light.GetShadowResolution(), 0.125f) || !MathDefs.ApproximatelyEquivalent(light.GetShadowNearFarRatio(), 0.5f) || !MathDefs.ApproximatelyEquivalent(light.GetShadowMaxExtrusion(), 0.0f))
+            throw new InvalidOperationException("Light did not preserve rbfx-style shadow scalar validation helpers.");
+        light.SetLightMode(LightMode.Realtime);
+        light.SetRange(100.0f);
+        if (light.GetLightMaskEffective() != light.GetLightMask() || light.GetDistanceTo(cube) <= 0.0f)
+            throw new InvalidOperationException("Light did not preserve rbfx-style realtime mask or drawable distance helpers.");
+        light.SetLightType(LightType.Directional);
+        if (light.GetDistanceTo(cube) != 0.0f || light.GetWorldBoundingBox().IsInside(Vector3.Zero) == Intersection.Outside)
+            throw new InvalidOperationException("Light did not preserve rbfx-style directional bounds or distance helpers.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)
