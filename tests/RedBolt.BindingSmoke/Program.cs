@@ -257,6 +257,24 @@ sealed class SmokeHeadlessApplication : Application
         var material = Resources.Get<Material>("Materials/FirstCube");
         if (!ReferenceEquals(model, Resources.Get<Model>("Models/ProceduralBox")))
             throw new InvalidOperationException("ResourceCache did not return the cached procedural model.");
+        var tempResourceDir = Path.Combine(Path.GetTempPath(), "RedBolt.BindingSmoke", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(tempResourceDir, "Data"));
+        try
+        {
+            var fileName = Path.Combine(tempResourceDir, "Data", "hello.txt");
+            File.WriteAllText(fileName, "hello from resource cache");
+            if (!Resources.AddResourceDir(tempResourceDir) || !Resources.Exists<BinaryFile>("Data/hello.txt"))
+                throw new InvalidOperationException("ResourceCache did not register a file-backed resource directory.");
+            var binaryFile = Resources.GetResource<BinaryFile>("Data/hello.txt");
+            if (binaryFile.GetText() != "hello from resource cache" || binaryFile.AbsoluteFileName != fileName || !ReferenceEquals(binaryFile, Resources.GetResource<BinaryFile>("Data/hello.txt")))
+                throw new InvalidOperationException("ResourceCache did not load and cache a file-backed BinaryFile.");
+            if (ReferenceEquals(binaryFile, Resources.GetTempResource<BinaryFile>("Data/hello.txt")))
+                throw new InvalidOperationException("ResourceCache temp resource loading reused a cached instance.");
+        }
+        finally
+        {
+            Directory.Delete(tempResourceDir, recursive: true);
+        }
 
         var scene = new Scene();
         scene.CreateComponent<Octree>();

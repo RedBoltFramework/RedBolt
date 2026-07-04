@@ -61,10 +61,7 @@ public sealed class ResourceCache
         if (cache.TryGetValue(key, out var cached))
             return (T)cached;
 
-        if (!loaders.TryGetValue(typeof(T), out var loader))
-            throw new InvalidOperationException($"No resource loader is registered for {typeof(T).Name}.");
-
-        var resource = ((Func<string, T?>)loader)(name)
+        var resource = TryLoadResource<T>(name)
             ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
 
         cache.Add(key, resource);
@@ -92,23 +89,33 @@ public sealed class ResourceCache
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        if (!loaders.TryGetValue(typeof(T), out var loader))
-            throw new InvalidOperationException($"No resource loader is registered for {typeof(T).Name}.");
-
-        return ((Func<string, T?>)loader)(name)
+        return TryLoadResource<T>(name)
             ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
     }
 
     public bool Exists<T>(string name)
         where T : Resource
     {
-        return cache.ContainsKey((typeof(T), name));
+        return cache.ContainsKey((typeof(T), name)) || !string.IsNullOrEmpty(GetResourceFileName(name));
     }
 
     public bool Exists(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return resourceDirs.Select(path => Path.Combine(path, name)).Any(File.Exists);
+        return !string.IsNullOrEmpty(GetResourceFileName(name));
+    }
+
+    public string GetResourceFileName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        foreach (var resourceDir in resourceDirs)
+        {
+            var candidate = Path.Combine(resourceDir, name);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return string.Empty;
     }
 
     public void ReleaseResource<T>(string name)
@@ -130,5 +137,45 @@ public sealed class ResourceCache
     public void ReleaseAllResources(bool force = false)
     {
         cache.Clear();
+    }
+
+    private T? TryLoadResource<T>(string name)
+        where T : Resource
+    {
+        if (loaders.TryGetValue(typeof(T), out var loader))
+        {
+            var loaded = ((Func<string, T?>)loader)(name);
+            if (loaded is not null)
+                return loaded;
+        }
+
+        var fileName = GetResourceFileName(name);
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        T? resource;
+        try
+        {
+            resource = Activator.CreateInstance(typeof(T), name) as T;
+        }
+        catch (MissingMethodException)
+        {
+            return null;
+        }
+
+        if (resource is null)
+            return null;
+
+        resource.AbsoluteFileName = fileName;
+        resource.AsyncLoadState = AsyncLoadState.Loading;
+        using var stream = File.OpenRead(fileName);
+        if (!resource.BeginLoad(stream) || !resource.EndLoad())
+        {
+            resource.AsyncLoadState = AsyncLoadState.Fail;
+            return null;
+        }
+
+        resource.AsyncLoadState = AsyncLoadState.Done;
+        return resource;
     }
 }
