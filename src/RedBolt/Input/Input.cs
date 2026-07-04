@@ -2,7 +2,7 @@ using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-public sealed class InputSystem
+public sealed class Input
 {
     private const uint SdlInitVideo = 0x00000020u;
 

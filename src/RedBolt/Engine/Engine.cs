@@ -10,9 +10,11 @@ public sealed class Engine
 
     public ResourceCache Resources { get; } = new();
 
-    public InputSystem Input { get; } = new();
+    public Input Input { get; } = new();
 
-    public GraphicsSystem Graphics { get; } = new();
+    public Graphics Graphics { get; } = new();
+
+    public Renderer Renderer { get; } = new();
 
     public bool IsInitialized { get; private set; }
 
@@ -79,7 +81,7 @@ public sealed class Engine
             update(timeStep);
 
         if (!IsHeadless && !IsExiting)
-            Graphics.RenderFrame();
+            Renderer.RenderFrame(Graphics);
     }
 
     public void Exit()
@@ -93,6 +95,7 @@ public sealed class Engine
             return;
 
         Graphics.Shutdown();
+        Renderer.ClearViewports();
         Input.Shutdown();
         IsInitialized = false;
         IsExiting = false;

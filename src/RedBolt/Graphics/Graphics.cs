@@ -4,7 +4,7 @@ using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-public sealed class GraphicsSystem
+public sealed class Graphics
 {
     private const string PixelShaderSource = """
 in vec3 v_Color;
@@ -75,11 +75,13 @@ void main()
     private IntPtr glContext;
     private SdlWindow? window;
     private DrawAttribs? cubeDrawAttribs;
-    private Viewport? viewport;
-
     public bool IsInitialized { get; private set; }
 
-    public void Initialize(EngineParameters parameters, InputSystem input)
+    public int Width { get; private set; }
+
+    public int Height { get; private set; }
+
+    public void Initialize(EngineParameters parameters, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(input);
@@ -90,6 +92,8 @@ void main()
         if (parameters.GraphicsBackend is not GraphicsBackend.Auto and not GraphicsBackend.OpenGL)
             throw new NotSupportedException($"The first RedBolt graphics backend supports OpenGL only, not {parameters.GraphicsBackend}.");
 
+        Width = parameters.WindowWidth;
+        Height = parameters.WindowHeight;
         window = input.Window;
         glContext = SdlNativeBindings.SdlGlCreateContext(window);
         if (glContext == IntPtr.Zero)
@@ -136,12 +140,7 @@ void main()
         }
     }
 
-    public void SetViewport(Viewport viewport)
-    {
-        this.viewport = viewport ?? throw new ArgumentNullException(nameof(viewport));
-    }
-
-    public void RenderFrame()
+    internal void RenderViewport(Viewport? viewport)
     {
         if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || pipelineState is null || cubeDrawAttribs is null || renderTargetView is null)
             return;
@@ -162,7 +161,8 @@ void main()
 
     public void Shutdown()
     {
-        viewport = null;
+        Width = 0;
+        Height = 0;
         renderTargets[0] = null;
         renderTargetView = null;
 

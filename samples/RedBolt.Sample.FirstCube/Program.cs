@@ -41,7 +41,7 @@ sealed class FirstCubeApplication : Application
         cube.Model = Resources.Get<Model>("Models/ProceduralBox");
         cube.Material = Resources.Get<Material>("Materials/FirstCube");
 
-        Graphics.SetViewport(new Viewport(scene, camera));
+        Renderer.SetViewport(0, new Viewport(scene, camera));
     }
 
     protected override void Update(float timeStep)

@@ -19,9 +19,11 @@ public abstract class Application
 
     protected ResourceCache Resources => Engine.Resources;
 
-    protected GraphicsSystem Graphics => Engine.Graphics;
+    protected Graphics Graphics => Engine.Graphics;
 
-    protected InputSystem Input => Engine.Input;
+    protected Renderer Renderer => Engine.Renderer;
+
+    protected Input Input => Engine.Input;
 
     protected virtual void Setup(EngineParameters parameters)
     {
