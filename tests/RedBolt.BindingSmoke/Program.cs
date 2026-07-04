@@ -792,6 +792,44 @@ sealed class SmokeHeadlessApplication : Application
         light.SetLightType(LightType.Directional);
         if (light.GetDistanceTo(cube) != 0.0f || light.GetWorldBoundingBox().IsInside(Vector3.Zero) == Intersection.Outside)
             throw new InvalidOperationException("Light did not preserve rbfx-style directional bounds or distance helpers.");
+        var zoneNode = scene.CreateChild("Zone");
+        var zone = zoneNode.CreateComponent<Zone>();
+        if (zone.GetDrawableFlags() != DrawableFlags.Zone || zone.GetAmbientColor() != Zone.DefaultAmbientColor || zone.GetFogColor() != Zone.DefaultFogColor || !MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), Zone.DefaultFogStart))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style default render state helpers.");
+        zone.SetBoundingBox(new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f)));
+        zone.SetAmbientColor(new Color(0.2f, 0.3f, 0.4f));
+        zone.SetAmbientBrightness(2.0f);
+        zone.SetBackgroundBrightness(3.0f);
+        zone.SetBackgroundStatic(true);
+        zone.SetFogColor(new Color(0.5f, 0.6f, 0.7f));
+        zone.SetFogStart(-1.0f);
+        zone.SetFogEnd(-1.0f);
+        zone.SetFogHeight(4.0f);
+        zone.SetFogHeightScale(5.0f);
+        zone.SetPriority(7);
+        zone.SetHeightFog(true);
+        zone.SetOverride(true);
+        zone.SetAmbientGradient(true);
+        zone.SetZoneTexture(material);
+        var zoneTextureRef = ResourceRef.Parse("TextureCube;Textures/Sky.xml");
+        zone.SetZoneTextureAttr(zoneTextureRef);
+        if (!zone.GetBoundingBox().Equals(new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f))) || zone.GetAmbientColor() != new Color(0.2f, 0.3f, 0.4f))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style bounding box or ambient color helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(zone.GetAmbientBrightness(), 2.0f) || !MathDefs.ApproximatelyEquivalent(zone.GetBackgroundBrightness(), 3.0f) || !zone.IsBackgroundStatic())
+            throw new InvalidOperationException("Zone did not preserve rbfx-style ambient/background brightness helpers.");
+        if (zone.GetFogColor() != new Color(0.5f, 0.6f, 0.7f) || !MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), 0.0f) || !MathDefs.ApproximatelyEquivalent(zone.GetFogEnd(), 0.0f))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style fog color or distance clamping helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(zone.GetFogHeight(), 4.0f) || !MathDefs.ApproximatelyEquivalent(zone.GetFogHeightScale(), 5.0f) || zone.GetPriority() != 7)
+            throw new InvalidOperationException("Zone did not preserve rbfx-style fog height or priority helpers.");
+        if (!zone.GetHeightFog() || !zone.GetOverride() || !zone.GetAmbientGradient() || !ReferenceEquals(zone.GetZoneTexture(), material) || zone.GetZoneTextureAttr() != zoneTextureRef)
+            throw new InvalidOperationException("Zone did not preserve rbfx-style mode flags or zone texture metadata helpers.");
+        if (!zone.GetAmbientStartColor().ApproximatelyEquivalent(zone.GetAmbientColor()) || !zone.GetAmbientEndColor().ApproximatelyEquivalent(zone.GetAmbientColor()) || !zone.GetAmbientLighting().ApproximatelyEquivalent(new Vector3(0.4f, 0.6f, 0.8f)))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style ambient gradient fallback or lighting helpers.");
+        zoneNode.SetTransform(new Vector3(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 1.0f, 1.0f));
+        if (!zone.IsInside(new Vector3(6.0f, 0.0f, 0.0f)) || zone.IsInside(new Vector3(8.0f, 0.0f, 0.0f)))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style oriented containment helpers.");
+        if (!(zone.GetInverseWorldTransform() * new Vector3(6.0f, 0.0f, 0.0f)).ApproximatelyEquivalent(new Vector3(0.5f, 0.0f, 0.0f)))
+            throw new InvalidOperationException("Zone did not preserve rbfx-style inverse world transform helpers.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)
