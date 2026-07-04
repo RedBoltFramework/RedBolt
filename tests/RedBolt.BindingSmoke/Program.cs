@@ -992,6 +992,20 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("InputMap did not preserve rbfx-style axis, hat, or screen mapping helpers.");
         if (!inputMap.HasMetadata() || !Equals(inputMap.GetMetadata("Sensitivity"), 2.0f) || !InputMap.GetScanCodeNames().Contains(nameof(Scancode.A)) || !InputMap.GetMouseButtonNames().Contains(nameof(MouseButton.Left)))
             throw new InvalidOperationException("InputMap did not preserve rbfx-style metadata or name-list helpers.");
+        var axisAdapter = new AxisAdapter();
+        axisAdapter.SetDeadZone(0.2f);
+        axisAdapter.SetSensitivity(1.0f);
+        if (!MathDefs.ApproximatelyEquivalent(axisAdapter.Transform(0.1f), 0.0f) || !MathDefs.ApproximatelyEquivalent(axisAdapter.Transform(0.6f), 0.25f, 0.001f))
+            throw new InvalidOperationException("AxisAdapter did not preserve rbfx-style dead-zone or positive sensitivity helpers.");
+        axisAdapter.SetInverted(true);
+        axisAdapter.SetNegativeSensitivity(0.0f);
+        if (!axisAdapter.IsInverted() || !MathDefs.ApproximatelyEquivalent(axisAdapter.Transform(0.6f), -0.5f, 0.001f))
+            throw new InvalidOperationException("AxisAdapter did not preserve rbfx-style inversion helpers.");
+        axisAdapter.SetInverted(false);
+        axisAdapter.SetNeutralValue(-1.0f);
+        axisAdapter.SetNegativeSensitivity(-0.5f);
+        if (!MathDefs.ApproximatelyEquivalent(axisAdapter.GetDeadZone(), 0.2f) || !MathDefs.ApproximatelyEquivalent(axisAdapter.GetNeutralValue(), -1.0f) || !MathDefs.ApproximatelyEquivalent(axisAdapter.GetPositiveSensitivity(), 1.0f) || !MathDefs.ApproximatelyEquivalent(axisAdapter.GetNegativeSensitivity(), -0.5f))
+            throw new InvalidOperationException("AxisAdapter did not preserve rbfx-style getter helpers.");
         Input.BeginFrame();
         Input.SetMouseButton(MouseButton.Left, false, clicks: 1);
         if (Input.GetMouseButtonDown(MouseButton.Left) || !Input.GetMouseButtonClick(MouseButton.Left))
