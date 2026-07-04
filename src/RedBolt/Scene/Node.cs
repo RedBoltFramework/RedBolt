@@ -64,6 +64,25 @@ public sealed class Node : Serializable
             new Dictionary<StringHash, object?>());
     }
 
+    public static IReadOnlyList<Node> GetNodes(IEnumerable<Component> components)
+    {
+        ArgumentNullException.ThrowIfNull(components);
+        return components
+            .Where(static component => component.IsAttached)
+            .Select(static component => component.Node)
+            .Distinct()
+            .ToArray();
+    }
+
+    public static IReadOnlyList<Node> GetParentNodes(IEnumerable<Node> nodes)
+    {
+        ArgumentNullException.ThrowIfNull(nodes);
+        var candidates = nodes.Distinct().ToArray();
+        return candidates
+            .Where(node => !candidates.Any(other => !ReferenceEquals(node, other) && node.IsChildOf(other)))
+            .ToArray();
+    }
+
     public IReadOnlyList<Node> Children => children;
 
     public IReadOnlyList<Component> Components => components;
@@ -159,6 +178,29 @@ public sealed class Node : Serializable
         return GetComponent<T>() ?? CreateComponent<T>(id);
     }
 
+    public Component? CloneComponent(Component component, uint id = 0)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+
+        if (Activator.CreateInstance(component.GetType()) is not Component clone)
+            return null;
+
+        clone.SetId(Scene.AllocateComponentId(id));
+        clone.Attach(this);
+        components.Add(clone);
+        Scene.RegisterComponent(clone);
+        clone.CopyAttributes(component);
+        clone.SetTemporary(component.IsTemporary);
+        clone.ApplyAttributes();
+        return clone;
+    }
+
+    public T? CloneComponent<T>(T component, uint id = 0)
+        where T : Component
+    {
+        return CloneComponent((Component)component, id) as T;
+    }
+
     public T? GetComponent<T>()
         where T : Component
     {
@@ -183,6 +225,43 @@ public sealed class Node : Serializable
 
         return result;
     }
+
+    public Component? GetComponent(uint index)
+    {
+        return index < components.Count ? components[(int)index] : null;
+    }
+
+    public T? GetNthComponent<T>(uint index)
+        where T : Component
+    {
+        var current = 0u;
+        foreach (var component in components)
+        {
+            if (component is not T typed)
+                continue;
+
+            if (current == index)
+                return typed;
+
+            ++current;
+        }
+
+        return null;
+    }
+
+    public T? GetDerivedComponent<T>()
+        where T : Component
+    {
+        return GetComponent<T>();
+    }
+
+    public bool HasComponent<T>()
+        where T : Component
+    {
+        return GetComponent<T>() is not null;
+    }
+
+    public uint GetNumComponents() => (uint)components.Count;
 
     public T? GetParentComponent<T>()
         where T : Component
@@ -506,6 +585,19 @@ public sealed class Node : Serializable
     {
         for (var index = components.Count - 1; index >= 0; --index)
             RemoveComponent(components[index]);
+    }
+
+    public void RemoveAllComponents() => RemoveComponents();
+
+    public Node? Clone(Node? parent = null)
+    {
+        var destination = parent ?? Parent;
+        if (destination is null)
+            return null;
+        if (!ReferenceEquals(destination.Scene, Scene))
+            throw new InvalidOperationException("Cross-scene cloning is not supported by the managed scene slice.");
+
+        return CloneRecursive(destination);
     }
 
     public void Remove()
@@ -891,6 +983,28 @@ public sealed class Node : Serializable
     {
         if (children.Remove(child))
             child.Parent = null;
+    }
+
+    private Node CloneRecursive(Node parent)
+    {
+        var clone = parent.CreateChild(name, temporary: Temporary);
+        clone.CopyAttributes(this);
+        clone.SetTemporary(Temporary);
+
+        foreach (var component in components)
+        {
+            if (!component.IsTemporary)
+                clone.CloneComponent(component);
+        }
+
+        foreach (var child in children)
+        {
+            if (!child.IsTemporary)
+                child.CloneRecursive(clone);
+        }
+
+        clone.ApplyAttributes();
+        return clone;
     }
 
     private void RegisterComponentsRecursive()

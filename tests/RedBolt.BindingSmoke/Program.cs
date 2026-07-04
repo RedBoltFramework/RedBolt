@@ -423,6 +423,33 @@ sealed class SmokeHeadlessApplication : Application
         hierarchyParent.ReorderComponent(reorderModel, 0);
         if (reorderModel.GetIndexInParent() != 0 || reorderCamera.GetIndexInParent() != 1)
             throw new InvalidOperationException("Node did not preserve rbfx-style component reordering helpers.");
+        if (hierarchyParent.GetNumComponents() != 2 || hierarchyParent.GetComponent(0) != reorderModel || hierarchyParent.GetNthComponent<Camera>(0) != reorderCamera || !hierarchyParent.HasComponent<StaticModel>())
+            throw new InvalidOperationException("Node did not preserve rbfx-style component query helpers.");
+        var cloneComponentTarget = scene.CreateChild("CloneComponentTarget");
+        reorderCamera.SetFov(75.0f);
+        var clonedCameraComponent = cloneComponentTarget.CloneComponent(reorderCamera) as Camera;
+        if (clonedCameraComponent is null || clonedCameraComponent.Id == reorderCamera.Id || !MathDefs.ApproximatelyEquivalent(clonedCameraComponent.GetFov(), 75.0f) || !ReferenceEquals(clonedCameraComponent.Node, cloneComponentTarget))
+            throw new InvalidOperationException("Node did not preserve rbfx-style component cloning helpers.");
+        var cloneSource = scene.CreateChild("CloneSource");
+        cloneSource.SetTags(["cloneable"]);
+        cloneSource.SetVar("Score", 5);
+        cloneSource.SetTransform(new Vector3(3.0f, 4.0f, 5.0f), Quaternion.Identity, new Vector3(2.0f, 2.0f, 2.0f));
+        var cloneSourceCamera = cloneSource.CreateComponent<Camera>();
+        cloneSourceCamera.SetFov(65.0f);
+        cloneSource.CreateComponent<Octree>().SetTemporary(true);
+        var cloneChild = cloneSource.CreateChild("CloneChild");
+        cloneChild.SetPosition(new Vector3(1.0f, 0.0f, 0.0f));
+        cloneSource.CreateTemporaryChild("TemporaryCloneChild");
+        var cloneTarget = scene.CreateChild("CloneTarget");
+        var clonedNode = cloneSource.Clone(cloneTarget);
+        if (clonedNode is null || clonedNode.Parent != cloneTarget || clonedNode.Id == cloneSource.Id || clonedNode.Name != "CloneSource" || !clonedNode.HasTag("cloneable") || !Equals(clonedNode.GetVar("Score"), 5))
+            throw new InvalidOperationException("Node did not preserve rbfx-style node cloning identity helpers.");
+        if (!clonedNode.Position.ApproximatelyEquivalent(cloneSource.Position) || clonedNode.GetChild("CloneChild") is null || clonedNode.GetChild("TemporaryCloneChild") is not null)
+            throw new InvalidOperationException("Node did not preserve rbfx-style recursive clone helpers.");
+        if (clonedNode.GetComponent<Camera>()?.GetFov() != 65.0f || clonedNode.HasComponent<Octree>())
+            throw new InvalidOperationException("Node did not preserve rbfx-style cloned component filtering helpers.");
+        if (Node.GetNodes([cloneSourceCamera, clonedCameraComponent]).Count != 2 || Node.GetParentNodes([cloneSource, cloneChild]).SingleOrDefault() != cloneSource)
+            throw new InvalidOperationException("Node did not preserve rbfx-style static node collection helpers.");
         var temporaryParent = scene.CreateChild("TemporaryParent", temporary: true);
         if (!temporaryParent.CreateChild("TemporaryChild").IsTemporaryEffective() || !scene.Root.IsTransformHierarchyRoot())
             throw new InvalidOperationException("Node did not preserve rbfx-style effective temporary or hierarchy-root helpers.");
