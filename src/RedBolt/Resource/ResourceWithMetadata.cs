@@ -13,6 +13,8 @@ public abstract class ResourceWithMetadata : Resource
 
     public IReadOnlyList<string> MetadataKeys => metadata.Keys.ToArray();
 
+    public IReadOnlyList<string> GetMetadataKeys() => MetadataKeys;
+
     public void AddMetadata(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

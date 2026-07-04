@@ -272,6 +272,13 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Material did not preserve rbfx-style shader parameter helpers.");
         if (!material.UVOffset.ApproximatelyEquivalent(new Vector2(0.25f, 0.5f)) || !material.UVRepeat.ApproximatelyEquivalent(new Vector2(2.0f, 4.0f)))
             throw new InvalidOperationException("Material did not preserve rbfx-style UV transform metadata.");
+        material.AddMetadata("Category", "Smoke");
+        var metadataClone = material.Clone("Materials/FirstCubeMetadataClone");
+        if (!material.HasMetadata() || !Equals(material.GetMetadata("Category"), "Smoke") || !material.GetMetadataKeys().Contains("Category") || !Equals(metadataClone.GetMetadata("Category"), "Smoke"))
+            throw new InvalidOperationException("ResourceWithMetadata did not preserve rbfx-style metadata helpers.");
+        metadataClone.RemoveMetadata("Category");
+        if (metadataClone.HasMetadata("Category"))
+            throw new InvalidOperationException("ResourceWithMetadata did not preserve rbfx-style metadata removal helpers.");
         var tempResourceDir = Path.Combine(Path.GetTempPath(), "RedBolt.BindingSmoke", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempResourceDir, "Data"));
         try
@@ -289,6 +296,18 @@ sealed class SmokeHeadlessApplication : Application
                 throw new InvalidOperationException("ResourceCache did not load and cache a file-backed BinaryFile.");
             if (ReferenceEquals(binaryFile, Resources.GetTempResource<BinaryFile>("Data/hello.txt")))
                 throw new InvalidOperationException("ResourceCache temp resource loading reused a cached instance.");
+            var savedBinaryName = Path.Combine(tempResourceDir, "Data", "saved.bin");
+            var savedBinaryFile = new BinaryFile("Data/saved.bin");
+            savedBinaryFile.SetText("saved through resource helper");
+            var reloadedBinaryFile = new BinaryFile("Data/reloaded.bin");
+            if (!savedBinaryFile.SaveFile(savedBinaryName) || !reloadedBinaryFile.LoadFile(savedBinaryName) || reloadedBinaryFile.GetText() != "saved through resource helper")
+                throw new InvalidOperationException("Resource did not preserve rbfx-style LoadFile/SaveFile helpers.");
+            reloadedBinaryFile.SetName("Data/renamed.bin");
+            reloadedBinaryFile.SetMemoryUse(123u);
+            reloadedBinaryFile.SetAsyncLoadState(AsyncLoadState.Queued);
+            reloadedBinaryFile.SetAbsoluteFileName(savedBinaryName);
+            if (reloadedBinaryFile.GetName() != "Data/renamed.bin" || reloadedBinaryFile.GetNameHash().Value != StringHash.Calculate("Data/renamed.bin") || reloadedBinaryFile.GetMemoryUse() != 123u || reloadedBinaryFile.GetAsyncLoadState() != AsyncLoadState.Queued || reloadedBinaryFile.GetAbsoluteFileName() != savedBinaryName)
+                throw new InvalidOperationException("Resource did not preserve rbfx-style property helpers.");
             var jsonFile = Resources.GetResource<JSONFile>("Data/config.json");
             if (jsonFile.GetRoot()?["value"]?.ToString() != "7" || jsonFile.AbsoluteFileName != jsonName || !jsonFile.ToString("").Contains("redbolt", StringComparison.Ordinal))
                 throw new InvalidOperationException("ResourceCache did not load a file-backed JSONFile.");
