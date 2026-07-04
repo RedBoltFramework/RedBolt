@@ -6,12 +6,30 @@ public sealed class Input
 {
     private const uint SdlInitVideo = 0x00000020u;
 
+    private readonly HashSet<Key> keyDown = [];
+    private readonly HashSet<Key> keyPress = [];
+    private readonly HashSet<Scancode> scancodeDown = [];
+    private readonly HashSet<Scancode> scancodePress = [];
     private SdlEvent? nativeEvent;
     private SdlWindow? window;
+    private MouseButton mouseButtonClick;
+    private MouseButton mouseButtonDown;
+    private MouseButton mouseButtonPress;
+    private int mouseMoveWheel;
 
     public bool ExitRequested { get; private set; }
 
     public bool IsInitialized { get; private set; }
+
+    public MouseMode MouseMode { get; private set; } = MouseMode.Absolute;
+
+    public IntVector2 MouseMove { get; private set; }
+
+    public int MouseMoveWheel => mouseMoveWheel;
+
+    public IntVector2 MousePosition { get; private set; } = IntVector2.Zero;
+
+    public Qualifier Qualifiers { get; private set; }
 
     internal SdlWindow Window => window is not null && !window.IsNull
         ? window
@@ -66,6 +84,12 @@ public sealed class Input
     public void BeginFrame()
     {
         ExitRequested = false;
+        keyPress.Clear();
+        scancodePress.Clear();
+        mouseButtonClick = MouseButton.None;
+        mouseButtonPress = MouseButton.None;
+        mouseMoveWheel = 0;
+        MouseMove = IntVector2.Zero;
     }
 
     public void PollEvents()
@@ -80,15 +104,94 @@ public sealed class Input
             {
                 ExitRequested = true;
             }
-            else if (eventType == SdlEventType.SdlKeydown && nativeEvent.KeyKeysymScancode == SdlScancode.SdlScancodeEscape)
+            else if (eventType == SdlEventType.SdlKeydown)
             {
-                ExitRequested = true;
+                HandleKeyDown(nativeEvent);
+            }
+            else if (eventType == SdlEventType.SdlKeyup)
+            {
+                HandleKeyUp(nativeEvent);
+            }
+            else if (eventType == SdlEventType.SdlMousebuttondown)
+            {
+                HandleMouseButtonDown(nativeEvent);
+            }
+            else if (eventType == SdlEventType.SdlMousebuttonup)
+            {
+                HandleMouseButtonUp(nativeEvent);
+            }
+            else if (eventType == SdlEventType.SdlMousemotion)
+            {
+                HandleMouseMotion(nativeEvent);
+            }
+            else if (eventType == SdlEventType.SdlMousewheel)
+            {
+                mouseMoveWheel += nativeEvent.WheelY;
             }
             else if (eventType == SdlEventType.SdlWindowevent && nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
             {
                 ExitRequested = true;
             }
         }
+    }
+
+    public bool GetKeyDown(Key key)
+    {
+        return keyDown.Contains(key);
+    }
+
+    public bool GetKeyPress(Key key)
+    {
+        return keyPress.Contains(key);
+    }
+
+    public bool GetScancodeDown(Scancode scancode)
+    {
+        return scancodeDown.Contains(scancode);
+    }
+
+    public bool GetScancodePress(Scancode scancode)
+    {
+        return scancodePress.Contains(scancode);
+    }
+
+    public bool GetMouseButtonDown(MouseButton button)
+    {
+        return (mouseButtonDown & button) != 0;
+    }
+
+    public bool GetMouseButtonPress(MouseButton button)
+    {
+        return (mouseButtonPress & button) != 0;
+    }
+
+    public bool GetMouseButtonClick(MouseButton button)
+    {
+        return (mouseButtonClick & button) != 0;
+    }
+
+    public bool GetQualifierDown(Qualifier qualifier)
+    {
+        return qualifier == Qualifier.Any
+            ? Qualifiers != Qualifier.None
+            : (Qualifiers & qualifier) != 0;
+    }
+
+    public bool GetQualifierPress(Qualifier qualifier)
+    {
+        return qualifier switch
+        {
+            Qualifier.Shift => GetKeyPress(Key.LeftShift) || GetKeyPress(Key.RightShift),
+            Qualifier.Ctrl => GetKeyPress(Key.LeftCtrl) || GetKeyPress(Key.RightCtrl),
+            Qualifier.Alt => GetKeyPress(Key.LeftAlt) || GetKeyPress(Key.RightAlt),
+            Qualifier.Any => GetQualifierPress(Qualifier.Shift) || GetQualifierPress(Qualifier.Ctrl) || GetQualifierPress(Qualifier.Alt),
+            _ => false
+        };
+    }
+
+    public void SetMouseMode(MouseMode mode, bool suppressEvent = false)
+    {
+        MouseMode = mode;
     }
 
     internal NativeWindowInfo GetNativeWindowInfo()
@@ -120,6 +223,92 @@ public sealed class Input
 
         IsInitialized = false;
         ExitRequested = false;
+        keyDown.Clear();
+        keyPress.Clear();
+        scancodeDown.Clear();
+        scancodePress.Clear();
+        mouseButtonClick = MouseButton.None;
+        mouseButtonDown = MouseButton.None;
+        mouseButtonPress = MouseButton.None;
+        mouseMoveWheel = 0;
+        MouseMove = IntVector2.Zero;
+        MousePosition = IntVector2.Zero;
+        Qualifiers = Qualifier.None;
+    }
+
+    private void HandleKeyDown(SdlEvent @event)
+    {
+        var key = (Key)@event.KeyKeysymSym;
+        var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
+        if (keyDown.Add(key))
+            keyPress.Add(key);
+        if (scancodeDown.Add(scancode))
+            scancodePress.Add(scancode);
+
+        UpdateQualifiers(key, isDown: true);
+        if (scancode == Scancode.Escape)
+            ExitRequested = true;
+    }
+
+    private void HandleKeyUp(SdlEvent @event)
+    {
+        var key = (Key)@event.KeyKeysymSym;
+        var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
+        keyDown.Remove(key);
+        scancodeDown.Remove(scancode);
+        UpdateQualifiers(key, isDown: false);
+    }
+
+    private void HandleMouseButtonDown(SdlEvent @event)
+    {
+        var button = ToMouseButton(@event.ButtonButton);
+        mouseButtonDown |= button;
+        mouseButtonPress |= button;
+    }
+
+    private void HandleMouseButtonUp(SdlEvent @event)
+    {
+        var button = ToMouseButton(@event.ButtonButton);
+        mouseButtonDown &= ~button;
+        mouseButtonClick |= button;
+    }
+
+    private void HandleMouseMotion(SdlEvent @event)
+    {
+        MousePosition = new IntVector2(@event.MotionX, @event.MotionY);
+        MouseMove = new IntVector2(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
+    }
+
+    private void UpdateQualifiers(Key key, bool isDown)
+    {
+        var qualifier = key switch
+        {
+            Key.LeftShift or Key.RightShift => Qualifier.Shift,
+            Key.LeftCtrl or Key.RightCtrl => Qualifier.Ctrl,
+            Key.LeftAlt or Key.RightAlt => Qualifier.Alt,
+            _ => Qualifier.None
+        };
+
+        if (qualifier == Qualifier.None)
+            return;
+
+        if (isDown)
+            Qualifiers |= qualifier;
+        else
+            Qualifiers &= ~qualifier;
+    }
+
+    private static MouseButton ToMouseButton(byte button)
+    {
+        return button switch
+        {
+            1 => MouseButton.Left,
+            2 => MouseButton.Middle,
+            3 => MouseButton.Right,
+            4 => MouseButton.X1,
+            5 => MouseButton.X2,
+            _ => MouseButton.None
+        };
     }
 
     private static SdlSysWMinfo CreateInitializedWmInfo()
