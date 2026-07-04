@@ -284,6 +284,8 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("ObjectExtensionMethods did not preserve rbfx-style formatted type names.");
         if (ObjectReflection<StaticModel>.ClassName != nameof(StaticModel) || ObjectReflection<StaticModel>.TypeId.Value != StringHash.Calculate(nameof(StaticModel)))
             throw new InvalidOperationException("ObjectReflection did not preserve rbfx-style fallback type metadata.");
+        if (new StringHash(typeof(StaticModel)).Value != StringHash.Calculate(nameof(StaticModel)) || ((StringHash)123u).Value != 123u)
+            throw new InvalidOperationException("StringHash did not preserve rbfx-style type and uint conversions.");
 
         var explicitNode = scene.CreateChild("Explicit", 42);
         if (explicitNode.Id != 42 || explicitNode.NameHash.Value == 0)

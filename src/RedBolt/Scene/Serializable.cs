@@ -75,7 +75,7 @@ public abstract class Serializable
     public object? GetInstanceDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return instanceDefaultValues.GetValueOrDefault(new StringHash(StringHash.Calculate(name)));
+        return instanceDefaultValues.GetValueOrDefault(new StringHash(name));
     }
 
     public uint GetNumAttributes()
@@ -165,7 +165,7 @@ public abstract class Serializable
     public void SetInstanceDefault(string name, object? defaultValue)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        instanceDefaultValues[new StringHash(StringHash.Calculate(name))] = defaultValue;
+        instanceDefaultValues[new StringHash(name)] = defaultValue;
     }
 
     public void SetTemporary(bool enable)
@@ -193,7 +193,7 @@ public abstract class Serializable
 
     private AttributeInfo? FindAttribute(string name)
     {
-        var nameHash = new StringHash(StringHash.Calculate(name));
+        var nameHash = new StringHash(name);
         foreach (var attribute in attributes)
         {
             if (attribute.NameHash == nameHash && string.Equals(attribute.Name, name, StringComparison.Ordinal))

@@ -267,7 +267,7 @@ public sealed class Node : Serializable
     public Node? GetChild(string name, bool recursive = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return GetChild(new StringHash(StringHash.Calculate(name)), recursive);
+        return GetChild(new StringHash(name), recursive);
     }
 
     public IReadOnlyList<Node> GetChildren(bool recursive = false)
@@ -356,7 +356,7 @@ public sealed class Node : Serializable
 
     public bool HasTag(string tag) => tags.Contains(tag);
 
-    public bool HasVar(string key) => variables.ContainsKey(new StringHash(StringHash.Calculate(key)));
+    public bool HasVar(string key) => variables.ContainsKey(new StringHash(key));
 
     public bool HasVar(StringHash key) => variables.ContainsKey(key);
 
@@ -461,7 +461,7 @@ public sealed class Node : Serializable
 
     public object? GetVar(string key)
     {
-        return GetVarByHash(new StringHash(StringHash.Calculate(key)));
+        return GetVarByHash(new StringHash(key));
     }
 
     public object? GetVarByHash(StringHash key)
@@ -506,7 +506,7 @@ public sealed class Node : Serializable
 
     public bool RemoveTag(string tag) => tags.Remove(tag);
 
-    public bool RemoveVar(string key) => variables.Remove(new StringHash(StringHash.Calculate(key)));
+    public bool RemoveVar(string key) => variables.Remove(new StringHash(key));
 
     public bool RemoveVarByHash(StringHash key) => variables.Remove(key);
 
@@ -599,7 +599,7 @@ public sealed class Node : Serializable
 
     public void SetTransform2D(Vector2 position, float rotation, Vector2 scale) => SetTransform(new Vector3(position.X, position.Y, this.position.Z), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, this.scale.Z));
 
-    public void SetVar(string key, object? value) => SetVarByHash(new StringHash(StringHash.Calculate(key)), value);
+    public void SetVar(string key, object? value) => SetVarByHash(new StringHash(key), value);
 
     public void SetVarByHash(StringHash key, object? value) => variables[key] = value;
 
