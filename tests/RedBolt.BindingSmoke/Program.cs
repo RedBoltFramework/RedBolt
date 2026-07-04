@@ -1027,6 +1027,18 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("InputMap did not preserve rbfx-style axis, hat, or screen mapping helpers.");
         if (!inputMap.HasMetadata() || !Equals(inputMap.GetMetadata("Sensitivity"), 2.0f) || !InputMap.GetScanCodeNames().Contains(nameof(Scancode.A)) || !InputMap.GetMouseButtonNames().Contains(nameof(MouseButton.Left)))
             throw new InvalidOperationException("InputMap did not preserve rbfx-style metadata or name-list helpers.");
+        inputMap.MapControllerButton("Dash", ControllerButton.B);
+        inputMap.MapHat("PadUp", HatPosition.Up);
+        Input.SetControllerButton(ControllerButton.B, true);
+        Input.SetControllerAxis(ControllerAxis.TriggerRight, 0.75f);
+        Input.SetHatPosition(HatPosition.Up);
+        Input.SetScreenButton("FireButton", true);
+        if (!MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("Dash"), 1.0f) || !MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("Throttle"), 0.75f, 0.001f) || !MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("PadUp"), 1.0f) || !MathDefs.ApproximatelyEquivalent(inputMap.Evaluate("TouchFire"), 1.0f))
+            throw new InvalidOperationException("Input/InputMap did not preserve rbfx-style controller, axis, hat, or screen button evaluation helpers.");
+        Input.SetControllerButton(ControllerButton.B, false);
+        Input.SetControllerAxis(ControllerAxis.TriggerRight, 0.0f);
+        Input.SetHatPosition(HatPosition.Center);
+        Input.SetScreenButton("FireButton", false);
         var axisAdapter = new AxisAdapter();
         axisAdapter.SetDeadZone(0.2f);
         axisAdapter.SetSensitivity(1.0f);

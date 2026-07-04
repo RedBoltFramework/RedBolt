@@ -12,12 +12,18 @@ public sealed class Input
     private readonly HashSet<Key> keyPress = [];
     private readonly HashSet<Scancode> scancodeDown = [];
     private readonly HashSet<Scancode> scancodePress = [];
+    private readonly HashSet<ControllerButton> controllerButtonsDown = [];
+    private readonly HashSet<uint> joystickButtonsDown = [];
+    private readonly Dictionary<ControllerAxis, float> controllerAxisPositions = new();
+    private readonly Dictionary<uint, float> joystickAxisPositions = new();
+    private readonly HashSet<string> screenButtonsDown = new(StringComparer.Ordinal);
     private SdlEvent? nativeEvent;
     private SdlWindow? window;
     private MouseButton mouseButtonClick;
     private MouseButton mouseButtonDown;
     private MouseButton mouseButtonPress;
     private int mouseMoveWheel;
+    private HatPosition hatPosition = HatPosition.Center;
     private IntVector2 backbufferSize = IntVector2.Zero;
     private Vector2 systemToBackbufferScale = Vector2.One;
     private bool lastMouseGrabbed;
@@ -246,6 +252,44 @@ public sealed class Input
         return (mouseButtonClick & button) != 0;
     }
 
+    public bool GetControllerButtonDown(ControllerButton button)
+    {
+        return controllerButtonsDown.Contains(button);
+    }
+
+    public bool GetJoystickButtonDown(uint buttonIndex)
+    {
+        return joystickButtonsDown.Contains(buttonIndex);
+    }
+
+    public float GetControllerAxisPosition(ControllerAxis axis)
+    {
+        return controllerAxisPositions.GetValueOrDefault(axis);
+    }
+
+    public float GetJoystickAxisPosition(uint axis)
+    {
+        return joystickAxisPositions.GetValueOrDefault(axis);
+    }
+
+    public HatPosition GetHatPosition()
+    {
+        return hatPosition;
+    }
+
+    public bool GetHatDown(HatPosition position)
+    {
+        return position == HatPosition.Center
+            ? hatPosition == HatPosition.Center
+            : (hatPosition & position) == position;
+    }
+
+    public bool GetScreenButtonDown(string elementName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        return screenButtonsDown.Contains(elementName);
+    }
+
     public Vector2 GetRelativeMousePosition()
     {
         return backbufferSize.X > 0 && backbufferSize.Y > 0
@@ -321,6 +365,46 @@ public sealed class Input
     public void SetMouseWheel(int delta)
     {
         mouseMoveWheel += delta;
+    }
+
+    public void SetControllerButton(ControllerButton button, bool newState)
+    {
+        if (newState)
+            controllerButtonsDown.Add(button);
+        else
+            controllerButtonsDown.Remove(button);
+    }
+
+    public void SetJoystickButton(uint buttonIndex, bool newState)
+    {
+        if (newState)
+            joystickButtonsDown.Add(buttonIndex);
+        else
+            joystickButtonsDown.Remove(buttonIndex);
+    }
+
+    public void SetControllerAxis(ControllerAxis axis, float position)
+    {
+        controllerAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+    }
+
+    public void SetJoystickAxis(uint axis, float position)
+    {
+        joystickAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+    }
+
+    public void SetHatPosition(HatPosition position)
+    {
+        hatPosition = position;
+    }
+
+    public void SetScreenButton(string elementName, bool newState)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        if (newState)
+            screenButtonsDown.Add(elementName);
+        else
+            screenButtonsDown.Remove(elementName);
     }
 
     public void CenterMousePosition()
@@ -432,10 +516,16 @@ public sealed class Input
         keyPress.Clear();
         scancodeDown.Clear();
         scancodePress.Clear();
+        controllerButtonsDown.Clear();
+        joystickButtonsDown.Clear();
+        controllerAxisPositions.Clear();
+        joystickAxisPositions.Clear();
+        screenButtonsDown.Clear();
         mouseButtonClick = MouseButton.None;
         mouseButtonDown = MouseButton.None;
         mouseButtonPress = MouseButton.None;
         mouseMoveWheel = 0;
+        hatPosition = HatPosition.Center;
         MouseMove = IntVector2.Zero;
         MousePosition = IntVector2.Zero;
         Qualifiers = Qualifier.None;

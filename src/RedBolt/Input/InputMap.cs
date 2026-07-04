@@ -195,6 +195,37 @@ public sealed class InputMap : ResourceWithMetadata
                     return 1.0f;
             }
 
+            foreach (var controllerButton in controllerButtons)
+            {
+                var pressed = controllerButton.IsController
+                    ? input.GetControllerButtonDown(controllerButton.GetControllerButton())
+                    : input.GetJoystickButtonDown(controllerButton.GetGenericButton());
+                if (pressed)
+                    return 1.0f;
+            }
+
+            foreach (var controllerAxis in controllerAxes)
+            {
+                var position = controllerAxis.IsController
+                    ? input.GetControllerAxisPosition(controllerAxis.GetControllerAxis())
+                    : input.GetJoystickAxisPosition(controllerAxis.GetGenericAxis());
+                var translated = controllerAxis.Translate(position, deadZone);
+                if (translated > 0.0f)
+                    return translated;
+            }
+
+            foreach (var controllerHat in controllerHats)
+            {
+                if (input.GetHatDown(controllerHat))
+                    return 1.0f;
+            }
+
+            foreach (var screenButton in screenButtons)
+            {
+                if (input.GetScreenButtonDown(screenButton))
+                    return 1.0f;
+            }
+
             return 0.0f;
         }
 
