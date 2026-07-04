@@ -239,7 +239,7 @@ void main()
             PPS = pixelShader,
             GraphicsPipelineNumRenderTargets = 1,
             GraphicsPipelinePrimitiveTopology = PrimitiveTopology.PrimitiveTopologyTriangleList,
-            GraphicsPipelineRasterizerDescCullMode = CullMode.CullModeNone,
+            GraphicsPipelineRasterizerDescCullMode = RedBolt.Bindings.Diligent.CullMode.CullModeNone,
             GraphicsPipelineDepthStencilDescDepthEnable = false,
             GraphicsPipelineDepthStencilDescDepthWriteEnable = false
         };

@@ -257,6 +257,21 @@ sealed class SmokeHeadlessApplication : Application
         var material = Resources.Get<Material>("Materials/FirstCube");
         if (!ReferenceEquals(model, Resources.Get<Model>("Models/ProceduralBox")))
             throw new InvalidOperationException("ResourceCache did not return the cached procedural model.");
+        material.SetCullMode(RedBolt.CullMode.Clockwise);
+        material.SetShadowCullMode(RedBolt.CullMode.None);
+        material.SetFillMode(RedBolt.FillMode.Wireframe);
+        material.SetDepthBias(new BiasParameters(1.0f, 2.0f));
+        material.SetRenderOrder(42u);
+        material.SetUVTransform(new Vector2(0.25f, 0.5f), 90.0f, new Vector2(2.0f, 4.0f));
+        material.SetShaderParameter("CustomValue", Material.ParseShaderParameterValue("1 2 3"), isCustom: true);
+        if (material.GetCullMode() != RedBolt.CullMode.Clockwise || material.GetShadowCullMode() != RedBolt.CullMode.None || material.GetFillMode() != RedBolt.FillMode.Wireframe)
+            throw new InvalidOperationException("Material did not preserve rbfx-style render state helpers.");
+        if (material.GetRenderOrder() != 42 || material.GetDepthBias() != new BiasParameters(1.0f, 2.0f) || material.GetShaderParameterHash() == 0)
+            throw new InvalidOperationException("Material did not preserve rbfx-style depth bias, render order, or shader parameter hash helpers.");
+        if (material.GetShaderParameter("CustomValue") is not Vector3 customValue || customValue != new Vector3(1.0f, 2.0f, 3.0f) || !material.ShaderParameters["CustomValue"].IsCustom)
+            throw new InvalidOperationException("Material did not preserve rbfx-style shader parameter helpers.");
+        if (!material.UVOffset.ApproximatelyEquivalent(new Vector2(0.25f, 0.5f)) || !material.UVRepeat.ApproximatelyEquivalent(new Vector2(2.0f, 4.0f)))
+            throw new InvalidOperationException("Material did not preserve rbfx-style UV transform metadata.");
         var tempResourceDir = Path.Combine(Path.GetTempPath(), "RedBolt.BindingSmoke", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempResourceDir, "Data"));
         try
