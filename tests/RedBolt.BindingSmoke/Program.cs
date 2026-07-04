@@ -587,6 +587,24 @@ sealed class SmokeHeadlessApplication : Application
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);
         cube.SetMaterial(material);
+        cube.SetDrawDistance(-1.0f);
+        cube.SetShadowDistance(50.0f);
+        cube.SetLodBias(0.0f);
+        cube.SetViewMask(0x11u);
+        cube.SetLightMask(0x22u);
+        cube.SetShadowMask(0x33u);
+        cube.SetZoneMask(0x44u);
+        cube.SetCastShadows(true);
+        cube.SetOccluder(false);
+        cube.SetOccludee(false);
+        cube.SetGlobalIlluminationType(GlobalIlluminationType.BlendLightProbes);
+        cube.SetReflectionMode(ReflectionMode.BlendProbesAndZone);
+        if (cube.GetDrawableFlags() != DrawableFlags.Geometry || !MathDefs.ApproximatelyEquivalent(cube.GetDrawDistance(), 0.0f) || !MathDefs.ApproximatelyEquivalent(cube.GetShadowDistance(), 50.0f) || !MathDefs.ApproximatelyEquivalent(cube.GetLodBias(), MathDefs.Epsilon))
+            throw new InvalidOperationException("Drawable did not preserve rbfx-style distance and flag helpers.");
+        if (cube.GetViewMask() != 0x11u || cube.GetLightMask() != 0x22u || cube.GetShadowMask() != 0x33u || cube.GetZoneMask() != 0x44u || !cube.GetCastShadows() || cube.IsOccluder() || cube.IsOccludee())
+            throw new InvalidOperationException("Drawable did not preserve rbfx-style mask and visibility helpers.");
+        if (cube.GetGlobalIlluminationType() != GlobalIlluminationType.BlendLightProbes || cube.GetReflectionMode() != ReflectionMode.BlendProbesAndZone || Drawable.PortableLightMask != 0x0fu || Drawable.MaxVertexLights != 4)
+            throw new InvalidOperationException("Drawable did not preserve rbfx-style lighting metadata helpers.");
         if (cube.NumGeometries != 1 || model.GetGeometry(0)?.VertexCount != 36u)
             throw new InvalidOperationException("StaticModel did not expose the procedural model geometry.");
         if (!ReferenceEquals(cube.GetMaterial(), material))
