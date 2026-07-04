@@ -445,6 +445,26 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Camera did not preserve rbfx-style projection, mouse, or orthographic helpers.");
         if (camera.GetFillMode() != RedBolt.FillMode.Point || !MathDefs.ApproximatelyEquivalent(camera.GetDistance(new Vector3(0.0f, 0.0f, 5.0f)), 5.0f) || camera.GetLodDistance(100.0f, 1.0f, 1.0f) <= 0.0f)
             throw new InvalidOperationException("Camera did not preserve rbfx-style distance helpers.");
+        var viewport = new global::RedBolt.Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+        viewport.SetDrawDebug(false);
+        viewport.SetCullCamera(childCamera);
+        viewport.SetEye(childCamera, 1);
+        if (viewport.GetRect() != new IntRect(0, 0, 320, 200) || viewport.GetDrawDebug() || viewport.GetCullCamera() != childCamera || !viewport.IsStereo() || viewport.GetEye(1) != childCamera)
+            throw new InvalidOperationException("Viewport did not preserve rbfx-style managed state helpers.");
+        Renderer.SetNumViewports(2);
+        Renderer.SetViewport(1, viewport);
+        Renderer.SetViewport(0, viewport);
+        Renderer.SetTextureAnisotropy(0);
+        Renderer.SetTextureFilterMode(global::RedBolt.TextureFilterMode.Trilinear);
+        Renderer.SetTextureQuality(MaterialQuality.Medium);
+        Renderer.SetSkinningMode(global::RedBolt.SkinningMode.Hardware);
+        Renderer.SetNumSoftwareSkinningBones(24);
+        if (Renderer.GetNumViewports() != 2 || Renderer.GetNumViews() != 2 || Renderer.GetViewportForScene(scene, 1) != viewport)
+            throw new InvalidOperationException("Renderer did not preserve rbfx-style viewport helpers.");
+        if (Renderer.GetTextureAnisotropy() != 1 || Renderer.GetTextureFilterMode() != global::RedBolt.TextureFilterMode.Trilinear || Renderer.GetTextureQuality() != MaterialQuality.Medium)
+            throw new InvalidOperationException("Renderer did not preserve rbfx-style texture quality helpers.");
+        if (!Renderer.GetUseHardwareSkinning() || Renderer.GetSkinningMode() != global::RedBolt.SkinningMode.Hardware || Renderer.GetNumSoftwareSkinningBones() != 24)
+            throw new InvalidOperationException("Renderer did not preserve rbfx-style skinning helpers.");
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);

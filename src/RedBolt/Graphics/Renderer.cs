@@ -1,17 +1,48 @@
 namespace RedBolt;
 
+public enum TextureFilterMode : byte
+{
+    Nearest,
+    Bilinear,
+    Trilinear,
+    Anisotropic,
+    NearestAnisotropic,
+    Default
+}
+
+public enum SkinningMode
+{
+    Auto,
+    Hardware,
+    Software
+}
+
 public sealed class Renderer
 {
-    private readonly Dictionary<uint, Viewport> viewports = [];
+    private readonly List<Viewport?> viewports = [];
+
+    public int TextureAnisotropy { get; private set; } = 4;
+
+    public TextureFilterMode TextureFilterMode { get; private set; } = TextureFilterMode.Default;
+
+    public MaterialQuality TextureQuality { get; private set; } = MaterialQuality.High;
+
+    public SkinningMode SkinningMode { get; private set; } = SkinningMode.Auto;
+
+    public uint NumSoftwareSkinningBones { get; private set; } = 64;
+
+    public uint NumViews => GetNumViews();
 
     public Viewport? GetViewport(uint index = 0)
     {
-        return viewports.GetValueOrDefault(index);
+        return index < viewports.Count ? viewports[(int)index] : null;
     }
 
     public void SetViewport(uint index, Viewport viewport)
     {
-        viewports[index] = viewport ?? throw new ArgumentNullException(nameof(viewport));
+        ArgumentNullException.ThrowIfNull(viewport);
+        EnsureViewportCount(index + 1);
+        viewports[(int)index] = viewport;
     }
 
     public void SetViewport(Viewport viewport)
@@ -24,11 +55,81 @@ public sealed class Renderer
         viewports.Clear();
     }
 
+    public uint GetNumViewports() => (uint)viewports.Count;
+
+    public uint GetNumViews() => (uint)viewports.Count(static viewport => viewport is not null);
+
+    public Viewport? GetViewportForScene(Scene scene, uint index = 0)
+    {
+        ArgumentNullException.ThrowIfNull(scene);
+        var matchIndex = 0u;
+        foreach (var viewport in viewports)
+        {
+            if (viewport is null || !ReferenceEquals(viewport.Scene, scene))
+                continue;
+            if (matchIndex == index)
+                return viewport;
+            ++matchIndex;
+        }
+
+        return null;
+    }
+
+    public void SetNumViewports(uint count)
+    {
+        EnsureViewportCount(count);
+        while (viewports.Count > count)
+            viewports.RemoveAt(viewports.Count - 1);
+    }
+
+    public void SetTextureAnisotropy(int level)
+    {
+        TextureAnisotropy = Math.Max(1, level);
+    }
+
+    public int GetTextureAnisotropy() => TextureAnisotropy;
+
+    public void SetTextureFilterMode(TextureFilterMode mode)
+    {
+        TextureFilterMode = mode;
+    }
+
+    public TextureFilterMode GetTextureFilterMode() => TextureFilterMode;
+
+    public void SetTextureQuality(MaterialQuality quality)
+    {
+        TextureQuality = quality;
+    }
+
+    public MaterialQuality GetTextureQuality() => TextureQuality;
+
+    public void SetSkinningMode(SkinningMode mode)
+    {
+        SkinningMode = mode;
+    }
+
+    public SkinningMode GetSkinningMode() => SkinningMode;
+
+    public bool GetUseHardwareSkinning() => SkinningMode is SkinningMode.Auto or SkinningMode.Hardware;
+
+    public void SetNumSoftwareSkinningBones(uint numBones)
+    {
+        NumSoftwareSkinningBones = numBones;
+    }
+
+    public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
+
     internal void RenderFrame(Graphics graphics)
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
-        if (viewports.TryGetValue(0, out var viewport))
+        if (viewports.Count > 0 && viewports[0] is { } viewport)
             graphics.RenderViewport(viewport);
+    }
+
+    private void EnsureViewportCount(uint count)
+    {
+        while (viewports.Count < count)
+            viewports.Add(null);
     }
 }
