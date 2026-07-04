@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class Model : Resource
+public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> geometries = [];
     private readonly List<Vector3> geometryCenters = [];

@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class Material : Resource
+public sealed class Material : ResourceWithMetadata
 {
     private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
 

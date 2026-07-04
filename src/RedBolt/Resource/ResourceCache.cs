@@ -23,6 +23,17 @@ public sealed class ResourceCache
         loaders[typeof(T)] = loader ?? throw new ArgumentNullException(nameof(loader));
     }
 
+    public bool AddManualResource(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        var key = (resource.GetType(), resource.Name);
+        if (cache.ContainsKey(key))
+            return false;
+
+        cache.Add(key, resource);
+        return true;
+    }
+
     public IReadOnlyList<string> ResourceDirs => resourceDirs;
 
     public bool AddResourceDir(string path)
@@ -60,6 +71,22 @@ public sealed class ResourceCache
         return resource;
     }
 
+    public T? GetExistingResource<T>(string name)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return cache.TryGetValue((typeof(T), name), out var resource) ? (T)resource : null;
+    }
+
+    public IReadOnlyList<T> GetResources<T>()
+        where T : Resource
+    {
+        return cache
+            .Where(static item => item.Key.Type == typeof(T))
+            .Select(static item => (T)item.Value)
+            .ToArray();
+    }
+
     public T GetTempResource<T>(string name, bool sendEventOnFailure = true)
         where T : Resource
     {
@@ -78,9 +105,30 @@ public sealed class ResourceCache
         return cache.ContainsKey((typeof(T), name));
     }
 
+    public bool Exists(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return resourceDirs.Select(path => Path.Combine(path, name)).Any(File.Exists);
+    }
+
     public void ReleaseResource<T>(string name)
         where T : Resource
     {
         cache.Remove((typeof(T), name));
+    }
+
+    public void ReleaseResources<T>(string partialName, bool force = false)
+        where T : Resource
+    {
+        var keys = cache.Keys
+            .Where(key => key.Type == typeof(T) && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var key in keys)
+            cache.Remove(key);
+    }
+
+    public void ReleaseAllResources(bool force = false)
+    {
+        cache.Clear();
     }
 }
