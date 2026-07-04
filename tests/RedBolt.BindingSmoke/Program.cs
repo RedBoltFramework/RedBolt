@@ -336,6 +336,8 @@ sealed class SmokeHeadlessApplication : Application
             File.WriteAllText(xmlName, "<root><child value=\"7\" /></root>");
             var localizationName = Path.Combine(tempResourceDir, "Data", "localization.json");
             File.WriteAllText(localizationName, "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
+            var plistName = Path.Combine(tempResourceDir, "Data", "sample.plist");
+            File.WriteAllText(plistName, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><dict><key>Health</key><integer>42</integer><key>Visible</key><true/><key>Speed</key><real>3.5</real><key>Rect</key><string>{{1,2},{3,4}}</string><key>Vector2</key><string>{5,6}</string><key>Vector3</key><string>{7,8,9}</string><key>Nested</key><dict><key>Name</key><string>RedBolt</string></dict><key>Items</key><array><string>A</string><integer>2</integer></array></dict></plist>");
             if (!Resources.AddResourceDir(tempResourceDir) || !Resources.Exists<BinaryFile>("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not register a file-backed resource directory.");
             Resources.SetMemoryBudget<BinaryFile>(4096ul);
@@ -423,6 +425,16 @@ sealed class SmokeHeadlessApplication : Application
             localization.LoadSingleLanguageJSON(singleLanguageJson, "fi");
             if (localization.Get("Bye") != "Moi")
                 throw new InvalidOperationException("Localization did not preserve rbfx-style single-language loading helpers.");
+            var plistFile = Resources.GetResource<PListFile>("Data/sample.plist");
+            if (plistFile.GetRoot()["Health"].GetInt() != 42 || !plistFile.GetRoot()["Visible"].GetBool() || !MathDefs.ApproximatelyEquivalent(plistFile.GetRoot()["Speed"].GetFloat(), 3.5f))
+                throw new InvalidOperationException("PListFile did not preserve rbfx-style scalar loading helpers.");
+            if (plistFile.GetRoot()["Rect"].GetIntRect() != new IntRect(1, 2, 4, 6) || plistFile.GetRoot()["Vector2"].GetIntVector2() != new IntVector2(5, 6) || plistFile.GetRoot()["Vector3"].GetIntVector3() != new IntVector3(7, 8, 9))
+                throw new InvalidOperationException("PListValue did not preserve rbfx-style geometry-string parsing helpers.");
+            if (plistFile.GetRoot()["Nested"].GetValueMap()["Name"].GetString() != "RedBolt" || plistFile.GetRoot()["Items"].GetValueVector().Count != 2 || plistFile.GetRoot()["Items"].GetValueVector()[1].GetInt() != 2)
+                throw new InvalidOperationException("PListFile did not preserve rbfx-style dict and array loading helpers.");
+            var plistClone = new PListValue(plistFile.GetRoot()["Items"]);
+            if (!plistClone.Equals(plistFile.GetRoot()["Items"]))
+                throw new InvalidOperationException("PListValue did not preserve rbfx-style copy and equality helpers.");
             if (!Resources.RemoveResourceDir(tempResourceDir) || Resources.Exists("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style resource directory removal helpers.");
 
