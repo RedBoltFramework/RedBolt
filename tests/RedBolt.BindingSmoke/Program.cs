@@ -464,12 +464,41 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Input did not preserve rbfx-style key/scancode conversion helpers.");
         if (RedBolt.Input.GetKeyFromScancode(Scancode.LeftCtrl) != Key.LeftCtrl || RedBolt.Input.GetMouseButtonName(MouseButton.Left) != "Left")
             throw new InvalidOperationException("Input did not preserve rbfx-style scancode/mouse button naming helpers.");
+        Input.SetKey(Key.A, Scancode.A, true);
+        if (!Input.GetKeyDown(Key.A) || !Input.GetKeyPress(Key.A) || !Input.GetScancodeDown(Scancode.A) || !Input.GetScancodePress(Scancode.A))
+            throw new InvalidOperationException("Input did not preserve rbfx-style managed key state setters.");
+        Input.BeginFrame();
+        if (!Input.GetKeyDown(Key.A) || Input.GetKeyPress(Key.A) || Input.GetScancodePress(Scancode.A))
+            throw new InvalidOperationException("Input did not preserve rbfx-style per-frame key press reset semantics.");
+        Input.SetKey(Key.A, Scancode.A, false);
+        if (Input.GetKeyDown(Key.A) || Input.GetScancodeDown(Scancode.A))
+            throw new InvalidOperationException("Input did not preserve rbfx-style key release state setters.");
+        Input.SetMouseButton(MouseButton.Left, true);
+        Input.SetMouseWheel(2);
+        if (!Input.GetMouseButtonDown(MouseButton.Left) || !Input.GetMouseButtonPress(MouseButton.Left) || Input.GetMouseMoveWheel() != 2)
+            throw new InvalidOperationException("Input did not preserve rbfx-style managed mouse state setters.");
+        Input.BeginFrame();
+        Input.SetMouseButton(MouseButton.Left, false, clicks: 1);
+        if (Input.GetMouseButtonDown(MouseButton.Left) || !Input.GetMouseButtonClick(MouseButton.Left))
+            throw new InvalidOperationException("Input did not preserve rbfx-style mouse click state setters.");
         Input.SetEnabled(false);
         if (Input.GetEnabled() || Input.GetMouseMoveX() != 0 || Input.GetMouseMoveY() != 0 || Input.GetRelativeMousePosition() != Vector2.Zero)
             throw new InvalidOperationException("Input did not preserve rbfx-style managed state helpers.");
         Input.SetEnabled(true);
+        Input.SetMouseVisible(false);
+        Input.SetMouseVisible(true, suppressEvent: true);
+        Input.ResetMouseVisible();
+        Input.SetMouseGrabbed(true);
+        Input.SetMouseGrabbed(false, suppressEvent: true);
+        Input.ResetMouseGrabbed();
+        if (Input.IsMouseVisible() || !Input.IsMouseGrabbed())
+            throw new InvalidOperationException("Input did not preserve rbfx-style mouse visibility/grab reset helpers.");
         Input.SetMouseMode(MouseMode.Relative);
-        if (!Input.IsMouseLocked())
+        Input.SetMouseMode(MouseMode.Absolute, suppressEvent: true);
+        Input.ResetMouseMode();
+        Input.SetToggleFullscreen(false);
+        Input.SetTouchEmulation(true);
+        if (!Input.IsMouseLocked() || !Input.IsMouseGrabbed() || Input.GetToggleFullscreen() || !Input.GetTouchEmulation())
             throw new InvalidOperationException("Input did not preserve rbfx-style mouse lock state helpers.");
 
         Exit();

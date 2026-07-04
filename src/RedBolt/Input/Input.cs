@@ -20,6 +20,9 @@ public sealed class Input
     private int mouseMoveWheel;
     private IntVector2 backbufferSize = IntVector2.Zero;
     private Vector2 systemToBackbufferScale = Vector2.One;
+    private bool lastMouseGrabbed;
+    private bool lastMouseVisible = true;
+    private MouseMode lastMouseMode = MouseMode.Absolute;
 
     public bool Enabled { get; set; } = true;
 
@@ -46,6 +49,10 @@ public sealed class Input
     public bool HasFocus { get; private set; } = true;
 
     public bool IsMinimized { get; private set; }
+
+    public bool ToggleFullscreen { get; private set; } = true;
+
+    public bool TouchEmulation { get; private set; }
 
     internal SdlWindow Window => window is not null && !window.IsNull
         ? window
@@ -271,6 +278,51 @@ public sealed class Input
         MousePosition = position;
     }
 
+    public void SetKey(Key key, bool newState)
+    {
+        SetKey(key, GetScancodeFromKey(key), newState);
+    }
+
+    public void SetKey(Key key, Scancode scancode, bool newState)
+    {
+        if (newState)
+        {
+            if (keyDown.Add(key))
+                keyPress.Add(key);
+            if (scancode != Scancode.Unknown && scancodeDown.Add(scancode))
+                scancodePress.Add(scancode);
+        }
+        else
+        {
+            keyDown.Remove(key);
+            scancodeDown.Remove(scancode);
+        }
+
+        UpdateQualifiers(key, newState);
+    }
+
+    public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)
+    {
+        if (newState)
+        {
+            if ((mouseButtonDown & button) == 0)
+                mouseButtonPress |= button;
+            mouseButtonDown |= button;
+        }
+        else
+        {
+            mouseButtonDown &= ~button;
+        }
+
+        if (clicks > 0)
+            mouseButtonClick |= button;
+    }
+
+    public void SetMouseWheel(int delta)
+    {
+        mouseMoveWheel += delta;
+    }
+
     public void CenterMousePosition()
     {
         MousePosition = new IntVector2(backbufferSize.X / 2, backbufferSize.Y / 2);
@@ -297,12 +349,47 @@ public sealed class Input
 
     public void SetMouseMode(MouseMode mode, bool suppressEvent = false)
     {
+        if (mode == MouseMode.Absolute)
+            SetMouseGrabbed(false, suppressEvent: true);
+        else if (mode == MouseMode.Relative || mode == MouseMode.Wrap)
+            SetMouseGrabbed(true, suppressEvent: true);
+
         MouseMode = mode;
+        if (!suppressEvent)
+            lastMouseMode = mode;
     }
+
+    public void ResetMouseMode() => SetMouseMode(lastMouseMode);
 
     public bool GetEnabled() => Enabled;
 
     public void SetEnabled(bool enabled) => Enabled = enabled;
+
+    public void SetMouseVisible(bool enable, bool suppressEvent = false)
+    {
+        MouseVisible = enable;
+        if (!suppressEvent)
+            lastMouseVisible = enable;
+    }
+
+    public void ResetMouseVisible() => SetMouseVisible(lastMouseVisible);
+
+    public void SetMouseGrabbed(bool grab, bool suppressEvent = false)
+    {
+        MouseGrabbed = grab;
+        if (!suppressEvent)
+            lastMouseGrabbed = grab;
+    }
+
+    public void ResetMouseGrabbed() => SetMouseGrabbed(lastMouseGrabbed);
+
+    public void SetToggleFullscreen(bool enable) => ToggleFullscreen = enable;
+
+    public bool GetToggleFullscreen() => ToggleFullscreen;
+
+    public void SetTouchEmulation(bool enable) => TouchEmulation = enable;
+
+    public bool GetTouchEmulation() => TouchEmulation;
 
     public bool IsMouseVisible() => MouseVisible;
 
