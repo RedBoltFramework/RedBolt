@@ -367,13 +367,33 @@ sealed class SmokeHeadlessApplication : Application
             if (reloadedBinaryFile.GetName() != "Data/renamed.bin" || reloadedBinaryFile.GetNameHash().Value != StringHash.Calculate("Data/renamed.bin") || reloadedBinaryFile.GetMemoryUse() != 123u || reloadedBinaryFile.GetAsyncLoadState() != AsyncLoadState.Queued || reloadedBinaryFile.GetAbsoluteFileName() != savedBinaryName)
                 throw new InvalidOperationException("Resource did not preserve rbfx-style property helpers.");
             var jsonFile = Resources.GetResource<JSONFile>("Data/config.json");
-            if (jsonFile.GetRoot()?["value"]?.ToString() != "7" || jsonFile.AbsoluteFileName != jsonName || !jsonFile.ToString("").Contains("redbolt", StringComparison.Ordinal))
+            if (jsonFile.GetRoot().Get("value").GetInt() != 7 || jsonFile.AbsoluteFileName != jsonName || !jsonFile.ToString("").Contains("redbolt", StringComparison.Ordinal))
                 throw new InvalidOperationException("ResourceCache did not load a file-backed JSONFile.");
             var xmlFile = Resources.GetResource<XMLFile>("Data/config.xml");
-            if (xmlFile.GetRoot("root")?.Element("child")?.Attribute("value")?.Value != "7" || xmlFile.AbsoluteFileName != xmlName || !xmlFile.ToString("").Contains("child", StringComparison.Ordinal))
+            if (xmlFile.GetRoot("root").GetChild("child").GetInt("value") != 7 || xmlFile.AbsoluteFileName != xmlName || !xmlFile.ToString("").Contains("child", StringComparison.Ordinal))
                 throw new InvalidOperationException("ResourceCache did not load a file-backed XMLFile.");
-            if (!JSONFile.ParseJSON("{\"ok\":true}", out var parsedJson) || parsedJson?["ok"]?.ToString() != "true" || !xmlFile.FromString("<newRoot />") || xmlFile.GetOrCreateRoot("newRoot").Name.LocalName != "newRoot")
+            if (!JSONFile.ParseJSON("{\"ok\":true}", out var parsedJson) || !parsedJson.Get("ok").GetBool() || !xmlFile.FromString("<newRoot />") || xmlFile.GetOrCreateRoot("newRoot").Name != "newRoot")
                 throw new InvalidOperationException("JSONFile/XMLFile did not preserve rbfx-style string/root helpers.");
+            jsonFile.GetRoot().Set("tags", new JSONValue([new JSONValue("engine"), new JSONValue("rbfx")]));
+            if (jsonFile.GetRoot().Get("tags").Size() != 2 || !jsonFile.GetRoot().Contains("tags") || !jsonFile.ToString("").Contains("engine", StringComparison.Ordinal))
+                throw new InvalidOperationException("JSONValue did not preserve rbfx-style object and array helpers.");
+            jsonFile.GetRoot().Set("enabled", new JSONValue(true));
+            jsonFile.GetRoot().Erase("enabled");
+            if (jsonFile.GetRoot().Contains("enabled"))
+                throw new InvalidOperationException("JSONValue did not preserve rbfx-style object erase helpers.");
+            var xmlRoot = xmlFile.GetOrCreateRoot("newRoot");
+            var childA = xmlRoot.CreateChild("child");
+            var xmlMaterialRef = ResourceRef.Parse("Material;Materials/FirstCube");
+            childA.SetVector3("position", new Vector3(1.0f, 2.0f, 3.0f));
+            childA.SetResourceRef("material", xmlMaterialRef);
+            var childB = xmlRoot.CreateChild("sibling");
+            childB.SetBoundingBox("bounds", new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(4.0f, 5.0f, 6.0f)));
+            if (!xmlRoot.HasChild("child") || childA.GetNext("sibling").Name != "sibling" || childA.GetParent().Name != "newRoot")
+                throw new InvalidOperationException("XMLElement did not preserve rbfx-style hierarchy helpers.");
+            if (!childA.GetVector3("position").ApproximatelyEquivalent(new Vector3(1.0f, 2.0f, 3.0f)) || childA.GetResourceRef("material") != xmlMaterialRef || !childB.GetBoundingBox("bounds").Min.ApproximatelyEquivalent(new Vector3(-1.0f, -2.0f, -3.0f)) || childA.GetNumAttributes() != 2)
+                throw new InvalidOperationException("XMLElement did not preserve rbfx-style typed attribute helpers.");
+            if (!xmlRoot.RemoveChild("sibling") || xmlRoot.HasChild("sibling"))
+                throw new InvalidOperationException("XMLElement did not preserve rbfx-style child removal helpers.");
             var manualBinaryFile = new BinaryFile("Data/manual.bin");
             manualBinaryFile.SetText("manual");
             if (!Resources.AddManualResource(manualBinaryFile) || Resources.AddManualResource(manualBinaryFile))

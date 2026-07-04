@@ -13,7 +13,7 @@ public sealed class XMLFile : Resource
 
     public XDocument Document { get; private set; }
 
-    public XElement? Root => Document.Root;
+    public XMLElement Root => new(this, Document.Root);
 
     public override bool BeginLoad(Stream source)
     {
@@ -22,13 +22,13 @@ public sealed class XMLFile : Resource
         return FromString(reader.ReadToEnd());
     }
 
-    public XElement CreateRoot(string name)
+    public XMLElement CreateRoot(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var root = new XElement(name);
         Document = new XDocument(root);
         RefreshMemoryUse();
-        return root;
+        return new XMLElement(this, root);
     }
 
     public bool FromString(string source)
@@ -49,16 +49,17 @@ public sealed class XMLFile : Resource
 
     public XDocument GetDocument() => Document;
 
-    public XElement? GetRoot(string name = "")
+    public XMLElement GetRoot(string name = "")
     {
         return string.IsNullOrEmpty(name) || string.Equals(Document.Root?.Name.LocalName, name, StringComparison.Ordinal)
-            ? Document.Root
-            : null;
+            ? new XMLElement(this, Document.Root)
+            : new XMLElement(this, null);
     }
 
-    public XElement GetOrCreateRoot(string name)
+    public XMLElement GetOrCreateRoot(string name)
     {
-        return GetRoot(name) ?? CreateRoot(name);
+        var root = GetRoot(name);
+        return root.NotNull ? root : CreateRoot(name);
     }
 
     public override bool Save(Stream destination)
@@ -89,7 +90,7 @@ public sealed class XMLFile : Resource
             : Document.ToString();
     }
 
-    private void RefreshMemoryUse()
+    internal void RefreshMemoryUse()
     {
         MemoryUse = (uint)Encoding.UTF8.GetByteCount(ToString());
     }

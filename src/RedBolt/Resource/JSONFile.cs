@@ -11,9 +11,12 @@ public sealed class JSONFile : Resource
     public JSONFile(string name)
         : base(name)
     {
+        Root.SetChangeCallbackRecursive(RefreshMemoryUse);
     }
 
-    public JsonNode? Root { get; private set; }
+    public JSONValue Root { get; private set; } = new();
+
+    public JsonNode? RootNode => Root.ToJsonNode();
 
     public override bool BeginLoad(Stream source)
     {
@@ -24,21 +27,21 @@ public sealed class JSONFile : Resource
 
     public bool FromString(string source)
     {
-        try
+        if (!ParseJSON(source, out var value))
         {
-            Root = JsonNode.Parse(source);
-            MemoryUse = (uint)Encoding.UTF8.GetByteCount(source);
-            return Root is not null;
-        }
-        catch (JsonException)
-        {
-            Root = null;
+            Root = new JSONValue();
+            Root.SetChangeCallbackRecursive(RefreshMemoryUse);
             MemoryUse = 0;
             return false;
         }
+
+        Root = value;
+        Root.SetChangeCallbackRecursive(RefreshMemoryUse);
+        RefreshMemoryUse();
+        return true;
     }
 
-    public JsonNode? GetRoot() => Root;
+    public JSONValue GetRoot() => Root;
 
     public override bool Save(Stream destination)
     {
@@ -60,25 +63,31 @@ public sealed class JSONFile : Resource
 
     public string ToString(string indentation)
     {
-        if (Root is null)
+        var rootNode = Root.ToJsonNode();
+        if (rootNode is null)
             return string.Empty;
 
         return string.IsNullOrEmpty(indentation)
-            ? Root.ToJsonString()
-            : Root.ToJsonString(IndentedOptions);
+            ? rootNode.ToJsonString()
+            : rootNode.ToJsonString(IndentedOptions);
     }
 
-    public static bool ParseJSON(string json, out JsonNode? value, bool reportError = true)
+    public static bool ParseJSON(string json, out JSONValue value, bool reportError = true)
     {
         try
         {
-            value = JsonNode.Parse(json);
-            return value is not null;
+            value = JSONValue.FromJsonNode(JsonNode.Parse(json));
+            return true;
         }
         catch (JsonException)
         {
-            value = null;
+            value = new JSONValue();
             return false;
         }
+    }
+
+    private void RefreshMemoryUse()
+    {
+        MemoryUse = (uint)Encoding.UTF8.GetByteCount(ToString());
     }
 }
