@@ -9,6 +9,18 @@ public enum PrimitiveType
     LineStrip
 }
 
+public enum GeometryType
+{
+    Static,
+    Skinned,
+    Instanced,
+    Billboard,
+    DirectionalBillboard,
+    TrailFaceCamera,
+    TrailBone,
+    StaticNoInstancing
+}
+
 public sealed class Geometry
 {
     private readonly List<VertexBuffer?> vertexBuffers = [null];
@@ -30,6 +42,45 @@ public sealed class Geometry
     public bool IsEmpty => IndexCount == 0 && VertexCount == 0;
     public uint EffectiveIndexCount => IndexBuffer is not null ? IndexCount : VertexCount;
 
+    public uint GetEffectiveIndexCount() => EffectiveIndexCount;
+
+    public IndexBuffer? GetIndexBuffer() => IndexBuffer;
+
+    public uint GetIndexCount() => IndexCount;
+
+    public uint GetIndexStart() => IndexStart;
+
+    public float GetLodDistance() => LodDistance;
+
+    public uint GetNumVertexBuffers() => (uint)vertexBuffers.Count;
+
+    public PrimitiveType GetPrimitiveType() => PrimitiveType;
+
+    public uint GetPrimitiveCount()
+    {
+        var count = EffectiveIndexCount;
+        return PrimitiveType switch
+        {
+            PrimitiveType.TriangleList => count / 3u,
+            PrimitiveType.LineList => count / 2u,
+            PrimitiveType.PointList => count,
+            PrimitiveType.TriangleStrip => count >= 3u ? count - 2u : 0u,
+            PrimitiveType.LineStrip => count >= 2u ? count - 1u : 0u,
+            _ => 0u
+        };
+    }
+
+    public uint GetVertexCount() => VertexCount;
+
+    public uint GetVertexStart() => VertexStart;
+
+    public IReadOnlyList<VertexBuffer?> GetVertexBuffers() => VertexBuffers;
+
+    public bool IsHeadless() => true;
+
+    public bool IsInstanced(GeometryType geometryType) =>
+        (geometryType == GeometryType.Static || geometryType == GeometryType.Instanced) && IndexBuffer is not null;
+
     public bool SetNumVertexBuffers(uint count)
     {
         vertexBuffers.Clear();
@@ -47,6 +98,13 @@ public sealed class Geometry
         return true;
     }
 
+    public void SetVertexBuffers(IEnumerable<VertexBuffer?> buffers)
+    {
+        ArgumentNullException.ThrowIfNull(buffers);
+        vertexBuffers.Clear();
+        vertexBuffers.AddRange(buffers);
+    }
+
     public VertexBuffer? GetVertexBuffer(uint index)
     {
         return index < vertexBuffers.Count ? vertexBuffers[(int)index] : null;
@@ -55,6 +113,11 @@ public sealed class Geometry
     public void SetIndexBuffer(IndexBuffer? buffer)
     {
         IndexBuffer = buffer;
+    }
+
+    public void SetLodDistance(float distance)
+    {
+        LodDistance = distance;
     }
 
     public bool SetDrawRange(PrimitiveType type, uint indexStart, uint indexCount, bool getUsedVertexRange = true)

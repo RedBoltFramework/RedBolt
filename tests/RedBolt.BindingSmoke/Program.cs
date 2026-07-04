@@ -477,6 +477,25 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Renderer did not preserve rbfx-style texture quality helpers.");
         if (!Renderer.GetUseHardwareSkinning() || Renderer.GetSkinningMode() != global::RedBolt.SkinningMode.Hardware || Renderer.GetNumSoftwareSkinningBones() != 24)
             throw new InvalidOperationException("Renderer did not preserve rbfx-style skinning helpers.");
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetSize(4, 12, dynamic: true);
+        vertexBuffer.SetShadowed(true);
+        vertexBuffer.SetData(Enumerable.Range(0, 48).Select(static value => (byte)value));
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetSize(6, largeIndices: false, dynamic: true);
+        indexBuffer.SetShadowed(true);
+        indexBuffer.SetUnpackedData([0u, 1u, 2u, 2u, 3u, 0u]);
+        if (!indexBuffer.GetUsedVertexRange(0, 6, out var minVertex, out var usedVertexCount) || minVertex != 0 || usedVertexCount != 4 || IndexBuffer.GetIndexBufferType(indexBuffer) != IndexBufferType.UInt16)
+            throw new InvalidOperationException("IndexBuffer did not preserve rbfx-style CPU-side metadata helpers.");
+        var geometry = new Geometry();
+        geometry.SetVertexBuffers([vertexBuffer]);
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6, 0, 4);
+        geometry.SetLodDistance(5.0f);
+        if (vertexBuffer.GetVertexCount() != 4 || vertexBuffer.GetVertexSize() != 12 || !vertexBuffer.Shadowed || vertexBuffer.GetData().Count != 48)
+            throw new InvalidOperationException("VertexBuffer did not preserve rbfx-style CPU-side metadata helpers.");
+        if (geometry.GetPrimitiveCount() != 2 || geometry.GetNumVertexBuffers() != 1 || !geometry.IsInstanced(GeometryType.Static) || !MathDefs.ApproximatelyEquivalent(geometry.GetLodDistance(), 5.0f))
+            throw new InvalidOperationException("Geometry did not preserve rbfx-style CPU-side metadata helpers.");
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);
