@@ -3,6 +3,7 @@ namespace RedBolt;
 public sealed class Model : Resource
 {
     private readonly List<List<Geometry>> geometries = [];
+    private readonly List<Vector3> geometryCenters = [];
 
     internal Model(string name, uint vertexCount)
         : base(name)
@@ -16,6 +17,8 @@ public sealed class Model : Resource
 
     public IReadOnlyList<IReadOnlyList<Geometry>> Geometries => geometries;
 
+    public IReadOnlyList<Vector3> GeometryCenters => geometryCenters;
+
     public uint NumGeometries => (uint)geometries.Count;
 
     public uint VertexCount => geometries.Count == 0 || geometries[0].Count == 0 ? 0u : geometries[0][0].VertexCount;
@@ -23,10 +26,16 @@ public sealed class Model : Resource
     public void SetNumGeometries(uint num)
     {
         while (geometries.Count < num)
+        {
             geometries.Add([]);
+            geometryCenters.Add(Vector3.Zero);
+        }
 
         while (geometries.Count > num)
+        {
             geometries.RemoveAt(geometries.Count - 1);
+            geometryCenters.RemoveAt(geometryCenters.Count - 1);
+        }
     }
 
     public bool SetNumGeometryLodLevels(uint index, uint num)
@@ -74,5 +83,19 @@ public sealed class Model : Resource
     public uint GetNumGeometryLodLevels(uint index)
     {
         return index < geometries.Count ? (uint)geometries[(int)index].Count : 0u;
+    }
+
+    public bool SetGeometryCenter(uint index, Vector3 center)
+    {
+        if (index >= geometryCenters.Count)
+            return false;
+
+        geometryCenters[(int)index] = center;
+        return true;
+    }
+
+    public Vector3 GetGeometryCenter(uint index)
+    {
+        return index < geometryCenters.Count ? geometryCenters[(int)index] : Vector3.Zero;
     }
 }

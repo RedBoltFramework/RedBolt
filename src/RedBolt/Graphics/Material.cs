@@ -11,6 +11,12 @@ public sealed class Material : Resource
 
     public IReadOnlyDictionary<string, object?> ShaderParameters => shaderParameters;
 
+    public string PixelShaderDefines { get; set; } = string.Empty;
+
+    public byte RenderOrder { get; set; } = 128;
+
+    public string VertexShaderDefines { get; set; } = string.Empty;
+
     public void SetShaderParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -21,5 +27,10 @@ public sealed class Material : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return shaderParameters.Remove(name);
+    }
+
+    public bool TryGetShaderParameter(string name, out object? value)
+    {
+        return shaderParameters.TryGetValue(name, out value);
     }
 }

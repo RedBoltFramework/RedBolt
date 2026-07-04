@@ -19,6 +19,8 @@ public sealed class StaticModel : Drawable
 
     public uint NumGeometries => Model?.NumGeometries ?? 0u;
 
+    public uint OcclusionLodLevel { get; set; } = uint.MaxValue;
+
     public void SetModel(Model? model)
     {
         Model = model;
@@ -46,6 +48,11 @@ public sealed class StaticModel : Drawable
     public Material? GetMaterial(uint index = 0)
     {
         return index < materials.Count ? materials[(int)index] : null;
+    }
+
+    public Geometry? GetLodGeometry(uint batchIndex, uint level)
+    {
+        return Model?.GetGeometry(batchIndex, level);
     }
 
     private void ResizeMaterials(uint count)
