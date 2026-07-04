@@ -206,9 +206,7 @@ public sealed class Octree : Component
     public IReadOnlyList<RayQueryResult> Raycast(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
         return GetDrawables(drawableFlags, viewMask)
-            .Select(drawable => CreateRayQueryResult(ray, drawable, maxDistance))
-            .Where(static result => result is not null)
-            .Select(static result => result!)
+            .SelectMany(drawable => CreateRayQueryResults(ray, drawable, maxDistance))
             .OrderBy(static result => result.Distance)
             .ToArray();
     }
@@ -254,16 +252,23 @@ public sealed class Octree : Component
         return (drawable.GetDrawableFlags() & drawableFlags) != 0 && (drawable.GetViewMask() & viewMask) != 0;
     }
 
-    private static RayQueryResult? CreateRayQueryResult(Ray ray, Drawable drawable, float maxDistance)
+    private static IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, Drawable drawable, float maxDistance)
     {
         if (drawable is Skybox)
-            return null;
+            yield break;
+
+        if (drawable is StaticModelGroup group)
+        {
+            foreach (var result in group.CreateRayQueryResults(ray, maxDistance))
+                yield return result;
+            yield break;
+        }
 
         var distance = ray.HitDistance(drawable.GetWorldBoundingBox());
         if (float.IsPositiveInfinity(distance) || distance > maxDistance)
-            return null;
+            yield break;
 
-        return new RayQueryResult
+        yield return new RayQueryResult
         {
             Drawable = drawable,
             Node = drawable.IsAttached ? drawable.Node : null,

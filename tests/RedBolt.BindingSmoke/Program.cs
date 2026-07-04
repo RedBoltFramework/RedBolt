@@ -839,6 +839,31 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Skybox did not preserve rbfx-style huge world bounds.");
         if (octree.Raycast(new Ray(Vector3.Zero, Vector3.Up), maxDistance: 1.0f, drawableFlags: DrawableFlags.Geometry).Any(result => ReferenceEquals(result.Drawable, skybox)))
             throw new InvalidOperationException("Skybox did not preserve rbfx-style raycast exclusion.");
+        var groupNode = scene.CreateChild("StaticModelGroup");
+        var group = groupNode.CreateComponent<StaticModelGroup>();
+        group.SetModel(model);
+        group.SetMaterial(material);
+        var groupInstanceA = scene.CreateChild("GroupInstanceA");
+        groupInstanceA.SetPosition(new Vector3(30.0f, 0.0f, 0.0f));
+        var groupInstanceB = scene.CreateChild("GroupInstanceB");
+        groupInstanceB.SetPosition(new Vector3(40.0f, 0.0f, 0.0f));
+        group.AddInstanceNode(groupInstanceA);
+        group.AddInstanceNode(groupInstanceB);
+        if (group.GetNumInstanceNodes() != 2u || group.GetInstanceNode(1u) != groupInstanceB || !group.GetNodeIDsAttr().SequenceEqual([2u, groupInstanceA.Id, groupInstanceB.Id]))
+            throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style instance node helpers.");
+        if (group.GetNumWorldTransforms() != 2u || group.GetWorldTransforms().Count != 2 || group.GetWorldBoundingBox().IsInside(groupInstanceA.GetWorldPosition()) == Intersection.Outside || group.GetWorldBoundingBox().IsInside(groupInstanceB.GetWorldPosition()) == Intersection.Outside)
+            throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style world transform and bounds helpers.");
+        var groupHit = octree.RaycastSingle(new Ray(new Vector3(30.0f, 0.0f, -10.0f), Vector3.Forward), maxDistance: 100.0f, drawableFlags: DrawableFlags.Geometry);
+        if (groupHit?.Drawable != group || groupHit.SubObject != 0u)
+            throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style per-instance raycast helpers.");
+        group.RemoveInstanceNode(groupInstanceB);
+        if (group.GetNumInstanceNodes() != 1u || !group.GetNodeIDsAttr().SequenceEqual([1u, groupInstanceA.Id]))
+            throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style instance node removal helpers.");
+        group.RemoveAllInstanceNodes();
+        group.SetNodeIDsAttr([2u, groupInstanceA.Id, groupInstanceB.Id]);
+        group.ApplyAttributes();
+        if (group.GetNumInstanceNodes() != 2u || group.GetInstanceNode(0u) != groupInstanceA || group.GetInstanceNode(1u) != groupInstanceB)
+            throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style node ID attribute resolution helpers.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)
