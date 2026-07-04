@@ -65,36 +65,10 @@ internal static class Program
         "GetEngineFactoryOpenGL"
     };
 
-    private static readonly Dictionary<string, HashSet<string>> RetainedDiligentInterfaceMethods = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> RetainedDiligentBaseInterfaceMethods = new(StringComparer.Ordinal)
     {
-        ["Diligent::IObject"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "AddRef",
-            "Release"
-        },
-        ["Diligent::IEngineFactoryOpenGL"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "CreateDeviceAndSwapChainGL"
-        },
-        ["Diligent::IDeviceContext"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "ClearRenderTarget",
-            "Draw",
-            "SetPipelineState",
-            "SetRenderTargets",
-            "SetRenderTargetsExt"
-        },
-        ["Diligent::IRenderDevice"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "CreateGraphicsPipelineState",
-            "CreateShader"
-        },
-        ["Diligent::ISwapChain"] = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "GetDesc",
-            "GetCurrentBackBufferRTV",
-            "Present"
-        }
+        "AddRef",
+        "Release"
     };
 
     private static readonly HashSet<string> DiligentSyntheticDefaultConstructors = new(StringComparer.Ordinal)
@@ -356,12 +330,40 @@ internal static class Program
 
     private static bool IsRetainedDiligentInterfaceMethod(RecordBinding record, FunctionBinding method)
     {
-        if (!RetainedDiligentInterfaceMethods.TryGetValue(record.CppQualifiedName, out var retainedMethods))
+        if (HasUnsupportedDiligentInterfaceSignature(method))
             return false;
 
-        return retainedMethods.Contains(method.ManagedName) ||
-            retainedMethods.Contains(method.NativeName) ||
-            retainedMethods.Any(name => method.CppQualifiedName.EndsWith($"::{name}", StringComparison.Ordinal));
+        return record.CppQualifiedName switch
+        {
+            "Diligent::IObject" =>
+                RetainedDiligentBaseInterfaceMethods.Contains(method.ManagedName) ||
+                RetainedDiligentBaseInterfaceMethods.Contains(method.NativeName) ||
+                RetainedDiligentBaseInterfaceMethods.Any(name => method.CppQualifiedName.EndsWith($"::{name}", StringComparison.Ordinal)),
+            _ => true
+        };
+    }
+
+    private static bool HasUnsupportedDiligentInterfaceSignature(FunctionBinding method)
+    {
+        if (method.ReturnType.Kind == BindingTypeKind.Primitive && method.ReturnType.PrimitiveKind == BindingPrimitiveKind.Unsupported)
+            return true;
+
+        foreach (var parameter in method.Parameters)
+        {
+            if (parameter.Type.Kind == BindingTypeKind.Primitive &&
+                parameter.Type.PrimitiveKind == BindingPrimitiveKind.Unsupported &&
+                parameter.Direction != BindingParameterDirection.In)
+                return true;
+
+            if (parameter.CppTypeName.Contains("&*", StringComparison.Ordinal) ||
+                parameter.CppTypeName.Contains("const void**", StringComparison.Ordinal) ||
+                parameter.CppTypeName.Contains("void**", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static int PruneInvalidTypeAliases(BindingCompilation compilation)

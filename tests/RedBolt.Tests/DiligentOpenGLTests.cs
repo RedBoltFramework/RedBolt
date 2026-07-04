@@ -22,6 +22,21 @@ public sealed class DiligentOpenGLTests
     }
 
     [Fact]
+    public void Core_cpp_interface_methods_are_generated()
+    {
+        var diligentAssembly = Assembly.Load("RedBolt.Bindings.Diligent");
+        var renderDevice = diligentAssembly.GetType("RedBolt.Bindings.Diligent.IRenderDevice")
+            ?? throw new InvalidOperationException("IRenderDevice type was not found.");
+        var deviceContext = diligentAssembly.GetType("RedBolt.Bindings.Diligent.IDeviceContext")
+            ?? throw new InvalidOperationException("IDeviceContext type was not found.");
+
+        Assert.NotNull(renderDevice.GetMethod("CreateBuffer"));
+        Assert.NotNull(deviceContext.GetMethod("SetVertexBuffers"));
+        Assert.NotNull(deviceContext.GetMethod("SetIndexBuffer"));
+        Assert.NotNull(deviceContext.GetMethod("DrawIndexed"));
+    }
+
+    [Fact]
     public void Opengl_smoke_creates_device_and_renders()
     {
         if (!IsEnvFlagEnabled("REDBOLT_RUN_DILIGENT_GL_SMOKE"))
