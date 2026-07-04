@@ -406,7 +406,7 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Deserializer did not preserve rbfx-style line helpers.");
 
         var scene = new Scene();
-        scene.CreateComponent<Octree>();
+        var octree = scene.CreateComponent<Octree>();
         if (scene.Root.Id == 0 || scene.Root.GetNumAttributes() == 0)
             throw new InvalidOperationException("Scene root did not initialize serializable node state.");
         if (scene.IsEmpty() || !scene.IsEmpty(ignoreComponents: true))
@@ -732,6 +732,30 @@ sealed class SmokeHeadlessApplication : Application
         cubeNode.SetTransform(new Vector3(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 2.0f, 2.0f));
         if (cube.GetWorldBoundingBox().IsInside(new Vector3(10.5f, 0.0f, 0.0f)) != Intersection.Inside || !cube.IsInside(new Vector3(10.5f, 0.0f, 0.0f)))
             throw new InvalidOperationException("Drawable/StaticModel did not preserve rbfx-style world bounding boxes.");
+        octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
+        octree.QueueUpdate(cube);
+        octree.Update();
+        if (octree.GetNumLevels() != 4u || octree.GetRootOctant().GetWorldBoundingBox().IsInside(cube.GetWorldBoundingBox()) == Intersection.Outside || !octree.GetAllDrawables().Contains(cube))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style size and drawable collection helpers.");
+        if (!octree.GetDrawables(cube.GetWorldBoundingBox()).Contains(cube) || !octree.GetDrawables(cube.GetWorldBoundingBox().Center).Contains(cube) || !octree.GetDrawables(new Sphere(cube.GetWorldBoundingBox())).Contains(cube))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style bounding volume query helpers.");
+        var cubeRay = new Ray(cube.GetWorldBoundingBox().Center - Vector3.Forward * 10.0f, Vector3.Forward);
+        var cubeHit = octree.RaycastSingle(cubeRay, maxDistance: 100.0f);
+        if (cubeHit?.Drawable != cube || cubeHit.Node != cubeNode || !octree.Raycast(cubeRay, maxDistance: 100.0f).Any(result => result.Drawable == cube))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style raycast helpers.");
+        var manualDrawable = new StaticModel();
+        manualDrawable.SetBoundingBox(new BoundingBox(new Vector3(20.0f, 20.0f, 20.0f), new Vector3(21.0f, 21.0f, 21.0f)));
+        octree.AddManualDrawable(manualDrawable);
+        if (!octree.GetAllDrawables().Contains(manualDrawable))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style manual drawable addition helpers.");
+        octree.RemoveManualDrawable(manualDrawable);
+        if (octree.GetAllDrawables().Contains(manualDrawable))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style manual drawable removal helpers.");
+        octree.SetLocked(true);
+        octree.AddManualDrawable(manualDrawable);
+        if (!octree.GetLocked() || octree.GetAllDrawables().Contains(manualDrawable))
+            throw new InvalidOperationException("Octree did not preserve rbfx-style lock helpers.");
+        octree.SetLocked(false);
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)
