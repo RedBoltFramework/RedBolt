@@ -790,12 +790,45 @@ public sealed class Node : Serializable
                 SetRotation((delta * rotation).Normalized);
                 break;
             case TransformSpace.World:
-                SetWorldRotation((delta * WorldRotation).Normalized);
+                if (Parent is null)
+                    SetRotation((delta * rotation).Normalized);
+                else
+                {
+                    var worldRotation = WorldRotation;
+                    SetRotation((rotation * worldRotation.Inverse * delta * worldRotation).Normalized);
+                }
                 break;
         }
     }
 
     public void Rotate2D(float delta, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromRotation2D(delta), space);
+
+    public void RotateAround(Vector3 point, Quaternion delta, TransformSpace space = TransformSpace.Local)
+    {
+        var parentSpacePoint = space switch
+        {
+            TransformSpace.Local => GetTransformMatrix() * point,
+            TransformSpace.Parent => point,
+            TransformSpace.World => Parent is null ? point : Parent.WorldToLocal(point),
+            _ => point
+        };
+        var oldRotation = rotation;
+
+        rotation = space switch
+        {
+            TransformSpace.Local => (rotation * delta).Normalized,
+            TransformSpace.Parent => (delta * rotation).Normalized,
+            TransformSpace.World when Parent is null => (delta * rotation).Normalized,
+            TransformSpace.World => (rotation * WorldRotation.Inverse * delta * WorldRotation).Normalized,
+            _ => rotation
+        };
+
+        var oldRelativePosition = oldRotation.Inverse * (position - parentSpacePoint);
+        position = rotation * oldRelativePosition + parentSpacePoint;
+        MarkDirty();
+    }
+
+    public void RotateAround2D(Vector2 point, float delta, TransformSpace space = TransformSpace.Local) => RotateAround(new Vector3(point.X, point.Y, 0.0f), Quaternion.FromRotation2D(delta), space);
 
     public void SetDirection(Vector3 direction)
     {
@@ -835,6 +868,35 @@ public sealed class Node : Serializable
 
     public void SetScale2D(float x, float y) => SetScale2D(new Vector2(x, y));
 
+    public void ScaleBy(float scale) => ScaleBy(new Vector3(scale, scale, scale));
+
+    public void ScaleBy(Vector3 scale)
+    {
+        this.scale *= scale;
+        MarkDirty();
+    }
+
+    public void ScaleBy2D(Vector2 scale) => ScaleBy(new Vector3(scale.X, scale.Y, 1.0f));
+
+    public void ScaleAround(Vector3 point, Vector3 scale, TransformSpace space = TransformSpace.Local)
+    {
+        var parentSpacePoint = space switch
+        {
+            TransformSpace.Local => GetTransformMatrix() * point,
+            TransformSpace.Parent => point,
+            TransformSpace.World => Parent is null ? point : Parent.WorldToLocal(point),
+            _ => point
+        };
+        var oldScale = this.scale;
+
+        this.scale *= scale;
+        var oldRelativePosition = Vector3.One / oldScale * (position - parentSpacePoint);
+        position = this.scale * oldRelativePosition + parentSpacePoint;
+        MarkDirty();
+    }
+
+    public void ScaleAround2D(Vector2 point, Vector2 scale, TransformSpace space = TransformSpace.Local) => ScaleAround(new Vector3(point.X, point.Y, 0.0f), new Vector3(scale.X, scale.Y, 1.0f), space);
+
     public void SetTags(IEnumerable<string> tags)
     {
         RemoveAllTags();
@@ -857,6 +919,8 @@ public sealed class Node : Serializable
         this.scale = scale;
         MarkDirty();
     }
+
+    public void SetTransformMatrix(Matrix3x4 matrix) => SetTransform(matrix.Translation, matrix.Rotation, matrix.Scale);
 
     public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
@@ -929,6 +993,8 @@ public sealed class Node : Serializable
         SetWorldRotation(rotation);
         SetWorldScale(scale);
     }
+
+    public void SetWorldTransform(Matrix3x4 worldTransform) => SetWorldTransform(worldTransform.Translation, worldTransform.Rotation, worldTransform.Scale);
 
     public void Translate(Vector3 delta, TransformSpace space = TransformSpace.Local)
     {

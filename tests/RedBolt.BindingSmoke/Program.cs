@@ -463,6 +463,26 @@ sealed class SmokeHeadlessApplication : Application
         var expectedWorld = new Vector3(2.0f, 5.0f, 9.0f);
         if (!transformChild.WorldPosition.ApproximatelyEquivalent(expectedWorld) || !explicitNode.WorldToLocal(expectedWorld).ApproximatelyEquivalent(transformChild.Position))
             throw new InvalidOperationException("Node transform conversion did not preserve rbfx-style local/world math.");
+        var matrixParent = scene.CreateChild("MatrixParent");
+        matrixParent.SetTransform(new Vector3(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 2.0f, 2.0f));
+        var matrixChild = matrixParent.CreateChild("MatrixChild");
+        matrixChild.SetWorldTransform(new Matrix3x4(new Vector3(12.0f, 2.0f, 0.0f), Quaternion.Identity, new Vector3(4.0f, 4.0f, 4.0f)));
+        if (!matrixChild.GetWorldPosition().ApproximatelyEquivalent(new Vector3(12.0f, 2.0f, 0.0f)) || !matrixChild.GetWorldScale().ApproximatelyEquivalent(new Vector3(4.0f, 4.0f, 4.0f)) || !matrixChild.GetPosition().ApproximatelyEquivalent(new Vector3(1.0f, 1.0f, 0.0f)))
+            throw new InvalidOperationException("Node did not preserve rbfx-style matrix world transform helpers.");
+        matrixChild.SetTransformMatrix(new Matrix3x4(new Vector3(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3(2.0f, 3.0f, 4.0f)));
+        if (!matrixChild.GetPosition().ApproximatelyEquivalent(new Vector3(1.0f, 2.0f, 3.0f)) || !matrixChild.GetScale().ApproximatelyEquivalent(new Vector3(2.0f, 3.0f, 4.0f)))
+            throw new InvalidOperationException("Node did not preserve rbfx-style matrix local transform helpers.");
+        var rotateAroundNode = scene.CreateChild("RotateAround");
+        rotateAroundNode.SetPosition(new Vector3(1.0f, 0.0f, 0.0f));
+        rotateAroundNode.RotateAround(Vector3.Zero, Quaternion.FromAngleAxis(90.0f, Vector3.Forward), TransformSpace.Parent);
+        if (!rotateAroundNode.GetPosition().ApproximatelyEquivalent(new Vector3(0.0f, 1.0f, 0.0f), MathDefs.LargeEpsilon))
+            throw new InvalidOperationException("Node did not preserve rbfx-style rotate-around helpers.");
+        var scaleAroundNode = scene.CreateChild("ScaleAround");
+        scaleAroundNode.SetPosition(new Vector3(2.0f, 0.0f, 0.0f));
+        scaleAroundNode.ScaleBy(new Vector3(2.0f, 3.0f, 4.0f));
+        scaleAroundNode.ScaleAround(Vector3.Zero, new Vector3(2.0f, 1.0f, 1.0f), TransformSpace.Parent);
+        if (!scaleAroundNode.GetPosition().ApproximatelyEquivalent(new Vector3(4.0f, 0.0f, 0.0f)) || !scaleAroundNode.GetScale().ApproximatelyEquivalent(new Vector3(4.0f, 3.0f, 4.0f)))
+            throw new InvalidOperationException("Node did not preserve rbfx-style scale modifier helpers.");
         var newParent = scene.CreateChild("ReparentTarget");
         newParent.SetPosition(new Vector3(-1.0f, -2.0f, -3.0f));
         transformChild.SetParent(newParent);
