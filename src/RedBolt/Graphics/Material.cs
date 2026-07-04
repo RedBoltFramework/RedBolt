@@ -29,6 +29,8 @@ public readonly record struct BiasParameters(float ConstantBias, float SlopeScal
 
 public readonly record struct MaterialShaderParameter(object? Value, bool IsCustom = false);
 
+public readonly record struct MaterialTexture(string Name, Texture Texture);
+
 public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<TechniqueEntry>
 {
     public TechniqueEntry(Technique? technique, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
@@ -75,6 +77,7 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 public sealed class Material : ResourceWithMetadata
 {
     private readonly Dictionary<string, MaterialShaderParameter> shaderParameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<StringHash, MaterialTexture> textures = new();
     private readonly List<TechniqueEntry> techniques = [];
     private uint shaderParameterHash;
 
@@ -112,6 +115,8 @@ public sealed class Material : ResourceWithMetadata
     public CullMode ShadowCullMode { get; set; } = CullMode.CounterClockwise;
 
     public IReadOnlyDictionary<string, MaterialShaderParameter> ShaderParameters => shaderParameters;
+
+    public IReadOnlyDictionary<StringHash, MaterialTexture> Textures => textures;
 
     public IReadOnlyList<TechniqueEntry> Techniques => techniques;
 
@@ -153,6 +158,10 @@ public sealed class Material : ResourceWithMetadata
         techniques.Clear();
         foreach (var technique in material.techniques)
             techniques.Add(technique);
+
+        textures.Clear();
+        foreach (var texture in material.textures)
+            textures.Add(texture.Key, texture.Value);
 
         shaderParameters.Clear();
         foreach (var parameter in material.shaderParameters)
@@ -208,6 +217,16 @@ public sealed class Material : ResourceWithMetadata
 
     public Pass? GetDefaultPass() => GetPass(0, "base");
 
+    public Texture? GetTexture(StringHash nameHash) => textures.TryGetValue(nameHash, out var texture) ? texture.Texture : null;
+
+    public Texture? GetTexture(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return GetTexture(new StringHash(NormalizeTextureSlotName(name)));
+    }
+
+    public IReadOnlyDictionary<StringHash, MaterialTexture> GetTextures() => textures;
+
     public void SetAlphaToCoverage(bool enable)
     {
         AlphaToCoverage = enable;
@@ -257,6 +276,17 @@ public sealed class Material : ResourceWithMetadata
     public void SetShadowCullMode(CullMode mode)
     {
         ShadowCullMode = mode;
+    }
+
+    public void SetTexture(string name, Texture? texture)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var normalized = NormalizeTextureSlotName(name);
+        var hash = new StringHash(normalized);
+        if (texture is null)
+            textures.Remove(hash);
+        else
+            textures[hash] = new MaterialTexture(normalized, texture);
     }
 
     public void SetNumTechniques(uint num)
@@ -399,5 +429,20 @@ public sealed class Material : ResourceWithMetadata
                 : entry.Original.CloneWithDefines(VertexShaderDefines, PixelShaderDefines);
             techniques[i] = entry;
         }
+    }
+
+    private static string NormalizeTextureSlotName(string name)
+    {
+        var normalized = name.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "0" or "diffuse" or "diff" or "albedo" => "Albedo",
+            "1" or "normal" or "norm" => "Normal",
+            "2" or "specular" or "spec" => "Properties",
+            "3" or "emissive" => "Emission",
+            "4" or "environment" or "env" => "Reflection0",
+            "15" or "zone" => "Reflection1",
+            _ => name.Trim()
+        };
     }
 }

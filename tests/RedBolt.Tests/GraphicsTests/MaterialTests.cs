@@ -62,6 +62,29 @@ public sealed class MaterialTests
     }
 
     [Fact]
+    public void Texture_slot_helpers_work()
+    {
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        var albedo = new Texture2D("Textures/Albedo");
+        albedo.SetSize(2, 2, TextureFormat.RGBA8);
+        var reflection = new TextureCube("Textures/Reflection");
+        reflection.SetSize(2, TextureFormat.RGBA8);
+
+        material.SetTexture("diffuse", albedo);
+        material.SetTexture("zone", reflection);
+
+        Assert.Same(albedo, material.GetTexture("Albedo"));
+        Assert.Same(reflection, material.GetTexture(new StringHash("Reflection1")));
+        Assert.Equal(2, material.GetTextures().Count);
+
+        var clone = material.Clone("Materials/TextureClone");
+        Assert.Same(albedo, clone.GetTexture("Albedo"));
+
+        material.SetTexture("diffuse", null);
+        Assert.Null(material.GetTexture("Albedo"));
+    }
+
+    [Fact]
     public void Technique_entry_management_works()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
