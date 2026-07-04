@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace RedBolt;
 
 public sealed class Model : ResourceWithMetadata
@@ -6,8 +9,24 @@ public sealed class Model : ResourceWithMetadata
     private readonly List<Vector3> geometryCenters = [];
     private BoundingBox boundingBox = new(-0.5f, 0.5f);
 
-    internal Model(string name, uint vertexCount)
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        IncludeFields = true,
+        IgnoreReadOnlyProperties = true
+    };
+
+    static Model()
+    {
+        SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    }
+
+    public Model(string name)
         : base(name)
+    {
+    }
+
+    internal Model(string name, uint vertexCount)
+        : this(name)
     {
         SetNumGeometries(1);
         SetNumGeometryLodLevels(0, 1);
@@ -25,6 +44,51 @@ public sealed class Model : ResourceWithMetadata
     public uint NumGeometries => (uint)geometries.Count;
 
     public uint VertexCount => geometries.Count == 0 || geometries[0].Count == 0 ? 0u : geometries[0][0].VertexCount;
+
+    public override bool BeginLoad(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var modelData = JsonSerializer.Deserialize<SerializedModel>(source, SerializerOptions);
+        if (modelData?.Geometries is null || modelData.Geometries.Count == 0)
+            return false;
+
+        SetNumGeometries((uint)modelData.Geometries.Count);
+        boundingBox = modelData.BoundingBox ?? new BoundingBox();
+
+        for (var i = 0; i < modelData.Geometries.Count; ++i)
+        {
+            var geometryData = modelData.Geometries[i];
+            if (geometryData.Positions is null || geometryData.Positions.Count == 0 || geometryData.Indices is null || geometryData.Indices.Count == 0)
+                return false;
+
+            var vertexBuffer = new VertexBuffer();
+            vertexBuffer.SetSize((uint)geometryData.Positions.Count, 12u);
+            vertexBuffer.SetShadowed(true);
+            vertexBuffer.SetData(ToVertexBytes(geometryData.Positions));
+
+            var indexBuffer = new IndexBuffer();
+            indexBuffer.SetSize((uint)geometryData.Indices.Count, geometryData.Positions.Count > ushort.MaxValue, dynamic: false);
+            indexBuffer.SetShadowed(true);
+            indexBuffer.SetUnpackedData(geometryData.Indices);
+
+            var geometry = new Geometry();
+            geometry.SetVertexBuffers([vertexBuffer]);
+            geometry.SetIndexBuffer(indexBuffer);
+            geometry.SetDrawRange(geometryData.PrimitiveType, 0u, (uint)geometryData.Indices.Count, 0u, (uint)geometryData.Positions.Count);
+            SetNumGeometryLodLevels((uint)i, 1u);
+            SetGeometry((uint)i, 0u, geometry);
+            SetGeometryCenter((uint)i, geometryData.Center ?? CalculateCenter(geometryData.Positions));
+
+            if (!boundingBox.Defined)
+                boundingBox = new BoundingBox(geometryData.Positions);
+        }
+
+        if (!boundingBox.Defined)
+            boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3>)Array.Empty<Vector3>()).ToArray());
+
+        MemoryUse = (uint)modelData.Geometries.Sum(static item => ((item.Positions?.Count ?? 0) * 12) + ((item.Indices?.Count ?? 0) * 4));
+        return true;
+    }
 
     public void SetBoundingBox(BoundingBox box)
     {
@@ -113,5 +177,45 @@ public sealed class Model : ResourceWithMetadata
     public Vector3 GetGeometryCenter(uint index)
     {
         return index < geometryCenters.Count ? geometryCenters[(int)index] : Vector3.Zero;
+    }
+
+    private static Vector3 CalculateCenter(IReadOnlyList<Vector3> positions)
+    {
+        if (positions.Count == 0)
+            return Vector3.Zero;
+
+        var sum = Vector3.Zero;
+        foreach (var position in positions)
+            sum += position;
+        return sum / positions.Count;
+    }
+
+    private static byte[] ToVertexBytes(IReadOnlyList<Vector3> positions)
+    {
+        var data = new byte[positions.Count * 12];
+        var offset = 0;
+        foreach (var position in positions)
+        {
+            BitConverter.GetBytes(position.X).CopyTo(data, offset + 0);
+            BitConverter.GetBytes(position.Y).CopyTo(data, offset + 4);
+            BitConverter.GetBytes(position.Z).CopyTo(data, offset + 8);
+            offset += 12;
+        }
+
+        return data;
+    }
+
+    private sealed class SerializedModel
+    {
+        public BoundingBox? BoundingBox { get; set; }
+        public List<SerializedGeometry>? Geometries { get; set; }
+    }
+
+    private sealed class SerializedGeometry
+    {
+        public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.TriangleList;
+        public List<Vector3>? Positions { get; set; }
+        public List<uint>? Indices { get; set; }
+        public Vector3? Center { get; set; }
     }
 }

@@ -28,6 +28,9 @@ sealed class FirstCubeApplication : Application
 
     protected override void Start()
     {
+        if (!Resources.AddResourceDir(Path.Combine(AppContext.BaseDirectory, "Data")))
+            throw new InvalidOperationException("Sample data directory was not available for ResourceCache.");
+
         var scene = new Scene();
         scene.CreateComponent<Octree>();
 
@@ -38,7 +41,7 @@ sealed class FirstCubeApplication : Application
         var cubeNode = scene.CreateChild("Cube");
         cubeNode.Rotation = Quaternion.Identity;
         var cube = cubeNode.CreateComponent<StaticModel>();
-        cube.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        cube.SetModel(Resources.Get<Model>("Models/Box.mdl"));
         cube.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
 
         Renderer.SetViewport(0, new Viewport(scene, camera));

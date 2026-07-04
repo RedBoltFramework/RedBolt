@@ -151,8 +151,14 @@ void main()
 
         foreach (var staticModel in viewport.Scene.StaticModels)
         {
-            if (staticModel.Model is { } model && staticModel.Material is not null && model.VertexCount == 36u)
-                immediateContext.Draw(cubeDrawAttribs);
+            if (staticModel.Model is not { } model || staticModel.Material is null)
+                continue;
+
+            var geometry = model.GetGeometry(0, 0);
+            if (geometry is null || geometry.GetEffectiveIndexCount() != 36u)
+                continue;
+
+            immediateContext.Draw(cubeDrawAttribs);
         }
 
         swapChain.Present(0);
