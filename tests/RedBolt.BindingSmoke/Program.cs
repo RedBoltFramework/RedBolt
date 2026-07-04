@@ -1008,6 +1008,50 @@ sealed class SmokeHeadlessApplication : Application
         if (!Input.IsMouseLocked() || !Input.IsMouseGrabbed() || Input.GetToggleFullscreen() || !Input.GetTouchEmulation())
             throw new InvalidOperationException("Input did not preserve rbfx-style mouse lock state helpers.");
 
+        var logicScene = new Scene();
+        var logicNode = logicScene.CreateChild("LogicNode");
+        var logicComponent = logicNode.CreateComponent<CountingLogicComponent>();
+        logicScene.Update(0.25f);
+        logicScene.Update(0.5f);
+        if (logicComponent.StartCount != 1 || logicComponent.DelayedStartCount != 1 || logicComponent.UpdateCount != 2 || logicComponent.PostUpdateCount != 2 || !MathDefs.ApproximatelyEquivalent(logicComponent.LastUpdateTimeStep, 0.5f) || !MathDefs.ApproximatelyEquivalent(logicComponent.LastPostUpdateTimeStep, 0.5f))
+            throw new InvalidOperationException("LogicComponent did not preserve rbfx-style scene update lifecycle helpers.");
+        logicNode.RemoveComponent(logicComponent);
+        if (logicComponent.StopCount != 1)
+            throw new InvalidOperationException("LogicComponent did not preserve rbfx-style stop lifecycle helpers.");
+
+        var moveAndOrbitScene = new Scene();
+        var moveAndOrbitNode = moveAndOrbitScene.CreateChild("Mover");
+        var moveAndOrbit = moveAndOrbitNode.CreateComponent<MoveAndOrbitComponent>();
+        moveAndOrbit.SetVelocity(new Vector3(1.0f, 0.0f, -1.0f));
+        moveAndOrbit.SetYaw(45.0f);
+        moveAndOrbit.SetPitch(180.0f);
+        if (moveAndOrbit.GetVelocity() != new Vector3(1.0f, 0.0f, -1.0f) || !MathDefs.ApproximatelyEquivalent(moveAndOrbit.GetYaw(), 45.0f) || !MathDefs.ApproximatelyEquivalent(moveAndOrbit.GetPitch(), 90.0f) || !moveAndOrbit.GetYawPitchRotation().ApproximatelyEquivalent(new Quaternion(90.0f, 45.0f, 0.0f), 0.001f))
+            throw new InvalidOperationException("MoveAndOrbitComponent did not preserve rbfx-style state helpers.");
+
+        var freeFlyScene = new Scene();
+        var freeFlyNode = freeFlyScene.CreateChild("FreeFly");
+        var freeFly = freeFlyNode.CreateComponent<FreeFlyController>();
+        freeFly.SetInput(Input);
+        Input.BeginFrame();
+        Input.SetMouseMode(MouseMode.Absolute);
+        Input.SetKey(Key.W, Scancode.W, true);
+        freeFlyScene.Update(0.5f);
+        Input.SetKey(Key.W, Scancode.W, false);
+        if (!freeFlyNode.Position.ApproximatelyEquivalent(new Vector3(0.0f, 0.0f, 10.0f)))
+            throw new InvalidOperationException("FreeFlyController did not preserve rbfx-style keyboard translation helpers.");
+        Input.BeginFrame();
+        Input.SetMouseVisible(true);
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseButton(MouseButton.Right, true);
+        freeFlyScene.Update(0.1f);
+        if (Input.IsMouseVisible() || Input.MouseMode != MouseMode.Relative)
+            throw new InvalidOperationException("FreeFlyController did not preserve rbfx-style activation mouse capture helpers.");
+        Input.BeginFrame();
+        Input.SetMouseButton(MouseButton.Right, false);
+        freeFlyScene.Update(0.1f);
+        if (!Input.IsMouseVisible() || Input.MouseMode != MouseMode.Free)
+            throw new InvalidOperationException("FreeFlyController did not preserve rbfx-style mouse capture restore helpers.");
+
         Exit();
     }
 
@@ -1027,5 +1071,49 @@ sealed class SmokeHeadlessApplication : Application
 
         if (!engineWasHeadlessAtStart)
             throw new InvalidOperationException("Headless engine parameter was not propagated to Engine.");
+    }
+}
+
+sealed class CountingLogicComponent : LogicComponent
+{
+    public int StartCount { get; private set; }
+
+    public int DelayedStartCount { get; private set; }
+
+    public int StopCount { get; private set; }
+
+    public int UpdateCount { get; private set; }
+
+    public int PostUpdateCount { get; private set; }
+
+    public float LastUpdateTimeStep { get; private set; }
+
+    public float LastPostUpdateTimeStep { get; private set; }
+
+    public override void Start()
+    {
+        ++StartCount;
+    }
+
+    public override void DelayedStart()
+    {
+        ++DelayedStartCount;
+    }
+
+    public override void Stop()
+    {
+        ++StopCount;
+    }
+
+    public override void Update(float timeStep)
+    {
+        ++UpdateCount;
+        LastUpdateTimeStep = timeStep;
+    }
+
+    public override void PostUpdate(float timeStep)
+    {
+        ++PostUpdateCount;
+        LastPostUpdateTimeStep = timeStep;
     }
 }

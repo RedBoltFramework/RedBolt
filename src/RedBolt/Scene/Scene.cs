@@ -143,8 +143,17 @@ public sealed class Scene
 
     public void Update(float timeStep)
     {
-        if (UpdateEnabled)
-            elapsedTime += Math.Max(timeStep, 0.0f) * TimeScale;
+        if (!UpdateEnabled)
+            return;
+
+        var effectiveTimeStep = Math.Max(timeStep, 0.0f) * TimeScale;
+        elapsedTime += effectiveTimeStep;
+
+        var updateListeners = GetAllComponents().Values.OfType<ISceneUpdateListener>().ToArray();
+        foreach (var listener in updateListeners)
+            listener.OnSceneUpdate(effectiveTimeStep);
+        foreach (var listener in updateListeners)
+            listener.OnScenePostUpdate(effectiveTimeStep);
     }
 
     internal uint AllocateComponentId(uint requestedId)
