@@ -262,6 +262,10 @@ sealed class SmokeHeadlessApplication : Application
         scene.CreateComponent<Octree>();
         if (scene.Root.Id == 0 || scene.Root.GetNumAttributes() == 0)
             throw new InvalidOperationException("Scene root did not initialize serializable node state.");
+        if (typeof(Dictionary<string, List<int>>).GetFormattedTypeName() != "Dictionary<String, List<Int32>>")
+            throw new InvalidOperationException("ObjectExtensionMethods did not preserve rbfx-style formatted type names.");
+        if (ObjectReflection<StaticModel>.ClassName != nameof(StaticModel) || ObjectReflection<StaticModel>.TypeId.Value != StringHash.Calculate(nameof(StaticModel)))
+            throw new InvalidOperationException("ObjectReflection did not preserve rbfx-style fallback type metadata.");
 
         var explicitNode = scene.CreateChild("Explicit", 42);
         if (explicitNode.Id != 42 || explicitNode.NameHash.Value == 0)
