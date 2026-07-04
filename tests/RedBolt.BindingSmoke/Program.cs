@@ -410,6 +410,13 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("ObjectReflection did not preserve rbfx-style fallback type metadata.");
         if (new StringHash(typeof(StaticModel)).Value != StringHash.Calculate(nameof(StaticModel)) || ((StringHash)123u).Value != 123u)
             throw new InvalidOperationException("StringHash did not preserve rbfx-style type and uint conversions.");
+        var materialRef = ResourceRef.Parse("Material;Materials/FirstCube");
+        if (materialRef.Type != StringHash.Calculate("Material") || materialRef.Name != "Materials/FirstCube" || materialRef.ToHash() == 0u || ResourceRef.IsNullOrEmpty(materialRef))
+            throw new InvalidOperationException("ResourceRef did not preserve rbfx-style parse and hash helpers.");
+        var materialRefList = ResourceRefList.Parse("Material;Materials/One,Materials/Two");
+        var expectedRefList = new ResourceRefList(StringHash.Calculate("Material"), ["Materials/One", "Materials/Two"]);
+        if (!materialRefList.Equals(expectedRefList) || materialRefList.ToHash() == 0u || ResourceRefList.IsNullOrEmpty(materialRefList) || !ResourceRefList.IsNullOrEmpty(ResourceRefList.Empty))
+            throw new InvalidOperationException("ResourceRefList did not preserve rbfx-style parse, equality, and hash helpers.");
 
         var explicitNode = scene.CreateChild("Explicit", 42);
         if (explicitNode.Id != 42 || explicitNode.NameHash.Value == 0)

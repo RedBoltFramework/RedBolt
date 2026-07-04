@@ -24,6 +24,17 @@ public readonly record struct ResourceRef(uint Type, string Name)
         return new ResourceRef(type, namePart);
     }
 
+    public uint ToHash()
+    {
+        unchecked
+        {
+            var hash = 2166136261u;
+            hash = (hash ^ Type) * 16777619u;
+            hash = (hash ^ StringHash.Calculate(Name ?? string.Empty)) * 16777619u;
+            return hash;
+        }
+    }
+
     public override string ToString()
     {
         return Type == 0u ? Name : $"{Type};{Name}";
