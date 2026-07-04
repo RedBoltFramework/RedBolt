@@ -1,0 +1,2 @@
+- Prefer idiomatic C# constructs
+  - Avoid superfluous getters when we have properties

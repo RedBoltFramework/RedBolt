@@ -2,7 +2,9 @@ namespace RedBolt;
 
 public sealed class Engine
 {
+    private readonly Dictionary<string, object?> customParameters = new(StringComparer.Ordinal);
     private readonly System.Diagnostics.Stopwatch frameClock = new();
+    private float? nextTimeStep;
 
     public EngineParameters Parameters { get; private set; } = new();
 
@@ -21,6 +23,18 @@ public sealed class Engine
     public bool IsExiting { get; private set; }
 
     public bool IsHeadless { get; private set; }
+
+    public bool AutoExit { get; private set; } = true;
+
+    public int MaxFps { get; private set; } = 200;
+
+    public int MaxInactiveFps { get; private set; } = 60;
+
+    public int MinFps { get; private set; } = 10;
+
+    public bool PauseMinimized { get; private set; } = true;
+
+    public int TimeStepSmoothing { get; private set; } = 2;
 
     public bool Initialize(EngineParameters applicationParameters)
     {
@@ -60,7 +74,8 @@ public sealed class Engine
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
-        var timeStep = (float)frameClock.Elapsed.TotalSeconds;
+        var timeStep = nextTimeStep ?? (float)frameClock.Elapsed.TotalSeconds;
+        nextTimeStep = null;
         frameClock.Restart();
         if (timeStep < 0.0f)
             timeStep = 0.0f;
@@ -73,7 +88,7 @@ public sealed class Engine
         {
             Input.BeginFrame();
             Input.PollEvents();
-            if (Input.ExitRequested)
+            if (Input.ExitRequested && AutoExit)
                 Exit();
         }
 
@@ -89,6 +104,73 @@ public sealed class Engine
         IsExiting = true;
     }
 
+    public void SetMinFps(int fps)
+    {
+        MinFps = Math.Max(fps, 1);
+    }
+
+    public int GetMinFps() => MinFps;
+
+    public void SetMaxFps(int fps)
+    {
+        MaxFps = Math.Max(fps, 0);
+    }
+
+    public int GetMaxFps() => MaxFps;
+
+    public void SetMaxInactiveFps(int fps)
+    {
+        MaxInactiveFps = Math.Max(fps, 0);
+    }
+
+    public int GetMaxInactiveFps() => MaxInactiveFps;
+
+    public void SetTimeStepSmoothing(int frames)
+    {
+        TimeStepSmoothing = Math.Max(frames, 1);
+    }
+
+    public int GetTimeStepSmoothing() => TimeStepSmoothing;
+
+    public void SetPauseMinimized(bool enable)
+    {
+        PauseMinimized = enable;
+    }
+
+    public bool GetPauseMinimized() => PauseMinimized;
+
+    public void SetAutoExit(bool enable)
+    {
+        AutoExit = enable;
+    }
+
+    public bool GetAutoExit() => AutoExit;
+
+    public void SetNextTimeStep(float seconds)
+    {
+        nextTimeStep = Math.Max(seconds, 0.0f);
+    }
+
+    public float GetNextTimeStep() => nextTimeStep ?? Time.TimeStep;
+
+    public void SetParameter(string name, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        customParameters[name] = value;
+    }
+
+    public bool HasParameter(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return customParameters.ContainsKey(name);
+    }
+
+    public object? GetParameter(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return customParameters.GetValueOrDefault(name);
+    }
+
     public void Shutdown()
     {
         if (!IsInitialized)
@@ -99,6 +181,7 @@ public sealed class Engine
         Input.Shutdown();
         IsInitialized = false;
         IsExiting = false;
+        nextTimeStep = null;
         frameClock.Reset();
     }
 }

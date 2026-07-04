@@ -253,6 +253,23 @@ sealed class SmokeHeadlessApplication : Application
         engineWasInitializedAtStart = Engine.IsInitialized;
         engineWasHeadlessAtStart = Engine.IsHeadless;
 
+        Engine.SetMinFps(0);
+        Engine.SetMaxFps(144);
+        Engine.SetMaxInactiveFps(30);
+        Engine.SetTimeStepSmoothing(0);
+        Engine.SetPauseMinimized(false);
+        Engine.SetAutoExit(false);
+        Engine.SetParameter("CustomParameter", 42);
+        Engine.SetNextTimeStep(0.125f);
+        var observedTimeStep = -1.0f;
+        Engine.RunFrame(timeStep => observedTimeStep = timeStep);
+        if (Engine.GetMinFps() != 1 || Engine.GetMaxFps() != 144 || Engine.GetMaxInactiveFps() != 30 || Engine.GetTimeStepSmoothing() != 1)
+            throw new InvalidOperationException("Engine did not preserve rbfx-style FPS and timestep smoothing helpers.");
+        if (Engine.GetPauseMinimized() || Engine.GetAutoExit() || !Engine.HasParameter("CustomParameter") || !Equals(Engine.GetParameter("CustomParameter"), 42))
+            throw new InvalidOperationException("Engine did not preserve rbfx-style parameter and pause/auto-exit helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(observedTimeStep, 0.125f) || !MathDefs.ApproximatelyEquivalent(Engine.GetNextTimeStep(), 0.125f) || Engine.Time.FrameNumber != 1)
+            throw new InvalidOperationException("Engine did not preserve rbfx-style next timestep helper.");
+
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
         if (!ReferenceEquals(model, Resources.Get<Model>("Models/ProceduralBox")))
