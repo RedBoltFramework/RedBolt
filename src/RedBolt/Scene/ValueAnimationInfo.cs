@@ -35,6 +35,12 @@ public class ValueAnimationInfo
 
     public ValueAnimation GetAnimation() => Animation;
 
+    public WrapMode GetWrapMode() => WrapMode;
+
+    public float GetSpeed() => Speed;
+
+    public float GetTime() => Time;
+
     public void SetWrapMode(WrapMode wrapMode)
     {
         WrapMode = wrapMode;

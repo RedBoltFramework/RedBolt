@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public abstract class Component : Serializable
+public abstract class Component : Animatable
 {
     private bool enabled = true;
     private Node? node;

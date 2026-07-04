@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class Node : Serializable
+public sealed class Node : Animatable
 {
     private readonly List<Component> components = [];
     private readonly List<Node> children = [];
