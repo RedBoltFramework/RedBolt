@@ -169,7 +169,9 @@ public sealed class SceneResource : Resource
     {
         var serialized = new SerializedComponent
         {
-            TypeName = component.GetType().FullName ?? component.GetType().Name,
+            TypeName = component is UnknownComponent unknownComponent && !string.IsNullOrEmpty(unknownComponent.GetOriginalTypeName())
+                ? unknownComponent.GetOriginalTypeName()
+                : component.GetType().FullName ?? component.GetType().Name,
             Id = component.Id,
             Temporary = component.IsTemporary
         };
@@ -227,10 +229,18 @@ public sealed class SceneResource : Resource
 
         foreach (var componentData in nodeData.Components)
         {
+            Component? component;
             if (!ComponentTypes.Value.TryGetValue(componentData.TypeName, out var type))
-                continue;
+            {
+                var unknown = node.CreateComponent<UnknownComponent>(componentData.Id);
+                unknown.SetOriginalTypeName(componentData.TypeName);
+                component = unknown;
+            }
+            else
+            {
+                component = node.CreateComponent(type, componentData.Id);
+            }
 
-            var component = node.CreateComponent(type, componentData.Id);
             if (component is null)
                 continue;
 
