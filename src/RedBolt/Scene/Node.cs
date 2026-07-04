@@ -90,7 +90,7 @@ public sealed class Node : Serializable
 
     public bool IsEnabledSelf => enabled;
 
-    public Node? Parent { get; }
+    public Node? Parent { get; private set; }
 
     public Vector3 Position
     {
@@ -312,6 +312,20 @@ public sealed class Node : Serializable
         return child is not null && !isLast ? child.FindChild(subPath) : child;
     }
 
+    public bool IsChildOf(Node node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        var parent = Parent;
+        while (parent is not null)
+        {
+            if (ReferenceEquals(parent, node))
+                return true;
+            parent = parent.Parent;
+        }
+
+        return false;
+    }
+
     public Vector3 GetPosition() => Position;
 
     public Vector2 GetPosition2D() => new(position.X, position.Y);
@@ -424,6 +438,36 @@ public sealed class Node : Serializable
             RemoveComponent(components[index]);
     }
 
+    public void Remove()
+    {
+        Parent?.RemoveChild(this);
+    }
+
+    public void RemoveChild(Node node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        if (!ReferenceEquals(node.Parent, this) || !children.Remove(node))
+            return;
+
+        node.UnregisterComponentsRecursive();
+        node.Parent = null;
+        node.MarkDirty();
+    }
+
+    public void RemoveAllChildren() => RemoveChildren(recursive: true);
+
+    public void RemoveChildren(bool recursive)
+    {
+        for (var index = children.Count - 1; index >= 0; --index)
+        {
+            var child = children[index];
+            if (recursive)
+                child.RemoveChildren(recursive: true);
+            RemoveChild(child);
+        }
+    }
+
     public void SetEnabled(bool enable)
     {
         if (enabled == enable)
@@ -438,6 +482,35 @@ public sealed class Node : Serializable
         SetEnabled(enable);
         foreach (var child in children)
             child.SetEnabledRecursive(enable);
+    }
+
+    public void SetParent(Node? parent)
+    {
+        if (parent is null)
+        {
+            Remove();
+            return;
+        }
+
+        if (ReferenceEquals(parent, this) || parent.IsChildOf(this))
+            throw new InvalidOperationException("A node cannot be reparented to itself or its descendant.");
+        if (!ReferenceEquals(parent.Scene, Scene))
+            throw new InvalidOperationException("Cross-scene reparenting is not supported by the managed scene slice.");
+        if (ReferenceEquals(Parent, parent))
+            return;
+
+        var worldPosition = WorldPosition;
+        var worldRotation = WorldRotation;
+        var worldScale = WorldScale;
+        var wasAttached = Parent is not null;
+
+        Parent?.DetachChildForReparent(this);
+        parent.children.Add(this);
+        Parent = parent;
+        if (!wasAttached)
+            RegisterComponentsRecursive();
+        SetWorldTransform(worldPosition, worldRotation, worldScale);
+        MarkDirty();
     }
 
     public void AddTag(string tag)
@@ -710,6 +783,28 @@ public sealed class Node : Serializable
             if (recursive)
                 child.AddChildren(result, recursive: true);
         }
+    }
+
+    private void DetachChildForReparent(Node child)
+    {
+        if (children.Remove(child))
+            child.Parent = null;
+    }
+
+    private void RegisterComponentsRecursive()
+    {
+        foreach (var component in components)
+            Scene.RegisterComponent(component);
+        foreach (var child in children)
+            child.RegisterComponentsRecursive();
+    }
+
+    private void UnregisterComponentsRecursive()
+    {
+        foreach (var child in children)
+            child.UnregisterComponentsRecursive();
+        foreach (var component in components)
+            Scene.UnregisterComponent(component);
     }
 
     private void FindComponents<T>(ComponentSearchFlag flags, List<T> result)

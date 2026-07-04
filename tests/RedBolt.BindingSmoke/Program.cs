@@ -306,6 +306,19 @@ sealed class SmokeHeadlessApplication : Application
         var expectedWorld = new Vector3(2.0f, 5.0f, 9.0f);
         if (!transformChild.WorldPosition.ApproximatelyEquivalent(expectedWorld) || !explicitNode.WorldToLocal(expectedWorld).ApproximatelyEquivalent(transformChild.Position))
             throw new InvalidOperationException("Node transform conversion did not preserve rbfx-style local/world math.");
+        var newParent = scene.CreateChild("ReparentTarget");
+        newParent.SetPosition(new Vector3(-1.0f, -2.0f, -3.0f));
+        transformChild.SetParent(newParent);
+        if (!ReferenceEquals(transformChild.Parent, newParent) || !transformChild.WorldPosition.ApproximatelyEquivalent(expectedWorld) || explicitNode.GetChild("TransformChild") is not null)
+            throw new InvalidOperationException("Node reparenting did not preserve rbfx-style parent and world transform semantics.");
+        newParent.RemoveChild(transformChild);
+        if (transformChild.Parent is not null || newParent.GetNumChildren() != 0)
+            throw new InvalidOperationException("Node child removal did not preserve rbfx-style detach semantics.");
+        var removableParent = scene.CreateChild("RemovableParent");
+        removableParent.CreateChild("Nested");
+        scene.Root.RemoveChildren(recursive: false);
+        if (scene.Root.GetNumChildren() != 0 || removableParent.Parent is not null)
+            throw new InvalidOperationException("Node RemoveChildren did not preserve rbfx-style child removal semantics.");
         var rect = new global::RedBolt.Rect();
         rect.Merge(new Vector2(0.0f, 0.0f));
         rect.Merge(new Vector2(2.0f, 2.0f));
