@@ -71,8 +71,8 @@ public sealed class Light : Drawable
     private float range = DefaultRange;
     private float fov = DefaultLightFov;
     private float aspectRatio = 1.0f;
-    private object? rampTexture;
-    private object? shapeTexture;
+    private Texture? rampTexture;
+    private Texture? shapeTexture;
 
     public Light()
         : base(DrawableFlags.Light)
@@ -329,19 +329,19 @@ public sealed class Light : Drawable
 
     public float GetShadowMaxExtrusion() => ShadowMaxExtrusion;
 
-    public void SetRampTexture(object? texture)
+    public void SetRampTexture(Texture? texture)
     {
         rampTexture = texture;
     }
 
-    public object? GetRampTexture() => rampTexture;
+    public Texture? GetRampTexture() => rampTexture;
 
-    public void SetShapeTexture(object? texture)
+    public void SetShapeTexture(Texture? texture)
     {
         shapeTexture = texture;
     }
 
-    public object? GetShapeTexture() => shapeTexture;
+    public Texture? GetShapeTexture() => shapeTexture;
 
     public float GetDistanceTo(Drawable drawable)
     {

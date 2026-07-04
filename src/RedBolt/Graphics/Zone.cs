@@ -12,7 +12,7 @@ public sealed class Zone : Drawable
     public static readonly Color DefaultAmbientColor = new(0.1f, 0.1f, 0.1f);
     public static readonly Color DefaultFogColor = Color.Black;
 
-    private object? zoneTexture;
+    private Texture? zoneTexture;
     private ResourceRef zoneTextureAttribute = new(StringHash.Calculate("TextureCube"), string.Empty);
     private Matrix3x4 inverseWorld = Matrix3x4.Identity;
     private bool inverseWorldDirty = true;
@@ -151,12 +151,12 @@ public sealed class Zone : Drawable
 
     public bool GetAmbientGradient() => AmbientGradient;
 
-    public void SetZoneTexture(object? texture)
+    public void SetZoneTexture(Texture? texture)
     {
         zoneTexture = texture;
     }
 
-    public object? GetZoneTexture() => zoneTexture;
+    public Texture? GetZoneTexture() => zoneTexture;
 
     public void SetZoneTextureAttr(ResourceRef value)
     {

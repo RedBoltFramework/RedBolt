@@ -774,6 +774,28 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("VertexBuffer did not preserve rbfx-style CPU-side metadata helpers.");
         if (geometry.GetPrimitiveCount() != 2 || geometry.GetNumVertexBuffers() != 1 || !geometry.IsInstanced(GeometryType.Static) || !MathDefs.ApproximatelyEquivalent(geometry.GetLodDistance(), 5.0f))
             throw new InvalidOperationException("Geometry did not preserve rbfx-style CPU-side metadata helpers.");
+        var texture2D = new Texture2D("Textures/Smoke2D");
+        texture2D.SetNumLevels(0);
+        if (!texture2D.SetSize(4, 4, global::RedBolt.TextureFormat.RGBA8) || texture2D.GetLevels() != 3u)
+            throw new InvalidOperationException("Texture2D did not preserve rbfx-style size and mip helpers.");
+        texture2D.SetFilterMode(global::RedBolt.TextureFilterMode.Bilinear);
+        texture2D.SetAddressMode(TextureCoordinate.U, global::RedBolt.TextureAddressMode.Clamp);
+        texture2D.SetAnisotropy(8u);
+        texture2D.SetShadowCompare(true);
+        texture2D.SetLinear(true);
+        texture2D.SetSRGB(true);
+        texture2D.SetMipsToSkip(MaterialQuality.Low, 3);
+        texture2D.SetMipsToSkip(MaterialQuality.Medium, 1);
+        var texture2DData = Enumerable.Range(0, 64).Select(static value => (byte)value).ToArray();
+        if (!texture2D.SetData(0u, 0, 0, 4, 4, texture2DData) || texture2D.GetData(0u)?.Length != 64 || texture2D.GetFilterMode() != global::RedBolt.TextureFilterMode.Bilinear || texture2D.GetAddressMode(TextureCoordinate.U) != global::RedBolt.TextureAddressMode.Clamp || texture2D.GetAnisotropy() != 8u || !texture2D.GetShadowCompare() || !texture2D.GetLinear() || !texture2D.GetSRGB() || texture2D.GetMipsToSkip(MaterialQuality.Low) != 3 || texture2D.GetMipsToSkip(MaterialQuality.Medium) != 1 || texture2D.GetComponents() != 4u || texture2D.GetDataSize(4, 4) != 64u)
+            throw new InvalidOperationException("Texture2D did not preserve rbfx-style sampler and CPU data helpers.");
+        var textureCube = new TextureCube("Textures/SmokeCube");
+        textureCube.SetNumLevels(1u);
+        if (!textureCube.SetSize(2, global::RedBolt.TextureFormat.RGBA8) || !textureCube.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2, Enumerable.Repeat((byte)7, 16).ToArray()) || textureCube.GetData(CubeMapFace.PositiveX, 0u)?.Length != 16)
+            throw new InvalidOperationException("TextureCube did not preserve rbfx-style face data helpers.");
+        textureCube.SetBackupTexture(texture2D);
+        if (textureCube.GetBackupTexture() != texture2D)
+            throw new InvalidOperationException("Texture did not preserve rbfx-style backup texture helpers.");
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);
@@ -897,7 +919,7 @@ sealed class SmokeHeadlessApplication : Application
         zone.SetHeightFog(true);
         zone.SetOverride(true);
         zone.SetAmbientGradient(true);
-        zone.SetZoneTexture(material);
+        zone.SetZoneTexture(textureCube);
         var zoneTextureRef = ResourceRef.Parse("TextureCube;Textures/Sky.xml");
         zone.SetZoneTextureAttr(zoneTextureRef);
         if (!zone.GetBoundingBox().Equals(new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f))) || zone.GetAmbientColor() != new Color(0.2f, 0.3f, 0.4f))
@@ -908,7 +930,7 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Zone did not preserve rbfx-style fog color or distance clamping helpers.");
         if (!MathDefs.ApproximatelyEquivalent(zone.GetFogHeight(), 4.0f) || !MathDefs.ApproximatelyEquivalent(zone.GetFogHeightScale(), 5.0f) || zone.GetPriority() != 7)
             throw new InvalidOperationException("Zone did not preserve rbfx-style fog height or priority helpers.");
-        if (!zone.GetHeightFog() || !zone.GetOverride() || !zone.GetAmbientGradient() || !ReferenceEquals(zone.GetZoneTexture(), material) || zone.GetZoneTextureAttr() != zoneTextureRef)
+        if (!zone.GetHeightFog() || !zone.GetOverride() || !zone.GetAmbientGradient() || !ReferenceEquals(zone.GetZoneTexture(), textureCube) || zone.GetZoneTextureAttr() != zoneTextureRef)
             throw new InvalidOperationException("Zone did not preserve rbfx-style mode flags or zone texture metadata helpers.");
         if (!zone.GetAmbientStartColor().ApproximatelyEquivalent(zone.GetAmbientColor()) || !zone.GetAmbientEndColor().ApproximatelyEquivalent(zone.GetAmbientColor()) || !zone.GetAmbientLighting().ApproximatelyEquivalent(new Vector3(0.4f, 0.6f, 0.8f)))
             throw new InvalidOperationException("Zone did not preserve rbfx-style ambient gradient fallback or lighting helpers.");
