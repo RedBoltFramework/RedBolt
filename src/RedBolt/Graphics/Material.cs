@@ -6,7 +6,8 @@ public enum CullMode
 {
     None,
     CounterClockwise,
-    Clockwise
+    Clockwise,
+    Max
 }
 
 public enum FillMode
@@ -28,9 +29,53 @@ public readonly record struct BiasParameters(float ConstantBias, float SlopeScal
 
 public readonly record struct MaterialShaderParameter(object? Value, bool IsCustom = false);
 
+public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<TechniqueEntry>
+{
+    public TechniqueEntry(Technique? technique, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
+    {
+        Technique = technique;
+        Original = technique;
+        QualityLevel = qualityLevel;
+        LodDistance = lodDistance;
+    }
+
+    public Technique? Technique { get; set; }
+
+    public Technique? Original { get; set; }
+
+    public MaterialQuality QualityLevel { get; set; }
+
+    public float LodDistance { get; set; }
+
+    public int CompareTo(TechniqueEntry other)
+    {
+        if (!MathDefs.ApproximatelyEquivalent(LodDistance, other.LodDistance))
+            return other.LodDistance.CompareTo(LodDistance);
+
+        return other.QualityLevel.CompareTo(QualityLevel);
+    }
+
+    public bool Equals(TechniqueEntry other)
+    {
+        return ReferenceEquals(Technique, other.Technique)
+            && ReferenceEquals(Original, other.Original)
+            && QualityLevel == other.QualityLevel
+            && MathDefs.ApproximatelyEquivalent(LodDistance, other.LodDistance);
+    }
+
+    public override bool Equals(object? obj) => obj is TechniqueEntry other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(Technique, Original, QualityLevel, LodDistance);
+
+    public static bool operator ==(TechniqueEntry left, TechniqueEntry right) => left.Equals(right);
+
+    public static bool operator !=(TechniqueEntry left, TechniqueEntry right) => !left.Equals(right);
+}
+
 public sealed class Material : ResourceWithMetadata
 {
     private readonly Dictionary<string, MaterialShaderParameter> shaderParameters = new(StringComparer.Ordinal);
+    private readonly List<TechniqueEntry> techniques = [];
     private uint shaderParameterHash;
 
     internal Material(string name)
@@ -68,6 +113,8 @@ public sealed class Material : ResourceWithMetadata
 
     public IReadOnlyDictionary<string, MaterialShaderParameter> ShaderParameters => shaderParameters;
 
+    public IReadOnlyList<TechniqueEntry> Techniques => techniques;
+
     public uint ShaderParameterHash => shaderParameterHash;
 
     public Vector2 UVOffset { get; private set; }
@@ -103,9 +150,14 @@ public sealed class Material : ResourceWithMetadata
         UVRepeat = material.UVRepeat;
         VertexShaderDefines = material.VertexShaderDefines;
 
+        techniques.Clear();
+        foreach (var technique in material.techniques)
+            techniques.Add(technique);
+
         shaderParameters.Clear();
         foreach (var parameter in material.shaderParameters)
             shaderParameters.Add(parameter.Key, parameter.Value);
+        ApplyShaderDefinesToTechniques();
         RefreshShaderParameterHash();
         CopyMetadata(material);
     }
@@ -140,6 +192,22 @@ public sealed class Material : ResourceWithMetadata
 
     public string GetVertexShaderDefines() => VertexShaderDefines;
 
+    public uint GetNumTechniques() => (uint)techniques.Count;
+
+    public IReadOnlyList<TechniqueEntry> GetTechniques() => techniques;
+
+    public TechniqueEntry GetTechniqueEntry(uint index) => index < techniques.Count ? techniques[(int)index] : default;
+
+    public Technique? GetTechnique(uint index) => GetTechniqueEntry(index).Technique;
+
+    public Pass? GetPass(uint index, string passName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(passName);
+        return GetTechnique(index)?.GetPass(passName);
+    }
+
+    public Pass? GetDefaultPass() => GetPass(0, "base");
+
     public void SetAlphaToCoverage(bool enable)
     {
         AlphaToCoverage = enable;
@@ -173,6 +241,7 @@ public sealed class Material : ResourceWithMetadata
     public void SetPixelShaderDefines(string defines)
     {
         PixelShaderDefines = defines ?? string.Empty;
+        ApplyShaderDefinesToTechniques();
     }
 
     public void SetRenderOrder(byte order)
@@ -188,6 +257,31 @@ public sealed class Material : ResourceWithMetadata
     public void SetShadowCullMode(CullMode mode)
     {
         ShadowCullMode = mode;
+    }
+
+    public void SetNumTechniques(uint num)
+    {
+        while (techniques.Count < num)
+            techniques.Add(default);
+        while (techniques.Count > num)
+            techniques.RemoveAt(techniques.Count - 1);
+    }
+
+    public void SetTechnique(uint index, Technique? tech, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
+    {
+        SetNumTechniques(index + 1);
+        techniques[(int)index] = new TechniqueEntry(tech, qualityLevel, lodDistance);
+        SortTechniques();
+        ApplyShaderDefinesToTechniques();
+    }
+
+    public void SetTechniques(IEnumerable<TechniqueEntry> techniques)
+    {
+        ArgumentNullException.ThrowIfNull(techniques);
+        this.techniques.Clear();
+        this.techniques.AddRange(techniques);
+        SortTechniques();
+        ApplyShaderDefinesToTechniques();
     }
 
     public void SetShaderParameter(string name, object? value, bool isCustom = false)
@@ -218,6 +312,12 @@ public sealed class Material : ResourceWithMetadata
     public void SetVertexShaderDefines(string defines)
     {
         VertexShaderDefines = defines ?? string.Empty;
+        ApplyShaderDefinesToTechniques();
+    }
+
+    public void SortTechniques()
+    {
+        techniques.Sort();
     }
 
     public bool RemoveShaderParameter(string name)
@@ -283,6 +383,21 @@ public sealed class Material : ResourceWithMetadata
             }
 
             shaderParameterHash = hash;
+        }
+    }
+
+    private void ApplyShaderDefinesToTechniques()
+    {
+        for (var i = 0; i < techniques.Count; ++i)
+        {
+            var entry = techniques[i];
+            if (entry.Original is null)
+                continue;
+
+            entry.Technique = string.IsNullOrWhiteSpace(VertexShaderDefines) && string.IsNullOrWhiteSpace(PixelShaderDefines)
+                ? entry.Original
+                : entry.Original.CloneWithDefines(VertexShaderDefines, PixelShaderDefines);
+            techniques[i] = entry;
         }
     }
 }

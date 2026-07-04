@@ -315,9 +315,33 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Material did not preserve rbfx-style shader parameter helpers.");
         if (!material.UVOffset.ApproximatelyEquivalent(new Vector2(0.25f, 0.5f)) || !material.UVRepeat.ApproximatelyEquivalent(new Vector2(2.0f, 4.0f)))
             throw new InvalidOperationException("Material did not preserve rbfx-style UV transform metadata.");
+        var technique = new Technique("Techniques/Smoke");
+        var basePass = technique.CreatePass("base");
+        basePass.SetVertexShader("LitSolid");
+        basePass.SetPixelShader("LitSolid");
+        basePass.SetBlendMode(BlendMode.Alpha);
+        basePass.SetDepthTestMode(CompareMode.GreaterEqual);
+        basePass.SetPixelShaderDefines("ALPHAMASK DIFFMAP");
+        if (!basePass.IsAlphaMask || basePass.GetPipelineStateHash() == 0u || basePass.GetEffectivePixelShaderDefines() != "ALPHAMASK DIFFMAP")
+            throw new InvalidOperationException("Pass did not preserve rbfx-style shader define and hash helpers.");
+        var clonedTechnique = technique.CloneWithDefines("SKINNED", "FOG");
+        if (ReferenceEquals(clonedTechnique, technique) || clonedTechnique.GetPass("base")?.VertexShaderDefines.Contains("SKINNED", StringComparison.Ordinal) != true || clonedTechnique.GetPass("base")?.PixelShaderDefines.Contains("FOG", StringComparison.Ordinal) != true)
+            throw new InvalidOperationException("Technique did not preserve rbfx-style clone-with-defines helpers.");
+        using var techniqueXmlSource = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<technique vs=\"VS\" ps=\"PS\" vsdefines=\"GLOBALVS\" psdefines=\"GLOBALPS\"><pass name=\"alpha\" blend=\"addalpha\" cull=\"cw\" depthtest=\"greaterequal\" colorwrite=\"false\" depthwrite=\"false\" alphatocoverage=\"true\" psdefines=\"ALPHAMASK\" /></technique>"));
+        var xmlTechnique = new Technique("Techniques/Xml");
+        if (!xmlTechnique.Load(techniqueXmlSource) || xmlTechnique.GetPass("alpha") is not { } xmlPass || xmlPass.BlendMode != BlendMode.AddAlpha || xmlPass.CullMode != RedBolt.CullMode.Clockwise || xmlPass.DepthTestMode != CompareMode.GreaterEqual || xmlPass.ColorWrite || xmlPass.DepthWrite || !xmlPass.AlphaToCoverage || !xmlPass.IsAlphaMask)
+            throw new InvalidOperationException("Technique did not preserve rbfx-style XML loading helpers.");
+        material.SetTechnique(0, technique, MaterialQuality.Low, 0.0f);
+        material.SetTechnique(1, xmlTechnique, MaterialQuality.High, 25.0f);
+        material.SetVertexShaderDefines("MATERIAL_VS");
+        material.SetPixelShaderDefines("MATERIAL_PS");
+        if (material.GetNumTechniques() != 2u || material.GetTechniqueEntry(0).LodDistance != 25.0f || material.GetTechniqueEntry(0).QualityLevel != MaterialQuality.High || material.GetTechnique(0)?.GetPass("alpha") is null || material.GetTechnique(1)?.GetPass("base") is null || material.GetDefaultPass() is not null)
+            throw new InvalidOperationException("Material did not preserve rbfx-style technique entry sorting helpers.");
+        if (material.GetTechnique(1)?.GetPass("base")?.VertexShaderDefines.Contains("MATERIAL_VS", StringComparison.Ordinal) != true || material.GetTechnique(1)?.GetPass("base")?.PixelShaderDefines.Contains("MATERIAL_PS", StringComparison.Ordinal) != true)
+            throw new InvalidOperationException("Material did not preserve rbfx-style material shader define application helpers.");
         material.AddMetadata("Category", "Smoke");
         var metadataClone = material.Clone("Materials/FirstCubeMetadataClone");
-        if (!material.HasMetadata() || !Equals(material.GetMetadata("Category"), "Smoke") || !material.GetMetadataKeys().Contains("Category") || !Equals(metadataClone.GetMetadata("Category"), "Smoke"))
+        if (!material.HasMetadata() || !Equals(material.GetMetadata("Category"), "Smoke") || !material.GetMetadataKeys().Contains("Category") || !Equals(metadataClone.GetMetadata("Category"), "Smoke") || metadataClone.GetNumTechniques() != 2u)
             throw new InvalidOperationException("ResourceWithMetadata did not preserve rbfx-style metadata helpers.");
         metadataClone.RemoveMetadata("Category");
         if (metadataClone.HasMetadata("Category"))
