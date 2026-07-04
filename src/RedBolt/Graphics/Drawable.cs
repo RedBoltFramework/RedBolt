@@ -23,6 +23,14 @@ public abstract class Drawable : Component
         DrawableFlags = drawableFlags;
     }
 
+    private BoundingBox boundingBox;
+    private BoundingBox worldBoundingBox;
+    private bool worldBoundingBoxDirty = true;
+
+    public BoundingBox BoundingBox => boundingBox;
+
+    public BoundingBox WorldBoundingBox => GetWorldBoundingBox();
+
     public DrawableFlags DrawableFlags { get; }
 
     public float DrawDistance { get; set; }
@@ -44,4 +52,38 @@ public abstract class Drawable : Component
     public bool Occluder { get; set; } = true;
 
     public bool Occludee { get; set; } = true;
+
+    public BoundingBox GetBoundingBox() => boundingBox;
+
+    public BoundingBox GetWorldBoundingBox()
+    {
+        if (worldBoundingBoxDirty)
+        {
+            OnWorldBoundingBoxUpdate();
+            worldBoundingBoxDirty = false;
+        }
+
+        return worldBoundingBox;
+    }
+
+    public void MarkForUpdate()
+    {
+        worldBoundingBoxDirty = true;
+    }
+
+    protected void SetLocalBoundingBox(BoundingBox box)
+    {
+        boundingBox = box;
+        MarkForUpdate();
+    }
+
+    protected virtual void OnWorldBoundingBoxUpdate()
+    {
+        worldBoundingBox = IsAttached ? boundingBox.Transformed(Node.GetWorldTransform()) : boundingBox;
+    }
+
+    protected internal override void OnMarkedDirty(Node node)
+    {
+        MarkForUpdate();
+    }
 }

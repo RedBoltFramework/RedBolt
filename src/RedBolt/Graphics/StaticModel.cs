@@ -24,7 +24,13 @@ public sealed class StaticModel : Drawable
     public void SetModel(Model? model)
     {
         Model = model;
+        SetBoundingBox(model?.GetBoundingBox() ?? default);
         ResizeMaterials(model?.NumGeometries ?? 0u);
+    }
+
+    public void SetBoundingBox(BoundingBox box)
+    {
+        SetLocalBoundingBox(box);
     }
 
     public void SetMaterial(Material? material)
@@ -54,6 +60,10 @@ public sealed class StaticModel : Drawable
     {
         return Model?.GetGeometry(batchIndex, level);
     }
+
+    public bool IsInside(Vector3 point) => IsInsideLocal(Node.WorldToLocal(point));
+
+    public bool IsInsideLocal(Vector3 point) => GetBoundingBox().IsInside(point) != Intersection.Outside;
 
     private void ResizeMaterials(uint count)
     {

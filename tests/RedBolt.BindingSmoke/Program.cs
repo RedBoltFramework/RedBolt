@@ -375,6 +375,11 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("StaticModel did not expose the procedural model geometry.");
         if (!ReferenceEquals(cube.GetMaterial(), material))
             throw new InvalidOperationException("StaticModel did not expose the assigned material.");
+        if (model.GetBoundingBox().IsInside(Vector3.Zero) != Intersection.Inside || !cube.IsInsideLocal(Vector3.Zero))
+            throw new InvalidOperationException("Model/StaticModel did not preserve rbfx-style local bounding boxes.");
+        cubeNode.SetTransform(new Vector3(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 2.0f, 2.0f));
+        if (cube.GetWorldBoundingBox().IsInside(new Vector3(10.5f, 0.0f, 0.0f)) != Intersection.Inside || !cube.IsInside(new Vector3(10.5f, 0.0f, 0.0f)))
+            throw new InvalidOperationException("Drawable/StaticModel did not preserve rbfx-style world bounding boxes.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)

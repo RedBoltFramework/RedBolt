@@ -4,6 +4,7 @@ public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> geometries = [];
     private readonly List<Vector3> geometryCenters = [];
+    private BoundingBox boundingBox = new(-0.5f, 0.5f);
 
     internal Model(string name, uint vertexCount)
         : base(name)
@@ -19,9 +20,18 @@ public sealed class Model : ResourceWithMetadata
 
     public IReadOnlyList<Vector3> GeometryCenters => geometryCenters;
 
+    public BoundingBox BoundingBox => boundingBox;
+
     public uint NumGeometries => (uint)geometries.Count;
 
     public uint VertexCount => geometries.Count == 0 || geometries[0].Count == 0 ? 0u : geometries[0][0].VertexCount;
+
+    public void SetBoundingBox(BoundingBox box)
+    {
+        boundingBox = box;
+    }
+
+    public BoundingBox GetBoundingBox() => boundingBox;
 
     public void SetNumGeometries(uint num)
     {
