@@ -28,7 +28,9 @@ public class AttributeAnimationInfo : ValueAnimationInfo
 public class Animatable : Serializable
 {
     private readonly Dictionary<string, AttributeAnimationInfo> attributeAnimationInfos = new(StringComparer.Ordinal);
+    private readonly HashSet<string> objectAnimationAttributeNames = new(StringComparer.Ordinal);
     private bool animationEnabled = true;
+    private ObjectAnimation? objectAnimation;
 
     public void SetAnimationEnabled(bool enable)
     {
@@ -41,6 +43,30 @@ public class Animatable : Serializable
     {
         foreach (var info in attributeAnimationInfos.Values)
             info.SetTime(time);
+    }
+
+    public void SetObjectAnimation(ObjectAnimation? objectAnimation)
+    {
+        foreach (var name in objectAnimationAttributeNames.ToArray())
+            RemoveAttributeAnimation(name);
+        objectAnimationAttributeNames.Clear();
+
+        this.objectAnimation = objectAnimation;
+        if (objectAnimation is null)
+            return;
+
+        foreach (var pair in objectAnimation.GetAttributeAnimationInfos())
+        {
+            SetAttributeAnimation(pair.Key, pair.Value.GetAnimation(), pair.Value.GetWrapMode(), pair.Value.GetSpeed());
+            objectAnimationAttributeNames.Add(pair.Key);
+        }
+    }
+
+    public ObjectAnimation? GetObjectAnimation() => objectAnimation;
+
+    public void RemoveObjectAnimation()
+    {
+        SetObjectAnimation(null);
     }
 
     public void SetAttributeAnimation(string name, ValueAnimation? attributeAnimation, WrapMode wrapMode = WrapMode.Loop, float speed = 1.0f)
