@@ -264,8 +264,14 @@ sealed class SmokeHeadlessApplication : Application
         cameraNode.CreateComponent<Camera>();
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
-        cube.Model = model;
-        cube.Material = material;
+        cube.SetModel(model);
+        cube.SetMaterial(material);
+        if (cube.NumGeometries != 1 || model.GetGeometry(0)?.VertexCount != 36u)
+            throw new InvalidOperationException("StaticModel did not expose the procedural model geometry.");
+        if (!ReferenceEquals(cube.GetMaterial(), material))
+            throw new InvalidOperationException("StaticModel did not expose the assigned material.");
+        if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
+            throw new InvalidOperationException("Headless input state should start empty.");
 
         Exit();
     }

@@ -38,8 +38,8 @@ sealed class FirstCubeApplication : Application
         var cubeNode = scene.CreateChild("Cube");
         cubeNode.Rotation = Quaternion.Identity;
         var cube = cubeNode.CreateComponent<StaticModel>();
-        cube.Model = Resources.Get<Model>("Models/ProceduralBox");
-        cube.Material = Resources.Get<Material>("Materials/FirstCube");
+        cube.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        cube.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
 
         Renderer.SetViewport(0, new Viewport(scene, camera));
     }
@@ -47,7 +47,7 @@ sealed class FirstCubeApplication : Application
     protected override void Update(float timeStep)
     {
         elapsedTime += timeStep;
-        if (elapsedTime >= 4.0 || Input.ExitRequested)
+        if (elapsedTime >= 4.0 || Input.ExitRequested || Input.GetKeyPress(Key.Escape))
         {
             Exit();
             return;
