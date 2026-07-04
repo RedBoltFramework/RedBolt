@@ -1,5 +1,5 @@
 # Local OpenCode state and packages.
-.opencode/ralph-loop.local.md
+.opencode/ralph-loop.local*.md
 .opencode/node_modules/
 .opencode/package.json
 .opencode/package-lock.json
