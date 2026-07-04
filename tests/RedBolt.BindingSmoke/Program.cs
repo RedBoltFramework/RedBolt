@@ -1083,6 +1083,31 @@ sealed class SmokeHeadlessApplication : Application
         if (!Input.IsMouseVisible() || Input.MouseMode != MouseMode.Free)
             throw new InvalidOperationException("FreeFlyController did not preserve rbfx-style mouse capture restore helpers.");
 
+        var moveControllerScene = new Scene();
+        var moveControllerNode = moveControllerScene.CreateChild("MoveController");
+        var controlledMovement = moveControllerNode.CreateComponent<MoveAndOrbitComponent>();
+        var moveController = moveControllerNode.CreateComponent<MoveAndOrbitController>();
+        moveController.SetInput(Input);
+        var moveControllerMap = new InputMap("Input/MoveController", Input);
+        moveControllerMap.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
+        moveControllerMap.MapKeyboardKey(MoveAndOrbitController.ActionRight, Scancode.D);
+        moveControllerMap.MapKeyboardKey(MoveAndOrbitController.ActionTurnRight, Scancode.E);
+        moveControllerMap.MapKeyboardKey(MoveAndOrbitController.ActionLookDown, Scancode.S);
+        moveControllerMap.AddMetadata(MoveAndOrbitController.AxisRotationSensitivityMetadata, 50.0f);
+        moveController.SetInputMap(moveControllerMap);
+        Input.BeginFrame();
+        Input.SetKey(Key.W, Scancode.W, true);
+        Input.SetKey(Key.D, Scancode.D, true);
+        Input.SetKey(Key.E, Scancode.E, true);
+        Input.SetKey(Key.S, Scancode.S, true);
+        moveControllerScene.Update(0.5f);
+        Input.SetKey(Key.W, Scancode.W, false);
+        Input.SetKey(Key.D, Scancode.D, false);
+        Input.SetKey(Key.E, Scancode.E, false);
+        Input.SetKey(Key.S, Scancode.S, false);
+        if (!controlledMovement.GetVelocity().ApproximatelyEquivalent(new Vector3(1.0f, 0.0f, 1.0f)) || !MathDefs.ApproximatelyEquivalent(controlledMovement.GetYaw(), 25.0f) || !MathDefs.ApproximatelyEquivalent(controlledMovement.GetPitch(), 25.0f) || moveController.GetInputMapAttr().Name != "Input/MoveController")
+            throw new InvalidOperationException("MoveAndOrbitController did not preserve rbfx-style action mapping helpers.");
+
         Exit();
     }
 
