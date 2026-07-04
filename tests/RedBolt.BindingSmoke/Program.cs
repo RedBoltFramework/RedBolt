@@ -864,6 +864,63 @@ sealed class SmokeHeadlessApplication : Application
         group.ApplyAttributes();
         if (group.GetNumInstanceNodes() != 2u || group.GetInstanceNode(0u) != groupInstanceA || group.GetInstanceNode(1u) != groupInstanceB)
             throw new InvalidOperationException("StaticModelGroup did not preserve rbfx-style node ID attribute resolution helpers.");
+        var customNode = scene.CreateChild("CustomGeometry");
+        customNode.SetPosition(new Vector3(70.0f, 0.0f, 0.0f));
+        var custom = customNode.CreateComponent<CustomGeometry>();
+        if (custom.GetDrawableFlags() != DrawableFlags.Geometry || custom.GetNumGeometries() != 1u || custom.IsDynamic())
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style defaults.");
+        custom.SetDynamic(true);
+        custom.SetNumGeometries(2u);
+        if (!custom.BeginGeometry(0u, PrimitiveType.TriangleList))
+            throw new InvalidOperationException("CustomGeometry did not begin a valid geometry.");
+        custom.DefineVertex(new Vector3(-1.0f, -1.0f, 0.0f));
+        custom.DefineNormal(Vector3.Forward);
+        custom.DefineColor(new Color(1.0f, 0.0f, 0.0f));
+        custom.DefineTexCoord(Vector2.Zero);
+        custom.DefineTangent(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        custom.DefineVertex(new Vector3(1.0f, -1.0f, 0.0f));
+        custom.DefineNormal(Vector3.Forward);
+        custom.DefineColor(new Color(0.0f, 1.0f, 0.0f));
+        custom.DefineTexCoord(Vector2.Right);
+        custom.DefineTangent(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        custom.DefineVertex(new Vector3(0.0f, 1.0f, 0.0f));
+        custom.DefineNormal(Vector3.Forward);
+        custom.DefineColor(new Color(0.0f, 0.0f, 1.0f));
+        custom.DefineTexCoord(Vector2.Up);
+        custom.DefineTangent(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        if (!custom.DefineGeometry(1u, PrimitiveType.LineList, 2u, hasNormals: true, hasColors: true, hasTexCoords: true, hasTangents: true))
+            throw new InvalidOperationException("CustomGeometry did not define editable geometry storage.");
+        var editableVertex = custom.GetVertex(1u, 1u) ?? throw new InvalidOperationException("CustomGeometry did not return an editable vertex.");
+        editableVertex.Position = new Vector3(2.0f, 0.0f, 0.0f);
+        editableVertex.Normal = Vector3.Up;
+        editableVertex.Color = new Color(1.0f, 1.0f, 0.0f).ToUInt();
+        editableVertex.TexCoord = Vector2.One;
+        editableVertex.Tangent = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
+        custom.SetMaterial(material);
+        custom.Commit();
+        if (!custom.IsDynamic() || custom.GetNumVertices(0u) != 3u || custom.GetNumVertices(1u) != 2u || custom.GetLodGeometry(0u, 0u)?.GetPrimitiveCount() != 1u)
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style geometry counts after Commit.");
+        if (custom.GetVertexBuffer().GetVertexCount() != 5u || custom.GetVertexBuffer().GetVertexSize() != 52u || custom.GetVertexBuffer().GetData().Count != 260)
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style CPU vertex buffer metadata.");
+        if (custom.GetBoundingBox().IsInside(new Vector3(2.0f, 0.0f, 0.0f)) == Intersection.Outside || custom.GetMaterial() != material)
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style bounds or material helpers.");
+        if (custom.GetMaterialsAttr().Type != StringHash.Calculate("Material") || custom.GetMaterialsAttr().Names.FirstOrDefault() != material.GetName())
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style material resource references.");
+        var customData = custom.GetGeometryDataAttr();
+        var customClone = new CustomGeometry();
+        customClone.SetGeometryDataAttr(customData);
+        if (customClone.GetNumGeometries() != 2u || customClone.GetNumVertices(0u) != 3u || customClone.GetVertex(1u, 1u)?.Position != new Vector3(2.0f, 0.0f, 0.0f))
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style geometry data attribute roundtrip.");
+        var customRefs = ResourceRefList.Parse("Material;Materials/A,Materials/B");
+        custom.SetMaterialsAttr(customRefs);
+        if (!custom.GetMaterialsAttr().Equals(customRefs) || custom.BeginGeometry(99u, PrimitiveType.PointList))
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style material metadata or index validation.");
+        var customHit = octree.RaycastSingle(new Ray(new Vector3(70.0f, 0.0f, -5.0f), Vector3.Forward), RayQueryLevel.RayObb, maxDistance: 100.0f, drawableFlags: DrawableFlags.Geometry);
+        if (customHit?.Drawable != custom || customHit.SubObject != uint.MaxValue)
+            throw new InvalidOperationException("CustomGeometry did not preserve rbfx-style ray query helpers.");
+        var emptyCustom = scene.CreateChild("EmptyCustomGeometry").CreateComponent<CustomGeometry>();
+        if (octree.Raycast(new Ray(Vector3.Zero, Vector3.Forward), maxDistance: 1.0f, drawableFlags: DrawableFlags.Geometry).Any(result => ReferenceEquals(result.Drawable, emptyCustom)))
+            throw new InvalidOperationException("CustomGeometry empty bounds should not produce ray hits.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)

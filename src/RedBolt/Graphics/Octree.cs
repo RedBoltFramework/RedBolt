@@ -206,7 +206,7 @@ public sealed class Octree : Component
     public IReadOnlyList<RayQueryResult> Raycast(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
         return GetDrawables(drawableFlags, viewMask)
-            .SelectMany(drawable => CreateRayQueryResults(ray, drawable, maxDistance))
+            .SelectMany(drawable => CreateRayQueryResults(ray, level, drawable, maxDistance))
             .OrderBy(static result => result.Distance)
             .ToArray();
     }
@@ -252,10 +252,17 @@ public sealed class Octree : Component
         return (drawable.GetDrawableFlags() & drawableFlags) != 0 && (drawable.GetViewMask() & viewMask) != 0;
     }
 
-    private static IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, Drawable drawable, float maxDistance)
+    private static IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, Drawable drawable, float maxDistance)
     {
         if (drawable is Skybox)
             yield break;
+
+        if (drawable is CustomGeometry customGeometry)
+        {
+            foreach (var result in customGeometry.CreateRayQueryResults(ray, level, maxDistance))
+                yield return result;
+            yield break;
+        }
 
         if (drawable is StaticModelGroup group)
         {
