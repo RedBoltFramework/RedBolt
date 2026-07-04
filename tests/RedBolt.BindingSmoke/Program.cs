@@ -328,6 +328,8 @@ sealed class SmokeHeadlessApplication : Application
         {
             var fileName = Path.Combine(tempResourceDir, "Data", "hello.txt");
             File.WriteAllText(fileName, "hello from resource cache");
+            var backgroundFileName = Path.Combine(tempResourceDir, "Data", "background.txt");
+            File.WriteAllText(backgroundFileName, "background resource");
             var jsonName = Path.Combine(tempResourceDir, "Data", "config.json");
             File.WriteAllText(jsonName, "{\"name\":\"redbolt\",\"value\":7}");
             var xmlName = Path.Combine(tempResourceDir, "Data", "config.xml");
@@ -354,6 +356,12 @@ sealed class SmokeHeadlessApplication : Application
                 throw new InvalidOperationException("ResourceCache temp resource loading reused a cached instance.");
             if (!ReferenceEquals(Resources.GetExistingResource<BinaryFile>("Data/hello.txt"), binaryFile) || !Resources.GetAllResources().ContainsKey((typeof(BinaryFile), "Data/hello.txt")) || Resources.GetMemoryUse<BinaryFile>() < binaryFile.GetMemoryUse() || Resources.GetTotalMemoryUse() < binaryFile.GetMemoryUse())
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style cached resource inspection helpers.");
+            if (!Resources.BackgroundLoadResource<BinaryFile>("Data/background.txt") || Resources.BackgroundLoadResource<BinaryFile>("Data/background.txt") || Resources.GetNumBackgroundLoadResources() != 1u)
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style background queue helpers.");
+            Resources.FinishBackgroundResources(1000);
+            var backgroundBinary = Resources.GetExistingResource<BinaryFile>("Data/background.txt");
+            if (backgroundBinary is null || backgroundBinary.GetText() != "background resource" || backgroundBinary.GetAsyncLoadState() != AsyncLoadState.Success || Resources.GetNumBackgroundLoadResources() != 0u)
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style background finish helpers.");
             var savedBinaryName = Path.Combine(tempResourceDir, "Data", "saved.bin");
             var savedBinaryFile = new BinaryFile("Data/saved.bin");
             savedBinaryFile.SetText("saved through resource helper");

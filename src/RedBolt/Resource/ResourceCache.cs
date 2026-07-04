@@ -3,12 +3,18 @@ namespace RedBolt;
 public sealed class ResourceCache
 {
     private readonly Dictionary<(Type Type, string Name), Resource> cache = new();
+    private readonly BackgroundLoader backgroundLoader;
     private readonly Dictionary<Type, ulong> memoryBudgets = new();
     private readonly List<string> resourceDirs = [];
     private readonly Dictionary<Type, Delegate> loaders = new();
     private int finishBackgroundResourcesMs = 5;
     private bool returnFailedResources;
     private bool searchPackagesFirst;
+
+    public ResourceCache()
+    {
+        backgroundLoader = new BackgroundLoader(this);
+    }
 
     public void RegisterDefaultResources()
     {
@@ -129,6 +135,29 @@ public sealed class ResourceCache
 
     public int GetFinishBackgroundResourcesMs() => finishBackgroundResourcesMs;
 
+    public bool BackgroundLoadResource<T>(string name, bool sendEventOnFailure = true, Resource? caller = null)
+        where T : Resource
+    {
+        return BackgroundLoadResource(typeof(T), name, sendEventOnFailure, caller);
+    }
+
+    public bool BackgroundLoadResource(Type type, string name, bool sendEventOnFailure = true, Resource? caller = null)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (!typeof(Resource).IsAssignableFrom(type))
+            throw new ArgumentException("Type must derive from Resource.", nameof(type));
+
+        return backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
+    }
+
+    public uint GetNumBackgroundLoadResources() => (uint)backgroundLoader.GetNumQueuedResources();
+
+    public void FinishBackgroundResources(int? maxMs = null)
+    {
+        backgroundLoader.FinishResources(maxMs ?? finishBackgroundResourcesMs);
+    }
+
     public T Get<T>(string name)
         where T : Resource
     {
@@ -139,6 +168,8 @@ public sealed class ResourceCache
         where T : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        backgroundLoader.WaitForResource(typeof(T), name);
 
         var key = (typeof(T), name);
         if (cache.TryGetValue(key, out var cached))
@@ -291,12 +322,47 @@ public sealed class ResourceCache
 
     public void Clear() => ReleaseAllResources(force: true);
 
+    internal bool CanBackgroundLoad(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
+    }
+
+    internal bool HasResource(Type type, string name)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return cache.ContainsKey((type, name));
+    }
+
+    internal Resource? LoadBackgroundResource(Type type, string name)
+    {
+        var resource = TryLoadResource(type, name);
+        if (resource is not null)
+            resource.SetAsyncLoadState(AsyncLoadState.Success);
+        return resource;
+    }
+
+    internal void StoreBackgroundResource(Type type, string name, Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(resource);
+        cache[(type, name)] = resource;
+    }
+
     private T? TryLoadResource<T>(string name)
         where T : Resource
     {
-        if (loaders.TryGetValue(typeof(T), out var loader))
+        return TryLoadResource(typeof(T), name) as T;
+    }
+
+    private Resource? TryLoadResource(Type type, string name)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        if (loaders.TryGetValue(type, out var loader))
         {
-            var loaded = ((Func<string, T?>)loader)(name);
+            var loaded = loader.DynamicInvoke(name) as Resource;
             if (loaded is not null)
                 return loaded;
         }
@@ -305,10 +371,10 @@ public sealed class ResourceCache
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        T? resource;
+        Resource? resource;
         try
         {
-            resource = Activator.CreateInstance(typeof(T), name) as T;
+            resource = Activator.CreateInstance(type, name) as Resource;
         }
         catch (MissingMethodException)
         {
