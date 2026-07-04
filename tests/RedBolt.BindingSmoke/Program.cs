@@ -291,6 +291,22 @@ sealed class SmokeHeadlessApplication : Application
             Directory.Delete(tempResourceDir, recursive: true);
         }
 
+        var vectorBuffer = new VectorBuffer();
+        if (!vectorBuffer.WriteInt(42) || !vectorBuffer.WriteString("redbolt") || !vectorBuffer.WriteVector3(new Vector3(1.0f, 2.0f, 3.0f)) || !vectorBuffer.WriteVLE(300u))
+            throw new InvalidOperationException("VectorBuffer did not preserve rbfx-style serializer helpers.");
+        vectorBuffer.Seek(0);
+        if (vectorBuffer.ReadInt() != 42 || vectorBuffer.ReadString() != "redbolt" || vectorBuffer.ReadVector3() != new Vector3(1.0f, 2.0f, 3.0f) || vectorBuffer.ReadVLE() != 300u)
+            throw new InvalidOperationException("VectorBuffer did not preserve rbfx-style deserializer helpers.");
+        var memoryBuffer = new MemoryBuffer(vectorBuffer.GetBuffer());
+        if (memoryBuffer.ReadInt() != 42 || memoryBuffer.ReadString() != "redbolt" || memoryBuffer.ReadVector3() != new Vector3(1.0f, 2.0f, 3.0f) || memoryBuffer.ReadVLE() != 300u || !memoryBuffer.Eof)
+            throw new InvalidOperationException("MemoryBuffer did not preserve rbfx-style read-only buffer helpers.");
+        var lineBuffer = new VectorBuffer();
+        lineBuffer.WriteLine("first");
+        lineBuffer.WriteLine("second");
+        lineBuffer.Seek(0);
+        if (lineBuffer.ReadLine() != "first" || lineBuffer.ReadLine() != "second")
+            throw new InvalidOperationException("Deserializer did not preserve rbfx-style line helpers.");
+
         var scene = new Scene();
         scene.CreateComponent<Octree>();
         if (scene.Root.Id == 0 || scene.Root.GetNumAttributes() == 0)
