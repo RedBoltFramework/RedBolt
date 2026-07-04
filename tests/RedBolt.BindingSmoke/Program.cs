@@ -278,6 +278,10 @@ sealed class SmokeHeadlessApplication : Application
         {
             var fileName = Path.Combine(tempResourceDir, "Data", "hello.txt");
             File.WriteAllText(fileName, "hello from resource cache");
+            var jsonName = Path.Combine(tempResourceDir, "Data", "config.json");
+            File.WriteAllText(jsonName, "{\"name\":\"redbolt\",\"value\":7}");
+            var xmlName = Path.Combine(tempResourceDir, "Data", "config.xml");
+            File.WriteAllText(xmlName, "<root><child value=\"7\" /></root>");
             if (!Resources.AddResourceDir(tempResourceDir) || !Resources.Exists<BinaryFile>("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not register a file-backed resource directory.");
             var binaryFile = Resources.GetResource<BinaryFile>("Data/hello.txt");
@@ -285,6 +289,14 @@ sealed class SmokeHeadlessApplication : Application
                 throw new InvalidOperationException("ResourceCache did not load and cache a file-backed BinaryFile.");
             if (ReferenceEquals(binaryFile, Resources.GetTempResource<BinaryFile>("Data/hello.txt")))
                 throw new InvalidOperationException("ResourceCache temp resource loading reused a cached instance.");
+            var jsonFile = Resources.GetResource<JSONFile>("Data/config.json");
+            if (jsonFile.GetRoot()?["value"]?.ToString() != "7" || jsonFile.AbsoluteFileName != jsonName || !jsonFile.ToString("").Contains("redbolt", StringComparison.Ordinal))
+                throw new InvalidOperationException("ResourceCache did not load a file-backed JSONFile.");
+            var xmlFile = Resources.GetResource<XMLFile>("Data/config.xml");
+            if (xmlFile.GetRoot("root")?.Element("child")?.Attribute("value")?.Value != "7" || xmlFile.AbsoluteFileName != xmlName || !xmlFile.ToString("").Contains("child", StringComparison.Ordinal))
+                throw new InvalidOperationException("ResourceCache did not load a file-backed XMLFile.");
+            if (!JSONFile.ParseJSON("{\"ok\":true}", out var parsedJson) || parsedJson?["ok"]?.ToString() != "true" || !xmlFile.FromString("<newRoot />") || xmlFile.GetOrCreateRoot("newRoot").Name.LocalName != "newRoot")
+                throw new InvalidOperationException("JSONFile/XMLFile did not preserve rbfx-style string/root helpers.");
         }
         finally
         {
