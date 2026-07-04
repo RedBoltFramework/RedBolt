@@ -588,6 +588,8 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("MathDefs did not preserve rbfx-style bit helpers.");
         if (!MathDefs.ApproximatelyEquivalent(MathDefs.ExponentialDecay(1.0f), 0.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Wrap(12.0f, 0.0f, 10.0f), 2.0f) || MathDefs.SDBMHash(0u, (byte)'A') != 65u)
             throw new InvalidOperationException("MathDefs did not preserve rbfx-style scalar utility helpers.");
+        if (MathDefs.FloatToHalf(1.0f) != 0x3c00 || !MathDefs.ApproximatelyEquivalent(MathDefs.HalfToFloat(0x3c00), 1.0f) || MathDefs.FloatToHalf(0.0f) != 0 || !MathDefs.ApproximatelyEquivalent(MathDefs.HalfToFloat(0), 0.0f))
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style half-float conversion helpers.");
         var seededRandom = new RandomEngine(1u);
         if (RandomEngine.MaxRange() != 2147483646u || seededRandom.Save() != "1" || seededRandom.GetUInt() != 48270u)
             throw new InvalidOperationException("RandomEngine did not preserve rbfx-style deterministic seed helpers.");

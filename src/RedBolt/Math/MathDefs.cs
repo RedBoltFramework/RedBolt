@@ -79,7 +79,40 @@ public static partial class MathDefs
 
     public static int FloorToInt(float value) => (int)MathF.Floor(value);
 
+    public static ushort FloatToHalf(float value)
+    {
+        unchecked
+        {
+            var bits = BitConverter.SingleToUInt32Bits(value);
+            var t1 = bits & 0x7fffffffu;
+            var t2 = bits & 0x80000000u;
+            var t3 = bits & 0x7f800000u;
+
+            t1 >>= 13;
+            t2 >>= 16;
+            t1 -= 0x1c000u;
+            t1 = t3 < 0x38800000u ? 0u : t1;
+            t1 = t3 > 0x47000000u ? 0x7bffu : t1;
+            t1 = t3 == 0u ? 0u : t1;
+            return (ushort)(t1 | t2);
+        }
+    }
+
     public static float Fract(float value) => value - MathF.Floor(value);
+
+    public static float HalfToFloat(ushort value)
+    {
+        var t1 = (uint)(value & 0x7fffu);
+        var t2 = (uint)(value & 0x8000u);
+        var t3 = (uint)(value & 0x7c00u);
+
+        t1 <<= 13;
+        t2 <<= 16;
+        t1 += 0x38000000u;
+        t1 = t3 == 0u ? 0u : t1;
+        t1 |= t2;
+        return BitConverter.UInt32BitsToSingle(t1);
+    }
 
     public static float InverseExponentialDecay(float value) => 1.0f - ExponentialDecay(value);
 
