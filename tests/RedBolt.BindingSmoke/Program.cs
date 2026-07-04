@@ -334,6 +334,8 @@ sealed class SmokeHeadlessApplication : Application
             File.WriteAllText(jsonName, "{\"name\":\"redbolt\",\"value\":7}");
             var xmlName = Path.Combine(tempResourceDir, "Data", "config.xml");
             File.WriteAllText(xmlName, "<root><child value=\"7\" /></root>");
+            var localizationName = Path.Combine(tempResourceDir, "Data", "localization.json");
+            File.WriteAllText(localizationName, "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             if (!Resources.AddResourceDir(tempResourceDir) || !Resources.Exists<BinaryFile>("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not register a file-backed resource directory.");
             Resources.SetMemoryBudget<BinaryFile>(4096ul);
@@ -409,6 +411,18 @@ sealed class SmokeHeadlessApplication : Application
             Resources.ReleaseResource("Data/manual.bin");
             if (Resources.GetExistingResource<BinaryFile>("Data/manual.bin") is not null)
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style release-by-name helpers.");
+            var localization = new Localization(Resources);
+            localization.LoadJSONFile("Data/localization.json");
+            if (localization.GetNumLanguages() != 2 || localization.GetLanguage() != "en" || localization.Get("Hello") != "Hello")
+                throw new InvalidOperationException("Localization did not preserve rbfx-style multi-language loading helpers.");
+            localization.SetLanguage("fi");
+            if (localization.GetLanguageIndex("fi") != 1 || localization.Get("Hello") != "Hei")
+                throw new InvalidOperationException("Localization did not preserve rbfx-style language selection helpers.");
+            if (!JSONFile.ParseJSON("{\"Bye\":\"Moi\"}", out var singleLanguageJson))
+                throw new InvalidOperationException("Localization smoke JSON parsing failed.");
+            localization.LoadSingleLanguageJSON(singleLanguageJson, "fi");
+            if (localization.Get("Bye") != "Moi")
+                throw new InvalidOperationException("Localization did not preserve rbfx-style single-language loading helpers.");
             if (!Resources.RemoveResourceDir(tempResourceDir) || Resources.Exists("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style resource directory removal helpers.");
 
