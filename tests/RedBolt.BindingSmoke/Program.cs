@@ -260,8 +260,30 @@ sealed class SmokeHeadlessApplication : Application
 
         var scene = new Scene();
         scene.CreateComponent<Octree>();
+        if (scene.Root.Id == 0 || scene.Root.GetNumAttributes() == 0)
+            throw new InvalidOperationException("Scene root did not initialize serializable node state.");
+
+        var explicitNode = scene.CreateChild("Explicit", 42);
+        if (explicitNode.Id != 42 || explicitNode.NameHash.Value == 0)
+            throw new InvalidOperationException("Node did not preserve explicit ID and name hash.");
+        if (!explicitNode.SetAttribute("Name", "Renamed") || explicitNode.Name != "Renamed")
+            throw new InvalidOperationException("Serializable node name attribute did not update the live property.");
+        if (!explicitNode.SetAttribute("Position", new Vector3(1.0f, 2.0f, 3.0f)) || explicitNode.Position != new Vector3(1.0f, 2.0f, 3.0f))
+            throw new InvalidOperationException("Serializable node position attribute did not update the live property.");
+        if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
+            throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
+
+        var childCamera = explicitNode.CreateChild("Child").CreateComponent<Camera>();
+        if (!ReferenceEquals(explicitNode.FindComponent<Camera>(), childCamera))
+            throw new InvalidOperationException("Default component search did not include child nodes recursively.");
+
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.CreateComponent<Camera>();
+        var camera = cameraNode.CreateComponent<Camera>(123);
+        if (camera.Id != 123 || camera.GetIndexInParent() != 0)
+            throw new InvalidOperationException("Component did not preserve explicit ID or parent index.");
+        if (!camera.SetAttribute("Is Enabled", false) || camera.Enabled || camera.IsEnabledEffective)
+            throw new InvalidOperationException("Serializable component enabled attribute did not update the live property.");
+        camera.SetEnabled(true);
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);

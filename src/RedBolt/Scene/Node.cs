@@ -1,28 +1,66 @@
 namespace RedBolt;
 
-public sealed class Node
+public sealed class Node : Serializable
 {
     private readonly List<Component> components = [];
     private readonly List<Node> children = [];
     private bool enabled = true;
+    private string name = string.Empty;
 
-    internal Node(Scene scene, Node? parent, string name)
+    internal Node(Scene scene, Node? parent, string name, uint id, bool temporary = false)
     {
         Scene = scene;
         Parent = parent;
-        Name = name;
+        Id = id;
+        SetName(name);
+        SetTemporary(temporary);
+
+        RegisterAttribute(
+            "Is Enabled",
+            typeof(bool),
+            self => ((Node)self).IsEnabledSelf,
+            (self, value) => ((Node)self).SetEnabled(value is bool enabledValue && enabledValue),
+            true);
+        RegisterAttribute(
+            "Name",
+            typeof(string),
+            self => ((Node)self).Name,
+            (self, value) => ((Node)self).SetName(value as string ?? string.Empty),
+            string.Empty);
+        RegisterAttribute(
+            "Position",
+            typeof(Vector3),
+            self => ((Node)self).Position,
+            (self, value) => ((Node)self).Position = value is Vector3 position ? position : Vector3.Zero,
+            Vector3.Zero);
+        RegisterAttribute(
+            "Rotation",
+            typeof(Quaternion),
+            self => ((Node)self).Rotation,
+            (self, value) => ((Node)self).Rotation = value is Quaternion rotation ? rotation : Quaternion.Identity,
+            Quaternion.Identity);
+        RegisterAttribute(
+            "Scale",
+            typeof(Vector3),
+            self => ((Node)self).Scale,
+            (self, value) => ((Node)self).Scale = value is Vector3 scale ? scale : Vector3.One,
+            Vector3.One);
     }
 
     public IReadOnlyList<Node> Children => children;
 
     public IReadOnlyList<Component> Components => components;
 
-    public string Name { get; }
+    public uint Id { get; private set; }
+
+    public string Name => name;
+
+    public StringHash NameHash => Name;
 
     public bool Enabled
     {
         get => enabled;
-        set => enabled = value;
+        set => SetEnabled(value);
     }
 
     public bool IsEnabled => enabled && (Parent?.IsEnabled ?? true);
@@ -35,19 +73,27 @@ public sealed class Node
 
     public Quaternion Rotation { get; set; } = Quaternion.Identity;
 
+    public Vector3 Scale { get; set; } = Vector3.One;
+
     public Scene Scene { get; }
 
-    public Node CreateChild(string name = "")
+    public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
-        var child = new Node(Scene, this, name);
+        var child = new Node(Scene, this, name, Scene.AllocateNodeId(id), temporary);
         children.Add(child);
         return child;
+    }
+
+    public Node CreateTemporaryChild(string name = "", uint id = 0)
+    {
+        return CreateChild(name, id, temporary: true);
     }
 
     public T CreateComponent<T>(uint id = 0)
         where T : Component, new()
     {
         var component = new T();
+        component.SetId(Scene.AllocateComponentId(id));
         component.Attach(this);
         components.Add(component);
         Scene.RegisterComponent(component);
@@ -98,6 +144,25 @@ public sealed class Node
         }
 
         return null;
+    }
+
+    public uint GetComponentIndex(Component component)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+
+        var index = components.IndexOf(component);
+        return index >= 0 ? (uint)index : uint.MaxValue;
+    }
+
+    public uint GetID()
+    {
+        return Id;
+    }
+
+    public string GetFullNameDebug()
+    {
+        var prefix = Parent is not null ? $"{Parent.GetFullNameDebug()}/[{Parent.children.IndexOf(this)}]" : string.Empty;
+        return prefix + (string.IsNullOrEmpty(Name) ? nameof(Node) : Name);
     }
 
     public T? FindComponent<T>(ComponentSearchFlag flags = ComponentSearchFlag.Default)
@@ -154,14 +219,37 @@ public sealed class Node
 
     public void SetEnabled(bool enable)
     {
-        Enabled = enable;
+        if (enabled == enable)
+            return;
+
+        enabled = enable;
+        NotifyNodeSetEnabled();
     }
 
     public void SetEnabledRecursive(bool enable)
     {
-        Enabled = enable;
+        SetEnabled(enable);
         foreach (var child in children)
             child.SetEnabledRecursive(enable);
+    }
+
+    public void SetName(string name)
+    {
+        this.name = name ?? string.Empty;
+    }
+
+    internal void SetId(uint id)
+    {
+        Id = id;
+    }
+
+    private void NotifyNodeSetEnabled()
+    {
+        foreach (var component in components)
+            component.OnNodeSetEnabled(this);
+
+        foreach (var child in children)
+            child.NotifyNodeSetEnabled();
     }
 
     private void FindComponents<T>(ComponentSearchFlag flags, List<T> result)
