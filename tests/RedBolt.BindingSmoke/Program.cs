@@ -364,6 +364,17 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("StaticModel did not expose the assigned material.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
+        if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)
+            throw new InvalidOperationException("Input did not preserve rbfx-style key/scancode conversion helpers.");
+        if (RedBolt.Input.GetKeyFromScancode(Scancode.LeftCtrl) != Key.LeftCtrl || RedBolt.Input.GetMouseButtonName(MouseButton.Left) != "Left")
+            throw new InvalidOperationException("Input did not preserve rbfx-style scancode/mouse button naming helpers.");
+        Input.SetEnabled(false);
+        if (Input.GetEnabled() || Input.GetMouseMoveX() != 0 || Input.GetMouseMoveY() != 0 || Input.GetRelativeMousePosition() != Vector2.Zero)
+            throw new InvalidOperationException("Input did not preserve rbfx-style managed state helpers.");
+        Input.SetEnabled(true);
+        Input.SetMouseMode(MouseMode.Relative);
+        if (!Input.IsMouseLocked())
+            throw new InvalidOperationException("Input did not preserve rbfx-style mouse lock state helpers.");
 
         Exit();
     }

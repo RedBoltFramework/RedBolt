@@ -5,6 +5,8 @@ namespace RedBolt;
 public sealed class Input
 {
     private const uint SdlInitVideo = 0x00000020u;
+    private static readonly Dictionary<Key, Scancode> KeyToScancode = BuildKeyToScancodeMap();
+    private static readonly Dictionary<Scancode, Key> ScancodeToKey = KeyToScancode.ToDictionary(static item => item.Value, static item => item.Key);
 
     private readonly HashSet<Key> keyDown = [];
     private readonly HashSet<Key> keyPress = [];
@@ -16,6 +18,10 @@ public sealed class Input
     private MouseButton mouseButtonDown;
     private MouseButton mouseButtonPress;
     private int mouseMoveWheel;
+    private IntVector2 backbufferSize = IntVector2.Zero;
+    private Vector2 systemToBackbufferScale = Vector2.One;
+
+    public bool Enabled { get; set; } = true;
 
     public bool ExitRequested { get; private set; }
 
@@ -30,6 +36,16 @@ public sealed class Input
     public IntVector2 MousePosition { get; private set; } = IntVector2.Zero;
 
     public Qualifier Qualifiers { get; private set; }
+
+    public Vector2 SystemToBackbufferScale => systemToBackbufferScale;
+
+    public bool MouseVisible { get; private set; } = true;
+
+    public bool MouseGrabbed { get; private set; }
+
+    public bool HasFocus { get; private set; } = true;
+
+    public bool IsMinimized { get; private set; }
 
     internal SdlWindow Window => window is not null && !window.IsNull
         ? window
@@ -47,6 +63,9 @@ public sealed class Input
 
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SDL_VIDEODRIVER")))
             Environment.SetEnvironmentVariable("SDL_VIDEODRIVER", "x11");
+
+        backbufferSize = new IntVector2(parameters.WindowWidth, parameters.WindowHeight);
+        systemToBackbufferScale = Vector2.One;
 
         var initResult = SdlNativeBindings.SdlInit(SdlInitVideo);
         if (initResult != 0)
@@ -94,7 +113,7 @@ public sealed class Input
 
     public void PollEvents()
     {
-        if (!IsInitialized || nativeEvent is null)
+        if (!Enabled || !IsInitialized || nativeEvent is null)
             return;
 
         while (SdlNativeBindings.SdlPollEvent(nativeEvent) != 0)
@@ -132,7 +151,57 @@ public sealed class Input
             {
                 ExitRequested = true;
             }
+            else if (eventType == SdlEventType.SdlWindowevent)
+            {
+                HandleWindowEvent(nativeEvent);
+            }
         }
+    }
+
+    public static Key GetKeyFromName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (TryParseNamedValue(name, out Key key))
+            return key;
+        return name.Length == 1 ? (Key)char.ToLowerInvariant(name[0]) : Key.Unknown;
+    }
+
+    public static Key GetKeyFromScancode(Scancode scancode) => ScancodeToKey.GetValueOrDefault(scancode, Key.Unknown);
+
+    public static string GetKeyName(Key key)
+    {
+        return key switch
+        {
+            >= Key.A and <= Key.Z => key.ToString(),
+            >= Key.Num0 and <= Key.Num9 => ((char)key).ToString(),
+            Key.Unknown => string.Empty,
+            _ => key.ToString()
+        };
+    }
+
+    public static Scancode GetScancodeFromKey(Key key) => KeyToScancode.GetValueOrDefault(key, Scancode.Unknown);
+
+    public static Scancode GetScancodeFromName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (TryParseNamedValue(name, out Scancode scancode))
+            return scancode;
+        return GetScancodeFromKey(GetKeyFromName(name));
+    }
+
+    public static string GetScancodeName(Scancode scancode) => scancode == Scancode.Unknown ? string.Empty : scancode.ToString();
+
+    public static string GetMouseButtonName(MouseButton button)
+    {
+        return button switch
+        {
+            MouseButton.Left => nameof(MouseButton.Left),
+            MouseButton.Middle => nameof(MouseButton.Middle),
+            MouseButton.Right => nameof(MouseButton.Right),
+            MouseButton.X1 => nameof(MouseButton.X1),
+            MouseButton.X2 => nameof(MouseButton.X2),
+            _ => string.Empty
+        };
     }
 
     public bool GetKeyDown(Key key)
@@ -170,6 +239,43 @@ public sealed class Input
         return (mouseButtonClick & button) != 0;
     }
 
+    public Vector2 GetRelativeMousePosition()
+    {
+        return backbufferSize.X > 0 && backbufferSize.Y > 0
+            ? new Vector2((float)MousePosition.X / backbufferSize.X, (float)MousePosition.Y / backbufferSize.Y)
+            : Vector2.Zero;
+    }
+
+    public IntVector2 GetMousePosition() => MousePosition;
+
+    public IntVector2 GetMouseMove() => MouseMove;
+
+    public int GetMouseMoveX() => MouseMove.X;
+
+    public int GetMouseMoveY() => MouseMove.Y;
+
+    public int GetMouseMoveWheel() => MouseMoveWheel;
+
+    public Vector2 GetSystemToBackbufferScale() => systemToBackbufferScale;
+
+    public IntVector2 SystemToBackbuffer(IntVector2 value) => new(
+        (int)MathF.Round(value.X * systemToBackbufferScale.X),
+        (int)MathF.Round(value.Y * systemToBackbufferScale.Y));
+
+    public IntVector2 BackbufferToSystem(IntVector2 value) => new(
+        systemToBackbufferScale.X != 0.0f ? (int)MathF.Round(value.X / systemToBackbufferScale.X) : value.X,
+        systemToBackbufferScale.Y != 0.0f ? (int)MathF.Round(value.Y / systemToBackbufferScale.Y) : value.Y);
+
+    public void SetMousePosition(IntVector2 position)
+    {
+        MousePosition = position;
+    }
+
+    public void CenterMousePosition()
+    {
+        MousePosition = new IntVector2(backbufferSize.X / 2, backbufferSize.Y / 2);
+    }
+
     public bool GetQualifierDown(Qualifier qualifier)
     {
         return qualifier == Qualifier.Any
@@ -193,6 +299,18 @@ public sealed class Input
     {
         MouseMode = mode;
     }
+
+    public bool GetEnabled() => Enabled;
+
+    public void SetEnabled(bool enabled) => Enabled = enabled;
+
+    public bool IsMouseVisible() => MouseVisible;
+
+    public bool IsMouseGrabbed() => MouseGrabbed;
+
+    public bool IsMouseLocked() => MouseMode != MouseMode.Absolute;
+
+    public bool GetFocus() => HasFocus;
 
     internal NativeWindowInfo GetNativeWindowInfo()
     {
@@ -234,6 +352,10 @@ public sealed class Input
         MouseMove = IntVector2.Zero;
         MousePosition = IntVector2.Zero;
         Qualifiers = Qualifier.None;
+        backbufferSize = IntVector2.Zero;
+        systemToBackbufferScale = Vector2.One;
+        HasFocus = true;
+        IsMinimized = false;
     }
 
     private void HandleKeyDown(SdlEvent @event)
@@ -279,6 +401,19 @@ public sealed class Input
         MouseMove = new IntVector2(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
     }
 
+    private void HandleWindowEvent(SdlEvent @event)
+    {
+        var windowEvent = (SdlWindowEventID)@event.WindowEvent;
+        if (windowEvent == SdlWindowEventID.SdlWindoweventFocusGained)
+            HasFocus = true;
+        else if (windowEvent == SdlWindowEventID.SdlWindoweventFocusLost)
+            HasFocus = false;
+        else if (windowEvent == SdlWindowEventID.SdlWindoweventMinimized)
+            IsMinimized = true;
+        else if (windowEvent == SdlWindowEventID.SdlWindoweventRestored)
+            IsMinimized = false;
+    }
+
     private void UpdateQualifiers(Key key, bool isDown)
     {
         var qualifier = key switch
@@ -309,6 +444,46 @@ public sealed class Input
             5 => MouseButton.X2,
             _ => MouseButton.None
         };
+    }
+
+    private static bool TryParseNamedValue<T>(string name, out T value)
+        where T : struct, Enum
+    {
+        var normalized = name.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal);
+        foreach (var enumName in Enum.GetNames<T>())
+        {
+            if (string.Equals(enumName, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                value = Enum.Parse<T>(enumName);
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static Dictionary<Key, Scancode> BuildKeyToScancodeMap()
+    {
+        var result = new Dictionary<Key, Scancode>
+        {
+            [Key.Escape] = Scancode.Escape,
+            [Key.Space] = Scancode.Space,
+            [Key.Right] = Scancode.Right,
+            [Key.Left] = Scancode.Left,
+            [Key.Down] = Scancode.Down,
+            [Key.Up] = Scancode.Up,
+            [Key.LeftCtrl] = Scancode.LeftCtrl,
+            [Key.LeftShift] = Scancode.LeftShift,
+            [Key.LeftAlt] = Scancode.LeftAlt,
+            [Key.RightCtrl] = Scancode.RightCtrl,
+            [Key.RightShift] = Scancode.RightShift,
+            [Key.RightAlt] = Scancode.RightAlt
+        };
+
+        for (var key = Key.A; key <= Key.Z; ++key)
+            result[key] = (Scancode)((uint)Scancode.A + ((uint)key - (uint)Key.A));
+        return result;
     }
 
     private static SdlSysWMinfo CreateInitializedWmInfo()
