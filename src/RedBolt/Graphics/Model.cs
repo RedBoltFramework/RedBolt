@@ -33,6 +33,12 @@ public sealed class Model : ResourceWithMetadata
 
     public BoundingBox GetBoundingBox() => boundingBox;
 
+    public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
+
+    public IReadOnlyList<Vector3> GetGeometryCenters() => GeometryCenters;
+
+    public uint GetNumGeometries() => NumGeometries;
+
     public void SetNumGeometries(uint num)
     {
         while (geometries.Count < num)

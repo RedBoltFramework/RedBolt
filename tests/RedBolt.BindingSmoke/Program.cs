@@ -605,6 +605,20 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Drawable did not preserve rbfx-style mask and visibility helpers.");
         if (cube.GetGlobalIlluminationType() != GlobalIlluminationType.BlendLightProbes || cube.GetReflectionMode() != ReflectionMode.BlendProbesAndZone || Drawable.PortableLightMask != 0x0fu || Drawable.MaxVertexLights != 4)
             throw new InvalidOperationException("Drawable did not preserve rbfx-style lighting metadata helpers.");
+        cube.SetOcclusionLodLevel(2u);
+        cube.SetBakeLightmap(true);
+        cube.SetScaleInLightmap(0.0f);
+        if (cube.GetBakeLightmapEffective())
+            throw new InvalidOperationException("StaticModel did not preserve rbfx-style effective lightmap scale helpers.");
+        cube.SetScaleInLightmap(2.0f);
+        cube.SetLightmapIndex(3u);
+        cube.SetLightmapScaleOffset(new Vector4(1.0f, 2.0f, 3.0f, 4.0f));
+        if (cube.GetModel() != model || cube.GetNumGeometries() != 1u || cube.GetOcclusionLodLevel() != 2u || !cube.GetBakeLightmap() || !cube.GetBakeLightmapEffective())
+            throw new InvalidOperationException("StaticModel did not preserve rbfx-style model and lightmap helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(cube.GetScaleInLightmap(), 2.0f) || cube.GetLightmapIndex() != 3u || cube.GetLightmapScaleOffset() != new Vector4(1.0f, 2.0f, 3.0f, 4.0f))
+            throw new InvalidOperationException("StaticModel did not preserve rbfx-style lightmap metadata helpers.");
+        if (model.GetNumGeometries() != 1u || model.GetGeometries().Count != 1 || model.GetGeometryCenters().Count != 1)
+            throw new InvalidOperationException("Model did not preserve rbfx-style geometry collection helpers.");
         if (cube.NumGeometries != 1 || model.GetGeometry(0)?.VertexCount != 36u)
             throw new InvalidOperationException("StaticModel did not expose the procedural model geometry.");
         if (!ReferenceEquals(cube.GetMaterial(), material))

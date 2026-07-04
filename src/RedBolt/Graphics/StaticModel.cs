@@ -21,6 +21,14 @@ public sealed class StaticModel : Drawable
 
     public uint OcclusionLodLevel { get; set; } = uint.MaxValue;
 
+    public bool BakeLightmap { get; set; }
+
+    public float ScaleInLightmap { get; set; } = 1.0f;
+
+    public uint LightmapIndex { get; set; }
+
+    public Vector4 LightmapScaleOffset { get; set; } = new(1.0f, 1.0f, 0.0f, 0.0f);
+
     public void SetModel(Model? model)
     {
         Model = model;
@@ -51,10 +59,55 @@ public sealed class StaticModel : Drawable
         return true;
     }
 
+    public void SetOcclusionLodLevel(uint level)
+    {
+        OcclusionLodLevel = level;
+    }
+
+    public void ResetLodLevels()
+    {
+    }
+
+    public Model? GetModel() => Model;
+
+    public uint GetNumGeometries() => NumGeometries;
+
     public Material? GetMaterial(uint index = 0)
     {
         return index < materials.Count ? materials[(int)index] : null;
     }
+
+    public uint GetOcclusionLodLevel() => OcclusionLodLevel;
+
+    public void SetBakeLightmap(bool bakeLightmap)
+    {
+        BakeLightmap = bakeLightmap;
+    }
+
+    public bool GetBakeLightmap() => BakeLightmap;
+
+    public bool GetBakeLightmapEffective() => BakeLightmap && ScaleInLightmap > 0.0f;
+
+    public void SetScaleInLightmap(float scale)
+    {
+        ScaleInLightmap = scale;
+    }
+
+    public float GetScaleInLightmap() => ScaleInLightmap;
+
+    public void SetLightmapIndex(uint index)
+    {
+        LightmapIndex = index;
+    }
+
+    public uint GetLightmapIndex() => LightmapIndex;
+
+    public void SetLightmapScaleOffset(Vector4 scaleOffset)
+    {
+        LightmapScaleOffset = scaleOffset;
+    }
+
+    public Vector4 GetLightmapScaleOffset() => LightmapScaleOffset;
 
     public Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
