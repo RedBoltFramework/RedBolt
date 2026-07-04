@@ -199,6 +199,16 @@ public sealed class Node : Serializable
         return null;
     }
 
+    public Node? GetParent() => Parent;
+
+    public Scene GetScene() => Scene;
+
+    public string GetName() => Name;
+
+    public StringHash GetNameHash() => NameHash;
+
+    public IReadOnlyList<string> GetTags() => Tags;
+
     public uint GetComponentIndex(Component component)
     {
         ArgumentNullException.ThrowIfNull(component);
@@ -293,6 +303,29 @@ public sealed class Node : Serializable
         return result;
     }
 
+    public IReadOnlyList<Node> GetChildrenWithComponent<T>(bool recursive = false)
+        where T : Component
+    {
+        return GetChildrenWithComponent(typeof(T), recursive);
+    }
+
+    public IReadOnlyList<Node> GetChildrenWithComponent(Type componentType, bool recursive = false)
+    {
+        ArgumentNullException.ThrowIfNull(componentType);
+        if (!typeof(Component).IsAssignableFrom(componentType))
+            throw new ArgumentException("Type must derive from Component.", nameof(componentType));
+
+        var result = new List<Node>();
+        foreach (var child in children)
+        {
+            if (child.components.Any(componentType.IsInstanceOfType))
+                result.Add(child);
+            if (recursive)
+                result.AddRange(child.GetChildrenWithComponent(componentType, recursive: true));
+        }
+        return result;
+    }
+
     public Node? FindChild(string path, bool firstRecursive = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -325,6 +358,32 @@ public sealed class Node : Serializable
 
         return false;
     }
+
+    public Node? GetDirectChildFor(Node indirectChild)
+    {
+        ArgumentNullException.ThrowIfNull(indirectChild);
+        if (ReferenceEquals(indirectChild, this))
+            return null;
+
+        var child = indirectChild;
+        while (child.Parent is not null && !ReferenceEquals(child.Parent, this))
+            child = child.Parent;
+
+        return ReferenceEquals(child.Parent, this) ? child : null;
+    }
+
+    public bool IsTemporaryEffective()
+    {
+        for (var node = this; node is not null; node = node.Parent)
+        {
+            if (node.IsTemporary)
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool IsTransformHierarchyRoot() => Parent is null;
 
     public Vector3 GetPosition() => Position;
 
@@ -432,6 +491,17 @@ public sealed class Node : Serializable
         }
     }
 
+    public void ReorderComponent(Component component, uint index)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+        var oldIndex = components.IndexOf(component);
+        if (oldIndex < 0)
+            return;
+
+        components.RemoveAt(oldIndex);
+        components.Insert((int)Math.Min(index, (uint)components.Count), component);
+    }
+
     public void RemoveComponents()
     {
         for (var index = components.Count - 1; index >= 0; --index)
@@ -453,6 +523,38 @@ public sealed class Node : Serializable
         node.UnregisterComponentsRecursive();
         node.Parent = null;
         node.MarkDirty();
+    }
+
+    public void AddChild(Node node, uint index = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (ReferenceEquals(node, this) || IsChildOf(node))
+            throw new InvalidOperationException("A node cannot be added to itself or its descendant.");
+        if (!ReferenceEquals(node.Scene, Scene))
+            throw new InvalidOperationException("Cross-scene parenting is not supported by the managed scene slice.");
+
+        var worldPosition = node.WorldPosition;
+        var worldRotation = node.WorldRotation;
+        var worldScale = node.WorldScale;
+        var wasAttached = node.Parent is not null;
+
+        node.Parent?.DetachChildForReparent(node);
+        children.Insert((int)Math.Min(index, (uint)children.Count), node);
+        node.Parent = this;
+        if (!wasAttached)
+            node.RegisterComponentsRecursive();
+        node.SetWorldTransform(worldPosition, worldRotation, worldScale);
+        node.MarkDirty();
+    }
+
+    public void ReorderChild(Node child, uint index)
+    {
+        ArgumentNullException.ThrowIfNull(child);
+        if (!ReferenceEquals(child.Parent, this))
+            return;
+
+        children.Remove(child);
+        children.Insert((int)Math.Min(index, (uint)children.Count), child);
     }
 
     public void RemoveAllChildren() => RemoveChildren(recursive: true);

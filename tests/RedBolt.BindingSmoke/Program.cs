@@ -350,6 +350,27 @@ sealed class SmokeHeadlessApplication : Application
         scene.Root.RemoveChildren(recursive: false);
         if (scene.Root.GetNumChildren() != 0 || removableParent.Parent is not null)
             throw new InvalidOperationException("Node RemoveChildren did not preserve rbfx-style child removal semantics.");
+        var hierarchyParent = scene.CreateChild("HierarchyParent");
+        var hierarchyFirst = hierarchyParent.CreateChild("First");
+        var hierarchySecond = hierarchyParent.CreateChild("Second");
+        var hierarchyGrandchild = hierarchySecond.CreateChild("Grandchild");
+        hierarchyFirst.AddTag("selectable");
+        hierarchyGrandchild.CreateComponent<StaticModel>();
+        if (!ReferenceEquals(hierarchyParent.GetDirectChildFor(hierarchyGrandchild), hierarchySecond) || !hierarchyGrandchild.IsChildOf(hierarchyParent))
+            throw new InvalidOperationException("Node did not preserve rbfx-style direct-child hierarchy helpers.");
+        if (hierarchyParent.GetChildrenWithTag("selectable").SingleOrDefault() != hierarchyFirst || hierarchyParent.GetChildrenWithComponent<StaticModel>(recursive: true).SingleOrDefault() != hierarchyGrandchild)
+            throw new InvalidOperationException("Node did not preserve rbfx-style child filtering helpers.");
+        hierarchyParent.ReorderChild(hierarchySecond, 0);
+        if (hierarchyParent.GetChild(0) != hierarchySecond || hierarchySecond.GetIndexInParent() != 0)
+            throw new InvalidOperationException("Node did not preserve rbfx-style child reordering helpers.");
+        var reorderCamera = hierarchyParent.CreateComponent<Camera>();
+        var reorderModel = hierarchyParent.CreateComponent<StaticModel>();
+        hierarchyParent.ReorderComponent(reorderModel, 0);
+        if (reorderModel.GetIndexInParent() != 0 || reorderCamera.GetIndexInParent() != 1)
+            throw new InvalidOperationException("Node did not preserve rbfx-style component reordering helpers.");
+        var temporaryParent = scene.CreateChild("TemporaryParent", temporary: true);
+        if (!temporaryParent.CreateChild("TemporaryChild").IsTemporaryEffective() || !scene.Root.IsTransformHierarchyRoot())
+            throw new InvalidOperationException("Node did not preserve rbfx-style effective temporary or hierarchy-root helpers.");
         var rect = new global::RedBolt.Rect();
         rect.Merge(new Vector2(0.0f, 0.0f));
         rect.Merge(new Vector2(2.0f, 2.0f));
