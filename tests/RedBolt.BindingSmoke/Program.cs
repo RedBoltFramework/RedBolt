@@ -311,6 +311,11 @@ sealed class SmokeHeadlessApplication : Application
         var movedPlane = plane.Transformed(new Matrix3x4(new Vector3(0.0f, 2.0f, 0.0f), Quaternion.Identity, 1.0f));
         if (!MathDefs.ApproximatelyEquivalent(movedPlane.Distance(new Vector3(0.0f, 2.0f, 0.0f)), 0.0f))
             throw new InvalidOperationException("Plane did not preserve rbfx-style Matrix3x4 transform math.");
+        var matrix2 = new Matrix2(2.0f, 0.0f, 0.0f, 4.0f);
+        if (!((matrix2 * matrix2.Inverse) * Vector2.One).ApproximatelyEquivalent(Vector2.One))
+            throw new InvalidOperationException("Matrix2 did not preserve rbfx-style inverse math.");
+        if (!MathDefs.ApproximatelyEquivalent(EaseMath.BounceInOut(0.0f), 0.0f) || !MathDefs.ApproximatelyEquivalent(EaseMath.BounceInOut(1.0f), 1.0f))
+            throw new InvalidOperationException("EaseMath did not preserve rbfx-style easing endpoints.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
