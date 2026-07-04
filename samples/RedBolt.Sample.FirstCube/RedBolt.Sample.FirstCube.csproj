@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <ProjectReference Include="../../src/RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
   </ItemGroup>
 </Project>

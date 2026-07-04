@@ -1,14 +1,4 @@
 <Project>
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AppendTargetFrameworkToOutputPath Condition="'$(OutputPath)' != ''">false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath Condition="'$(OutputPath)' != ''">false</AppendRuntimeIdentifierToOutputPath>
-    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../SharpCpp-v3'))</RedBoltSharpCppRoot>
-    <RedBoltGeneratedBindingsDir Condition="'$(RedBoltGeneratedBindingsDir)' == '' and Exists('$(MSBuildThisFileDirectory)out/build/dev/generated/redbolt-native')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)out/build/dev/generated/redbolt-native'))</RedBoltGeneratedBindingsDir>
-  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)cmake/dotnet/RedBolt.Build.props"
+          Condition="'$(RedBoltBuildPropsImported)' != 'true' and Exists('$(MSBuildThisFileDirectory)cmake/dotnet/RedBolt.Build.props')" />
 </Project>

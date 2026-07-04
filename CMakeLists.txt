@@ -34,9 +34,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 include(cmake/RedBoltDependencies.cmake)
+include(cmake/RedBoltDotNet.cmake)
 include(cmake/RedBoltSharpCpp.cmake)
 
 find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
+
+redbolt_initialize_dotnet_consumer(
+    CONSUMER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_ROOT "${CMAKE_BINARY_DIR}/bin"
+    INTERMEDIATE_ROOT "${CMAKE_BINARY_DIR}/obj/managed"
+    DOTNET_STATE_DIR "${CMAKE_BINARY_DIR}/cmake/dotnet"
+    PROPS_FILE "${CMAKE_BINARY_DIR}/cmake/dotnet/RedBolt.CMake.props"
+    COMPAT_PROPS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/.CMakeLast.props"
+    GENERATED_BINDINGS_DIR "${REDBOLT_NATIVE_GENERATED_DIR}"
+    SHARPCPP_ROOT "${REDBOLT_SHARPCPP_ROOT}")
 
 file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED_DIR}")
 file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
@@ -120,9 +131,8 @@ add_custom_target(redbolt-csharp
     COMMAND "${DOTNET_EXECUTABLE}" build "${REDBOLT_DOTNET_SOLUTION}"
         --configuration $<CONFIG>
         --nologo
-        -p:OutputPath="${REDBOLT_BIN_DIR}/"
-        -p:RedBoltGeneratedBindingsDir="${REDBOLT_NATIVE_GENERATED_DIR}"
-        -p:RedBoltSharpCppRoot="${REDBOLT_SHARPCPP_ROOT}"
+        "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+        "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
     DEPENDS redbolt-generate-native-bindings RedBolt.Native
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Building RedBolt C# solution with generated native bindings"

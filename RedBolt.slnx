@@ -4,7 +4,6 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <Project Path="src/RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
     <Project Path="src/RedBolt/RedBolt.csproj" />
   </Folder>
   <Folder Name="/samples/">

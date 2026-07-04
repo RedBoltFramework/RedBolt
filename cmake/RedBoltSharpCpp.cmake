@@ -45,6 +45,8 @@ function(redbolt_add_native_binding_generation)
             --project "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj"
             --configuration $<CONFIG>
             --no-launch-profile
+            "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+            "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
             --
             --surface "${ARG_SURFACE}"
             --header "${ARG_HEADER}"
@@ -60,6 +62,9 @@ function(redbolt_add_native_binding_generation)
         DEPENDS
             "${ARG_HEADER}"
             ${ARG_OWNED_HEADERS}
+            "${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Directory.Build.props"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/dotnet/RedBolt.Build.props"
             "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj"
             "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/Program.cs"
             "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/CompilerToolchainDiscovery.cs"

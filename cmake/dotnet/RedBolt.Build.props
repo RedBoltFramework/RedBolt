@@ -1,0 +1,29 @@
+<Project>
+  <PropertyGroup>
+    <RedBoltBuildPropsImported>true</RedBoltBuildPropsImported>
+    <RedBoltCompatPropsPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../.CMakeLast.props'))</RedBoltCompatPropsPath>
+  </PropertyGroup>
+
+  <Import Project="$(RedBoltCMakePropsPath)"
+          Condition="'$(RedBoltCMakePropsPath)' != '' and Exists('$(RedBoltCMakePropsPath)')" />
+  <Import Project="$(RedBoltCompatPropsPath)"
+          Condition="'$(RedBoltCMakePropsPath)' == '' and Exists('$(RedBoltCompatPropsPath)')" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''"></RedBoltOutputDir>
+    <RedBoltIntermediateRoot Condition="'$(RedBoltIntermediateRoot)' == ''"></RedBoltIntermediateRoot>
+    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../SharpCpp-v3'))</RedBoltSharpCppRoot>
+    <RedBoltGeneratedBindingsDir Condition="'$(RedBoltGeneratedBindingsDir)' == '' and Exists('$(MSBuildThisFileDirectory)../../out/build/dev/generated/redbolt-native')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../out/build/dev/generated/redbolt-native'))</RedBoltGeneratedBindingsDir>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/obj/**;$(MSBuildProjectDirectory)/bin/**</DefaultItemExcludes>
+    <OutputPath Condition="'$(RedBoltOutputDir)' != ''">$(RedBoltOutputDir)/</OutputPath>
+    <BaseIntermediateOutputPath Condition="'$(RedBoltIntermediateRoot)' != ''">$(RedBoltIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <AppendTargetFrameworkToOutputPath Condition="'$(RedBoltOutputDir)' != ''">false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath Condition="'$(RedBoltOutputDir)' != ''">false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+</Project>

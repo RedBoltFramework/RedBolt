@@ -10,6 +10,7 @@
 /SharpCpp
 
 # CMake and build outputs.
+.CMakeLast.props
 out/
 build/
 CMakeUserPresets.json
