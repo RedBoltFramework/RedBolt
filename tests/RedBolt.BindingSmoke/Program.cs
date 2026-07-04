@@ -282,6 +282,17 @@ sealed class SmokeHeadlessApplication : Application
         var expectedWorld = new Vector3(2.0f, 5.0f, 9.0f);
         if (!transformChild.WorldPosition.ApproximatelyEquivalent(expectedWorld) || !explicitNode.WorldToLocal(expectedWorld).ApproximatelyEquivalent(transformChild.Position))
             throw new InvalidOperationException("Node transform conversion did not preserve rbfx-style local/world math.");
+        var rect = new global::RedBolt.Rect();
+        rect.Merge(new Vector2(0.0f, 0.0f));
+        rect.Merge(new Vector2(2.0f, 2.0f));
+        if (rect.IsInside(new Vector2(1.0f, 1.0f)) != Intersection.Inside || rect.Size != new Vector2(2.0f, 2.0f))
+            throw new InvalidOperationException("Rect did not preserve rbfx-style merge and containment math.");
+        var intRect = new global::RedBolt.IntRect(0, 0, 10, 10);
+        if (intRect.IsInside(new IntVector2(9, 9)) != Intersection.Inside || intRect.IsInside(new IntVector2(10, 10)) != Intersection.Outside)
+            throw new InvalidOperationException("IntRect did not preserve rbfx-style containment math.");
+        var color = new global::RedBolt.Color(0.25f, 0.5f, 1.0f, 1.0f);
+        if (color.ToVector4() != new Vector4(0.25f, 0.5f, 1.0f, 1.0f) || color.ToUInt() == 0)
+            throw new InvalidOperationException("Color did not preserve rbfx-style vector and packed conversion math.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
