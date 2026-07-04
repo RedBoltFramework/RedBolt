@@ -270,6 +270,18 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Serializable node name attribute did not update the live property.");
         if (!explicitNode.SetAttribute("Position", new Vector3(1.0f, 2.0f, 3.0f)) || explicitNode.Position != new Vector3(1.0f, 2.0f, 3.0f))
             throw new InvalidOperationException("Serializable node position attribute did not update the live property.");
+        explicitNode.SetTags(["editor", "dynamic"]);
+        if (!explicitNode.HasTag("editor") || explicitNode.RemoveTag("dynamic") != true || explicitNode.HasTag("dynamic"))
+            throw new InvalidOperationException("Node tags did not preserve rbfx-style tag operations.");
+        explicitNode.SetVar("Health", 100);
+        if (!Equals(explicitNode.GetVar("Health"), 100) || !explicitNode.RemoveVar("Health") || explicitNode.GetVar("Health") is not null)
+            throw new InvalidOperationException("Node variables did not preserve rbfx-style variable operations.");
+        explicitNode.SetTransform(new Vector3(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3(2.0f, 3.0f, 4.0f));
+        var transformChild = explicitNode.CreateChild("TransformChild");
+        transformChild.SetPosition(new Vector3(0.5f, 1.0f, 1.5f));
+        var expectedWorld = new Vector3(2.0f, 5.0f, 9.0f);
+        if (!transformChild.WorldPosition.ApproximatelyEquivalent(expectedWorld) || !explicitNode.WorldToLocal(expectedWorld).ApproximatelyEquivalent(transformChild.Position))
+            throw new InvalidOperationException("Node transform conversion did not preserve rbfx-style local/world math.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
