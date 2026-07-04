@@ -411,6 +411,15 @@ sealed class SmokeHeadlessApplication : Application
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style release-by-name helpers.");
             if (!Resources.RemoveResourceDir(tempResourceDir) || Resources.Exists("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not preserve rbfx-style resource directory removal helpers.");
+
+            var jsonResource = new SmokeJsonResource("Data/smoke.json");
+            using var jsonResourceSource = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Name\":\"redbolt\",\"Count\":3}"));
+            if (!jsonResource.Load(jsonResourceSource) || jsonResource.Value?.Name != "redbolt" || jsonResource.Value.Count != 3)
+                throw new InvalidOperationException("JSONResourceBase did not preserve rbfx-style json deserialization helpers.");
+            using var jsonResourceDestination = new MemoryStream();
+            jsonResource.Value = new SmokeJsonPayload { Name = "serialized", Count = 7 };
+            if (!jsonResource.Save(jsonResourceDestination) || !System.Text.Encoding.UTF8.GetString(jsonResourceDestination.ToArray()).Contains("serialized", StringComparison.Ordinal))
+                throw new InvalidOperationException("JSONResourceBase did not preserve rbfx-style json serialization helpers.");
         }
         finally
         {
@@ -1138,4 +1147,19 @@ sealed class CountingLogicComponent : LogicComponent
         ++PostUpdateCount;
         LastPostUpdateTimeStep = timeStep;
     }
+}
+
+sealed class SmokeJsonResource : JSONResource<SmokeJsonPayload>
+{
+    public SmokeJsonResource(string name)
+        : base(name)
+    {
+    }
+}
+
+sealed class SmokeJsonPayload
+{
+    public string Name { get; set; } = string.Empty;
+
+    public int Count { get; set; }
 }
