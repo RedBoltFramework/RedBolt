@@ -382,6 +382,32 @@ sealed class SmokeHeadlessApplication : Application
         if (!camera.SetAttribute("Is Enabled", false) || camera.Enabled || camera.IsEnabledEffective)
             throw new InvalidOperationException("Serializable component enabled attribute did not update the live property.");
         camera.SetEnabled(true);
+        camera.SetNearClip(-1.0f);
+        camera.SetFarClip(200.0f);
+        camera.SetFov(200.0f);
+        camera.SetAspectRatio(2.0f);
+        camera.SetOrthoSize(new Vector2(40.0f, 20.0f));
+        camera.SetZoom(0.0f);
+        camera.SetLodBias(0.0f);
+        camera.SetViewMask(0x0fu);
+        camera.SetZoneMask(0xf0u);
+        camera.SetViewOverrideFlags(ViewOverride.DisableShadows | ViewOverride.DisableOcclusion);
+        camera.SetProjectionOffset(new Vector2(0.1f, 0.2f));
+        camera.SetMousePosition(new Vector2(0.5f, 0.25f));
+        camera.SetOrthographic(true);
+        camera.SetFillMode(RedBolt.FillMode.Point);
+        if (!MathDefs.ApproximatelyEquivalent(camera.GetNearClip(), MathDefs.MinNearClip) || !MathDefs.ApproximatelyEquivalent(camera.GetFarClip(), 200.0f) || !MathDefs.ApproximatelyEquivalent(camera.GetFov(), 160.0f))
+            throw new InvalidOperationException("Camera did not preserve rbfx-style clip and FOV helpers.");
+        if (camera.GetAutoAspectRatio() || !MathDefs.ApproximatelyEquivalent(camera.GetAspectRatio(), 2.0f) || !MathDefs.ApproximatelyEquivalent(camera.GetOrthoSize(), 20.0f))
+            throw new InvalidOperationException("Camera did not preserve rbfx-style aspect and ortho-size helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(camera.GetZoom(), MathDefs.Epsilon) || !MathDefs.ApproximatelyEquivalent(camera.GetLodBias(), MathDefs.Epsilon))
+            throw new InvalidOperationException("Camera did not preserve rbfx-style zoom and LOD bias clamping.");
+        if (camera.GetViewMask() != 0x0fu || camera.GetZoneMask() != 0xf0u || camera.GetViewOverrideFlags() != (ViewOverride.DisableShadows | ViewOverride.DisableOcclusion))
+            throw new InvalidOperationException("Camera did not preserve rbfx-style view mask helpers.");
+        if (!camera.GetProjectionOffset().ApproximatelyEquivalent(new Vector2(0.1f, 0.2f)) || !camera.HasMousePosition() || !camera.IsOrthographic())
+            throw new InvalidOperationException("Camera did not preserve rbfx-style projection, mouse, or orthographic helpers.");
+        if (camera.GetFillMode() != RedBolt.FillMode.Point || !MathDefs.ApproximatelyEquivalent(camera.GetDistance(new Vector3(0.0f, 0.0f, 5.0f)), 5.0f) || camera.GetLodDistance(100.0f, 1.0f, 1.0f) <= 0.0f)
+            throw new InvalidOperationException("Camera did not preserve rbfx-style distance helpers.");
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);
