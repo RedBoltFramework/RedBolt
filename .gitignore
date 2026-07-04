@@ -4,6 +4,10 @@
 .opencode/package.json
 .opencode/package-lock.json
 .opencode/bun.lock
+.slim/deepwork/
+
+# Local dependency checkouts used for inspection/generation.
+/SharpCpp
 
 # CMake and build outputs.
 out/

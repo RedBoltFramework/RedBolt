@@ -20,6 +20,7 @@ target_link_libraries(RedBolt.Native
     PRIVATE
         SDL2::SDL2-static
         Diligent-GraphicsEngine
+        Diligent-GraphicsEngineOpenGL-static
         redbolt-native-support)
 
 add_executable(redbolt-native-smoke-exe

@@ -60,6 +60,48 @@ internal static class Program
         "SDL_version"
     };
 
+    private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
+    {
+        "GetEngineFactoryOpenGL"
+    };
+
+    private static readonly Dictionary<string, HashSet<string>> RetainedDiligentInterfaceMethods = new(StringComparer.Ordinal)
+    {
+        ["Diligent::IObject"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "AddRef",
+            "Release"
+        },
+        ["Diligent::IEngineFactoryOpenGL"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "CreateDeviceAndSwapChainGL"
+        },
+        ["Diligent::IDeviceContext"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ClearRenderTarget",
+            "Draw",
+            "SetPipelineState",
+            "SetRenderTargets",
+            "SetRenderTargetsExt"
+        },
+        ["Diligent::IRenderDevice"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "CreateGraphicsPipelineState",
+            "CreateShader"
+        },
+        ["Diligent::ISwapChain"] = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "GetDesc",
+            "GetCurrentBackBufferRTV",
+            "Present"
+        }
+    };
+
+    private static readonly HashSet<string> DiligentSyntheticDefaultConstructors = new(StringComparer.Ordinal)
+    {
+        "Diligent::ShaderCreateInfo"
+    };
+
     private static int Main(string[] args)
     {
         SharpCppLog.Configure();
@@ -98,7 +140,9 @@ internal static class Program
             foreach (var marshallerHeader in marshallerHeaders)
                 compilation.NativeSupportHeaders.Add(marshallerHeader.Replace('\\', '/'));
 
+            MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments);
+            AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
             var prunedCount = PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneInvalidTypeAliases(compilation);
 
@@ -171,14 +215,153 @@ internal static class Program
         return clangArguments.Distinct(StringComparer.Ordinal).ToList();
     }
 
+    private static void MarkNativeInterfaceWrappers(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return;
+
+        foreach (var record in compilation.Records)
+        {
+            if (IsDiligentInterfaceRecord(record))
+                record.SetMetadata(MetadataKeys.NativeInterfaceWrapper, true);
+        }
+    }
+
+    private static bool IsDiligentInterfaceRecord(RecordBinding record)
+    {
+        if (!record.CppQualifiedName.StartsWith("Diligent::", StringComparison.Ordinal) ||
+            string.Equals(record.NativeName, "INTERFACE_ID", StringComparison.Ordinal) ||
+            record.Members.OfType<FieldBinding>().Any())
+        {
+            return false;
+        }
+
+        return record.IsAbstract &&
+            record.Members.OfType<FunctionBinding>().Any(static method => method is
+            {
+                IsVirtual: true,
+                IsPureVirtual: true,
+                AccessModifier: BindingAccessModifier.Public
+            });
+    }
+
+    private static void AddDiligentSyntheticDefaultConstructors(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return;
+
+        foreach (var record in compilation.Records)
+        {
+            if (!DiligentSyntheticDefaultConstructors.Contains(record.CppQualifiedName) ||
+                record.Members.OfType<FunctionBinding>().Any(static member => member.IsConstructor && member.Parameters.Count == 0))
+            {
+                continue;
+            }
+
+            var constructor = new FunctionBinding(
+                $"ctor:{record.CppQualifiedName}:synthetic-default",
+                record.NativeName,
+                record.ManagedName,
+                record.HandleType,
+                entryPointName: $"{descriptor.EntryPointPrefix}_{record.CppQualifiedName.Replace("::", "_")}_ctor",
+                cppReturnTypeName: $"{record.CppQualifiedName}*",
+                cppQualifiedName: $"{record.CppQualifiedName}::{record.NativeName}")
+            {
+                IsConstructor = true,
+                IsStatic = false,
+                OwningRecordCppTypeName = record.CppQualifiedName,
+                AccessModifier = BindingAccessModifier.Public
+            };
+            constructor.SetMetadata(MetadataKeys.DeclarationDisplayText, $"{record.NativeName}();");
+            record.Members.Add(constructor);
+        }
+    }
+
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface is "sdl" or "diligent")
+        if (descriptor.Surface == "sdl")
             return 0;
+
+        if (descriptor.Surface == "diligent")
+        {
+            var diligentPrunedCount = PruneDiligentSurface(compilation);
+            compilation.InvalidateCaches();
+            return diligentPrunedCount;
+        }
 
         var prunedCount = PruneMembers(compilation.Members, descriptor);
         compilation.InvalidateCaches();
         return prunedCount;
+    }
+
+    private static int PruneDiligentSurface(BindingCompilation compilation)
+    {
+        var prunedCount = 0;
+        prunedCount += PruneDiligentTopLevelFunctions(compilation.Members);
+
+        foreach (var record in compilation.Records.ToArray())
+        {
+            if (!record.HasMetadata(MetadataKeys.NativeInterfaceWrapper))
+                continue;
+
+            prunedCount += PruneDiligentInterfaceMethods(record);
+        }
+
+        return prunedCount;
+    }
+
+    private static int PruneDiligentTopLevelFunctions(IList<BindingNode> members)
+    {
+        var prunedCount = 0;
+        for (var index = members.Count - 1; index >= 0; --index)
+        {
+            if (members[index] is not FunctionBinding function)
+                continue;
+
+            if (IsRetainedDiligentFunction(function))
+                continue;
+
+            members.RemoveAt(index);
+            prunedCount++;
+        }
+
+        return prunedCount;
+    }
+
+    private static int PruneDiligentInterfaceMethods(RecordBinding record)
+    {
+        var prunedCount = 0;
+        for (var index = record.Members.Count - 1; index >= 0; --index)
+        {
+            if (record.Members[index] is not FunctionBinding method)
+                continue;
+
+            if (IsRetainedDiligentInterfaceMethod(record, method))
+                continue;
+
+            record.Members.RemoveAt(index);
+            prunedCount++;
+        }
+
+        return prunedCount;
+    }
+
+    private static bool IsRetainedDiligentFunction(FunctionBinding function)
+    {
+        return RetainedDiligentFunctions.Contains(function.ManagedName) ||
+            RetainedDiligentFunctions.Contains(function.NativeName) ||
+            RetainedDiligentFunctions.Any(name =>
+                function.CppQualifiedName.EndsWith($"::{name}", StringComparison.Ordinal));
+    }
+
+    private static bool IsRetainedDiligentInterfaceMethod(RecordBinding record, FunctionBinding method)
+    {
+        if (!RetainedDiligentInterfaceMethods.TryGetValue(record.CppQualifiedName, out var retainedMethods))
+            return false;
+
+        return retainedMethods.Contains(method.ManagedName) ||
+            retainedMethods.Contains(method.NativeName) ||
+            retainedMethods.Any(name => method.CppQualifiedName.EndsWith($"::{name}", StringComparison.Ordinal));
     }
 
     private static int PruneInvalidTypeAliases(BindingCompilation compilation)
@@ -296,7 +479,7 @@ internal static class Program
                     "redbolt_diligent",
                     "-xc++",
                     "-std=c++20",
-                    false),
+                    true),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };
         }

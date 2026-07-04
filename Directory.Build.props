@@ -9,5 +9,6 @@
     <AppendTargetFrameworkToOutputPath Condition="'$(OutputPath)' != ''">false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath Condition="'$(OutputPath)' != ''">false</AppendRuntimeIdentifierToOutputPath>
     <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../SharpCpp-v3'))</RedBoltSharpCppRoot>
+    <RedBoltGeneratedBindingsDir Condition="'$(RedBoltGeneratedBindingsDir)' == '' and Exists('$(MSBuildThisFileDirectory)out/build/dev/generated/redbolt-native')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)out/build/dev/generated/redbolt-native'))</RedBoltGeneratedBindingsDir>
   </PropertyGroup>
 </Project>

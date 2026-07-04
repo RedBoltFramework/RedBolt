@@ -1,0 +1,43 @@
+namespace RedBolt;
+
+public sealed class ResourceCache
+{
+    private readonly Dictionary<(Type Type, string Name), Resource> cache = new();
+    private readonly Dictionary<Type, Delegate> loaders = new();
+
+    public void RegisterDefaultResources()
+    {
+        RegisterLoader<Model>(static name => string.Equals(name, "Models/ProceduralBox", StringComparison.Ordinal)
+            ? new Model(name, 36u)
+            : null);
+
+        RegisterLoader<Material>(static name => string.Equals(name, "Materials/FirstCube", StringComparison.Ordinal)
+            ? new Material(name)
+            : null);
+    }
+
+    public void RegisterLoader<T>(Func<string, T?> loader)
+        where T : Resource
+    {
+        loaders[typeof(T)] = loader ?? throw new ArgumentNullException(nameof(loader));
+    }
+
+    public T Get<T>(string name)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        var key = (typeof(T), name);
+        if (cache.TryGetValue(key, out var cached))
+            return (T)cached;
+
+        if (!loaders.TryGetValue(typeof(T), out var loader))
+            throw new InvalidOperationException($"No resource loader is registered for {typeof(T).Name}.");
+
+        var resource = ((Func<string, T?>)loader)(name)
+            ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
+
+        cache.Add(key, resource);
+        return resource;
+    }
+}

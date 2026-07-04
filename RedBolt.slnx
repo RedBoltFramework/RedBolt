@@ -7,6 +7,9 @@
     <Project Path="src/RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
     <Project Path="src/RedBolt/RedBolt.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RedBolt.BindingSmoke/RedBolt.BindingSmoke.csproj" />
   </Folder>
@@ -18,5 +21,11 @@
     <Project Path="../SharpCpp-v3/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
     <Project Path="../SharpCpp-v3/src/SharpCpp.Support/SharpCpp.Support.csproj" />
     <Project Path="../SharpCpp-v3/src/SharpCpp.Tool/SharpCpp.Tool.csproj" />
+  </Folder>
+  <Folder Name="/SharpCpp/tests/">
+    <Project Path="../SharpCpp-v3/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
+    <Project Path="../SharpCpp-v3/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
+    <Project Path="../SharpCpp-v3/tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
+    <Project Path="../SharpCpp-v3/tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
   </Folder>
 </Solution>

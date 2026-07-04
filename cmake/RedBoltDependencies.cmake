@@ -47,6 +47,9 @@ set(DILIGENT_CORE_DIR "extern/thirdparty/Diligent" CACHE INTERNAL "DiligentCore 
 set(DILIGENT_INSTALL_CORE OFF CACHE BOOL "" FORCE)
 set(DILIGENT_INSTALL_PDB OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_FORMAT_VALIDATION ON CACHE BOOL "" FORCE)
+set(DILIGENT_NO_HLSL ON CACHE BOOL "" FORCE)
+set(DILIGENT_NO_ARCHIVER ON CACHE BOOL "" FORCE)
+set(DILIGENT_NO_GLSLANG ON CACHE BOOL "" FORCE)
 
 set(PLATFORM_WIN32 FALSE CACHE INTERNAL "")
 set(PLATFORM_UNIVERSAL_WINDOWS FALSE CACHE INTERNAL "")
@@ -59,9 +62,9 @@ set(PLATFORM_TVOS FALSE CACHE INTERNAL "")
 set(PLATFORM_EMSCRIPTEN FALSE CACHE INTERNAL "")
 set(D3D11_SUPPORTED FALSE CACHE INTERNAL "D3D11 is not supported")
 set(D3D12_SUPPORTED FALSE CACHE INTERNAL "D3D12 is not supported")
-set(GL_SUPPORTED FALSE CACHE INTERNAL "OpenGL is not supported")
+set(GL_SUPPORTED TRUE CACHE INTERNAL "OpenGL is supported")
 set(GLES_SUPPORTED FALSE CACHE INTERNAL "OpenGLES is not supported")
-set(VULKAN_SUPPORTED TRUE CACHE INTERNAL "Vulkan API is exposed by Diligent core")
+set(VULKAN_SUPPORTED FALSE CACHE INTERNAL "Vulkan is not supported")
 set(METAL_SUPPORTED FALSE CACHE INTERNAL "Metal is not supported")
 set(WEBGPU_SUPPORTED FALSE CACHE INTERNAL "WebGPU is not supported")
 set(ARCHIVER_SUPPORTED FALSE CACHE INTERNAL "Archiver is not supported")
@@ -72,14 +75,27 @@ else()
     message(FATAL_ERROR "RedBolt has not mapped Diligent platform selection for ${CMAKE_SYSTEM_NAME}")
 endif()
 
+find_package(GLEW QUIET)
+if(TARGET GLEW::glew)
+    # Diligent already has the target name it expects.
+elseif(TARGET GLEW::GLEW)
+    add_library(GLEW::glew ALIAS GLEW::GLEW)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(REDBOLT_GLEW REQUIRED IMPORTED_TARGET glew)
+    add_library(redbolt-system-glew INTERFACE)
+    target_link_libraries(redbolt-system-glew INTERFACE PkgConfig::REDBOLT_GLEW)
+    add_library(GLEW::glew ALIAS redbolt-system-glew)
+endif()
+
 add_library(Diligent-PublicBuildSettings INTERFACE)
 target_compile_definitions(Diligent-PublicBuildSettings INTERFACE
     PLATFORM_LINUX=1
     D3D11_SUPPORTED=0
     D3D12_SUPPORTED=0
-    GL_SUPPORTED=0
+    GL_SUPPORTED=1
     GLES_SUPPORTED=0
-    VULKAN_SUPPORTED=1
+    VULKAN_SUPPORTED=0
     METAL_SUPPORTED=0
     WEBGPU_SUPPORTED=0)
 
@@ -91,6 +107,7 @@ target_compile_definitions(Diligent-BuildSettings INTERFACE
     "$<$<NOT:$<CONFIG:DEBUG>>:NDEBUG>")
 
 include("${REDBOLT_DILIGENT_SOURCE_ROOT}/BuildTools/CMake/BuildUtils.cmake")
+add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty" EXCLUDE_FROM_ALL)
 add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives" "${CMAKE_BINARY_DIR}/deps/Diligent/Primitives" EXCLUDE_FROM_ALL)
 add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms" "${CMAKE_BINARY_DIR}/deps/Diligent/Platforms" EXCLUDE_FROM_ALL)
 add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Common" "${CMAKE_BINARY_DIR}/deps/Diligent/Common" EXCLUDE_FROM_ALL)
@@ -103,6 +120,8 @@ target_link_libraries(Diligent-GraphicsEngineInterface INTERFACE
     Diligent-Primitives
     Diligent-PublicBuildSettings)
 add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngine" EXCLUDE_FROM_ALL)
+add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/ShaderTools" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/ShaderTools" EXCLUDE_FROM_ALL)
+add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineOpenGL" EXCLUDE_FROM_ALL)
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
@@ -111,6 +130,8 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Linux/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Common/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface"
     CACHE INTERNAL "Diligent include directories used by RedBolt")
 
 set(REDBOLT_DILIGENT_BINDING_DEFINES
@@ -118,11 +139,12 @@ set(REDBOLT_DILIGENT_BINDING_DEFINES
     "PLATFORM_LINUX=1"
     "D3D11_SUPPORTED=0"
     "D3D12_SUPPORTED=0"
-    "GL_SUPPORTED=0"
+    "GL_SUPPORTED=1"
     "GLES_SUPPORTED=0"
-    "VULKAN_SUPPORTED=1"
+    "VULKAN_SUPPORTED=0"
     "METAL_SUPPORTED=0"
     "WEBGPU_SUPPORTED=0"
+    "DILIGENT_NO_HLSL=1"
     CACHE INTERNAL "Diligent compile definitions used by RedBolt")
 
 add_library(redbolt-diligent-headers INTERFACE)
@@ -140,6 +162,7 @@ else()
 endif()
 target_link_libraries(redbolt-diligent-headers INTERFACE
     Diligent-GraphicsEngineInterface
+    Diligent-GraphicsEngineOpenGLInterface
     Diligent-TargetPlatform)
 
 add_library(redbolt-native-support INTERFACE)
@@ -159,6 +182,7 @@ set(REDBOLT_BINDING_DEFINES
 add_custom_target(redbolt-diligent-build
     DEPENDS
         Diligent-GraphicsEngine
+        Diligent-GraphicsEngineOpenGL-static
     COMMENT "Building RedBolt Diligent dependency targets")
 
 add_library(redbolt-diligent-header-smoke STATIC

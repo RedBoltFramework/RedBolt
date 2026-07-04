@@ -62,36 +62,20 @@ set(REDBOLT_DILIGENT_INTERFACE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Basic/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Linux/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Common/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface")
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface")
 
-set(REDBOLT_DILIGENT_PUBLIC_HEADERS)
-foreach(diligent_interface_dir IN LISTS REDBOLT_DILIGENT_INTERFACE_DIRS)
-    file(GLOB diligent_interface_headers CONFIGURE_DEPENDS "${diligent_interface_dir}/*.h")
-    list(APPEND REDBOLT_DILIGENT_PUBLIC_HEADERS ${diligent_interface_headers})
-endforeach()
-list(REMOVE_ITEM REDBOLT_DILIGENT_PUBLIC_HEADERS
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/DefineGlobalFuncHelperMacros.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/DefineInterfaceHelperMacros.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/DefineRefMacro.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/UndefGlobalFuncHelperMacros.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/UndefInterfaceHelperMacros.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface/UndefRefMacro.h"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface/LoadEngineDll.h")
-list(SORT REDBOLT_DILIGENT_PUBLIC_HEADERS)
-
-set(REDBOLT_DILIGENT_PARSE_HEADER_CONTENT "#pragma once\n")
-foreach(diligent_header IN LISTS REDBOLT_DILIGENT_PUBLIC_HEADERS)
-    get_filename_component(diligent_header_name "${diligent_header}" NAME)
-    string(APPEND REDBOLT_DILIGENT_PARSE_HEADER_CONTENT "#include <${diligent_header_name}>\n")
-endforeach()
-file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" "${REDBOLT_DILIGENT_PARSE_HEADER_CONTENT}")
+file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
+#pragma once
+#include <EngineFactoryOpenGL.h>
+]=])
 
 set(REDBOLT_SDL_OWNED_HEADERS
     "${REDBOLT_SDL_BUILD_INCLUDE_DIR}")
 
 set(REDBOLT_DILIGENT_OWNED_HEADERS
-    ${REDBOLT_DILIGENT_INTERFACE_DIRS}
-    ${REDBOLT_DILIGENT_PUBLIC_HEADERS})
+    ${REDBOLT_DILIGENT_INTERFACE_DIRS})
 
 redbolt_add_native_binding_generation(
     TARGET redbolt-generate-sdl-bindings
@@ -155,6 +139,25 @@ add_custom_target(redbolt-binding-smoke
     DEPENDS redbolt-build-binding-smoke RedBolt.Native
     WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
     COMMENT "Running managed binding smoke through RedBolt.Native"
+    VERBATIM)
+
+add_custom_target(redbolt-diligent-gl-smoke
+    COMMAND "${CMAKE_COMMAND}" -E env
+        REDBOLT_RUN_DILIGENT_GL_SMOKE=1
+        SDL_VIDEODRIVER=x11
+        "${DOTNET_EXECUTABLE}" "${REDBOLT_BIN_DIR}/RedBolt.BindingSmoke.dll"
+    DEPENDS redbolt-build-binding-smoke RedBolt.Native
+    WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
+    COMMENT "Running managed Diligent OpenGL smoke through RedBolt.Native"
+    VERBATIM)
+
+add_custom_target(redbolt-first-cube
+    COMMAND "${CMAKE_COMMAND}" -E env
+        SDL_VIDEODRIVER=x11
+        "${DOTNET_EXECUTABLE}" "${REDBOLT_BIN_DIR}/RedBolt.Sample.FirstCube.dll"
+    DEPENDS redbolt-csharp RedBolt.Native
+    WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
+    COMMENT "Running visible first cube through generated SDL/Diligent bindings"
     VERBATIM)
 
 add_custom_target(redbolt-verify-config
