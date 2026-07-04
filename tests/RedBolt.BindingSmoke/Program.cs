@@ -578,6 +578,16 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Matrix2 did not preserve rbfx-style inverse math.");
         if (!MathDefs.ApproximatelyEquivalent(EaseMath.BounceInOut(0.0f), 0.0f) || !MathDefs.ApproximatelyEquivalent(EaseMath.BounceInOut(1.0f), 1.0f))
             throw new InvalidOperationException("EaseMath did not preserve rbfx-style easing endpoints.");
+        if (!MathDefs.ApproximatelyEquivalent(MathDefs.InverseLerp(10.0f, 20.0f, 15.0f), 0.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.SmoothStep(0.0f, 1.0f, 0.5f), 0.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Smooth(0.0f, 10.0f, 1.0f), 5.0f))
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style interpolation helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(MathDefs.Sin(90.0f), 1.0f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Cos(180.0f), -1.0f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Atan2(1.0f, 0.0f), 90.0f))
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style degree trigonometry helpers.");
+        if (MathDefs.AbsMod(-1, 10) != 9 || !MathDefs.ApproximatelyEquivalent(MathDefs.SnapRound(2.25f, 0.5f), 2.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.RoundToNearestMultiple(-7.0f, 4.0f), -8.0f))
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style modulo and snapping helpers.");
+        if (!MathDefs.IsPowerOfTwo(8u) || MathDefs.IsPowerOfTwo(0u) || MathDefs.NextPowerOfTwo(5u) != 8u || MathDefs.ClosestPowerOfTwo(6u) != 4u || MathDefs.LogBaseTwo(16u) != 4u || MathDefs.CountSetBits(0b1011u) != 3u)
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style bit helpers.");
+        if (!MathDefs.ApproximatelyEquivalent(MathDefs.ExponentialDecay(1.0f), 0.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Wrap(12.0f, 0.0f, 10.0f), 2.0f) || MathDefs.SDBMHash(0u, (byte)'A') != 65u)
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style scalar utility helpers.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
