@@ -5,6 +5,9 @@ public sealed class Scene
     private readonly HashSet<uint> componentIds = [];
     private readonly HashSet<uint> nodeIds = [];
     private readonly List<StaticModel> staticModels = [];
+    private int asyncLoadingMs = 5;
+    private float elapsedTime;
+    private string fileName = string.Empty;
     private uint nextComponentId = 1;
     private uint nextNodeId = 1;
 
@@ -23,6 +26,14 @@ public sealed class Scene
 
     public float EffectiveTimeScale => UpdateEnabled ? TimeScale : 0.0f;
 
+    public float ElapsedTime => elapsedTime;
+
+    public int AsyncLoadingMs => asyncLoadingMs;
+
+    public string FileName => fileName;
+
+    public uint Checksum { get; private set; }
+
     public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
         return Root.CreateChild(name, id, temporary);
@@ -32,6 +43,108 @@ public sealed class Scene
         where T : Component, new()
     {
         return Root.CreateComponent<T>(id);
+    }
+
+    public void Clear()
+    {
+        Root.RemoveAllChildren();
+        Root.RemoveAllComponents();
+    }
+
+    public void SetUpdateEnabled(bool enable)
+    {
+        UpdateEnabled = enable;
+    }
+
+    public bool IsUpdateEnabled() => UpdateEnabled;
+
+    public void SetTimeScale(float scale)
+    {
+        TimeScale = Math.Max(scale, 0.0f);
+    }
+
+    public float GetTimeScale() => TimeScale;
+
+    public float GetEffectiveTimeScale() => EffectiveTimeScale;
+
+    public void SetElapsedTime(float time)
+    {
+        elapsedTime = Math.Max(time, 0.0f);
+    }
+
+    public float GetElapsedTime() => elapsedTime;
+
+    public void SetAsyncLoadingMs(int ms)
+    {
+        asyncLoadingMs = Math.Max(ms, 1);
+    }
+
+    public int GetAsyncLoadingMs() => asyncLoadingMs;
+
+    public bool IsAsyncLoading() => false;
+
+    public float GetAsyncProgress() => 1.0f;
+
+    public void SetFileName(string fileName)
+    {
+        this.fileName = fileName ?? string.Empty;
+        Checksum = string.IsNullOrEmpty(this.fileName) ? 0u : StringHash.Calculate(this.fileName);
+    }
+
+    public string GetFileName() => fileName;
+
+    public uint GetChecksum() => Checksum;
+
+    public bool IsEmpty(bool ignoreComponents = false)
+    {
+        return Root.GetNumChildren() == 0 && (ignoreComponents || Root.GetNumComponents() == 0);
+    }
+
+    public Node? GetNode(uint id)
+    {
+        if (Root.Id == id)
+            return Root;
+
+        return Root.GetChildren(recursive: true).FirstOrDefault(node => node.Id == id);
+    }
+
+    public Component? GetComponent(uint id)
+    {
+        foreach (var component in GetAllComponents().Values)
+        {
+            if (component.Id == id)
+                return component;
+        }
+
+        return null;
+    }
+
+    public IReadOnlyList<Node> GetNodesWithTag(string tag)
+    {
+        return Root.GetChildrenWithTag(tag, recursive: true);
+    }
+
+    public IReadOnlyDictionary<uint, Node> GetAllNodes()
+    {
+        var result = new Dictionary<uint, Node> { [Root.Id] = Root };
+        foreach (var node in Root.GetChildren(recursive: true))
+            result[node.Id] = node;
+        return result;
+    }
+
+    public IReadOnlyDictionary<uint, Component> GetAllComponents()
+    {
+        var result = new Dictionary<uint, Component>();
+        AddNodeComponents(Root, result);
+        foreach (var node in Root.GetChildren(recursive: true))
+            AddNodeComponents(node, result);
+        return result;
+    }
+
+    public void Update(float timeStep)
+    {
+        if (UpdateEnabled)
+            elapsedTime += Math.Max(timeStep, 0.0f) * TimeScale;
     }
 
     internal uint AllocateComponentId(uint requestedId)
@@ -54,6 +167,12 @@ public sealed class Scene
     {
         if (component is StaticModel staticModel)
             staticModels.Remove(staticModel);
+    }
+
+    private static void AddNodeComponents(Node node, Dictionary<uint, Component> result)
+    {
+        foreach (var component in node.Components)
+            result[component.Id] = component;
     }
 
     private static uint AllocateId(HashSet<uint> ids, ref uint nextId, uint requestedId, string kind)

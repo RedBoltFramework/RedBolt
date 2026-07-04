@@ -383,6 +383,27 @@ sealed class SmokeHeadlessApplication : Application
         scene.CreateComponent<Octree>();
         if (scene.Root.Id == 0 || scene.Root.GetNumAttributes() == 0)
             throw new InvalidOperationException("Scene root did not initialize serializable node state.");
+        if (scene.IsEmpty() || !scene.IsEmpty(ignoreComponents: true))
+            throw new InvalidOperationException("Scene did not preserve rbfx-style empty-state helpers.");
+        scene.SetTimeScale(2.0f);
+        scene.SetElapsedTime(1.0f);
+        scene.Update(0.5f);
+        scene.SetUpdateEnabled(false);
+        scene.Update(1.0f);
+        if (!MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 2.0f) || !MathDefs.ApproximatelyEquivalent(scene.GetTimeScale(), 2.0f) || !MathDefs.ApproximatelyEquivalent(scene.GetEffectiveTimeScale(), 0.0f))
+            throw new InvalidOperationException("Scene did not preserve rbfx-style update time helpers.");
+        scene.SetUpdateEnabled(true);
+        scene.SetAsyncLoadingMs(0);
+        scene.SetFileName("Scenes/Test.scene");
+        if (!scene.IsUpdateEnabled() || scene.GetAsyncLoadingMs() != 1 || scene.IsAsyncLoading() || !MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f) || scene.GetFileName() != "Scenes/Test.scene" || scene.GetChecksum() == 0u)
+            throw new InvalidOperationException("Scene did not preserve rbfx-style async/file metadata helpers.");
+        var lookupNode = scene.CreateChild("Lookup", 99);
+        lookupNode.AddTag("lookup");
+        var lookupCamera = lookupNode.CreateComponent<Camera>(124);
+        if (scene.GetNode(99) != lookupNode || scene.GetComponent(124) != lookupCamera || scene.GetNodesWithTag("lookup").SingleOrDefault() != lookupNode)
+            throw new InvalidOperationException("Scene did not preserve rbfx-style node/component lookup helpers.");
+        if (!scene.GetAllNodes().ContainsKey(lookupNode.Id) || !scene.GetAllComponents().ContainsKey(lookupCamera.Id))
+            throw new InvalidOperationException("Scene did not preserve rbfx-style full node/component maps.");
         if (typeof(Dictionary<string, List<int>>).GetFormattedTypeName() != "Dictionary<String, List<Int32>>")
             throw new InvalidOperationException("ObjectExtensionMethods did not preserve rbfx-style formatted type names.");
         if (ObjectReflection<StaticModel>.ClassName != nameof(StaticModel) || ObjectReflection<StaticModel>.TypeId.Value != StringHash.Calculate(nameof(StaticModel)))
