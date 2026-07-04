@@ -293,6 +293,17 @@ sealed class SmokeHeadlessApplication : Application
         var color = new global::RedBolt.Color(0.25f, 0.5f, 1.0f, 1.0f);
         if (color.ToVector4() != new Vector4(0.25f, 0.5f, 1.0f, 1.0f) || color.ToUInt() == 0)
             throw new InvalidOperationException("Color did not preserve rbfx-style vector and packed conversion math.");
+        var box = new global::RedBolt.BoundingBox(new Vector3(-1.0f, -1.0f, -1.0f), new Vector3(1.0f, 1.0f, 1.0f));
+        var sphere = new global::RedBolt.Sphere(Vector3.Zero, 1.0f);
+        if (box.IsInside(Vector3.Zero) != Intersection.Inside || box.IsInside(sphere) != Intersection.Inside)
+            throw new InvalidOperationException("BoundingBox/Sphere did not preserve rbfx-style containment math.");
+        var ray = new global::RedBolt.Ray(new Vector3(0.0f, 0.0f, -5.0f), Vector3.Forward);
+        if (!MathDefs.ApproximatelyEquivalent(ray.HitDistance(box), 4.0f) || !MathDefs.ApproximatelyEquivalent(ray.HitDistance(sphere), 4.0f))
+            throw new InvalidOperationException("Ray did not preserve rbfx-style hit distance math.");
+        var plane = new global::RedBolt.Plane(Vector3.Up, Vector3.Zero);
+        var downRay = new global::RedBolt.Ray(new Vector3(0.0f, 1.0f, 0.0f), Vector3.Down);
+        if (!MathDefs.ApproximatelyEquivalent(downRay.HitDistance(plane), 1.0f))
+            throw new InvalidOperationException("Plane did not preserve rbfx-style ray intersection math.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
