@@ -291,11 +291,26 @@ sealed class SmokeHeadlessApplication : Application
             File.WriteAllText(xmlName, "<root><child value=\"7\" /></root>");
             if (!Resources.AddResourceDir(tempResourceDir) || !Resources.Exists<BinaryFile>("Data/hello.txt"))
                 throw new InvalidOperationException("ResourceCache did not register a file-backed resource directory.");
+            Resources.SetMemoryBudget<BinaryFile>(4096ul);
+            Resources.SetReturnFailedResources(true);
+            Resources.SetSearchPackagesFirst(true);
+            Resources.SetFinishBackgroundResourcesMs(0);
+            if (Resources.GetMemoryBudget<BinaryFile>() != 4096ul || !Resources.GetReturnFailedResources() || !Resources.GetSearchPackagesFirst() || Resources.GetFinishBackgroundResourcesMs() != 1)
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style setting helpers.");
+            if (Resources.SanitateResourceName(Path.Combine(tempResourceDir, "Data", "hello.txt")) != "Data/hello.txt")
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style resource name sanitizing.");
+            using (var openedFile = Resources.GetFile("Data/hello.txt"))
+            {
+                if (openedFile is null || openedFile.Length == 0)
+                    throw new InvalidOperationException("ResourceCache did not preserve rbfx-style file lookup helpers.");
+            }
             var binaryFile = Resources.GetResource<BinaryFile>("Data/hello.txt");
             if (binaryFile.GetText() != "hello from resource cache" || binaryFile.AbsoluteFileName != fileName || !ReferenceEquals(binaryFile, Resources.GetResource<BinaryFile>("Data/hello.txt")))
                 throw new InvalidOperationException("ResourceCache did not load and cache a file-backed BinaryFile.");
             if (ReferenceEquals(binaryFile, Resources.GetTempResource<BinaryFile>("Data/hello.txt")))
                 throw new InvalidOperationException("ResourceCache temp resource loading reused a cached instance.");
+            if (!ReferenceEquals(Resources.GetExistingResource<BinaryFile>("Data/hello.txt"), binaryFile) || !Resources.GetAllResources().ContainsKey((typeof(BinaryFile), "Data/hello.txt")) || Resources.GetMemoryUse<BinaryFile>() < binaryFile.GetMemoryUse() || Resources.GetTotalMemoryUse() < binaryFile.GetMemoryUse())
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style cached resource inspection helpers.");
             var savedBinaryName = Path.Combine(tempResourceDir, "Data", "saved.bin");
             var savedBinaryFile = new BinaryFile("Data/saved.bin");
             savedBinaryFile.SetText("saved through resource helper");
@@ -316,6 +331,15 @@ sealed class SmokeHeadlessApplication : Application
                 throw new InvalidOperationException("ResourceCache did not load a file-backed XMLFile.");
             if (!JSONFile.ParseJSON("{\"ok\":true}", out var parsedJson) || parsedJson?["ok"]?.ToString() != "true" || !xmlFile.FromString("<newRoot />") || xmlFile.GetOrCreateRoot("newRoot").Name.LocalName != "newRoot")
                 throw new InvalidOperationException("JSONFile/XMLFile did not preserve rbfx-style string/root helpers.");
+            var manualBinaryFile = new BinaryFile("Data/manual.bin");
+            manualBinaryFile.SetText("manual");
+            if (!Resources.AddManualResource(manualBinaryFile) || Resources.AddManualResource(manualBinaryFile))
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style manual resource helpers.");
+            Resources.ReleaseResource("Data/manual.bin");
+            if (Resources.GetExistingResource<BinaryFile>("Data/manual.bin") is not null)
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style release-by-name helpers.");
+            if (!Resources.RemoveResourceDir(tempResourceDir) || Resources.Exists("Data/hello.txt"))
+                throw new InvalidOperationException("ResourceCache did not preserve rbfx-style resource directory removal helpers.");
         }
         finally
         {
