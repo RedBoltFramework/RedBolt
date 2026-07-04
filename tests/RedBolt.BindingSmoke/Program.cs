@@ -796,6 +796,14 @@ sealed class SmokeHeadlessApplication : Application
         textureCube.SetBackupTexture(texture2D);
         if (textureCube.GetBackupTexture() != texture2D)
             throw new InvalidOperationException("Texture did not preserve rbfx-style backup texture helpers.");
+        var texture3D = new Texture3D("Textures/Smoke3D");
+        texture3D.SetNumLevels(1u);
+        if (!texture3D.SetSize(2, 2, 2, global::RedBolt.TextureFormat.R8) || !texture3D.SetData(0u, 0, 0, 0, 2, 2, 2, Enumerable.Range(0, 8).Select(static value => (byte)value).ToArray()) || texture3D.GetData(0u)?.Length != 8)
+            throw new InvalidOperationException("Texture3D did not preserve rbfx-style volume data helpers.");
+        var textureArray = new Texture2DArray("Textures/SmokeArray");
+        textureArray.SetNumLevels(1u);
+        if (!textureArray.SetLayers(2u, 2, 2, global::RedBolt.TextureFormat.R8) || !textureArray.SetData(1u, 0u, 0, 0, 2, 2, [1, 2, 3, 4]) || textureArray.GetData(1u, 0u)?.Length != 4 || textureArray.Layers != 2u)
+            throw new InvalidOperationException("Texture2DArray did not preserve rbfx-style layered data helpers.");
         var cubeNode = scene.CreateChild("Cube");
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(model);
