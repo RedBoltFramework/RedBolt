@@ -304,6 +304,13 @@ sealed class SmokeHeadlessApplication : Application
         var downRay = new global::RedBolt.Ray(new Vector3(0.0f, 1.0f, 0.0f), Vector3.Down);
         if (!MathDefs.ApproximatelyEquivalent(downRay.HitDistance(plane), 1.0f))
             throw new InvalidOperationException("Plane did not preserve rbfx-style ray intersection math.");
+        var transformMatrix = new Matrix3x4(new Vector3(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3(2.0f, 3.0f, 4.0f)).Matrix4;
+        var transformedPoint = transformMatrix * Vector3.One;
+        if (!transformedPoint.ApproximatelyEquivalent(new Vector3(3.0f, 5.0f, 7.0f)) || !(transformMatrix.Inverted * transformedPoint).ApproximatelyEquivalent(Vector3.One))
+            throw new InvalidOperationException("Matrix4 did not preserve rbfx-style transform and inverse math.");
+        var movedPlane = plane.Transformed(new Matrix3x4(new Vector3(0.0f, 2.0f, 0.0f), Quaternion.Identity, 1.0f));
+        if (!MathDefs.ApproximatelyEquivalent(movedPlane.Distance(new Vector3(0.0f, 2.0f, 0.0f)), 0.0f))
+            throw new InvalidOperationException("Plane did not preserve rbfx-style Matrix3x4 transform math.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 

@@ -216,6 +216,27 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         return rect;
     }
 
+    public Rect Projected(Matrix4 projection)
+    {
+        var projMin = Min;
+        var projMax = Max;
+        if (projMin.Z < MathDefs.MinNearClip)
+            projMin.Z = MathDefs.MinNearClip;
+        if (projMax.Z < MathDefs.MinNearClip)
+            projMax.Z = MathDefs.MinNearClip;
+
+        var rect = new Rect();
+        rect.Merge((projection * projMin).ToVector2());
+        rect.Merge((projection * new Vector3(projMax.X, projMin.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3(projMin.X, projMax.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3(projMax.X, projMax.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3(projMin.X, projMin.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * new Vector3(projMax.X, projMin.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * new Vector3(projMin.X, projMax.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * projMax).ToVector2());
+        return rect;
+    }
+
     public void Transform(Matrix3 transform) => this = Transformed(transform);
     public void Transform(Matrix3x4 transform) => this = Transformed(transform);
 

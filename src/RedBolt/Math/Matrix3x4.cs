@@ -43,6 +43,11 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
     {
     }
 
+    public Matrix3x4(Matrix4 matrix)
+        : this(matrix.M00, matrix.M01, matrix.M02, matrix.M03, matrix.M10, matrix.M11, matrix.M12, matrix.M13, matrix.M20, matrix.M21, matrix.M22, matrix.M23)
+    {
+    }
+
     public Matrix3x4(Vector3 translation, Quaternion rotation, float scale)
         : this(translation, rotation, new Vector3(scale, scale, scale))
     {
@@ -59,6 +64,7 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
     public static Matrix3x4 Identity => IDENTITY;
 
     public Matrix3 Matrix3 => new(M00, M01, M02, M10, M11, M12, M20, M21, M22);
+    public Matrix4 Matrix4 => new(M00, M01, M02, M03, M10, M11, M12, M13, M20, M21, M22, M23, 0.0f, 0.0f, 0.0f, 1.0f);
     public Matrix3 RotationMatrix => Matrix3.Scaled(new Vector3(
         1.0f / MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
         1.0f / MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
@@ -174,4 +180,22 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         lhs.M20 * rhs.M01 + lhs.M21 * rhs.M11 + lhs.M22 * rhs.M21,
         lhs.M20 * rhs.M02 + lhs.M21 * rhs.M12 + lhs.M22 * rhs.M22,
         lhs.M20 * rhs.M03 + lhs.M21 * rhs.M13 + lhs.M22 * rhs.M23 + lhs.M23);
+
+    public static Matrix4 operator *(Matrix3x4 lhs, Matrix4 rhs) => new(
+        lhs.M00 * rhs.M00 + lhs.M01 * rhs.M10 + lhs.M02 * rhs.M20 + lhs.M03 * rhs.M30,
+        lhs.M00 * rhs.M01 + lhs.M01 * rhs.M11 + lhs.M02 * rhs.M21 + lhs.M03 * rhs.M31,
+        lhs.M00 * rhs.M02 + lhs.M01 * rhs.M12 + lhs.M02 * rhs.M22 + lhs.M03 * rhs.M32,
+        lhs.M00 * rhs.M03 + lhs.M01 * rhs.M13 + lhs.M02 * rhs.M23 + lhs.M03 * rhs.M33,
+        lhs.M10 * rhs.M00 + lhs.M11 * rhs.M10 + lhs.M12 * rhs.M20 + lhs.M13 * rhs.M30,
+        lhs.M10 * rhs.M01 + lhs.M11 * rhs.M11 + lhs.M12 * rhs.M21 + lhs.M13 * rhs.M31,
+        lhs.M10 * rhs.M02 + lhs.M11 * rhs.M12 + lhs.M12 * rhs.M22 + lhs.M13 * rhs.M32,
+        lhs.M10 * rhs.M03 + lhs.M11 * rhs.M13 + lhs.M12 * rhs.M23 + lhs.M13 * rhs.M33,
+        lhs.M20 * rhs.M00 + lhs.M21 * rhs.M10 + lhs.M22 * rhs.M20 + lhs.M23 * rhs.M30,
+        lhs.M20 * rhs.M01 + lhs.M21 * rhs.M11 + lhs.M22 * rhs.M21 + lhs.M23 * rhs.M31,
+        lhs.M20 * rhs.M02 + lhs.M21 * rhs.M12 + lhs.M22 * rhs.M22 + lhs.M23 * rhs.M32,
+        lhs.M20 * rhs.M03 + lhs.M21 * rhs.M13 + lhs.M22 * rhs.M23 + lhs.M23 * rhs.M33,
+        rhs.M30,
+        rhs.M31,
+        rhs.M32,
+        rhs.M33);
 }

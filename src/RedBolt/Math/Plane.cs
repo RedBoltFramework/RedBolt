@@ -61,6 +61,10 @@ public struct Plane
 
     public Vector3 Reflect(Vector3 direction) => direction - 2.0f * Normal.DotProduct(direction) * Normal;
 
+    public void Transform(Matrix3 transform) => Define(new Matrix4(transform).Inverted.Transposed * Vector4);
+    public void Transform(Matrix3x4 transform) => Define(transform.Matrix4.Inverted.Transposed * Vector4);
+    public void Transform(Matrix4 transform) => Define(transform.Inverted.Transposed * Vector4);
+
     public Matrix3x4 ReflectionMatrix() => new(
         -2.0f * Normal.X * Normal.X + 1.0f,
         -2.0f * Normal.X * Normal.Y,
@@ -74,4 +78,8 @@ public struct Plane
         -2.0f * Normal.Z * Normal.Y,
         -2.0f * Normal.Z * Normal.Z + 1.0f,
         -2.0f * Normal.Z * D);
+
+    public Plane Transformed(Matrix3 transform) => new(new Matrix4(transform).Inverted.Transposed * Vector4);
+    public Plane Transformed(Matrix3x4 transform) => new(transform.Matrix4.Inverted.Transposed * Vector4);
+    public Plane Transformed(Matrix4 transform) => new(transform.Inverted.Transposed * Vector4);
 }
