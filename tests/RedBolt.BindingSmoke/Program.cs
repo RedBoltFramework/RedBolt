@@ -588,6 +588,24 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("MathDefs did not preserve rbfx-style bit helpers.");
         if (!MathDefs.ApproximatelyEquivalent(MathDefs.ExponentialDecay(1.0f), 0.5f) || !MathDefs.ApproximatelyEquivalent(MathDefs.Wrap(12.0f, 0.0f, 10.0f), 2.0f) || MathDefs.SDBMHash(0u, (byte)'A') != 65u)
             throw new InvalidOperationException("MathDefs did not preserve rbfx-style scalar utility helpers.");
+        var seededRandom = new RandomEngine(1u);
+        if (RandomEngine.MaxRange() != 2147483646u || seededRandom.Save() != "1" || seededRandom.GetUInt() != 48270u)
+            throw new InvalidOperationException("RandomEngine did not preserve rbfx-style deterministic seed helpers.");
+        var randomState = new RandomEngine(7u).Save();
+        var randomA = new RandomEngine(randomState);
+        var randomB = new RandomEngine(randomState);
+        if (randomA.GetUInt() != randomB.GetUInt() || randomA.GetUInt(10u) >= 10u || randomA.GetUInt(5u, 7u) is < 5u or >= 7u || randomA.GetInt(-3, 3) is < -3 or >= 3)
+            throw new InvalidOperationException("RandomEngine did not preserve rbfx-style bounded integer helpers.");
+        if (randomA.GetBool(0.0f) || !randomA.GetBool(1.0f) || randomA.GetFloat(-1.0f, 1.0f) is < -1.0f or > 1.0f)
+            throw new InvalidOperationException("RandomEngine did not preserve rbfx-style scalar random helpers.");
+        var randomDirection = new RandomEngine(2u).GetDirectionVector3();
+        var randomQuaternion = new RandomEngine(3u).GetQuaternion();
+        var randomVector = new RandomEngine(4u).GetVector3(new BoundingBox(Vector3.Zero, Vector3.One));
+        if (!MathDefs.ApproximatelyEquivalent(randomDirection.Length, 1.0f, MathDefs.LargeEpsilon) || !MathDefs.ApproximatelyEquivalent(randomQuaternion.Length, 1.0f, MathDefs.LargeEpsilon) || randomVector.X is < 0.0f or > 1.0f || randomVector.Y is < 0.0f or > 1.0f || randomVector.Z is < 0.0f or > 1.0f)
+            throw new InvalidOperationException("RandomEngine did not preserve rbfx-style vector random helpers.");
+        MathDefs.SetRandomSeed(1u);
+        if (MathDefs.GetRandomSeed() != 1u || MathDefs.Rand() != 41 || MathDefs.Random(3) is < 0 or >= 3 || !float.IsFinite(MathDefs.RandomNormal(0.0f, 1.0f)))
+            throw new InvalidOperationException("MathDefs did not preserve rbfx-style global random helpers.");
         if (!scene.CreateChild("Temporary", temporary: true).IsTemporary)
             throw new InvalidOperationException("Temporary child node did not preserve the temporary flag.");
 
