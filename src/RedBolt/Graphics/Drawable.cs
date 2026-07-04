@@ -185,6 +185,11 @@ public abstract class Drawable : Component
         MarkForUpdate();
     }
 
+    protected void SetWorldBoundingBox(BoundingBox box)
+    {
+        worldBoundingBox = box;
+    }
+
     protected virtual void OnWorldBoundingBoxUpdate()
     {
         worldBoundingBox = IsAttached ? boundingBox.Transformed(Node.GetWorldTransform()) : boundingBox;

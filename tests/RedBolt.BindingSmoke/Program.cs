@@ -830,6 +830,15 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Zone did not preserve rbfx-style oriented containment helpers.");
         if (!(zone.GetInverseWorldTransform() * new Vector3(6.0f, 0.0f, 0.0f)).ApproximatelyEquivalent(new Vector3(0.5f, 0.0f, 0.0f)))
             throw new InvalidOperationException("Zone did not preserve rbfx-style inverse world transform helpers.");
+        var skybox = scene.CreateChild("Skybox").CreateComponent<Skybox>();
+        skybox.SetModel(model);
+        skybox.SetMaterial(material);
+        if (skybox.GetReflectionMode() != ReflectionMode.Zone || skybox.GetDrawableFlags() != DrawableFlags.Geometry || skybox.GetImage() is not null)
+            throw new InvalidOperationException("Skybox did not preserve rbfx-style default reflection mode or image helper.");
+        if (skybox.GetWorldBoundingBox().IsInside(new Vector3(50_000.0f, 0.0f, 0.0f)) == Intersection.Outside)
+            throw new InvalidOperationException("Skybox did not preserve rbfx-style huge world bounds.");
+        if (octree.Raycast(new Ray(Vector3.Zero, Vector3.Up), maxDistance: 1.0f, drawableFlags: DrawableFlags.Geometry).Any(result => ReferenceEquals(result.Drawable, skybox)))
+            throw new InvalidOperationException("Skybox did not preserve rbfx-style raycast exclusion.");
         if (Input.GetKeyDown(Key.Escape) || Input.GetScancodePress(Scancode.Escape))
             throw new InvalidOperationException("Headless input state should start empty.");
         if (RedBolt.Input.GetKeyFromName("A") != Key.A || RedBolt.Input.GetKeyName(Key.Num1) != "1" || RedBolt.Input.GetScancodeFromKey(Key.A) != Scancode.A)

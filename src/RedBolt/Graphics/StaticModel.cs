@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class StaticModel : Drawable
+public class StaticModel : Drawable
 {
     private readonly List<Material?> materials = [];
 

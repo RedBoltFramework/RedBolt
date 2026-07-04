@@ -256,6 +256,9 @@ public sealed class Octree : Component
 
     private static RayQueryResult? CreateRayQueryResult(Ray ray, Drawable drawable, float maxDistance)
     {
+        if (drawable is Skybox)
+            return null;
+
         var distance = ray.HitDistance(drawable.GetWorldBoundingBox());
         if (float.IsPositiveInfinity(distance) || distance > maxDistance)
             return null;
