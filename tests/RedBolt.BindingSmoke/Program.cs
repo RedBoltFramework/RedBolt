@@ -267,8 +267,34 @@ sealed class SmokeHeadlessApplication : Application
             throw new InvalidOperationException("Engine did not preserve rbfx-style FPS and timestep smoothing helpers.");
         if (Engine.GetPauseMinimized() || Engine.GetAutoExit() || !Engine.HasParameter("CustomParameter") || !Equals(Engine.GetParameter("CustomParameter"), 42))
             throw new InvalidOperationException("Engine did not preserve rbfx-style parameter and pause/auto-exit helpers.");
-        if (!MathDefs.ApproximatelyEquivalent(observedTimeStep, 0.125f) || !MathDefs.ApproximatelyEquivalent(Engine.GetNextTimeStep(), 0.125f) || Engine.Time.FrameNumber != 1)
+        Engine.Time.SetTimerPeriod(1u);
+        if (!MathDefs.ApproximatelyEquivalent(observedTimeStep, 0.125f) || !MathDefs.ApproximatelyEquivalent(Engine.GetNextTimeStep(), 0.125f) || Engine.Time.GetFrameNumber() != 1 || Engine.Time.GetTimerPeriod() != 1u)
             throw new InvalidOperationException("Engine did not preserve rbfx-style next timestep helper.");
+        if (!MathDefs.ApproximatelyEquivalent(Engine.Time.GetTimeStep(), 0.125f) || !MathDefs.ApproximatelyEquivalent(Engine.Time.GetElapsedTime(), 0.125f) || !MathDefs.ApproximatelyEquivalent(Engine.Time.GetFramesPerSecond(), 8.0f))
+            throw new InvalidOperationException("EngineTime did not preserve rbfx-style frame timing helpers.");
+        var timer = new RedBolt.Timer();
+        RedBolt.Time.Sleep(2);
+        var elapsedMs = timer.GetMSec(reset: true);
+        if (elapsedMs == 0)
+            throw new InvalidOperationException("Timer did not preserve rbfx-style elapsed/reset helpers.");
+        var hiresTimer = new HiresTimer();
+        RedBolt.Time.Sleep(2);
+        if (hiresTimer.GetUSec(reset: true) <= 0 || HiresTimer.GetFrequency() <= 0)
+            throw new InvalidOperationException("HiresTimer did not preserve rbfx-style elapsed/frequency helpers.");
+        var systemTime = RedBolt.Time.GetSystemTime();
+        RedBolt.Time.Sleep(1);
+        if (RedBolt.Time.GetSystemTime() - systemTime > 1000u || RedBolt.Time.GetTimeSinceEpoch() < 1_700_000_000u || string.IsNullOrWhiteSpace(RedBolt.Time.GetTimeStamp()))
+            throw new InvalidOperationException("Time did not preserve rbfx-style static time helpers.");
+        var timedCounter = new TimedCounter(intervalCount: 2, intervalLengthMs: 50u);
+        timedCounter.AddSample(2.0f);
+        timedCounter.AddSample(4.0f);
+        RedBolt.Time.Sleep(60);
+        if (!MathDefs.ApproximatelyEquivalent(timedCounter.GetLast(), 6.0f))
+            throw new InvalidOperationException("TimedCounter did not preserve rbfx-style interval accumulation helpers.");
+        timedCounter.AddSample(10.0f);
+        RedBolt.Time.Sleep(60);
+        if (!MathDefs.ApproximatelyEquivalent(timedCounter.GetLast(), 10.0f) || !MathDefs.ApproximatelyEquivalent(timedCounter.GetAverage(), 8.0f) || timedCounter.GetData().Count != 2)
+            throw new InvalidOperationException("TimedCounter did not preserve rbfx-style interval history helpers.");
 
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
