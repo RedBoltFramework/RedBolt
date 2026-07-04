@@ -178,6 +178,17 @@ public sealed class Scene
             staticModels.Remove(staticModel);
     }
 
+    internal void ReleaseComponentId(uint id)
+    {
+        componentIds.Remove(id);
+    }
+
+    internal void ReleaseNodeId(uint id)
+    {
+        if (id != Root.Id)
+            nodeIds.Remove(id);
+    }
+
     private static void AddNodeComponents(Node node, Dictionary<uint, Component> result)
     {
         foreach (var component in node.Components)

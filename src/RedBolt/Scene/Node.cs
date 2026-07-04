@@ -172,6 +172,22 @@ public sealed class Node : Serializable
         return component;
     }
 
+    internal Component? CreateComponent(Type type, uint id = 0)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        if (type.IsAbstract || !typeof(Component).IsAssignableFrom(type))
+            return null;
+
+        if (Activator.CreateInstance(type) is not Component component)
+            return null;
+
+        component.SetId(Scene.AllocateComponentId(id));
+        component.Attach(this);
+        components.Add(component);
+        Scene.RegisterComponent(component);
+        return component;
+    }
+
     public T GetOrCreateComponent<T>(uint id = 0)
         where T : Component, new()
     {
@@ -566,6 +582,7 @@ public sealed class Node : Serializable
         if (components.Remove(component))
         {
             Scene.UnregisterComponent(component);
+            Scene.ReleaseComponentId(component.Id);
             component.Detach();
         }
     }
@@ -613,6 +630,7 @@ public sealed class Node : Serializable
             return;
 
         node.UnregisterComponentsRecursive();
+        node.ReleaseSceneIdsRecursive();
         node.Parent = null;
         node.MarkDirty();
     }
@@ -1087,6 +1105,15 @@ public sealed class Node : Serializable
             child.UnregisterComponentsRecursive();
         foreach (var component in components)
             Scene.UnregisterComponent(component);
+    }
+
+    private void ReleaseSceneIdsRecursive()
+    {
+        foreach (var child in children)
+            child.ReleaseSceneIdsRecursive();
+        foreach (var component in components)
+            Scene.ReleaseComponentId(component.Id);
+        Scene.ReleaseNodeId(Id);
     }
 
     private void FindComponents<T>(ComponentSearchFlag flags, List<T> result)
