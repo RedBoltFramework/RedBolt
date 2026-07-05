@@ -48,7 +48,7 @@ sealed class StaticSceneApplication : Application
         {
             var mushroomNode = scene.CreateChild("Mushroom");
             mushroomNode.SetPosition(new Vector3(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f)));
-            mushroomNode.SetRotation(new Quaternion(0.0f, RandomRange(0.0f, 360.0f), 0.0f));
+            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, RandomRange(0.0f, 360.0f), 0.0f));
             mushroomNode.SetScale(0.5f + RandomRange(0.0f, 2.0f));
             var mushroom = mushroomNode.CreateComponent<StaticModel>();
             mushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));

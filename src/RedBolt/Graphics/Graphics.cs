@@ -68,7 +68,7 @@ layout(std140) uniform Material
     private static readonly bool ShaderBindingDiagnosticsEnabled = IsShaderBindingDiagnosticsEnabled();
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
 
-    private readonly float[] clearColor = [0.03f, 0.05f, 0.09f, 1.0f];
+    private readonly float[] clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
     private readonly ITextureView?[] renderTargets = new ITextureView?[1];
     private readonly Dictionary<Geometry, UploadedGeometry> uploadedGeometries = new();
     private readonly Dictionary<VertexBuffer, IBuffer> uploadedVertexBuffers = new();
