@@ -18,13 +18,13 @@ public sealed class ResourceCache
 
     public void RegisterDefaultResources()
     {
-        RegisterLoader<Model>(static name => string.Equals(name, "Models/ProceduralBox", StringComparison.Ordinal)
+        RegisterLoader<Model>(name => string.Equals(name, "Models/ProceduralBox", StringComparison.Ordinal)
             ? new Model(name, 36u)
-            : null);
+            : LoadFileBackedResource(name, static resourceName => new Model(resourceName)));
 
-        RegisterLoader<Material>(static name => string.Equals(name, "Materials/FirstCube", StringComparison.Ordinal)
+        RegisterLoader<Material>(name => string.Equals(name, "Materials/FirstCube", StringComparison.Ordinal)
             ? new Material(name)
-            : null);
+            : LoadFileBackedResource(name, static resourceName => new Material(resourceName)));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)
@@ -40,6 +40,7 @@ public sealed class ResourceCache
         if (cache.ContainsKey(key))
             return false;
 
+        resource.OwnerCache = this;
         cache.Add(key, resource);
         return true;
     }
@@ -178,7 +179,28 @@ public sealed class ResourceCache
         var resource = TryLoadResource<T>(name)
             ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
 
+        resource.OwnerCache = this;
         cache.Add(key, resource);
+        return resource;
+    }
+
+    public T? GetResourceOrNull<T>(string name)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        backgroundLoader.WaitForResource(typeof(T), name);
+
+        var key = (typeof(T), name);
+        if (cache.TryGetValue(key, out var cached))
+            return (T)cached;
+
+        var resource = TryLoadResource<T>(name);
+        if (resource is null)
+            return null;
+
+        resource.OwnerCache = this;
+        cache[key] = resource;
         return resource;
     }
 
@@ -347,6 +369,7 @@ public sealed class ResourceCache
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(resource);
+        resource.OwnerCache = this;
         cache[(type, name)] = resource;
     }
 
@@ -384,6 +407,22 @@ public sealed class ResourceCache
         if (resource is null)
             return null;
 
+        resource.OwnerCache = this;
+        return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+    }
+
+    private T? LoadFileBackedResource<T>(string name, Func<string, T> factory)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        var fileName = GetResourceFileName(name);
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        var resource = factory(name);
+        resource.OwnerCache = this;
         return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
     }
 }

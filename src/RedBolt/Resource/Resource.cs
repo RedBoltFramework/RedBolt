@@ -13,6 +13,8 @@ public abstract class Resource
 
     public string AbsoluteFileName { get; set; } = string.Empty;
 
+    internal ResourceCache? OwnerCache { get; set; }
+
     public AsyncLoadState AsyncLoadState { get; internal set; } = AsyncLoadState.Done;
 
     public uint MemoryUse { get; set; }

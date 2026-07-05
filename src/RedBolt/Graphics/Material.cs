@@ -84,16 +84,7 @@ public sealed class Material : ResourceWithMetadata
     internal Material(string name)
         : base(name)
     {
-        SetUVTransform(Vector2.Zero, 0.0f, Vector2.One);
-        SetShaderParameter("MatDiffColor", Vector4.One);
-        SetShaderParameter("MatEmissiveColor", Vector3.Zero);
-        SetShaderParameter("MatEnvMapColor", Vector3.One);
-        SetShaderParameter("MatSpecColor", new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-        SetShaderParameter("Roughness", 1.0f);
-        SetShaderParameter("Metallic", 1.0f);
-        SetShaderParameter("DielectricReflectance", 0.5f);
-        SetShaderParameter("NormalScale", 1.0f);
-        SetShaderParameter("AlphaCutoff", 0.5f);
+        ResetToDefaults();
     }
 
     public bool AlphaToCoverage { get; set; }
@@ -400,6 +391,184 @@ public sealed class Material : ResourceWithMetadata
         return false;
     }
 
+    public override bool BeginLoad(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var xml = new XMLFile(Name);
+        return xml.Load(source) && LoadXML(xml.GetRoot());
+    }
+
+    public override bool Save(Stream destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        var xml = new XMLFile(Name);
+        var root = xml.CreateRoot("material");
+        return SaveXML(root) && xml.Save(destination);
+    }
+
+    public bool LoadXML(XMLElement source)
+    {
+        if (source.IsNull)
+            return false;
+
+        ResetToDefaults();
+
+        var cache = OwnerCache;
+        var shaderElement = source.GetChild("shader");
+        if (shaderElement.NotNull)
+        {
+            SetVertexShaderDefines(shaderElement.GetAttribute("vsdefines"));
+            SetPixelShaderDefines(shaderElement.GetAttribute("psdefines"));
+        }
+
+        techniques.Clear();
+        for (var techniqueElement = source.GetChild("technique"); techniqueElement.NotNull; techniqueElement = techniqueElement.GetNext("technique"))
+        {
+            var techniqueName = techniqueElement.GetAttribute("name");
+            if (string.IsNullOrWhiteSpace(techniqueName) || cache is null)
+                continue;
+
+            var technique = cache.GetResourceOrNull<Technique>(techniqueName);
+            if (technique is null)
+                continue;
+
+            var quality = techniqueElement.HasAttribute("quality")
+                ? (MaterialQuality)techniqueElement.GetInt("quality")
+                : MaterialQuality.Low;
+            var lodDistance = techniqueElement.HasAttribute("loddistance")
+                ? techniqueElement.GetFloat("loddistance")
+                : 0.0f;
+            techniques.Add(new TechniqueEntry(technique, quality, lodDistance));
+        }
+
+        SortTechniques();
+        ApplyShaderDefinesToTechniques();
+
+        for (var textureElement = source.GetChild("texture"); textureElement.NotNull; textureElement = textureElement.GetNext("texture"))
+        {
+            var slotName = textureElement.GetAttribute("slot");
+            if (string.IsNullOrWhiteSpace(slotName))
+                slotName = textureElement.GetAttribute("unit");
+            if (string.IsNullOrWhiteSpace(slotName))
+                continue;
+
+            var resourceName = textureElement.GetAttribute("name");
+            if (string.IsNullOrWhiteSpace(resourceName) || cache is null)
+                continue;
+
+            var texture = cache.GetResourceOrNull<Texture2D>(resourceName);
+            if (texture is not null)
+                SetTexture(slotName, texture);
+        }
+
+        for (var parameterElement = source.GetChild("parameter"); parameterElement.NotNull; parameterElement = parameterElement.GetNext("parameter"))
+        {
+            var name = parameterElement.GetAttribute("name");
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+
+            SetShaderParameter(name, ParseShaderParameterValue(parameterElement.GetAttribute("value")));
+        }
+
+        var cullElement = source.GetChild("cull");
+        if (cullElement.NotNull)
+            SetCullMode(ParseCullMode(cullElement.GetAttribute("value"), CullMode.CounterClockwise));
+
+        var shadowCullElement = source.GetChild("shadowcull");
+        if (shadowCullElement.NotNull)
+            SetShadowCullMode(ParseCullMode(shadowCullElement.GetAttribute("value"), CullMode.CounterClockwise));
+
+        var fillElement = source.GetChild("fill");
+        if (fillElement.NotNull)
+            SetFillMode(ParseFillMode(fillElement.GetAttribute("value")));
+
+        var depthBiasElement = source.GetChild("depthbias");
+        if (depthBiasElement.NotNull)
+        {
+            SetDepthBias(new BiasParameters(
+                depthBiasElement.GetFloat("constant"),
+                depthBiasElement.GetFloat("slopescaled"),
+                depthBiasElement.GetFloat("normaloffset")));
+        }
+
+        var alphaToCoverageElement = source.GetChild("alphatocoverage");
+        if (alphaToCoverageElement.NotNull)
+            SetAlphaToCoverage(alphaToCoverageElement.GetBool("enable"));
+
+        var lineAntiAliasElement = source.GetChild("lineantialias");
+        if (lineAntiAliasElement.NotNull)
+            SetLineAntiAlias(lineAntiAliasElement.GetBool("enable"));
+
+        var renderOrderElement = source.GetChild("renderorder");
+        if (renderOrderElement.NotNull)
+            SetRenderOrder(renderOrderElement.GetUInt("value"));
+
+        var occlusionElement = source.GetChild("occlusion");
+        if (occlusionElement.NotNull)
+            SetOcclusion(occlusionElement.GetBool("enable"));
+
+        RefreshShaderParameterHash();
+        return true;
+    }
+
+    public bool SaveXML(XMLElement dest)
+    {
+        if (dest.IsNull)
+            return false;
+
+        for (var i = 0; i < techniques.Count; ++i)
+        {
+            var entry = techniques[i];
+            if (entry.Original is null)
+                continue;
+
+            var techniqueElement = dest.CreateChild("technique");
+            techniqueElement.SetString("name", entry.Original.Name);
+            techniqueElement.SetInt("quality", (int)entry.QualityLevel);
+            techniqueElement.SetFloat("loddistance", entry.LodDistance);
+        }
+
+        foreach (var texture in textures.Values.OrderBy(static texture => texture.Name, StringComparer.Ordinal))
+        {
+            var textureElement = dest.CreateChild("texture");
+            textureElement.SetString("slot", texture.Name);
+            textureElement.SetString("name", texture.Texture.Name);
+        }
+
+        if (!string.IsNullOrWhiteSpace(VertexShaderDefines) || !string.IsNullOrWhiteSpace(PixelShaderDefines))
+        {
+            var shaderElement = dest.CreateChild("shader");
+            if (!string.IsNullOrWhiteSpace(VertexShaderDefines))
+                shaderElement.SetString("vsdefines", VertexShaderDefines);
+            if (!string.IsNullOrWhiteSpace(PixelShaderDefines))
+                shaderElement.SetString("psdefines", PixelShaderDefines);
+        }
+
+        foreach (var parameter in shaderParameters.OrderBy(static parameter => parameter.Key, StringComparer.Ordinal))
+        {
+            var parameterElement = dest.CreateChild("parameter");
+            parameterElement.SetString("name", parameter.Key);
+            parameterElement.SetString("value", SerializeShaderParameterValue(parameter.Value.Value));
+        }
+
+        dest.CreateChild("cull").SetString("value", ToUrhoCullMode(CullMode));
+        dest.CreateChild("shadowcull").SetString("value", ToUrhoCullMode(ShadowCullMode));
+        dest.CreateChild("fill").SetString("value", ToUrhoFillMode(FillMode));
+
+        var depthBiasElement = dest.CreateChild("depthbias");
+        depthBiasElement.SetFloat("constant", DepthBias.ConstantBias);
+        depthBiasElement.SetFloat("slopescaled", DepthBias.SlopeScaledBias);
+        depthBiasElement.SetFloat("normaloffset", DepthBias.NormalOffset);
+
+        dest.CreateChild("alphatocoverage").SetBool("enable", AlphaToCoverage);
+        dest.CreateChild("lineantialias").SetBool("enable", LineAntiAlias);
+        dest.CreateChild("renderorder").SetUInt("value", RenderOrder);
+        dest.CreateChild("occlusion").SetBool("enable", Occlusion);
+        return true;
+    }
+
     private void RefreshShaderParameterHash()
     {
         unchecked
@@ -443,6 +612,93 @@ public sealed class Material : ResourceWithMetadata
             "4" or "environment" or "env" => "Reflection0",
             "15" or "zone" => "Reflection1",
             _ => name.Trim()
+        };
+    }
+
+    private void ResetToDefaults()
+    {
+        AlphaToCoverage = false;
+        DepthBias = default;
+        FillMode = FillMode.Solid;
+        CullMode = CullMode.CounterClockwise;
+        LineAntiAlias = false;
+        Occlusion = true;
+        PixelShaderDefines = string.Empty;
+        RenderOrder = 128;
+        ShadowCullMode = CullMode.CounterClockwise;
+        VertexShaderDefines = string.Empty;
+        UVOffset = Vector2.Zero;
+        UVRotation = 0.0f;
+        UVRepeat = Vector2.One;
+
+        shaderParameters.Clear();
+        textures.Clear();
+        techniques.Clear();
+
+        SetUVTransform(Vector2.Zero, 0.0f, Vector2.One);
+        SetShaderParameter("MatDiffColor", Vector4.One);
+        SetShaderParameter("MatEmissiveColor", Vector3.Zero);
+        SetShaderParameter("MatEnvMapColor", Vector3.One);
+        SetShaderParameter("MatSpecColor", new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        SetShaderParameter("Roughness", 1.0f);
+        SetShaderParameter("Metallic", 1.0f);
+        SetShaderParameter("DielectricReflectance", 0.5f);
+        SetShaderParameter("NormalScale", 1.0f);
+        SetShaderParameter("AlphaCutoff", 0.5f);
+        RefreshShaderParameterHash();
+    }
+
+    private static CullMode ParseCullMode(string value, CullMode defaultValue)
+    {
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "none" => CullMode.None,
+            "cw" => CullMode.Clockwise,
+            "ccw" => CullMode.CounterClockwise,
+            _ => defaultValue
+        };
+    }
+
+    private static FillMode ParseFillMode(string value)
+    {
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "wireframe" => FillMode.Wireframe,
+            "point" => FillMode.Point,
+            _ => FillMode.Solid
+        };
+    }
+
+    private static string ToUrhoCullMode(CullMode mode) => mode switch
+    {
+        CullMode.None => "none",
+        CullMode.Clockwise => "cw",
+        _ => "ccw"
+    };
+
+    private static string ToUrhoFillMode(FillMode mode) => mode switch
+    {
+        FillMode.Wireframe => "wireframe",
+        FillMode.Point => "point",
+        _ => "solid"
+    };
+
+    private static string SerializeShaderParameterValue(object? value)
+    {
+        return value switch
+        {
+            null => string.Empty,
+            bool boolean => boolean ? "true" : "false",
+            float scalar => scalar.ToString(CultureInfo.InvariantCulture),
+            double scalar => scalar.ToString(CultureInfo.InvariantCulture),
+            int integer => integer.ToString(CultureInfo.InvariantCulture),
+            uint integer => integer.ToString(CultureInfo.InvariantCulture),
+            Vector2 vector => vector.ToString(),
+            Vector3 vector => vector.ToString(),
+            Vector4 vector => vector.ToString(),
+            Quaternion quaternion => quaternion.ToString(),
+            Color color => color.ToString(),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
         };
     }
 }
