@@ -48,14 +48,14 @@ public sealed class EngineTests
         Assert.True(MathDefs.ApproximatelyEquivalent(observed, 0.125f));
         Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.GetNextTimeStep(), 0.125f));
 
-        fixture.Engine.Time.SetTimerPeriod(1u);
-        Assert.Equal(1u, fixture.Engine.Time.GetFrameNumber());
-        Assert.Equal(1u, fixture.Engine.Time.GetTimerPeriod());
+        fixture.Time.SetTimerPeriod(1u);
+        Assert.Equal(1u, fixture.Time.GetFrameNumber());
+        Assert.Equal(1u, fixture.Time.GetTimerPeriod());
 
         // Frame timing from the same RunFrame call.
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.Time.GetTimeStep(), 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.Time.GetElapsedTime(), 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.Time.GetFramesPerSecond(), 8.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetTimeStep(), 0.125f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetElapsedTime(), 0.125f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetFramesPerSecond(), 8.0f));
     }
 
     [Fact]
@@ -77,8 +77,10 @@ public sealed class EngineTests
                 ResourcePaths = "CoreData;Data"
             });
 
-            Assert.Contains(coreData, engine.Value.Resources.GetResourceDirs());
-            Assert.Contains(data, engine.Value.Resources.GetResourceDirs());
+            var resources = engine.Value.Context.GetSubsystem<ResourceCache>();
+            Assert.NotNull(resources);
+            Assert.Contains(coreData, resources!.GetResourceDirs());
+            Assert.Contains(data, resources.GetResourceDirs());
         }
         finally
         {

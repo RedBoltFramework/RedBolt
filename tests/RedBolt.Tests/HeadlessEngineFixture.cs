@@ -21,17 +21,28 @@ public sealed class HeadlessEngineFixture : IDisposable
 
     public Engine Engine { get; }
 
-    public ResourceCache Resources => Engine.Resources;
+    public Context Context => Engine.Context;
 
-    public Input Input => Engine.Input;
+    public EngineTime Time => GetRequiredSubsystem<EngineTime>();
 
-    public Renderer Renderer => Engine.Renderer;
+    public ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
 
-    public Graphics Graphics => Engine.Graphics;
+    public Input Input => GetRequiredSubsystem<Input>();
+
+    public Renderer Renderer => GetRequiredSubsystem<Renderer>();
+
+    public Graphics Graphics => GetRequiredSubsystem<Graphics>();
 
     public void Dispose()
     {
         Engine.Shutdown();
+    }
+
+    private T GetRequiredSubsystem<T>()
+        where T : class
+    {
+        return Context.GetSubsystem<T>()
+            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
     }
 }
 

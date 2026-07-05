@@ -17,11 +17,11 @@ public sealed class ContextTests
     {
         Assert.Same(fixture.Engine.Context, Context.Instance);
         Assert.Same(fixture.Engine, fixture.Engine.Context.GetSubsystem<Engine>());
-        Assert.Same(fixture.Engine.Time, fixture.Engine.Context.GetSubsystem<EngineTime>());
-        Assert.Same(fixture.Engine.Resources, fixture.Engine.Context.GetSubsystem<ResourceCache>());
-        Assert.Same(fixture.Engine.Input, fixture.Engine.Context.GetSubsystem<Input>());
-        Assert.Same(fixture.Engine.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());
-        Assert.Same(fixture.Engine.Renderer, fixture.Engine.Context.GetSubsystem<Renderer>());
+        Assert.Same(fixture.Time, fixture.Engine.Context.GetSubsystem<EngineTime>());
+        Assert.Same(fixture.Resources, fixture.Engine.Context.GetSubsystem<ResourceCache>());
+        Assert.Same(fixture.Input, fixture.Engine.Context.GetSubsystem<Input>());
+        Assert.Same(fixture.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());
+        Assert.Same(fixture.Renderer, fixture.Engine.Context.GetSubsystem<Renderer>());
     }
 
     [Fact]

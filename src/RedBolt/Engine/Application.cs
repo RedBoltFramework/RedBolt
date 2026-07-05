@@ -19,13 +19,13 @@ public abstract class Application
 
     protected Engine Engine { get; }
 
-    protected ResourceCache Resources => Engine.Resources;
+    protected ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
 
-    protected Graphics Graphics => Engine.Graphics;
+    protected Graphics Graphics => GetRequiredSubsystem<Graphics>();
 
-    protected Renderer Renderer => Engine.Renderer;
+    protected Renderer Renderer => GetRequiredSubsystem<Renderer>();
 
-    protected Input Input => Engine.Input;
+    protected Input Input => GetRequiredSubsystem<Input>();
 
     protected Context Context => Engine.Context;
 
@@ -182,5 +182,12 @@ public abstract class Application
         {
             Log.Logger.LogWarning(exception, "Failed to save screenshot to '{ScreenshotPath}'.", screenshotPath);
         }
+    }
+
+    private T GetRequiredSubsystem<T>()
+        where T : class
+    {
+        return Context.GetSubsystem<T>()
+            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
     }
 }

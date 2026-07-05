@@ -11,16 +11,6 @@ public sealed class Engine
 
     public EngineParameters Parameters { get; private set; } = new();
 
-    public EngineTime Time => GetRequiredSubsystem<EngineTime>();
-
-    public ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
-
-    public Input Input => GetRequiredSubsystem<Input>();
-
-    public Graphics Graphics => GetRequiredSubsystem<Graphics>();
-
-    public Renderer Renderer => GetRequiredSubsystem<Renderer>();
-
     public Context Context => context;
 
     public bool IsInitialized { get; private set; }
@@ -50,7 +40,12 @@ public sealed class Engine
 
         Parameters = applicationParameters.Clone();
         InitializeContext();
-        Resources.RegisterDefaultResources();
+        var resources = GetRequiredSubsystem<ResourceCache>();
+        var input = GetRequiredSubsystem<Input>();
+        var graphics = GetRequiredSubsystem<Graphics>();
+        var renderer = GetRequiredSubsystem<Renderer>();
+
+        resources.RegisterDefaultResources();
         Log.Logger.LogInformation(
             "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",
             applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.GraphicsBackend);
@@ -58,23 +53,23 @@ public sealed class Engine
 
         if (!IsHeadless)
         {
-            Input.Initialize(Parameters);
+            input.Initialize(Parameters);
             try
             {
-                Graphics.Initialize(Parameters, Input);
+                graphics.Initialize(Parameters, input);
             }
             catch (Exception exception)
             {
                 Log.Logger.LogError(exception, "Graphics initialization failed.");
-                Input.Shutdown();
+                input.Shutdown();
                 throw;
             }
         }
 
-        Renderer.SetTextureQuality(Parameters.TextureQuality);
-        Renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
-        Renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
-        Input.SetTouchEmulation(Parameters.TouchEmulation);
+        renderer.SetTextureQuality(Parameters.TextureQuality);
+        renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
+        renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
+        input.SetTouchEmulation(Parameters.TouchEmulation);
 
         IsInitialized = true;
         IsExiting = false;
@@ -90,6 +85,11 @@ public sealed class Engine
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
+        var time = GetRequiredSubsystem<EngineTime>();
+        var input = GetRequiredSubsystem<Input>();
+        var graphics = GetRequiredSubsystem<Graphics>();
+        var renderer = GetRequiredSubsystem<Renderer>();
+
         var timeStep = nextTimeStep ?? (float)frameClock.Elapsed.TotalSeconds;
         nextTimeStep = null;
         frameClock.Restart();
@@ -98,15 +98,15 @@ public sealed class Engine
         else if (timeStep > 0.25f)
             timeStep = 0.25f;
 
-        Time.Advance(timeStep);
-        if (Parameters.TimeOut > 0 && Time.ElapsedTime >= Parameters.TimeOut)
+        time.Advance(timeStep);
+        if (Parameters.TimeOut > 0 && time.ElapsedTime >= Parameters.TimeOut)
             Exit();
 
         if (!IsHeadless)
         {
-            Input.BeginFrame();
-            Input.PollEvents();
-            if (Input.ExitRequested && AutoExit)
+            input.BeginFrame();
+            input.PollEvents();
+            if (input.ExitRequested && AutoExit)
                 Exit();
         }
 
@@ -114,7 +114,7 @@ public sealed class Engine
             update(timeStep);
 
         if (!IsHeadless && !IsExiting)
-            Renderer.RenderFrame(Graphics);
+            renderer.RenderFrame(graphics);
     }
 
     public void Exit()
@@ -169,7 +169,7 @@ public sealed class Engine
         nextTimeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => nextTimeStep ?? Time.TimeStep;
+    public float GetNextTimeStep() => nextTimeStep ?? GetRequiredSubsystem<EngineTime>().TimeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -203,9 +203,9 @@ public sealed class Engine
         if (!IsInitialized)
             return;
 
-        Graphics.Shutdown();
-        Renderer.ClearViewports();
-        Input.Shutdown();
+        GetRequiredSubsystem<Graphics>().Shutdown();
+        GetRequiredSubsystem<Renderer>().ClearViewports();
+        GetRequiredSubsystem<Input>().Shutdown();
         Context.Reset();
         if (ReferenceEquals(RedBolt.Context.TryGetInstance(), Context))
             RedBolt.Context.SetInstance(null);
@@ -242,6 +242,9 @@ public sealed class Engine
 
     private void ApplyLiveParameter(string name)
     {
+        var renderer = Context.GetSubsystem<Renderer>();
+        var input = Context.GetSubsystem<Input>();
+
         switch (name)
         {
             case nameof(EngineParameters.Headless):
@@ -250,19 +253,19 @@ public sealed class Engine
                 break;
 
             case nameof(EngineParameters.TextureAnisotropy):
-                Renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
+                renderer?.SetTextureAnisotropy(Parameters.TextureAnisotropy);
                 break;
 
             case nameof(EngineParameters.TextureFilterMode):
-                Renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
+                renderer?.SetTextureFilterMode(Parameters.TextureFilterMode);
                 break;
 
             case nameof(EngineParameters.TextureQuality):
-                Renderer.SetTextureQuality(Parameters.TextureQuality);
+                renderer?.SetTextureQuality(Parameters.TextureQuality);
                 break;
 
             case nameof(EngineParameters.TouchEmulation):
-                Input.SetTouchEmulation(Parameters.TouchEmulation);
+                input?.SetTouchEmulation(Parameters.TouchEmulation);
                 break;
         }
     }
@@ -274,10 +277,11 @@ public sealed class Engine
             return;
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
+        var resources = GetRequiredSubsystem<ResourceCache>();
         if (prefixPaths.Count == 0)
         {
             foreach (var resourcePath in resourcePaths)
-                Resources.AddResourceDir(NormalizeConfiguredResourcePath(resourcePath));
+                resources.AddResourceDir(NormalizeConfiguredResourcePath(resourcePath));
             return;
         }
 
@@ -289,7 +293,7 @@ public sealed class Engine
                 var combinedPath = Path.IsPathRooted(resourcePath)
                     ? NormalizeConfiguredResourcePath(resourcePath)
                     : Path.GetFullPath(Path.Combine(normalizedPrefix, resourcePath));
-                Resources.AddResourceDir(combinedPath);
+                resources.AddResourceDir(combinedPath);
             }
         }
     }
