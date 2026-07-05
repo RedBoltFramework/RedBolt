@@ -6,6 +6,12 @@ Keep this file concise. Remove stale guesses, completed low-value notes, and sup
 
 Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipeline` into RedBolt without losing session context.
 
+Scope guard:
+
+- The end state is a full port of graphics API and pipeline classes plus their behavior/hookups.
+- Temporary compatibility layers are acceptable only as short-lived landing slices.
+- Only C++ utility-only infrastructure with no meaningful C# analogue may be omitted.
+
 ## Current State
 
 - RedBolt currently has a custom managed renderer in [src/RedBolt/Graphics/Graphics.cs](/home/rk/Desktop/src/rbfx/RedBolt/src/RedBolt/Graphics/Graphics.cs) backed by generated SDL and Diligent bindings.
@@ -54,6 +60,7 @@ Slice 1 through the first runtime integration layer are landed:
 - `RenderPipeline` / `RenderPipelineView` now exist as scene-side runtime objects
 - `Renderer` now routes scene viewports through `RenderPipeline` when a scene has that component
 - `RedBolt.Sample.StaticScene` now attaches a `RenderPipeline` component, so the sample uses the new path instead of bypassing it
+- `RenderPath` is being upgraded from a RedBolt-only XML subset to rbfx-compatible `.renderpath` loading and default render-path resolution
 
 ## Current Cross-Cutting Requirement
 
@@ -72,7 +79,7 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
-- Start replacing the legacy scene draw embedded in `Graphics.RenderViewport` with pipeline-owned scene-processing and pass execution stages.
+- Finish replacing the legacy scene draw embedded in `Graphics.RenderViewport` with pipeline-owned scene-processing and pass execution stages.
+- Expand `RenderPath` from generic serialized passes into real rbfx pass classes instantiated by type.
 - Continue from the minimal `RenderBufferManager` into real offscreen render-buffer allocation and pass-to-pass data flow.
-- Port concrete render passes or scene-processing stages so `RenderPath` content does more than no-op bookkeeping.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

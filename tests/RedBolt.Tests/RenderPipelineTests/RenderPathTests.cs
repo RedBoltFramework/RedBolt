@@ -96,6 +96,64 @@ public sealed class RenderPathTests
         }
     }
 
+    [Fact]
+    public void Render_path_json_renderpath_loads_through_resource_cache()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPathTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
+        var resources = new ResourceCache();
+        resources.RegisterDefaultResources();
+        resources.AddResourceDir(tempRoot);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.renderpath"), """
+                {
+                  "passes": [
+                    {
+                      "type": "FullScreenShaderPass",
+                      "value": {
+                        "attributes": [
+                          { "name": "Pass Name", "type": "String", "value": "Postprocess: Adjust Color" },
+                          { "name": "Comment", "type": "String", "value": "Adjust output color RGB and HSV." },
+                          { "name": "Read+Write Color Output", "type": "Bool", "value": true },
+                          { "name": "Bilinear Color Sampler", "type": "Bool", "value": true },
+                          { "name": "Parameters Prefix", "type": "String", "value": "Adjust Color: " },
+                          {
+                            "name": "Parameters",
+                            "type": "StringVariantMap",
+                            "value": [
+                              { "key": "HSVParams", "type": "Vector4", "value": "1 1 1 1" }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                """);
+
+            var renderPath = resources.GetResource<RenderPath>("RenderPaths/Simple");
+
+            var collectedParameters = new Dictionary<string, object?>();
+            renderPath.CollectParameters(collectedParameters);
+            renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
+
+            var pass = Assert.Single(renderPath.GetPasses());
+            Assert.Equal("Postprocess: Adjust Color", pass.GetPassName());
+            Assert.Equal("Adjust output color RGB and HSV.", pass.GetComment());
+            Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
+            Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+        }
+        finally
+        {
+            resources.RemoveResourceDir(tempRoot);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
     private sealed class TrackingRenderPass : RenderPass
     {
         public TrackingRenderPass(string passName)

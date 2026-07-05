@@ -2,6 +2,8 @@ namespace RedBolt;
 
 public class RenderPipeline : Component
 {
+    public const string DefaultRenderPathName = "RenderPaths/Default.renderpath";
+
     private readonly Dictionary<string, object?> renderPathParameters = new(StringComparer.Ordinal);
     private readonly Dictionary<string, object?> frameShaderParameters = new(StringComparer.Ordinal);
     private IReadOnlyList<RenderPassToggle> renderPasses = [];
@@ -104,6 +106,14 @@ public class RenderPipeline : Component
 
     public virtual RenderPipelineView Instantiate() => new DefaultRenderPipelineView(this);
 
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    {
+        base.OnSceneSet(previousScene, scene);
+
+        if (scene is not null)
+            EnsureDefaultRenderPath();
+    }
+
     private void CollectRenderPathParameters()
     {
         if (renderPath is null)
@@ -124,6 +134,16 @@ public class RenderPipeline : Component
         {
             ++revision;
         }
+    }
+
+    private void EnsureDefaultRenderPath()
+    {
+        if (renderPath is not null)
+            return;
+
+        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        if (cache?.GetResourceOrNull<RenderPath>(DefaultRenderPathName) is { } defaultRenderPath)
+            SetRenderPath(defaultRenderPath);
     }
 
     private sealed class DefaultRenderPipelineView : RenderPipelineView

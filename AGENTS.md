@@ -15,7 +15,9 @@ The current rendering effort is an incremental port of:
 - `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderAPI`
 - `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderPipeline`
 
-Do not try to transplant the full render stack at once. Land small coherent slices and keep them building.
+The target is a full port of the graphics API and pipeline: all classes, behavior, and hookups should be ported unless the omitted piece is only C++ utility infrastructure that has no meaningful C# equivalent.
+
+Do not try to transplant the full render stack at once. Land small coherent slices and keep them building, but each slice should move toward full rbfx parity rather than introducing long-lived custom shortcuts.
 
 ## Binding And Interop Rules
 
@@ -45,6 +47,7 @@ Do not try to transplant the full render stack at once. Land small coherent slic
   3. render-buffer layer
   4. higher-level pipeline orchestration
   5. backend integration
+- Match rbfx resource formats and default behaviors whenever possible. Avoid RedBolt-only side formats if upstream rbfx already defines the asset/runtime contract.
 - Prefer incremental managed ports that compile and are tested over broad partial translations.
 - Wire new render-port types to `Context.Instance` unless there is a strong reason not to.
 - Reuse existing generated bindings when possible. If a required surface is missing, extend generation instead of adding manual interop.

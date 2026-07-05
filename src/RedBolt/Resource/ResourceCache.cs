@@ -26,7 +26,9 @@ public sealed class ResourceCache
 
         RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
             static resourceName => new Material(resourceName)));
-        RegisterLoader<RenderPath>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
+        RegisterLoader<RenderPath>(name => LoadFileBackedResource(
+            name,
+            GetRenderPathLookupNames(name),
             static resourceName => new RenderPath(resourceName)));
     }
 
@@ -445,10 +447,38 @@ public sealed class ResourceCache
         return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
     }
 
+    private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<string, T> factory)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalName);
+        ArgumentNullException.ThrowIfNull(lookupNames);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        foreach (var lookupName in lookupNames)
+        {
+            if (string.IsNullOrWhiteSpace(lookupName))
+                continue;
+
+            var loaded = LoadFileBackedResource(logicalName, lookupName, factory);
+            if (loaded is not null)
+                return loaded;
+        }
+
+        return null;
+    }
+
     private static string AppendExtensionIfMissing(string name, string extension)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(extension);
         return Path.HasExtension(name) ? name : name + extension;
+    }
+
+    private static IReadOnlyList<string> GetRenderPathLookupNames(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return Path.HasExtension(name)
+            ? [name]
+            : [name + ".renderpath", name + ".xml"];
     }
 }
