@@ -9,6 +9,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" />
+    <Reference Include="SharpCpp.Support">
+      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 </Project>

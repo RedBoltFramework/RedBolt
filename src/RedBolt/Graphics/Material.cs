@@ -200,6 +200,26 @@ public sealed class Material : ResourceWithMetadata
 
     public Technique? GetTechnique(uint index) => GetTechniqueEntry(index).Technique;
 
+    /// <summary>
+    /// Find the best technique for the specified material quality and drawable LOD distance.
+    /// </summary>
+    public Technique? FindTechnique(MaterialQuality materialQuality, float lodDistance = 0.0f)
+    {
+        if (techniques.Count == 1)
+            return techniques[0].Technique;
+
+        foreach (var entry in techniques)
+        {
+            var technique = entry.Technique;
+            if (technique is null || materialQuality < entry.QualityLevel)
+                continue;
+            if (lodDistance >= entry.LodDistance)
+                return technique;
+        }
+
+        return techniques.Count > 0 ? techniques[^1].Technique : null;
+    }
+
     public Pass? GetPass(uint index, string passName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(passName);

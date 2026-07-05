@@ -79,6 +79,7 @@ public sealed class Input
 
         backbufferSize = new IntVector2(parameters.WindowWidth, parameters.WindowHeight);
         systemToBackbufferScale = Vector2.One;
+        TouchEmulation = parameters.TouchEmulation;
 
         var initResult = SdlNativeBindings.SdlInit(SdlInitVideo);
         if (initResult != 0)
@@ -90,18 +91,33 @@ public sealed class Input
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 3), "SDL_GL_SetAttribute minor version");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
+            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, parameters.MultiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
+            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, Math.Max(parameters.MultiSample, 0)), "SDL_GL_SetAttribute multisample samples");
 
             using var title = new PinnedUtf8(parameters.WindowTitle);
+            var windowFlags = SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown;
+            if (parameters.FullScreen)
+                windowFlags |= SdlWindowFlags.SdlWindowFullscreenDesktop;
+            else if (parameters.Borderless)
+                windowFlags |= SdlWindowFlags.SdlWindowBorderless;
+            if (parameters.WindowResizable)
+                windowFlags |= SdlWindowFlags.SdlWindowResizable;
+            if (parameters.WindowMaximize)
+                windowFlags |= SdlWindowFlags.SdlWindowMaximized;
+
             window = SdlNativeBindings.SdlCreateWindow(
                 in title.FirstByte,
-                x: 64,
-                y: 64,
+                x: parameters.WindowPositionX ?? 64,
+                y: parameters.WindowPositionY ?? 64,
                 w: parameters.WindowWidth,
                 h: parameters.WindowHeight,
-                flags: (uint)(SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown));
+                flags: (uint)windowFlags);
 
             if (window.IsNull)
                 throw new InvalidOperationException("Generated SDL_CreateWindow binding returned a null OpenGL window.");
+
+            if (parameters.WindowMaximize)
+                SdlNativeBindings.SdlMaximizeWindow(window);
 
             nativeEvent = new SdlEvent();
             IsInitialized = true;
@@ -111,6 +127,16 @@ public sealed class Input
             Shutdown();
             throw;
         }
+    }
+
+    public void SetWindowTitle(string title)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        if (!IsInitialized || window is null || window.IsNull)
+            return;
+
+        using var pinnedTitle = new PinnedUtf8(title);
+        SdlNativeBindings.SdlSetWindowTitle(window, in pinnedTitle.FirstByte);
     }
 
     public void BeginFrame()

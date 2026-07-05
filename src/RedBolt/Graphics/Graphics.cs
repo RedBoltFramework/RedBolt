@@ -6,6 +6,9 @@ namespace RedBolt;
 
 public sealed class Graphics
 {
+    private const uint GlBack = 0x0405;
+    private const uint GlRgba = 0x1908;
+    private const uint GlUnsignedByte = 0x1401;
     private const int CameraBufferSize = 368;
     private const int ObjectBufferSize = 80;
     private const int MaterialBufferSize = 128;
@@ -61,10 +64,17 @@ layout(std140, binding = 4) uniform Material
     private readonly float[] clearColor = [0.03f, 0.05f, 0.09f, 1.0f];
     private readonly ITextureView?[] renderTargets = new ITextureView?[1];
     private readonly Dictionary<Geometry, UploadedGeometry> uploadedGeometries = new();
+    private readonly Dictionary<VertexBuffer, IBuffer> uploadedVertexBuffers = new();
+    private readonly Dictionary<IndexBuffer, IBuffer> uploadedIndexBuffers = new();
     private readonly Dictionary<Texture2D, UploadedTexture> uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
 
     private GCHandle clearColorHandle;
+    private Texture2D? defaultAlbedoTexture;
+    private Texture2D? defaultNormalTexture;
+    private GlFinishDelegate? glFinish;
+    private GlReadBufferDelegate? glReadBuffer;
+    private GlReadPixelsDelegate? glReadPixels;
     private IDeviceContext? immediateContext;
     private IRenderDevice? device;
     private ISwapChain? swapChain;
@@ -90,8 +100,6 @@ layout(std140, binding = 4) uniform Material
         if (parameters.GraphicsBackend is not GraphicsBackend.Auto and not GraphicsBackend.OpenGL)
             throw new NotSupportedException($"The first RedBolt graphics backend supports OpenGL only, not {parameters.GraphicsBackend}.");
 
-        Width = parameters.WindowWidth;
-        Height = parameters.WindowHeight;
         window = input.Window;
         glContext = SdlNativeBindings.SdlGlCreateContext(window);
         if (glContext == IntPtr.Zero)
@@ -100,7 +108,10 @@ layout(std140, binding = 4) uniform Material
         try
         {
             CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
-            _ = SdlNativeBindings.SdlGlSetSwapInterval(0);
+            _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
+            SdlNativeBindings.SdlGetWindowSize(window, out var actualWidth, out var actualHeight);
+            Width = actualWidth;
+            Height = actualHeight;
 
             var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
@@ -134,7 +145,12 @@ layout(std140, binding = 4) uniform Material
         }
     }
 
-    internal void RenderViewport(Viewport? viewport)
+    internal void RenderViewport(Viewport? viewport, string? screenshotPath = null)
+    {
+        RenderViewport(viewport, MaterialQuality.High, screenshotPath);
+    }
+
+    internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, string? screenshotPath = null)
     {
         if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || renderTargetView is null || depthStencilView is null)
             return;
@@ -154,11 +170,150 @@ layout(std140, binding = 4) uniform Material
             .FirstOrDefault(static light => light.IsAttached && light.IsEnabledEffective && light.GetLightType() == LightType.Directional);
 
         foreach (var staticModel in viewport.Scene.StaticModels)
-            RenderStaticModel(viewport, staticModel, directionalLight);
+            RenderStaticModel(viewport, staticModel, materialQuality, directionalLight);
+
+        if (!string.IsNullOrWhiteSpace(screenshotPath))
+            SaveRenderedFrameScreenshot(screenshotPath);
 
         swapChain.Present(0);
         immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
+    }
+
+    public void SetVSync(bool enable)
+    {
+        if (!IsInitialized)
+            return;
+
+        _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
+    }
+
+    public void SaveScreenshot(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        if (!IsInitialized || device is null || immediateContext is null || renderTargetView is null)
+            throw new InvalidOperationException("Graphics system is not initialized.");
+
+        var sourceTexture = renderTargetView.GetTexture();
+        if (!sourceTexture.IsNull)
+        {
+            SaveTexture(sourceTexture, fileName);
+            return;
+        }
+
+        if (!TrySaveCurrentFramebufferScreenshot(fileName))
+            throw new InvalidOperationException("Backbuffer texture was not available for screenshot capture.");
+    }
+
+    private void SaveTexture(ITexture sourceTexture, string fileName)
+    {
+        ArgumentNullException.ThrowIfNull(sourceTexture);
+
+        if (device is null || immediateContext is null)
+            throw new InvalidOperationException("Graphics system is not initialized.");
+
+        var sourceDescription = sourceTexture.GetDesc();
+        var width = checked((int)sourceDescription.Width);
+        var height = checked((int)sourceDescription.Height);
+        var stagingDescription = sourceTexture.GetDesc();
+        stagingDescription.BindFlags = BindFlags.BindNone;
+        stagingDescription.CPUAccessFlags = CpuAccessFlags.CpuAccessRead;
+        stagingDescription.MiscFlags = MiscTextureFlags.MiscTextureFlagNone;
+        stagingDescription.SampleCount = 1;
+        stagingDescription.Usage = Usage.UsageStaging;
+
+        ITexture? stagingTexture = null;
+        try
+        {
+            device.CreateTexture(stagingDescription, null!, out stagingTexture);
+            if (stagingTexture is null || stagingTexture.IsNull)
+                throw new InvalidOperationException("Failed to create the staging texture for screenshot capture.");
+
+            using var copyAttributes = new CopyTextureAttribs(
+                sourceTexture,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+                stagingTexture,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            immediateContext.CopyTexture(copyAttributes);
+            immediateContext.Flush();
+            immediateContext.WaitForIdle();
+
+            using var mappedSubresource = new MappedTextureSubresource();
+            using var mapRegion = new Box(0, sourceDescription.Width, 0, sourceDescription.Height, 0, 1);
+            immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, mapRegion, mappedSubresource);
+            try
+            {
+                var rgbaPixels = new byte[checked(width * height * 4)];
+                CopyMappedTexture(sourceDescription.Format, width, height, mappedSubresource, rgbaPixels);
+                ImageFileWriter.Save(fileName, width, height, rgbaPixels);
+            }
+            finally
+            {
+                immediateContext.UnmapTextureSubresource(stagingTexture, 0, 0);
+            }
+        }
+        finally
+        {
+            ReleaseIfNotNull(stagingTexture);
+        }
+    }
+
+    private void SaveCurrentFramebufferScreenshot(string fileName)
+    {
+        if (!TrySaveCurrentFramebufferScreenshot(fileName))
+            throw new InvalidOperationException("OpenGL framebuffer readback is not available.");
+    }
+
+    private void SaveRenderedFrameScreenshot(string fileName)
+    {
+        if (renderTargetView is not null)
+        {
+            var sourceTexture = renderTargetView.GetTexture();
+            if (!sourceTexture.IsNull)
+            {
+                SaveTexture(sourceTexture, fileName);
+                return;
+            }
+        }
+
+        SaveCurrentFramebufferScreenshot(fileName);
+    }
+
+    private bool TrySaveCurrentFramebufferScreenshot(string fileName)
+    {
+        if (glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
+            return false;
+
+        EnsureOpenGlReadbackFunctions();
+
+        var rgbaPixels = new byte[checked(Width * Height * 4)];
+        using var pinnedPixels = new PinnedBuffer(rgbaPixels);
+
+        glFinish!.Invoke();
+        glReadBuffer!.Invoke(GlBack);
+        glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
+        FlipImageRows(rgbaPixels, Width, Height);
+        ImageFileWriter.Save(fileName, Width, Height, rgbaPixels);
+        return true;
+    }
+
+    private void EnsureOpenGlReadbackFunctions()
+    {
+        glFinish ??= LoadOpenGlProcedure<GlFinishDelegate>("glFinish");
+        glReadBuffer ??= LoadOpenGlProcedure<GlReadBufferDelegate>("glReadBuffer");
+        glReadPixels ??= LoadOpenGlProcedure<GlReadPixelsDelegate>("glReadPixels");
+    }
+
+    private static T LoadOpenGlProcedure<T>(string name)
+        where T : Delegate
+    {
+        using var pinnedName = new PinnedUtf8(name);
+        var procedure = SdlNativeBindings.SdlGlGetProcAddress(in pinnedName.FirstByte);
+        if (procedure == IntPtr.Zero)
+            throw new InvalidOperationException($"OpenGL procedure '{name}' is not available.");
+
+        return Marshal.GetDelegateForFunctionPointer<T>(procedure);
     }
 
     public void Shutdown()
@@ -173,9 +328,20 @@ layout(std140, binding = 4) uniform Material
             uploaded.Dispose();
         uploadedGeometries.Clear();
 
+        foreach (var uploaded in uploadedVertexBuffers.Values)
+            ReleaseIfNotNull(uploaded);
+        uploadedVertexBuffers.Clear();
+
+        foreach (var uploaded in uploadedIndexBuffers.Values)
+            ReleaseIfNotNull(uploaded);
+        uploadedIndexBuffers.Clear();
+
         foreach (var uploaded in uploadedTextures.Values)
             uploaded.Dispose();
         uploadedTextures.Clear();
+
+        defaultAlbedoTexture = null;
+        defaultNormalTexture = null;
 
         foreach (var pipeline in pipelines.Values)
             pipeline.Dispose();
@@ -203,7 +369,7 @@ layout(std140, binding = 4) uniform Material
         IsInitialized = false;
     }
 
-    private void RenderStaticModel(Viewport viewport, StaticModel staticModel, Light? directionalLight)
+    private void RenderStaticModel(Viewport viewport, StaticModel staticModel, MaterialQuality materialQuality, Light? directionalLight)
     {
         if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
             return;
@@ -221,12 +387,17 @@ layout(std140, binding = 4) uniform Material
             if (resourceCache is null)
                 continue;
 
-            var pass = SelectPass(material, directionalLight is not null);
+            var technique = material.FindTechnique(materialQuality);
+            if (technique is null)
+                continue;
+
+            var pass = SelectPass(technique, directionalLight);
             if (pass is null)
                 continue;
 
-            var pipeline = GetOrCreatePipeline(resourceCache, material, pass, vertexBuffer, directionalLight);
-            var uploadedGeometry = GetOrCreateUploadedGeometry(geometry, vertexBuffer, indexBuffer);
+            var effectiveLight = PassUsesLighting(pass) ? directionalLight : null;
+            var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, effectiveLight);
+            var uploadedGeometry = GetOrCreateUploadedGeometry(geometry);
             if (pipeline is null || uploadedGeometry is null || immediateContext is null)
                 continue;
 
@@ -234,7 +405,7 @@ layout(std140, binding = 4) uniform Material
             UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4,
                 GetAmbientForDrawable(viewport.Scene, staticModel));
             UpdateMaterialBuffer(pipeline.MaterialBuffer, material);
-            UpdateLightBuffer(pipeline.LightBuffer, directionalLight);
+            UpdateLightBuffer(pipeline.LightBuffer, effectiveLight);
 
             pipeline.PipelineState.CreateShaderResourceBinding(out var shaderResources, false);
             try
@@ -260,13 +431,18 @@ layout(std140, binding = 4) uniform Material
         }
     }
 
-    private PipelineResources? GetOrCreatePipeline(ResourceCache resourceCache, Material material, Pass pass,
-        VertexBuffer vertexBuffer, Light? directionalLight)
+    private PipelineResources? GetOrCreatePipeline(ResourceCache resourceCache, Camera camera, Material material, Pass pass,
+        VertexBuffer vertexBuffer, Light? light)
     {
-        var vertexDefines = ComposeShaderDefines(pass, vertexBuffer, material, directionalLight is not null, ShaderStage.Vertex);
-        var pixelDefines = ComposeShaderDefines(pass, vertexBuffer, material, directionalLight is not null, ShaderStage.Pixel);
+        var vertexDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, ShaderStage.Vertex);
+        var pixelDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, ShaderStage.Pixel);
+        var effectiveCullMode = pass.CullMode != CullMode.Max ? pass.CullMode : material.CullMode;
+        var effectiveFillMode = GetEffectiveFillMode(camera, material);
+        var reverseCulling = camera.GetReverseCulling();
+        var alphaToCoverage = pass.AlphaToCoverage || material.GetAlphaToCoverage();
         var key = new PipelineKey(pass.VertexShader, pass.PixelShader, vertexDefines, pixelDefines,
-            BuildLayoutSignature(vertexBuffer), directionalLight is not null);
+            BuildLayoutSignature(vertexBuffer), effectiveCullMode, effectiveFillMode, pass.DepthTestMode,
+            pass.DepthWrite, alphaToCoverage, reverseCulling);
         if (pipelines.TryGetValue(key, out var cached))
             return cached;
 
@@ -298,12 +474,15 @@ layout(std140, binding = 4) uniform Material
                 PSODesc = psoDesc,
                 PVS = vertexShader,
                 PPS = pixelShader,
+                GraphicsPipelineBlendDescAlphaToCoverageEnable = alphaToCoverage,
                 GraphicsPipelineNumRenderTargets = 1,
                 GraphicsPipelinePrimitiveTopology = PrimitiveTopology.PrimitiveTopologyTriangleList,
-                GraphicsPipelineRasterizerDescCullMode = MapCullMode(pass.CullMode != CullMode.Max ? pass.CullMode : material.CullMode),
-                GraphicsPipelineDepthStencilDescDepthEnable = true,
-                GraphicsPipelineDepthStencilDescDepthWriteEnable = true,
-                GraphicsPipelineDepthStencilDescDepthFunc = ComparisonFunction.ComparisonFuncLessEqual,
+                GraphicsPipelineRasterizerDescCullMode = MapCullMode(effectiveCullMode, reverseCulling),
+                GraphicsPipelineRasterizerDescFillMode = MapFillMode(effectiveFillMode),
+                GraphicsPipelineRasterizerDescFrontCounterClockwise = reverseCulling,
+                GraphicsPipelineDepthStencilDescDepthEnable = pass.DepthTestMode != CompareMode.Always || pass.DepthWrite,
+                GraphicsPipelineDepthStencilDescDepthWriteEnable = pass.DepthWrite,
+                GraphicsPipelineDepthStencilDescDepthFunc = MapCompareMode(pass.DepthTestMode),
                 GraphicsPipelineInputLayoutLayoutElements = layoutArray.First,
                 GraphicsPipelineInputLayoutNumElements = (uint)layoutArray.Count
             };
@@ -341,7 +520,7 @@ layout(std140, binding = 4) uniform Material
         }
     }
 
-    private UploadedGeometry? GetOrCreateUploadedGeometry(Geometry geometry, VertexBuffer vertexBuffer, IndexBuffer indexBuffer)
+    private UploadedGeometry? GetOrCreateUploadedGeometry(Geometry geometry)
     {
         if (uploadedGeometries.TryGetValue(geometry, out var uploaded))
             return uploaded;
@@ -349,14 +528,17 @@ layout(std140, binding = 4) uniform Material
         if (device is null || immediateContext is null)
             return null;
 
-        var vertexData = vertexBuffer.GetData().ToArray();
-        var indexData = indexBuffer.GetUnpackedData().ToArray();
-        var gpuVertexBuffer = CreateBuffer(device, immediateContext, "RedBoltModelVB", vertexData,
-            (ulong)vertexData.Length, BindFlags.BindVertexBuffer, vertexBuffer.GetVertexSize());
-        var gpuIndexBuffer = CreateIndexBuffer(device, immediateContext, indexBuffer, indexData);
-        var drawIndexedAttribs = new DrawIndexedAttribs((uint)indexData.Length,
+        var vertexBuffer = geometry.GetVertexBuffer(0);
+        var indexBuffer = geometry.GetIndexBuffer();
+        if (vertexBuffer is null || indexBuffer is null)
+            return null;
+
+        var gpuVertexBuffer = GetOrCreateUploadedVertexBuffer(vertexBuffer);
+        var gpuIndexBuffer = GetOrCreateUploadedIndexBuffer(indexBuffer);
+        var drawIndexedAttribs = new DrawIndexedAttribs(geometry.GetIndexCount(),
             indexBuffer.LargeIndices ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32 : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
-            DrawFlags.DrawFlagVerifyAll);
+            DrawFlags.DrawFlagVerifyAll,
+            _FirstIndexLocation: geometry.GetIndexStart());
 
         uploaded = new UploadedGeometry(gpuVertexBuffer, gpuIndexBuffer, drawIndexedAttribs);
         uploadedGeometries[geometry] = uploaded;
@@ -365,19 +547,62 @@ layout(std140, binding = 4) uniform Material
 
     private void BindMaterialTextures(IShaderResourceBinding shaderResources, Material material)
     {
-        BindTexture(shaderResources, "sAlbedo", GetTextureView(material.GetTexture("Albedo"), DefaultAlbedoTextureData));
-        BindTexture(shaderResources, "sNormal", GetTextureView(material.GetTexture("Normal"), DefaultNormalTextureData));
+        BindTexture(shaderResources, "sAlbedo", GetTextureView(material.GetTexture("Albedo"), GetDefaultAlbedoTexture()));
+        BindTexture(shaderResources, "sNormal", GetTextureView(material.GetTexture("Normal"), GetDefaultNormalTexture()));
     }
 
-    private ITextureView GetTextureView(Texture? texture, byte[] fallbackRgba)
+    private ITextureView GetTextureView(Texture? texture, Texture2D fallbackTexture)
     {
         if (texture is Texture2D texture2D)
             return GetOrCreateUploadedTexture(texture2D).ShaderView;
 
-        var fallback = new Texture2D($"#fallback-{BitConverter.ToString(fallbackRgba)}");
-        fallback.SetSize(1, 1, TextureFormat.RGBA8);
-        fallback.SetData(0, 0, 0, 1, 1, fallbackRgba);
-        return GetOrCreateUploadedTexture(fallback).ShaderView;
+        return GetOrCreateUploadedTexture(fallbackTexture).ShaderView;
+    }
+
+    private IBuffer GetOrCreateUploadedVertexBuffer(VertexBuffer vertexBuffer)
+    {
+        if (uploadedVertexBuffers.TryGetValue(vertexBuffer, out var uploaded))
+            return uploaded;
+
+        if (device is null || immediateContext is null)
+            throw new InvalidOperationException("Graphics device is not initialized.");
+
+        var vertexData = vertexBuffer.GetData().ToArray();
+        uploaded = CreateBuffer(device, immediateContext, "RedBoltModelVB", vertexData,
+            (ulong)vertexData.Length, BindFlags.BindVertexBuffer, vertexBuffer.GetVertexSize());
+        uploadedVertexBuffers[vertexBuffer] = uploaded;
+        return uploaded;
+    }
+
+    private IBuffer GetOrCreateUploadedIndexBuffer(IndexBuffer indexBuffer)
+    {
+        if (uploadedIndexBuffers.TryGetValue(indexBuffer, out var uploaded))
+            return uploaded;
+
+        if (device is null || immediateContext is null)
+            throw new InvalidOperationException("Graphics device is not initialized.");
+
+        uploaded = CreateIndexBuffer(device, immediateContext, indexBuffer, indexBuffer.GetUnpackedData().ToArray());
+        uploadedIndexBuffers[indexBuffer] = uploaded;
+        return uploaded;
+    }
+
+    private Texture2D GetDefaultAlbedoTexture()
+    {
+        return defaultAlbedoTexture ??= CreateFallbackTexture("#fallback-albedo", DefaultAlbedoTextureData);
+    }
+
+    private Texture2D GetDefaultNormalTexture()
+    {
+        return defaultNormalTexture ??= CreateFallbackTexture("#fallback-normal", DefaultNormalTextureData);
+    }
+
+    private static Texture2D CreateFallbackTexture(string name, ReadOnlySpan<byte> rgbaPixels)
+    {
+        var texture = new Texture2D(name);
+        texture.SetSize(1, 1, TextureFormat.RGBA8);
+        texture.SetData(0, 0, 0, 1, 1, rgbaPixels);
+        return texture;
     }
 
     private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture)
@@ -491,17 +716,18 @@ layout(std140, binding = 4) uniform Material
     }
 
     private static string ComposeShaderDefines(Pass pass, VertexBuffer vertexBuffer, Material material,
-        bool hasDirectionalLight, ShaderStage stage)
+        Light? light, ShaderStage stage)
     {
-        var defines = new List<string>
-        {
-            "URHO3D_AMBIENT_PASS",
-            "URHO3D_AMBIENT_FLAT",
-            "URHO3D_GEOMETRY_STATIC"
-        };
+        var defines = new List<string> { "URHO3D_GEOMETRY_STATIC" };
 
-        if (hasDirectionalLight)
-            defines.Add("URHO3D_LIGHT_DIRECTIONAL");
+        if (PassUsesAmbient(pass))
+        {
+            defines.Add("URHO3D_AMBIENT_PASS");
+            defines.Add("URHO3D_AMBIENT_FLAT");
+        }
+
+        if (PassUsesLighting(pass) && light is not null)
+            AddLightDefines(defines, light);
 
         if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) != 0)
         {
@@ -538,16 +764,33 @@ layout(std140, binding = 4) uniform Material
             defines.Add($"URHO3D_TEXTURE_{name}=1");
     }
 
-    private static Pass? SelectPass(Material material, bool hasDirectionalLight)
+    private static void AddLightDefines(ICollection<string> defines, Light light)
     {
-        var technique = material.GetTechnique(0);
-        if (technique is null)
-            return null;
+        defines.Add(light.GetLightType() switch
+        {
+            LightType.Directional => "URHO3D_LIGHT_DIRECTIONAL",
+            LightType.Spot => "URHO3D_LIGHT_SPOT",
+            LightType.Point => "URHO3D_LIGHT_POINT",
+            _ => "URHO3D_LIGHT_DIRECTIONAL"
+        });
+    }
 
-        if (hasDirectionalLight)
-            return technique.GetPass("light") ?? technique.GetPass("litbase") ?? technique.GetPass("base");
+    private static bool PassUsesAmbient(Pass pass)
+    {
+        return pass.Name is "base" or "alpha" or "litbase" or "litalpha";
+    }
 
-        return technique.GetPass("base") ?? technique.GetPass("light");
+    private static bool PassUsesLighting(Pass pass)
+    {
+        return pass.Name is "litbase" or "litalpha" or "light";
+    }
+
+    private static Pass? SelectPass(Technique technique, Light? directionalLight)
+    {
+        if (directionalLight is not null)
+            return technique.GetPass("litbase") ?? technique.GetPass("base") ?? technique.GetPass("light");
+
+        return technique.GetPass("base") ?? technique.GetPass("litbase") ?? technique.GetPass("light");
     }
 
     private static string BuildLayoutSignature(VertexBuffer vertexBuffer)
@@ -612,12 +855,48 @@ layout(std140, binding = 4) uniform Material
 
     private static bool IsNormalized(VertexElementType type) => type == VertexElementType.UByte4Norm;
 
-    private static global::RedBolt.Bindings.Diligent.CullMode MapCullMode(CullMode cullMode) => cullMode switch
+    private static global::RedBolt.Bindings.Diligent.CullMode MapCullMode(CullMode cullMode, bool reverseCulling)
     {
-        CullMode.None => RedBolt.Bindings.Diligent.CullMode.CullModeNone,
-        CullMode.Clockwise => RedBolt.Bindings.Diligent.CullMode.CullModeFront,
-        _ => RedBolt.Bindings.Diligent.CullMode.CullModeBack
+        var result = cullMode switch
+        {
+            CullMode.None => RedBolt.Bindings.Diligent.CullMode.CullModeNone,
+            CullMode.Clockwise => RedBolt.Bindings.Diligent.CullMode.CullModeFront,
+            _ => RedBolt.Bindings.Diligent.CullMode.CullModeBack
+        };
+
+        if (!reverseCulling)
+            return result;
+
+        return result switch
+        {
+            RedBolt.Bindings.Diligent.CullMode.CullModeFront => RedBolt.Bindings.Diligent.CullMode.CullModeBack,
+            RedBolt.Bindings.Diligent.CullMode.CullModeBack => RedBolt.Bindings.Diligent.CullMode.CullModeFront,
+            _ => result
+        };
+    }
+
+    private static global::RedBolt.Bindings.Diligent.FillMode MapFillMode(FillMode fillMode) => fillMode switch
+    {
+        FillMode.Wireframe or FillMode.Point => RedBolt.Bindings.Diligent.FillMode.FillModeWireframe,
+        _ => RedBolt.Bindings.Diligent.FillMode.FillModeSolid
     };
+
+    private static ComparisonFunction MapCompareMode(CompareMode compareMode) => compareMode switch
+    {
+        CompareMode.Always => ComparisonFunction.ComparisonFuncAlways,
+        CompareMode.Equal => ComparisonFunction.ComparisonFuncEqual,
+        CompareMode.NotEqual => ComparisonFunction.ComparisonFuncNotEqual,
+        CompareMode.Less => ComparisonFunction.ComparisonFuncLess,
+        CompareMode.LessEqual => ComparisonFunction.ComparisonFuncLessEqual,
+        CompareMode.Greater => ComparisonFunction.ComparisonFuncGreater,
+        CompareMode.GreaterEqual => ComparisonFunction.ComparisonFuncGreaterEqual,
+        _ => ComparisonFunction.ComparisonFuncLessEqual
+    };
+
+    private static FillMode GetEffectiveFillMode(Camera camera, Material material)
+    {
+        return (FillMode)Math.Max((int)camera.GetFillMode(), (int)material.GetFillMode());
+    }
 
     private static Vector4 GetDepthMode(Camera camera)
     {
@@ -810,7 +1089,7 @@ layout(std140, binding = 4) uniform Material
 
     private static void WriteMatrix4(byte[] buffer, int offset, Matrix4 value)
     {
-        Buffer.BlockCopy(value.Data, 0, buffer, offset, 16 * sizeof(float));
+        Buffer.BlockCopy(value.Transposed.Data, 0, buffer, offset, 16 * sizeof(float));
     }
 
     private static void CheckSdlGl(int result, string operation)
@@ -824,6 +1103,66 @@ layout(std140, binding = 4) uniform Material
         if (value is not null && !value.IsNull)
             _ = value.Release();
     }
+
+    private static void CopyMappedTexture(RedBolt.Bindings.Diligent.TextureFormat format, int width, int height, MappedTextureSubresource mappedSubresource, byte[] rgbaPixels)
+    {
+        var rowLength = checked(width * 4);
+        var row = new byte[rowLength];
+        for (var sourceY = 0; sourceY < height; ++sourceY)
+        {
+            var sourceRow = IntPtr.Add(mappedSubresource.PData, checked((int)(mappedSubresource.Stride * (ulong)sourceY)));
+            Marshal.Copy(sourceRow, row, 0, rowLength);
+
+            var destinationOffset = (height - 1 - sourceY) * rowLength;
+            switch (format)
+            {
+                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm:
+                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb:
+                    Buffer.BlockCopy(row, 0, rgbaPixels, destinationOffset, rowLength);
+                    break;
+
+                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm:
+                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb:
+                    for (var x = 0; x < width; ++x)
+                    {
+                        var sourceOffset = x * 4;
+                        var destinationPixelOffset = destinationOffset + sourceOffset;
+                        rgbaPixels[destinationPixelOffset + 0] = row[sourceOffset + 2];
+                        rgbaPixels[destinationPixelOffset + 1] = row[sourceOffset + 1];
+                        rgbaPixels[destinationPixelOffset + 2] = row[sourceOffset + 0];
+                        rgbaPixels[destinationPixelOffset + 3] = row[sourceOffset + 3];
+                    }
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Screenshot capture does not support backbuffer format '{format}'.");
+            }
+        }
+    }
+
+    private static void FlipImageRows(byte[] rgbaPixels, int width, int height)
+    {
+        var rowLength = checked(width * 4);
+        var temporaryRow = new byte[rowLength];
+        for (var y = 0; y < height / 2; ++y)
+        {
+            var topOffset = y * rowLength;
+            var bottomOffset = (height - 1 - y) * rowLength;
+
+            Buffer.BlockCopy(rgbaPixels, topOffset, temporaryRow, 0, rowLength);
+            Buffer.BlockCopy(rgbaPixels, bottomOffset, rgbaPixels, topOffset, rowLength);
+            Buffer.BlockCopy(temporaryRow, 0, rgbaPixels, bottomOffset, rowLength);
+        }
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void GlFinishDelegate();
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void GlReadBufferDelegate(uint mode);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void GlReadPixelsDelegate(int x, int y, int width, int height, uint format, uint type, IntPtr pixels);
 
     private readonly record struct LayoutElementSpec(
         uint InputIndex,
@@ -844,7 +1183,8 @@ layout(std140, binding = 4) uniform Material
     }
 
     private readonly record struct PipelineKey(string VertexShader, string PixelShader, string VertexDefines,
-        string PixelDefines, string LayoutSignature, bool HasDirectionalLight);
+        string PixelDefines, string LayoutSignature, CullMode CullMode, FillMode FillMode,
+        CompareMode DepthTestMode, bool DepthWrite, bool AlphaToCoverage, bool ReverseCulling);
 
     private sealed class PipelineResources : IDisposable
     {
@@ -977,8 +1317,6 @@ layout(std140, binding = 4) uniform Material
         public void Dispose()
         {
             DrawIndexedAttribs.Dispose();
-            ReleaseIfNotNull(IndexBuffer);
-            ReleaseIfNotNull(VertexBuffer);
         }
     }
 

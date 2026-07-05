@@ -44,8 +44,8 @@ public sealed class Engine
             throw new InvalidOperationException("Engine is already initialized.");
 
         Parameters = applicationParameters.Clone();
-        IsHeadless = Parameters.Headless;
         Resources.RegisterDefaultResources();
+        ApplyInitializationParameters();
 
         if (!IsHeadless)
         {
@@ -60,6 +60,11 @@ public sealed class Engine
                 throw;
             }
         }
+
+        Renderer.SetTextureQuality(Parameters.TextureQuality);
+        Renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
+        Renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
+        Input.SetTouchEmulation(Parameters.TouchEmulation);
 
         IsInitialized = true;
         IsExiting = false;
@@ -83,6 +88,8 @@ public sealed class Engine
             timeStep = 0.25f;
 
         Time.Advance(timeStep);
+        if (Parameters.TimeOut > 0 && Time.ElapsedTime >= Parameters.TimeOut)
+            Exit();
 
         if (!IsHeadless)
         {
@@ -156,19 +163,28 @@ public sealed class Engine
     public void SetParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (EngineParameterBinding.TrySetValue(Parameters, name, value))
+        {
+            ApplyLiveParameter(name);
+            return;
+        }
+
         customParameters[name] = value;
     }
 
     public bool HasParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return customParameters.ContainsKey(name);
+        return customParameters.ContainsKey(name) || EngineParameterBinding.IsKnown(name);
     }
 
     public object? GetParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return customParameters.GetValueOrDefault(name);
+        if (customParameters.TryGetValue(name, out var value))
+            return value;
+
+        return EngineParameterBinding.TryGetValue(Parameters, name, out value) ? value : null;
     }
 
     public void Shutdown()
@@ -181,7 +197,42 @@ public sealed class Engine
         Input.Shutdown();
         IsInitialized = false;
         IsExiting = false;
+        IsHeadless = false;
         nextTimeStep = null;
         frameClock.Reset();
+    }
+
+    private void ApplyInitializationParameters()
+    {
+        IsHeadless = Parameters.Headless;
+        if (!Parameters.FrameLimiter)
+            MaxFps = 0;
+    }
+
+    private void ApplyLiveParameter(string name)
+    {
+        switch (name)
+        {
+            case nameof(EngineParameters.Headless):
+                if (!IsInitialized)
+                    IsHeadless = Parameters.Headless;
+                break;
+
+            case nameof(EngineParameters.TextureAnisotropy):
+                Renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
+                break;
+
+            case nameof(EngineParameters.TextureFilterMode):
+                Renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
+                break;
+
+            case nameof(EngineParameters.TextureQuality):
+                Renderer.SetTextureQuality(Parameters.TextureQuality);
+                break;
+
+            case nameof(EngineParameters.TouchEmulation):
+                Input.SetTouchEmulation(Parameters.TouchEmulation);
+                break;
+        }
     }
 }

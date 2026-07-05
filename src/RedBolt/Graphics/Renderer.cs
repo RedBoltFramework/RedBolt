@@ -119,12 +119,12 @@ public sealed class Renderer
 
     public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
 
-    internal void RenderFrame(Graphics graphics)
+    internal void RenderFrame(Graphics graphics, string? screenshotPath = null)
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
         if (viewports.Count > 0 && viewports[0] is { } viewport)
-            graphics.RenderViewport(viewport);
+            graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
     }
 
     private void EnsureViewportCount(uint count)

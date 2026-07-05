@@ -29,6 +29,10 @@ public abstract class Application
     {
     }
 
+    protected virtual void SetupCommandLine(CommandLineParser parser, EngineParameters parameters)
+    {
+    }
+
     protected virtual void Start()
     {
     }
@@ -43,8 +47,39 @@ public abstract class Application
 
     public int Run()
     {
+        return Run(null);
+    }
+
+    public int Run(string[]? args)
+    {
         var parameters = new EngineParameters();
         Setup(parameters);
+        args ??= Environment.GetCommandLineArgs().Skip(1).ToArray();
+
+        if (parameters.EngineCliParameters)
+        {
+            EngineCommandLine.ApplyEnvironmentDefaults(parameters);
+
+            var parser = new CommandLineParser(parameters.ApplicationName);
+            EngineCommandLine.Register(parser, parameters);
+            SetupCommandLine(parser, parameters);
+
+            var parseResult = parser.Parse(args);
+            if (parseResult.IsHelpRequested)
+            {
+                Console.Write(parser.GetUsage());
+                return ExitCode;
+            }
+
+            if (!parseResult.IsSuccess)
+            {
+                ErrorExit(parseResult.ErrorMessage);
+                Console.Error.WriteLine(parseResult.ErrorMessage);
+                Console.Error.WriteLine();
+                Console.Error.Write(parser.GetUsage());
+                return ExitCode;
+            }
+        }
 
         if (ShouldStopBeforeInitialization())
             return ExitCode;
@@ -80,7 +115,10 @@ public abstract class Application
         finally
         {
             if (started)
+            {
+                CaptureScreenshotOnExit();
                 Stop();
+            }
 
             Engine.Shutdown();
         }
@@ -110,5 +148,24 @@ public abstract class Application
     private bool ShouldStopAfterStart()
     {
         return ExitCode != 0 || Engine.IsExiting;
+    }
+
+    private void CaptureScreenshotOnExit()
+    {
+        var screenshotPath = Engine.Parameters.ScreenshotOnExit;
+        if (Engine.IsHeadless || string.IsNullOrWhiteSpace(screenshotPath) || !Graphics.IsInitialized)
+            return;
+
+        try
+        {
+            if (Renderer.GetNumViews() > 0)
+                Renderer.RenderFrame(Graphics, screenshotPath);
+            else
+                Graphics.SaveScreenshot(screenshotPath);
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"Failed to save screenshot to '{screenshotPath}': {exception.Message}");
+        }
     }
 }
