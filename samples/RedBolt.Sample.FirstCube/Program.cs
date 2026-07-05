@@ -19,6 +19,8 @@ sealed class FirstCubeApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.FirstCube";
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
+        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePrefixPaths = FindResourcePrefixPath();
         parameters.WindowHeight = 540;
         parameters.WindowTitle = "RedBolt First Cube";
         parameters.WindowWidth = 960;
@@ -26,8 +28,6 @@ sealed class FirstCubeApplication : Application
 
     protected override void Start()
     {
-        AddResourceDirs();
-
         var scene = new Scene();
         scene.CreateComponent<Octree>();
 
@@ -35,11 +35,16 @@ sealed class FirstCubeApplication : Application
         cameraNode.Position = new Vector3(0.0f, 2.0f, -6.0f);
         var camera = cameraNode.CreateComponent<Camera>();
 
+        var lightNode = scene.CreateChild("DirectionalLight");
+        lightNode.SetDirection(new Vector3(0.4f, -1.0f, 0.6f));
+        var light = lightNode.CreateComponent<Light>();
+        light.SetLightType(LightType.Directional);
+
         var cubeNode = scene.CreateChild("Cube");
         cubeNode.Rotation = Quaternion.Identity;
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(Resources.Get<Model>("Models/Box.mdl"));
-        cube.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
+        cube.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
 
         Renderer.SetViewport(0, new Viewport(scene, camera));
     }
@@ -55,53 +60,44 @@ sealed class FirstCubeApplication : Application
         Thread.Sleep(16);
     }
 
-    private void AddResourceDirs()
+    private static string FindResourcePrefixPath()
     {
-        var resourceRoots = FindResourceRoots();
-        foreach (var root in resourceRoots)
-            Resources.AddResourceDir(root);
-
-        if (resourceRoots.Count == 0)
-            throw new InvalidOperationException("FirstCube sample could not locate rbfx CoreData/Data resource directories.");
-
-        var localDataDir = Path.Combine(AppContext.BaseDirectory, "Data");
-        if (!Resources.AddResourceDir(localDataDir) && !Directory.Exists(localDataDir))
-            throw new InvalidOperationException("FirstCube sample data directory was not available for ResourceCache.");
-    }
-
-    private static List<string> FindResourceRoots()
-    {
-        var result = new List<string>();
-
         var envRoot = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR");
-        if (!string.IsNullOrWhiteSpace(envRoot))
-            AddCandidateRoots(result, envRoot);
+        if (TryNormalizeResourcePrefixPath(envRoot, out var normalizedEnvRoot))
+            return normalizedEnvRoot;
 
         for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
         {
-            AddCandidateRoots(result, Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"));
-            AddCandidateRoots(result, Path.Combine(current.FullName, "rbfx"));
-            AddCandidateRoots(result, Path.Combine(current.FullName, "bin"));
-            AddCandidateRoots(result, Path.Combine(current.FullName, "..", "rbfx", "bin"));
+            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "bin"), out var localBinRoot))
+                return localBinRoot;
+            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), out var testDataRoot))
+                return testDataRoot;
+            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "rbfx", "bin"), out var repoRbfxBinRoot))
+                return repoRbfxBinRoot;
+            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "..", "rbfx", "bin"), out var siblingRbfxBinRoot))
+                return siblingRbfxBinRoot;
 
             if (Directory.Exists(Path.Combine(current.FullName, ".git")))
                 break;
         }
 
-        return result;
+        throw new InvalidOperationException("FirstCube sample could not locate rbfx CoreData/Data resource directories.");
     }
 
-    private static void AddCandidateRoots(List<string> result, string root)
+    private static bool TryNormalizeResourcePrefixPath(string? root, out string normalizedRoot)
     {
-        var normalizedRoot = Path.GetFullPath(root);
-        var coreData = Path.Combine(normalizedRoot, "CoreData");
-        var data = Path.Combine(normalizedRoot, "Data");
-        if (!Directory.Exists(coreData) || !Directory.Exists(data))
-            return;
+        normalizedRoot = string.Empty;
+        if (string.IsNullOrWhiteSpace(root))
+            return false;
 
-        if (!result.Contains(coreData, StringComparer.Ordinal))
-            result.Add(coreData);
-        if (!result.Contains(data, StringComparer.Ordinal))
-            result.Add(data);
+        var candidateRoot = Path.GetFullPath(root);
+        if (!Directory.Exists(Path.Combine(candidateRoot, "CoreData")) ||
+            !Directory.Exists(Path.Combine(candidateRoot, "Data")))
+        {
+            return false;
+        }
+
+        normalizedRoot = candidateRoot;
+        return true;
     }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RedBolt;
 
@@ -11,6 +12,9 @@ public enum ShaderStage
 public sealed class Shader : Resource
 {
     private const string ShaderRoot = "Shaders/GLSL/v2/";
+    private static readonly Regex VertexInputRegex = new(
+        @"VERTEX_INPUT\((?<decl>[^)]*?\s(?<name>[A-Za-z_][A-Za-z0-9_]*))\)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private string sourceCode = string.Empty;
 
@@ -93,7 +97,41 @@ public sealed class Shader : Resource
             builder.Append("//");
             builder.Append(body.AsSpan(versionRange.Value.Start));
         }
-        return builder.ToString();
+
+        var source = builder.ToString();
+        return stage == ShaderStage.Vertex ? ApplyVertexInputLocations(source) : source;
+    }
+
+    private static string ApplyVertexInputLocations(string source)
+    {
+        return VertexInputRegex.Replace(source, match =>
+        {
+            var name = match.Groups["name"].Value;
+            if (!TryGetVertexInputLocation(name, out var location))
+                return match.Value;
+
+            var declaration = match.Groups["decl"].Value;
+            return $"layout(location = {location}) in {declaration};";
+        });
+    }
+
+    private static bool TryGetVertexInputLocation(string name, out uint location)
+    {
+        // Keep these locations in sync with Graphics.BuildLayoutElements.
+        location = name switch
+        {
+            "iPos" => 0,
+            "iBlendWeights" => 1,
+            "iBlendIndices" => 2,
+            "iTexCoord" => 3,
+            "iTexCoord1" => 4,
+            "iColor" => 5,
+            "iNormal" => 6,
+            "iTangent" => 7,
+            _ => uint.MaxValue
+        };
+
+        return location != uint.MaxValue;
     }
 
     public static string GetResourceName(string shaderName)

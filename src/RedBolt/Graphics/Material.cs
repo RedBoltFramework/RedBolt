@@ -132,6 +132,9 @@ public sealed class Material : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(material);
 
+        OwnerCache = material.OwnerCache;
+        AbsoluteFileName = material.AbsoluteFileName;
+        MemoryUse = material.MemoryUse;
         AlphaToCoverage = material.AlphaToCoverage;
         CullMode = material.CullMode;
         DepthBias = material.DepthBias;

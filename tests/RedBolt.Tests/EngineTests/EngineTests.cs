@@ -57,4 +57,48 @@ public sealed class EngineTests
         Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.Time.GetElapsedTime(), 0.125f));
         Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.Time.GetFramesPerSecond(), 8.0f));
     }
+
+    [Fact]
+    public void Engine_initialization_applies_configured_resource_paths()
+    {
+        var resourceRoot = Path.Combine(Path.GetTempPath(), $"redbolt-engine-paths-{Guid.NewGuid():N}");
+        var coreData = Path.Combine(resourceRoot, "CoreData");
+        var data = Path.Combine(resourceRoot, "Data");
+        Directory.CreateDirectory(coreData);
+        Directory.CreateDirectory(data);
+
+        try
+        {
+            using var engine = new EngineScope(new Engine(), new EngineParameters
+            {
+                ApplicationName = "RedBolt.Tests.ResourcePaths",
+                Headless = true,
+                ResourcePrefixPaths = resourceRoot,
+                ResourcePaths = "CoreData;Data"
+            });
+
+            Assert.Contains(coreData, engine.Value.Resources.GetResourceDirs());
+            Assert.Contains(data, engine.Value.Resources.GetResourceDirs());
+        }
+        finally
+        {
+            Directory.Delete(resourceRoot, recursive: true);
+        }
+    }
+
+    private sealed class EngineScope : IDisposable
+    {
+        public EngineScope(Engine engine, EngineParameters parameters)
+        {
+            Value = engine;
+            Value.Initialize(parameters);
+        }
+
+        public Engine Value { get; }
+
+        public void Dispose()
+        {
+            Value.Shutdown();
+        }
+    }
 }

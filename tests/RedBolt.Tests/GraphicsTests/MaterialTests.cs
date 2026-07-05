@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Reflection;
 
 namespace RedBolt.Tests;
 
@@ -134,5 +135,16 @@ public sealed class MaterialTests
 
         clone.RemoveMetadata("Category");
         Assert.False(clone.HasMetadata("Category"));
+    }
+
+    [Fact]
+    public void Clone_preserves_resource_cache_context()
+    {
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        var clone = material.Clone("Materials/CloneWithCache");
+
+        var ownerCacheProperty = typeof(Resource).GetProperty("OwnerCache", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(ownerCacheProperty);
+        Assert.Same(ownerCacheProperty!.GetValue(material), ownerCacheProperty.GetValue(clone));
     }
 }

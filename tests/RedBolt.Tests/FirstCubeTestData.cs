@@ -6,23 +6,16 @@ internal static class FirstCubeTestData
     {
         ArgumentNullException.ThrowIfNull(resources);
 
-        var repoRoot = FindRepoRoot();
-        var sampleData = Path.Combine(repoRoot, "samples", "RedBolt.Sample.FirstCube", "Data");
-        if (!Directory.Exists(sampleData))
-            throw new DirectoryNotFoundException($"FirstCube sample data directory was not found: {sampleData}");
-
-        resources.AddResourceDir(sampleData);
         RbfxTestData.AddResourceDirs(resources);
-    }
-
-    private static string FindRepoRoot()
-    {
-        for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
+        if (resources.GetExistingResource<Material>("Materials/FirstCube") is null)
         {
-            if (Directory.Exists(Path.Combine(current.FullName, ".git")))
-                return current.FullName;
+            var material = resources.GetResource<Material>("Materials/StoneTiled.xml").Clone("Materials/FirstCube");
+            foreach (var textureName in material.GetTextures().Values.Select(static texture => texture.Name).ToArray())
+                material.SetTexture(textureName, null);
+            if (resources.Exists<Technique>("Techniques/NoTextureUnlit.xml"))
+                material.SetTechnique(0, resources.GetResource<Technique>("Techniques/NoTextureUnlit.xml"));
+            material.SetShaderParameter("MatDiffColor", new Vector4(1.0f, 0.7f, 0.2f, 1.0f));
+            resources.AddManualResource(material);
         }
-
-        throw new DirectoryNotFoundException("Could not locate the RedBolt repository root.");
     }
 }

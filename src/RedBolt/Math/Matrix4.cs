@@ -224,10 +224,10 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
 
     public float[] Data =>
     [
-        M00, M10, M20, M30,
-        M01, M11, M21, M31,
-        M02, M12, M22, M32,
-        M03, M13, M23, M33
+        M00, M01, M02, M03,
+        M10, M11, M12, M13,
+        M20, M21, M22, M23,
+        M30, M31, M32, M33
     ];
 
     public float this[int i, int j]

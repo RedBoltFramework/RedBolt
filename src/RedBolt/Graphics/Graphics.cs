@@ -126,6 +126,8 @@ layout(std140) uniform Material
             var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
             {
+                FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
+                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional,
                 WindowPDisplay = nativeWindowInfo.Display,
                 WindowWindowId = nativeWindowInfo.WindowId
             };
@@ -1209,9 +1211,10 @@ layout(std140) uniform Material
 
     private static void WriteMatrix4(byte[] buffer, int offset, Matrix4 value)
     {
-        // CPU-side matrices use Matrix * Vector math, while rbfx GLSL uses vec4 * mat4.
-        // Upload the transpose so shader-side row-vector multiplication matches CPU transforms.
-        Buffer.BlockCopy(value.Transposed.Data, 0, buffer, offset, 16 * sizeof(float));
+        // rbfx stores Matrix4 in row-major CPU order and memcpy's it into uniform buffers.
+        // GLSL consumes mat4 from std140 as column-major storage and shaders use vec4 * mat4,
+        // so uploading raw rbfx memory yields the expected transposed shader-side math.
+        Buffer.BlockCopy(value.Data, 0, buffer, offset, 16 * sizeof(float));
     }
 
     private static void CheckSdlGl(int result, string operation)

@@ -207,6 +207,8 @@ public sealed class Engine
         IsHeadless = Parameters.Headless;
         if (!Parameters.FrameLimiter)
             MaxFps = 0;
+
+        ApplyConfiguredResourcePaths();
     }
 
     private void ApplyLiveParameter(string name)
@@ -234,5 +236,46 @@ public sealed class Engine
                 Input.SetTouchEmulation(Parameters.TouchEmulation);
                 break;
         }
+    }
+
+    private void ApplyConfiguredResourcePaths()
+    {
+        var resourcePaths = SplitPathList(Parameters.ResourcePaths);
+        if (resourcePaths.Count == 0)
+            return;
+
+        var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
+        if (prefixPaths.Count == 0)
+        {
+            foreach (var resourcePath in resourcePaths)
+                Resources.AddResourceDir(NormalizeConfiguredResourcePath(resourcePath));
+            return;
+        }
+
+        foreach (var prefixPath in prefixPaths)
+        {
+            var normalizedPrefix = NormalizeConfiguredResourcePath(prefixPath);
+            foreach (var resourcePath in resourcePaths)
+            {
+                var combinedPath = Path.IsPathRooted(resourcePath)
+                    ? NormalizeConfiguredResourcePath(resourcePath)
+                    : Path.GetFullPath(Path.Combine(normalizedPrefix, resourcePath));
+                Resources.AddResourceDir(combinedPath);
+            }
+        }
+    }
+
+    private static IReadOnlyList<string> SplitPathList(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static string NormalizeConfiguredResourcePath(string path)
+    {
+        return Path.IsPathRooted(path)
+            ? Path.GetFullPath(path)
+            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
     }
 }

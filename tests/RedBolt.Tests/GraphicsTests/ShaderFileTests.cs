@@ -49,6 +49,9 @@ public sealed class ShaderFileTests
             Assert.Contains("#define URHO3D_AMBIENT_PASS", prepared, StringComparison.Ordinal);
             Assert.Contains("#define URHO3D_GEOMETRY_STATIC", prepared, StringComparison.Ordinal);
             Assert.Contains("#define DIFFMAP", prepared, StringComparison.Ordinal);
+            Assert.Contains("layout(location = 0) in vec4 iPos;", prepared, StringComparison.Ordinal);
+            Assert.Contains("layout(location = 3) in vec2 iTexCoord;", prepared, StringComparison.Ordinal);
+            Assert.Contains("layout(location = 6) in vec3 iNormal;", prepared, StringComparison.Ordinal);
         }
         finally
         {

@@ -8,10 +8,4 @@
     <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Data/**/*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 </Project>
