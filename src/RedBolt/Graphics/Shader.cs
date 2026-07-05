@@ -54,10 +54,13 @@ public sealed class Shader : Resource
         return resourceName[ShaderRoot.Length..^".glsl".Length];
     }
 
-    public string PrepareSource(ShaderStage stage, string defines, GraphicsBackend backend = GraphicsBackend.OpenGL)
+    public string PrepareSource(ShaderStage stage, string defines, GraphicsBackend backend = GraphicsBackend.OpenGL,
+        string extraCode = "")
     {
+        var body = sourceCode;
+        StripExtensionDirectives(ref body);
+
         var builder = new StringBuilder();
-        builder.AppendLine("#version 410");
         builder.AppendLine(stage == ShaderStage.Vertex ? "#define COMPILEVS" : "#define COMPILEPS");
         builder.AppendLine($"#define {GetBackendDefine(backend)}");
 
@@ -69,7 +72,10 @@ public sealed class Shader : Resource
             builder.AppendLine();
         }
 
-        builder.Append(sourceCode);
+        if (!string.IsNullOrWhiteSpace(extraCode))
+            builder.AppendLine(extraCode);
+
+        builder.Append(body);
         return builder.ToString();
     }
 
@@ -166,5 +172,18 @@ public sealed class Shader : Resource
         var slashIndex = normalizedResource.LastIndexOf('/');
         var directory = slashIndex >= 0 ? normalizedResource[..(slashIndex + 1)] : string.Empty;
         return (directory + includeName).Replace('\\', '/');
+    }
+
+    private static void StripExtensionDirectives(ref string source)
+    {
+        var lines = source.Split('\n');
+        var body = new StringBuilder();
+        foreach (var line in lines)
+        {
+            if (!line.TrimStart().StartsWith("#extension", StringComparison.Ordinal))
+                body.AppendLine(line.TrimEnd('\r'));
+        }
+
+        source = body.ToString();
     }
 }

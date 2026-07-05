@@ -44,7 +44,6 @@ public sealed class ShaderFileTests
                 ShaderStage.Vertex,
                 "URHO3D_GEOMETRY_STATIC URHO3D_AMBIENT_PASS DIFFMAP");
 
-            Assert.Contains("#version 410", prepared, StringComparison.Ordinal);
             Assert.Contains("#define COMPILEVS", prepared, StringComparison.Ordinal);
             Assert.Contains("#define URHO3D_OPENGL", prepared, StringComparison.Ordinal);
             Assert.Contains("#define URHO3D_AMBIENT_PASS", prepared, StringComparison.Ordinal);
