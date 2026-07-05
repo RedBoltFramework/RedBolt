@@ -87,6 +87,7 @@ internal static class Program
             Directory.CreateDirectory(options.OutputDirectory);
 
             var clangArguments = BuildClangArguments(options, descriptor);
+            var marshallerClangArguments = BuildMarshallerClangArguments(clangArguments, descriptor);
             var marshallerHeaders = descriptor.UseMarshallerConfiguration
                 ? new[] { Path.Combine(options.SharpCppRoot, "include", "SharpCpp", "Marshaller.hpp") }
                 : Array.Empty<string>();
@@ -97,12 +98,13 @@ internal static class Program
                 ManagedNamespace: descriptor.ManagedNamespace,
                 ManagedClassName: descriptor.ManagedClassName,
                 NativeLibraryName: descriptor.NativeLibraryName,
-                HeaderFilePath: options.HeaderPath,
+                    HeaderFilePath: options.HeaderPath,
                     HeaderIncludePath: options.HeaderIncludePath,
                     ClangArguments: clangArguments,
                     MarshallerConfigurationFiles: marshallerHeaders,
                     EntryPointPrefix: descriptor.EntryPointPrefix,
-                    OwnedFileRoots: options.OwnedHeaders));
+                    OwnedFileRoots: options.OwnedHeaders,
+                    MarshallerClangArguments: marshallerClangArguments));
 
             compilation.NamespaceMappings = descriptor.Surface == "diligent"
                 ? new Dictionary<string, string>(StringComparer.Ordinal)
@@ -115,9 +117,10 @@ internal static class Program
                 compilation.NativeSupportHeaders.Add(marshallerHeader.Replace('\\', '/'));
 
             MarkNativeInterfaceWrappers(compilation, descriptor);
-            BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments);
+            BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
+            var prunedCount = IgnoreStdlibWrappers(compilation);
             AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
-            var prunedCount = PruneDependencySurface(compilation, descriptor);
+            prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneInvalidTypeAliases(compilation);
 
             var renderedBindings = BindingOutputRenderer.Render(
@@ -168,6 +171,12 @@ internal static class Program
         foreach (var includeDirectory in options.IncludeDirectories)
             clangArguments.Add($"-I{includeDirectory}");
 
+        // Match the upstream rbfx generator so marshaller config headers can resolve
+        // project-relative includes such as <SharpCpp/Marshaller.hpp>.
+        var sharpCppIncludeRoot = Path.Combine(options.SharpCppRoot, "include");
+        if (!clangArguments.Contains($"-I{sharpCppIncludeRoot}", StringComparer.Ordinal))
+            clangArguments.Add($"-I{sharpCppIncludeRoot}");
+
         clangArguments.AddRange(ParseSimdDisableArguments);
 
         var toolchainInfo = CompilerToolchainDiscovery.Discover(options.CompilerPath);
@@ -187,6 +196,46 @@ internal static class Program
             clangArguments.Add($"-isystem{systemIncludeDirectory}");
 
         return clangArguments.Distinct(StringComparer.Ordinal).ToList();
+    }
+
+    private static List<string> BuildMarshallerClangArguments(IReadOnlyList<string> clangArguments, BindingSurfaceDescriptor descriptor)
+    {
+        if (!descriptor.UseMarshallerConfiguration)
+            return clangArguments.ToList();
+
+        if (descriptor.Surface != "sdl")
+            return clangArguments.ToList();
+
+        var marshallerArguments = new List<string>(clangArguments.Count);
+        var replacedLanguageMode = false;
+        var replacedLanguageStandard = false;
+
+        foreach (var argument in clangArguments)
+        {
+            if (!replacedLanguageMode && string.Equals(argument, descriptor.ClangLanguageArgument, StringComparison.Ordinal))
+            {
+                marshallerArguments.Add("-xc++");
+                replacedLanguageMode = true;
+                continue;
+            }
+
+            if (!replacedLanguageStandard && string.Equals(argument, descriptor.LanguageStandardArgument, StringComparison.Ordinal))
+            {
+                marshallerArguments.Add("-std=c++20");
+                replacedLanguageStandard = true;
+                continue;
+            }
+
+            marshallerArguments.Add(argument);
+        }
+
+        if (!replacedLanguageMode)
+            marshallerArguments.Insert(0, "-xc++");
+
+        if (!replacedLanguageStandard)
+            marshallerArguments.Insert(replacedLanguageMode ? 1 : 0, "-std=c++20");
+
+        return marshallerArguments;
     }
 
     private static void MarkNativeInterfaceWrappers(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
@@ -249,6 +298,24 @@ internal static class Program
             constructor.SetMetadata(MetadataKeys.DeclarationDisplayText, $"{record.NativeName}();");
             record.Members.Add(constructor);
         }
+    }
+
+    private static int IgnoreStdlibWrappers(BindingCompilation compilation)
+    {
+        var ignoredCount = 0;
+        foreach (var record in compilation.Records)
+        {
+            if (record.IsIgnored() ||
+                !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            record.SetIgnoreReason("std library wrapper emission is disabled in RedBolt for now");
+            ignoredCount++;
+        }
+
+        return ignoredCount;
     }
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
@@ -467,11 +534,11 @@ internal static class Program
                     "RedBolt.Bindings.Sdl",
                     "RedBolt.Bindings.Sdl",
                     "SdlNativeBindings",
-                    "RedBolt.Native",
-                    "redbolt_sdl",
-                    "-xc",
-                    "-std=c17",
-                    false),
+                "RedBolt.Native",
+                "redbolt_sdl",
+                "-xc",
+                "-std=c17",
+                true),
                 "diligent" => new BindingSurfaceDescriptor(
                     "diligent",
                     "RedBolt.Bindings.Diligent",

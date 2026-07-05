@@ -16,7 +16,6 @@ catch (Exception ex)
 sealed class StaticSceneApplication : Application
 {
     private readonly Random random = new(1);
-    private double elapsedTime;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -67,8 +66,7 @@ sealed class StaticSceneApplication : Application
 
     protected override void Update(float timeStep)
     {
-        elapsedTime += timeStep;
-        if (elapsedTime >= 4.0 || Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
         {
             Exit();
             return;

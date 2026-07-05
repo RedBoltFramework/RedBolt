@@ -15,8 +15,6 @@ catch (Exception ex)
 
 sealed class FirstCubeApplication : Application
 {
-    private double elapsedTime;
-
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.FirstCube";
@@ -48,8 +46,7 @@ sealed class FirstCubeApplication : Application
 
     protected override void Update(float timeStep)
     {
-        elapsedTime += timeStep;
-        if (elapsedTime >= 4.0 || Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
         {
             Exit();
             return;

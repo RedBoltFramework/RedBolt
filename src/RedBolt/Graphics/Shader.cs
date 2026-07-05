@@ -57,10 +57,18 @@ public sealed class Shader : Resource
     public string PrepareSource(ShaderStage stage, string defines, GraphicsBackend backend = GraphicsBackend.OpenGL,
         string extraCode = "")
     {
-        var body = sourceCode;
-        StripExtensionDirectives(ref body);
+        var (body, extensionDirectives) = ExtractExtensionDirectives(sourceCode);
+        var versionRange = FindVersionDirective(body);
 
         var builder = new StringBuilder();
+        if (versionRange.HasValue)
+            builder.Append(body, versionRange.Value.Start, versionRange.Value.Length).AppendLine();
+        else
+            builder.AppendLine(GetDefaultVersionDirective(backend));
+
+        foreach (var extensionDirective in extensionDirectives)
+            builder.AppendLine(extensionDirective);
+
         builder.AppendLine(stage == ShaderStage.Vertex ? "#define COMPILEVS" : "#define COMPILEPS");
         builder.AppendLine($"#define {GetBackendDefine(backend)}");
 
@@ -75,7 +83,16 @@ public sealed class Shader : Resource
         if (!string.IsNullOrWhiteSpace(extraCode))
             builder.AppendLine(extraCode);
 
-        builder.Append(body);
+        if (!versionRange.HasValue)
+        {
+            builder.Append(body);
+        }
+        else
+        {
+            builder.Append(body.AsSpan(0, versionRange.Value.Start));
+            builder.Append("//");
+            builder.Append(body.AsSpan(versionRange.Value.Start));
+        }
         return builder.ToString();
     }
 
@@ -174,16 +191,39 @@ public sealed class Shader : Resource
         return (directory + includeName).Replace('\\', '/');
     }
 
-    private static void StripExtensionDirectives(ref string source)
+    private static string GetDefaultVersionDirective(GraphicsBackend backend)
+    {
+        return backend switch
+        {
+            GraphicsBackend.OpenGL or GraphicsBackend.Auto => "#version 410",
+            _ => "#version 410"
+        };
+    }
+
+    private static (int Start, int Length)? FindVersionDirective(string source)
+    {
+        var start = source.IndexOf("#version", StringComparison.Ordinal);
+        if (start < 0)
+            return null;
+
+        var end = source.IndexOf('\n', start);
+        return end < 0 ? (start, source.Length - start) : (start, end - start);
+    }
+
+    private static (string Body, IReadOnlyList<string> ExtensionDirectives) ExtractExtensionDirectives(string source)
     {
         var lines = source.Split('\n');
-        var body = new StringBuilder();
+        var builder = new StringBuilder();
+        var extensionDirectives = new List<string>();
         foreach (var line in lines)
         {
-            if (!line.TrimStart().StartsWith("#extension", StringComparison.Ordinal))
-                body.AppendLine(line.TrimEnd('\r'));
+            var trimmedLine = line.TrimStart();
+            if (trimmedLine.StartsWith("#extension", StringComparison.Ordinal))
+                extensionDirectives.Add(trimmedLine.TrimEnd('\r'));
+            else
+                builder.AppendLine(line.TrimEnd('\r'));
         }
 
-        source = body.ToString();
+        return (builder.ToString(), extensionDirectives);
     }
 }

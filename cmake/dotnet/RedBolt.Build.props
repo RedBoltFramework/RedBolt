@@ -18,7 +18,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''"></RedBoltOutputDir>
     <RedBoltIntermediateRoot Condition="'$(RedBoltIntermediateRoot)' == ''"></RedBoltIntermediateRoot>
-    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../SharpCpp-v3'))</RedBoltSharpCppRoot>
+    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../SharpCpp'))</RedBoltSharpCppRoot>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltGeneratedBindingsDir)' == '' and Exists('$(MSBuildThisFileDirectory)../../out/build/dev/generated/redbolt-native')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../out/build/dev/generated/redbolt-native'))</RedBoltGeneratedBindingsDir>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/obj/**;$(MSBuildProjectDirectory)/bin/**</DefaultItemExcludes>
     <OutputPath Condition="'$(RedBoltOutputDir)' != ''">$(RedBoltOutputDir)/</OutputPath>

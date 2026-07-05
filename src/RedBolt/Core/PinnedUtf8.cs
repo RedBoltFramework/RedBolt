@@ -16,7 +16,7 @@ internal sealed class PinnedUtf8 : IDisposable
 
     public IntPtr Pointer => handle.AddrOfPinnedObject();
 
-    public ref sbyte FirstByte => ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, sbyte>(bytes.AsSpan()));
+    public ReadOnlySpan<byte> Bytes => bytes;
 
     public void Dispose()
     {

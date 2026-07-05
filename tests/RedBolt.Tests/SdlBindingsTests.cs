@@ -44,9 +44,9 @@ public sealed class SdlBindingsTests
         Assert.Equal(0, result);
         try
         {
-            sbyte emptyTitle = 0;
+            using var title = PinUtf8(string.Empty);
             using var window = SdlNativeBindings.SdlCreateWindow(
-                in emptyTitle, x: 0, y: 0, w: 16, h: 16,
+                title.Bytes, x: 0, y: 0, w: 16, h: 16,
                 flags: (uint)SdlWindowFlags.SdlWindowHidden);
             Assert.False(window.IsNull);
         }
@@ -65,9 +65,9 @@ public sealed class SdlBindingsTests
         Assert.Equal(0, result);
         try
         {
-            sbyte emptyTitle = 0;
+            using var title = PinUtf8(string.Empty);
             using var window = SdlNativeBindings.SdlCreateWindow(
-                in emptyTitle, x: 0, y: 0, w: 16, h: 16,
+                title.Bytes, x: 0, y: 0, w: 16, h: 16,
                 flags: (uint)SdlWindowFlags.SdlWindowHidden);
             Assert.False(window.IsNull);
             using var @event = new SdlEvent();
@@ -80,7 +80,7 @@ public sealed class SdlBindingsTests
     }
 
     [Fact]
-    public void GlGetProcAddress_utf8_wrapper_resolves_real_symbol()
+    public void GlGetProcAddress_generated_utf8_marshaller_resolves_real_symbol()
     {
         if (!SdlAvailable) return;
 
@@ -103,8 +103,8 @@ public sealed class SdlBindingsTests
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1));
 
             using var title = PinUtf8("RedBolt Tests");
-            window = SdlNativeBindings.SdlCreateWindowUtf8(
-                in title.FirstByte, x: 0, y: 0, w: 16, h: 16,
+            window = SdlNativeBindings.SdlCreateWindow(
+                title.Bytes, x: 0, y: 0, w: 16, h: 16,
                 flags: (uint)(SdlWindowFlags.SdlWindowHidden | SdlWindowFlags.SdlWindowOpengl));
             Assert.False(window.IsNull);
 
@@ -113,7 +113,7 @@ public sealed class SdlBindingsTests
             CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext));
 
             using var proc = PinUtf8("glFinish");
-            var address = SdlNativeBindings.SdlGlGetProcAddressUtf8(in proc.FirstByte);
+            var address = SdlNativeBindings.SdlGlGetProcAddress(proc.Bytes);
             Assert.NotEqual(IntPtr.Zero, address);
         }
         finally
@@ -157,7 +157,7 @@ public sealed class SdlBindingsTests
             handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         }
 
-        public ref sbyte FirstByte => ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, sbyte>(bytes.AsSpan()));
+        public ReadOnlySpan<byte> Bytes => bytes;
 
         public void Dispose()
         {

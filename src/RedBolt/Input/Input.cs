@@ -105,8 +105,8 @@ public sealed class Input
             if (parameters.WindowMaximize)
                 windowFlags |= SdlWindowFlags.SdlWindowMaximized;
 
-            window = SdlNativeBindings.SdlCreateWindowUtf8(
-                in title.FirstByte,
+            window = SdlNativeBindings.SdlCreateWindow(
+                title.Bytes,
                 x: parameters.WindowPositionX ?? 64,
                 y: parameters.WindowPositionY ?? 64,
                 w: parameters.WindowWidth,
@@ -136,7 +136,7 @@ public sealed class Input
             return;
 
         using var pinnedTitle = new PinnedUtf8(title);
-        SdlNativeBindings.SdlSetWindowTitleUtf8(window, in pinnedTitle.FirstByte);
+        SdlNativeBindings.SdlSetWindowTitle(window, pinnedTitle.Bytes);
     }
 
     public void BeginFrame()

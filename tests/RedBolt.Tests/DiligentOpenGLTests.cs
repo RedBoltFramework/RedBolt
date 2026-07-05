@@ -66,9 +66,9 @@ public sealed class DiligentOpenGLTests
                 (int)SdlGLprofile.SdlGlContextProfileCore));
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1));
 
-            sbyte emptyTitle = 0;
+            ReadOnlySpan<byte> emptyTitle = [0];
             window = SdlNativeBindings.SdlCreateWindow(
-                in emptyTitle, x: 0, y: 0, w: 64, h: 64,
+                emptyTitle, x: 0, y: 0, w: 64, h: 64,
                 flags: (uint)(SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowHidden));
 
             if (window.IsNull)

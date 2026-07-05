@@ -27,7 +27,7 @@ set(REDBOLT_DILIGENT_PARSE_HEADER "${REDBOLT_DILIGENT_GENERATED_DIR}/DiligentAll
 set(REDBOLT_DOTNET_SOLUTION "${CMAKE_CURRENT_SOURCE_DIR}/RedBolt.slnx")
 
 set(REDBOLT_THIRDPARTY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern/thirdparty" CACHE PATH "Path to RedBolt's copied native dependency sources" FORCE)
-set(REDBOLT_SHARPCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../SharpCpp-v3" CACHE PATH "Path to the SharpCpp source tree used by RedBolt generators")
+set(REDBOLT_SHARPCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree used by RedBolt generators")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
