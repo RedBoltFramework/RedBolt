@@ -26,6 +26,8 @@ public sealed class ResourceCache
 
         RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
             static resourceName => new Material(resourceName)));
+        RegisterLoader<RenderPath>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
+            static resourceName => new RenderPath(resourceName)));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)

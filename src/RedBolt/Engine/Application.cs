@@ -27,6 +27,8 @@ public abstract class Application
 
     protected Input Input => Engine.Input;
 
+    protected Context Context => Engine.Context;
+
     protected virtual void Setup(EngineParameters parameters)
     {
     }

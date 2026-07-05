@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <AssemblyName>RedBolt.Sample.StaticScene</AssemblyName>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
   </ItemGroup>
 </Project>

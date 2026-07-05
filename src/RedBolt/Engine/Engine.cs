@@ -20,6 +20,8 @@ public sealed class Engine
 
     public Renderer Renderer { get; } = new();
 
+    public Context Context { get; } = new();
+
     public bool IsInitialized { get; private set; }
 
     public bool IsExiting { get; private set; }
@@ -46,6 +48,7 @@ public sealed class Engine
             throw new InvalidOperationException("Engine is already initialized.");
 
         Parameters = applicationParameters.Clone();
+        InitializeContext();
         Resources.RegisterDefaultResources();
         Log.Logger.LogInformation(
             "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",
@@ -202,11 +205,28 @@ public sealed class Engine
         Graphics.Shutdown();
         Renderer.ClearViewports();
         Input.Shutdown();
+        Context.Reset();
+        if (ReferenceEquals(RedBolt.Context.TryGetInstance(), Context))
+            RedBolt.Context.SetInstance(null);
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
         nextTimeStep = null;
         frameClock.Reset();
+    }
+
+    private void InitializeContext()
+    {
+        Context.Reset();
+        RedBolt.Context.SetInstance(Context);
+        Context.RegisterSubsystem(Context);
+        Context.RegisterSubsystem(this);
+        Context.RegisterSubsystem(Parameters);
+        Context.RegisterSubsystem(Time);
+        Context.RegisterSubsystem(Resources);
+        Context.RegisterSubsystem(Input);
+        Context.RegisterSubsystem(Graphics);
+        Context.RegisterSubsystem(Renderer);
     }
 
     private void ApplyInitializationParameters()

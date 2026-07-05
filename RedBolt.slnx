@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />
+    <Project Path="samples/RedBolt.Sample.StaticScene/RedBolt.Sample.StaticScene.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
