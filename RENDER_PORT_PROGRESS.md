@@ -46,11 +46,14 @@ Port in dependency order instead of trying to transplant the full subsystem at o
 
 ## Current Slice
 
-Slice 1 and 2 are partially landed:
+Slice 1 through the first runtime integration layer are landed:
 
 - foundational `RenderPipeline` defs and shared state are in tree
 - `RenderPass` / `RenderPath` are in tree with focused tests
-- a minimal RedBolt-side `RenderTargetView` abstraction exists so `RenderBuffer` and future render-buffer management code have a stable contract
+- `RenderBufferManager` now exists as a managed runtime object for viewport/output state
+- `RenderPipeline` / `RenderPipelineView` now exist as scene-side runtime objects
+- `Renderer` now routes scene viewports through `RenderPipeline` when a scene has that component
+- `RedBolt.Sample.StaticScene` now attaches a `RenderPipeline` component, so the sample uses the new path instead of bypassing it
 
 ## Current Cross-Cutting Requirement
 
@@ -69,6 +72,7 @@ Slice 1 and 2 are partially landed:
 
 ## Next Useful Checks
 
-- Start wiring future render-port types to `Context.Instance` rather than constructor-injected context plumbing.
-- Continue from `RenderBuffer` into `RenderBufferManager`, then higher-level pipeline orchestration.
+- Start replacing the legacy scene draw embedded in `Graphics.RenderViewport` with pipeline-owned scene-processing and pass execution stages.
+- Continue from the minimal `RenderBufferManager` into real offscreen render-buffer allocation and pass-to-pass data flow.
+- Port concrete render passes or scene-processing stages so `RenderPath` content does more than no-op bookkeeping.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

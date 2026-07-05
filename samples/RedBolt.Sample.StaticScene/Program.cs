@@ -31,6 +31,7 @@ sealed class StaticSceneApplication : Application
     protected override void Start()
     {
         var scene = new Scene();
+        scene.CreateComponent<RenderPipeline>();
         scene.CreateComponent<Octree>();
 
         var planeNode = scene.CreateChild("Plane");

@@ -10,7 +10,7 @@ public sealed class SharedRenderPassState
 
     public Camera? RenderCamera { get; set; }
 
-    public object? RenderBufferManager { get; set; }
+    public RenderBufferManager? RenderBufferManager { get; set; }
 
     public IDictionary<StringHash, RenderBuffer> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer>();
 }

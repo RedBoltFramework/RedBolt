@@ -19,7 +19,10 @@ public enum SkinningMode
 
 public sealed class Renderer
 {
+    private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
+
     private readonly List<Viewport?> viewports = [];
+    private readonly Dictionary<Viewport, ActiveRenderPipelineView> renderPipelineViews = [];
 
     public int TextureAnisotropy { get; private set; } = 4;
 
@@ -53,6 +56,7 @@ public sealed class Renderer
     public void ClearViewports()
     {
         viewports.Clear();
+        renderPipelineViews.Clear();
     }
 
     public uint GetNumViewports() => (uint)viewports.Count;
@@ -124,7 +128,37 @@ public sealed class Renderer
         ArgumentNullException.ThrowIfNull(graphics);
 
         if (viewports.Count > 0 && viewports[0] is { } viewport)
-            graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
+        {
+            var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
+            if (renderPipeline is null)
+            {
+                graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
+                return;
+            }
+
+            var renderPipelineView = GetOrCreateRenderPipelineView(viewport, renderPipeline);
+            if (!renderPipelineView.Define(viewport, graphics))
+            {
+                graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
+                return;
+            }
+
+            renderPipelineView.Update(graphics);
+            renderPipelineView.Render(graphics, TextureQuality, screenshotPath);
+        }
+    }
+
+    private RenderPipelineView GetOrCreateRenderPipelineView(Viewport viewport, RenderPipeline renderPipeline)
+    {
+        if (renderPipelineViews.TryGetValue(viewport, out var existing)
+            && ReferenceEquals(existing.Pipeline, renderPipeline))
+        {
+            return existing.View;
+        }
+
+        var created = renderPipeline.Instantiate();
+        renderPipelineViews[viewport] = new ActiveRenderPipelineView(renderPipeline, created);
+        return created;
     }
 
     private void EnsureViewportCount(uint count)

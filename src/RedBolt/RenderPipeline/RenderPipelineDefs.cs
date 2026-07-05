@@ -192,6 +192,16 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
 {
     public abstract bool IsLinearColorSpace { get; }
 
+    public abstract bool Define(Viewport viewport, Graphics graphics);
+
+    public abstract void Update(Graphics graphics);
+
+    public abstract void Render(Graphics graphics, MaterialQuality materialQuality, string? screenshotPath = null);
+
+    public abstract CommonFrameInfo GetFrameInfo();
+
+    public abstract RenderPipelineStats GetStats();
+
     public event Action<CommonFrameInfo>? UpdateBegin;
 
     public event Action<CommonFrameInfo>? UpdateEnd;
