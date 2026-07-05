@@ -19,6 +19,11 @@ public sealed class Camera : Component
     private const float DefaultNearClip = 0.1f;
     private const float DefaultOrthoSize = 20.0f;
     private const float MaxFov = 160.0f;
+    private static readonly Matrix4 FlipMatrix = new(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
 
     private float aspectRatio = 1.0f;
     private float farClip = DefaultFarClip;
@@ -178,6 +183,57 @@ public sealed class Camera : Component
     }
 
     public float GetNearClip() => nearClip;
+
+    public Matrix3x4 GetView()
+    {
+        var worldTransform = IsAttached ? Node.GetWorldTransform().Matrix4 : Matrix4.Identity;
+        return new Matrix3x4(worldTransform.Inverted);
+    }
+
+    public Matrix3x4 GetInverseView() => IsAttached ? Node.GetWorldTransform() : Matrix3x4.Identity;
+
+    public Matrix4 GetProjection(bool ignoreFlip = false)
+    {
+        Matrix4 projection;
+        if (!Orthographic)
+        {
+            var h = (1.0f / MathF.Tan(fov * MathDefs.DegToRad * 0.5f)) * zoom;
+            var w = h / Math.Max(aspectRatio, MathDefs.Epsilon);
+            var q = farClip / Math.Max(farClip - nearClip, MathDefs.Epsilon);
+            var r = -q * nearClip;
+
+            projection = Matrix4.Zero;
+            projection.M00 = w;
+            projection.M02 = ProjectionOffset.X * 2.0f;
+            projection.M11 = h;
+            projection.M12 = ProjectionOffset.Y * 2.0f;
+            projection.M22 = q;
+            projection.M23 = r;
+            projection.M32 = 1.0f;
+        }
+        else
+        {
+            var h = (1.0f / Math.Max(orthoSize * 0.5f, MathDefs.Epsilon)) * zoom;
+            var w = h / Math.Max(aspectRatio, MathDefs.Epsilon);
+            var q = 1.0f / Math.Max(farClip, MathDefs.Epsilon);
+
+            projection = Matrix4.Zero;
+            projection.M00 = w;
+            projection.M03 = ProjectionOffset.X * 2.0f;
+            projection.M11 = h;
+            projection.M13 = ProjectionOffset.Y * 2.0f;
+            projection.M22 = q;
+            projection.M33 = 1.0f;
+        }
+
+        return FlipVertical && !ignoreFlip ? FlipMatrix * projection : projection;
+    }
+
+    public Matrix4 GetGPUProjection() => GetProjection();
+
+    public Matrix4 GetViewProj() => GetProjection() * GetView().Matrix4;
+
+    public Matrix4 GetInverseViewProj() => GetViewProj().Inverted;
 
     public float GetOrthoSize() => orthoSize;
 

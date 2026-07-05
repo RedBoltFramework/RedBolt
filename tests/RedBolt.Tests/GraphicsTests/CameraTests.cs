@@ -93,6 +93,57 @@ public sealed class CameraTests
     }
 
     [Fact]
+    public void View_matrix_tracks_camera_transform()
+    {
+        var scene = new Scene();
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3(0.0f, 0.0f, -6.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+
+        var transformed = camera.GetView().Matrix4 * new Vector4(Vector3.Zero, 1.0f);
+        Assert.True(new Vector3(transformed.X, transformed.Y, transformed.Z)
+            .ApproximatelyEquivalent(new Vector3(0.0f, 0.0f, 6.0f)));
+    }
+
+    [Fact]
+    public void Perspective_projection_matches_upstream_formula()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        camera.SetAspectRatio(2.0f);
+        camera.SetNearClip(0.1f);
+        camera.SetFarClip(100.0f);
+        camera.SetFov(45.0f);
+
+        var projection = camera.GetProjection(ignoreFlip: true);
+        var h = 1.0f / MathF.Tan(45.0f * MathDefs.DegToRad * 0.5f);
+        var w = h / 2.0f;
+        var q = 100.0f / (100.0f - 0.1f);
+        var r = -q * 0.1f;
+
+        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M00, w));
+        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M11, h));
+        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M22, q));
+        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M23, r));
+        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M32, 1.0f));
+    }
+
+    [Fact]
+    public void Projection_flip_vertical_matches_gpu_projection_behavior()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        camera.SetFlipVertical(true);
+
+        var projection = camera.GetProjection(ignoreFlip: true);
+        var flippedProjection = camera.GetProjection();
+
+        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M11, -projection.M11));
+        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M00, projection.M00));
+        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M22, projection.M22));
+    }
+
+    [Fact]
     public void Viewport_managed_state_helpers_work()
     {
         var scene = new Scene();
