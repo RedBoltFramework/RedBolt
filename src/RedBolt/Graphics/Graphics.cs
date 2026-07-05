@@ -346,7 +346,7 @@ layout(std140) uniform Material
         where T : Delegate
     {
         using var pinnedName = new PinnedUtf8(name);
-        var procedure = SdlNativeBindings.SdlGlGetProcAddress(in pinnedName.FirstByte);
+        var procedure = SdlNativeBindings.SdlGlGetProcAddressUtf8(in pinnedName.FirstByte);
         if (procedure == IntPtr.Zero)
             throw new InvalidOperationException($"OpenGL procedure '{name}' is not available.");
 
@@ -1209,7 +1209,8 @@ layout(std140) uniform Material
 
     private static void WriteMatrix4(byte[] buffer, int offset, Matrix4 value)
     {
-        Buffer.BlockCopy(value.Transposed.Data, 0, buffer, offset, 16 * sizeof(float));
+        // rbfx uploads Matrix4 memory directly and GLSL consumes it with row-vector math.
+        Buffer.BlockCopy(value.Data, 0, buffer, offset, 16 * sizeof(float));
     }
 
     private static void CheckSdlGl(int result, string operation)
