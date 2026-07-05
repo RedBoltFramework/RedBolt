@@ -16,6 +16,9 @@ set_target_properties(RedBolt.Native PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
+target_compile_options(RedBolt.Native PRIVATE
+    "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
+    "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")
 target_link_libraries(RedBolt.Native
     PRIVATE
         SDL2::SDL2-static
