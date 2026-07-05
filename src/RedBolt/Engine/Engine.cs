@@ -7,20 +7,21 @@ public sealed class Engine
     private readonly Dictionary<string, object?> customParameters = new(StringComparer.Ordinal);
     private readonly System.Diagnostics.Stopwatch frameClock = new();
     private float? nextTimeStep;
+    private readonly Context context = new();
 
     public EngineParameters Parameters { get; private set; } = new();
 
-    public EngineTime Time { get; } = new();
+    public EngineTime Time => GetRequiredSubsystem<EngineTime>();
 
-    public ResourceCache Resources { get; } = new();
+    public ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
 
-    public Input Input { get; } = new();
+    public Input Input => GetRequiredSubsystem<Input>();
 
-    public Graphics Graphics { get; } = new();
+    public Graphics Graphics => GetRequiredSubsystem<Graphics>();
 
-    public Renderer Renderer { get; } = new();
+    public Renderer Renderer => GetRequiredSubsystem<Renderer>();
 
-    public Context Context { get; } = new();
+    public Context Context => context;
 
     public bool IsInitialized { get; private set; }
 
@@ -220,13 +221,14 @@ public sealed class Engine
         Context.Reset();
         RedBolt.Context.SetInstance(Context);
         Context.RegisterSubsystem(Context);
-        Context.RegisterSubsystem(this);
-        Context.RegisterSubsystem(Parameters);
-        Context.RegisterSubsystem(Time);
-        Context.RegisterSubsystem(Resources);
-        Context.RegisterSubsystem(Input);
-        Context.RegisterSubsystem(Graphics);
-        Context.RegisterSubsystem(Renderer);
+        Context.InitializeEngineSubsystems(this);
+    }
+
+    private T GetRequiredSubsystem<T>()
+        where T : class
+    {
+        return Context.GetSubsystem<T>()
+            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
     }
 
     private void ApplyInitializationParameters()

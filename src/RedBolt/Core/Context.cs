@@ -56,6 +56,24 @@ public sealed class Context
         nextSubscriptionId = 1;
     }
 
+    public void InitializeEngineSubsystems(Engine engine)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+
+        RegisterSubsystem(engine);
+        RegisterSubsystem(new EngineTime());
+        RegisterSubsystem(new ResourceCache());
+        RegisterSubsystem(new Input());
+        RegisterSubsystem(new Graphics());
+        RegisterSubsystem(new Renderer());
+    }
+
+    public void RegisterSubsystem(object subsystem)
+    {
+        ArgumentNullException.ThrowIfNull(subsystem);
+        subsystems[subsystem.GetType()] = subsystem;
+    }
+
     public void RegisterSubsystem<T>(T subsystem)
         where T : class
     {

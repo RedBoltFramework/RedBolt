@@ -58,7 +58,7 @@ Slice 1 and 2 are partially landed:
   - global access via `Context.SetInstance(ctx)` and `Context.Instance`
   - concurrent subsystem registration/lookup
   - named events based on `StringHash`, intended for main-thread use
-- `Engine` owns the active `Context`, registers core subsystems on initialize, and clears the global instance on shutdown.
+- `Engine` owns the active `Context`, but the core subsystem instances are created and registered by `Context`.
 - Use this instead of threading `Context` through constructors during the incremental port.
 
 ## Important Constraints

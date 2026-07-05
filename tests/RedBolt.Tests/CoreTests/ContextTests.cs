@@ -13,11 +13,14 @@ public sealed class ContextTests
     }
 
     [Fact]
-    public void Engine_registers_global_context_and_subsystems()
+    public void Engine_uses_context_registered_subsystems()
     {
         Assert.Same(fixture.Engine.Context, Context.Instance);
         Assert.Same(fixture.Engine, fixture.Engine.Context.GetSubsystem<Engine>());
+        Assert.Same(fixture.Engine.Time, fixture.Engine.Context.GetSubsystem<EngineTime>());
         Assert.Same(fixture.Engine.Resources, fixture.Engine.Context.GetSubsystem<ResourceCache>());
+        Assert.Same(fixture.Engine.Input, fixture.Engine.Context.GetSubsystem<Input>());
+        Assert.Same(fixture.Engine.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());
         Assert.Same(fixture.Engine.Renderer, fixture.Engine.Context.GetSubsystem<Renderer>());
     }
 

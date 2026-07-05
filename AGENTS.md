@@ -1,5 +1,76 @@
-- Prefer idiomatic C# constructs
-  - Avoid superfluous getters when we have properties
-- No manual bindings! If bindings are not enough:
-  - Fix our generator
-  - Fix SharpCpp
+# RedBolt Agent Notes
+
+## Main goal
+
+1:1 (or as close as possible) port of /home/rk/Desktop/src/rbfx/rbfx game engine to C#. We still use idiomatic C# and avoid non-portable things, but logic and structure should be as close to original as possible. No shortcuts!
+
+**IMPORTANT**: If you observe deviations from the original engine - they must be fixed immediately!
+
+## Project Snapshot
+
+RedBolt is a C# port of rbfx. Native dependency access is generated through SharpCpp from clang-parsed SDL and Diligent headers; hand-authored engine code lives above that generated interop layer.
+
+The current rendering effort is an incremental port of:
+
+- `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderAPI`
+- `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderPipeline`
+
+Do not try to transplant the full render stack at once. Land small coherent slices and keep them building.
+
+## Binding And Interop Rules
+
+- Prefer idiomatic C# constructs.
+- Avoid superfluous getters when a property is the natural API.
+- No manual bindings.
+- If bindings are not enough:
+  - fix our generator
+  - fix SharpCpp
+- Do not add hand-authored C/C++ facade headers, C ABI forwarding functions, P/Invoke declarations, or C# binding-wrapper classes for dependency APIs.
+- Generated C# and C++ binding artifacts belong in the CMake build tree, not in the source tree.
+
+## Context And Event Model
+
+- Use the managed global `Context` pattern rather than constructor-injecting context through the port.
+- Set the active context with `Context.SetInstance(ctx)` and access it with `Context.Instance`.
+- `Engine` owns the active `Context`, registers core subsystems during initialization, and clears the global instance on shutdown.
+- Subsystem registration and lookup may be used concurrently.
+- Named events are `StringHash`-based and are main-thread-only.
+- When changing event behavior, add or update focused tests.
+
+## Render Port Guidance
+
+- Port in dependency order:
+  1. foundational defs/contracts
+  2. render-path model layer
+  3. render-buffer layer
+  4. higher-level pipeline orchestration
+  5. backend integration
+- Prefer incremental managed ports that compile and are tested over broad partial translations.
+- Wire new render-port types to `Context.Instance` unless there is a strong reason not to.
+- Reuse existing generated bindings when possible. If a required surface is missing, extend generation instead of adding manual interop.
+
+## Workflow Expectations
+
+- Keep progress and durable decisions in `RENDER_PORT_PROGRESS.md`.
+- Trim stale guesses, superseded notes, and completed low-value items from that file.
+- Commit coherent checkpoints so progress is not stranded between sessions.
+- Keep the sample build healthy while porting rendering.
+
+## Build And Verification
+
+- Bootstrap / full managed build:
+
+```bash
+cmake --preset dev
+cmake --build --preset Debug --target redbolt-csharp
+```
+
+- The managed build should keep producing sample outputs in:
+  - `/home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug`
+- `RedBolt.Sample.StaticScene` should be built there alongside `RedBolt.Sample.FirstCube`.
+- Add focused tests for new `Context`, event, and render-path behavior.
+
+## Current Constraint
+
+- Assume named-event dispatch is single-threaded on the main thread.
+- Do not reintroduce locking around the event bus unless the threading model changes deliberately.
