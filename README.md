@@ -22,4 +22,3 @@ The `Debug` preset builds the `redbolt-stage0` target, which verifies:
 - Diligent graphics headers compile through a RedBolt dependency smoke target.
 - `RedBolt.Dependencies.Generator` runs SharpCpp over clang-parsed dependency headers, including SDL headers from `out/build/dev/deps/SDL/include` after the SDL build target is available.
 - `RedBolt.Native` compiles only SharpCpp-generated native thunks needed by generated bindings.
-- `RedBolt.BindingSmoke` loads `RedBolt.Native` and calls generated bindings.

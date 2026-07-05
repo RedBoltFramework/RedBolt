@@ -21,7 +21,8 @@ target_compile_options(RedBolt.Native PRIVATE
     "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")
 target_link_libraries(RedBolt.Native
     PRIVATE
-        SDL2::SDL2-static
+        SDL2::SDL2
+        PkgConfig::REDBOLT_SDL2_IMAGE
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
         redbolt-native-support)
@@ -32,7 +33,7 @@ add_executable(redbolt-native-smoke-exe
 set_target_properties(redbolt-native-smoke-exe PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 
-target_link_libraries(redbolt-native-smoke-exe PRIVATE SDL2::SDL2-static redbolt-native-support)
+target_link_libraries(redbolt-native-smoke-exe PRIVATE SDL2::SDL2 redbolt-native-support)
 
 add_custom_target(redbolt-native-smoke
     COMMAND redbolt-native-smoke-exe

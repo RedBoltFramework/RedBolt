@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public sealed class Engine
@@ -45,6 +47,9 @@ public sealed class Engine
 
         Parameters = applicationParameters.Clone();
         Resources.RegisterDefaultResources();
+        Log.Logger.LogInformation(
+            "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",
+            applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.GraphicsBackend);
         ApplyInitializationParameters();
 
         if (!IsHeadless)
@@ -54,8 +59,9 @@ public sealed class Engine
             {
                 Graphics.Initialize(Parameters, Input);
             }
-            catch
+            catch (Exception exception)
             {
+                Log.Logger.LogError(exception, "Graphics initialization failed.");
                 Input.Shutdown();
                 throw;
             }
@@ -69,6 +75,7 @@ public sealed class Engine
         IsInitialized = true;
         IsExiting = false;
         frameClock.Restart();
+        Log.Logger.LogDebug("Engine initialized.");
         return true;
     }
 

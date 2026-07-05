@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public sealed class Graphics
@@ -199,7 +201,9 @@ layout(std140) uniform Material
         }
 
         if (RenderDiagnosticsEnabled)
-            Console.Error.WriteLine($"RedBolt render diagnostics: drawCalls={submittedDrawCalls}, primitives={submittedPrimitives}, staticModels={viewport.Scene.StaticModels.Count}");
+            Log.Logger.LogDebug(
+                "Render diagnostics: drawCalls={DrawCalls}, primitives={Primitives}, staticModels={StaticModels}.",
+                submittedDrawCalls, submittedPrimitives, viewport.Scene.StaticModels.Count);
 
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SaveScreenshot(screenshotPath);
@@ -1060,9 +1064,7 @@ layout(std140) uniform Material
             variable.Set(textureView);
         }
         else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
-        {
-            Console.Error.WriteLine($"RedBolt shader binding diagnostics: texture '{name}' was not found for stage '{shaderType}'.");
-        }
+            Log.Logger.LogWarning("Shader binding diagnostics: texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static void BindTextureToAvailableStages(PipelineResources pipeline, string name, ITextureView textureView)
@@ -1079,9 +1081,7 @@ layout(std140) uniform Material
             variable.SetBufferRange(buffer, 0, size);
         }
         else if (ShaderBindingDiagnosticsEnabled)
-        {
-            Console.Error.WriteLine($"RedBolt shader binding diagnostics: dynamic buffer '{name}' was not found for stage '{shaderType}'.");
-        }
+            Log.Logger.LogWarning("Shader binding diagnostics: dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -1318,11 +1318,12 @@ layout(std140) uniform Material
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine($"RedBolt shader reflection diagnostics: failed to write shader source dump: {error.Message}");
+            Log.Logger.LogWarning(error, "Shader reflection diagnostics: failed to write shader source dump.");
         }
 
-        Console.Error.WriteLine(
-            $"RedBolt shader reflection diagnostics: first pipeline '{pass.VertexShader}/{pass.PixelShader}', layout='{key.LayoutSignature}', vertexSource='{vertexPath}', pixelSource='{pixelPath}'.");
+        Log.Logger.LogDebug(
+            "Shader reflection diagnostics: first pipeline '{PassVertexShader}/{PassPixelShader}', layout='{Layout}', vertexSource='{VertexSource}', pixelSource='{PixelSource}'.",
+            pass.VertexShader, pass.PixelShader, key.LayoutSignature, vertexPath, pixelPath);
         DumpShaderResources("vertex shader", vertexShader);
         DumpShaderResources("pixel shader", pixelShader);
         DumpPipelineVariables("pipeline", pipelineState, shaderResources);
@@ -1331,29 +1332,32 @@ layout(std140) uniform Material
     private static void DumpShaderResources(string label, IShader shader)
     {
         var resourceCount = shader.GetResourceCount();
-        Console.Error.WriteLine($"RedBolt shader reflection diagnostics: {label} resourceCount={resourceCount}.");
+        Log.Logger.LogDebug("Shader reflection diagnostics: {Label} resourceCount={ResourceCount}.", label, resourceCount);
         for (uint resourceIndex = 0; resourceIndex < resourceCount; ++resourceIndex)
         {
             using var resourceDesc = new ShaderResourceDesc();
             shader.GetResourceDesc(resourceIndex, resourceDesc);
             var resourceName = PtrToUtf8String(resourceDesc.Name);
             var line =
-                $"RedBolt shader reflection diagnostics: {label} resource[{resourceIndex}] name='{resourceName}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}";
+                $"Shader reflection diagnostics: {label} resource[{resourceIndex}] name='{resourceName}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}";
             if (resourceDesc.Type == ShaderResourceType.ShaderResourceTypeConstantBuffer)
             {
                 var bufferDesc = shader.GetConstantBufferDesc(resourceIndex);
                 line += $", size={bufferDesc.Size}, variableCount={bufferDesc.NumVariables}";
             }
 
-            Console.Error.WriteLine(line + ".");
+            Log.Logger.LogDebug(line + ".");
         }
     }
 
     private static void DumpPipelineVariables(string label, IPipelineState pipelineState, IShaderResourceBinding shaderResources)
     {
         using var pipelineDesc = pipelineState.GetDesc();
-        Console.Error.WriteLine(
-            $"RedBolt shader reflection diagnostics: {label} defaultVariableType={pipelineDesc.ResourceLayoutDefaultVariableType}, staticSignatures={pipelineState.GetResourceSignatureCount()}.");
+        Log.Logger.LogDebug(
+            "Shader reflection diagnostics: {Label} defaultVariableType={DefaultVariableType}, staticSignatures={StaticSignatures}.",
+            label,
+            pipelineDesc.ResourceLayoutDefaultVariableType,
+            pipelineState.GetResourceSignatureCount());
 
         DumpVariableList(label, "static", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
             pipelineState.GetStaticVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
@@ -1372,15 +1376,24 @@ layout(std140) uniform Material
     private static void DumpVariableList(string label, string scope, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
         uint count, Func<uint, IShaderResourceVariable> getVariable)
     {
-        Console.Error.WriteLine(
-            $"RedBolt shader reflection diagnostics: {label} {scope} {shaderType} variableCount={count}.");
+        Log.Logger.LogDebug(
+            "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variableCount={VariableCount}.",
+            label, scope, shaderType, count);
         for (uint variableIndex = 0; variableIndex < count; ++variableIndex)
         {
             var variable = getVariable(variableIndex);
             using var resourceDesc = new ShaderResourceDesc();
             variable.GetResourceDesc(resourceDesc);
-            Console.Error.WriteLine(
-                $"RedBolt shader reflection diagnostics: {label} {scope} {shaderType} variable[{variableIndex}] name='{PtrToUtf8String(resourceDesc.Name)}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}, variableType={variable.GetType()}.");
+            Log.Logger.LogDebug(
+                "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variable[{VariableIndex}] name='{Name}', type={Type}, arraySize={ArraySize}, variableType={VariableType}.",
+                label,
+                scope,
+                shaderType,
+                variableIndex,
+                PtrToUtf8String(resourceDesc.Name),
+                resourceDesc.Type,
+                resourceDesc.ArraySize,
+                variable.GetType());
         }
     }
 

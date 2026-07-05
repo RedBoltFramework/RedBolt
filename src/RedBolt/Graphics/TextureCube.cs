@@ -19,6 +19,28 @@ public sealed class TextureCube : Texture
     {
     }
 
+    public override bool BeginLoad(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var imageCube = new ImageCube(Name)
+        {
+            OwnerCache = OwnerCache
+        };
+        imageCube.SetAbsoluteFileName(AbsoluteFileName);
+        if (!imageCube.Load(source))
+            return false;
+
+        foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+        {
+            var image = imageCube.GetImage(face);
+            if (image is null || !SetData(face, image))
+                return false;
+        }
+
+        return true;
+    }
+
     public bool SetSize(int size, TextureFormat format)
     {
         if (size <= 0)
@@ -66,6 +88,46 @@ public sealed class TextureCube : Texture
     }
 
     public bool SetData(CubeMapFace face, uint level, int x, int y, int width, int height, byte[] data) => SetData(face, level, x, y, width, height, data.AsSpan());
+
+    public bool SetData(CubeMapFace face, Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var image = new Image($"{Name}#{face}")
+        {
+            OwnerCache = OwnerCache
+        };
+        return image.Load(source) && SetData(face, image);
+    }
+
+    public bool SetData(CubeMapFace face, Image image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        var levels = image.IsCompressed() ? Math.Max(image.NumCompressedLevels, 1u) : 1u;
+        var baseLevel = image.GetDecompressedImageLevel(0u);
+        if (baseLevel is null)
+            return false;
+
+        if (Width == 0)
+        {
+            Levels = levels;
+            if (!SetSize(baseLevel.Width, TextureFormat.RGBA8))
+                return false;
+        }
+
+        for (var level = 0u; level < levels; ++level)
+        {
+            var mipImage = image.GetDecompressedImageLevel(level);
+            if (mipImage is null)
+                return false;
+
+            if (!SetData(face, level, 0, 0, mipImage.Width, mipImage.Height, mipImage.GetData()))
+                return false;
+        }
+
+        return true;
+    }
 
     public byte[]? GetData(CubeMapFace face, uint level)
     {

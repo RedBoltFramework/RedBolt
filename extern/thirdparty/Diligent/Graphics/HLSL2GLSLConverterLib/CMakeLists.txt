@@ -18,6 +18,7 @@ set(SOURCE
 )
 
 set(GLSL_DEFINITIONS include/GLSLDefinitions.h)
+set(FILE2INCLUDE_SCRIPT "${DILIGENT_CORE_SOURCE_DIR}/BuildTools/File2Include/script.py")
 
 set(GENERATED_SHADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/GeneratedShaders)
 file(MAKE_DIRECTORY ${GENERATED_SHADERS_DIR})
@@ -57,7 +58,7 @@ PUBLIC
 
 find_package(Python3 REQUIRED)
 add_custom_command(OUTPUT ${GLSL_DEFINITIONS_INC} # We must use full path here!
-                   COMMAND ${Python3_EXECUTABLE} ${FILE2STRING_PATH} ${GLSL_DEFINITIONS} ${GLSL_DEFINITIONS_INC}
+                   COMMAND ${Python3_EXECUTABLE} ${FILE2INCLUDE_SCRIPT} ${GLSL_DEFINITIONS} ${GLSL_DEFINITIONS_INC}
                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                    MAIN_DEPENDENCY ${GLSL_DEFINITIONS}
                    COMMENT "Processing GLSLDefinitions.h"

@@ -26,8 +26,8 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
-set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_SHARED ON CACHE BOOL "" FORCE)
+set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL2_DISABLE_SDL2MAIN ON CACHE BOOL "" FORCE)
 set(SDL2_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
@@ -39,6 +39,17 @@ set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
 set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
 
 add_subdirectory("${REDBOLT_SDL_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL" EXCLUDE_FROM_ALL)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(REDBOLT_SDL2_IMAGE REQUIRED IMPORTED_TARGET SDL2_image)
+set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
+    ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS}
+    CACHE INTERNAL "SDL_image include directories used by RedBolt")
+list(GET REDBOLT_SDL2_IMAGE_INCLUDE_DIRS 0 REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR)
+set(REDBOLT_SDL_IMAGE_HEADER
+    "${REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR}/SDL_image.h"
+    CACHE INTERNAL "Primary SDL_image header used by RedBolt")
+redbolt_require_path("${REDBOLT_SDL_IMAGE_HEADER}" "SDL_image header")
 
 set(DEBUG_CONFIGURATIONS DEBUG CACHE INTERNAL "Debug configurations")
 set(RELEASE_CONFIGURATIONS RELEASE RELWITHDEBINFO MINSIZEREL CACHE INTERNAL "Release configurations")
@@ -81,7 +92,6 @@ if(TARGET GLEW::glew)
 elseif(TARGET GLEW::GLEW)
     add_library(GLEW::glew ALIAS GLEW::GLEW)
 else()
-    find_package(PkgConfig REQUIRED)
     pkg_check_modules(REDBOLT_GLEW REQUIRED IMPORTED_TARGET glew)
     add_library(redbolt-system-glew INTERFACE)
     target_link_libraries(redbolt-system-glew INTERFACE PkgConfig::REDBOLT_GLEW)
@@ -190,5 +200,5 @@ add_library(redbolt-diligent-header-smoke STATIC
 target_link_libraries(redbolt-diligent-header-smoke PRIVATE redbolt-diligent-headers)
 
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2-static redbolt-diligent-build redbolt-diligent-header-smoke
+    DEPENDS SDL2 redbolt-diligent-build redbolt-diligent-header-smoke
     COMMENT "Building RedBolt initial native dependency batch")

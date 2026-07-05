@@ -523,9 +523,10 @@ set(SDL2_DISABLE_UNINSTALL ON)
 set(SDL2_DISABLE_SDL2MAIN ON)
 set(SDL_TEST OFF)
 set(SDL_TESTS OFF)
-set(SDL_SHARED OFF)
-set(SDL_STATIC ON)
-set(SDL_STATIC_PIC ON)
+set(SDL_SHARED ON)
+set(SDL_STATIC OFF)
+set(SDL_RPATH ON)
+set(SDL_STATIC_PIC OFF)
 set(SDL_VULKAN OFF)
 if (APPLE)
   set (SDL_METAL ON)
@@ -3358,44 +3359,52 @@ if(TARGET SDL2::SDL2-static AND NOT TARGET SDL2::SDL2)
   add_library(SDL2::SDL2 ALIAS SDL2-static)
 endif()
 
+if(TARGET SDL2-static)
+  set(SDL_REDBOLT_TARGET SDL2-static)
+elseif(TARGET SDL2)
+  set(SDL_REDBOLT_TARGET SDL2)
+else()
+  message(FATAL_ERROR "Expected SDL2 or SDL2-static target to exist")
+endif()
+
 ########################################################################################################################
 
 # General includes
 # Urho3D - use 'generated' path suffix for generated config header file, the suffic prevents overwriting the header file with the same name in the source tree in case of non out-of-source build tree is being used
-target_include_directories (SDL2-static SYSTEM
+target_include_directories (${SDL_REDBOLT_TARGET} SYSTEM
   PUBLIC $<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>
          $<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include/SDL/generated>
          $<BUILD_INTERFACE:${SDL2_SOURCE_DIR}/include>
          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/SDL>
 )
 if (WEB)
-    target_compile_options(SDL2-static PUBLIC -sUSE_SDL=0)
+    target_compile_options(${SDL_REDBOLT_TARGET} PUBLIC -sUSE_SDL=0)
 endif ()
 if (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10.0")) OR
 ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "11.0")))
   # Fix multiple definition of `WAYLAND_*' with GCC 10, because -fno-common is a new default.
-  target_compile_options(SDL2-static PRIVATE -fcommon)
+  target_compile_options(${SDL_REDBOLT_TARGET} PRIVATE -fcommon)
 endif ()
-if (BUILD_SHARED_LIBS)
-  target_compile_definitions(SDL2-static PRIVATE -DSDL_EXPORTS PUBLIC -DSDL_IMPORTS)
+if (SDL_SHARED)
+  target_compile_definitions(${SDL_REDBOLT_TARGET} PRIVATE -DSDL_EXPORTS PUBLIC -DSDL_IMPORTS)
 endif ()
 if (WIN32)
-  target_link_libraries (SDL2-static PUBLIC user32 gdi32 imm32 version winmm setupapi)
+  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC user32 gdi32 imm32 version winmm setupapi)
 elseif (ANDROID)
-  target_link_libraries (SDL2-static PUBLIC dl log android)
+  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC dl log android)
 elseif (APPLE)
-  target_link_libraries (SDL2-static PUBLIC iconv "-framework AudioToolbox" "-framework CoreAudio")
+  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC iconv "-framework AudioToolbox" "-framework CoreAudio")
   if (IOS)
-    target_link_libraries (SDL2-static PUBLIC "-framework AVFoundation" "-framework CoreGraphics" "-framework CoreBluetooth" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
+    target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC "-framework AVFoundation" "-framework CoreGraphics" "-framework CoreBluetooth" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
   else ()
-    target_link_libraries (SDL2-static PUBLIC "-framework Carbon" "-framework Cocoa" "-framework CoreFoundation" "-framework SystemConfiguration" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
+    target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC "-framework Carbon" "-framework Cocoa" "-framework CoreFoundation" "-framework SystemConfiguration" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
   endif ()
 elseif (EMSCRIPTEN)
-  target_link_libraries(SDL2-static PUBLIC "-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0")
+  target_link_libraries(${SDL_REDBOLT_TARGET} PUBLIC "-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0")
 endif ()
 
 if (IOS OR UWP OR ANDROID)
-    target_sources(SDL2-static PRIVATE ${SDLMAIN_SOURCES})
+    target_sources(${SDL_REDBOLT_TARGET} PRIVATE ${SDLMAIN_SOURCES})
 endif ()
 
 # Install headers for building and using the Urho3D library (install dependency for InputEvents.h)
@@ -3405,6 +3414,6 @@ install (FILES
   "${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL_config.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SDL)
 
-install_third_party_libs(SDL2-static)
+install_third_party_libs(${SDL_REDBOLT_TARGET})
 
 group_sources()

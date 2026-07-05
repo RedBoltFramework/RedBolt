@@ -53,6 +53,7 @@ file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED
 file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
 #include <SDL_config.h>
 #include <SDL.h>
+#include <SDL_image.h>
 
 #ifndef SDL_VIDEO_DISABLED
 #include <SDL_syswm.h>
@@ -83,7 +84,8 @@ file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
 ]=])
 
 set(REDBOLT_SDL_OWNED_HEADERS
-    "${REDBOLT_SDL_BUILD_INCLUDE_DIR}")
+    "${REDBOLT_SDL_BUILD_INCLUDE_DIR}"
+    "${REDBOLT_SDL_IMAGE_HEADER}")
 
 set(REDBOLT_DILIGENT_OWNED_HEADERS
     ${REDBOLT_DILIGENT_INTERFACE_DIRS})
@@ -98,11 +100,11 @@ redbolt_add_native_binding_generation(
     OUTPUT_METADATA "${REDBOLT_SDL_BINDINGS_JSON}"
     OUTPUT_CS "${REDBOLT_SDL_BINDINGS_CS}"
     OUTPUT_CPP "${REDBOLT_SDL_BINDINGS_CPP}"
-    INCLUDE_DIRS "${REDBOLT_SDL_CONFIG_INCLUDE_DIR}" "${REDBOLT_SDL_BUILD_INCLUDE_DIR}"
+    INCLUDE_DIRS "${REDBOLT_SDL_CONFIG_INCLUDE_DIR}" "${REDBOLT_SDL_BUILD_INCLUDE_DIR}" ${REDBOLT_SDL_IMAGE_INCLUDE_DIRS}
     DEFINES "USING_GENERATED_CONFIG_H=1"
     OWNED_HEADERS ${REDBOLT_SDL_OWNED_HEADERS})
 
-add_dependencies(redbolt-generate-sdl-bindings SDL2-static)
+add_dependencies(redbolt-generate-sdl-bindings SDL2)
 
 redbolt_add_native_binding_generation(
     TARGET redbolt-generate-diligent-bindings
@@ -131,6 +133,7 @@ add_custom_target(redbolt-csharp
     COMMAND "${DOTNET_EXECUTABLE}" build "${REDBOLT_DOTNET_SOLUTION}"
         --configuration $<CONFIG>
         --nologo
+        -m:1
         "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
         "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
     DEPENDS redbolt-generate-native-bindings RedBolt.Native

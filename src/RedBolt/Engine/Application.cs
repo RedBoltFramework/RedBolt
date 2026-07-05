@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public abstract class Application
@@ -74,6 +76,7 @@ public abstract class Application
             if (!parseResult.IsSuccess)
             {
                 ErrorExit(parseResult.ErrorMessage);
+                Log.Logger.LogError(parseResult.ErrorMessage);
                 Console.Error.WriteLine(parseResult.ErrorMessage);
                 Console.Error.WriteLine();
                 Console.Error.Write(parser.GetUsage());
@@ -81,18 +84,20 @@ public abstract class Application
             }
         }
 
+        Log.Initialize(parameters);
+
         if (ShouldStopBeforeInitialization())
             return ExitCode;
-
-        if (!Engine.Initialize(parameters))
-        {
-            ErrorExit();
-            return ExitCode;
-        }
 
         var started = false;
         try
         {
+            if (!Engine.Initialize(parameters))
+            {
+                ErrorExit();
+                return ExitCode;
+            }
+
             Start();
             started = true;
 
@@ -112,6 +117,11 @@ public abstract class Application
                 }
             }
         }
+        catch (Exception exception)
+        {
+            Log.Logger.LogCritical(exception, "Unhandled exception in application run loop.");
+            ErrorExit(exception.Message);
+        }
         finally
         {
             if (started)
@@ -120,7 +130,9 @@ public abstract class Application
                 Stop();
             }
 
-            Engine.Shutdown();
+            if (Engine.IsInitialized)
+                Engine.Shutdown();
+            Log.Shutdown();
         }
 
         return ExitCode;
@@ -137,6 +149,7 @@ public abstract class Application
         ErrorMessage = string.IsNullOrWhiteSpace(message)
             ? "Application has been terminated due to unexpected error."
             : message;
+        Log.Logger.LogError(ErrorMessage);
         Exit(FailureExitCode);
     }
 
@@ -165,7 +178,7 @@ public abstract class Application
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Failed to save screenshot to '{screenshotPath}': {exception.Message}");
+            Log.Logger.LogWarning(exception, "Failed to save screenshot to '{ScreenshotPath}'.", screenshotPath);
         }
     }
 }

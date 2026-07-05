@@ -99,4 +99,123 @@ public sealed class ImageTests
         Assert.Equal(new IntVector2(1, 1), texel.Texel);
         Assert.True(cube.ProjectTexelOnCube(CubeMapFace.PositiveZ, 1, 1).Z > 0.0f);
     }
+
+    [Fact]
+    public void Repo_backed_rbfx_dds_image_loads_and_decompresses_through_image_resource()
+    {
+        var image = new Image("Textures/StoneDiffuse.dds");
+
+        Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
+        Assert.True(image.IsCompressed());
+        Assert.Equal(CompressedFormat.Dxt1, image.CompressedFormat);
+        Assert.Equal(1024, image.Width);
+        Assert.Equal(1024, image.Height);
+        Assert.Equal(11u, image.NumCompressedLevels);
+
+        var rgba = image.GetDecompressedImage();
+        Assert.NotNull(rgba);
+        Assert.Equal(4u, rgba!.Components);
+        Assert.Equal(1024 * 1024 * 4, rgba.GetData().Length);
+        Assert.Contains(rgba.GetData(), static value => value != 0);
+
+        var mip = image.GetDecompressedImageLevel(1u);
+        Assert.NotNull(mip);
+        Assert.Equal(512, mip!.Width);
+        Assert.Equal(512, mip.Height);
+        Assert.Equal(512 * 512 * 4, mip.GetData().Length);
+    }
+
+    [Fact]
+    public void Image_cube_xml_loads_through_image_cube_resource()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.ImageCubeTests", Guid.NewGuid().ToString("N"));
+        var textureDir = Path.Combine(tempRoot, "Textures");
+        Directory.CreateDirectory(textureDir);
+        var resources = new ResourceCache();
+        resources.AddResourceDir(tempRoot);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(textureDir, "Cube.xml"), """
+                <cubemap>
+                    <face name="Face0.bmp" />
+                    <face name="Face1.bmp" />
+                    <face name="Face2.bmp" />
+                    <face name="Face3.bmp" />
+                    <face name="Face4.bmp" />
+                    <face name="Face5.bmp" />
+                </cubemap>
+                """);
+            WriteSolidBmp(Path.Combine(textureDir, "Face0.bmp"), 2, 2, 255, 0, 0);
+            WriteSolidBmp(Path.Combine(textureDir, "Face1.bmp"), 2, 2, 0, 255, 0);
+            WriteSolidBmp(Path.Combine(textureDir, "Face2.bmp"), 2, 2, 0, 0, 255);
+            WriteSolidBmp(Path.Combine(textureDir, "Face3.bmp"), 2, 2, 255, 255, 0);
+            WriteSolidBmp(Path.Combine(textureDir, "Face4.bmp"), 2, 2, 255, 0, 255);
+            WriteSolidBmp(Path.Combine(textureDir, "Face5.bmp"), 2, 2, 0, 255, 255);
+
+            var cube = resources.GetResource<ImageCube>("Textures/Cube.xml");
+
+            Assert.NotNull(cube.GetParametersXML());
+
+            foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+            {
+                var image = cube.GetImage(face);
+                Assert.NotNull(image);
+                Assert.True(image!.Width > 0);
+                Assert.Equal(image.Width, image.Height);
+            }
+        }
+        finally
+        {
+            resources.RemoveResourceDir(tempRoot);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    private static void WriteSolidBmp(string fileName, int width, int height, byte r, byte g, byte b)
+    {
+        var pixels = new byte[width * height * 4];
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            pixels[i + 0] = r;
+            pixels[i + 1] = g;
+            pixels[i + 2] = b;
+            pixels[i + 3] = 255;
+        }
+
+        using var stream = File.Create(fileName);
+        using var writer = new BinaryWriter(stream);
+
+        const int fileHeaderSize = 14;
+        const int dibHeaderSize = 40;
+        var pixelDataSize = width * height * 4;
+        var fileSize = fileHeaderSize + dibHeaderSize + pixelDataSize;
+
+        writer.Write((byte)'B');
+        writer.Write((byte)'M');
+        writer.Write(fileSize);
+        writer.Write((short)0);
+        writer.Write((short)0);
+        writer.Write(fileHeaderSize + dibHeaderSize);
+        writer.Write(dibHeaderSize);
+        writer.Write(width);
+        writer.Write(-height);
+        writer.Write((short)1);
+        writer.Write((short)32);
+        writer.Write(0);
+        writer.Write(pixelDataSize);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(0);
+
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            writer.Write(pixels[i + 2]);
+            writer.Write(pixels[i + 1]);
+            writer.Write(pixels[i + 0]);
+            writer.Write(pixels[i + 3]);
+        }
+    }
 }

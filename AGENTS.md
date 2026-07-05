@@ -1,2 +1,5 @@
 - Prefer idiomatic C# constructs
   - Avoid superfluous getters when we have properties
+- No manual bindings! If bindings are not enough:
+  - Fix our generator
+  - Fix SharpCpp

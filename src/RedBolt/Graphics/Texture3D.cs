@@ -9,6 +9,37 @@ public sealed class Texture3D : Texture
     {
     }
 
+    public override bool BeginLoad(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var parameters = new XMLFile(Name + "#params");
+        if (!parameters.Load(source))
+            return false;
+
+        var root = parameters.Root;
+        var volumeElement = root.GetChild("volume");
+        if (volumeElement.NotNull)
+        {
+            var image = ResourceLoading.LoadDependentResource<Image>(this, volumeElement.GetAttribute("name"));
+            return image is not null && SetData(image);
+        }
+
+        var colorLutElement = root.GetChild("colorlut");
+        if (!colorLutElement.NotNull)
+            return false;
+
+        using var colorLutStream = ResourceLoading.OpenDependentResource(this, colorLutElement.GetAttribute("name"));
+        if (colorLutStream is null)
+            return false;
+
+        var colorLutImage = new Image(Name + "#colorlut")
+        {
+            OwnerCache = OwnerCache
+        };
+        return colorLutImage.LoadColorLUT(colorLutStream) && SetData(colorLutImage);
+    }
+
     public bool SetSize(int width, int height, int depth, TextureFormat format)
     {
         if (width <= 0 || height <= 0 || depth <= 0)
@@ -60,6 +91,32 @@ public sealed class Texture3D : Texture
     }
 
     public bool SetData(uint level, int x, int y, int z, int width, int height, int depth, byte[] data) => SetData(level, x, y, z, width, height, depth, data.AsSpan());
+
+    public bool SetData(Image image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        var levels = image.IsCompressed() ? Math.Max(image.NumCompressedLevels, 1u) : 1u;
+        var baseLevel = image.GetDecompressedImageLevel(0u);
+        if (baseLevel is null)
+            return false;
+
+        Levels = levels;
+        if (!SetSize(baseLevel.Width, baseLevel.Height, baseLevel.Depth, TextureFormat.RGBA8))
+            return false;
+
+        for (var level = 0u; level < levels; ++level)
+        {
+            var mipImage = image.GetDecompressedImageLevel(level);
+            if (mipImage is null)
+                return false;
+
+            if (!SetData(level, 0, 0, 0, mipImage.Width, mipImage.Height, mipImage.Depth, mipImage.GetData()))
+                return false;
+        }
+
+        return true;
+    }
 
     public byte[]? GetData(uint level)
     {

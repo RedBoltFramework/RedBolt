@@ -202,6 +202,7 @@ if(ENABLE_WGSL)
 endif()
 
 set(HLSL_DEFINITIONS include/HLSLDefinitions.fxh)
+set(FILE2INCLUDE_SCRIPT "${DILIGENT_CORE_SOURCE_DIR}/BuildTools/File2Include/script.py")
 
 set(GENERATED_SHADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/GeneratedShaders)
 file(MAKE_DIRECTORY ${GENERATED_SHADERS_DIR})
@@ -220,7 +221,7 @@ target_sources(Diligent-ShaderTools PRIVATE
 
 find_package(Python3 REQUIRED)
 add_custom_command(OUTPUT ${HLSL_DEFINITIONS_INC} # We must use full path here!
-                   COMMAND ${Python3_EXECUTABLE} ${FILE2STRING_PATH} ${HLSL_DEFINITIONS} ${HLSL_DEFINITIONS_INC}
+                   COMMAND ${Python3_EXECUTABLE} ${FILE2INCLUDE_SCRIPT} ${HLSL_DEFINITIONS} ${HLSL_DEFINITIONS_INC}
                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                    MAIN_DEPENDENCY ${HLSL_DEFINITIONS}
                    COMMENT "Processing HLSLDefinitions.fxh"
