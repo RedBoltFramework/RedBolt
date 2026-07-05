@@ -24,9 +24,8 @@ public sealed class ResourceCache
             ? new Model(name, 36u)
             : LoadFileBackedResource(name, static resourceName => new Model(resourceName)));
 
-        RegisterLoader<Material>(name => string.Equals(name, "Materials/FirstCube", StringComparison.Ordinal)
-            ? new Material(name)
-            : LoadFileBackedResource(name, static resourceName => new Material(resourceName)));
+        RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
+            static resourceName => new Material(resourceName)));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)
@@ -426,5 +425,28 @@ public sealed class ResourceCache
         var resource = factory(name);
         resource.OwnerCache = this;
         return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+    }
+
+    private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<string, T> factory)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(logicalName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(lookupName);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        var fileName = GetResourceFileName(lookupName);
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        var resource = factory(logicalName);
+        resource.OwnerCache = this;
+        return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+    }
+
+    private static string AppendExtensionIfMissing(string name, string extension)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
+        return Path.HasExtension(name) ? name : name + extension;
     }
 }

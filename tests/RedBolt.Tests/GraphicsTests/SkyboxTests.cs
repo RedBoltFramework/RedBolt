@@ -10,6 +10,7 @@ public sealed class SkyboxTests
     public SkyboxTests(HeadlessEngineFixture fixture)
     {
         this.fixture = fixture;
+        FirstCubeTestData.AddResourceDirs(Resources);
     }
 
     private ResourceCache Resources => fixture.Resources;

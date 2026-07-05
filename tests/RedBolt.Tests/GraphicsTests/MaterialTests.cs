@@ -10,6 +10,7 @@ public sealed class MaterialTests
     public MaterialTests(HeadlessEngineFixture fixture)
     {
         this.fixture = fixture;
+        FirstCubeTestData.AddResourceDirs(Resources);
     }
 
     private ResourceCache Resources => fixture.Resources;

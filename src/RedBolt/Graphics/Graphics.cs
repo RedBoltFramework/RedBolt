@@ -14,12 +14,13 @@ public sealed class Graphics
     private const int ObjectBufferSize = 80;
     private const int MaterialBufferSize = 128;
     private const int LightBufferSize = 48;
+    private const int ZoneBufferSize = 16;
     private const string ShaderExtraCode = """
 #define URHO3D_CUSTOM_FRAME_UNIFORMS
 #define URHO3D_CUSTOM_MATERIAL_UNIFORMS
 #define URHO3D_CUSTOM_LIGHT_UNIFORMS
 
-layout(std140, binding = 3) uniform Light
+layout(std140) uniform Light
 {
     vec4 uLightPos;
     vec4 uLightDir;
@@ -30,7 +31,7 @@ layout(std140, binding = 3) uniform Light
 #define cLightDir uLightDir.xyz
 #define cLightColor uLightColor
 
-layout(std140, binding = 4) uniform Material
+layout(std140) uniform Material
 {
     vec4 uUOffset;
     vec4 uVOffset;
@@ -61,7 +62,11 @@ layout(std140, binding = 4) uniform Material
     private static readonly Vector4 DefaultFogColor = new(0.03f, 0.05f, 0.09f, 1.0f);
     private static readonly byte[] DefaultAlbedoTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
+    private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
+    private static readonly byte[] DefaultEmissionTextureData = [0, 0, 0, 255];
     private static readonly bool RenderDiagnosticsEnabled = IsRenderDiagnosticsEnabled();
+    private static readonly bool ShaderBindingDiagnosticsEnabled = IsShaderBindingDiagnosticsEnabled();
+    private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
 
     private readonly float[] clearColor = [0.03f, 0.05f, 0.09f, 1.0f];
     private readonly ITextureView?[] renderTargets = new ITextureView?[1];
@@ -74,6 +79,8 @@ layout(std140, binding = 4) uniform Material
     private GCHandle clearColorHandle;
     private Texture2D? defaultAlbedoTexture;
     private Texture2D? defaultNormalTexture;
+    private Texture2D? defaultPropertiesTexture;
+    private Texture2D? defaultEmissionTexture;
     private GlFinishDelegate? glFinish;
     private GlReadBufferDelegate? glReadBuffer;
     private GlReadPixelsDelegate? glReadPixels;
@@ -83,6 +90,7 @@ layout(std140, binding = 4) uniform Material
     private ITextureView? renderTargetView;
     private ITextureView? depthStencilView;
     private IntPtr glContext;
+    private bool shaderReflectionDiagnosticsDumped;
     private SdlWindow? window;
 
     public bool IsInitialized { get; private set; }
@@ -191,9 +199,9 @@ layout(std140, binding = 4) uniform Material
         if (RenderDiagnosticsEnabled)
             Console.Error.WriteLine($"RedBolt render diagnostics: drawCalls={submittedDrawCalls}, primitives={submittedPrimitives}, staticModels={viewport.Scene.StaticModels.Count}");
 
-        swapChain.Present(0);
         if (!string.IsNullOrWhiteSpace(screenshotPath))
-            SavePresentedFrameScreenshot(screenshotPath);
+            SaveScreenshot(screenshotPath);
+        swapChain.Present(0);
         immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
     }
@@ -212,6 +220,9 @@ layout(std140, binding = 4) uniform Material
 
         if (!IsInitialized || device is null || immediateContext is null || renderTargetView is null)
             throw new InvalidOperationException("Graphics system is not initialized.");
+
+        if (TrySaveCurrentFramebufferScreenshot(fileName))
+            return;
 
         var sourceTexture = renderTargetView.GetTexture();
         if (!sourceTexture.IsNull)
@@ -402,6 +413,9 @@ layout(std140, binding = 4) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
@@ -429,35 +443,45 @@ layout(std140, binding = 4) uniform Material
             if (pipeline is null || uploadedGeometry is null || immediateContext is null)
                 continue;
 
-            UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero));
-            UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4,
-                GetAmbientForDrawable(viewport.Scene, staticModel));
+            UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone);
+            UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4, drawableAmbient);
             UpdateMaterialBuffer(pipeline.MaterialBuffer, material);
             UpdateLightBuffer(pipeline.LightBuffer, effectiveLight);
+            UpdateZoneBuffer(pipeline.ZoneBuffer, drawableZone);
 
-            pipeline.PipelineState.CreateShaderResourceBinding(out var shaderResources, false);
-            try
-            {
-                BindMaterialTextures(shaderResources, material);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Camera", pipeline.CameraBuffer, CameraBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+                "Camera", pipeline.CameraBuffer, CameraBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Zone", pipeline.ZoneBuffer, ZoneBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+                "Zone", pipeline.ZoneBuffer, ZoneBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Object", pipeline.ObjectBuffer, ObjectBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Material", pipeline.MaterialBuffer, MaterialBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+                "Material", pipeline.MaterialBuffer, MaterialBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Light", pipeline.LightBuffer, LightBufferSize);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+                "Light", pipeline.LightBuffer, LightBufferSize);
+            BindMaterialTextures(pipeline, material);
 
-                immediateContext.SetPipelineState(pipeline.PipelineState);
-                immediateContext.CommitShaderResources(shaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            immediateContext.SetPipelineState(pipeline.PipelineState);
+            immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
-                nuint vertexOffset = 0;
-                IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
-                immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
-                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-                    SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-                immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
-                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-                immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
-                ++drawCalls;
-                primitives += geometry.GetPrimitiveCount();
-            }
-            finally
-            {
-                ReleaseIfNotNull(shaderResources);
-            }
+            nuint vertexOffset = 0;
+            IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
+            immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+                SetVertexBuffersFlags.SetVertexBuffersFlagReset);
+            immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+            ++drawCalls;
+            primitives += geometry.GetPrimitiveCount();
         }
 
         return (drawCalls, primitives);
@@ -499,7 +523,8 @@ layout(std140, binding = 4) uniform Material
             using var psoDesc = new PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
-                PipelineType = PipelineType.PipelineTypeGraphics
+                PipelineType = PipelineType.PipelineTypeGraphics,
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
             };
             using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
             {
@@ -532,17 +557,16 @@ layout(std140, binding = 4) uniform Material
             var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
             var materialBuffer = CreateUniformBuffer(device, "Material", MaterialBufferSize);
             var lightBuffer = CreateUniformBuffer(device, "Light", LightBufferSize);
+            var zoneBuffer = CreateUniformBuffer(device, "Zone", ZoneBufferSize);
+            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            if (shaderResources.IsNull)
+                throw new InvalidOperationException($"Failed to create shader resources for {pass.VertexShader}/{pass.PixelShader}.");
 
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Camera", cameraBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Camera", cameraBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Object", objectBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Material", materialBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Material", materialBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Light", lightBuffer);
-            BindStaticBuffer(pipelineState, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Light", lightBuffer);
+            DumpFirstPipelineDiagnostics(pass, key, vertexShaderResource, pixelShaderResource, vertexDefines, pixelDefines,
+                vertexShader, pixelShader, pipelineState, shaderResources);
 
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
-                lightBuffer, layoutArray);
+                lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
             layoutArray = null;
             pipelines[key] = cached;
             return cached;
@@ -578,10 +602,16 @@ layout(std140, binding = 4) uniform Material
         return uploaded;
     }
 
-    private void BindMaterialTextures(IShaderResourceBinding shaderResources, Material material)
+    private void BindMaterialTextures(PipelineResources pipeline, Material material)
     {
-        BindTexture(shaderResources, "sAlbedo", GetTextureView(material.GetTexture("Albedo"), GetDefaultAlbedoTexture()));
-        BindTexture(shaderResources, "sNormal", GetTextureView(material.GetTexture("Normal"), GetDefaultNormalTexture()));
+        BindTextureToAvailableStages(pipeline,
+            "sAlbedo", GetTextureView(material.GetTexture("Albedo"), GetDefaultAlbedoTexture()));
+        BindTextureToAvailableStages(pipeline,
+            "sNormal", GetTextureView(material.GetTexture("Normal"), GetDefaultNormalTexture()));
+        BindTextureToAvailableStages(pipeline,
+            "sProperties", GetTextureView(material.GetTexture("Properties"), GetDefaultPropertiesTexture()));
+        BindTextureToAvailableStages(pipeline,
+            "sEmission", GetTextureView(material.GetTexture("Emission"), GetDefaultEmissionTexture()));
     }
 
     private ITextureView GetTextureView(Texture? texture, Texture2D fallbackTexture)
@@ -628,6 +658,16 @@ layout(std140, binding = 4) uniform Material
     private Texture2D GetDefaultNormalTexture()
     {
         return defaultNormalTexture ??= CreateFallbackTexture("#fallback-normal", DefaultNormalTextureData);
+    }
+
+    private Texture2D GetDefaultPropertiesTexture()
+    {
+        return defaultPropertiesTexture ??= CreateFallbackTexture("#fallback-properties", DefaultPropertiesTextureData);
+    }
+
+    private Texture2D GetDefaultEmissionTexture()
+    {
+        return defaultEmissionTexture ??= CreateFallbackTexture("#fallback-emission", DefaultEmissionTextureData);
     }
 
     private static Texture2D CreateFallbackTexture(string name, ReadOnlySpan<byte> rgbaPixels)
@@ -745,6 +785,16 @@ layout(std140, binding = 4) uniform Material
             WriteVector4(data, 32, Vector4.Zero);
         }
 
+        UpdateBuffer(buffer, data);
+    }
+
+    private void UpdateZoneBuffer(IBuffer buffer, Zone? zone)
+    {
+        var data = new byte[ZoneBufferSize];
+        WriteFloat(data, 0, GetZoneRoughnessToLodFactor(zone));
+        WriteFloat(data, 4, 0.0f);
+        WriteFloat(data, 8, 0.0f);
+        WriteFloat(data, 12, 0.0f);
         UpdateBuffer(buffer, data);
     }
 
@@ -975,6 +1025,13 @@ layout(std140, binding = 4) uniform Material
         return new Vector4(fogEnd / farClip, farClip / fogRange, 0.0f, 0.0f);
     }
 
+    private static float GetZoneRoughnessToLodFactor(Zone? zone)
+    {
+        return zone?.GetZoneTexture() is TextureCube zoneTexture && zoneTexture.Width > 0
+            ? MathF.Log2(zoneTexture.Width)
+            : 1.0f;
+    }
+
     private static Zone? FindZone(Scene scene, Vector3 worldPosition)
     {
         return scene.GetAllComponents().Values
@@ -990,24 +1047,39 @@ layout(std140, binding = 4) uniform Material
         return zone is not null ? new Vector4(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
     }
 
-    private static void BindTexture(IShaderResourceBinding shaderResources, string name, ITextureView? textureView)
+    private static void BindTexture(PipelineResources pipeline, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
+        string name, ITextureView? textureView, bool logIfMissing = true)
     {
         if (textureView is null)
             return;
 
-        using var nativeName = new PinnedUtf8(name);
-        var variable = shaderResources.GetVariableByName(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, nativeName.FirstByte);
-        if (!variable.IsNull)
+        if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
+        {
             variable.Set(textureView);
+        }
+        else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
+        {
+            Console.Error.WriteLine($"RedBolt shader binding diagnostics: texture '{name}' was not found for stage '{shaderType}'.");
+        }
     }
 
-    private static void BindStaticBuffer(IPipelineState pipelineState, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
-        string name, IBuffer buffer)
+    private static void BindTextureToAvailableStages(PipelineResources pipeline, string name, ITextureView textureView)
     {
-        using var nativeName = new PinnedUtf8(name);
-        var variable = pipelineState.GetStaticVariableByName(shaderType, nativeName.FirstByte);
-        if (!variable.IsNull)
-            variable.Set(buffer);
+        BindTexture(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, name, textureView, logIfMissing: false);
+        BindTexture(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, name, textureView, logIfMissing: false);
+    }
+
+    private static void BindDynamicBuffer(PipelineResources pipeline,
+        global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name, IBuffer buffer, nuint size)
+    {
+        if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
+        {
+            variable.SetBufferRange(buffer, 0, size);
+        }
+        else if (ShaderBindingDiagnosticsEnabled)
+        {
+            Console.Error.WriteLine($"RedBolt shader binding diagnostics: dynamic buffer '{name}' was not found for stage '{shaderType}'.");
+        }
     }
 
     private static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -1019,14 +1091,16 @@ layout(std140, binding = 4) uniform Material
         using var shaderDesc = new ShaderDesc
         {
             Name = shaderName.Pointer,
-            ShaderType = shaderType
+            ShaderType = shaderType,
+            UseCombinedTextureSamplers = true
         };
         using var shaderCreateInfo = new ShaderCreateInfo
         {
             Desc = shaderDesc,
             EntryPoint = entryPoint.Pointer,
             Source = shaderSource.Pointer,
-            SourceLanguage = global::RedBolt.Bindings.Diligent.ShaderSourceLanguage.ShaderSourceLanguageGlsl
+            SourceLanguage = global::RedBolt.Bindings.Diligent.ShaderSourceLanguage.ShaderSourceLanguageGlslVerbatim,
+            LoadConstantBufferReflection = true
         };
 
         device.CreateShader(shaderCreateInfo, out var shader, out var compilerOutput);
@@ -1207,6 +1281,137 @@ layout(std140, binding = 4) uniform Material
         return value is not null && value != "0" && !value.Equals("false", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsShaderBindingDiagnosticsEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("REDBOLT_SHADER_BINDING_DIAGNOSTICS");
+        return value is not null && value != "0" && !value.Equals("false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsShaderReflectionDiagnosticsEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("REDBOLT_SHADER_REFLECTION_DIAGNOSTICS");
+        return value is not null && value != "0" && !value.Equals("false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void DumpFirstPipelineDiagnostics(Pass pass, PipelineKey key, Shader vertexShaderResource, Shader pixelShaderResource,
+        string vertexDefines, string pixelDefines, IShader vertexShader, IShader pixelShader, IPipelineState pipelineState,
+        IShaderResourceBinding shaderResources)
+    {
+        if (!ShaderReflectionDiagnosticsEnabled || shaderReflectionDiagnosticsDumped)
+            return;
+
+        shaderReflectionDiagnosticsDumped = true;
+
+        var diagnosticBaseName = $"{SanitizeDiagnosticName(pass.VertexShader)}_{SanitizeDiagnosticName(pass.PixelShader)}";
+        var vertexPath = Path.Combine(Path.GetTempPath(), $"{diagnosticBaseName}.vs.glsl");
+        var pixelPath = Path.Combine(Path.GetTempPath(), $"{diagnosticBaseName}.ps.glsl");
+
+        try
+        {
+            File.WriteAllText(vertexPath, vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            File.WriteAllText(pixelPath, pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"RedBolt shader reflection diagnostics: failed to write shader source dump: {error.Message}");
+        }
+
+        Console.Error.WriteLine(
+            $"RedBolt shader reflection diagnostics: first pipeline '{pass.VertexShader}/{pass.PixelShader}', layout='{key.LayoutSignature}', vertexSource='{vertexPath}', pixelSource='{pixelPath}'.");
+        DumpShaderResources("vertex shader", vertexShader);
+        DumpShaderResources("pixel shader", pixelShader);
+        DumpPipelineVariables("pipeline", pipelineState, shaderResources);
+    }
+
+    private static void DumpShaderResources(string label, IShader shader)
+    {
+        var resourceCount = shader.GetResourceCount();
+        Console.Error.WriteLine($"RedBolt shader reflection diagnostics: {label} resourceCount={resourceCount}.");
+        for (uint resourceIndex = 0; resourceIndex < resourceCount; ++resourceIndex)
+        {
+            using var resourceDesc = new ShaderResourceDesc();
+            shader.GetResourceDesc(resourceIndex, resourceDesc);
+            var resourceName = PtrToUtf8String(resourceDesc.Name);
+            var line =
+                $"RedBolt shader reflection diagnostics: {label} resource[{resourceIndex}] name='{resourceName}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}";
+            if (resourceDesc.Type == ShaderResourceType.ShaderResourceTypeConstantBuffer)
+            {
+                var bufferDesc = shader.GetConstantBufferDesc(resourceIndex);
+                line += $", size={bufferDesc.Size}, variableCount={bufferDesc.NumVariables}";
+            }
+
+            Console.Error.WriteLine(line + ".");
+        }
+    }
+
+    private static void DumpPipelineVariables(string label, IPipelineState pipelineState, IShaderResourceBinding shaderResources)
+    {
+        using var pipelineDesc = pipelineState.GetDesc();
+        Console.Error.WriteLine(
+            $"RedBolt shader reflection diagnostics: {label} defaultVariableType={pipelineDesc.ResourceLayoutDefaultVariableType}, staticSignatures={pipelineState.GetResourceSignatureCount()}.");
+
+        DumpVariableList(label, "static", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+            pipelineState.GetStaticVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
+            index => pipelineState.GetStaticVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
+        DumpVariableList(label, "static", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+            pipelineState.GetStaticVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
+            index => pipelineState.GetStaticVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
+        DumpVariableList(label, "srb", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+            shaderResources.GetVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
+            index => shaderResources.GetVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
+        DumpVariableList(label, "srb", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+            shaderResources.GetVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
+            index => shaderResources.GetVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
+    }
+
+    private static void DumpVariableList(string label, string scope, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
+        uint count, Func<uint, IShaderResourceVariable> getVariable)
+    {
+        Console.Error.WriteLine(
+            $"RedBolt shader reflection diagnostics: {label} {scope} {shaderType} variableCount={count}.");
+        for (uint variableIndex = 0; variableIndex < count; ++variableIndex)
+        {
+            var variable = getVariable(variableIndex);
+            using var resourceDesc = new ShaderResourceDesc();
+            variable.GetResourceDesc(resourceDesc);
+            Console.Error.WriteLine(
+                $"RedBolt shader reflection diagnostics: {label} {scope} {shaderType} variable[{variableIndex}] name='{PtrToUtf8String(resourceDesc.Name)}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}, variableType={variable.GetType()}.");
+        }
+    }
+
+    private static string PtrToUtf8String(IntPtr pointer)
+    {
+        return pointer == IntPtr.Zero ? string.Empty : Marshal.PtrToStringUTF8(pointer) ?? string.Empty;
+    }
+
+    private static string SanitizeDiagnosticName(string name)
+    {
+        return string.Concat(name.Select(static ch => char.IsLetterOrDigit(ch) ? ch : '_'));
+    }
+
+    private static Dictionary<PipelineVariableKey, IShaderResourceVariable> BuildShaderVariableLookup(IShaderResourceBinding shaderResources)
+    {
+        var result = new Dictionary<PipelineVariableKey, IShaderResourceVariable>();
+        AddShaderVariableLookupEntries(result, shaderResources, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex);
+        AddShaderVariableLookupEntries(result, shaderResources, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel);
+        return result;
+    }
+
+    private static void AddShaderVariableLookupEntries(Dictionary<PipelineVariableKey, IShaderResourceVariable> result,
+        IShaderResourceBinding shaderResources, global::RedBolt.Bindings.Diligent.ShaderType shaderType)
+    {
+        var count = shaderResources.GetVariableCount(shaderType);
+        for (uint index = 0; index < count; ++index)
+        {
+            var variable = shaderResources.GetVariableByIndex(shaderType, index);
+            using var resourceDesc = new ShaderResourceDesc();
+            variable.GetResourceDesc(resourceDesc);
+            var name = PtrToUtf8String(resourceDesc.Name);
+            if (!string.IsNullOrWhiteSpace(name))
+                result[new PipelineVariableKey(shaderType, name)] = variable;
+        }
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void GlFinishDelegate();
 
@@ -1238,10 +1443,13 @@ layout(std140, binding = 4) uniform Material
         string PixelDefines, string LayoutSignature, CullMode CullMode, FillMode FillMode,
         CompareMode DepthTestMode, bool DepthWrite, bool AlphaToCoverage, bool ReverseCulling);
 
+    private readonly record struct PipelineVariableKey(global::RedBolt.Bindings.Diligent.ShaderType ShaderType, string Name);
+
     private sealed class PipelineResources : IDisposable
     {
         public PipelineResources(IPipelineState pipelineState, IShader vertexShader, IShader pixelShader,
-            IBuffer cameraBuffer, IBuffer objectBuffer, IBuffer materialBuffer, IBuffer lightBuffer,
+            IBuffer cameraBuffer, IBuffer objectBuffer, IBuffer materialBuffer, IBuffer lightBuffer, IBuffer zoneBuffer,
+            IShaderResourceBinding shaderResources, Dictionary<PipelineVariableKey, IShaderResourceVariable> shaderVariables,
             TemporaryLayoutArray layoutArray)
         {
             PipelineState = pipelineState;
@@ -1251,6 +1459,9 @@ layout(std140, binding = 4) uniform Material
             ObjectBuffer = objectBuffer;
             MaterialBuffer = materialBuffer;
             LightBuffer = lightBuffer;
+            ZoneBuffer = zoneBuffer;
+            ShaderResources = shaderResources;
+            ShaderVariables = shaderVariables;
             LayoutArray = layoutArray;
         }
 
@@ -1268,11 +1479,25 @@ layout(std140, binding = 4) uniform Material
 
         public IBuffer LightBuffer { get; }
 
+        public IBuffer ZoneBuffer { get; }
+
+        public IShaderResourceBinding ShaderResources { get; }
+
+        public Dictionary<PipelineVariableKey, IShaderResourceVariable> ShaderVariables { get; }
+
         public TemporaryLayoutArray LayoutArray { get; }
+
+        public bool TryGetShaderVariable(global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name,
+            out IShaderResourceVariable variable)
+        {
+            return ShaderVariables.TryGetValue(new PipelineVariableKey(shaderType, name), out variable!);
+        }
 
         public void Dispose()
         {
             LayoutArray.Dispose();
+            ReleaseIfNotNull(ShaderResources);
+            ReleaseIfNotNull(ZoneBuffer);
             ReleaseIfNotNull(LightBuffer);
             ReleaseIfNotNull(MaterialBuffer);
             ReleaseIfNotNull(ObjectBuffer);

@@ -10,6 +10,7 @@ public sealed class StaticModelGroupTests
     public StaticModelGroupTests(HeadlessEngineFixture fixture)
     {
         this.fixture = fixture;
+        FirstCubeTestData.AddResourceDirs(Resources);
     }
 
     private ResourceCache Resources => fixture.Resources;

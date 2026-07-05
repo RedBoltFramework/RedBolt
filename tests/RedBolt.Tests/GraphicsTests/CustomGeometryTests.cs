@@ -10,6 +10,7 @@ public sealed class CustomGeometryTests
     public CustomGeometryTests(HeadlessEngineFixture fixture)
     {
         this.fixture = fixture;
+        FirstCubeTestData.AddResourceDirs(Resources);
     }
 
     private ResourceCache Resources => fixture.Resources;
