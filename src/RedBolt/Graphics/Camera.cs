@@ -186,11 +186,11 @@ public sealed class Camera : Component
 
     public Matrix3x4 GetView()
     {
-        var worldTransform = IsAttached ? Node.GetWorldTransform().Matrix4 : Matrix4.Identity;
-        return new Matrix3x4(worldTransform.Inverted);
+        var worldTransform = GetEffectiveWorldTransform();
+        return new Matrix3x4(worldTransform.Matrix4.Inverted);
     }
 
-    public Matrix3x4 GetInverseView() => IsAttached ? Node.GetWorldTransform() : Matrix3x4.Identity;
+    public Matrix3x4 GetInverseView() => GetEffectiveWorldTransform();
 
     public Matrix4 GetProjection(bool ignoreFlip = false)
     {
@@ -229,9 +229,19 @@ public sealed class Camera : Component
         return FlipVertical && !ignoreFlip ? FlipMatrix * projection : projection;
     }
 
-    public Matrix4 GetGPUProjection() => GetProjection();
+    public Matrix4 GetGPUProjection()
+    {
+        var projection = GetProjection();
+        projection.M20 = 2.0f * projection.M20 - projection.M30;
+        projection.M21 = 2.0f * projection.M21 - projection.M31;
+        projection.M22 = 2.0f * projection.M22 - projection.M32;
+        projection.M23 = 2.0f * projection.M23 - projection.M33;
+        return projection;
+    }
 
     public Matrix4 GetViewProj() => GetProjection() * GetView().Matrix4;
+
+    public Matrix4 GetGPUViewProj() => GetGPUProjection() * GetView().Matrix4;
 
     public Matrix4 GetInverseViewProj() => GetViewProj().Inverted;
 
@@ -386,5 +396,12 @@ public sealed class Camera : Component
     public void SetZoneMask(uint mask)
     {
         ZoneMask = mask;
+    }
+
+    private Matrix3x4 GetEffectiveWorldTransform()
+    {
+        return IsAttached
+            ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
+            : Matrix3x4.Identity;
     }
 }

@@ -6,6 +6,7 @@ namespace RedBolt;
 
 public sealed class Graphics
 {
+    private const uint GlFront = 0x0404;
     private const uint GlBack = 0x0405;
     private const uint GlRgba = 0x1908;
     private const uint GlUnsignedByte = 0x1401;
@@ -60,6 +61,7 @@ layout(std140, binding = 4) uniform Material
     private static readonly Vector4 DefaultFogColor = new(0.03f, 0.05f, 0.09f, 1.0f);
     private static readonly byte[] DefaultAlbedoTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
+    private static readonly bool RenderDiagnosticsEnabled = IsRenderDiagnosticsEnabled();
 
     private readonly float[] clearColor = [0.03f, 0.05f, 0.09f, 1.0f];
     private readonly ITextureView?[] renderTargets = new ITextureView?[1];
@@ -158,6 +160,14 @@ layout(std140, binding = 4) uniform Material
         if (viewport.Camera.GetAutoAspectRatio())
             viewport.Camera.SetAspectRatioInternal(Math.Max((float)Width / Math.Max(Height, 1), MathDefs.Epsilon));
 
+        var viewportRect = GetEffectiveViewportRect(viewport);
+        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
+            viewportRect.Left,
+            viewportRect.Top,
+            viewportRect.Width,
+            viewportRect.Height);
+        immediateContext.SetViewports(1, diligentViewport, 0, 0);
+
         immediateContext.SetRenderTargets((uint)renderTargets.Length, renderTargets, depthStencilView,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         immediateContext.ClearRenderTarget(renderTargetView, clearColorHandle.AddrOfPinnedObject(),
@@ -169,13 +179,21 @@ layout(std140, binding = 4) uniform Material
             .OfType<Light>()
             .FirstOrDefault(static light => light.IsAttached && light.IsEnabledEffective && light.GetLightType() == LightType.Directional);
 
+        uint submittedDrawCalls = 0;
+        uint submittedPrimitives = 0;
         foreach (var staticModel in viewport.Scene.StaticModels)
-            RenderStaticModel(viewport, staticModel, materialQuality, directionalLight);
+        {
+            var (drawCalls, primitives) = RenderStaticModel(viewport, staticModel, materialQuality, directionalLight);
+            submittedDrawCalls += drawCalls;
+            submittedPrimitives += primitives;
+        }
 
-        if (!string.IsNullOrWhiteSpace(screenshotPath))
-            SaveRenderedFrameScreenshot(screenshotPath);
+        if (RenderDiagnosticsEnabled)
+            Console.Error.WriteLine($"RedBolt render diagnostics: drawCalls={submittedDrawCalls}, primitives={submittedPrimitives}, staticModels={viewport.Scene.StaticModels.Count}");
 
         swapChain.Present(0);
+        if (!string.IsNullOrWhiteSpace(screenshotPath))
+            SavePresentedFrameScreenshot(screenshotPath);
         immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
     }
@@ -265,8 +283,11 @@ layout(std140, binding = 4) uniform Material
             throw new InvalidOperationException("OpenGL framebuffer readback is not available.");
     }
 
-    private void SaveRenderedFrameScreenshot(string fileName)
+    private void SavePresentedFrameScreenshot(string fileName)
     {
+        if (TrySaveCurrentFramebufferScreenshot(fileName, GlFront))
+            return;
+
         if (renderTargetView is not null)
         {
             var sourceTexture = renderTargetView.GetTexture();
@@ -282,6 +303,11 @@ layout(std140, binding = 4) uniform Material
 
     private bool TrySaveCurrentFramebufferScreenshot(string fileName)
     {
+        return TrySaveCurrentFramebufferScreenshot(fileName, GlBack);
+    }
+
+    private bool TrySaveCurrentFramebufferScreenshot(string fileName, uint readBuffer)
+    {
         if (glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
             return false;
 
@@ -291,7 +317,7 @@ layout(std140, binding = 4) uniform Material
         using var pinnedPixels = new PinnedBuffer(rgbaPixels);
 
         glFinish!.Invoke();
-        glReadBuffer!.Invoke(GlBack);
+        glReadBuffer!.Invoke(readBuffer);
         glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
         FlipImageRows(rgbaPixels, Width, Height);
         ImageFileWriter.Save(fileName, Width, Height, rgbaPixels);
@@ -369,11 +395,13 @@ layout(std140, binding = 4) uniform Material
         IsInitialized = false;
     }
 
-    private void RenderStaticModel(Viewport viewport, StaticModel staticModel, MaterialQuality materialQuality, Light? directionalLight)
+    private (uint DrawCalls, uint Primitives) RenderStaticModel(Viewport viewport, StaticModel staticModel, MaterialQuality materialQuality, Light? directionalLight)
     {
         if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
-            return;
+            return default;
 
+        uint drawCalls = 0;
+        uint primitives = 0;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
@@ -423,12 +451,16 @@ layout(std140, binding = 4) uniform Material
                 immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+                ++drawCalls;
+                primitives += geometry.GetPrimitiveCount();
             }
             finally
             {
                 ReleaseIfNotNull(shaderResources);
             }
         }
+
+        return (drawCalls, primitives);
     }
 
     private PipelineResources? GetOrCreatePipeline(ResourceCache resourceCache, Camera camera, Material material, Pass pass,
@@ -476,10 +508,11 @@ layout(std140, binding = 4) uniform Material
                 PPS = pixelShader,
                 GraphicsPipelineBlendDescAlphaToCoverageEnable = alphaToCoverage,
                 GraphicsPipelineNumRenderTargets = 1,
+                GraphicsPipelineNumViewports = 1,
                 GraphicsPipelinePrimitiveTopology = PrimitiveTopology.PrimitiveTopologyTriangleList,
                 GraphicsPipelineRasterizerDescCullMode = MapCullMode(effectiveCullMode, reverseCulling),
                 GraphicsPipelineRasterizerDescFillMode = MapFillMode(effectiveFillMode),
-                GraphicsPipelineRasterizerDescFrontCounterClockwise = reverseCulling,
+                GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
                 GraphicsPipelineDepthStencilDescDepthEnable = pass.DepthTestMode != CompareMode.Always || pass.DepthWrite,
                 GraphicsPipelineDepthStencilDescDepthWriteEnable = pass.DepthWrite,
                 GraphicsPipelineDepthStencilDescDepthFunc = MapCompareMode(pass.DepthTestMode),
@@ -645,7 +678,7 @@ layout(std140, binding = 4) uniform Material
         var data = new byte[CameraBufferSize];
         WriteMatrix4(data, 0, camera.GetView().Matrix4);
         WriteMatrix4(data, 64, camera.GetInverseView().Matrix4);
-        WriteMatrix4(data, 128, camera.GetViewProj());
+        WriteMatrix4(data, 128, camera.GetGPUViewProj());
         WriteVector4(data, 192, new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
         var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3.Zero;
         WriteVector4(data, 208, new Vector4(cameraPosition, 0.0f));
@@ -896,6 +929,19 @@ layout(std140, binding = 4) uniform Material
     private static FillMode GetEffectiveFillMode(Camera camera, Material material)
     {
         return (FillMode)Math.Max((int)camera.GetFillMode(), (int)material.GetFillMode());
+    }
+
+    private IntRect GetEffectiveViewportRect(Viewport viewport)
+    {
+        var rect = viewport.GetRect();
+        if (rect.Width <= 0 || rect.Height <= 0)
+            return new IntRect(0, 0, Width, Height);
+
+        return new IntRect(
+            Math.Clamp(rect.Left, 0, Width),
+            Math.Clamp(rect.Top, 0, Height),
+            Math.Clamp(rect.Right, 0, Width),
+            Math.Clamp(rect.Bottom, 0, Height));
     }
 
     private static Vector4 GetDepthMode(Camera camera)
@@ -1153,6 +1199,12 @@ layout(std140, binding = 4) uniform Material
             Buffer.BlockCopy(rgbaPixels, bottomOffset, rgbaPixels, topOffset, rowLength);
             Buffer.BlockCopy(temporaryRow, 0, rgbaPixels, bottomOffset, rowLength);
         }
+    }
+
+    private static bool IsRenderDiagnosticsEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("REDBOLT_RENDER_DIAGNOSTICS");
+        return value is not null && value != "0" && !value.Equals("false", StringComparison.OrdinalIgnoreCase);
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
