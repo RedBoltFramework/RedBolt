@@ -139,7 +139,7 @@ public sealed class RenderPathTests
             renderPath.CollectParameters(collectedParameters);
             renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
 
-            var pass = Assert.Single(renderPath.GetPasses());
+            var pass = Assert.IsType<FullScreenShaderPass>(Assert.Single(renderPath.GetPasses()));
             Assert.Equal("Postprocess: Adjust Color", pass.GetPassName());
             Assert.Equal("Adjust output color RGB and HSV.", pass.GetComment());
             Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
@@ -152,6 +152,58 @@ public sealed class RenderPathTests
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Render_path_loads_real_rbfx_default_renderpath_types()
+    {
+        var resources = new ResourceCache();
+        resources.RegisterDefaultResources();
+        var upstreamCoreData = GetUpstreamRbfxCoreData();
+        resources.AddResourceDir(upstreamCoreData);
+
+        try
+        {
+            var renderPath = resources.GetResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+
+            Assert.NotEmpty(renderPath.GetPasses());
+            Assert.Collection(
+                renderPath.GetPasses().Take(5),
+                pass => Assert.IsType<AutoExposurePass>(pass),
+                pass => Assert.IsType<AmbientOcclusionPass>(pass),
+                pass => Assert.IsType<BloomPass>(pass),
+                pass => Assert.IsType<OutlineRenderPass>(pass),
+                pass => Assert.IsType<ToneMappingPass>(pass));
+            Assert.Contains(renderPath.GetPasses(), static pass => pass is FullScreenShaderPass);
+
+            var collectedParameters = new Dictionary<string, object?>();
+            renderPath.CollectParameters(collectedParameters);
+            renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
+
+            Assert.Contains("Exposure: Automatic", collectedParameters.Keys);
+            Assert.Contains("Bloom: Num Iterations", collectedParameters.Keys);
+            Assert.Contains("Tone Mapping: Mode", collectedParameters.Keys);
+            Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
+            Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+        }
+        finally
+        {
+            resources.RemoveResourceDir(upstreamCoreData);
+        }
+    }
+
+    private static string GetUpstreamRbfxCoreData()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "RENDER_PORT_PROGRESS.md")))
+            directory = directory.Parent;
+
+        Assert.NotNull(directory);
+
+        var coreData = Path.GetFullPath(Path.Combine(directory!.FullName, "..", "rbfx", "bin", "CoreData"));
+        Assert.True(Directory.Exists(coreData), $"Expected upstream rbfx CoreData directory at '{coreData}'.");
+        return coreData;
     }
 
     private sealed class TrackingRenderPass : RenderPass

@@ -272,7 +272,10 @@ public sealed class RenderPath : Resource
                 return false;
             }
 
-            var pass = new SerializedRenderPass(typeName);
+            var pass = RenderPathBuiltInPassFactory.Create(typeName);
+            if (pass is null)
+                return false;
+
             foreach (var attributeElement in attributesElement.EnumerateArray())
             {
                 if (!attributeElement.TryGetProperty("name", out var nameElement) || nameElement.ValueKind != JsonValueKind.String)
@@ -288,7 +291,7 @@ public sealed class RenderPath : Resource
                     return false;
 
                 var attributeValue = DeserializeAttributeValue(attributeValueElement, attributeTypeName);
-                if (!pass.ApplyAttribute(attributeName, attributeValue))
+                if (!pass.SetAttribute(attributeName, attributeValue))
                     return false;
             }
 

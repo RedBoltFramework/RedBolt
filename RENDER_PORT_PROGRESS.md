@@ -61,6 +61,8 @@ Slice 1 through the first runtime integration layer are landed:
 - `Renderer` now routes scene viewports through `RenderPipeline` when a scene has that component
 - `RedBolt.Sample.StaticScene` now attaches a `RenderPipeline` component, so the sample uses the new path instead of bypassing it
 - `RenderPath` is being upgraded from a RedBolt-only XML subset to rbfx-compatible `.renderpath` loading and default render-path resolution
+- `.renderpath` JSON loading now instantiates real built-in pass classes for the upstream default path (`AutoExposurePass`, `AmbientOcclusionPass`, `BloomPass`, `ToneMappingPass`, `OutlineRenderPass`, `FullScreenShaderPass`) instead of collapsing everything into a generic placeholder
+- focused tests now verify loading the real upstream `rbfx/bin/CoreData/RenderPaths/Default.renderpath` asset and collecting its exposed parameters
 
 ## Current Cross-Cutting Requirement
 
@@ -80,6 +82,6 @@ Slice 1 through the first runtime integration layer are landed:
 ## Next Useful Checks
 
 - Finish replacing the legacy scene draw embedded in `Graphics.RenderViewport` with pipeline-owned scene-processing and pass execution stages.
-- Expand `RenderPath` from generic serialized passes into real rbfx pass classes instantiated by type.
-- Continue from the minimal `RenderBufferManager` into real offscreen render-buffer allocation and pass-to-pass data flow.
+- Continue from the minimal `RenderBufferManager` into real offscreen render-target binding, fullscreen-quad drawing, and pass-to-pass data flow.
+- Port the execution side of the newly loaded built-in passes, starting with `FullScreenShaderPass` / `ToneMappingPass` helpers and the `RenderBufferManager` methods they require.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.
