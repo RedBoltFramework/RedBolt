@@ -56,8 +56,8 @@ Slice 1 and 2 are partially landed:
 
 - Managed `Context` infrastructure is now in tree with:
   - global access via `Context.SetInstance(ctx)` and `Context.Instance`
-  - subsystem registration/lookup
-  - named events based on `StringHash`
+  - concurrent subsystem registration/lookup
+  - named events based on `StringHash`, intended for main-thread use
 - `Engine` owns the active `Context`, registers core subsystems on initialize, and clears the global instance on shutdown.
 - Use this instead of threading `Context` through constructors during the incremental port.
 

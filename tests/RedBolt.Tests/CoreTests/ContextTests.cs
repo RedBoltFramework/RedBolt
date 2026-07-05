@@ -89,6 +89,69 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_subscription_dispose_stops_future_event_delivery()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            var calls = 0;
+
+            var subscription = receiver.SubscribeToEvent(new StringHash("DisposeMe"), (_, eventType, eventData) =>
+            {
+                ++calls;
+                Assert.Equal(new StringHash("DisposeMe"), eventType);
+                Assert.Empty(eventData);
+            });
+
+            sender.SendEvent(new StringHash("DisposeMe"));
+            subscription.Dispose();
+            sender.SendEvent(new StringHash("DisposeMe"));
+
+            Assert.Equal(1, calls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_unsubscribe_from_specific_event_keeps_other_subscriptions()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            var pingCalls = 0;
+            var pongCalls = 0;
+
+            receiver.SubscribeToEvent("Ping", (_, _, _) => ++pingCalls);
+            receiver.SubscribeToEvent("Pong", (_, _, _) => ++pongCalls);
+
+            receiver.UnsubscribeFromEvent("Ping");
+
+            sender.SendEvent("Ping");
+            sender.SendEvent("Pong");
+
+            Assert.Equal(0, pingCalls);
+            Assert.Equal(1, pongCalls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void Engine_shutdown_clears_global_context_instance()
     {
         var engine = new Engine();

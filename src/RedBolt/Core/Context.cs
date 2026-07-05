@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace RedBolt;
 
 public delegate void NamedEventHandler(object? sender, StringHash eventType, VariantMap eventData);
@@ -32,81 +34,46 @@ public sealed class Context
         public required NamedEventHandler Handler { get; init; }
     }
 
-    private static readonly object InstanceLock = new();
     private static Context? instance;
 
-    private readonly object syncRoot = new();
-    private readonly Dictionary<Type, object> subsystems = new();
+    private readonly ConcurrentDictionary<Type, object> subsystems = new();
     private readonly Dictionary<StringHash, List<EventSubscription>> eventSubscriptions = new();
     private ulong nextSubscriptionId = 1;
 
     public static Context Instance
     {
-        get
-        {
-            lock (InstanceLock)
-            {
-                return instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
-            }
-        }
+        get => instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
     }
 
-    public static Context? TryGetInstance()
-    {
-        lock (InstanceLock)
-        {
-            return instance;
-        }
-    }
+    public static Context? TryGetInstance() => instance;
 
-    public static void SetInstance(Context? context)
-    {
-        lock (InstanceLock)
-        {
-            instance = context;
-        }
-    }
+    public static void SetInstance(Context? context) => instance = context;
 
     public void Reset()
     {
-        lock (syncRoot)
-        {
-            subsystems.Clear();
-            eventSubscriptions.Clear();
-            nextSubscriptionId = 1;
-        }
+        subsystems.Clear();
+        eventSubscriptions.Clear();
+        nextSubscriptionId = 1;
     }
 
     public void RegisterSubsystem<T>(T subsystem)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(subsystem);
-
-        lock (syncRoot)
-        {
-            subsystems[typeof(T)] = subsystem;
-        }
+        subsystems[typeof(T)] = subsystem;
     }
 
     public bool RemoveSubsystem<T>()
         where T : class
-    {
-        lock (syncRoot)
-        {
-            return subsystems.Remove(typeof(T));
-        }
-    }
+        => subsystems.TryRemove(typeof(T), out _);
 
     public T? GetSubsystem<T>()
         where T : class
     {
-        lock (syncRoot)
-        {
-            if (subsystems.TryGetValue(typeof(T), out var subsystem))
-                return (T)subsystem;
+        if (subsystems.TryGetValue(typeof(T), out var subsystem))
+            return (T)subsystem;
 
-            return subsystems.Values.OfType<T>().FirstOrDefault();
-        }
+        return subsystems.Values.OfType<T>().FirstOrDefault();
     }
 
     public ContextEventSubscription SubscribeToEvent(StringHash eventType, NamedEventHandler handler)
@@ -152,26 +119,20 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        lock (syncRoot)
-        {
-            foreach (var pair in eventSubscriptions)
-                pair.Value.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
-            RemoveEmptyEventBuckets();
-        }
+        foreach (var pair in eventSubscriptions)
+            pair.Value.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
+        RemoveEmptyEventBuckets();
     }
 
     public void Unsubscribe(object receiver, StringHash eventType)
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        lock (syncRoot)
+        if (eventSubscriptions.TryGetValue(eventType, out var subscriptions))
         {
-            if (eventSubscriptions.TryGetValue(eventType, out var subscriptions))
-            {
-                subscriptions.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
-                if (subscriptions.Count == 0)
-                    eventSubscriptions.Remove(eventType);
-            }
+            subscriptions.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
+            if (subscriptions.Count == 0)
+                eventSubscriptions.Remove(eventType);
         }
     }
 
@@ -195,17 +156,11 @@ public sealed class Context
 
     public void SendEvent(object? sender, StringHash eventType, VariantMap? eventData = null)
     {
-        EventSubscription[] subscriptions;
-        lock (syncRoot)
-        {
-            if (!eventSubscriptions.TryGetValue(eventType, out var handlers) || handlers.Count == 0)
-                return;
-
-            subscriptions = handlers.ToArray();
-        }
+        if (!eventSubscriptions.TryGetValue(eventType, out var subscriptions) || subscriptions.Count == 0)
+            return;
 
         var effectiveEventData = eventData ?? new VariantMap();
-        foreach (var subscription in subscriptions)
+        foreach (var subscription in subscriptions.ToArray())
         {
             if (subscription.SenderFilter is not null && !ReferenceEquals(subscription.SenderFilter, sender))
                 continue;
@@ -224,40 +179,34 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        lock (syncRoot)
+        if (!eventSubscriptions.TryGetValue(eventType, out var subscriptions))
         {
-            if (!eventSubscriptions.TryGetValue(eventType, out var subscriptions))
-            {
-                subscriptions = [];
-                eventSubscriptions[eventType] = subscriptions;
-            }
-
-            var subscriptionId = nextSubscriptionId++;
-            subscriptions.Add(new EventSubscription
-            {
-                Id = subscriptionId,
-                Receiver = receiver,
-                SenderFilter = senderFilter,
-                Handler = handler
-            });
-
-            return new ContextEventSubscription(this, subscriptionId);
+            subscriptions = [];
+            eventSubscriptions[eventType] = subscriptions;
         }
+
+        var subscriptionId = nextSubscriptionId++;
+        subscriptions.Add(new EventSubscription
+        {
+            Id = subscriptionId,
+            Receiver = receiver,
+            SenderFilter = senderFilter,
+            Handler = handler
+        });
+
+        return new ContextEventSubscription(this, subscriptionId);
     }
 
     private void Unsubscribe(ulong subscriptionId)
     {
-        lock (syncRoot)
+        foreach (var pair in eventSubscriptions)
         {
-            foreach (var pair in eventSubscriptions)
-            {
-                var removed = pair.Value.RemoveAll(subscription => subscription.Id == subscriptionId);
-                if (removed != 0)
-                    break;
-            }
-
-            RemoveEmptyEventBuckets();
+            var removed = pair.Value.RemoveAll(subscription => subscription.Id == subscriptionId);
+            if (removed != 0)
+                break;
         }
+
+        RemoveEmptyEventBuckets();
     }
 
     private void RemoveEmptyEventBuckets()
