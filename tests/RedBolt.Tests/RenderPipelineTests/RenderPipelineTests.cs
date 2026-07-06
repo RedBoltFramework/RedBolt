@@ -337,6 +337,43 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_uses_matching_texture_output_as_primary_for_color_read_write_frames()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ReadableDepth = true
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+
+        var output = RenderOutputTargetInfo.FromTexture(
+            colorTarget,
+            new IntRect(0, 0, 320, 200),
+            depthTarget);
+        manager.OnViewportDefined(output, new IntRect(0, 0, 320, 200));
+
+        Assert.Same(colorTarget, manager.GetColorOutput().GetTexture());
+        Assert.NotNull(manager.GetSecondaryColorTexture());
+        Assert.NotSame(colorTarget, manager.GetSecondaryColorTexture());
+        Assert.Same(depthTarget, manager.GetDepthStencilTexture());
+        Assert.False(manager.NeedsViewportResolve());
+
+        manager.SwapColorBuffers(synchronizeContents: false);
+
+        Assert.NotSame(colorTarget, manager.GetColorOutput().GetTexture());
+        Assert.Same(colorTarget, manager.GetSecondaryColorTexture());
+        Assert.True(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
     public void Render_buffer_manager_allocates_substitute_buffers_for_partial_texture_output()
     {
         var manager = new RenderBufferManager();

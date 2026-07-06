@@ -54,6 +54,7 @@ public sealed class RenderBufferManager
     private RenderBuffer depthStencilBuffer;
     private RenderBuffer writeableColorBuffer;
     private RenderBuffer? readableColorBuffer;
+    private bool flipColorBuffersNextTime;
     private bool linearColorSpace;
     private bool hdr;
     private Graphics? lastGraphics;
@@ -108,7 +109,7 @@ public sealed class RenderBufferManager
             || ((needSecondaryBuffer || !isOutputMatching) && !outputHasUsableDepthTexture)
             || (settings.ReadableDepth && !outputHasReadableDepth)
             || (settings.StencilBuffer && !outputHasStencil);
-        var needSubstitutePrimaryBuffer = needSecondaryBuffer || !isOutputMatching || needSubstituteDepthBuffer;
+        var needSubstitutePrimaryBuffer = !isOutputMatching || needSubstituteDepthBuffer;
 
         depthStencilBuffer = needSubstituteDepthBuffer || needReadableDepth && !outputHasReadableDepth
             ? EnsureDepthBuffer()
@@ -117,6 +118,13 @@ public sealed class RenderBufferManager
         readableColorBuffer = needSecondaryBuffer || frameSettings.ReadableColor && !ReferenceEquals(writeableColorBuffer, viewportColorBuffer)
             ? EnsureSecondaryColorBuffer()
             : null;
+
+        if (flipColorBuffersNextTime && readableColorBuffer is not null)
+        {
+            var previousWriteable = writeableColorBuffer;
+            writeableColorBuffer = readableColorBuffer;
+            readableColorBuffer = previousWriteable;
+        }
     }
 
     public void OnRenderBegin(CommonFrameInfo frameInfo)
@@ -339,6 +347,9 @@ public sealed class RenderBufferManager
             viewportColorTarget,
             viewportColorBuffer.GetViewportRect(),
             ColorSpaceTransition.Automatic);
+
+        if (ReferenceEquals(viewportColorBuffer, readableColorBuffer))
+            flipColorBuffersNextTime = !flipColorBuffersNextTime;
     }
 
     /// <summary>
