@@ -66,12 +66,12 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 ```bash
 cmake --preset dev
 cmake --build --preset Debug --target redbolt-csharp
+out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 ```
 
 - The managed build should keep producing sample outputs in:
   - `/home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug`
-- `RedBolt.Sample.StaticScene` should be built there alongside `RedBolt.Sample.FirstCube`.
-- Add focused tests for new `Context`, event, and render-path behavior.
+- Verify screenshots for valid visual output.
 
 ## Current Constraint
 

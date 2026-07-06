@@ -18,9 +18,12 @@ public enum TextureCoordinate
 public enum TextureFormat
 {
     Unknown,
+    Depth24Stencil8,
     R8,
+    RG16F,
     RGB8,
-    RGBA8
+    RGBA8,
+    RGBA16F
 }
 
 public abstract class Texture : ResourceWithMetadata
@@ -143,9 +146,12 @@ public abstract class Texture : ResourceWithMetadata
     {
         return Format switch
         {
+            TextureFormat.Depth24Stencil8 => 0u,
             TextureFormat.R8 => 1u,
+            TextureFormat.RG16F => 4u,
             TextureFormat.RGB8 => 3u,
             TextureFormat.RGBA8 => 4u,
+            TextureFormat.RGBA16F => 8u,
             _ => 0u
         };
     }

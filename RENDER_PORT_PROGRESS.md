@@ -68,6 +68,10 @@ Slice 1 through the first runtime integration layer are landed:
 - `RenderBufferManager` now routes read/write color-output frames through offscreen primary and secondary color buffers and resolves the final color back to the viewport target when needed
 - `Graphics` now has a managed fullscreen-quad draw path with cached pipeline state, cached custom-uniform layout parsing, and generic shader-backed postprocess execution for render-path passes
 - `ToneMappingPass` and generic `FullScreenShaderPass` now execute managed fullscreen postprocess draws instead of only contributing metadata and trait flags
+- real sample verification exposed two regressions introduced during the managed pipeline work and both are now fixed:
+  - CPU-backed textures were created on GPU with full rbfx mip counts but only uploaded level 0, which made mipmapped sampling go black; managed GPU uploads now keep CPU-backed textures single-mip until full subresource upload is implemented
+  - render-pipeline offscreen color buffers were being paired with the viewport depth target; managed `RenderBufferManager` now allocates a substitute depth buffer for read/write offscreen frames, matching the upstream rbfx substitute-buffer path more closely
+- `RedBolt.Sample.FirstCube` and `RedBolt.Sample.StaticScene` now both exit cleanly again and produce non-black screenshots with `--screenshot-on-exit`
 
 ## Current Cross-Cutting Requirement
 
@@ -90,4 +94,5 @@ Slice 1 through the first runtime integration layer are landed:
 - Port the execution side of the remaining built-in passes (`AutoExposurePass`, `BloomPass`, `AmbientOcclusionPass`, `OutlineRenderPass`) on top of the new fullscreen-quad path.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
+- Replace the current substitute-depth and fullscreen-copy implementation with a closer port of upstream `RenderBuffer` / `RenderBufferManager` semantics, including proper depth/readback formats and `DrawTextureRegion`-style color-space-aware copies.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

@@ -1,3 +1,6 @@
+using System.Linq.Expressions;
+using System.Reflection;
+
 namespace RedBolt;
 
 /// <summary>
@@ -282,7 +285,10 @@ public sealed class AutoExposurePass : RenderPass
     private const string MinExposureName = "Exposure: Min";
     private const string MaxExposureName = "Exposure: Max";
     private const string AdaptRateName = "Exposure: Adapt Rate";
+    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
     private Parameters currentParameters = new();
+    private CachedBuffers? cachedBuffers;
+    private bool isAdaptedLuminanceInitialized;
 
     public AutoExposurePass(string? passName = null)
         : base(passName)
@@ -326,6 +332,55 @@ public sealed class AutoExposurePass : RenderPass
         SetInternallyEnabled(true);
     }
 
+    public override void Update(SharedRenderPassState sharedState)
+    {
+        base.Update(sharedState);
+
+        if (currentParameters.AutoExposure)
+            EnsureCachedBuffers(sharedState);
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+            return;
+
+        renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+
+        if (currentParameters.AutoExposure)
+        {
+            var buffers = EnsureCachedBuffers(sharedState);
+            if (buffers is null)
+                return;
+
+            EvaluateDownsampledColorBuffer(renderBufferManager, graphics, buffers);
+            EvaluateLuminance(renderBufferManager, graphics, buffers);
+            EvaluateAdaptedLuminance(renderBufferManager, graphics, buffers);
+        }
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(new ApplyExposureParameters
+        {
+            MinMaxExposure = new Vector2(currentParameters.MinExposure, currentParameters.MaxExposure),
+            AutoExposureMiddleGrey = 0.6f
+        }, shaderParameters);
+
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        graphics.DrawFullscreenQuad(
+            "Apply exposure",
+            "v2/P_AutoExposure",
+            currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            renderBufferManager.GetSecondaryColorTexture(),
+            currentParameters.AutoExposure ? cachedBuffers?.AdaptedLuminance.Texture : null,
+            shaderParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+    }
+
     public override RenderPass Clone()
     {
         var clone = new AutoExposurePass(GetPassName())
@@ -347,6 +402,125 @@ public sealed class AutoExposurePass : RenderPass
         public Parameters()
         {
         }
+    }
+
+    private sealed class CachedBuffers
+    {
+        public required TextureRenderBuffer Color128 { get; init; }
+        public required TextureRenderBuffer Lum64 { get; init; }
+        public required TextureRenderBuffer Lum16 { get; init; }
+        public required TextureRenderBuffer Lum4 { get; init; }
+        public required TextureRenderBuffer Lum1 { get; init; }
+        public required TextureRenderBuffer AdaptedLuminance { get; init; }
+        public required TextureRenderBuffer PreviousAdaptedLuminance { get; init; }
+    }
+
+    private struct InputInvSizeParameters
+    {
+        [ShaderParameterName("InputInvSize")]
+        public Vector2 InputInvSize;
+    }
+
+    private struct AdaptRateParameters
+    {
+        [ShaderParameterName("AdaptRate")]
+        public float AdaptRate;
+    }
+
+    private struct ApplyExposureParameters
+    {
+        [ShaderParameterName("MinMaxExposure")]
+        public Vector2 MinMaxExposure;
+
+        [ShaderParameterName("AutoExposureMiddleGrey")]
+        public float AutoExposureMiddleGrey;
+    }
+
+    private CachedBuffers? EnsureCachedBuffers(SharedRenderPassState sharedState)
+    {
+        if (sharedState.RenderBufferManager is not { } manager)
+            return null;
+
+        cachedBuffers ??= new CachedBuffers
+        {
+            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(128, 128)),
+            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(64, 64)),
+            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(16, 16)),
+            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(4, 4)),
+            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2(1, 1)),
+            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2(1, 1)),
+            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2(1, 1))
+        };
+        return cachedBuffers;
+    }
+
+    private void EvaluateDownsampledColorBuffer(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
+    {
+        var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
+        if (viewportTexture is null)
+            return;
+
+        renderBufferManager.SetRenderTargets(graphics, buffers.Color128);
+        graphics.DrawCopyTexture(viewportTexture, bilinearFiltering: true);
+    }
+
+    private void EvaluateLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
+    {
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Color128, buffers.Lum64, "LUMINANCE64", new Vector2(1.0f / 128.0f, 1.0f / 128.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum64, buffers.Lum16, "LUMINANCE16", new Vector2(1.0f / 64.0f, 1.0f / 64.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum16, buffers.Lum4, "LUMINANCE4", new Vector2(1.0f / 16.0f, 1.0f / 16.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum4, buffers.Lum1, "LUMINANCE1", new Vector2(1.0f / 4.0f, 1.0f / 4.0f));
+    }
+
+    private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
+    {
+        renderBufferManager.SetRenderTargets(graphics, buffers.PreviousAdaptedLuminance);
+        var previousSource = isAdaptedLuminanceInitialized ? buffers.AdaptedLuminance.Texture : buffers.Lum1.Texture;
+        graphics.DrawCopyTexture(previousSource, bilinearFiltering: false);
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(new AdaptRateParameters
+        {
+            AdaptRate = currentParameters.AdaptRate
+        }, shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, buffers.AdaptedLuminance);
+        graphics.DrawFullscreenQuad(
+            "Adapt luminosity",
+            "v2/P_AutoExposure",
+            "ADAPTLUMINANCE",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            buffers.PreviousAdaptedLuminance.Texture,
+            buffers.Lum1.Texture,
+            shaderParameters,
+            new Vector2(1.0f, 1.0f),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+
+        isAdaptedLuminanceInitialized = true;
+    }
+
+    private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source,
+        TextureRenderBuffer target, string shaderDefines, Vector2 inputInvSize)
+    {
+        shaderParameters.Clear();
+        StructShaderParameters.Write(new InputInvSizeParameters
+        {
+            InputInvSize = inputInvSize
+        }, shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, target);
+        graphics.DrawFullscreenQuad(
+            "Downsample luminosity buffer",
+            "v2/P_AutoExposure",
+            shaderDefines,
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            source.Texture,
+            null,
+            shaderParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
 }
 
@@ -629,5 +803,69 @@ internal static class RenderPathParameterHelpers
     private static object? Load(string name, IReadOnlyDictionary<string, object?> parameters)
     {
         return parameters.TryGetValue(name, out var value) ? value : null;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+internal sealed class ShaderParameterNameAttribute : Attribute
+{
+    public ShaderParameterNameAttribute(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; }
+}
+
+internal static class StructShaderParameters
+{
+    public static void Write<T>(in T value, IDictionary<string, object?> target)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        StructShaderParameterCache<T>.Write(value, target);
+    }
+
+    private static class StructShaderParameterCache<T>
+        where T : struct
+    {
+        private static readonly Entry[] Entries = CreateEntries();
+
+        public static void Write(in T value, IDictionary<string, object?> target)
+        {
+            foreach (var entry in Entries)
+                target[entry.Name] = entry.Getter(value);
+        }
+
+        private static Entry[] CreateEntries()
+        {
+            var accessors = new List<Entry>();
+            var parameter = Expression.Parameter(typeof(T), "value");
+
+            foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public))
+            {
+                var name = field.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? field.Name;
+                var access = Expression.Field(parameter, field);
+                var convert = Expression.Convert(access, typeof(object));
+                var getter = Expression.Lambda<Func<T, object?>>(convert, parameter).Compile();
+                accessors.Add(new Entry(name, getter));
+            }
+
+            foreach (var property in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (!property.CanRead || property.GetMethod is null || property.GetIndexParameters().Length > 0)
+                    continue;
+
+                var name = property.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? property.Name;
+                var access = Expression.Property(parameter, property);
+                var convert = Expression.Convert(access, typeof(object));
+                var getter = Expression.Lambda<Func<T, object?>>(convert, parameter).Compile();
+                accessors.Add(new Entry(name, getter));
+            }
+
+            return accessors.ToArray();
+        }
+
+        private readonly record struct Entry(string Name, Func<T, object?> Getter);
     }
 }
