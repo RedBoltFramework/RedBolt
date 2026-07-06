@@ -69,6 +69,9 @@ layout(std140) uniform Material
     private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultEmissionTextureData = [0, 0, 0, 255];
     private static readonly string[] OutlinePassNames = ["deferred", "deferred_decal", "base", "alpha"];
+    private static readonly string[] NormalBufferPassNames = ["base", "alpha", "litbase", "litalpha"];
+    private const string NormalBufferShaderName = "M_NormalBuffer";
+    private const string NormalBufferShaderDefines = "URHO3D_SURFACE_NEED_NORMAL URHO3D_PIXEL_NEED_TEXCOORD";
     private static readonly IReadOnlyDictionary<string, object?> EmptyFullscreenParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private static readonly Regex CustomUniformFieldRegex = new(
         @"UNIFORM(?:_HIGHP)?\(\s*(?<type>[A-Za-z0-9_]+)\s+(?<name>[A-Za-z0-9_]+)\s*\)",
@@ -85,6 +88,7 @@ layout(std140) uniform Material
     private readonly Dictionary<Texture2D, UploadedTexture> uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
     private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
+    private readonly Dictionary<Pass, Pass> normalBufferPasses = new();
 
     private GCHandle clearColorHandle;
     private Texture2D? defaultAlbedoTexture;
@@ -376,6 +380,21 @@ layout(std140) uniform Material
                 RenderOutlinedStaticModel(viewport, staticModel, materialQuality, outlineGroup);
             }
         }
+    }
+
+    internal void RenderNormalBuffer(Viewport viewport, MaterialQuality materialQuality, IntRect? viewportRect = null)
+    {
+        ArgumentNullException.ThrowIfNull(viewport);
+
+        if (immediateContext is null)
+            return;
+
+        var targetRect = viewportRect ?? new IntRect(0, 0, Width, Height);
+        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
+            targetRect.Left, targetRect.Top, targetRect.Width, targetRect.Height, 0.0f, 1.0f);
+        immediateContext.SetViewports(1, diligentViewport, 0, 0);
+        foreach (var staticModel in viewport.Scene.StaticModels)
+            RenderNormalStaticModel(viewport, staticModel, materialQuality);
     }
 
     /// <summary>
@@ -828,6 +847,58 @@ layout(std140) uniform Material
                 viewport,
                 outlineMaterial,
                 pass,
+                geometry,
+                vertexBuffer,
+                staticModel,
+                cameraZone,
+                drawableZone,
+                drawableAmbient,
+                light: null);
+            drawCalls += passDrawCalls;
+            primitives += passPrimitives;
+        }
+
+        return (drawCalls, primitives);
+    }
+
+    private (uint DrawCalls, uint Primitives) RenderNormalStaticModel(Viewport viewport, StaticModel staticModel,
+        MaterialQuality materialQuality)
+    {
+        if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
+            return default;
+
+        uint drawCalls = 0;
+        uint primitives = 0;
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+
+        for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
+        {
+            var geometry = model.GetGeometry(geometryIndex, 0);
+            var vertexBuffer = geometry?.GetVertexBuffer(0);
+            var material = staticModel.GetMaterial(geometryIndex);
+            if (geometry is null || vertexBuffer is null || material is null)
+                continue;
+
+            if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) == 0)
+                continue;
+
+            var resourceCache = material.OwnerCache;
+            if (resourceCache is null)
+                continue;
+
+            var technique = material.FindTechnique(materialQuality);
+            var referencePass = technique is not null ? GetFirstNormalBufferPass(technique) : null;
+            if (referencePass is null)
+                continue;
+
+            var normalPass = GetOrCreateNormalBufferPass(referencePass);
+            var (passDrawCalls, passPrimitives) = RenderGeometryPass(
+                resourceCache,
+                viewport,
+                material,
+                normalPass,
                 geometry,
                 vertexBuffer,
                 staticModel,
@@ -1745,6 +1816,33 @@ layout(std140) uniform Material
         return null;
     }
 
+    private Pass GetOrCreateNormalBufferPass(Pass referencePass)
+    {
+        if (normalBufferPasses.TryGetValue(referencePass, out var cachedPass))
+            return cachedPass;
+
+        var normalPass = referencePass.Clone();
+        normalPass.SetBlendMode(BlendMode.Replace);
+        normalPass.SetColorWrite(true);
+        normalPass.SetDepthWrite(false);
+        normalPass.SetPixelShader(NormalBufferShaderName);
+        normalPass.SetVertexShaderDefines(AppendShaderDefines(referencePass.VertexShaderDefines, NormalBufferShaderDefines));
+        normalPass.SetPixelShaderDefines(AppendShaderDefines(referencePass.PixelShaderDefines, NormalBufferShaderDefines));
+        normalBufferPasses[referencePass] = normalPass;
+        return normalPass;
+    }
+
+    private static Pass? GetFirstNormalBufferPass(Technique technique)
+    {
+        foreach (var passName in NormalBufferPassNames)
+        {
+            if (technique.GetPass(passName) is { } pass)
+                return pass;
+        }
+
+        return null;
+    }
+
     private static void AddLightDefines(ICollection<string> defines, Light light)
     {
         defines.Add(light.GetLightType() switch
@@ -1764,6 +1862,27 @@ layout(std140) uniform Material
     private static bool PassUsesLighting(Pass pass)
     {
         return pass.Name is "litbase" or "litalpha" or "light";
+    }
+
+    private static string AppendShaderDefines(string existingDefines, string extraDefines)
+    {
+        var orderedDefines = new List<string>();
+        var seenDefines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        static void AppendUniqueDefines(List<string> destination, HashSet<string> seen, string defines)
+        {
+            foreach (var define in defines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!seen.Add(define))
+                    continue;
+
+                destination.Add(define);
+            }
+        }
+
+        AppendUniqueDefines(orderedDefines, seenDefines, existingDefines);
+        AppendUniqueDefines(orderedDefines, seenDefines, extraDefines);
+        return string.Join(' ', orderedDefines);
     }
 
     private static string BuildLayoutSignature(VertexBuffer vertexBuffer)

@@ -58,4 +58,28 @@ public sealed class ShaderFileTests
             RbfxTestData.RemoveResourceDirs(Resources);
         }
     }
+
+    [Fact]
+    public void Normal_buffer_shader_loads_and_prepares_alpha_mask_support()
+    {
+        RbfxTestData.AddResourceDirs(Resources);
+        try
+        {
+            var shader = Resources.GetResource<Shader>("M_NormalBuffer");
+            var prepared = shader.PrepareSource(
+                ShaderStage.Pixel,
+                "URHO3D_GEOMETRY_STATIC URHO3D_VERTEX_HAS_NORMAL URHO3D_VERTEX_NORMAL_AVAILABLE URHO3D_TEXTURE_ALBEDO=1 ALPHAMASK");
+
+            Assert.Equal("M_NormalBuffer", shader.GetShaderName());
+            Assert.Contains("Surface_SetNormal", shader.SourceCode, StringComparison.Ordinal);
+            Assert.Contains("Surface_SetBaseAlbedo", shader.SourceCode, StringComparison.Ordinal);
+            Assert.Contains("#define URHO3D_SURFACE_NEED_NORMAL", prepared, StringComparison.Ordinal);
+            Assert.Contains("#define URHO3D_PIXEL_NEED_TEXCOORD", prepared, StringComparison.Ordinal);
+            Assert.Contains("#define ALPHAMASK", prepared, StringComparison.Ordinal);
+        }
+        finally
+        {
+            RbfxTestData.RemoveResourceDirs(Resources);
+        }
+    }
 }

@@ -141,6 +141,39 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_publishes_normal_buffer_when_ssao_is_enabled()
+    {
+        RbfxTestData.AddResourceDirs(fixture.Resources);
+        try
+        {
+            var scene = new Scene();
+            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPath = new RenderPath("RenderPaths/Test.xml");
+            var capturePass = new BufferCaptureRenderPass("Capture", SharedRenderPassState.NormalBufferId);
+            renderPath.AddPass(capturePass);
+            renderPath.AddPass(new AmbientOcclusionPass("AmbientOcclusion"));
+            renderPipeline.SetRenderPath(renderPath);
+
+            var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+            var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+            var view = renderPipeline.Instantiate();
+
+            Assert.True(view.Define(viewport, fixture.Graphics));
+
+            view.Update(fixture.Graphics);
+            view.Render(fixture.Graphics, MaterialQuality.High);
+
+            Assert.True(capturePass.WasBufferPresent);
+            Assert.Equal(TextureFormat.RGBA8, capturePass.CapturedFormat);
+            Assert.Equal(new IntVector2(320, 200), capturePass.CapturedSize);
+        }
+        finally
+        {
+            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+        }
+    }
+
+    [Fact]
     public void Render_buffer_manager_supports_secondary_color_buffer_when_requested()
     {
         var manager = new RenderBufferManager();
@@ -462,6 +495,49 @@ public sealed class RenderPipelineTests
         {
             public int UpdateCalls;
             public int RenderCalls;
+        }
+    }
+
+    private sealed class BufferCaptureRenderPass : RenderPass
+    {
+        private readonly StringHash bufferId;
+        private readonly State state;
+
+        public BufferCaptureRenderPass(string passName, StringHash bufferId)
+            : this(passName, bufferId, new State())
+        {
+        }
+
+        private BufferCaptureRenderPass(string passName, StringHash bufferId, State state)
+            : base(passName)
+        {
+            this.bufferId = bufferId;
+            this.state = state;
+        }
+
+        public bool WasBufferPresent => state.WasBufferPresent;
+
+        public TextureFormat CapturedFormat => state.CapturedFormat;
+
+        public IntVector2 CapturedSize => state.CapturedSize;
+
+        public override void Render(SharedRenderPassState sharedState)
+        {
+            state.WasBufferPresent = sharedState.RenderBuffers.TryGetValue(bufferId, out var renderBuffer);
+            if (!state.WasBufferPresent || renderBuffer is null || renderBuffer.GetTexture() is not Texture texture)
+                return;
+
+            state.CapturedFormat = texture.Format;
+            state.CapturedSize = new IntVector2(texture.Width, texture.Height);
+        }
+
+        public override RenderPass Clone() => new BufferCaptureRenderPass(GetPassName(), bufferId, state);
+
+        private sealed class State
+        {
+            public bool WasBufferPresent;
+            public TextureFormat CapturedFormat;
+            public IntVector2 CapturedSize;
         }
     }
 

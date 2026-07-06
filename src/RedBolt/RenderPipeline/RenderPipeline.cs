@@ -227,6 +227,7 @@ public class RenderPipeline : Component
         private readonly RenderPipelineStats stats = new();
         private readonly List<OutlineGroup> outlineGroups = [];
         private TextureRenderBuffer? outlineBuffer;
+        private TextureRenderBuffer? normalBuffer;
         private CommonFrameInfo frameInfo = new();
         private RenderPath? renderPath;
         private Viewport? viewport;
@@ -319,6 +320,7 @@ public class RenderPipeline : Component
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(viewport, materialQuality, frameInfo.ViewportRect);
+            RenderNormalBuffer(graphics, materialQuality);
             RenderOutlines(graphics, materialQuality);
             renderPath?.Render(sharedState);
             renderBufferManager.OnRenderEnd(frameInfo);
@@ -366,9 +368,32 @@ public class RenderPipeline : Component
             renderBufferManager.SetOutputRenderTargets(graphics);
         }
 
+        private void RenderNormalBuffer(Graphics graphics, MaterialQuality materialQuality)
+        {
+            if (viewport is null || renderPath is null || !HasEnabledNormalBufferPass())
+                return;
+
+            var normalRenderBuffer = EnsureNormalBuffer();
+            sharedState.RenderBuffers[SharedRenderPassState.NormalBufferId] = normalRenderBuffer;
+
+            renderBufferManager.SetRenderTargets(
+                graphics,
+                normalRenderBuffer,
+                renderBufferManager.GetDepthStencilOutput(),
+                readOnlyDepth: true);
+            graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
+            graphics.RenderNormalBuffer(viewport, materialQuality, frameInfo.ViewportRect);
+            renderBufferManager.SetOutputRenderTargets(graphics);
+        }
+
         private bool HasEnabledOutlinePass()
         {
             return renderPath is not null && renderPath.GetPasses().Any(static pass => pass is OutlineRenderPass && pass.IsEnabledEffectively());
+        }
+
+        private bool HasEnabledNormalBufferPass()
+        {
+            return renderPath is not null && renderPath.GetPasses().Any(static pass => pass is AmbientOcclusionPass && pass.IsEnabledEffectively());
         }
 
         private void CollectOutlineGroups(Scene scene)
@@ -399,6 +424,22 @@ public class RenderPipeline : Component
                 ?? throw new InvalidOperationException("Outline render buffer must be backed by a TextureRenderBuffer.");
             outlineBuffer.SetViewportRect(frameInfo.ViewportRect);
             return outlineBuffer;
+        }
+
+        private TextureRenderBuffer EnsureNormalBuffer()
+        {
+            if (normalBuffer?.GetTexture() is Texture texture
+                && texture.Width == frameInfo.ViewportRect.Width
+                && texture.Height == frameInfo.ViewportRect.Height)
+            {
+                normalBuffer.SetViewportRect(frameInfo.ViewportRect);
+                return normalBuffer;
+            }
+
+            normalBuffer = renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8)) as TextureRenderBuffer
+                ?? throw new InvalidOperationException("Normal render buffer must be backed by a TextureRenderBuffer.");
+            normalBuffer.SetViewportRect(frameInfo.ViewportRect);
+            return normalBuffer;
         }
     }
 }
