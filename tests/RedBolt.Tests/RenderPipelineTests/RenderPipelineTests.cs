@@ -349,6 +349,17 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_maps_partial_clear_depth_to_opengl_clip_space()
+    {
+        var method = typeof(RenderBufferManager).GetMethod("GetFullscreenQuadClearDepth", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(method);
+        Assert.Equal(-1.0f, Assert.IsType<float>(method!.Invoke(null, [0.0f])!));
+        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.5f])!));
+        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f])!));
+    }
+
+    [Fact]
     public void Render_buffer_manager_derives_output_traits_from_render_target_texture()
     {
         var manager = new RenderBufferManager();

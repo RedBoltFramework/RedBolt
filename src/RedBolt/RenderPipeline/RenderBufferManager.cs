@@ -420,7 +420,7 @@ public sealed class RenderBufferManager
         var clearParameters = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["Color"] = new Vector4(color.R, color.G, color.B, color.A),
-            ["Depth"] = depth
+            ["Depth"] = GetFullscreenQuadClearDepth(depth)
         };
         graphics.DrawFullscreenQuad(
             "Clear output subregion",
@@ -631,6 +631,10 @@ public sealed class RenderBufferManager
         secondaryColorBuffer = null;
         depthBuffer = null;
     }
+
+    // Fullscreen-quad subrect clears run in the current managed OpenGL backend and therefore
+    // need the same [0, 1] -> [-1, 1] depth remap that rbfx applies before drawing the clear quad.
+    private static float GetFullscreenQuadClearDepth(float depth) => depth * 2.0f - 1.0f;
 
     private static Vector4 GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
     {
