@@ -854,10 +854,7 @@ layout(std140) uniform Material
         if (device is null)
             return null;
 
-        if (blendMode != BlendMode.Replace)
-            throw new NotSupportedException($"Fullscreen blend mode '{blendMode}' is not implemented yet.");
-
-        var key = new FullscreenPipelineKey(shaderName, shaderDefines, bilinearColorSampler, currentColorTargetFormat, currentDepthTargetFormat);
+        var key = new FullscreenPipelineKey(shaderName, shaderDefines, blendMode, bilinearColorSampler, currentColorTargetFormat, currentDepthTargetFormat);
         if (fullscreenPipelines.TryGetValue(key, out var cached))
             return cached;
 
@@ -905,6 +902,7 @@ layout(std140) uniform Material
 
             psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
             psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
+            ConfigureBlendState(psoCreateInfo, blendMode);
 
             device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
@@ -1662,6 +1660,109 @@ layout(std140) uniform Material
         _ => ComparisonFunction.ComparisonFuncLessEqual
     };
 
+    private static void ConfigureBlendState(GraphicsPipelineStateCreateInfo pipelineStateCreateInfo, BlendMode blendMode)
+    {
+        using var primaryRenderTargetBlend = CreateRenderTargetBlendDesc(blendMode);
+        using var defaultRenderTargetBlend = new RenderTargetBlendDesc();
+        using var renderTargets = new global::SharpCpp.NativeArray<RenderTargetBlendDesc>(
+        [
+            primaryRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend,
+            defaultRenderTargetBlend
+        ]);
+
+        pipelineStateCreateInfo.GraphicsPipelineBlendDescIndependentBlendEnable = false;
+        pipelineStateCreateInfo.GraphicsPipelineBlendDescRenderTargets = renderTargets;
+    }
+
+    private static RenderTargetBlendDesc CreateRenderTargetBlendDesc(BlendMode blendMode)
+    {
+        return new RenderTargetBlendDesc
+        {
+            BlendEnable = IsBlendEnabled(blendMode),
+            SrcBlend = GetSourceBlend(blendMode),
+            DestBlend = GetDestinationBlend(blendMode),
+            SrcBlendAlpha = GetSourceAlphaBlend(blendMode),
+            DestBlendAlpha = GetDestinationAlphaBlend(blendMode),
+            BlendOp = GetBlendOperation(blendMode),
+            BlendOpAlpha = GetBlendOperation(blendMode),
+            RenderTargetWriteMask = ColorMask.ColorMaskAll
+        };
+    }
+
+    private static bool IsBlendEnabled(BlendMode blendMode) => blendMode != BlendMode.Replace;
+
+    private static BlendFactor GetSourceBlend(BlendMode blendMode) => blendMode switch
+    {
+        BlendMode.Replace => BlendFactor.BlendFactorOne,
+        BlendMode.Add => BlendFactor.BlendFactorOne,
+        BlendMode.Multiply => BlendFactor.BlendFactorDestColor,
+        BlendMode.Alpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.AddAlpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.PremulAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.InvDestAlpha => BlendFactor.BlendFactorInvDestAlpha,
+        BlendMode.Subtract => BlendFactor.BlendFactorOne,
+        BlendMode.SubtractAlpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.Decal => BlendFactor.BlendFactorSrcAlpha,
+        _ => BlendFactor.BlendFactorOne
+    };
+
+    private static BlendFactor GetDestinationBlend(BlendMode blendMode) => blendMode switch
+    {
+        BlendMode.Replace => BlendFactor.BlendFactorZero,
+        BlendMode.Add => BlendFactor.BlendFactorOne,
+        BlendMode.Multiply => BlendFactor.BlendFactorZero,
+        BlendMode.Alpha => BlendFactor.BlendFactorInvSrcAlpha,
+        BlendMode.AddAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.PremulAlpha => BlendFactor.BlendFactorInvSrcAlpha,
+        BlendMode.InvDestAlpha => BlendFactor.BlendFactorDestAlpha,
+        BlendMode.Subtract => BlendFactor.BlendFactorOne,
+        BlendMode.SubtractAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.Decal => BlendFactor.BlendFactorInvSrcAlpha,
+        _ => BlendFactor.BlendFactorZero
+    };
+
+    private static BlendFactor GetSourceAlphaBlend(BlendMode blendMode) => blendMode switch
+    {
+        BlendMode.Replace => BlendFactor.BlendFactorOne,
+        BlendMode.Add => BlendFactor.BlendFactorOne,
+        BlendMode.Multiply => BlendFactor.BlendFactorDestColor,
+        BlendMode.Alpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.AddAlpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.PremulAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.InvDestAlpha => BlendFactor.BlendFactorInvDestAlpha,
+        BlendMode.Subtract => BlendFactor.BlendFactorOne,
+        BlendMode.SubtractAlpha => BlendFactor.BlendFactorSrcAlpha,
+        BlendMode.Decal => BlendFactor.BlendFactorZero,
+        _ => BlendFactor.BlendFactorOne
+    };
+
+    private static BlendFactor GetDestinationAlphaBlend(BlendMode blendMode) => blendMode switch
+    {
+        BlendMode.Replace => BlendFactor.BlendFactorZero,
+        BlendMode.Add => BlendFactor.BlendFactorOne,
+        BlendMode.Multiply => BlendFactor.BlendFactorZero,
+        BlendMode.Alpha => BlendFactor.BlendFactorInvSrcAlpha,
+        BlendMode.AddAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.PremulAlpha => BlendFactor.BlendFactorInvSrcAlpha,
+        BlendMode.InvDestAlpha => BlendFactor.BlendFactorDestAlpha,
+        BlendMode.Subtract => BlendFactor.BlendFactorOne,
+        BlendMode.SubtractAlpha => BlendFactor.BlendFactorOne,
+        BlendMode.Decal => BlendFactor.BlendFactorOne,
+        _ => BlendFactor.BlendFactorZero
+    };
+
+    private static BlendOperation GetBlendOperation(BlendMode blendMode) => blendMode switch
+    {
+        BlendMode.Subtract or BlendMode.SubtractAlpha => BlendOperation.BlendOperationRevSubtract,
+        _ => BlendOperation.BlendOperationAdd
+    };
+
     private static FillMode GetEffectiveFillMode(Camera camera, Material material)
     {
         return (FillMode)Math.Max((int)camera.GetFillMode(), (int)material.GetFillMode());
@@ -2175,6 +2276,7 @@ layout(std140) uniform Material
         global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
 
     private readonly record struct FullscreenPipelineKey(string ShaderName, string ShaderDefines,
+        BlendMode BlendMode,
         bool BilinearColorSampler, global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
         global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
 

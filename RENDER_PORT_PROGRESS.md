@@ -74,6 +74,10 @@ Slice 1 through the first runtime integration layer are landed:
   - CPU-backed textures were created on GPU with full rbfx mip counts but only uploaded level 0, which made mipmapped sampling go black; managed GPU uploads now keep CPU-backed textures single-mip until full subresource upload is implemented
   - render-pipeline offscreen color buffers were being paired with the viewport depth target; managed `RenderBufferManager` now allocates a substitute depth buffer for read/write offscreen frames, matching the upstream rbfx substitute-buffer path more closely
 - `RedBolt.Sample.FirstCube` and `RedBolt.Sample.StaticScene` now both exit cleanly again and produce non-black screenshots with `--screenshot-on-exit`
+- SharpCpp fixed-size array support now uses a shared `SharpCpp.Support.NativeArray<T>` plus generated per-field proxy accessors for handle-backed and nested fixed arrays, so bindings no longer emit duplicate `NativeArray<>` types per assembly
+- fixed-array fields like Diligent `BlendStateDesc.RenderTargets[8]` can now be configured from managed code through item getter/setter thunks instead of raw memory aliasing
+- `cmake --build --preset Debug --target redbolt-generate-native-bindings` and `cmake --build --preset Debug --target redbolt-csharp` are green again after the array-support slice
+- sample runtime is currently blocked in this sandbox by `SDL_Init` failing before window/context creation, so render verification still needs a working local graphics session outside the restricted shell
 
 ## Current Cross-Cutting Requirement
 
@@ -94,7 +98,6 @@ Slice 1 through the first runtime integration layer are landed:
 
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Port the execution side of the remaining built-in passes (`BloomPass`, `AmbientOcclusionPass`, `OutlineRenderPass`) on top of the new fullscreen-quad path.
-- Fix the SharpCpp bootstrap surface for fixed-size arrays of handle-backed elements so Diligent `BlendStateDesc.RenderTargets[0]` becomes configurable from managed code; this currently blocks faithful `BlendMode.Add` / `BlendMode.Alpha` fullscreen postprocess states for upstream bloom, SSAO combine, and outline passes.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
 - Replace the current substitute-depth and fullscreen-copy implementation with a closer port of upstream `RenderBuffer` / `RenderBufferManager` semantics, including proper depth/readback formats and `DrawTextureRegion`-style color-space-aware copies.
