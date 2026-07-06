@@ -68,6 +68,8 @@ Slice 1 through the first runtime integration layer are landed:
 - `RenderBufferManager` now routes read/write color-output frames through offscreen primary and secondary color buffers and resolves the final color back to the viewport target when needed
 - `Graphics` now has a managed fullscreen-quad draw path with cached pipeline state, cached custom-uniform layout parsing, and generic shader-backed postprocess execution for render-path passes
 - `ToneMappingPass` and generic `FullScreenShaderPass` now execute managed fullscreen postprocess draws instead of only contributing metadata and trait flags
+- `RenderBufferManager` now honors `RenderBufferManagerSettings.ReadableDepth` by allocating a readable depth texture even on frames that do not need color ping-pong, and shared render-pass state now exposes that offscreen depth buffer through the normal viewport depth slot
+- `Graphics.DrawFullscreenQuad` now has generic managed bindings for `sDepthBuffer` in addition to the existing color inputs, so upstream fullscreen shaders that sample depth can be ported without adding manual interop
 - real sample verification exposed two regressions introduced during the managed pipeline work and both are now fixed:
   - CPU-backed textures were created on GPU with full rbfx mip counts but only uploaded level 0, which made mipmapped sampling go black; managed GPU uploads now keep CPU-backed textures single-mip until full subresource upload is implemented
   - render-pipeline offscreen color buffers were being paired with the viewport depth target; managed `RenderBufferManager` now allocates a substitute depth buffer for read/write offscreen frames, matching the upstream rbfx substitute-buffer path more closely
@@ -91,7 +93,8 @@ Slice 1 through the first runtime integration layer are landed:
 ## Next Useful Checks
 
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
-- Port the execution side of the remaining built-in passes (`AutoExposurePass`, `BloomPass`, `AmbientOcclusionPass`, `OutlineRenderPass`) on top of the new fullscreen-quad path.
+- Port the execution side of the remaining built-in passes (`BloomPass`, `AmbientOcclusionPass`, `OutlineRenderPass`) on top of the new fullscreen-quad path.
+- Fix the SharpCpp bootstrap surface for fixed-size arrays of handle-backed elements so Diligent `BlendStateDesc.RenderTargets[0]` becomes configurable from managed code; this currently blocks faithful `BlendMode.Add` / `BlendMode.Alpha` fullscreen postprocess states for upstream bloom, SSAO combine, and outline passes.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
 - Replace the current substitute-depth and fullscreen-copy implementation with a closer port of upstream `RenderBuffer` / `RenderBufferManager` semantics, including proper depth/readback formats and `DrawTextureRegion`-style color-space-aware copies.

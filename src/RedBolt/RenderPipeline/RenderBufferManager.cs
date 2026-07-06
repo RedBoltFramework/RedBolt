@@ -87,6 +87,7 @@ public sealed class RenderBufferManager
         colorOutputParams = new RenderBufferParams(GetColorTextureFormat(settings.ColorSpace));
         depthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8);
 
+        var needReadableDepth = settings.ReadableDepth;
         if (frameSettings.SupportColorReadWrite)
         {
             depthStencilBuffer = EnsureDepthBuffer();
@@ -95,7 +96,7 @@ public sealed class RenderBufferManager
         }
         else
         {
-            depthStencilBuffer = viewportDepthBuffer;
+            depthStencilBuffer = needReadableDepth ? EnsureDepthBuffer() : viewportDepthBuffer;
             writeableColorBuffer = viewportColorBuffer;
             readableColorBuffer = frameSettings.ReadableColor ? EnsureSecondaryColorBuffer() : null;
         }
@@ -170,7 +171,8 @@ public sealed class RenderBufferManager
             blendMode,
             bilinearColorSampler,
             albedoTexture: null,
-            normalTexture: null,
+            secondaryTexture: null,
+            depthTexture: null,
             parameters,
             GetInvOutputSize(),
             GetDefaultClipToUVSpaceOffsetAndScale(),
@@ -195,7 +197,8 @@ public sealed class RenderBufferManager
             blendMode,
             bilinearColorSampler,
             GetSecondaryColorTexture(),
-            null,
+            secondaryTexture: null,
+            depthTexture: null,
             parameters,
             GetInvOutputSize(),
             GetDefaultClipToUVSpaceOffsetAndScale(),
@@ -246,6 +249,8 @@ public sealed class RenderBufferManager
     public RenderBuffer GetDepthStencilOutput() => depthStencilBuffer;
 
     public RenderBuffer GetColorOutput() => writeableColorBuffer;
+
+    public Texture? GetDepthStencilTexture() => depthStencilBuffer.GetTexture();
 
     public Texture? GetSecondaryColorTexture() => readableColorBuffer?.GetTexture();
 

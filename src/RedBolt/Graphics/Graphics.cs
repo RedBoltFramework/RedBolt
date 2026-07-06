@@ -332,7 +332,8 @@ layout(std140) uniform Material
             BlendMode.Replace,
             bilinearFiltering,
             sourceTexture,
-            null,
+            secondaryTexture: null,
+            depthTexture: null,
             EmptyFullscreenParameters,
             invInputSize,
             new Vector4(0.5f, 0.5f, 0.5f, 0.5f),
@@ -363,8 +364,9 @@ layout(std140) uniform Material
     }
 
     internal void DrawFullscreenQuad(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
-        bool bilinearColorSampler, Texture? albedoTexture, Texture? normalTexture, IReadOnlyDictionary<string, object?> parameters,
-        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical = false)
+        bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+        IReadOnlyDictionary<string, object?> parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale,
+        bool flipVertical = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
         ArgumentNullException.ThrowIfNull(parameters);
@@ -397,8 +399,10 @@ layout(std140) uniform Material
 
         if (albedoTexture is Texture2D texture2D)
             BindTextureToAvailableStages(pipeline, "sAlbedo", GetOrCreateUploadedTexture(texture2D).ShaderView);
-        if (normalTexture is Texture2D normalTexture2D)
-            BindTextureToAvailableStages(pipeline, "sNormal", GetOrCreateUploadedTexture(normalTexture2D).ShaderView);
+        if (secondaryTexture is Texture2D secondaryTexture2D)
+            BindTextureToAvailableStages(pipeline, "sNormal", GetOrCreateUploadedTexture(secondaryTexture2D).ShaderView);
+        if (depthTexture is Texture2D depthTexture2D)
+            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetOrCreateUploadedTexture(depthTexture2D).ShaderView);
 
         immediateContext.SetPipelineState(pipeline.PipelineState);
         immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);

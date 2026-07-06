@@ -375,7 +375,8 @@ public sealed class AutoExposurePass : RenderPass
             BlendMode.Replace,
             bilinearColorSampler: true,
             renderBufferManager.GetSecondaryColorTexture(),
-            currentParameters.AutoExposure ? cachedBuffers?.AdaptedLuminance.Texture : null,
+            secondaryTexture: currentParameters.AutoExposure ? cachedBuffers?.AdaptedLuminance.Texture : null,
+            depthTexture: null,
             shaderParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
@@ -492,7 +493,8 @@ public sealed class AutoExposurePass : RenderPass
             BlendMode.Replace,
             bilinearColorSampler: true,
             buffers.PreviousAdaptedLuminance.Texture,
-            buffers.Lum1.Texture,
+            secondaryTexture: buffers.Lum1.Texture,
+            depthTexture: null,
             shaderParameters,
             new Vector2(1.0f, 1.0f),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
@@ -517,7 +519,8 @@ public sealed class AutoExposurePass : RenderPass
             BlendMode.Replace,
             bilinearColorSampler: true,
             source.Texture,
-            null,
+            secondaryTexture: null,
+            depthTexture: null,
             shaderParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());

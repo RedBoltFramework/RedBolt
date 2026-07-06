@@ -93,6 +93,43 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_allocates_readable_depth_buffer_when_requested()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ReadableDepth = true
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 640, 360));
+
+        Assert.Null(manager.GetColorOutput().GetTexture());
+        Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
+        Assert.Equal(TextureFormat.Depth24Stencil8, manager.GetDepthStencilOutput().GetTexture()!.Format);
+        Assert.Same(manager.GetDepthStencilOutput().GetTexture(), manager.GetDepthStencilTexture());
+        Assert.False(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
+    public void Render_buffer_manager_shared_state_uses_readable_depth_buffer_when_requested()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ReadableDepth = true
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        var sharedState = new SharedRenderPassState();
+        manager.PopulateSharedState(sharedState);
+
+        Assert.True(sharedState.RenderBuffers.TryGetValue("Viewport.Depth", out var depthBuffer));
+        Assert.NotNull(depthBuffer.GetTexture());
+        Assert.Same(manager.GetDepthStencilTexture(), depthBuffer.GetTexture());
+    }
+
+    [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
