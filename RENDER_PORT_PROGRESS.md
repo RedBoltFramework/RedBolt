@@ -63,6 +63,8 @@ Slice 1 through the first runtime integration layer are landed:
 - `RenderPath` is being upgraded from a RedBolt-only XML subset to rbfx-compatible `.renderpath` loading and default render-path resolution
 - `.renderpath` JSON loading now instantiates real built-in pass classes for the upstream default path (`AutoExposurePass`, `AmbientOcclusionPass`, `BloomPass`, `ToneMappingPass`, `OutlineRenderPass`, `FullScreenShaderPass`) instead of collapsing everything into a generic placeholder
 - focused tests now verify loading the real upstream `rbfx/bin/CoreData/RenderPaths/Default.renderpath` asset and collecting its exposed parameters
+- `Graphics.RenderViewport` has been split into reusable target-binding, scene-draw, clear, present, and unbind steps so the managed `RenderPipeline` owns frame execution order instead of delegating the whole frame to the legacy viewport helper
+- `RenderBufferManager` can now bind its writable output buffer through `Graphics`, and render-buffer textures are uploaded as real shader-resource plus render-target GPU textures when they have no CPU pixel payload
 
 ## Current Cross-Cutting Requirement
 
@@ -81,7 +83,7 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
-- Finish replacing the legacy scene draw embedded in `Graphics.RenderViewport` with pipeline-owned scene-processing and pass execution stages.
-- Continue from the minimal `RenderBufferManager` into real offscreen render-target binding, fullscreen-quad drawing, and pass-to-pass data flow.
-- Port the execution side of the newly loaded built-in passes, starting with `FullScreenShaderPass` / `ToneMappingPass` helpers and the `RenderBufferManager` methods they require.
+- Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
+- Port the execution side of the newly loaded built-in passes, starting with `FullScreenShaderPass` / `ToneMappingPass` helpers and the remaining `RenderBufferManager` fullscreen-quad methods they require.
+- Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

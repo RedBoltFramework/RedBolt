@@ -91,6 +91,8 @@ layout(std140) uniform Material
     private ISwapChain? swapChain;
     private ITextureView? renderTargetView;
     private ITextureView? depthStencilView;
+    private ITextureView? currentDepthStencilTarget;
+    private int currentRenderTargetCount;
     private IntPtr glContext;
     private bool shaderReflectionDiagnosticsDumped;
     private SdlWindow? window;
@@ -164,28 +166,100 @@ layout(std140) uniform Material
         RenderViewport(viewport, MaterialQuality.High, screenshotPath);
     }
 
+    /// <summary>
+    /// Render viewport through the legacy direct path that binds the backbuffer, draws the scene and presents it.
+    /// </summary>
     internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, string? screenshotPath = null)
     {
         if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || renderTargetView is null || depthStencilView is null)
             return;
 
-        if (viewport.Camera.GetAutoAspectRatio())
-            viewport.Camera.SetAspectRatioInternal(Math.Max((float)Width / Math.Max(Height, 1), MathDefs.Epsilon));
-
         var viewportRect = GetEffectiveViewportRect(viewport);
+        SetSwapChainRenderTargets(viewportRect);
+        ClearCurrentRenderTargets();
+        RenderScene(viewport, materialQuality, viewportRect);
+        PresentFrame(screenshotPath);
+        UnbindRenderTargets();
+    }
+
+    /// <summary>
+    /// Bind a single color target and optional depth-stencil target for subsequent scene or post-process rendering.
+    /// </summary>
+    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView colorTarget, RenderTargetView? depthStencilTarget)
+    {
+        if (!IsInitialized || immediateContext is null)
+            return;
+
+        if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
+
+        renderTargets[0] = ResolveRenderTargetView(colorTarget);
+        currentRenderTargetCount = 1;
+        currentDepthStencilTarget = depthStencilTarget is { } depthTarget
+            ? ResolveRenderTargetView(depthTarget)
+            : null;
+
         using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
             viewportRect.Left,
             viewportRect.Top,
             viewportRect.Width,
             viewportRect.Height);
         immediateContext.SetViewports(1, diligentViewport, 0, 0);
+        immediateContext.SetRenderTargets((uint)currentRenderTargetCount, renderTargets, currentDepthStencilTarget!,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+    }
 
-        immediateContext.SetRenderTargets((uint)renderTargets.Length, renderTargets, depthStencilView,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.ClearRenderTarget(renderTargetView, clearColorHandle.AddrOfPinnedObject(),
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.ClearDepthStencil(depthStencilView, ClearDepthStencilFlags.ClearDepthFlag, 1.0f, 0,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+    /// <summary>
+    /// Bind the swap chain backbuffer and depth buffer for rendering.
+    /// </summary>
+    internal void SetSwapChainRenderTargets(IntRect viewportRect)
+    {
+        SetRenderTargets(viewportRect, RenderTargetView.SwapChainColor(), RenderTargetView.SwapChainDepthStencil());
+    }
+
+    /// <summary>
+    /// Clear currently bound render targets.
+    /// </summary>
+    internal void ClearCurrentRenderTargets(bool clearColor = true, bool clearDepth = true, float depth = 1.0f, byte stencil = 0)
+    {
+        if (!IsInitialized || immediateContext is null)
+            return;
+
+        if (clearColor)
+        {
+            for (var i = 0; i < currentRenderTargetCount; ++i)
+            {
+                if (renderTargets[i] is { } target)
+                {
+                    immediateContext.ClearRenderTarget(target, clearColorHandle.AddrOfPinnedObject(),
+                        ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+                }
+            }
+        }
+
+        if (clearDepth && currentDepthStencilTarget is not null)
+        {
+            immediateContext.ClearDepthStencil(currentDepthStencilTarget, ClearDepthStencilFlags.ClearDepthFlag, depth, stencil,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        }
+    }
+
+    /// <summary>
+    /// Draw the scene into whichever render targets are currently bound.
+    /// </summary>
+    internal void RenderScene(Viewport viewport, MaterialQuality materialQuality, IntRect? viewportRect = null)
+    {
+        ArgumentNullException.ThrowIfNull(viewport);
+
+        if (!IsInitialized)
+            return;
+
+        var effectiveViewportRect = viewportRect ?? GetEffectiveViewportRect(viewport);
+        if (viewport.Camera.GetAutoAspectRatio())
+        {
+            var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
+            viewport.Camera.SetAspectRatioInternal(aspectRatio);
+        }
 
         var directionalLight = viewport.Scene.GetAllComponents().Values
             .OfType<Light>()
@@ -204,12 +278,32 @@ layout(std140) uniform Material
             Log.Logger.LogDebug(
                 "Render diagnostics: drawCalls={DrawCalls}, primitives={Primitives}, staticModels={StaticModels}.",
                 submittedDrawCalls, submittedPrimitives, viewport.Scene.StaticModels.Count);
+    }
+
+    /// <summary>
+    /// Present the current frame after optional screenshot capture.
+    /// </summary>
+    internal void PresentFrame(string? screenshotPath = null)
+    {
+        if (!IsInitialized || swapChain is null)
+            return;
 
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SaveScreenshot(screenshotPath);
+
         swapChain.Present(0);
+    }
+
+    internal void UnbindRenderTargets()
+    {
+        if (!IsInitialized || immediateContext is null)
+            return;
+
         immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
+        renderTargets[0] = null;
+        currentRenderTargetCount = 0;
+        currentDepthStencilTarget = null;
     }
 
     public void SetVSync(bool enable)
@@ -692,7 +786,6 @@ layout(std140) uniform Material
         if (device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        var data = texture.GetData(0) ?? throw new InvalidOperationException($"Texture {texture.Name} has no base level data.");
         using var nativeName = new PinnedUtf8(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
         var textureDesc = textureDescOwner.Desc;
@@ -701,22 +794,63 @@ layout(std140) uniform Material
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySizeOrDepth = 1;
-        textureDesc.MipLevels = 1;
-        textureDesc.BindFlags = BindFlags.BindShaderResource;
-        textureDesc.Usage = Usage.UsageImmutable;
+        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
         textureDesc.Format = RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm;
 
-        using var dataHandle = new PinnedBuffer(data);
-        using var subresource = new TextureSubResData(dataHandle.Pointer, (nuint)(texture.Width * 4), 0);
-        using var textureData = new TextureData(subresource, 1, immediateContext);
-        device.CreateTexture(textureDesc, textureData, out var gpuTexture);
+        var data = texture.GetData(0);
+        if (data is { Length: > 0 })
+        {
+            textureDesc.BindFlags = BindFlags.BindShaderResource;
+            textureDesc.Usage = Usage.UsageImmutable;
+
+            using var dataHandle = new PinnedBuffer(data);
+            using var subresource = new TextureSubResData(dataHandle.Pointer, (nuint)(texture.Width * 4), 0);
+            using var textureData = new TextureData(subresource, 1, immediateContext);
+            device.CreateTexture(textureDesc, textureData, out var gpuTextureWithData);
+            if (gpuTextureWithData.IsNull)
+                throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
+
+            var shaderResourceView = gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource);
+            uploaded = new UploadedTexture(gpuTextureWithData, shaderResourceView, null);
+            uploadedTextures[texture] = uploaded;
+            return uploaded;
+        }
+
+        textureDesc.BindFlags = BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        textureDesc.Usage = Usage.UsageDefault;
+        device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
-        uploaded = new UploadedTexture(gpuTexture, shaderView);
+        var targetView = gpuTexture.GetDefaultView(TextureViewType.TextureViewRenderTarget);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView);
         uploadedTextures[texture] = uploaded;
         return uploaded;
+    }
+
+    private ITextureView ResolveRenderTargetView(RenderTargetView view)
+    {
+        return view.Type switch
+        {
+            RenderTargetViewType.SwapChainColor => renderTargetView ?? throw new InvalidOperationException("Swap chain color target is not available."),
+            RenderTargetViewType.SwapChainDepthStencil => depthStencilView ?? throw new InvalidOperationException("Swap chain depth target is not available."),
+            RenderTargetViewType.Resource => ResolveTextureRenderTargetView(view),
+            RenderTargetViewType.ResourceSlice when view.Slice == 0u => ResolveTextureRenderTargetView(view),
+            RenderTargetViewType.ReadOnlyResource or RenderTargetViewType.ReadOnlyResourceSlice =>
+                throw new NotSupportedException("Read-only depth texture views are not implemented yet."),
+            _ => throw new NotSupportedException($"Unsupported render target view type {view.Type}.")
+        };
+    }
+
+    private ITextureView ResolveTextureRenderTargetView(RenderTargetView view)
+    {
+        if (view.RenderTexture is not Texture2D texture)
+            throw new NotSupportedException("Only Texture2D render targets are supported in the current managed pipeline slice.");
+
+        var uploaded = GetOrCreateUploadedTexture(texture);
+        return uploaded.RenderTargetView
+            ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a render-target view.");
     }
 
     private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
@@ -1617,18 +1751,23 @@ layout(std140) uniform Material
 
     private sealed class UploadedTexture : IDisposable
     {
-        public UploadedTexture(ITexture texture, ITextureView shaderView)
+        public UploadedTexture(ITexture texture, ITextureView shaderView, ITextureView? renderTargetView)
         {
             Texture = texture;
             ShaderView = shaderView;
+            RenderTargetView = renderTargetView;
         }
 
         public ITexture Texture { get; }
 
         public ITextureView ShaderView { get; }
 
+        public ITextureView? RenderTargetView { get; }
+
         public void Dispose()
         {
+            ReleaseIfNotNull(RenderTargetView);
+            ReleaseIfNotNull(ShaderView);
             ReleaseIfNotNull(Texture);
         }
     }

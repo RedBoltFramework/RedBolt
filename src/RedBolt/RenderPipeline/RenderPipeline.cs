@@ -238,8 +238,14 @@ public class RenderPipeline : Component
                 return;
 
             RaiseRenderBegin(frameInfo);
-            graphics.RenderViewport(viewport, materialQuality, screenshotPath);
+
+            renderBufferManager.SetOutputRenderTargets(graphics);
+            graphics.ClearCurrentRenderTargets();
+            graphics.RenderScene(viewport, materialQuality, frameInfo.ViewportRect);
             renderPath?.Render(sharedState);
+
+            graphics.PresentFrame(screenshotPath);
+            graphics.UnbindRenderTargets();
             RaiseCollectStatistics(stats);
             RaiseRenderEnd(frameInfo);
         }

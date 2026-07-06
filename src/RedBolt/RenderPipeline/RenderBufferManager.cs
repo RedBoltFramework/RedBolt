@@ -127,6 +127,17 @@ public sealed class RenderBufferManager
         (writeableColorBuffer, readableColorBuffer) = (readableColorBuffer, writeableColorBuffer);
     }
 
+    /// <summary>
+    /// Bind the currently writable color buffer and matching depth-stencil buffer as render outputs.
+    /// </summary>
+    public void SetOutputRenderTargets(Graphics graphics, bool readOnlyDepth = false)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        var depthView = readOnlyDepth ? depthStencilBuffer.GetReadOnlyDepthView() : depthStencilBuffer.GetView();
+        graphics.SetRenderTargets(viewportRect, writeableColorBuffer.GetView(), depthView);
+    }
+
     public RenderBuffer GetDepthStencilOutput() => depthStencilBuffer;
 
     public RenderBuffer GetColorOutput() => writeableColorBuffer;
