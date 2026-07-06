@@ -115,9 +115,7 @@ public sealed class RenderBufferManager
             ? EnsureDepthBuffer()
             : viewportDepthBuffer;
         writeableColorBuffer = needSubstitutePrimaryBuffer ? EnsurePrimaryColorBuffer() : viewportColorBuffer;
-        readableColorBuffer = needSecondaryBuffer || frameSettings.ReadableColor && !ReferenceEquals(writeableColorBuffer, viewportColorBuffer)
-            ? EnsureSecondaryColorBuffer()
-            : null;
+        readableColorBuffer = needSecondaryBuffer ? EnsureSecondaryColorBuffer() : null;
 
         if (flipColorBuffersNextTime && readableColorBuffer is not null)
         {
