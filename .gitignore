@@ -15,6 +15,7 @@ out/
 build/
 CMakeUserPresets.json
 compile_commands.json
+RedBolt.log
 
 # .NET outputs.
 bin/

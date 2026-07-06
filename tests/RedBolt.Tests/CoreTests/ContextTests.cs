@@ -155,20 +155,151 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_unsubscribe_from_sender_keeps_other_senders()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var senderA = new TestObject();
+            var senderB = new TestObject();
+            var receiver = new TestObject();
+            var calls = 0;
+
+            receiver.SubscribeToEvent(senderA, "Ping", (_, _, _) => ++calls);
+            receiver.SubscribeToEvent(senderB, "Ping", (_, _, _) => ++calls);
+
+            receiver.UnsubscribeFromEvents(senderA);
+
+            senderA.SendEvent("Ping");
+            senderB.SendEvent("Ping");
+
+            Assert.Equal(1, calls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_supports_unsubscribe_during_dispatch()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var firstReceiver = new TestObject();
+            var secondReceiver = new TestObject();
+            var firstCalls = 0;
+            var secondCalls = 0;
+
+            firstReceiver.SubscribeToEvent("Ping", (_, _, _) =>
+            {
+                ++firstCalls;
+                secondReceiver.UnsubscribeFromAllEvents();
+            });
+            secondReceiver.SubscribeToEvent("Ping", (_, _, _) => ++secondCalls);
+
+            sender.SendEvent("Ping");
+            sender.SendEvent("Ping");
+
+            Assert.Equal(2, firstCalls);
+            Assert.Equal(0, secondCalls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_respects_block_events_for_sender_and_receiver()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            var calls = 0;
+
+            receiver.SubscribeToEvent("Ping", (_, _, _) => ++calls);
+
+            sender.SetBlockEvents(true);
+            sender.SendEvent("Ping");
+
+            sender.SetBlockEvents(false);
+            receiver.SetBlockEvents(true);
+            sender.SendEvent("Ping");
+
+            receiver.SetBlockEvents(false);
+            sender.SendEvent("Ping");
+
+            Assert.Equal(1, calls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_exposes_global_vars_through_context_and_object()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var key = new StringHash("Renderer.Debug");
+            var sender = new TestObject();
+
+            context.SetGlobalVar(key, 42);
+
+            Assert.Equal(42, Assert.IsType<int>(sender.GetGlobalVar(key)));
+            Assert.Equal(42, Assert.IsType<int>(context.GetGlobalVars()[key]));
+
+            sender.SetGlobalVar(key, 64);
+
+            Assert.Equal(64, Assert.IsType<int>(context.GetGlobalVar(key)));
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void Engine_shutdown_clears_global_context_instance()
     {
         var engine = new Engine();
-        engine.Initialize(new EngineParameters
+        try
         {
-            ApplicationName = "ContextLifecycle",
-            Headless = true
-        });
+            engine.Initialize(new EngineParameters
+            {
+                ApplicationName = "ContextLifecycle",
+                Headless = true
+            });
 
-        Assert.Same(engine.Context, Context.Instance);
+            Assert.Same(engine.Context, Context.Instance);
 
-        engine.Shutdown();
+            engine.Shutdown();
 
-        Assert.Null(Context.TryGetInstance());
+            Assert.Null(Context.TryGetInstance());
+        }
+        finally
+        {
+            Context.SetInstance(fixture.Engine.Context);
+        }
     }
 
     private sealed class TestObject : RedBolt.Object

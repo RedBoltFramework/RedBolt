@@ -89,7 +89,7 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
     }
 }
 
-public sealed class RenderBufferManagerFrameSettings
+public struct RenderBufferManagerFrameSettings
 {
     public bool ReadableColor { get; set; }
 

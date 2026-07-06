@@ -26,6 +26,93 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_raises_events_for_settings_parameters_and_renderpath_changes()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
+
+        var settingsEvents = 0;
+        var parameterEvents = 0;
+        RenderPath? changedRenderPath = null;
+
+        renderPipeline.SettingsChanged += (_, settings) =>
+        {
+            ++settingsEvents;
+            Assert.Same(renderPipeline.Settings, settings);
+        };
+        renderPipeline.ParametersChanged += _ => ++parameterEvents;
+        renderPipeline.RenderPathChanged += (_, newRenderPath) => changedRenderPath = newRenderPath;
+
+        renderPipeline.SetSettings(new RenderPipelineSettings());
+        renderPipeline.SetRenderPath(renderPath);
+        renderPipeline.UpdateRenderPathParameter("Exposure", 2.0f);
+
+        Assert.Equal(1, settingsEvents);
+        Assert.Equal(1, parameterEvents);
+        Assert.Same(renderPath, changedRenderPath);
+    }
+
+    [Fact]
+    public void Render_pipeline_only_marks_parameters_dirty_on_actual_render_path_changes()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
+        renderPipeline.SetRenderPath(renderPath);
+
+        var initialRevision = renderPipeline.Revision;
+
+        renderPipeline.UpdateRenderPathParameter("Missing", 2.0f);
+        renderPipeline.UpdateRenderPathParameter("Exposure", 1.25f);
+
+        Assert.Equal(initialRevision, renderPipeline.Revision);
+
+        renderPipeline.UpdateRenderPathParameter("Exposure", 2.0f);
+
+        Assert.Equal(initialRevision + 1, renderPipeline.Revision);
+        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+    }
+
+    [Fact]
+    public void Render_pipeline_frame_shader_parameters_do_not_bump_revision()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var initialRevision = renderPipeline.Revision;
+
+        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
+        renderPipeline.SetFrameShaderParameters(
+        [
+            new KeyValuePair<string, object?>("FrameIndex", 4)
+        ]);
+
+        Assert.Equal(initialRevision, renderPipeline.Revision);
+        Assert.Equal(4, Assert.IsType<int>(renderPipeline.GetFrameShaderParameters()["FrameIndex"]));
+    }
+
+    [Fact]
+    public void Render_pipeline_set_render_pass_enabled_only_notifies_on_change()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new TrackingRenderPass("Tracking"));
+        renderPipeline.SetRenderPath(renderPath);
+
+        var parameterEvents = 0;
+        renderPipeline.ParametersChanged += _ => ++parameterEvents;
+
+        renderPipeline.SetRenderPassEnabled("Tracking", false);
+        renderPipeline.SetRenderPassEnabled("Tracking", false);
+
+        Assert.Equal(1, parameterEvents);
+        Assert.Equal(new RenderPassToggle("Tracking", false), Assert.Single(renderPipeline.GetRenderPasses()));
+    }
+
+    [Fact]
     public void Render_pipeline_view_updates_and_renders_enabled_passes()
     {
         var scene = new Scene();

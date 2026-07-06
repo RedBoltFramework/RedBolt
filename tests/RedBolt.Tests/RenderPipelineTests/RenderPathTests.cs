@@ -26,6 +26,24 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Render_path_repair_returns_matching_passes_without_copy()
+    {
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new TrackingRenderPass("Alpha"));
+        renderPath.AddPass(new TrackingRenderPass("Beta"));
+
+        RenderPassToggle[] matchingPasses =
+        [
+            new("Alpha", true),
+            new("Beta", false)
+        ];
+
+        var repaired = renderPath.RepairEnabledRenderPasses(matchingPasses);
+
+        Assert.Same(matchingPasses, repaired);
+    }
+
+    [Fact]
     public void Render_path_updates_and_renders_only_enabled_passes()
     {
         var renderPath = new RenderPath("RenderPaths/Test.xml");

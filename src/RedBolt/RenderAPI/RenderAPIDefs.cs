@@ -30,7 +30,7 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
 
     public uint MultiSample { get; set; } = 1u;
 
-    public IReadOnlyList<TextureFormat> RenderTargetFormats => renderTargetFormats.AsSpan(0, checked((int)NumRenderTargets)).ToArray();
+    public ReadOnlySpan<TextureFormat> RenderTargetFormats => renderTargetFormats.AsSpan(0, checked((int)NumRenderTargets));
 
     public void ClearRenderTargetFormats()
     {

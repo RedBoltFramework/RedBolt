@@ -93,9 +93,9 @@ public sealed class RenderPath : Resource
     public IReadOnlyList<RenderPassToggle> RepairEnabledRenderPasses(IEnumerable<RenderPassToggle> sourcePasses)
     {
         ArgumentNullException.ThrowIfNull(sourcePasses);
-        var sourceList = sourcePasses.ToArray();
+        var sourceList = sourcePasses as IReadOnlyList<RenderPassToggle> ?? sourcePasses.ToArray();
 
-        if (sourceList.Length == passes.Count)
+        if (sourceList.Count == passes.Count)
         {
             var matches = true;
             for (var i = 0; i < passes.Count; ++i)
@@ -111,12 +111,13 @@ public sealed class RenderPath : Resource
                 return sourceList;
         }
 
-        var result = new List<RenderPassToggle>(passes.Count);
-        foreach (var pass in passes)
+        var result = new RenderPassToggle[passes.Count];
+        for (var i = 0; i < passes.Count; ++i)
         {
+            var pass = passes[i];
             var match = sourceList.FirstOrDefault(staticToggle => string.Equals(staticToggle.Name, pass.GetPassName(), StringComparison.Ordinal));
             var enabled = match.Name is not null ? match.Enabled : pass.IsEnabledByDefault();
-            result.Add(new RenderPassToggle(pass.GetPassName(), enabled));
+            result[i] = new RenderPassToggle(pass.GetPassName(), enabled);
         }
         return result;
     }

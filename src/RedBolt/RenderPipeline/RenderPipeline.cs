@@ -23,20 +23,23 @@ public class RenderPipeline : Component
 
     public uint Revision => revision;
 
+    public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
+
+    public event Action<RenderPipeline>? ParametersChanged;
+
+    public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
+
     public void SetSettings(RenderPipelineSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         this.settings = settings;
-        this.settings.Validate();
-        Touch();
+        MarkSettingsDirty();
     }
 
     public void SetRenderPath(RenderPath? renderPath)
     {
         this.renderPath = renderPath;
-        CollectRenderPathParameters();
-        renderPasses = renderPath?.RepairEnabledRenderPasses(renderPasses) ?? [];
-        Touch();
+        OnRenderPathReloaded();
     }
 
     public bool SetRenderPath(string resourceName)
@@ -55,21 +58,43 @@ public class RenderPipeline : Component
     public void SetRenderPasses(IEnumerable<RenderPassToggle> renderPasses)
     {
         ArgumentNullException.ThrowIfNull(renderPasses);
-        this.renderPasses = renderPath?.RepairEnabledRenderPasses(renderPasses) ?? renderPasses.ToArray();
-        Touch();
+        var sourcePasses = renderPasses as IReadOnlyList<RenderPassToggle> ?? renderPasses.ToArray();
+        this.renderPasses = renderPath?.RepairEnabledRenderPasses(sourcePasses) ?? sourcePasses;
+        RaiseParametersChanged();
     }
 
     public void SetRenderPassEnabled(string passName, bool enabled)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(passName);
 
-        var updated = renderPasses.ToList();
-        var index = updated.FindIndex(item => string.Equals(item.Name, passName, StringComparison.Ordinal));
+        var index = -1;
+        for (var i = 0; i < renderPasses.Count; ++i)
+        {
+            if (string.Equals(renderPasses[i].Name, passName, StringComparison.Ordinal))
+            {
+                index = i;
+                break;
+            }
+        }
+
         if (index < 0)
-            updated.Add(new RenderPassToggle(passName, enabled));
-        else
-            updated[index] = updated[index] with { Enabled = enabled };
-        SetRenderPasses(updated);
+        {
+            var updated = new RenderPassToggle[renderPasses.Count + 1];
+            for (var i = 0; i < renderPasses.Count; ++i)
+                updated[i] = renderPasses[i];
+            updated[^1] = new RenderPassToggle(passName, enabled);
+            this.renderPasses = renderPath?.RepairEnabledRenderPasses(updated) ?? updated;
+            RaiseParametersChanged();
+            return;
+        }
+
+        if (renderPasses[index].Enabled == enabled)
+            return;
+
+        var toggledPasses = renderPasses.ToArray();
+        toggledPasses[index] = toggledPasses[index] with { Enabled = enabled };
+        renderPasses = toggledPasses;
+        RaiseParametersChanged();
     }
 
     public void SetRenderPathParameters(IEnumerable<KeyValuePair<string, object?>> parameters)
@@ -78,14 +103,21 @@ public class RenderPipeline : Component
         renderPathParameters.Clear();
         foreach (var (name, value) in parameters)
             renderPathParameters[name] = value;
-        Touch();
+        RaiseParametersChanged();
     }
 
     public void UpdateRenderPathParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        if (!renderPathParameters.TryGetValue(name, out var currentValue))
+            return;
+
+        if (EqualityComparer<object?>.Default.Equals(currentValue, value))
+            return;
+
         renderPathParameters[name] = value;
-        Touch();
+        RaiseParametersChanged();
     }
 
     public void SetFrameShaderParameters(IEnumerable<KeyValuePair<string, object?>> parameters)
@@ -94,14 +126,12 @@ public class RenderPipeline : Component
         frameShaderParameters.Clear();
         foreach (var (name, value) in parameters)
             frameShaderParameters[name] = value;
-        Touch();
     }
 
     public void SetFrameShaderParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         frameShaderParameters[name] = value;
-        Touch();
     }
 
     public virtual RenderPipelineView Instantiate() => new DefaultRenderPipelineView(this);
@@ -126,6 +156,35 @@ public class RenderPipeline : Component
             if (!renderPathParameters.ContainsKey(name))
                 renderPathParameters[name] = value;
         }
+    }
+
+    private void MarkSettingsDirty()
+    {
+        settings.Validate();
+        Touch();
+        SettingsChanged?.Invoke(this, settings);
+    }
+
+    private void RaiseParametersChanged()
+    {
+        Touch();
+        ParametersChanged?.Invoke(this);
+    }
+
+    private void OnRenderPathReloaded()
+    {
+        if (renderPath is not null)
+        {
+            CollectRenderPathParameters();
+            renderPasses = renderPath.RepairEnabledRenderPasses(renderPasses);
+        }
+        else
+        {
+            renderPasses = [];
+        }
+
+        Touch();
+        RenderPathChanged?.Invoke(this, renderPath);
     }
 
     private void Touch()
@@ -180,15 +239,12 @@ public class RenderPipeline : Component
                 ? viewport.Rect
                 : new IntRect(0, 0, graphics.Width, graphics.Height);
 
-            frameInfo = new CommonFrameInfo
-            {
-                FrameNumber = checked((uint)(Context.Instance.GetSubsystem<EngineTime>()?.FrameNumber ?? 0)),
-                TimeStep = Context.Instance.GetSubsystem<EngineTime>()?.TimeStep ?? 0.0f,
-                Viewport = viewport,
-                ViewportRect = viewportRect,
-                ViewportSize = viewportRect.Size,
-                RenderTarget = null
-            };
+            frameInfo.FrameNumber = checked((uint)(Context.Instance.GetSubsystem<EngineTime>()?.FrameNumber ?? 0));
+            frameInfo.TimeStep = Context.Instance.GetSubsystem<EngineTime>()?.TimeStep ?? 0.0f;
+            frameInfo.Viewport = viewport;
+            frameInfo.ViewportRect = viewportRect;
+            frameInfo.ViewportSize = viewportRect.Size;
+            frameInfo.RenderTarget = null;
             frameInfo.Cameras[0] = viewport.Camera;
             frameInfo.Cameras[1] = viewport.RightEye;
 

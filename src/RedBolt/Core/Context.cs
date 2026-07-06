@@ -32,12 +32,24 @@ public sealed class Context
         public object? SenderFilter { get; init; }
 
         public required NamedEventHandler Handler { get; init; }
+
+        public bool IsRemoved { get; set; }
+    }
+
+    private sealed class EventSubscriptionBucket
+    {
+        public List<EventSubscription> Subscriptions { get; } = [];
+
+        public int DispatchDepth { get; set; }
+
+        public bool RequiresCompaction { get; set; }
     }
 
     private static Context? instance;
 
     private readonly ConcurrentDictionary<Type, object> subsystems = new();
-    private readonly Dictionary<StringHash, List<EventSubscription>> eventSubscriptions = new();
+    private readonly Dictionary<StringHash, EventSubscriptionBucket> eventSubscriptions = new();
+    private readonly VariantMap globalVars = [];
     private ulong nextSubscriptionId = 1;
 
     public static Context Instance
@@ -53,6 +65,7 @@ public sealed class Context
     {
         subsystems.Clear();
         eventSubscriptions.Clear();
+        globalVars.Clear();
         nextSubscriptionId = 1;
     }
 
@@ -137,8 +150,8 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        foreach (var pair in eventSubscriptions)
-            pair.Value.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
+        foreach (var bucket in eventSubscriptions.Values)
+            RemoveMatchingSubscriptions(bucket, subscription => ReferenceEquals(subscription.Receiver, receiver));
         RemoveEmptyEventBuckets();
     }
 
@@ -146,12 +159,10 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        if (eventSubscriptions.TryGetValue(eventType, out var subscriptions))
-        {
-            subscriptions.RemoveAll(subscription => ReferenceEquals(subscription.Receiver, receiver));
-            if (subscriptions.Count == 0)
-                eventSubscriptions.Remove(eventType);
-        }
+        if (eventSubscriptions.TryGetValue(eventType, out var bucket))
+            RemoveMatchingSubscriptions(bucket, subscription => ReferenceEquals(subscription.Receiver, receiver));
+
+        RemoveEmptyEventBuckets();
     }
 
     public void Unsubscribe(object receiver, string eventType)
@@ -159,6 +170,54 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
         Unsubscribe(receiver, new StringHash(eventType));
+    }
+
+    public void Unsubscribe(object receiver, object sender, StringHash eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+
+        if (eventSubscriptions.TryGetValue(eventType, out var bucket))
+        {
+            RemoveMatchingSubscriptions(bucket, subscription =>
+                ReferenceEquals(subscription.Receiver, receiver) && ReferenceEquals(subscription.SenderFilter, sender));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void Unsubscribe(object receiver, object sender, string eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        Unsubscribe(receiver, sender, new StringHash(eventType));
+    }
+
+    public void UnsubscribeFromEvents(object receiver, object sender)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+
+        foreach (var bucket in eventSubscriptions.Values)
+        {
+            RemoveMatchingSubscriptions(bucket, subscription =>
+                ReferenceEquals(subscription.Receiver, receiver) && ReferenceEquals(subscription.SenderFilter, sender));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public object? GetGlobalVar(StringHash key)
+    {
+        return globalVars.TryGetValue(key, out var value) ? value : null;
+    }
+
+    public VariantMap GetGlobalVars() => globalVars;
+
+    public void SetGlobalVar(StringHash key, object? value)
+    {
+        globalVars[key] = value;
     }
 
     public void SendEvent(StringHash eventType, VariantMap? eventData = null)
@@ -174,16 +233,35 @@ public sealed class Context
 
     public void SendEvent(object? sender, StringHash eventType, VariantMap? eventData = null)
     {
-        if (!eventSubscriptions.TryGetValue(eventType, out var subscriptions) || subscriptions.Count == 0)
+        if (sender is Object { BlockEvents: true })
+            return;
+
+        if (!eventSubscriptions.TryGetValue(eventType, out var bucket) || bucket.Subscriptions.Count == 0)
             return;
 
         var effectiveEventData = eventData ?? new VariantMap();
-        foreach (var subscription in subscriptions.ToArray())
+        ++bucket.DispatchDepth;
+        try
         {
-            if (subscription.SenderFilter is not null && !ReferenceEquals(subscription.SenderFilter, sender))
-                continue;
+            var numSubscriptions = bucket.Subscriptions.Count;
+            for (var i = 0; i < numSubscriptions; ++i)
+            {
+                var subscription = bucket.Subscriptions[i];
+                if (subscription.IsRemoved)
+                    continue;
 
-            subscription.Handler(sender, eventType, effectiveEventData);
+                if (subscription.SenderFilter is not null && !ReferenceEquals(subscription.SenderFilter, sender))
+                    continue;
+
+                if (subscription.Receiver is Object { BlockEvents: true })
+                    continue;
+
+                subscription.Handler(sender, eventType, effectiveEventData);
+            }
+        }
+        finally
+        {
+            EndDispatch(eventType, bucket);
         }
     }
 
@@ -197,14 +275,11 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        if (!eventSubscriptions.TryGetValue(eventType, out var subscriptions))
-        {
-            subscriptions = [];
-            eventSubscriptions[eventType] = subscriptions;
-        }
+        if (!eventSubscriptions.TryGetValue(eventType, out var bucket))
+            eventSubscriptions[eventType] = bucket = new EventSubscriptionBucket();
 
         var subscriptionId = nextSubscriptionId++;
-        subscriptions.Add(new EventSubscription
+        bucket.Subscriptions.Add(new EventSubscription
         {
             Id = subscriptionId,
             Receiver = receiver,
@@ -215,22 +290,55 @@ public sealed class Context
         return new ContextEventSubscription(this, subscriptionId);
     }
 
-    private void Unsubscribe(ulong subscriptionId)
+    internal void Unsubscribe(ulong subscriptionId)
     {
-        foreach (var pair in eventSubscriptions)
+        foreach (var bucket in eventSubscriptions.Values)
         {
-            var removed = pair.Value.RemoveAll(subscription => subscription.Id == subscriptionId);
-            if (removed != 0)
+            if (RemoveMatchingSubscriptions(bucket, subscription => subscription.Id == subscriptionId) != 0)
                 break;
         }
 
         RemoveEmptyEventBuckets();
     }
 
+    private static int RemoveMatchingSubscriptions(EventSubscriptionBucket bucket, Predicate<EventSubscription> predicate)
+    {
+        if (bucket.DispatchDepth > 0)
+        {
+            var removed = 0;
+            foreach (var subscription in bucket.Subscriptions)
+            {
+                if (subscription.IsRemoved || !predicate(subscription))
+                    continue;
+
+                subscription.IsRemoved = true;
+                bucket.RequiresCompaction = true;
+                ++removed;
+            }
+
+            return removed;
+        }
+
+        return bucket.Subscriptions.RemoveAll(predicate);
+    }
+
+    private void EndDispatch(StringHash eventType, EventSubscriptionBucket bucket)
+    {
+        --bucket.DispatchDepth;
+        if (bucket.DispatchDepth == 0 && bucket.RequiresCompaction)
+        {
+            bucket.Subscriptions.RemoveAll(static subscription => subscription.IsRemoved);
+            bucket.RequiresCompaction = false;
+        }
+
+        if (bucket.DispatchDepth == 0 && bucket.Subscriptions.Count == 0)
+            eventSubscriptions.Remove(eventType);
+    }
+
     private void RemoveEmptyEventBuckets()
     {
         var emptyKeys = eventSubscriptions
-            .Where(static pair => pair.Value.Count == 0)
+            .Where(static pair => pair.Value.DispatchDepth == 0 && pair.Value.Subscriptions.Count == 0)
             .Select(static pair => pair.Key)
             .ToArray();
         foreach (var key in emptyKeys)

@@ -67,13 +67,8 @@ public sealed class RenderBufferManager
 
     public void SetFrameSettings(RenderBufferManagerFrameSettings frameSettings)
     {
-        ArgumentNullException.ThrowIfNull(frameSettings);
-
-        this.frameSettings = new RenderBufferManagerFrameSettings
-        {
-            ReadableColor = frameSettings.ReadableColor || frameSettings.SupportColorReadWrite,
-            SupportColorReadWrite = frameSettings.SupportColorReadWrite
-        };
+        this.frameSettings = frameSettings;
+        this.frameSettings.ReadableColor |= this.frameSettings.SupportColorReadWrite;
     }
 
     public void OnViewportDefined(object? renderTarget, IntRect viewportRect)
