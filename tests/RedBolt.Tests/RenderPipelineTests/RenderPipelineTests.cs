@@ -327,7 +327,7 @@ public sealed class RenderPipelineTests
         var manager = new RenderBufferManager();
         manager.SetSettings(new RenderBufferManagerSettings
         {
-            ColorSpace = RenderPipelineColorSpace.GammaLDR
+            ColorSpace = RenderPipelineColorSpace.Optimized
         });
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings
         {
@@ -351,6 +351,39 @@ public sealed class RenderPipelineTests
         Assert.NotNull(secondaryColorTexture);
         Assert.Equal(TextureFormat.RGBA16F, colorTexture!.Format);
         Assert.Equal(TextureFormat.RGBA16F, secondaryColorTexture!.Format);
+    }
+
+    [Fact]
+    public void Render_buffer_manager_respects_color_space_over_output_texture_format()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.GammaLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+
+        var renderTarget = new Texture2D("Textures/ViewportTarget");
+        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.RGBA16F));
+        renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
+        renderTarget.SetLinear(true);
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+
+        manager.OnViewportDefined(
+            RenderOutputTargetInfo.FromTexture(renderTarget, new IntRect(0, 0, 320, 200), depthTarget),
+            new IntRect(0, 0, 320, 200));
+
+        Assert.Equal(TextureFormat.RGBA8, manager.GetOutputColorFormat());
+        Assert.True(manager.IsLinearColorSpace());
+        Assert.False(manager.IsHDR());
+        Assert.NotSame(renderTarget, manager.GetColorOutput().GetTexture());
+        Assert.Equal(TextureFormat.RGBA8, manager.GetColorOutput().GetTexture()!.Format);
+        Assert.Equal(TextureFormat.RGBA8, manager.GetSecondaryColorTexture()!.Format);
+        Assert.True(manager.NeedsViewportResolve());
     }
 
     [Fact]

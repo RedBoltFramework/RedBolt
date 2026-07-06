@@ -493,10 +493,14 @@ public sealed class RenderBufferManager
             ? RenderBufferFlag.BilinearFiltering
             : RenderBufferFlag.None;
         var fallbackMultiSample = settings.InheritMultiSampleLevel ? 1 : settings.MultiSampleLevel;
-        var nextColorOutputParams = new RenderBufferParams(GetColorTextureFormat(settings.ColorSpace), fallbackMultiSample, fallbackFlags);
+        var fallbackOutputColorFormat = renderTarget?.ColorFormat ?? TextureFormat.RGBA8;
+        var nextColorOutputParams = new RenderBufferParams(
+            GetColorTextureFormat(settings.ColorSpace, fallbackOutputColorFormat),
+            fallbackMultiSample,
+            fallbackFlags);
         var nextDepthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample | 0, RenderBufferFlag.Persistent);
         var nextLinearColorSpace = settings.ColorSpace is not RenderPipelineColorSpace.GammaLDR;
-        var nextHdr = settings.ColorSpace == RenderPipelineColorSpace.LinearHDR;
+        var nextHdr = nextColorOutputParams.TextureFormat == TextureFormat.RGBA16F;
 
         if (renderTarget is not null)
         {
@@ -504,17 +508,21 @@ public sealed class RenderBufferManager
             var flags = renderTarget.BilinearFiltered || settings.FilteredColor
                 ? RenderBufferFlag.BilinearFiltering
                 : RenderBufferFlag.None;
+            var outputColorFormat = renderTarget.ColorFormat == TextureFormat.Unknown
+                ? nextColorOutputParams.TextureFormat
+                : renderTarget.ColorFormat;
+            var effectiveColorFormat = GetColorTextureFormat(settings.ColorSpace, outputColorFormat);
 
             nextColorOutputParams = new RenderBufferParams(
-                renderTarget.ColorFormat == TextureFormat.Unknown ? nextColorOutputParams.TextureFormat : renderTarget.ColorFormat,
+                effectiveColorFormat,
                 Math.Max(multiSample, 1),
                 flags);
             nextDepthStencilOutputParams = new RenderBufferParams(
                 renderTarget.DepthStencilFormat == TextureFormat.Unknown ? TextureFormat.Depth24Stencil8 : renderTarget.DepthStencilFormat,
                 Math.Max(multiSample, 1),
                 RenderBufferFlag.Persistent);
-            nextLinearColorSpace = renderTarget.LinearColorSpace;
-            nextHdr = renderTarget.HDR;
+            nextLinearColorSpace = IsLinearColorSpace(settings.ColorSpace, effectiveColorFormat) || renderTarget.LinearColorSpace;
+            nextHdr = effectiveColorFormat == TextureFormat.RGBA16F;
         }
 
         if (colorOutputParams != nextColorOutputParams || depthStencilOutputParams != nextDepthStencilOutputParams)
@@ -583,15 +591,26 @@ public sealed class RenderBufferManager
         return secondaryColorBuffer;
     }
 
-    private static TextureFormat GetColorTextureFormat(RenderPipelineColorSpace colorSpace)
+    private static TextureFormat GetColorTextureFormat(RenderPipelineColorSpace colorSpace, TextureFormat outputTextureFormat)
     {
         return colorSpace switch
         {
             RenderPipelineColorSpace.LinearHDR => TextureFormat.RGBA16F,
             RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8,
             RenderPipelineColorSpace.GammaLDR => TextureFormat.RGBA8,
-            RenderPipelineColorSpace.Optimized => TextureFormat.RGBA8,
+            RenderPipelineColorSpace.Optimized => outputTextureFormat,
             _ => TextureFormat.RGBA8
+        };
+    }
+
+    private static bool IsLinearColorSpace(RenderPipelineColorSpace colorSpace, TextureFormat textureFormat)
+    {
+        return colorSpace switch
+        {
+            RenderPipelineColorSpace.LinearHDR => true,
+            RenderPipelineColorSpace.LinearLDR => true,
+            RenderPipelineColorSpace.Optimized => textureFormat == TextureFormat.RGBA16F,
+            _ => false
         };
     }
 
