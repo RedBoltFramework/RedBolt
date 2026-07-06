@@ -87,7 +87,7 @@ layout(std140) uniform Material
     private readonly Dictionary<Geometry, UploadedGeometry> uploadedGeometries = new();
     private readonly Dictionary<VertexBuffer, IBuffer> uploadedVertexBuffers = new();
     private readonly Dictionary<IndexBuffer, IBuffer> uploadedIndexBuffers = new();
-    private readonly Dictionary<Texture2D, UploadedTexture> uploadedTextures = new();
+    private readonly Dictionary<Texture, UploadedTexture> uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
     private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
     private readonly Dictionary<ClearFramebufferPipelineKey, FullscreenPipelineResources> clearFramebufferPipelines = new();
@@ -1948,6 +1948,17 @@ layout(std140) uniform Material
         return texture;
     }
 
+    private UploadedTexture GetOrCreateUploadedTexture(Texture texture)
+    {
+        return texture switch
+        {
+            Texture2D texture2D => GetOrCreateUploadedTexture(texture2D),
+            TextureCube textureCube => GetOrCreateUploadedTexture(textureCube),
+            Texture2DArray texture2DArray => GetOrCreateUploadedTexture(texture2DArray),
+            _ => throw new NotSupportedException($"Texture type '{texture.GetType().Name}' is not supported by the current managed GPU upload path.")
+        };
+    }
+
     private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
@@ -2008,6 +2019,85 @@ layout(std140) uniform Material
         return uploaded;
     }
 
+    private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture)
+    {
+        if (uploadedTextures.TryGetValue(texture, out var uploaded))
+            return uploaded;
+
+        if (device is null)
+            throw new InvalidOperationException("Graphics device is not initialized.");
+
+        using var nativeName = new PinnedUtf8(texture.Name);
+        using var textureDescOwner = CreateTextureDesc();
+        var textureDesc = textureDescOwner.Desc;
+        textureDesc.Name = nativeName.Pointer;
+        textureDesc.Type = ResourceDimension.ResourceDimTexCube;
+        textureDesc.Width = (uint)texture.Width;
+        textureDesc.Height = (uint)texture.Height;
+        textureDesc.ArraySizeOrDepth = 6;
+        textureDesc.Format = MapTextureFormat(texture.Format);
+        if (textureDesc.Format == 0)
+            throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
+
+        if (Enum.GetValues<CubeMapFace>().Any(face => texture.GetData(face, 0u) is { Length: > 0 }))
+            throw new NotSupportedException("CPU-backed TextureCube uploads are not implemented in the current managed renderer.");
+
+        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
+        textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
+            ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
+            : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        textureDesc.Usage = Usage.UsageDefault;
+        device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        if (gpuTexture.IsNull)
+            throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
+
+        var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null);
+        uploadedTextures[texture] = uploaded;
+        return uploaded;
+    }
+
+    private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture)
+    {
+        if (uploadedTextures.TryGetValue(texture, out var uploaded))
+            return uploaded;
+
+        if (device is null)
+            throw new InvalidOperationException("Graphics device is not initialized.");
+
+        using var nativeName = new PinnedUtf8(texture.Name);
+        using var textureDescOwner = CreateTextureDesc();
+        var textureDesc = textureDescOwner.Desc;
+        textureDesc.Name = nativeName.Pointer;
+        textureDesc.Type = ResourceDimension.ResourceDimTex2dArray;
+        textureDesc.Width = (uint)texture.Width;
+        textureDesc.Height = (uint)texture.Height;
+        textureDesc.ArraySizeOrDepth = texture.Layers;
+        textureDesc.Format = MapTextureFormat(texture.Format);
+        if (textureDesc.Format == 0)
+            throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
+
+        for (var slice = 0u; slice < texture.Layers; ++slice)
+        {
+            if (texture.GetData(slice, 0u) is { Length: > 0 })
+                throw new NotSupportedException("CPU-backed Texture2DArray uploads are not implemented in the current managed renderer.");
+        }
+
+        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
+        textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
+            ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
+            : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        textureDesc.Usage = Usage.UsageDefault;
+        device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        if (gpuTexture.IsNull)
+            throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
+
+        var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null);
+        uploadedTextures[texture] = uploaded;
+        return uploaded;
+    }
+
     private ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
         return view.Type switch
@@ -2015,19 +2105,25 @@ layout(std140) uniform Material
             RenderTargetViewType.SwapChainColor => renderTargetView ?? throw new InvalidOperationException("Swap chain color target is not available."),
             RenderTargetViewType.SwapChainDepthStencil => depthStencilView ?? throw new InvalidOperationException("Swap chain depth target is not available."),
             RenderTargetViewType.Resource => ResolveTextureRenderTargetView(view),
-            RenderTargetViewType.ResourceSlice when view.Slice == 0u => ResolveTextureRenderTargetView(view),
+            RenderTargetViewType.ResourceSlice => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ReadOnlyResource => ResolveTextureReadOnlyDepthView(view),
-            RenderTargetViewType.ReadOnlyResourceSlice when view.Slice == 0u => ResolveTextureReadOnlyDepthView(view),
+            RenderTargetViewType.ReadOnlyResourceSlice => ResolveTextureReadOnlyDepthView(view),
             _ => throw new NotSupportedException($"Unsupported render target view type {view.Type}.")
         };
     }
 
     private ITextureView ResolveTextureRenderTargetView(RenderTargetView view)
     {
-        if (view.RenderTexture is not Texture2D texture)
-            throw new NotSupportedException("Only Texture2D render targets are supported in the current managed pipeline slice.");
+        if (view.RenderTexture is not { } texture)
+            throw new InvalidOperationException("Render target view has no texture.");
 
         var uploaded = GetOrCreateUploadedTexture(texture);
+        if (view.Type == RenderTargetViewType.ResourceSlice && texture is not Texture2D)
+            return GetOrCreateTextureSliceView(uploaded, texture, view.Slice, readOnlyDepth: false);
+
+        if (texture is not Texture2D)
+            throw new NotSupportedException("Non-2D render targets must be bound through explicit slice views in the current managed pipeline slice.");
+
         if (IsDepthTextureFormat(texture.Format))
             return uploaded.DepthStencilView
                 ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a depth-stencil view.");
@@ -2037,12 +2133,43 @@ layout(std140) uniform Material
 
     private ITextureView ResolveTextureReadOnlyDepthView(RenderTargetView view)
     {
-        if (view.RenderTexture is not Texture2D texture)
-            throw new NotSupportedException("Only Texture2D depth targets are supported in the current managed pipeline slice.");
+        if (view.RenderTexture is not { } texture)
+            throw new InvalidOperationException("Read-only depth view has no texture.");
 
         var uploaded = GetOrCreateUploadedTexture(texture);
+        if (view.Type == RenderTargetViewType.ReadOnlyResourceSlice && texture is not Texture2D)
+            return GetOrCreateTextureSliceView(uploaded, texture, view.Slice, readOnlyDepth: true);
+
+        if (texture is not Texture2D)
+            throw new NotSupportedException("Non-2D depth targets must be bound through explicit slice views in the current managed pipeline slice.");
+
         return uploaded.ReadOnlyDepthView
             ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a read-only depth view.");
+    }
+
+    private ITextureView GetOrCreateTextureSliceView(UploadedTexture uploaded, Texture texture, uint slice, bool readOnlyDepth)
+    {
+        var viewType = readOnlyDepth ? TextureViewType.TextureViewReadOnlyDepthStencil : IsDepthTextureFormat(texture.Format)
+            ? TextureViewType.TextureViewDepthStencil
+            : TextureViewType.TextureViewRenderTarget;
+        if (uploaded.TryGetSliceView(viewType, slice, out var cachedView))
+            return cachedView;
+
+        using var textureViewDescOwner = CreateTextureViewDesc();
+        var textureViewDesc = textureViewDescOwner.Desc;
+        textureViewDesc.ViewType = viewType;
+        textureViewDesc.TextureDim = ResourceDimension.ResourceDimTex2d;
+        textureViewDesc.Format = MapTextureFormat(texture.Format);
+        textureViewDesc.MostDetailedMip = 0;
+        textureViewDesc.NumMipLevels = 1;
+        textureViewDesc.FirstSlice = slice;
+        textureViewDesc.NumSlices = 1;
+        uploaded.Texture.CreateView(textureViewDesc, out var createdView);
+        if (createdView.IsNull)
+            throw new InvalidOperationException($"Failed to create slice view {viewType} for texture '{texture.Name}'.");
+
+        uploaded.CacheSliceView(viewType, slice, createdView);
+        return createdView;
     }
 
     private global::RedBolt.Bindings.Diligent.TextureFormat ResolveColorTargetFormat(RenderTargetView view)
@@ -2781,6 +2908,13 @@ layout(std140) uniform Material
         return new TextureDescOwner((int)apiInfo.TextureDescSize);
     }
 
+    private static TextureViewDescOwner CreateTextureViewDesc()
+    {
+        var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
+        var apiInfo = factory.GetAPIInfo();
+        return new TextureViewDescOwner((int)apiInfo.TextureViewDescSize);
+    }
+
     private static void WriteFloat(byte[] buffer, int offset, float value)
     {
         Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, offset, sizeof(float));
@@ -3303,6 +3437,28 @@ layout(std140) uniform Material
         }
     }
 
+    private sealed class TextureViewDescOwner : IDisposable
+    {
+        private readonly IntPtr memory;
+
+        public TextureViewDescOwner(int size)
+        {
+            memory = Marshal.AllocHGlobal(size);
+            Marshal.Copy(new byte[size], 0, memory, size);
+            Desc = TextureViewDesc.CreateManagedWrapper(memory, ownsHandle: false);
+        }
+
+        public TextureViewDesc Desc { get; }
+
+        public static implicit operator TextureViewDesc(TextureViewDescOwner owner) => owner.Desc;
+
+        public void Dispose()
+        {
+            if (memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(memory);
+        }
+    }
+
     private sealed class UploadedGeometry : IDisposable
     {
         public UploadedGeometry(IBuffer vertexBuffer, IBuffer indexBuffer, DrawIndexedAttribs drawIndexedAttribs)
@@ -3326,6 +3482,8 @@ layout(std140) uniform Material
 
     private sealed class UploadedTexture : IDisposable
     {
+        private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> sliceViews = [];
+
         public UploadedTexture(ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
             ITextureView? depthStencilView, ITextureView? readOnlyDepthView)
         {
@@ -3345,6 +3503,16 @@ layout(std140) uniform Material
         public ITextureView? DepthStencilView { get; }
 
         public ITextureView? ReadOnlyDepthView { get; }
+
+        public bool TryGetSliceView(TextureViewType viewType, uint slice, out ITextureView view)
+        {
+            return sliceViews.TryGetValue((viewType, slice), out view!);
+        }
+
+        public void CacheSliceView(TextureViewType viewType, uint slice, ITextureView view)
+        {
+            sliceViews[(viewType, slice)] = view;
+        }
 
         public void Dispose()
         {

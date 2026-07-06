@@ -34,7 +34,9 @@ public sealed class TextureRenderBuffer : RenderBuffer
     public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2 size = default)
     {
         this.bufferParams = bufferParams;
-        Texture = new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
+        Texture = bufferParams.Flags.HasFlag(RenderBufferFlag.CubeMap)
+            ? new TextureCube($"RenderBuffer.{Guid.NewGuid():N}")
+            : new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
 
         var effectiveSize = size == default ? Vector2.One : size;
         if (bufferParams.Flags.HasFlag(RenderBufferFlag.FixedTextureSize))
@@ -53,12 +55,18 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
     public override RenderTargetView GetView(uint slice = 0u)
     {
-        return slice == 0u ? RenderTargetView.Texture(Texture) : RenderTargetView.TextureSlice(Texture, slice);
+        if (Texture is Texture2D && slice == 0u)
+            return RenderTargetView.Texture(Texture);
+
+        return RenderTargetView.TextureSlice(Texture, slice);
     }
 
     public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u)
     {
-        return slice == 0u ? RenderTargetView.ReadOnlyDepth(Texture) : RenderTargetView.ReadOnlyDepthSlice(Texture, slice);
+        if (Texture is Texture2D && slice == 0u)
+            return RenderTargetView.ReadOnlyDepth(Texture);
+
+        return RenderTargetView.ReadOnlyDepthSlice(Texture, slice);
     }
 
     public override IntRect GetViewportRect() => ViewportRect;
@@ -74,8 +82,18 @@ public sealed class TextureRenderBuffer : RenderBuffer
         var nextFormat = bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : bufferParams.TextureFormat;
         if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat)
         {
-            if (Texture is not Texture2D texture2D || !texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat))
-                throw new InvalidOperationException("Failed to resize texture render buffer.");
+            switch (Texture)
+            {
+                case Texture2D texture2D when texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat):
+                    break;
+
+                case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat):
+                    nextSize = new IntVector2(textureCube.Width, textureCube.Height);
+                    break;
+
+                default:
+                    throw new InvalidOperationException("Failed to resize texture render buffer.");
+            }
         }
 
         if (!IsDepthTextureFormat(nextFormat))

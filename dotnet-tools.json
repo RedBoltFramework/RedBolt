@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "debug-mcp": {
+      "version": "0.19.0",
+      "commands": [
+        "debug-mcp"
+      ],
+      "rollForward": false
+    }
+  }
+}

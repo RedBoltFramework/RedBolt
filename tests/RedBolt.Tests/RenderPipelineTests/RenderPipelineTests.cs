@@ -790,6 +790,25 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_creates_cubemap_render_buffers_with_face_slice_views()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
+
+        var cubemap = manager.CreateColorBuffer(
+            new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.CubeMap | RenderBufferFlag.FixedTextureSize),
+            new Vector2(32, 32));
+
+        var cubeTexture = Assert.IsType<TextureCube>(cubemap.Texture);
+        Assert.Equal((32, 32), (cubeTexture.Width, cubeTexture.Height));
+        Assert.Equal(new IntRect(0, 0, 32, 32), cubemap.GetViewportRect());
+        Assert.Equal(new RenderTargetView(cubeTexture, RenderTargetViewType.ResourceSlice, 0u), cubemap.GetView());
+        Assert.Equal(new RenderTargetView(cubeTexture, RenderTargetViewType.ResourceSlice, 5u), cubemap.GetView(5u));
+    }
+
+    [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
         var previousContext = Context.TryGetInstance();
