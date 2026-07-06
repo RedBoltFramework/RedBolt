@@ -77,10 +77,7 @@ public sealed class RenderBufferManager
         viewportColorBuffer.SetViewportRect(viewportRect);
         viewportDepthBuffer.SetViewportRect(viewportRect);
 
-        linearColorSpace = settings.ColorSpace is not RenderPipelineColorSpace.GammaLDR;
-        hdr = settings.ColorSpace == RenderPipelineColorSpace.LinearHDR;
-        colorOutputParams = new RenderBufferParams(GetColorTextureFormat(settings.ColorSpace));
-        depthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8);
+        ResolveOutputParams(renderTarget);
 
         var needReadableDepth = settings.ReadableDepth;
         if (frameSettings.SupportColorReadWrite)
@@ -134,7 +131,9 @@ public sealed class RenderBufferManager
             throw new InvalidOperationException("Cannot swap color buffers when color read/write is not enabled for the frame.");
 
         readableColorBuffer ??= EnsureSecondaryColorBuffer();
-        (writeableColorBuffer, readableColorBuffer) = (readableColorBuffer, writeableColorBuffer);
+        var previousWriteable = writeableColorBuffer;
+        writeableColorBuffer = readableColorBuffer;
+        readableColorBuffer = previousWriteable;
     }
 
     /// <summary>
@@ -273,6 +272,27 @@ public sealed class RenderBufferManager
 
     public RenderBufferManagerSettings GetSettings() => settings;
 
+    private void ResolveOutputParams(object? renderTarget)
+    {
+        var fallbackFlags = settings.FilteredColor ? RenderBufferFlag.BilinearFiltering : RenderBufferFlag.None;
+        var fallbackMultiSample = settings.InheritMultiSampleLevel ? 1 : settings.MultiSampleLevel;
+        colorOutputParams = new RenderBufferParams(GetColorTextureFormat(settings.ColorSpace), fallbackMultiSample, fallbackFlags);
+        depthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample);
+        linearColorSpace = settings.ColorSpace is not RenderPipelineColorSpace.GammaLDR;
+        hdr = settings.ColorSpace == RenderPipelineColorSpace.LinearHDR;
+
+        if (!TryGetRenderTargetTexture(renderTarget, out var texture, out var multiSample))
+            return;
+
+        var flags = texture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear or TextureFilterMode.Anisotropic
+            ? RenderBufferFlag.BilinearFiltering
+            : RenderBufferFlag.None;
+
+        colorOutputParams = new RenderBufferParams(texture.Format, multiSample, flags);
+        linearColorSpace = texture.GetSRGB() || texture.GetLinear() || texture.Format == TextureFormat.RGBA16F;
+        hdr = texture.Format == TextureFormat.RGBA16F;
+    }
+
     private RenderBuffer EnsurePrimaryColorBuffer()
     {
         var outputSize = viewportRect.Size;
@@ -338,5 +358,31 @@ public sealed class RenderBufferManager
             RenderPipelineColorSpace.Optimized => TextureFormat.RGBA8,
             _ => TextureFormat.RGBA8
         };
+    }
+
+    private static bool TryGetRenderTargetTexture(object? renderTarget, out Texture texture, out int multiSample)
+    {
+        switch (renderTarget)
+        {
+        case Texture typedTexture:
+            texture = typedTexture;
+            multiSample = 1;
+            return true;
+
+        case RenderTargetView { RenderTexture: Texture typedTexture } typedView:
+            texture = typedTexture;
+            multiSample = Math.Max(typedView.GetMultiSample(), 1);
+            return true;
+
+        case TextureRenderBuffer typedBuffer:
+            texture = typedBuffer.Texture;
+            multiSample = 1;
+            return true;
+
+        default:
+            texture = null!;
+            multiSample = 1;
+            return false;
+        }
     }
 }

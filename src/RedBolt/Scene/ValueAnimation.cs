@@ -79,7 +79,7 @@ public sealed class ValueAnimation : Resource
             for (var dataElement = eventFrameElement.GetChild("eventdata").GetChild("item"); dataElement.NotNull; dataElement = dataElement.GetNext("item"))
             {
                 var type = ParseVariantType(dataElement.GetAttribute("type"));
-                eventData[new StringHash(dataElement.GetUInt("key"))] = VariantTypeUtility.Deserialize(dataElement.GetValue(), type);
+                eventData[new StringHash(dataElement.GetUInt("key"))] = VariantTypeUtility.DeserializeVariant(dataElement.GetValue(), type);
             }
 
             SetEventFrame(eventFrameElement.GetFloat("time"), new StringHash(eventFrameElement.GetUInt("eventtype")), eventData);
@@ -113,9 +113,9 @@ public sealed class ValueAnimation : Resource
             {
                 var dataElement = eventDataElement.CreateChild("item");
                 dataElement.SetUInt("key", pair.Key.Value);
-                var type = VariantTypeUtility.GetVariantType(pair.Value);
+                var type = pair.Value.Type;
                 dataElement.SetAttribute("type", type.ToString());
-                dataElement.SetValue(VariantTypeUtility.Serialize(pair.Value, type));
+                dataElement.SetValue(VariantTypeUtility.Serialize(pair.Value));
             }
         }
 
@@ -143,7 +143,7 @@ public sealed class ValueAnimation : Resource
             foreach (var item in eventFrameValue.Get("eventdata").GetArray())
             {
                 var type = ParseVariantType(item.Get("type").GetString());
-                eventData[new StringHash(item.Get("key").GetUInt())] = VariantTypeUtility.Deserialize(item.Get("json").GetString(), type);
+                eventData[new StringHash(item.Get("key").GetUInt())] = VariantTypeUtility.DeserializeVariant(item.Get("json").GetString(), type);
             }
 
             SetEventFrame(eventFrameValue.Get("time").GetFloat(), new StringHash(eventFrameValue.Get("eventtype").GetUInt()), eventData);
@@ -179,11 +179,11 @@ public sealed class ValueAnimation : Resource
             var eventDataArray = new JSONValue(JSONValueType.Array);
             foreach (var pair in eventFrame.EventData)
             {
-                var type = VariantTypeUtility.GetVariantType(pair.Value);
+                var type = pair.Value.Type;
                 var item = new JSONValue(JSONValueType.Object);
                 item.Set("key", new JSONValue(pair.Key.Value));
                 item.Set("type", new JSONValue(type.ToString()));
-                item.Set("json", new JSONValue(VariantTypeUtility.Serialize(pair.Value, type)));
+                item.Set("json", new JSONValue(VariantTypeUtility.Serialize(pair.Value)));
                 eventDataArray.Push(item);
             }
             frame.Set("eventdata", eventDataArray);

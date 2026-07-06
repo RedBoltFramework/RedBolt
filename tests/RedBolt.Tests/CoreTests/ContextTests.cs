@@ -58,7 +58,7 @@ public sealed class ContextTests
             Assert.Equal(1, anySenderCalls);
             Assert.Equal(0, filteredSenderCalls);
             Assert.NotNull(receivedData);
-            Assert.True(Assert.IsType<bool>(receivedData![new StringHash("Flag")]));
+            Assert.True(receivedData![new StringHash("Flag")].GetBool());
         }
         finally
         {
@@ -265,12 +265,70 @@ public sealed class ContextTests
 
             context.SetGlobalVar(key, 42);
 
-            Assert.Equal(42, Assert.IsType<int>(sender.GetGlobalVar(key)));
-            Assert.Equal(42, Assert.IsType<int>(context.GetGlobalVars()[key]));
+            Assert.Equal(42, sender.GetGlobalVar(key).GetInt());
+            Assert.Equal(42, context.GetGlobalVars()[key].GetInt());
 
             sender.SetGlobalVar(key, 64);
 
-            Assert.Equal(64, Assert.IsType<int>(context.GetGlobalVar(key)));
+            Assert.Equal(64, context.GetGlobalVar(key).GetInt());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_reports_event_handler_queries()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+
+            receiver.SubscribeToEvent("Ping", (_, _, _) => { });
+            receiver.SubscribeToEvent(sender, "Pong", (_, _, _) => { });
+
+            Assert.True(receiver.HasSubscribedToEvent(new StringHash("Ping")));
+            Assert.True(receiver.HasSubscribedToEvent(sender, new StringHash("Pong")));
+            Assert.True(receiver.HasEventHandlers());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_can_unsubscribe_from_all_events_except_selected_event_types_and_senders()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var senderA = new TestObject();
+            var senderB = new TestObject();
+            var receiver = new TestObject();
+
+            receiver.SubscribeToEvent("KeepEvent", (_, _, _) => { });
+            receiver.SubscribeToEvent("DropEvent", (_, _, _) => { });
+            receiver.UnsubscribeFromAllEventsExcept([new StringHash("KeepEvent")]);
+
+            Assert.True(receiver.HasSubscribedToEvent(new StringHash("KeepEvent")));
+            Assert.False(receiver.HasSubscribedToEvent(new StringHash("DropEvent")));
+
+            receiver.SubscribeToEvent(senderA, "Ping", (_, _, _) => { });
+            receiver.SubscribeToEvent(senderB, "Ping", (_, _, _) => { });
+            receiver.UnsubscribeFromAllEventsExcept([senderB]);
+
+            Assert.False(receiver.HasSubscribedToEvent(senderA, new StringHash("Ping")));
+            Assert.True(receiver.HasSubscribedToEvent(senderB, new StringHash("Ping")));
         }
         finally
         {

@@ -38,7 +38,12 @@ public class RenderPipeline : Component
 
     public void SetRenderPath(RenderPath? renderPath)
     {
+        if (this.renderPath is not null)
+            this.renderPath.ReloadFinished -= OnRenderPathReloadFinished;
+
         this.renderPath = renderPath;
+        if (this.renderPath is not null)
+            this.renderPath.ReloadFinished += OnRenderPathReloadFinished;
         OnRenderPathReloaded();
     }
 
@@ -161,6 +166,8 @@ public class RenderPipeline : Component
     private void MarkSettingsDirty()
     {
         settings.Validate();
+        settings.PropagateImpliedSettings();
+        settings.AdjustToSupported(Context.TryGetInstance()?.GetSubsystem<Graphics>());
         Touch();
         SettingsChanged?.Invoke(this, settings);
     }
@@ -185,6 +192,12 @@ public class RenderPipeline : Component
 
         Touch();
         RenderPathChanged?.Invoke(this, renderPath);
+    }
+
+    private void OnRenderPathReloadFinished(Resource resource)
+    {
+        if (ReferenceEquals(resource, renderPath))
+            OnRenderPathReloaded();
     }
 
     private void Touch()

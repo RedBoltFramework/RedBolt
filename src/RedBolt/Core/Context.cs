@@ -208,14 +208,73 @@ public sealed class Context
         RemoveEmptyEventBuckets();
     }
 
-    public object? GetGlobalVar(StringHash key)
+    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<StringHash> eventTypes)
     {
-        return globalVars.TryGetValue(key, out var value) ? value : null;
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(eventTypes);
+
+        foreach (var (eventType, bucket) in eventSubscriptions)
+        {
+            if (eventTypes.Contains(eventType))
+                continue;
+
+            RemoveMatchingSubscriptions(bucket, subscription => ReferenceEquals(subscription.Receiver, receiver));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<object> senders)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(senders);
+
+        foreach (var bucket in eventSubscriptions.Values)
+        {
+            RemoveMatchingSubscriptions(bucket, subscription =>
+                ReferenceEquals(subscription.Receiver, receiver)
+                && (subscription.SenderFilter is null || !senders.Contains(subscription.SenderFilter)));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public bool HasSubscribedToEvent(object receiver, StringHash eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        return eventSubscriptions.TryGetValue(eventType, out var bucket)
+            && bucket.Subscriptions.Any(subscription =>
+                !subscription.IsRemoved
+                && ReferenceEquals(subscription.Receiver, receiver)
+                && subscription.SenderFilter is null);
+    }
+
+    public bool HasSubscribedToEvent(object receiver, object sender, StringHash eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+        return eventSubscriptions.TryGetValue(eventType, out var bucket)
+            && bucket.Subscriptions.Any(subscription =>
+                !subscription.IsRemoved
+                && ReferenceEquals(subscription.Receiver, receiver)
+                && ReferenceEquals(subscription.SenderFilter, sender));
+    }
+
+    public bool HasEventHandlers(object receiver)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        return eventSubscriptions.Values.Any(bucket =>
+            bucket.Subscriptions.Any(subscription => !subscription.IsRemoved && ReferenceEquals(subscription.Receiver, receiver)));
+    }
+
+    public Variant GetGlobalVar(StringHash key)
+    {
+        return globalVars.TryGetValue(key, out var value) ? value : default;
     }
 
     public VariantMap GetGlobalVars() => globalVars;
 
-    public void SetGlobalVar(StringHash key, object? value)
+    public void SetGlobalVar(StringHash key, Variant value)
     {
         globalVars[key] = value;
     }

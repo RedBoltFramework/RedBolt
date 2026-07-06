@@ -58,14 +58,16 @@ public sealed class ValueAnimationTests
         Assert.True(loadedXml.Load(stream));
         Assert.Equal(InterpMethod.Spline, loadedXml.GetInterpolationMethod());
         Assert.True(MathDefs.ApproximatelyEquivalent(loadedXml.GetSplineTension(), 0.25f));
-        Assert.Single(loadedXml.GetEventFrames(0.0f, 1.0f));
+        var xmlEventFrame = Assert.Single(loadedXml.GetEventFrames(0.0f, 1.0f));
+        Assert.True(xmlEventFrame.EventData[new StringHash("flag")].GetBool());
 
         var json = new JSONValue(JSONValueType.Object);
         Assert.True(animation.SaveJSON(json));
         var loadedJson = new ValueAnimation("Animations/LoadedJson");
         Assert.True(loadedJson.LoadJSON(json));
         Assert.Equal(3, loadedJson.GetKeyFrames().Count);
-        Assert.Single(loadedJson.GetEventFrames(0.0f, 1.0f));
+        var jsonEventFrame = Assert.Single(loadedJson.GetEventFrames(0.0f, 1.0f));
+        Assert.True(jsonEventFrame.EventData[new StringHash("flag")].GetBool());
     }
 
     [Fact]

@@ -321,6 +321,17 @@ public sealed class ResourceCache
             cache.Remove(key);
     }
 
+    public bool ReloadResource<T>(string name)
+        where T : Resource
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        if (!cache.TryGetValue((typeof(T), name), out var resource))
+            return false;
+
+        return resource.Reload();
+    }
+
     public void ReleaseResources<T>(string partialName, bool force = false)
         where T : Resource
     {

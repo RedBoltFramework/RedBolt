@@ -100,6 +100,7 @@ layout(std140) uniform Material
     private ITextureView? depthStencilView;
     private ITextureView? currentDepthStencilTarget;
     private int currentRenderTargetCount;
+    private int configuredMultiSample = 1;
     private Geometry? fullscreenQuadGeometry;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentColorTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentDepthTargetFormat;
@@ -112,6 +113,37 @@ layout(std140) uniform Material
     public int Width { get; private set; }
 
     public int Height { get; private set; }
+
+    public RenderDeviceCaps GetRenderDeviceCaps()
+    {
+        return new RenderDeviceCaps
+        {
+            ComputeShaders = false,
+            DrawBaseVertex = true,
+            DrawBaseInstance = true,
+            ClipDistance = true,
+            ReadOnlyDepth = true,
+            SrgbOutput = true,
+            HdrOutput = true,
+            ConstantBufferOffsetAlignment = 256,
+            MaxTextureSize = 16384,
+            MaxRenderTargetSize = 16384
+        };
+    }
+
+    public int GetSupportedMultiSample(TextureFormat format, int requestedLevel)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(requestedLevel);
+        _ = format;
+
+        var normalizedLevel = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)requestedLevel), 1u, 16u);
+        return Math.Min(normalizedLevel, Math.Max(configuredMultiSample, 1));
+    }
+
+    public bool IsRenderTargetFormatSupported(TextureFormat format)
+    {
+        return format is TextureFormat.Depth24Stencil8 or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+    }
 
     public void Initialize(EngineParameters parameters, Input input)
     {
@@ -136,6 +168,7 @@ layout(std140) uniform Material
             SdlNativeBindings.SdlGetWindowSize(window, out var actualWidth, out var actualHeight);
             Width = actualWidth;
             Height = actualHeight;
+            configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
 
             var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
@@ -2147,7 +2180,7 @@ layout(std140) uniform Material
         Log.Logger.LogDebug("Shader reflection diagnostics: {Label} resourceCount={ResourceCount}.", label, resourceCount);
         for (uint resourceIndex = 0; resourceIndex < resourceCount; ++resourceIndex)
         {
-            using var resourceDesc = new ShaderResourceDesc();
+            using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
             shader.GetResourceDesc(resourceIndex, resourceDesc);
             var resourceName = PtrToUtf8String(resourceDesc.Name);
             var line =
@@ -2194,7 +2227,7 @@ layout(std140) uniform Material
         for (uint variableIndex = 0; variableIndex < count; ++variableIndex)
         {
             var variable = getVariable(variableIndex);
-            using var resourceDesc = new ShaderResourceDesc();
+            using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
             variable.GetResourceDesc(resourceDesc);
             Log.Logger.LogDebug(
                 "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variable[{VariableIndex}] name='{Name}', type={Type}, arraySize={ArraySize}, variableType={VariableType}.",
@@ -2234,7 +2267,7 @@ layout(std140) uniform Material
         for (uint index = 0; index < count; ++index)
         {
             var variable = shaderResources.GetVariableByIndex(shaderType, index);
-            using var resourceDesc = new ShaderResourceDesc();
+            using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
             variable.GetResourceDesc(resourceDesc);
             var name = PtrToUtf8String(resourceDesc.Name);
             if (!string.IsNullOrWhiteSpace(name))

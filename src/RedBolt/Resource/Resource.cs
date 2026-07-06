@@ -19,6 +19,8 @@ public abstract class Resource
 
     public uint MemoryUse { get; set; }
 
+    public event Action<Resource>? ReloadFinished;
+
     public uint NameHash => StringHash.Calculate(Name);
 
     public bool Load(Stream source)
@@ -39,6 +41,7 @@ public abstract class Resource
         }
 
         AsyncLoadState = AsyncLoadState.Done;
+        ReloadFinished?.Invoke(this);
         return true;
     }
 
@@ -54,6 +57,11 @@ public abstract class Resource
         using var stream = File.OpenRead(fileName);
         AbsoluteFileName = fileName;
         return Load(stream);
+    }
+
+    public bool Reload()
+    {
+        return !string.IsNullOrWhiteSpace(AbsoluteFileName) && LoadFile(AbsoluteFileName);
     }
 
     public virtual bool SaveFile(string fileName)

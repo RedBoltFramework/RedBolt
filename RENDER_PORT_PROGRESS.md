@@ -77,10 +77,15 @@ Slice 1 through the first runtime integration layer are landed:
 - core event/object parity moved closer to rbfx:
   - `Object`/`Context` now support sender-scoped bulk unsubscribe, block-events gating, and context global vars
   - named-event dispatch no longer snapshots subscriptions with `ToArray()` on every send; subscription removal is deferred and compacted after dispatch instead
+- hot-path and parity cleanup continued in the same area:
+  - `VariantMap` now stores a managed `Variant` tagged-union struct instead of boxed `object?` values, and value-animation event-frame serialization now round-trips that variant data through XML and JSON
+  - `Object`/`Context` now also expose `HasSubscribedToEvent`, `HasEventHandlers`, and `UnsubscribeFromAllEventsExcept` parity helpers
 - render-pipeline mutation behavior is closer to upstream rbfx:
   - `RenderPipeline` now raises managed settings/parameters/render-path change events, ignores no-op render-path parameter updates, and no longer dirties revision state for frame shader parameter writes
   - `RenderPath.RepairEnabledRenderPasses` now preserves already-matching pass arrays without copying, and `PipelineStateOutputDesc.RenderTargetFormats` no longer allocates on access
+  - `RenderPipeline` now listens for `RenderPath` resource reload completion and re-collects newly exposed render-path parameters without requiring a fresh `SetRenderPath` call
 - low-level managed hot-path cleanup in this slice also includes reusing `CommonFrameInfo` objects across `Define()` calls and making `RenderBufferManagerFrameSettings` a value type
+- focused unit coverage was expanded for the new event-parity helpers, render-path reload handling, and render-target-derived buffer traits; the updated tests compile in the managed build, but a fresh post-build `dotnet test` rerun is currently blocked in this shell by `vstest` socket restrictions plus an exhausted escalation quota
 - SharpCpp fixed-size array support now uses a shared `SharpCpp.Support.NativeArray<T>` plus generated per-field proxy accessors for handle-backed and nested fixed arrays, so bindings no longer emit duplicate `NativeArray<>` types per assembly
 - fixed-array fields like Diligent `BlendStateDesc.RenderTargets[8]` can now be configured from managed code through item getter/setter thunks instead of raw memory aliasing
 - `cmake --build --preset Debug --target redbolt-generate-native-bindings` and `cmake --build --preset Debug --target redbolt-csharp` are green again after the array-support slice

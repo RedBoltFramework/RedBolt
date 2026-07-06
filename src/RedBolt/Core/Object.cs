@@ -64,6 +64,18 @@ public abstract class Object
         Context.Unsubscribe(this);
     }
 
+    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<StringHash> eventTypes)
+    {
+        ArgumentNullException.ThrowIfNull(eventTypes);
+        Context.UnsubscribeAllExcept(this, eventTypes);
+    }
+
+    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<object> senders)
+    {
+        ArgumentNullException.ThrowIfNull(senders);
+        Context.UnsubscribeAllExcept(this, senders);
+    }
+
     public void UnsubscribeFromEvent(StringHash eventType)
     {
         Context.Unsubscribe(this, eventType);
@@ -86,14 +98,14 @@ public abstract class Object
         Context.SendEvent(this, eventType, eventData);
     }
 
-    public object? GetGlobalVar(StringHash key)
+    public Variant GetGlobalVar(StringHash key)
     {
         return Context.GetGlobalVar(key);
     }
 
     public VariantMap GetGlobalVars() => Context.GetGlobalVars();
 
-    public void SetGlobalVar(StringHash key, object? value)
+    public void SetGlobalVar(StringHash key, Variant value)
     {
         Context.SetGlobalVar(key, value);
     }
@@ -104,4 +116,17 @@ public abstract class Object
     }
 
     public bool GetBlockEvents() => BlockEvents;
+
+    public bool HasSubscribedToEvent(StringHash eventType)
+    {
+        return Context.HasSubscribedToEvent(this, eventType);
+    }
+
+    public bool HasSubscribedToEvent(object sender, StringHash eventType)
+    {
+        ArgumentNullException.ThrowIfNull(sender);
+        return Context.HasSubscribedToEvent(this, sender, eventType);
+    }
+
+    public bool HasEventHandlers() => Context.HasEventHandlers(this);
 }

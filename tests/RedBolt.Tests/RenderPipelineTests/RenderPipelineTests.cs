@@ -217,6 +217,38 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_derives_output_traits_from_render_target_texture()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.GammaLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+
+        var renderTarget = new Texture2D("Textures/ViewportTarget");
+        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.RGBA16F));
+        renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
+        renderTarget.SetLinear(true);
+
+        manager.OnViewportDefined(renderTarget, new IntRect(0, 0, 320, 200));
+
+        Assert.Equal(TextureFormat.RGBA16F, manager.GetOutputColorFormat());
+        Assert.Equal(1, manager.GetOutputMultiSample());
+        Assert.True(manager.IsLinearColorSpace());
+        Assert.True(manager.IsHDR());
+        var colorTexture = manager.GetColorOutput().GetTexture();
+        var secondaryColorTexture = manager.GetSecondaryColorTexture();
+        Assert.NotNull(colorTexture);
+        Assert.NotNull(secondaryColorTexture);
+        Assert.Equal(TextureFormat.RGBA16F, colorTexture!.Format);
+        Assert.Equal(TextureFormat.RGBA16F, secondaryColorTexture!.Format);
+    }
+
+    [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
@@ -259,6 +291,46 @@ public sealed class RenderPipelineTests
         finally
         {
             fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            fixture.Resources.RemoveResourceDir(tempRoot);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Render_pipeline_reacts_to_render_path_resource_reload()
+    {
+        const string renderPathName = "RenderPaths/Reload.renderpath";
+        var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
+        fixture.Resources.AddResourceDir(tempRoot);
+
+        try
+        {
+            var renderPathFile = Path.Combine(tempRoot, renderPathName);
+            WriteRenderPath(renderPathFile, 1.25f, includeBloom: false);
+            fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
+
+            var scene = new Scene();
+            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            renderPipeline.SetRenderPath(fixture.Resources.GetResource<RenderPath>(renderPathName));
+
+            var renderPathChangedEvents = 0;
+            renderPipeline.RenderPathChanged += (_, _) => ++renderPathChangedEvents;
+
+            Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+            Assert.DoesNotContain("BloomStrength", renderPipeline.GetRenderPathParameters().Keys);
+
+            WriteRenderPath(renderPathFile, 2.5f, includeBloom: true);
+            Assert.True(fixture.Resources.ReloadResource<RenderPath>(renderPathName));
+
+            Assert.Equal(1, renderPathChangedEvents);
+            Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+            Assert.Equal(0.8f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["BloomStrength"]));
+        }
+        finally
+        {
+            fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
             fixture.Resources.RemoveResourceDir(tempRoot);
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
@@ -321,5 +393,37 @@ public sealed class RenderPipelineTests
             public int UpdateCalls;
             public int RenderCalls;
         }
+    }
+
+    private static void WriteRenderPath(string fileName, float exposure, bool includeBloom)
+    {
+        var bloomEntry = includeBloom
+            ? """
+                                      ,
+                                      { "key": "BloomStrength", "type": "Float", "value": 0.8 }
+                """
+            : string.Empty;
+
+        File.WriteAllText(fileName, $$"""
+            {
+              "passes": [
+                {
+                  "type": "FullScreenShaderPass",
+                  "value": {
+                    "attributes": [
+                      { "name": "Pass Name", "type": "String", "value": "Postprocess: Reload" },
+                      {
+                        "name": "Parameters",
+                        "type": "StringVariantMap",
+                        "value": [
+                          { "key": "Exposure", "type": "Float", "value": {{exposure}} }{{bloomEntry}}
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+            """);
     }
 }
