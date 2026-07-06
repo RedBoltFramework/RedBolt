@@ -73,6 +73,9 @@ Slice 1 through the first runtime integration layer are landed:
 - render-path trait plumbing now reaches farther into the managed runtime:
   - per-frame render-buffer requirements now carry readable-depth and filtered-color requests in addition to color read/write
   - `AmbientOcclusionPass` can now request depth-backed frames through that trait path instead of being permanently disabled by the base pipeline settings
+- the regular scene-material path now shares the same managed custom-uniform plumbing as fullscreen passes:
+  - `Graphics` parses `UNIFORM_BUFFER_BEGIN(6, Custom)` blocks from prepared material shaders, allocates a matching `Custom` constant buffer for geometry pipelines, and binds it on both shader stages when present
+  - material shader parameters marked custom now upload through that buffer, which is the remaining prerequisite for upstream-style outline producer work instead of RedBolt-only postprocess shortcuts
 - the remaining built-in fullscreen passes are no longer metadata-only:
   - `BloomPass` now allocates its rbfx-style mip-chain work buffers, gathers bright regions, applies separable blur, and blends the bloom result back into the output
   - `AmbientOcclusionPass` now allocates its intermediate buffers, evaluates/blur/combine SSAO through `v2/P_SSAO`, and binds optional normal + depth inputs through the managed fullscreen path
@@ -95,11 +98,11 @@ Slice 1 through the first runtime integration layer are landed:
   - the remaining canonical `RenderAPIDefs` enums were moved into `RenderAPIDefs.cs`, and the missing `RenderPipelineDefs` flags/callback shells now exist in-tree for future batch-renderer / scene-processor porting
   - `Graphics.GetShader(ShaderType, name, defines)` now has a managed lookup surface via `ShaderVariation`, and `RenderBufferManager` now exposes the missing copy/clear/render callbacks (`DrawTexture*`, `CopyTextureRegion`, `Clear*`, `OnRenderBegin`, `OnRenderEnd`) needed by upcoming post-process ports
 - low-level managed hot-path cleanup in this slice also includes reusing `CommonFrameInfo` objects across `Define()` calls and making `RenderBufferManagerFrameSettings` a value type
-- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, and bloom buffer sizing; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` is green again with `293/293` passing
+- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, bloom buffer sizing, and managed custom-uniform parsing/packing; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` is green again with `297/297` passing
 - SharpCpp fixed-size array support now uses a shared `SharpCpp.Support.NativeArray<T>` plus generated per-field proxy accessors for handle-backed and nested fixed arrays, so bindings no longer emit duplicate `NativeArray<>` types per assembly
 - fixed-array fields like Diligent `BlendStateDesc.RenderTargets[8]` can now be configured from managed code through item getter/setter thunks instead of raw memory aliasing
 - `cmake --build --preset Debug --target redbolt-generate-native-bindings` and `cmake --build --preset Debug --target redbolt-csharp` are green again after the array-support slice
-- sample verification was rerun against the current render-pipeline path on `2026-07-06`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-postprocess.png` completed successfully after the new built-in pass work and produced a valid `1280x720` PNG with the expected mushroom field over a black background (the sample does not create a `Zone` or `Skybox`)
+- sample verification was rerun against the current render-pipeline path on `2026-07-06`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-custom-materials.png` completed successfully after the geometry custom-uniform slice and produced a valid `1280x720` PNG with the expected mushroom field over a black background (the sample does not create a `Zone` or `Skybox`)
 
 ## Current Cross-Cutting Requirement
 
@@ -121,6 +124,7 @@ Slice 1 through the first runtime integration layer are landed:
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Hook real producers for extra shared render buffers such as the outline and normal inputs so the newly executing post-process passes consume upstream-style data instead of the current forward-path minimum set.
+  The regular material custom-uniform path is now in place, so the next outline slice can follow rbfx more closely by porting `OutlineGroup` / `OutlineScenePass` instead of inventing a special-case binding path.
 - Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
 - Replace the current substitute-depth and fullscreen-copy implementation with a closer port of upstream `RenderBuffer` / `RenderBufferManager` semantics, including proper depth/readback formats and `DrawTextureRegion`-style color-space-aware copies.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

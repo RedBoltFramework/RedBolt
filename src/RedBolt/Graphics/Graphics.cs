@@ -776,6 +776,8 @@ layout(std140) uniform Material
         UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone);
         UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4, drawableAmbient);
         UpdateMaterialBuffer(pipeline.MaterialBuffer, material);
+        if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
+            UpdateMaterialCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, material);
         UpdateLightBuffer(pipeline.LightBuffer, light);
         UpdateZoneBuffer(pipeline.ZoneBuffer, drawableZone);
 
@@ -793,6 +795,13 @@ layout(std140) uniform Material
             "Material", pipeline.MaterialBuffer, MaterialBufferSize);
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
             "Material", pipeline.MaterialBuffer, MaterialBufferSize);
+        if (pipeline.CustomBuffer is not null)
+        {
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+                "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+                "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+        }
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
             "Light", pipeline.LightBuffer, LightBufferSize);
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
@@ -838,10 +847,13 @@ layout(std140) uniform Material
         if (vertexShaderResource is null || pixelShaderResource is null)
             return null;
 
+        var preparedVertexSource = vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
+        var preparedPixelSource = pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
-            pass.VertexShader, vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            pass.VertexShader, preparedVertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
-            pass.PixelShader, pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            pass.PixelShader, preparedPixelSource);
+        var customLayout = ParseCustomUniformLayout(preparedVertexSource, preparedPixelSource);
 
         TemporaryLayoutArray? layoutArray = null;
         try
@@ -883,6 +895,7 @@ layout(std140) uniform Material
             var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
             var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
             var materialBuffer = CreateUniformBuffer(device, "Material", MaterialBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
             var lightBuffer = CreateUniformBuffer(device, "Light", LightBufferSize);
             var zoneBuffer = CreateUniformBuffer(device, "Zone", ZoneBufferSize);
             pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
@@ -893,7 +906,7 @@ layout(std140) uniform Material
                 vertexShader, pixelShader, pipelineState, shaderResources);
 
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
-                lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
+                customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
             layoutArray = null;
             pipelines[key] = cached;
             return cached;
@@ -923,7 +936,7 @@ layout(std140) uniform Material
         var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var customLayout = ParseCustomUniformLayout(pixelSource);
+        var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
 
         TemporaryLayoutArray? layoutArray = null;
         try
@@ -1077,12 +1090,50 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
+    private void UpdateMaterialCustomBuffer(IBuffer buffer, CustomUniformLayout layout, Material material)
+    {
+        var data = new byte[layout.Size];
+        var parameters = material.GetShaderParameters();
+        foreach (var field in layout.Fields)
+        {
+            if (!TryGetCustomParameterValue(field, parameters, out var value))
+                continue;
+
+            WriteCustomParameterValue(data, field, value);
+        }
+        UpdateBuffer(buffer, data);
+    }
+
     private bool TryGetCustomParameterValue(CustomUniformField field, IReadOnlyDictionary<string, object?> parameters, out object? value)
     {
         if (parameters.TryGetValue(field.ParameterName, out value))
             return true;
         if (parameters.TryGetValue(field.UniformName, out value))
             return true;
+        value = null;
+        return false;
+    }
+
+    private static bool TryGetCustomParameterValue(CustomUniformField field, IReadOnlyDictionary<string, MaterialShaderParameter> parameters,
+        out object? value)
+    {
+        if (TryGetCustomParameterValue(field.ParameterName, parameters, out value))
+            return true;
+        if (TryGetCustomParameterValue(field.UniformName, parameters, out value))
+            return true;
+        value = null;
+        return false;
+    }
+
+    private static bool TryGetCustomParameterValue(string parameterName, IReadOnlyDictionary<string, MaterialShaderParameter> parameters,
+        out object? value)
+    {
+        if (parameters.TryGetValue(parameterName, out var parameter))
+        {
+            value = parameter.Value;
+            return parameter.IsCustom;
+        }
+
         value = null;
         return false;
     }
@@ -1141,32 +1192,42 @@ layout(std140) uniform Material
         }
     }
 
-    private static CustomUniformLayout ParseCustomUniformLayout(string preparedPixelSource)
+    private static CustomUniformLayout ParseCustomUniformLayout(params string[] preparedSources)
     {
-        var begin = preparedPixelSource.IndexOf("UNIFORM_BUFFER_BEGIN(6, Custom)", StringComparison.Ordinal);
-        if (begin < 0)
-            return new CustomUniformLayout(0, []);
-
-        var end = preparedPixelSource.IndexOf("UNIFORM_BUFFER_END(6, Custom)", begin, StringComparison.Ordinal);
-        if (end < 0)
-            return new CustomUniformLayout(0, []);
-
-        var block = preparedPixelSource[begin..end];
         var fields = new List<CustomUniformField>();
+        var knownUniforms = new HashSet<string>(StringComparer.Ordinal);
         var offset = 0;
-        foreach (Match match in CustomUniformFieldRegex.Matches(block))
+        foreach (var preparedSource in preparedSources)
         {
-            if (!TryMapCustomUniformKind(match.Groups["type"].Value, out var kind))
+            if (string.IsNullOrEmpty(preparedSource))
                 continue;
 
-            var alignment = GetCustomUniformAlignment(kind);
-            offset = Align(offset, alignment);
-            var uniformName = match.Groups["name"].Value;
-            var parameterName = uniformName.Length > 1 && uniformName[0] == 'c' && char.IsUpper(uniformName[1])
-                ? uniformName[1..]
-                : uniformName;
-            fields.Add(new CustomUniformField(uniformName, parameterName, kind, offset));
-            offset += GetCustomUniformSize(kind);
+            var begin = preparedSource.IndexOf("UNIFORM_BUFFER_BEGIN(6, Custom)", StringComparison.Ordinal);
+            if (begin < 0)
+                continue;
+
+            var end = preparedSource.IndexOf("UNIFORM_BUFFER_END(6, Custom)", begin, StringComparison.Ordinal);
+            if (end < 0)
+                continue;
+
+            var customBlock = preparedSource[begin..end];
+            foreach (Match match in CustomUniformFieldRegex.Matches(customBlock))
+            {
+                if (!TryMapCustomUniformKind(match.Groups["type"].Value, out var kind))
+                    continue;
+
+                var uniformName = match.Groups["name"].Value;
+                if (!knownUniforms.Add(uniformName))
+                    continue;
+
+                var alignment = GetCustomUniformAlignment(kind);
+                offset = Align(offset, alignment);
+                var parameterName = uniformName.Length > 1 && uniformName[0] == 'c' && char.IsUpper(uniformName[1])
+                    ? uniformName[1..]
+                    : uniformName;
+                fields.Add(new CustomUniformField(uniformName, parameterName, kind, offset));
+                offset += GetCustomUniformSize(kind);
+            }
         }
 
         return new CustomUniformLayout((uint)Align(offset, 16), fields.ToArray());
@@ -2357,7 +2418,8 @@ layout(std140) uniform Material
     private sealed class PipelineResources : IDisposable
     {
         public PipelineResources(IPipelineState pipelineState, IShader vertexShader, IShader pixelShader,
-            IBuffer cameraBuffer, IBuffer objectBuffer, IBuffer materialBuffer, IBuffer lightBuffer, IBuffer zoneBuffer,
+            IBuffer cameraBuffer, IBuffer objectBuffer, IBuffer materialBuffer, IBuffer? customBuffer, CustomUniformLayout customLayout,
+            IBuffer lightBuffer, IBuffer zoneBuffer,
             IShaderResourceBinding shaderResources, Dictionary<PipelineVariableKey, IShaderResourceVariable> shaderVariables,
             TemporaryLayoutArray layoutArray)
         {
@@ -2367,6 +2429,8 @@ layout(std140) uniform Material
             CameraBuffer = cameraBuffer;
             ObjectBuffer = objectBuffer;
             MaterialBuffer = materialBuffer;
+            CustomBuffer = customBuffer;
+            CustomLayout = customLayout;
             LightBuffer = lightBuffer;
             ZoneBuffer = zoneBuffer;
             ShaderResources = shaderResources;
@@ -2385,6 +2449,10 @@ layout(std140) uniform Material
         public IBuffer ObjectBuffer { get; }
 
         public IBuffer MaterialBuffer { get; }
+
+        public IBuffer? CustomBuffer { get; }
+
+        public CustomUniformLayout CustomLayout { get; }
 
         public IBuffer LightBuffer { get; }
 
@@ -2408,6 +2476,7 @@ layout(std140) uniform Material
             ReleaseIfNotNull(ShaderResources);
             ReleaseIfNotNull(ZoneBuffer);
             ReleaseIfNotNull(LightBuffer);
+            ReleaseIfNotNull(CustomBuffer);
             ReleaseIfNotNull(MaterialBuffer);
             ReleaseIfNotNull(ObjectBuffer);
             ReleaseIfNotNull(CameraBuffer);
