@@ -20,30 +20,6 @@ public enum VertexMask : uint
     ObjectIndex = 0x2000
 }
 
-public enum VertexElementSemantic : byte
-{
-    Position = 0,
-    Normal,
-    Binormal,
-    Tangent,
-    TexCoord,
-    Color,
-    BlendWeights,
-    BlendIndices,
-    ObjectIndex
-}
-
-public enum VertexElementType : byte
-{
-    Int = 0,
-    Float,
-    Vector2,
-    Vector3,
-    Vector4,
-    UByte4,
-    UByte4Norm
-}
-
 public struct VertexElement : IEquatable<VertexElement>
 {
     public VertexElement(

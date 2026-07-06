@@ -1,15 +1,5 @@
 namespace RedBolt;
 
-public enum TextureFilterMode : byte
-{
-    Nearest,
-    Bilinear,
-    Trilinear,
-    Anisotropic,
-    NearestAnisotropic,
-    Default
-}
-
 public enum SkinningMode
 {
     Auto,

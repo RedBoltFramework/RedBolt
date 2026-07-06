@@ -310,12 +310,12 @@ public class RenderPipeline : Component
             RaiseRenderBegin(frameInfo);
 
             sharedState.Graphics = graphics;
+            renderBufferManager.OnRenderBegin(frameInfo);
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(viewport, materialQuality, frameInfo.ViewportRect);
             renderPath?.Render(sharedState);
-
-            renderBufferManager.ResolveToViewport(graphics);
+            renderBufferManager.OnRenderEnd(frameInfo);
 
             graphics.PresentFrame(screenshotPath);
             graphics.UnbindRenderTargets();

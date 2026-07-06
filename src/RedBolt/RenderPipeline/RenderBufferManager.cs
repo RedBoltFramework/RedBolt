@@ -2,6 +2,8 @@ namespace RedBolt;
 
 public sealed class RenderBufferManager
 {
+    private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
+
     private sealed class ViewportOutputRenderBuffer : RenderBuffer
     {
         private readonly RenderTargetViewType type;
@@ -52,6 +54,7 @@ public sealed class RenderBufferManager
     private RenderBuffer? readableColorBuffer;
     private bool linearColorSpace;
     private bool hdr;
+    private Graphics? lastGraphics;
 
     public RenderBufferManager()
     {
@@ -94,6 +97,20 @@ public sealed class RenderBufferManager
         }
     }
 
+    public void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+        ArgumentNullException.ThrowIfNull(frameInfo);
+        OnViewportDefined(frameInfo.RenderTarget, frameInfo.ViewportRect);
+    }
+
+    public void OnRenderEnd(CommonFrameInfo frameInfo)
+    {
+        ArgumentNullException.ThrowIfNull(frameInfo);
+
+        if (lastGraphics is not null)
+            ResolveToViewport(lastGraphics);
+    }
+
     public SharedRenderPassState PopulateSharedState(SharedRenderPassState state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -134,6 +151,16 @@ public sealed class RenderBufferManager
         var previousWriteable = writeableColorBuffer;
         writeableColorBuffer = readableColorBuffer;
         readableColorBuffer = previousWriteable;
+
+        if (!synchronizeContents || lastGraphics is null)
+            return;
+
+        var readableTexture = readableColorBuffer.GetTexture();
+        if (readableTexture is null)
+            return;
+
+        SetRenderTargets(lastGraphics, writeableColorBuffer, depthStencilBuffer);
+        lastGraphics.DrawCopyTexture(readableTexture, bilinearFiltering: colorOutputParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering));
     }
 
     /// <summary>
@@ -142,6 +169,7 @@ public sealed class RenderBufferManager
     public void SetOutputRenderTargets(Graphics graphics, bool readOnlyDepth = false)
     {
         ArgumentNullException.ThrowIfNull(graphics);
+        lastGraphics = graphics;
 
         var depthView = readOnlyDepth ? depthStencilBuffer.GetReadOnlyDepthView() : depthStencilBuffer.GetView();
         graphics.SetRenderTargets(viewportRect, writeableColorBuffer.GetView(), depthView);
@@ -199,6 +227,56 @@ public sealed class RenderBufferManager
             flipVertical);
     }
 
+    public void CopyTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
+        RenderTargetView destinationSurface, IntRect destinationRect, ColorSpaceTransition mode = ColorSpaceTransition.None,
+        bool flipVertical = false)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(sourceTexture);
+
+        graphics.SetRenderTargets(destinationRect, destinationSurface, depthStencilTarget: null);
+        DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical);
+    }
+
+    public void DrawTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
+        ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(sourceTexture);
+        ArgumentException.ThrowIfNullOrWhiteSpace(debugComment);
+
+        var effectiveSourceRect = sourceRect != IntRect.Zero
+            ? sourceRect
+            : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
+        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.Format == TextureFormat.RGBA16F;
+        var shaderDefines = string.Empty;
+        if (mode == ColorSpaceTransition.Automatic && sourceIsLinear != linearColorSpace)
+            shaderDefines = linearColorSpace ? "URHO3D_GAMMA_TO_LINEAR" : "URHO3D_LINEAR_TO_GAMMA";
+
+        var invInputSize = new Vector2(
+            sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
+            sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
+        graphics.DrawFullscreenQuad(
+            debugComment,
+            "v2/X_CopyFramebuffer",
+            shaderDefines,
+            BlendMode.Replace,
+            sourceTexture.GetFilterMode() is not TextureFilterMode.Nearest,
+            sourceTexture,
+            secondaryTexture: null,
+            depthTexture: null,
+            EmptyShaderParameters,
+            invInputSize,
+            GetClipToUvOffsetAndScale(sourceTexture.Width, sourceTexture.Height, effectiveSourceRect),
+            flipVertical);
+    }
+
+    public void DrawTexture(Graphics graphics, string debugComment, Texture sourceTexture,
+        ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
+    {
+        DrawTextureRegion(graphics, debugComment, sourceTexture, IntRect.Zero, mode, flipVertical);
+    }
+
     /// <summary>
     /// Return whether the final output must be copied back to the viewport target.
     /// </summary>
@@ -230,6 +308,7 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(colorBuffer);
+        lastGraphics = graphics;
 
         var viewport = colorBuffer.GetViewportRect();
         var depthView = depthStencilBuffer is null
@@ -238,6 +317,93 @@ public sealed class RenderBufferManager
                 ? depthStencilBuffer.GetReadOnlyDepthView()
                 : depthStencilBuffer.GetView();
         graphics.SetRenderTargets(viewport, colorBuffer.GetView(), depthView);
+    }
+
+    public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth, byte stencil = 0)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(depthStencilBuffer);
+
+        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), writeableColorBuffer.GetView(), depthStencilBuffer.GetView());
+        graphics.ClearCurrentRenderTargets(
+            clearColorTarget: false,
+            clearDepth: flags.HasFlag(ClearTarget.Depth),
+            clearStencil: flags.HasFlag(ClearTarget.Stencil),
+            depth: depth,
+            stencil: stencil);
+    }
+
+    public void ClearColor(Graphics graphics, RenderBuffer colorBuffer, Color color)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(colorBuffer);
+
+        graphics.SetRenderTargets(colorBuffer.GetViewportRect(), colorBuffer.GetView(), depthStencilTarget: null);
+        graphics.ClearCurrentRenderTargets(color, clearColorTarget: true, clearDepth: false, clearStencil: false);
+    }
+
+    public void ClearOutputRect(Graphics graphics, IntRect viewportRect, ClearTarget flags, Color color, float depth, byte stencil = 0)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
+        if (flags == ClearTarget.None)
+            return;
+
+        var effectiveViewportRect = viewportRect != IntRect.Zero ? viewportRect : this.viewportRect;
+        var depthView = depthStencilBuffer.GetView();
+        graphics.SetRenderTargets(effectiveViewportRect, writeableColorBuffer.GetView(), depthView);
+
+        var isFullRect = effectiveViewportRect == this.viewportRect;
+        if (isFullRect || !flags.HasFlag(ClearTarget.Color))
+        {
+            graphics.ClearCurrentRenderTargets(
+                color,
+                clearColorTarget: flags.HasFlag(ClearTarget.Color),
+                clearDepth: flags.HasFlag(ClearTarget.Depth),
+                clearStencil: flags.HasFlag(ClearTarget.Stencil),
+                depth: depth,
+                stencil: stencil);
+            return;
+        }
+
+        var clearParameters = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["Color"] = new Vector4(color.R, color.G, color.B, color.A),
+            ["Depth"] = depth
+        };
+        graphics.DrawFullscreenQuad(
+            "Clear output subregion",
+            "v2/X_ClearFramebuffer",
+            string.Empty,
+            BlendMode.Replace,
+            bilinearColorSampler: false,
+            albedoTexture: null,
+            secondaryTexture: null,
+            depthTexture: null,
+            clearParameters,
+            GetInvOutputSize(),
+            GetDefaultClipToUVSpaceOffsetAndScale());
+
+        if (flags.HasFlag(ClearTarget.Stencil))
+        {
+            graphics.ClearCurrentRenderTargets(
+                clearColorTarget: false,
+                clearDepth: false,
+                clearStencil: true,
+                depth: depth,
+                stencil: stencil);
+        }
+    }
+
+    public void ClearOutput(Graphics graphics, ClearTarget flags, Color color, float depth, byte stencil = 0)
+    {
+        ClearOutputRect(graphics, IntRect.Zero, flags, color, depth, stencil);
+    }
+
+    public void ClearOutput(Graphics graphics, Color color, float depth = 1.0f, byte stencil = 0)
+    {
+        ClearOutput(graphics, ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, color, depth, stencil);
     }
 
     public RenderBuffer GetDepthStencilOutput() => depthStencilBuffer;
@@ -384,5 +550,20 @@ public sealed class RenderBufferManager
             multiSample = 1;
             return false;
         }
+    }
+
+    private static Vector4 GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
+    {
+        var safeWidth = Math.Max(width, 1);
+        var safeHeight = Math.Max(height, 1);
+        var left = sourceRect.Left / (float)safeWidth;
+        var right = sourceRect.Right / (float)safeWidth;
+        var top = sourceRect.Top / (float)safeHeight;
+        var bottom = sourceRect.Bottom / (float)safeHeight;
+        return new Vector4(
+            (left + right) * 0.5f,
+            (top + bottom) * 0.5f,
+            (right - left) * 0.5f,
+            (bottom - top) * 0.5f);
     }
 }

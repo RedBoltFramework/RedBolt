@@ -1,20 +1,5 @@
 namespace RedBolt;
 
-public enum TextureAddressMode
-{
-    Wrap,
-    Mirror,
-    Clamp,
-    Border
-}
-
-public enum TextureCoordinate
-{
-    U,
-    V,
-    W
-}
-
 public enum TextureFormat
 {
     Unknown,

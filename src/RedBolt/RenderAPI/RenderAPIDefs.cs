@@ -152,6 +152,55 @@ public enum ShaderType
     MaxShaderTypes
 }
 
+public enum VertexElementSemantic : byte
+{
+    Position = 0,
+    Normal,
+    Binormal,
+    Tangent,
+    TexCoord,
+    Color,
+    BlendWeights,
+    BlendIndices,
+    ObjectIndex
+}
+
+public enum VertexElementType : byte
+{
+    Int = 0,
+    Float,
+    Vector2,
+    Vector3,
+    Vector4,
+    UByte4,
+    UByte4Norm
+}
+
+public enum TextureFilterMode : byte
+{
+    Nearest,
+    Bilinear,
+    Trilinear,
+    Anisotropic,
+    NearestAnisotropic,
+    Default
+}
+
+public enum TextureAddressMode
+{
+    Wrap,
+    Mirror,
+    Clamp,
+    Border
+}
+
+public enum TextureCoordinate
+{
+    U,
+    V,
+    W
+}
+
 public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);
 
 public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>

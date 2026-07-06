@@ -11,6 +11,36 @@ public enum BatchCompositorSubpass
 }
 
 [Flags]
+public enum DrawableProcessorPassFlag
+{
+    None = 0,
+    HasAmbientLighting = 1 << 0,
+    DisableInstancing = 1 << 1,
+    DeferredLightMaskToStencil = 1 << 2,
+    NeedReadableDepth = 1 << 3,
+    RefractionPass = 1 << 4,
+    DepthOnlyPass = 1 << 5,
+    ReadOnlyDepth = 1 << 6,
+    StereoInstancing = 1 << 7,
+    BatchCallback = 1 << 8,
+    PipelineStateCallback = 1 << 9
+}
+
+[Flags]
+public enum BatchRenderFlag
+{
+    None = 0,
+    EnableAmbientLighting = 1 << 0,
+    EnableVertexLights = 1 << 1,
+    EnablePixelLights = 1 << 2,
+    EnableInstancingForStaticGeometry = 1 << 3,
+    DisableColorOutput = 1 << 4,
+    LightMaskToStencil = 1 << 5,
+    LinearColorSpace = 1 << 6,
+    EnableAmbientAndVertexLighting = EnableAmbientLighting | EnableVertexLights
+}
+
+[Flags]
 public enum RenderBufferFlag
 {
     None = 0,
@@ -29,6 +59,12 @@ public enum RenderPipelineColorSpace
     LinearLDR,
     LinearHDR,
     Optimized
+}
+
+public enum ColorSpaceTransition
+{
+    None,
+    Automatic
 }
 
 internal static class RenderPipelineColorSpaceUtility
@@ -127,6 +163,47 @@ public sealed class RenderPipelineStats
     public uint NumGeometries { get; set; }
 
     public uint NumOccluders { get; set; }
+}
+
+public readonly record struct BatchStateCreateKey;
+
+public readonly record struct BatchStateCreateContext;
+
+public readonly record struct UIBatchStateKey;
+
+public readonly record struct UIBatchStateCreateContext;
+
+public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture, IntRect Rect)
+{
+    public bool IsEmpty => Texture is null;
+}
+
+public abstract class BatchStateCacheCallback
+{
+    public abstract PipelineState? CreateBatchPipelineState(
+        BatchStateCreateKey key,
+        BatchStateCreateContext context,
+        PipelineStateOutputDesc outputDesc);
+
+    public abstract PipelineState? CreateBatchPipelineStatePlaceholder(
+        uint vertexStride,
+        PipelineStateOutputDesc outputDesc);
+}
+
+public abstract class UIBatchStateCacheCallback
+{
+    public abstract PipelineState? CreateUIBatchPipelineState(
+        UIBatchStateKey key,
+        UIBatchStateCreateContext context);
+}
+
+public abstract class LightProcessorCallback
+{
+    public abstract bool IsLightShadowed(Light light);
+
+    public abstract uint GetShadowMapSize(Light light, uint numActiveSplits);
+
+    public abstract ShadowMapRegion AllocateTransientShadowMap(IntVector2 size);
 }
 
 public enum DrawableAmbientMode

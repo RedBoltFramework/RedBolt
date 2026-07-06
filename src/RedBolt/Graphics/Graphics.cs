@@ -145,6 +145,15 @@ layout(std140) uniform Material
         return format is TextureFormat.Depth24Stencil8 or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
     }
 
+    public ShaderVariation? GetShader(ShaderType type, string name, string defines = "")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var shader = cache?.GetResourceOrNull<Shader>(Shader.GetResourceName(name));
+        return shader is null ? null : new ShaderVariation(shader, type, defines);
+    }
+
     public void Initialize(EngineParameters parameters, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -265,12 +274,21 @@ layout(std140) uniform Material
     /// <summary>
     /// Clear currently bound render targets.
     /// </summary>
-    internal void ClearCurrentRenderTargets(bool clearColor = true, bool clearDepth = true, float depth = 1.0f, byte stencil = 0)
+    internal void ClearCurrentRenderTargets(Color? color = null, bool clearColorTarget = true, bool clearDepth = true, bool clearStencil = false,
+        float depth = 1.0f, byte stencil = 0)
     {
         if (!IsInitialized || immediateContext is null)
             return;
 
-        if (clearColor)
+        if (color is { } clearValue)
+        {
+            clearColor[0] = clearValue.R;
+            clearColor[1] = clearValue.G;
+            clearColor[2] = clearValue.B;
+            clearColor[3] = clearValue.A;
+        }
+
+        if (clearColorTarget)
         {
             for (var i = 0; i < currentRenderTargetCount; ++i)
             {
@@ -282,9 +300,14 @@ layout(std140) uniform Material
             }
         }
 
-        if (clearDepth && currentDepthStencilTarget is not null)
+        if ((clearDepth || clearStencil) && currentDepthStencilTarget is not null)
         {
-            immediateContext.ClearDepthStencil(currentDepthStencilTarget, ClearDepthStencilFlags.ClearDepthFlag, depth, stencil,
+            var flags = ClearDepthStencilFlags.ClearDepthFlagNone;
+            if (clearDepth)
+                flags |= ClearDepthStencilFlags.ClearDepthFlag;
+            if (clearStencil)
+                flags |= ClearDepthStencilFlags.ClearStencilFlag;
+            immediateContext.ClearDepthStencil(currentDepthStencilTarget, flags, depth, stencil,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
     }
