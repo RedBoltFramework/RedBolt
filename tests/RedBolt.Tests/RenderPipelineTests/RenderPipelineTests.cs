@@ -322,6 +322,33 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_keeps_nearest_texture_output_when_only_readable_color_is_requested()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            ReadableColor = true
+        });
+
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        colorTarget.SetFilterMode(TextureFilterMode.Nearest);
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+
+        var output = RenderOutputTargetInfo.FromTexture(
+            colorTarget,
+            new IntRect(0, 0, 320, 200),
+            depthTarget);
+        manager.OnViewportDefined(output, new IntRect(0, 0, 320, 200));
+
+        Assert.Same(colorTarget, manager.GetColorOutput().GetTexture());
+        Assert.Null(manager.GetSecondaryColorTexture());
+        Assert.False(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
     public void Render_buffer_manager_derives_output_traits_from_render_target_texture()
     {
         var manager = new RenderBufferManager();

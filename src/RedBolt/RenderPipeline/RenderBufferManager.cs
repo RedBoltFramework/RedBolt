@@ -75,7 +75,6 @@ public sealed class RenderBufferManager
     {
         this.frameSettings = frameSettings;
         this.frameSettings.ReadableColor |= this.frameSettings.SupportColorReadWrite;
-        this.frameSettings.FilteredColor |= this.frameSettings.ReadableColor;
     }
 
     public void OnViewportDefined(RenderOutputTargetInfo? renderTarget, IntRect viewportRect)
