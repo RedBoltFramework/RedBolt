@@ -11,6 +11,14 @@ public enum TextureFormat
     RGBA16F
 }
 
+internal static class TextureFormatUtility
+{
+    public static bool IsFloatColorFormat(TextureFormat format)
+    {
+        return format is TextureFormat.RG16F or TextureFormat.RGBA16F;
+    }
+}
+
 public abstract class Texture : ResourceWithMetadata
 {
     private readonly Dictionary<TextureCoordinate, TextureAddressMode> addressModes = new()

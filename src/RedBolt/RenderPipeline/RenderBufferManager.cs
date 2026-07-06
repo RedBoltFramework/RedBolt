@@ -163,11 +163,12 @@ public sealed class RenderBufferManager
             : Math.Max(1, (int)Math.Round(effectiveSize.Y));
 
         var texture = new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
-        texture.SetSize(width, height, bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : bufferParams.TextureFormat);
+        var textureFormat = bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : bufferParams.TextureFormat;
+        texture.SetSize(width, height, textureFormat);
         texture.SetFilterMode(bufferParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering)
             ? TextureFilterMode.Bilinear
             : TextureFilterMode.Nearest);
-        ApplyColorTextureMetadata(texture, bufferParams.TextureFormat);
+        ApplyColorTextureMetadata(texture, textureFormat);
         return new TextureRenderBuffer(texture, new IntRect(0, 0, width, height));
     }
 
@@ -277,7 +278,7 @@ public sealed class RenderBufferManager
         var effectiveSourceRect = sourceRect != IntRect.Zero
             ? sourceRect
             : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
-        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.GetSRGB() || sourceTexture.Format == TextureFormat.RGBA16F;
+        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(sourceTexture.Format);
         var shaderDefines = string.Empty;
         if (mode == ColorSpaceTransition.Automatic && sourceIsLinear != linearColorSpace)
             shaderDefines = linearColorSpace ? "URHO3D_GAMMA_TO_LINEAR" : "URHO3D_LINEAR_TO_GAMMA";
@@ -501,7 +502,7 @@ public sealed class RenderBufferManager
             fallbackFlags);
         var nextDepthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample | 0, RenderBufferFlag.Persistent);
         var nextLinearColorSpace = settings.ColorSpace is not RenderPipelineColorSpace.GammaLDR;
-        var nextHdr = nextColorOutputParams.TextureFormat == TextureFormat.RGBA16F;
+        var nextHdr = TextureFormatUtility.IsFloatColorFormat(nextColorOutputParams.TextureFormat);
 
         if (renderTarget is not null)
         {
@@ -523,7 +524,7 @@ public sealed class RenderBufferManager
                 Math.Max(multiSample, 1),
                 RenderBufferFlag.Persistent);
             nextLinearColorSpace = IsLinearColorSpace(settings.ColorSpace, effectiveColorFormat) || renderTarget.LinearColorSpace;
-            nextHdr = effectiveColorFormat == TextureFormat.RGBA16F;
+            nextHdr = TextureFormatUtility.IsFloatColorFormat(effectiveColorFormat);
         }
 
         if (colorOutputParams != nextColorOutputParams || depthStencilOutputParams != nextDepthStencilOutputParams)
@@ -610,7 +611,7 @@ public sealed class RenderBufferManager
         {
             RenderPipelineColorSpace.LinearHDR => true,
             RenderPipelineColorSpace.LinearLDR => true,
-            RenderPipelineColorSpace.Optimized => textureFormat == TextureFormat.RGBA16F,
+            RenderPipelineColorSpace.Optimized => TextureFormatUtility.IsFloatColorFormat(textureFormat),
             _ => false
         };
     }
@@ -619,7 +620,7 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(texture);
 
-        var useLinearMetadata = hdr || textureFormat == TextureFormat.RGBA16F;
+        var useLinearMetadata = hdr || TextureFormatUtility.IsFloatColorFormat(textureFormat);
         var useSrgbMetadata = linearColorSpace && !useLinearMetadata && textureFormat == TextureFormat.RGBA8;
         texture.SetLinear(useLinearMetadata);
         texture.SetSRGB(useSrgbMetadata);

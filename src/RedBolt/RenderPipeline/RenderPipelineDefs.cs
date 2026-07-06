@@ -794,8 +794,8 @@ public sealed class RenderOutputTargetInfo
             colorTexture,
             depthStencilTexture,
             bilinearFiltered: colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear or TextureFilterMode.Anisotropic,
-            linearColorSpace: colorTexture.GetLinear() || colorTexture.GetSRGB() || colorTexture.Format == TextureFormat.RGBA16F,
-            hdr: colorTexture.Format == TextureFormat.RGBA16F,
+            linearColorSpace: colorTexture.GetLinear() || colorTexture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
+            hdr: TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
             hasReadableDepth: depthStencilTexture is not null,
             hasStencil: depthStencilTexture?.Format == TextureFormat.Depth24Stencil8);
     }
