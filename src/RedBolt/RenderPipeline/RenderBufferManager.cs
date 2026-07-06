@@ -374,7 +374,7 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(depthStencilBuffer);
 
-        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), writeableColorBuffer.GetView(), depthStencilBuffer.GetView());
+        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), colorTarget: null, depthStencilBuffer.GetView());
         graphics.ClearCurrentRenderTargets(
             clearColorTarget: false,
             clearDepth: flags.HasFlag(ClearTarget.Depth),

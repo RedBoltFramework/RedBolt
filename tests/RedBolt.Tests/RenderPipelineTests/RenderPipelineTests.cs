@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -357,6 +358,28 @@ public sealed class RenderPipelineTests
         Assert.Equal(-1.0f, Assert.IsType<float>(method!.Invoke(null, [0.0f])!));
         Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.5f])!));
         Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f])!));
+    }
+
+    [Fact]
+    public void Render_buffer_manager_clears_depth_without_binding_color_target()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ReadableDepth = true
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        manager.ClearDepthStencil(fixture.Graphics, manager.GetDepthStencilOutput(), ClearTarget.Depth | ClearTarget.Stencil, 0.5f, 7);
+
+        var currentRenderTargetCountField = typeof(Graphics).GetField("currentRenderTargetCount", BindingFlags.NonPublic | BindingFlags.Instance);
+        var renderTargetsField = typeof(Graphics).GetField("renderTargets", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.NotNull(currentRenderTargetCountField);
+        Assert.NotNull(renderTargetsField);
+        Assert.Equal(0, Assert.IsType<int>(currentRenderTargetCountField!.GetValue(fixture.Graphics)));
+        Assert.Null(Assert.IsType<ITextureView?[]>(renderTargetsField!.GetValue(fixture.Graphics))[0]);
     }
 
     [Fact]

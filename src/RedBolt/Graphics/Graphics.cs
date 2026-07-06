@@ -260,9 +260,9 @@ layout(std140) uniform Material
     }
 
     /// <summary>
-    /// Bind a single color target and optional depth-stencil target for subsequent scene or post-process rendering.
+    /// Bind an optional color target and optional depth-stencil target for subsequent scene or post-process rendering.
     /// </summary>
-    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView colorTarget, RenderTargetView? depthStencilTarget)
+    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
     {
         if (!IsInitialized || immediateContext is null)
             return;
@@ -270,9 +270,9 @@ layout(std140) uniform Material
         if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
 
-        renderTargets[0] = ResolveRenderTargetView(colorTarget);
-        currentRenderTargetCount = 1;
-        currentColorTargetFormat = ResolveColorTargetFormat(colorTarget);
+        renderTargets[0] = colorTarget is { } targetView ? ResolveRenderTargetView(targetView) : null;
+        currentRenderTargetCount = colorTarget is not null ? 1 : 0;
+        currentColorTargetFormat = colorTarget is { } colorView ? ResolveColorTargetFormat(colorView) : 0;
         currentDepthStencilTarget = depthStencilTarget is { } depthTarget
             ? ResolveRenderTargetView(depthTarget)
             : null;
@@ -284,7 +284,8 @@ layout(std140) uniform Material
             viewportRect.Width,
             viewportRect.Height);
         immediateContext.SetViewports(1, diligentViewport, 0, 0);
-        immediateContext.SetRenderTargets((uint)currentRenderTargetCount, renderTargets, currentDepthStencilTarget!,
+        immediateContext.SetRenderTargets((uint)currentRenderTargetCount,
+            currentRenderTargetCount == 0 ? Array.Empty<ITextureView?>() : renderTargets, currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
