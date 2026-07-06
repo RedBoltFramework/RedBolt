@@ -225,6 +225,8 @@ public class RenderPipeline : Component
         private readonly SharedRenderPassState sharedState = new();
         private readonly Dictionary<string, object?> effectiveRenderPathParameters = new(StringComparer.Ordinal);
         private readonly RenderPipelineStats stats = new();
+        private readonly List<OutlineGroup> outlineGroups = [];
+        private TextureRenderBuffer? outlineBuffer;
         private CommonFrameInfo frameInfo = new();
         private RenderPath? renderPath;
         private Viewport? viewport;
@@ -317,6 +319,7 @@ public class RenderPipeline : Component
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(viewport, materialQuality, frameInfo.ViewportRect);
+            RenderOutlines(graphics, materialQuality);
             renderPath?.Render(sharedState);
             renderBufferManager.OnRenderEnd(frameInfo);
 
@@ -343,6 +346,59 @@ public class RenderPipeline : Component
             foreach (var (name, value) in renderPipeline.GetRenderPathParameters())
                 effectiveRenderPathParameters[name] = value;
             renderPath?.InitializeView(this);
+        }
+
+        private void RenderOutlines(Graphics graphics, MaterialQuality materialQuality)
+        {
+            if (viewport is null || renderPath is null || !HasEnabledOutlinePass())
+                return;
+
+            CollectOutlineGroups(viewport.Scene);
+            if (outlineGroups.Count == 0)
+                return;
+
+            var outlineRenderBuffer = EnsureOutlineBuffer();
+            sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = outlineRenderBuffer;
+
+            renderBufferManager.SetRenderTargets(graphics, outlineRenderBuffer);
+            graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
+            graphics.RenderOutlineGroups(viewport, materialQuality, outlineGroups, frameInfo.ViewportRect);
+            renderBufferManager.SetOutputRenderTargets(graphics);
+        }
+
+        private bool HasEnabledOutlinePass()
+        {
+            return renderPath is not null && renderPath.GetPasses().Any(static pass => pass is OutlineRenderPass && pass.IsEnabledEffectively());
+        }
+
+        private void CollectOutlineGroups(Scene scene)
+        {
+            outlineGroups.Clear();
+            foreach (var outlineGroup in scene.GetAllComponents().Values.OfType<OutlineGroup>())
+            {
+                if (!outlineGroup.IsAttached || !outlineGroup.IsEnabledEffective)
+                    continue;
+                if (outlineGroup.IsDebug() && !viewport!.Camera.GetDrawDebugGeometry())
+                    continue;
+
+                outlineGroups.Add(outlineGroup);
+            }
+        }
+
+        private TextureRenderBuffer EnsureOutlineBuffer()
+        {
+            if (outlineBuffer?.GetTexture() is Texture texture
+                && texture.Width == frameInfo.ViewportRect.Width
+                && texture.Height == frameInfo.ViewportRect.Height)
+            {
+                outlineBuffer.SetViewportRect(frameInfo.ViewportRect);
+                return outlineBuffer;
+            }
+
+            outlineBuffer = renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8)) as TextureRenderBuffer
+                ?? throw new InvalidOperationException("Outline render buffer must be backed by a TextureRenderBuffer.");
+            outlineBuffer.SetViewportRect(frameInfo.ViewportRect);
+            return outlineBuffer;
         }
     }
 }

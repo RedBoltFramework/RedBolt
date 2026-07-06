@@ -76,6 +76,9 @@ Slice 1 through the first runtime integration layer are landed:
 - the regular scene-material path now shares the same managed custom-uniform plumbing as fullscreen passes:
   - `Graphics` parses `UNIFORM_BUFFER_BEGIN(6, Custom)` blocks from prepared material shaders, allocates a matching `Custom` constant buffer for geometry pipelines, and binds it on both shader stages when present
   - material shader parameters marked custom now upload through that buffer, which is the remaining prerequisite for upstream-style outline producer work instead of RedBolt-only postprocess shortcuts
+- the outline producer side is now in-tree as a managed scene feature instead of a missing shared-buffer hole:
+  - `OutlineGroup` now exists as a scene component that tracks selected drawables, caches outline materials, and rewrites eligible material passes to `v2/M_OutlinePixel` with the rbfx custom `OutlineColor` uniform
+  - `RenderPipeline` now allocates and publishes a dedicated `outline` render buffer, renders selected `StaticModel` drawables into it before postprocessing, and lets `OutlineRenderPass` consume that buffer through the existing managed fullscreen path
 - the remaining built-in fullscreen passes are no longer metadata-only:
   - `BloomPass` now allocates its rbfx-style mip-chain work buffers, gathers bright regions, applies separable blur, and blends the bloom result back into the output
   - `AmbientOcclusionPass` now allocates its intermediate buffers, evaluates/blur/combine SSAO through `v2/P_SSAO`, and binds optional normal + depth inputs through the managed fullscreen path
@@ -94,15 +97,16 @@ Slice 1 through the first runtime integration layer are landed:
   - `RenderPipeline` now raises managed settings/parameters/render-path change events, ignores no-op render-path parameter updates, and no longer dirties revision state for frame shader parameter writes
   - `RenderPath.RepairEnabledRenderPasses` now preserves already-matching pass arrays without copying, and `PipelineStateOutputDesc.RenderTargetFormats` no longer allocates on access
   - `RenderPipeline` now listens for `RenderPath` resource reload completion and re-collects newly exposed render-path parameters without requiring a fresh `SetRenderPath` call
+  - render-pass buffer hookups now rebind when shared-state render buffers are replaced and clear optional cached buffers when they disappear, which keeps managed postprocess state aligned with dynamically reallocated intermediate textures such as the new outline buffer
 - forward-looking render API / pipeline surface is much closer to rbfx:
   - the remaining canonical `RenderAPIDefs` enums were moved into `RenderAPIDefs.cs`, and the missing `RenderPipelineDefs` flags/callback shells now exist in-tree for future batch-renderer / scene-processor porting
   - `Graphics.GetShader(ShaderType, name, defines)` now has a managed lookup surface via `ShaderVariation`, and `RenderBufferManager` now exposes the missing copy/clear/render callbacks (`DrawTexture*`, `CopyTextureRegion`, `Clear*`, `OnRenderBegin`, `OnRenderEnd`) needed by upcoming post-process ports
 - low-level managed hot-path cleanup in this slice also includes reusing `CommonFrameInfo` objects across `Define()` calls and making `RenderBufferManagerFrameSettings` a value type
-- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, bloom buffer sizing, and managed custom-uniform parsing/packing; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` is green again with `297/297` passing
+- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, bloom buffer sizing, managed custom-uniform parsing/packing, outline-material rewriting, and render-buffer rebinding; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` is green again with `301/301` passing
 - SharpCpp fixed-size array support now uses a shared `SharpCpp.Support.NativeArray<T>` plus generated per-field proxy accessors for handle-backed and nested fixed arrays, so bindings no longer emit duplicate `NativeArray<>` types per assembly
 - fixed-array fields like Diligent `BlendStateDesc.RenderTargets[8]` can now be configured from managed code through item getter/setter thunks instead of raw memory aliasing
 - `cmake --build --preset Debug --target redbolt-generate-native-bindings` and `cmake --build --preset Debug --target redbolt-csharp` are green again after the array-support slice
-- sample verification was rerun against the current render-pipeline path on `2026-07-06`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-custom-materials.png` completed successfully after the geometry custom-uniform slice and produced a valid `1280x720` PNG with the expected mushroom field over a black background (the sample does not create a `Zone` or `Skybox`)
+- sample verification was rerun against the current render-pipeline path on `2026-07-06`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-outline-3.png` completed successfully after the managed outline-producer slice and produced a valid `1280x720` PNG with the expected mushroom field, explicit foreground outline test geometry, and black background (the sample does not create a `Zone` or `Skybox`)
 
 ## Current Cross-Cutting Requirement
 
@@ -123,8 +127,8 @@ Slice 1 through the first runtime integration layer are landed:
 
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
-- Hook real producers for extra shared render buffers such as the outline and normal inputs so the newly executing post-process passes consume upstream-style data instead of the current forward-path minimum set.
-  The regular material custom-uniform path is now in place, so the next outline slice can follow rbfx more closely by porting `OutlineGroup` / `OutlineScenePass` instead of inventing a special-case binding path.
+- Hook real producers for extra shared render buffers such as the normal input so the newly executing post-process passes consume upstream-style data instead of the current forward-path minimum set.
+- Replace the current `Graphics.RenderScene`/`RenderOutlineGroups` direct loops with a closer port of rbfx drawable processing and scene-pass orchestration once more of the higher-level pipeline stack is in place.
 - Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
 - Replace the current substitute-depth and fullscreen-copy implementation with a closer port of upstream `RenderBuffer` / `RenderBufferManager` semantics, including proper depth/readback formats and `DrawTextureRegion`-style color-space-aware copies.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

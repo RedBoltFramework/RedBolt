@@ -68,6 +68,7 @@ layout(std140) uniform Material
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
     private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultEmissionTextureData = [0, 0, 0, 255];
+    private static readonly string[] OutlinePassNames = ["deferred", "deferred_decal", "base", "alpha"];
     private static readonly IReadOnlyDictionary<string, object?> EmptyFullscreenParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private static readonly Regex CustomUniformFieldRegex = new(
         @"UNIFORM(?:_HIGHP)?\(\s*(?<type>[A-Za-z0-9_]+)\s+(?<name>[A-Za-z0-9_]+)\s*\)",
@@ -346,6 +347,35 @@ layout(std140) uniform Material
             Log.Logger.LogDebug(
                 "Render diagnostics: drawCalls={DrawCalls}, primitives={Primitives}, staticModels={StaticModels}.",
                 submittedDrawCalls, submittedPrimitives, viewport.Scene.StaticModels.Count);
+    }
+
+    internal void RenderOutlineGroups(Viewport viewport, MaterialQuality materialQuality, IEnumerable<OutlineGroup> outlineGroups, IntRect? viewportRect = null)
+    {
+        ArgumentNullException.ThrowIfNull(viewport);
+        ArgumentNullException.ThrowIfNull(outlineGroups);
+
+        if (!IsInitialized)
+            return;
+
+        var effectiveViewportRect = viewportRect ?? GetEffectiveViewportRect(viewport);
+        if (viewport.Camera.GetAutoAspectRatio())
+        {
+            var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
+            viewport.Camera.SetAspectRatioInternal(aspectRatio);
+        }
+
+        foreach (var outlineGroup in outlineGroups
+                     .Where(static group => group.IsAttached && group.IsEnabledEffective && group.HasDrawables())
+                     .OrderBy(static group => group.GetRenderOrder()))
+        {
+            foreach (var drawable in outlineGroup.GetDrawables())
+            {
+                if (drawable is not StaticModel staticModel)
+                    continue;
+
+                RenderOutlinedStaticModel(viewport, staticModel, materialQuality, outlineGroup);
+            }
+        }
     }
 
     /// <summary>
@@ -759,6 +789,54 @@ layout(std140) uniform Material
                 drawCalls += passDrawCalls;
                 primitives += passPrimitives;
             }
+        }
+
+        return (drawCalls, primitives);
+    }
+
+    private (uint DrawCalls, uint Primitives) RenderOutlinedStaticModel(Viewport viewport, StaticModel staticModel,
+        MaterialQuality materialQuality, OutlineGroup outlineGroup)
+    {
+        if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
+            return default;
+
+        uint drawCalls = 0;
+        uint primitives = 0;
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+        for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
+        {
+            var geometry = model.GetGeometry(geometryIndex, 0);
+            var vertexBuffer = geometry?.GetVertexBuffer(0);
+            var material = staticModel.GetMaterial(geometryIndex);
+            if (geometry is null || vertexBuffer is null || material is null)
+                continue;
+
+            var resourceCache = material.OwnerCache;
+            if (resourceCache is null)
+                continue;
+
+            var outlineMaterial = outlineGroup.GetOutlineMaterial(material);
+            var technique = outlineMaterial.FindTechnique(materialQuality);
+            var pass = technique is not null ? GetFirstOutlinePass(technique) : null;
+            if (pass is null)
+                continue;
+
+            var (passDrawCalls, passPrimitives) = RenderGeometryPass(
+                resourceCache,
+                viewport,
+                outlineMaterial,
+                pass,
+                geometry,
+                vertexBuffer,
+                staticModel,
+                cameraZone,
+                drawableZone,
+                drawableAmbient,
+                light: null);
+            drawCalls += passDrawCalls;
+            primitives += passPrimitives;
         }
 
         return (drawCalls, primitives);
@@ -1654,6 +1732,17 @@ layout(std140) uniform Material
     {
         if (texture is not null)
             defines.Add($"URHO3D_TEXTURE_{name}=1");
+    }
+
+    private static Pass? GetFirstOutlinePass(Technique technique)
+    {
+        foreach (var passName in OutlinePassNames)
+        {
+            if (technique.GetPass(passName) is { } pass)
+                return pass;
+        }
+
+        return null;
     }
 
     private static void AddLightDefines(ICollection<string> defines, Light light)

@@ -126,14 +126,14 @@ public abstract class RenderPass : Serializable
     {
         ArgumentNullException.ThrowIfNull(sharedState);
 
-        if (renderBuffer is not null)
-            return true;
-
         if (sharedState.RenderBuffers.TryGetValue(name, out var value))
         {
-            renderBuffer = value;
+            if (!ReferenceEquals(renderBuffer, value))
+                renderBuffer = value;
             return true;
         }
+
+        renderBuffer = null;
 
         if (required)
             Log.Logger.LogWarning("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());

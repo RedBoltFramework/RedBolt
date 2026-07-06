@@ -33,6 +33,8 @@ sealed class StaticSceneApplication : Application
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();
         scene.CreateComponent<Octree>();
+        var outlineGroup = scene.CreateComponent<OutlineGroup>();
+        outlineGroup.SetColor(new Color(1.0f, 0.1f, 0.9f, 1.0f));
 
         var planeNode = scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3(100.0f, 1.0f, 100.0f));
@@ -45,15 +47,34 @@ sealed class StaticSceneApplication : Application
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
 
+        var outlinedMushrooms = 0;
         for (var i = 0; i < 200; ++i)
         {
             var mushroomNode = scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f)));
+            var position = new Vector3(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f));
+            mushroomNode.SetPosition(position);
             mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, RandomRange(0.0f, 360.0f), 0.0f));
             mushroomNode.SetScale(0.5f + RandomRange(0.0f, 2.0f));
             var mushroom = mushroomNode.CreateComponent<StaticModel>();
             mushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
             mushroom.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
+
+            if (outlinedMushrooms < 18 && position.Z > 4.0f && position.Z < 28.0f && MathF.Abs(position.X) < 18.0f)
+            {
+                outlineGroup.AddDrawable(mushroom);
+                ++outlinedMushrooms;
+            }
+        }
+
+        foreach (var x in new[] { -5.5f, 0.0f, 5.5f })
+        {
+            var outlinedNode = scene.CreateChild("OutlinedMushroom");
+            outlinedNode.SetPosition(new Vector3(x, 0.0f, 9.0f));
+            outlinedNode.SetScale(3.75f);
+            var outlinedMushroom = outlinedNode.CreateComponent<StaticModel>();
+            outlinedMushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
+            outlinedMushroom.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
+            outlineGroup.AddDrawable(outlinedMushroom);
         }
 
         var cameraNode = scene.CreateChild("Camera");
