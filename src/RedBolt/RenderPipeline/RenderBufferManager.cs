@@ -91,7 +91,7 @@ public sealed class RenderBufferManager
 
         var needReadableDepth = settings.ReadableDepth || frameSettings.ReadableDepth;
         var needSecondaryBuffer = frameSettings.SupportColorReadWrite;
-        var needSimpleTexture = frameSettings.ReadableColor || settings.ReadableDepth || settings.ColorUsableWithMultipleRenderTargets;
+        var needSimpleTexture = frameSettings.ReadableColor || needReadableDepth || settings.ColorUsableWithMultipleRenderTargets;
         var isFullRectOutput = renderTarget is null || renderTarget.FullViewportRect == viewportRect;
         var isSimpleTextureOutput = renderTarget?.ColorTexture is not null && isFullRectOutput;
         var outputMultiSample = renderTarget?.MultiSample ?? colorOutputParams.MultiSampleLevel;
@@ -106,7 +106,7 @@ public sealed class RenderBufferManager
 
         var needSubstituteDepthBuffer = !isMultiSampleMatching || !(renderTarget?.HasDepthStencil ?? true)
             || ((needSecondaryBuffer || !isOutputMatching) && !outputHasUsableDepthTexture)
-            || (settings.ReadableDepth && (!outputHasReadableDepth || !isSimpleTextureOutput))
+            || (needReadableDepth && (!outputHasReadableDepth || !isSimpleTextureOutput))
             || (settings.StencilBuffer && !outputHasStencil);
         var needSubstitutePrimaryBuffer = !isOutputMatching || needSubstituteDepthBuffer;
 
