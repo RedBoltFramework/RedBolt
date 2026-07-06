@@ -251,12 +251,14 @@ public sealed class RenderPipelineTests
     [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
+        var previousContext = Context.TryGetInstance();
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
         fixture.Resources.AddResourceDir(tempRoot);
 
         try
         {
+            Context.SetInstance(fixture.Context);
             File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Default.renderpath"), """
                 {
                   "passes": [
@@ -290,6 +292,7 @@ public sealed class RenderPipelineTests
         }
         finally
         {
+            Context.SetInstance(previousContext);
             fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
             fixture.Resources.RemoveResourceDir(tempRoot);
             if (Directory.Exists(tempRoot))

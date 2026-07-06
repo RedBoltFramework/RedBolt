@@ -5,7 +5,7 @@ namespace RedBolt.Tests;
 public sealed class GraphicsMatrixPackingTests
 {
     [Fact]
-    public void WriteMatrix4_uploads_transposed_layout_for_rbfx_glsl_row_vectors()
+    public void WriteMatrix4_uploads_raw_rbfx_row_major_matrix_memory()
     {
         var matrix = new Matrix4(
             1.0f, 2.0f, 3.0f, 4.0f,
@@ -20,6 +20,6 @@ public sealed class GraphicsMatrixPackingTests
 
         var uploaded = new float[16];
         Buffer.BlockCopy(buffer, 0, uploaded, 0, buffer.Length);
-        Assert.Equal(matrix.Transposed.Data, uploaded);
+        Assert.Equal(matrix.Data, uploaded);
     }
 }

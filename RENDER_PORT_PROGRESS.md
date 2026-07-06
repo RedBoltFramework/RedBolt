@@ -88,11 +88,11 @@ Slice 1 through the first runtime integration layer are landed:
   - the remaining canonical `RenderAPIDefs` enums were moved into `RenderAPIDefs.cs`, and the missing `RenderPipelineDefs` flags/callback shells now exist in-tree for future batch-renderer / scene-processor porting
   - `Graphics.GetShader(ShaderType, name, defines)` now has a managed lookup surface via `ShaderVariation`, and `RenderBufferManager` now exposes the missing copy/clear/render callbacks (`DrawTexture*`, `CopyTextureRegion`, `Clear*`, `OnRenderBegin`, `OnRenderEnd`) needed by upcoming post-process ports
 - low-level managed hot-path cleanup in this slice also includes reusing `CommonFrameInfo` objects across `Define()` calls and making `RenderBufferManagerFrameSettings` a value type
-- focused unit coverage was expanded for the new event-parity helpers, render-path reload handling, and render-target-derived buffer traits; the updated tests compile in the managed build, but a fresh post-build `dotnet test` rerun is currently blocked in this shell by `vstest` socket restrictions plus an exhausted escalation quota
+- focused unit coverage was expanded for the new event-parity helpers, render-path reload handling, and render-target-derived buffer traits; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` is green again with `290/290` passing
 - SharpCpp fixed-size array support now uses a shared `SharpCpp.Support.NativeArray<T>` plus generated per-field proxy accessors for handle-backed and nested fixed arrays, so bindings no longer emit duplicate `NativeArray<>` types per assembly
 - fixed-array fields like Diligent `BlendStateDesc.RenderTargets[8]` can now be configured from managed code through item getter/setter thunks instead of raw memory aliasing
 - `cmake --build --preset Debug --target redbolt-generate-native-bindings` and `cmake --build --preset Debug --target redbolt-csharp` are green again after the array-support slice
-- sample runtime is currently blocked in this sandbox by `SDL_Init` failing before window/context creation, so render verification still needs a working local graphics session outside the restricted shell
+- sample verification was rerun against the current render-pipeline path on `2026-07-06`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-audit-2.png` completed successfully and produced a valid `1280x720` PNG with the expected mushroom field over a black background (the sample does not create a `Zone` or `Skybox`)
 
 ## Current Cross-Cutting Requirement
 
