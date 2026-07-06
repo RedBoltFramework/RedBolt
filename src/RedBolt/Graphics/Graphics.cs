@@ -88,6 +88,7 @@ layout(std140) uniform Material
     private readonly Dictionary<Texture2D, UploadedTexture> uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
     private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
+    private readonly Dictionary<ClearFramebufferPipelineKey, FullscreenPipelineResources> clearFramebufferPipelines = new();
     private readonly Dictionary<Pass, Pass> normalBufferPasses = new();
 
     private GCHandle clearColorHandle;
@@ -501,46 +502,44 @@ layout(std140) uniform Material
             return;
 
         var pipeline = GetOrCreateFullscreenPipeline(shaderName, shaderDefines, blendMode, bilinearColorSampler);
-        var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
-        if (pipeline is null || uploadedGeometry is null)
+        if (pipeline is null)
             return;
 
-        UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
-        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
-        UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
-        if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
-            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, parameters);
+        DrawFullscreenQuad(
+            pipeline,
+            albedoTexture,
+            secondaryTexture,
+            depthTexture,
+            parameters,
+            invInputSize,
+            clipToUvOffsetAndScale,
+            flipVertical);
+    }
 
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Frame", pipeline.FrameBuffer, FrameBufferSize);
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Frame", pipeline.FrameBuffer, FrameBufferSize);
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Camera", pipeline.CameraBuffer, CameraBufferSize);
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Camera", pipeline.CameraBuffer, CameraBufferSize);
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
-        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
-        if (pipeline.CustomBuffer is not null)
-        {
-            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
-            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
-        }
+    internal void DrawClearFramebufferQuad(string debugComment, ClearTarget flags, IReadOnlyDictionary<string, object?> parameters,
+        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
 
-        if (albedoTexture is Texture2D texture2D)
-            BindTextureToAvailableStages(pipeline, "sAlbedo", GetOrCreateUploadedTexture(texture2D).ShaderView);
-        if (secondaryTexture is Texture2D secondaryTexture2D)
-            BindTextureToAvailableStages(pipeline, "sNormal", GetOrCreateUploadedTexture(secondaryTexture2D).ShaderView);
-        if (depthTexture is Texture2D depthTexture2D)
-            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetOrCreateUploadedTexture(depthTexture2D).ShaderView);
+        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+            return;
 
-        immediateContext.SetPipelineState(pipeline.PipelineState);
-        immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        var pipeline = GetOrCreateClearFramebufferPipeline(flags);
+        if (pipeline is null)
+            return;
 
-        nuint vertexOffset = 0;
-        IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
-        immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-            SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-        immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+        if (flags.HasFlag(ClearTarget.Stencil))
+            immediateContext.SetStencilRef(stencil);
+
+        DrawFullscreenQuad(
+            pipeline,
+            albedoTexture: null,
+            secondaryTexture: null,
+            depthTexture: null,
+            parameters,
+            invInputSize,
+            clipToUvOffsetAndScale,
+            flipVertical: false);
     }
 
     public void SetVSync(bool enable)
@@ -728,6 +727,10 @@ layout(std140) uniform Material
         foreach (var pipeline in fullscreenPipelines.Values)
             pipeline.Dispose();
         fullscreenPipelines.Clear();
+
+        foreach (var pipeline in clearFramebufferPipelines.Values)
+            pipeline.Dispose();
+        clearFramebufferPipelines.Clear();
 
         fullscreenQuadGeometry = null;
 
@@ -1141,7 +1144,7 @@ layout(std140) uniform Material
 
             psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
             psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
-            ConfigureBlendState(psoCreateInfo, blendMode);
+            ConfigureBlendState(psoCreateInfo, blendMode, colorWriteEnabled: true);
 
             device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
@@ -1170,6 +1173,110 @@ layout(std140) uniform Material
                 layoutArray);
             layoutArray = null;
             fullscreenPipelines[key] = cached;
+            return cached;
+        }
+        finally
+        {
+            layoutArray?.Dispose();
+        }
+    }
+
+    private FullscreenPipelineResources? GetOrCreateClearFramebufferPipeline(ClearTarget flags)
+    {
+        if (device is null)
+            return null;
+
+        flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
+        var key = new ClearFramebufferPipelineKey(flags, currentColorTargetFormat, currentDepthTargetFormat);
+        if (clearFramebufferPipelines.TryGetValue(key, out var cached))
+            return cached;
+
+        const string shaderName = "v2/X_ClearFramebuffer";
+        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var shaderResource = resourceCache?.GetResourceOrNull<Shader>(shaderName);
+        if (shaderResource is null)
+            return null;
+
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, string.Empty, GraphicsBackend.OpenGL);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, string.Empty, GraphicsBackend.OpenGL);
+        var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
+        var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
+        var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
+        var settings = GetClearFramebufferPipelineSettings(flags);
+
+        TemporaryLayoutArray? layoutArray = null;
+        try
+        {
+            var quadGeometry = GetOrCreateFullscreenQuadGeometry();
+            var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
+            layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            using var pipelineName = new PinnedUtf8($"{shaderName}:{flags}:clear");
+            using var psoDesc = new PipelineStateDesc
+            {
+                Name = pipelineName.Pointer,
+                PipelineType = PipelineType.PipelineTypeGraphics,
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+            };
+            using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
+            {
+                PSODesc = psoDesc,
+                PVS = vertexShader,
+                PPS = pixelShader,
+                GraphicsPipelineNumRenderTargets = 1,
+                GraphicsPipelineNumViewports = 1,
+                GraphicsPipelinePrimitiveTopology = PrimitiveTopology.PrimitiveTopologyTriangleList,
+                GraphicsPipelineRasterizerDescCullMode = RedBolt.Bindings.Diligent.CullMode.CullModeNone,
+                GraphicsPipelineRasterizerDescFillMode = RedBolt.Bindings.Diligent.FillMode.FillModeSolid,
+                GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
+                GraphicsPipelineDepthStencilDescDepthEnable = true,
+                GraphicsPipelineDepthStencilDescDepthWriteEnable = settings.DepthWriteEnabled,
+                GraphicsPipelineDepthStencilDescDepthFunc = ComparisonFunction.ComparisonFuncAlways,
+                GraphicsPipelineDepthStencilDescStencilEnable = settings.StencilEnabled,
+                GraphicsPipelineDepthStencilDescStencilReadMask = settings.StencilReadMask,
+                GraphicsPipelineDepthStencilDescStencilWriteMask = settings.StencilWriteMask,
+                GraphicsPipelineDepthStencilDescFrontFaceStencilFailOp = global::RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep,
+                GraphicsPipelineDepthStencilDescFrontFaceStencilDepthFailOp = global::RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep,
+                GraphicsPipelineDepthStencilDescFrontFaceStencilPassOp = settings.StencilPassOp,
+                GraphicsPipelineDepthStencilDescFrontFaceStencilFunc = ComparisonFunction.ComparisonFuncAlways,
+                GraphicsPipelineDepthStencilDescBackFaceStencilFailOp = global::RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep,
+                GraphicsPipelineDepthStencilDescBackFaceStencilDepthFailOp = global::RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep,
+                GraphicsPipelineDepthStencilDescBackFaceStencilPassOp = settings.StencilPassOp,
+                GraphicsPipelineDepthStencilDescBackFaceStencilFunc = ComparisonFunction.ComparisonFuncAlways,
+                GraphicsPipelineInputLayoutLayoutElements = layoutArray.First,
+                GraphicsPipelineInputLayoutNumElements = (uint)layoutArray.Count
+            };
+
+            psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
+            psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
+            ConfigureBlendState(psoCreateInfo, BlendMode.Replace, settings.ColorWriteEnabled);
+
+            device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            if (pipelineState.IsNull)
+                throw new InvalidOperationException($"Failed to create clear framebuffer pipeline state for {shaderName}.");
+
+            var frameBuffer = CreateUniformBuffer(device, "Frame", FrameBufferSize);
+            var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
+            var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
+
+            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            if (shaderResources.IsNull)
+                throw new InvalidOperationException($"Failed to create clear framebuffer shader resources for {shaderName}.");
+
+            cached = new FullscreenPipelineResources(
+                pipelineState,
+                vertexShader,
+                pixelShader,
+                shaderResources,
+                BuildShaderVariableLookup(shaderResources),
+                frameBuffer,
+                cameraBuffer,
+                objectBuffer,
+                customBuffer,
+                customLayout,
+                layoutArray);
+            layoutArray = null;
+            clearFramebufferPipelines[key] = cached;
             return cached;
         }
         finally
@@ -1245,6 +1352,56 @@ layout(std140) uniform Material
         WriteMatrix4(data, 0, Matrix4.Identity);
         WriteVector4(data, 64, DefaultAmbient);
         UpdateBuffer(buffer, data);
+    }
+
+    private void DrawFullscreenQuad(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+        IReadOnlyDictionary<string, object?> parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        if (immediateContext is null)
+            return;
+
+        var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
+        if (uploadedGeometry is null)
+            return;
+
+        UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
+        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
+        UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
+        if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
+            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, parameters);
+
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Frame", pipeline.FrameBuffer, FrameBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Frame", pipeline.FrameBuffer, FrameBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Camera", pipeline.CameraBuffer, CameraBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Camera", pipeline.CameraBuffer, CameraBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
+        if (pipeline.CustomBuffer is not null)
+        {
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+        }
+
+        if (albedoTexture is Texture2D texture2D)
+            BindTextureToAvailableStages(pipeline, "sAlbedo", GetOrCreateUploadedTexture(texture2D).ShaderView);
+        if (secondaryTexture is Texture2D secondaryTexture2D)
+            BindTextureToAvailableStages(pipeline, "sNormal", GetOrCreateUploadedTexture(secondaryTexture2D).ShaderView);
+        if (depthTexture is Texture2D depthTexture2D)
+            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetOrCreateUploadedTexture(depthTexture2D).ShaderView);
+
+        immediateContext.SetPipelineState(pipeline.PipelineState);
+        immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+
+        nuint vertexOffset = 0;
+        IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
+        immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            SetVertexBuffersFlags.SetVertexBuffersFlagReset);
+        immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
     }
 
     private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, IReadOnlyDictionary<string, object?> parameters)
@@ -2027,9 +2184,9 @@ layout(std140) uniform Material
         _ => ComparisonFunction.ComparisonFuncLessEqual
     };
 
-    private static void ConfigureBlendState(GraphicsPipelineStateCreateInfo pipelineStateCreateInfo, BlendMode blendMode)
+    private static void ConfigureBlendState(GraphicsPipelineStateCreateInfo pipelineStateCreateInfo, BlendMode blendMode, bool colorWriteEnabled)
     {
-        using var primaryRenderTargetBlend = CreateRenderTargetBlendDesc(blendMode);
+        using var primaryRenderTargetBlend = CreateRenderTargetBlendDesc(blendMode, colorWriteEnabled);
         using var defaultRenderTargetBlend = new RenderTargetBlendDesc();
         using var renderTargets = new global::SharpCpp.NativeArray<RenderTargetBlendDesc>(
         [
@@ -2047,7 +2204,7 @@ layout(std140) uniform Material
         pipelineStateCreateInfo.GraphicsPipelineBlendDescRenderTargets = renderTargets;
     }
 
-    private static RenderTargetBlendDesc CreateRenderTargetBlendDesc(BlendMode blendMode)
+    private static RenderTargetBlendDesc CreateRenderTargetBlendDesc(BlendMode blendMode, bool colorWriteEnabled)
     {
         return new RenderTargetBlendDesc
         {
@@ -2058,8 +2215,23 @@ layout(std140) uniform Material
             DestBlendAlpha = GetDestinationAlphaBlend(blendMode),
             BlendOp = GetBlendOperation(blendMode),
             BlendOpAlpha = GetBlendOperation(blendMode),
-            RenderTargetWriteMask = ColorMask.ColorMaskAll
+            RenderTargetWriteMask = colorWriteEnabled ? ColorMask.ColorMaskAll : ColorMask.ColorMaskNone
         };
+    }
+
+    private static ClearFramebufferPipelineSettings GetClearFramebufferPipelineSettings(ClearTarget flags)
+    {
+        flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
+        var clearStencil = flags.HasFlag(ClearTarget.Stencil);
+        return new ClearFramebufferPipelineSettings(
+            flags.HasFlag(ClearTarget.Color),
+            flags.HasFlag(ClearTarget.Depth),
+            clearStencil,
+            0xff,
+            clearStencil ? (byte)0xff : (byte)0x00,
+            clearStencil
+                ? global::RedBolt.Bindings.Diligent.StencilOp.StencilOpReplace
+                : global::RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep);
     }
 
     private static bool IsBlendEnabled(BlendMode blendMode) => blendMode != BlendMode.Replace;
@@ -2646,6 +2818,18 @@ layout(std140) uniform Material
         BlendMode BlendMode,
         bool BilinearColorSampler, global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
         global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
+
+    private readonly record struct ClearFramebufferPipelineKey(ClearTarget Flags,
+        global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
+        global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
+
+    private readonly record struct ClearFramebufferPipelineSettings(
+        bool ColorWriteEnabled,
+        bool DepthWriteEnabled,
+        bool StencilEnabled,
+        byte StencilReadMask,
+        byte StencilWriteMask,
+        global::RedBolt.Bindings.Diligent.StencilOp StencilPassOp);
 
     private readonly record struct PipelineVariableKey(global::RedBolt.Bindings.Diligent.ShaderType ShaderType, string Name);
 

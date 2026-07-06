@@ -383,6 +383,39 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_uses_fullscreen_quad_for_partial_output_clears()
+    {
+        var method = typeof(RenderBufferManager).GetMethod("ShouldUseFullscreenQuadClear", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(method);
+        Assert.False(Assert.IsType<bool>(method!.Invoke(null, [new IntRect(0, 0, 320, 200), new IntRect(0, 0, 320, 200)])!));
+        Assert.True(Assert.IsType<bool>(method.Invoke(null, [new IntRect(16, 12, 160, 120), new IntRect(0, 0, 320, 200)])!));
+    }
+
+    [Fact]
+    public void Graphics_clear_framebuffer_pipeline_settings_follow_requested_targets()
+    {
+        var method = typeof(Graphics).GetMethod("GetClearFramebufferPipelineSettings", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.NotNull(method);
+
+        var depthSettings = method!.Invoke(null, [ClearTarget.Depth]);
+        Assert.NotNull(depthSettings);
+        Assert.False((bool)GetNamedValue(depthSettings!, "ColorWriteEnabled"));
+        Assert.True((bool)GetNamedValue(depthSettings, "DepthWriteEnabled"));
+        Assert.False((bool)GetNamedValue(depthSettings, "StencilEnabled"));
+
+        var stencilSettings = method.Invoke(null, [ClearTarget.Stencil]);
+        Assert.NotNull(stencilSettings);
+        Assert.False((bool)GetNamedValue(stencilSettings!, "ColorWriteEnabled"));
+        Assert.False((bool)GetNamedValue(stencilSettings, "DepthWriteEnabled"));
+        Assert.True((bool)GetNamedValue(stencilSettings, "StencilEnabled"));
+        Assert.Equal((byte)0xff, Assert.IsType<byte>(GetNamedValue(stencilSettings, "StencilWriteMask")));
+        Assert.Equal(global::RedBolt.Bindings.Diligent.StencilOp.StencilOpReplace,
+            Assert.IsType<global::RedBolt.Bindings.Diligent.StencilOp>(GetNamedValue(stencilSettings, "StencilPassOp")));
+    }
+
+    [Fact]
     public void Render_buffer_manager_derives_output_traits_from_render_target_texture()
     {
         var manager = new RenderBufferManager();
@@ -863,6 +896,13 @@ public sealed class RenderPipelineTests
             public int UpdateCalls;
             public int RenderCalls;
         }
+    }
+
+    private static object GetNamedValue(object instance, string propertyName)
+    {
+        var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+        Assert.NotNull(property);
+        return property!.GetValue(instance) ?? throw new InvalidOperationException($"Property {propertyName} returned null.");
     }
 
     private sealed class BufferCaptureRenderPass : RenderPass

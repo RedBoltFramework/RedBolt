@@ -404,8 +404,7 @@ public sealed class RenderBufferManager
         var depthView = depthStencilBuffer.GetView();
         graphics.SetRenderTargets(effectiveViewportRect, writeableColorBuffer.GetView(), depthView);
 
-        var isFullRect = effectiveViewportRect == this.viewportRect;
-        if (isFullRect || !flags.HasFlag(ClearTarget.Color))
+        if (!ShouldUseFullscreenQuadClear(effectiveViewportRect, this.viewportRect))
         {
             graphics.ClearCurrentRenderTargets(
                 color,
@@ -422,28 +421,13 @@ public sealed class RenderBufferManager
             ["Color"] = new Vector4(color.R, color.G, color.B, color.A),
             ["Depth"] = GetFullscreenQuadClearDepth(depth)
         };
-        graphics.DrawFullscreenQuad(
+        graphics.DrawClearFramebufferQuad(
             "Clear output subregion",
-            "v2/X_ClearFramebuffer",
-            string.Empty,
-            BlendMode.Replace,
-            bilinearColorSampler: false,
-            albedoTexture: null,
-            secondaryTexture: null,
-            depthTexture: null,
+            flags,
             clearParameters,
             GetInvOutputSize(),
-            GetDefaultClipToUVSpaceOffsetAndScale());
-
-        if (flags.HasFlag(ClearTarget.Stencil))
-        {
-            graphics.ClearCurrentRenderTargets(
-                clearColorTarget: false,
-                clearDepth: false,
-                clearStencil: true,
-                depth: depth,
-                stencil: stencil);
-        }
+            GetDefaultClipToUVSpaceOffsetAndScale(),
+            stencil);
     }
 
     public void ClearOutput(Graphics graphics, ClearTarget flags, Color color, float depth, byte stencil = 0)
@@ -635,6 +619,8 @@ public sealed class RenderBufferManager
     // Fullscreen-quad subrect clears run in the current managed OpenGL backend and therefore
     // need the same [0, 1] -> [-1, 1] depth remap that rbfx applies before drawing the clear quad.
     private static float GetFullscreenQuadClearDepth(float depth) => depth * 2.0f - 1.0f;
+
+    private static bool ShouldUseFullscreenQuadClear(IntRect viewportRect, IntRect outputViewportRect) => viewportRect != outputViewportRect;
 
     private static Vector4 GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
     {
