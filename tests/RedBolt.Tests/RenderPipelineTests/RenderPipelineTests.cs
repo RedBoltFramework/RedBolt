@@ -733,6 +733,63 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_resizes_dynamic_intermediate_buffers_with_viewport_changes()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
+
+        var scaled = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8), new Vector2(0.5f, 0.5f));
+        var fixedSize = manager.CreateColorBuffer(
+            new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.FixedTextureSize),
+            new Vector2(12, 6));
+
+        Assert.Equal((64, 32), (scaled.Texture.Width, scaled.Texture.Height));
+        Assert.Equal((12, 6), (fixedSize.Texture.Width, fixedSize.Texture.Height));
+
+        manager.OnViewportDefined(null, new IntRect(0, 0, 256, 128));
+
+        Assert.Equal((128, 64), (scaled.Texture.Width, scaled.Texture.Height));
+        Assert.Equal(new IntRect(0, 0, 128, 64), scaled.GetViewportRect());
+        Assert.Equal((12, 6), (fixedSize.Texture.Width, fixedSize.Texture.Height));
+        Assert.Equal(new IntRect(0, 0, 12, 6), fixedSize.GetViewportRect());
+    }
+
+    [Fact]
+    public void Bloom_pass_cached_buffers_follow_viewport_resize()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
+
+        var bloom = new BloomPass("Bloom");
+        bloom.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?>());
+        var sharedState = new SharedRenderPassState
+        {
+            RenderBufferManager = manager
+        };
+        bloom.Update(sharedState);
+
+        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "textures"));
+        var caches = textures.Cast<object>().ToArray();
+        var first = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[0], "Final"));
+        var second = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[1], "Final"));
+
+        Assert.Equal((128, 64), (first.Texture.Width, first.Texture.Height));
+        Assert.Equal((64, 32), (second.Texture.Width, second.Texture.Height));
+
+        manager.OnViewportDefined(null, new IntRect(0, 0, 256, 128));
+
+        Assert.Equal((256, 128), (first.Texture.Width, first.Texture.Height));
+        Assert.Equal((128, 64), (second.Texture.Width, second.Texture.Height));
+    }
+
+    [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
         var previousContext = Context.TryGetInstance();

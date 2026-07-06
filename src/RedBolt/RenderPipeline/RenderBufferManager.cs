@@ -3,6 +3,7 @@ namespace RedBolt;
 public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
+    private readonly List<WeakReference<TextureRenderBuffer>> managedTextureBuffers = [];
 
     private sealed class ViewportOutputRenderBuffer : RenderBuffer
     {
@@ -88,6 +89,7 @@ public sealed class RenderBufferManager
             renderTarget?.DepthStencilTexture);
 
         ResolveOutputParams(renderTarget);
+        RefreshManagedTextureBuffers();
 
         var needReadableDepth = settings.ReadableDepth || frameSettings.ReadableDepth;
         var needSecondaryBuffer = frameSettings.SupportColorReadWrite;
@@ -152,23 +154,10 @@ public sealed class RenderBufferManager
 
     public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2 size = default)
     {
-        var effectiveSize = size == default ? Vector2.One : size;
-        var outputSize = viewportRect.Size;
-        var width = effectiveSize.X <= 1.0f
-            ? Math.Max(1, (int)Math.Round(outputSize.X * effectiveSize.X))
-            : Math.Max(1, (int)Math.Round(effectiveSize.X));
-        var height = effectiveSize.Y <= 1.0f
-            ? Math.Max(1, (int)Math.Round(outputSize.Y * effectiveSize.Y))
-            : Math.Max(1, (int)Math.Round(effectiveSize.Y));
-
-        var texture = new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
-        var textureFormat = bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : bufferParams.TextureFormat;
-        texture.SetSize(width, height, textureFormat);
-        texture.SetFilterMode(bufferParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering)
-            ? TextureFilterMode.Bilinear
-            : TextureFilterMode.Nearest);
-        ApplyColorTextureMetadata(texture, textureFormat);
-        return new TextureRenderBuffer(texture, new IntRect(0, 0, width, height));
+        var buffer = new TextureRenderBuffer(bufferParams, size);
+        RegisterTextureBuffer(buffer);
+        buffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
+        return buffer;
     }
 
     public void SwapColorBuffers(bool synchronizeContents)
@@ -523,56 +512,37 @@ public sealed class RenderBufferManager
 
     private RenderBuffer EnsurePrimaryColorBuffer()
     {
-        var outputSize = viewportRect.Size;
-        if (primaryColorBuffer is not null
-            && primaryColorBuffer.Texture.Width == outputSize.X
-            && primaryColorBuffer.Texture.Height == outputSize.Y
-            && primaryColorBuffer.Texture.Format == colorOutputParams.TextureFormat)
+        if (primaryColorBuffer is null)
         {
-            primaryColorBuffer.SetViewportRect(viewportRect);
-            return primaryColorBuffer;
+            primaryColorBuffer = CreateColorBuffer(colorOutputParams) as TextureRenderBuffer
+                ?? throw new InvalidOperationException("Primary color buffer creation returned unexpected render buffer type.");
         }
 
-        primaryColorBuffer = CreateColorBuffer(colorOutputParams) as TextureRenderBuffer
-            ?? throw new InvalidOperationException("Primary color buffer creation returned unexpected render buffer type.");
-        primaryColorBuffer.SetViewportRect(viewportRect);
+        primaryColorBuffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
         return primaryColorBuffer;
     }
 
     private RenderBuffer EnsureDepthBuffer()
     {
-        var outputSize = viewportRect.Size;
-        if (depthBuffer is not null
-            && depthBuffer.Texture.Width == outputSize.X
-            && depthBuffer.Texture.Height == outputSize.Y
-            && depthBuffer.Texture.Format == depthStencilOutputParams.TextureFormat)
+        if (depthBuffer is null)
         {
-            depthBuffer.SetViewportRect(viewportRect);
-            return depthBuffer;
+            depthBuffer = new TextureRenderBuffer(depthStencilOutputParams);
+            RegisterTextureBuffer(depthBuffer);
         }
 
-        var texture = new Texture2D($"RenderDepthBuffer.{Guid.NewGuid():N}");
-        texture.SetSize(outputSize.X, outputSize.Y, depthStencilOutputParams.TextureFormat);
-        depthBuffer = new TextureRenderBuffer(texture, new IntRect(0, 0, outputSize.X, outputSize.Y));
-        depthBuffer.SetViewportRect(viewportRect);
+        depthBuffer.RefreshForViewport(viewportRect);
         return depthBuffer;
     }
 
     private RenderBuffer EnsureSecondaryColorBuffer()
     {
-        var outputSize = viewportRect.Size;
-        if (secondaryColorBuffer is not null
-            && secondaryColorBuffer.Texture.Width == outputSize.X
-            && secondaryColorBuffer.Texture.Height == outputSize.Y
-            && secondaryColorBuffer.Texture.Format == colorOutputParams.TextureFormat)
+        if (secondaryColorBuffer is null)
         {
-            secondaryColorBuffer.SetViewportRect(viewportRect);
-            return secondaryColorBuffer;
+            secondaryColorBuffer = CreateColorBuffer(colorOutputParams) as TextureRenderBuffer
+                ?? throw new InvalidOperationException("Color buffer creation returned unexpected render buffer type.");
         }
 
-        secondaryColorBuffer = CreateColorBuffer(colorOutputParams) as TextureRenderBuffer
-            ?? throw new InvalidOperationException("Color buffer creation returned unexpected render buffer type.");
-        secondaryColorBuffer.SetViewportRect(viewportRect);
+        secondaryColorBuffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
         return secondaryColorBuffer;
     }
 
@@ -614,6 +584,32 @@ public sealed class RenderBufferManager
         primaryColorBuffer = null;
         secondaryColorBuffer = null;
         depthBuffer = null;
+    }
+
+    private void RefreshManagedTextureBuffers()
+    {
+        for (var i = managedTextureBuffers.Count - 1; i >= 0; --i)
+        {
+            if (!managedTextureBuffers[i].TryGetTarget(out var buffer))
+            {
+                managedTextureBuffers.RemoveAt(i);
+                continue;
+            }
+
+            if (!buffer.IsEnabled)
+                continue;
+
+            Action<Texture, TextureFormat>? configureTexture = buffer.BufferParams.TextureFormat == TextureFormat.Depth24Stencil8
+                ? null
+                : ApplyColorTextureMetadata;
+            buffer.RefreshForViewport(viewportRect, configureTexture);
+        }
+    }
+
+    private void RegisterTextureBuffer(TextureRenderBuffer buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        managedTextureBuffers.Add(new WeakReference<TextureRenderBuffer>(buffer));
     }
 
     // Fullscreen-quad subrect clears run in the current managed OpenGL backend and therefore
