@@ -261,7 +261,7 @@ public class RenderPipeline : Component
             frameInfo.Viewport = viewport;
             frameInfo.ViewportRect = viewportRect;
             frameInfo.ViewportSize = viewportRect.Size;
-            frameInfo.RenderTarget = null;
+            frameInfo.RenderTarget = graphics.GetSwapChainOutputTarget();
             frameInfo.Cameras[0] = viewport.Camera;
             frameInfo.Cameras[1] = viewport.RightEye;
 

@@ -159,6 +159,26 @@ layout(std140) uniform Material
         return shader is null ? null : new ShaderVariation(shader, type, defines);
     }
 
+    internal RenderOutputTargetInfo GetSwapChainOutputTarget()
+    {
+        var colorFormat = UnmapTextureFormat(GetSwapChainColorFormat(), out var colorIsSrgb);
+        var depthFormat = UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
+        var fullRect = new IntRect(0, 0, Width, Height);
+
+        return new RenderOutputTargetInfo(
+            RenderTargetView.SwapChainColor(),
+            fullRect,
+            colorFormat,
+            RenderTargetView.SwapChainDepthStencil(),
+            depthFormat,
+            Math.Max(configuredMultiSample, 1),
+            bilinearFiltered: false,
+            linearColorSpace: colorFormat == TextureFormat.RGBA16F || colorFormat != TextureFormat.Unknown && !colorIsSrgb,
+            hdr: colorFormat == TextureFormat.RGBA16F,
+            hasReadableDepth: false,
+            hasStencil: depthFormat == TextureFormat.Depth24Stencil8);
+    }
+
     public void Initialize(EngineParameters parameters, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -1668,6 +1688,27 @@ layout(std140) uniform Material
         TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
         _ => 0
     };
+
+    private static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
+    {
+        isSrgb = false;
+        return format switch
+        {
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm => TextureFormat.R8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float => TextureFormat.RG16F,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float => TextureFormat.RGBA16F,
+            _ => TextureFormat.Unknown
+        };
+    }
+
+    private static TextureFormat MarkSrgb(TextureFormat format, out bool isSrgb)
+    {
+        isSrgb = true;
+        return format;
+    }
 
     private static bool IsDepthTextureFormat(TextureFormat format) => format == TextureFormat.Depth24Stencil8;
 

@@ -728,6 +728,79 @@ public readonly record struct ShaderResourceDesc(StringHash Name, Texture? Textu
 
 public readonly record struct ShaderParameterDesc(StringHash Name, Variant Value);
 
+public sealed class RenderOutputTargetInfo
+{
+    public RenderOutputTargetInfo(RenderTargetView colorTarget, IntRect fullViewportRect, TextureFormat colorFormat,
+        RenderTargetView? depthStencilTarget = null, TextureFormat depthStencilFormat = TextureFormat.Unknown,
+        int multiSample = 1, Texture? colorTexture = null, Texture? depthStencilTexture = null,
+        bool bilinearFiltered = false, bool linearColorSpace = false, bool hdr = false,
+        bool hasReadableDepth = false, bool hasStencil = false)
+    {
+        ColorTarget = colorTarget;
+        FullViewportRect = fullViewportRect;
+        ColorFormat = colorFormat;
+        DepthStencilTarget = depthStencilTarget;
+        DepthStencilFormat = depthStencilFormat;
+        MultiSample = Math.Max(multiSample, 1);
+        ColorTexture = colorTexture;
+        DepthStencilTexture = depthStencilTexture;
+        BilinearFiltered = bilinearFiltered;
+        LinearColorSpace = linearColorSpace;
+        HDR = hdr;
+        HasReadableDepth = hasReadableDepth;
+        HasStencil = hasStencil;
+    }
+
+    public RenderTargetView ColorTarget { get; }
+
+    public RenderTargetView? DepthStencilTarget { get; }
+
+    public IntRect FullViewportRect { get; }
+
+    public TextureFormat ColorFormat { get; }
+
+    public TextureFormat DepthStencilFormat { get; }
+
+    public int MultiSample { get; }
+
+    public Texture? ColorTexture { get; }
+
+    public Texture? DepthStencilTexture { get; }
+
+    public bool BilinearFiltered { get; }
+
+    public bool LinearColorSpace { get; }
+
+    public bool HDR { get; }
+
+    public bool HasReadableDepth { get; }
+
+    public bool HasStencil { get; }
+
+    public bool HasDepthStencil => DepthStencilTarget is not null || DepthStencilFormat != TextureFormat.Unknown;
+
+    public static RenderOutputTargetInfo FromTexture(Texture colorTexture, IntRect fullViewportRect,
+        Texture? depthStencilTexture = null, int multiSample = 1)
+    {
+        ArgumentNullException.ThrowIfNull(colorTexture);
+
+        return new RenderOutputTargetInfo(
+            RenderTargetView.Texture(colorTexture),
+            fullViewportRect,
+            colorTexture.Format,
+            depthStencilTexture is not null ? RenderTargetView.Texture(depthStencilTexture) : null,
+            depthStencilTexture?.Format ?? TextureFormat.Unknown,
+            multiSample,
+            colorTexture,
+            depthStencilTexture,
+            bilinearFiltered: colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear or TextureFilterMode.Anisotropic,
+            linearColorSpace: colorTexture.GetLinear() || colorTexture.Format == TextureFormat.RGBA16F,
+            hdr: colorTexture.Format == TextureFormat.RGBA16F,
+            hasReadableDepth: depthStencilTexture is not null,
+            hasStencil: depthStencilTexture?.Format == TextureFormat.Depth24Stencil8);
+    }
+}
+
 public sealed class CommonFrameInfo
 {
     public uint FrameNumber { get; set; }
@@ -740,7 +813,7 @@ public sealed class CommonFrameInfo
 
     public Viewport? Viewport { get; set; }
 
-    public object? RenderTarget { get; set; }
+    public RenderOutputTargetInfo? RenderTarget { get; set; }
 
     public Camera?[] Cameras { get; } = new Camera?[2];
 }
