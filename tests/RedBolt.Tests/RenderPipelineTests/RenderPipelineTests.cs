@@ -194,6 +194,17 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_rejects_color_buffer_swap_without_read_write_support()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 640, 360));
+
+        Assert.Throws<InvalidOperationException>(() => manager.SwapColorBuffers(synchronizeContents: false));
+    }
+
+    [Fact]
     public void Render_buffer_manager_uses_offscreen_primary_buffer_for_color_read_write_frames()
     {
         var manager = new RenderBufferManager();

@@ -182,7 +182,7 @@ public sealed class RenderBufferManager
             return;
 
         SetRenderTargets(lastGraphics, writeableColorBuffer, depthStencilBuffer);
-        lastGraphics.DrawCopyTexture(readableTexture, bilinearFiltering: colorOutputParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering));
+        DrawTexture(lastGraphics, "Synchronize readable and writeable color buffers", readableTexture);
     }
 
     /// <summary>
