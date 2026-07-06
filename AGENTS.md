@@ -58,6 +58,7 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 - Trim stale guesses, superseded notes, and completed low-value items from that file.
 - Commit coherent checkpoints so progress is not stranded between sessions.
 - Keep the sample build healthy while porting rendering.
+- Always use jcodemunch to explore rbfx and RedBolt repositories, avoid using standard search/grep/glob tools.
 
 ## Build And Verification
 

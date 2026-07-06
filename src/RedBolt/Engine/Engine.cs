@@ -221,6 +221,7 @@ public sealed class Engine
         Context.Reset();
         RedBolt.Context.SetInstance(Context);
         Context.RegisterSubsystem(Context);
+        WorkQueue.SetMainThread();
         Context.InitializeEngineSubsystems(this);
     }
 

@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace RedBolt;
 
 public delegate void NamedEventHandler(object? sender, StringHash eventType, VariantMap eventData);
@@ -47,7 +45,7 @@ public sealed class Context
 
     private static Context? instance;
 
-    private readonly ConcurrentDictionary<Type, object> subsystems = new();
+    private readonly Dictionary<Type, object> subsystems = [];
     private readonly Dictionary<StringHash, EventSubscriptionBucket> eventSubscriptions = new();
     private readonly VariantMap globalVars = [];
     private ulong nextSubscriptionId = 1;
@@ -75,6 +73,7 @@ public sealed class Context
 
         RegisterSubsystem(engine);
         RegisterSubsystem(new EngineTime());
+        RegisterSubsystem(new WorkQueue());
         RegisterSubsystem(new ResourceCache());
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
@@ -96,7 +95,7 @@ public sealed class Context
 
     public bool RemoveSubsystem<T>()
         where T : class
-        => subsystems.TryRemove(typeof(T), out _);
+        => subsystems.Remove(typeof(T));
 
     public T? GetSubsystem<T>()
         where T : class
