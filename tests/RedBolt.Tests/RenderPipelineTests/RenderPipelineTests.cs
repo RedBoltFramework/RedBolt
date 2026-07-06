@@ -71,6 +71,25 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_uses_offscreen_primary_buffer_for_color_read_write_frames()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.LinearHDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 640, 360));
+
+        Assert.NotNull(manager.GetColorOutput().GetTexture());
+        Assert.NotNull(manager.GetSecondaryColorTexture());
+        Assert.True(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));

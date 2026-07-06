@@ -65,6 +65,9 @@ Slice 1 through the first runtime integration layer are landed:
 - focused tests now verify loading the real upstream `rbfx/bin/CoreData/RenderPaths/Default.renderpath` asset and collecting its exposed parameters
 - `Graphics.RenderViewport` has been split into reusable target-binding, scene-draw, clear, present, and unbind steps so the managed `RenderPipeline` owns frame execution order instead of delegating the whole frame to the legacy viewport helper
 - `RenderBufferManager` can now bind its writable output buffer through `Graphics`, and render-buffer textures are uploaded as real shader-resource plus render-target GPU textures when they have no CPU pixel payload
+- `RenderBufferManager` now routes read/write color-output frames through offscreen primary and secondary color buffers and resolves the final color back to the viewport target when needed
+- `Graphics` now has a managed fullscreen-quad draw path with cached pipeline state, cached custom-uniform layout parsing, and generic shader-backed postprocess execution for render-path passes
+- `ToneMappingPass` and generic `FullScreenShaderPass` now execute managed fullscreen postprocess draws instead of only contributing metadata and trait flags
 
 ## Current Cross-Cutting Requirement
 
@@ -84,6 +87,7 @@ Slice 1 through the first runtime integration layer are landed:
 ## Next Useful Checks
 
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
-- Port the execution side of the newly loaded built-in passes, starting with `FullScreenShaderPass` / `ToneMappingPass` helpers and the remaining `RenderBufferManager` fullscreen-quad methods they require.
+- Port the execution side of the remaining built-in passes (`AutoExposurePass`, `BloomPass`, `AmbientOcclusionPass`, `OutlineRenderPass`) on top of the new fullscreen-quad path.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
+- Expand the custom-uniform path toward typed parameter structs for built-in passes so reflection-based field layout can be cached once and reused without hot-path reflection.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

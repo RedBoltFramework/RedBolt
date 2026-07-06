@@ -12,5 +12,7 @@ public sealed class SharedRenderPassState
 
     public RenderBufferManager? RenderBufferManager { get; set; }
 
+    public Graphics? Graphics { get; set; }
+
     public IDictionary<StringHash, RenderBuffer> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer>();
 }

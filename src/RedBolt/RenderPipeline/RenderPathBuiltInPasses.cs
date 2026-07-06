@@ -6,6 +6,7 @@ namespace RedBolt;
 public sealed class FullScreenShaderPass : RenderPass
 {
     private readonly Dictionary<string, object?> parameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, object?> currentParameters = new(StringComparer.Ordinal);
     private string shaderName = string.Empty;
     private string shaderDefines = string.Empty;
     private BlendMode blendMode = BlendMode.Replace;
@@ -83,20 +84,58 @@ public sealed class FullScreenShaderPass : RenderPass
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(externalParameters);
 
+        currentParameters.Clear();
         var shouldBeDisabled = disableOnDefaultParameters;
         foreach (var (name, defaultValue) in parameters)
         {
             var externalName = parametersPrefix + name;
-            if (externalParameters.TryGetValue(externalName, out var value)
-                && shouldBeDisabled
-                && !Equals(value, defaultValue))
+            if (externalParameters.TryGetValue(externalName, out var value))
             {
-                shouldBeDisabled = false;
+                currentParameters[name] = value;
+                if (shouldBeDisabled && !Equals(value, defaultValue))
+                    shouldBeDisabled = false;
             }
+            else
+                currentParameters[name] = defaultValue;
         }
 
         SetTraits(new RenderPassTraits(needReadWriteColorOutput, bilinearColorSampler));
         SetInternallyEnabled(!shouldBeDisabled);
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrWhiteSpace(shaderName))
+            return;
+
+        if (needReadWriteColorOutput)
+            renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        if (needReadWriteColorOutput)
+        {
+            renderBufferManager.DrawFeedbackViewportQuad(
+                graphics,
+                shaderName,
+                shaderDefines,
+                blendMode,
+                bilinearColorSampler,
+                currentParameters,
+                GetComment());
+        }
+        else
+        {
+            renderBufferManager.DrawViewportQuad(
+                graphics,
+                shaderName,
+                shaderDefines,
+                blendMode,
+                bilinearColorSampler,
+                currentParameters,
+                GetComment());
+        }
     }
 
     public override RenderPass Clone()
@@ -149,6 +188,7 @@ public sealed class ToneMappingPass : RenderPass
     private const string ModeName = "Tone Mapping: Mode";
     private const string ModeMetadataName = "Tone Mapping: Mode@";
     private static readonly string[] ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
+    private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private Mode mode;
 
     public ToneMappingPass(string? passName = null)
@@ -181,6 +221,25 @@ public sealed class ToneMappingPass : RenderPass
             mode = (Mode)Math.Clamp(modeValue, 0, (int)Mode.Count);
     }
 
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+            return;
+
+        renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.DrawFeedbackViewportQuad(
+            graphics,
+            "v2/P_ToneMapping",
+            GetModeDefines(mode),
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            parameters: EmptyParameters,
+            debugComment: "Apply tone mapping");
+    }
+
     public override RenderPass Clone()
     {
         var clone = new ToneMappingPass(GetPassName())
@@ -199,6 +258,17 @@ public sealed class ToneMappingPass : RenderPass
         ReinhardWhite,
         Uncharted2,
         Count
+    }
+
+    private static string GetModeDefines(Mode mode)
+    {
+        return mode switch
+        {
+            Mode.Reinhard => "REINHARD",
+            Mode.ReinhardWhite => "REINHARDWHITE",
+            Mode.Uncharted2 => "UNCHARTED2",
+            _ => string.Empty
+        };
     }
 }
 

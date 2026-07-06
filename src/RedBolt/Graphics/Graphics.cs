@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
@@ -13,6 +14,7 @@ public sealed class Graphics
     private const uint GlRgba = 0x1908;
     private const uint GlUnsignedByte = 0x1401;
     private const int CameraBufferSize = 368;
+    private const int FrameBufferSize = 16;
     private const int ObjectBufferSize = 80;
     private const int MaterialBufferSize = 128;
     private const int LightBufferSize = 48;
@@ -66,6 +68,10 @@ layout(std140) uniform Material
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
     private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultEmissionTextureData = [0, 0, 0, 255];
+    private static readonly IReadOnlyDictionary<string, object?> EmptyFullscreenParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
+    private static readonly Regex CustomUniformFieldRegex = new(
+        @"UNIFORM(?:_HIGHP)?\(\s*(?<type>[A-Za-z0-9_]+)\s+(?<name>[A-Za-z0-9_]+)\s*\)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly bool RenderDiagnosticsEnabled = IsRenderDiagnosticsEnabled();
     private static readonly bool ShaderBindingDiagnosticsEnabled = IsShaderBindingDiagnosticsEnabled();
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
@@ -77,6 +83,7 @@ layout(std140) uniform Material
     private readonly Dictionary<IndexBuffer, IBuffer> uploadedIndexBuffers = new();
     private readonly Dictionary<Texture2D, UploadedTexture> uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
+    private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
 
     private GCHandle clearColorHandle;
     private Texture2D? defaultAlbedoTexture;
@@ -93,6 +100,9 @@ layout(std140) uniform Material
     private ITextureView? depthStencilView;
     private ITextureView? currentDepthStencilTarget;
     private int currentRenderTargetCount;
+    private Geometry? fullscreenQuadGeometry;
+    private global::RedBolt.Bindings.Diligent.TextureFormat currentColorTargetFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat currentDepthTargetFormat;
     private IntPtr glContext;
     private bool shaderReflectionDiagnosticsDumped;
     private SdlWindow? window;
@@ -195,9 +205,11 @@ layout(std140) uniform Material
 
         renderTargets[0] = ResolveRenderTargetView(colorTarget);
         currentRenderTargetCount = 1;
+        currentColorTargetFormat = ResolveColorTargetFormat(colorTarget);
         currentDepthStencilTarget = depthStencilTarget is { } depthTarget
             ? ResolveRenderTargetView(depthTarget)
             : null;
+        currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
 
         using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
             viewportRect.Left,
@@ -304,6 +316,75 @@ layout(std140) uniform Material
         renderTargets[0] = null;
         currentRenderTargetCount = 0;
         currentDepthStencilTarget = null;
+    }
+
+    internal void DrawCopyTexture(Texture sourceTexture, bool bilinearFiltering = false, bool flipVertical = false)
+    {
+        ArgumentNullException.ThrowIfNull(sourceTexture);
+
+        var invInputSize = new Vector2(
+            sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
+            sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
+        DrawFullscreenQuad(
+            "Copy texture to output",
+            "v2/X_CopyTexture",
+            string.Empty,
+            BlendMode.Replace,
+            bilinearFiltering,
+            sourceTexture,
+            EmptyFullscreenParameters,
+            invInputSize,
+            new Vector4(0.5f, 0.5f, 0.5f, 0.5f),
+            flipVertical);
+    }
+
+    internal void DrawFullscreenQuad(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
+        bool bilinearColorSampler, Texture? albedoTexture, IReadOnlyDictionary<string, object?> parameters,
+        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+            return;
+
+        var pipeline = GetOrCreateFullscreenPipeline(shaderName, shaderDefines, blendMode, bilinearColorSampler);
+        var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
+        if (pipeline is null || uploadedGeometry is null)
+            return;
+
+        UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
+        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
+        UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
+        if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
+            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, parameters);
+
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Frame", pipeline.FrameBuffer, FrameBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Frame", pipeline.FrameBuffer, FrameBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Camera", pipeline.CameraBuffer, CameraBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Camera", pipeline.CameraBuffer, CameraBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
+        BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Object", pipeline.ObjectBuffer, ObjectBufferSize);
+        if (pipeline.CustomBuffer is not null)
+        {
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+            BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
+        }
+
+        if (albedoTexture is Texture2D texture2D)
+            BindTextureToAvailableStages(pipeline, "sAlbedo", GetOrCreateUploadedTexture(texture2D).ShaderView);
+
+        immediateContext.SetPipelineState(pipeline.PipelineState);
+        immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+
+        nuint vertexOffset = 0;
+        IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
+        immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            SetVertexBuffersFlags.SetVertexBuffersFlagReset);
+        immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
     }
 
     public void SetVSync(bool enable)
@@ -460,6 +541,10 @@ layout(std140) uniform Material
         renderTargets[0] = null;
         renderTargetView = null;
         depthStencilView = null;
+        currentRenderTargetCount = 0;
+        currentDepthStencilTarget = null;
+        currentColorTargetFormat = 0;
+        currentDepthTargetFormat = 0;
 
         foreach (var uploaded in uploadedGeometries.Values)
             uploaded.Dispose();
@@ -483,6 +568,12 @@ layout(std140) uniform Material
         foreach (var pipeline in pipelines.Values)
             pipeline.Dispose();
         pipelines.Clear();
+
+        foreach (var pipeline in fullscreenPipelines.Values)
+            pipeline.Dispose();
+        fullscreenPipelines.Clear();
+
+        fullscreenQuadGeometry = null;
 
         ReleaseIfNotNull(swapChain);
         swapChain = null;
@@ -677,6 +768,316 @@ layout(std140) uniform Material
         }
     }
 
+    private FullscreenPipelineResources? GetOrCreateFullscreenPipeline(string shaderName, string shaderDefines,
+        BlendMode blendMode, bool bilinearColorSampler)
+    {
+        if (device is null)
+            return null;
+
+        if (blendMode != BlendMode.Replace)
+            throw new NotSupportedException($"Fullscreen blend mode '{blendMode}' is not implemented yet.");
+
+        var key = new FullscreenPipelineKey(shaderName, shaderDefines, bilinearColorSampler, currentColorTargetFormat, currentDepthTargetFormat);
+        if (fullscreenPipelines.TryGetValue(key, out var cached))
+            return cached;
+
+        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var shaderResource = resourceCache?.GetResourceOrNull<Shader>(shaderName);
+        if (shaderResource is null)
+            return null;
+
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, GraphicsBackend.OpenGL);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
+        var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
+        var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
+        var customLayout = ParseCustomUniformLayout(pixelSource);
+
+        TemporaryLayoutArray? layoutArray = null;
+        try
+        {
+            var quadGeometry = GetOrCreateFullscreenQuadGeometry();
+            var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
+            layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            using var pipelineName = new PinnedUtf8($"{shaderName}:{shaderDefines}:fullscreen");
+            using var psoDesc = new PipelineStateDesc
+            {
+                Name = pipelineName.Pointer,
+                PipelineType = PipelineType.PipelineTypeGraphics,
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+            };
+            using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
+            {
+                PSODesc = psoDesc,
+                PVS = vertexShader,
+                PPS = pixelShader,
+                GraphicsPipelineNumRenderTargets = 1,
+                GraphicsPipelineNumViewports = 1,
+                GraphicsPipelinePrimitiveTopology = PrimitiveTopology.PrimitiveTopologyTriangleList,
+                GraphicsPipelineRasterizerDescCullMode = RedBolt.Bindings.Diligent.CullMode.CullModeNone,
+                GraphicsPipelineRasterizerDescFillMode = RedBolt.Bindings.Diligent.FillMode.FillModeSolid,
+                GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
+                GraphicsPipelineDepthStencilDescDepthEnable = false,
+                GraphicsPipelineDepthStencilDescDepthWriteEnable = false,
+                GraphicsPipelineDepthStencilDescDepthFunc = ComparisonFunction.ComparisonFuncAlways,
+                GraphicsPipelineInputLayoutLayoutElements = layoutArray.First,
+                GraphicsPipelineInputLayoutNumElements = (uint)layoutArray.Count
+            };
+
+            psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
+            psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
+
+            device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            if (pipelineState.IsNull)
+                throw new InvalidOperationException($"Failed to create fullscreen pipeline state for {shaderName}.");
+
+            var frameBuffer = CreateUniformBuffer(device, "Frame", FrameBufferSize);
+            var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
+            var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
+
+            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            if (shaderResources.IsNull)
+                throw new InvalidOperationException($"Failed to create fullscreen shader resources for {shaderName}.");
+
+            cached = new FullscreenPipelineResources(
+                pipelineState,
+                vertexShader,
+                pixelShader,
+                shaderResources,
+                BuildShaderVariableLookup(shaderResources),
+                frameBuffer,
+                cameraBuffer,
+                objectBuffer,
+                customBuffer,
+                customLayout,
+                layoutArray);
+            layoutArray = null;
+            fullscreenPipelines[key] = cached;
+            return cached;
+        }
+        finally
+        {
+            layoutArray?.Dispose();
+        }
+    }
+
+    private Geometry GetOrCreateFullscreenQuadGeometry()
+    {
+        if (fullscreenQuadGeometry is not null)
+            return fullscreenQuadGeometry;
+
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetSize(4, [new VertexElement(VertexElementType.Vector4, VertexElementSemantic.Position)]);
+        var vertexData = new float[]
+        {
+            -1.0f, -1.0f, 0.0f, 1.0f,
+            -1.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, -1.0f, 0.0f, 1.0f
+        };
+        var vertexBytes = new byte[vertexData.Length * sizeof(float)];
+        Buffer.BlockCopy(vertexData, 0, vertexBytes, 0, vertexBytes.Length);
+        vertexBuffer.SetData(vertexBytes);
+
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetSize(6, largeIndices: false);
+        indexBuffer.SetUnpackedData([0u, 1u, 2u, 0u, 2u, 3u]);
+
+        var geometry = new Geometry();
+        geometry.SetVertexBuffer(0, vertexBuffer);
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6, 0, 4);
+        fullscreenQuadGeometry = geometry;
+        return geometry;
+    }
+
+    private void UpdateFullscreenFrameBuffer(IBuffer buffer)
+    {
+        var time = Context.TryGetInstance()?.GetSubsystem<EngineTime>();
+        var data = new byte[FrameBufferSize];
+        WriteFloat(data, 0, time?.TimeStep ?? 0.0f);
+        WriteFloat(data, 4, (float)(time?.ElapsedTime ?? 0.0));
+        UpdateBuffer(buffer, data);
+    }
+
+    private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize)
+    {
+        var data = new byte[CameraBufferSize];
+        WriteMatrix4(data, 0, Matrix4.Identity);
+        WriteMatrix4(data, 64, Matrix4.Identity);
+        WriteMatrix4(data, 128, Matrix4.Identity);
+        WriteVector4(data, 192, Vector4.Zero);
+        WriteVector4(data, 208, Vector4.Zero);
+        WriteFloat(data, 224, 0.0f);
+        WriteFloat(data, 228, 1.0f);
+        WriteVector4(data, 240, new Vector4(0.0f, 0.0f, 0.5f, 0.5f));
+        WriteVector4(data, 256, Vector4.Zero);
+        WriteVector4(data, 272, clipToUvOffsetAndScale);
+        WriteVector4(data, 288, Vector4.Zero);
+        WriteVector2(data, 304, invInputSize);
+        WriteVector4(data, 320, DefaultAmbient);
+        WriteVector4(data, 336, Vector4.Zero);
+        WriteVector3(data, 352, new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
+        WriteFloat(data, 364, 0.0f);
+        UpdateBuffer(buffer, data);
+    }
+
+    private void UpdateFullscreenObjectBuffer(IBuffer buffer)
+    {
+        var data = new byte[ObjectBufferSize];
+        WriteMatrix4(data, 0, Matrix4.Identity);
+        WriteVector4(data, 64, DefaultAmbient);
+        UpdateBuffer(buffer, data);
+    }
+
+    private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, IReadOnlyDictionary<string, object?> parameters)
+    {
+        var data = new byte[layout.Size];
+        foreach (var field in layout.Fields)
+        {
+            if (!TryGetCustomParameterValue(field, parameters, out var value))
+                continue;
+
+            WriteCustomParameterValue(data, field, value);
+        }
+        UpdateBuffer(buffer, data);
+    }
+
+    private bool TryGetCustomParameterValue(CustomUniformField field, IReadOnlyDictionary<string, object?> parameters, out object? value)
+    {
+        if (parameters.TryGetValue(field.ParameterName, out value))
+            return true;
+        if (parameters.TryGetValue(field.UniformName, out value))
+            return true;
+        value = null;
+        return false;
+    }
+
+    private static void WriteCustomParameterValue(byte[] buffer, CustomUniformField field, object? value)
+    {
+        switch (field.Kind)
+        {
+            case CustomUniformKind.Float:
+                if (value is float floatValue)
+                    WriteFloat(buffer, field.Offset, floatValue);
+                else if (value is int intValue)
+                    WriteFloat(buffer, field.Offset, intValue);
+                else if (value is uint uintValue)
+                    WriteFloat(buffer, field.Offset, uintValue);
+                break;
+
+            case CustomUniformKind.Int:
+                if (value is int intParameter)
+                    Buffer.BlockCopy(BitConverter.GetBytes(intParameter), 0, buffer, field.Offset, sizeof(int));
+                else if (value is bool boolParameter)
+                    Buffer.BlockCopy(BitConverter.GetBytes(boolParameter ? 1 : 0), 0, buffer, field.Offset, sizeof(int));
+                break;
+
+            case CustomUniformKind.UInt:
+                if (value is uint uintParameter)
+                    Buffer.BlockCopy(BitConverter.GetBytes(uintParameter), 0, buffer, field.Offset, sizeof(uint));
+                else if (value is int signedParameter && signedParameter >= 0)
+                    Buffer.BlockCopy(BitConverter.GetBytes((uint)signedParameter), 0, buffer, field.Offset, sizeof(uint));
+                break;
+
+            case CustomUniformKind.Bool:
+                if (value is bool boolValue)
+                    Buffer.BlockCopy(BitConverter.GetBytes(boolValue ? 1 : 0), 0, buffer, field.Offset, sizeof(int));
+                break;
+
+            case CustomUniformKind.Vector2:
+                if (value is Vector2 vector2)
+                    WriteVector2(buffer, field.Offset, vector2);
+                break;
+
+            case CustomUniformKind.Vector3:
+                if (value is Vector3 vector3)
+                    WriteVector4(buffer, field.Offset, new Vector4(vector3, 0.0f));
+                break;
+
+            case CustomUniformKind.Vector4:
+                if (value is Vector4 vector4)
+                    WriteVector4(buffer, field.Offset, vector4);
+                break;
+
+            case CustomUniformKind.Matrix4:
+                if (value is Matrix4 matrix4)
+                    WriteMatrix4(buffer, field.Offset, matrix4);
+                break;
+        }
+    }
+
+    private static CustomUniformLayout ParseCustomUniformLayout(string preparedPixelSource)
+    {
+        var begin = preparedPixelSource.IndexOf("UNIFORM_BUFFER_BEGIN(6, Custom)", StringComparison.Ordinal);
+        if (begin < 0)
+            return new CustomUniformLayout(0, []);
+
+        var end = preparedPixelSource.IndexOf("UNIFORM_BUFFER_END(6, Custom)", begin, StringComparison.Ordinal);
+        if (end < 0)
+            return new CustomUniformLayout(0, []);
+
+        var block = preparedPixelSource[begin..end];
+        var fields = new List<CustomUniformField>();
+        var offset = 0;
+        foreach (Match match in CustomUniformFieldRegex.Matches(block))
+        {
+            if (!TryMapCustomUniformKind(match.Groups["type"].Value, out var kind))
+                continue;
+
+            var alignment = GetCustomUniformAlignment(kind);
+            offset = Align(offset, alignment);
+            var uniformName = match.Groups["name"].Value;
+            var parameterName = uniformName.Length > 1 && uniformName[0] == 'c' && char.IsUpper(uniformName[1])
+                ? uniformName[1..]
+                : uniformName;
+            fields.Add(new CustomUniformField(uniformName, parameterName, kind, offset));
+            offset += GetCustomUniformSize(kind);
+        }
+
+        return new CustomUniformLayout((uint)Align(offset, 16), fields.ToArray());
+    }
+
+    private static bool TryMapCustomUniformKind(string typeName, out CustomUniformKind kind)
+    {
+        kind = typeName switch
+        {
+            "float" or "half" => CustomUniformKind.Float,
+            "int" => CustomUniformKind.Int,
+            "uint" => CustomUniformKind.UInt,
+            "bool" => CustomUniformKind.Bool,
+            "vec2" or "half2" => CustomUniformKind.Vector2,
+            "vec3" or "half3" => CustomUniformKind.Vector3,
+            "vec4" or "half4" => CustomUniformKind.Vector4,
+            "mat4" => CustomUniformKind.Matrix4,
+            _ => CustomUniformKind.Float
+        };
+
+        return typeName is "float" or "half" or "int" or "uint" or "bool" or "vec2" or "half2" or "vec3" or "half3" or "vec4" or "half4" or "mat4";
+    }
+
+    private static int GetCustomUniformAlignment(CustomUniformKind kind) => kind switch
+    {
+        CustomUniformKind.Vector2 => 8,
+        CustomUniformKind.Vector3 or CustomUniformKind.Vector4 or CustomUniformKind.Matrix4 => 16,
+        _ => 4
+    };
+
+    private static int GetCustomUniformSize(CustomUniformKind kind) => kind switch
+    {
+        CustomUniformKind.Float or CustomUniformKind.Int or CustomUniformKind.UInt or CustomUniformKind.Bool => 4,
+        CustomUniformKind.Vector2 => 8,
+        CustomUniformKind.Vector3 or CustomUniformKind.Vector4 => 16,
+        CustomUniformKind.Matrix4 => 64,
+        _ => 4
+    };
+
+    private static int Align(int value, int alignment)
+    {
+        var mask = alignment - 1;
+        return (value + mask) & ~mask;
+    }
+
     private UploadedGeometry? GetOrCreateUploadedGeometry(Geometry geometry)
     {
         if (uploadedGeometries.TryGetValue(geometry, out var uploaded))
@@ -852,6 +1253,52 @@ layout(std140) uniform Material
         return uploaded.RenderTargetView
             ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a render-target view.");
     }
+
+    private global::RedBolt.Bindings.Diligent.TextureFormat ResolveColorTargetFormat(RenderTargetView view)
+    {
+        return view.Type switch
+        {
+            RenderTargetViewType.SwapChainColor => GetSwapChainColorFormat(),
+            RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => MapTextureFormat(view.GetFormat()),
+            _ => 0
+        };
+    }
+
+    private global::RedBolt.Bindings.Diligent.TextureFormat ResolveDepthTargetFormat(RenderTargetView view)
+    {
+        return view.Type switch
+        {
+            RenderTargetViewType.SwapChainDepthStencil => GetSwapChainDepthFormat(),
+            RenderTargetViewType.ReadOnlyResource or RenderTargetViewType.ReadOnlyResourceSlice or RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => MapTextureFormat(view.GetFormat()),
+            _ => 0
+        };
+    }
+
+    private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
+    {
+        if (swapChain is null)
+            return 0;
+
+        using var desc = swapChain.GetDesc();
+        return desc.ColorBufferFormat;
+    }
+
+    private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
+    {
+        if (swapChain is null)
+            return 0;
+
+        using var desc = swapChain.GetDesc();
+        return desc.DepthBufferFormat;
+    }
+
+    private static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format) => format switch
+    {
+        TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
+        TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+        TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+        _ => 0
+    };
 
     private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
     {
@@ -1207,6 +1654,26 @@ layout(std140) uniform Material
         BindTexture(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, name, textureView, logIfMissing: false);
     }
 
+    private static void BindTexture(FullscreenPipelineResources pipeline, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
+        string name, ITextureView? textureView, bool logIfMissing = true)
+    {
+        if (textureView is null)
+            return;
+
+        if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
+        {
+            variable.Set(textureView);
+        }
+        else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
+            Log.Logger.LogWarning("Shader binding diagnostics: fullscreen texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
+    }
+
+    private static void BindTextureToAvailableStages(FullscreenPipelineResources pipeline, string name, ITextureView textureView)
+    {
+        BindTexture(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, name, textureView, logIfMissing: false);
+        BindTexture(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, name, textureView, logIfMissing: false);
+    }
+
     private static void BindDynamicBuffer(PipelineResources pipeline,
         global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name, IBuffer buffer, nuint size)
     {
@@ -1216,6 +1683,17 @@ layout(std140) uniform Material
         }
         else if (ShaderBindingDiagnosticsEnabled)
             Log.Logger.LogWarning("Shader binding diagnostics: dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
+    }
+
+    private static void BindDynamicBuffer(FullscreenPipelineResources pipeline,
+        global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name, IBuffer buffer, nuint size)
+    {
+        if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
+        {
+            variable.SetBufferRange(buffer, 0, size);
+        }
+        else if (ShaderBindingDiagnosticsEnabled)
+            Log.Logger.LogWarning("Shader binding diagnostics: fullscreen dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -1595,7 +2073,27 @@ layout(std140) uniform Material
         string PixelDefines, string LayoutSignature, CullMode CullMode, FillMode FillMode,
         CompareMode DepthTestMode, bool DepthWrite, bool AlphaToCoverage, bool ReverseCulling);
 
+    private readonly record struct FullscreenPipelineKey(string ShaderName, string ShaderDefines,
+        bool BilinearColorSampler, global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
+        global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
+
     private readonly record struct PipelineVariableKey(global::RedBolt.Bindings.Diligent.ShaderType ShaderType, string Name);
+
+    private enum CustomUniformKind
+    {
+        Float,
+        Int,
+        UInt,
+        Bool,
+        Vector2,
+        Vector3,
+        Vector4,
+        Matrix4
+    }
+
+    private readonly record struct CustomUniformField(string UniformName, string ParameterName, CustomUniformKind Kind, int Offset);
+
+    private readonly record struct CustomUniformLayout(uint Size, IReadOnlyList<CustomUniformField> Fields);
 
     private sealed class PipelineResources : IDisposable
     {
@@ -1654,6 +2152,68 @@ layout(std140) uniform Material
             ReleaseIfNotNull(MaterialBuffer);
             ReleaseIfNotNull(ObjectBuffer);
             ReleaseIfNotNull(CameraBuffer);
+            ReleaseIfNotNull(PipelineState);
+            ReleaseIfNotNull(PixelShader);
+            ReleaseIfNotNull(VertexShader);
+        }
+    }
+
+    private sealed class FullscreenPipelineResources : IDisposable
+    {
+        public FullscreenPipelineResources(IPipelineState pipelineState, IShader vertexShader, IShader pixelShader,
+            IShaderResourceBinding shaderResources, Dictionary<PipelineVariableKey, IShaderResourceVariable> shaderVariables,
+            IBuffer frameBuffer, IBuffer cameraBuffer, IBuffer objectBuffer, IBuffer? customBuffer,
+            CustomUniformLayout customLayout, TemporaryLayoutArray layoutArray)
+        {
+            PipelineState = pipelineState;
+            VertexShader = vertexShader;
+            PixelShader = pixelShader;
+            ShaderResources = shaderResources;
+            ShaderVariables = shaderVariables;
+            FrameBuffer = frameBuffer;
+            CameraBuffer = cameraBuffer;
+            ObjectBuffer = objectBuffer;
+            CustomBuffer = customBuffer;
+            CustomLayout = customLayout;
+            LayoutArray = layoutArray;
+        }
+
+        public IPipelineState PipelineState { get; }
+
+        public IShader VertexShader { get; }
+
+        public IShader PixelShader { get; }
+
+        public IShaderResourceBinding ShaderResources { get; }
+
+        public Dictionary<PipelineVariableKey, IShaderResourceVariable> ShaderVariables { get; }
+
+        public IBuffer FrameBuffer { get; }
+
+        public IBuffer CameraBuffer { get; }
+
+        public IBuffer ObjectBuffer { get; }
+
+        public IBuffer? CustomBuffer { get; }
+
+        public CustomUniformLayout CustomLayout { get; }
+
+        public TemporaryLayoutArray LayoutArray { get; }
+
+        public bool TryGetShaderVariable(global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name,
+            out IShaderResourceVariable variable)
+        {
+            return ShaderVariables.TryGetValue(new PipelineVariableKey(shaderType, name), out variable!);
+        }
+
+        public void Dispose()
+        {
+            LayoutArray.Dispose();
+            ReleaseIfNotNull(CustomBuffer);
+            ReleaseIfNotNull(ObjectBuffer);
+            ReleaseIfNotNull(CameraBuffer);
+            ReleaseIfNotNull(FrameBuffer);
+            ReleaseIfNotNull(ShaderResources);
             ReleaseIfNotNull(PipelineState);
             ReleaseIfNotNull(PixelShader);
             ReleaseIfNotNull(VertexShader);

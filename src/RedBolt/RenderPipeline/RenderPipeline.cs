@@ -209,6 +209,7 @@ public class RenderPipeline : Component
 
             sharedState.RenderPipelineInterface = this;
             sharedState.RenderCamera = viewport.Camera;
+            sharedState.Graphics = graphics;
             sharedState.RenderBuffers.Clear();
             renderBufferManager.PopulateSharedState(sharedState);
 
@@ -239,10 +240,13 @@ public class RenderPipeline : Component
 
             RaiseRenderBegin(frameInfo);
 
+            sharedState.Graphics = graphics;
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(viewport, materialQuality, frameInfo.ViewportRect);
             renderPath?.Render(sharedState);
+
+            renderBufferManager.ResolveToViewport(graphics);
 
             graphics.PresentFrame(screenshotPath);
             graphics.UnbindRenderTargets();
