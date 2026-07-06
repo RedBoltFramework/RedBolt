@@ -290,7 +290,9 @@ public class RenderPipeline : Component
                 renderBufferManager.SetFrameSettings(new RenderBufferManagerFrameSettings
                 {
                     ReadableColor = traits.NeedBilinearColorSampler,
-                    SupportColorReadWrite = traits.NeedReadWriteColorBuffer
+                    SupportColorReadWrite = traits.NeedReadWriteColorBuffer,
+                    FilteredColor = traits.NeedBilinearColorSampler,
+                    ReadableDepth = traits.NeedReadableDepth
                 });
                 renderBufferManager.OnViewportDefined(frameInfo.RenderTarget, frameInfo.ViewportRect);
                 sharedState.RenderBuffers.Clear();

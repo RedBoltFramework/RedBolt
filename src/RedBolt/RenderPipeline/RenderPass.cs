@@ -2,7 +2,10 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public readonly record struct RenderPassTraits(bool NeedReadWriteColorBuffer, bool NeedBilinearColorSampler);
+public readonly record struct RenderPassTraits(
+    bool NeedReadWriteColorBuffer,
+    bool NeedBilinearColorSampler,
+    bool NeedReadableDepth = false);
 
 public abstract class RenderPass : Serializable
 {

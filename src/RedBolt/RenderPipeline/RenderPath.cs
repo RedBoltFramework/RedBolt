@@ -56,7 +56,8 @@ public sealed class RenderPath : Resource
             var passTraits = pass.GetTraits();
             traits = new RenderPassTraits(
                 traits.NeedReadWriteColorBuffer || passTraits.NeedReadWriteColorBuffer,
-                traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler);
+                traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler,
+                traits.NeedReadableDepth || passTraits.NeedReadableDepth);
         }
     }
 

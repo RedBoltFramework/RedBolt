@@ -144,6 +144,10 @@ public struct RenderBufferManagerFrameSettings
     public bool ReadableColor { get; set; }
 
     public bool SupportColorReadWrite { get; set; }
+
+    public bool FilteredColor { get; set; }
+
+    public bool ReadableDepth { get; set; }
 }
 
 [Flags]

@@ -539,7 +539,13 @@ public sealed class BloomPass : RenderPass
     private const string MaxBrightnessName = "Bloom: Max Brightness";
     private const string IntensityName = "Bloom: Base Intensity";
     private const string IterationFactorName = "Bloom: Iteration Intensity Factor";
+    private static readonly Vector3 LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
+    private static readonly Vector3 GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
+    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
+    private readonly List<TextureCache> textures = [];
+    private readonly List<float> intensityMultipliers = [];
     private Parameters currentParameters = new();
+    private bool isHdr;
 
     public BloomPass(string? passName = null)
         : base(passName)
@@ -576,8 +582,70 @@ public sealed class BloomPass : RenderPass
         if (RenderPathParameterHelpers.TryGetFloat(IterationFactorName, parameters, out var iterationFactor))
             updated.IterationFactor = iterationFactor;
 
+        if (currentParameters.NumIterations != updated.NumIterations)
+            InvalidateTextureCache();
+
         currentParameters = updated;
         SetInternallyEnabled(true);
+    }
+
+    public override void Update(SharedRenderPassState sharedState)
+    {
+        base.Update(sharedState);
+
+        var nextHdr = sharedState.RenderBufferManager?.IsHDR() ?? false;
+        if (isHdr != nextHdr)
+        {
+            isHdr = nextHdr;
+            InvalidateTextureCache();
+        }
+
+        RestoreTextureCache(sharedState);
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+            return;
+
+        RestoreTextureCache(sharedState);
+        if (textures.Count == 0)
+            return;
+
+        var luminanceWeights = renderBufferManager.IsLinearColorSpace() ? LinearLuminanceWeights : GammaLuminanceWeights;
+
+        renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+
+        var numIterations = GatherBrightRegions(renderBufferManager, graphics, textures[0].Final, luminanceWeights);
+        for (var i = 0u; i < numIterations; ++i)
+        {
+            if (i > 0)
+                CopyTexture(renderBufferManager, graphics, textures[(int)i - 1].Final, textures[(int)i].Final);
+
+            BlurTexture(renderBufferManager, graphics, textures[(int)i].Final, textures[(int)i].Temporary, luminanceWeights);
+        }
+
+        intensityMultipliers.Clear();
+        var totalIntensity = 0.0f;
+        for (var i = 0u; i < numIterations; ++i)
+        {
+            var intensity = MathF.Pow(currentParameters.IterationFactor, i);
+            intensityMultipliers.Add(intensity);
+            totalIntensity += intensity;
+        }
+
+        if (totalIntensity <= MathDefs.Epsilon)
+            totalIntensity = 1.0f;
+
+        renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        for (var i = 0; i < intensityMultipliers.Count; ++i)
+        {
+            var normalizedIntensity = intensityMultipliers[i] * currentParameters.Intensity / totalIntensity;
+            ApplyBloom(renderBufferManager, graphics, textures[i].Final, normalizedIntensity);
+        }
     }
 
     public override RenderPass Clone()
@@ -603,6 +671,167 @@ public sealed class BloomPass : RenderPass
         {
         }
     }
+
+    private sealed class TextureCache
+    {
+        public required TextureRenderBuffer Final { get; init; }
+        public required TextureRenderBuffer Temporary { get; init; }
+    }
+
+    private struct BloomParameters
+    {
+        [ShaderParameterName("LuminanceWeights")]
+        public Vector3 LuminanceWeights;
+
+        [ShaderParameterName("Intensity")]
+        public float Intensity;
+
+        [ShaderParameterName("InputInvSize")]
+        public Vector2 InputInvSize;
+
+        [ShaderParameterName("Threshold")]
+        public Vector2 Threshold;
+    }
+
+    private void InvalidateTextureCache()
+    {
+        textures.Clear();
+    }
+
+    private void RestoreTextureCache(SharedRenderPassState sharedState)
+    {
+        if (textures.Count > 0 || sharedState.RenderBufferManager is not { } renderBufferManager)
+            return;
+
+        for (var i = 0u; i < currentParameters.NumIterations; ++i)
+        {
+            var format = isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
+            var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
+            var sizeMultiplier = Vector2.One / (1u << (int)i);
+            textures.Add(new TextureCache
+            {
+                Final = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
+                Temporary = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier)
+            });
+        }
+    }
+
+    private uint GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3 luminanceWeights)
+    {
+        var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
+        if (viewportTexture is null)
+            return 0;
+
+        var minDimension = Math.Min(viewportTexture.Width, viewportTexture.Height);
+        if (minDimension <= 0)
+            return 0;
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(CreateBloomParameters(
+            luminanceWeights,
+            intensity: 0.0f,
+            new Vector2(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height)),
+            shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, destination);
+        graphics.DrawFullscreenQuad(
+            "Gather bright regions",
+            "v2/P_Bloom",
+            "BRIGHT",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            viewportTexture,
+            secondaryTexture: null,
+            depthTexture: null,
+            shaderParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+
+        var numIterations = 0u;
+        while (minDimension > 1 && numIterations < currentParameters.NumIterations)
+        {
+            minDimension >>= 1;
+            ++numIterations;
+        }
+
+        return Math.Clamp(numIterations, 1u, currentParameters.NumIterations);
+    }
+
+    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
+        TextureRenderBuffer temporary, Vector3 luminanceWeights)
+    {
+        var texture = final.Texture;
+        var invInputSize = new Vector2(
+            texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
+            texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize), shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, temporary);
+        graphics.DrawFullscreenQuad(
+            "Blur vertically",
+            "v2/P_Bloom",
+            "BLURH",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            texture,
+            secondaryTexture: null,
+            depthTexture: null,
+            shaderParameters,
+            invInputSize,
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+
+        renderBufferManager.SetRenderTargets(graphics, final);
+        graphics.DrawFullscreenQuad(
+            "Blur horizontally",
+            "v2/P_Bloom",
+            "BLURV",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            temporary.Texture,
+            secondaryTexture: null,
+            depthTexture: null,
+            shaderParameters,
+            invInputSize,
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+    }
+
+    private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source, TextureRenderBuffer destination)
+    {
+        renderBufferManager.SetRenderTargets(graphics, destination);
+        renderBufferManager.DrawTexture(graphics, "Downscale bloom", source.Texture);
+    }
+
+    private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
+    {
+        shaderParameters.Clear();
+        StructShaderParameters.Write(CreateBloomParameters(Vector3.Zero, intensity, renderBufferManager.GetInvOutputSize()), shaderParameters);
+        graphics.DrawFullscreenQuad(
+            "Apply bloom",
+            "v2/P_Bloom",
+            "COMBINE",
+            BlendMode.Add,
+            bilinearColorSampler: true,
+            bloom.Texture,
+            secondaryTexture: null,
+            depthTexture: null,
+            shaderParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+    }
+
+    private BloomParameters CreateBloomParameters(Vector3 luminanceWeights, float intensity, Vector2 inputInvSize)
+    {
+        var thresholdGap = Math.Max(0.01f, currentParameters.MaxBrightness - currentParameters.MinBrightness);
+        return new BloomParameters
+        {
+            LuminanceWeights = luminanceWeights,
+            Intensity = intensity,
+            InputInvSize = inputInvSize,
+            Threshold = new Vector2(currentParameters.MinBrightness, 1.0f / thresholdGap)
+        };
+    }
 }
 
 /// <summary>
@@ -622,12 +851,22 @@ public sealed class AmbientOcclusionPass : RenderPass
     private const string FadeDistanceEndName = "SSAO: End Fade Distance";
     private const string BlurDepthThresholdName = "SSAO: Depth Threshold";
     private const string BlurNormalThresholdName = "SSAO: Normal Threshold";
+    private static readonly Matrix4 FlipMatrix = new(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, -1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f);
+    private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
+    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
+    private RenderBuffer? normalBuffer;
+    private TextureCache? textures;
     private Parameters currentParameters = new();
 
     public AmbientOcclusionPass(string? passName = null)
         : base(passName)
     {
         SetComment(DefaultComment);
+        SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: false, NeedBilinearColorSampler: false, NeedReadableDepth: true));
     }
 
     public override void CollectParameters(IDictionary<string, object?> parameters)
@@ -651,12 +890,6 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(parameters);
-
-        if (!settings.RenderBufferManager.ReadableDepth)
-        {
-            SetInternallyEnabled(false);
-            return;
-        }
 
         var updated = new Parameters();
         if (RenderPathParameterHelpers.TryGetUInt(DownscaleName, parameters, out var downscale))
@@ -682,8 +915,51 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (RenderPathParameterHelpers.TryGetFloat(BlurNormalThresholdName, parameters, out var blurNormalThreshold))
             updated.BlurNormalThreshold = blurNormalThreshold;
 
+        if (currentParameters.Downscale != updated.Downscale)
+            InvalidateTextureCache();
+
         currentParameters = updated;
         SetInternallyEnabled(true);
+    }
+
+    public override void Update(SharedRenderPassState sharedState)
+    {
+        base.Update(sharedState);
+        RestoreTextureCache(sharedState);
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        ConnectToRenderBuffer(ref normalBuffer, SharedRenderPassState.NormalBufferId, sharedState, required: false);
+
+        if (sharedState.RenderBufferManager is not { } renderBufferManager
+            || sharedState.Graphics is not { } graphics
+            || sharedState.RenderCamera is not { } camera
+            || currentParameters.Strength <= 0.0f)
+        {
+            return;
+        }
+
+        RestoreTextureCache(sharedState);
+        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+            return;
+
+        var depthTexture = renderBufferManager.GetDepthStencilTexture();
+        if (depthTexture is null)
+            return;
+
+        var clipToTextureSpace = Matrix4.Identity;
+        clipToTextureSpace.Scale = new Vector3(0.5f, 0.5f, 1.0f);
+        clipToTextureSpace.Translation = new Vector3(0.5f, 0.5f, 0.0f);
+
+        var viewToTextureSpace = clipToTextureSpace * camera.GetGPUProjection();
+        var textureToViewSpace = viewToTextureSpace.Inverted;
+
+        EvaluateAO(renderBufferManager, graphics, camera, depthTexture, viewToTextureSpace, textureToViewSpace);
+        BlurTexture(renderBufferManager, graphics, depthTexture, textureToViewSpace);
+        Blit(renderBufferManager, graphics);
     }
 
     public override RenderPass Clone()
@@ -715,6 +991,188 @@ public sealed class AmbientOcclusionPass : RenderPass
         {
         }
     }
+
+    private sealed class TextureCache
+    {
+        public Texture2D? Noise { get; init; }
+
+        public required TextureRenderBuffer CurrentTarget { get; set; }
+
+        public required TextureRenderBuffer PreviousTarget { get; set; }
+    }
+
+    private struct AmbientOcclusionParameters
+    {
+        [ShaderParameterName("InputInvSize")]
+        public Vector2 InputInvSize;
+
+        [ShaderParameterName("BlurStep")]
+        public Vector2 BlurStep;
+
+        [ShaderParameterName("Strength")]
+        public float Strength;
+
+        [ShaderParameterName("Exponent")]
+        public float Exponent;
+
+        [ShaderParameterName("RadiusInfo")]
+        public Vector4 RadiusInfo;
+
+        [ShaderParameterName("FadeDistance")]
+        public Vector2 FadeDistance;
+
+        [ShaderParameterName("ViewToTexture")]
+        public Matrix4 ViewToTexture;
+
+        [ShaderParameterName("TextureToView")]
+        public Matrix4 TextureToView;
+
+        [ShaderParameterName("WorldToView")]
+        public Matrix4 WorldToView;
+
+        [ShaderParameterName("BlurZThreshold")]
+        public float BlurZThreshold;
+
+        [ShaderParameterName("BlurNormalInvThreshold")]
+        public float BlurNormalInvThreshold;
+    }
+
+    private void InvalidateTextureCache()
+    {
+        textures = null;
+    }
+
+    private void RestoreTextureCache(SharedRenderPassState sharedState)
+    {
+        if (textures is not null || sharedState.RenderBufferManager is not { } renderBufferManager)
+            return;
+
+        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var sizeMultiplier = Vector2.One / (1u << (int)currentParameters.Downscale);
+        var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
+        textures = new TextureCache
+        {
+            Noise = resourceCache?.GetResourceOrNull<Texture2D>("Textures/SSAONoise.png"),
+            CurrentTarget = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
+            PreviousTarget = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier)
+        };
+    }
+
+    private void EvaluateAO(RenderBufferManager renderBufferManager, Graphics graphics, Camera camera, Texture depthTexture,
+        Matrix4 viewToTextureSpace, Matrix4 textureToViewSpace)
+    {
+        if (textures?.CurrentTarget is null)
+            return;
+
+        var inputInvSize = renderBufferManager.GetInvOutputSize();
+        var worldToViewSpace = camera.GetView().Matrix4;
+        var worldToViewSpaceCorrected = camera.GetFlipVertical() ? FlipMatrix * worldToViewSpace : worldToViewSpace;
+
+        var radiusSlope = (currentParameters.RadiusFar - currentParameters.RadiusNear)
+            / Math.Max(1.0f, currentParameters.DistanceFar - currentParameters.DistanceNear);
+        var radiusInfo = new Vector4(
+            radiusSlope,
+            currentParameters.RadiusNear - radiusSlope * currentParameters.DistanceNear,
+            currentParameters.RadiusNear,
+            currentParameters.RadiusFar);
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(new AmbientOcclusionParameters
+        {
+            InputInvSize = inputInvSize,
+            BlurStep = inputInvSize,
+            Strength = currentParameters.Strength,
+            Exponent = currentParameters.Exponent,
+            RadiusInfo = radiusInfo,
+            FadeDistance = new Vector2(currentParameters.FadeDistanceBegin, currentParameters.FadeDistanceEnd),
+            ViewToTexture = viewToTextureSpace,
+            TextureToView = textureToViewSpace,
+            WorldToView = worldToViewSpaceCorrected
+        }, shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
+        graphics.DrawFullscreenQuad(
+            "Apply SSAO",
+            "v2/P_SSAO",
+            normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            textures.Noise,
+            secondaryTexture: normalBuffer?.GetTexture(),
+            depthTexture: depthTexture,
+            shaderParameters,
+            inputInvSize,
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+
+        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+    }
+
+    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture, Matrix4 textureToViewSpace)
+    {
+        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+            return;
+
+        var textureSize = new IntVector2(textures.CurrentTarget.Texture.Width, textures.CurrentTarget.Texture.Height);
+        var blurStep = new Vector2(
+            textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
+            textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
+
+        var shaderDefines = normalBuffer is not null ? "BLUR DEFERRED" : "BLUR";
+        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(blurStep.X, 0.0f), shaderDefines, "SSAO Blur Horizontally");
+        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
+    }
+
+    private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture,
+        Matrix4 textureToViewSpace, Vector2 blurStep, string shaderDefines, string debugComment)
+    {
+        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+            return;
+
+        shaderParameters.Clear();
+        StructShaderParameters.Write(new AmbientOcclusionParameters
+        {
+            BlurStep = blurStep,
+            BlurZThreshold = currentParameters.BlurDepthThreshold,
+            BlurNormalInvThreshold = 1.0f - currentParameters.BlurNormalThreshold,
+            TextureToView = textureToViewSpace
+        }, shaderParameters);
+
+        renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
+        graphics.DrawFullscreenQuad(
+            debugComment,
+            "v2/P_SSAO",
+            shaderDefines,
+            BlendMode.Replace,
+            bilinearColorSampler: true,
+            textures.PreviousTarget.Texture,
+            secondaryTexture: normalBuffer?.GetTexture(),
+            depthTexture: depthTexture,
+            shaderParameters,
+            blurStep,
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+
+        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+    }
+
+    private void Blit(RenderBufferManager renderBufferManager, Graphics graphics)
+    {
+        if (textures?.PreviousTarget is null)
+            return;
+
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        graphics.DrawFullscreenQuad(
+            "SSAO Combine",
+            "v2/P_SSAO",
+            "COMBINE",
+            BlendMode.Alpha,
+            bilinearColorSampler: true,
+            textures.PreviousTarget.Texture,
+            secondaryTexture: null,
+            depthTexture: null,
+            EmptyParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+    }
 }
 
 /// <summary>
@@ -723,11 +1181,47 @@ public sealed class AmbientOcclusionPass : RenderPass
 public sealed class OutlineRenderPass : RenderPass
 {
     private const string DefaultComment = "Draw outline of the contents of the color buffer";
+    public static readonly StringHash ColorBufferId = "outline";
+    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
+    private RenderBuffer? colorBuffer;
 
     public OutlineRenderPass(string? passName = null)
         : base(passName)
     {
         SetComment(DefaultComment);
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        base.Render(sharedState);
+
+        ConnectToRenderBuffer(ref colorBuffer, ColorBufferId, sharedState, required: false);
+
+        if (colorBuffer?.GetTexture() is not Texture texture
+            || sharedState.RenderBufferManager is not { } renderBufferManager
+            || sharedState.Graphics is not { } graphics)
+        {
+            return;
+        }
+
+        shaderParameters.Clear();
+        shaderParameters["InputInvSize"] = new Vector2(
+            texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
+            texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
+
+        renderBufferManager.SetOutputRenderTargets(graphics);
+        graphics.DrawFullscreenQuad(
+            "Apply outline",
+            "v2/P_Outline",
+            renderBufferManager.IsLinearColorSpace() ? "URHO3D_GAMMA_CORRECTION" : string.Empty,
+            BlendMode.Alpha,
+            bilinearColorSampler: true,
+            texture,
+            secondaryTexture: null,
+            depthTexture: null,
+            shaderParameters,
+            renderBufferManager.GetInvOutputSize(),
+            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
 
     public override RenderPass Clone()

@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Reflection;
+
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -217,6 +220,21 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_buffer_manager_allocates_readable_depth_buffer_from_frame_traits()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            ReadableDepth = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        Assert.NotNull(manager.GetDepthStencilTexture());
+        Assert.Equal(TextureFormat.Depth24Stencil8, manager.GetDepthStencilTexture()!.Format);
+    }
+
+    [Fact]
     public void Render_buffer_manager_derives_output_traits_from_render_target_texture()
     {
         var manager = new RenderBufferManager();
@@ -246,6 +264,39 @@ public sealed class RenderPipelineTests
         Assert.NotNull(secondaryColorTexture);
         Assert.Equal(TextureFormat.RGBA16F, colorTexture!.Format);
         Assert.Equal(TextureFormat.RGBA16F, secondaryColorTexture!.Format);
+    }
+
+    [Fact]
+    public void Bloom_pass_allocates_scaled_intermediate_buffers()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings());
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
+
+        var bloom = new BloomPass("Bloom");
+        bloom.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?>());
+
+        var sharedState = new SharedRenderPassState
+        {
+            RenderBufferManager = manager
+        };
+        bloom.Update(sharedState);
+
+        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "textures"));
+        var caches = textures.Cast<object>().ToArray();
+        Assert.Equal(5, caches.Length);
+
+        var first = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[0], "Final"));
+        var second = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[1], "Final"));
+        var third = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[2], "Final"));
+
+        Assert.Equal((128, 64), (first.Texture.Width, first.Texture.Height));
+        Assert.Equal((64, 32), (second.Texture.Width, second.Texture.Height));
+        Assert.Equal((32, 16), (third.Texture.Width, third.Texture.Height));
     }
 
     [Fact]
@@ -358,6 +409,22 @@ public sealed class RenderPipelineTests
         }
 
         public override RenderPass Clone() => new ParameterRenderPass(parameterName, value);
+    }
+
+    private static object GetPrivateField(object instance, string name)
+    {
+        var field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Field '{name}' was not found on '{instance.GetType().Name}'.");
+        return field.GetValue(instance)
+            ?? throw new InvalidOperationException($"Field '{name}' on '{instance.GetType().Name}' was null.");
+    }
+
+    private static object GetPublicProperty(object instance, string name)
+    {
+        var property = instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException($"Property '{name}' was not found on '{instance.GetType().Name}'.");
+        return property.GetValue(instance)
+            ?? throw new InvalidOperationException($"Property '{name}' on '{instance.GetType().Name}' was null.");
     }
 
     private sealed class TrackingRenderPass : RenderPass

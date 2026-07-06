@@ -75,6 +75,17 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Render_path_aggregates_readable_depth_trait_from_ssao()
+    {
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new AmbientOcclusionPass("SSAO"));
+
+        renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), new Dictionary<string, object?>());
+
+        Assert.True(renderPath.GetAggregatedPassTraits().NeedReadableDepth);
+    }
+
+    [Fact]
     public void Render_path_xml_loads_through_resource_cache()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPathTests", Guid.NewGuid().ToString("N"));
@@ -204,6 +215,7 @@ public sealed class RenderPathTests
             Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadableDepth);
         }
         finally
         {

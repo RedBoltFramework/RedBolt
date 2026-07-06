@@ -72,6 +72,7 @@ public sealed class RenderBufferManager
     {
         this.frameSettings = frameSettings;
         this.frameSettings.ReadableColor |= this.frameSettings.SupportColorReadWrite;
+        this.frameSettings.FilteredColor |= this.frameSettings.ReadableColor;
     }
 
     public void OnViewportDefined(object? renderTarget, IntRect viewportRect)
@@ -82,7 +83,7 @@ public sealed class RenderBufferManager
 
         ResolveOutputParams(renderTarget);
 
-        var needReadableDepth = settings.ReadableDepth;
+        var needReadableDepth = settings.ReadableDepth || frameSettings.ReadableDepth;
         if (frameSettings.SupportColorReadWrite)
         {
             depthStencilBuffer = EnsureDepthBuffer();
@@ -440,7 +441,9 @@ public sealed class RenderBufferManager
 
     private void ResolveOutputParams(object? renderTarget)
     {
-        var fallbackFlags = settings.FilteredColor ? RenderBufferFlag.BilinearFiltering : RenderBufferFlag.None;
+        var fallbackFlags = settings.FilteredColor || frameSettings.FilteredColor
+            ? RenderBufferFlag.BilinearFiltering
+            : RenderBufferFlag.None;
         var fallbackMultiSample = settings.InheritMultiSampleLevel ? 1 : settings.MultiSampleLevel;
         colorOutputParams = new RenderBufferParams(GetColorTextureFormat(settings.ColorSpace), fallbackMultiSample, fallbackFlags);
         depthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample);
