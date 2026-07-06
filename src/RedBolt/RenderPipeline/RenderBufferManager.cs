@@ -5,6 +5,15 @@ public sealed class RenderBufferManager
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private readonly List<WeakReference<TextureRenderBuffer>> managedTextureBuffers = [];
 
+    private readonly struct ClearFramebufferParameters
+    {
+        [ShaderParameterName("Color")]
+        public Vector4 Color { get; init; }
+
+        [ShaderParameterName("Depth")]
+        public float Depth { get; init; }
+    }
+
     private sealed class ViewportOutputRenderBuffer : RenderBuffer
     {
         private RenderTargetView? targetView;
@@ -405,10 +414,10 @@ public sealed class RenderBufferManager
             return;
         }
 
-        var clearParameters = new Dictionary<string, object?>(StringComparer.Ordinal)
+        var clearParameters = new ClearFramebufferParameters
         {
-            ["Color"] = new Vector4(color.R, color.G, color.B, color.A),
-            ["Depth"] = GetFullscreenQuadClearDepth(depth)
+            Color = new Vector4(color.R, color.G, color.B, color.A),
+            Depth = GetFullscreenQuadClearDepth(depth)
         };
         graphics.DrawClearFramebufferQuad(
             "Clear output subregion",

@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using RedBolt.Bindings.Diligent;
@@ -516,11 +518,61 @@ layout(std140) uniform Material
             flipVertical);
     }
 
+    internal void DrawFullscreenQuad<TParameters>(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
+        bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+        in TParameters parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical = false)
+        where TParameters : struct
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
+
+        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+            return;
+
+        var pipeline = GetOrCreateFullscreenPipeline(shaderName, shaderDefines, blendMode, bilinearColorSampler);
+        if (pipeline is null)
+            return;
+
+        DrawFullscreenQuad(
+            pipeline,
+            albedoTexture,
+            secondaryTexture,
+            depthTexture,
+            parameters,
+            invInputSize,
+            clipToUvOffsetAndScale,
+            flipVertical);
+    }
+
     internal void DrawClearFramebufferQuad(string debugComment, ClearTarget flags, IReadOnlyDictionary<string, object?> parameters,
         Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
+        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+            return;
+
+        var pipeline = GetOrCreateClearFramebufferPipeline(flags);
+        if (pipeline is null)
+            return;
+
+        if (flags.HasFlag(ClearTarget.Stencil))
+            immediateContext.SetStencilRef(stencil);
+
+        DrawFullscreenQuad(
+            pipeline,
+            albedoTexture: null,
+            secondaryTexture: null,
+            depthTexture: null,
+            parameters,
+            invInputSize,
+            clipToUvOffsetAndScale,
+            flipVertical: false);
+    }
+
+    internal void DrawClearFramebufferQuad<TParameters>(string debugComment, ClearTarget flags, in TParameters parameters,
+        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
+        where TParameters : struct
+    {
         if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
             return;
 
@@ -950,7 +1002,7 @@ layout(std140) uniform Material
         UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4, drawableAmbient);
         UpdateMaterialBuffer(pipeline.MaterialBuffer, material);
         if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
-            UpdateMaterialCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, material);
+            UpdateMaterialCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, material);
         UpdateLightBuffer(pipeline.LightBuffer, light);
         UpdateZoneBuffer(pipeline.ZoneBuffer, drawableZone);
 
@@ -1370,7 +1422,34 @@ layout(std140) uniform Material
         UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
         UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
         if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
-            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, parameters);
+            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, parameters);
+        DrawFullscreenQuadCore(pipeline, uploadedGeometry, albedoTexture, secondaryTexture, depthTexture);
+    }
+
+    private void DrawFullscreenQuad<TParameters>(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture,
+        Texture? depthTexture, in TParameters parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical)
+        where TParameters : struct
+    {
+        if (immediateContext is null)
+            return;
+
+        var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
+        if (uploadedGeometry is null)
+            return;
+
+        UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
+        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
+        UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
+        if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
+            UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, parameters);
+        DrawFullscreenQuadCore(pipeline, uploadedGeometry, albedoTexture, secondaryTexture, depthTexture);
+    }
+
+    private void DrawFullscreenQuadCore(FullscreenPipelineResources pipeline, UploadedGeometry uploadedGeometry,
+        Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture)
+    {
+        if (immediateContext is null)
+            return;
 
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Frame", pipeline.FrameBuffer, FrameBufferSize);
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Frame", pipeline.FrameBuffer, FrameBufferSize);
@@ -1404,9 +1483,10 @@ layout(std140) uniform Material
         immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
     }
 
-    private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, IReadOnlyDictionary<string, object?> parameters)
+    private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, byte[]? scratch,
+        IReadOnlyDictionary<string, object?> parameters)
     {
-        var data = new byte[layout.Size];
+        var data = GetCustomParameterScratchBuffer(layout, scratch);
         foreach (var field in layout.Fields)
         {
             if (!TryGetCustomParameterValue(field, parameters, out var value))
@@ -1417,9 +1497,17 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
-    private void UpdateMaterialCustomBuffer(IBuffer buffer, CustomUniformLayout layout, Material material)
+    private void UpdateFullscreenCustomBuffer<TParameters>(IBuffer buffer, CustomUniformLayout layout, byte[]? scratch, in TParameters parameters)
+        where TParameters : struct
     {
-        var data = new byte[layout.Size];
+        var data = GetCustomParameterScratchBuffer(layout, scratch);
+        StructCustomUniformWriter<TParameters>.Write(data, layout, parameters);
+        UpdateBuffer(buffer, data);
+    }
+
+    private void UpdateMaterialCustomBuffer(IBuffer buffer, CustomUniformLayout layout, byte[]? scratch, Material material)
+    {
+        var data = GetCustomParameterScratchBuffer(layout, scratch);
         var parameters = material.GetShaderParameters();
         foreach (var field in layout.Fields)
         {
@@ -1429,6 +1517,165 @@ layout(std140) uniform Material
             WriteCustomParameterValue(data, field, value);
         }
         UpdateBuffer(buffer, data);
+    }
+
+    private static byte[] GetCustomParameterScratchBuffer(CustomUniformLayout layout, byte[]? scratch)
+    {
+        var size = checked((int)layout.Size);
+        if (size == 0)
+            return Array.Empty<byte>();
+
+        if (scratch is null || scratch.Length != size)
+            return new byte[size];
+
+        scratch.AsSpan().Clear();
+        return scratch;
+    }
+
+    private static class StructCustomUniformWriter<T>
+        where T : struct
+    {
+        private delegate void StructFieldWriter(byte[] buffer, CustomUniformField field, T value);
+
+        private static readonly Dictionary<string, StructFieldWriter> Writers = CreateWriters();
+
+        public static void Write(byte[] buffer, CustomUniformLayout layout, in T value)
+        {
+            foreach (var field in layout.Fields)
+            {
+                if (Writers.TryGetValue(field.ParameterName, out var writer) || Writers.TryGetValue(field.UniformName, out writer))
+                    writer(buffer, field, value);
+            }
+        }
+
+        private static Dictionary<string, StructFieldWriter> CreateWriters()
+        {
+            var writers = new Dictionary<string, StructFieldWriter>(StringComparer.Ordinal);
+            var parameter = Expression.Parameter(typeof(T), "value");
+
+            foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public))
+            {
+                var name = field.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? field.Name;
+                writers[name] = CreateWriter(Expression.Field(parameter, field), field.FieldType, parameter);
+            }
+
+            foreach (var property in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (!property.CanRead || property.GetMethod is null || property.GetIndexParameters().Length > 0)
+                    continue;
+
+                var name = property.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? property.Name;
+                writers[name] = CreateWriter(Expression.Property(parameter, property), property.PropertyType, parameter);
+            }
+
+            return writers;
+        }
+
+        private static StructFieldWriter CreateWriter(Expression access, Type type, ParameterExpression parameter)
+        {
+            if (type == typeof(float))
+            {
+                var getter = Expression.Lambda<Func<T, float>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind == CustomUniformKind.Float)
+                        WriteFloat(buffer, field.Offset, getter(value));
+                };
+            }
+
+            if (type == typeof(int))
+            {
+                var getter = Expression.Lambda<Func<T, int>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    var fieldValue = getter(value);
+                    switch (field.Kind)
+                    {
+                        case CustomUniformKind.Float:
+                            WriteFloat(buffer, field.Offset, fieldValue);
+                            break;
+                        case CustomUniformKind.Int:
+                            Buffer.BlockCopy(BitConverter.GetBytes(fieldValue), 0, buffer, field.Offset, sizeof(int));
+                            break;
+                        case CustomUniformKind.UInt when fieldValue >= 0:
+                            Buffer.BlockCopy(BitConverter.GetBytes((uint)fieldValue), 0, buffer, field.Offset, sizeof(uint));
+                            break;
+                    }
+                };
+            }
+
+            if (type == typeof(uint))
+            {
+                var getter = Expression.Lambda<Func<T, uint>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    var fieldValue = getter(value);
+                    switch (field.Kind)
+                    {
+                        case CustomUniformKind.Float:
+                            WriteFloat(buffer, field.Offset, fieldValue);
+                            break;
+                        case CustomUniformKind.UInt:
+                            Buffer.BlockCopy(BitConverter.GetBytes(fieldValue), 0, buffer, field.Offset, sizeof(uint));
+                            break;
+                    }
+                };
+            }
+
+            if (type == typeof(bool))
+            {
+                var getter = Expression.Lambda<Func<T, bool>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind is not (CustomUniformKind.Bool or CustomUniformKind.Int))
+                        return;
+
+                    Buffer.BlockCopy(BitConverter.GetBytes(getter(value) ? 1 : 0), 0, buffer, field.Offset, sizeof(int));
+                };
+            }
+
+            if (type == typeof(Vector2))
+            {
+                var getter = Expression.Lambda<Func<T, Vector2>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind == CustomUniformKind.Vector2)
+                        WriteVector2(buffer, field.Offset, getter(value));
+                };
+            }
+
+            if (type == typeof(Vector3))
+            {
+                var getter = Expression.Lambda<Func<T, Vector3>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind == CustomUniformKind.Vector3)
+                        WriteVector4(buffer, field.Offset, new Vector4(getter(value), 0.0f));
+                };
+            }
+
+            if (type == typeof(Vector4))
+            {
+                var getter = Expression.Lambda<Func<T, Vector4>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind == CustomUniformKind.Vector4)
+                        WriteVector4(buffer, field.Offset, getter(value));
+                };
+            }
+
+            if (type == typeof(Matrix4))
+            {
+                var getter = Expression.Lambda<Func<T, Matrix4>>(access, parameter).Compile();
+                return (buffer, field, value) =>
+                {
+                    if (field.Kind == CustomUniformKind.Matrix4)
+                        WriteMatrix4(buffer, field.Offset, getter(value));
+                };
+            }
+
+            return static (_, _, _) => { };
+        }
     }
 
     private bool TryGetCustomParameterValue(CustomUniformField field, IReadOnlyDictionary<string, object?> parameters, out object? value)
@@ -2865,6 +3112,7 @@ layout(std140) uniform Material
             MaterialBuffer = materialBuffer;
             CustomBuffer = customBuffer;
             CustomLayout = customLayout;
+            CustomParameterScratch = customLayout.Size > 0u ? new byte[checked((int)customLayout.Size)] : null;
             LightBuffer = lightBuffer;
             ZoneBuffer = zoneBuffer;
             ShaderResources = shaderResources;
@@ -2887,6 +3135,8 @@ layout(std140) uniform Material
         public IBuffer? CustomBuffer { get; }
 
         public CustomUniformLayout CustomLayout { get; }
+
+        public byte[]? CustomParameterScratch { get; }
 
         public IBuffer LightBuffer { get; }
 
@@ -2937,6 +3187,7 @@ layout(std140) uniform Material
             ObjectBuffer = objectBuffer;
             CustomBuffer = customBuffer;
             CustomLayout = customLayout;
+            CustomParameterScratch = customLayout.Size > 0u ? new byte[checked((int)customLayout.Size)] : null;
             LayoutArray = layoutArray;
         }
 
@@ -2959,6 +3210,8 @@ layout(std140) uniform Material
         public IBuffer? CustomBuffer { get; }
 
         public CustomUniformLayout CustomLayout { get; }
+
+        public byte[]? CustomParameterScratch { get; }
 
         public TemporaryLayoutArray LayoutArray { get; }
 

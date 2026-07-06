@@ -1,6 +1,3 @@
-using System.Linq.Expressions;
-using System.Reflection;
-
 namespace RedBolt;
 
 /// <summary>
@@ -285,7 +282,6 @@ public sealed class AutoExposurePass : RenderPass
     private const string MinExposureName = "Exposure: Min";
     private const string MaxExposureName = "Exposure: Max";
     private const string AdaptRateName = "Exposure: Adapt Rate";
-    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
     private Parameters currentParameters = new();
     private CachedBuffers? cachedBuffers;
     private bool isAdaptedLuminanceInitialized;
@@ -360,12 +356,11 @@ public sealed class AutoExposurePass : RenderPass
             EvaluateAdaptedLuminance(renderBufferManager, graphics, buffers);
         }
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(new ApplyExposureParameters
+        var applyExposureParameters = new ApplyExposureParameters
         {
             MinMaxExposure = new Vector2(currentParameters.MinExposure, currentParameters.MaxExposure),
             AutoExposureMiddleGrey = 0.6f
-        }, shaderParameters);
+        };
 
         renderBufferManager.SetOutputRenderTargets(graphics);
         graphics.DrawFullscreenQuad(
@@ -377,7 +372,7 @@ public sealed class AutoExposurePass : RenderPass
             renderBufferManager.GetSecondaryColorTexture(),
             secondaryTexture: currentParameters.AutoExposure ? cachedBuffers?.AdaptedLuminance.Texture : null,
             depthTexture: null,
-            shaderParameters,
+            applyExposureParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
@@ -479,11 +474,10 @@ public sealed class AutoExposurePass : RenderPass
         var previousSource = isAdaptedLuminanceInitialized ? buffers.AdaptedLuminance.Texture : buffers.Lum1.Texture;
         graphics.DrawCopyTexture(previousSource, bilinearFiltering: false);
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(new AdaptRateParameters
+        var adaptRateParameters = new AdaptRateParameters
         {
             AdaptRate = currentParameters.AdaptRate
-        }, shaderParameters);
+        };
 
         renderBufferManager.SetRenderTargets(graphics, buffers.AdaptedLuminance);
         graphics.DrawFullscreenQuad(
@@ -495,7 +489,7 @@ public sealed class AutoExposurePass : RenderPass
             buffers.PreviousAdaptedLuminance.Texture,
             secondaryTexture: buffers.Lum1.Texture,
             depthTexture: null,
-            shaderParameters,
+            adaptRateParameters,
             new Vector2(1.0f, 1.0f),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
@@ -505,11 +499,10 @@ public sealed class AutoExposurePass : RenderPass
     private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source,
         TextureRenderBuffer target, string shaderDefines, Vector2 inputInvSize)
     {
-        shaderParameters.Clear();
-        StructShaderParameters.Write(new InputInvSizeParameters
+        var inputInvSizeParameters = new InputInvSizeParameters
         {
             InputInvSize = inputInvSize
-        }, shaderParameters);
+        };
 
         renderBufferManager.SetRenderTargets(graphics, target);
         graphics.DrawFullscreenQuad(
@@ -521,7 +514,7 @@ public sealed class AutoExposurePass : RenderPass
             source.Texture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            inputInvSizeParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
@@ -541,7 +534,6 @@ public sealed class BloomPass : RenderPass
     private const string IterationFactorName = "Bloom: Iteration Intensity Factor";
     private static readonly Vector3 LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
     private static readonly Vector3 GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
-    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
     private readonly List<TextureCache> textures = [];
     private readonly List<float> intensityMultipliers = [];
     private Parameters currentParameters = new();
@@ -726,12 +718,10 @@ public sealed class BloomPass : RenderPass
         if (minDimension <= 0)
             return 0;
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(CreateBloomParameters(
+        var bloomParameters = CreateBloomParameters(
             luminanceWeights,
             intensity: 0.0f,
-            new Vector2(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height)),
-            shaderParameters);
+            new Vector2(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height));
 
         renderBufferManager.SetRenderTargets(graphics, destination);
         graphics.DrawFullscreenQuad(
@@ -743,7 +733,7 @@ public sealed class BloomPass : RenderPass
             viewportTexture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            bloomParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
@@ -765,8 +755,7 @@ public sealed class BloomPass : RenderPass
             texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
             texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize), shaderParameters);
+        var bloomParameters = CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize);
 
         renderBufferManager.SetRenderTargets(graphics, temporary);
         graphics.DrawFullscreenQuad(
@@ -778,7 +767,7 @@ public sealed class BloomPass : RenderPass
             texture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            bloomParameters,
             invInputSize,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
@@ -792,7 +781,7 @@ public sealed class BloomPass : RenderPass
             temporary.Texture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            bloomParameters,
             invInputSize,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
@@ -805,8 +794,7 @@ public sealed class BloomPass : RenderPass
 
     private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
     {
-        shaderParameters.Clear();
-        StructShaderParameters.Write(CreateBloomParameters(Vector3.Zero, intensity, renderBufferManager.GetInvOutputSize()), shaderParameters);
+        var bloomParameters = CreateBloomParameters(Vector3.Zero, intensity, renderBufferManager.GetInvOutputSize());
         graphics.DrawFullscreenQuad(
             "Apply bloom",
             "v2/P_Bloom",
@@ -816,7 +804,7 @@ public sealed class BloomPass : RenderPass
             bloom.Texture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            bloomParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
@@ -857,7 +845,6 @@ public sealed class AmbientOcclusionPass : RenderPass
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
-    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
     private RenderBuffer? normalBuffer;
     private TextureCache? textures;
     private Parameters currentParameters = new();
@@ -1076,8 +1063,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             currentParameters.RadiusNear,
             currentParameters.RadiusFar);
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(new AmbientOcclusionParameters
+        var ambientOcclusionParameters = new AmbientOcclusionParameters
         {
             InputInvSize = inputInvSize,
             BlurStep = inputInvSize,
@@ -1088,7 +1074,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             ViewToTexture = viewToTextureSpace,
             TextureToView = textureToViewSpace,
             WorldToView = worldToViewSpaceCorrected
-        }, shaderParameters);
+        };
 
         renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
@@ -1100,7 +1086,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             textures.Noise,
             secondaryTexture: normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
-            shaderParameters,
+            ambientOcclusionParameters,
             inputInvSize,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
@@ -1128,14 +1114,13 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
             return;
 
-        shaderParameters.Clear();
-        StructShaderParameters.Write(new AmbientOcclusionParameters
+        var blurParameters = new AmbientOcclusionParameters
         {
             BlurStep = blurStep,
             BlurZThreshold = currentParameters.BlurDepthThreshold,
             BlurNormalInvThreshold = 1.0f - currentParameters.BlurNormalThreshold,
             TextureToView = textureToViewSpace
-        }, shaderParameters);
+        };
 
         renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
@@ -1147,7 +1132,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             textures.PreviousTarget.Texture,
             secondaryTexture: normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
-            shaderParameters,
+            blurParameters,
             blurStep,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
@@ -1182,7 +1167,6 @@ public sealed class OutlineRenderPass : RenderPass
 {
     private const string DefaultComment = "Draw outline of the contents of the color buffer";
     public static readonly StringHash ColorBufferId = "outline";
-    private readonly Dictionary<string, object?> shaderParameters = new(StringComparer.Ordinal);
     private RenderBuffer? colorBuffer;
 
     public OutlineRenderPass(string? passName = null)
@@ -1204,10 +1188,12 @@ public sealed class OutlineRenderPass : RenderPass
             return;
         }
 
-        shaderParameters.Clear();
-        shaderParameters["InputInvSize"] = new Vector2(
+        var outlineParameters = new OutlineParameters
+        {
+            InputInvSize = new Vector2(
             texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
-            texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
+            texture.Height > 0 ? 1.0f / texture.Height : 0.0f)
+        };
 
         renderBufferManager.SetOutputRenderTargets(graphics);
         graphics.DrawFullscreenQuad(
@@ -1219,7 +1205,7 @@ public sealed class OutlineRenderPass : RenderPass
             texture,
             secondaryTexture: null,
             depthTexture: null,
-            shaderParameters,
+            outlineParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
@@ -1230,6 +1216,12 @@ public sealed class OutlineRenderPass : RenderPass
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
         return clone;
+    }
+
+    private struct OutlineParameters
+    {
+        [ShaderParameterName("InputInvSize")]
+        public Vector2 InputInvSize;
     }
 }
 
@@ -1312,57 +1304,4 @@ internal sealed class ShaderParameterNameAttribute : Attribute
     }
 
     public string Name { get; }
-}
-
-internal static class StructShaderParameters
-{
-    public static void Write<T>(in T value, IDictionary<string, object?> target)
-        where T : struct
-    {
-        ArgumentNullException.ThrowIfNull(target);
-        StructShaderParameterCache<T>.Write(value, target);
-    }
-
-    private static class StructShaderParameterCache<T>
-        where T : struct
-    {
-        private static readonly Entry[] Entries = CreateEntries();
-
-        public static void Write(in T value, IDictionary<string, object?> target)
-        {
-            foreach (var entry in Entries)
-                target[entry.Name] = entry.Getter(value);
-        }
-
-        private static Entry[] CreateEntries()
-        {
-            var accessors = new List<Entry>();
-            var parameter = Expression.Parameter(typeof(T), "value");
-
-            foreach (var field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public))
-            {
-                var name = field.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? field.Name;
-                var access = Expression.Field(parameter, field);
-                var convert = Expression.Convert(access, typeof(object));
-                var getter = Expression.Lambda<Func<T, object?>>(convert, parameter).Compile();
-                accessors.Add(new Entry(name, getter));
-            }
-
-            foreach (var property in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (!property.CanRead || property.GetMethod is null || property.GetIndexParameters().Length > 0)
-                    continue;
-
-                var name = property.GetCustomAttribute<ShaderParameterNameAttribute>()?.Name ?? property.Name;
-                var access = Expression.Property(parameter, property);
-                var convert = Expression.Convert(access, typeof(object));
-                var getter = Expression.Lambda<Func<T, object?>>(convert, parameter).Compile();
-                accessors.Add(new Entry(name, getter));
-            }
-
-            return accessors.ToArray();
-        }
-
-        private readonly record struct Entry(string Name, Func<T, object?> Getter);
-    }
 }

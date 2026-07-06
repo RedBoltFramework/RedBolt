@@ -123,6 +123,48 @@ public sealed class GraphicsCustomUniformTests
         Assert.Null(arguments[2]);
     }
 
+    [Fact]
+    public void StructCustomUniformWriter_packs_typed_parameters_using_shader_parameter_names()
+    {
+        var layout = ParseLayout("""
+            UNIFORM_BUFFER_BEGIN(6, Custom)
+                UNIFORM(vec4 cOutlineColor)
+                UNIFORM(float cOutlineThickness)
+            UNIFORM_BUFFER_END(6, Custom)
+            """);
+        var writeMethod = GetStructWriterMethod(typeof(OutlineParameters));
+        var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
+        var parameters = new OutlineParameters
+        {
+            OutlineColor = new Vector4(0.1f, 0.2f, 0.3f, 0.4f),
+            OutlineThickness = 3.5f
+        };
+
+        writeMethod.Invoke(null, [buffer, layout, parameters]);
+
+        Assert.Equal(0.1f, BitConverter.ToSingle(buffer, 0));
+        Assert.Equal(0.2f, BitConverter.ToSingle(buffer, 4));
+        Assert.Equal(0.3f, BitConverter.ToSingle(buffer, 8));
+        Assert.Equal(0.4f, BitConverter.ToSingle(buffer, 12));
+        Assert.Equal(3.5f, BitConverter.ToSingle(buffer, 16));
+    }
+
+    [Fact]
+    public void StructCustomUniformWriter_falls_back_to_uniform_names()
+    {
+        var layout = ParseLayout("""
+            UNIFORM_BUFFER_BEGIN(6, Custom)
+                UNIFORM(float cOutlineThickness)
+            UNIFORM_BUFFER_END(6, Custom)
+            """);
+        var writeMethod = GetStructWriterMethod(typeof(UniformNamedParameters));
+        var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
+
+        writeMethod.Invoke(null, [buffer, layout, new UniformNamedParameters { cOutlineThickness = 2.25f }]);
+
+        Assert.Equal(2.25f, BitConverter.ToSingle(buffer, 0));
+    }
+
     private static object ParseLayout(string source)
     {
         var parseMethod = typeof(Graphics).GetMethod("ParseCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
@@ -135,5 +177,26 @@ public sealed class GraphicsCustomUniformTests
     {
         return instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public)
             ?.GetValue(instance);
+    }
+
+    private static MethodInfo GetStructWriterMethod(Type parameterType)
+    {
+        var writerType = typeof(Graphics).GetNestedType("StructCustomUniformWriter`1", BindingFlags.NonPublic)
+            ?.MakeGenericType(parameterType)
+            ?? throw new InvalidOperationException("Graphics.StructCustomUniformWriter<T> was not found.");
+        return writerType.GetMethod("Write", BindingFlags.Public | BindingFlags.Static)
+            ?? throw new InvalidOperationException("Struct custom uniform writer method was not found.");
+    }
+
+    private readonly struct OutlineParameters
+    {
+        public Vector4 OutlineColor { get; init; }
+
+        public float OutlineThickness { get; init; }
+    }
+
+    private readonly struct UniformNamedParameters
+    {
+        public float cOutlineThickness { get; init; }
     }
 }
