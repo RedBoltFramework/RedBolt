@@ -387,6 +387,46 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_output_target_info_treats_srgb_texture_as_linear_color_space_output()
+    {
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        colorTarget.SetSRGB(true);
+
+        var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200));
+
+        Assert.True(output.LinearColorSpace);
+        Assert.False(output.HDR);
+    }
+
+    [Fact]
+    public void Render_buffer_manager_marks_linear_ldr_color_buffers_as_srgb()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.LinearLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            SupportColorReadWrite = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        var primaryTexture = manager.GetColorOutput().GetTexture();
+        var secondaryTexture = manager.GetSecondaryColorTexture();
+
+        Assert.NotNull(primaryTexture);
+        Assert.NotNull(secondaryTexture);
+        Assert.True(manager.IsLinearColorSpace());
+        Assert.False(manager.IsHDR());
+        Assert.True(primaryTexture!.GetSRGB());
+        Assert.False(primaryTexture.GetLinear());
+        Assert.True(secondaryTexture!.GetSRGB());
+        Assert.False(secondaryTexture.GetLinear());
+    }
+
+    [Fact]
     public void Render_buffer_manager_uses_matching_texture_output_without_substitute_buffers()
     {
         var manager = new RenderBufferManager();

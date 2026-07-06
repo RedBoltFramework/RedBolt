@@ -167,6 +167,7 @@ public sealed class RenderBufferManager
         texture.SetFilterMode(bufferParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering)
             ? TextureFilterMode.Bilinear
             : TextureFilterMode.Nearest);
+        ApplyColorTextureMetadata(texture, bufferParams.TextureFormat);
         return new TextureRenderBuffer(texture, new IntRect(0, 0, width, height));
     }
 
@@ -276,7 +277,7 @@ public sealed class RenderBufferManager
         var effectiveSourceRect = sourceRect != IntRect.Zero
             ? sourceRect
             : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
-        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.Format == TextureFormat.RGBA16F;
+        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.GetSRGB() || sourceTexture.Format == TextureFormat.RGBA16F;
         var shaderDefines = string.Empty;
         if (mode == ColorSpaceTransition.Automatic && sourceIsLinear != linearColorSpace)
             shaderDefines = linearColorSpace ? "URHO3D_GAMMA_TO_LINEAR" : "URHO3D_LINEAR_TO_GAMMA";
@@ -612,6 +613,16 @@ public sealed class RenderBufferManager
             RenderPipelineColorSpace.Optimized => textureFormat == TextureFormat.RGBA16F,
             _ => false
         };
+    }
+
+    private void ApplyColorTextureMetadata(Texture texture, TextureFormat textureFormat)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+
+        var useLinearMetadata = hdr || textureFormat == TextureFormat.RGBA16F;
+        var useSrgbMetadata = linearColorSpace && !useLinearMetadata && textureFormat == TextureFormat.RGBA8;
+        texture.SetLinear(useLinearMetadata);
+        texture.SetSRGB(useSrgbMetadata);
     }
 
     private void ResetCachedRenderBuffers()

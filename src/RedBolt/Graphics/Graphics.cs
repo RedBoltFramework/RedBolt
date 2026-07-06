@@ -173,7 +173,7 @@ layout(std140) uniform Material
             depthFormat,
             Math.Max(configuredMultiSample, 1),
             bilinearFiltered: false,
-            linearColorSpace: colorFormat == TextureFormat.RGBA16F || colorFormat != TextureFormat.Unknown && !colorIsSrgb,
+            linearColorSpace: colorFormat == TextureFormat.RGBA16F || colorIsSrgb,
             hdr: colorFormat == TextureFormat.RGBA16F,
             hasReadableDepth: false,
             hasStencil: depthFormat == TextureFormat.Depth24Stencil8);
