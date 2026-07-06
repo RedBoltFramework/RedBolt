@@ -107,7 +107,7 @@ public sealed class RenderBufferManager
 
         var needSubstituteDepthBuffer = !isMultiSampleMatching || !(renderTarget?.HasDepthStencil ?? true)
             || ((needSecondaryBuffer || !isOutputMatching) && !outputHasUsableDepthTexture)
-            || (settings.ReadableDepth && !outputHasReadableDepth)
+            || (settings.ReadableDepth && (!outputHasReadableDepth || !isSimpleTextureOutput))
             || (settings.StencilBuffer && !outputHasStencil);
         var needSubstitutePrimaryBuffer = !isOutputMatching || needSubstituteDepthBuffer;
 

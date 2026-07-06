@@ -395,7 +395,7 @@ public sealed class RenderPipelineTests
         manager.OnViewportDefined(output, new IntRect(0, 0, 160, 200));
 
         Assert.NotSame(colorTarget, manager.GetColorOutput().GetTexture());
-        Assert.Same(depthTarget, manager.GetDepthStencilTexture());
+        Assert.NotSame(depthTarget, manager.GetDepthStencilTexture());
         Assert.True(manager.NeedsViewportResolve());
     }
 
