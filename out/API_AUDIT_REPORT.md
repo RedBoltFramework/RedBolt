@@ -11,7 +11,7 @@ RedBolt should match rbfx RenderAPI and RenderPipeline surface area as closely a
 This report is a verified snapshot, not a historical summary.
 
 - Verified against current rbfx headers in `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipeline`.
-- Verified against the current RedBolt working tree after commit `3788ecc` (`Port RawShader and ShaderBytecode groundwork`).
+- Verified against the current RedBolt working tree on `2026-07-07`.
 - Old percentage tables and stale class totals were removed instead of carried forward.
 
 ## Executive Summary
@@ -32,6 +32,8 @@ This report is a verified snapshot, not a historical summary.
   - `RenderDeviceSettingsVulkan`
   - `RenderDeviceSettingsD3D12`
   - `RenderPoolSettings`
+  - `DrawCommandDescription`
+  - `ShaderResourceRange`
 - The buffer layer is no longer completely absent:
   - `RawBufferParams`
   - `RawBuffer`
@@ -64,18 +66,15 @@ This report is a verified snapshot, not a historical summary.
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
 | `RenderPool` | Present, incomplete | Type exists, but lifecycle methods are no-op placeholders |
 | `ShaderProgramReflection` | Missing | No equivalent type exists |
-| `DrawCommandQueue` | Present, incomplete | Type exists, but currently carries only clip-plane state and context execution glue |
+| `DrawCommandQueue` | Present, incomplete | Type now records rbfx-style draw/dispatch snapshots, but real reflection/resource binding and backend submission are still missing |
 | `ShaderBytecode` | Present, incomplete | Exists with MIME/bytecode/vertex-attribute serialization, but the wider reflection/program pipeline is still absent |
 
 ## Verified RenderAPI Supporting-Type Gaps
 
 ### Missing structs / aliases / helper types
 
-- `RenderDeviceSettingsVulkan`
-- `RenderDeviceSettingsD3D12`
 - `RawTextureParams`
 - `RawTextureUAVKey`
-- `DrawCommandDescription`
 - `UniformBufferReflection`
 - `UniformReflection`
 - `ShaderResourceReflection`
@@ -195,7 +194,7 @@ Verified current state:
   - update, resolve, map, unmap, invalidate, and restore helpers
 - The remaining parity gap is structural, not existential:
   - `VertexBuffer` and `IndexBuffer` do not derive from `RawBuffer`
-  - `DrawCommandQueue` does not yet record or execute commands against `RawBuffer`
+  - `DrawCommandQueue` records `RawBuffer` references, but does not yet bind them through real backend playback
   - broader resource binding and reflection plumbing above the buffer layer is still missing
 
 ### `DrawCommandQueue`
@@ -203,8 +202,15 @@ Verified current state:
 Verified current state:
 
 - The type now exists and is reachable from `RenderDevice`.
-- Current behavior is limited to storing a clip-plane mask and replaying that mask into `RenderContext.Execute(...)`.
-- rbfx command recording/execution surfaces are still otherwise missing.
+- The current managed surface now records:
+  - pipeline state
+  - scissor/stencil state
+  - vertex/index buffers
+  - non-indexed, indexed, instanced, and compute-dispatch command parameters
+- Current execution is still thin:
+  - `ExecuteInContext(...)` updates clip-plane state and draw/dispatch stats only
+  - shader parameter groups, shader resources, UAVs, and reflection-driven resource binding are still missing
+  - there is still no real Diligent draw/dispatch submission path here yet
 
 ### `RenderTargetView`
 
@@ -263,14 +269,6 @@ RedBolt currently exposes four properties:
 
 The extra `FilteredColor` and `ReadableDepth` fields need justification from upstream parity work or they should be folded into a different rbfx-aligned surface.
 
-### `NamedSamplerStateDesc`
-
-rbfx defines:
-
-- `using NamedSamplerStateDesc = ea::pair<ea::string, SamplerStateDesc>;`
-
-RedBolt does not currently expose an equivalent alias or record.
-
 ## Types Verified As Already Present
 
 These were stale false positives in the old audit and should not be reported missing:
@@ -294,13 +292,12 @@ These were stale false positives in the old audit and should not be reported mis
 3. Deepen the new device/context layer so it stops being mostly pass-through glue:
    - move more bind/cache/state ownership from `Graphics` into `RenderContext`
    - flesh out `RenderPool`
-   - flesh out `DrawCommandQueue`
+   - replace the current stats-only `DrawCommandQueue` replay with real backend submission
 4. Connect the new pipeline-state cache layer to real backend pipeline creation instead of leaving all PSO ownership inside `Graphics`.
 5. Add resource-layer types:
    - `RawTexture`
 6. Connect the new support scaffolding to real recording/binding paths:
    - `ConstantBufferCollection`
-   - `DrawCommandDescription`
    - `DrawCommandQueue`
    - `RawBuffer`
 

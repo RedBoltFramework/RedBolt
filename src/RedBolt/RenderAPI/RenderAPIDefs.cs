@@ -8,6 +8,7 @@ public static class RenderApiLimits
     public const uint MaxVertexStreams = 4;
     public const uint MaxNumVertexElements = 32;
     public const uint MaxNumImmutableSamplers = 16;
+    public const uint MaxShaderParameterGroups = 7;
 }
 
 public enum FrameIndex : long
