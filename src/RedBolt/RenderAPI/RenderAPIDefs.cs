@@ -617,15 +617,15 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 
     public bool ReadOnlyDepth { get; set; }
 
-    public ShaderVariation? VertexShader { get; set; }
+    public RawShader? VertexShader { get; set; }
 
-    public ShaderVariation? PixelShader { get; set; }
+    public RawShader? PixelShader { get; set; }
 
-    public ShaderVariation? DomainShader { get; set; }
+    public RawShader? DomainShader { get; set; }
 
-    public ShaderVariation? HullShader { get; set; }
+    public RawShader? HullShader { get; set; }
 
-    public ShaderVariation? GeometryShader { get; set; }
+    public RawShader? GeometryShader { get; set; }
 
     public GraphicsPipelineStateDesc()
     {
@@ -698,11 +698,11 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
         hash.Add(Output);
         hash.Add(Samplers);
         hash.Add(ReadOnlyDepth);
-        AddShaderVariationHash(ref hash, VertexShader);
-        AddShaderVariationHash(ref hash, PixelShader);
-        AddShaderVariationHash(ref hash, DomainShader);
-        AddShaderVariationHash(ref hash, HullShader);
-        AddShaderVariationHash(ref hash, GeometryShader);
+        AddRawShaderHash(ref hash, VertexShader);
+        AddRawShaderHash(ref hash, PixelShader);
+        AddRawShaderHash(ref hash, DomainShader);
+        AddRawShaderHash(ref hash, HullShader);
+        AddRawShaderHash(ref hash, GeometryShader);
         return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
@@ -734,32 +734,46 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
             && Output.Equals(other.Output)
             && Samplers.Equals(other.Samplers)
             && ReadOnlyDepth == other.ReadOnlyDepth
-            && ShaderVariationEquals(VertexShader, other.VertexShader)
-            && ShaderVariationEquals(PixelShader, other.PixelShader)
-            && ShaderVariationEquals(DomainShader, other.DomainShader)
-            && ShaderVariationEquals(HullShader, other.HullShader)
-            && ShaderVariationEquals(GeometryShader, other.GeometryShader);
+            && RawShaderEquals(VertexShader, other.VertexShader)
+            && RawShaderEquals(PixelShader, other.PixelShader)
+            && RawShaderEquals(DomainShader, other.DomainShader)
+            && RawShaderEquals(HullShader, other.HullShader)
+            && RawShaderEquals(GeometryShader, other.GeometryShader);
     }
 
     public override bool Equals(object? obj) => Equals(obj as GraphicsPipelineStateDesc);
 
     public override int GetHashCode() => unchecked((int)ToHash());
 
-    private static void AddShaderVariationHash(ref HashCode hash, ShaderVariation? shaderVariation)
+    internal static void AddRawShaderHash(ref HashCode hash, RawShader? shader)
     {
-        hash.Add(shaderVariation?.Name, StringComparer.Ordinal);
-        hash.Add(shaderVariation?.ShaderType);
-        hash.Add(shaderVariation?.Defines, StringComparer.Ordinal);
+        if (shader is ShaderVariation shaderVariation)
+        {
+            hash.Add(shaderVariation.Name, StringComparer.Ordinal);
+            hash.Add(shaderVariation.ShaderType);
+            hash.Add(shaderVariation.Defines, StringComparer.Ordinal);
+            return;
+        }
+
+        hash.Add(shader?.GetShaderType());
+        if (shader is not null)
+            hash.Add(shader.GetBytecode());
     }
 
-    internal static bool ShaderVariationEquals(ShaderVariation? lhs, ShaderVariation? rhs)
+    internal static bool RawShaderEquals(RawShader? lhs, RawShader? rhs)
     {
         if (lhs is null || rhs is null)
             return lhs is null && rhs is null;
 
-        return lhs.ShaderType == rhs.ShaderType
-            && string.Equals(lhs.Name, rhs.Name, StringComparison.Ordinal)
-            && string.Equals(lhs.Defines, rhs.Defines, StringComparison.Ordinal);
+        if (lhs is ShaderVariation lhsVariation && rhs is ShaderVariation rhsVariation)
+        {
+            return lhsVariation.ShaderType == rhsVariation.ShaderType
+                && string.Equals(lhsVariation.Name, rhsVariation.Name, StringComparison.Ordinal)
+                && string.Equals(lhsVariation.Defines, rhsVariation.Defines, StringComparison.Ordinal);
+        }
+
+        return lhs.GetShaderType() == rhs.GetShaderType()
+            && lhs.GetBytecode().Equals(rhs.GetBytecode());
     }
 }
 
@@ -769,7 +783,7 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
 
     public ImmutableSamplersDesc Samplers { get; } = new();
 
-    public ShaderVariation? ComputeShader { get; set; }
+    public RawShader? ComputeShader { get; set; }
 
     public ComputePipelineStateDesc()
     {
@@ -792,9 +806,7 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
     {
         var hash = new HashCode();
         hash.Add(Samplers);
-        hash.Add(ComputeShader?.Name, StringComparer.Ordinal);
-        hash.Add(ComputeShader?.ShaderType);
-        hash.Add(ComputeShader?.Defines, StringComparer.Ordinal);
+        GraphicsPipelineStateDesc.AddRawShaderHash(ref hash, ComputeShader);
         return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
@@ -804,7 +816,7 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
             return false;
 
         return Samplers.Equals(other.Samplers)
-            && GraphicsPipelineStateDesc.ShaderVariationEquals(ComputeShader, other.ComputeShader);
+            && GraphicsPipelineStateDesc.RawShaderEquals(ComputeShader, other.ComputeShader);
     }
 
     public override bool Equals(object? obj) => Equals(obj as ComputePipelineStateDesc);

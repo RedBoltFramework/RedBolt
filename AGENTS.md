@@ -59,6 +59,8 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 - Commit coherent checkpoints so progress is not stranded between sessions.
 - Keep the sample build healthy while porting rendering.
 - Always use jcodemunch to explore rbfx and RedBolt repositories, avoid using standard search/grep/glob tools.
+- Use `apitrace` to triage rendering issues.
+- Use `debug-mcp` (but without `--timeout`) to debug issues.
 
 ## Build And Verification
 

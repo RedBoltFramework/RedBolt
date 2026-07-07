@@ -183,8 +183,15 @@ Slice 1 through the first runtime integration layer are landed:
     - `GraphicsPipelineStateDesc`, `ComputePipelineStateDesc`, and `PipelineStateDesc` now exist with hash/equality semantics, defensive cloning of mutable nested descriptors, and initialization checks
     - `NamedSamplerStateDesc` and `StencilOp` now exist in `RenderAPIDefs.cs`, while the shared render enums were nudged closer to rbfx by restoring trailing `Max` members and `PrimitiveType.TriangleFan`
     - `InputLayoutDesc`, `ImmutableSamplersDesc`, and `PipelineStateOutputDesc` now expose copy constructors suitable for descriptor freezing, and immutable samplers now publish names/descriptions spans instead of being write-only
+  - the next shader/resource identity slice is now in-tree too:
+    - `ShaderBytecode` now exists as a managed rbfx-named shader-binary container with bytecode MIME, vertex-attribute metadata, stream save/load helpers, and value semantics
+    - `RawShader` now exists as a `DeviceObject` that owns `ShaderBytecode`, exposes rbfx-style type/bytecode/handle accessors, and can create a native Diligent shader from stored GLSL source or binary payload
+    - `ShaderVariation` now inherits `RawShader` instead of remaining a standalone identity object, compiling prepared shader source into managed `ShaderBytecode` and native OpenGL shader handles
+    - `GraphicsPipelineStateDesc` and `ComputePipelineStateDesc` now accept `RawShader` instead of only `ShaderVariation`, keeping shader equality/hash behavior aligned with upstream variation identity when possible and falling back to bytecode equality for non-variation shaders
   - focused validation for these RenderAPI slices used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~PipelineStateCacheTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun for the graphics-touching alias fix on `2026-07-07`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-pipelinestatecache.png` completed successfully and still produced the expected mushroom field, outlines, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
+  - focused validation for the shader slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --filter 'FullyQualifiedName~RawShaderTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~ShaderFileTests'` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - sample validation was rerun again on `2026-07-07` after the `RawShader` / `ShaderBytecode` slice using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawshader-checkpoint.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outline test geometry, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
 
 ## Current Cross-Cutting Requirement
 
@@ -204,9 +211,12 @@ Slice 1 through the first runtime integration layer are landed:
 ## Next Useful Checks
 
 - Replace the still-placeholder shader part of the new pipeline-state surface with rbfx-style resource types:
-  - `RawShader`
-  - `ShaderBytecode`
   - `ShaderProgramReflection`
+- Deepen the new shader slice by threading `RawShader` into more backend-facing pipeline creation paths and by adding the upstream reflection side:
+  - `ShaderProgramReflection`
+  - `UniformBufferReflection`
+  - `UniformReflection`
+  - `ShaderResourceReflection`
 - Deepen the new RenderAPI slice by moving more transient draw-state/cache ownership behind `RenderContext`, `DrawCommandQueue`, and `PipelineStateCache` instead of leaving it in ad-hoc `Graphics` helpers.
 - Start hooking the new managed `PipelineStateCache` to real pipeline creation paths once the shader/resource-layer slice is present, so `Graphics` stops being the only place where pipeline identity exists.
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.

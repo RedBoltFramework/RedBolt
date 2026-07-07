@@ -167,6 +167,8 @@ layout(std140) uniform Material
         return shader is null ? null : new ShaderVariation(shader, type, defines);
     }
 
+    internal IRenderDevice? GetNativeRenderDevice() => device;
+
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
         var colorFormat = UnmapTextureFormat(GetSwapChainColorFormat(), out var colorIsSrgb);
@@ -3138,7 +3140,7 @@ layout(std140) uniform Material
             Log.Logger.LogWarning("Shader binding diagnostics: fullscreen dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
-    private static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
+    internal static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
         string name, string source)
     {
         using var shaderName = new PinnedUtf8(name);
