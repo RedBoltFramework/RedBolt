@@ -1,3 +1,5 @@
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
 public static class RenderApiLimits
@@ -71,6 +73,54 @@ public sealed class RenderDeviceSettings
     public bool GpuDebug { get; set; }
 
     public uint? AdapterId { get; set; }
+
+    public RenderDeviceSettingsVulkan Vulkan { get; set; } = new();
+
+    public RenderDeviceSettingsD3D12 D3D12 { get; set; } = new();
+}
+
+public sealed class RenderDeviceSettingsVulkan
+{
+    public List<string> InstanceExtensions { get; } = [];
+
+    public List<string> DeviceExtensions { get; } = [];
+
+    public VulkanDescriptorPoolSize? MainDescriptorPoolSize { get; set; }
+
+    public VulkanDescriptorPoolSize? DynamicDescriptorPoolSize { get; set; }
+
+    public uint? DeviceLocalMemoryPageSize { get; set; }
+
+    public uint? HostVisibleMemoryPageSize { get; set; }
+
+    public uint? DeviceLocalMemoryReserveSize { get; set; }
+
+    public uint? HostVisibleMemoryReserveSize { get; set; }
+
+    public uint? UploadHeapPageSize { get; set; }
+
+    public uint? DynamicHeapSize { get; set; }
+
+    public uint? DynamicHeapPageSize { get; set; }
+
+    public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
+}
+
+public sealed class RenderDeviceSettingsD3D12
+{
+    public uint?[] CpuDescriptorHeapAllocationSize { get; } = new uint?[4];
+
+    public uint?[] GpuDescriptorHeapSize { get; } = new uint?[2];
+
+    public uint?[] GpuDescriptorHeapDynamicSize { get; } = new uint?[2];
+
+    public uint?[] DynamicDescriptorAllocationChunkSize { get; } = new uint?[2];
+
+    public uint? DynamicHeapPageSize { get; set; }
+
+    public uint? NumDynamicHeapPagesToReserve { get; set; }
+
+    public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
 }
 
 public sealed class RenderDeviceCaps
@@ -103,6 +153,17 @@ public sealed class RenderDeviceStats
     public uint NumDraws { get; set; }
 
     public uint NumDispatches { get; set; }
+}
+
+public sealed class RenderPoolSettings
+{
+    public uint TextureCacheMinFrames { get; set; } = 1u;
+
+    public uint TextureCacheMaxFrames { get; set; } = 1000u;
+
+    public float TextureCacheMinLoadFactor { get; set; } = 0.1f;
+
+    public uint LogPeriod { get; set; } = 1000u;
 }
 
 public enum BufferType

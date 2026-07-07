@@ -59,6 +59,10 @@ public sealed class RenderDeviceTests
             Assert.Equal((nint)1234, deviceSettings.ExternalWindowHandle);
             Assert.True(deviceSettings.GpuDebug);
             Assert.Equal((uint)7, deviceSettings.AdapterId);
+            Assert.NotNull(deviceSettings.Vulkan);
+            Assert.NotNull(deviceSettings.D3D12);
+            Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.Vulkan.QueryPoolSizes.Length);
+            Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.D3D12.QueryPoolSizes.Length);
 
             Assert.Equal(WindowMode.Fullscreen, windowSettings.Mode);
             Assert.Equal(new IntVector2(1600, 900), windowSettings.Size);
@@ -124,6 +128,17 @@ public sealed class RenderDeviceTests
         Assert.Equal("TestPipeline", pipelineState.DebugName);
         Assert.Equal("TestPipeline", pipelineState.GetDebugName());
         Assert.True(pipelineState.IsValid);
+    }
+
+    [Fact]
+    public void Render_pool_exposes_rbfx_style_default_settings_surface()
+    {
+        var settings = fixture.RenderDevice.GetRenderPool().Settings;
+
+        Assert.Equal(1u, settings.TextureCacheMinFrames);
+        Assert.Equal(1000u, settings.TextureCacheMaxFrames);
+        Assert.Equal(0.1f, settings.TextureCacheMinLoadFactor);
+        Assert.Equal(1000u, settings.LogPeriod);
     }
 
     private sealed class TrackingDeviceObject : DeviceObject

@@ -188,10 +188,15 @@ Slice 1 through the first runtime integration layer are landed:
     - `RawShader` now exists as a `DeviceObject` that owns `ShaderBytecode`, exposes rbfx-style type/bytecode/handle accessors, and can create a native Diligent shader from stored GLSL source or binary payload
     - `ShaderVariation` now inherits `RawShader` instead of remaining a standalone identity object, compiling prepared shader source into managed `ShaderBytecode` and native OpenGL shader handles
     - `GraphicsPipelineStateDesc` and `ComputePipelineStateDesc` now accept `RawShader` instead of only `ShaderVariation`, keeping shader equality/hash behavior aligned with upstream variation identity when possible and falling back to bytecode equality for non-variation shaders
+  - the next foundational support-type slice from the API audit is now in-tree too:
+    - `ConstantBufferCollection` and `ConstantBufferCollectionRef` now exist as managed rbfx-named constant-buffer packing helpers with aligned block allocation, buffer growth, and typed parameter storage
+    - `RenderDeviceSettings` now exposes rbfx-style `Vulkan` and `D3D12` subsettings surfaces instead of flattening everything into one thin object
+    - `RenderPoolSettings` now exists and `RenderPool` exposes default settings through a managed property, even though the wider pooling/cache behavior is still placeholder-level
   - focused validation for these RenderAPI slices used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~PipelineStateCacheTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun for the graphics-touching alias fix on `2026-07-07`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-pipelinestatecache.png` completed successfully and still produced the expected mushroom field, outlines, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
   - focused validation for the shader slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --filter 'FullyQualifiedName~RawShaderTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~ShaderFileTests'` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun again on `2026-07-07` after the `RawShader` / `ShaderBytecode` slice using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawshader-checkpoint.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outline test geometry, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
+  - focused validation for the support-type slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~ConstantBufferCollectionTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RawShaderTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
 
 ## Current Cross-Cutting Requirement
 
@@ -217,7 +222,7 @@ Slice 1 through the first runtime integration layer are landed:
   - `UniformBufferReflection`
   - `UniformReflection`
   - `ShaderResourceReflection`
-- Deepen the new RenderAPI slice by moving more transient draw-state/cache ownership behind `RenderContext`, `DrawCommandQueue`, and `PipelineStateCache` instead of leaving it in ad-hoc `Graphics` helpers.
+- Deepen the new RenderAPI slice by moving more transient draw-state/cache ownership behind `RenderContext`, `DrawCommandQueue`, `ConstantBufferCollection`, and `PipelineStateCache` instead of leaving it in ad-hoc `Graphics` helpers.
 - Start hooking the new managed `PipelineStateCache` to real pipeline creation paths once the shader/resource-layer slice is present, so `Graphics` stops being the only place where pipeline identity exists.
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.

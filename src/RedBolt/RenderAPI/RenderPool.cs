@@ -9,6 +9,8 @@ public class RenderPool : Object
         this.renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
     }
 
+    public RenderPoolSettings Settings { get; } = new();
+
     public void Invalidate()
     {
     }

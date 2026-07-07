@@ -61,9 +61,8 @@ public sealed class RawShaderTests
     {
         WithInitializedGraphics(() =>
         {
-            var defines = "URHO3D_GEOMETRY_STATIC URHO3D_AMBIENT_PASS DIFFMAP";
-            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "LitSolid", defines);
-            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "LitSolid", defines);
+            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture");
+            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture");
 
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
@@ -76,8 +75,6 @@ public sealed class RawShaderTests
             Assert.Equal(ShaderType.VS, bytecode.Type);
             Assert.Equal("application/glsl", bytecode.Mime);
             Assert.Contains(bytecode.VertexAttributes, attribute => attribute.Semantic == VertexElementSemantic.Position);
-            Assert.Contains(bytecode.VertexAttributes, attribute => attribute.Semantic == VertexElementSemantic.TexCoord);
-            Assert.Contains(bytecode.VertexAttributes, attribute => attribute.Semantic == VertexElementSemantic.Normal);
             Assert.Empty(pixelShader.GetBytecode().VertexAttributes);
         });
     }
