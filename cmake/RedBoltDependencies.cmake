@@ -177,7 +177,8 @@ target_link_libraries(redbolt-diligent-headers INTERFACE
 
 add_library(redbolt-native-support INTERFACE)
 target_include_directories(redbolt-native-support INTERFACE
-    "${REDBOLT_SHARPCPP_ROOT}/include")
+    "${REDBOLT_SHARPCPP_ROOT}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/include")
 target_link_libraries(redbolt-native-support INTERFACE redbolt-diligent-headers)
 
 set(REDBOLT_BINDING_INCLUDE_DIRS

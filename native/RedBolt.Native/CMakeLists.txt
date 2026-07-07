@@ -1,3 +1,11 @@
+add_library(redbolt-diligent-support STATIC
+    src/DiligentSupport.cpp)
+target_link_libraries(redbolt-diligent-support
+    PUBLIC
+        redbolt-native-support)
+set_target_properties(redbolt-diligent-support PROPERTIES
+    POSITION_INDEPENDENT_CODE ON)
+
 add_library(RedBolt.Native SHARED
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}")
@@ -25,7 +33,8 @@ target_link_libraries(RedBolt.Native
         PkgConfig::REDBOLT_SDL2_IMAGE
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
-        redbolt-native-support)
+        redbolt-native-support
+        redbolt-diligent-support)
 
 add_executable(redbolt-native-smoke-exe
     smoke/RedBoltNativeSmoke.cpp)

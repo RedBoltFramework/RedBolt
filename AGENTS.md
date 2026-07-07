@@ -41,16 +41,13 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 
 ## Render Port Guidance
 
-- Port in dependency order:
-  1. foundational defs/contracts
-  2. render-path model layer
-  3. render-buffer layer
-  4. higher-level pipeline orchestration
-  5. backend integration
 - Match rbfx resource formats and default behaviors whenever possible. Avoid RedBolt-only side formats if upstream rbfx already defines the asset/runtime contract.
 - Prefer incremental managed ports that compile and are tested over broad partial translations.
-- Wire new render-port types to `Context.Instance` unless there is a strong reason not to.
-- Reuse existing generated bindings when possible. If a required surface is missing, extend generation instead of adding manual interop.
+- Native libraries are wrapped using our custom generators based on SharpCpp. Sometimes generated bindings are insufficient.
+  - You can:
+    - Fix SharpCpp to produce correct bindings (preferred way)
+    - Add a custom supporting C++ library that links to C++ dependencies to offer helper code (best avoided, unless preferred way is impossible)
+
 
 ## Workflow Expectations
 

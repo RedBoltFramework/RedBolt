@@ -141,12 +141,11 @@ Verified current state:
 - Current behavior is intentionally native-only:
   - compiled Diligent `IShader` handles are queried for resource metadata
   - constant buffers are mapped to rbfx parameter groups by native buffer name
-  - constant-buffer member arrays are walked to populate reflected uniform names, offsets, sizes, variable classes, basic types, and array metadata
+  - constant-buffer variable arrays are walked through a parsed native support helper to populate reflected uniform names, offsets, sizes, variable classes, basic types, and array metadata
   - SRV/UAV resources are exposed by sanitized rbfx-style names and can later be connected to SRB variables
 - `UniformBufferReflection.Hash` now incorporates reflected uniform member layout instead of hashing buffer size only.
 - `Graphics` no longer parses shader source or uses regex fallbacks for `Custom` uniform buffers; pipeline custom-uniform layouts now come from compiled shader reflection only.
 - Current parity gaps are still significant:
-  - the generated Diligent bindings still do not expose typed variable arrays, so RedBolt currently uses a local native descriptor overlay to walk the member arrays
   - shader-variable connection exists, but `PipelineState` still does not own a real backend PSO/SRB object graph
 
 ### `ShaderBytecode`

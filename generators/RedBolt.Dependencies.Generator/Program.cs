@@ -62,7 +62,8 @@ internal static class Program
 
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
-        "GetEngineFactoryOpenGL"
+        "GetEngineFactoryOpenGL",
+        "GetShaderCodeBufferVariableAt"
     };
 
     private static readonly HashSet<string> RetainedDiligentBaseInterfaceMethods = new(StringComparer.Ordinal)

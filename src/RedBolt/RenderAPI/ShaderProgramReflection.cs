@@ -1,5 +1,5 @@
-using System.Runtime.InteropServices;
 using RedBolt.Bindings.Diligent;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -204,35 +204,18 @@ public sealed class ShaderProgramReflection
     {
         AddUniformBuffer(group, internalName, bufferDesc.Size);
 
-        var firstVariable = bufferDesc.PVariables;
-        if (firstVariable is null || firstVariable.IsNull || bufferDesc.NumVariables == 0u)
+        if (bufferDesc.NumVariables == 0u)
             return;
 
-        ReflectVariableArray(group, firstVariable.DangerousGetHandle(), bufferDesc.NumVariables);
-    }
-
-    private void ReflectVariableArray(ShaderParameterGroup group, nint firstVariableHandle, uint numVariables)
-    {
-        if (firstVariableHandle == IntPtr.Zero || numVariables == 0u)
-            return;
-
-        var stride = NativeShaderCodeVariableDesc.SizeInBytes;
-        for (uint variableIndex = 0; variableIndex < numVariables; ++variableIndex)
+        for (uint variableIndex = 0; variableIndex < bufferDesc.NumVariables; ++variableIndex)
         {
-            var address = firstVariableHandle + checked((nint)((long)variableIndex * stride));
-            var variable = Marshal.PtrToStructure<NativeShaderCodeVariableDesc>(address);
+            using var variable = bufferDesc.GetVariableAt(variableIndex);
             ReflectVariable(group, variable);
         }
     }
 
-    private void ReflectVariable(ShaderParameterGroup group, NativeShaderCodeVariableDesc variable)
+    private void ReflectVariable(ShaderParameterGroup group, ShaderCodeVariableDesc variable)
     {
-        if (variable.NumMembers != 0u && variable.PMembers != IntPtr.Zero)
-        {
-            ReflectVariableArray(group, variable.PMembers, variable.NumMembers);
-            return;
-        }
-
         if (!TrySanitizeUniformName(variable.Name, out var name))
             return;
 
@@ -398,7 +381,7 @@ public sealed class ShaderProgramReflection
         return true;
     }
 
-    private static uint GetUniformSize(NativeShaderCodeVariableDesc variable)
+    private static uint GetUniformSize(ShaderCodeVariableDesc variable)
     {
         if (variable.ArraySize > 1u)
         {
@@ -484,33 +467,4 @@ public sealed class ShaderProgramReflection
 
     private static uint CombineHash(uint lhs, uint rhs) => unchecked(lhs * 37u + rhs + 17u);
 
-    [StructLayout(LayoutKind.Sequential)]
-    private readonly struct NativeShaderCodeVariableDesc
-    {
-        public nint Name { get; init; }
-
-        public nint TypeName { get; init; }
-
-        public byte ClassValue { get; init; }
-
-        public byte BasicTypeValue { get; init; }
-
-        public byte NumRows { get; init; }
-
-        public byte NumColumns { get; init; }
-
-        public uint Offset { get; init; }
-
-        public uint ArraySize { get; init; }
-
-        public uint NumMembers { get; init; }
-
-        public nint PMembers { get; init; }
-
-        public ShaderCodeVariableClass Class => (ShaderCodeVariableClass)ClassValue;
-
-        public ShaderCodeBasicType BasicType => (ShaderCodeBasicType)BasicTypeValue;
-
-        public static readonly int SizeInBytes = Marshal.SizeOf<NativeShaderCodeVariableDesc>();
-    }
 }
