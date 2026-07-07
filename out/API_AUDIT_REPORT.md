@@ -79,7 +79,7 @@ This report is a verified snapshot, not a historical summary.
 
 ### Missing structs / aliases / helper types
 
-- `OptionalRawTextureRTV`
+- No additional supporting-type gaps are currently verified in this area beyond the wider incomplete class behavior below.
 
 ## Verified Deviations In Existing RenderAPI Types
 
@@ -184,7 +184,8 @@ Verified current state:
 - `RenderPoolSettings` now exists and the managed `RenderPool` exposes default settings through a property.
 - The managed pool now also allocates and caches quantized uniform `RawBuffer` instances.
 - The managed pool now also exposes `GetTexture(...)` plus `RecycleTextures()` with rbfx-style transient versus persistent raw-texture caching semantics.
-- Scratch-buffer helpers and the remaining logging/quota cleanup parity are still incomplete.
+- `AllocateScratchBuffer(...)` and `ReleaseScratchBuffer(...)` now exist with aligned base-block reuse and temporary overflow allocations.
+- The remaining gap is finer-grained parity: richer logging/quota cleanup detail and broader real-world renderer integration still need work.
 
 ### `RawTexture`
 
@@ -255,7 +256,7 @@ Verified current state:
 - `MarkDirty()` now propagates to the managed graphics backend instead of remaining a stub.
 - Swap-chain views now report live format and multisample metadata instead of defaulting to `Unknown` / `1`.
 - The static constructors now also accept `RawTexture`, but the lower-level `Texture` overloads still exist because the texture/resource split is not fully ported yet.
-- `OptionalRawTextureRTV` is still missing.
+- `OptionalRawTextureRTV` now exists as a managed wrapper type instead of remaining a local nullable alias in `RenderContext`.
 
 ### `RenderDeviceSettings`
 

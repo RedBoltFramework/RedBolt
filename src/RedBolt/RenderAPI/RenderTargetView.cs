@@ -2,6 +2,34 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+public readonly struct OptionalRawTextureRTV : IEquatable<OptionalRawTextureRTV>
+{
+    private readonly RenderTargetView? value;
+
+    public OptionalRawTextureRTV(RenderTargetView value)
+    {
+        this.value = value;
+    }
+
+    public bool HasValue => value.HasValue;
+
+    public RenderTargetView Value => value ?? throw new InvalidOperationException("Optional render target view has no value.");
+
+    public RenderTargetView? GetValueOrDefault() => value;
+
+    public bool Equals(OptionalRawTextureRTV other) => Nullable.Equals(value, other.value);
+
+    public override bool Equals(object? obj) => obj is OptionalRawTextureRTV other && Equals(other);
+
+    public override int GetHashCode() => value?.GetHashCode() ?? 0;
+
+    public static implicit operator OptionalRawTextureRTV(RenderTargetView value) => new(value);
+
+    public static implicit operator OptionalRawTextureRTV(RenderTargetView? value) => value.HasValue ? new OptionalRawTextureRTV(value.Value) : default;
+
+    public static implicit operator RenderTargetView?(OptionalRawTextureRTV value) => value.value;
+}
+
 public enum RenderTargetViewType
 {
     Resource,

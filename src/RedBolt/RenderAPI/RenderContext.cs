@@ -2,8 +2,6 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
-using OptionalRawTextureRTV = RenderTargetView?;
-
 public class RenderContext : Object
 {
     private readonly RenderDevice renderDevice;
@@ -30,7 +28,7 @@ public class RenderContext : Object
     {
         GetGraphics()?.UnbindRenderTargets();
         currentRenderTargets = [];
-        currentDepthStencil = null;
+        currentDepthStencil = default;
         UpdateCurrentRenderTargetInfo();
     }
 
@@ -119,7 +117,7 @@ public class RenderContext : Object
     public bool IsBoundAsRenderTarget(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        if (currentDepthStencil?.RenderTexture == texture)
+        if (currentDepthStencil.GetValueOrDefault()?.RenderTexture == texture)
             return true;
 
         foreach (var view in currentRenderTargets)
@@ -186,11 +184,12 @@ public class RenderContext : Object
 
     private IntVector2 ResolveRenderTargetSize(RenderTargetView? colorTarget, OptionalRawTextureRTV depthStencil)
     {
-        if (colorTarget?.IsSwapChain == true || depthStencil?.IsSwapChain == true)
+        var depthStencilView = depthStencil.GetValueOrDefault();
+        if (colorTarget?.IsSwapChain == true || depthStencilView?.IsSwapChain == true)
             return renderDevice.GetSwapChainSize();
         if (colorTarget?.RenderTexture is { } colorTexture)
             return new IntVector2(colorTexture.Width, colorTexture.Height);
-        if (depthStencil?.RenderTexture is { } depthTexture)
+        if (depthStencilView?.RenderTexture is { } depthTexture)
             return new IntVector2(depthTexture.Width, depthTexture.Height);
         return renderDevice.GetSwapChainSize();
     }

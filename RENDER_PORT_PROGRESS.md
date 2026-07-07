@@ -213,6 +213,9 @@ Slice 1 through the first runtime integration layer are landed:
     - `RenderPool.GetTexture(...)` and `RecycleTextures()` now exist with rbfx-style transient versus persistent texture caching semantics keyed by `RawTextureParams` plus optional persistence key
     - `RenderTargetView` now also accepts `RawTexture` inputs directly instead of only the lower-level managed `Texture` resources
     - `RawTexture.GetHandle()` now exists too, exposing the current native Diligent texture handle through `RenderDevice`/`Graphics` without forcing callers back into private graphics helpers
+  - the next raw-texture/pool support slice from the API audit is now in-tree too:
+    - `OptionalRawTextureRTV` now exists as a managed helper wrapper around an optional `RenderTargetView`, replacing the older local nullable alias in `RenderContext`
+    - `RenderPool.AllocateScratchBuffer(...)` and `ReleaseScratchBuffer(...)` now exist with rbfx-style 16-byte alignment, persistent scratch-block reuse, temporary overflow allocations, and growth after overflow release
   - focused validation for these RenderAPI slices used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~PipelineStateCacheTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun for the graphics-touching alias fix on `2026-07-07`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-pipelinestatecache.png` completed successfully and still produced the expected mushroom field, outlines, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
   - focused validation for the shader slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --filter 'FullyQualifiedName~RawShaderTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~ShaderFileTests'` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
@@ -226,6 +229,7 @@ Slice 1 through the first runtime integration layer are landed:
   - focused validation for the raw-texture/pool slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawTextureTests|FullyQualifiedName~RawBufferTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - focused validation for the raw-texture handle follow-up used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawTextureTests|FullyQualifiedName~GraphicsRenderTargetViewTests|FullyQualifiedName~RenderContextTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun again on `2026-07-07` after the `RawTexture.GetHandle()` follow-up using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawtexture-handle-1.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outlines, ground plane, and black background
+  - focused validation for the pool-support slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RenderPoolTests|FullyQualifiedName~RawTextureTests|FullyQualifiedName~RawBufferTests|FullyQualifiedName~RenderDeviceTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
 
 ## Current Cross-Cutting Requirement
 
@@ -250,7 +254,7 @@ Slice 1 through the first runtime integration layer are landed:
   - thread `ShaderProgramReflection.ConnectToShaderVariables(...)` into real pipeline-state/resource-binding setup
 - Deepen the new raw-texture/pool slice toward fuller rbfx parity:
   - move backend-facing raw-texture handle/UAV ownership out of ad-hoc `Texture`/`Graphics` helpers and behind `RawTexture`
-  - add the remaining pool helpers (`OptionalRawTextureRTV`, scratch-buffer allocation, richer cache cleanup/logging parity)
+  - add the remaining pool helpers (richer cache cleanup/logging parity and any missing transient helpers beyond scratch allocation)
   - route more render-buffer and output-target code through `RawTexture` instead of direct `Texture` references
 - Continue from the new `RawBuffer`, `ConstantBufferCollection`, `ShaderProgramReflection`, and `DrawCommandQueue` slices into real backend playback:
   - thread shader reflections and resource binding through recorded commands
