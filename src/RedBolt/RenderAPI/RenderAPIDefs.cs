@@ -169,6 +169,33 @@ public sealed class RenderPoolSettings
 
 public readonly record struct RawBufferParams(BufferType Type, uint Size, uint Stride, BufferFlag Flags);
 
+public readonly record struct RawTextureParams(
+    TextureType Type,
+    TextureFormat Format,
+    TextureFlag Flags,
+    IntVector3 Size,
+    uint ArraySize = 1u,
+    uint NumLevels = 0u,
+    uint MultiSample = 1u,
+    uint NumLevelsRtv = 0u);
+
+public readonly record struct RawTextureUAVKey(
+    bool CanWrite = true,
+    bool CanRead = true,
+    uint FirstSlice = 0u,
+    uint FirstLevel = 0u,
+    uint NumSlices = 0u,
+    uint NumLevels = 0u)
+{
+    public RawTextureUAVKey ReadOnly() => this with { CanWrite = false };
+
+    public RawTextureUAVKey WriteOnly() => this with { CanRead = false };
+
+    public RawTextureUAVKey FromLevel(uint level, uint numLevels = 0u) => this with { FirstLevel = level, NumLevels = numLevels };
+
+    public RawTextureUAVKey FromSlice(uint slice, uint numSlices = 0u) => this with { FirstSlice = slice, NumSlices = numSlices };
+}
+
 public enum BufferType
 {
     Vertex,

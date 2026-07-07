@@ -24,10 +24,22 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         return new RenderTargetView(texture, RenderTargetViewType.Resource);
     }
 
+    public static RenderTargetView Texture(RawTexture texture)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return Texture(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."));
+    }
+
     public static RenderTargetView TextureSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
         return new RenderTargetView(texture, RenderTargetViewType.ResourceSlice, slice);
+    }
+
+    public static RenderTargetView TextureSlice(RawTexture texture, uint slice)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return TextureSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
     }
 
     public static RenderTargetView ReadOnlyDepth(Texture texture)
@@ -36,10 +48,22 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResource);
     }
 
+    public static RenderTargetView ReadOnlyDepth(RawTexture texture)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return ReadOnlyDepth(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."));
+    }
+
     public static RenderTargetView ReadOnlyDepthSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
         return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResourceSlice, slice);
+    }
+
+    public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, uint slice)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return ReadOnlyDepthSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
     }
 
     public bool IsSwapChain => Type is RenderTargetViewType.SwapChainColor or RenderTargetViewType.SwapChainDepthStencil;

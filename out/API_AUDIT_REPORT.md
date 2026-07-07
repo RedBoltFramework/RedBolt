@@ -36,6 +36,8 @@ This report is a verified snapshot, not a historical summary.
   - `RenderDeviceSettingsVulkan`
   - `RenderDeviceSettingsD3D12`
   - `RenderPoolSettings`
+  - `RawTextureParams`
+  - `RawTextureUAVKey`
   - `DrawCommandDescription`
   - `ShaderResourceRange`
 - The buffer layer is no longer completely absent:
@@ -64,7 +66,7 @@ This report is a verified snapshot, not a historical summary.
 | `GraphicsPipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
 | `ComputePipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
 | `ConstantBufferCollection` | Present, incomplete | Packing/allocation helper exists, but it is not wired into a real draw-command recording path yet |
-| `RawTexture` | Missing | Texture work is still in `Texture` / `Graphics` |
+| `RawTexture` | Present, incomplete | Managed wrapper now exists around the current `Texture` hierarchy, but backend handle/UAV ownership is still not a full RenderAPI-native layer |
 | `RawBuffer` | Present, incomplete | Buffer device object exists with native `IBuffer` creation and shadow/update helpers, but higher-level buffer classes and command recording still do not route through it |
 | `RawShader` | Present, incomplete | Exists as a `DeviceObject` that owns bytecode and native shader handles, but reflection/loading/integration are still sparse |
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
@@ -77,8 +79,6 @@ This report is a verified snapshot, not a historical summary.
 
 ### Missing structs / aliases / helper types
 
-- `RawTextureParams`
-- `RawTextureUAVKey`
 - `OptionalRawTextureRTV`
 
 ## Verified Deviations In Existing RenderAPI Types
@@ -183,7 +183,22 @@ Verified current state:
 - The type now exists and is reachable from `RenderDevice` and `RenderContext`.
 - `RenderPoolSettings` now exists and the managed `RenderPool` exposes default settings through a property.
 - The managed pool now also allocates and caches quantized uniform `RawBuffer` instances.
-- Texture pooling, scratch-buffer helpers, and most frame-end cleanup behavior are still missing.
+- The managed pool now also exposes `GetTexture(...)` plus `RecycleTextures()` with rbfx-style transient versus persistent raw-texture caching semantics.
+- Scratch-buffer helpers and the remaining logging/quota cleanup parity are still incomplete.
+
+### `RawTexture`
+
+Verified current state:
+
+- `RawTexture` now exists as a `DeviceObject`.
+- The current managed surface owns:
+  - `RawTextureParams`
+  - sampler-state metadata
+  - a wrapped managed `Texture2D` / `TextureCube` / `Texture2DArray`
+- Current parity limits are still important:
+  - this is still a wrapper over the older `Texture` resource hierarchy, not yet the primary backend-owned GPU texture layer
+  - `Texture3D`, GPU handle access, UAV view ownership, updates/readback/resolve helpers, and fuller loss/restore behavior are still missing
+  - `RenderTargetView` can now accept `RawTexture`, but much of the rest of the renderer still talks directly to `Texture`
 
 ### `ConstantBufferCollection`
 
@@ -237,7 +252,7 @@ Verified current state:
 - `GetView()` now exists and resolves the effective native Diligent texture view through the active managed backend.
 - `MarkDirty()` now propagates to the managed graphics backend instead of remaining a stub.
 - Swap-chain views now report live format and multisample metadata instead of defaulting to `Unknown` / `1`.
-- The static constructors still accept `Texture` or no argument, while rbfx uses `RawTexture*` / `RenderDevice*`.
+- The static constructors now also accept `RawTexture`, but the lower-level `Texture` overloads still exist because the texture/resource split is not fully ported yet.
 - `OptionalRawTextureRTV` is still missing.
 
 ### `RenderDeviceSettings`
