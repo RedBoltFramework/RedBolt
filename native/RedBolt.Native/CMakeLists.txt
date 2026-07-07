@@ -8,11 +8,13 @@ set_target_properties(redbolt-diligent-support PROPERTIES
 
 add_library(RedBolt.Native SHARED
     "${REDBOLT_SDL_BINDINGS_CPP}"
-    "${REDBOLT_DILIGENT_BINDINGS_CPP}")
+    "${REDBOLT_DILIGENT_BINDINGS_CPP}"
+    "${REDBOLT_IMGUI_BINDINGS_CPP}")
 
 set_source_files_properties(
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
+    "${REDBOLT_IMGUI_BINDINGS_CPP}"
     PROPERTIES GENERATED TRUE)
 
 add_dependencies(RedBolt.Native redbolt-generate-native-bindings)
@@ -33,6 +35,7 @@ target_link_libraries(RedBolt.Native
         PkgConfig::REDBOLT_SDL2_IMAGE
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
+        ImGui
         redbolt-native-support
         redbolt-diligent-support)
 

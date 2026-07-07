@@ -11,9 +11,11 @@ redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}" "REDBOLT_SHARPCPP_ROOT")
 
 set(REDBOLT_SDL_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/SDL" CACHE INTERNAL "SDL source root")
 set(REDBOLT_DILIGENT_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/Diligent" CACHE INTERNAL "Diligent source root")
+set(REDBOLT_IMGUI_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/imgui" CACHE INTERNAL "ImGui source root")
 
 redbolt_require_path("${REDBOLT_SDL_SOURCE_ROOT}/CMakeLists.txt" "SDL source")
 redbolt_require_path("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface/GraphicsTypes.h" "Diligent headers")
+redbolt_require_path("${REDBOLT_IMGUI_SOURCE_ROOT}/imgui.h" "ImGui headers")
 redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/Export.hpp" "SharpCpp native support headers")
 
 if(NOT COMMAND install_third_party_libs)
@@ -196,10 +198,12 @@ add_custom_target(redbolt-diligent-build
         Diligent-GraphicsEngineOpenGL-static
     COMMENT "Building RedBolt Diligent dependency targets")
 
+add_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui" EXCLUDE_FROM_ALL)
+
 add_library(redbolt-diligent-header-smoke STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/src/DiligentHeaderSmoke.cpp")
 target_link_libraries(redbolt-diligent-header-smoke PRIVATE redbolt-diligent-headers)
 
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build redbolt-diligent-header-smoke
+    DEPENDS SDL2 redbolt-diligent-build ImGui redbolt-diligent-header-smoke
     COMMENT "Building RedBolt initial native dependency batch")

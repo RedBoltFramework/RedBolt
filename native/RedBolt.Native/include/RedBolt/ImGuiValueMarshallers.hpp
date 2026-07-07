@@ -1,0 +1,87 @@
+#pragma once
+
+#include <SharpCpp/Marshaller.hpp>
+#include <imgui.h>
+
+namespace SharpCpp
+{
+
+template <>
+struct [[sharpcpp::managed_type(
+    public_type = "global::RedBolt.Vector2",
+    marshaller_type = "global::RedBolt.Vector2",
+    suppress_emission = true
+)]]
+Marshaller<ImVec2>
+{
+    using cpp_type = ImVec2;
+    using abi_type = ImVec2;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return v; }
+};
+
+template <>
+struct Marshaller<const ImVec2&>
+{
+    using cpp_type = const ImVec2&;
+    using abi_type = const ImVec2*;
+    abi_type ConvertToAbi(cpp_type v) noexcept { return &v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return *v; }
+};
+
+template <>
+struct ReturnMarshaller<ImVec2>
+{
+    using cpp_type = ImVec2;
+    using abi_type = ImVec2;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(const abi_type& v) noexcept { return v; }
+};
+
+template <>
+struct [[sharpcpp::managed_type(
+    public_type = "global::RedBolt.Vector4",
+    marshaller_type = "global::RedBolt.Vector4",
+    suppress_emission = true
+)]]
+Marshaller<ImVec4>
+{
+    using cpp_type = ImVec4;
+    using abi_type = ImVec4;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return v; }
+};
+
+template <>
+struct Marshaller<const ImVec4&>
+{
+    using cpp_type = const ImVec4&;
+    using abi_type = const ImVec4*;
+    abi_type ConvertToAbi(cpp_type v) noexcept { return &v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return *v; }
+};
+
+template <>
+struct ReturnMarshaller<ImVec4>
+{
+    using cpp_type = ImVec4;
+    using abi_type = ImVec4;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(const abi_type& v) noexcept { return v; }
+};
+
+template <>
+struct [[sharpcpp::managed_type(
+    public_type = "global::RedBolt.Color",
+    marshaller_type = "global::RedBolt.Color",
+    suppress_emission = true
+)]]
+Marshaller<ImColor>
+{
+    using cpp_type = ImColor;
+    using abi_type = ImColor;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return v; }
+};
+
+} // namespace SharpCpp

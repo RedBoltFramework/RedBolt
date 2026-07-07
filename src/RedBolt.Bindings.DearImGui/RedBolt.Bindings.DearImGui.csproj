@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Bindings.DearImGui</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/dearimgui')">
+    <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs" LinkBase="Generated" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RedBolt">
+      <HintPath>$(RedBoltOutputDir)/RedBolt.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="SharpCpp.Support">
+      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

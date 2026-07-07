@@ -89,9 +89,7 @@ internal static class Program
 
             var clangArguments = BuildClangArguments(options, descriptor);
             var marshallerClangArguments = BuildMarshallerClangArguments(clangArguments, descriptor);
-            var marshallerHeaders = descriptor.UseMarshallerConfiguration
-                ? new[] { Path.Combine(options.SharpCppRoot, "include", "SharpCpp", "Marshaller.hpp") }
-                : Array.Empty<string>();
+            var marshallerHeaders = BuildMarshallerHeaders(options, descriptor);
 
             var parser = new ClangSharpHeaderParser();
             var compilation = parser.Parse(new ClangSharpParseRequest(
@@ -107,12 +105,14 @@ internal static class Program
                     OwnedFileRoots: options.OwnedHeaders,
                     MarshallerClangArguments: marshallerClangArguments));
 
-            compilation.NamespaceMappings = descriptor.Surface == "diligent"
-                ? new Dictionary<string, string>(StringComparer.Ordinal)
+            compilation.NamespaceMappings = descriptor.Surface switch
             {
-                ["Diligent"] = descriptor.ManagedNamespace
-            }
-                : new Dictionary<string, string>(StringComparer.Ordinal);
+                "diligent" => new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["Diligent"] = descriptor.ManagedNamespace
+                },
+                _ => new Dictionary<string, string>(StringComparer.Ordinal)
+            };
 
             foreach (var marshallerHeader in marshallerHeaders)
                 compilation.NativeSupportHeaders.Add(marshallerHeader.Replace('\\', '/'));
@@ -122,6 +122,7 @@ internal static class Program
             var prunedCount = IgnoreStdlibWrappers(compilation);
             AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
             prunedCount += PruneDependencySurface(compilation, descriptor);
+            prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
             prunedCount += PruneInvalidTypeAliases(compilation);
 
             var renderedBindings = BindingOutputRenderer.Render(
@@ -204,7 +205,7 @@ internal static class Program
         if (!descriptor.UseMarshallerConfiguration)
             return clangArguments.ToList();
 
-        if (descriptor.Surface != "sdl")
+        if (descriptor.Surface != "sdl" && descriptor.Surface != "dearimgui")
             return clangArguments.ToList();
 
         var marshallerArguments = new List<string>(clangArguments.Count);
@@ -237,6 +238,34 @@ internal static class Program
             marshallerArguments.Insert(replacedLanguageMode ? 1 : 0, "-std=c++20");
 
         return marshallerArguments;
+    }
+
+    private static List<string> BuildMarshallerHeaders(GeneratorOptions options, BindingSurfaceDescriptor descriptor)
+    {
+        if (!descriptor.UseMarshallerConfiguration)
+            return new List<string>();
+
+        var marshallerHeaders = new List<string>
+        {
+            Path.Combine(options.SharpCppRoot, "include", "SharpCpp", "Marshaller.hpp")
+        };
+
+        if (descriptor.Surface == "dearimgui")
+        {
+            marshallerHeaders.Add(Path.Combine(
+                options.SharpCppRoot,
+                "..",
+                "native",
+                "RedBolt.Native",
+                "include",
+                "RedBolt",
+                "ImGuiValueMarshallers.hpp"));
+        }
+
+        return marshallerHeaders
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     }
 
     private static void MarkNativeInterfaceWrappers(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
@@ -321,7 +350,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface == "sdl")
+        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui")
             return 0;
 
         if (descriptor.Surface == "diligent")
@@ -334,6 +363,14 @@ internal static class Program
         var prunedCount = PruneMembers(compilation.Members, descriptor);
         compilation.InvalidateCaches();
         return prunedCount;
+    }
+
+    private static int PruneImGuiSurfaceIfApplicable(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "dearimgui")
+            return 0;
+
+        return PruneImGuiSurface(compilation);
     }
 
     private static int PruneDiligentSurface(BindingCompilation compilation)
@@ -386,6 +423,91 @@ internal static class Program
         }
 
         return prunedCount;
+    }
+
+    private static readonly HashSet<string> ImGuiProblematicRecordCppNames = new(StringComparer.Ordinal)
+    {
+        "ImFontGlyph",
+        "ImFontBaked",
+        "ImGuiStoragePair",
+        "ImGuiInputTextCallbackData",
+        "ImFontAtlas"
+    };
+
+    private static readonly HashSet<string> ImGuiProblematicFunctionNames = new(StringComparer.Ordinal)
+    {
+        "IsMouseReleasedWithDelay",
+        "GetItemFlags",
+        "GetMouseCursor",
+        "TableGetColumnFlags"
+    };
+
+    private static int PruneImGuiSurface(BindingCompilation compilation)
+    {
+        var prunedCount = 0;
+
+        foreach (var record in compilation.Records)
+        {
+            if (ImGuiProblematicRecordCppNames.Contains(record.CppQualifiedName))
+            {
+                record.SetSilentExclusionReason("Dear ImGui record contains bit-fields, anonymous unions, or char* fields not yet supported by SharpCpp rendering");
+                prunedCount++;
+            }
+        }
+
+        foreach (var function in compilation.Functions)
+        {
+            if (ImGuiProblematicFunctionNames.Contains(function.NativeName))
+            {
+                function.SetSilentExclusionReason("Dear ImGui function has unsupported C++ syntax in the managed surface");
+                prunedCount++;
+            }
+        }
+
+        PruneImGuiFunctionsWithExcludedTypes(compilation);
+        compilation.InvalidateCaches();
+        return prunedCount;
+    }
+
+    private static void PruneImGuiFunctionsWithExcludedTypes(BindingCompilation compilation)
+    {
+        var excludedRecordSymbolIds = compilation.Records
+            .Where(static record => record.IsIgnored())
+            .Select(static record => record.SymbolId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var function in compilation.Functions)
+        {
+            if (function.IsIgnored())
+                continue;
+
+            if (ReferencesExcludedRecord(function.ReturnType, excludedRecordSymbolIds) ||
+                function.Parameters.Any(p => ReferencesExcludedRecord(p.Type, excludedRecordSymbolIds)))
+            {
+                function.SetSilentExclusionReason("Dear ImGui function references an excluded record type");
+            }
+        }
+
+        foreach (var field in compilation.Records.SelectMany(static r => r.Members.OfType<FieldBinding>()))
+        {
+            if (field.IsIgnored())
+                continue;
+
+            if (ReferencesExcludedRecord(field.Type, excludedRecordSymbolIds))
+            {
+                field.SetSilentExclusionReason("Dear ImGui field references an excluded record type");
+            }
+        }
+    }
+
+    private static bool ReferencesExcludedRecord(BindingType type, HashSet<string> excludedSymbolIds)
+    {
+        if (type.RecordId is not null && excludedSymbolIds.Contains(type.RecordId))
+            return true;
+
+        return type.GenericArguments.Any(a => ReferencesExcludedRecord(a, excludedSymbolIds)) ||
+            (type.FixedArrayElementType is not null && ReferencesExcludedRecord(type.FixedArrayElementType, excludedSymbolIds)) ||
+            (type.DynamicArrayElementType is not null && ReferencesExcludedRecord(type.DynamicArrayElementType, excludedSymbolIds));
     }
 
     private static bool IsRetainedDiligentFunction(FunctionBinding function)
@@ -512,7 +634,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -549,6 +671,16 @@ internal static class Program
                     "redbolt_diligent",
                     "-xc++",
                     "-std=c++20",
+                    true),
+                "dearimgui" => new BindingSurfaceDescriptor(
+                    "dearimgui",
+                    "RedBolt.Bindings.DearImGui",
+                    "RedBolt.Bindings.DearImGui",
+                    "ImGui",
+                    "RedBolt.Native",
+                    "redbolt_dearimgui",
+                    "-xc++",
+                    "-std=c++17",
                     true),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };
