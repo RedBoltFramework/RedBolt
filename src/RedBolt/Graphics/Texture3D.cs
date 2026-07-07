@@ -45,7 +45,7 @@ public sealed class Texture3D : Texture
         if (width <= 0 || height <= 0 || depth <= 0)
             return false;
 
-        SetDimensions(width, height, depth, format);
+        SetDimensions(width, height, depth, format, 1, false);
         levelData.Clear();
         RefreshTotalMemoryUse();
         return true;

@@ -448,6 +448,56 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_output_target_info_derives_multisample_from_texture()
+    {
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8, 4));
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8, 4));
+
+        var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget);
+
+        Assert.Equal(4, output.MultiSample);
+        Assert.Equal(4, output.ColorTarget.GetMultiSample());
+        Assert.Equal(4, output.DepthStencilTarget?.GetMultiSample());
+    }
+
+    [Fact]
+    public void Render_buffer_manager_refreshes_managed_output_buffers_with_requested_multisample()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            InheritMultiSampleLevel = false,
+            MultiSampleLevel = 4,
+            ReadableDepth = true
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings
+        {
+            ReadableColor = true
+        });
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        Assert.Equal(4, manager.GetOutputMultiSample());
+        Assert.Equal(4, manager.GetColorOutput().GetTexture()!.MultiSample);
+        Assert.Equal(4, manager.GetDepthStencilTexture()!.MultiSample);
+    }
+
+    [Fact]
+    public void Texture_render_buffer_propagates_no_auto_resolve_flag_into_managed_texture()
+    {
+        var buffer = new TextureRenderBuffer(new RenderBufferParams(
+            TextureFormat.RGBA8,
+            4,
+            RenderBufferFlag.NoMultiSampledAutoResolve));
+
+        buffer.RefreshForViewport(new IntRect(0, 0, 320, 200));
+
+        Assert.Equal(4, buffer.Texture.MultiSample);
+        Assert.True(buffer.Texture.NoMultiSampledAutoResolve);
+    }
+
+    [Fact]
     public void Render_buffer_manager_respects_color_space_over_output_texture_format()
     {
         var manager = new RenderBufferManager();
@@ -472,7 +522,7 @@ public sealed class RenderPipelineTests
             new IntRect(0, 0, 320, 200));
 
         Assert.Equal(TextureFormat.RGBA8, manager.GetOutputColorFormat());
-        Assert.True(manager.IsLinearColorSpace());
+        Assert.False(manager.IsLinearColorSpace());
         Assert.False(manager.IsHDR());
         Assert.NotSame(renderTarget, manager.GetColorOutput().GetTexture());
         Assert.Equal(TextureFormat.RGBA8, manager.GetColorOutput().GetTexture()!.Format);
@@ -503,6 +553,75 @@ public sealed class RenderPipelineTests
 
         Assert.True(output.LinearColorSpace);
         Assert.True(output.HDR);
+    }
+
+    [Fact]
+    public void Render_buffer_manager_allocates_linear_ldr_intermediate_buffer_for_swapchain_output()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.LinearLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+
+        var colorOutput = manager.GetColorOutput().GetTexture();
+
+        Assert.NotNull(colorOutput);
+        Assert.True(manager.IsLinearColorSpace());
+        Assert.False(manager.IsHDR());
+        Assert.True(colorOutput!.GetSRGB());
+        Assert.True(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
+    public void Render_buffer_manager_allocates_linear_ldr_intermediate_buffer_for_non_srgb_texture_output()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.LinearLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+
+        manager.OnViewportDefined(
+            RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget),
+            new IntRect(0, 0, 320, 200));
+
+        Assert.NotSame(colorTarget, manager.GetColorOutput().GetTexture());
+        Assert.True(manager.GetColorOutput().GetTexture()!.GetSRGB());
+        Assert.True(manager.NeedsViewportResolve());
+    }
+
+    [Fact]
+    public void Render_buffer_manager_uses_matching_srgb_texture_output_for_linear_ldr()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings
+        {
+            ColorSpace = RenderPipelineColorSpace.LinearLDR
+        });
+        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+
+        var colorTarget = new Texture2D("Textures/ViewportColor");
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        colorTarget.SetSRGB(true);
+        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+
+        manager.OnViewportDefined(
+            RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget),
+            new IntRect(0, 0, 320, 200));
+
+        Assert.Same(colorTarget, manager.GetColorOutput().GetTexture());
+        Assert.True(manager.IsLinearColorSpace());
+        Assert.False(manager.NeedsViewportResolve());
     }
 
     [Fact]

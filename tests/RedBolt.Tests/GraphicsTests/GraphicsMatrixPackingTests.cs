@@ -22,4 +22,19 @@ public sealed class GraphicsMatrixPackingTests
         Buffer.BlockCopy(buffer, 0, uploaded, 0, buffer.Length);
         Assert.Equal(matrix.Data, uploaded);
     }
+
+    [Fact]
+    public void Fullscreen_camera_buffer_flips_projection_when_requested()
+    {
+        var method = typeof(Graphics).GetMethod("BuildFullscreenCameraBufferData", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("Graphics.BuildFullscreenCameraBufferData was not found.");
+
+        var regular = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4(0.5f), new Vector2(0.25f, 0.5f), false]));
+        var flipped = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4(0.5f), new Vector2(0.25f, 0.5f), true]));
+
+        Assert.Equal(1.0f, BitConverter.ToSingle(regular, 128 + 5 * sizeof(float)));
+        Assert.Equal(-1.0f, BitConverter.ToSingle(flipped, 128 + 5 * sizeof(float)));
+        Assert.Equal(0.25f, BitConverter.ToSingle(flipped, 304));
+        Assert.Equal(0.5f, BitConverter.ToSingle(flipped, 308));
+    }
 }

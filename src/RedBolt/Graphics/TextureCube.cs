@@ -41,12 +41,12 @@ public sealed class TextureCube : Texture
         return true;
     }
 
-    public bool SetSize(int size, TextureFormat format)
+    public bool SetSize(int size, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
     {
         if (size <= 0)
             return false;
 
-        SetDimensions(size, size, 1, format);
+        SetDimensions(size, size, 1, format, multiSample, noMultiSampledAutoResolve);
         faceData.Clear();
         RefreshTotalMemoryUse();
         return true;

@@ -48,5 +48,5 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
 
     public TextureFormat GetFormat() => RenderTexture?.Format ?? TextureFormat.Unknown;
 
-    public int GetMultiSample() => 1;
+    public int GetMultiSample() => RenderTexture?.MultiSample ?? 1;
 }

@@ -45,6 +45,10 @@ public abstract class Texture : ResourceWithMetadata
 
     public int Depth { get; protected set; } = 1;
 
+    public int MultiSample { get; protected set; } = 1;
+
+    public bool NoMultiSampledAutoResolve { get; protected set; }
+
     public TextureFilterMode FilterMode { get; private set; } = TextureFilterMode.Default;
 
     public uint Anisotropy { get; private set; }
@@ -135,6 +139,10 @@ public abstract class Texture : ResourceWithMetadata
 
     public int GetLevelDepth(uint level) => GetLevelDimension(Depth, level);
 
+    public int GetMultiSample() => MultiSample;
+
+    public bool GetNoMultiSampledAutoResolve() => NoMultiSampledAutoResolve;
+
     public uint GetComponents()
     {
         return Format switch
@@ -161,11 +169,14 @@ public abstract class Texture : ResourceWithMetadata
         return (uint)Math.Max(width, 0) * GetComponents();
     }
 
-    protected void SetDimensions(int width, int height, int depth, TextureFormat format)
+    protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
+        bool noMultiSampledAutoResolve = false)
     {
         Width = Math.Max(width, 0);
         Height = Math.Max(height, 0);
         Depth = Math.Max(depth, 1);
+        MultiSample = Math.Max(multiSample, 1);
+        NoMultiSampledAutoResolve = noMultiSampledAutoResolve;
         Format = format;
         Levels = Levels == 0 ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth))) : Math.Max(Levels, 1u);
     }

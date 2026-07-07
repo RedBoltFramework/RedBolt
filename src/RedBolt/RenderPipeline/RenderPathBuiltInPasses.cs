@@ -232,7 +232,7 @@ public sealed class ToneMappingPass : RenderPass
         renderBufferManager.SetOutputRenderTargets(graphics);
         renderBufferManager.DrawFeedbackViewportQuad(
             graphics,
-            "v2/P_ToneMapping",
+            "P_ToneMapping",
             GetModeDefines(mode),
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -365,7 +365,7 @@ public sealed class AutoExposurePass : RenderPass
         renderBufferManager.SetOutputRenderTargets(graphics);
         graphics.DrawFullscreenQuad(
             "Apply exposure",
-            "v2/P_AutoExposure",
+            "P_AutoExposure",
             currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -482,7 +482,7 @@ public sealed class AutoExposurePass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, buffers.AdaptedLuminance);
         graphics.DrawFullscreenQuad(
             "Adapt luminosity",
-            "v2/P_AutoExposure",
+            "P_AutoExposure",
             "ADAPTLUMINANCE",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -507,7 +507,7 @@ public sealed class AutoExposurePass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, target);
         graphics.DrawFullscreenQuad(
             "Downsample luminosity buffer",
-            "v2/P_AutoExposure",
+            "P_AutoExposure",
             shaderDefines,
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -726,7 +726,7 @@ public sealed class BloomPass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, destination);
         graphics.DrawFullscreenQuad(
             "Gather bright regions",
-            "v2/P_Bloom",
+            "P_Bloom",
             "BRIGHT",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -760,7 +760,7 @@ public sealed class BloomPass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, temporary);
         graphics.DrawFullscreenQuad(
             "Blur vertically",
-            "v2/P_Bloom",
+            "P_Bloom",
             "BLURH",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -774,7 +774,7 @@ public sealed class BloomPass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, final);
         graphics.DrawFullscreenQuad(
             "Blur horizontally",
-            "v2/P_Bloom",
+            "P_Bloom",
             "BLURV",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -797,7 +797,7 @@ public sealed class BloomPass : RenderPass
         var bloomParameters = CreateBloomParameters(Vector3.Zero, intensity, renderBufferManager.GetInvOutputSize());
         graphics.DrawFullscreenQuad(
             "Apply bloom",
-            "v2/P_Bloom",
+            "P_Bloom",
             "COMBINE",
             BlendMode.Add,
             bilinearColorSampler: true,
@@ -1079,7 +1079,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             "Apply SSAO",
-            "v2/P_SSAO",
+            "P_SSAO",
             normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -1125,7 +1125,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             debugComment,
-            "v2/P_SSAO",
+            "P_SSAO",
             shaderDefines,
             BlendMode.Replace,
             bilinearColorSampler: true,
@@ -1147,7 +1147,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         renderBufferManager.SetOutputRenderTargets(graphics);
         graphics.DrawFullscreenQuad(
             "SSAO Combine",
-            "v2/P_SSAO",
+            "P_SSAO",
             "COMBINE",
             BlendMode.Alpha,
             bilinearColorSampler: true,
@@ -1198,7 +1198,7 @@ public sealed class OutlineRenderPass : RenderPass
         renderBufferManager.SetOutputRenderTargets(graphics);
         graphics.DrawFullscreenQuad(
             "Apply outline",
-            "v2/P_Outline",
+            "P_Outline",
             renderBufferManager.IsLinearColorSpace() ? "URHO3D_GAMMA_CORRECTION" : string.Empty,
             BlendMode.Alpha,
             bilinearColorSampler: true,

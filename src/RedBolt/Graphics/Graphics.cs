@@ -281,6 +281,9 @@ layout(std140) uniform Material
             : null;
         currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
 
+        MarkRenderTargetDirty(colorTarget);
+        MarkRenderTargetDirty(depthStencilTarget);
+
         using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
             viewportRect.Left,
             viewportRect.Top,
@@ -429,10 +432,10 @@ layout(std140) uniform Material
         if (!IsInitialized || swapChain is null)
             return;
 
-        swapChain.Present(0);
-
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SavePresentedFrameScreenshot(screenshotPath);
+
+        swapChain.Present(0);
     }
 
     internal void UnbindRenderTargets()
@@ -456,7 +459,7 @@ layout(std140) uniform Material
             sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
         DrawFullscreenQuad(
             "Copy texture to output",
-            "v2/X_CopyTexture",
+            "X_CopyTexture",
             string.Empty,
             BlendMode.Replace,
             bilinearFiltering,
@@ -482,7 +485,7 @@ layout(std140) uniform Material
         if (destinationTexture.IsNull)
             return false;
 
-        var uploadedSource = GetOrCreateUploadedTexture(sourceTexture2D).Texture;
+        var uploadedSource = GetCopySourceTexture(sourceTexture2D);
         using var copyAttributes = new CopyTextureAttribs(
             uploadedSource,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
@@ -630,10 +633,18 @@ layout(std140) uniform Material
         if (device is null || immediateContext is null)
             throw new InvalidOperationException("Graphics system is not initialized.");
 
-        var sourceDescription = sourceTexture.GetDesc();
+        using var sourceDescription = sourceTexture.GetDesc();
         var width = checked((int)sourceDescription.Width);
         var height = checked((int)sourceDescription.Height);
-        var stagingDescription = sourceTexture.GetDesc();
+
+        using var stagingDescOwner = CreateTextureDesc();
+        var stagingDescription = stagingDescOwner.Desc;
+        stagingDescription.Type = sourceDescription.Type;
+        stagingDescription.Width = sourceDescription.Width;
+        stagingDescription.Height = sourceDescription.Height;
+        stagingDescription.ArraySizeOrDepth = sourceDescription.ArraySizeOrDepth;
+        stagingDescription.MipLevels = 1;
+        stagingDescription.Format = sourceDescription.Format;
         stagingDescription.BindFlags = BindFlags.BindNone;
         stagingDescription.CPUAccessFlags = CpuAccessFlags.CpuAccessRead;
         stagingDescription.MiscFlags = MiscTextureFlags.MiscTextureFlagNone;
@@ -657,8 +668,7 @@ layout(std140) uniform Material
             immediateContext.WaitForIdle();
 
             using var mappedSubresource = new MappedTextureSubresource();
-            using var mapRegion = new Box(0, sourceDescription.Width, 0, sourceDescription.Height, 0, 1);
-            immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, mapRegion, mappedSubresource);
+            immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedSubresource);
             try
             {
                 var rgbaPixels = new byte[checked(width * height * 4)];
@@ -684,7 +694,7 @@ layout(std140) uniform Material
 
     private void SavePresentedFrameScreenshot(string fileName)
     {
-        if (TrySaveCurrentFramebufferScreenshot(fileName, GlFront))
+        if (TrySaveCurrentFramebufferScreenshot(fileName, GlBack))
             return;
 
         if (renderTargetView is not null)
@@ -1148,7 +1158,14 @@ layout(std140) uniform Material
         if (device is null)
             return null;
 
-        var key = new FullscreenPipelineKey(shaderName, shaderDefines, blendMode, bilinearColorSampler, currentColorTargetFormat, currentDepthTargetFormat);
+        var effectiveShaderDefines = AppendShaderDefine(shaderDefines, "URHO3D_GEOMETRY_STATIC");
+        var key = new FullscreenPipelineKey(
+            shaderName,
+            effectiveShaderDefines,
+            blendMode,
+            bilinearColorSampler,
+            currentColorTargetFormat,
+            currentDepthTargetFormat);
         if (fullscreenPipelines.TryGetValue(key, out var cached))
             return cached;
 
@@ -1157,8 +1174,8 @@ layout(std140) uniform Material
         if (shaderResource is null)
             return null;
 
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, GraphicsBackend.OpenGL);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, effectiveShaderDefines, GraphicsBackend.OpenGL);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, GraphicsBackend.OpenGL);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
         var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
@@ -1243,14 +1260,15 @@ layout(std140) uniform Material
         if (clearFramebufferPipelines.TryGetValue(key, out var cached))
             return cached;
 
-        const string shaderName = "v2/X_ClearFramebuffer";
+        const string shaderName = "X_ClearFramebuffer";
+        const string shaderDefines = "URHO3D_GEOMETRY_STATIC";
         var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
         var shaderResource = resourceCache?.GetResourceOrNull<Shader>(shaderName);
         if (shaderResource is null)
             return null;
 
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, string.Empty, GraphicsBackend.OpenGL);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, string.Empty, GraphicsBackend.OpenGL);
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, GraphicsBackend.OpenGL);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
         var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
@@ -1376,25 +1394,9 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
-    private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize)
+    private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
     {
-        var data = new byte[CameraBufferSize];
-        WriteMatrix4(data, 0, Matrix4.Identity);
-        WriteMatrix4(data, 64, Matrix4.Identity);
-        WriteMatrix4(data, 128, Matrix4.Identity);
-        WriteVector4(data, 192, Vector4.Zero);
-        WriteVector4(data, 208, Vector4.Zero);
-        WriteFloat(data, 224, 0.0f);
-        WriteFloat(data, 228, 1.0f);
-        WriteVector4(data, 240, new Vector4(0.0f, 0.0f, 0.5f, 0.5f));
-        WriteVector4(data, 256, Vector4.Zero);
-        WriteVector4(data, 272, clipToUvOffsetAndScale);
-        WriteVector4(data, 288, Vector4.Zero);
-        WriteVector2(data, 304, invInputSize);
-        WriteVector4(data, 320, DefaultAmbient);
-        WriteVector4(data, 336, Vector4.Zero);
-        WriteVector3(data, 352, new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
-        WriteFloat(data, 364, 0.0f);
+        var data = BuildFullscreenCameraBufferData(clipToUvOffsetAndScale, invInputSize, flipVertical);
         UpdateBuffer(buffer, data);
     }
 
@@ -1419,7 +1421,7 @@ layout(std140) uniform Material
             return;
 
         UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
-        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
+        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize, flipVertical);
         UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
         if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
             UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, parameters);
@@ -1438,7 +1440,7 @@ layout(std140) uniform Material
             return;
 
         UpdateFullscreenFrameBuffer(pipeline.FrameBuffer);
-        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize);
+        UpdateFullscreenCameraBuffer(pipeline.CameraBuffer, clipToUvOffsetAndScale, invInputSize, flipVertical);
         UpdateFullscreenObjectBuffer(pipeline.ObjectBuffer);
         if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
             UpdateFullscreenCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, parameters);
@@ -1464,11 +1466,11 @@ layout(std140) uniform Material
         }
 
         if (albedoTexture is Texture2D texture2D)
-            BindTextureToAvailableStages(pipeline, "sAlbedo", GetOrCreateUploadedTexture(texture2D).ShaderView);
+            BindTextureToAvailableStages(pipeline, "sAlbedo", GetShaderResourceView(texture2D));
         if (secondaryTexture is Texture2D secondaryTexture2D)
-            BindTextureToAvailableStages(pipeline, "sNormal", GetOrCreateUploadedTexture(secondaryTexture2D).ShaderView);
+            BindTextureToAvailableStages(pipeline, "sNormal", GetShaderResourceView(secondaryTexture2D));
         if (depthTexture is Texture2D depthTexture2D)
-            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetOrCreateUploadedTexture(depthTexture2D).ShaderView);
+            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetShaderResourceView(depthTexture2D));
 
         immediateContext.SetPipelineState(pipeline.PipelineState);
         immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
@@ -1887,9 +1889,23 @@ layout(std140) uniform Material
     private ITextureView GetTextureView(Texture? texture, Texture2D fallbackTexture)
     {
         if (texture is Texture2D texture2D)
-            return GetOrCreateUploadedTexture(texture2D).ShaderView;
+            return GetShaderResourceView(texture2D);
 
-        return GetOrCreateUploadedTexture(fallbackTexture).ShaderView;
+        return GetShaderResourceView(fallbackTexture);
+    }
+
+    private ITextureView GetShaderResourceView(Texture2D texture)
+    {
+        var uploaded = GetOrCreateUploadedTexture(texture);
+        EnsureUploadedTextureResolved(texture, uploaded);
+        return uploaded.ShaderView;
+    }
+
+    private ITexture GetCopySourceTexture(Texture2D texture)
+    {
+        var uploaded = GetOrCreateUploadedTexture(texture);
+        EnsureUploadedTextureResolved(texture, uploaded);
+        return uploaded.ResolvedTexture ?? uploaded.Texture;
     }
 
     private IBuffer GetOrCreateUploadedVertexBuffer(VertexBuffer vertexBuffer)
@@ -1962,7 +1978,13 @@ layout(std140) uniform Material
     private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
-            return uploaded;
+        {
+            if (UploadedTextureMatches(texture, uploaded))
+                return uploaded;
+
+            uploaded.Dispose();
+            uploadedTextures.Remove(texture);
+        }
 
         if (device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
@@ -1975,6 +1997,7 @@ layout(std140) uniform Material
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySizeOrDepth = 1;
+        textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
@@ -1982,6 +2005,9 @@ layout(std140) uniform Material
         var data = texture.GetData(0);
         if (data is { Length: > 0 })
         {
+            if (texture.MultiSample != 1)
+                throw new NotSupportedException("CPU-backed multisampled Texture2D uploads are not implemented in the current managed renderer.");
+
             // CPU-backed textures still upload only their base level in the managed renderer.
             // Keep the GPU texture single-mip until full subresource upload is implemented.
             textureDesc.MipLevels = 1;
@@ -1995,7 +2021,8 @@ layout(std140) uniform Material
             if (gpuTextureWithData.IsNull)
                 throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
-            var shaderResourceView = gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource);
+            var shaderResourceView = RetainDefaultTextureView(
+                gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource));
             uploaded = new UploadedTexture(gpuTextureWithData, shaderResourceView, null, null, null);
             uploadedTextures[texture] = uploaded;
             return uploaded;
@@ -2010,11 +2037,14 @@ layout(std140) uniform Material
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
-        var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
-        var targetView = IsDepthTextureFormat(texture.Format) ? null : gpuTexture.GetDefaultView(TextureViewType.TextureViewRenderTarget);
-        var depthView = IsDepthTextureFormat(texture.Format) ? gpuTexture.GetDefaultView(TextureViewType.TextureViewDepthStencil) : null;
-        var readOnlyDepthView = IsDepthTextureFormat(texture.Format) ? gpuTexture.GetDefaultView(TextureViewType.TextureViewReadOnlyDepthStencil) : null;
-        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView, depthView, readOnlyDepthView);
+        var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        var targetView = IsDepthTextureFormat(texture.Format) ? null : GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewRenderTarget, texture.Format);
+        var depthView = IsDepthTextureFormat(texture.Format) ? GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewDepthStencil, texture.Format) : null;
+        var readOnlyDepthView = IsDepthTextureFormat(texture.Format) && depthView is not null
+            ? GetReadOnlyDepthTextureView(gpuTexture, depthView)
+            : null;
+        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView, depthView, readOnlyDepthView, resolvedTexture);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
@@ -2022,7 +2052,13 @@ layout(std140) uniform Material
     private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
-            return uploaded;
+        {
+            if (UploadedTextureMatches(texture, uploaded))
+                return uploaded;
+
+            uploaded.Dispose();
+            uploadedTextures.Remove(texture);
+        }
 
         if (device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
@@ -2035,6 +2071,7 @@ layout(std140) uniform Material
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySizeOrDepth = 6;
+        textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
@@ -2051,8 +2088,9 @@ layout(std140) uniform Material
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
-        var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null);
+        var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
@@ -2060,7 +2098,13 @@ layout(std140) uniform Material
     private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
-            return uploaded;
+        {
+            if (UploadedTextureMatches(texture, uploaded))
+                return uploaded;
+
+            uploaded.Dispose();
+            uploadedTextures.Remove(texture);
+        }
 
         if (device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
@@ -2073,6 +2117,7 @@ layout(std140) uniform Material
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySizeOrDepth = texture.Layers;
+        textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
@@ -2092,10 +2137,113 @@ layout(std140) uniform Material
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
-        var shaderView = gpuTexture.GetDefaultView(TextureViewType.TextureViewShaderResource);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null);
+        var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture);
         uploadedTextures[texture] = uploaded;
         return uploaded;
+    }
+
+    private (ITexture? Texture, ITextureView? ShaderView) CreateResolvedTextureAndShaderView(Texture texture, TextureDesc sourceDesc)
+    {
+        if (!NeedsResolvedTexture(texture))
+            return (null, null);
+        if (device is null)
+            throw new InvalidOperationException("Graphics device is not initialized.");
+
+        using var resolvedDescOwner = CreateTextureDesc();
+        var resolvedDesc = resolvedDescOwner.Desc;
+        resolvedDesc.Name = sourceDesc.Name;
+        resolvedDesc.Type = sourceDesc.Type;
+        resolvedDesc.Width = sourceDesc.Width;
+        resolvedDesc.Height = sourceDesc.Height;
+        resolvedDesc.ArraySizeOrDepth = sourceDesc.ArraySizeOrDepth;
+        resolvedDesc.Format = sourceDesc.Format;
+        resolvedDesc.MipLevels = GetUploadedMipLevels(texture);
+        resolvedDesc.BindFlags = sourceDesc.BindFlags;
+        resolvedDesc.Usage = Usage.UsageDefault;
+        resolvedDesc.SampleCount = 1;
+        device.CreateTexture(resolvedDesc, null!, out var resolvedTexture);
+        if (resolvedTexture.IsNull)
+            throw new InvalidOperationException($"Failed to create resolved GPU texture for {texture.Name}.");
+
+        var shaderView = GetDefaultTextureView(resolvedTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        return (resolvedTexture, shaderView);
+    }
+
+    private ITextureView GetDefaultTextureView(ITexture texture, TextureViewType viewType, TextureFormat format)
+    {
+        using var textureViewDescOwner = CreateTextureViewDesc();
+        var textureViewDesc = textureViewDescOwner.Desc;
+        textureViewDesc.ViewType = viewType;
+        textureViewDesc.Format = MapTextureFormat(format);
+        if (viewType == TextureViewType.TextureViewShaderResource)
+        {
+            using var textureDesc = texture.GetDesc();
+            if ((textureDesc.MiscFlags & MiscTextureFlags.MiscTextureFlagGenerateMips) != 0)
+                textureViewDesc.Flags |= TextureViewFlags.TextureViewFlagAllowMipMapGeneration;
+        }
+        else if (viewType == TextureViewType.TextureViewUnorderedAccess)
+        {
+            textureViewDesc.AccessFlags |= UavAccessFlag.UavAccessFlagReadWrite;
+        }
+
+        texture.CreateView(textureViewDesc, out var createdView);
+        if (createdView.IsNull)
+            throw new InvalidOperationException($"Failed to create {viewType} for texture.");
+
+        return createdView;
+    }
+
+    private ITextureView GetReadOnlyDepthTextureView(ITexture texture, ITextureView depthView)
+    {
+        var view = texture.GetDefaultView(TextureViewType.TextureViewReadOnlyDepthStencil);
+        if (view is not null && !view.IsNull)
+            return RetainDefaultTextureView(view);
+
+        using var textureViewDesc = depthView.GetDesc();
+        textureViewDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
+        texture.CreateView(textureViewDesc, out var createdView);
+        if (createdView.IsNull)
+            throw new InvalidOperationException("Failed to create read-only depth-stencil view for texture.");
+
+        return createdView;
+    }
+
+    private static ITextureView RetainDefaultTextureView(ITextureView view)
+    {
+        _ = view.AddRef();
+        return view;
+    }
+
+    private void EnsureUploadedTextureResolved(Texture texture, UploadedTexture uploaded)
+    {
+        if (!uploaded.ResolveDirty || uploaded.ResolvedTexture is null || immediateContext is null)
+            return;
+
+        using var resolveAttribsOwner = CreateResolveTextureSubresourceAttribs();
+        var resolveAttribs = resolveAttribsOwner.Attribs;
+        resolveAttribs.Format = MapTextureFormat(texture.Format);
+        resolveAttribs.SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
+        resolveAttribs.DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
+        for (var slice = 0u; slice < GetArraySizeOrDepth(texture); ++slice)
+        {
+            resolveAttribs.SrcSlice = slice;
+            resolveAttribs.DstSlice = slice;
+            immediateContext.ResolveTextureSubresource(uploaded.Texture, uploaded.ResolvedTexture, resolveAttribs);
+        }
+
+        uploaded.ClearResolveDirty();
+    }
+
+    private void MarkRenderTargetDirty(RenderTargetView? view)
+    {
+        if (view is not { } actualView || actualView.RenderTexture is null)
+            return;
+        if (!uploadedTextures.TryGetValue(actualView.RenderTexture, out var uploaded))
+            return;
+
+        uploaded.MarkDirty();
     }
 
     private ITextureView ResolveRenderTargetView(RenderTargetView view)
@@ -2243,6 +2391,86 @@ layout(std140) uniform Material
     }
 
     private static bool IsDepthTextureFormat(TextureFormat format) => format == TextureFormat.Depth24Stencil8;
+
+    private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded)
+    {
+        var desc = uploaded.Texture.GetDesc();
+        var expectedFormat = MapTextureFormat(texture.Format);
+        if (expectedFormat == 0)
+            return false;
+
+        return desc.Type == GetResourceDimension(texture)
+            && desc.Width == (uint)texture.Width
+            && desc.Height == (uint)texture.Height
+            && desc.ArraySizeOrDepth == GetArraySizeOrDepth(texture)
+            && desc.SampleCount == (uint)texture.MultiSample
+            && uploaded.HasResolvedTexture == NeedsResolvedTexture(texture)
+            && desc.Format == expectedFormat
+            && desc.MipLevels == GetUploadedMipLevels(texture);
+    }
+
+    private static bool NeedsResolvedTexture(Texture texture)
+    {
+        return texture.MultiSample > 1
+            && !texture.NoMultiSampledAutoResolve
+            && !IsDepthTextureFormat(texture.Format);
+    }
+
+    private static ResourceDimension GetResourceDimension(Texture texture)
+    {
+        return texture switch
+        {
+            TextureCube => ResourceDimension.ResourceDimTexCube,
+            Texture2DArray => ResourceDimension.ResourceDimTex2dArray,
+            _ => ResourceDimension.ResourceDimTex2d
+        };
+    }
+
+    private static uint GetArraySizeOrDepth(Texture texture)
+    {
+        return texture switch
+        {
+            TextureCube => 6u,
+            Texture2DArray textureArray => textureArray.Layers,
+            _ => 1u
+        };
+    }
+
+    private static uint GetUploadedMipLevels(Texture texture)
+    {
+        return texture switch
+        {
+            { MultiSample: > 1 } => 1u,
+            Texture2D texture2D when texture2D.GetData(0) is { Length: > 0 } => 1u,
+            _ => Math.Max(texture.Levels, 1u)
+        };
+    }
+
+    private static byte[] BuildFullscreenCameraBufferData(Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    {
+        var data = new byte[CameraBufferSize];
+        var projection = Matrix4.Identity;
+        if (flipVertical)
+            projection.M11 = -1.0f;
+
+        WriteMatrix4(data, 0, Matrix4.Identity);
+        WriteMatrix4(data, 64, Matrix4.Identity);
+        WriteMatrix4(data, 128, projection);
+        WriteVector4(data, 192, Vector4.Zero);
+        WriteVector4(data, 208, Vector4.Zero);
+        WriteFloat(data, 224, 0.0f);
+        WriteFloat(data, 228, 1.0f);
+        WriteVector4(data, 240, new Vector4(0.0f, 0.0f, 0.5f, 0.5f));
+        WriteVector4(data, 256, Vector4.Zero);
+        WriteVector4(data, 272, clipToUvOffsetAndScale);
+        WriteVector4(data, 288, Vector4.Zero);
+        WriteVector2(data, 304, invInputSize);
+        WriteVector4(data, 320, DefaultAmbient);
+        WriteVector4(data, 336, Vector4.Zero);
+        WriteVector3(data, 352, new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
+        WriteFloat(data, 364, 0.0f);
+        return data;
+    }
 
     private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
     {
@@ -2915,6 +3143,11 @@ layout(std140) uniform Material
         return new TextureViewDescOwner((int)apiInfo.TextureViewDescSize);
     }
 
+    private static ResolveTextureSubresourceAttribsOwner CreateResolveTextureSubresourceAttribs()
+    {
+        return new ResolveTextureSubresourceAttribsOwner();
+    }
+
     private static void WriteFloat(byte[] buffer, int offset, float value)
     {
         Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, offset, sizeof(float));
@@ -3160,6 +3393,19 @@ layout(std140) uniform Material
             if (!string.IsNullOrWhiteSpace(name))
                 result[new PipelineVariableKey(shaderType, name)] = variable;
         }
+    }
+
+    private static string AppendShaderDefine(string defines, string define)
+    {
+        if (string.IsNullOrWhiteSpace(define))
+            return defines;
+        if (string.IsNullOrWhiteSpace(defines))
+            return define;
+
+        var tokens = defines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return tokens.Contains(define, StringComparer.Ordinal)
+            ? defines
+            : $"{defines} {define}";
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -3459,6 +3705,41 @@ layout(std140) uniform Material
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ResolveTextureSubresourceAttribsData
+    {
+        public uint SrcMipLevel;
+        public uint SrcSlice;
+        public ResourceStateTransitionMode SrcTextureTransitionMode;
+        public uint DstMipLevel;
+        public uint DstSlice;
+        public ResourceStateTransitionMode DstTextureTransitionMode;
+        public global::RedBolt.Bindings.Diligent.TextureFormat Format;
+    }
+
+    private sealed class ResolveTextureSubresourceAttribsOwner : IDisposable
+    {
+        private readonly IntPtr memory;
+
+        public ResolveTextureSubresourceAttribsOwner()
+        {
+            memory = Marshal.AllocHGlobal(Marshal.SizeOf<ResolveTextureSubresourceAttribsData>());
+            Marshal.Copy(new byte[Marshal.SizeOf<ResolveTextureSubresourceAttribsData>()], 0, memory,
+                Marshal.SizeOf<ResolveTextureSubresourceAttribsData>());
+            Attribs = ResolveTextureSubresourceAttribs.CreateManagedWrapper(memory, ownsHandle: false);
+        }
+
+        public ResolveTextureSubresourceAttribs Attribs { get; }
+
+        public static implicit operator ResolveTextureSubresourceAttribs(ResolveTextureSubresourceAttribsOwner owner) => owner.Attribs;
+
+        public void Dispose()
+        {
+            if (memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(memory);
+        }
+    }
+
     private sealed class UploadedGeometry : IDisposable
     {
         public UploadedGeometry(IBuffer vertexBuffer, IBuffer indexBuffer, DrawIndexedAttribs drawIndexedAttribs)
@@ -3485,13 +3766,14 @@ layout(std140) uniform Material
         private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> sliceViews = [];
 
         public UploadedTexture(ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
-            ITextureView? depthStencilView, ITextureView? readOnlyDepthView)
+            ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null)
         {
             Texture = texture;
             ShaderView = shaderView;
             RenderTargetView = renderTargetView;
             DepthStencilView = depthStencilView;
             ReadOnlyDepthView = readOnlyDepthView;
+            ResolvedTexture = resolvedTexture;
         }
 
         public ITexture Texture { get; }
@@ -3504,6 +3786,12 @@ layout(std140) uniform Material
 
         public ITextureView? ReadOnlyDepthView { get; }
 
+        public ITexture? ResolvedTexture { get; }
+
+        public bool HasResolvedTexture => ResolvedTexture is not null && !ResolvedTexture.IsNull;
+
+        public bool ResolveDirty { get; private set; }
+
         public bool TryGetSliceView(TextureViewType viewType, uint slice, out ITextureView view)
         {
             return sliceViews.TryGetValue((viewType, slice), out view!);
@@ -3514,8 +3802,20 @@ layout(std140) uniform Material
             sliceViews[(viewType, slice)] = view;
         }
 
+        public void MarkDirty()
+        {
+            if (HasResolvedTexture)
+                ResolveDirty = true;
+        }
+
+        public void ClearResolveDirty()
+        {
+            ResolveDirty = false;
+        }
+
         public void Dispose()
         {
+            ReleaseIfNotNull(ResolvedTexture);
             ReleaseIfNotNull(Texture);
         }
     }

@@ -67,6 +67,7 @@ public sealed class RenderBufferManager
     private bool flipColorBuffersNextTime;
     private bool linearColorSpace;
     private bool hdr;
+    private bool viewportTargetLinearColorSpace;
     private Graphics? lastGraphics;
 
     public RenderBufferManager()
@@ -96,6 +97,7 @@ public sealed class RenderBufferManager
         viewportDepthBuffer.SetOutput(
             renderTarget is null ? RenderTargetView.SwapChainDepthStencil() : renderTarget.DepthStencilTarget,
             renderTarget?.DepthStencilTexture);
+        viewportTargetLinearColorSpace = renderTarget?.LinearColorSpace ?? false;
 
         ResolveOutputParams(renderTarget);
         RefreshManagedTextureBuffers();
@@ -111,8 +113,10 @@ public sealed class RenderBufferManager
         var isColorFormatMatching = (renderTarget?.ColorFormat ?? colorOutputParams.TextureFormat) == colorOutputParams.TextureFormat;
         var isMultiSampleMatching = outputMultiSample == colorOutputParams.MultiSampleLevel;
         var isFilterMatching = (renderTarget?.BilinearFiltered ?? false) == colorOutputParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering);
+        var isLinearColorSpaceMatching = (renderTarget?.LinearColorSpace ?? false) == linearColorSpace;
         var isColorUsageMatching = isSimpleTextureOutput || !needSimpleTexture;
-        var isOutputMatching = isColorFormatMatching && isMultiSampleMatching && isFilterMatching && isColorUsageMatching;
+        var isOutputMatching = isColorFormatMatching && isMultiSampleMatching && isFilterMatching
+            && isLinearColorSpaceMatching && isColorUsageMatching;
         var outputHasUsableDepthTexture = renderTarget?.DepthStencilTexture is not null;
 
         var needSubstituteDepthBuffer = !isMultiSampleMatching || !(renderTarget?.HasDepthStencil ?? true)
@@ -261,12 +265,19 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(sourceTexture);
 
+        var destinationLinearColorSpace = GetDestinationLinearColorSpace(destinationSurface);
         graphics.SetRenderTargets(destinationRect, destinationSurface, depthStencilTarget: null);
-        DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical);
+        DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical, destinationLinearColorSpace);
     }
 
     public void DrawTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
         ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
+    {
+        DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical, linearColorSpace);
+    }
+
+    private void DrawTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
+        ColorSpaceTransition mode, bool flipVertical, bool destinationLinearColorSpace)
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(sourceTexture);
@@ -275,17 +286,14 @@ public sealed class RenderBufferManager
         var effectiveSourceRect = sourceRect != IntRect.Zero
             ? sourceRect
             : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
-        var sourceIsLinear = sourceTexture.GetLinear() || sourceTexture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(sourceTexture.Format);
-        var shaderDefines = string.Empty;
-        if (mode == ColorSpaceTransition.Automatic && sourceIsLinear != linearColorSpace)
-            shaderDefines = linearColorSpace ? "URHO3D_GAMMA_TO_LINEAR" : "URHO3D_LINEAR_TO_GAMMA";
+        var shaderDefines = GetCopyFramebufferShaderDefines(sourceTexture, mode, destinationLinearColorSpace);
 
         var invInputSize = new Vector2(
             sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
             sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
         graphics.DrawFullscreenQuad(
             debugComment,
-            "v2/X_CopyFramebuffer",
+            "X_CopyFramebuffer",
             shaderDefines,
             BlendMode.Replace,
             sourceTexture.GetFilterMode() is not TextureFilterMode.Nearest,
@@ -324,18 +332,6 @@ public sealed class RenderBufferManager
             return;
 
         var viewportColorTarget = viewportColorBuffer.GetView();
-        if (viewportColorTarget.IsSwapChain)
-        {
-            graphics.SetSwapChainRenderTargets(viewportRect);
-            if (!graphics.TryCopyTextureToSwapChain(colorTexture))
-            {
-                graphics.DrawCopyTexture(
-                    colorTexture,
-                    bilinearFiltering: colorOutputParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering));
-            }
-            return;
-        }
-
         CopyTextureRegion(
             graphics,
             "Copy final color to output RenderSurface",
@@ -482,7 +478,7 @@ public sealed class RenderBufferManager
             fallbackMultiSample,
             fallbackFlags);
         var nextDepthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample | 0, RenderBufferFlag.Persistent);
-        var nextLinearColorSpace = settings.ColorSpace is not RenderPipelineColorSpace.GammaLDR;
+        var nextLinearColorSpace = IsManagedOutputLinearColorSpace(settings.ColorSpace, nextColorOutputParams.TextureFormat, viewportTargetLinearColorSpace);
         var nextHdr = TextureFormatUtility.IsFloatColorFormat(nextColorOutputParams.TextureFormat);
 
         if (renderTarget is not null)
@@ -504,7 +500,7 @@ public sealed class RenderBufferManager
                 renderTarget.DepthStencilFormat == TextureFormat.Unknown ? TextureFormat.Depth24Stencil8 : renderTarget.DepthStencilFormat,
                 Math.Max(multiSample, 1),
                 RenderBufferFlag.Persistent);
-            nextLinearColorSpace = IsLinearColorSpace(settings.ColorSpace, effectiveColorFormat) || renderTarget.LinearColorSpace;
+            nextLinearColorSpace = IsManagedOutputLinearColorSpace(settings.ColorSpace, effectiveColorFormat, renderTarget.LinearColorSpace);
             nextHdr = TextureFormatUtility.IsFloatColorFormat(effectiveColorFormat);
         }
 
@@ -567,13 +563,14 @@ public sealed class RenderBufferManager
         };
     }
 
-    private static bool IsLinearColorSpace(RenderPipelineColorSpace colorSpace, TextureFormat textureFormat)
+    private static bool IsManagedOutputLinearColorSpace(RenderPipelineColorSpace colorSpace, TextureFormat textureFormat,
+        bool outputLinearColorSpace)
     {
         return colorSpace switch
         {
             RenderPipelineColorSpace.LinearHDR => true,
             RenderPipelineColorSpace.LinearLDR => true,
-            RenderPipelineColorSpace.Optimized => TextureFormatUtility.IsFloatColorFormat(textureFormat),
+            RenderPipelineColorSpace.Optimized => outputLinearColorSpace || TextureFormatUtility.IsFloatColorFormat(textureFormat),
             _ => false
         };
     }
@@ -619,6 +616,35 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(buffer);
         managedTextureBuffers.Add(new WeakReference<TextureRenderBuffer>(buffer));
+    }
+
+    private bool GetDestinationLinearColorSpace(RenderTargetView destinationSurface)
+    {
+        return destinationSurface.Type switch
+        {
+            RenderTargetViewType.SwapChainColor => viewportTargetLinearColorSpace,
+            RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => destinationSurface.RenderTexture is not null
+                && IsTextureLinearColorSpace(destinationSurface.RenderTexture),
+            _ => false
+        };
+    }
+
+    private static string GetCopyFramebufferShaderDefines(Texture sourceTexture, ColorSpaceTransition mode,
+        bool destinationLinearColorSpace)
+    {
+        if (mode != ColorSpaceTransition.Automatic)
+            return string.Empty;
+
+        var sourceIsLinear = IsTextureLinearColorSpace(sourceTexture);
+        if (sourceIsLinear == destinationLinearColorSpace)
+            return string.Empty;
+
+        return destinationLinearColorSpace ? "URHO3D_GAMMA_TO_LINEAR" : "URHO3D_LINEAR_TO_GAMMA";
+    }
+
+    private static bool IsTextureLinearColorSpace(Texture texture)
+    {
+        return texture.GetLinear() || texture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(texture.Format);
     }
 
     // Fullscreen-quad subrect clears run in the current managed OpenGL backend and therefore

@@ -50,12 +50,12 @@ public sealed class Texture2DArray : Texture
         return true;
     }
 
-    public bool SetLayers(uint layers, int width, int height, TextureFormat format)
+    public bool SetLayers(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
     {
         if (layers == 0 || width <= 0 || height <= 0)
             return false;
 
-        SetDimensions(width, height, (int)layers, format);
+        SetDimensions(width, height, (int)layers, format, multiSample, noMultiSampledAutoResolve);
         sliceData.Clear();
         RefreshTotalMemoryUse();
         return true;

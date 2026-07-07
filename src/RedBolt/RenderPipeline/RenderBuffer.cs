@@ -28,7 +28,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
     {
         Texture = texture ?? throw new ArgumentNullException(nameof(texture));
         ViewportRect = viewportRect;
-        bufferParams = new RenderBufferParams(texture.Format);
+        bufferParams = new RenderBufferParams(texture.Format, texture.MultiSample);
     }
 
     public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2 size = default)
@@ -80,14 +80,16 @@ public sealed class TextureRenderBuffer : RenderBuffer
     {
         var nextSize = CalculateTextureSize(outputViewportRect.Size);
         var nextFormat = bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : bufferParams.TextureFormat;
-        if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat)
+        if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat || Texture.MultiSample != bufferParams.MultiSampleLevel)
         {
             switch (Texture)
             {
-                case Texture2D texture2D when texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat):
+                case Texture2D texture2D when texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat, bufferParams.MultiSampleLevel,
+                    bufferParams.Flags.HasFlag(RenderBufferFlag.NoMultiSampledAutoResolve)):
                     break;
 
-                case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat):
+                case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat, bufferParams.MultiSampleLevel,
+                    bufferParams.Flags.HasFlag(RenderBufferFlag.NoMultiSampledAutoResolve)):
                     nextSize = new IntVector2(textureCube.Width, textureCube.Height);
                     break;
 

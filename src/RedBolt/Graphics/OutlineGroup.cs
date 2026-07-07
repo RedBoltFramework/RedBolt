@@ -150,7 +150,7 @@ public sealed class OutlineGroup : Component
             pass.SetBlendMode(BlendMode.Replace);
             pass.SetAlphaToCoverage(false);
             pass.SetCullMode(CullMode.None);
-            pass.SetPixelShader("v2/M_OutlinePixel");
+            pass.SetPixelShader("M_OutlinePixel");
             pass.SetPixelShaderDefines(needAlphaMask ? "ALPHAMASK" : string.Empty);
         }
     }

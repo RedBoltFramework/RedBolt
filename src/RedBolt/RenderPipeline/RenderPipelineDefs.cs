@@ -780,17 +780,18 @@ public sealed class RenderOutputTargetInfo
     public bool HasDepthStencil => DepthStencilTarget is not null || DepthStencilFormat != TextureFormat.Unknown;
 
     public static RenderOutputTargetInfo FromTexture(Texture colorTexture, IntRect fullViewportRect,
-        Texture? depthStencilTexture = null, int multiSample = 1)
+        Texture? depthStencilTexture = null, int multiSample = 0)
     {
         ArgumentNullException.ThrowIfNull(colorTexture);
 
+        var outputMultiSample = multiSample > 0 ? multiSample : colorTexture.MultiSample;
         return new RenderOutputTargetInfo(
             RenderTargetView.Texture(colorTexture),
             fullViewportRect,
             colorTexture.Format,
             depthStencilTexture is not null ? RenderTargetView.Texture(depthStencilTexture) : null,
             depthStencilTexture?.Format ?? TextureFormat.Unknown,
-            multiSample,
+            outputMultiSample,
             colorTexture,
             depthStencilTexture,
             bilinearFiltered: colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear or TextureFilterMode.Anisotropic,
