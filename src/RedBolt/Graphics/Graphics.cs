@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
@@ -75,9 +74,6 @@ layout(std140) uniform Material
     private const string NormalBufferShaderName = "M_NormalBuffer";
     private const string NormalBufferShaderDefines = "URHO3D_SURFACE_NEED_NORMAL URHO3D_PIXEL_NEED_TEXCOORD";
     private static readonly IReadOnlyDictionary<string, object?> EmptyFullscreenParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
-    private static readonly Regex CustomUniformFieldRegex = new(
-        @"UNIFORM(?:_HIGHP)?\(\s*(?<type>[A-Za-z0-9_]+)\s+(?<name>[A-Za-z0-9_]+)\s*\)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly bool RenderDiagnosticsEnabled = IsRenderDiagnosticsEnabled();
     private static readonly bool ShaderBindingDiagnosticsEnabled = IsShaderBindingDiagnosticsEnabled();
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
@@ -1176,7 +1172,7 @@ layout(std140) uniform Material
             pass.VertexShader, preparedVertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
             pass.PixelShader, preparedPixelSource);
-        var customLayout = ParseCustomUniformLayout(preparedVertexSource, preparedPixelSource);
+        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
 
         TemporaryLayoutArray? layoutArray = null;
         try
@@ -1266,7 +1262,7 @@ layout(std140) uniform Material
         var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, GraphicsBackend.OpenGL);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
+        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
 
         TemporaryLayoutArray? layoutArray = null;
         try
@@ -1359,7 +1355,7 @@ layout(std140) uniform Material
         var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
         var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var customLayout = ParseCustomUniformLayout(vertexSource, pixelSource);
+        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
         var settings = GetClearFramebufferPipelineSettings(flags);
 
         TemporaryLayoutArray? layoutArray = null;
@@ -1856,85 +1852,66 @@ layout(std140) uniform Material
         }
     }
 
-    private static CustomUniformLayout ParseCustomUniformLayout(params string[] preparedSources)
+    private static CustomUniformLayout CreateCustomUniformLayout(ShaderProgramReflection reflection)
     {
+        ArgumentNullException.ThrowIfNull(reflection);
+
+        var customBuffer = reflection.GetUniformBuffer(ShaderParameterGroup.Custom);
+        if (customBuffer is null || customBuffer.Size == 0u)
+            return new CustomUniformLayout(0u, []);
+
         var fields = new List<CustomUniformField>();
-        var knownUniforms = new HashSet<string>(StringComparer.Ordinal);
-        var offset = 0;
-        foreach (var preparedSource in preparedSources)
+        foreach (var uniform in reflection.GetUniforms().Values
+                     .Where(uniform => uniform.Group == ShaderParameterGroup.Custom)
+                     .OrderBy(uniform => uniform.Offset)
+                     .ThenBy(uniform => uniform.Name, StringComparer.Ordinal))
         {
-            if (string.IsNullOrEmpty(preparedSource))
-                continue;
-
-            var begin = preparedSource.IndexOf("UNIFORM_BUFFER_BEGIN(6, Custom)", StringComparison.Ordinal);
-            if (begin < 0)
-                continue;
-
-            var end = preparedSource.IndexOf("UNIFORM_BUFFER_END(6, Custom)", begin, StringComparison.Ordinal);
-            if (end < 0)
-                continue;
-
-            var customBlock = preparedSource[begin..end];
-            foreach (Match match in CustomUniformFieldRegex.Matches(customBlock))
-            {
-                if (!TryMapCustomUniformKind(match.Groups["type"].Value, out var kind))
-                    continue;
-
-                var uniformName = match.Groups["name"].Value;
-                if (!knownUniforms.Add(uniformName))
-                    continue;
-
-                var alignment = GetCustomUniformAlignment(kind);
-                offset = Align(offset, alignment);
-                var parameterName = uniformName.Length > 1 && uniformName[0] == 'c' && char.IsUpper(uniformName[1])
-                    ? uniformName[1..]
-                    : uniformName;
-                fields.Add(new CustomUniformField(uniformName, parameterName, kind, offset));
-                offset += GetCustomUniformSize(kind);
-            }
+            fields.Add(new CustomUniformField(
+                uniform.Name,
+                GetCustomParameterName(uniform.Name),
+                MapCustomUniformKind(uniform),
+                checked((int)uniform.Offset)));
         }
 
-        return new CustomUniformLayout((uint)Align(offset, 16), fields.ToArray());
+        return new CustomUniformLayout(customBuffer.Size, fields.ToArray());
     }
 
-    private static bool TryMapCustomUniformKind(string typeName, out CustomUniformKind kind)
+    private static string GetCustomParameterName(string uniformName)
     {
-        kind = typeName switch
+        return uniformName.Length > 1 && uniformName[0] == 'c' && char.IsUpper(uniformName[1])
+            ? uniformName[1..]
+            : uniformName;
+    }
+
+    private static CustomUniformKind MapCustomUniformKind(UniformReflection uniform)
+    {
+        if (uniform.ArraySize > 1u)
+            throw new NotSupportedException($"Custom uniform arrays are not implemented yet: {uniform.Name}[{uniform.ArraySize}].");
+
+        return uniform.VariableClass switch
         {
-            "float" or "half" => CustomUniformKind.Float,
-            "int" => CustomUniformKind.Int,
-            "uint" => CustomUniformKind.UInt,
-            "bool" => CustomUniformKind.Bool,
-            "vec2" or "half2" => CustomUniformKind.Vector2,
-            "vec3" or "half3" => CustomUniformKind.Vector3,
-            "vec4" or "half4" => CustomUniformKind.Vector4,
-            "mat4" => CustomUniformKind.Matrix4,
-            _ => CustomUniformKind.Float
+            ShaderCodeVariableClass.ShaderCodeVariableClassScalar => uniform.BasicType switch
+            {
+                ShaderCodeBasicType.ShaderCodeBasicTypeBool => CustomUniformKind.Bool,
+                ShaderCodeBasicType.ShaderCodeBasicTypeUint or ShaderCodeBasicType.ShaderCodeBasicTypeUint16 or ShaderCodeBasicType.ShaderCodeBasicTypeUint8 => CustomUniformKind.UInt,
+                ShaderCodeBasicType.ShaderCodeBasicTypeInt or ShaderCodeBasicType.ShaderCodeBasicTypeInt16 or ShaderCodeBasicType.ShaderCodeBasicTypeInt8 => CustomUniformKind.Int,
+                ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16 => CustomUniformKind.Float,
+                _ => throw new NotSupportedException($"Unsupported custom scalar uniform type {uniform.BasicType} for {uniform.Name}.")
+            },
+            ShaderCodeVariableClass.ShaderCodeVariableClassVector => (Math.Max(uniform.NumRows, uniform.NumColumns), uniform.BasicType) switch
+            {
+                (2, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector2,
+                (3, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector3,
+                (4, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector4,
+                _ => throw new NotSupportedException($"Unsupported custom vector uniform type {uniform.BasicType}x{Math.Max(uniform.NumRows, uniform.NumColumns)} for {uniform.Name}.")
+            },
+            ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns
+                when (uniform.BasicType is ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16)
+                     && uniform.NumRows == 4
+                     && uniform.NumColumns == 4
+                => CustomUniformKind.Matrix4,
+            _ => throw new NotSupportedException($"Unsupported custom uniform layout for {uniform.Name}: class={uniform.VariableClass}, type={uniform.BasicType}, rows={uniform.NumRows}, columns={uniform.NumColumns}.")
         };
-
-        return typeName is "float" or "half" or "int" or "uint" or "bool" or "vec2" or "half2" or "vec3" or "half3" or "vec4" or "half4" or "mat4";
-    }
-
-    private static int GetCustomUniformAlignment(CustomUniformKind kind) => kind switch
-    {
-        CustomUniformKind.Vector2 => 8,
-        CustomUniformKind.Vector3 or CustomUniformKind.Vector4 or CustomUniformKind.Matrix4 => 16,
-        _ => 4
-    };
-
-    private static int GetCustomUniformSize(CustomUniformKind kind) => kind switch
-    {
-        CustomUniformKind.Float or CustomUniformKind.Int or CustomUniformKind.UInt or CustomUniformKind.Bool => 4,
-        CustomUniformKind.Vector2 => 8,
-        CustomUniformKind.Vector3 or CustomUniformKind.Vector4 => 16,
-        CustomUniformKind.Matrix4 => 64,
-        _ => 4
-    };
-
-    private static int Align(int value, int alignment)
-    {
-        var mask = alignment - 1;
-        return (value + mask) & ~mask;
     }
 
     private UploadedGeometry? GetOrCreateUploadedGeometry(Geometry geometry)

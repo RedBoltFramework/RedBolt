@@ -1,3 +1,4 @@
+using RedBolt.Bindings.Diligent;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -59,6 +60,33 @@ public sealed class ShaderProgramReflectionTests
             Assert.NotNull(customBuffer);
             Assert.Equal("Custom", customBuffer!.InternalName);
             Assert.True(customBuffer.Size > 0u);
+        });
+    }
+
+    [Fact]
+    public void Shader_program_reflection_discovers_native_custom_uniform_members_from_compiled_shader_variations()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+
+            Assert.NotNull(vertexShader);
+            Assert.NotNull(pixelShader);
+
+            var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
+            var inputInvSize = reflection.GetUniform(new StringHash("InputInvSize"));
+
+            Assert.NotNull(inputInvSize);
+            Assert.Equal("InputInvSize", inputInvSize!.Value.Name);
+            Assert.Equal(ShaderParameterGroup.Custom, inputInvSize.Value.Group);
+            Assert.Equal(0u, inputInvSize.Value.Offset);
+            Assert.Equal(8u, inputInvSize.Value.Size);
+            Assert.Equal(ShaderCodeVariableClass.ShaderCodeVariableClassVector, inputInvSize.Value.VariableClass);
+            Assert.Equal(ShaderCodeBasicType.ShaderCodeBasicTypeFloat, inputInvSize.Value.BasicType);
+            Assert.Equal((byte)2, inputInvSize.Value.NumRows);
+            Assert.Equal((byte)1, inputInvSize.Value.NumColumns);
+            Assert.Equal(0u, inputInvSize.Value.ArraySize);
         });
     }
 

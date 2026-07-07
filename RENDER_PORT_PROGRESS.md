@@ -66,7 +66,7 @@ Slice 1 through the first runtime integration layer are landed:
 - `Graphics.RenderViewport` has been split into reusable target-binding, scene-draw, clear, present, and unbind steps so the managed `RenderPipeline` owns frame execution order instead of delegating the whole frame to the legacy viewport helper
 - `RenderBufferManager` can now bind its writable output buffer through `Graphics`, and render-buffer textures are uploaded as real shader-resource plus render-target GPU textures when they have no CPU pixel payload
 - `RenderBufferManager` now routes read/write color-output frames through offscreen primary and secondary color buffers and resolves the final color back to the viewport target when needed
-- `Graphics` now has a managed fullscreen-quad draw path with cached pipeline state, cached custom-uniform layout parsing, and generic shader-backed postprocess execution for render-path passes
+- `Graphics` now has a managed fullscreen-quad draw path with cached pipeline state, reflection-driven custom-uniform layouts, and generic shader-backed postprocess execution for render-path passes
 - `ToneMappingPass` and generic `FullScreenShaderPass` now execute managed fullscreen postprocess draws instead of only contributing metadata and trait flags
 - `RenderBufferManager` now honors `RenderBufferManagerSettings.ReadableDepth` by allocating a readable depth texture even on frames that do not need color ping-pong, and shared render-pass state now exposes that offscreen depth buffer through the normal viewport depth slot
 - `Graphics.DrawFullscreenQuad` now has generic managed bindings for `sDepthBuffer` in addition to the existing color inputs, so upstream fullscreen shaders that sample depth can be ported without adding manual interop
@@ -74,7 +74,7 @@ Slice 1 through the first runtime integration layer are landed:
   - per-frame render-buffer requirements now carry readable-depth and filtered-color requests in addition to color read/write
   - `AmbientOcclusionPass` can now request depth-backed frames through that trait path instead of being permanently disabled by the base pipeline settings
 - the regular scene-material path now shares the same managed custom-uniform plumbing as fullscreen passes:
-  - `Graphics` parses `UNIFORM_BUFFER_BEGIN(6, Custom)` blocks from prepared material shaders, allocates a matching `Custom` constant buffer for geometry pipelines, and binds it on both shader stages when present
+  - `Graphics` reflects compiled `Custom` uniform-buffer members from native Diligent shader metadata, allocates a matching `Custom` constant buffer for geometry pipelines, and binds it on both shader stages when present
   - material shader parameters marked custom now upload through that buffer, which is the remaining prerequisite for upstream-style outline producer work instead of RedBolt-only postprocess shortcuts
 - managed custom-uniform uploads now also move closer to the intended rbfx hot path instead of rebuilding boxed parameter maps for built-in passes:
   - `Graphics` can now write typed fullscreen and clear-quad parameter structs directly into parsed custom uniform layouts using cached member writers, including uniform-name fallback for rbfx `cName` conventions
@@ -132,7 +132,7 @@ Slice 1 through the first runtime integration layer are landed:
   - the remaining canonical `RenderAPIDefs` enums were moved into `RenderAPIDefs.cs`, and the missing `RenderPipelineDefs` flags/callback shells now exist in-tree for future batch-renderer / scene-processor porting
   - `Graphics.GetShader(ShaderType, name, defines)` now has a managed lookup surface via `ShaderVariation`, and `RenderBufferManager` now exposes the missing copy/clear/render callbacks (`DrawTexture*`, `CopyTextureRegion`, `Clear*`, `OnRenderBegin`, `OnRenderEnd`) needed by upcoming post-process ports
 - low-level managed hot-path cleanup in this slice also includes reusing `CommonFrameInfo` objects across `Define()` calls and making `RenderBufferManagerFrameSettings` a value type
-- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, bloom buffer sizing, dynamic intermediate-buffer resizing, managed custom-uniform parsing/packing, typed custom-uniform struct uploads, cubemap render-buffer creation, sliced render-target view resolution, outline-material rewriting, render-buffer rebinding, the normal-buffer shader/publication path, explicit output-target matching behavior, and the new partial-clear quad decision/state helpers; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --no-restore` is green again with `328/328` passing after the latest render-target slice-view cleanup
+- focused unit coverage was expanded again for readable-depth trait aggregation, frame-derived depth allocation, bloom buffer sizing, dynamic intermediate-buffer resizing, reflection-driven custom-uniform packing, typed custom-uniform struct uploads, cubemap render-buffer creation, sliced render-target view resolution, outline-material rewriting, render-buffer rebinding, the normal-buffer shader/publication path, explicit output-target matching behavior, and the new partial-clear quad decision/state helpers; `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --no-restore` is green again with `328/328` passing after the latest render-target slice-view cleanup
 - focused unit coverage now also includes the managed fullscreen camera-buffer flip path via `GraphicsMatrixPackingTests`, verifying that fullscreen postprocess draws write the flipped projection sign into `cViewProj` when `flipVertical` is requested
 - focused graphics coverage now also verifies that resizing a managed render-target texture causes the cached uploaded Diligent texture descriptor to follow the new dimensions instead of staying stale, via `GraphicsRenderTargetViewTests`
 - focused coverage now also verifies that managed output-target metadata derives multisample from backing textures, that `RenderBufferManager` propagates explicit non-inherited MSAA settings into managed color/depth outputs, and that `Graphics` writes managed texture sample counts into native Diligent texture descriptors
@@ -202,6 +202,9 @@ Slice 1 through the first runtime integration layer are landed:
   - the next shader-reflection slice from the API audit is now in-tree too:
     - `ShaderProgramReflection`, `UniformBufferReflection`, `UniformReflection`, and `ShaderResourceReflection` now exist as managed rbfx-named RenderAPI surfaces
     - reflection is currently native-only: it walks compiled Diligent `IShader` metadata from `RawShader` handles, discovers constant buffers plus SRV/UAV resources, and threads that data into `PipelineState.GetReflection()`
+    - `ShaderProgramReflection` now also walks native constant-buffer member arrays, exposing rbfx-style uniform names/offsets/sizes plus variable-class/type metadata and hashing uniform buffers by reflected member layout instead of buffer size only
+    - `Graphics` no longer parses shader source or uses regex fallbacks for `Custom` uniform buffers; geometry, fullscreen, and clear-quad pipelines now derive custom uniform layouts from compiled shader reflection only
+    - the current member-array traversal uses a local native descriptor overlay with the correct 1-byte enum layout because the generated Diligent bindings still do not expose typed variable arrays; importing that array surface into SharpCpp remains the cleaner follow-up
     - `ShaderProgramReflection.ConnectToShaderVariables(...)` now matches resources to native SRB variables by enumerating bound shader variables instead of parsing shader source or adding RedBolt-only fallback behavior
   - the next `RenderTargetView` parity slice from the API audit is now in-tree too:
     - `RenderTargetView.GetView()` now exposes the effective native Diligent texture view through the active managed `RenderDevice`/`Graphics` backend instead of forcing callers to reflect into private helpers
@@ -236,6 +239,8 @@ Slice 1 through the first runtime integration layer are landed:
     - validation on the current OpenGL backend confirmed that explicit single-mip UAV keys materialize native views, while the rbfx-style default zero-count key still expands to the remaining mip chain and needs broader backend-parity follow-up
   - focused validation for the raw-texture UAV slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawTextureTests|FullyQualifiedName~GraphicsRenderTargetViewTests|FullyQualifiedName~RenderPoolTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun again on `2026-07-07` after the raw-texture UAV slice using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawtexture-uav-checkpoint.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outlines, ground plane, and black background
+  - focused validation for the reflection-driven custom-uniform follow-up used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~ShaderProgramReflectionTests|FullyQualifiedName~GraphicsCustomUniformTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - sample validation for the same checkpoint used `apitrace trace -a gl -o /tmp/reflection-layout.trace out/build/dev/bin/Debug/RedBolt.Sample.StaticScene`, then `apitrace dump-images -o /tmp/reflection-layout /tmp/reflection-layout.trace`; the captured frame `/tmp/reflection-layout0000211058.png` shows live scene geometry plus outline compositing, but the upper portion of the frame remains black, so the renderer still has an unresolved output/composition deviation to debug
 
 ## Current Cross-Cutting Requirement
 
@@ -254,10 +259,9 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
-- Deepen the new native shader-reflection slice without adding fallback parsing:
-  - populate `UniformReflection` members from real native reflection data rather than leaving the map empty
-  - if Diligent bindings are still missing the required reflection arrays, extend SharpCpp/import the needed upstream reflection dependency instead of inventing a RedBolt-only source parser
-  - thread `ShaderProgramReflection.ConnectToShaderVariables(...)` into real pipeline-state/resource-binding setup
+- Investigate the still-bad sample frame with `apitrace`: the latest capture shows valid mushroom/outline rendering only in the lower portion of the viewport while the upper region stays black.
+- Replace the local native `ShaderCodeVariableDesc` overlay with a generated SharpCpp array surface for Diligent reflection members, keeping the current no-fallback behavior but removing the hand-marshaled array walk.
+- Thread the richer native shader reflection deeper into real pipeline-state/resource-binding setup instead of leaving it as lookup metadata plus custom-uniform packing.
 - Deepen the new raw-texture/pool slice toward fuller rbfx parity:
   - move backend-facing raw-texture handle/UAV ownership out of ad-hoc `Texture`/`Graphics` helpers and behind `RawTexture`
   - reconcile the current OpenGL single-mip UAV behavior with rbfx's zero-count/default `RawTextureUAVKey` expansion instead of silently normalizing it away

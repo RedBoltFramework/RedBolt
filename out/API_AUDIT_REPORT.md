@@ -71,7 +71,7 @@ This report is a verified snapshot, not a historical summary.
 | `RawShader` | Present, incomplete | Exists as a `DeviceObject` that owns bytecode and native shader handles, but reflection/loading/integration are still sparse |
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
 | `RenderPool` | Present, incomplete | Type exists, but lifecycle methods are no-op placeholders |
-| `ShaderProgramReflection` | Present, incomplete | Native-only reflection exists for compiled `RawShader` handles, but uniform-member enumeration and fuller SRB/backend integration are still missing |
+| `ShaderProgramReflection` | Present, incomplete | Native reflection now covers uniform-buffer members plus SRV/UAV resources for compiled `RawShader` handles, but fuller SRB/backend integration and generated array bindings are still missing |
 | `DrawCommandQueue` | Present, incomplete | Type now records rbfx-style draw/dispatch snapshots, but real reflection/resource binding and backend submission are still missing |
 | `ShaderBytecode` | Present, incomplete | Exists with MIME/bytecode/vertex-attribute serialization, but the wider reflection/program pipeline is still absent |
 
@@ -141,10 +141,12 @@ Verified current state:
 - Current behavior is intentionally native-only:
   - compiled Diligent `IShader` handles are queried for resource metadata
   - constant buffers are mapped to rbfx parameter groups by native buffer name
+  - constant-buffer member arrays are walked to populate reflected uniform names, offsets, sizes, variable classes, basic types, and array metadata
   - SRV/UAV resources are exposed by sanitized rbfx-style names and can later be connected to SRB variables
+- `UniformBufferReflection.Hash` now incorporates reflected uniform member layout instead of hashing buffer size only.
+- `Graphics` no longer parses shader source or uses regex fallbacks for `Custom` uniform buffers; pipeline custom-uniform layouts now come from compiled shader reflection only.
 - Current parity gaps are still significant:
-  - `GetUniforms()` is effectively empty because member-level native reflection arrays are not wired through the generated bindings yet
-  - `RecalculateUniformHash()` currently hashes buffer size only, not the full reflected uniform layout
+  - the generated Diligent bindings still do not expose typed variable arrays, so RedBolt currently uses a local native descriptor overlay to walk the member arrays
   - shader-variable connection exists, but `PipelineState` still does not own a real backend PSO/SRB object graph
 
 ### `ShaderBytecode`
@@ -324,8 +326,7 @@ These were stale false positives in the old audit and should not be reported mis
 
 ## Priority Order For The Next Port Slices
 
-1. Replace the current descriptor-layer shader identity with real rbfx shader/resource types:
-   - `ShaderProgramReflection`
+1. Replace the local native reflection-array overlay with generated SharpCpp surface area for Diligent shader member arrays.
 2. Deepen the new shader/resource slice so it stops at more than bytecode + native-handle ownership:
    - `ShaderProgramReflection`
    - `UniformBufferReflection`

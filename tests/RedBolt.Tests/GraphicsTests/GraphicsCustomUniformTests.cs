@@ -2,73 +2,73 @@ using System.Reflection;
 
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class GraphicsCustomUniformTests
 {
-    [Fact]
-    public void ParseCustomUniformLayout_merges_stage_blocks_without_duplicate_fields()
+    private readonly HeadlessEngineFixture fixture;
+
+    public GraphicsCustomUniformTests(HeadlessEngineFixture fixture)
     {
-        var vertexSource = """
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-            UNIFORM_BUFFER_END(6, Custom)
-            """;
-        var pixelSource = """
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-                UNIFORM(float cOutlineThickness)
-            UNIFORM_BUFFER_END(6, Custom)
-            """;
-
-        var parseMethod = typeof(Graphics).GetMethod("ParseCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("Graphics.ParseCustomUniformLayout was not found.");
-        var layout = parseMethod.Invoke(null, [new[] { vertexSource, pixelSource }])
-            ?? throw new InvalidOperationException("Custom uniform layout was null.");
-
-        Assert.Equal<uint>(32u, (uint)(GetProperty(layout, "Size") ?? 0u));
-
-        var fields = ((System.Collections.IEnumerable)GetProperty(layout, "Fields")!).Cast<object>().ToArray();
-        Assert.Equal(2, fields.Length);
-        Assert.Equal("cOutlineColor", GetProperty(fields[0], "UniformName"));
-        Assert.Equal("OutlineColor", GetProperty(fields[0], "ParameterName"));
-        Assert.Equal(0, GetProperty(fields[0], "Offset"));
-        Assert.Equal("cOutlineThickness", GetProperty(fields[1], "UniformName"));
-        Assert.Equal("OutlineThickness", GetProperty(fields[1], "ParameterName"));
-        Assert.Equal(16, GetProperty(fields[1], "Offset"));
+        this.fixture = fixture;
     }
 
     [Fact]
-    public void WriteCustomParameterValue_packs_rbfx_std140_values()
+    public void CreateCustomUniformLayout_uses_reflected_outline_uniform_offsets()
     {
-        var source = """
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-                UNIFORM(float cOutlineThickness)
-            UNIFORM_BUFFER_END(6, Custom)
-            """;
-        var layout = ParseLayout(source);
-        var fields = ((System.Collections.IEnumerable)GetProperty(layout, "Fields")!).Cast<object>().ToArray();
-        var writeMethod = typeof(Graphics).GetMethod("WriteCustomParameterValue", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("Graphics.WriteCustomParameterValue was not found.");
-        var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
+        WithInitializedGraphics(() =>
+        {
+            var layout = CreateLayout("P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var fields = GetFields(layout);
 
-        writeMethod.Invoke(null, [buffer, fields[0], new Vector4(0.1f, 0.2f, 0.3f, 0.4f)]);
-        writeMethod.Invoke(null, [buffer, fields[1], 3.5f]);
+            Assert.Equal<uint>(16u, (uint)(GetProperty(layout, "Size") ?? 0u));
+            Assert.Single(fields);
+            Assert.Equal("InputInvSize", GetProperty(fields[0], "UniformName"));
+            Assert.Equal("InputInvSize", GetProperty(fields[0], "ParameterName"));
+            Assert.Equal(0, GetProperty(fields[0], "Offset"));
+        });
+    }
 
-        Assert.Equal(0.1f, BitConverter.ToSingle(buffer, 0));
-        Assert.Equal(0.2f, BitConverter.ToSingle(buffer, 4));
-        Assert.Equal(0.3f, BitConverter.ToSingle(buffer, 8));
-        Assert.Equal(0.4f, BitConverter.ToSingle(buffer, 12));
-        Assert.Equal(3.5f, BitConverter.ToSingle(buffer, 16));
+    [Fact]
+    public void CreateCustomUniformLayout_reflects_pixel_only_custom_uniforms()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var layout = CreateLayout("P_Outline", "URHO3D_GEOMETRY_STATIC", includeVertexShader: false);
+            var fields = GetFields(layout);
+
+            Assert.Equal<uint>(16u, (uint)(GetProperty(layout, "Size") ?? 0u));
+            Assert.Single(fields);
+            Assert.Equal("InputInvSize", GetProperty(fields[0], "UniformName"));
+            Assert.Equal("InputInvSize", GetProperty(fields[0], "ParameterName"));
+            Assert.Equal(0, GetProperty(fields[0], "Offset"));
+        });
+    }
+
+    [Fact]
+    public void WriteCustomParameterValue_packs_reflected_custom_uniform_values()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var layout = CreateLayout("P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var fields = GetFields(layout);
+            var inputInvSize = fields.Single(field => Equals(GetProperty(field, "UniformName"), "InputInvSize"));
+            var inputOffset = (int)(GetProperty(inputInvSize, "Offset") ?? -1);
+
+            var writeMethod = typeof(Graphics).GetMethod("WriteCustomParameterValue", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Graphics.WriteCustomParameterValue was not found.");
+            var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
+
+            writeMethod.Invoke(null, [buffer, inputInvSize, new Vector2(0.25f, 0.5f)]);
+
+            Assert.Equal(0.25f, BitConverter.ToSingle(buffer, inputOffset));
+            Assert.Equal(0.5f, BitConverter.ToSingle(buffer, inputOffset + 4));
+        });
     }
 
     [Fact]
     public void TryGetCustomParameterValue_reads_material_custom_parameters()
     {
-        var field = ((System.Collections.IEnumerable)GetProperty(ParseLayout("""
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-            UNIFORM_BUFFER_END(6, Custom)
-            """), "Fields")!).Cast<object>().Single();
+        var field = GetFields(CreateFieldOnlyLayout("P_Outline", "URHO3D_GEOMETRY_STATIC")).Single();
         var lookupMethod = typeof(Graphics).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method =>
             {
@@ -82,24 +82,20 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["OutlineColor"] = new(new Vector4(1.0f, 0.5f, 0.25f, 1.0f), true)
+            ["InputInvSize"] = new(new Vector2(0.5f, 0.25f), true)
         };
         object?[] arguments = [field, parameters, null];
 
         var found = (bool)(lookupMethod.Invoke(null, arguments) ?? false);
 
         Assert.True(found);
-        Assert.Equal(new Vector4(1.0f, 0.5f, 0.25f, 1.0f), Assert.IsType<Vector4>(arguments[2]));
+        Assert.Equal(new Vector2(0.5f, 0.25f), Assert.IsType<Vector2>(arguments[2]));
     }
 
     [Fact]
     public void TryGetCustomParameterValue_ignores_non_custom_material_parameters()
     {
-        var field = ((System.Collections.IEnumerable)GetProperty(ParseLayout("""
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-            UNIFORM_BUFFER_END(6, Custom)
-            """), "Fields")!).Cast<object>().Single();
+        var field = GetFields(CreateFieldOnlyLayout("P_Outline", "URHO3D_GEOMETRY_STATIC")).Single();
         var lookupMethod = typeof(Graphics).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method =>
             {
@@ -113,7 +109,7 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["OutlineColor"] = new(new Vector4(1.0f, 0.5f, 0.25f, 1.0f), false)
+            ["InputInvSize"] = new(new Vector2(0.5f, 0.25f), false)
         };
         object?[] arguments = [field, parameters, null];
 
@@ -126,51 +122,60 @@ public sealed class GraphicsCustomUniformTests
     [Fact]
     public void StructCustomUniformWriter_packs_typed_parameters_using_shader_parameter_names()
     {
-        var layout = ParseLayout("""
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(vec4 cOutlineColor)
-                UNIFORM(float cOutlineThickness)
-            UNIFORM_BUFFER_END(6, Custom)
-            """);
-        var writeMethod = GetStructWriterMethod(typeof(OutlineParameters));
-        var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
-        var parameters = new OutlineParameters
+        WithInitializedGraphics(() =>
         {
-            OutlineColor = new Vector4(0.1f, 0.2f, 0.3f, 0.4f),
-            OutlineThickness = 3.5f
-        };
+            var layout = CreateLayout("P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var inputInvSizeOffset = GetOffset(layout, "InputInvSize");
+            var writeMethod = GetStructWriterMethod(typeof(OutlineParameters));
+            var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
+            var parameters = new OutlineParameters
+            {
+                InputInvSize = new Vector2(0.25f, 0.5f)
+            };
 
-        writeMethod.Invoke(null, [buffer, layout, parameters]);
+            writeMethod.Invoke(null, [buffer, layout, parameters]);
 
-        Assert.Equal(0.1f, BitConverter.ToSingle(buffer, 0));
-        Assert.Equal(0.2f, BitConverter.ToSingle(buffer, 4));
-        Assert.Equal(0.3f, BitConverter.ToSingle(buffer, 8));
-        Assert.Equal(0.4f, BitConverter.ToSingle(buffer, 12));
-        Assert.Equal(3.5f, BitConverter.ToSingle(buffer, 16));
+            Assert.Equal(0.25f, BitConverter.ToSingle(buffer, inputInvSizeOffset));
+            Assert.Equal(0.5f, BitConverter.ToSingle(buffer, inputInvSizeOffset + 4));
+        });
     }
 
-    [Fact]
-    public void StructCustomUniformWriter_falls_back_to_uniform_names()
+    private object CreateFieldOnlyLayout(string shaderName, string defines)
     {
-        var layout = ParseLayout("""
-            UNIFORM_BUFFER_BEGIN(6, Custom)
-                UNIFORM(float cOutlineThickness)
-            UNIFORM_BUFFER_END(6, Custom)
-            """);
-        var writeMethod = GetStructWriterMethod(typeof(UniformNamedParameters));
-        var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
-
-        writeMethod.Invoke(null, [buffer, layout, new UniformNamedParameters { cOutlineThickness = 2.25f }]);
-
-        Assert.Equal(2.25f, BitConverter.ToSingle(buffer, 0));
+        object? layout = null;
+        WithInitializedGraphics(() => layout = CreateLayout(shaderName, defines));
+        return layout ?? throw new InvalidOperationException("Custom uniform layout was null.");
     }
 
-    private static object ParseLayout(string source)
+    private object CreateLayout(string shaderName, string defines, bool includeVertexShader = true, bool includePixelShader = true)
     {
-        var parseMethod = typeof(Graphics).GetMethod("ParseCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("Graphics.ParseCustomUniformLayout was not found.");
-        return parseMethod.Invoke(null, [new[] { source }])
+        var vertexShader = includeVertexShader ? fixture.Graphics.GetShader(ShaderType.VS, shaderName, defines) : null;
+        var pixelShader = includePixelShader ? fixture.Graphics.GetShader(ShaderType.PS, shaderName, defines) : null;
+
+        if (includeVertexShader)
+            Assert.NotNull(vertexShader);
+        if (includePixelShader)
+            Assert.NotNull(pixelShader);
+
+        var reflection = new ShaderProgramReflection([vertexShader, pixelShader]);
+        var layoutMethod = typeof(Graphics).GetMethod("CreateCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("Graphics.CreateCustomUniformLayout was not found.");
+        return layoutMethod.Invoke(null, [reflection])
             ?? throw new InvalidOperationException("Custom uniform layout was null.");
+    }
+
+    private static object[] GetFields(object layout)
+    {
+        return ((System.Collections.IEnumerable)(GetProperty(layout, "Fields")
+                ?? throw new InvalidOperationException("Custom uniform fields were not found.")))
+            .Cast<object>()
+            .ToArray();
+    }
+
+    private static int GetOffset(object layout, string uniformName)
+    {
+        var field = GetFields(layout).Single(candidate => Equals(GetProperty(candidate, "UniformName"), uniformName));
+        return (int)(GetProperty(field, "Offset") ?? -1);
     }
 
     private static object? GetProperty(object instance, string name)
@@ -188,15 +193,33 @@ public sealed class GraphicsCustomUniformTests
             ?? throw new InvalidOperationException("Struct custom uniform writer method was not found.");
     }
 
-    private readonly struct OutlineParameters
+    private void WithInitializedGraphics(Action action)
     {
-        public Vector4 OutlineColor { get; init; }
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.GraphicsCustomUniformTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
 
-        public float OutlineThickness { get; init; }
+        RbfxTestData.AddResourceDirs(fixture.Resources);
+        fixture.Input.Initialize(parameters);
+        fixture.Graphics.Initialize(parameters, fixture.Input);
+        try
+        {
+            action();
+        }
+        finally
+        {
+            fixture.Graphics.Shutdown();
+            fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+        }
     }
 
-    private readonly struct UniformNamedParameters
+    private readonly struct OutlineParameters
     {
-        public float cOutlineThickness { get; init; }
+        public Vector2 InputInvSize { get; init; }
     }
 }

@@ -23,7 +23,16 @@ public sealed class UniformBufferReflection
     }
 }
 
-public readonly record struct UniformReflection(ShaderParameterGroup Group, uint Offset, uint Size);
+public readonly record struct UniformReflection(
+    string Name,
+    ShaderParameterGroup Group,
+    uint Offset,
+    uint Size,
+    ShaderCodeVariableClass VariableClass,
+    ShaderCodeBasicType BasicType,
+    byte NumRows,
+    byte NumColumns,
+    uint ArraySize);
 
 public sealed class ShaderResourceReflection
 {
@@ -51,6 +60,19 @@ public sealed class ShaderProgramReflection
         {
             if (shader?.GetHandle() is { IsNull: false } handle)
                 ReflectNativeShader(handle);
+        }
+
+        RecalculateUniformHash();
+    }
+
+    public ShaderProgramReflection(IEnumerable<IShader?> shaders)
+    {
+        ArgumentNullException.ThrowIfNull(shaders);
+
+        foreach (var shader in shaders)
+        {
+            if (shader is { IsNull: false })
+                ReflectNativeShader(shader);
         }
 
         RecalculateUniformHash();
@@ -142,7 +164,7 @@ public sealed class ShaderProgramReflection
                     if (TryParseConstantBufferName(internalName, out var group))
                     {
                         using var bufferDesc = shader.GetConstantBufferDesc(resourceIndex);
-                        AddUniformBuffer(group, internalName, bufferDesc.Size);
+                        ReflectUniformBuffer(group, internalName, bufferDesc);
                     }
                     break;
 
@@ -164,6 +186,8 @@ public sealed class ShaderProgramReflection
         var index = (int)group;
         if (uniformBuffers[index] is { } existingBuffer)
         {
+            if (existingBuffer.Size != 0 && size != 0 && existingBuffer.Size != size)
+                return;
             if (existingBuffer.Size == 0 && size != 0)
                 existingBuffer.Size = size;
             return;
@@ -174,6 +198,67 @@ public sealed class ShaderProgramReflection
             InternalName = internalName,
             Size = size
         };
+    }
+
+    private void ReflectUniformBuffer(ShaderParameterGroup group, string internalName, ShaderCodeBufferDesc bufferDesc)
+    {
+        AddUniformBuffer(group, internalName, bufferDesc.Size);
+
+        var firstVariable = bufferDesc.PVariables;
+        if (firstVariable is null || firstVariable.IsNull || bufferDesc.NumVariables == 0u)
+            return;
+
+        ReflectVariableArray(group, firstVariable.DangerousGetHandle(), bufferDesc.NumVariables);
+    }
+
+    private void ReflectVariableArray(ShaderParameterGroup group, nint firstVariableHandle, uint numVariables)
+    {
+        if (firstVariableHandle == IntPtr.Zero || numVariables == 0u)
+            return;
+
+        var stride = NativeShaderCodeVariableDesc.SizeInBytes;
+        for (uint variableIndex = 0; variableIndex < numVariables; ++variableIndex)
+        {
+            var address = firstVariableHandle + checked((nint)((long)variableIndex * stride));
+            var variable = Marshal.PtrToStructure<NativeShaderCodeVariableDesc>(address);
+            ReflectVariable(group, variable);
+        }
+    }
+
+    private void ReflectVariable(ShaderParameterGroup group, NativeShaderCodeVariableDesc variable)
+    {
+        if (variable.NumMembers != 0u && variable.PMembers != IntPtr.Zero)
+        {
+            ReflectVariableArray(group, variable.PMembers, variable.NumMembers);
+            return;
+        }
+
+        if (!TrySanitizeUniformName(variable.Name, out var name))
+            return;
+
+        var size = GetUniformSize(variable);
+        if (size == 0u)
+            return;
+
+        AddUniform(new UniformReflection(
+            name,
+            group,
+            variable.Offset,
+            size,
+            variable.Class,
+            variable.BasicType,
+            variable.NumRows,
+            variable.NumColumns,
+            variable.ArraySize));
+    }
+
+    private void AddUniform(UniformReflection uniform)
+    {
+        var nameHash = new StringHash(uniform.Name);
+        if (uniforms.TryGetValue(nameHash, out var existingUniform))
+            return;
+
+        uniforms[nameHash] = uniform;
     }
 
     private void AddShaderResource(StringHash name, string internalName)
@@ -205,8 +290,21 @@ public sealed class ShaderProgramReflection
             if (uniformBuffer is null)
                 continue;
 
-            uniformBuffer.Hash = uniformBuffer.Size != 0 ? CombineHash(0u, uniformBuffer.Size) : 0u;
-            if (uniformBuffer.Hash == 0)
+            uniformBuffer.Hash = 0u;
+            if (uniformBuffer.Size != 0u)
+                uniformBuffer.Hash = CombineHash(uniformBuffer.Hash, uniformBuffer.Size);
+        }
+
+        foreach (var (nameHash, uniform) in uniforms)
+        {
+            var uniformBuffer = GetUniformBuffer(uniform.Group);
+            if (uniformBuffer is null)
+                continue;
+
+            uniformBuffer.Hash = CombineHash(uniformBuffer.Hash, nameHash.Value);
+            uniformBuffer.Hash = CombineHash(uniformBuffer.Hash, uniform.Offset);
+            uniformBuffer.Hash = CombineHash(uniformBuffer.Hash, uniform.Size);
+            if (uniformBuffer.Hash == 0u)
                 uniformBuffer.Hash = 1u;
         }
     }
@@ -280,6 +378,86 @@ public sealed class ShaderProgramReflection
         return (int)group >= 0;
     }
 
+    private static bool TrySanitizeUniformName(nint namePointer, out string name)
+    {
+        var internalName = Marshal.PtrToStringUTF8(namePointer) ?? string.Empty;
+        if (string.IsNullOrEmpty(internalName))
+        {
+            name = string.Empty;
+            return false;
+        }
+
+        var index = internalName.IndexOf('c');
+        if (index < 0 || index + 1 >= internalName.Length)
+        {
+            name = string.Empty;
+            return false;
+        }
+
+        name = internalName[(index + 1)..];
+        return true;
+    }
+
+    private static uint GetUniformSize(NativeShaderCodeVariableDesc variable)
+    {
+        if (variable.ArraySize > 1u)
+        {
+            return variable.Class switch
+            {
+                ShaderCodeVariableClass.ShaderCodeVariableClassScalar
+                    => GetVectorArrayUniformSize(variable.BasicType, 1u, variable.ArraySize),
+                ShaderCodeVariableClass.ShaderCodeVariableClassVector
+                    => GetVectorArrayUniformSize(variable.BasicType, Math.Max(variable.NumColumns, variable.NumRows), variable.ArraySize),
+                ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns
+                    => GetVectorArrayUniformSize(variable.BasicType, variable.NumRows, variable.ArraySize * variable.NumColumns),
+                ShaderCodeVariableClass.ShaderCodeVariableClassMatrixRows
+                    => GetVectorArrayUniformSize(variable.BasicType, variable.NumColumns, variable.ArraySize * variable.NumRows),
+                _ => 0u
+            };
+        }
+
+        return variable.Class switch
+        {
+            ShaderCodeVariableClass.ShaderCodeVariableClassScalar => GetScalarUniformSize(variable.BasicType),
+            ShaderCodeVariableClass.ShaderCodeVariableClassVector => GetVectorUniformSize(variable.BasicType, Math.Max(variable.NumColumns, variable.NumRows)),
+            ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns => GetVectorArrayUniformSize(variable.BasicType, variable.NumRows, variable.NumColumns),
+            ShaderCodeVariableClass.ShaderCodeVariableClassMatrixRows => GetVectorArrayUniformSize(variable.BasicType, variable.NumColumns, variable.NumRows),
+            _ => 0u
+        };
+    }
+
+    private static uint GetScalarUniformSize(ShaderCodeBasicType basicType) => basicType switch
+    {
+        ShaderCodeBasicType.ShaderCodeBasicTypeInt64 or
+        ShaderCodeBasicType.ShaderCodeBasicTypeUint64 or
+        ShaderCodeBasicType.ShaderCodeBasicTypeDouble => sizeof(double),
+        _ => sizeof(float)
+    };
+
+    private static uint GetVectorUniformSize(ShaderCodeBasicType basicType, uint numElements)
+    {
+        return numElements switch
+        {
+            1u => GetScalarUniformSize(basicType),
+            2u => 2u * GetScalarUniformSize(basicType),
+            3u => 3u * GetScalarUniformSize(basicType),
+            4u => 4u * GetScalarUniformSize(basicType),
+            _ => 0u
+        };
+    }
+
+    private static uint GetVectorArrayUniformSize(ShaderCodeBasicType basicType, uint numElements, uint arraySize)
+    {
+        const uint alignment = 4u * sizeof(float);
+        var elementSize = GetVectorUniformSize(basicType, numElements);
+        return arraySize * Align(elementSize, alignment);
+    }
+
+    private static uint Align(uint value, uint alignment)
+    {
+        return (value + alignment - 1u) / alignment * alignment;
+    }
+
     private static bool TrySanitizeSrvName(string internalName, out StringHash name)
     {
         if (internalName.Length < 2 || internalName[0] != 's')
@@ -305,4 +483,34 @@ public sealed class ShaderProgramReflection
     }
 
     private static uint CombineHash(uint lhs, uint rhs) => unchecked(lhs * 37u + rhs + 17u);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct NativeShaderCodeVariableDesc
+    {
+        public nint Name { get; init; }
+
+        public nint TypeName { get; init; }
+
+        public byte ClassValue { get; init; }
+
+        public byte BasicTypeValue { get; init; }
+
+        public byte NumRows { get; init; }
+
+        public byte NumColumns { get; init; }
+
+        public uint Offset { get; init; }
+
+        public uint ArraySize { get; init; }
+
+        public uint NumMembers { get; init; }
+
+        public nint PMembers { get; init; }
+
+        public ShaderCodeVariableClass Class => (ShaderCodeVariableClass)ClassValue;
+
+        public ShaderCodeBasicType BasicType => (ShaderCodeBasicType)BasicTypeValue;
+
+        public static readonly int SizeInBytes = Marshal.SizeOf<NativeShaderCodeVariableDesc>();
+    }
 }
