@@ -4,6 +4,7 @@ public class PipelineState : DeviceObject
 {
     private readonly WeakReference<PipelineStateCache>? owner;
     private readonly PipelineStateDesc desc = new();
+    private readonly ShaderProgramReflection reflection = new();
 
     public PipelineState()
     {
@@ -13,6 +14,7 @@ public class PipelineState : DeviceObject
     {
         this.owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
         this.desc = desc ?? throw new ArgumentNullException(nameof(desc));
+        reflection = ShaderProgramReflection.FromDesc(desc);
         IsValid = desc.AsGraphics()?.IsInitialized() == true || desc.AsCompute()?.IsInitialized() == true;
         SetDebugName($"{desc.GetDebugName()} #{desc.ToHash()}");
     }
@@ -28,6 +30,8 @@ public class PipelineState : DeviceObject
     public PipelineStateType GetPipelineType() => desc.GetPipelineType();
 
     public PipelineStateDesc GetDesc() => desc;
+
+    public ShaderProgramReflection GetReflection() => reflection;
 
     public override void Invalidate()
     {

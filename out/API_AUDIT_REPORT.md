@@ -26,6 +26,10 @@ This report is a verified snapshot, not a historical summary.
 - The shader/resource identity layer is no longer entirely absent:
   - `ShaderBytecode`
   - `RawShader`
+  - `ShaderProgramReflection`
+  - `UniformBufferReflection`
+  - `UniformReflection`
+  - `ShaderResourceReflection`
 - Some of the previously missing support scaffolding is now present too:
   - `ConstantBufferCollection`
   - `ConstantBufferCollectionRef`
@@ -54,7 +58,7 @@ This report is a verified snapshot, not a historical summary.
 | `RenderDevice` | Present, incomplete | Subsystem exists, but most backend behavior remains in `Graphics` |
 | `RenderContext` | Present, incomplete | Core bind/viewport/clear getters exist, but it is still a thin `Graphics` adapter |
 | `RenderScope` | Present, incomplete | Helper exists, but it is effectively a no-op while debug scopes are disabled |
-| `PipelineState` | Present, incomplete | Now carries descriptor/type access and cache ownership, but still has no real GPU/reflection state |
+| `PipelineState` | Present, incomplete | Now carries descriptor/type access, cache ownership, and native-only reflection access, but still has no real GPU PSO/SRB state |
 | `PipelineStateDesc` | Present, incomplete | Wrapper exists with cloning/hash semantics and now keys on `RawShader`, but it still lacks real backend PSO/reflection integration |
 | `PipelineStateCache` | Present, incomplete | Subsystem exists and deduplicates managed pipeline-state objects, but it is not connected to Diligent pipeline-state cache or real backend PSO creation |
 | `GraphicsPipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
@@ -65,7 +69,7 @@ This report is a verified snapshot, not a historical summary.
 | `RawShader` | Present, incomplete | Exists as a `DeviceObject` that owns bytecode and native shader handles, but reflection/loading/integration are still sparse |
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
 | `RenderPool` | Present, incomplete | Type exists, but lifecycle methods are no-op placeholders |
-| `ShaderProgramReflection` | Missing | No equivalent type exists |
+| `ShaderProgramReflection` | Present, incomplete | Native-only reflection exists for compiled `RawShader` handles, but uniform-member enumeration and fuller SRB/backend integration are still missing |
 | `DrawCommandQueue` | Present, incomplete | Type now records rbfx-style draw/dispatch snapshots, but real reflection/resource binding and backend submission are still missing |
 | `ShaderBytecode` | Present, incomplete | Exists with MIME/bytecode/vertex-attribute serialization, but the wider reflection/program pipeline is still absent |
 
@@ -75,9 +79,6 @@ This report is a verified snapshot, not a historical summary.
 
 - `RawTextureParams`
 - `RawTextureUAVKey`
-- `UniformBufferReflection`
-- `UniformReflection`
-- `ShaderResourceReflection`
 - `OptionalRawTextureRTV`
 
 ## Verified Deviations In Existing RenderAPI Types
@@ -89,13 +90,13 @@ Current RedBolt `PipelineState` still only exposes:
 - `DebugName`
 - `IsValid`
 - descriptor/type/cache-owner access
+- reflection access
 
 It now at least inherits `DeviceObject`, so invalidate/restore/destroy routing is no longer missing entirely. However, the rbfx class also carries:
 
 - real pipeline-state construction from `PipelineStateDesc`
 - `DeviceObject` lifecycle (`Invalidate`, `Restore`, `Destroy`)
 - descriptor accessors
-- reflection access
 - GPU handle access
 - shader-resource-binding access
 
@@ -108,6 +109,7 @@ Verified current state:
 - All three descriptor surfaces now exist with hash/equality behavior and defensive cloning of nested mutable descriptor state.
 - The current managed implementation now uses `RawShader` as the shader identity surface, with special-case equality/hash behavior for `ShaderVariation`.
 - That closes the previously verified type-shape gap, but it is still not rbfx parity because upstream also carries backend-facing pipeline-state creation, shader-program reflection, and richer resource-binding metadata.
+- That closes the previously verified type-shape gap. The remaining parity gap is backend-facing: real PSO creation, fuller shader-program reflection, and richer resource-binding metadata are still missing.
 
 ### `PipelineStateCache`
 
@@ -128,7 +130,22 @@ Verified current state:
 - `CreateFromBinary(...)`, `GetBytecode()`, `GetShaderType()`, and `GetHandle()` now exist.
 - Current GPU creation is still thin:
   - it reaches into `Graphics` for the native device instead of being owned by a fuller RenderAPI backend layer
-  - it supports current shader creation from stored GLSL source or binary blobs, but there is still no upstream-style shader reflection/program reflection surface around it
+  - it supports current shader creation from stored GLSL source or binary blobs
+  - upstream-style shader-program reflection now exists around compiled native handles, but member-level uniform reflection and fuller program/pipeline integration are still incomplete
+
+### `ShaderProgramReflection`
+
+Verified current state:
+
+- `ShaderProgramReflection`, `UniformBufferReflection`, `UniformReflection`, and `ShaderResourceReflection` now exist.
+- Current behavior is intentionally native-only:
+  - compiled Diligent `IShader` handles are queried for resource metadata
+  - constant buffers are mapped to rbfx parameter groups by native buffer name
+  - SRV/UAV resources are exposed by sanitized rbfx-style names and can later be connected to SRB variables
+- Current parity gaps are still significant:
+  - `GetUniforms()` is effectively empty because member-level native reflection arrays are not wired through the generated bindings yet
+  - `RecalculateUniformHash()` currently hashes buffer size only, not the full reflected uniform layout
+  - shader-variable connection exists, but `PipelineState` still does not own a real backend PSO/SRB object graph
 
 ### `ShaderBytecode`
 

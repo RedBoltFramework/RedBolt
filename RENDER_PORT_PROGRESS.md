@@ -199,6 +199,10 @@ Slice 1 through the first runtime integration layer are landed:
     - `DrawCommandDescription` and `ShaderResourceRange` now exist as managed rbfx-named queue payload types
     - `DrawCommandQueue` now records pipeline state, scissor/stencil state, vertex/index buffers, graphics draw calls, and compute dispatches as rbfx-style command snapshots instead of remaining only a clip-plane shell
     - `DrawCommandQueue.ExecuteInContext(...)` now replays clip-plane state and accumulated draw/dispatch stats through `RenderContext`, while real backend PSO/resource binding playback is still pending the reflection/resource layer
+  - the next shader-reflection slice from the API audit is now in-tree too:
+    - `ShaderProgramReflection`, `UniformBufferReflection`, `UniformReflection`, and `ShaderResourceReflection` now exist as managed rbfx-named RenderAPI surfaces
+    - reflection is currently native-only: it walks compiled Diligent `IShader` metadata from `RawShader` handles, discovers constant buffers plus SRV/UAV resources, and threads that data into `PipelineState.GetReflection()`
+    - `ShaderProgramReflection.ConnectToShaderVariables(...)` now matches resources to native SRB variables by enumerating bound shader variables instead of parsing shader source or adding RedBolt-only fallback behavior
   - focused validation for these RenderAPI slices used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~PipelineStateCacheTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun for the graphics-touching alias fix on `2026-07-07`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-pipelinestatecache.png` completed successfully and still produced the expected mushroom field, outlines, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
   - focused validation for the shader slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-build --filter 'FullyQualifiedName~RawShaderTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~RenderContextTests|FullyQualifiedName~ShaderFileTests'` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
@@ -206,6 +210,7 @@ Slice 1 through the first runtime integration layer are landed:
   - focused validation for the support-type slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~ConstantBufferCollectionTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RawShaderTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - focused validation for the buffer slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawBufferTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~ConstantBufferCollectionTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - focused validation for the command-queue slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~DrawCommandQueueTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~ConstantBufferCollectionTests|FullyQualifiedName~RawBufferTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - focused validation for the native shader-reflection slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~ShaderProgramReflectionTests|FullyQualifiedName~RawShaderTests|FullyQualifiedName~PipelineStateCacheTests|FullyQualifiedName~DrawCommandQueueTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
 
 ## Current Cross-Cutting Requirement
 
@@ -224,14 +229,11 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
-- Replace the still-placeholder shader part of the new pipeline-state surface with rbfx-style resource types:
-  - `ShaderProgramReflection`
-- Deepen the new shader slice by threading `RawShader` into more backend-facing pipeline creation paths and by adding the upstream reflection side:
-  - `ShaderProgramReflection`
-  - `UniformBufferReflection`
-  - `UniformReflection`
-  - `ShaderResourceReflection`
-- Continue from the new `RawBuffer`, `ConstantBufferCollection`, and `DrawCommandQueue` slices into real backend playback:
+- Deepen the new native shader-reflection slice without adding fallback parsing:
+  - populate `UniformReflection` members from real native reflection data rather than leaving the map empty
+  - if Diligent bindings are still missing the required reflection arrays, extend SharpCpp/import the needed upstream reflection dependency instead of inventing a RedBolt-only source parser
+  - thread `ShaderProgramReflection.ConnectToShaderVariables(...)` into real pipeline-state/resource-binding setup
+- Continue from the new `RawBuffer`, `ConstantBufferCollection`, `ShaderProgramReflection`, and `DrawCommandQueue` slices into real backend playback:
   - thread shader reflections and resource binding through recorded commands
   - upload/bind constant buffers from `ConstantBufferCollection`
   - replace the current stats-only `RenderContext.Execute(...)` replay with Diligent draw/dispatch submission
