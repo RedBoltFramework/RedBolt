@@ -170,6 +170,13 @@ Slice 1 through the first runtime integration layer are landed:
   - fullscreen pipeline compilation now also injects `URHO3D_GEOMETRY_STATIC` for the fullscreen quad path, which lets rbfx postprocess shaders such as `P_Outline` compile their shared `_VertexTransform.glsl` vertex path correctly
 - focused graphics coverage now also verifies that `Graphics.DrawCopyTexture` can copy both CPU-backed textures and render-target textures into a destination render target, closing the exact regression that previously left the destination black in the managed fullscreen copy path
 - sample verification was rerun again on `2026-07-07` after fixing the fullscreen shader lookup/define path; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-staticscene-fixed.png` completed successfully and now again captures visible scene geometry plus outline compositing instead of a fully black frame
+- foundational `RenderAPI` object-model porting has now started in-tree instead of staying only in audit notes:
+  - `RenderDevice` is now a real engine subsystem registered in `Context`, backed by the existing managed `Graphics`/`Renderer` subsystems for current caps/settings queries and device-object lifecycle dispatch
+  - `DeviceObject` now exists as the shared managed GPU-object base with rbfx-style data-loss/debug-name helpers plus invalidate/restore/destroy event routing
+  - `PipelineState` now inherits `DeviceObject` instead of remaining a free-standing POCO, which gives the existing stub a real place in the future RenderAPI object graph
+  - `RenderBackend.Count` and `DeviceObjectFlag` now exist in `RenderAPIDefs.cs`, closing two audited foundational enum gaps
+  - focused validation for this slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - no sample screenshot rerun was needed for this checkpoint because the slice did not change renderer behavior, only subsystem/object-model plumbing
 
 ## Current Cross-Cutting Requirement
 
@@ -188,8 +195,12 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
+- Continue the new RenderAPI object-model slice with `RenderContext` and `RenderScope`, moving viewport/render-target state ownership out of ad-hoc `Graphics` helpers and into rbfx-named surfaces.
+- Port the pipeline-state descriptor/cache layer next:
+  - `GraphicsPipelineStateDesc`
+  - `ComputePipelineStateDesc`
+  - `PipelineStateDesc`
+  - `PipelineStateCache`
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
-- Replace the current `Graphics.RenderScene`/`RenderOutlineGroups` direct loops with a closer port of rbfx drawable processing and scene-pass orchestration once more of the higher-level pipeline stack is in place.
-- Continue replacing the remaining substitute-depth and multisample gaps with closer ports of upstream `RenderBuffer` / `RenderBufferManager` semantics now that explicit output-target matching and color-space-aware resolves are in place.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.

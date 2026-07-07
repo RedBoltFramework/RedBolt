@@ -203,6 +203,7 @@ public sealed class Engine
         if (!IsInitialized)
             return;
 
+        Context.GetSubsystem<RenderDevice>()?.OnEngineShutdown();
         GetRequiredSubsystem<Graphics>().Shutdown();
         GetRequiredSubsystem<Renderer>().ClearViewports();
         GetRequiredSubsystem<Input>().Shutdown();

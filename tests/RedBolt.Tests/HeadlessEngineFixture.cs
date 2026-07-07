@@ -33,6 +33,8 @@ public sealed class HeadlessEngineFixture : IDisposable
 
     public Graphics Graphics => GetRequiredSubsystem<Graphics>();
 
+    public RenderDevice RenderDevice => GetRequiredSubsystem<RenderDevice>();
+
     public void Dispose()
     {
         Engine.Shutdown();

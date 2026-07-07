@@ -19,7 +19,8 @@ public enum RenderBackend
     D3D11,
     D3D12,
     OpenGL,
-    Vulkan
+    Vulkan,
+    Count
 }
 
 public enum WindowMode
@@ -277,6 +278,13 @@ public enum DeviceObjectEvent
     Invalidate,
     Restore,
     Destroy
+}
+
+[Flags]
+public enum DeviceObjectFlag : byte
+{
+    None = 0,
+    Headless = 1 << 0
 }
 
 [Flags]

@@ -1,8 +1,12 @@
 namespace RedBolt;
 
-public class PipelineState
+public class PipelineState : DeviceObject
 {
-    public string DebugName { get; set; } = string.Empty;
+    public string DebugName
+    {
+        get => GetDebugName();
+        set => SetDebugName(value);
+    }
 
-    public bool IsValid { get; set; } = true;
+    public bool IsValid { get; protected set; } = true;
 }
