@@ -66,7 +66,7 @@ This report is a verified snapshot, not a historical summary.
 | `GraphicsPipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
 | `ComputePipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
 | `ConstantBufferCollection` | Present, incomplete | Packing/allocation helper exists, but it is not wired into a real draw-command recording path yet |
-| `RawTexture` | Present, incomplete | Managed wrapper now exists around the current `Texture` hierarchy, but backend handle/UAV ownership is still not a full RenderAPI-native layer |
+| `RawTexture` | Present, incomplete | Managed wrapper now exists around the current `Texture` hierarchy, and it now caches native UAV views through the current backend bridge, but backend texture/view ownership is still not a full RenderAPI-native layer |
 | `RawBuffer` | Present, incomplete | Buffer device object exists with native `IBuffer` creation and shadow/update helpers, but higher-level buffer classes and command recording still do not route through it |
 | `RawShader` | Present, incomplete | Exists as a `DeviceObject` that owns bytecode and native shader handles, but reflection/loading/integration are still sparse |
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
@@ -197,9 +197,14 @@ Verified current state:
   - sampler-state metadata
   - a wrapped managed `Texture2D` / `TextureCube` / `Texture2DArray`
 - `GetHandle()` now exists and reaches through the managed `RenderDevice` / `Graphics` bridge to expose the current native Diligent texture handle.
+- `CreateUAV(...)` and `GetUAV(...)` now exist too:
+  - validated/normalized `RawTextureUAVKey` inputs
+  - cached native Diligent `ITextureView` UAVs
+  - current backend creation routed through `RenderDevice` / `Graphics`
 - Current parity limits are still important:
   - this is still a wrapper over the older `Texture` resource hierarchy, not yet the primary backend-owned GPU texture layer
-  - `Texture3D`, UAV view ownership, updates/readback/resolve helpers, and fuller loss/restore behavior are still missing
+  - `Texture3D`, updates/readback/resolve helpers, and fuller loss/restore behavior are still missing
+  - current OpenGL validation only exercised explicit single-mip UAV creation; the rbfx-style default zero-count key still expands to remaining mip levels and needs broader backend-parity follow-up
   - handle creation still depends on the older `Graphics` upload path instead of `RawTexture` owning the backend texture lifecycle directly
   - `RenderTargetView` can now accept `RawTexture`, but much of the rest of the renderer still talks directly to `Texture`
 

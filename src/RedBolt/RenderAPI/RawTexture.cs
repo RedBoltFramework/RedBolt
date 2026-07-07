@@ -7,6 +7,7 @@ public sealed class RawTexture : DeviceObject
     private RawTextureParams parameters;
     private SamplerStateDesc samplerStateDesc = new();
     private Texture? texture;
+    private readonly Dictionary<RawTextureUAVKey, ITextureView> uavs = [];
 
     public RawTexture()
     {
@@ -29,6 +30,7 @@ public sealed class RawTexture : DeviceObject
 
         texture = createdTexture;
         this.parameters = finalizedParameters;
+        uavs.Clear();
         ApplySamplerState();
         SetDebugName($"RawTexture #{parameters.GetHashCode():X8}");
         return true;
@@ -52,6 +54,40 @@ public sealed class RawTexture : DeviceObject
         return texture is not null ? renderDevice?.GetTextureHandle(texture) : null;
     }
 
+    public ITextureView? CreateUAV(RawTextureUAVKey key)
+    {
+        if (texture is null || !parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
+            return null;
+        if (!GetRenderDevice()?.IsUnorderedAccessFormatSupported(parameters.Format) ?? true)
+            return null;
+
+        if (GetUAV(key) is { } cachedView)
+            return cachedView;
+
+        var effectiveKey = key;
+        if (!ValidateUavKey(ref effectiveKey))
+            return null;
+
+        if (GetUAV(effectiveKey) is { } normalizedView)
+        {
+            uavs[key] = normalizedView;
+            return normalizedView;
+        }
+
+        var createdView = GetRenderDevice()?.CreateTextureUnorderedAccessView(this, effectiveKey);
+        if (createdView is null || createdView.IsNull)
+            return null;
+
+        uavs[key] = createdView;
+        uavs[effectiveKey] = createdView;
+        return createdView;
+    }
+
+    public ITextureView? GetUAV(RawTextureUAVKey key)
+    {
+        return uavs.TryGetValue(key, out var view) ? view : null;
+    }
+
     public void MarkDirty()
     {
         if (texture is null)
@@ -60,9 +96,22 @@ public sealed class RawTexture : DeviceObject
         RenderTargetView.Texture(this).MarkDirty();
     }
 
+    public override void Invalidate()
+    {
+        base.Invalidate();
+        uavs.Clear();
+    }
+
+    public override void Restore()
+    {
+        base.Restore();
+        uavs.Clear();
+    }
+
     public override void Destroy()
     {
         base.Destroy();
+        uavs.Clear();
         texture = null;
     }
 
@@ -158,5 +207,27 @@ public sealed class RawTexture : DeviceObject
         return texture.MultiSample > 1 && !parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)
             ? 1u
             : texture.Levels;
+    }
+
+    private bool ValidateUavKey(ref RawTextureUAVKey key)
+    {
+        if (!key.CanRead && !key.CanWrite)
+            return false;
+        if (key.FirstSlice >= parameters.ArraySize)
+            return false;
+        if (key.FirstLevel >= parameters.NumLevelsRtv)
+            return false;
+
+        if (key.NumLevels == 0u)
+            key = key with { NumLevels = parameters.NumLevelsRtv - key.FirstLevel };
+        if (key.NumSlices == 0u)
+            key = key with { NumSlices = parameters.ArraySize - key.FirstSlice };
+
+        if (key.FirstSlice + key.NumSlices > parameters.ArraySize)
+            return false;
+        if (key.FirstLevel + key.NumLevels > parameters.NumLevelsRtv)
+            return false;
+
+        return true;
     }
 }

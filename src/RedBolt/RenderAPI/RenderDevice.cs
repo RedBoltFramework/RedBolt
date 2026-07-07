@@ -44,8 +44,7 @@ public sealed class RenderDevice : Object
 
     public bool IsUnorderedAccessFormatSupported(TextureFormat format)
     {
-        _ = format;
-        return false;
+        return format is TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
     }
 
     public bool IsMultiSampleSupported(TextureFormat format, int multiSample)
@@ -174,6 +173,13 @@ public sealed class RenderDevice : Object
         ArgumentNullException.ThrowIfNull(texture);
         var graphics = GetSubsystem<Graphics>();
         return graphics?.GetTextureHandle(texture);
+    }
+
+    internal ITextureView? CreateTextureUnorderedAccessView(RawTexture texture, RawTextureUAVKey key)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        var graphics = GetSubsystem<Graphics>();
+        return graphics?.CreateTextureUnorderedAccessView(texture, key);
     }
 
     internal void MarkRenderTargetDirty(RenderTargetView view)

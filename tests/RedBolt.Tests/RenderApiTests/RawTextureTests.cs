@@ -1,4 +1,5 @@
 using RedBolt;
+using RedBolt.Bindings.Diligent;
 
 namespace RedBolt.Tests;
 
@@ -156,6 +157,82 @@ public sealed class RawTextureTests
             var desc = handle.GetDesc();
             Assert.Equal((uint)32, desc.Width);
             Assert.Equal((uint)16, desc.Height);
+        });
+    }
+
+    [Fact]
+    public void Raw_texture_creates_and_caches_single_mip_uav_when_graphics_is_initialized()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D,
+                TextureFormat.RGBA8,
+                TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
+                new IntVector3(16, 16, 1)));
+            var key = new RawTextureUAVKey(NumLevels: 1u);
+
+            var firstView = rawTexture.CreateUAV(key);
+            var secondView = rawTexture.GetUAV(key);
+
+            Assert.NotNull(firstView);
+            Assert.Same(firstView, secondView);
+
+            var desc = firstView!.GetDesc();
+            Assert.Equal(TextureViewType.TextureViewUnorderedAccess, desc.ViewType);
+            Assert.Equal(ResourceDimension.ResourceDimTex2d, desc.TextureDim);
+            Assert.Equal((uint)0, desc.FirstSlice);
+            Assert.Equal((uint)0, desc.MostDetailedMip);
+            Assert.Equal((uint)1, desc.NumMipLevels);
+            Assert.Equal(UavAccessFlag.UavAccessFlagReadWrite, desc.AccessFlags);
+        });
+    }
+
+    [Fact]
+    public void Raw_texture_normalizes_uav_key_ranges_before_caching_view()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2DArray,
+                TextureFormat.RGBA8,
+                TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
+                new IntVector3(8, 8, 1),
+                ArraySize: 4u,
+                NumLevels: 3u));
+            var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstSlice: 1u, FirstLevel: 1u);
+            var normalizedKey = requestedKey with { NumSlices = 3u, NumLevels = 2u };
+
+            var firstView = rawTexture.CreateUAV(requestedKey);
+            var secondView = rawTexture.GetUAV(normalizedKey);
+
+            Assert.NotNull(firstView);
+            Assert.Same(firstView, secondView);
+
+            var desc = firstView!.GetDesc();
+            Assert.Equal(TextureViewType.TextureViewUnorderedAccess, desc.ViewType);
+            Assert.Equal(ResourceDimension.ResourceDimTex2dArray, desc.TextureDim);
+            Assert.Equal((uint)1, desc.FirstSlice);
+            Assert.Equal((uint)3, desc.NumSlices);
+            Assert.Equal((uint)1, desc.MostDetailedMip);
+            Assert.Equal((uint)2, desc.NumMipLevels);
+            Assert.Equal(UavAccessFlag.UavAccessFlagWrite, desc.AccessFlags);
+        });
+    }
+
+    [Fact]
+    public void Raw_texture_does_not_create_uav_without_unordered_access_flag()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D,
+                TextureFormat.RGBA8,
+                TextureFlag.BindRenderTarget,
+                new IntVector3(16, 16, 1)));
+
+            Assert.Null(rawTexture.CreateUAV(new RawTextureUAVKey()));
+            Assert.Null(rawTexture.GetUAV(new RawTextureUAVKey()));
         });
     }
 

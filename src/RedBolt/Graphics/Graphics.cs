@@ -175,6 +175,42 @@ layout(std140) uniform Material
         return !IsInitialized ? null : GetOrCreateUploadedTexture(texture).Texture;
     }
 
+    internal ITextureView? CreateTextureUnorderedAccessView(RawTexture rawTexture, RawTextureUAVKey key)
+    {
+        ArgumentNullException.ThrowIfNull(rawTexture);
+        if (!IsInitialized)
+            return null;
+
+        var texture = rawTexture.GetTexture();
+        if (texture is null)
+            return null;
+
+        var uploaded = GetOrCreateUploadedTexture(texture, bindUnorderedAccess: true);
+        if (uploaded.TryGetUav(key, out var cachedView))
+            return cachedView;
+
+        using var textureViewDescOwner = CreateTextureViewDesc();
+        var textureViewDesc = textureViewDescOwner.Desc;
+        textureViewDesc.ViewType = TextureViewType.TextureViewUnorderedAccess;
+        textureViewDesc.TextureDim = GetViewResourceDimension(texture);
+        textureViewDesc.Format = MapTextureFormat(texture.Format);
+        textureViewDesc.MostDetailedMip = key.FirstLevel;
+        textureViewDesc.NumMipLevels = key.NumLevels;
+        textureViewDesc.FirstSlice = key.FirstSlice;
+        textureViewDesc.NumSlices = key.NumSlices;
+        textureViewDesc.AccessFlags = key.CanRead && key.CanWrite
+            ? UavAccessFlag.UavAccessFlagReadWrite
+            : key.CanRead
+                ? UavAccessFlag.UavAccessFlagRead
+                : UavAccessFlag.UavAccessFlagWrite;
+        uploaded.Texture.CreateView(textureViewDesc, out var createdView);
+        if (createdView.IsNull)
+            return null;
+
+        uploaded.CacheUav(key, createdView);
+        return createdView;
+    }
+
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
         var colorFormat = UnmapTextureFormat(GetSwapChainColorFormat(), out var colorIsSrgb);
@@ -2018,20 +2054,40 @@ layout(std140) uniform Material
 
     private UploadedTexture GetOrCreateUploadedTexture(Texture texture)
     {
-        return texture switch
-        {
-            Texture2D texture2D => GetOrCreateUploadedTexture(texture2D),
-            TextureCube textureCube => GetOrCreateUploadedTexture(textureCube),
-            Texture2DArray texture2DArray => GetOrCreateUploadedTexture(texture2DArray),
-            _ => throw new NotSupportedException($"Texture type '{texture.GetType().Name}' is not supported by the current managed GPU upload path.")
-        };
+        return GetOrCreateUploadedTexture(texture, bindUnorderedAccess: false);
     }
 
     private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture)
     {
+        return GetOrCreateUploadedTexture(texture, bindUnorderedAccess: false);
+    }
+
+    private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture)
+    {
+        return GetOrCreateUploadedTexture(texture, bindUnorderedAccess: false);
+    }
+
+    private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture)
+    {
+        return GetOrCreateUploadedTexture(texture, bindUnorderedAccess: false);
+    }
+
+    private UploadedTexture GetOrCreateUploadedTexture(Texture texture, bool bindUnorderedAccess)
+    {
+        return texture switch
+        {
+            Texture2D texture2D => GetOrCreateUploadedTexture(texture2D, bindUnorderedAccess),
+            TextureCube textureCube => GetOrCreateUploadedTexture(textureCube, bindUnorderedAccess),
+            Texture2DArray texture2DArray => GetOrCreateUploadedTexture(texture2DArray, bindUnorderedAccess),
+            _ => throw new NotSupportedException($"Texture type '{texture.GetType().Name}' is not supported by the current managed GPU upload path.")
+        };
+    }
+
+    private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture, bool bindUnorderedAccess)
+    {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
         {
-            if (UploadedTextureMatches(texture, uploaded))
+            if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
@@ -2059,6 +2115,8 @@ layout(std140) uniform Material
         {
             if (texture.MultiSample != 1)
                 throw new NotSupportedException("CPU-backed multisampled Texture2D uploads are not implemented in the current managed renderer.");
+            if (bindUnorderedAccess)
+                throw new NotSupportedException("CPU-backed Texture2D uploads with unordered access are not implemented in the current managed renderer.");
 
             // CPU-backed textures still upload only their base level in the managed renderer.
             // Keep the GPU texture single-mip until full subresource upload is implemented.
@@ -2075,7 +2133,7 @@ layout(std140) uniform Material
 
             var shaderResourceView = RetainDefaultTextureView(
                 gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource));
-            uploaded = new UploadedTexture(gpuTextureWithData, shaderResourceView, null, null, null);
+            uploaded = new UploadedTexture(gpuTextureWithData, shaderResourceView, null, null, null, supportsUnorderedAccess: false);
             uploadedTextures[texture] = uploaded;
             return uploaded;
         }
@@ -2084,6 +2142,8 @@ layout(std140) uniform Material
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        if (bindUnorderedAccess)
+            textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
         device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
@@ -2096,16 +2156,17 @@ layout(std140) uniform Material
         var readOnlyDepthView = IsDepthTextureFormat(texture.Format) && depthView is not null
             ? GetReadOnlyDepthTextureView(gpuTexture, depthView)
             : null;
-        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView, depthView, readOnlyDepthView, resolvedTexture);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView, depthView, readOnlyDepthView, resolvedTexture,
+            supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
 
-    private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture)
+    private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture, bool bindUnorderedAccess)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
         {
-            if (UploadedTextureMatches(texture, uploaded))
+            if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
@@ -2135,6 +2196,8 @@ layout(std140) uniform Material
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        if (bindUnorderedAccess)
+            textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
         device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
@@ -2142,16 +2205,17 @@ layout(std140) uniform Material
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture,
+            supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
 
-    private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture)
+    private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture, bool bindUnorderedAccess)
     {
         if (uploadedTextures.TryGetValue(texture, out var uploaded))
         {
-            if (UploadedTextureMatches(texture, uploaded))
+            if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
@@ -2184,6 +2248,8 @@ layout(std140) uniform Material
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
+        if (bindUnorderedAccess)
+            textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
         device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
@@ -2191,7 +2257,8 @@ layout(std140) uniform Material
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture);
+        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture,
+            supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
@@ -2501,7 +2568,7 @@ layout(std140) uniform Material
     private static bool IsDepthTextureFormat(TextureFormat format)
         => format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
 
-    private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded)
+    private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded, bool requireUnorderedAccess = false)
     {
         var desc = uploaded.Texture.GetDesc();
         var expectedFormat = MapTextureFormat(texture.Format);
@@ -2514,6 +2581,7 @@ layout(std140) uniform Material
             && desc.ArraySizeOrDepth == GetArraySizeOrDepth(texture)
             && desc.SampleCount == (uint)texture.MultiSample
             && uploaded.HasResolvedTexture == NeedsResolvedTexture(texture)
+            && (!requireUnorderedAccess || uploaded.SupportsUnorderedAccess)
             && desc.Format == expectedFormat
             && desc.MipLevels == GetUploadedMipLevels(texture);
     }
@@ -2530,6 +2598,16 @@ layout(std140) uniform Material
         return texture switch
         {
             TextureCube => ResourceDimension.ResourceDimTexCube,
+            Texture2DArray => ResourceDimension.ResourceDimTex2dArray,
+            _ => ResourceDimension.ResourceDimTex2d
+        };
+    }
+
+    private static ResourceDimension GetViewResourceDimension(Texture texture)
+    {
+        return texture switch
+        {
+            TextureCube => ResourceDimension.ResourceDimTex2dArray,
             Texture2DArray => ResourceDimension.ResourceDimTex2dArray,
             _ => ResourceDimension.ResourceDimTex2d
         };
@@ -3873,9 +3951,11 @@ layout(std140) uniform Material
     private sealed class UploadedTexture : IDisposable
     {
         private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> sliceViews = [];
+        private readonly Dictionary<RawTextureUAVKey, ITextureView> uavs = [];
 
         public UploadedTexture(ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
-            ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null)
+            ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null,
+            bool supportsUnorderedAccess = false)
         {
             Texture = texture;
             ShaderView = shaderView;
@@ -3883,6 +3963,7 @@ layout(std140) uniform Material
             DepthStencilView = depthStencilView;
             ReadOnlyDepthView = readOnlyDepthView;
             ResolvedTexture = resolvedTexture;
+            SupportsUnorderedAccess = supportsUnorderedAccess;
         }
 
         public ITexture Texture { get; }
@@ -3899,6 +3980,8 @@ layout(std140) uniform Material
 
         public bool HasResolvedTexture => ResolvedTexture is not null && !ResolvedTexture.IsNull;
 
+        public bool SupportsUnorderedAccess { get; }
+
         public bool ResolveDirty { get; private set; }
 
         public bool TryGetSliceView(TextureViewType viewType, uint slice, out ITextureView view)
@@ -3909,6 +3992,16 @@ layout(std140) uniform Material
         public void CacheSliceView(TextureViewType viewType, uint slice, ITextureView view)
         {
             sliceViews[(viewType, slice)] = view;
+        }
+
+        public bool TryGetUav(RawTextureUAVKey key, out ITextureView view)
+        {
+            return uavs.TryGetValue(key, out view!);
+        }
+
+        public void CacheUav(RawTextureUAVKey key, ITextureView view)
+        {
+            uavs[key] = view;
         }
 
         public void MarkDirty()

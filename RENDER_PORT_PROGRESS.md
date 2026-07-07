@@ -230,6 +230,12 @@ Slice 1 through the first runtime integration layer are landed:
   - focused validation for the raw-texture handle follow-up used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawTextureTests|FullyQualifiedName~GraphicsRenderTargetViewTests|FullyQualifiedName~RenderContextTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
   - sample validation was rerun again on `2026-07-07` after the `RawTexture.GetHandle()` follow-up using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawtexture-handle-1.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outlines, ground plane, and black background
   - focused validation for the pool-support slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RenderPoolTests|FullyQualifiedName~RawTextureTests|FullyQualifiedName~RawBufferTests|FullyQualifiedName~RenderDeviceTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - the next raw-texture follow-up from the audit is now in-tree too:
+    - `RawTexture.CreateUAV(...)` and `GetUAV(...)` now exist with rbfx-style key normalization/validation and cached native UAV view ownership
+    - `RenderDevice` / `Graphics` now create and cache native Diligent texture UAV views for managed `RawTexture` wrappers without adding source-parsing fallbacks
+    - validation on the current OpenGL backend confirmed that explicit single-mip UAV keys materialize native views, while the rbfx-style default zero-count key still expands to the remaining mip chain and needs broader backend-parity follow-up
+  - focused validation for the raw-texture UAV slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter 'FullyQualifiedName~RawTextureTests|FullyQualifiedName~GraphicsRenderTargetViewTests|FullyQualifiedName~RenderPoolTests'` plus `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - sample validation was rerun again on `2026-07-07` after the raw-texture UAV slice using `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-rawtexture-uav-checkpoint.png`; the captured `1280x720` frame still shows the expected mushroom field, magenta outlines, ground plane, and black background
 
 ## Current Cross-Cutting Requirement
 
@@ -254,6 +260,7 @@ Slice 1 through the first runtime integration layer are landed:
   - thread `ShaderProgramReflection.ConnectToShaderVariables(...)` into real pipeline-state/resource-binding setup
 - Deepen the new raw-texture/pool slice toward fuller rbfx parity:
   - move backend-facing raw-texture handle/UAV ownership out of ad-hoc `Texture`/`Graphics` helpers and behind `RawTexture`
+  - reconcile the current OpenGL single-mip UAV behavior with rbfx's zero-count/default `RawTextureUAVKey` expansion instead of silently normalizing it away
   - add the remaining pool helpers (richer cache cleanup/logging parity and any missing transient helpers beyond scratch allocation)
   - route more render-buffer and output-target code through `RawTexture` instead of direct `Texture` references
 - Continue from the new `RawBuffer`, `ConstantBufferCollection`, `ShaderProgramReflection`, and `DrawCommandQueue` slices into real backend playback:
