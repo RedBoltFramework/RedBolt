@@ -1,3 +1,5 @@
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
 public enum RenderTargetViewType
@@ -44,9 +46,34 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
 
     public void MarkDirty()
     {
+        if (IsSwapChain)
+            return;
+
+        ResolveRenderDevice().MarkRenderTargetDirty(this);
     }
 
-    public TextureFormat GetFormat() => RenderTexture?.Format ?? TextureFormat.Unknown;
+    public ITextureView GetView() => ResolveRenderDevice().ResolveRenderTargetView(this);
 
-    public int GetMultiSample() => RenderTexture?.MultiSample ?? 1;
+    public TextureFormat GetFormat()
+    {
+        if (RenderTexture is not null)
+            return RenderTexture.Format;
+
+        var outputTarget = ResolveRenderDevice().GetSwapChainOutputTarget();
+        return Type == RenderTargetViewType.SwapChainDepthStencil ? outputTarget.DepthStencilFormat : outputTarget.ColorFormat;
+    }
+
+    public int GetMultiSample()
+    {
+        if (RenderTexture is not null)
+            return RenderTexture.MultiSample;
+
+        return ResolveRenderDevice().GetSwapChainOutputTarget().MultiSample;
+    }
+
+    private static RenderDevice ResolveRenderDevice()
+    {
+        var context = Context.TryGetInstance() ?? throw new InvalidOperationException("No active Context instance is available.");
+        return context.GetSubsystem<RenderDevice>() ?? throw new InvalidOperationException("RenderDevice subsystem is not available.");
+    }
 }

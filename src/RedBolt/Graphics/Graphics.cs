@@ -2282,7 +2282,7 @@ layout(std140) uniform Material
         uploaded.ClearResolveDirty();
     }
 
-    private void MarkRenderTargetDirty(RenderTargetView? view)
+    internal void MarkRenderTargetDirty(RenderTargetView? view)
     {
         if (view is not { } actualView || actualView.RenderTexture is null)
             return;
@@ -2292,7 +2292,7 @@ layout(std140) uniform Material
         uploaded.MarkDirty();
     }
 
-    private ITextureView ResolveRenderTargetView(RenderTargetView view)
+    internal ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
         return view.Type switch
         {

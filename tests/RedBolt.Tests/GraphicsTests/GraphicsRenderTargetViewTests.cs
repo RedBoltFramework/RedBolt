@@ -37,6 +37,55 @@ public sealed class GraphicsRenderTargetViewTests
     }
 
     [Fact]
+    public void Render_target_view_get_view_exposes_the_native_handle()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var texture = new Texture2D("Textures/PublicRenderTargetView");
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
+
+            var renderTargetView = RenderTargetView.Texture(texture);
+            var nativeView = renderTargetView.GetView();
+
+            Assert.Same(ResolveRenderTargetView(renderTargetView), nativeView);
+        });
+    }
+
+    [Fact]
+    public void Render_target_view_mark_dirty_marks_multisampled_resolve_state()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var sampleCount = fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
+
+            var texture = new Texture2D("Textures/DirtyRenderTargetView");
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount));
+
+            var uploadedTexture = GetUploadedTexture(texture);
+            Assert.False(GetResolveDirty(uploadedTexture));
+
+            RenderTargetView.Texture(texture).MarkDirty();
+
+            Assert.True(GetResolveDirty(uploadedTexture));
+        }, multiSample: 4);
+    }
+
+    [Fact]
+    public void Swap_chain_render_target_views_report_live_format_and_multisample()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var outputTarget = GetSwapChainOutputTarget();
+
+            Assert.Equal(outputTarget.ColorFormat, RenderTargetView.SwapChainColor().GetFormat());
+            Assert.Equal(outputTarget.DepthStencilFormat, RenderTargetView.SwapChainDepthStencil().GetFormat());
+            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainColor().GetMultiSample());
+            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainDepthStencil().GetMultiSample());
+        }, multiSample: 4);
+    }
+
+    [Fact]
     public void Graphics_resolves_depth_array_slice_views_as_2d_read_only_depth_targets()
     {
         WithInitializedGraphics(() =>
@@ -246,6 +295,20 @@ public sealed class GraphicsRenderTargetViewTests
         var property = uploadedTexture.GetType().GetProperty("Texture", BindingFlags.Instance | BindingFlags.Public)
             ?? throw new InvalidOperationException("UploadedTexture.Texture property was not found.");
         return Assert.IsAssignableFrom<ITexture>(property.GetValue(uploadedTexture));
+    }
+
+    private static bool GetResolveDirty(object uploadedTexture)
+    {
+        var property = uploadedTexture.GetType().GetProperty("ResolveDirty", BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException("UploadedTexture.ResolveDirty property was not found.");
+        return Assert.IsType<bool>(property.GetValue(uploadedTexture));
+    }
+
+    private RenderOutputTargetInfo GetSwapChainOutputTarget()
+    {
+        var method = typeof(Graphics).GetMethod("GetSwapChainOutputTarget", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Graphics.GetSwapChainOutputTarget was not found.");
+        return Assert.IsType<RenderOutputTargetInfo>(method.Invoke(fixture.Graphics, []));
     }
 
     private ITexture GetShaderResourceTexture(Texture2D texture)

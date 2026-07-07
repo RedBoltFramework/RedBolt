@@ -234,7 +234,9 @@ Verified current state:
 Verified current state:
 
 - `GetMultiSample()` now correctly follows the backing texture multisample count.
-- `GetView()` is still missing.
+- `GetView()` now exists and resolves the effective native Diligent texture view through the active managed backend.
+- `MarkDirty()` now propagates to the managed graphics backend instead of remaining a stub.
+- Swap-chain views now report live format and multisample metadata instead of defaulting to `Unknown` / `1`.
 - The static constructors still accept `Texture` or no argument, while rbfx uses `RawTexture*` / `RenderDevice*`.
 - `OptionalRawTextureRTV` is still missing.
 

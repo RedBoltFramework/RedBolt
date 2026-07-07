@@ -1,3 +1,5 @@
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
 public sealed class RenderDevice : Object
@@ -160,6 +162,24 @@ public sealed class RenderDevice : Object
     }
 
     public DrawCommandQueue GetDefaultQueue() => defaultQueue;
+
+    internal ITextureView ResolveRenderTargetView(RenderTargetView view)
+    {
+        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        return graphics.ResolveRenderTargetView(view);
+    }
+
+    internal void MarkRenderTargetDirty(RenderTargetView view)
+    {
+        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        graphics.MarkRenderTargetDirty(view);
+    }
+
+    internal RenderOutputTargetInfo GetSwapChainOutputTarget()
+    {
+        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        return graphics.GetSwapChainOutputTarget();
+    }
 
     internal void AddDeviceObject(DeviceObject deviceObject)
     {
