@@ -32,6 +32,9 @@ This report is a verified snapshot, not a historical summary.
   - `RenderDeviceSettingsVulkan`
   - `RenderDeviceSettingsD3D12`
   - `RenderPoolSettings`
+- The buffer layer is no longer completely absent:
+  - `RawBufferParams`
+  - `RawBuffer`
 - The pipeline-state descriptor/cache layer now exists and now keys on `RawShader`, but it is still a managed surface layer, not a real backend-integrated RenderAPI implementation:
   - `PipelineStateDesc`
   - `PipelineStateCache`
@@ -56,7 +59,7 @@ This report is a verified snapshot, not a historical summary.
 | `ComputePipelineStateDesc` | Present, incomplete | Value surface exists and now accepts `RawShader`, but it still carries only managed equality/hash semantics |
 | `ConstantBufferCollection` | Present, incomplete | Packing/allocation helper exists, but it is not wired into a real draw-command recording path yet |
 | `RawTexture` | Missing | Texture work is still in `Texture` / `Graphics` |
-| `RawBuffer` | Missing | Buffer work is still in `VertexBuffer`, `IndexBuffer`, and `Graphics` |
+| `RawBuffer` | Present, incomplete | Buffer device object exists with native `IBuffer` creation and shadow/update helpers, but higher-level buffer classes and command recording still do not route through it |
 | `RawShader` | Present, incomplete | Exists as a `DeviceObject` that owns bytecode and native shader handles, but reflection/loading/integration are still sparse |
 | `RenderTargetView` | Present, incomplete | See detailed deviations below |
 | `RenderPool` | Present, incomplete | Type exists, but lifecycle methods are no-op placeholders |
@@ -72,7 +75,6 @@ This report is a verified snapshot, not a historical summary.
 - `RenderDeviceSettingsD3D12`
 - `RawTextureParams`
 - `RawTextureUAVKey`
-- `RawBufferParams`
 - `DrawCommandDescription`
 - `UniformBufferReflection`
 - `UniformReflection`
@@ -164,7 +166,8 @@ Verified current state:
 
 - The type now exists and is reachable from `RenderDevice` and `RenderContext`.
 - `RenderPoolSettings` now exists and the managed `RenderPool` exposes default settings through a property.
-- `Invalidate()`, `Restore()`, and `OnFrameEnd()` are still empty placeholders.
+- The managed pool now also allocates and caches quantized uniform `RawBuffer` instances.
+- Texture pooling, scratch-buffer helpers, and most frame-end cleanup behavior are still missing.
 
 ### `ConstantBufferCollection`
 
@@ -178,6 +181,22 @@ Verified current state:
 - The larger rbfx integration is still missing:
   - `DrawCommandQueue` does not yet consume it
   - there is no real backend upload/command-recording path tied to these buffers yet
+
+### `RawBuffer`
+
+Verified current state:
+
+- `RawBufferParams` and `RawBuffer` now exist.
+- The current managed `RawBuffer` surface supports:
+  - `DeviceObject` lifecycle
+  - buffer-type / size / stride / flag queries
+  - shadow-data tracking
+  - native Diligent `IBuffer` creation for the current backend
+  - update, resolve, map, unmap, invalidate, and restore helpers
+- The remaining parity gap is structural, not existential:
+  - `VertexBuffer` and `IndexBuffer` do not derive from `RawBuffer`
+  - `DrawCommandQueue` does not yet record or execute commands against `RawBuffer`
+  - broader resource binding and reflection plumbing above the buffer layer is still missing
 
 ### `DrawCommandQueue`
 
@@ -279,11 +298,11 @@ These were stale false positives in the old audit and should not be reported mis
 4. Connect the new pipeline-state cache layer to real backend pipeline creation instead of leaving all PSO ownership inside `Graphics`.
 5. Add resource-layer types:
    - `RawTexture`
-   - `RawBuffer`
 6. Connect the new support scaffolding to real recording/binding paths:
    - `ConstantBufferCollection`
    - `DrawCommandDescription`
    - `DrawCommandQueue`
+   - `RawBuffer`
 
 ## Working Rule
 

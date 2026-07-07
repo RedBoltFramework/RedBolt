@@ -166,6 +166,8 @@ public sealed class RenderPoolSettings
     public uint LogPeriod { get; set; } = 1000u;
 }
 
+public readonly record struct RawBufferParams(BufferType Type, uint Size, uint Stride, BufferFlag Flags);
+
 public enum BufferType
 {
     Vertex,
