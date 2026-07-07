@@ -4,7 +4,17 @@ public sealed class RenderDevice : Object
 {
     private readonly object deviceObjectsLock = new();
     private readonly List<DeviceObject> deviceObjects = [];
+    private readonly RenderPool renderPool;
+    private readonly RenderContext renderContext;
+    private readonly DrawCommandQueue defaultQueue;
     private RenderDeviceStats maxStats = new();
+
+    public RenderDevice()
+    {
+        renderPool = new RenderPool(this);
+        renderContext = new RenderContext(this);
+        defaultQueue = new DrawCommandQueue(this);
+    }
 
     public bool Restore()
     {
@@ -127,6 +137,10 @@ public sealed class RenderDevice : Object
 
     public TextureFormat GetDefaultDepthFormat() => GetDefaultDepthStencilFormat();
 
+    public RenderContext GetRenderContext() => renderContext;
+
+    public RenderPool GetRenderPool() => renderPool;
+
     public IntVector2 GetSwapChainSize()
     {
         var graphics = GetSubsystem<Graphics>();
@@ -144,6 +158,8 @@ public sealed class RenderDevice : Object
         var frameNumber = GetSubsystem<EngineTime>()?.GetFrameNumber() ?? 0UL;
         return (FrameIndex)Math.Max((long)frameNumber, (long)FrameIndex.None);
     }
+
+    public DrawCommandQueue GetDefaultQueue() => defaultQueue;
 
     internal void AddDeviceObject(DeviceObject deviceObject)
     {
@@ -167,6 +183,7 @@ public sealed class RenderDevice : Object
     internal void OnEngineShutdown()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
+        renderPool.Invalidate();
     }
 
     private void SendDeviceObjectEvent(DeviceObjectEvent deviceObjectEvent)

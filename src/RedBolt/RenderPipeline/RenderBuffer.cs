@@ -123,5 +123,6 @@ public sealed class TextureRenderBuffer : RenderBuffer
         return new IntVector2(width, height);
     }
 
-    private static bool IsDepthTextureFormat(TextureFormat format) => format == TextureFormat.Depth24Stencil8;
+    private static bool IsDepthTextureFormat(TextureFormat format)
+        => format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
 }

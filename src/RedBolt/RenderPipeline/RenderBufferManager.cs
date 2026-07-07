@@ -605,7 +605,7 @@ public sealed class RenderBufferManager
             if (!buffer.IsEnabled)
                 continue;
 
-            Action<Texture, TextureFormat>? configureTexture = buffer.BufferParams.TextureFormat == TextureFormat.Depth24Stencil8
+            Action<Texture, TextureFormat>? configureTexture = buffer.BufferParams.TextureFormat is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8
                 ? null
                 : ApplyColorTextureMetadata;
             buffer.RefreshForViewport(viewportRect, configureTexture);

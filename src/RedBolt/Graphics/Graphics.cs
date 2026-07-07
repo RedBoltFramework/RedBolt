@@ -112,6 +112,10 @@ layout(std140) uniform Material
     private Geometry? fullscreenQuadGeometry;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentColorTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentDepthTargetFormat;
+    private readonly PipelineStateOutputDesc currentOutputDesc = new();
+    private IntRect currentViewport;
+    private IntVector2 currentRenderTargetSize;
+    private bool isSwapChainRenderTarget;
     private IntPtr glContext;
     private bool shaderReflectionDiagnosticsDumped;
     private SdlWindow? window;
@@ -150,7 +154,8 @@ layout(std140) uniform Material
 
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
-        return format is TextureFormat.Depth24Stencil8 or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+        return format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8
+            or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
     }
 
     public ShaderVariation? GetShader(ShaderType type, string name, string defines = "")
@@ -280,6 +285,10 @@ layout(std140) uniform Material
             ? ResolveRenderTargetView(depthTarget)
             : null;
         currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
+        currentViewport = viewportRect;
+        currentRenderTargetSize = ResolveRenderTargetSize(colorTarget, depthStencilTarget, viewportRect);
+        isSwapChainRenderTarget = colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true;
+        UpdateCurrentOutputDesc(colorTarget, depthStencilTarget);
 
         MarkRenderTargetDirty(colorTarget);
         MarkRenderTargetDirty(depthStencilTarget);
@@ -301,6 +310,23 @@ layout(std140) uniform Material
     internal void SetSwapChainRenderTargets(IntRect viewportRect)
     {
         SetRenderTargets(viewportRect, RenderTargetView.SwapChainColor(), RenderTargetView.SwapChainDepthStencil());
+    }
+
+    internal void SetViewport(IntRect viewportRect)
+    {
+        if (!IsInitialized || immediateContext is null)
+            return;
+
+        if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
+
+        currentViewport = viewportRect;
+        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
+            viewportRect.Left,
+            viewportRect.Top,
+            viewportRect.Width,
+            viewportRect.Height);
+        immediateContext.SetViewports(1, diligentViewport, 0, 0);
     }
 
     /// <summary>
@@ -448,7 +474,25 @@ layout(std140) uniform Material
         renderTargets[0] = null;
         currentRenderTargetCount = 0;
         currentDepthStencilTarget = null;
+        currentColorTargetFormat = 0;
+        currentDepthTargetFormat = 0;
+        currentViewport = default;
+        currentRenderTargetSize = default;
+        isSwapChainRenderTarget = false;
+        currentOutputDesc.ClearRenderTargetFormats();
+        currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
+        currentOutputDesc.MultiSample = 1;
     }
+
+    internal IDeviceContext? GetImmediateContext() => immediateContext;
+
+    internal IntRect GetCurrentViewportRect() => currentViewport;
+
+    internal IntVector2 GetCurrentRenderTargetSize() => currentRenderTargetSize;
+
+    internal PipelineStateOutputDesc GetCurrentRenderTargetsDesc() => currentOutputDesc;
+
+    internal bool IsSwapChainRenderTarget() => isSwapChainRenderTarget;
 
     internal void DrawCopyTexture(Texture sourceTexture, bool bilinearFiltering = false, bool flipVertical = false)
     {
@@ -2324,8 +2368,8 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainColor => GetSwapChainColorFormat(),
-            RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => MapTextureFormat(view.GetFormat()),
+            RenderTargetViewType.SwapChainColor or RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice
+                => GetTextureViewFormat(ResolveRenderTargetView(view)),
             _ => 0
         };
     }
@@ -2334,14 +2378,33 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainDepthStencil => GetSwapChainDepthFormat(),
-            RenderTargetViewType.ReadOnlyResource or RenderTargetViewType.ReadOnlyResourceSlice or RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => MapTextureFormat(view.GetFormat()),
+            RenderTargetViewType.SwapChainDepthStencil
+                or RenderTargetViewType.ReadOnlyResource
+                or RenderTargetViewType.ReadOnlyResourceSlice
+                or RenderTargetViewType.Resource
+                or RenderTargetViewType.ResourceSlice
+                => GetTextureViewFormat(ResolveRenderTargetView(view)),
             _ => 0
         };
     }
 
+    private static global::RedBolt.Bindings.Diligent.TextureFormat GetTextureViewFormat(ITextureView textureView)
+    {
+        var texture = textureView.GetTexture();
+        if (!texture.IsNull)
+        {
+            using var textureDesc = texture.GetDesc();
+            return textureDesc.Format;
+        }
+
+        using var viewDesc = textureView.GetDesc();
+        return viewDesc.Format;
+    }
+
     private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
     {
+        if (renderTargetView is not null)
+            return GetTextureViewFormat(renderTargetView);
         if (swapChain is null)
             return 0;
 
@@ -2351,6 +2414,8 @@ layout(std140) uniform Material
 
     private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
     {
+        if (depthStencilView is not null)
+            return GetTextureViewFormat(depthStencilView);
         if (swapChain is null)
             return 0;
 
@@ -2360,6 +2425,7 @@ layout(std140) uniform Material
 
     private static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format) => format switch
     {
+        TextureFormat.Depth32 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
         TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
         TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
         TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
@@ -2369,14 +2435,48 @@ layout(std140) uniform Material
         _ => 0
     };
 
+    private IntVector2 ResolveRenderTargetSize(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget, IntRect viewportRect)
+    {
+        if (colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true)
+            return new IntVector2(Width, Height);
+        if (colorTarget?.RenderTexture is { } colorTexture)
+            return new IntVector2(colorTexture.Width, colorTexture.Height);
+        if (depthStencilTarget?.RenderTexture is { } depthTexture)
+            return new IntVector2(depthTexture.Width, depthTexture.Height);
+        return new IntVector2(viewportRect.Width, viewportRect.Height);
+    }
+
+    private void UpdateCurrentOutputDesc(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
+    {
+        currentOutputDesc.ClearRenderTargetFormats();
+        if (colorTarget is { } colorView)
+            currentOutputDesc.SetRenderTargetFormats(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
+
+        global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
+        if (depthStencilTarget is { } depthView)
+        {
+            depthFormat = ResolveDepthTargetFormat(depthView);
+            currentOutputDesc.DepthStencilFormat = UnmapTextureFormat(depthFormat, out _);
+        }
+        else
+            currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
+        currentOutputDesc.MultiSample = (uint)Math.Max(
+            colorTarget?.GetMultiSample()
+            ?? depthStencilTarget?.GetMultiSample()
+            ?? Math.Max(configuredMultiSample, 1), 1);
+    }
+
     private static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
     {
         isSrgb = false;
         return format switch
         {
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm => TextureFormat.R8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float => TextureFormat.RG16F,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.RGBA8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float => TextureFormat.RGBA16F,
@@ -2390,7 +2490,8 @@ layout(std140) uniform Material
         return format;
     }
 
-    private static bool IsDepthTextureFormat(TextureFormat format) => format == TextureFormat.Depth24Stencil8;
+    private static bool IsDepthTextureFormat(TextureFormat format)
+        => format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
 
     private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded)
     {

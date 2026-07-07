@@ -16,6 +16,9 @@ public sealed class RenderDeviceTests
     public void Render_device_is_registered_as_engine_subsystem()
     {
         Assert.Same(fixture.RenderDevice, fixture.Context.GetSubsystem<RenderDevice>());
+        Assert.Same(fixture.RenderContext, fixture.RenderDevice.GetRenderContext());
+        Assert.NotNull(fixture.RenderDevice.GetRenderPool());
+        Assert.NotNull(fixture.RenderDevice.GetDefaultQueue());
     }
 
     [Fact]

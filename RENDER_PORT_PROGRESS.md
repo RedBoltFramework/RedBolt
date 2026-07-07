@@ -175,8 +175,11 @@ Slice 1 through the first runtime integration layer are landed:
   - `DeviceObject` now exists as the shared managed GPU-object base with rbfx-style data-loss/debug-name helpers plus invalidate/restore/destroy event routing
   - `PipelineState` now inherits `DeviceObject` instead of remaining a free-standing POCO, which gives the existing stub a real place in the future RenderAPI object graph
   - `RenderBackend.Count` and `DeviceObjectFlag` now exist in `RenderAPIDefs.cs`, closing two audited foundational enum gaps
-  - focused validation for this slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
-  - no sample screenshot rerun was needed for this checkpoint because the slice did not change renderer behavior, only subsystem/object-model plumbing
+  - `RenderContext`, `RenderScope`, `RenderPool`, and `DrawCommandQueue` now exist as managed rbfx-named RenderAPI surfaces, with `RenderDevice` owning default instances and delegating current viewport/render-target state to the existing `Graphics` backend
+  - `Graphics` now tracks current viewport, current render-target size, swap-chain-vs-texture binding state, and current `PipelineStateOutputDesc`, so the new `RenderContext` can expose rbfx-style getters without re-owning backend state prematurely
+  - managed swap-chain output tracking now also covers the default Diligent `D32` depth attachment by adding `TextureFormat.Depth32` plus the matching Diligent format translations and depth-texture predicates used by render-buffer allocation
+  - focused validation for this slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~ContextTests|FullyQualifiedName~RenderDeviceTests|FullyQualifiedName~RenderContextTests"` and `cmake --build --preset Debug --target redbolt-csharp`; both passed on `2026-07-07`
+  - sample validation was rerun for the graphics-state changes on `2026-07-07`; `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/redbolt-checkpoint.png` completed successfully and still produced the expected mushroom field, outlines, ground plane, and black background (the sample still has no `Zone`/`Skybox`)
 
 ## Current Cross-Cutting Requirement
 
@@ -195,12 +198,12 @@ Slice 1 through the first runtime integration layer are landed:
 
 ## Next Useful Checks
 
-- Continue the new RenderAPI object-model slice with `RenderContext` and `RenderScope`, moving viewport/render-target state ownership out of ad-hoc `Graphics` helpers and into rbfx-named surfaces.
 - Port the pipeline-state descriptor/cache layer next:
   - `GraphicsPipelineStateDesc`
   - `ComputePipelineStateDesc`
   - `PipelineStateDesc`
   - `PipelineStateCache`
+- Deepen the new RenderAPI slice by moving more transient draw-state/cache ownership behind `RenderContext` and `DrawCommandQueue` instead of leaving it in ad-hoc `Graphics` helpers.
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.
