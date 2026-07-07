@@ -136,4 +136,51 @@ public sealed class RawTextureTests
         Assert.Same(rawTexture.GetTexture(), renderTargetView.RenderTexture);
         Assert.Same(rawTexture.GetTexture(), readOnlyDepthView.RenderTexture);
     }
+
+    [Fact]
+    public void Raw_texture_creates_native_handle_when_graphics_is_initialized()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D,
+                TextureFormat.RGBA8,
+                TextureFlag.BindRenderTarget,
+                new IntVector3(32, 16, 1)));
+
+            var handle = rawTexture.GetHandle();
+
+            Assert.NotNull(handle);
+            Assert.False(handle!.IsNull);
+
+            var desc = handle.GetDesc();
+            Assert.Equal((uint)32, desc.Width);
+            Assert.Equal((uint)16, desc.Height);
+        });
+    }
+
+    private void WithInitializedGraphics(Action action)
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.RawTextureTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        RbfxTestData.AddResourceDirs(fixture.Resources);
+        fixture.Input.Initialize(parameters);
+        fixture.Graphics.Initialize(parameters, fixture.Input);
+        try
+        {
+            action();
+        }
+        finally
+        {
+            fixture.Graphics.Shutdown();
+            fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+        }
+    }
 }

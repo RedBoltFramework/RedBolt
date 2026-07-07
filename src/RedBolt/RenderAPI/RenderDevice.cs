@@ -169,6 +169,13 @@ public sealed class RenderDevice : Object
         return graphics.ResolveRenderTargetView(view);
     }
 
+    internal ITexture? GetTextureHandle(Texture texture)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        var graphics = GetSubsystem<Graphics>();
+        return graphics?.GetTextureHandle(texture);
+    }
+
     internal void MarkRenderTargetDirty(RenderTargetView view)
     {
         var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");

@@ -169,6 +169,12 @@ layout(std140) uniform Material
 
     internal IRenderDevice? GetNativeRenderDevice() => device;
 
+    internal ITexture? GetTextureHandle(Texture texture)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return !IsInitialized ? null : GetOrCreateUploadedTexture(texture).Texture;
+    }
+
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
         var colorFormat = UnmapTextureFormat(GetSwapChainColorFormat(), out var colorIsSrgb);

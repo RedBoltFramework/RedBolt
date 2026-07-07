@@ -195,9 +195,11 @@ Verified current state:
   - `RawTextureParams`
   - sampler-state metadata
   - a wrapped managed `Texture2D` / `TextureCube` / `Texture2DArray`
+- `GetHandle()` now exists and reaches through the managed `RenderDevice` / `Graphics` bridge to expose the current native Diligent texture handle.
 - Current parity limits are still important:
   - this is still a wrapper over the older `Texture` resource hierarchy, not yet the primary backend-owned GPU texture layer
-  - `Texture3D`, GPU handle access, UAV view ownership, updates/readback/resolve helpers, and fuller loss/restore behavior are still missing
+  - `Texture3D`, UAV view ownership, updates/readback/resolve helpers, and fuller loss/restore behavior are still missing
+  - handle creation still depends on the older `Graphics` upload path instead of `RawTexture` owning the backend texture lifecycle directly
   - `RenderTargetView` can now accept `RawTexture`, but much of the rest of the renderer still talks directly to `Texture`
 
 ### `ConstantBufferCollection`

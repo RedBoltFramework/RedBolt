@@ -1,3 +1,5 @@
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
 public sealed class RawTexture : DeviceObject
@@ -43,6 +45,12 @@ public sealed class RawTexture : DeviceObject
     public SamplerStateDesc GetSamplerStateDesc() => samplerStateDesc;
 
     public Texture? GetTexture() => texture;
+
+    public ITexture? GetHandle()
+    {
+        var renderDevice = GetRenderDevice();
+        return texture is not null ? renderDevice?.GetTextureHandle(texture) : null;
+    }
 
     public void MarkDirty()
     {
