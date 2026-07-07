@@ -6,7 +6,8 @@ public enum PrimitiveType
     LineList,
     PointList,
     TriangleStrip,
-    LineStrip
+    LineStrip,
+    TriangleFan
 }
 
 public enum GeometryType
@@ -66,6 +67,7 @@ public sealed class Geometry
             PrimitiveType.PointList => count,
             PrimitiveType.TriangleStrip => count >= 3u ? count - 2u : 0u,
             PrimitiveType.LineStrip => count >= 2u ? count - 1u : 0u,
+            PrimitiveType.TriangleFan => count >= 3u ? count - 2u : 0u,
             _ => 0u
         };
     }

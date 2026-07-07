@@ -296,6 +296,15 @@ public enum ClearTarget
     Stencil = 0x4
 }
 
+public enum StencilOp
+{
+    Keep = 0,
+    Zero,
+    Ref,
+    Incr,
+    Decr
+}
+
 public enum ShaderParameterGroup
 {
     Frame = 0,
@@ -325,6 +334,16 @@ public readonly record struct InputLayoutElementDesc(
 public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 {
     private readonly InputLayoutElementDesc[] elements = new InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
+
+    public InputLayoutDesc()
+    {
+    }
+
+    public InputLayoutDesc(InputLayoutDesc? other)
+    {
+        if (other is not null)
+            SetElements(other.Elements.ToArray());
+    }
 
     public uint Size { get; private set; }
 
@@ -373,12 +392,31 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
     }
 }
 
+public readonly record struct NamedSamplerStateDesc(StringHash Name, SamplerStateDesc Desc);
+
 public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 {
     private readonly StringHash[] names = new StringHash[RenderApiLimits.MaxNumImmutableSamplers];
     private readonly SamplerStateDesc[] desc = new SamplerStateDesc[RenderApiLimits.MaxNumImmutableSamplers];
 
+    public ImmutableSamplersDesc()
+    {
+    }
+
+    public ImmutableSamplersDesc(ImmutableSamplersDesc? other)
+    {
+        if (other is null)
+            return;
+
+        for (var i = 0; i < other.Size; ++i)
+            Add(other.names[i], other.desc[i]);
+    }
+
     public uint Size { get; private set; }
+
+    public ReadOnlySpan<StringHash> Names => names.AsSpan(0, checked((int)Size));
+
+    public ReadOnlySpan<SamplerStateDesc> Descriptions => desc.AsSpan(0, checked((int)Size));
 
     public void Clear()
     {
@@ -394,8 +432,13 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
             throw new InvalidOperationException("Too many immutable samplers.");
 
         names[Size] = name;
-        desc[Size] = samplerDesc;
+        desc[Size] = CloneSamplerStateDesc(samplerDesc);
         ++Size;
+    }
+
+    public void Add(NamedSamplerStateDesc sampler)
+    {
+        Add(sampler.Name, sampler.Desc);
     }
 
     public bool Equals(ImmutableSamplersDesc? other)
@@ -426,11 +469,41 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 
         return hash.ToHashCode();
     }
+
+    private static SamplerStateDesc CloneSamplerStateDesc(SamplerStateDesc source)
+    {
+        var result = new SamplerStateDesc
+        {
+            FilterMode = source.FilterMode,
+            Anisotropy = source.Anisotropy,
+            ShadowCompare = source.ShadowCompare,
+            MinLod = source.MinLod,
+            MaxLod = source.MaxLod
+        };
+        result[TextureCoordinate.U] = source[TextureCoordinate.U];
+        result[TextureCoordinate.V] = source[TextureCoordinate.V];
+        result[TextureCoordinate.W] = source[TextureCoordinate.W];
+        return result;
+    }
 }
 
 public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc>
 {
     private readonly TextureFormat[] renderTargetFormats = new TextureFormat[RenderApiLimits.MaxRenderTargets];
+
+    public PipelineStateOutputDesc()
+    {
+    }
+
+    public PipelineStateOutputDesc(PipelineStateOutputDesc? other)
+    {
+        if (other is null)
+            return;
+
+        DepthStencilFormat = other.DepthStencilFormat;
+        MultiSample = other.MultiSample;
+        SetRenderTargetFormats(other.RenderTargetFormats.ToArray());
+    }
 
     public TextureFormat DepthStencilFormat { get; set; } = TextureFormat.Unknown;
 
@@ -492,4 +565,307 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
     public override bool Equals(object? obj) => Equals(obj as PipelineStateOutputDesc);
 
     public override int GetHashCode() => unchecked((int)ToHash());
+}
+
+public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
+{
+    public string DebugName { get; set; } = string.Empty;
+
+    public bool ColorWriteEnabled { get; set; }
+
+    public BlendMode BlendMode { get; set; }
+
+    public bool AlphaToCoverageEnabled { get; set; }
+
+    public FillMode FillMode { get; set; }
+
+    public CullMode CullMode { get; set; }
+
+    public float ConstantDepthBias { get; set; }
+
+    public float SlopeScaledDepthBias { get; set; }
+
+    public bool ScissorTestEnabled { get; set; }
+
+    public bool LineAntiAlias { get; set; }
+
+    public bool DepthWriteEnabled { get; set; }
+
+    public bool StencilTestEnabled { get; set; }
+
+    public CompareMode DepthCompareFunction { get; set; }
+
+    public CompareMode StencilCompareFunction { get; set; }
+
+    public StencilOp StencilOperationOnPassed { get; set; }
+
+    public StencilOp StencilOperationOnStencilFailed { get; set; }
+
+    public StencilOp StencilOperationOnDepthFailed { get; set; }
+
+    public uint StencilCompareMask { get; set; }
+
+    public uint StencilWriteMask { get; set; }
+
+    public InputLayoutDesc InputLayout { get; } = new();
+
+    public PrimitiveType PrimitiveType { get; set; }
+
+    public PipelineStateOutputDesc Output { get; } = new();
+
+    public ImmutableSamplersDesc Samplers { get; } = new();
+
+    public bool ReadOnlyDepth { get; set; }
+
+    public ShaderVariation? VertexShader { get; set; }
+
+    public ShaderVariation? PixelShader { get; set; }
+
+    public ShaderVariation? DomainShader { get; set; }
+
+    public ShaderVariation? HullShader { get; set; }
+
+    public ShaderVariation? GeometryShader { get; set; }
+
+    public GraphicsPipelineStateDesc()
+    {
+    }
+
+    public GraphicsPipelineStateDesc(GraphicsPipelineStateDesc? other)
+    {
+        if (other is null)
+            return;
+
+        DebugName = other.DebugName;
+        ColorWriteEnabled = other.ColorWriteEnabled;
+        BlendMode = other.BlendMode;
+        AlphaToCoverageEnabled = other.AlphaToCoverageEnabled;
+        FillMode = other.FillMode;
+        CullMode = other.CullMode;
+        ConstantDepthBias = other.ConstantDepthBias;
+        SlopeScaledDepthBias = other.SlopeScaledDepthBias;
+        ScissorTestEnabled = other.ScissorTestEnabled;
+        LineAntiAlias = other.LineAntiAlias;
+        DepthWriteEnabled = other.DepthWriteEnabled;
+        StencilTestEnabled = other.StencilTestEnabled;
+        DepthCompareFunction = other.DepthCompareFunction;
+        StencilCompareFunction = other.StencilCompareFunction;
+        StencilOperationOnPassed = other.StencilOperationOnPassed;
+        StencilOperationOnStencilFailed = other.StencilOperationOnStencilFailed;
+        StencilOperationOnDepthFailed = other.StencilOperationOnDepthFailed;
+        StencilCompareMask = other.StencilCompareMask;
+        StencilWriteMask = other.StencilWriteMask;
+        InputLayout.SetElements(other.InputLayout.Elements.ToArray());
+        PrimitiveType = other.PrimitiveType;
+        Output.DepthStencilFormat = other.Output.DepthStencilFormat;
+        Output.MultiSample = other.Output.MultiSample;
+        Output.SetRenderTargetFormats(other.Output.RenderTargetFormats.ToArray());
+        for (var samplerIndex = 0; samplerIndex < other.Samplers.Size; ++samplerIndex)
+            Samplers.Add(other.Samplers.Names[samplerIndex], other.Samplers.Descriptions[samplerIndex]);
+        ReadOnlyDepth = other.ReadOnlyDepth;
+        VertexShader = other.VertexShader;
+        PixelShader = other.PixelShader;
+        DomainShader = other.DomainShader;
+        HullShader = other.HullShader;
+        GeometryShader = other.GeometryShader;
+    }
+
+    public bool IsInitialized() => VertexShader is not null && PixelShader is not null;
+
+    public uint ToHash()
+    {
+        var hash = new HashCode();
+        hash.Add(ColorWriteEnabled);
+        hash.Add(BlendMode);
+        hash.Add(AlphaToCoverageEnabled);
+        hash.Add(FillMode);
+        hash.Add(CullMode);
+        hash.Add(ConstantDepthBias);
+        hash.Add(SlopeScaledDepthBias);
+        hash.Add(ScissorTestEnabled);
+        hash.Add(LineAntiAlias);
+        hash.Add(DepthWriteEnabled);
+        hash.Add(StencilTestEnabled);
+        hash.Add(DepthCompareFunction);
+        hash.Add(StencilCompareFunction);
+        hash.Add(StencilOperationOnPassed);
+        hash.Add(StencilOperationOnStencilFailed);
+        hash.Add(StencilOperationOnDepthFailed);
+        hash.Add(StencilCompareMask);
+        hash.Add(StencilWriteMask);
+        hash.Add(InputLayout);
+        hash.Add(PrimitiveType);
+        hash.Add(Output);
+        hash.Add(Samplers);
+        hash.Add(ReadOnlyDepth);
+        AddShaderVariationHash(ref hash, VertexShader);
+        AddShaderVariationHash(ref hash, PixelShader);
+        AddShaderVariationHash(ref hash, DomainShader);
+        AddShaderVariationHash(ref hash, HullShader);
+        AddShaderVariationHash(ref hash, GeometryShader);
+        return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
+    }
+
+    public bool Equals(GraphicsPipelineStateDesc? other)
+    {
+        if (other is null)
+            return false;
+
+        return ColorWriteEnabled == other.ColorWriteEnabled
+            && BlendMode == other.BlendMode
+            && AlphaToCoverageEnabled == other.AlphaToCoverageEnabled
+            && FillMode == other.FillMode
+            && CullMode == other.CullMode
+            && ConstantDepthBias.Equals(other.ConstantDepthBias)
+            && SlopeScaledDepthBias.Equals(other.SlopeScaledDepthBias)
+            && ScissorTestEnabled == other.ScissorTestEnabled
+            && LineAntiAlias == other.LineAntiAlias
+            && DepthWriteEnabled == other.DepthWriteEnabled
+            && StencilTestEnabled == other.StencilTestEnabled
+            && DepthCompareFunction == other.DepthCompareFunction
+            && StencilCompareFunction == other.StencilCompareFunction
+            && StencilOperationOnPassed == other.StencilOperationOnPassed
+            && StencilOperationOnStencilFailed == other.StencilOperationOnStencilFailed
+            && StencilOperationOnDepthFailed == other.StencilOperationOnDepthFailed
+            && StencilCompareMask == other.StencilCompareMask
+            && StencilWriteMask == other.StencilWriteMask
+            && InputLayout.Equals(other.InputLayout)
+            && PrimitiveType == other.PrimitiveType
+            && Output.Equals(other.Output)
+            && Samplers.Equals(other.Samplers)
+            && ReadOnlyDepth == other.ReadOnlyDepth
+            && ShaderVariationEquals(VertexShader, other.VertexShader)
+            && ShaderVariationEquals(PixelShader, other.PixelShader)
+            && ShaderVariationEquals(DomainShader, other.DomainShader)
+            && ShaderVariationEquals(HullShader, other.HullShader)
+            && ShaderVariationEquals(GeometryShader, other.GeometryShader);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as GraphicsPipelineStateDesc);
+
+    public override int GetHashCode() => unchecked((int)ToHash());
+
+    private static void AddShaderVariationHash(ref HashCode hash, ShaderVariation? shaderVariation)
+    {
+        hash.Add(shaderVariation?.Name, StringComparer.Ordinal);
+        hash.Add(shaderVariation?.ShaderType);
+        hash.Add(shaderVariation?.Defines, StringComparer.Ordinal);
+    }
+
+    internal static bool ShaderVariationEquals(ShaderVariation? lhs, ShaderVariation? rhs)
+    {
+        if (lhs is null || rhs is null)
+            return lhs is null && rhs is null;
+
+        return lhs.ShaderType == rhs.ShaderType
+            && string.Equals(lhs.Name, rhs.Name, StringComparison.Ordinal)
+            && string.Equals(lhs.Defines, rhs.Defines, StringComparison.Ordinal);
+    }
+}
+
+public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
+{
+    public string DebugName { get; set; } = string.Empty;
+
+    public ImmutableSamplersDesc Samplers { get; } = new();
+
+    public ShaderVariation? ComputeShader { get; set; }
+
+    public ComputePipelineStateDesc()
+    {
+    }
+
+    public ComputePipelineStateDesc(ComputePipelineStateDesc? other)
+    {
+        if (other is null)
+            return;
+
+        DebugName = other.DebugName;
+        for (var samplerIndex = 0; samplerIndex < other.Samplers.Size; ++samplerIndex)
+            Samplers.Add(other.Samplers.Names[samplerIndex], other.Samplers.Descriptions[samplerIndex]);
+        ComputeShader = other.ComputeShader;
+    }
+
+    public bool IsInitialized() => ComputeShader is not null;
+
+    public uint ToHash()
+    {
+        var hash = new HashCode();
+        hash.Add(Samplers);
+        hash.Add(ComputeShader?.Name, StringComparer.Ordinal);
+        hash.Add(ComputeShader?.ShaderType);
+        hash.Add(ComputeShader?.Defines, StringComparer.Ordinal);
+        return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
+    }
+
+    public bool Equals(ComputePipelineStateDesc? other)
+    {
+        if (other is null)
+            return false;
+
+        return Samplers.Equals(other.Samplers)
+            && GraphicsPipelineStateDesc.ShaderVariationEquals(ComputeShader, other.ComputeShader);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ComputePipelineStateDesc);
+
+    public override int GetHashCode() => unchecked((int)ToHash());
+}
+
+public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
+{
+    private readonly GraphicsPipelineStateDesc? graphicsDesc;
+    private readonly ComputePipelineStateDesc? computeDesc;
+    private readonly uint hash;
+
+    public PipelineStateDesc()
+    {
+    }
+
+    public PipelineStateDesc(GraphicsPipelineStateDesc desc)
+    {
+        ArgumentNullException.ThrowIfNull(desc);
+        graphicsDesc = new GraphicsPipelineStateDesc(desc);
+        hash = graphicsDesc.ToHash();
+    }
+
+    public PipelineStateDesc(ComputePipelineStateDesc desc)
+    {
+        ArgumentNullException.ThrowIfNull(desc);
+        computeDesc = new ComputePipelineStateDesc(desc);
+        hash = computeDesc.ToHash();
+    }
+
+    public uint ToHash() => hash;
+
+    public PipelineStateType GetPipelineType() => computeDesc is not null ? PipelineStateType.Compute : PipelineStateType.Graphics;
+
+    public string GetDebugName() => graphicsDesc?.DebugName ?? computeDesc?.DebugName ?? string.Empty;
+
+    public GraphicsPipelineStateDesc? AsGraphics() => graphicsDesc is not null ? new GraphicsPipelineStateDesc(graphicsDesc) : null;
+
+    public ComputePipelineStateDesc? AsCompute() => computeDesc is not null ? new ComputePipelineStateDesc(computeDesc) : null;
+
+    public bool Equals(PipelineStateDesc? other)
+    {
+        if (other is null)
+            return false;
+
+        return hash == other.hash
+            && GetPipelineType() == other.GetPipelineType()
+            && Equals(graphicsDesc, other.graphicsDesc)
+            && Equals(computeDesc, other.computeDesc);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as PipelineStateDesc);
+
+    public override int GetHashCode()
+    {
+        var hashCode = new HashCode();
+        hashCode.Add(hash);
+        hashCode.Add(GetPipelineType());
+        hashCode.Add(graphicsDesc);
+        hashCode.Add(computeDesc);
+        return hashCode.ToHashCode();
+    }
 }

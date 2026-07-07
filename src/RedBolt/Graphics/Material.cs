@@ -14,7 +14,8 @@ public enum FillMode
 {
     Solid,
     Wireframe,
-    Point
+    Point,
+    Max
 }
 
 public enum MaterialQuality : uint

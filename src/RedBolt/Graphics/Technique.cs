@@ -11,7 +11,8 @@ public enum BlendMode
     InvDestAlpha,
     Subtract,
     SubtractAlpha,
-    Decal
+    Decal,
+    Max
 }
 
 public enum CompareMode
@@ -22,7 +23,8 @@ public enum CompareMode
     Less,
     LessEqual,
     Greater,
-    GreaterEqual
+    GreaterEqual,
+    Max
 }
 
 public enum LightingMode

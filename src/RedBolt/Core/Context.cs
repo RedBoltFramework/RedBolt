@@ -78,6 +78,7 @@ public sealed class Context
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
         RegisterSubsystem(new RenderDevice());
+        RegisterSubsystem(new PipelineStateCache());
         RegisterSubsystem(new Renderer());
     }
 

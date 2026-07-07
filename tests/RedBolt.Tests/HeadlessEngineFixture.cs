@@ -37,6 +37,8 @@ public sealed class HeadlessEngineFixture : IDisposable
 
     public RenderContext RenderContext => RenderDevice.GetRenderContext();
 
+    public PipelineStateCache PipelineStateCache => GetRequiredSubsystem<PipelineStateCache>();
+
     public void Dispose()
     {
         Engine.Shutdown();

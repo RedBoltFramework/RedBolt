@@ -1139,7 +1139,7 @@ layout(std140) uniform Material
         {
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
             using var pipelineName = new PinnedUtf8($"{pass.VertexShader}:{pass.PixelShader}:{key.LayoutSignature}");
-            using var psoDesc = new PipelineStateDesc
+            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
                 PipelineType = PipelineType.PipelineTypeGraphics,
@@ -1231,7 +1231,7 @@ layout(std140) uniform Material
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
             using var pipelineName = new PinnedUtf8($"{shaderName}:{shaderDefines}:fullscreen");
-            using var psoDesc = new PipelineStateDesc
+            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
                 PipelineType = PipelineType.PipelineTypeGraphics,
@@ -1325,7 +1325,7 @@ layout(std140) uniform Material
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
             using var pipelineName = new PinnedUtf8($"{shaderName}:{flags}:clear");
-            using var psoDesc = new PipelineStateDesc
+            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
                 PipelineType = PipelineType.PipelineTypeGraphics,

@@ -23,6 +23,7 @@ public sealed class ContextTests
         Assert.Same(fixture.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());
         Assert.Same(fixture.RenderDevice, fixture.Engine.Context.GetSubsystem<RenderDevice>());
         Assert.Same(fixture.RenderContext, fixture.RenderDevice.GetRenderContext());
+        Assert.Same(fixture.PipelineStateCache, fixture.Engine.Context.GetSubsystem<PipelineStateCache>());
         Assert.Same(fixture.Renderer, fixture.Engine.Context.GetSubsystem<Renderer>());
     }
 
