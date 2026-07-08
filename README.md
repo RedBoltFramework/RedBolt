@@ -8,9 +8,10 @@ Contributor and coding-session rules now live in `AGENTS.md`.
 
 ```bash
 cmake --preset dev
-cmake --build --preset Debug --target redbolt-csharp
+cmake --build --preset Debug --target restore
+cmake --build --preset Debug --target RedBolt
 ```
 
-The managed build verifies the native dependency and binding-generation bootstrap, then builds the RedBolt managed projects and samples.
+The managed build verifies the native dependency and binding-generation bootstrap, then builds `RedBolt` and dependent managed projects you select by target (for example, `RedBolt.Sample.StaticScene`).
 
 For architecture notes, porting strategy, and binding details, see `doc/`.

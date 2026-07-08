@@ -43,7 +43,11 @@ set_source_files_properties(
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
     "${REDBOLT_IMGUI_BINDINGS_CPP}"
-    PROPERTIES GENERATED TRUE)
+    PROPERTIES
+        GENERATED TRUE
+        COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU>:-w>"
+                       "$<$<CXX_COMPILER_ID:Clang>:-w>"
+                       "$<$<CXX_COMPILER_ID:MSVC>:/W0>")
 
 add_dependencies(RedBolt.Native redbolt-generate-native-bindings)
 
@@ -51,7 +55,11 @@ set_target_properties(RedBolt.Native PROPERTIES
     OUTPUT_NAME "RedBolt.Native"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
+    INSTALL_RPATH_USE_LINK_PATH OFF
+    BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
 target_compile_options(RedBolt.Native PRIVATE
@@ -60,7 +68,7 @@ target_compile_options(RedBolt.Native PRIVATE
 target_link_libraries(RedBolt.Native
     PRIVATE
         SDL2::SDL2
-        PkgConfig::REDBOLT_SDL2_IMAGE
+        redbolt-sdl2-image
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
         ImGui

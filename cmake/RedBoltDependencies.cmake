@@ -28,6 +28,24 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
+macro(redbolt_add_external_subdirectory source_dir binary_dir)
+    set(_redbolt_saved_c_flags "${CMAKE_C_FLAGS}")
+    set(_redbolt_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+
+    if(MSVC)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+    endif()
+
+    add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+
+    set(CMAKE_C_FLAGS "${_redbolt_saved_c_flags}")
+    set(CMAKE_CXX_FLAGS "${_redbolt_saved_cxx_flags}")
+endmacro()
+
 set(SDL_SHARED ON CACHE BOOL "" FORCE)
 set(SDL_STATIC OFF CACHE BOOL "" FORCE)
 set(SDL2_DISABLE_SDL2MAIN ON CACHE BOOL "" FORCE)
@@ -40,10 +58,23 @@ set(SDL_JOYSTICK OFF CACHE BOOL "" FORCE)
 set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
 set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
 
-add_subdirectory("${REDBOLT_SDL_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL" EXCLUDE_FROM_ALL)
+redbolt_add_external_subdirectory("${REDBOLT_SDL_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL")
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(REDBOLT_SDL2_IMAGE REQUIRED IMPORTED_TARGET SDL2_image)
+pkg_check_modules(REDBOLT_SDL2_IMAGE REQUIRED SDL2_image)
+
+set(REDBOLT_SDL2_IMAGE_LIBS ${REDBOLT_SDL2_IMAGE_LIBRARIES})
+list(REMOVE_ITEM REDBOLT_SDL2_IMAGE_LIBS SDL2)
+if(NOT REDBOLT_SDL2_IMAGE_LIBS)
+    message(FATAL_ERROR "SDL2_image package was found, but usable link targets were missing")
+endif()
+
+add_library(redbolt-sdl2-image INTERFACE)
+target_include_directories(redbolt-sdl2-image SYSTEM INTERFACE
+    ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS})
+target_link_libraries(redbolt-sdl2-image INTERFACE
+    ${REDBOLT_SDL2_IMAGE_LIBS})
+
 set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
     ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS}
     CACHE INTERNAL "SDL_image include directories used by RedBolt")
@@ -119,11 +150,11 @@ target_compile_definitions(Diligent-BuildSettings INTERFACE
     "$<$<NOT:$<CONFIG:DEBUG>>:NDEBUG>")
 
 include("${REDBOLT_DILIGENT_SOURCE_ROOT}/BuildTools/CMake/BuildUtils.cmake")
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives" "${CMAKE_BINARY_DIR}/deps/Diligent/Primitives" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms" "${CMAKE_BINARY_DIR}/deps/Diligent/Platforms" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Common" "${CMAKE_BINARY_DIR}/deps/Diligent/Common" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsAccessories" EXCLUDE_FROM_ALL)
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives" "${CMAKE_BINARY_DIR}/deps/Diligent/Primitives")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms" "${CMAKE_BINARY_DIR}/deps/Diligent/Platforms")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Common" "${CMAKE_BINARY_DIR}/deps/Diligent/Common")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsAccessories")
 
 add_library(Diligent-GraphicsEngineInterface INTERFACE)
 target_include_directories(Diligent-GraphicsEngineInterface INTERFACE
@@ -131,9 +162,9 @@ target_include_directories(Diligent-GraphicsEngineInterface INTERFACE
 target_link_libraries(Diligent-GraphicsEngineInterface INTERFACE
     Diligent-Primitives
     Diligent-PublicBuildSettings)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngine" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/ShaderTools" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/ShaderTools" EXCLUDE_FROM_ALL)
-add_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineOpenGL" EXCLUDE_FROM_ALL)
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngine")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/ShaderTools" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/ShaderTools")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineOpenGL")
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
@@ -197,7 +228,7 @@ add_custom_target(redbolt-diligent-build
         Diligent-GraphicsEngineOpenGL-static
     COMMENT "Building RedBolt Diligent dependency targets")
 
-add_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui" EXCLUDE_FROM_ALL)
+redbolt_add_external_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui")
 
 add_custom_target(redbolt-native-dependency-batch
     DEPENDS SDL2 redbolt-diligent-build ImGui

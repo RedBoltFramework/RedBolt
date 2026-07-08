@@ -65,7 +65,8 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 
 ```bash
 cmake --preset dev
-cmake --build --preset Debug --target redbolt-csharp
+cmake --build --preset Debug --target restore
+cmake --build --preset Debug --target RedBolt
 out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 ```
 

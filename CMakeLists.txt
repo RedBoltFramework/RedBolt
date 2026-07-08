@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(RedBolt VERSION 0.1.0 LANGUAGES C CXX)
+project(RedBoltFramework VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -171,26 +171,70 @@ add_custom_target(redbolt-generate-native-bindings
 
 add_subdirectory(native/RedBolt.Native)
 
-add_custom_target(redbolt-csharp
-    COMMAND "${DOTNET_EXECUTABLE}" build "${REDBOLT_DOTNET_SOLUTION}"
-        --configuration $<CONFIG>
+add_custom_target(restore
+    COMMAND "${DOTNET_EXECUTABLE}" restore "${REDBOLT_DOTNET_SOLUTION}"
         --nologo
-        -m:1
         "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
         "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-    DEPENDS redbolt-generate-native-bindings RedBolt.Native
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMENT "Building RedBolt C# solution with generated native bindings"
+    COMMENT "Restoring RedBolt .NET solution"
     VERBATIM)
 
-add_custom_target(redbolt-managed
-    DEPENDS redbolt-csharp)
+function(redbolt_add_dotnet_project_target csproj_path)
+    get_filename_component(project_file_name "${csproj_path}" NAME)
+    string(REGEX REPLACE "\\.csproj$" "" project_name "${project_file_name}")
+    set(project_target_name "${project_name}")
+
+    if(TARGET "${project_target_name}")
+        set(project_target_name "redbolt-dotnet-${project_name}")
+    endif()
+    if(TARGET "${project_target_name}")
+        message(FATAL_ERROR "Dotnet target name collision for ${csproj_path} -> ${project_target_name}")
+    endif()
+
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+        include_external_msproject("${project_target_name}" "${csproj_path}" restore)
+        add_dependencies("${project_target_name}" redbolt-generate-native-bindings RedBolt.Native)
+    else()
+        add_custom_target("${project_target_name}"
+            COMMAND "${DOTNET_EXECUTABLE}" build "${csproj_path}"
+                --configuration $<CONFIG>
+                --no-restore
+                --nologo
+                -m:1
+                "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+                "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+            DEPENDS restore redbolt-generate-native-bindings RedBolt.Native
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Building ${project_target_name} with generated native bindings"
+            VERBATIM)
+    endif()
+
+    list(APPEND REDBOLT_MANAGED_DOTNET_TARGETS "${project_target_name}")
+    set(REDBOLT_MANAGED_DOTNET_TARGETS "${REDBOLT_MANAGED_DOTNET_TARGETS}" PARENT_SCOPE)
+endfunction()
+
+file(READ "${REDBOLT_DOTNET_SOLUTION}" REDBOLT_DOTNET_SOLUTION_CONTENT)
+string(REGEX MATCHALL "Path=\"([^\"]+\\.csproj)\"" REDBOLT_DOTNET_PROJECT_ENTRIES "${REDBOLT_DOTNET_SOLUTION_CONTENT}")
+set(REDBOLT_DOTNET_PROJECTS)
+foreach(project_entry IN LISTS REDBOLT_DOTNET_PROJECT_ENTRIES)
+    string(REGEX REPLACE "Path=\"([^\"]+\\.csproj)\".*" "\\1" project_relative_path "${project_entry}")
+    list(APPEND REDBOLT_DOTNET_PROJECTS "${CMAKE_CURRENT_SOURCE_DIR}/${project_relative_path}")
+endforeach()
+list(REMOVE_DUPLICATES REDBOLT_DOTNET_PROJECTS)
+set(REDBOLT_MANAGED_DOTNET_TARGETS)
+foreach(csproj_file IN LISTS REDBOLT_DOTNET_PROJECTS)
+    redbolt_add_dotnet_project_target("${csproj_file}")
+endforeach()
+
+add_custom_target(redbolt-managed ALL
+    DEPENDS ${REDBOLT_MANAGED_DOTNET_TARGETS})
 
 add_custom_target(redbolt-first-cube
     COMMAND "${CMAKE_COMMAND}" -E env
         SDL_VIDEODRIVER=x11
         "${DOTNET_EXECUTABLE}" "${REDBOLT_BIN_DIR}/RedBolt.Sample.FirstCube.dll"
-    DEPENDS redbolt-csharp RedBolt.Native
+    DEPENDS RedBolt.Sample.FirstCube RedBolt.Native
     WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
     COMMENT "Running visible first cube through generated SDL/Diligent bindings"
     VERBATIM)
