@@ -113,7 +113,7 @@ public sealed class Renderer
 
     public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
 
-    internal void RenderFrame(Graphics graphics, string? screenshotPath = null)
+    internal void RenderFrame(Graphics graphics, Action? beforePresent = null, string? screenshotPath = null)
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
@@ -122,19 +122,19 @@ public sealed class Renderer
             var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
             if (renderPipeline is null)
             {
-                graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
+                graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
                 return;
             }
 
             var renderPipelineView = GetOrCreateRenderPipelineView(viewport, renderPipeline);
             if (!renderPipelineView.Define(viewport, graphics))
             {
-                graphics.RenderViewport(viewport, TextureQuality, screenshotPath);
+                graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
                 return;
             }
 
             renderPipelineView.Update(graphics);
-            renderPipelineView.Render(graphics, TextureQuality, screenshotPath);
+            renderPipelineView.Render(graphics, TextureQuality, beforePresent, screenshotPath);
         }
     }
 

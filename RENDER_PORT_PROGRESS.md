@@ -52,6 +52,17 @@ Port in dependency order instead of trying to transplant the full subsystem at o
 
 ## Current Slice
 
+SystemUI / Dear ImGui WIP status on `2026-07-07`:
+
+- SharpCpp now walks `extern "C"` linkage blocks when parsing headers, which unblocks standard generated bindings for `native/RedBolt.Native/include/RedBolt/ImGuiBackend.hpp`.
+- `src/RedBolt/SystemUI/ImGuiNative.cs` was removed; `SystemUI` and `ImGuiDiligentRendererEx` now call generated `RedBolt.Bindings.DearImGui.ImGui.ImGuiBackend*` entry points instead of handwritten `LibraryImport` bindings.
+- Diligent binding generation no longer uses `DILIGENT_SHARP_GEN=1`; the generator now handles the upstream headers directly, keeps third-party Diligent headers unpatched, flattens anonymous record fields correctly, and emits constructor default-dispatch variants without depending on ambiguous native overload resolution.
+- The managed graphics layer and focused tests now use upstream Diligent names (`FirstArraySlice` / `NumArraySlices`) and explicit `TextureDesc` array-vs-depth fields instead of the old Sharp-only aliases.
+- `native/RedBolt.Native/thirdparty/ImGuiDiligentRenderer.cpp` now applies rbfx-style gamma-to-linear correction for ImGui output when the backbuffer format is sRGB, which addresses the washed-out UI path seen with the stock Diligent ImGui shader.
+- `src/RedBolt.DearImGui/DearImGui.cs` now follows rbfx `SystemUI` frame timing more closely again: it opens the ImGui frame on `InputEnd`, emits a dedicated `DearImGuiEvents.EndRenderingDearImGui` hook during `GraphicsEvents.EndRendering`, and renders draw data immediately there instead of relying on the later general `EndFrame` fallback.
+- `cmake --build --preset Debug --target redbolt-csharp` is green after the generator cleanup, focused graphics/Diligent tests pass, and `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2` starts and exits cleanly with the generated Dear ImGui backend path.
+- Remaining verification gap: automated `StaticScene` screenshots still do not capture the ImGui overlay on this machine even though the generated binding path is live, so GC stats visibility in the sample still needs runtime follow-up.
+
 Slice 1 through the first runtime integration layer are landed:
 
 - foundational `RenderPipeline` defs and shared state are in tree

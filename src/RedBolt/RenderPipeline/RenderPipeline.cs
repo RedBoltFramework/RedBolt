@@ -307,7 +307,7 @@ public class RenderPipeline : Component
             RaiseUpdateEnd(frameInfo);
         }
 
-        public override void Render(Graphics graphics, MaterialQuality materialQuality, string? screenshotPath = null)
+        public override void Render(Graphics graphics, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
         {
             ArgumentNullException.ThrowIfNull(graphics);
             if (viewport is null)
@@ -316,6 +316,7 @@ public class RenderPipeline : Component
             RaiseRenderBegin(frameInfo);
 
             sharedState.Graphics = graphics;
+            Context.Instance.SendEvent(GraphicsEvents.BeginRendering);
             renderBufferManager.OnRenderBegin(frameInfo);
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
@@ -324,8 +325,9 @@ public class RenderPipeline : Component
             RenderOutlines(graphics, materialQuality);
             renderPath?.Render(sharedState);
             renderBufferManager.OnRenderEnd(frameInfo);
+            Context.Instance.SendEvent(GraphicsEvents.EndRendering);
 
-            graphics.PresentFrame(screenshotPath);
+            graphics.PresentFrame(screenshotPath, beforePresent);
             graphics.UnbindRenderTargets();
             RaiseCollectStatistics(stats);
             RaiseRenderEnd(frameInfo);

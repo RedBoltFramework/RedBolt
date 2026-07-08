@@ -99,6 +99,8 @@ public sealed class Engine
             timeStep = 0.25f;
 
         time.Advance(timeStep);
+        SendBeginFrameEvent();
+
         if (Parameters.TimeOut > 0 && time.ElapsedTime >= Parameters.TimeOut)
             Exit();
 
@@ -111,10 +113,18 @@ public sealed class Engine
         }
 
         if (!IsExiting)
+        {
+            SendCoreEvents(timeStep);
             update(timeStep);
+        }
 
         if (!IsHeadless && !IsExiting)
-            renderer.RenderFrame(graphics);
+        {
+            renderer.RenderFrame(graphics, beforePresent: null);
+        }
+
+        context.SendEvent(CoreEvents.EndFrame);
+        context.SendEvent(CoreEvents.EndFramePrivate);
     }
 
     public void Exit()
@@ -298,6 +308,32 @@ public sealed class Engine
                 resources.AddResourceDir(combinedPath);
             }
         }
+    }
+
+    private void SendBeginFrameEvent()
+    {
+        var time = GetRequiredSubsystem<EngineTime>();
+        var eventData = new VariantMap
+        {
+            [CoreEvents.FrameNumber] = (int)time.FrameNumber,
+            [CoreEvents.TimeStep] = time.TimeStep
+        };
+
+        context.SendEvent(CoreEvents.BeginFrame, eventData);
+    }
+
+    private void SendCoreEvents(float timeStep)
+    {
+        var eventData = new VariantMap
+        {
+            [CoreEvents.TimeStep] = timeStep
+        };
+
+        context.SendEvent(CoreEvents.InputReady, eventData);
+        context.SendEvent(CoreEvents.Update, eventData);
+        context.SendEvent(CoreEvents.PostUpdate, eventData);
+        context.SendEvent(CoreEvents.RenderUpdate, eventData);
+        context.SendEvent(CoreEvents.PostRenderUpdate, eventData);
     }
 
     private static IReadOnlyList<string> SplitPathList(string value)

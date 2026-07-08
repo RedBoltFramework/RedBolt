@@ -16,6 +16,7 @@ build/
 CMakeUserPresets.json
 compile_commands.json
 RedBolt.log
+imgui.ini
 
 # .NET outputs.
 bin/

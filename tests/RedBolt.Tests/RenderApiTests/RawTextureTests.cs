@@ -181,7 +181,7 @@ public sealed class RawTextureTests
             var desc = firstView!.GetDesc();
             Assert.Equal(TextureViewType.TextureViewUnorderedAccess, desc.ViewType);
             Assert.Equal(ResourceDimension.ResourceDimTex2d, desc.TextureDim);
-            Assert.Equal((uint)0, desc.FirstSlice);
+            Assert.Equal((uint)0, desc.FirstArraySlice);
             Assert.Equal((uint)0, desc.MostDetailedMip);
             Assert.Equal((uint)1, desc.NumMipLevels);
             Assert.Equal(UavAccessFlag.UavAccessFlagReadWrite, desc.AccessFlags);
@@ -212,8 +212,8 @@ public sealed class RawTextureTests
             var desc = firstView!.GetDesc();
             Assert.Equal(TextureViewType.TextureViewUnorderedAccess, desc.ViewType);
             Assert.Equal(ResourceDimension.ResourceDimTex2dArray, desc.TextureDim);
-            Assert.Equal((uint)1, desc.FirstSlice);
-            Assert.Equal((uint)3, desc.NumSlices);
+            Assert.Equal((uint)1, desc.FirstArraySlice);
+            Assert.Equal((uint)3, desc.NumArraySlices);
             Assert.Equal((uint)1, desc.MostDetailedMip);
             Assert.Equal((uint)2, desc.NumMipLevels);
             Assert.Equal(UavAccessFlag.UavAccessFlagWrite, desc.AccessFlags);

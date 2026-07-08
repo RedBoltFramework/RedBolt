@@ -1,4 +1,5 @@
 using RedBolt;
+using RedBolt.Bindings.DearImGui;
 
 try
 {
@@ -16,6 +17,7 @@ catch (Exception ex)
 sealed class StaticSceneApplication : Application
 {
     private readonly Random random = new(1);
+    private ContextEventSubscription? dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -30,6 +32,9 @@ sealed class StaticSceneApplication : Application
 
     protected override void Start()
     {
+        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.SystemUIFlags));
+        dearImGuiSubscription = Context.SubscribeToEvent(DearImGuiEvents.EndRenderingDearImGui, static (_, _, _) => DrawGCStats());
+
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();
         scene.CreateComponent<Octree>();
@@ -95,6 +100,39 @@ sealed class StaticSceneApplication : Application
         }
 
         Thread.Sleep(16);
+    }
+
+    protected override void Stop()
+    {
+        dearImGuiSubscription?.Dispose();
+        dearImGuiSubscription = null;
+    }
+
+    private static void DrawGCStats()
+    {
+        ImGui.SetNextWindowPos(new Vector2(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(280, 160), ImGuiCond.ImGuiCondFirstUseEver);
+
+        var flags = ImGuiWindowFlags.ImGuiWindowFlagsNoResize
+                  | ImGuiWindowFlags.ImGuiWindowFlagsNoMove
+                  | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings;
+
+        if (ImGui.Begin("GC Stats\0"u8, out _, flags))
+        {
+            var heapSizeMb = (double)GC.GetTotalMemory(false) / (1024 * 1024);
+            DrawStatLine("Heap Size", $"{heapSizeMb:N1} MB");
+            DrawStatLine("Gen 0 Collections", GC.CollectionCount(0).ToString());
+            DrawStatLine("Gen 1 Collections", GC.CollectionCount(1).ToString());
+            DrawStatLine("Gen 2 Collections", GC.CollectionCount(2).ToString());
+            DrawStatLine("Total Allocated", $"{(double)GC.GetTotalAllocatedBytes() / (1024 * 1024):N1} MB");
+        }
+
+        ImGui.End();
+    }
+
+    private static void DrawStatLine(string label, string value)
+    {
+        ImGui.TextUnformatted(System.Text.Encoding.UTF8.GetBytes($"{label}: {value}\0"));
     }
 
     private static string FindResourcePrefixPath()

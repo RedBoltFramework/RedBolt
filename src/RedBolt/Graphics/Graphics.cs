@@ -163,7 +163,7 @@ layout(std140) uniform Material
         return shader is null ? null : new ShaderVariation(shader, type, defines);
     }
 
-    internal IRenderDevice? GetNativeRenderDevice() => device;
+    public IRenderDevice? GetNativeRenderDevice() => device;
 
     internal ITexture? GetTextureHandle(Texture texture)
     {
@@ -192,8 +192,8 @@ layout(std140) uniform Material
         textureViewDesc.Format = MapTextureFormat(texture.Format);
         textureViewDesc.MostDetailedMip = key.FirstLevel;
         textureViewDesc.NumMipLevels = key.NumLevels;
-        textureViewDesc.FirstSlice = key.FirstSlice;
-        textureViewDesc.NumSlices = key.NumSlices;
+        textureViewDesc.FirstArraySlice = key.FirstSlice;
+        textureViewDesc.NumArraySlices = key.NumSlices;
         textureViewDesc.AccessFlags = key.CanRead && key.CanWrite
             ? UavAccessFlag.UavAccessFlagReadWrite
             : key.CanRead
@@ -286,24 +286,27 @@ layout(std140) uniform Material
         }
     }
 
-    internal void RenderViewport(Viewport? viewport, string? screenshotPath = null)
+    internal void RenderViewport(Viewport? viewport, Action? beforePresent = null, string? screenshotPath = null)
     {
-        RenderViewport(viewport, MaterialQuality.High, screenshotPath);
+        RenderViewport(viewport, MaterialQuality.High, beforePresent, screenshotPath);
     }
 
     /// <summary>
     /// Render viewport through the legacy direct path that binds the backbuffer, draws the scene and presents it.
     /// </summary>
-    internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, string? screenshotPath = null)
+    internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
     {
         if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || renderTargetView is null || depthStencilView is null)
             return;
+
+        Context.Instance.SendEvent(GraphicsEvents.BeginRendering);
 
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
         ClearCurrentRenderTargets();
         RenderScene(viewport, materialQuality, viewportRect);
-        PresentFrame(screenshotPath);
+        Context.Instance.SendEvent(GraphicsEvents.EndRendering);
+        PresentFrame(screenshotPath, beforePresent);
         UnbindRenderTargets();
     }
 
@@ -493,10 +496,12 @@ layout(std140) uniform Material
     /// <summary>
     /// Present the current frame after optional screenshot capture.
     /// </summary>
-    internal void PresentFrame(string? screenshotPath = null)
+    internal void PresentFrame(string? screenshotPath = null, Action? beforePresent = null)
     {
         if (!IsInitialized || swapChain is null)
             return;
+
+        beforePresent?.Invoke();
 
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SavePresentedFrameScreenshot(screenshotPath);
@@ -524,7 +529,7 @@ layout(std140) uniform Material
         currentOutputDesc.MultiSample = 1;
     }
 
-    internal IDeviceContext? GetImmediateContext() => immediateContext;
+    public IDeviceContext? GetImmediateContext() => immediateContext;
 
     internal IntRect GetCurrentViewportRect() => currentViewport;
 
@@ -726,7 +731,7 @@ layout(std140) uniform Material
         stagingDescription.Type = sourceDescription.Type;
         stagingDescription.Width = sourceDescription.Width;
         stagingDescription.Height = sourceDescription.Height;
-        stagingDescription.ArraySizeOrDepth = sourceDescription.ArraySizeOrDepth;
+        CopyTextureDescArraySizeOrDepth(stagingDescription, sourceDescription);
         stagingDescription.MipLevels = 1;
         stagingDescription.Format = sourceDescription.Format;
         stagingDescription.BindFlags = BindFlags.BindNone;
@@ -2081,7 +2086,7 @@ layout(std140) uniform Material
         textureDesc.Type = ResourceDimension.ResourceDimTex2d;
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
-        textureDesc.ArraySizeOrDepth = 1;
+        textureDesc.ArraySize = 1;
         textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
@@ -2160,7 +2165,7 @@ layout(std140) uniform Material
         textureDesc.Type = ResourceDimension.ResourceDimTexCube;
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
-        textureDesc.ArraySizeOrDepth = 6;
+        textureDesc.ArraySize = 6;
         textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
@@ -2209,7 +2214,7 @@ layout(std140) uniform Material
         textureDesc.Type = ResourceDimension.ResourceDimTex2dArray;
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
-        textureDesc.ArraySizeOrDepth = texture.Layers;
+        textureDesc.ArraySize = texture.Layers;
         textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture.Format);
         if (textureDesc.Format == 0)
@@ -2253,7 +2258,7 @@ layout(std140) uniform Material
         resolvedDesc.Type = sourceDesc.Type;
         resolvedDesc.Width = sourceDesc.Width;
         resolvedDesc.Height = sourceDesc.Height;
-        resolvedDesc.ArraySizeOrDepth = sourceDesc.ArraySizeOrDepth;
+        CopyTextureDescArraySizeOrDepth(resolvedDesc, sourceDesc);
         resolvedDesc.Format = sourceDesc.Format;
         resolvedDesc.MipLevels = GetUploadedMipLevels(texture);
         resolvedDesc.BindFlags = sourceDesc.BindFlags;
@@ -2406,8 +2411,8 @@ layout(std140) uniform Material
         textureViewDesc.Format = MapTextureFormat(texture.Format);
         textureViewDesc.MostDetailedMip = 0;
         textureViewDesc.NumMipLevels = 1;
-        textureViewDesc.FirstSlice = slice;
-        textureViewDesc.NumSlices = 1;
+        textureViewDesc.FirstArraySlice = slice;
+        textureViewDesc.NumArraySlices = 1;
         uploaded.Texture.CreateView(textureViewDesc, out var createdView);
         if (createdView.IsNull)
             throw new InvalidOperationException($"Failed to create slice view {viewType} for texture '{texture.Name}'.");
@@ -2453,7 +2458,7 @@ layout(std140) uniform Material
         return viewDesc.Format;
     }
 
-    private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
+    public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
     {
         if (renderTargetView is not null)
             return GetTextureViewFormat(renderTargetView);
@@ -2464,7 +2469,7 @@ layout(std140) uniform Material
         return desc.ColorBufferFormat;
     }
 
-    private global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
+    public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
     {
         if (depthStencilView is not null)
             return GetTextureViewFormat(depthStencilView);
@@ -2555,7 +2560,7 @@ layout(std140) uniform Material
         return desc.Type == GetResourceDimension(texture)
             && desc.Width == (uint)texture.Width
             && desc.Height == (uint)texture.Height
-            && desc.ArraySizeOrDepth == GetArraySizeOrDepth(texture)
+            && desc.ArraySizeOrDepth() == GetArraySizeOrDepth(texture)
             && desc.SampleCount == (uint)texture.MultiSample
             && uploaded.HasResolvedTexture == NeedsResolvedTexture(texture)
             && (!requireUnorderedAccess || uploaded.SupportsUnorderedAccess)
@@ -2590,12 +2595,21 @@ layout(std140) uniform Material
         };
     }
 
+    private static void CopyTextureDescArraySizeOrDepth(TextureDesc destination, TextureDesc source)
+    {
+        if (source.Type == ResourceDimension.ResourceDimTex3d)
+            destination.Depth = source.Depth;
+        else
+            destination.ArraySize = source.GetArraySize();
+    }
+
     private static uint GetArraySizeOrDepth(Texture texture)
     {
         return texture switch
         {
             TextureCube => 6u,
             Texture2DArray textureArray => textureArray.Layers,
+            Texture3D texture3D => (uint)texture3D.Depth,
             _ => 1u
         };
     }

@@ -6,6 +6,7 @@
     <Project Path="src/RedBolt.Bindings.DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <Project Path="src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
     <Project Path="src/RedBolt/RedBolt.csproj" />
+    <Project Path="src/RedBolt.DearImGui/RedBolt.DearImGui.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />

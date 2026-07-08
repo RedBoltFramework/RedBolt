@@ -64,6 +64,11 @@ public sealed class Input
         ? window
         : throw new InvalidOperationException("Input window is not initialized.");
 
+    public nint GetWindowHandle()
+    {
+        return Window.Handle;
+    }
+
     public void Initialize(EngineParameters parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -141,6 +146,8 @@ public sealed class Input
 
     public void BeginFrame()
     {
+        Context.Instance.SendEvent(InputEvents.InputBegin);
+
         ExitRequested = false;
         keyPress.Clear();
         scancodePress.Clear();
@@ -195,6 +202,8 @@ public sealed class Input
                 HandleWindowEvent(nativeEvent);
             }
         }
+
+        Context.Instance.SendEvent(InputEvents.InputEnd);
     }
 
     public static Key GetKeyFromName(string name)

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.DearImGui</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.DearImGui/RedBolt.Bindings.DearImGui.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SharpCpp.Support">
+      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

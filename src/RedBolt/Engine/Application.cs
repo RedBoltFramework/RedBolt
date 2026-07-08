@@ -174,7 +174,7 @@ public abstract class Application
         try
         {
             if (Renderer.GetNumViews() > 0)
-                Renderer.RenderFrame(Graphics, screenshotPath);
+                Renderer.RenderFrame(Graphics, screenshotPath: screenshotPath);
             else
                 Graphics.SaveScreenshot(screenshotPath);
         }

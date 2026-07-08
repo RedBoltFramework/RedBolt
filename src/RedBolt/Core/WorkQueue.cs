@@ -58,7 +58,7 @@ public sealed class WorkQueue : Object
             workQueue = this;
         }
 
-        SubscribeToEvent("BeginFrame", (_, _, _) => Update());
+        SubscribeToEvent(CoreEvents.BeginFrame, (_, _, _) => Update());
     }
 
     public void Initialize(uint numThreads)

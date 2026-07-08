@@ -31,8 +31,8 @@ public sealed class GraphicsRenderTargetViewTests
             var desc = firstView.GetDesc();
             Assert.Equal(TextureViewType.TextureViewRenderTarget, desc.ViewType);
             Assert.Equal(ResourceDimension.ResourceDimTex2d, desc.TextureDim);
-            Assert.Equal((uint)3, desc.FirstSlice);
-            Assert.Equal((uint)1, desc.NumSlices);
+            Assert.Equal((uint)3, desc.FirstArraySlice);
+            Assert.Equal((uint)1, desc.NumArraySlices);
         });
     }
 
@@ -100,8 +100,8 @@ public sealed class GraphicsRenderTargetViewTests
             var desc = firstView.GetDesc();
             Assert.Equal(TextureViewType.TextureViewReadOnlyDepthStencil, desc.ViewType);
             Assert.Equal(ResourceDimension.ResourceDimTex2d, desc.TextureDim);
-            Assert.Equal((uint)2, desc.FirstSlice);
-            Assert.Equal((uint)1, desc.NumSlices);
+            Assert.Equal((uint)2, desc.FirstArraySlice);
+            Assert.Equal((uint)1, desc.NumArraySlices);
         });
     }
 

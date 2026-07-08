@@ -844,7 +844,7 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
 
     public abstract void Update(Graphics graphics);
 
-    public abstract void Render(Graphics graphics, MaterialQuality materialQuality, string? screenshotPath = null);
+    public abstract void Render(Graphics graphics, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null);
 
     public abstract CommonFrameInfo GetFrameInfo();
 

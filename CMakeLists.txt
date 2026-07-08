@@ -93,7 +93,11 @@ file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
 ]=])
 
 file(WRITE "${REDBOLT_IMGUI_PARSE_SOURCE}" [=[
+#include <SDL.h>
 #include <imgui.h>
+#define IMGUI_IMPL_API IMGUI_API
+#include <imgui_impl_sdl2.h>
+#include <RedBolt/ImGuiBackend.hpp>
 ]=])
 
 set(REDBOLT_SDL_OWNED_HEADERS
@@ -106,7 +110,8 @@ set(REDBOLT_DILIGENT_OWNED_HEADERS
     "${REDBOLT_DILIGENT_SUPPORT_HEADER}")
 
 set(REDBOLT_IMGUI_INCLUDE_DIR "${REDBOLT_IMGUI_SOURCE_ROOT}")
-set(REDBOLT_IMGUI_OWNED_HEADERS "${REDBOLT_IMGUI_INCLUDE_DIR}")
+set(REDBOLT_IMGUI_BACKEND_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/include/RedBolt/ImGuiBackend.hpp")
+set(REDBOLT_IMGUI_OWNED_HEADERS "${REDBOLT_IMGUI_INCLUDE_DIR}" "${REDBOLT_IMGUI_SOURCE_ROOT}/backends")
 
 redbolt_add_native_binding_generation(
     TARGET redbolt-generate-sdl-bindings
@@ -150,11 +155,13 @@ redbolt_add_native_binding_generation(
     OUTPUT_METADATA "${REDBOLT_IMGUI_BINDINGS_JSON}"
     OUTPUT_CS "${REDBOLT_IMGUI_BINDINGS_CS}"
     OUTPUT_CPP "${REDBOLT_IMGUI_BINDINGS_CPP}"
-    INCLUDE_DIRS "${REDBOLT_IMGUI_INCLUDE_DIR}"
+    INCLUDE_DIRS "${REDBOLT_IMGUI_INCLUDE_DIR}" "${REDBOLT_IMGUI_SOURCE_ROOT}/backends" "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/include" "${REDBOLT_SDL_CONFIG_INCLUDE_DIR}" "${REDBOLT_SDL_BUILD_INCLUDE_DIR}" ${REDBOLT_SDL_IMAGE_INCLUDE_DIRS}
     DEFINES "IMGUI_DEFINE_MATH_OPERATORS=1" "IMGUI_DISABLE_SSE=1"
-    OWNED_HEADERS ${REDBOLT_IMGUI_OWNED_HEADERS})
+    OWNED_HEADERS
+        ${REDBOLT_IMGUI_OWNED_HEADERS}
+        "${REDBOLT_IMGUI_BACKEND_HEADER}")
 
-add_dependencies(redbolt-generate-dearimgui-bindings ImGui)
+add_dependencies(redbolt-generate-dearimgui-bindings ImGui ImGuiSdl2 redbolt-generate-sdl-bindings)
 
 add_custom_target(redbolt-generate-native-bindings
     DEPENDS

@@ -6,6 +6,34 @@ target_link_libraries(redbolt-diligent-support
 set_target_properties(redbolt-diligent-support PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
+# ImGui backend library compiled without DILIGENT_SHARP_GEN
+add_library(redbolt-imgui-backend STATIC
+    src/ImGuiBackend.cpp
+    thirdparty/ImGuiDiligentRenderer.cpp)
+target_compile_definitions(redbolt-imgui-backend PRIVATE
+    REDBOLT_NATIVE_BUILD
+    PLATFORM_LINUX=1
+    D3D11_SUPPORTED=0
+    D3D12_SUPPORTED=0
+    GL_SUPPORTED=1
+    GLES_SUPPORTED=0
+    VULKAN_SUPPORTED=0
+    METAL_SUPPORTED=0
+    WEBGPU_SUPPORTED=0
+    DILIGENT_NO_HLSL=1)
+target_include_directories(redbolt-imgui-backend PRIVATE
+    include
+    thirdparty
+    "${CMAKE_SOURCE_DIR}/extern/thirdparty")
+target_link_libraries(redbolt-imgui-backend
+    PUBLIC
+        Diligent-GraphicsEngine
+        Diligent-GraphicsEngineOpenGL-static
+        ImGui
+        ImGuiSdl2)
+set_target_properties(redbolt-imgui-backend PROPERTIES
+    POSITION_INDEPENDENT_CODE ON)
+
 add_library(RedBolt.Native SHARED
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
@@ -36,8 +64,10 @@ target_link_libraries(RedBolt.Native
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
         ImGui
+        ImGuiSdl2
         redbolt-native-support
-        redbolt-diligent-support)
+        redbolt-diligent-support
+        -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)
 
 add_executable(redbolt-native-smoke-exe
     smoke/RedBoltNativeSmoke.cpp)

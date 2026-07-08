@@ -234,7 +234,7 @@ public sealed class DiligentOpenGLTests
                 uploadTextureDesc.Type = ResourceDimension.ResourceDimTex2d;
                 uploadTextureDesc.Width = 8;
                 uploadTextureDesc.Height = 8;
-                uploadTextureDesc.ArraySizeOrDepth = 1;
+                uploadTextureDesc.ArraySize = 1;
                 uploadTextureDesc.MipLevels = 1;
                 uploadTextureDesc.Format = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm;
                 uploadTextureDesc.BindFlags = BindFlags.BindShaderResource;
@@ -265,7 +265,7 @@ public sealed class DiligentOpenGLTests
             textureDesc.Type = ResourceDimension.ResourceDimTex2d;
             textureDesc.Width = 8;
             textureDesc.Height = 8;
-            textureDesc.ArraySizeOrDepth = 1;
+            textureDesc.ArraySize = 1;
             textureDesc.MipLevels = 1;
             textureDesc.Format = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm;
             textureDesc.BindFlags = BindFlags.BindRenderTarget | BindFlags.BindShaderResource;
@@ -346,7 +346,7 @@ public sealed class DiligentOpenGLTests
             stagingDesc.Type = ResourceDimension.ResourceDimTex2d;
             stagingDesc.Width = width;
             stagingDesc.Height = height;
-            stagingDesc.ArraySizeOrDepth = 1;
+            stagingDesc.ArraySize = 1;
             stagingDesc.MipLevels = 1;
             stagingDesc.Format = format;
             stagingDesc.BindFlags = BindFlags.BindNone;
