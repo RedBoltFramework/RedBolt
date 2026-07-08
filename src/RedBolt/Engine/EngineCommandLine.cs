@@ -89,7 +89,7 @@ internal static class EngineCommandLine
         parser.AddFlag(["--gpu-debug"], "Enable GPU debug mode", () => parameters.GPUDebug = true);
         parser.AddOption(["--adapter-id"], "id", "Select the graphics adapter", value => parameters.RenderAdapterId = ParseUInt(value));
         parser.AddFlag(["--reload-plugins"], "Enable plugin hot-reload", () => parameters.ReloadPlugins = true);
-        parser.AddOption(["--systemui-flags"], "flags", "Set SystemUI flags", value => parameters.SystemUIFlags = ParseUInt(value));
+        parser.AddOption(["--imgui-flags"], "flags", "Set Dear ImGui flags", value => parameters.DearImGuiFlags = ParseUInt(value));
         parser.AddOption(["--tweak-d3d12"], "json", "Set D3D12 tweak JSON", value => parameters.TweakD3D12 = value);
         parser.AddOption(["--tweak-vulkan"], "json", "Set Vulkan tweak JSON", value => parameters.TweakVulkan = value);
         parser.AddFlag(["--engine-auto-load-scripts"], "Enable engine script autoloading", () => parameters.EngineAutoLoadScripts = true);

@@ -26,6 +26,7 @@ obj/
 .cache/
 .vs/
 .vscode/
+.idea/
 *.user
 *.swp
 *~

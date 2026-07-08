@@ -90,7 +90,7 @@ public sealed class EngineParameters
 
     public int SoundMode { get; set; }
 
-    public uint SystemUIFlags { get; set; }
+    public uint DearImGuiFlags { get; set; }
 
     public int TextureAnisotropy { get; set; } = 4;
 

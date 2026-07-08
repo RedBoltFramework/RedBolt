@@ -47,7 +47,7 @@ public static class EngineParameter
     public const string SoundInterpolation = "SoundInterpolation";
     public const string SoundMixRate = "SoundMixRate";
     public const string SoundMode = "SoundMode";
-    public const string SystemUIFlags = "SystemUIFlags";
+    public const string DearImGuiFlags = "DearImGuiFlags";
     public const string TextureAnisotropy = "TextureAnisotropy";
     public const string TextureFilterMode = "TextureFilterMode";
     public const string TextureQuality = "TextureQuality";
