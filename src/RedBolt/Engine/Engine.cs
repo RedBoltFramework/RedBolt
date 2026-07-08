@@ -123,8 +123,8 @@ public sealed class Engine
             renderer.RenderFrame(graphics, beforePresent: null);
         }
 
-        context.SendEvent(CoreEvents.EndFrame);
-        context.SendEvent(CoreEvents.EndFramePrivate);
+        context.SendEvent<CoreEvents.EndFrameEvent>();
+        context.SendEvent<CoreEvents.EndFramePrivateEvent>();
     }
 
     public void Exit()
@@ -313,27 +313,46 @@ public sealed class Engine
     private void SendBeginFrameEvent()
     {
         var time = GetRequiredSubsystem<EngineTime>();
-        var eventData = new VariantMap
+        var eventData = new CoreEvents.BeginFrameEvent
         {
-            [CoreEvents.FrameNumber] = (int)time.FrameNumber,
-            [CoreEvents.TimeStep] = time.TimeStep
+            FrameNumber = (int)time.FrameNumber,
+            TimeStep = time.TimeStep
         };
 
-        context.SendEvent(CoreEvents.BeginFrame, eventData);
+        context.SendEvent(ref eventData);
     }
 
     private void SendCoreEvents(float timeStep)
     {
-        var eventData = new VariantMap
+        var inputReadyEventData = new CoreEvents.InputReadyEvent
         {
-            [CoreEvents.TimeStep] = timeStep
+            TimeStep = timeStep
         };
+        context.SendEvent(ref inputReadyEventData);
 
-        context.SendEvent(CoreEvents.InputReady, eventData);
-        context.SendEvent(CoreEvents.Update, eventData);
-        context.SendEvent(CoreEvents.PostUpdate, eventData);
-        context.SendEvent(CoreEvents.RenderUpdate, eventData);
-        context.SendEvent(CoreEvents.PostRenderUpdate, eventData);
+        var updateEventData = new CoreEvents.UpdateEvent
+        {
+            TimeStep = timeStep
+        };
+        context.SendEvent(ref updateEventData);
+
+        var postUpdateEventData = new CoreEvents.PostUpdateEvent
+        {
+            TimeStep = timeStep
+        };
+        context.SendEvent(ref postUpdateEventData);
+
+        var renderUpdateEventData = new CoreEvents.RenderUpdateEvent
+        {
+            TimeStep = timeStep
+        };
+        context.SendEvent(ref renderUpdateEventData);
+
+        var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent
+        {
+            TimeStep = timeStep
+        };
+        context.SendEvent(ref postRenderUpdateEventData);
     }
 
     private static IReadOnlyList<string> SplitPathList(string value)

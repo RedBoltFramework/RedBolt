@@ -42,26 +42,24 @@ public sealed class ContextTests
 
             var anySenderCalls = 0;
             var filteredSenderCalls = 0;
-            VariantMap? receivedData = null;
 
-            using var subscriptionA = receiver.SubscribeToEvent("NamedEvent", (sender, eventType, eventData) =>
+            using var subscriptionA = receiver.SubscribeToEvent<NamedEvent>((ref NamedEvent eventData) =>
             {
                 ++anySenderCalls;
-                Assert.Equal(new StringHash("NamedEvent"), eventType);
-                receivedData = eventData;
-                Assert.Same(senderA, sender);
+                Assert.True(eventData.Flag);
+                Assert.Same(senderA, eventData.Sender);
             });
-            using var subscriptionB = receiver.SubscribeToEvent(senderB, "NamedEvent", (_, _, _) => ++filteredSenderCalls);
-
-            senderA.SendEvent("NamedEvent", new VariantMap
+            using var subscriptionB = receiver.SubscribeToEvent<NamedEvent>(senderB, (ref NamedEvent eventData) =>
             {
-                ["Flag"] = true
+                Assert.Same(senderB, eventData.Sender);
+                ++filteredSenderCalls;
             });
+
+            var namedEvent = new NamedEvent { Sender = senderA, Flag = true };
+            senderA.SendEvent(ref namedEvent);
 
             Assert.Equal(1, anySenderCalls);
             Assert.Equal(0, filteredSenderCalls);
-            Assert.NotNull(receivedData);
-            Assert.True(receivedData![new StringHash("Flag")].GetBool());
         }
         finally
         {
@@ -82,9 +80,9 @@ public sealed class ContextTests
             var receiver = new TestObject();
             var calls = 0;
 
-            receiver.SubscribeToEvent("Ping", (_, _, _) => ++calls);
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++calls);
             receiver.UnsubscribeFromAllEvents();
-            sender.SendEvent("Ping");
+            sender.SendEvent<PingEvent>();
 
             Assert.Equal(0, calls);
         }
@@ -107,18 +105,52 @@ public sealed class ContextTests
             var receiver = new TestObject();
             var calls = 0;
 
-            var subscription = receiver.SubscribeToEvent(new StringHash("DisposeMe"), (_, eventType, eventData) =>
+            var subscription = receiver.SubscribeToEvent<DisposeMeEvent>((ref DisposeMeEvent _) =>
             {
                 ++calls;
-                Assert.Equal(new StringHash("DisposeMe"), eventType);
-                Assert.Empty(eventData);
             });
 
-            sender.SendEvent(new StringHash("DisposeMe"));
+            sender.SendEvent<DisposeMeEvent>();
             subscription.Dispose();
-            sender.SendEvent(new StringHash("DisposeMe"));
+            sender.SendEvent<DisposeMeEvent>();
 
             Assert.Equal(1, calls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Context_garbage_collected_receivers_are_automatically_dropped()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            WeakReference<TestObject> receiverRef;
+            var calls = 0;
+
+            void SubscribeAndDrop()
+            {
+                var receiver = new TestObject();
+                receiverRef = new WeakReference<TestObject>(receiver);
+                receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++calls);
+            }
+
+            SubscribeAndDrop();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            Assert.False(receiverRef.TryGetTarget(out _));
+
+            sender.SendEvent<PingEvent>();
+            Assert.Equal(0, calls);
         }
         finally
         {
@@ -140,13 +172,13 @@ public sealed class ContextTests
             var pingCalls = 0;
             var pongCalls = 0;
 
-            receiver.SubscribeToEvent("Ping", (_, _, _) => ++pingCalls);
-            receiver.SubscribeToEvent("Pong", (_, _, _) => ++pongCalls);
+            receiver.SubscribeToEvent<PongEvent>((ref PongEvent _) => ++pongCalls);
 
-            receiver.UnsubscribeFromEvent("Ping");
+            using var pingSubscription = receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++pingCalls);
+            pingSubscription.Dispose();
 
-            sender.SendEvent("Ping");
-            sender.SendEvent("Pong");
+            sender.SendEvent<PingEvent>();
+            sender.SendEvent<PongEvent>();
 
             Assert.Equal(0, pingCalls);
             Assert.Equal(1, pongCalls);
@@ -171,13 +203,13 @@ public sealed class ContextTests
             var receiver = new TestObject();
             var calls = 0;
 
-            receiver.SubscribeToEvent(senderA, "Ping", (_, _, _) => ++calls);
-            receiver.SubscribeToEvent(senderB, "Ping", (_, _, _) => ++calls);
+            receiver.SubscribeToEvent(senderA, (ref PingEvent _) => ++calls);
+            receiver.SubscribeToEvent(senderB, (ref PingEvent _) => ++calls);
 
             receiver.UnsubscribeFromEvents(senderA);
 
-            senderA.SendEvent("Ping");
-            senderB.SendEvent("Ping");
+            senderA.SendEvent<PingEvent>();
+            senderB.SendEvent<PingEvent>();
 
             Assert.Equal(1, calls);
         }
@@ -202,15 +234,15 @@ public sealed class ContextTests
             var firstCalls = 0;
             var secondCalls = 0;
 
-            firstReceiver.SubscribeToEvent("Ping", (_, _, _) =>
+            firstReceiver.SubscribeToEvent<PingEvent>((ref PingEvent _) =>
             {
                 ++firstCalls;
                 secondReceiver.UnsubscribeFromAllEvents();
             });
-            secondReceiver.SubscribeToEvent("Ping", (_, _, _) => ++secondCalls);
+            secondReceiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++secondCalls);
 
-            sender.SendEvent("Ping");
-            sender.SendEvent("Ping");
+            sender.SendEvent<PingEvent>();
+            sender.SendEvent<PingEvent>();
 
             Assert.Equal(2, firstCalls);
             Assert.Equal(0, secondCalls);
@@ -234,17 +266,17 @@ public sealed class ContextTests
             var receiver = new TestObject();
             var calls = 0;
 
-            receiver.SubscribeToEvent("Ping", (_, _, _) => ++calls);
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++calls);
 
             sender.SetBlockEvents(true);
-            sender.SendEvent("Ping");
+            sender.SendEvent<PingEvent>();
 
             sender.SetBlockEvents(false);
             receiver.SetBlockEvents(true);
-            sender.SendEvent("Ping");
+            sender.SendEvent<PingEvent>();
 
             receiver.SetBlockEvents(false);
-            sender.SendEvent("Ping");
+            sender.SendEvent<PingEvent>();
 
             Assert.Equal(1, calls);
         }
@@ -293,11 +325,11 @@ public sealed class ContextTests
             var sender = new TestObject();
             var receiver = new TestObject();
 
-            receiver.SubscribeToEvent("Ping", (_, _, _) => { });
-            receiver.SubscribeToEvent(sender, "Pong", (_, _, _) => { });
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => { });
+            receiver.SubscribeToEvent(sender, (ref PongEvent _) => { });
 
-            Assert.True(receiver.HasSubscribedToEvent(new StringHash("Ping")));
-            Assert.True(receiver.HasSubscribedToEvent(sender, new StringHash("Pong")));
+            Assert.True(receiver.HasSubscribedToEvent<PingEvent>());
+            Assert.True(receiver.HasSubscribedToEvent<PongEvent>(sender));
             Assert.True(receiver.HasEventHandlers());
         }
         finally
@@ -319,19 +351,19 @@ public sealed class ContextTests
             var senderB = new TestObject();
             var receiver = new TestObject();
 
-            receiver.SubscribeToEvent("KeepEvent", (_, _, _) => { });
-            receiver.SubscribeToEvent("DropEvent", (_, _, _) => { });
-            receiver.UnsubscribeFromAllEventsExcept([new StringHash("KeepEvent")]);
+            receiver.SubscribeToEvent<KeepEvent>((ref KeepEvent _) => { });
+            var dropEventSubscription = receiver.SubscribeToEvent<DropEvent>(static (ref DropEvent _) => { });
+            dropEventSubscription.Dispose();
 
-            Assert.True(receiver.HasSubscribedToEvent(new StringHash("KeepEvent")));
-            Assert.False(receiver.HasSubscribedToEvent(new StringHash("DropEvent")));
+            Assert.True(receiver.HasSubscribedToEvent<KeepEvent>());
+            Assert.False(receiver.HasSubscribedToEvent<DropEvent>());
 
-            receiver.SubscribeToEvent(senderA, "Ping", (_, _, _) => { });
-            receiver.SubscribeToEvent(senderB, "Ping", (_, _, _) => { });
+            receiver.SubscribeToEvent<PingEvent>(senderA, (ref PingEvent _) => { });
+            receiver.SubscribeToEvent<PingEvent>(senderB, (ref PingEvent _) => { });
             receiver.UnsubscribeFromAllEventsExcept([senderB]);
 
-            Assert.False(receiver.HasSubscribedToEvent(senderA, new StringHash("Ping")));
-            Assert.True(receiver.HasSubscribedToEvent(senderB, new StringHash("Ping")));
+            Assert.False(receiver.HasSubscribedToEvent<PingEvent>(senderA));
+            Assert.True(receiver.HasSubscribedToEvent<PingEvent>(senderB));
         }
         finally
         {
@@ -366,4 +398,21 @@ public sealed class ContextTests
     private sealed class TestObject : RedBolt.Object
     {
     }
+
+    private struct NamedEvent
+    {
+        public required object? Sender { get; init; }
+
+        public bool Flag { get; init; }
+    }
+
+    private struct PingEvent;
+
+    private struct PongEvent;
+
+    private struct DisposeMeEvent;
+
+    private struct KeepEvent;
+
+    private struct DropEvent;
 }

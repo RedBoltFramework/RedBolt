@@ -146,7 +146,7 @@ public sealed class Input
 
     public void BeginFrame()
     {
-        Context.Instance.SendEvent(InputEvents.InputBegin);
+        Context.Instance.SendEvent<InputEvents.InputBeginEvent>();
 
         ExitRequested = false;
         keyPress.Clear();
@@ -203,7 +203,7 @@ public sealed class Input
             }
         }
 
-        Context.Instance.SendEvent(InputEvents.InputEnd);
+        Context.Instance.SendEvent<InputEvents.InputEndEvent>();
     }
 
     public static Key GetKeyFromName(string name)

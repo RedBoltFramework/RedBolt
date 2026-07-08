@@ -2,15 +2,42 @@ namespace RedBolt;
 
 public static class CoreEvents
 {
-    public static readonly StringHash BeginFrame = "BeginFrame";
-    public static readonly StringHash InputReady = "InputReady";
-    public static readonly StringHash Update = "Update";
-    public static readonly StringHash PostUpdate = "PostUpdate";
-    public static readonly StringHash RenderUpdate = "RenderUpdate";
-    public static readonly StringHash PostRenderUpdate = "PostRenderUpdate";
-    public static readonly StringHash EndFrame = "EndFrame";
-    public static readonly StringHash EndFramePrivate = "EndFramePrivate";
+    public struct BeginFrameEvent
+    {
+        public int FrameNumber;
+        public float TimeStep;
+    }
 
-    public static readonly StringHash FrameNumber = "FrameNumber";
-    public static readonly StringHash TimeStep = "TimeStep";
+    public struct InputReadyEvent
+    {
+        public float TimeStep;
+    }
+
+    public struct UpdateEvent
+    {
+        public float TimeStep;
+    }
+
+    public struct PostUpdateEvent
+    {
+        public float TimeStep;
+    }
+
+    public struct RenderUpdateEvent
+    {
+        public float TimeStep;
+    }
+
+    public struct PostRenderUpdateEvent
+    {
+        public float TimeStep;
+    }
+
+    public struct EndFrameEvent
+    {
+    }
+
+    public struct EndFramePrivateEvent
+    {
+    }
 }

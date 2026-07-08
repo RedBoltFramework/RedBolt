@@ -299,13 +299,13 @@ layout(std140) uniform Material
         if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || renderTargetView is null || depthStencilView is null)
             return;
 
-        Context.Instance.SendEvent(GraphicsEvents.BeginRendering);
+        Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
 
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
         ClearCurrentRenderTargets();
         RenderScene(viewport, materialQuality, viewportRect);
-        Context.Instance.SendEvent(GraphicsEvents.EndRendering);
+        Context.Instance.SendEvent<GraphicsEvents.EndRenderingEvent>();
         PresentFrame(screenshotPath, beforePresent);
         UnbindRenderTargets();
     }

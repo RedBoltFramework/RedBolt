@@ -202,7 +202,7 @@ public sealed class DearImGui : IDisposable
         if (!isInitialized || !isFrameActive)
             return;
 
-        context.SendEvent(DearImGuiEvents.EndRenderingDearImGui);
+        context.SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
         EndFrame();
         if (!isInitialized || pendingDrawData is null)
             return;
@@ -257,8 +257,8 @@ public sealed class DearImGui : IDisposable
 
     private void SubscribeToEvents()
     {
-        inputEndSubscription = context.SubscribeToEvent(InputEvents.InputEnd, (_, _, _) => OnInputEnd());
-        endRenderingSubscription = context.SubscribeToEvent(GraphicsEvents.EndRendering, (_, _, _) => OnEndRendering());
+        inputEndSubscription = context.SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) => OnInputEnd());
+        endRenderingSubscription = context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => OnEndRendering());
     }
 
     private void UnsubscribeFromEvents()

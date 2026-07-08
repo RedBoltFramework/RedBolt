@@ -33,7 +33,7 @@ sealed class StaticSceneApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.SystemUIFlags));
-        dearImGuiSubscription = Context.SubscribeToEvent(DearImGuiEvents.EndRenderingDearImGui, static (_, _, _) => DrawGCStats());
+        dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(static (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
 
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();

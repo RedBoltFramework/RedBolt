@@ -16,42 +16,18 @@ public abstract class Object
         return Context.GetSubsystem<T>();
     }
 
-    public ContextEventSubscription SubscribeToEvent(StringHash eventType, NamedEventHandler handler)
+    public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
     {
-        return Context.SubscribeToEvent(this, eventType, handler);
+        return Context.SubscribeToEvent(this, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent(string eventType, NamedEventHandler handler)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-        return Context.SubscribeToEvent(this, eventType, handler);
-    }
-
-    public ContextEventSubscription SubscribeToEvent(object sender, StringHash eventType, NamedEventHandler handler)
+    public ContextEventSubscription SubscribeToEvent<T>(object sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
-        return Context.SubscribeToEvent(this, sender, eventType, handler);
+        return Context.SubscribeToEvent(this, sender, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent(object sender, string eventType, NamedEventHandler handler)
-    {
-        ArgumentNullException.ThrowIfNull(sender);
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-        return Context.SubscribeToEvent(this, sender, eventType, handler);
-    }
-
-    public void UnsubscribeFromEvent(object sender, StringHash eventType)
-    {
-        ArgumentNullException.ThrowIfNull(sender);
-        Context.Unsubscribe(this, sender, eventType);
-    }
-
-    public void UnsubscribeFromEvent(object sender, string eventType)
-    {
-        ArgumentNullException.ThrowIfNull(sender);
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-        Context.Unsubscribe(this, sender, eventType);
-    }
+    public void UnsubscribeFromEvent(object sender) => Context.Unsubscribe(this, sender);
 
     public void UnsubscribeFromEvents(object sender)
     {
@@ -64,38 +40,21 @@ public abstract class Object
         Context.Unsubscribe(this);
     }
 
-    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<StringHash> eventTypes)
-    {
-        ArgumentNullException.ThrowIfNull(eventTypes);
-        Context.UnsubscribeAllExcept(this, eventTypes);
-    }
-
     public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<object> senders)
     {
         ArgumentNullException.ThrowIfNull(senders);
         Context.UnsubscribeAllExcept(this, senders);
     }
 
-    public void UnsubscribeFromEvent(StringHash eventType)
+    public void SendEvent<T>() where T : struct
     {
-        Context.Unsubscribe(this, eventType);
+        var args = new T();
+        Context.SendEvent(this, ref args);
     }
 
-    public void UnsubscribeFromEvent(string eventType)
+    public void SendEvent<T>(ref T args) where T : struct
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-        Context.Unsubscribe(this, eventType);
-    }
-
-    public void SendEvent(StringHash eventType, VariantMap? eventData = null)
-    {
-        Context.SendEvent(this, eventType, eventData);
-    }
-
-    public void SendEvent(string eventType, VariantMap? eventData = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-        Context.SendEvent(this, eventType, eventData);
+        Context.SendEvent(this, ref args);
     }
 
     public Variant GetGlobalVar(StringHash key)
@@ -117,15 +76,20 @@ public abstract class Object
 
     public bool GetBlockEvents() => BlockEvents;
 
-    public bool HasSubscribedToEvent(StringHash eventType)
+    public bool HasSubscribedToEvent()
     {
-        return Context.HasSubscribedToEvent(this, eventType);
+        return Context.HasSubscribedToEvent(this);
     }
 
-    public bool HasSubscribedToEvent(object sender, StringHash eventType)
+    public bool HasSubscribedToEvent<T>() where T : struct
+    {
+        return Context.HasSubscribedToEvent<T>(this);
+    }
+
+    public bool HasSubscribedToEvent<T>(object sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
-        return Context.HasSubscribedToEvent(this, sender, eventType);
+        return Context.HasSubscribedToEvent<T>(this, sender);
     }
 
     public bool HasEventHandlers() => Context.HasEventHandlers(this);

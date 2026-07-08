@@ -316,7 +316,7 @@ public class RenderPipeline : Component
             RaiseRenderBegin(frameInfo);
 
             sharedState.Graphics = graphics;
-            Context.Instance.SendEvent(GraphicsEvents.BeginRendering);
+            Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
             renderBufferManager.OnRenderBegin(frameInfo);
             renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
@@ -325,7 +325,7 @@ public class RenderPipeline : Component
             RenderOutlines(graphics, materialQuality);
             renderPath?.Render(sharedState);
             renderBufferManager.OnRenderEnd(frameInfo);
-            Context.Instance.SendEvent(GraphicsEvents.EndRendering);
+            Context.Instance.SendEvent<GraphicsEvents.EndRenderingEvent>();
 
             graphics.PresentFrame(screenshotPath, beforePresent);
             graphics.UnbindRenderTargets();
