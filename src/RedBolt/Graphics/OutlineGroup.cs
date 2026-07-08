@@ -68,6 +68,7 @@ public sealed class OutlineGroup : Component
     }
 
     public IReadOnlyCollection<Drawable> GetDrawables() => drawables;
+    internal HashSet<Drawable>.Enumerator GetDrawableEnumerator() => drawables.GetEnumerator();
 
     public void SetColor(Color color)
     {
@@ -157,36 +158,55 @@ public sealed class OutlineGroup : Component
 
     private static uint CalculateMaterialHash(Material material)
     {
-        var hash = new HashCode();
-        hash.Add(material.GetVertexShaderDefines(), StringComparer.Ordinal);
-        hash.Add(material.GetPixelShaderDefines(), StringComparer.Ordinal);
-        hash.Add(material.GetAlphaToCoverage());
+        uint hash = 0;
+        CombineHash(ref hash, material.GetVertexShaderDefines());
+        CombineHash(ref hash, material.GetPixelShaderDefines());
+        CombineHash(ref hash, material.GetAlphaToCoverage());
 
-        foreach (var parameter in material.GetShaderParameters().OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+        uint parametersHash = 0;
+        var parameterEnumerator = material.EnumerateShaderParameters();
+        while (parameterEnumerator.MoveNext())
         {
+            var parameter = parameterEnumerator.Current;
             if (string.Equals(parameter.Key, "MatDiffColor", StringComparison.Ordinal))
                 continue;
 
-            hash.Add(parameter.Key, StringComparer.Ordinal);
-            hash.Add(parameter.Value.Value);
-            hash.Add(parameter.Value.IsCustom);
+            uint entryHash = 0;
+            CombineHash(ref entryHash, parameter.Key);
+            CombineHash(ref entryHash, parameter.Value.Value);
+            CombineHash(ref entryHash, parameter.Value.IsCustom);
+            parametersHash += entryHash;
         }
+        CombineHash(ref hash, parametersHash);
 
-        foreach (var texture in material.GetTextures().OrderBy(static pair => pair.Value.Name, StringComparer.Ordinal))
+        uint texturesHash = 0;
+        var textureEnumerator = material.EnumerateTextures();
+        while (textureEnumerator.MoveNext())
         {
-            hash.Add(texture.Value.Name, StringComparer.Ordinal);
-            hash.Add(texture.Value.Texture);
+            var texture = textureEnumerator.Current;
+            uint entryHash = 0;
+            CombineHash(ref entryHash, texture.Key);
+            CombineHash(ref entryHash, texture.Value.Texture);
+            texturesHash += entryHash;
         }
+        CombineHash(ref hash, texturesHash);
 
-        foreach (var technique in material.GetTechniques())
+        var techniqueEnumerator = material.EnumerateTechniques();
+        while (techniqueEnumerator.MoveNext())
         {
-            hash.Add(technique.QualityLevel);
-            hash.Add(technique.LodDistance);
-            hash.Add(technique.Technique);
+            var technique = techniqueEnumerator.Current;
+            CombineHash(ref hash, technique.QualityLevel);
+            CombineHash(ref hash, technique.LodDistance);
+            CombineHash(ref hash, technique.Technique);
         }
 
-        return unchecked((uint)hash.ToHashCode());
+        return hash;
     }
 
     private sealed record CachedOutlineMaterial(uint SourceHash, Material Material);
+
+    private static void CombineHash<T>(ref uint hash, T value)
+    {
+        hash = unchecked(hash * 37u + (uint)(value?.GetHashCode() ?? 0));
+    }
 }

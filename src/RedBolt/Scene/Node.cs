@@ -1116,23 +1116,23 @@ public sealed class Node : Animatable
         Scene.ReleaseNodeId(Id);
     }
 
-    private void FindComponents<T>(ComponentSearchFlag flags, List<T> result)
+    internal void FindComponents<T>(ComponentSearchFlag flags, List<T> result)
         where T : Component
     {
-        if (flags.HasFlag(ComponentSearchFlag.Self))
+        if ((flags & ComponentSearchFlag.Self) != 0)
             AddMatchingComponents(this, flags, result);
 
-        if (flags.HasFlag(ComponentSearchFlag.Parent))
+        if ((flags & ComponentSearchFlag.Parent) != 0)
         {
-            var parentFlags = flags.HasFlag(ComponentSearchFlag.ParentRecursive)
+            var parentFlags = (flags & ComponentSearchFlag.ParentRecursive) != 0
                 ? flags
                 : flags & ~ComponentSearchFlag.Parent;
             Parent?.FindComponents(parentFlags | ComponentSearchFlag.Self, result);
         }
 
-        if (flags.HasFlag(ComponentSearchFlag.Children))
+        if ((flags & ComponentSearchFlag.Children) != 0)
         {
-            var childFlags = flags.HasFlag(ComponentSearchFlag.ChildrenRecursive)
+            var childFlags = (flags & ComponentSearchFlag.ChildrenRecursive) != 0
                 ? flags
                 : flags & ~ComponentSearchFlag.Children;
             foreach (var child in children)
@@ -1143,7 +1143,7 @@ public sealed class Node : Animatable
     private static void AddMatchingComponents<T>(Node node, ComponentSearchFlag flags, List<T> result)
         where T : Component
     {
-        var enabledOnly = flags.HasFlag(ComponentSearchFlag.EnabledOnly);
+        var enabledOnly = (flags & ComponentSearchFlag.EnabledOnly) != 0;
         if (enabledOnly && !node.IsEnabled)
             return;
 

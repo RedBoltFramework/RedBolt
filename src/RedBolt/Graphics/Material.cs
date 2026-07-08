@@ -111,6 +111,9 @@ public sealed class Material : ResourceWithMetadata
     public IReadOnlyDictionary<StringHash, MaterialTexture> Textures => textures;
 
     public IReadOnlyList<TechniqueEntry> Techniques => techniques;
+    internal Dictionary<string, MaterialShaderParameter>.Enumerator EnumerateShaderParameters() => shaderParameters.GetEnumerator();
+    internal Dictionary<StringHash, MaterialTexture>.Enumerator EnumerateTextures() => textures.GetEnumerator();
+    internal List<TechniqueEntry>.Enumerator EnumerateTechniques() => techniques.GetEnumerator();
 
     public uint ShaderParameterHash => shaderParameterHash;
 

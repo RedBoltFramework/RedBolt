@@ -4,10 +4,13 @@ namespace RedBolt;
 
 public class RenderContext : Object
 {
+    private static readonly RenderTargetView[] SwapChainColorTarget = [RenderTargetView.SwapChainColor()];
+
     private readonly RenderDevice renderDevice;
     private readonly RenderPool renderPool;
     private readonly RenderDeviceStats stats = new();
     private RenderTargetView[] currentRenderTargets = [];
+    private readonly RenderTargetView[] singleRenderTarget = new RenderTargetView[1];
     private OptionalRawTextureRTV currentDepthStencil;
     private uint clipPlaneMask;
 
@@ -40,7 +43,7 @@ public class RenderContext : Object
 
         var size = renderDevice.GetSwapChainSize();
         graphics.SetSwapChainRenderTargets(new IntRect(0, 0, size.X, size.Y));
-        currentRenderTargets = [RenderTargetView.SwapChainColor()];
+        currentRenderTargets = SwapChainColorTarget;
         currentDepthStencil = RenderTargetView.SwapChainDepthStencil();
         UpdateCurrentRenderTargetInfo();
     }
@@ -57,7 +60,13 @@ public class RenderContext : Object
         var colorTarget = renderTargets.Length > 0 ? renderTargets[0] : (RenderTargetView?)null;
         var viewportSize = ResolveRenderTargetSize(colorTarget, depthStencil);
         graphics.SetRenderTargets(new IntRect(0, 0, viewportSize.X, viewportSize.Y), colorTarget, depthStencil);
-        currentRenderTargets = renderTargets.ToArray();
+        if (renderTargets.Length == 0)
+            currentRenderTargets = [];
+        else
+        {
+            singleRenderTarget[0] = renderTargets[0];
+            currentRenderTargets = singleRenderTarget;
+        }
         currentDepthStencil = depthStencil;
         UpdateCurrentRenderTargetInfo();
     }

@@ -111,8 +111,10 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         if (RenderTexture is not null)
             return RenderTexture.Format;
 
-        var outputTarget = ResolveRenderDevice().GetSwapChainOutputTarget();
-        return Type == RenderTargetViewType.SwapChainDepthStencil ? outputTarget.DepthStencilFormat : outputTarget.ColorFormat;
+        var graphics = ResolveGraphics();
+        return Type == RenderTargetViewType.SwapChainDepthStencil
+            ? graphics.GetSwapChainDepthTextureFormat()
+            : graphics.GetSwapChainColorTextureFormat(out _);
     }
 
     public int GetMultiSample()
@@ -120,7 +122,13 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         if (RenderTexture is not null)
             return RenderTexture.MultiSample;
 
-        return ResolveRenderDevice().GetSwapChainOutputTarget().MultiSample;
+        return ResolveGraphics().GetSwapChainMultiSample();
+    }
+
+    private static Graphics ResolveGraphics()
+    {
+        var context = Context.TryGetInstance() ?? throw new InvalidOperationException("No active Context instance is available.");
+        return context.GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
     }
 
     private static RenderDevice ResolveRenderDevice()

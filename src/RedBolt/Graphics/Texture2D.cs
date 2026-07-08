@@ -89,8 +89,10 @@ public sealed class Texture2D : Texture
 
     public byte[]? GetData(uint level)
     {
-        return levelData.TryGetValue(level, out var bytes) ? bytes.ToArray() : null;
+        return GetDataNoCopy(level)?.ToArray();
     }
+
+    internal byte[]? GetDataNoCopy(uint level) => levelData.TryGetValue(level, out var bytes) ? bytes : null;
 
     private void RefreshTotalMemoryUse()
     {

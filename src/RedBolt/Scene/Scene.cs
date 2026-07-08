@@ -141,6 +141,15 @@ public sealed class Scene
         return result;
     }
 
+    public void GetComponents<T>(List<T> result)
+        where T : Component
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        result.Clear();
+        Root.FindComponents(ComponentSearchFlag.Self | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive, result);
+    }
+
     public void Update(float timeStep)
     {
         if (!UpdateEnabled)

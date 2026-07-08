@@ -267,7 +267,6 @@ public class RenderPipeline : Component
 
             renderBufferManager.SetSettings(renderPipeline.Settings.RenderBufferManager);
             renderBufferManager.SetFrameSettings(new RenderBufferManagerFrameSettings());
-            renderBufferManager.OnViewportDefined(null, viewportRect);
             return true;
         }
 
@@ -292,10 +291,7 @@ public class RenderPipeline : Component
                 var traits = renderPath.GetAggregatedPassTraits();
                 renderBufferManager.SetFrameSettings(new RenderBufferManagerFrameSettings
                 {
-                    ReadableColor = traits.NeedBilinearColorSampler,
-                    SupportColorReadWrite = traits.NeedReadWriteColorBuffer,
-                    FilteredColor = traits.NeedBilinearColorSampler,
-                    ReadableDepth = traits.NeedReadableDepth
+                    SupportColorReadWrite = traits.NeedReadWriteColorBuffer
                 });
                 renderBufferManager.OnViewportDefined(frameInfo.RenderTarget, frameInfo.ViewportRect);
                 sharedState.RenderBuffers.Clear();
@@ -390,26 +386,61 @@ public class RenderPipeline : Component
 
         private bool HasEnabledOutlinePass()
         {
-            return renderPath is not null && renderPath.GetPasses().Any(static pass => pass is OutlineRenderPass && pass.IsEnabledEffectively());
+            if (renderPath is null)
+                return false;
+
+            var passes = renderPath.GetPasses();
+            for (var passIndex = 0; passIndex < passes.Count; ++passIndex)
+            {
+                var pass = passes[passIndex];
+                if (pass is OutlineRenderPass && pass.IsEnabledEffectively())
+                    return true;
+            }
+
+            return false;
         }
 
         private bool HasEnabledNormalBufferPass()
         {
-            return renderPath is not null && renderPath.GetPasses().Any(static pass => pass is AmbientOcclusionPass && pass.IsEnabledEffectively());
+            if (renderPath is null)
+                return false;
+
+            var passes = renderPath.GetPasses();
+            for (var passIndex = 0; passIndex < passes.Count; ++passIndex)
+            {
+                var pass = passes[passIndex];
+                if (pass is AmbientOcclusionPass && pass.IsEnabledEffectively())
+                    return true;
+            }
+
+            return false;
         }
 
         private void CollectOutlineGroups(Scene scene)
         {
-            outlineGroups.Clear();
-            foreach (var outlineGroup in scene.GetAllComponents().Values.OfType<OutlineGroup>())
-            {
-                if (!outlineGroup.IsAttached || !outlineGroup.IsEnabledEffective)
-                    continue;
-                if (outlineGroup.IsDebug() && !viewport!.Camera.GetDrawDebugGeometry())
-                    continue;
+            scene.GetComponents(outlineGroups);
 
-                outlineGroups.Add(outlineGroup);
+            var drawDebugGeometry = viewport!.Camera.GetDrawDebugGeometry();
+            for (var i = outlineGroups.Count - 1; i >= 0; --i)
+            {
+                var outlineGroup = outlineGroups[i];
+                if (!outlineGroup.IsAttached || !outlineGroup.IsEnabledEffective)
+                {
+                    outlineGroups.RemoveAt(i);
+                    continue;
+                }
+
+                if (outlineGroup.IsDebug() && !drawDebugGeometry)
+                {
+                    outlineGroups.RemoveAt(i);
+                    continue;
+                }
+
+                if (!outlineGroup.HasDrawables())
+                    outlineGroups.RemoveAt(i);
             }
+
+            outlineGroups.Sort(static (lhs, rhs) => lhs.GetRenderOrder().CompareTo(rhs.GetRenderOrder()));
         }
 
         private TextureRenderBuffer EnsureOutlineBuffer()

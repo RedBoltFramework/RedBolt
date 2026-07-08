@@ -1,5 +1,7 @@
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using System.Buffers;
+using System.Buffers.Text;
 
 try
 {
@@ -17,6 +19,16 @@ catch (Exception ex)
 sealed class StaticSceneApplication : Application
 {
     private readonly Random random = new(1);
+    private readonly byte[] heapSizeLine = new byte[64];
+    private readonly byte[] gen0CollectionsLine = new byte[64];
+    private readonly byte[] gen1CollectionsLine = new byte[64];
+    private readonly byte[] gen2CollectionsLine = new byte[64];
+    private readonly byte[] totalAllocatedLine = new byte[64];
+    private long cachedHeapSizeBytes = -1;
+    private int cachedGen0Collections = -1;
+    private int cachedGen1Collections = -1;
+    private int cachedGen2Collections = -1;
+    private long cachedTotalAllocatedBytes = -1;
     private ContextEventSubscription? dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
@@ -33,7 +45,7 @@ sealed class StaticSceneApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.SystemUIFlags));
-        dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(static (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
+        dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
 
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();
@@ -108,7 +120,7 @@ sealed class StaticSceneApplication : Application
         dearImGuiSubscription = null;
     }
 
-    private static void DrawGCStats()
+    private void DrawGCStats()
     {
         ImGui.SetNextWindowPos(new Vector2(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
         ImGui.SetNextWindowSize(new Vector2(280, 160), ImGuiCond.ImGuiCondFirstUseEver);
@@ -119,20 +131,58 @@ sealed class StaticSceneApplication : Application
 
         if (ImGui.Begin("GC Stats\0"u8, out _, flags))
         {
-            var heapSizeMb = (double)GC.GetTotalMemory(false) / (1024 * 1024);
-            DrawStatLine("Heap Size", $"{heapSizeMb:N1} MB");
-            DrawStatLine("Gen 0 Collections", GC.CollectionCount(0).ToString());
-            DrawStatLine("Gen 1 Collections", GC.CollectionCount(1).ToString());
-            DrawStatLine("Gen 2 Collections", GC.CollectionCount(2).ToString());
-            DrawStatLine("Total Allocated", $"{(double)GC.GetTotalAllocatedBytes() / (1024 * 1024):N1} MB");
+            UpdateMegabyteLine(this.heapSizeLine, "Heap Size: "u8, ref this.cachedHeapSizeBytes, GC.GetTotalMemory(false));
+            UpdateIntegerLine(this.gen0CollectionsLine, "Gen 0 Collections: "u8, ref this.cachedGen0Collections, GC.CollectionCount(0));
+            UpdateIntegerLine(this.gen1CollectionsLine, "Gen 1 Collections: "u8, ref this.cachedGen1Collections, GC.CollectionCount(1));
+            UpdateIntegerLine(this.gen2CollectionsLine, "Gen 2 Collections: "u8, ref this.cachedGen2Collections, GC.CollectionCount(2));
+            UpdateMegabyteLine(this.totalAllocatedLine, "Total Allocated: "u8, ref this.cachedTotalAllocatedBytes, GC.GetTotalAllocatedBytes());
+
+            DrawStatLine(this.heapSizeLine);
+            DrawStatLine(this.gen0CollectionsLine);
+            DrawStatLine(this.gen1CollectionsLine);
+            DrawStatLine(this.gen2CollectionsLine);
+            DrawStatLine(this.totalAllocatedLine);
         }
 
         ImGui.End();
     }
 
-    private static void DrawStatLine(string label, string value)
+    private static void DrawStatLine(byte[] value)
     {
-        ImGui.TextUnformatted(System.Text.Encoding.UTF8.GetBytes($"{label}: {value}\0"));
+        ImGui.TextUnformatted(value);
+    }
+
+    private static void UpdateMegabyteLine(byte[] buffer, ReadOnlySpan<byte> label, ref long cachedValue, long valueBytes)
+    {
+        if (cachedValue == valueBytes)
+            return;
+
+        cachedValue = valueBytes;
+        var target = buffer.AsSpan();
+        label.CopyTo(target);
+        var offset = label.Length;
+        var valueMegabytes = valueBytes / (1024.0 * 1024.0);
+        if (!Utf8Formatter.TryFormat(valueMegabytes, target[offset..], out var written, new StandardFormat('F', 1)))
+            throw new InvalidOperationException("Failed to format GC stats megabyte value.");
+
+        offset += written;
+        " MB\0"u8.CopyTo(target[offset..]);
+    }
+
+    private static void UpdateIntegerLine(byte[] buffer, ReadOnlySpan<byte> label, ref int cachedValue, int value)
+    {
+        if (cachedValue == value)
+            return;
+
+        cachedValue = value;
+        var target = buffer.AsSpan();
+        label.CopyTo(target);
+        var offset = label.Length;
+        if (!Utf8Formatter.TryFormat(value, target[offset..], out var written))
+            throw new InvalidOperationException("Failed to format GC stats integer value.");
+
+        offset += written;
+        "\0"u8.CopyTo(target[offset..]);
     }
 
     private static string FindResourcePrefixPath()

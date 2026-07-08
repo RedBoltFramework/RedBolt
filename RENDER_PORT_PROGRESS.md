@@ -52,6 +52,24 @@ Port in dependency order instead of trying to transplant the full subsystem at o
 
 ## Current Slice
 
+StaticScene allocation triage on `2026-07-08`:
+
+- StaticScene is now visually correct again and late steady-state managed allocations have been removed from the final tree.
+- The washed-out regression came from reconstructing swap-chain output state from the wrong source in `Graphics`; the fix was to keep rbfx-aligned render-target semantics and cache the effective swap-chain view formats once instead of rebuilding them from lossy descriptor paths every frame.
+- The allocation work was a sequence of real hot-path fixes rather than a single leak:
+  - remove `Enum.HasFlag` boxing in scene and render-buffer flag checks
+  - stop per-draw/per-pass `byte[]`, `PinnedBuffer`, `IBuffer[]`, and `RenderTargetView[]` churn
+  - stop creating owned Diligent `Viewport` wrappers on every bind; reuse one wrapper object instead
+  - stop `params` array churn in `PipelineStateOutputDesc`
+  - stop per-frame delegate creation in `RenderBufferManager` and `Application.Run`
+  - stop repeated `RenderOutputTargetInfo` allocation for the unchanged swap-chain target
+  - replace interface-shaped `foreach` / LINQ hot paths that boxed enumerators (`RenderPass` scans, custom-uniform field iteration)
+  - cache fullscreen shader-define strings for pipeline lookup reuse
+- Final verification on `2026-07-08`:
+  - same-run allocation sampling showed `GC.GetTotalAllocatedBytes()` flat from `20s` through `60s` after startup
+  - a clean-source late `dotnet-trace` window (`35s` to `55s`) showed only EventSource/trace-attachment allocations and no app-side `GCAllocationTick` events
+  - `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 70 --screenshot-on-exit /tmp/staticscene-final-clean.png` produced the expected non-washed-out scene with the GC HUD visible
+
 SystemUI / Dear ImGui WIP status on `2026-07-07`:
 
 - SharpCpp now walks `extern "C"` linkage blocks when parsing headers, which unblocks standard generated bindings for `native/RedBolt.Native/include/RedBolt/ImGuiBackend.hpp`.

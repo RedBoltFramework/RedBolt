@@ -593,7 +593,7 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
 
         DepthStencilFormat = other.DepthStencilFormat;
         MultiSample = other.MultiSample;
-        SetRenderTargetFormats(other.RenderTargetFormats.ToArray());
+        SetRenderTargetFormats(other.RenderTargetFormats);
     }
 
     public TextureFormat DepthStencilFormat { get; set; } = TextureFormat.Unknown;
@@ -610,16 +610,27 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
         NumRenderTargets = 0u;
     }
 
-    public void SetRenderTargetFormats(params TextureFormat[] formats)
+    public void SetRenderTargetFormat(TextureFormat format)
     {
-        ArgumentNullException.ThrowIfNull(formats);
+        Array.Clear(renderTargetFormats, 0, renderTargetFormats.Length);
+        renderTargetFormats[0] = format;
+        NumRenderTargets = 1u;
+    }
 
+    public void SetRenderTargetFormats(ReadOnlySpan<TextureFormat> formats)
+    {
         if (formats.Length > RenderApiLimits.MaxRenderTargets)
             throw new ArgumentOutOfRangeException(nameof(formats), $"At most {RenderApiLimits.MaxRenderTargets} render targets are supported.");
 
         Array.Clear(renderTargetFormats, 0, renderTargetFormats.Length);
-        Array.Copy(formats, renderTargetFormats, formats.Length);
+        formats.CopyTo(renderTargetFormats);
         NumRenderTargets = (uint)formats.Length;
+    }
+
+    public void SetRenderTargetFormats(params TextureFormat[] formats)
+    {
+        ArgumentNullException.ThrowIfNull(formats);
+        SetRenderTargetFormats(formats.AsSpan());
     }
 
     public uint ToHash()
@@ -750,7 +761,7 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
         PrimitiveType = other.PrimitiveType;
         Output.DepthStencilFormat = other.Output.DepthStencilFormat;
         Output.MultiSample = other.Output.MultiSample;
-        Output.SetRenderTargetFormats(other.Output.RenderTargetFormats.ToArray());
+        Output.SetRenderTargetFormats(other.Output.RenderTargetFormats);
         for (var samplerIndex = 0; samplerIndex < other.Samplers.Size; ++samplerIndex)
             Samplers.Add(other.Samplers.Names[samplerIndex], other.Samplers.Descriptions[samplerIndex]);
         ReadOnlyDepth = other.ReadOnlyDepth;

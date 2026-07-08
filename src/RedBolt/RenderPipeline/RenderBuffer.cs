@@ -34,12 +34,12 @@ public sealed class TextureRenderBuffer : RenderBuffer
     public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2 size = default)
     {
         this.bufferParams = bufferParams;
-        Texture = bufferParams.Flags.HasFlag(RenderBufferFlag.CubeMap)
+        Texture = (bufferParams.Flags & RenderBufferFlag.CubeMap) != 0
             ? new TextureCube($"RenderBuffer.{Guid.NewGuid():N}")
             : new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
 
         var effectiveSize = size == default ? Vector2.One : size;
-        if (bufferParams.Flags.HasFlag(RenderBufferFlag.FixedTextureSize))
+        if ((bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
             fixedSize = new IntVector2(Math.Max(1, (int)Math.Round(effectiveSize.X)), Math.Max(1, (int)Math.Round(effectiveSize.Y)));
         else
             sizeMultiplier = effectiveSize;
@@ -85,11 +85,11 @@ public sealed class TextureRenderBuffer : RenderBuffer
             switch (Texture)
             {
                 case Texture2D texture2D when texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat, bufferParams.MultiSampleLevel,
-                    bufferParams.Flags.HasFlag(RenderBufferFlag.NoMultiSampledAutoResolve)):
+                    (bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0):
                     break;
 
                 case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat, bufferParams.MultiSampleLevel,
-                    bufferParams.Flags.HasFlag(RenderBufferFlag.NoMultiSampledAutoResolve)):
+                    (bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0):
                     nextSize = new IntVector2(textureCube.Width, textureCube.Height);
                     break;
 
@@ -100,7 +100,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
         if (!IsDepthTextureFormat(nextFormat))
         {
-            Texture.SetFilterMode(bufferParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering)
+            Texture.SetFilterMode((bufferParams.Flags & RenderBufferFlag.BilinearFiltering) != 0
                 ? TextureFilterMode.Bilinear
                 : TextureFilterMode.Nearest);
             configureTexture?.Invoke(Texture, nextFormat);
@@ -111,7 +111,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
     private IntVector2 CalculateTextureSize(IntVector2 outputSize)
     {
-        if (bufferParams.Flags.HasFlag(RenderBufferFlag.FixedTextureSize))
+        if ((bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
             return new IntVector2(Math.Max(fixedSize.X, 1), Math.Max(fixedSize.Y, 1));
 
         var width = sizeMultiplier.X <= 1.0f

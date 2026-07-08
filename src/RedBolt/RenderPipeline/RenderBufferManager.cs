@@ -4,6 +4,7 @@ public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private readonly List<WeakReference<TextureRenderBuffer>> managedTextureBuffers = [];
+    private readonly Action<Texture, TextureFormat> applyColorTextureMetadata;
 
     private readonly struct ClearFramebufferParameters
     {
@@ -72,6 +73,7 @@ public sealed class RenderBufferManager
 
     public RenderBufferManager()
     {
+        applyColorTextureMetadata = ApplyColorTextureMetadata;
         depthStencilBuffer = viewportDepthBuffer;
         writeableColorBuffer = viewportColorBuffer;
     }
@@ -102,7 +104,7 @@ public sealed class RenderBufferManager
         ResolveOutputParams(renderTarget);
         RefreshManagedTextureBuffers();
 
-        var needReadableDepth = settings.ReadableDepth || frameSettings.ReadableDepth;
+        var needReadableDepth = settings.ReadableDepth;
         var needSecondaryBuffer = frameSettings.SupportColorReadWrite;
         var needSimpleTexture = frameSettings.ReadableColor || needReadableDepth || settings.ColorUsableWithMultipleRenderTargets;
         var isFullRectOutput = renderTarget is null || renderTarget.FullViewportRect == viewportRect;
@@ -112,7 +114,8 @@ public sealed class RenderBufferManager
         var outputHasReadableDepth = renderTarget?.HasReadableDepth ?? false;
         var isColorFormatMatching = (renderTarget?.ColorFormat ?? colorOutputParams.TextureFormat) == colorOutputParams.TextureFormat;
         var isMultiSampleMatching = outputMultiSample == colorOutputParams.MultiSampleLevel;
-        var isFilterMatching = (renderTarget?.BilinearFiltered ?? false) == colorOutputParams.Flags.HasFlag(RenderBufferFlag.BilinearFiltering);
+        var isFilterMatching = (renderTarget?.BilinearFiltered ?? false)
+            == ((colorOutputParams.Flags & RenderBufferFlag.BilinearFiltering) != 0);
         var isLinearColorSpaceMatching = (renderTarget?.LinearColorSpace ?? false) == linearColorSpace;
         var isColorUsageMatching = isSimpleTextureOutput || !needSimpleTexture;
         var isOutputMatching = isColorFormatMatching && isMultiSampleMatching && isFilterMatching
@@ -169,7 +172,7 @@ public sealed class RenderBufferManager
     {
         var buffer = new TextureRenderBuffer(bufferParams, size);
         RegisterTextureBuffer(buffer);
-        buffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
+        buffer.RefreshForViewport(viewportRect, applyColorTextureMetadata);
         return buffer;
     }
 
@@ -468,7 +471,7 @@ public sealed class RenderBufferManager
 
     private void ResolveOutputParams(RenderOutputTargetInfo? renderTarget)
     {
-        var fallbackFlags = settings.FilteredColor || frameSettings.FilteredColor
+        var fallbackFlags = settings.FilteredColor
             ? RenderBufferFlag.BilinearFiltering
             : RenderBufferFlag.None;
         var fallbackMultiSample = settings.InheritMultiSampleLevel ? 1 : settings.MultiSampleLevel;
@@ -523,7 +526,7 @@ public sealed class RenderBufferManager
                 ?? throw new InvalidOperationException("Primary color buffer creation returned unexpected render buffer type.");
         }
 
-        primaryColorBuffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
+        primaryColorBuffer.RefreshForViewport(viewportRect, applyColorTextureMetadata);
         return primaryColorBuffer;
     }
 
@@ -547,7 +550,7 @@ public sealed class RenderBufferManager
                 ?? throw new InvalidOperationException("Color buffer creation returned unexpected render buffer type.");
         }
 
-        secondaryColorBuffer.RefreshForViewport(viewportRect, ApplyColorTextureMetadata);
+        secondaryColorBuffer.RefreshForViewport(viewportRect, applyColorTextureMetadata);
         return secondaryColorBuffer;
     }
 
@@ -605,10 +608,11 @@ public sealed class RenderBufferManager
             if (!buffer.IsEnabled)
                 continue;
 
-            Action<Texture, TextureFormat>? configureTexture = buffer.BufferParams.TextureFormat is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8
-                ? null
-                : ApplyColorTextureMetadata;
-            buffer.RefreshForViewport(viewportRect, configureTexture);
+            buffer.RefreshForViewport(viewportRect);
+            if (buffer.BufferParams.TextureFormat is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8)
+                continue;
+
+            ApplyColorTextureMetadata(buffer.Texture, buffer.Texture.Format);
         }
     }
 

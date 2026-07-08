@@ -34,6 +34,7 @@ public sealed class VertexBuffer
     private byte[] data = [];
     private List<VertexElement> elements = [];
     private uint elementMask;
+    private string? layoutSignature;
 
     public bool IsDynamic { get; private set; }
 
@@ -98,6 +99,7 @@ public sealed class VertexBuffer
     {
         elements = [];
         elementMask = 0;
+        layoutSignature = null;
         VertexCount = vertexCount;
         VertexSize = vertexSize;
         IsDynamic = dynamic;
@@ -114,6 +116,7 @@ public sealed class VertexBuffer
         UpdateOffsets(elementList);
         this.elements = elementList;
         elementMask = CalculateElementMask(elementList);
+        layoutSignature = null;
         VertexCount = vertexCount;
         VertexSize = GetVertexSize(elementList);
         IsDynamic = dynamic;
@@ -159,6 +162,35 @@ public sealed class VertexBuffer
             elements[i] = element;
             offset += TypeSizes[(int)element.Type];
         }
+    }
+
+    internal string GetLayoutSignature()
+    {
+        if (layoutSignature is not null)
+            return layoutSignature;
+        if (elements.Count == 0)
+            return layoutSignature = string.Empty;
+
+        var builder = new System.Text.StringBuilder(elements.Count * 20);
+        for (var i = 0; i < elements.Count; ++i)
+        {
+            if (i > 0)
+                builder.Append('|');
+
+            var element = elements[i];
+            builder.Append((int)element.Semantic);
+            builder.Append(':');
+            builder.Append(element.Index);
+            builder.Append(':');
+            builder.Append((int)element.Type);
+            builder.Append(':');
+            builder.Append(element.Offset);
+            builder.Append(':');
+            builder.Append(element.StepRate);
+        }
+
+        layoutSignature = builder.ToString();
+        return layoutSignature;
     }
 
     private static uint CalculateElementMask(IEnumerable<VertexElement> elements)

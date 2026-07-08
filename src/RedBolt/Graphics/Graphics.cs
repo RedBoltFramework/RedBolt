@@ -69,6 +69,10 @@ layout(std140) uniform Material
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
     private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultEmissionTextureData = [0, 0, 0, 255];
+    private static readonly StringHash AlbedoTextureSlot = new("Albedo");
+    private static readonly StringHash NormalTextureSlot = new("Normal");
+    private static readonly StringHash PropertiesTextureSlot = new("Properties");
+    private static readonly StringHash EmissionTextureSlot = new("Emission");
     private static readonly string[] OutlinePassNames = ["deferred", "deferred_decal", "base", "alpha"];
     private static readonly string[] NormalBufferPassNames = ["base", "alpha", "litbase", "litalpha"];
     private const string NormalBufferShaderName = "M_NormalBuffer";
@@ -80,6 +84,7 @@ layout(std140) uniform Material
 
     private readonly float[] clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
     private readonly ITextureView?[] renderTargets = new ITextureView?[1];
+    private readonly IBuffer?[] singleVertexBuffer = new IBuffer?[1];
     private readonly Dictionary<Geometry, UploadedGeometry> uploadedGeometries = new();
     private readonly Dictionary<VertexBuffer, IBuffer> uploadedVertexBuffers = new();
     private readonly Dictionary<IndexBuffer, IBuffer> uploadedIndexBuffers = new();
@@ -87,7 +92,11 @@ layout(std140) uniform Material
     private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
     private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
     private readonly Dictionary<ClearFramebufferPipelineKey, FullscreenPipelineResources> clearFramebufferPipelines = new();
+    private readonly Dictionary<string, string> fullscreenShaderDefinesCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<ShaderDefinesKey, string> shaderDefinesCache = new();
     private readonly Dictionary<Pass, Pass> normalBufferPasses = new();
+    private readonly List<Light> lightsScratch = [];
+    private readonly List<Zone> zonesScratch = [];
 
     private GCHandle clearColorHandle;
     private Texture2D? defaultAlbedoTexture;
@@ -100,6 +109,8 @@ layout(std140) uniform Material
     private IDeviceContext? immediateContext;
     private IRenderDevice? device;
     private ISwapChain? swapChain;
+    private global::RedBolt.Bindings.Diligent.Viewport? diligentViewport;
+    private RenderOutputTargetInfo? swapChainOutputTarget;
     private ITextureView? renderTargetView;
     private ITextureView? depthStencilView;
     private ITextureView? currentDepthStencilTarget;
@@ -108,6 +119,8 @@ layout(std140) uniform Material
     private Geometry? fullscreenQuadGeometry;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentColorTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat currentDepthTargetFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat swapChainColorFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat swapChainDepthFormat;
     private readonly PipelineStateOutputDesc currentOutputDesc = new();
     private IntRect currentViewport;
     private IntVector2 currentRenderTargetSize;
@@ -209,23 +222,49 @@ layout(std140) uniform Material
 
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
-        var colorFormat = UnmapTextureFormat(GetSwapChainColorFormat(), out var colorIsSrgb);
-        var depthFormat = UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
+        var colorFormat = GetSwapChainColorTextureFormat(out var colorIsSrgb);
+        var depthFormat = GetSwapChainDepthTextureFormat();
         var fullRect = new IntRect(0, 0, Width, Height);
+        var multiSample = GetSwapChainMultiSample();
+        var linearColorSpace = TextureFormatUtility.IsFloatColorFormat(colorFormat) || colorIsSrgb;
+        var hdr = TextureFormatUtility.IsFloatColorFormat(colorFormat);
+        var hasStencil = depthFormat == TextureFormat.Depth24Stencil8;
 
-        return new RenderOutputTargetInfo(
+        if (swapChainOutputTarget is not null
+            && swapChainOutputTarget.FullViewportRect == fullRect
+            && swapChainOutputTarget.ColorFormat == colorFormat
+            && swapChainOutputTarget.DepthStencilFormat == depthFormat
+            && swapChainOutputTarget.MultiSample == multiSample
+            && swapChainOutputTarget.LinearColorSpace == linearColorSpace
+            && swapChainOutputTarget.HDR == hdr
+            && swapChainOutputTarget.HasStencil == hasStencil)
+        {
+            return swapChainOutputTarget;
+        }
+
+        swapChainOutputTarget = new RenderOutputTargetInfo(
             RenderTargetView.SwapChainColor(),
             fullRect,
             colorFormat,
             RenderTargetView.SwapChainDepthStencil(),
             depthFormat,
-            Math.Max(configuredMultiSample, 1),
+            multiSample,
             bilinearFiltered: false,
-            linearColorSpace: TextureFormatUtility.IsFloatColorFormat(colorFormat) || colorIsSrgb,
-            hdr: TextureFormatUtility.IsFloatColorFormat(colorFormat),
+            linearColorSpace: linearColorSpace,
+            hdr: hdr,
             hasReadableDepth: false,
-            hasStencil: depthFormat == TextureFormat.Depth24Stencil8);
+            hasStencil: hasStencil);
+        return swapChainOutputTarget;
     }
+
+    internal TextureFormat GetSwapChainColorTextureFormat(out bool isSrgb)
+        => UnmapTextureFormat(GetSwapChainColorFormat(), out isSrgb);
+
+    internal TextureFormat GetSwapChainDepthTextureFormat()
+        => UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
+
+    internal int GetSwapChainMultiSample()
+        => Math.Max(configuredMultiSample, 1);
 
     public void Initialize(EngineParameters parameters, Input input)
     {
@@ -274,6 +313,8 @@ layout(std140) uniform Material
             depthStencilView = swapChain.GetDepthBufferDSV();
             if (renderTargetView.IsNull || depthStencilView.IsNull)
                 throw new InvalidOperationException("Swap chain render target or depth view was null.");
+            swapChainColorFormat = GetTextureViewFormat(renderTargetView);
+            swapChainDepthFormat = GetTextureViewFormat(depthStencilView);
             renderTargets[0] = renderTargetView;
 
             clearColorHandle = GCHandle.Alloc(clearColor, GCHandleType.Pinned);
@@ -336,12 +377,7 @@ layout(std140) uniform Material
         MarkRenderTargetDirty(colorTarget);
         MarkRenderTargetDirty(depthStencilTarget);
 
-        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
-            viewportRect.Left,
-            viewportRect.Top,
-            viewportRect.Width,
-            viewportRect.Height);
-        immediateContext.SetViewports(1, diligentViewport, 0, 0);
+        ApplyDiligentViewport(immediateContext, viewportRect);
         immediateContext.SetRenderTargets((uint)currentRenderTargetCount,
             currentRenderTargetCount == 0 ? Array.Empty<ITextureView?>() : renderTargets, currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
@@ -364,12 +400,7 @@ layout(std140) uniform Material
             throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
 
         currentViewport = viewportRect;
-        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
-            viewportRect.Left,
-            viewportRect.Top,
-            viewportRect.Width,
-            viewportRect.Height);
-        immediateContext.SetViewports(1, diligentViewport, 0, 0);
+        ApplyDiligentViewport(immediateContext, viewportRect);
     }
 
     /// <summary>
@@ -430,14 +461,24 @@ layout(std140) uniform Material
             viewport.Camera.SetAspectRatioInternal(aspectRatio);
         }
 
-        var directionalLight = viewport.Scene.GetAllComponents().Values
-            .OfType<Light>()
-            .FirstOrDefault(static light => light.IsAttached && light.IsEnabledEffective && light.GetLightType() == LightType.Directional);
+        viewport.Scene.GetComponents(lightsScratch);
+        Light? directionalLight = null;
+        for (var i = 0; i < lightsScratch.Count; ++i)
+        {
+            var light = lightsScratch[i];
+            if (!light.IsAttached || !light.IsEnabledEffective || light.GetLightType() != LightType.Directional)
+                continue;
+
+            directionalLight = light;
+            break;
+        }
 
         uint submittedDrawCalls = 0;
         uint submittedPrimitives = 0;
-        foreach (var staticModel in viewport.Scene.StaticModels)
+        var staticModels = viewport.Scene.StaticModels;
+        for (var staticModelIndex = 0; staticModelIndex < staticModels.Count; ++staticModelIndex)
         {
+            var staticModel = staticModels[staticModelIndex];
             var (drawCalls, primitives) = RenderStaticModel(viewport, staticModel, materialQuality, directionalLight);
             submittedDrawCalls += drawCalls;
             submittedPrimitives += primitives;
@@ -449,7 +490,7 @@ layout(std140) uniform Material
                 submittedDrawCalls, submittedPrimitives, viewport.Scene.StaticModels.Count);
     }
 
-    internal void RenderOutlineGroups(Viewport viewport, MaterialQuality materialQuality, IEnumerable<OutlineGroup> outlineGroups, IntRect? viewportRect = null)
+    internal void RenderOutlineGroups(Viewport viewport, MaterialQuality materialQuality, IReadOnlyList<OutlineGroup> outlineGroups, IntRect? viewportRect = null)
     {
         ArgumentNullException.ThrowIfNull(viewport);
         ArgumentNullException.ThrowIfNull(outlineGroups);
@@ -464,12 +505,13 @@ layout(std140) uniform Material
             viewport.Camera.SetAspectRatioInternal(aspectRatio);
         }
 
-        foreach (var outlineGroup in outlineGroups
-                     .Where(static group => group.IsAttached && group.IsEnabledEffective && group.HasDrawables())
-                     .OrderBy(static group => group.GetRenderOrder()))
+        for (var groupIndex = 0; groupIndex < outlineGroups.Count; ++groupIndex)
         {
-            foreach (var drawable in outlineGroup.GetDrawables())
+            var outlineGroup = outlineGroups[groupIndex];
+            var drawableEnumerator = outlineGroup.GetDrawableEnumerator();
+            while (drawableEnumerator.MoveNext())
             {
+                var drawable = drawableEnumerator.Current;
                 if (drawable is not StaticModel staticModel)
                     continue;
 
@@ -486,11 +528,13 @@ layout(std140) uniform Material
             return;
 
         var targetRect = viewportRect ?? new IntRect(0, 0, Width, Height);
-        using var diligentViewport = new global::RedBolt.Bindings.Diligent.Viewport(
-            targetRect.Left, targetRect.Top, targetRect.Width, targetRect.Height, 0.0f, 1.0f);
-        immediateContext.SetViewports(1, diligentViewport, 0, 0);
-        foreach (var staticModel in viewport.Scene.StaticModels)
+        ApplyDiligentViewport(immediateContext, targetRect);
+        var staticModels = viewport.Scene.StaticModels;
+        for (var staticModelIndex = 0; staticModelIndex < staticModels.Count; ++staticModelIndex)
+        {
+            var staticModel = staticModels[staticModelIndex];
             RenderNormalStaticModel(viewport, staticModel, materialQuality);
+        }
     }
 
     /// <summary>
@@ -847,6 +891,9 @@ layout(std140) uniform Material
         renderTargets[0] = null;
         renderTargetView = null;
         depthStencilView = null;
+        swapChainOutputTarget = null;
+        swapChainColorFormat = 0;
+        swapChainDepthFormat = 0;
         currentRenderTargetCount = 0;
         currentDepthStencilTarget = null;
         currentColorTargetFormat = 0;
@@ -884,6 +931,8 @@ layout(std140) uniform Material
         clearFramebufferPipelines.Clear();
 
         fullscreenQuadGeometry = null;
+        diligentViewport?.Dispose();
+        diligentViewport = null;
 
         ReleaseIfNotNull(swapChain);
         swapChain = null;
@@ -1136,8 +1185,8 @@ layout(std140) uniform Material
         immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         nuint vertexOffset = 0;
-        IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
-        immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
+        singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
+        immediateContext.SetVertexBuffers(0, 1, singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
         immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
@@ -1247,7 +1296,7 @@ layout(std140) uniform Material
         if (device is null)
             return null;
 
-        var effectiveShaderDefines = AppendShaderDefine(shaderDefines, "URHO3D_GEOMETRY_STATIC");
+        var effectiveShaderDefines = GetOrCreateFullscreenShaderDefines(shaderDefines);
         var key = new FullscreenPipelineKey(
             shaderName,
             effectiveShaderDefines,
@@ -1477,7 +1526,8 @@ layout(std140) uniform Material
     private void UpdateFullscreenFrameBuffer(IBuffer buffer)
     {
         var time = Context.TryGetInstance()?.GetSubsystem<EngineTime>();
-        var data = new byte[FrameBufferSize];
+        Span<byte> data = stackalloc byte[FrameBufferSize];
+        data.Clear();
         WriteFloat(data, 0, time?.TimeStep ?? 0.0f);
         WriteFloat(data, 4, (float)(time?.ElapsedTime ?? 0.0));
         UpdateBuffer(buffer, data);
@@ -1485,13 +1535,14 @@ layout(std140) uniform Material
 
     private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
     {
-        var data = BuildFullscreenCameraBufferData(clipToUvOffsetAndScale, invInputSize, flipVertical);
+        Span<byte> data = stackalloc byte[CameraBufferSize];
+        WriteFullscreenCameraBufferData(data, clipToUvOffsetAndScale, invInputSize, flipVertical);
         UpdateBuffer(buffer, data);
     }
 
     private void UpdateFullscreenObjectBuffer(IBuffer buffer)
     {
-        var data = new byte[ObjectBufferSize];
+        Span<byte> data = stackalloc byte[ObjectBufferSize];
         WriteMatrix4(data, 0, Matrix4.Identity);
         WriteVector4(data, 64, DefaultAmbient);
         UpdateBuffer(buffer, data);
@@ -1565,8 +1616,8 @@ layout(std140) uniform Material
         immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         nuint vertexOffset = 0;
-        IBuffer?[] vertexBuffers = [uploadedGeometry.VertexBuffer];
-        immediateContext.SetVertexBuffers(0, 1, vertexBuffers, in vertexOffset,
+        singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
+        immediateContext.SetVertexBuffers(0, 1, singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
         immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
@@ -1600,8 +1651,10 @@ layout(std140) uniform Material
     {
         var data = GetCustomParameterScratchBuffer(layout, scratch);
         var parameters = material.GetShaderParameters();
-        foreach (var field in layout.Fields)
+        var fields = layout.Fields;
+        for (var fieldIndex = 0; fieldIndex < fields.Count; ++fieldIndex)
         {
+            var field = fields[fieldIndex];
             if (!TryGetCustomParameterValue(field, parameters, out var value))
                 continue;
 
@@ -1632,8 +1685,10 @@ layout(std140) uniform Material
 
         public static void Write(byte[] buffer, CustomUniformLayout layout, in T value)
         {
-            foreach (var field in layout.Fields)
+            var fields = layout.Fields;
+            for (var fieldIndex = 0; fieldIndex < fields.Count; ++fieldIndex)
             {
+                var field = fields[fieldIndex];
                 if (Writers.TryGetValue(field.ParameterName, out var writer) || Writers.TryGetValue(field.UniformName, out writer))
                     writer(buffer, field, value);
             }
@@ -1947,13 +2002,13 @@ layout(std140) uniform Material
     private void BindMaterialTextures(PipelineResources pipeline, Material material)
     {
         BindTextureToAvailableStages(pipeline,
-            "sAlbedo", GetTextureView(material.GetTexture("Albedo"), GetDefaultAlbedoTexture()));
+            "sAlbedo", GetTextureView(material.GetTexture(AlbedoTextureSlot), GetDefaultAlbedoTexture()));
         BindTextureToAvailableStages(pipeline,
-            "sNormal", GetTextureView(material.GetTexture("Normal"), GetDefaultNormalTexture()));
+            "sNormal", GetTextureView(material.GetTexture(NormalTextureSlot), GetDefaultNormalTexture()));
         BindTextureToAvailableStages(pipeline,
-            "sProperties", GetTextureView(material.GetTexture("Properties"), GetDefaultPropertiesTexture()));
+            "sProperties", GetTextureView(material.GetTexture(PropertiesTextureSlot), GetDefaultPropertiesTexture()));
         BindTextureToAvailableStages(pipeline,
-            "sEmission", GetTextureView(material.GetTexture("Emission"), GetDefaultEmissionTexture()));
+            "sEmission", GetTextureView(material.GetTexture(EmissionTextureSlot), GetDefaultEmissionTexture()));
     }
 
     private ITextureView GetTextureView(Texture? texture, Texture2D fallbackTexture)
@@ -2092,7 +2147,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        var data = texture.GetData(0);
+        var data = texture.GetDataNoCopy(0);
         if (data is { Length: > 0 })
         {
             if (texture.MultiSample != 1)
@@ -2115,7 +2170,8 @@ layout(std140) uniform Material
 
             var shaderResourceView = RetainDefaultTextureView(
                 gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource));
-            uploaded = new UploadedTexture(gpuTextureWithData, shaderResourceView, null, null, null, supportsUnorderedAccess: false);
+            uploaded = new UploadedTexture(texture, gpuTextureWithData, shaderResourceView, null, null, null,
+                supportsUnorderedAccess: false);
             uploadedTextures[texture] = uploaded;
             return uploaded;
         }
@@ -2138,8 +2194,8 @@ layout(std140) uniform Material
         var readOnlyDepthView = IsDepthTextureFormat(texture.Format) && depthView is not null
             ? GetReadOnlyDepthTextureView(gpuTexture, depthView)
             : null;
-        uploaded = new UploadedTexture(gpuTexture, shaderView, targetView, depthView, readOnlyDepthView, resolvedTexture,
-            supportsUnorderedAccess: bindUnorderedAccess);
+        uploaded = new UploadedTexture(texture, gpuTexture, shaderView, targetView, depthView, readOnlyDepthView,
+            resolvedTexture, supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
     }
@@ -2187,7 +2243,7 @@ layout(std140) uniform Material
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture,
+        uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
@@ -2239,7 +2295,7 @@ layout(std140) uniform Material
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
-        uploaded = new UploadedTexture(gpuTexture, shaderView, null, null, null, resolvedTexture,
+        uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         uploadedTextures[texture] = uploaded;
         return uploaded;
@@ -2425,8 +2481,8 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainColor or RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice
-                => GetTextureViewFormat(ResolveRenderTargetView(view)),
+            RenderTargetViewType.SwapChainColor => GetSwapChainColorFormat(),
+            RenderTargetViewType.Resource or RenderTargetViewType.ResourceSlice => GetResourceTargetFormat(view),
             _ => 0
         };
     }
@@ -2435,14 +2491,22 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainDepthStencil
-                or RenderTargetViewType.ReadOnlyResource
+            RenderTargetViewType.SwapChainDepthStencil => GetSwapChainDepthFormat(),
+            RenderTargetViewType.ReadOnlyResource
                 or RenderTargetViewType.ReadOnlyResourceSlice
                 or RenderTargetViewType.Resource
                 or RenderTargetViewType.ResourceSlice
-                => GetTextureViewFormat(ResolveRenderTargetView(view)),
+                => GetResourceTargetFormat(view),
             _ => 0
         };
+    }
+
+    private global::RedBolt.Bindings.Diligent.TextureFormat GetResourceTargetFormat(RenderTargetView view)
+    {
+        if (view.RenderTexture is not { } texture)
+            return 0;
+
+        return GetOrCreateUploadedTexture(texture).Format;
     }
 
     private static global::RedBolt.Bindings.Diligent.TextureFormat GetTextureViewFormat(ITextureView textureView)
@@ -2460,8 +2524,8 @@ layout(std140) uniform Material
 
     public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
     {
-        if (renderTargetView is not null)
-            return GetTextureViewFormat(renderTargetView);
+        if (swapChainColorFormat != 0)
+            return swapChainColorFormat;
         if (swapChain is null)
             return 0;
 
@@ -2471,8 +2535,8 @@ layout(std140) uniform Material
 
     public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
     {
-        if (depthStencilView is not null)
-            return GetTextureViewFormat(depthStencilView);
+        if (swapChainDepthFormat != 0)
+            return swapChainDepthFormat;
         if (swapChain is null)
             return 0;
 
@@ -2507,7 +2571,7 @@ layout(std140) uniform Material
     {
         currentOutputDesc.ClearRenderTargetFormats();
         if (colorTarget is { } colorView)
-            currentOutputDesc.SetRenderTargetFormats(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
+            currentOutputDesc.SetRenderTargetFormat(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
 
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
         if (depthStencilTarget is { } depthView)
@@ -2521,6 +2585,18 @@ layout(std140) uniform Material
             colorTarget?.GetMultiSample()
             ?? depthStencilTarget?.GetMultiSample()
             ?? Math.Max(configuredMultiSample, 1), 1);
+    }
+
+    private void ApplyDiligentViewport(IDeviceContext immediateContext, IntRect viewportRect)
+    {
+        var viewport = diligentViewport ??= new global::RedBolt.Bindings.Diligent.Viewport();
+        viewport.TopLeftX = viewportRect.Left;
+        viewport.TopLeftY = viewportRect.Top;
+        viewport.Width = viewportRect.Width;
+        viewport.Height = viewportRect.Height;
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+        immediateContext.SetViewports(1, viewport, 0, 0);
     }
 
     private static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
@@ -2552,20 +2628,19 @@ layout(std140) uniform Material
 
     private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded, bool requireUnorderedAccess = false)
     {
-        var desc = uploaded.Texture.GetDesc();
         var expectedFormat = MapTextureFormat(texture.Format);
         if (expectedFormat == 0)
             return false;
 
-        return desc.Type == GetResourceDimension(texture)
-            && desc.Width == (uint)texture.Width
-            && desc.Height == (uint)texture.Height
-            && desc.ArraySizeOrDepth() == GetArraySizeOrDepth(texture)
-            && desc.SampleCount == (uint)texture.MultiSample
+        return uploaded.Dimension == GetResourceDimension(texture)
+            && uploaded.Width == (uint)texture.Width
+            && uploaded.Height == (uint)texture.Height
+            && uploaded.ArraySizeOrDepth == GetArraySizeOrDepth(texture)
+            && uploaded.SampleCount == (uint)texture.MultiSample
             && uploaded.HasResolvedTexture == NeedsResolvedTexture(texture)
             && (!requireUnorderedAccess || uploaded.SupportsUnorderedAccess)
-            && desc.Format == expectedFormat
-            && desc.MipLevels == GetUploadedMipLevels(texture);
+            && uploaded.Format == expectedFormat
+            && uploaded.MipLevels == GetUploadedMipLevels(texture);
     }
 
     private static bool NeedsResolvedTexture(Texture texture)
@@ -2619,14 +2694,13 @@ layout(std140) uniform Material
         return texture switch
         {
             { MultiSample: > 1 } => 1u,
-            Texture2D texture2D when texture2D.GetData(0) is { Length: > 0 } => 1u,
+            Texture2D texture2D when texture2D.GetDataNoCopy(0) is { Length: > 0 } => 1u,
             _ => Math.Max(texture.Levels, 1u)
         };
     }
 
-    private static byte[] BuildFullscreenCameraBufferData(Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    private static void WriteFullscreenCameraBufferData(Span<byte> data, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
     {
-        var data = new byte[CameraBufferSize];
         var projection = Matrix4.Identity;
         if (flipVertical)
             projection.M11 = -1.0f;
@@ -2647,12 +2721,11 @@ layout(std140) uniform Material
         WriteVector4(data, 336, Vector4.Zero);
         WriteVector3(data, 352, new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
         WriteFloat(data, 364, 0.0f);
-        return data;
     }
 
     private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
     {
-        var data = new byte[CameraBufferSize];
+        Span<byte> data = stackalloc byte[CameraBufferSize];
         WriteMatrix4(data, 0, camera.GetView().Matrix4);
         WriteMatrix4(data, 64, camera.GetInverseView().Matrix4);
         WriteMatrix4(data, 128, camera.GetGPUViewProj());
@@ -2676,7 +2749,7 @@ layout(std140) uniform Material
 
     private void UpdateObjectBuffer(IBuffer buffer, Matrix4 modelMatrix, Vector4 ambient)
     {
-        var data = new byte[ObjectBufferSize];
+        Span<byte> data = stackalloc byte[ObjectBufferSize];
         WriteMatrix4(data, 0, modelMatrix);
         WriteVector4(data, 64, ambient);
         UpdateBuffer(buffer, data);
@@ -2684,7 +2757,7 @@ layout(std140) uniform Material
 
     private void UpdateMaterialBuffer(IBuffer buffer, Material material)
     {
-        var data = new byte[MaterialBufferSize];
+        Span<byte> data = stackalloc byte[MaterialBufferSize];
         WriteVector4(data, 0, material.GetShaderParameter("UOffset") is Vector4 uOffset ? uOffset : Vector4.Zero);
         WriteVector4(data, 16, material.GetShaderParameter("VOffset") is Vector4 vOffset ? vOffset : Vector4.Zero);
         WriteVector4(data, 32, material.GetShaderParameter("MatDiffColor") is Vector4 diff ? diff : Vector4.One);
@@ -2708,7 +2781,7 @@ layout(std140) uniform Material
 
     private void UpdateLightBuffer(IBuffer buffer, Light? light)
     {
-        var data = new byte[LightBufferSize];
+        Span<byte> data = stackalloc byte[LightBufferSize];
         if (light is not null && light.IsAttached)
         {
             WriteVector4(data, 0, new Vector4(light.Node.WorldPosition, 0.0f));
@@ -2727,7 +2800,7 @@ layout(std140) uniform Material
 
     private void UpdateZoneBuffer(IBuffer buffer, Zone? zone)
     {
-        var data = new byte[ZoneBufferSize];
+        Span<byte> data = stackalloc byte[ZoneBufferSize];
         WriteFloat(data, 0, GetZoneRoughnessToLodFactor(zone));
         WriteFloat(data, 4, 0.0f);
         WriteFloat(data, 8, 0.0f);
@@ -2735,18 +2808,32 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
-    private static string ComposeShaderDefines(Pass pass, VertexBuffer vertexBuffer, Material material,
+    private string ComposeShaderDefines(Pass pass, VertexBuffer vertexBuffer, Material material,
         Light? light, ShaderStage stage)
     {
+        var usesAmbient = PassUsesAmbient(pass);
+        var usesLighting = PassUsesLighting(pass);
+        var passDefines = stage == ShaderStage.Vertex ? pass.GetEffectiveVertexShaderDefines() : pass.GetEffectivePixelShaderDefines();
+        var key = new ShaderDefinesKey(
+            vertexBuffer.GetElementMask(),
+            GetMaterialTextureMask(material),
+            passDefines,
+            usesAmbient,
+            usesLighting,
+            light is not null,
+            light?.GetLightType() ?? LightType.Directional);
+        if (shaderDefinesCache.TryGetValue(key, out var cachedDefines))
+            return cachedDefines;
+
         var defines = new List<string> { "URHO3D_GEOMETRY_STATIC" };
 
-        if (PassUsesAmbient(pass))
+        if (usesAmbient)
         {
             defines.Add("URHO3D_AMBIENT_PASS");
             defines.Add("URHO3D_AMBIENT_FLAT");
         }
 
-        if (PassUsesLighting(pass) && light is not null)
+        if (usesLighting && light is not null)
             AddLightDefines(defines, light);
 
         if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) != 0)
@@ -2766,16 +2853,31 @@ layout(std140) uniform Material
         if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Color) != 0)
             defines.Add("URHO3D_VERTEX_HAS_COLOR");
 
-        AddTextureDefine(defines, material.GetTexture("Albedo"), "ALBEDO");
-        AddTextureDefine(defines, material.GetTexture("Normal"), "NORMAL");
-        AddTextureDefine(defines, material.GetTexture("Properties"), "PROPERTIES");
-        AddTextureDefine(defines, material.GetTexture("Emission"), "EMISSION");
+        AddTextureDefine(defines, material.GetTexture(AlbedoTextureSlot), "ALBEDO");
+        AddTextureDefine(defines, material.GetTexture(NormalTextureSlot), "NORMAL");
+        AddTextureDefine(defines, material.GetTexture(PropertiesTextureSlot), "PROPERTIES");
+        AddTextureDefine(defines, material.GetTexture(EmissionTextureSlot), "EMISSION");
 
-        var passDefines = stage == ShaderStage.Vertex ? pass.GetEffectiveVertexShaderDefines() : pass.GetEffectivePixelShaderDefines();
         if (!string.IsNullOrWhiteSpace(passDefines))
             defines.AddRange(passDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
-        return string.Join(' ', defines.Distinct(StringComparer.OrdinalIgnoreCase));
+        cachedDefines = string.Join(' ', defines.Distinct(StringComparer.OrdinalIgnoreCase));
+        shaderDefinesCache[key] = cachedDefines;
+        return cachedDefines;
+    }
+
+    private static byte GetMaterialTextureMask(Material material)
+    {
+        byte mask = 0;
+        if (material.GetTexture(AlbedoTextureSlot) is not null)
+            mask |= 1 << 0;
+        if (material.GetTexture(NormalTextureSlot) is not null)
+            mask |= 1 << 1;
+        if (material.GetTexture(PropertiesTextureSlot) is not null)
+            mask |= 1 << 2;
+        if (material.GetTexture(EmissionTextureSlot) is not null)
+            mask |= 1 << 3;
+        return mask;
     }
 
     private static void AddTextureDefine(ICollection<string> defines, Texture? texture, string name)
@@ -2866,8 +2968,7 @@ layout(std140) uniform Material
 
     private static string BuildLayoutSignature(VertexBuffer vertexBuffer)
     {
-        return string.Join('|', vertexBuffer.GetElements().Select(static element =>
-            $"{element.Semantic}:{element.Index}:{element.Type}:{element.Offset}:{element.StepRate}"));
+        return vertexBuffer.GetLayoutSignature();
     }
 
     private static LayoutElementSpec[] BuildLayoutElements(VertexBuffer vertexBuffer)
@@ -3138,16 +3239,25 @@ layout(std140) uniform Material
             : 1.0f;
     }
 
-    private static Zone? FindZone(Scene scene, Vector3 worldPosition)
+    private Zone? FindZone(Scene scene, Vector3 worldPosition)
     {
-        return scene.GetAllComponents().Values
-            .OfType<Zone>()
-            .Where(static zone => zone.IsAttached && zone.IsEnabledEffective)
-            .OrderByDescending(static zone => zone.GetPriority())
-            .FirstOrDefault(zone => zone.IsInside(worldPosition));
+        scene.GetComponents(zonesScratch);
+
+        Zone? bestZone = null;
+        for (var i = 0; i < zonesScratch.Count; ++i)
+        {
+            var zone = zonesScratch[i];
+            if (!zone.IsAttached || !zone.IsEnabledEffective || !zone.IsInside(worldPosition))
+                continue;
+
+            if (bestZone is null || zone.GetPriority() > bestZone.GetPriority())
+                bestZone = zone;
+        }
+
+        return bestZone;
     }
 
-    private static Vector4 GetAmbientForDrawable(Scene scene, Drawable drawable)
+    private Vector4 GetAmbientForDrawable(Scene scene, Drawable drawable)
     {
         var zone = FindZone(scene, drawable.Node.WorldPosition);
         return zone is not null ? new Vector4(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
@@ -3297,14 +3407,16 @@ layout(std140) uniform Material
             (ulong)data.Length, BindFlags.BindIndexBuffer, indexBuffer.GetIndexSize());
     }
 
-    private void UpdateBuffer(IBuffer buffer, byte[] data)
+    private unsafe void UpdateBuffer(IBuffer buffer, ReadOnlySpan<byte> data)
     {
         if (immediateContext is null)
             return;
 
-        using var dataHandle = new PinnedBuffer(data);
-        immediateContext.UpdateBuffer(buffer, 0, (nuint)data.Length, dataHandle.Pointer,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        fixed (byte* dataPointer = data)
+        {
+            immediateContext.UpdateBuffer(buffer, 0, (nuint)data.Length, (nint)dataPointer,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        }
     }
 
     private static TextureDescOwner CreateTextureDesc()
@@ -3326,25 +3438,25 @@ layout(std140) uniform Material
         return new ResolveTextureSubresourceAttribsOwner();
     }
 
-    private static void WriteFloat(byte[] buffer, int offset, float value)
+    private static void WriteFloat(Span<byte> buffer, int offset, float value)
     {
-        Buffer.BlockCopy(BitConverter.GetBytes(value), 0, buffer, offset, sizeof(float));
+        MemoryMarshal.Write(buffer.Slice(offset, sizeof(float)), in value);
     }
 
-    private static void WriteVector2(byte[] buffer, int offset, Vector2 value)
+    private static void WriteVector2(Span<byte> buffer, int offset, Vector2 value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);
     }
 
-    private static void WriteVector3(byte[] buffer, int offset, Vector3 value)
+    private static void WriteVector3(Span<byte> buffer, int offset, Vector3 value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);
         WriteFloat(buffer, offset + 8, value.Z);
     }
 
-    private static void WriteVector4(byte[] buffer, int offset, Vector4 value)
+    private static void WriteVector4(Span<byte> buffer, int offset, Vector4 value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);
@@ -3352,12 +3464,12 @@ layout(std140) uniform Material
         WriteFloat(buffer, offset + 12, value.W);
     }
 
-    private static void WriteMatrix4(byte[] buffer, int offset, Matrix4 value)
+    private static void WriteMatrix4(Span<byte> buffer, int offset, Matrix4 value)
     {
         // rbfx stores Matrix4 in row-major CPU order and memcpy's it into uniform buffers.
         // GLSL consumes mat4 from std140 as column-major storage and shaders use vec4 * mat4,
         // so uploading raw rbfx memory yields the expected transposed shader-side math.
-        Buffer.BlockCopy(value.Data, 0, buffer, offset, 16 * sizeof(float));
+        System.Runtime.InteropServices.MemoryMarshal.Write(buffer.Slice(offset, 16 * sizeof(float)), in value);
     }
 
     private static void CheckSdlGl(int result, string operation)
@@ -3580,10 +3692,44 @@ layout(std140) uniform Material
         if (string.IsNullOrWhiteSpace(defines))
             return define;
 
-        var tokens = defines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return tokens.Contains(define, StringComparer.Ordinal)
+        return ContainsShaderDefine(defines, define)
             ? defines
-            : $"{defines} {define}";
+            : string.Concat(defines, " ", define);
+    }
+
+    private string GetOrCreateFullscreenShaderDefines(string shaderDefines)
+    {
+        const string geometryStaticDefine = "URHO3D_GEOMETRY_STATIC";
+
+        if (string.IsNullOrWhiteSpace(shaderDefines))
+            return geometryStaticDefine;
+        if (ContainsShaderDefine(shaderDefines, geometryStaticDefine))
+            return shaderDefines;
+        if (fullscreenShaderDefinesCache.TryGetValue(shaderDefines, out var cachedDefines))
+            return cachedDefines;
+
+        cachedDefines = AppendShaderDefine(shaderDefines, geometryStaticDefine);
+        fullscreenShaderDefinesCache[shaderDefines] = cachedDefines;
+        return cachedDefines;
+    }
+
+    private static bool ContainsShaderDefine(string defines, string define)
+    {
+        var remaining = defines.AsSpan().Trim();
+        while (!remaining.IsEmpty)
+        {
+            var separatorIndex = remaining.IndexOf(' ');
+            var token = separatorIndex >= 0 ? remaining[..separatorIndex] : remaining;
+            if (token.Equals(define, StringComparison.Ordinal))
+                return true;
+
+            if (separatorIndex < 0)
+                break;
+
+            remaining = remaining[(separatorIndex + 1)..].TrimStart();
+        }
+
+        return false;
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -3623,6 +3769,14 @@ layout(std140) uniform Material
         BlendMode BlendMode,
         bool BilinearColorSampler, global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
         global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
+    private readonly record struct ShaderDefinesKey(
+        uint ElementMask,
+        byte TextureMask,
+        string PassDefines,
+        bool UsesAmbient,
+        bool UsesLighting,
+        bool HasLight,
+        LightType LightType);
 
     private readonly record struct ClearFramebufferPipelineKey(ClearTarget Flags,
         global::RedBolt.Bindings.Diligent.TextureFormat ColorFormat,
@@ -3944,7 +4098,7 @@ layout(std140) uniform Material
         private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> sliceViews = [];
         private readonly Dictionary<RawTextureUAVKey, ITextureView> uavs = [];
 
-        public UploadedTexture(ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
+        public UploadedTexture(Texture sourceTexture, ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
             ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null,
             bool supportsUnorderedAccess = false)
         {
@@ -3954,6 +4108,13 @@ layout(std140) uniform Material
             DepthStencilView = depthStencilView;
             ReadOnlyDepthView = readOnlyDepthView;
             ResolvedTexture = resolvedTexture;
+            Dimension = GetResourceDimension(sourceTexture);
+            Width = (uint)sourceTexture.Width;
+            Height = (uint)sourceTexture.Height;
+            ArraySizeOrDepth = GetArraySizeOrDepth(sourceTexture);
+            SampleCount = (uint)sourceTexture.MultiSample;
+            Format = MapTextureFormat(sourceTexture.Format);
+            MipLevels = GetUploadedMipLevels(sourceTexture);
             SupportsUnorderedAccess = supportsUnorderedAccess;
         }
 
@@ -3968,6 +4129,20 @@ layout(std140) uniform Material
         public ITextureView? ReadOnlyDepthView { get; }
 
         public ITexture? ResolvedTexture { get; }
+
+        public ResourceDimension Dimension { get; }
+
+        public uint Width { get; }
+
+        public uint Height { get; }
+
+        public uint ArraySizeOrDepth { get; }
+
+        public uint SampleCount { get; }
+
+        public global::RedBolt.Bindings.Diligent.TextureFormat Format { get; }
+
+        public uint MipLevels { get; }
 
         public bool HasResolvedTexture => ResolvedTexture is not null && !ResolvedTexture.IsNull;
 

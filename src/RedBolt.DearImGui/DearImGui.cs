@@ -7,6 +7,7 @@ public sealed class DearImGui : IDisposable
 {
     private readonly Context context;
     private nint imContext;
+    private ImGuiIO? io;
     private ImDrawData? pendingDrawData;
     private ImGuiDiligentRendererEx? renderer;
     private ContextEventSubscription? inputEndSubscription;
@@ -41,7 +42,7 @@ public sealed class DearImGui : IDisposable
 
         SetCurrentContext();
 
-        var io = ImGui.GetIO();
+        io = ImGui.GetIO();
         io.ConfigFlags = (ImGuiConfigFlags)flags;
 
         var renderDevice = context.GetSubsystem<RenderDevice>();
@@ -81,6 +82,7 @@ public sealed class DearImGui : IDisposable
             imContext = 0;
         }
 
+        io = null;
         isInitialized = false;
     }
 
@@ -127,7 +129,7 @@ public sealed class DearImGui : IDisposable
         {
             if (!isInitialized)
                 return false;
-            return ImGui.GetIO().WantCaptureKeyboard;
+            return io?.WantCaptureKeyboard == true;
         }
     }
 
@@ -137,7 +139,7 @@ public sealed class DearImGui : IDisposable
         {
             if (!isInitialized)
                 return false;
-            return ImGui.GetIO().WantCaptureMouse;
+            return io?.WantCaptureMouse == true;
         }
     }
 
@@ -155,7 +157,9 @@ public sealed class DearImGui : IDisposable
             isFrameActive = false;
         }
 
-        var io = ImGui.GetIO();
+        var io = this.io;
+        if (io is null)
+            return;
         io.DeltaTime = context.GetSubsystem<EngineTime>()?.TimeStep ?? 0.0f;
 
         var renderDevice = context.GetSubsystem<RenderDevice>();

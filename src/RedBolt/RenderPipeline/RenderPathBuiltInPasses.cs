@@ -5,8 +5,11 @@ namespace RedBolt;
 /// </summary>
 public sealed class FullScreenShaderPass : RenderPass
 {
+    private readonly record struct ParameterBinding(string Name, string ExternalName, object? DefaultValue);
+
     private readonly Dictionary<string, object?> parameters = new(StringComparer.Ordinal);
     private readonly Dictionary<string, object?> currentParameters = new(StringComparer.Ordinal);
+    private readonly List<ParameterBinding> parameterBindings = [];
     private string shaderName = string.Empty;
     private string shaderDefines = string.Empty;
     private BlendMode blendMode = BlendMode.Replace;
@@ -58,7 +61,7 @@ public sealed class FullScreenShaderPass : RenderPass
             "Parameters Prefix",
             typeof(string),
             self => ((FullScreenShaderPass)self).parametersPrefix,
-            (self, value) => ((FullScreenShaderPass)self).parametersPrefix = value as string ?? string.Empty,
+            (self, value) => ((FullScreenShaderPass)self).SetParametersPrefix(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Parameters",
@@ -72,11 +75,8 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         ArgumentNullException.ThrowIfNull(target);
 
-        foreach (var (name, defaultValue) in parameters)
-        {
-            var externalName = parametersPrefix + name;
-            DeclareParameter(externalName, defaultValue, target);
-        }
+        foreach (var binding in parameterBindings)
+            DeclareParameter(binding.ExternalName, binding.DefaultValue, target);
     }
 
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> externalParameters)
@@ -86,17 +86,16 @@ public sealed class FullScreenShaderPass : RenderPass
 
         currentParameters.Clear();
         var shouldBeDisabled = disableOnDefaultParameters;
-        foreach (var (name, defaultValue) in parameters)
+        foreach (var binding in parameterBindings)
         {
-            var externalName = parametersPrefix + name;
-            if (externalParameters.TryGetValue(externalName, out var value))
+            if (externalParameters.TryGetValue(binding.ExternalName, out var value))
             {
-                currentParameters[name] = value;
-                if (shouldBeDisabled && !Equals(value, defaultValue))
+                currentParameters[binding.Name] = value;
+                if (shouldBeDisabled && !Equals(value, binding.DefaultValue))
                     shouldBeDisabled = false;
             }
             else
-                currentParameters[name] = defaultValue;
+                currentParameters[binding.Name] = binding.DefaultValue;
         }
 
         SetTraits(new RenderPassTraits(needReadWriteColorOutput, bilinearColorSampler));
@@ -152,19 +151,33 @@ public sealed class FullScreenShaderPass : RenderPass
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
-        foreach (var (name, value) in parameters)
-            clone.parameters[name] = value;
+        clone.SetParameters(parameters);
         return clone;
     }
 
     private void SetParameters(object? value)
     {
         parameters.Clear();
+        parameterBindings.Clear();
         if (value is not IReadOnlyDictionary<string, object?> values)
             return;
 
         foreach (var (name, parameterValue) in values)
             parameters[name] = parameterValue;
+        RefreshParameterBindings();
+    }
+
+    private void SetParametersPrefix(string prefix)
+    {
+        parametersPrefix = prefix;
+        RefreshParameterBindings();
+    }
+
+    private void RefreshParameterBindings()
+    {
+        parameterBindings.Clear();
+        foreach (var (name, defaultValue) in parameters)
+            parameterBindings.Add(new ParameterBinding(name, parametersPrefix + name, defaultValue));
     }
 
     private static BlendMode ParseBlendMode(object? value)

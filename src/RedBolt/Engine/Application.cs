@@ -106,6 +106,7 @@ public abstract class Application
             if (!ShouldStopAfterStart())
             {
                 var frameCount = 0;
+                Action<float> updateAction = Update;
                 while (!Engine.IsExiting)
                 {
                     if (frameCount >= MaxFrameCount)
@@ -114,7 +115,7 @@ public abstract class Application
                         break;
                     }
 
-                    Engine.RunFrame(Update);
+                    Engine.RunFrame(updateAction);
                     ++frameCount;
                 }
             }
