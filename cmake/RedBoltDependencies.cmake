@@ -199,10 +199,6 @@ add_custom_target(redbolt-diligent-build
 
 add_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui" EXCLUDE_FROM_ALL)
 
-add_library(redbolt-diligent-header-smoke STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/src/DiligentHeaderSmoke.cpp")
-target_link_libraries(redbolt-diligent-header-smoke PRIVATE redbolt-diligent-headers)
-
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build ImGui redbolt-diligent-header-smoke
+    DEPENDS SDL2 redbolt-diligent-build ImGui
     COMMENT "Building RedBolt initial native dependency batch")

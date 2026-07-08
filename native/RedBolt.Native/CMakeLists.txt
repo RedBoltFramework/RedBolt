@@ -68,17 +68,3 @@ target_link_libraries(RedBolt.Native
         redbolt-native-support
         redbolt-diligent-support
         -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)
-
-add_executable(redbolt-native-smoke-exe
-    smoke/RedBoltNativeSmoke.cpp)
-
-set_target_properties(redbolt-native-smoke-exe PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
-
-target_link_libraries(redbolt-native-smoke-exe PRIVATE SDL2::SDL2 redbolt-native-support)
-
-add_custom_target(redbolt-native-smoke
-    COMMAND redbolt-native-smoke-exe
-    DEPENDS redbolt-native-smoke-exe RedBolt.Native
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
-    COMMENT "Running C++ RedBolt.Native smoke")

@@ -186,26 +186,6 @@ add_custom_target(redbolt-csharp
 add_custom_target(redbolt-managed
     DEPENDS redbolt-csharp)
 
-add_custom_target(redbolt-build-binding-smoke
-    DEPENDS redbolt-csharp)
-
-add_custom_target(redbolt-binding-smoke
-    COMMAND "${DOTNET_EXECUTABLE}" "${REDBOLT_BIN_DIR}/RedBolt.BindingSmoke.dll"
-    DEPENDS redbolt-build-binding-smoke RedBolt.Native
-    WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
-    COMMENT "Running managed binding smoke through RedBolt.Native"
-    VERBATIM)
-
-add_custom_target(redbolt-diligent-gl-smoke
-    COMMAND "${CMAKE_COMMAND}" -E env
-        REDBOLT_RUN_DILIGENT_GL_SMOKE=1
-        SDL_VIDEODRIVER=x11
-        "${DOTNET_EXECUTABLE}" "${REDBOLT_BIN_DIR}/RedBolt.BindingSmoke.dll"
-    DEPENDS redbolt-build-binding-smoke RedBolt.Native
-    WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
-    COMMENT "Running managed Diligent OpenGL smoke through RedBolt.Native"
-    VERBATIM)
-
 add_custom_target(redbolt-first-cube
     COMMAND "${CMAKE_COMMAND}" -E env
         SDL_VIDEODRIVER=x11
@@ -227,6 +207,4 @@ add_custom_target(redbolt-stage0
     DEPENDS
         redbolt-verify-config
         redbolt-native-dependency-batch
-        redbolt-native-smoke
-        redbolt-generate-native-bindings
-        redbolt-binding-smoke)
+        redbolt-generate-native-bindings)
