@@ -123,6 +123,7 @@ internal static class Program
             AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
+            ApplyImGuiEnumAliasSurfaceIfApplicable(compilation, descriptor);
             prunedCount += PruneInvalidTypeAliases(compilation);
 
             var renderedBindings = BindingOutputRenderer.Render(
@@ -373,6 +374,14 @@ internal static class Program
         return PruneImGuiSurface(compilation);
     }
 
+    private static void ApplyImGuiEnumAliasSurfaceIfApplicable(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "dearimgui")
+            return;
+
+        ApplyImGuiEnumAliasSurface(compilation);
+    }
+
     private static int PruneDiligentSurface(BindingCompilation compilation)
     {
         var prunedCount = 0;
@@ -467,6 +476,87 @@ internal static class Program
         PruneImGuiFunctionsWithExcludedTypes(compilation);
         compilation.InvalidateCaches();
         return prunedCount;
+    }
+
+    private static void ApplyImGuiEnumAliasSurface(BindingCompilation compilation)
+    {
+        var enumsByNativeName = compilation.Enums.ToDictionary(static @enum => @enum.NativeName, StringComparer.Ordinal);
+        foreach (var @enum in compilation.Enums)
+        {
+            if (@enum.NativeName.EndsWith("_", StringComparison.Ordinal))
+                @enum.ManagedName = @enum.NativeName.TrimEnd('_');
+            if (@enum.NativeName.EndsWith("Flags_", StringComparison.Ordinal))
+                @enum.IsFlags = true;
+        }
+
+        var enumsByAliasName = new Dictionary<string, EnumBinding>(StringComparer.Ordinal);
+        for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
+        {
+            var alias = compilation.TypeAliases[index];
+            if (alias.TargetType.Kind != BindingTypeKind.Primitive ||
+                alias.TargetType.PrimitiveKind != BindingPrimitiveKind.Int32 ||
+                !enumsByNativeName.TryGetValue(alias.NativeName + "_", out var @enum))
+            {
+                continue;
+            }
+
+            enumsByAliasName[alias.NativeName] = @enum;
+            compilation.TypeAliases.RemoveAt(index);
+        }
+
+        foreach (var function in compilation.Functions)
+        {
+            function.ReturnType = RemapImGuiEnumAliases(function.ReturnType, enumsByAliasName);
+
+            foreach (var parameter in function.Parameters)
+                parameter.Type = RemapImGuiEnumAliases(parameter.Type, enumsByAliasName);
+        }
+
+        foreach (var field in compilation.Records.SelectMany(static record => record.Members.OfType<FieldBinding>()))
+            field.Type = RemapImGuiEnumAliases(field.Type, enumsByAliasName);
+
+        compilation.InvalidateCaches();
+    }
+
+    private static BindingType RemapImGuiEnumAliases(
+        BindingType type,
+        IReadOnlyDictionary<string, EnumBinding> enumsByAliasName)
+    {
+        if (!string.IsNullOrWhiteSpace(type.AliasNativeName) &&
+            enumsByAliasName.TryGetValue(type.AliasNativeName, out var @enum) &&
+            type.Kind == BindingTypeKind.Primitive &&
+            type.PrimitiveKind == BindingPrimitiveKind.Int32)
+        {
+            var nativeCppTypeName = type.AliasCppQualifiedName ?? type.AliasNativeName ?? type.CppTypeName;
+            var remappedType = BindingType.CreateEnum(nativeCppTypeName, @enum.ManagedName, enumId: @enum.SymbolId)
+                .WithCppIsReference(type.Marshaller.CppIsReference);
+            if (type.FixedArrayElementType is not null && type.FixedArrayLength is not null)
+                remappedType = remappedType.WithFixedArray(type.FixedArrayElementType, type.FixedArrayLength.Value);
+            if (type.DynamicArrayElementType is not null)
+                remappedType = remappedType.WithDynamicArray(type.DynamicArrayElementType);
+            return remappedType;
+        }
+
+        if (type.IsCallback)
+        {
+            var callbackReturnType = type.CallbackReturnType is null
+                ? null
+                : RemapImGuiEnumAliases(type.CallbackReturnType, enumsByAliasName);
+            var callbackParameterTypes = type.CallbackParameterTypes
+                .Select(parameter => RemapImGuiEnumAliases(parameter, enumsByAliasName))
+                .ToArray();
+            if (callbackReturnType is not null)
+                type = type.WithCallbackSignature(callbackReturnType, callbackParameterTypes);
+        }
+
+        if (type.GenericArguments.Count > 0)
+            type = type.WithGenericArguments(type.GenericArguments.Select(argument => RemapImGuiEnumAliases(argument, enumsByAliasName)).ToArray());
+        if (type.FixedArrayElementType is not null && type.FixedArrayLength is not null)
+            type = type.WithFixedArray(RemapImGuiEnumAliases(type.FixedArrayElementType, enumsByAliasName), type.FixedArrayLength.Value);
+        if (type.DynamicArrayElementType is not null)
+            type = type.WithDynamicArray(RemapImGuiEnumAliases(type.DynamicArrayElementType, enumsByAliasName));
+
+        return type;
     }
 
     private static void PruneImGuiFunctionsWithExcludedTypes(BindingCompilation compilation)
