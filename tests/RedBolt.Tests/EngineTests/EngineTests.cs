@@ -22,7 +22,7 @@ public sealed class EngineTests
         fixture.Engine.SetPauseMinimized(false);
         fixture.Engine.SetAutoExit(false);
 
-        Assert.Equal(1, fixture.Engine.GetMinFps());
+        Assert.Equal(0, fixture.Engine.GetMinFps());
         Assert.Equal(144, fixture.Engine.GetMaxFps());
         Assert.Equal(30, fixture.Engine.GetMaxInactiveFps());
         Assert.Equal(1, fixture.Engine.GetTimeStepSmoothing());
@@ -43,10 +43,12 @@ public sealed class EngineTests
     {
         fixture.Engine.SetNextTimeStep(0.125f);
         var observed = -1.0f;
+        var before = fixture.Engine.GetNextTimeStep();
         fixture.Engine.RunFrame(timeStep => observed = timeStep);
 
         Assert.True(MathDefs.ApproximatelyEquivalent(observed, 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Engine.GetNextTimeStep(), 0.125f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(before, 0.125f));
+        Assert.True(fixture.Engine.GetNextTimeStep() >= 0.0f);
 
         fixture.Time.SetTimerPeriod(1u);
         Assert.Equal(1u, fixture.Time.GetFrameNumber());

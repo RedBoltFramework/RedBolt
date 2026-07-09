@@ -56,8 +56,6 @@ sealed class FirstCubeApplication : Application
             Exit();
             return;
         }
-
-        Thread.Sleep(16);
     }
 
     private static string FindResourcePrefixPath()

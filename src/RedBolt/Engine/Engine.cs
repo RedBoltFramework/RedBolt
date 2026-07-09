@@ -5,8 +5,11 @@ namespace RedBolt;
 public sealed class Engine
 {
     private readonly Dictionary<string, object?> customParameters = new(StringComparer.Ordinal);
-    private readonly System.Diagnostics.Stopwatch frameClock = new();
+    private readonly HiresTimer frameTimer = new();
     private float? nextTimeStep;
+    private readonly List<float> lastTimeSteps = [];
+    private float currentTimeStep;
+    private long timeOut;
     private Context? previousContext;
     private readonly Context context = new();
 
@@ -74,7 +77,10 @@ public sealed class Engine
 
         IsInitialized = true;
         IsExiting = false;
-        frameClock.Restart();
+        currentTimeStep = 0.0f;
+        nextTimeStep = null;
+        lastTimeSteps.Clear();
+        frameTimer.Reset();
         Log.Logger.LogDebug("Engine initialized.");
         return true;
     }
@@ -91,19 +97,13 @@ public sealed class Engine
         var graphics = GetRequiredSubsystem<Graphics>();
         var renderer = GetRequiredSubsystem<Renderer>();
 
-        var timeStep = nextTimeStep ?? (float)frameClock.Elapsed.TotalSeconds;
+        var timeStep = nextTimeStep ?? currentTimeStep;
         nextTimeStep = null;
-        frameClock.Restart();
         if (timeStep < 0.0f)
             timeStep = 0.0f;
-        else if (timeStep > 0.25f)
-            timeStep = 0.25f;
 
         time.Advance(timeStep);
         SendBeginFrameEvent();
-
-        if (Parameters.TimeOut > 0 && time.ElapsedTime >= Parameters.TimeOut)
-            Exit();
 
         if (!IsHeadless)
         {
@@ -115,17 +115,20 @@ public sealed class Engine
 
         if (!IsExiting)
         {
-            SendCoreEvents(timeStep);
-            update(timeStep);
-        }
+            var shouldUpdate = IsHeadless || !PauseMinimized || !input.IsMinimized;
+            if (shouldUpdate)
+            {
+                SendCoreEvents(timeStep);
+                update(timeStep);
+            }
 
-        if (!IsHeadless && !IsExiting)
-        {
-            renderer.RenderFrame(graphics, beforePresent: null);
+            if (!IsHeadless)
+                renderer.RenderFrame(graphics, beforePresent: null);
         }
 
         context.SendEvent<CoreEvents.EndFrameEvent>();
         context.SendEvent<CoreEvents.EndFramePrivateEvent>();
+        ApplyFrameLimit();
     }
 
     public void Exit()
@@ -135,7 +138,7 @@ public sealed class Engine
 
     public void SetMinFps(int fps)
     {
-        MinFps = Math.Max(fps, 1);
+        MinFps = Math.Max(fps, 0);
     }
 
     public int GetMinFps() => MinFps;
@@ -156,7 +159,7 @@ public sealed class Engine
 
     public void SetTimeStepSmoothing(int frames)
     {
-        TimeStepSmoothing = Math.Max(frames, 1);
+        TimeStepSmoothing = Math.Clamp(frames, 1, 20);
     }
 
     public int GetTimeStepSmoothing() => TimeStepSmoothing;
@@ -225,7 +228,10 @@ public sealed class Engine
         IsExiting = false;
         IsHeadless = false;
         nextTimeStep = null;
-        frameClock.Reset();
+        currentTimeStep = 0.0f;
+        lastTimeSteps.Clear();
+        timeOut = 0;
+        frameTimer.Reset();
     }
 
     private void InitializeContext()
@@ -252,6 +258,7 @@ public sealed class Engine
             MaxFps = 0;
 
         ApplyConfiguredResourcePaths();
+        timeOut = (long)Parameters.TimeOut * 1_000_000L;
     }
 
     private void ApplyLiveParameter(string name)
@@ -369,5 +376,61 @@ public sealed class Engine
         return Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
             : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
+    }
+
+    private void ApplyFrameLimit()
+    {
+        uint maxFps = (uint)Math.Max(MaxFps, 0);
+        var input = Context.GetSubsystem<Input>();
+        if (input != null && !input.HasFocus)
+            maxFps = Math.Min((uint)Math.Max(MaxInactiveFps, 0), maxFps);
+
+        long elapsed = 0;
+
+        if (maxFps > 0)
+        {
+            long targetMax = 1_000_000L / maxFps;
+            while (true)
+            {
+                elapsed = frameTimer.GetUSec(false);
+                if (elapsed >= targetMax)
+                    break;
+
+                if (targetMax - elapsed >= 1000L)
+                {
+                    var sleepTime = (uint)((targetMax - elapsed) / 1000L);
+                    Time.Sleep(sleepTime);
+                }
+            }
+        }
+
+        elapsed = frameTimer.GetUSec(true);
+        if (timeOut > 0)
+        {
+            timeOut -= elapsed;
+            if (timeOut <= 0)
+                Exit();
+        }
+
+        if (MinFps > 0)
+        {
+            var targetMin = 1_000_000L / MinFps;
+            if (elapsed > targetMin)
+                elapsed = targetMin;
+        }
+
+        currentTimeStep = 0.0f;
+        lastTimeSteps.Add(elapsed / 1_000_000.0f);
+        if (lastTimeSteps.Count > TimeStepSmoothing)
+        {
+            lastTimeSteps.RemoveRange(0, TimeStepSmoothing);
+            foreach (var value in lastTimeSteps)
+                currentTimeStep += value;
+            currentTimeStep /= lastTimeSteps.Count;
+        }
+        else
+            currentTimeStep = lastTimeSteps[^1];
+
+        nextTimeStep = currentTimeStep;
     }
 }

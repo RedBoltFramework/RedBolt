@@ -24,6 +24,7 @@ sealed class StaticSceneApplication : Application
     private readonly byte[] gen1CollectionsLine = new byte[64];
     private readonly byte[] gen2CollectionsLine = new byte[64];
     private readonly byte[] totalAllocatedLine = new byte[64];
+    private readonly byte[] fpsLine = new byte[64];
     private long cachedHeapSizeBytes = -1;
     private int cachedGen0Collections = -1;
     private int cachedGen1Collections = -1;
@@ -110,8 +111,6 @@ sealed class StaticSceneApplication : Application
             Exit();
             return;
         }
-
-        Thread.Sleep(16);
     }
 
     protected override void Stop()
@@ -142,6 +141,8 @@ sealed class StaticSceneApplication : Application
             DrawStatLine(this.gen1CollectionsLine);
             DrawStatLine(this.gen2CollectionsLine);
             DrawStatLine(this.totalAllocatedLine);
+            UpdateFpsLine(this.fpsLine, "FPS: "u8, Context.GetSubsystem<EngineTime>()?.GetFramesPerSecond() ?? 0.0f);
+            DrawStatLine(this.fpsLine);
         }
 
         ImGui.End();
@@ -167,6 +168,19 @@ sealed class StaticSceneApplication : Application
 
         offset += written;
         " MB\0"u8.CopyTo(target[offset..]);
+    }
+
+    private static void UpdateFpsLine(byte[] buffer, ReadOnlySpan<byte> label, float fps)
+    {
+        var target = buffer.AsSpan();
+        label.CopyTo(target);
+        var offset = label.Length;
+        if (float.IsInfinity(fps))
+            "Infinity\0"u8.CopyTo(target[offset..]);
+        else if (!Utf8Formatter.TryFormat(fps, target[offset..], out var written, new StandardFormat('F', 1)))
+            throw new InvalidOperationException("Failed to format FPS value.");
+        else
+            "\0"u8.CopyTo(target[(offset + written)..]);
     }
 
     private static void UpdateIntegerLine(byte[] buffer, ReadOnlySpan<byte> label, ref int cachedValue, int value)
