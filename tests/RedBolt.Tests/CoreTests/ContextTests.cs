@@ -28,6 +28,26 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Interface_subsystem_lookup_does_not_allocate()
+    {
+        var context = new Context();
+        var subsystem = new TestInterfaceSubsystem();
+        context.RegisterSubsystem(subsystem);
+
+        Assert.Same(subsystem, context.GetSubsystem<ITestInterfaceSubsystem>());
+
+        for (var i = 0; i < 32; ++i)
+            _ = context.GetSubsystem<ITestInterfaceSubsystem>();
+
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1_000; ++i)
+            _ = context.GetSubsystem<ITestInterfaceSubsystem>();
+        allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytes;
+
+        Assert.Equal(0, allocatedBytes);
+    }
+
+    [Fact]
     public void Context_delivers_named_events_and_sender_filters()
     {
         var previousContext = Context.TryGetInstance();
@@ -397,6 +417,14 @@ public sealed class ContextTests
     }
 
     private sealed class TestObject : RedBolt.Object
+    {
+    }
+
+    private interface ITestInterfaceSubsystem
+    {
+    }
+
+    private sealed class TestInterfaceSubsystem : ITestInterfaceSubsystem
     {
     }
 

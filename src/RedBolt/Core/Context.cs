@@ -105,7 +105,13 @@ public sealed class Context
         if (subsystems.TryGetValue(typeof(T), out var subsystem))
             return (T)subsystem;
 
-        return subsystems.Values.OfType<T>().FirstOrDefault();
+        foreach (var registeredSubsystem in subsystems.Values)
+        {
+            if (registeredSubsystem is T typedSubsystem)
+                return typedSubsystem;
+        }
+
+        return null;
     }
 
     public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
