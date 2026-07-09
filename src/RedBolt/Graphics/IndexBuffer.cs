@@ -9,7 +9,7 @@ public enum IndexBufferType
 
 public sealed class IndexBuffer
 {
-    private uint[] unpackedData = [];
+    private uint[] _unpackedData = [];
 
     public uint IndexCount { get; private set; }
 
@@ -29,10 +29,10 @@ public sealed class IndexBuffer
     {
         minVertex = 0;
         vertexCount = 0;
-        if (start >= unpackedData.Length)
+        if (start >= _unpackedData.Length)
             return false;
 
-        var actualCount = Math.Min(count, (uint)unpackedData.Length - start);
+        var actualCount = Math.Min(count, (uint)_unpackedData.Length - start);
         if (actualCount == 0)
             return false;
 
@@ -40,7 +40,7 @@ public sealed class IndexBuffer
         var max = 0u;
         for (var i = 0u; i < actualCount; ++i)
         {
-            var index = unpackedData[(int)(start + i)];
+            var index = _unpackedData[(int)(start + i)];
             min = Math.Min(min, index);
             max = Math.Max(max, index);
         }
@@ -52,11 +52,11 @@ public sealed class IndexBuffer
 
     public IReadOnlyList<uint> GetUnpackedData(uint start = 0, uint count = uint.MaxValue)
     {
-        if (start >= unpackedData.Length)
+        if (start >= _unpackedData.Length)
             return Array.Empty<uint>();
 
-        var actualCount = Math.Min(count, (uint)unpackedData.Length - start);
-        return unpackedData.Skip((int)start).Take((int)actualCount).ToArray();
+        var actualCount = Math.Min(count, (uint)_unpackedData.Length - start);
+        return _unpackedData.Skip((int)start).Take((int)actualCount).ToArray();
     }
 
     public bool IsDynamicBuffer() => IsDynamic;
@@ -66,8 +66,8 @@ public sealed class IndexBuffer
         IndexCount = indexCount;
         LargeIndices = largeIndices;
         IsDynamic = dynamic;
-        if (unpackedData.Length != indexCount)
-            unpackedData = new uint[indexCount];
+        if (_unpackedData.Length != indexCount)
+            _unpackedData = new uint[indexCount];
     }
 
     public void SetShadowed(bool enable)
@@ -83,7 +83,7 @@ public sealed class IndexBuffer
         if (requiredSize > IndexCount)
             SetSize(requiredSize, LargeIndices, IsDynamic);
 
-        Array.Copy(source, 0, unpackedData, start, source.Length);
+        Array.Copy(source, 0, _unpackedData, start, source.Length);
     }
 
     public static IndexBufferType GetIndexBufferType(IndexBuffer? indexBuffer)

@@ -5,15 +5,15 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class StaticModelGroupTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public StaticModelGroupTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
         FirstCubeTestData.AddResourceDirs(Resources);
     }
 
-    private ResourceCache Resources => fixture.Resources;
+    private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
     public void Instance_nodes_work()

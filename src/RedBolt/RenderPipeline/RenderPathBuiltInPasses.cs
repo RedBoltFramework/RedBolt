@@ -7,16 +7,16 @@ public sealed class FullScreenShaderPass : RenderPass
 {
     private readonly record struct ParameterBinding(string Name, string ExternalName, object? DefaultValue);
 
-    private readonly Dictionary<string, object?> parameters = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, object?> currentParameters = new(StringComparer.Ordinal);
-    private readonly List<ParameterBinding> parameterBindings = [];
-    private string shaderName = string.Empty;
-    private string shaderDefines = string.Empty;
-    private BlendMode blendMode = BlendMode.Replace;
-    private bool needReadWriteColorOutput;
-    private bool bilinearColorSampler;
-    private bool disableOnDefaultParameters;
-    private string parametersPrefix = string.Empty;
+    private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, object?> _currentParameters = new(StringComparer.Ordinal);
+    private readonly List<ParameterBinding> _parameterBindings = [];
+    private string _shaderName = string.Empty;
+    private string _shaderDefines = string.Empty;
+    private BlendMode _blendMode = BlendMode.Replace;
+    private bool _needReadWriteColorOutput;
+    private bool _bilinearColorSampler;
+    private bool _disableOnDefaultParameters;
+    private string _parametersPrefix = string.Empty;
 
     public FullScreenShaderPass(string? passName = null)
         : base(passName)
@@ -24,49 +24,49 @@ public sealed class FullScreenShaderPass : RenderPass
         RegisterAttribute(
             "Shader Name",
             typeof(string),
-            self => ((FullScreenShaderPass)self).shaderName,
-            (self, value) => ((FullScreenShaderPass)self).shaderName = value as string ?? string.Empty,
+            self => ((FullScreenShaderPass)self)._shaderName,
+            (self, value) => ((FullScreenShaderPass)self)._shaderName = value as string ?? string.Empty,
             string.Empty);
         RegisterAttribute(
             "Shader Defines",
             typeof(string),
-            self => ((FullScreenShaderPass)self).shaderDefines,
-            (self, value) => ((FullScreenShaderPass)self).shaderDefines = value as string ?? string.Empty,
+            self => ((FullScreenShaderPass)self)._shaderDefines,
+            (self, value) => ((FullScreenShaderPass)self)._shaderDefines = value as string ?? string.Empty,
             string.Empty);
         RegisterAttribute(
             "Blend Mode",
             typeof(BlendMode),
-            self => ((FullScreenShaderPass)self).blendMode,
-            (self, value) => ((FullScreenShaderPass)self).blendMode = ParseBlendMode(value),
+            self => ((FullScreenShaderPass)self)._blendMode,
+            (self, value) => ((FullScreenShaderPass)self)._blendMode = ParseBlendMode(value),
             BlendMode.Replace);
         RegisterAttribute(
             "Read+Write Color Output",
             typeof(bool),
-            self => ((FullScreenShaderPass)self).needReadWriteColorOutput,
-            (self, value) => ((FullScreenShaderPass)self).needReadWriteColorOutput = value is bool enabled && enabled,
+            self => ((FullScreenShaderPass)self)._needReadWriteColorOutput,
+            (self, value) => ((FullScreenShaderPass)self)._needReadWriteColorOutput = value is bool enabled && enabled,
             false);
         RegisterAttribute(
             "Bilinear Color Sampler",
             typeof(bool),
-            self => ((FullScreenShaderPass)self).bilinearColorSampler,
-            (self, value) => ((FullScreenShaderPass)self).bilinearColorSampler = value is bool enabled && enabled,
+            self => ((FullScreenShaderPass)self)._bilinearColorSampler,
+            (self, value) => ((FullScreenShaderPass)self)._bilinearColorSampler = value is bool enabled && enabled,
             false);
         RegisterAttribute(
             "Disable On Default Parameters",
             typeof(bool),
-            self => ((FullScreenShaderPass)self).disableOnDefaultParameters,
-            (self, value) => ((FullScreenShaderPass)self).disableOnDefaultParameters = value is bool enabled && enabled,
+            self => ((FullScreenShaderPass)self)._disableOnDefaultParameters,
+            (self, value) => ((FullScreenShaderPass)self)._disableOnDefaultParameters = value is bool enabled && enabled,
             false);
         RegisterAttribute(
             "Parameters Prefix",
             typeof(string),
-            self => ((FullScreenShaderPass)self).parametersPrefix,
+            self => ((FullScreenShaderPass)self)._parametersPrefix,
             (self, value) => ((FullScreenShaderPass)self).SetParametersPrefix(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Parameters",
             typeof(Dictionary<string, object?>),
-            self => new Dictionary<string, object?>(((FullScreenShaderPass)self).parameters, StringComparer.Ordinal),
+            self => new Dictionary<string, object?>(((FullScreenShaderPass)self)._parameters, StringComparer.Ordinal),
             (self, value) => ((FullScreenShaderPass)self).SetParameters(value),
             null);
     }
@@ -75,7 +75,7 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         ArgumentNullException.ThrowIfNull(target);
 
-        foreach (var binding in parameterBindings)
+        foreach (var binding in _parameterBindings)
             DeclareParameter(binding.ExternalName, binding.DefaultValue, target);
     }
 
@@ -84,21 +84,21 @@ public sealed class FullScreenShaderPass : RenderPass
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(externalParameters);
 
-        currentParameters.Clear();
-        var shouldBeDisabled = disableOnDefaultParameters;
-        foreach (var binding in parameterBindings)
+        _currentParameters.Clear();
+        var shouldBeDisabled = _disableOnDefaultParameters;
+        foreach (var binding in _parameterBindings)
         {
             if (externalParameters.TryGetValue(binding.ExternalName, out var value))
             {
-                currentParameters[binding.Name] = value;
+                _currentParameters[binding.Name] = value;
                 if (shouldBeDisabled && !Equals(value, binding.DefaultValue))
                     shouldBeDisabled = false;
             }
             else
-                currentParameters[binding.Name] = binding.DefaultValue;
+                _currentParameters[binding.Name] = binding.DefaultValue;
         }
 
-        SetTraits(new RenderPassTraits(needReadWriteColorOutput, bilinearColorSampler));
+        SetTraits(new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler));
         SetInternallyEnabled(!shouldBeDisabled);
     }
 
@@ -106,33 +106,33 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         base.Render(sharedState);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrWhiteSpace(shaderName))
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrWhiteSpace(_shaderName))
             return;
 
-        if (needReadWriteColorOutput)
+        if (_needReadWriteColorOutput)
             renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
         renderBufferManager.SetOutputRenderTargets(graphics);
-        if (needReadWriteColorOutput)
+        if (_needReadWriteColorOutput)
         {
             renderBufferManager.DrawFeedbackViewportQuad(
                 graphics,
-                shaderName,
-                shaderDefines,
-                blendMode,
-                bilinearColorSampler,
-                currentParameters,
+                _shaderName,
+                _shaderDefines,
+                _blendMode,
+                _bilinearColorSampler,
+                _currentParameters,
                 GetComment());
         }
         else
         {
             renderBufferManager.DrawViewportQuad(
                 graphics,
-                shaderName,
-                shaderDefines,
-                blendMode,
-                bilinearColorSampler,
-                currentParameters,
+                _shaderName,
+                _shaderDefines,
+                _blendMode,
+                _bilinearColorSampler,
+                _currentParameters,
                 GetComment());
         }
     }
@@ -141,43 +141,43 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         var clone = new FullScreenShaderPass(GetPassName())
         {
-            shaderName = shaderName,
-            shaderDefines = shaderDefines,
-            blendMode = blendMode,
-            needReadWriteColorOutput = needReadWriteColorOutput,
-            bilinearColorSampler = bilinearColorSampler,
-            disableOnDefaultParameters = disableOnDefaultParameters,
-            parametersPrefix = parametersPrefix
+            _shaderName = _shaderName,
+            _shaderDefines = _shaderDefines,
+            _blendMode = _blendMode,
+            _needReadWriteColorOutput = _needReadWriteColorOutput,
+            _bilinearColorSampler = _bilinearColorSampler,
+            _disableOnDefaultParameters = _disableOnDefaultParameters,
+            _parametersPrefix = _parametersPrefix
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
-        clone.SetParameters(parameters);
+        clone.SetParameters(_parameters);
         return clone;
     }
 
     private void SetParameters(object? value)
     {
-        parameters.Clear();
-        parameterBindings.Clear();
+        _parameters.Clear();
+        _parameterBindings.Clear();
         if (value is not IReadOnlyDictionary<string, object?> values)
             return;
 
         foreach (var (name, parameterValue) in values)
-            parameters[name] = parameterValue;
+            _parameters[name] = parameterValue;
         RefreshParameterBindings();
     }
 
     private void SetParametersPrefix(string prefix)
     {
-        parametersPrefix = prefix;
+        _parametersPrefix = prefix;
         RefreshParameterBindings();
     }
 
     private void RefreshParameterBindings()
     {
-        parameterBindings.Clear();
-        foreach (var (name, defaultValue) in parameters)
-            parameterBindings.Add(new ParameterBinding(name, parametersPrefix + name, defaultValue));
+        _parameterBindings.Clear();
+        foreach (var (name, defaultValue) in _parameters)
+            _parameterBindings.Add(new ParameterBinding(name, _parametersPrefix + name, defaultValue));
     }
 
     private static BlendMode ParseBlendMode(object? value)
@@ -202,7 +202,7 @@ public sealed class ToneMappingPass : RenderPass
     private const string ModeMetadataName = "Tone Mapping: Mode@";
     private static readonly string[] ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
-    private Mode mode;
+    private Mode _mode;
 
     public ToneMappingPass(string? passName = null)
         : base(passName)
@@ -231,7 +231,7 @@ public sealed class ToneMappingPass : RenderPass
 
         SetInternallyEnabled(true);
         if (LoadParameter(ModeName, parameters) is int modeValue)
-            mode = (Mode)Math.Clamp(modeValue, 0, (int)Mode.Count);
+            _mode = (Mode)Math.Clamp(modeValue, 0, (int)Mode.Count);
     }
 
     public override void Render(SharedRenderPassState sharedState)
@@ -246,7 +246,7 @@ public sealed class ToneMappingPass : RenderPass
         renderBufferManager.DrawFeedbackViewportQuad(
             graphics,
             "P_ToneMapping",
-            GetModeDefines(mode),
+            GetModeDefines(_mode),
             BlendMode.Replace,
             bilinearColorSampler: true,
             parameters: EmptyParameters,
@@ -257,7 +257,7 @@ public sealed class ToneMappingPass : RenderPass
     {
         var clone = new ToneMappingPass(GetPassName())
         {
-            mode = mode
+            _mode = _mode
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
@@ -295,9 +295,9 @@ public sealed class AutoExposurePass : RenderPass
     private const string MinExposureName = "Exposure: Min";
     private const string MaxExposureName = "Exposure: Max";
     private const string AdaptRateName = "Exposure: Adapt Rate";
-    private Parameters currentParameters = new();
-    private CachedBuffers? cachedBuffers;
-    private bool isAdaptedLuminanceInitialized;
+    private Parameters _currentParameters = new();
+    private CachedBuffers? _cachedBuffers;
+    private bool _isAdaptedLuminanceInitialized;
 
     public AutoExposurePass(string? passName = null)
         : base(passName)
@@ -337,7 +337,7 @@ public sealed class AutoExposurePass : RenderPass
         if (RenderPathParameterHelpers.TryGetFloat(AdaptRateName, parameters, out var adaptRate))
             updated.AdaptRate = adaptRate;
 
-        currentParameters = updated;
+        _currentParameters = updated;
         SetInternallyEnabled(true);
     }
 
@@ -345,7 +345,7 @@ public sealed class AutoExposurePass : RenderPass
     {
         base.Update(sharedState);
 
-        if (currentParameters.AutoExposure)
+        if (_currentParameters.AutoExposure)
             EnsureCachedBuffers(sharedState);
     }
 
@@ -358,7 +358,7 @@ public sealed class AutoExposurePass : RenderPass
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
-        if (currentParameters.AutoExposure)
+        if (_currentParameters.AutoExposure)
         {
             var buffers = EnsureCachedBuffers(sharedState);
             if (buffers is null)
@@ -371,7 +371,7 @@ public sealed class AutoExposurePass : RenderPass
 
         var applyExposureParameters = new ApplyExposureParameters
         {
-            MinMaxExposure = new Vector2(currentParameters.MinExposure, currentParameters.MaxExposure),
+            MinMaxExposure = new Vector2(_currentParameters.MinExposure, _currentParameters.MaxExposure),
             AutoExposureMiddleGrey = 0.6f
         };
 
@@ -379,11 +379,11 @@ public sealed class AutoExposurePass : RenderPass
         graphics.DrawFullscreenQuad(
             "Apply exposure",
             "P_AutoExposure",
-            currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
+            _currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
             BlendMode.Replace,
             bilinearColorSampler: true,
             renderBufferManager.GetSecondaryColorTexture(),
-            secondaryTexture: currentParameters.AutoExposure ? cachedBuffers?.AdaptedLuminance.Texture : null,
+            secondaryTexture: _currentParameters.AutoExposure ? _cachedBuffers?.AdaptedLuminance.Texture : null,
             depthTexture: null,
             applyExposureParameters,
             renderBufferManager.GetInvOutputSize(),
@@ -394,7 +394,7 @@ public sealed class AutoExposurePass : RenderPass
     {
         var clone = new AutoExposurePass(GetPassName())
         {
-            currentParameters = currentParameters
+            _currentParameters = _currentParameters
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
@@ -450,7 +450,7 @@ public sealed class AutoExposurePass : RenderPass
         if (sharedState.RenderBufferManager is not { } manager)
             return null;
 
-        cachedBuffers ??= new CachedBuffers
+        _cachedBuffers ??= new CachedBuffers
         {
             Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(128, 128)),
             Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(64, 64)),
@@ -460,7 +460,7 @@ public sealed class AutoExposurePass : RenderPass
             AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2(1, 1)),
             PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2(1, 1))
         };
-        return cachedBuffers;
+        return _cachedBuffers;
     }
 
     private void EvaluateDownsampledColorBuffer(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
@@ -484,12 +484,12 @@ public sealed class AutoExposurePass : RenderPass
     private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
     {
         renderBufferManager.SetRenderTargets(graphics, buffers.PreviousAdaptedLuminance);
-        var previousSource = isAdaptedLuminanceInitialized ? buffers.AdaptedLuminance.Texture : buffers.Lum1.Texture;
+        var previousSource = _isAdaptedLuminanceInitialized ? buffers.AdaptedLuminance.Texture : buffers.Lum1.Texture;
         graphics.DrawCopyTexture(previousSource, bilinearFiltering: false);
 
         var adaptRateParameters = new AdaptRateParameters
         {
-            AdaptRate = currentParameters.AdaptRate
+            AdaptRate = _currentParameters.AdaptRate
         };
 
         renderBufferManager.SetRenderTargets(graphics, buffers.AdaptedLuminance);
@@ -506,7 +506,7 @@ public sealed class AutoExposurePass : RenderPass
             new Vector2(1.0f, 1.0f),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
-        isAdaptedLuminanceInitialized = true;
+        _isAdaptedLuminanceInitialized = true;
     }
 
     private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source,
@@ -547,10 +547,10 @@ public sealed class BloomPass : RenderPass
     private const string IterationFactorName = "Bloom: Iteration Intensity Factor";
     private static readonly Vector3 LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
     private static readonly Vector3 GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
-    private readonly List<TextureCache> textures = [];
-    private readonly List<float> intensityMultipliers = [];
-    private Parameters currentParameters = new();
-    private bool isHdr;
+    private readonly List<TextureCache> _textures = [];
+    private readonly List<float> _intensityMultipliers = [];
+    private Parameters _currentParameters = new();
+    private bool _isHdr;
 
     public BloomPass(string? passName = null)
         : base(passName)
@@ -587,10 +587,10 @@ public sealed class BloomPass : RenderPass
         if (RenderPathParameterHelpers.TryGetFloat(IterationFactorName, parameters, out var iterationFactor))
             updated.IterationFactor = iterationFactor;
 
-        if (currentParameters.NumIterations != updated.NumIterations)
+        if (_currentParameters.NumIterations != updated.NumIterations)
             InvalidateTextureCache();
 
-        currentParameters = updated;
+        _currentParameters = updated;
         SetInternallyEnabled(true);
     }
 
@@ -599,9 +599,9 @@ public sealed class BloomPass : RenderPass
         base.Update(sharedState);
 
         var nextHdr = sharedState.RenderBufferManager?.IsHDR() ?? false;
-        if (isHdr != nextHdr)
+        if (_isHdr != nextHdr)
         {
-            isHdr = nextHdr;
+            _isHdr = nextHdr;
             InvalidateTextureCache();
         }
 
@@ -616,28 +616,28 @@ public sealed class BloomPass : RenderPass
             return;
 
         RestoreTextureCache(sharedState);
-        if (textures.Count == 0)
+        if (_textures.Count == 0)
             return;
 
         var luminanceWeights = renderBufferManager.IsLinearColorSpace() ? LinearLuminanceWeights : GammaLuminanceWeights;
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
-        var numIterations = GatherBrightRegions(renderBufferManager, graphics, textures[0].Final, luminanceWeights);
+        var numIterations = GatherBrightRegions(renderBufferManager, graphics, _textures[0].Final, luminanceWeights);
         for (var i = 0u; i < numIterations; ++i)
         {
             if (i > 0)
-                CopyTexture(renderBufferManager, graphics, textures[(int)i - 1].Final, textures[(int)i].Final);
+                CopyTexture(renderBufferManager, graphics, _textures[(int)i - 1].Final, _textures[(int)i].Final);
 
-            BlurTexture(renderBufferManager, graphics, textures[(int)i].Final, textures[(int)i].Temporary, luminanceWeights);
+            BlurTexture(renderBufferManager, graphics, _textures[(int)i].Final, _textures[(int)i].Temporary, luminanceWeights);
         }
 
-        intensityMultipliers.Clear();
+        _intensityMultipliers.Clear();
         var totalIntensity = 0.0f;
         for (var i = 0u; i < numIterations; ++i)
         {
-            var intensity = MathF.Pow(currentParameters.IterationFactor, i);
-            intensityMultipliers.Add(intensity);
+            var intensity = MathF.Pow(_currentParameters.IterationFactor, i);
+            _intensityMultipliers.Add(intensity);
             totalIntensity += intensity;
         }
 
@@ -646,10 +646,10 @@ public sealed class BloomPass : RenderPass
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
         renderBufferManager.SetOutputRenderTargets(graphics);
-        for (var i = 0; i < intensityMultipliers.Count; ++i)
+        for (var i = 0; i < _intensityMultipliers.Count; ++i)
         {
-            var normalizedIntensity = intensityMultipliers[i] * currentParameters.Intensity / totalIntensity;
-            ApplyBloom(renderBufferManager, graphics, textures[i].Final, normalizedIntensity);
+            var normalizedIntensity = _intensityMultipliers[i] * _currentParameters.Intensity / totalIntensity;
+            ApplyBloom(renderBufferManager, graphics, _textures[i].Final, normalizedIntensity);
         }
     }
 
@@ -657,7 +657,7 @@ public sealed class BloomPass : RenderPass
     {
         var clone = new BloomPass(GetPassName())
         {
-            currentParameters = currentParameters
+            _currentParameters = _currentParameters
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
@@ -700,20 +700,20 @@ public sealed class BloomPass : RenderPass
 
     private void InvalidateTextureCache()
     {
-        textures.Clear();
+        _textures.Clear();
     }
 
     private void RestoreTextureCache(SharedRenderPassState sharedState)
     {
-        if (textures.Count > 0 || sharedState.RenderBufferManager is not { } renderBufferManager)
+        if (_textures.Count > 0 || sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
-        for (var i = 0u; i < currentParameters.NumIterations; ++i)
+        for (var i = 0u; i < _currentParameters.NumIterations; ++i)
         {
-            var format = isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
+            var format = _isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
             var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
             var sizeMultiplier = Vector2.One / (1u << (int)i);
-            textures.Add(new TextureCache
+            _textures.Add(new TextureCache
             {
                 Final = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
                 Temporary = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier)
@@ -751,13 +751,13 @@ public sealed class BloomPass : RenderPass
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
         var numIterations = 0u;
-        while (minDimension > 1 && numIterations < currentParameters.NumIterations)
+        while (minDimension > 1 && numIterations < _currentParameters.NumIterations)
         {
             minDimension >>= 1;
             ++numIterations;
         }
 
-        return Math.Clamp(numIterations, 1u, currentParameters.NumIterations);
+        return Math.Clamp(numIterations, 1u, _currentParameters.NumIterations);
     }
 
     private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
@@ -824,13 +824,13 @@ public sealed class BloomPass : RenderPass
 
     private BloomParameters CreateBloomParameters(Vector3 luminanceWeights, float intensity, Vector2 inputInvSize)
     {
-        var thresholdGap = Math.Max(0.01f, currentParameters.MaxBrightness - currentParameters.MinBrightness);
+        var thresholdGap = Math.Max(0.01f, _currentParameters.MaxBrightness - _currentParameters.MinBrightness);
         return new BloomParameters
         {
             LuminanceWeights = luminanceWeights,
             Intensity = intensity,
             InputInvSize = inputInvSize,
-            Threshold = new Vector2(currentParameters.MinBrightness, 1.0f / thresholdGap)
+            Threshold = new Vector2(_currentParameters.MinBrightness, 1.0f / thresholdGap)
         };
     }
 }
@@ -858,9 +858,9 @@ public sealed class AmbientOcclusionPass : RenderPass
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
     private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
-    private RenderBuffer? normalBuffer;
-    private TextureCache? textures;
-    private Parameters currentParameters = new();
+    private RenderBuffer? _normalBuffer;
+    private TextureCache? _textures;
+    private Parameters _currentParameters = new();
 
     public AmbientOcclusionPass(string? passName = null)
         : base(passName)
@@ -915,10 +915,10 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (RenderPathParameterHelpers.TryGetFloat(BlurNormalThresholdName, parameters, out var blurNormalThreshold))
             updated.BlurNormalThreshold = blurNormalThreshold;
 
-        if (currentParameters.Downscale != updated.Downscale)
+        if (_currentParameters.Downscale != updated.Downscale)
             InvalidateTextureCache();
 
-        currentParameters = updated;
+        _currentParameters = updated;
         SetInternallyEnabled(true);
     }
 
@@ -932,18 +932,18 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
         base.Render(sharedState);
 
-        ConnectToRenderBuffer(ref normalBuffer, SharedRenderPassState.NormalBufferId, sharedState, required: false);
+        ConnectToRenderBuffer(ref _normalBuffer, SharedRenderPassState.NormalBufferId, sharedState, required: false);
 
         if (sharedState.RenderBufferManager is not { } renderBufferManager
             || sharedState.Graphics is not { } graphics
             || sharedState.RenderCamera is not { } camera
-            || currentParameters.Strength <= 0.0f)
+            || _currentParameters.Strength <= 0.0f)
         {
             return;
         }
 
         RestoreTextureCache(sharedState);
-        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
         var depthTexture = renderBufferManager.GetDepthStencilTexture();
@@ -966,7 +966,7 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
         var clone = new AmbientOcclusionPass(GetPassName())
         {
-            currentParameters = currentParameters
+            _currentParameters = _currentParameters
         };
         clone.SetEnabledByDefault(IsEnabledByDefault());
         clone.SetComment(GetComment());
@@ -1039,18 +1039,18 @@ public sealed class AmbientOcclusionPass : RenderPass
 
     private void InvalidateTextureCache()
     {
-        textures = null;
+        _textures = null;
     }
 
     private void RestoreTextureCache(SharedRenderPassState sharedState)
     {
-        if (textures is not null || sharedState.RenderBufferManager is not { } renderBufferManager)
+        if (_textures is not null || sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
         var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
-        var sizeMultiplier = Vector2.One / (1u << (int)currentParameters.Downscale);
+        var sizeMultiplier = Vector2.One / (1u << (int)_currentParameters.Downscale);
         var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
-        textures = new TextureCache
+        _textures = new TextureCache
         {
             Noise = resourceCache?.GetResourceOrNull<Texture2D>("Textures/SSAONoise.png"),
             CurrentTarget = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
@@ -1061,62 +1061,62 @@ public sealed class AmbientOcclusionPass : RenderPass
     private void EvaluateAO(RenderBufferManager renderBufferManager, Graphics graphics, Camera camera, Texture depthTexture,
         Matrix4 viewToTextureSpace, Matrix4 textureToViewSpace)
     {
-        if (textures?.CurrentTarget is null)
+        if (_textures?.CurrentTarget is null)
             return;
 
         var inputInvSize = renderBufferManager.GetInvOutputSize();
         var worldToViewSpace = camera.GetView().Matrix4;
         var worldToViewSpaceCorrected = camera.GetFlipVertical() ? FlipMatrix * worldToViewSpace : worldToViewSpace;
 
-        var radiusSlope = (currentParameters.RadiusFar - currentParameters.RadiusNear)
-            / Math.Max(1.0f, currentParameters.DistanceFar - currentParameters.DistanceNear);
+        var radiusSlope = (_currentParameters.RadiusFar - _currentParameters.RadiusNear)
+            / Math.Max(1.0f, _currentParameters.DistanceFar - _currentParameters.DistanceNear);
         var radiusInfo = new Vector4(
             radiusSlope,
-            currentParameters.RadiusNear - radiusSlope * currentParameters.DistanceNear,
-            currentParameters.RadiusNear,
-            currentParameters.RadiusFar);
+            _currentParameters.RadiusNear - radiusSlope * _currentParameters.DistanceNear,
+            _currentParameters.RadiusNear,
+            _currentParameters.RadiusFar);
 
         var ambientOcclusionParameters = new AmbientOcclusionParameters
         {
             InputInvSize = inputInvSize,
             BlurStep = inputInvSize,
-            Strength = currentParameters.Strength,
-            Exponent = currentParameters.Exponent,
+            Strength = _currentParameters.Strength,
+            Exponent = _currentParameters.Exponent,
             RadiusInfo = radiusInfo,
-            FadeDistance = new Vector2(currentParameters.FadeDistanceBegin, currentParameters.FadeDistanceEnd),
+            FadeDistance = new Vector2(_currentParameters.FadeDistanceBegin, _currentParameters.FadeDistanceEnd),
             ViewToTexture = viewToTextureSpace,
             TextureToView = textureToViewSpace,
             WorldToView = worldToViewSpaceCorrected
         };
 
-        renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
+        renderBufferManager.SetRenderTargets(graphics, _textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             "Apply SSAO",
             "P_SSAO",
-            normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
+            _normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
             BlendMode.Replace,
             bilinearColorSampler: true,
-            textures.Noise,
-            secondaryTexture: normalBuffer?.GetTexture(),
+            _textures.Noise,
+            secondaryTexture: _normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
             ambientOcclusionParameters,
             inputInvSize,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
-        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+        (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
     }
 
     private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture, Matrix4 textureToViewSpace)
     {
-        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
-        var textureSize = new IntVector2(textures.CurrentTarget.Texture.Width, textures.CurrentTarget.Texture.Height);
+        var textureSize = new IntVector2(_textures.CurrentTarget.Texture.Width, _textures.CurrentTarget.Texture.Height);
         var blurStep = new Vector2(
             textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
             textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
 
-        var shaderDefines = normalBuffer is not null ? "BLUR DEFERRED" : "BLUR";
+        var shaderDefines = _normalBuffer is not null ? "BLUR DEFERRED" : "BLUR";
         BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(blurStep.X, 0.0f), shaderDefines, "SSAO Blur Horizontally");
         BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
     }
@@ -1124,37 +1124,37 @@ public sealed class AmbientOcclusionPass : RenderPass
     private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture,
         Matrix4 textureToViewSpace, Vector2 blurStep, string shaderDefines, string debugComment)
     {
-        if (textures?.CurrentTarget is null || textures.PreviousTarget is null)
+        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
         var blurParameters = new AmbientOcclusionParameters
         {
             BlurStep = blurStep,
-            BlurZThreshold = currentParameters.BlurDepthThreshold,
-            BlurNormalInvThreshold = 1.0f - currentParameters.BlurNormalThreshold,
+            BlurZThreshold = _currentParameters.BlurDepthThreshold,
+            BlurNormalInvThreshold = 1.0f - _currentParameters.BlurNormalThreshold,
             TextureToView = textureToViewSpace
         };
 
-        renderBufferManager.SetRenderTargets(graphics, textures.CurrentTarget);
+        renderBufferManager.SetRenderTargets(graphics, _textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             debugComment,
             "P_SSAO",
             shaderDefines,
             BlendMode.Replace,
             bilinearColorSampler: true,
-            textures.PreviousTarget.Texture,
-            secondaryTexture: normalBuffer?.GetTexture(),
+            _textures.PreviousTarget.Texture,
+            secondaryTexture: _normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
             blurParameters,
             blurStep,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
-        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+        (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
     }
 
     private void Blit(RenderBufferManager renderBufferManager, Graphics graphics)
     {
-        if (textures?.PreviousTarget is null)
+        if (_textures?.PreviousTarget is null)
             return;
 
         renderBufferManager.SetOutputRenderTargets(graphics);
@@ -1164,7 +1164,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             "COMBINE",
             BlendMode.Alpha,
             bilinearColorSampler: true,
-            textures.PreviousTarget.Texture,
+            _textures.PreviousTarget.Texture,
             secondaryTexture: null,
             depthTexture: null,
             EmptyParameters,
@@ -1180,7 +1180,7 @@ public sealed class OutlineRenderPass : RenderPass
 {
     private const string DefaultComment = "Draw outline of the contents of the color buffer";
     public static readonly StringHash ColorBufferId = "outline";
-    private RenderBuffer? colorBuffer;
+    private RenderBuffer? _colorBuffer;
 
     public OutlineRenderPass(string? passName = null)
         : base(passName)
@@ -1192,9 +1192,9 @@ public sealed class OutlineRenderPass : RenderPass
     {
         base.Render(sharedState);
 
-        ConnectToRenderBuffer(ref colorBuffer, ColorBufferId, sharedState, required: false);
+        ConnectToRenderBuffer(ref _colorBuffer, ColorBufferId, sharedState, required: false);
 
-        if (colorBuffer?.GetTexture() is not Texture texture
+        if (_colorBuffer?.GetTexture() is not Texture texture
             || sharedState.RenderBufferManager is not { } renderBufferManager
             || sharedState.Graphics is not { } graphics)
         {

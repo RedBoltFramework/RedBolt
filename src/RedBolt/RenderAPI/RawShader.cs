@@ -8,12 +8,12 @@ namespace RedBolt;
 /// pipeline state. Shader handle is null if shader is not loaded or failed to load.</summary>
 public class RawShader : DeviceObject
 {
-    private IShader? handle;
-    private ShaderBytecode bytecode;
+    private IShader? _handle;
+    private ShaderBytecode _bytecode;
 
     protected RawShader(ShaderType type)
     {
-        bytecode = new ShaderBytecode(type);
+        _bytecode = new ShaderBytecode(type);
     }
 
     public RawShader(ShaderBytecode bytecode)
@@ -31,7 +31,7 @@ public class RawShader : DeviceObject
     public override void Restore()
     {
         base.Restore();
-        if (handle is null || handle.IsNull)
+        if (_handle is null || _handle.IsNull)
             CreateGPU();
     }
 
@@ -41,20 +41,20 @@ public class RawShader : DeviceObject
         DestroyGPU();
     }
 
-    public ShaderBytecode GetBytecode() => new(bytecode);
+    public ShaderBytecode GetBytecode() => new(_bytecode);
 
-    public ShaderType GetShaderType() => bytecode.Type;
+    public ShaderType GetShaderType() => _bytecode.Type;
 
-    public IShader? GetHandle() => handle;
+    public IShader? GetHandle() => _handle;
 
     /// <summary>Create shader from platform-specific binary.</summary>
     public void CreateFromBinary(ShaderBytecode bytecode)
     {
         ArgumentNullException.ThrowIfNull(bytecode);
-        if (bytecode.Type != this.bytecode.Type)
+        if (bytecode.Type != this._bytecode.Type)
             throw new InvalidOperationException("Shader bytecode type does not match shader type.");
 
-        this.bytecode = new ShaderBytecode(bytecode);
+        this._bytecode = new ShaderBytecode(bytecode);
         CreateGPU();
     }
 
@@ -62,7 +62,7 @@ public class RawShader : DeviceObject
     {
         DestroyGPU();
 
-        if (bytecode.IsEmpty())
+        if (_bytecode.IsEmpty())
             return;
 
         var graphics = GetSubsystem<Graphics>();
@@ -75,7 +75,7 @@ public class RawShader : DeviceObject
         using var shaderDesc = new ShaderDesc
         {
             Name = shaderName.Pointer,
-            ShaderType = ToNativeShaderType(bytecode.Type),
+            ShaderType = ToNativeShaderType(_bytecode.Type),
             UseCombinedTextureSamplers = true
         };
         using var shaderCreateInfo = new ShaderCreateInfo
@@ -85,12 +85,12 @@ public class RawShader : DeviceObject
             LoadConstantBufferReflection = true
         };
 
-        if (string.Equals(bytecode.Mime, "application/glsl", StringComparison.Ordinal))
+        if (string.Equals(_bytecode.Mime, "application/glsl", StringComparison.Ordinal))
         {
-            using var source = new PinnedUtf8(Encoding.UTF8.GetString(bytecode.Bytecode));
+            using var source = new PinnedUtf8(Encoding.UTF8.GetString(_bytecode.Bytecode));
             shaderCreateInfo.Source = source.Pointer;
             shaderCreateInfo.SourceLanguage = ShaderSourceLanguage.ShaderSourceLanguageGlslVerbatim;
-            device.CreateShader(shaderCreateInfo, out handle, out var compilerOutput);
+            device.CreateShader(shaderCreateInfo, out _handle, out var compilerOutput);
             ReleaseIfNotNull(compilerOutput);
         }
         else
@@ -98,10 +98,10 @@ public class RawShader : DeviceObject
             var pinnedBytecode = default(GCHandle);
             try
             {
-                pinnedBytecode = GCHandle.Alloc(bytecode.Bytecode, GCHandleType.Pinned);
+                pinnedBytecode = GCHandle.Alloc(_bytecode.Bytecode, GCHandleType.Pinned);
                 shaderCreateInfo.ByteCode = pinnedBytecode.AddrOfPinnedObject();
-                shaderCreateInfo.ByteCodeSize = (nuint)bytecode.Bytecode.Length;
-                device.CreateShader(shaderCreateInfo, out handle, out var compilerOutput);
+                shaderCreateInfo.ByteCodeSize = (nuint)_bytecode.Bytecode.Length;
+                device.CreateShader(shaderCreateInfo, out _handle, out var compilerOutput);
                 ReleaseIfNotNull(compilerOutput);
             }
             finally
@@ -111,14 +111,14 @@ public class RawShader : DeviceObject
             }
         }
 
-        if (handle is { IsNull: true })
-            handle = null;
+        if (_handle is { IsNull: true })
+            _handle = null;
     }
 
     protected void DestroyGPU()
     {
-        ReleaseIfNotNull(handle);
-        handle = null;
+        ReleaseIfNotNull(_handle);
+        _handle = null;
     }
 
     private static RedBolt.Bindings.Diligent.ShaderType ToNativeShaderType(ShaderType shaderType) => shaderType switch

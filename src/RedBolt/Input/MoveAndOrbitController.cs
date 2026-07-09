@@ -21,10 +21,10 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     public const string ActionLookUp = "LookUp";
     public const string ActionLookDown = "LookDown";
 
-    private Input? input;
-    private InputMap? inputMap;
-    private MoveAndOrbitComponent? component;
-    private bool connectToComponentCalled;
+    private Input? _input;
+    private InputMap? _inputMap;
+    private MoveAndOrbitComponent? _component;
+    private bool _connectToComponentCalled;
 
     public MoveAndOrbitController()
     {
@@ -43,60 +43,60 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
 
     public void SetInput(Input? input)
     {
-        this.input = input;
-        if (inputMap is not null)
-            inputMap.SetInput(input);
+        this._input = input;
+        if (_inputMap is not null)
+            _inputMap.SetInput(input);
     }
 
-    public Input? GetInput() => input;
+    public Input? GetInput() => _input;
 
     public void SetInputMap(InputMap? inputMap)
     {
-        this.inputMap = inputMap;
-        if (this.inputMap is not null)
-            this.inputMap.SetInput(input);
+        this._inputMap = inputMap;
+        if (this._inputMap is not null)
+            this._inputMap.SetInput(_input);
     }
 
-    public InputMap? GetInputMap() => inputMap;
+    public InputMap? GetInputMap() => _inputMap;
 
     public void SetInputMapAttr(ResourceRef value)
     {
         if (ResourceRef.IsNullOrEmpty(value))
         {
-            inputMap = null;
+            _inputMap = null;
             return;
         }
 
-        inputMap = new InputMap(value.Name, input);
+        _inputMap = new InputMap(value.Name, _input);
     }
 
     public ResourceRef GetInputMapAttr()
     {
-        return inputMap is null
+        return _inputMap is null
             ? ResourceRef.Empty
-            : new ResourceRef(StringHash.Calculate(nameof(InputMap)), inputMap.Name);
+            : new ResourceRef(StringHash.Calculate(nameof(InputMap)), _inputMap.Name);
     }
 
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
-        connectToComponentCalled = false;
+        _connectToComponentCalled = false;
         if (currentNode is null)
-            component = null;
+            _component = null;
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {
-        if (!IsEnabledEffective || input is null)
+        if (!IsEnabledEffective || _input is null)
             return;
 
-        if (!connectToComponentCalled)
+        if (!_connectToComponentCalled)
             ConnectToComponent();
 
-        if (component is null)
+        if (_component is null)
             return;
 
-        var yaw = component.GetYaw();
-        var pitch = component.GetPitch();
+        var yaw = _component.GetYaw();
+        var pitch = _component.GetPitch();
         var originalYaw = yaw;
         var originalPitch = pitch;
 
@@ -109,23 +109,23 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
         yaw += turnRight * axisSensitivity * timeStep;
         pitch += lookDown * axisSensitivity * timeStep;
 
-        if (input.MouseMode != MouseMode.Free || input.GetMouseButtonDown(MouseButton.Right))
+        if (_input.MouseMode != MouseMode.Free || _input.GetMouseButtonDown(MouseButton.Right))
         {
             var sensitivity = GetSensitivity(MouseSensitivityMetadata, DefaultMouseSensitivity);
-            var mouseMove = input.GetMouseMove();
+            var mouseMove = _input.GetMouseMove();
             yaw += mouseMove.X * sensitivity;
             pitch += mouseMove.Y * sensitivity;
         }
 
         pitch = MathDefs.Clamp(pitch, -90.0f, 90.0f);
         if (!MathDefs.ApproximatelyEquivalent(originalYaw, yaw))
-            component.SetYaw(yaw);
+            _component.SetYaw(yaw);
         if (!MathDefs.ApproximatelyEquivalent(originalPitch, pitch))
-            component.SetPitch(pitch);
+            _component.SetPitch(pitch);
 
         var velocity = new Vector3(MathDefs.Clamp(right, -1.0f, 1.0f), 0.0f, MathDefs.Clamp(forward, -1.0f, 1.0f));
-        if (!component.GetVelocity().ApproximatelyEquivalent(velocity))
-            component.SetVelocity(velocity);
+        if (!_component.GetVelocity().ApproximatelyEquivalent(velocity))
+            _component.SetVelocity(velocity);
     }
 
     void ISceneUpdateListener.OnScenePostUpdate(float timeStep)
@@ -134,18 +134,18 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
 
     private void ConnectToComponent()
     {
-        component = IsAttached ? Node.GetDerivedComponent<MoveAndOrbitComponent>() : null;
-        connectToComponentCalled = true;
+        _component = IsAttached ? Node.GetDerivedComponent<MoveAndOrbitComponent>() : null;
+        _connectToComponentCalled = true;
     }
 
     private float Evaluate(string action)
     {
-        return input is not null && inputMap is not null ? inputMap.Evaluate(action, input) : 0.0f;
+        return _input is not null && _inputMap is not null ? _inputMap.Evaluate(action, _input) : 0.0f;
     }
 
     private float GetSensitivity(string key, float defaultValue)
     {
-        if (inputMap?.GetMetadata(key) is float sensitivity && !MathDefs.ApproximatelyEquivalent(sensitivity, 0.0f))
+        if (_inputMap?.GetMetadata(key) is float sensitivity && !MathDefs.ApproximatelyEquivalent(sensitivity, 0.0f))
             return sensitivity;
 
         return defaultValue;

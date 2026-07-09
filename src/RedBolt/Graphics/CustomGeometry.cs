@@ -18,62 +18,62 @@ public sealed class CustomGeometry : Drawable
     private const uint MaskTangent = 1u << 4;
     private static readonly uint MaterialType = StringHash.Calculate("Material");
 
-    private readonly List<PrimitiveType> primitiveTypes = [];
-    private readonly List<List<CustomGeometryVertex>> vertices = [];
-    private readonly List<Geometry> geometries = [];
-    private readonly List<Material?> materials = [];
-    private readonly VertexBuffer vertexBuffer = new();
-    private uint elementMask = MaskPosition;
-    private uint geometryIndex;
-    private ResourceRefList materialsAttr = new(MaterialType);
-    private bool materialsAttrExplicit;
+    private readonly List<PrimitiveType> _primitiveTypes = [];
+    private readonly List<List<CustomGeometryVertex>> _vertices = [];
+    private readonly List<Geometry> _geometries = [];
+    private readonly List<Material?> _materials = [];
+    private readonly VertexBuffer _vertexBuffer = new();
+    private uint _elementMask = MaskPosition;
+    private uint _geometryIndex;
+    private ResourceRefList _materialsAttr = new(MaterialType);
+    private bool _materialsAttrExplicit;
 
     public CustomGeometry()
         : base(DrawableFlags.Geometry)
     {
-        vertexBuffer.SetShadowed(true);
+        _vertexBuffer.SetShadowed(true);
         SetNumGeometries(1u);
         SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
 
     public bool Dynamic { get; private set; }
 
-    public uint ElementMask => elementMask;
+    public uint ElementMask => _elementMask;
 
     public void Clear()
     {
-        elementMask = MaskPosition;
-        geometryIndex = 0u;
-        primitiveTypes.Clear();
-        vertices.Clear();
-        geometries.Clear();
-        materials.Clear();
-        materialsAttr = new ResourceRefList(MaterialType);
-        materialsAttrExplicit = false;
+        _elementMask = MaskPosition;
+        _geometryIndex = 0u;
+        _primitiveTypes.Clear();
+        _vertices.Clear();
+        _geometries.Clear();
+        _materials.Clear();
+        _materialsAttr = new ResourceRefList(MaterialType);
+        _materialsAttrExplicit = false;
         SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
 
     public void SetNumGeometries(uint num)
     {
-        while (geometries.Count < num)
+        while (_geometries.Count < num)
         {
-            geometries.Add(new Geometry());
-            primitiveTypes.Add(PrimitiveType.TriangleList);
-            vertices.Add([]);
-            materials.Add(null);
+            _geometries.Add(new Geometry());
+            _primitiveTypes.Add(PrimitiveType.TriangleList);
+            _vertices.Add([]);
+            _materials.Add(null);
         }
 
-        while (geometries.Count > num)
+        while (_geometries.Count > num)
         {
-            var index = geometries.Count - 1;
-            geometries.RemoveAt(index);
-            primitiveTypes.RemoveAt(index);
-            vertices.RemoveAt(index);
-            materials.RemoveAt(index);
+            var index = _geometries.Count - 1;
+            _geometries.RemoveAt(index);
+            _primitiveTypes.RemoveAt(index);
+            _vertices.RemoveAt(index);
+            _materials.RemoveAt(index);
         }
 
-        if (geometryIndex >= geometries.Count)
-            geometryIndex = geometries.Count == 0 ? 0u : (uint)geometries.Count - 1u;
+        if (_geometryIndex >= _geometries.Count)
+            _geometryIndex = _geometries.Count == 0 ? 0u : (uint)_geometries.Count - 1u;
     }
 
     public void SetDynamic(bool enable)
@@ -83,23 +83,23 @@ public sealed class CustomGeometry : Drawable
 
     public bool BeginGeometry(uint index, PrimitiveType type)
     {
-        if (index >= geometries.Count)
+        if (index >= _geometries.Count)
             return false;
 
-        geometryIndex = index;
-        primitiveTypes[(int)index] = type;
-        vertices[(int)index].Clear();
+        _geometryIndex = index;
+        _primitiveTypes[(int)index] = type;
+        _vertices[(int)index].Clear();
         if (index == 0u)
-            elementMask = MaskPosition;
+            _elementMask = MaskPosition;
         return true;
     }
 
     public void DefineVertex(Vector3 position)
     {
-        if (geometryIndex >= vertices.Count)
+        if (_geometryIndex >= _vertices.Count)
             return;
 
-        vertices[(int)geometryIndex].Add(new CustomGeometryVertex { Position = position });
+        _vertices[(int)_geometryIndex].Add(new CustomGeometryVertex { Position = position });
     }
 
     public void DefineNormal(Vector3 normal)
@@ -108,7 +108,7 @@ public sealed class CustomGeometry : Drawable
             return;
 
         vertex.Normal = normal;
-        elementMask |= MaskNormal;
+        _elementMask |= MaskNormal;
     }
 
     public void DefineColor(Color color)
@@ -122,7 +122,7 @@ public sealed class CustomGeometry : Drawable
             return;
 
         vertex.Color = color;
-        elementMask |= MaskColor;
+        _elementMask |= MaskColor;
     }
 
     public void DefineTexCoord(Vector2 texCoord)
@@ -131,7 +131,7 @@ public sealed class CustomGeometry : Drawable
             return;
 
         vertex.TexCoord = texCoord;
-        elementMask |= MaskTexCoord;
+        _elementMask |= MaskTexCoord;
     }
 
     public void DefineTangent(Vector4 tangent)
@@ -140,30 +140,30 @@ public sealed class CustomGeometry : Drawable
             return;
 
         vertex.Tangent = tangent;
-        elementMask |= MaskTangent;
+        _elementMask |= MaskTangent;
     }
 
     public bool DefineGeometry(uint index, PrimitiveType type, uint numVertices, bool hasNormals, bool hasColors, bool hasTexCoords, bool hasTangents)
     {
-        if (index >= geometries.Count)
+        if (index >= _geometries.Count)
             return false;
 
-        geometryIndex = index;
-        primitiveTypes[(int)index] = type;
-        vertices[(int)index].Clear();
+        _geometryIndex = index;
+        _primitiveTypes[(int)index] = type;
+        _vertices[(int)index].Clear();
         for (var i = 0u; i < numVertices; ++i)
-            vertices[(int)index].Add(new CustomGeometryVertex());
+            _vertices[(int)index].Add(new CustomGeometryVertex());
 
         if (index == 0u)
-            elementMask = MaskPosition;
+            _elementMask = MaskPosition;
         if (hasNormals)
-            elementMask |= MaskNormal;
+            _elementMask |= MaskNormal;
         if (hasColors)
-            elementMask |= MaskColor;
+            _elementMask |= MaskColor;
         if (hasTexCoords)
-            elementMask |= MaskTexCoord;
+            _elementMask |= MaskTexCoord;
         if (hasTangents)
-            elementMask |= MaskTangent;
+            _elementMask |= MaskTangent;
         return true;
     }
 
@@ -172,7 +172,7 @@ public sealed class CustomGeometry : Drawable
         var totalVertices = 0u;
         var box = new BoundingBox();
         box.Clear();
-        foreach (var geometryVertices in vertices)
+        foreach (var geometryVertices in _vertices)
         {
             totalVertices += (uint)geometryVertices.Count;
             foreach (var vertex in geometryVertices)
@@ -180,64 +180,64 @@ public sealed class CustomGeometry : Drawable
         }
 
         SetLocalBoundingBox(box);
-        var vertexSize = GetVertexSize(elementMask);
-        vertexBuffer.SetSize(totalVertices, vertexSize, Dynamic);
-        vertexBuffer.SetData(GetPackedVertexData());
+        var vertexSize = GetVertexSize(_elementMask);
+        _vertexBuffer.SetSize(totalVertices, vertexSize, Dynamic);
+        _vertexBuffer.SetData(GetPackedVertexData());
 
         var vertexStart = 0u;
-        for (var i = 0; i < geometries.Count; ++i)
+        for (var i = 0; i < _geometries.Count; ++i)
         {
-            var vertexCount = (uint)vertices[i].Count;
-            geometries[i].SetVertexBuffer(0u, vertexBuffer);
-            geometries[i].SetDrawRange(primitiveTypes[i], 0u, 0u, vertexStart, vertexCount);
+            var vertexCount = (uint)_vertices[i].Count;
+            _geometries[i].SetVertexBuffer(0u, _vertexBuffer);
+            _geometries[i].SetDrawRange(_primitiveTypes[i], 0u, 0u, vertexStart, vertexCount);
             vertexStart += vertexCount;
         }
     }
 
     public void SetMaterial(Material? material)
     {
-        for (var i = 0; i < materials.Count; ++i)
-            materials[i] = material;
-        materialsAttrExplicit = false;
+        for (var i = 0; i < _materials.Count; ++i)
+            _materials[i] = material;
+        _materialsAttrExplicit = false;
     }
 
     public bool SetMaterial(uint index, Material? material)
     {
-        if (index >= materials.Count)
+        if (index >= _materials.Count)
             return false;
 
-        materials[(int)index] = material;
-        materialsAttrExplicit = false;
+        _materials[(int)index] = material;
+        _materialsAttrExplicit = false;
         return true;
     }
 
-    public uint GetNumGeometries() => (uint)geometries.Count;
+    public uint GetNumGeometries() => (uint)_geometries.Count;
 
-    public uint GetNumVertices(uint index) => index < vertices.Count ? (uint)vertices[(int)index].Count : 0u;
+    public uint GetNumVertices(uint index) => index < _vertices.Count ? (uint)_vertices[(int)index].Count : 0u;
 
     public bool IsDynamic() => Dynamic;
 
-    public Material? GetMaterial(uint index = 0u) => index < materials.Count ? materials[(int)index] : null;
+    public Material? GetMaterial(uint index = 0u) => index < _materials.Count ? _materials[(int)index] : null;
 
-    public List<List<CustomGeometryVertex>> GetVertices() => vertices;
+    public List<List<CustomGeometryVertex>> GetVertices() => _vertices;
 
     public CustomGeometryVertex? GetVertex(uint geometryIndex, uint vertexNum)
     {
-        return geometryIndex < vertices.Count && vertexNum < vertices[(int)geometryIndex].Count
-            ? vertices[(int)geometryIndex][(int)vertexNum]
+        return geometryIndex < _vertices.Count && vertexNum < _vertices[(int)geometryIndex].Count
+            ? _vertices[(int)geometryIndex][(int)vertexNum]
             : null;
     }
 
-    public Geometry? GetLodGeometry(uint batchIndex, uint level) => batchIndex < geometries.Count ? geometries[(int)batchIndex] : null;
+    public Geometry? GetLodGeometry(uint batchIndex, uint level) => batchIndex < _geometries.Count ? _geometries[(int)batchIndex] : null;
 
     public uint GetNumOccluderTriangles()
     {
         var triangles = 0u;
-        for (var i = 0; i < geometries.Count; ++i)
+        for (var i = 0; i < _geometries.Count; ++i)
         {
-            if (materials[i] is { Occlusion: false })
+            if (_materials[i] is { Occlusion: false })
                 continue;
-            triangles += geometries[i].GetPrimitiveCount();
+            triangles += _geometries[i].GetPrimitiveCount();
         }
 
         return triangles;
@@ -246,13 +246,13 @@ public sealed class CustomGeometry : Drawable
     public IReadOnlyList<byte> GetGeometryDataAttr()
     {
         var buffer = new VectorBuffer();
-        buffer.WriteVLE((uint)geometries.Count);
-        buffer.WriteUInt(elementMask);
-        for (var i = 0; i < geometries.Count; ++i)
+        buffer.WriteVLE((uint)_geometries.Count);
+        buffer.WriteUInt(_elementMask);
+        for (var i = 0; i < _geometries.Count; ++i)
         {
-            buffer.WriteVLE((uint)vertices[i].Count);
-            buffer.WriteUByte((byte)primitiveTypes[i]);
-            foreach (var vertex in vertices[i])
+            buffer.WriteVLE((uint)_vertices[i].Count);
+            buffer.WriteUByte((byte)_primitiveTypes[i]);
+            foreach (var vertex in _vertices[i])
                 WriteVertex(buffer, vertex);
         }
 
@@ -267,14 +267,14 @@ public sealed class CustomGeometry : Drawable
 
         var buffer = new MemoryBuffer(data);
         SetNumGeometries(buffer.ReadVLE());
-        elementMask = buffer.ReadUInt() | MaskPosition;
-        for (var i = 0; i < geometries.Count; ++i)
+        _elementMask = buffer.ReadUInt() | MaskPosition;
+        for (var i = 0; i < _geometries.Count; ++i)
         {
             var numVertices = buffer.ReadVLE();
-            primitiveTypes[i] = (PrimitiveType)buffer.ReadUByte();
-            vertices[i].Clear();
+            _primitiveTypes[i] = (PrimitiveType)buffer.ReadUByte();
+            _vertices[i].Clear();
             for (var j = 0u; j < numVertices; ++j)
-                vertices[i].Add(ReadVertex(buffer));
+                _vertices[i].Add(ReadVertex(buffer));
         }
 
         Commit();
@@ -282,19 +282,19 @@ public sealed class CustomGeometry : Drawable
 
     public void SetMaterialsAttr(ResourceRefList? value)
     {
-        materialsAttr = value is null ? new ResourceRefList(MaterialType) : new ResourceRefList(value.Type, value.Names);
-        materialsAttrExplicit = true;
+        _materialsAttr = value is null ? new ResourceRefList(MaterialType) : new ResourceRefList(value.Type, value.Names);
+        _materialsAttrExplicit = true;
     }
 
     public ResourceRefList GetMaterialsAttr()
     {
-        if (materialsAttrExplicit)
-            return new ResourceRefList(materialsAttr.Type, materialsAttr.Names);
+        if (_materialsAttrExplicit)
+            return new ResourceRefList(_materialsAttr.Type, _materialsAttr.Names);
 
-        return new ResourceRefList(MaterialType, materials.Select(static material => material?.Name ?? string.Empty));
+        return new ResourceRefList(MaterialType, _materials.Select(static material => material?.Name ?? string.Empty));
     }
 
-    public VertexBuffer GetVertexBuffer() => vertexBuffer;
+    public VertexBuffer GetVertexBuffer() => _vertexBuffer;
 
     internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
     {
@@ -327,17 +327,17 @@ public sealed class CustomGeometry : Drawable
     private bool TryGetLastVertex(out CustomGeometryVertex vertex)
     {
         vertex = null!;
-        if (geometryIndex >= vertices.Count || vertices[(int)geometryIndex].Count == 0)
+        if (_geometryIndex >= _vertices.Count || _vertices[(int)_geometryIndex].Count == 0)
             return false;
 
-        vertex = vertices[(int)geometryIndex][^1];
+        vertex = _vertices[(int)_geometryIndex][^1];
         return true;
     }
 
     private byte[] GetPackedVertexData()
     {
         var buffer = new VectorBuffer();
-        foreach (var geometryVertices in vertices)
+        foreach (var geometryVertices in _vertices)
         {
             foreach (var vertex in geometryVertices)
                 WriteVertex(buffer, vertex);
@@ -348,30 +348,30 @@ public sealed class CustomGeometry : Drawable
 
     private void WriteVertex(VectorBuffer buffer, CustomGeometryVertex vertex)
     {
-        if ((elementMask & MaskPosition) != 0u)
+        if ((_elementMask & MaskPosition) != 0u)
             buffer.WriteVector3(vertex.Position);
-        if ((elementMask & MaskNormal) != 0u)
+        if ((_elementMask & MaskNormal) != 0u)
             buffer.WriteVector3(vertex.Normal);
-        if ((elementMask & MaskColor) != 0u)
+        if ((_elementMask & MaskColor) != 0u)
             buffer.WriteUInt(vertex.Color);
-        if ((elementMask & MaskTexCoord) != 0u)
+        if ((_elementMask & MaskTexCoord) != 0u)
             buffer.WriteVector2(vertex.TexCoord);
-        if ((elementMask & MaskTangent) != 0u)
+        if ((_elementMask & MaskTangent) != 0u)
             buffer.WriteVector4(vertex.Tangent);
     }
 
     private CustomGeometryVertex ReadVertex(MemoryBuffer buffer)
     {
         var vertex = new CustomGeometryVertex();
-        if ((elementMask & MaskPosition) != 0u)
+        if ((_elementMask & MaskPosition) != 0u)
             vertex.Position = buffer.ReadVector3();
-        if ((elementMask & MaskNormal) != 0u)
+        if ((_elementMask & MaskNormal) != 0u)
             vertex.Normal = buffer.ReadVector3();
-        if ((elementMask & MaskColor) != 0u)
+        if ((_elementMask & MaskColor) != 0u)
             vertex.Color = buffer.ReadUInt();
-        if ((elementMask & MaskTexCoord) != 0u)
+        if ((_elementMask & MaskTexCoord) != 0u)
             vertex.TexCoord = buffer.ReadVector2();
-        if ((elementMask & MaskTangent) != 0u)
+        if ((_elementMask & MaskTangent) != 0u)
             vertex.Tangent = buffer.ReadVector4();
         return vertex;
     }

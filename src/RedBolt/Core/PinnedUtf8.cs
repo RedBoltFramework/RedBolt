@@ -5,22 +5,22 @@ namespace RedBolt;
 
 internal sealed class PinnedUtf8 : IDisposable
 {
-    private readonly byte[] bytes;
-    private readonly GCHandle handle;
+    private readonly byte[] _bytes;
+    private readonly GCHandle _handle;
 
     public PinnedUtf8(string value)
     {
-        bytes = Encoding.UTF8.GetBytes(value + '\0');
-        handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+        _bytes = Encoding.UTF8.GetBytes(value + '\0');
+        _handle = GCHandle.Alloc(_bytes, GCHandleType.Pinned);
     }
 
-    public IntPtr Pointer => handle.AddrOfPinnedObject();
+    public IntPtr Pointer => _handle.AddrOfPinnedObject();
 
-    public ReadOnlySpan<byte> Bytes => bytes;
+    public ReadOnlySpan<byte> Bytes => _bytes;
 
     public void Dispose()
     {
-        if (handle.IsAllocated)
-            handle.Free();
+        if (_handle.IsAllocated)
+            _handle.Free();
     }
 }

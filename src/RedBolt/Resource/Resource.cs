@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public abstract class Resource : Object
 {
-    private readonly System.Diagnostics.Stopwatch useTimer = System.Diagnostics.Stopwatch.StartNew();
+    private readonly System.Diagnostics.Stopwatch _useTimer = System.Diagnostics.Stopwatch.StartNew();
 
     protected Resource(string name) : base()
     {
@@ -90,12 +90,12 @@ public abstract class Resource : Object
 
     public uint GetUseTimer()
     {
-        return (uint)Math.Min(uint.MaxValue, useTimer.ElapsedMilliseconds);
+        return (uint)Math.Min(uint.MaxValue, _useTimer.ElapsedMilliseconds);
     }
 
     public void ResetUseTimer()
     {
-        useTimer.Restart();
+        _useTimer.Restart();
     }
 
     public void SetAsyncLoadState(AsyncLoadState newState)

@@ -4,14 +4,14 @@ public sealed class ShakeComponent : LogicComponent
 {
     public const float DefaultTimeScale = 16.0f;
 
-    private readonly PerlinNoise perlinNoise = new(RandomEngine.GetDefaultEngine());
-    private float time;
-    private float trauma;
-    private float traumaPower = 2.0f;
-    private float traumaFalloff = 1.0f;
-    private float timeScale = DefaultTimeScale;
-    private Vector3 shiftRange = Vector3.Zero;
-    private Vector3 rotationRange = Vector3.Zero;
+    private readonly PerlinNoise _perlinNoise = new(RandomEngine.GetDefaultEngine());
+    private float _time;
+    private float _trauma;
+    private float _traumaPower = 2.0f;
+    private float _traumaFalloff = 1.0f;
+    private float _timeScale = DefaultTimeScale;
+    private Vector3 _shiftRange = Vector3.Zero;
+    private Vector3 _rotationRange = Vector3.Zero;
 
     public ShakeComponent()
     {
@@ -26,61 +26,61 @@ public sealed class ShakeComponent : LogicComponent
 
     public void SetTimeScale(float value)
     {
-        timeScale = value;
+        _timeScale = value;
     }
 
-    public float GetTimeScale() => timeScale;
+    public float GetTimeScale() => _timeScale;
 
     public void AddTrauma(float value)
     {
-        SetTrauma(trauma + value);
+        SetTrauma(_trauma + value);
     }
 
     public void SetTrauma(float value)
     {
-        trauma = Math.Max(value, 0.0f);
-        if (trauma > 0.0f && (GetUpdateEventMask() & UpdateEvent.UseUpdate) == 0)
+        _trauma = Math.Max(value, 0.0f);
+        if (_trauma > 0.0f && (GetUpdateEventMask() & UpdateEvent.UseUpdate) == 0)
             SetUpdateEventMask(UpdateEvent.UseUpdate);
     }
 
-    public float GetTrauma() => trauma;
+    public float GetTrauma() => _trauma;
 
     public void SetTraumaPower(float value)
     {
-        traumaPower = value;
+        _traumaPower = value;
     }
 
-    public float GetTraumaPower() => traumaPower;
+    public float GetTraumaPower() => _traumaPower;
 
     public void SetTraumaFalloff(float value)
     {
-        traumaFalloff = value;
+        _traumaFalloff = value;
     }
 
-    public float GetTraumaFalloff() => traumaFalloff;
+    public float GetTraumaFalloff() => _traumaFalloff;
 
     public void SetShiftRange(Vector3 value)
     {
-        shiftRange = value;
+        _shiftRange = value;
     }
 
-    public Vector3 GetShiftRange() => shiftRange;
+    public Vector3 GetShiftRange() => _shiftRange;
 
     public void SetRotationRange(Vector3 value)
     {
-        rotationRange = value;
+        _rotationRange = value;
     }
 
-    public Vector3 GetRotationRange() => rotationRange;
+    public Vector3 GetRotationRange() => _rotationRange;
 
     public override void Update(float timeStep)
     {
         if (!IsAttached)
             return;
 
-        time += timeStep * timeScale;
-        trauma = Math.Max(0.0f, trauma - traumaFalloff * timeStep);
-        if (MathDefs.ApproximatelyEquivalent(trauma, 0.0f))
+        _time += timeStep * _timeScale;
+        _trauma = Math.Max(0.0f, _trauma - _traumaFalloff * timeStep);
+        if (MathDefs.ApproximatelyEquivalent(_trauma, 0.0f))
         {
             Node.SetPosition(Vector3.Zero);
             Node.SetRotation(Quaternion.Identity);
@@ -88,20 +88,20 @@ public sealed class ShakeComponent : LogicComponent
             return;
         }
 
-        var scale = MathDefs.Pow(trauma, traumaPower);
+        var scale = MathDefs.Pow(_trauma, _traumaPower);
         var offset = Vector3.Zero;
-        if (shiftRange != Vector3.Zero)
+        if (_shiftRange != Vector3.Zero)
         {
-            offset = (new Vector3(perlinNoise.Get(time), perlinNoise.Get(time + 1.0f), perlinNoise.Get(time + 2.0f)) * 2.0f - Vector3.One)
-                * shiftRange * scale;
+            offset = (new Vector3(_perlinNoise.Get(_time), _perlinNoise.Get(_time + 1.0f), _perlinNoise.Get(_time + 2.0f)) * 2.0f - Vector3.One)
+                * _shiftRange * scale;
         }
         Node.SetPosition(offset);
 
         var rotation = Vector3.Zero;
-        if (rotationRange != Vector3.Zero)
+        if (_rotationRange != Vector3.Zero)
         {
-            rotation = (new Vector3(perlinNoise.Get(time + 3.0f), perlinNoise.Get(time + 4.0f), perlinNoise.Get(time + 5.0f)) * 2.0f - Vector3.One)
-                * rotationRange * scale;
+            rotation = (new Vector3(_perlinNoise.Get(_time + 3.0f), _perlinNoise.Get(_time + 4.0f), _perlinNoise.Get(_time + 5.0f)) * 2.0f - Vector3.One)
+                * _rotationRange * scale;
         }
         Node.SetRotation(new Quaternion(rotation));
     }

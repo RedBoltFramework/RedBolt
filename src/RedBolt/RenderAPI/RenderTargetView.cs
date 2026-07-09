@@ -4,30 +4,30 @@ namespace RedBolt;
 
 public readonly struct OptionalRawTextureRTV : IEquatable<OptionalRawTextureRTV>
 {
-    private readonly RenderTargetView? value;
+    private readonly RenderTargetView? _value;
 
     public OptionalRawTextureRTV(RenderTargetView value)
     {
-        this.value = value;
+        this._value = value;
     }
 
-    public bool HasValue => value.HasValue;
+    public bool HasValue => _value.HasValue;
 
-    public RenderTargetView Value => value ?? throw new InvalidOperationException("Optional render target view has no value.");
+    public RenderTargetView Value => _value ?? throw new InvalidOperationException("Optional render target view has no value.");
 
-    public RenderTargetView? GetValueOrDefault() => value;
+    public RenderTargetView? GetValueOrDefault() => _value;
 
-    public bool Equals(OptionalRawTextureRTV other) => Nullable.Equals(value, other.value);
+    public bool Equals(OptionalRawTextureRTV other) => Nullable.Equals(_value, other._value);
 
     public override bool Equals(object? obj) => obj is OptionalRawTextureRTV other && Equals(other);
 
-    public override int GetHashCode() => value?.GetHashCode() ?? 0;
+    public override int GetHashCode() => _value?.GetHashCode() ?? 0;
 
     public static implicit operator OptionalRawTextureRTV(RenderTargetView value) => new(value);
 
     public static implicit operator OptionalRawTextureRTV(RenderTargetView? value) => value.HasValue ? new OptionalRawTextureRTV(value.Value) : default;
 
-    public static implicit operator RenderTargetView?(OptionalRawTextureRTV value) => value.value;
+    public static implicit operator RenderTargetView?(OptionalRawTextureRTV value) => value._value;
 }
 
 public enum RenderTargetViewType

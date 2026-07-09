@@ -25,7 +25,7 @@ public enum AttributeScopeHint
 
 public sealed class AttributeInfo
 {
-    private readonly Dictionary<StringHash, object?> metadata = new();
+    private readonly Dictionary<StringHash, object?> _metadata = new();
 
     public AttributeInfo(
         string name,
@@ -53,7 +53,7 @@ public sealed class AttributeInfo
 
     public IReadOnlyList<string> EnumNames { get; }
 
-    public IReadOnlyDictionary<StringHash, object?> Metadata => metadata;
+    public IReadOnlyDictionary<StringHash, object?> Metadata => _metadata;
 
     public AttributeMode Mode { get; }
 
@@ -75,34 +75,34 @@ public sealed class AttributeInfo
 
     public object? GetMetadata(StringHash key)
     {
-        return metadata.GetValueOrDefault(key);
+        return _metadata.GetValueOrDefault(key);
     }
 
     internal void SetMetadata(StringHash key, object? value)
     {
-        metadata[key] = value;
+        _metadata[key] = value;
     }
 }
 
 public readonly struct AttributeHandle
 {
-    private readonly AttributeInfo? attribute;
+    private readonly AttributeInfo? _attribute;
 
     internal AttributeHandle(AttributeInfo? attribute)
     {
-        this.attribute = attribute;
+        this._attribute = attribute;
     }
 
     public AttributeHandle SetMetadata(StringHash key, object? value)
     {
-        attribute?.SetMetadata(key, value);
+        _attribute?.SetMetadata(key, value);
         return this;
     }
 
     public AttributeHandle SetScopeHint(AttributeScopeHint scopeHint)
     {
-        if (attribute is not null)
-            attribute.ScopeHint = scopeHint;
+        if (_attribute is not null)
+            _attribute.ScopeHint = scopeHint;
         return this;
     }
 }

@@ -74,48 +74,48 @@ public sealed class Octree : Component
     public const float DefaultOctreeSize = 1000.0f;
     public const uint DefaultOctreeLevels = 8;
 
-    private readonly HashSet<Drawable> manualDrawables = [];
-    private readonly HashSet<Drawable> drawableUpdates = [];
-    private BoundingBox worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
-    private readonly Octant rootOctant;
-    private uint numLevels = DefaultOctreeLevels;
-    private bool locked;
+    private readonly HashSet<Drawable> _manualDrawables = [];
+    private readonly HashSet<Drawable> _drawableUpdates = [];
+    private BoundingBox _worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
+    private readonly Octant _rootOctant;
+    private uint _numLevels = DefaultOctreeLevels;
+    private bool _locked;
 
     public Octree()
     {
-        rootOctant = new Octant(worldBoundingBox, 0, parent: null, this);
+        _rootOctant = new Octant(_worldBoundingBox, 0, parent: null, this);
 
         RegisterAttribute(
             "Bounding Box Min",
             typeof(Vector3),
-            self => ((Octree)self).worldBoundingBox.Min,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(value is Vector3 min ? min : -Vector3.One * DefaultOctreeSize, ((Octree)self).worldBoundingBox.Max), ((Octree)self).numLevels),
+            self => ((Octree)self)._worldBoundingBox.Min,
+            (self, value) => ((Octree)self).SetSize(new BoundingBox(value is Vector3 min ? min : -Vector3.One * DefaultOctreeSize, ((Octree)self)._worldBoundingBox.Max), ((Octree)self)._numLevels),
             -Vector3.One * DefaultOctreeSize);
         RegisterAttribute(
             "Bounding Box Max",
             typeof(Vector3),
-            self => ((Octree)self).worldBoundingBox.Max,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(((Octree)self).worldBoundingBox.Min, value is Vector3 max ? max : Vector3.One * DefaultOctreeSize), ((Octree)self).numLevels),
+            self => ((Octree)self)._worldBoundingBox.Max,
+            (self, value) => ((Octree)self).SetSize(new BoundingBox(((Octree)self)._worldBoundingBox.Min, value is Vector3 max ? max : Vector3.One * DefaultOctreeSize), ((Octree)self)._numLevels),
             Vector3.One * DefaultOctreeSize);
         RegisterAttribute(
             "Number of Levels",
             typeof(uint),
-            self => ((Octree)self).numLevels,
-            (self, value) => ((Octree)self).SetSize(((Octree)self).worldBoundingBox, value is uint levels ? levels : DefaultOctreeLevels),
+            self => ((Octree)self)._numLevels,
+            (self, value) => ((Octree)self).SetSize(((Octree)self)._worldBoundingBox, value is uint levels ? levels : DefaultOctreeLevels),
             DefaultOctreeLevels);
     }
 
-    public BoundingBox WorldBoundingBox => worldBoundingBox;
+    public BoundingBox WorldBoundingBox => _worldBoundingBox;
 
-    public uint NumLevels => numLevels;
+    public uint NumLevels => _numLevels;
 
-    public bool Locked => locked;
+    public bool Locked => _locked;
 
-    public Octant GetRootOctant() => rootOctant;
+    public Octant GetRootOctant() => _rootOctant;
 
-    public uint GetNumLevels() => numLevels;
+    public uint GetNumLevels() => _numLevels;
 
-    public BoundingBox GetWorldBoundingBox() => worldBoundingBox;
+    public BoundingBox GetWorldBoundingBox() => _worldBoundingBox;
 
     public IReadOnlyList<Drawable> GetAllDrawables() => EnumerateDrawables().ToArray();
 
@@ -123,32 +123,32 @@ public sealed class Octree : Component
 
     public void SetSize(BoundingBox box, uint numLevels)
     {
-        worldBoundingBox = box;
-        this.numLevels = Math.Max(numLevels, 1u);
-        rootOctant.SetRootSize(box);
+        _worldBoundingBox = box;
+        this._numLevels = Math.Max(numLevels, 1u);
+        _rootOctant.SetRootSize(box);
     }
 
     public void SetLocked(bool locked)
     {
-        this.locked = locked;
+        this._locked = locked;
     }
 
-    public bool GetLocked() => locked;
+    public bool GetLocked() => _locked;
 
     public void AddManualDrawable(Drawable? drawable)
     {
-        if (drawable is null || locked)
+        if (drawable is null || _locked)
             return;
 
-        manualDrawables.Add(drawable);
+        _manualDrawables.Add(drawable);
     }
 
     public void RemoveManualDrawable(Drawable? drawable)
     {
-        if (drawable is null || locked)
+        if (drawable is null || _locked)
             return;
 
-        manualDrawables.Remove(drawable);
+        _manualDrawables.Remove(drawable);
         CancelUpdate(drawable);
     }
 
@@ -159,20 +159,20 @@ public sealed class Octree : Component
     public void QueueUpdate(Drawable? drawable)
     {
         if (drawable is not null)
-            drawableUpdates.Add(drawable);
+            _drawableUpdates.Add(drawable);
     }
 
     public void CancelUpdate(Drawable? drawable)
     {
         if (drawable is not null)
-            drawableUpdates.Remove(drawable);
+            _drawableUpdates.Remove(drawable);
     }
 
     public void Update(float timeStep = 0.0f)
     {
-        foreach (var drawable in drawableUpdates)
+        foreach (var drawable in _drawableUpdates)
             drawable.MarkForUpdate();
-        drawableUpdates.Clear();
+        _drawableUpdates.Clear();
     }
 
     public IReadOnlyList<Drawable> GetDrawables(DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
@@ -230,14 +230,14 @@ public sealed class Octree : Component
     {
         if (scene is null)
         {
-            manualDrawables.Clear();
-            drawableUpdates.Clear();
+            _manualDrawables.Clear();
+            _drawableUpdates.Clear();
         }
     }
 
     private IEnumerable<Drawable> EnumerateDrawables()
     {
-        var result = new HashSet<Drawable>(manualDrawables);
+        var result = new HashSet<Drawable>(_manualDrawables);
         if (IsAttached)
         {
             foreach (var drawable in Scene.GetAllComponents().Values.OfType<Drawable>())

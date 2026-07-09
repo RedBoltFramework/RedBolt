@@ -8,27 +8,27 @@ public sealed class Input
     private static readonly Dictionary<Key, Scancode> KeyToScancode = BuildKeyToScancodeMap();
     private static readonly Dictionary<Scancode, Key> ScancodeToKey = KeyToScancode.ToDictionary(static item => item.Value, static item => item.Key);
 
-    private readonly HashSet<Key> keyDown = [];
-    private readonly HashSet<Key> keyPress = [];
-    private readonly HashSet<Scancode> scancodeDown = [];
-    private readonly HashSet<Scancode> scancodePress = [];
-    private readonly HashSet<ControllerButton> controllerButtonsDown = [];
-    private readonly HashSet<uint> joystickButtonsDown = [];
-    private readonly Dictionary<ControllerAxis, float> controllerAxisPositions = new();
-    private readonly Dictionary<uint, float> joystickAxisPositions = new();
-    private readonly HashSet<string> screenButtonsDown = new(StringComparer.Ordinal);
-    private SdlEvent? nativeEvent;
-    private SdlWindow? window;
-    private MouseButton mouseButtonClick;
-    private MouseButton mouseButtonDown;
-    private MouseButton mouseButtonPress;
-    private int mouseMoveWheel;
-    private HatPosition hatPosition = HatPosition.Center;
-    private IntVector2 backbufferSize = IntVector2.Zero;
-    private Vector2 systemToBackbufferScale = Vector2.One;
-    private bool lastMouseGrabbed;
-    private bool lastMouseVisible = true;
-    private MouseMode lastMouseMode = MouseMode.Absolute;
+    private readonly HashSet<Key> _keyDown = [];
+    private readonly HashSet<Key> _keyPress = [];
+    private readonly HashSet<Scancode> _scancodeDown = [];
+    private readonly HashSet<Scancode> _scancodePress = [];
+    private readonly HashSet<ControllerButton> _controllerButtonsDown = [];
+    private readonly HashSet<uint> _joystickButtonsDown = [];
+    private readonly Dictionary<ControllerAxis, float> _controllerAxisPositions = new();
+    private readonly Dictionary<uint, float> _joystickAxisPositions = new();
+    private readonly HashSet<string> _screenButtonsDown = new(StringComparer.Ordinal);
+    private SdlEvent? _nativeEvent;
+    private SdlWindow? _window;
+    private MouseButton _mouseButtonClick;
+    private MouseButton _mouseButtonDown;
+    private MouseButton _mouseButtonPress;
+    private int _mouseMoveWheel;
+    private HatPosition _hatPosition = HatPosition.Center;
+    private IntVector2 _backbufferSize = IntVector2.Zero;
+    private Vector2 _systemToBackbufferScale = Vector2.One;
+    private bool _lastMouseGrabbed;
+    private bool _lastMouseVisible = true;
+    private MouseMode _lastMouseMode = MouseMode.Absolute;
 
     public bool Enabled { get; set; } = true;
 
@@ -40,13 +40,13 @@ public sealed class Input
 
     public IntVector2 MouseMove { get; private set; }
 
-    public int MouseMoveWheel => mouseMoveWheel;
+    public int MouseMoveWheel => _mouseMoveWheel;
 
     public IntVector2 MousePosition { get; private set; } = IntVector2.Zero;
 
     public Qualifier Qualifiers { get; private set; }
 
-    public Vector2 SystemToBackbufferScale => systemToBackbufferScale;
+    public Vector2 SystemToBackbufferScale => _systemToBackbufferScale;
 
     public bool MouseVisible { get; private set; } = true;
 
@@ -60,8 +60,8 @@ public sealed class Input
 
     public bool TouchEmulation { get; private set; }
 
-    internal SdlWindow Window => window is not null && !window.IsNull
-        ? window
+    internal SdlWindow Window => _window is not null && !_window.IsNull
+        ? _window
         : throw new InvalidOperationException("Input window is not initialized.");
 
     public nint GetWindowHandle()
@@ -82,8 +82,8 @@ public sealed class Input
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SDL_VIDEODRIVER")))
             Environment.SetEnvironmentVariable("SDL_VIDEODRIVER", "x11");
 
-        backbufferSize = new IntVector2(parameters.WindowWidth, parameters.WindowHeight);
-        systemToBackbufferScale = Vector2.One;
+        _backbufferSize = new IntVector2(parameters.WindowWidth, parameters.WindowHeight);
+        _systemToBackbufferScale = Vector2.One;
         TouchEmulation = parameters.TouchEmulation;
 
         var initResult = SdlNativeBindings.SdlInit(SdlInitVideo);
@@ -110,7 +110,7 @@ public sealed class Input
             if (parameters.WindowMaximize)
                 windowFlags |= SdlWindowFlags.SdlWindowMaximized;
 
-            window = SdlNativeBindings.SdlCreateWindow(
+            _window = SdlNativeBindings.SdlCreateWindow(
                 title.Bytes,
                 x: parameters.WindowPositionX ?? 64,
                 y: parameters.WindowPositionY ?? 64,
@@ -118,13 +118,13 @@ public sealed class Input
                 h: parameters.WindowHeight,
                 flags: (uint)windowFlags);
 
-            if (window.IsNull)
+            if (_window.IsNull)
                 throw new InvalidOperationException("Generated SDL_CreateWindow binding returned a null OpenGL window.");
 
             if (parameters.WindowMaximize)
-                SdlNativeBindings.SdlMaximizeWindow(window);
+                SdlNativeBindings.SdlMaximizeWindow(_window);
 
-            nativeEvent = new SdlEvent();
+            _nativeEvent = new SdlEvent();
             IsInitialized = true;
         }
         catch
@@ -137,11 +137,11 @@ public sealed class Input
     public void SetWindowTitle(string title)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        if (!IsInitialized || window is null || window.IsNull)
+        if (!IsInitialized || _window is null || _window.IsNull)
             return;
 
         using var pinnedTitle = new PinnedUtf8(title);
-        SdlNativeBindings.SdlSetWindowTitle(window, pinnedTitle.Bytes);
+        SdlNativeBindings.SdlSetWindowTitle(_window, pinnedTitle.Bytes);
     }
 
     public void BeginFrame()
@@ -149,25 +149,25 @@ public sealed class Input
         Context.Instance.SendEvent<InputEvents.InputBeginEvent>();
 
         ExitRequested = false;
-        keyPress.Clear();
-        scancodePress.Clear();
-        mouseButtonClick = MouseButton.None;
-        mouseButtonPress = MouseButton.None;
-        mouseMoveWheel = 0;
+        _keyPress.Clear();
+        _scancodePress.Clear();
+        _mouseButtonClick = MouseButton.None;
+        _mouseButtonPress = MouseButton.None;
+        _mouseMoveWheel = 0;
         MouseMove = IntVector2.Zero;
     }
 
     public void PollEvents()
     {
-        if (!Enabled || !IsInitialized || nativeEvent is null)
+        if (!Enabled || !IsInitialized || _nativeEvent is null)
             return;
 
         var dearImGui = Context.Instance.GetSubsystem<IDearImGuiInputSink>();
 
-        while (SdlNativeBindings.SdlPollEvent(nativeEvent) != 0)
+        while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
         {
-            var eventType = (SdlEventType)nativeEvent.Type;
-            var eventHandledByDearImGui = dearImGui?.ProcessEvent(nativeEvent.Handle) == true;
+            var eventType = (SdlEventType)_nativeEvent.Type;
+            var eventHandledByDearImGui = dearImGui?.ProcessEvent(_nativeEvent.Handle) == true;
 
             if (eventHandledByDearImGui || ShouldConsumeEventByDearImGui(dearImGui, eventType))
                 continue;
@@ -178,35 +178,35 @@ public sealed class Input
             }
             else if (eventType == SdlEventType.SdlKeydown)
             {
-                HandleKeyDown(nativeEvent);
+                HandleKeyDown(_nativeEvent);
             }
             else if (eventType == SdlEventType.SdlKeyup)
             {
-                HandleKeyUp(nativeEvent);
+                HandleKeyUp(_nativeEvent);
             }
             else if (eventType == SdlEventType.SdlMousebuttondown)
             {
-                HandleMouseButtonDown(nativeEvent);
+                HandleMouseButtonDown(_nativeEvent);
             }
             else if (eventType == SdlEventType.SdlMousebuttonup)
             {
-                HandleMouseButtonUp(nativeEvent);
+                HandleMouseButtonUp(_nativeEvent);
             }
             else if (eventType == SdlEventType.SdlMousemotion)
             {
-                HandleMouseMotion(nativeEvent);
+                HandleMouseMotion(_nativeEvent);
             }
             else if (eventType == SdlEventType.SdlMousewheel)
             {
-                mouseMoveWheel += nativeEvent.WheelY;
+                _mouseMoveWheel += _nativeEvent.WheelY;
             }
-            else if (eventType == SdlEventType.SdlWindowevent && nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
+            else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
             {
                 ExitRequested = true;
             }
             else if (eventType == SdlEventType.SdlWindowevent)
             {
-                HandleWindowEvent(nativeEvent);
+                HandleWindowEvent(_nativeEvent);
             }
         }
 
@@ -274,81 +274,81 @@ public sealed class Input
 
     public bool GetKeyDown(Key key)
     {
-        return keyDown.Contains(key);
+        return _keyDown.Contains(key);
     }
 
     public bool GetKeyPress(Key key)
     {
-        return keyPress.Contains(key);
+        return _keyPress.Contains(key);
     }
 
     public bool GetScancodeDown(Scancode scancode)
     {
-        return scancodeDown.Contains(scancode);
+        return _scancodeDown.Contains(scancode);
     }
 
     public bool GetScancodePress(Scancode scancode)
     {
-        return scancodePress.Contains(scancode);
+        return _scancodePress.Contains(scancode);
     }
 
     public bool GetMouseButtonDown(MouseButton button)
     {
-        return (mouseButtonDown & button) != 0;
+        return (_mouseButtonDown & button) != 0;
     }
 
     public bool GetMouseButtonPress(MouseButton button)
     {
-        return (mouseButtonPress & button) != 0;
+        return (_mouseButtonPress & button) != 0;
     }
 
     public bool GetMouseButtonClick(MouseButton button)
     {
-        return (mouseButtonClick & button) != 0;
+        return (_mouseButtonClick & button) != 0;
     }
 
     public bool GetControllerButtonDown(ControllerButton button)
     {
-        return controllerButtonsDown.Contains(button);
+        return _controllerButtonsDown.Contains(button);
     }
 
     public bool GetJoystickButtonDown(uint buttonIndex)
     {
-        return joystickButtonsDown.Contains(buttonIndex);
+        return _joystickButtonsDown.Contains(buttonIndex);
     }
 
     public float GetControllerAxisPosition(ControllerAxis axis)
     {
-        return controllerAxisPositions.GetValueOrDefault(axis);
+        return _controllerAxisPositions.GetValueOrDefault(axis);
     }
 
     public float GetJoystickAxisPosition(uint axis)
     {
-        return joystickAxisPositions.GetValueOrDefault(axis);
+        return _joystickAxisPositions.GetValueOrDefault(axis);
     }
 
     public HatPosition GetHatPosition()
     {
-        return hatPosition;
+        return _hatPosition;
     }
 
     public bool GetHatDown(HatPosition position)
     {
         return position == HatPosition.Center
-            ? hatPosition == HatPosition.Center
-            : (hatPosition & position) == position;
+            ? _hatPosition == HatPosition.Center
+            : (_hatPosition & position) == position;
     }
 
     public bool GetScreenButtonDown(string elementName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
-        return screenButtonsDown.Contains(elementName);
+        return _screenButtonsDown.Contains(elementName);
     }
 
     public Vector2 GetRelativeMousePosition()
     {
-        return backbufferSize.X > 0 && backbufferSize.Y > 0
-            ? new Vector2((float)MousePosition.X / backbufferSize.X, (float)MousePosition.Y / backbufferSize.Y)
+        return _backbufferSize.X > 0 && _backbufferSize.Y > 0
+            ? new Vector2((float)MousePosition.X / _backbufferSize.X, (float)MousePosition.Y / _backbufferSize.Y)
             : Vector2.Zero;
     }
 
@@ -362,15 +362,15 @@ public sealed class Input
 
     public int GetMouseMoveWheel() => MouseMoveWheel;
 
-    public Vector2 GetSystemToBackbufferScale() => systemToBackbufferScale;
+    public Vector2 GetSystemToBackbufferScale() => _systemToBackbufferScale;
 
     public IntVector2 SystemToBackbuffer(IntVector2 value) => new(
-        (int)MathF.Round(value.X * systemToBackbufferScale.X),
-        (int)MathF.Round(value.Y * systemToBackbufferScale.Y));
+        (int)MathF.Round(value.X * _systemToBackbufferScale.X),
+        (int)MathF.Round(value.Y * _systemToBackbufferScale.Y));
 
     public IntVector2 BackbufferToSystem(IntVector2 value) => new(
-        systemToBackbufferScale.X != 0.0f ? (int)MathF.Round(value.X / systemToBackbufferScale.X) : value.X,
-        systemToBackbufferScale.Y != 0.0f ? (int)MathF.Round(value.Y / systemToBackbufferScale.Y) : value.Y);
+        _systemToBackbufferScale.X != 0.0f ? (int)MathF.Round(value.X / _systemToBackbufferScale.X) : value.X,
+        _systemToBackbufferScale.Y != 0.0f ? (int)MathF.Round(value.Y / _systemToBackbufferScale.Y) : value.Y);
 
     public void SetMousePosition(IntVector2 position)
     {
@@ -386,15 +386,15 @@ public sealed class Input
     {
         if (newState)
         {
-            if (keyDown.Add(key))
-                keyPress.Add(key);
-            if (scancode != Scancode.Unknown && scancodeDown.Add(scancode))
-                scancodePress.Add(scancode);
+            if (_keyDown.Add(key))
+                _keyPress.Add(key);
+            if (scancode != Scancode.Unknown && _scancodeDown.Add(scancode))
+                _scancodePress.Add(scancode);
         }
         else
         {
-            keyDown.Remove(key);
-            scancodeDown.Remove(scancode);
+            _keyDown.Remove(key);
+            _scancodeDown.Remove(scancode);
         }
 
         UpdateQualifiers(key, newState);
@@ -404,67 +404,67 @@ public sealed class Input
     {
         if (newState)
         {
-            if ((mouseButtonDown & button) == 0)
-                mouseButtonPress |= button;
-            mouseButtonDown |= button;
+            if ((_mouseButtonDown & button) == 0)
+                _mouseButtonPress |= button;
+            _mouseButtonDown |= button;
         }
         else
         {
-            mouseButtonDown &= ~button;
+            _mouseButtonDown &= ~button;
         }
 
         if (clicks > 0)
-            mouseButtonClick |= button;
+            _mouseButtonClick |= button;
     }
 
     public void SetMouseWheel(int delta)
     {
-        mouseMoveWheel += delta;
+        _mouseMoveWheel += delta;
     }
 
     public void SetControllerButton(ControllerButton button, bool newState)
     {
         if (newState)
-            controllerButtonsDown.Add(button);
+            _controllerButtonsDown.Add(button);
         else
-            controllerButtonsDown.Remove(button);
+            _controllerButtonsDown.Remove(button);
     }
 
     public void SetJoystickButton(uint buttonIndex, bool newState)
     {
         if (newState)
-            joystickButtonsDown.Add(buttonIndex);
+            _joystickButtonsDown.Add(buttonIndex);
         else
-            joystickButtonsDown.Remove(buttonIndex);
+            _joystickButtonsDown.Remove(buttonIndex);
     }
 
     public void SetControllerAxis(ControllerAxis axis, float position)
     {
-        controllerAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+        _controllerAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
     }
 
     public void SetJoystickAxis(uint axis, float position)
     {
-        joystickAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+        _joystickAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
     }
 
     public void SetHatPosition(HatPosition position)
     {
-        hatPosition = position;
+        _hatPosition = position;
     }
 
     public void SetScreenButton(string elementName, bool newState)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
         if (newState)
-            screenButtonsDown.Add(elementName);
+            _screenButtonsDown.Add(elementName);
         else
-            screenButtonsDown.Remove(elementName);
+            _screenButtonsDown.Remove(elementName);
     }
 
     public void CenterMousePosition()
     {
-        MousePosition = new IntVector2(backbufferSize.X / 2, backbufferSize.Y / 2);
+        MousePosition = new IntVector2(_backbufferSize.X / 2, _backbufferSize.Y / 2);
     }
 
     public bool GetQualifierDown(Qualifier qualifier)
@@ -495,10 +495,10 @@ public sealed class Input
 
         MouseMode = mode;
         if (!suppressEvent)
-            lastMouseMode = mode;
+            _lastMouseMode = mode;
     }
 
-    public void ResetMouseMode() => SetMouseMode(lastMouseMode);
+    public void ResetMouseMode() => SetMouseMode(_lastMouseMode);
 
     public bool GetEnabled() => Enabled;
 
@@ -508,19 +508,19 @@ public sealed class Input
     {
         MouseVisible = enable;
         if (!suppressEvent)
-            lastMouseVisible = enable;
+            _lastMouseVisible = enable;
     }
 
-    public void ResetMouseVisible() => SetMouseVisible(lastMouseVisible);
+    public void ResetMouseVisible() => SetMouseVisible(_lastMouseVisible);
 
     public void SetMouseGrabbed(bool grab, bool suppressEvent = false)
     {
         MouseGrabbed = grab;
         if (!suppressEvent)
-            lastMouseGrabbed = grab;
+            _lastMouseGrabbed = grab;
     }
 
-    public void ResetMouseGrabbed() => SetMouseGrabbed(lastMouseGrabbed);
+    public void ResetMouseGrabbed() => SetMouseGrabbed(_lastMouseGrabbed);
 
     public void SetToggleFullscreen(bool enable) => ToggleFullscreen = enable;
 
@@ -555,37 +555,37 @@ public sealed class Input
 
     public void Shutdown()
     {
-        nativeEvent?.Dispose();
-        nativeEvent = null;
+        _nativeEvent?.Dispose();
+        _nativeEvent = null;
 
-        if (window is not null && !window.IsNull)
-            SdlNativeBindings.SdlDestroyWindow(window);
-        window = null;
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlDestroyWindow(_window);
+        _window = null;
 
         if (IsInitialized)
             SdlNativeBindings.SdlQuit();
 
         IsInitialized = false;
         ExitRequested = false;
-        keyDown.Clear();
-        keyPress.Clear();
-        scancodeDown.Clear();
-        scancodePress.Clear();
-        controllerButtonsDown.Clear();
-        joystickButtonsDown.Clear();
-        controllerAxisPositions.Clear();
-        joystickAxisPositions.Clear();
-        screenButtonsDown.Clear();
-        mouseButtonClick = MouseButton.None;
-        mouseButtonDown = MouseButton.None;
-        mouseButtonPress = MouseButton.None;
-        mouseMoveWheel = 0;
-        hatPosition = HatPosition.Center;
+        _keyDown.Clear();
+        _keyPress.Clear();
+        _scancodeDown.Clear();
+        _scancodePress.Clear();
+        _controllerButtonsDown.Clear();
+        _joystickButtonsDown.Clear();
+        _controllerAxisPositions.Clear();
+        _joystickAxisPositions.Clear();
+        _screenButtonsDown.Clear();
+        _mouseButtonClick = MouseButton.None;
+        _mouseButtonDown = MouseButton.None;
+        _mouseButtonPress = MouseButton.None;
+        _mouseMoveWheel = 0;
+        _hatPosition = HatPosition.Center;
         MouseMove = IntVector2.Zero;
         MousePosition = IntVector2.Zero;
         Qualifiers = Qualifier.None;
-        backbufferSize = IntVector2.Zero;
-        systemToBackbufferScale = Vector2.One;
+        _backbufferSize = IntVector2.Zero;
+        _systemToBackbufferScale = Vector2.One;
         HasFocus = true;
         IsMinimized = false;
     }
@@ -594,10 +594,10 @@ public sealed class Input
     {
         var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
-        if (keyDown.Add(key))
-            keyPress.Add(key);
-        if (scancodeDown.Add(scancode))
-            scancodePress.Add(scancode);
+        if (_keyDown.Add(key))
+            _keyPress.Add(key);
+        if (_scancodeDown.Add(scancode))
+            _scancodePress.Add(scancode);
 
         UpdateQualifiers(key, isDown: true);
         if (scancode == Scancode.Escape)
@@ -608,23 +608,23 @@ public sealed class Input
     {
         var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
-        keyDown.Remove(key);
-        scancodeDown.Remove(scancode);
+        _keyDown.Remove(key);
+        _scancodeDown.Remove(scancode);
         UpdateQualifiers(key, isDown: false);
     }
 
     private void HandleMouseButtonDown(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        mouseButtonDown |= button;
-        mouseButtonPress |= button;
+        _mouseButtonDown |= button;
+        _mouseButtonPress |= button;
     }
 
     private void HandleMouseButtonUp(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        mouseButtonDown &= ~button;
-        mouseButtonClick |= button;
+        _mouseButtonDown &= ~button;
+        _mouseButtonClick |= button;
     }
 
     private void HandleMouseMotion(SdlEvent @event)

@@ -22,11 +22,11 @@ public struct VAnimEventFrame
 
 public sealed class ValueAnimation : Resource
 {
-    private readonly List<VAnimKeyFrame> keyFrames = [];
-    private readonly List<VAnimEventFrame> eventFrames = [];
-    private object? owner;
-    private bool interpolatable;
-    private VariantType valueType = VariantType.None;
+    private readonly List<VAnimKeyFrame> _keyFrames = [];
+    private readonly List<VAnimEventFrame> _eventFrames = [];
+    private object? _owner;
+    private bool _interpolatable;
+    private VariantType _valueType = VariantType.None;
 
     public ValueAnimation(string name)
         : base(name)
@@ -37,7 +37,7 @@ public sealed class ValueAnimation : Resource
 
     public float SplineTension { get; private set; } = 0.5f;
 
-    public VariantType ValueType => valueType;
+    public VariantType ValueType => _valueType;
 
     public float BeginTime { get; private set; } = MathDefs.Infinity;
 
@@ -94,7 +94,7 @@ public sealed class ValueAnimation : Resource
         if (InterpolationMethod == InterpMethod.Spline)
             dest.SetFloat("splinetension", SplineTension);
 
-        foreach (var keyFrame in keyFrames)
+        foreach (var keyFrame in _keyFrames)
         {
             var element = dest.CreateChild("keyframe");
             element.SetFloat("time", keyFrame.Time);
@@ -103,7 +103,7 @@ public sealed class ValueAnimation : Resource
             element.SetValue(VariantTypeUtility.Serialize(keyFrame.Value, type));
         }
 
-        foreach (var eventFrame in eventFrames)
+        foreach (var eventFrame in _eventFrames)
         {
             var element = dest.CreateChild("eventframe");
             element.SetFloat("time", eventFrame.Time);
@@ -159,7 +159,7 @@ public sealed class ValueAnimation : Resource
             dest.Set("splinetension", new JSONValue(SplineTension));
 
         var keyFrameArray = new JSONValue(JSONValueType.Array);
-        foreach (var keyFrame in keyFrames)
+        foreach (var keyFrame in _keyFrames)
         {
             var type = VariantTypeUtility.GetVariantType(keyFrame.Value);
             var frame = new JSONValue(JSONValueType.Object);
@@ -171,7 +171,7 @@ public sealed class ValueAnimation : Resource
         dest.Set("keyframes", keyFrameArray);
 
         var eventFrameArray = new JSONValue(JSONValueType.Array);
-        foreach (var eventFrame in eventFrames)
+        foreach (var eventFrame in _eventFrames)
         {
             var frame = new JSONValue(JSONValueType.Object);
             frame.Set("time", new JSONValue(eventFrame.Time));
@@ -196,20 +196,20 @@ public sealed class ValueAnimation : Resource
 
     public void SetOwner(object? owner)
     {
-        this.owner = owner;
+        this._owner = owner;
     }
 
-    public object? GetOwner() => owner;
+    public object? GetOwner() => _owner;
 
     public InterpMethod GetInterpolationMethod() => InterpolationMethod;
 
     public float GetSplineTension() => SplineTension;
 
-    public VariantType GetValueType() => valueType;
+    public VariantType GetValueType() => _valueType;
 
     public void SetInterpolationMethod(InterpMethod method)
     {
-        if (method == InterpMethod.Spline && valueType is VariantType.IntRect or VariantType.IntVector2 or VariantType.IntVector3)
+        if (method == InterpMethod.Spline && _valueType is VariantType.IntRect or VariantType.IntVector2 or VariantType.IntVector3)
             method = InterpMethod.Linear;
 
         InterpolationMethod = method;
@@ -222,15 +222,15 @@ public sealed class ValueAnimation : Resource
 
     public void SetValueType(VariantType valueType)
     {
-        if (this.valueType == valueType)
+        if (this._valueType == valueType)
             return;
 
-        this.valueType = valueType;
-        interpolatable = VariantTypeUtility.IsInterpolatable(valueType);
+        this._valueType = valueType;
+        _interpolatable = VariantTypeUtility.IsInterpolatable(valueType);
         if (valueType is VariantType.IntRect or VariantType.IntVector2 or VariantType.IntVector3 && InterpolationMethod == InterpMethod.Spline)
             InterpolationMethod = InterpMethod.Linear;
-        keyFrames.Clear();
-        eventFrames.Clear();
+        _keyFrames.Clear();
+        _eventFrames.Clear();
         BeginTime = MathDefs.Infinity;
         EndTime = -MathDefs.Infinity;
     }
@@ -241,16 +241,16 @@ public sealed class ValueAnimation : Resource
         if (type == VariantType.None)
             return false;
 
-        if (valueType == VariantType.None)
+        if (_valueType == VariantType.None)
             SetValueType(type);
-        else if (type != valueType)
+        else if (type != _valueType)
             return false;
 
-        if (keyFrames.Any(frame => frame.Time == time))
+        if (_keyFrames.Any(frame => frame.Time == time))
             return false;
 
-        keyFrames.Add(new VAnimKeyFrame { Time = time, Value = value });
-        keyFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
+        _keyFrames.Add(new VAnimKeyFrame { Time = time, Value = value });
+        _keyFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
         BeginTime = Math.Min(BeginTime, time);
         EndTime = Math.Max(EndTime, time);
         return true;
@@ -258,13 +258,13 @@ public sealed class ValueAnimation : Resource
 
     public void SetEventFrame(float time, StringHash eventType, VariantMap? eventData = null)
     {
-        eventFrames.Add(new VAnimEventFrame
+        _eventFrames.Add(new VAnimEventFrame
         {
             Time = time,
             EventType = eventType,
             EventData = eventData is null ? new VariantMap() : new VariantMap(eventData)
         });
-        eventFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
+        _eventFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
         BeginTime = Math.Min(BeginTime, time);
         EndTime = Math.Max(EndTime, time);
     }
@@ -274,41 +274,41 @@ public sealed class ValueAnimation : Resource
         return InterpolationMethod switch
         {
             InterpMethod.None => true,
-            InterpMethod.Linear => keyFrames.Count > 1,
-            InterpMethod.Spline => keyFrames.Count > 2,
+            InterpMethod.Linear => _keyFrames.Count > 1,
+            InterpMethod.Spline => _keyFrames.Count > 2,
             _ => false
         };
     }
 
     public object? GetAnimationValue(float scaledTime)
     {
-        if (keyFrames.Count == 0)
+        if (_keyFrames.Count == 0)
             return null;
-        if (keyFrames.Count == 1)
-            return keyFrames[0].Value;
+        if (_keyFrames.Count == 1)
+            return _keyFrames[0].Value;
 
         var index = 1;
-        while (index < keyFrames.Count && scaledTime >= keyFrames[index].Time)
+        while (index < _keyFrames.Count && scaledTime >= _keyFrames[index].Time)
             ++index;
 
-        if (index >= keyFrames.Count)
-            return keyFrames[^1].Value;
-        if (!interpolatable || InterpolationMethod == InterpMethod.None)
-            return keyFrames[index - 1].Value;
+        if (index >= _keyFrames.Count)
+            return _keyFrames[^1].Value;
+        if (!_interpolatable || InterpolationMethod == InterpMethod.None)
+            return _keyFrames[index - 1].Value;
 
         return InterpolationMethod == InterpMethod.Spline
             ? SplineInterpolation(index - 1, index, scaledTime)
             : LinearInterpolation(index - 1, index, scaledTime);
     }
 
-    public IReadOnlyList<VAnimKeyFrame> GetKeyFrames() => keyFrames;
+    public IReadOnlyList<VAnimKeyFrame> GetKeyFrames() => _keyFrames;
 
-    public bool HasEventFrames() => eventFrames.Count != 0;
+    public bool HasEventFrames() => _eventFrames.Count != 0;
 
     public IReadOnlyList<VAnimEventFrame> GetEventFrames(float beginTime, float endTime)
     {
         var result = new List<VAnimEventFrame>();
-        foreach (var frame in eventFrames)
+        foreach (var frame in _eventFrames)
         {
             if (frame.Time >= beginTime && frame.Time <= endTime)
                 result.Add(frame);
@@ -319,28 +319,28 @@ public sealed class ValueAnimation : Resource
 
     private object? LinearInterpolation(int index1, int index2, float scaledTime)
     {
-        var lhs = keyFrames[index1].Value;
-        var rhs = keyFrames[index2].Value;
-        var denominator = keyFrames[index2].Time - keyFrames[index1].Time;
-        var t = denominator == 0.0f ? 0.0f : (scaledTime - keyFrames[index1].Time) / denominator;
+        var lhs = _keyFrames[index1].Value;
+        var rhs = _keyFrames[index2].Value;
+        var denominator = _keyFrames[index2].Time - _keyFrames[index1].Time;
+        var t = denominator == 0.0f ? 0.0f : (scaledTime - _keyFrames[index1].Time) / denominator;
         return Interpolate(lhs, rhs, t);
     }
 
     private object? SplineInterpolation(int index1, int index2, float scaledTime)
     {
-        var denominator = keyFrames[index2].Time - keyFrames[index1].Time;
-        var t = denominator == 0.0f ? 0.0f : (scaledTime - keyFrames[index1].Time) / denominator;
+        var denominator = _keyFrames[index2].Time - _keyFrames[index1].Time;
+        var t = denominator == 0.0f ? 0.0f : (scaledTime - _keyFrames[index1].Time) / denominator;
         var tangent1 = index1 == 0
-            ? Equals(keyFrames[0].Value, keyFrames[^1].Value)
-                ? SubtractAndMultiply(keyFrames[1].Value, keyFrames[^2].Value, SplineTension)
-                : SubtractAndMultiply(keyFrames[0].Value, keyFrames[0].Value, SplineTension)
-            : SubtractAndMultiply(keyFrames[index1 + 1].Value, keyFrames[index1 - 1].Value, SplineTension);
-        var tangent2 = index2 == keyFrames.Count - 1
-            ? Equals(keyFrames[0].Value, keyFrames[^1].Value)
-                ? SubtractAndMultiply(keyFrames[1].Value, keyFrames[^2].Value, SplineTension)
-                : SubtractAndMultiply(keyFrames[^1].Value, keyFrames[^1].Value, SplineTension)
-            : SubtractAndMultiply(keyFrames[index2 + 1].Value, keyFrames[index2 - 1].Value, SplineTension);
-        return Hermite(keyFrames[index1].Value, tangent1, keyFrames[index2].Value, tangent2, t);
+            ? Equals(_keyFrames[0].Value, _keyFrames[^1].Value)
+                ? SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension)
+                : SubtractAndMultiply(_keyFrames[0].Value, _keyFrames[0].Value, SplineTension)
+            : SubtractAndMultiply(_keyFrames[index1 + 1].Value, _keyFrames[index1 - 1].Value, SplineTension);
+        var tangent2 = index2 == _keyFrames.Count - 1
+            ? Equals(_keyFrames[0].Value, _keyFrames[^1].Value)
+                ? SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension)
+                : SubtractAndMultiply(_keyFrames[^1].Value, _keyFrames[^1].Value, SplineTension)
+            : SubtractAndMultiply(_keyFrames[index2 + 1].Value, _keyFrames[index2 - 1].Value, SplineTension);
+        return Hermite(_keyFrames[index1].Value, tangent1, _keyFrames[index2].Value, tangent2, t);
     }
 
     private static object? Interpolate(object? lhs, object? rhs, float t)
@@ -411,10 +411,10 @@ public sealed class ValueAnimation : Resource
 
     private void Reset()
     {
-        keyFrames.Clear();
-        eventFrames.Clear();
-        valueType = VariantType.None;
-        interpolatable = false;
+        _keyFrames.Clear();
+        _eventFrames.Clear();
+        _valueType = VariantType.None;
+        _interpolatable = false;
         InterpolationMethod = InterpMethod.Linear;
         SplineTension = 0.5f;
         BeginTime = MathDefs.Infinity;

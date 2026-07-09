@@ -3,11 +3,11 @@ namespace RedBolt;
 
 public sealed class Timer
 {
-    private readonly Stopwatch stopwatch = Stopwatch.StartNew();
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     public uint GetMSec(bool reset = false)
     {
-        var elapsed = ToUIntMilliseconds(stopwatch.ElapsedMilliseconds);
+        var elapsed = ToUIntMilliseconds(_stopwatch.ElapsedMilliseconds);
         if (reset)
             Reset();
 
@@ -16,7 +16,7 @@ public sealed class Timer
 
     public void Reset()
     {
-        stopwatch.Restart();
+        _stopwatch.Restart();
     }
 
     private static uint ToUIntMilliseconds(long milliseconds)
@@ -27,11 +27,11 @@ public sealed class Timer
 
 public sealed class HiresTimer
 {
-    private readonly Stopwatch stopwatch = Stopwatch.StartNew();
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     public long GetUSec(bool reset = false)
     {
-        var elapsed = ToMicroseconds(stopwatch.ElapsedTicks);
+        var elapsed = ToMicroseconds(_stopwatch.ElapsedTicks);
         if (reset)
             Reset();
 
@@ -40,7 +40,7 @@ public sealed class HiresTimer
 
     public void Reset()
     {
-        stopwatch.Restart();
+        _stopwatch.Restart();
     }
 
     public static bool IsSupported() => Stopwatch.IsHighResolution;
@@ -55,23 +55,23 @@ public sealed class HiresTimer
 
 public sealed class TimedCounter
 {
-    private readonly Timer timer = new();
-    private readonly float[] data;
-    private readonly uint intervalLengthMs;
-    private int current;
-    private float accumulator;
+    private readonly Timer _timer = new();
+    private readonly float[] _data;
+    private readonly uint _intervalLengthMs;
+    private int _current;
+    private float _accumulator;
 
     public TimedCounter(int intervalCount, uint intervalLengthMs)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(intervalCount);
-        data = new float[intervalCount];
-        this.intervalLengthMs = intervalLengthMs;
-        current = intervalCount - 1;
+        _data = new float[intervalCount];
+        this._intervalLengthMs = intervalLengthMs;
+        _current = intervalCount - 1;
     }
 
-    public int Current => current;
+    public int Current => _current;
 
-    public IReadOnlyList<float> Data => data;
+    public IReadOnlyList<float> Data => _data;
 
     public int GetCurrent() => Current;
 
@@ -80,29 +80,29 @@ public sealed class TimedCounter
     public void AddSample(float value)
     {
         RotateIfNeeded();
-        accumulator += value;
+        _accumulator += value;
     }
 
     public float GetAverage()
     {
         RotateIfNeeded();
-        return data.Sum() / data.Length;
+        return _data.Sum() / _data.Length;
     }
 
     public float GetLast()
     {
         RotateIfNeeded();
-        return data[current];
+        return _data[_current];
     }
 
     private void RotateIfNeeded()
     {
-        if (timer.GetMSec() < intervalLengthMs)
+        if (_timer.GetMSec() < _intervalLengthMs)
             return;
 
-        timer.Reset();
-        current = (current + 1) % data.Length;
-        data[current] = accumulator;
-        accumulator = 0.0f;
+        _timer.Reset();
+        _current = (_current + 1) % _data.Length;
+        _data[_current] = _accumulator;
+        _accumulator = 0.0f;
     }
 }

@@ -23,25 +23,25 @@ public class RenderPool : Object
         public uint NumUsed { get; set; }
     }
 
-    private readonly RenderDevice renderDevice;
-    private readonly Dictionary<ulong, RawBuffer> uniformBuffers = [];
-    private readonly Dictionary<RawTextureParams, TextureCacheEntryGroup> transientTextures = [];
-    private readonly Dictionary<(RawTextureParams Params, nint PersistenceKey), TextureCacheEntry> persistentTextures = [];
-    private readonly List<nint> scratchBufferAllocations = [];
-    private readonly List<nint> temporaryScratchBufferAllocations = [];
-    private nint scratchBuffer;
-    private uint scratchBufferCapacity = InitialScratchBufferSize;
-    private uint scratchBufferOffset;
-    private uint temporaryScratchBufferAllocationsSize;
-    private uint numAddedTextures;
-    private uint numRemovedTextures;
-    private FrameIndex lastLogFrame;
+    private readonly RenderDevice _renderDevice;
+    private readonly Dictionary<ulong, RawBuffer> _uniformBuffers = [];
+    private readonly Dictionary<RawTextureParams, TextureCacheEntryGroup> _transientTextures = [];
+    private readonly Dictionary<(RawTextureParams Params, nint PersistenceKey), TextureCacheEntry> _persistentTextures = [];
+    private readonly List<nint> _scratchBufferAllocations = [];
+    private readonly List<nint> _temporaryScratchBufferAllocations = [];
+    private nint _scratchBuffer;
+    private uint _scratchBufferCapacity = InitialScratchBufferSize;
+    private uint _scratchBufferOffset;
+    private uint _temporaryScratchBufferAllocationsSize;
+    private uint _numAddedTextures;
+    private uint _numRemovedTextures;
+    private FrameIndex _lastLogFrame;
 
     public RenderPool(RenderDevice renderDevice)
     {
-        this.renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
-        scratchBuffer = Marshal.AllocHGlobal((nint)scratchBufferCapacity);
-        if (scratchBuffer == nint.Zero)
+        this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
+        _scratchBuffer = Marshal.AllocHGlobal((nint)_scratchBufferCapacity);
+        if (_scratchBuffer == nint.Zero)
             throw new OutOfMemoryException("Failed to allocate RenderPool scratch buffer.");
     }
 
@@ -49,12 +49,12 @@ public class RenderPool : Object
 
     public void Invalidate()
     {
-        uniformBuffers.Clear();
-        transientTextures.Clear();
-        persistentTextures.Clear();
-        numAddedTextures = 0u;
-        numRemovedTextures = 0u;
-        lastLogFrame = FrameIndex.None;
+        _uniformBuffers.Clear();
+        _transientTextures.Clear();
+        _persistentTextures.Clear();
+        _numAddedTextures = 0u;
+        _numRemovedTextures = 0u;
+        _lastLogFrame = FrameIndex.None;
     }
 
     public void Restore()
@@ -66,7 +66,7 @@ public class RenderPool : Object
         RecycleTextures();
     }
 
-    public RenderDevice GetRenderDevice() => renderDevice;
+    public RenderDevice GetRenderDevice() => _renderDevice;
 
     /// <summary>
     /// Return uniform buffer.
@@ -77,11 +77,11 @@ public class RenderPool : Object
     {
         var quantizedSize = (size + 511u) / 512u * 512u;
         var key = ((ulong)id << 32) | quantizedSize;
-        if (!uniformBuffers.TryGetValue(key, out var uniformBuffer))
+        if (!_uniformBuffers.TryGetValue(key, out var uniformBuffer))
         {
             uniformBuffer = new RawBuffer(
                 new RawBufferParams(BufferType.Uniform, quantizedSize, 0u, BufferFlag.Dynamic | BufferFlag.Discard));
-            uniformBuffers[key] = uniformBuffer;
+            _uniformBuffers[key] = uniformBuffer;
         }
 
         return uniformBuffer;
@@ -105,20 +105,20 @@ public class RenderPool : Object
     public nint AllocateScratchBuffer(uint size)
     {
         var alignedSize = AlignScratchSize(size);
-        if (scratchBufferOffset + alignedSize > scratchBufferCapacity)
+        if (_scratchBufferOffset + alignedSize > _scratchBufferCapacity)
         {
             var temporaryBuffer = Marshal.AllocHGlobal((nint)alignedSize);
             if (temporaryBuffer == nint.Zero)
                 throw new OutOfMemoryException("Failed to allocate temporary RenderPool scratch buffer.");
 
-            temporaryScratchBufferAllocations.Add(temporaryBuffer);
-            temporaryScratchBufferAllocationsSize += alignedSize;
+            _temporaryScratchBufferAllocations.Add(temporaryBuffer);
+            _temporaryScratchBufferAllocationsSize += alignedSize;
             return temporaryBuffer;
         }
 
-        var buffer = scratchBuffer + (int)scratchBufferOffset;
-        scratchBufferAllocations.Add(buffer);
-        scratchBufferOffset += alignedSize;
+        var buffer = _scratchBuffer + (int)_scratchBufferOffset;
+        _scratchBufferAllocations.Add(buffer);
+        _scratchBufferOffset += alignedSize;
         return buffer;
     }
 
@@ -127,21 +127,21 @@ public class RenderPool : Object
     /// </summary>
     public void ReleaseScratchBuffer(nint buffer)
     {
-        var isTemporary = temporaryScratchBufferAllocations.Remove(buffer);
-        var isStandard = scratchBufferAllocations.Remove(buffer);
+        var isTemporary = _temporaryScratchBufferAllocations.Remove(buffer);
+        var isStandard = _scratchBufferAllocations.Remove(buffer);
         if (isTemporary == isStandard)
             throw new InvalidOperationException("Unknown scratch buffer allocation.");
 
         if (isTemporary)
             Marshal.FreeHGlobal(buffer);
 
-        if (scratchBufferAllocations.Count == 0 && temporaryScratchBufferAllocations.Count == 0)
+        if (_scratchBufferAllocations.Count == 0 && _temporaryScratchBufferAllocations.Count == 0)
         {
-            if (temporaryScratchBufferAllocationsSize != 0u)
-                ResizeScratchBuffer(((scratchBufferCapacity + temporaryScratchBufferAllocationsSize) * 3u) / 2u);
+            if (_temporaryScratchBufferAllocationsSize != 0u)
+                ResizeScratchBuffer(((_scratchBufferCapacity + _temporaryScratchBufferAllocationsSize) * 3u) / 2u);
 
-            scratchBufferOffset = 0u;
-            temporaryScratchBufferAllocationsSize = 0u;
+            _scratchBufferOffset = 0u;
+            _temporaryScratchBufferAllocationsSize = 0u;
         }
     }
 
@@ -153,36 +153,36 @@ public class RenderPool : Object
         CleanupOldTextures();
         CleanupTexturesExceedingQuota();
 
-        var currentFrame = renderDevice.GetFrameIndex();
-        var framesSinceLastLog = (long)currentFrame - (long)lastLogFrame;
-        if ((numAddedTextures > 0u || numRemovedTextures > 0u) && framesSinceLastLog >= Settings.LogPeriod)
+        var currentFrame = _renderDevice.GetFrameIndex();
+        var framesSinceLastLog = (long)currentFrame - (long)_lastLogFrame;
+        if ((_numAddedTextures > 0u || _numRemovedTextures > 0u) && framesSinceLastLog >= Settings.LogPeriod)
         {
-            var totalTextures = transientTextures.Values.Sum(static group => group.Entries.Count) + persistentTextures.Count;
-            lastLogFrame = currentFrame;
-            numAddedTextures = 0u;
-            numRemovedTextures = 0u;
+            var totalTextures = _transientTextures.Values.Sum(static group => group.Entries.Count) + _persistentTextures.Count;
+            _lastLogFrame = currentFrame;
+            _numAddedTextures = 0u;
+            _numRemovedTextures = 0u;
             _ = totalTextures;
         }
     }
 
     private long GetAge(TextureCacheEntry entry)
     {
-        var currentFrame = renderDevice.GetFrameIndex();
+        var currentFrame = _renderDevice.GetFrameIndex();
         return (long)currentFrame - (long)entry.LastUsedFrame;
     }
 
     private RawTexture GetTransientTexture(RawTextureParams parameters)
     {
-        if (!transientTextures.TryGetValue(parameters, out var allocations))
+        if (!_transientTextures.TryGetValue(parameters, out var allocations))
         {
             allocations = new TextureCacheEntryGroup();
-            transientTextures[parameters] = allocations;
+            _transientTextures[parameters] = allocations;
         }
 
         if (allocations.NumUsed < allocations.Entries.Count)
         {
             var entry = allocations.Entries[(int)allocations.NumUsed++];
-            entry.LastUsedFrame = renderDevice.GetFrameIndex();
+            entry.LastUsedFrame = _renderDevice.GetFrameIndex();
             return entry.Texture;
         }
 
@@ -190,47 +190,47 @@ public class RenderPool : Object
         var newEntry = new TextureCacheEntry
         {
             Texture = texture,
-            LastUsedFrame = renderDevice.GetFrameIndex()
+            LastUsedFrame = _renderDevice.GetFrameIndex()
         };
         allocations.Entries.Add(newEntry);
         ++allocations.NumUsed;
-        ++numAddedTextures;
+        ++_numAddedTextures;
         return texture;
     }
 
     private RawTexture GetPersistentTexture(RawTextureParams parameters, nint persistenceKey)
     {
         var key = (parameters, persistenceKey);
-        if (!persistentTextures.TryGetValue(key, out var entry))
+        if (!_persistentTextures.TryGetValue(key, out var entry))
         {
             entry = new TextureCacheEntry
             {
                 Texture = new RawTexture(parameters)
             };
-            persistentTextures[key] = entry;
-            ++numAddedTextures;
+            _persistentTextures[key] = entry;
+            ++_numAddedTextures;
         }
 
-        entry.LastUsedFrame = renderDevice.GetFrameIndex();
+        entry.LastUsedFrame = _renderDevice.GetFrameIndex();
         return entry.Texture;
     }
 
     private void CleanupOldTextures()
     {
-        foreach (var allocations in transientTextures.Values)
+        foreach (var allocations in _transientTextures.Values)
         {
             allocations.NumUsed = 0u;
             var removed = allocations.Entries.RemoveAll(entry => GetAge(entry) >= Settings.TextureCacheMaxFrames);
-            numRemovedTextures += (uint)Math.Max(removed, 0);
+            _numRemovedTextures += (uint)Math.Max(removed, 0);
         }
 
-        foreach (var emptyGroup in transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
-            transientTextures.Remove(emptyGroup);
+        foreach (var emptyGroup in _transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
+            _transientTextures.Remove(emptyGroup);
 
-        foreach (var oldTexture in persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMaxFrames).Select(static pair => pair.Key).ToArray())
+        foreach (var oldTexture in _persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMaxFrames).Select(static pair => pair.Key).ToArray())
         {
-            persistentTextures.Remove(oldTexture);
-            ++numRemovedTextures;
+            _persistentTextures.Remove(oldTexture);
+            ++_numRemovedTextures;
         }
     }
 
@@ -239,7 +239,7 @@ public class RenderPool : Object
         var totalTextures = 0;
         var totalOldTextures = 0;
 
-        foreach (var allocations in transientTextures.Values)
+        foreach (var allocations in _transientTextures.Values)
         {
             foreach (var entry in allocations.Entries)
             {
@@ -249,7 +249,7 @@ public class RenderPool : Object
             }
         }
 
-        foreach (var entry in persistentTextures.Values)
+        foreach (var entry in _persistentTextures.Values)
         {
             ++totalTextures;
             if (GetAge(entry) >= Settings.TextureCacheMinFrames)
@@ -260,19 +260,19 @@ public class RenderPool : Object
         if (totalOldTextures < maxOldTextures)
             return;
 
-        foreach (var allocations in transientTextures.Values)
+        foreach (var allocations in _transientTextures.Values)
         {
             var removed = allocations.Entries.RemoveAll(entry => GetAge(entry) >= Settings.TextureCacheMinFrames);
-            numRemovedTextures += (uint)Math.Max(removed, 0);
+            _numRemovedTextures += (uint)Math.Max(removed, 0);
         }
 
-        foreach (var emptyGroup in transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
-            transientTextures.Remove(emptyGroup);
+        foreach (var emptyGroup in _transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
+            _transientTextures.Remove(emptyGroup);
 
-        foreach (var oldTexture in persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMinFrames).Select(static pair => pair.Key).ToArray())
+        foreach (var oldTexture in _persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMinFrames).Select(static pair => pair.Key).ToArray())
         {
-            persistentTextures.Remove(oldTexture);
-            ++numRemovedTextures;
+            _persistentTextures.Remove(oldTexture);
+            ++_numRemovedTextures;
         }
     }
 
@@ -284,20 +284,20 @@ public class RenderPool : Object
     private void ResizeScratchBuffer(uint newCapacity)
     {
         newCapacity = Math.Max(newCapacity, InitialScratchBufferSize);
-        Marshal.FreeHGlobal(scratchBuffer);
-        scratchBuffer = Marshal.AllocHGlobal((nint)newCapacity);
-        if (scratchBuffer == nint.Zero)
+        Marshal.FreeHGlobal(_scratchBuffer);
+        _scratchBuffer = Marshal.AllocHGlobal((nint)newCapacity);
+        if (_scratchBuffer == nint.Zero)
             throw new OutOfMemoryException("Failed to resize RenderPool scratch buffer.");
 
-        scratchBufferCapacity = newCapacity;
+        _scratchBufferCapacity = newCapacity;
     }
 
     ~RenderPool()
     {
-        foreach (var temporaryBuffer in temporaryScratchBufferAllocations)
+        foreach (var temporaryBuffer in _temporaryScratchBufferAllocations)
             Marshal.FreeHGlobal(temporaryBuffer);
 
-        if (scratchBuffer != nint.Zero)
-            Marshal.FreeHGlobal(scratchBuffer);
+        if (_scratchBuffer != nint.Zero)
+            Marshal.FreeHGlobal(_scratchBuffer);
     }
 }

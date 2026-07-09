@@ -77,10 +77,10 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 
 public sealed class Material : ResourceWithMetadata
 {
-    private readonly Dictionary<string, MaterialShaderParameter> shaderParameters = new(StringComparer.Ordinal);
-    private readonly Dictionary<StringHash, MaterialTexture> textures = new();
-    private readonly List<TechniqueEntry> techniques = [];
-    private uint shaderParameterHash;
+    private readonly Dictionary<string, MaterialShaderParameter> _shaderParameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
+    private readonly List<TechniqueEntry> _techniques = [];
+    private uint _shaderParameterHash;
 
     internal Material(string name)
         : base(name)
@@ -106,16 +106,16 @@ public sealed class Material : ResourceWithMetadata
 
     public CullMode ShadowCullMode { get; set; } = CullMode.CounterClockwise;
 
-    public IReadOnlyDictionary<string, MaterialShaderParameter> ShaderParameters => shaderParameters;
+    public IReadOnlyDictionary<string, MaterialShaderParameter> ShaderParameters => _shaderParameters;
 
-    public IReadOnlyDictionary<StringHash, MaterialTexture> Textures => textures;
+    public IReadOnlyDictionary<StringHash, MaterialTexture> Textures => _textures;
 
-    public IReadOnlyList<TechniqueEntry> Techniques => techniques;
-    internal Dictionary<string, MaterialShaderParameter>.Enumerator EnumerateShaderParameters() => shaderParameters.GetEnumerator();
-    internal Dictionary<StringHash, MaterialTexture>.Enumerator EnumerateTextures() => textures.GetEnumerator();
-    internal List<TechniqueEntry>.Enumerator EnumerateTechniques() => techniques.GetEnumerator();
+    public IReadOnlyList<TechniqueEntry> Techniques => _techniques;
+    internal Dictionary<string, MaterialShaderParameter>.Enumerator EnumerateShaderParameters() => _shaderParameters.GetEnumerator();
+    internal Dictionary<StringHash, MaterialTexture>.Enumerator EnumerateTextures() => _textures.GetEnumerator();
+    internal List<TechniqueEntry>.Enumerator EnumerateTechniques() => _techniques.GetEnumerator();
 
-    public uint ShaderParameterHash => shaderParameterHash;
+    public uint ShaderParameterHash => _shaderParameterHash;
 
     public Vector2 UVOffset { get; private set; }
 
@@ -153,17 +153,17 @@ public sealed class Material : ResourceWithMetadata
         UVRepeat = material.UVRepeat;
         VertexShaderDefines = material.VertexShaderDefines;
 
-        techniques.Clear();
-        foreach (var technique in material.techniques)
-            techniques.Add(technique);
+        _techniques.Clear();
+        foreach (var technique in material._techniques)
+            _techniques.Add(technique);
 
-        textures.Clear();
-        foreach (var texture in material.textures)
-            textures.Add(texture.Key, texture.Value);
+        _textures.Clear();
+        foreach (var texture in material._textures)
+            _textures.Add(texture.Key, texture.Value);
 
-        shaderParameters.Clear();
-        foreach (var parameter in material.shaderParameters)
-            shaderParameters.Add(parameter.Key, parameter.Value);
+        _shaderParameters.Clear();
+        foreach (var parameter in material._shaderParameters)
+            _shaderParameters.Add(parameter.Key, parameter.Value);
         ApplyShaderDefinesToTechniques();
         RefreshShaderParameterHash();
         CopyMetadata(material);
@@ -190,20 +190,20 @@ public sealed class Material : ResourceWithMetadata
     public object? GetShaderParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return shaderParameters.TryGetValue(name, out var parameter) ? parameter.Value : null;
+        return _shaderParameters.TryGetValue(name, out var parameter) ? parameter.Value : null;
     }
 
-    public IReadOnlyDictionary<string, MaterialShaderParameter> GetShaderParameters() => shaderParameters;
+    public IReadOnlyDictionary<string, MaterialShaderParameter> GetShaderParameters() => _shaderParameters;
 
-    public uint GetShaderParameterHash() => shaderParameterHash;
+    public uint GetShaderParameterHash() => _shaderParameterHash;
 
     public string GetVertexShaderDefines() => VertexShaderDefines;
 
-    public uint GetNumTechniques() => (uint)techniques.Count;
+    public uint GetNumTechniques() => (uint)_techniques.Count;
 
-    public IReadOnlyList<TechniqueEntry> GetTechniques() => techniques;
+    public IReadOnlyList<TechniqueEntry> GetTechniques() => _techniques;
 
-    public TechniqueEntry GetTechniqueEntry(uint index) => index < techniques.Count ? techniques[(int)index] : default;
+    public TechniqueEntry GetTechniqueEntry(uint index) => index < _techniques.Count ? _techniques[(int)index] : default;
 
     public Technique? GetTechnique(uint index) => GetTechniqueEntry(index).Technique;
 
@@ -212,10 +212,10 @@ public sealed class Material : ResourceWithMetadata
     /// </summary>
     public Technique? FindTechnique(MaterialQuality materialQuality, float lodDistance = 0.0f)
     {
-        if (techniques.Count == 1)
-            return techniques[0].Technique;
+        if (_techniques.Count == 1)
+            return _techniques[0].Technique;
 
-        foreach (var entry in techniques)
+        foreach (var entry in _techniques)
         {
             var technique = entry.Technique;
             if (technique is null || materialQuality < entry.QualityLevel)
@@ -224,7 +224,7 @@ public sealed class Material : ResourceWithMetadata
                 return technique;
         }
 
-        return techniques.Count > 0 ? techniques[^1].Technique : null;
+        return _techniques.Count > 0 ? _techniques[^1].Technique : null;
     }
 
     public Pass? GetPass(uint index, string passName)
@@ -235,7 +235,7 @@ public sealed class Material : ResourceWithMetadata
 
     public Pass? GetDefaultPass() => GetPass(0, "base");
 
-    public Texture? GetTexture(StringHash nameHash) => textures.TryGetValue(nameHash, out var texture) ? texture.Texture : null;
+    public Texture? GetTexture(StringHash nameHash) => _textures.TryGetValue(nameHash, out var texture) ? texture.Texture : null;
 
     public Texture? GetTexture(string name)
     {
@@ -243,7 +243,7 @@ public sealed class Material : ResourceWithMetadata
         return GetTexture(new StringHash(NormalizeTextureSlotName(name)));
     }
 
-    public IReadOnlyDictionary<StringHash, MaterialTexture> GetTextures() => textures;
+    public IReadOnlyDictionary<StringHash, MaterialTexture> GetTextures() => _textures;
 
     public void SetAlphaToCoverage(bool enable)
     {
@@ -302,23 +302,23 @@ public sealed class Material : ResourceWithMetadata
         var normalized = NormalizeTextureSlotName(name);
         var hash = new StringHash(normalized);
         if (texture is null)
-            textures.Remove(hash);
+            _textures.Remove(hash);
         else
-            textures[hash] = new MaterialTexture(normalized, texture);
+            _textures[hash] = new MaterialTexture(normalized, texture);
     }
 
     public void SetNumTechniques(uint num)
     {
-        while (techniques.Count < num)
-            techniques.Add(default);
-        while (techniques.Count > num)
-            techniques.RemoveAt(techniques.Count - 1);
+        while (_techniques.Count < num)
+            _techniques.Add(default);
+        while (_techniques.Count > num)
+            _techniques.RemoveAt(_techniques.Count - 1);
     }
 
     public void SetTechnique(uint index, Technique? tech, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
     {
         SetNumTechniques(index + 1);
-        techniques[(int)index] = new TechniqueEntry(tech, qualityLevel, lodDistance);
+        _techniques[(int)index] = new TechniqueEntry(tech, qualityLevel, lodDistance);
         SortTechniques();
         ApplyShaderDefinesToTechniques();
     }
@@ -326,8 +326,8 @@ public sealed class Material : ResourceWithMetadata
     public void SetTechniques(IEnumerable<TechniqueEntry> techniques)
     {
         ArgumentNullException.ThrowIfNull(techniques);
-        this.techniques.Clear();
-        this.techniques.AddRange(techniques);
+        this._techniques.Clear();
+        this._techniques.AddRange(techniques);
         SortTechniques();
         ApplyShaderDefinesToTechniques();
     }
@@ -335,7 +335,7 @@ public sealed class Material : ResourceWithMetadata
     public void SetShaderParameter(string name, object? value, bool isCustom = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
+        _shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
         RefreshShaderParameterHash();
     }
 
@@ -365,13 +365,13 @@ public sealed class Material : ResourceWithMetadata
 
     public void SortTechniques()
     {
-        techniques.Sort();
+        _techniques.Sort();
     }
 
     public bool RemoveShaderParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var removed = shaderParameters.Remove(name);
+        var removed = _shaderParameters.Remove(name);
         if (removed)
             RefreshShaderParameterHash();
         return removed;
@@ -408,7 +408,7 @@ public sealed class Material : ResourceWithMetadata
 
     public bool TryGetShaderParameter(string name, out object? value)
     {
-        if (shaderParameters.TryGetValue(name, out var parameter))
+        if (_shaderParameters.TryGetValue(name, out var parameter))
         {
             value = parameter.Value;
             return true;
@@ -450,7 +450,7 @@ public sealed class Material : ResourceWithMetadata
             SetPixelShaderDefines(shaderElement.GetAttribute("psdefines"));
         }
 
-        techniques.Clear();
+        _techniques.Clear();
         for (var techniqueElement = source.GetChild("technique"); techniqueElement.NotNull; techniqueElement = techniqueElement.GetNext("technique"))
         {
             var techniqueName = techniqueElement.GetAttribute("name");
@@ -467,7 +467,7 @@ public sealed class Material : ResourceWithMetadata
             var lodDistance = techniqueElement.HasAttribute("loddistance")
                 ? techniqueElement.GetFloat("loddistance")
                 : 0.0f;
-            techniques.Add(new TechniqueEntry(technique, quality, lodDistance));
+            _techniques.Add(new TechniqueEntry(technique, quality, lodDistance));
         }
 
         SortTechniques();
@@ -545,9 +545,9 @@ public sealed class Material : ResourceWithMetadata
         if (dest.IsNull)
             return false;
 
-        for (var i = 0; i < techniques.Count; ++i)
+        for (var i = 0; i < _techniques.Count; ++i)
         {
-            var entry = techniques[i];
+            var entry = _techniques[i];
             if (entry.Original is null)
                 continue;
 
@@ -557,7 +557,7 @@ public sealed class Material : ResourceWithMetadata
             techniqueElement.SetFloat("loddistance", entry.LodDistance);
         }
 
-        foreach (var texture in textures.Values.OrderBy(static texture => texture.Name, StringComparer.Ordinal))
+        foreach (var texture in _textures.Values.OrderBy(static texture => texture.Name, StringComparer.Ordinal))
         {
             var textureElement = dest.CreateChild("texture");
             textureElement.SetString("slot", texture.Name);
@@ -573,7 +573,7 @@ public sealed class Material : ResourceWithMetadata
                 shaderElement.SetString("psdefines", PixelShaderDefines);
         }
 
-        foreach (var parameter in shaderParameters.OrderBy(static parameter => parameter.Key, StringComparer.Ordinal))
+        foreach (var parameter in _shaderParameters.OrderBy(static parameter => parameter.Key, StringComparer.Ordinal))
         {
             var parameterElement = dest.CreateChild("parameter");
             parameterElement.SetString("name", parameter.Key);
@@ -601,29 +601,29 @@ public sealed class Material : ResourceWithMetadata
         unchecked
         {
             var hash = 2166136261u;
-            foreach (var parameter in shaderParameters.OrderBy(static item => item.Key, StringComparer.Ordinal))
+            foreach (var parameter in _shaderParameters.OrderBy(static item => item.Key, StringComparer.Ordinal))
             {
                 hash = (hash ^ StringHash.Calculate(parameter.Key)) * 16777619u;
                 hash = (hash ^ (uint)(parameter.Value.Value?.GetHashCode() ?? 0)) * 16777619u;
                 hash = (hash ^ (parameter.Value.IsCustom ? 1u : 0u)) * 16777619u;
             }
 
-            shaderParameterHash = hash;
+            _shaderParameterHash = hash;
         }
     }
 
     private void ApplyShaderDefinesToTechniques()
     {
-        for (var i = 0; i < techniques.Count; ++i)
+        for (var i = 0; i < _techniques.Count; ++i)
         {
-            var entry = techniques[i];
+            var entry = _techniques[i];
             if (entry.Original is null)
                 continue;
 
             entry.Technique = string.IsNullOrWhiteSpace(VertexShaderDefines) && string.IsNullOrWhiteSpace(PixelShaderDefines)
                 ? entry.Original
                 : entry.Original.CloneWithDefines(VertexShaderDefines, PixelShaderDefines);
-            techniques[i] = entry;
+            _techniques[i] = entry;
         }
     }
 
@@ -658,9 +658,9 @@ public sealed class Material : ResourceWithMetadata
         UVRotation = 0.0f;
         UVRepeat = Vector2.One;
 
-        shaderParameters.Clear();
-        textures.Clear();
-        techniques.Clear();
+        _shaderParameters.Clear();
+        _textures.Clear();
+        _techniques.Clear();
 
         SetUVTransform(Vector2.Zero, 0.0f, Vector2.One);
         SetShaderParameter("MatDiffColor", Vector4.One);

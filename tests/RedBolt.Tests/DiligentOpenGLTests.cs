@@ -448,41 +448,41 @@ public sealed class DiligentOpenGLTests
 
     private sealed class TextureDescOwner : IDisposable
     {
-        private readonly IntPtr memory;
+        private readonly IntPtr _memory;
 
         public TextureDescOwner(int size)
         {
-            memory = Marshal.AllocHGlobal(size);
-            Marshal.Copy(new byte[size], 0, memory, size);
-            Desc = TextureDesc.CreateManagedWrapper(memory, ownsHandle: false);
+            _memory = Marshal.AllocHGlobal(size);
+            Marshal.Copy(new byte[size], 0, _memory, size);
+            Desc = TextureDesc.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public TextureDesc Desc { get; }
 
         public void Dispose()
         {
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 
     private sealed class TextureViewDescOwner : IDisposable
     {
-        private readonly IntPtr memory;
+        private readonly IntPtr _memory;
 
         public TextureViewDescOwner(int size)
         {
-            memory = Marshal.AllocHGlobal(size);
-            Marshal.Copy(new byte[size], 0, memory, size);
-            Desc = TextureViewDesc.CreateManagedWrapper(memory, ownsHandle: false);
+            _memory = Marshal.AllocHGlobal(size);
+            Marshal.Copy(new byte[size], 0, _memory, size);
+            Desc = TextureViewDesc.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public TextureViewDesc Desc { get; }
 
         public void Dispose()
         {
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 

@@ -6,48 +6,48 @@ namespace RedBolt;
 public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<BoundingBox>
 {
     public Vector3 Min;
-    private float dummyMin;
+    private float _dummyMin;
     public Vector3 Max;
-    private float dummyMax;
+    private float _dummyMax;
 
     public BoundingBox(BoundingBox box)
     {
         Min = box.Min;
         Max = box.Max;
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
     }
 
     public BoundingBox(Rect rect)
     {
         Min = new Vector3(rect.Min, 0.0f);
         Max = new Vector3(rect.Max, 0.0f);
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
     }
 
     public BoundingBox(Vector3 min, Vector3 max)
     {
         Min = min;
         Max = max;
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
     }
 
     public BoundingBox(float min, float max)
     {
         Min = new Vector3(min, min, min);
         Max = new Vector3(max, max, max);
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
     }
 
     public BoundingBox(IReadOnlyList<Vector3> vertices)
     {
         Min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         Max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
         Define(vertices);
     }
 
@@ -55,8 +55,8 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         Min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         Max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
-        dummyMin = 0.0f;
-        dummyMax = 0.0f;
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
         Define(sphere);
     }
 

@@ -6,11 +6,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ShaderProgramReflectionTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public ShaderProgramReflectionTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -18,8 +18,8 @@ public sealed class ShaderProgramReflectionTests
     {
         WithInitializedGraphics(() =>
         {
-            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture");
-            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture");
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture");
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture");
 
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
@@ -37,8 +37,8 @@ public sealed class ShaderProgramReflectionTests
     {
         WithInitializedGraphics(() =>
         {
-            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
-            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
 
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
@@ -68,8 +68,8 @@ public sealed class ShaderProgramReflectionTests
     {
         WithInitializedGraphics(() =>
         {
-            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
-            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC");
 
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
@@ -98,12 +98,12 @@ public sealed class ShaderProgramReflectionTests
             var graphicsDesc = new GraphicsPipelineStateDesc
             {
                 DebugName = "ReflectionPipeline",
-                VertexShader = fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC"),
-                PixelShader = fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC")
+                VertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC"),
+                PixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC")
             };
             graphicsDesc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 
-            var pipelineState = fixture.PipelineStateCache.GetGraphicsPipelineState(graphicsDesc);
+            var pipelineState = _fixture.PipelineStateCache.GetGraphicsPipelineState(graphicsDesc);
 
             Assert.NotNull(pipelineState);
             Assert.NotNull(pipelineState!.GetReflection().GetUniformBuffer(ShaderParameterGroup.Camera));
@@ -121,18 +121,18 @@ public sealed class ShaderProgramReflectionTests
             WindowHeight = 64
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 }

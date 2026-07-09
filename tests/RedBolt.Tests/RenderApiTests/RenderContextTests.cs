@@ -5,11 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderContextTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RenderContextTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -17,7 +17,7 @@ public sealed class RenderContextTests
     {
         WithInitializedGraphics(() =>
         {
-            var renderContext = fixture.RenderContext;
+            var renderContext = _fixture.RenderContext;
 
             renderContext.SetSwapChainRenderTargets();
 
@@ -43,7 +43,7 @@ public sealed class RenderContextTests
     {
         WithInitializedGraphics(() =>
         {
-            var renderContext = fixture.RenderContext;
+            var renderContext = _fixture.RenderContext;
             var colorTexture = new Texture2D("Textures/RenderContextColor");
             var depthTexture = new Texture2D("Textures/RenderContextDepth");
             Assert.True(colorTexture.SetSize(32, 16, TextureFormat.RGBA8));
@@ -76,7 +76,7 @@ public sealed class RenderContextTests
     {
         WithInitializedGraphics(() =>
         {
-            var renderContext = fixture.RenderContext;
+            var renderContext = _fixture.RenderContext;
             renderContext.SetSwapChainRenderTargets();
             var before = renderContext.GetCurrentViewport();
 
@@ -100,18 +100,18 @@ public sealed class RenderContextTests
             WindowHeight = 64
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 }

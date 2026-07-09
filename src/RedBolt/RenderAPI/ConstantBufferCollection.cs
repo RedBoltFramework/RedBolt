@@ -19,59 +19,59 @@ public sealed class ConstantBufferCollection
     }
 
     /// <summary>Buffers.</summary>
-    private readonly List<BufferEntry> buffers = [];
+    private readonly List<BufferEntry> _buffers = [];
     /// <summary>Current buffer index.</summary>
-    private uint currentBufferIndex;
+    private uint _currentBufferIndex;
     /// <summary>Alignment of each block.</summary>
-    private uint alignment = 1;
+    private uint _alignment = 1;
     /// <summary>Size of buffers.</summary>
-    private uint bufferSize = 16384;
+    private uint _bufferSize = 16384;
 
     /// <summary>Clear and/or initialize for work.</summary>
     public void ClearAndInitialize(uint alignment)
     {
-        this.alignment = Math.Max(alignment, 1u);
-        currentBufferIndex = 0;
-        foreach (var buffer in buffers)
+        this._alignment = Math.Max(alignment, 1u);
+        _currentBufferIndex = 0;
+        foreach (var buffer in _buffers)
             buffer.Used = 0;
 
-        if (buffers.Count == 0)
+        if (_buffers.Count == 0)
             AllocateBuffer();
     }
 
     /// <summary>Allocate new block.</summary>
     public (ConstantBufferCollectionRef Ref, Memory<byte> Data) AddBlock(uint size)
     {
-        if (size > bufferSize)
+        if (size > _bufferSize)
             throw new ArgumentOutOfRangeException(nameof(size), "Requested block exceeds buffer capacity.");
 
-        var alignedSize = Align(size, alignment);
-        if (bufferSize - buffers[(int)currentBufferIndex].Used < alignedSize)
+        var alignedSize = Align(size, _alignment);
+        if (_bufferSize - _buffers[(int)_currentBufferIndex].Used < alignedSize)
         {
-            ++currentBufferIndex;
-            if (buffers.Count <= currentBufferIndex)
+            ++_currentBufferIndex;
+            if (_buffers.Count <= _currentBufferIndex)
                 AllocateBuffer();
         }
 
-        var currentBuffer = buffers[(int)currentBufferIndex];
+        var currentBuffer = _buffers[(int)_currentBufferIndex];
         var offset = currentBuffer.Used;
         currentBuffer.Used += alignedSize;
 
         var memory = currentBuffer.Data.AsMemory((int)offset, (int)size);
-        return (new ConstantBufferCollectionRef(currentBufferIndex, offset, size), memory);
+        return (new ConstantBufferCollectionRef(_currentBufferIndex, offset, size), memory);
     }
 
     /// <summary>Return number of buffers.</summary>
-    public uint GetNumBuffers() => currentBufferIndex + 1;
+    public uint GetNumBuffers() => _currentBufferIndex + 1;
 
     /// <summary>Return used size of the CPU buffer.</summary>
-    public uint GetBufferSize(uint index) => buffers[(int)index].Used;
+    public uint GetBufferSize(uint index) => _buffers[(int)index].Used;
 
     /// <summary>Return best size of GPU buffer. Round up to next power of two.</summary>
     public uint GetGPUBufferSize(uint index) => Math.Max(512u, MathDefs.NextPowerOfTwo(GetBufferSize(index)));
 
     /// <summary>Return buffer data.</summary>
-    public ReadOnlyMemory<byte> GetBufferData(uint index) => buffers[(int)index].Data.AsMemory(0, (int)GetBufferSize(index));
+    public ReadOnlyMemory<byte> GetBufferData(uint index) => _buffers[(int)index].Data.AsMemory(0, (int)GetBufferSize(index));
 
     /// <summary>Copy variant parameter into storage.</summary>
     public static bool StoreParameter(Span<byte> destination, Variant value)
@@ -129,9 +129,9 @@ public sealed class ConstantBufferCollection
     /// <summary>Allocate one more buffer.</summary>
     private void AllocateBuffer()
     {
-        buffers.Add(new BufferEntry
+        _buffers.Add(new BufferEntry
         {
-            Data = new byte[bufferSize]
+            Data = new byte[_bufferSize]
         });
     }
 

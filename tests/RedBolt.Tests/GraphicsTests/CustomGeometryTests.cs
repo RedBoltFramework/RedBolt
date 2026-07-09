@@ -5,15 +5,15 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CustomGeometryTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public CustomGeometryTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
         FirstCubeTestData.AddResourceDirs(Resources);
     }
 
-    private ResourceCache Resources => fixture.Resources;
+    private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
     public void Defaults_are_correct()

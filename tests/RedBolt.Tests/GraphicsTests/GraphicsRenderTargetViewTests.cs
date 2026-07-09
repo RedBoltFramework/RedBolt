@@ -9,11 +9,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class GraphicsRenderTargetViewTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public GraphicsRenderTargetViewTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
 
             var texture = new Texture2D("Textures/DirtyRenderTargetView");
@@ -137,7 +137,7 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/MultisampledRenderBuffer");
             Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount));
@@ -158,7 +158,7 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/ResolvedRenderBuffer");
             Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, sampleCount));
@@ -210,7 +210,7 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/ManualResolveRenderBuffer");
             Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount, noMultiSampledAutoResolve: true));
@@ -277,7 +277,7 @@ public sealed class GraphicsRenderTargetViewTests
     {
         var method = typeof(Graphics).GetMethod("ResolveRenderTargetView", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.ResolveRenderTargetView was not found.");
-        return Assert.IsAssignableFrom<ITextureView>(method.Invoke(fixture.Graphics, [view]));
+        return Assert.IsAssignableFrom<ITextureView>(method.Invoke(_fixture.Graphics, [view]));
     }
 
     private object GetUploadedTexture(Texture2D texture)
@@ -286,7 +286,7 @@ public sealed class GraphicsRenderTargetViewTests
             .Single(candidate => candidate.Name == "GetOrCreateUploadedTexture"
                 && candidate.GetParameters() is [{ ParameterType: var parameterType }]
                 && parameterType == typeof(Texture2D));
-        return method.Invoke(fixture.Graphics, [texture])
+        return method.Invoke(_fixture.Graphics, [texture])
             ?? throw new InvalidOperationException("Graphics.GetOrCreateUploadedTexture returned null.");
     }
 
@@ -308,14 +308,14 @@ public sealed class GraphicsRenderTargetViewTests
     {
         var method = typeof(Graphics).GetMethod("GetSwapChainOutputTarget", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.GetSwapChainOutputTarget was not found.");
-        return Assert.IsType<RenderOutputTargetInfo>(method.Invoke(fixture.Graphics, []));
+        return Assert.IsType<RenderOutputTargetInfo>(method.Invoke(_fixture.Graphics, []));
     }
 
     private ITexture GetShaderResourceTexture(Texture2D texture)
     {
         var method = typeof(Graphics).GetMethod("GetShaderResourceView", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.GetShaderResourceView was not found.");
-        var view = Assert.IsAssignableFrom<ITextureView>(method.Invoke(fixture.Graphics, [texture]));
+        var view = Assert.IsAssignableFrom<ITextureView>(method.Invoke(_fixture.Graphics, [texture]));
         return view.GetTexture();
     }
 
@@ -323,35 +323,35 @@ public sealed class GraphicsRenderTargetViewTests
     {
         var method = typeof(Graphics).GetMethod("SetRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.SetRenderTargets was not found.");
-        method.Invoke(fixture.Graphics, [viewportRect, colorTarget, depthStencilTarget]);
+        method.Invoke(_fixture.Graphics, [viewportRect, colorTarget, depthStencilTarget]);
     }
 
     private void ClearCurrentRenderTargets(Color color, bool clearColorTarget, bool clearDepth, bool clearStencil)
     {
         var method = typeof(Graphics).GetMethod("ClearCurrentRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.ClearCurrentRenderTargets was not found.");
-        method.Invoke(fixture.Graphics, [color, clearColorTarget, clearDepth, clearStencil, 1.0f, (byte)0]);
+        method.Invoke(_fixture.Graphics, [color, clearColorTarget, clearDepth, clearStencil, 1.0f, (byte)0]);
     }
 
     private void UnbindRenderTargets()
     {
         var method = typeof(Graphics).GetMethod("UnbindRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.UnbindRenderTargets was not found.");
-        method.Invoke(fixture.Graphics, []);
+        method.Invoke(_fixture.Graphics, []);
     }
 
     private void DrawCopyTexture(Texture sourceTexture, bool bilinearFiltering, bool flipVertical)
     {
         var method = typeof(Graphics).GetMethod("DrawCopyTexture", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.DrawCopyTexture was not found.");
-        method.Invoke(fixture.Graphics, [sourceTexture, bilinearFiltering, flipVertical]);
+        method.Invoke(_fixture.Graphics, [sourceTexture, bilinearFiltering, flipVertical]);
     }
 
     private DeviceContextStats GetImmediateContextStats()
     {
-        var field = typeof(Graphics).GetField("immediateContext", BindingFlags.Instance | BindingFlags.NonPublic)
+        var field = typeof(Graphics).GetField("_immediateContext", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.immediateContext was not found.");
-        var immediateContext = Assert.IsAssignableFrom<IDeviceContext>(field.GetValue(fixture.Graphics));
+        var immediateContext = Assert.IsAssignableFrom<IDeviceContext>(field.GetValue(_fixture.Graphics));
         return immediateContext.GetStats();
     }
 
@@ -362,7 +362,7 @@ public sealed class GraphicsRenderTargetViewTests
         var path = Path.Combine(Path.GetTempPath(), $"redbolt-graphics-readback-{Guid.NewGuid():N}.bmp");
         try
         {
-            method.Invoke(fixture.Graphics, [texture, path]);
+            method.Invoke(_fixture.Graphics, [texture, path]);
 
             using var stream = File.OpenRead(path);
             var image = new Image("Textures/Readback");
@@ -390,18 +390,18 @@ public sealed class GraphicsRenderTargetViewTests
             MultiSample = multiSample
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 }

@@ -4,18 +4,18 @@ namespace RedBolt;
 
 public sealed class BinaryFile : Resource
 {
-    private byte[] data = [];
+    private byte[] _data = [];
 
     public BinaryFile(string name)
         : base(name)
     {
     }
 
-    public IReadOnlyList<byte> Data => data;
+    public IReadOnlyList<byte> Data => _data;
 
     public void Clear()
     {
-        data = [];
+        _data = [];
         MemoryUse = 0;
     }
 
@@ -30,7 +30,7 @@ public sealed class BinaryFile : Resource
 
     public string GetText()
     {
-        return Encoding.UTF8.GetString(data);
+        return Encoding.UTF8.GetString(_data);
     }
 
     public string[] ReadLines()
@@ -41,19 +41,19 @@ public sealed class BinaryFile : Resource
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        destination.Write(data);
+        destination.Write(_data);
         return true;
     }
 
     public void SetData(IEnumerable<byte> value)
     {
-        data = value.ToArray();
-        MemoryUse = (uint)data.Length;
+        _data = value.ToArray();
+        MemoryUse = (uint)_data.Length;
     }
 
     public void SetText(string text)
     {
-        data = Encoding.UTF8.GetBytes(text);
-        MemoryUse = (uint)data.Length;
+        _data = Encoding.UTF8.GetBytes(text);
+        MemoryUse = (uint)_data.Length;
     }
 }

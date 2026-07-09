@@ -20,13 +20,13 @@ public sealed class PListValue : IEquatable<PListValue>
     private static readonly IReadOnlyDictionary<string, PListValue> EmptyValueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
     private static readonly IReadOnlyList<PListValue> EmptyValueVector = Array.Empty<PListValue>();
 
-    private PListValueType type;
-    private int intValue;
-    private bool boolValue;
-    private float floatValue;
-    private string stringValue = string.Empty;
-    private Dictionary<string, PListValue> valueMap = new(StringComparer.Ordinal);
-    private List<PListValue> valueVector = [];
+    private PListValueType _type;
+    private int _intValue;
+    private bool _boolValue;
+    private float _floatValue;
+    private string _stringValue = string.Empty;
+    private Dictionary<string, PListValue> _valueMap = new(StringComparer.Ordinal);
+    private List<PListValue> _valueVector = [];
 
     public PListValue()
     {
@@ -68,65 +68,65 @@ public sealed class PListValue : IEquatable<PListValue>
         CopyFrom(value);
     }
 
-    public new PListValueType GetType() => type;
+    public new PListValueType GetType() => _type;
 
     public void SetInt(int value)
     {
         Reset();
-        type = PListValueType.Int;
-        intValue = value;
+        _type = PListValueType.Int;
+        _intValue = value;
     }
 
     public void SetBool(bool value)
     {
         Reset();
-        type = PListValueType.Bool;
-        boolValue = value;
+        _type = PListValueType.Bool;
+        _boolValue = value;
     }
 
     public void SetFloat(float value)
     {
         Reset();
-        type = PListValueType.Float;
-        floatValue = value;
+        _type = PListValueType.Float;
+        _floatValue = value;
     }
 
     public void SetString(string value)
     {
         Reset();
-        type = PListValueType.String;
-        stringValue = value ?? string.Empty;
+        _type = PListValueType.String;
+        _stringValue = value ?? string.Empty;
     }
 
     public void SetValueMap(IReadOnlyDictionary<string, PListValue> valueMap)
     {
         ArgumentNullException.ThrowIfNull(valueMap);
         Reset();
-        type = PListValueType.ValueMap;
-        this.valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
+        _type = PListValueType.ValueMap;
+        this._valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
         foreach (var item in valueMap)
-            this.valueMap[item.Key] = new PListValue(item.Value);
+            this._valueMap[item.Key] = new PListValue(item.Value);
     }
 
     public void SetValueVector(IReadOnlyList<PListValue> valueVector)
     {
         ArgumentNullException.ThrowIfNull(valueVector);
         Reset();
-        type = PListValueType.ValueVector;
-        this.valueVector = valueVector.Select(static value => new PListValue(value)).ToList();
+        _type = PListValueType.ValueVector;
+        this._valueVector = valueVector.Select(static value => new PListValue(value)).ToList();
     }
 
-    public int GetInt() => type == PListValueType.Int ? intValue : 0;
+    public int GetInt() => _type == PListValueType.Int ? _intValue : 0;
 
-    public bool GetBool() => type == PListValueType.Bool && boolValue;
+    public bool GetBool() => _type == PListValueType.Bool && _boolValue;
 
-    public float GetFloat() => type == PListValueType.Float ? floatValue : 0.0f;
+    public float GetFloat() => _type == PListValueType.Float ? _floatValue : 0.0f;
 
-    public string GetString() => type == PListValueType.String ? stringValue : string.Empty;
+    public string GetString() => _type == PListValueType.String ? _stringValue : string.Empty;
 
     public IntRect GetIntRect()
     {
-        if (type != PListValueType.String)
+        if (_type != PListValueType.String)
             return IntRect.Zero;
 
         var numbers = ParseNumbers();
@@ -137,7 +137,7 @@ public sealed class PListValue : IEquatable<PListValue>
 
     public IntVector2 GetIntVector2()
     {
-        if (type != PListValueType.String)
+        if (_type != PListValueType.String)
             return IntVector2.Zero;
 
         var numbers = ParseNumbers();
@@ -146,55 +146,55 @@ public sealed class PListValue : IEquatable<PListValue>
 
     public IntVector3 GetIntVector3()
     {
-        if (type != PListValueType.String)
+        if (_type != PListValueType.String)
             return IntVector3.Zero;
 
         var numbers = ParseNumbers();
         return numbers.Length >= 3 ? new IntVector3(numbers[0], numbers[1], numbers[2]) : IntVector3.Zero;
     }
 
-    public IReadOnlyDictionary<string, PListValue> GetValueMap() => type == PListValueType.ValueMap ? valueMap : EmptyValueMap;
+    public IReadOnlyDictionary<string, PListValue> GetValueMap() => _type == PListValueType.ValueMap ? _valueMap : EmptyValueMap;
 
-    public IReadOnlyList<PListValue> GetValueVector() => type == PListValueType.ValueVector ? valueVector : EmptyValueVector;
+    public IReadOnlyList<PListValue> GetValueVector() => _type == PListValueType.ValueVector ? _valueVector : EmptyValueVector;
 
     public Dictionary<string, PListValue> ConvertToValueMap()
     {
-        if (type != PListValueType.ValueMap)
+        if (_type != PListValueType.ValueMap)
         {
             Reset();
-            type = PListValueType.ValueMap;
-            valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
+            _type = PListValueType.ValueMap;
+            _valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
         }
 
-        return valueMap;
+        return _valueMap;
     }
 
     public List<PListValue> ConvertToValueVector()
     {
-        if (type != PListValueType.ValueVector)
+        if (_type != PListValueType.ValueVector)
         {
             Reset();
-            type = PListValueType.ValueVector;
-            valueVector = [];
+            _type = PListValueType.ValueVector;
+            _valueVector = [];
         }
 
-        return valueVector;
+        return _valueVector;
     }
 
     public bool Equals(PListValue? other)
     {
-        if (other is null || type != other.type)
+        if (other is null || _type != other._type)
             return false;
 
-        return type switch
+        return _type switch
         {
             PListValueType.None => true,
-            PListValueType.Int => intValue == other.intValue,
-            PListValueType.Bool => boolValue == other.boolValue,
-            PListValueType.Float => MathDefs.ApproximatelyEquivalent(floatValue, other.floatValue),
-            PListValueType.String => string.Equals(stringValue, other.stringValue, StringComparison.Ordinal),
-            PListValueType.ValueMap => valueMap.Count == other.valueMap.Count && valueMap.All(item => other.valueMap.TryGetValue(item.Key, out var otherValue) && item.Value.Equals(otherValue)),
-            PListValueType.ValueVector => valueVector.SequenceEqual(other.valueVector),
+            PListValueType.Int => _intValue == other._intValue,
+            PListValueType.Bool => _boolValue == other._boolValue,
+            PListValueType.Float => MathDefs.ApproximatelyEquivalent(_floatValue, other._floatValue),
+            PListValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
+            PListValueType.ValueMap => _valueMap.Count == other._valueMap.Count && _valueMap.All(item => other._valueMap.TryGetValue(item.Key, out var otherValue) && item.Value.Equals(otherValue)),
+            PListValueType.ValueVector => _valueVector.SequenceEqual(other._valueVector),
             _ => false
         };
     }
@@ -204,64 +204,64 @@ public sealed class PListValue : IEquatable<PListValue>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(type);
-        hash.Add(intValue);
-        hash.Add(boolValue);
-        hash.Add(floatValue);
-        hash.Add(stringValue, StringComparer.Ordinal);
-        foreach (var item in valueMap)
+        hash.Add(_type);
+        hash.Add(_intValue);
+        hash.Add(_boolValue);
+        hash.Add(_floatValue);
+        hash.Add(_stringValue, StringComparer.Ordinal);
+        foreach (var item in _valueMap)
         {
             hash.Add(item.Key, StringComparer.Ordinal);
             hash.Add(item.Value);
         }
-        foreach (var item in valueVector)
+        foreach (var item in _valueVector)
             hash.Add(item);
         return hash.ToHashCode();
     }
 
     private void CopyFrom(PListValue value)
     {
-        switch (value.type)
+        switch (value._type)
         {
             case PListValueType.None:
                 Reset();
                 break;
             case PListValueType.Int:
-                SetInt(value.intValue);
+                SetInt(value._intValue);
                 break;
             case PListValueType.Bool:
-                SetBool(value.boolValue);
+                SetBool(value._boolValue);
                 break;
             case PListValueType.Float:
-                SetFloat(value.floatValue);
+                SetFloat(value._floatValue);
                 break;
             case PListValueType.String:
-                SetString(value.stringValue);
+                SetString(value._stringValue);
                 break;
             case PListValueType.ValueMap:
-                SetValueMap(value.valueMap);
+                SetValueMap(value._valueMap);
                 break;
             case PListValueType.ValueVector:
-                SetValueVector(value.valueVector);
+                SetValueVector(value._valueVector);
                 break;
         }
     }
 
     private int[] ParseNumbers()
     {
-        return NumberPattern.Matches(stringValue)
+        return NumberPattern.Matches(_stringValue)
             .Select(static match => int.TryParse(match.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0)
             .ToArray();
     }
 
     private void Reset()
     {
-        type = PListValueType.None;
-        intValue = 0;
-        boolValue = false;
-        floatValue = 0.0f;
-        stringValue = string.Empty;
-        valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
-        valueVector = [];
+        _type = PListValueType.None;
+        _intValue = 0;
+        _boolValue = false;
+        _floatValue = 0.0f;
+        _stringValue = string.Empty;
+        _valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
+        _valueVector = [];
     }
 }

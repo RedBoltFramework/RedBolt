@@ -6,15 +6,15 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MaterialTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public MaterialTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
         FirstCubeTestData.AddResourceDirs(Resources);
     }
 
-    private ResourceCache Resources => fixture.Resources;
+    private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
     public void Render_state_helpers_roundtrip()

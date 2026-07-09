@@ -6,14 +6,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class JsonXmlResourceTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public JsonXmlResourceTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
-    private ResourceCache Resources => fixture.Resources;
+    private ResourceCache Resources => _fixture.Resources;
 
     private static string CreateTempDir()
     {

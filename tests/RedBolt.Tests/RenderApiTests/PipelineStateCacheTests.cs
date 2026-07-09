@@ -5,17 +5,17 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PipelineStateCacheTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public PipelineStateCacheTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Pipeline_state_cache_is_registered_as_engine_subsystem()
     {
-        Assert.Same(fixture.PipelineStateCache, fixture.Context.GetSubsystem<PipelineStateCache>());
+        Assert.Same(_fixture.PipelineStateCache, _fixture.Context.GetSubsystem<PipelineStateCache>());
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public sealed class PipelineStateCacheTests
 
         var second = new GraphicsPipelineStateDesc(first);
 
-        var firstState = fixture.PipelineStateCache.GetGraphicsPipelineState(first);
-        var secondState = fixture.PipelineStateCache.GetGraphicsPipelineState(second);
+        var firstState = _fixture.PipelineStateCache.GetGraphicsPipelineState(first);
+        var secondState = _fixture.PipelineStateCache.GetGraphicsPipelineState(second);
 
         Assert.NotNull(firstState);
         Assert.Same(firstState, secondState);
@@ -121,7 +121,7 @@ public sealed class PipelineStateCacheTests
     [Fact]
     public void Pipeline_state_cache_rejects_uninitialized_descriptors()
     {
-        Assert.Null(fixture.PipelineStateCache.GetGraphicsPipelineState(new GraphicsPipelineStateDesc()));
-        Assert.Null(fixture.PipelineStateCache.GetComputePipelineState(new ComputePipelineStateDesc()));
+        Assert.Null(_fixture.PipelineStateCache.GetGraphicsPipelineState(new GraphicsPipelineStateDesc()));
+        Assert.Null(_fixture.PipelineStateCache.GetComputePipelineState(new ComputePipelineStateDesc()));
     }
 }

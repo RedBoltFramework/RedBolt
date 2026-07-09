@@ -8,27 +8,27 @@ public sealed class Time : Object
 {
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
-    private readonly Timer elapsedTime = new();
-    private double elapsedTimeSeconds;
-    private uint frameNumber;
-    private float timeStep;
-    private uint timerPeriod;
+    private readonly Timer _elapsedTime = new();
+    private double _elapsedTimeSeconds;
+    private uint _frameNumber;
+    private float _timeStep;
+    private uint _timerPeriod;
 
     public uint FrameNumber
     {
-        get => frameNumber;
-        private set => frameNumber = value;
+        get => _frameNumber;
+        private set => _frameNumber = value;
     }
 
     public float TimeStep
     {
-        get => timeStep;
-        private set => timeStep = value;
+        get => _timeStep;
+        private set => _timeStep = value;
     }
 
-    public double ElapsedTime => elapsedTimeSeconds;
+    public double ElapsedTime => _elapsedTimeSeconds;
 
-    public uint TimerPeriod => timerPeriod;
+    public uint TimerPeriod => _timerPeriod;
 
     public uint GetFrameNumber() => FrameNumber;
 
@@ -38,9 +38,9 @@ public sealed class Time : Object
 
     public float GetFramesPerSecond() => TimeStep > 0.0f ? 1.0f / TimeStep : float.PositiveInfinity;
 
-    public void SetTimerPeriod(uint milliseconds) => timerPeriod = milliseconds;
+    public void SetTimerPeriod(uint milliseconds) => _timerPeriod = milliseconds;
 
-    public uint GetTimerPeriod() => timerPeriod;
+    public uint GetTimerPeriod() => _timerPeriod;
 
     public static uint GetSystemTime()
     {
@@ -86,7 +86,7 @@ public sealed class Time : Object
             ++FrameNumber;
 
         TimeStep = elapsedTimeStep;
-        elapsedTimeSeconds += elapsedTimeStep;
+        _elapsedTimeSeconds += elapsedTimeStep;
     }
 
     internal void EndFrame()

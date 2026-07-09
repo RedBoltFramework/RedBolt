@@ -5,26 +5,26 @@ namespace RedBolt;
 
 public sealed class DearImGui : IDisposable, IDearImGuiInputSink
 {
-    private readonly Context context;
-    private nint imContext;
-    private ImGuiIO? io;
-    private ImDrawData? pendingDrawData;
-    private ImGuiDiligentRendererEx? renderer;
-    private ContextEventSubscription? inputEndSubscription;
-    private ContextEventSubscription? endRenderingSubscription;
-    private bool isFrameActive;
-    private bool isInitialized;
+    private readonly Context _context;
+    private nint _imContext;
+    private ImGuiIO? _io;
+    private ImDrawData? _pendingDrawData;
+    private ImGuiDiligentRendererEx? _renderer;
+    private ContextEventSubscription? _inputEndSubscription;
+    private ContextEventSubscription? _endRenderingSubscription;
+    private bool _isFrameActive;
+    private bool _isInitialized;
 
     public DearImGui(Context context, uint flags = 0)
     {
-        this.context = context ?? throw new ArgumentNullException(nameof(context));
+        this._context = context ?? throw new ArgumentNullException(nameof(context));
         Initialize(flags);
 
-        if (isInitialized)
+        if (_isInitialized)
             SubscribeToEvents();
     }
 
-    public bool IsInitialized => isInitialized;
+    public bool IsInitialized => _isInitialized;
 
     public void Dispose()
     {
@@ -33,8 +33,8 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
 
     private void Initialize(uint flags)
     {
-        imContext = ImGui.ImGuiBackendCreateContext(0);
-        if (imContext == 0)
+        _imContext = ImGui.ImGuiBackendCreateContext(0);
+        if (_imContext == 0)
         {
             Console.Error.WriteLine("DearImGui: failed to create ImGui context.");
             return;
@@ -42,82 +42,82 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
 
         SetCurrentContext();
 
-        io = ImGui.GetIO();
-        io.ConfigFlags = (ImGuiConfigFlags)flags;
+        _io = ImGui.GetIO();
+        _io.ConfigFlags = (ImGuiConfigFlags)flags;
 
-        var renderDevice = context.GetSubsystem<RenderDevice>();
+        var renderDevice = _context.GetSubsystem<RenderDevice>();
         if (renderDevice is not null)
         {
             var size = renderDevice.GetSwapChainSize();
-            io.DisplaySizeX = size.X;
-            io.DisplaySizeY = size.Y;
+            _io.DisplaySizeX = size.X;
+            _io.DisplaySizeY = size.Y;
         }
 
         PlatformInitialize();
 
-        isInitialized = true;
+        _isInitialized = true;
     }
 
     public void Shutdown()
     {
-        if (!isInitialized)
+        if (!_isInitialized)
         {
             UnsubscribeFromEvents();
             return;
         }
 
         SetCurrentContext();
-        if (isFrameActive)
+        if (_isFrameActive)
         {
             ImGui.EndFrame();
-            pendingDrawData = null;
-            isFrameActive = false;
+            _pendingDrawData = null;
+            _isFrameActive = false;
         }
 
         PlatformShutdown();
 
-        if (imContext != 0)
+        if (_imContext != 0)
         {
-            ImGui.ImGuiBackendDestroyContext(imContext);
-            imContext = 0;
+            ImGui.ImGuiBackendDestroyContext(_imContext);
+            _imContext = 0;
         }
 
-        io = null;
-        isInitialized = false;
+        _io = null;
+        _isInitialized = false;
     }
 
     public void EndFrame()
     {
         SetCurrentContext();
-        if (!isInitialized || !isFrameActive)
+        if (!_isInitialized || !_isFrameActive)
             return;
 
         ImGui.Render();
 
         var drawData = ImGui.GetDrawData();
-        pendingDrawData = drawData.IsNull ? null : drawData;
-        isFrameActive = false;
+        _pendingDrawData = drawData.IsNull ? null : drawData;
+        _isFrameActive = false;
     }
 
     public void Render()
     {
         SetCurrentContext();
-        if (!isInitialized || pendingDrawData is null || pendingDrawData.IsNull)
+        if (!_isInitialized || _pendingDrawData is null || _pendingDrawData.IsNull)
             return;
 
-        var renderDevice = context.GetSubsystem<RenderDevice>();
+        var renderDevice = _context.GetSubsystem<RenderDevice>();
         var renderContext = renderDevice?.GetRenderContext();
         renderContext?.SetSwapChainRenderTargets();
         renderContext?.SetFullViewport();
-        renderer?.RenderDrawData(pendingDrawData);
-        renderer?.RenderSecondaryWindows();
-        pendingDrawData = null;
+        _renderer?.RenderDrawData(_pendingDrawData);
+        _renderer?.RenderSecondaryWindows();
+        _pendingDrawData = null;
     }
 
     public bool ProcessEvent(nint sdlEvent)
     {
         SetCurrentContext();
-        if (!isInitialized)
+        if (!_isInitialized)
             return false;
 
         return ImGui.ImGuiBackendProcessEvent(sdlEvent);
@@ -127,9 +127,9 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
     {
         get
         {
-            if (!isInitialized)
+            if (!_isInitialized)
                 return false;
-            return io?.WantCaptureKeyboard == true;
+            return _io?.WantCaptureKeyboard == true;
         }
     }
 
@@ -137,32 +137,32 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
     {
         get
         {
-            if (!isInitialized)
+            if (!_isInitialized)
                 return false;
-            return io?.WantCaptureMouse == true;
+            return _io?.WantCaptureMouse == true;
         }
     }
 
     public void BeginFrame()
     {
         SetCurrentContext();
-        if (!isInitialized)
+        if (!_isInitialized)
             return;
 
-        if (isFrameActive)
+        if (_isFrameActive)
         {
             ImGui.EndFrame();
             ImGui.UpdatePlatformWindows();
-            pendingDrawData = null;
-            isFrameActive = false;
+            _pendingDrawData = null;
+            _isFrameActive = false;
         }
 
-        var io = this.io;
+        var io = this._io;
         if (io is null)
             return;
-        io.DeltaTime = context.GetSubsystem<Time>()?.TimeStep ?? 0.0f;
+        io.DeltaTime = _context.GetSubsystem<Time>()?.TimeStep ?? 0.0f;
 
-        var renderDevice = context.GetSubsystem<RenderDevice>();
+        var renderDevice = _context.GetSubsystem<RenderDevice>();
         if (renderDevice == null)
             return;
 
@@ -172,28 +172,28 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
 
         io.DisplaySizeX = size.X;
         io.DisplaySizeY = size.Y;
-        renderer?.NewFrame((uint)size.X, (uint)size.Y);
+        _renderer?.NewFrame((uint)size.X, (uint)size.Y);
 
         ImGui.ImGuiImplSDL2NewFrame();
         ImGui.NewFrame();
-        isFrameActive = true;
+        _isFrameActive = true;
     }
 
     private void OnInputEnd()
     {
         SetCurrentContext();
-        if (!isInitialized)
+        if (!_isInitialized)
             return;
 
-        if (isFrameActive)
+        if (_isFrameActive)
         {
             ImGui.EndFrame();
             ImGui.UpdatePlatformWindows();
-            pendingDrawData = null;
-            isFrameActive = false;
+            _pendingDrawData = null;
+            _isFrameActive = false;
         }
 
-        var renderDevice = context.GetSubsystem<RenderDevice>();
+        var renderDevice = _context.GetSubsystem<RenderDevice>();
         if (renderDevice is null)
             return;
 
@@ -203,12 +203,12 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
     private void OnEndRendering()
     {
         SetCurrentContext();
-        if (!isInitialized || !isFrameActive)
+        if (!_isInitialized || !_isFrameActive)
             return;
 
-        context.SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
+        _context.SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
         EndFrame();
-        if (!isInitialized || pendingDrawData is null)
+        if (!_isInitialized || _pendingDrawData is null)
             return;
 
         Render();
@@ -217,12 +217,12 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
     private void PlatformInitialize()
     {
         SetCurrentContext();
-        var renderDevice = context.GetSubsystem<RenderDevice>();
+        var renderDevice = _context.GetSubsystem<RenderDevice>();
         if (renderDevice == null)
             return;
 
         var backend = renderDevice.GetBackend();
-        var input = context.GetSubsystem<Input>();
+        var input = _context.GetSubsystem<Input>();
         if (input == null || !input.IsInitialized)
             return;
 
@@ -242,40 +242,40 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
                 break;
         }
 
-        renderer = new ImGuiDiligentRendererEx(context);
+        _renderer = new ImGuiDiligentRendererEx(_context);
         var size = renderDevice.GetSwapChainSize();
         if (size.X > 0 && size.Y > 0)
-            renderer.NewFrame((uint)size.X, (uint)size.Y);
+            _renderer.NewFrame((uint)size.X, (uint)size.Y);
     }
 
     private void PlatformShutdown()
     {
         SetCurrentContext();
-        renderer?.Dispose();
-        renderer = null;
+        _renderer?.Dispose();
+        _renderer = null;
         UnsubscribeFromEvents();
 
-        if (imContext != 0)
+        if (_imContext != 0)
             ImGui.ImGuiImplSDL2Shutdown();
     }
 
     private void SubscribeToEvents()
     {
-        inputEndSubscription = context.SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) => OnInputEnd());
-        endRenderingSubscription = context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => OnEndRendering());
+        _inputEndSubscription = _context.SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) => OnInputEnd());
+        _endRenderingSubscription = _context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => OnEndRendering());
     }
 
     private void UnsubscribeFromEvents()
     {
-        inputEndSubscription?.Dispose();
-        endRenderingSubscription?.Dispose();
-        inputEndSubscription = null;
-        endRenderingSubscription = null;
+        _inputEndSubscription?.Dispose();
+        _endRenderingSubscription?.Dispose();
+        _inputEndSubscription = null;
+        _endRenderingSubscription = null;
     }
 
     private void SetCurrentContext()
     {
-        if (imContext != 0)
-            ImGui.ImGuiBackendSetCurrentContext(imContext);
+        if (_imContext != 0)
+            ImGui.ImGuiBackendSetCurrentContext(_imContext);
     }
 }

@@ -9,17 +9,17 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderPath : Resource
 {
-    private readonly List<RenderPass> passes = [];
-    private RenderPassTraits traits;
+    private readonly List<RenderPass> _passes = [];
+    private RenderPassTraits _traits;
 
     public RenderPath(string name)
         : base(name)
     {
     }
 
-    public IReadOnlyList<RenderPass> GetPasses() => passes;
+    public IReadOnlyList<RenderPass> GetPasses() => _passes;
 
-    public RenderPassTraits GetAggregatedPassTraits() => traits;
+    public RenderPassTraits GetAggregatedPassTraits() => _traits;
 
     /// <summary>
     /// Fill missing parameters with defaults.
@@ -28,7 +28,7 @@ public sealed class RenderPath : Resource
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
             pass.CollectParameters(parameters);
     }
 
@@ -39,7 +39,7 @@ public sealed class RenderPath : Resource
     {
         ArgumentNullException.ThrowIfNull(view);
 
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
             pass.InitializeView(view);
     }
 
@@ -52,24 +52,24 @@ public sealed class RenderPath : Resource
         ArgumentNullException.ThrowIfNull(enabledPasses);
         ArgumentNullException.ThrowIfNull(parameters);
 
-        if (enabledPasses.Count != passes.Count)
+        if (enabledPasses.Count != _passes.Count)
             throw new ArgumentException("Enabled passes count must match render path pass count.", nameof(enabledPasses));
 
-        for (var i = 0; i < passes.Count; ++i)
+        for (var i = 0; i < _passes.Count; ++i)
         {
-            var pass = passes[i];
+            var pass = _passes[i];
             pass.SetEnabled(enabledPasses[i].Enabled);
             pass.UpdateParameters(settings, parameters);
         }
 
-        traits = default;
-        foreach (var pass in passes)
+        _traits = default;
+        foreach (var pass in _passes)
         {
             var passTraits = pass.GetTraits();
-            traits = new RenderPassTraits(
-                traits.NeedReadWriteColorBuffer || passTraits.NeedReadWriteColorBuffer,
-                traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler,
-                traits.NeedReadableDepth || passTraits.NeedReadableDepth);
+            _traits = new RenderPassTraits(
+                _traits.NeedReadWriteColorBuffer || passTraits.NeedReadWriteColorBuffer,
+                _traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler,
+                _traits.NeedReadableDepth || passTraits.NeedReadableDepth);
         }
     }
 
@@ -80,7 +80,7 @@ public sealed class RenderPath : Resource
     {
         ArgumentNullException.ThrowIfNull(sharedState);
 
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
         {
             if (pass.IsEnabledEffectively())
                 pass.Update(sharedState);
@@ -94,7 +94,7 @@ public sealed class RenderPath : Resource
     {
         ArgumentNullException.ThrowIfNull(sharedState);
 
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
         {
             if (pass.IsEnabledEffectively())
                 pass.Render(sharedState);
@@ -107,7 +107,7 @@ public sealed class RenderPath : Resource
     public RenderPath Clone()
     {
         var clone = new RenderPath(Name);
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
             clone.AddPass(pass.Clone());
         return clone;
     }
@@ -120,12 +120,12 @@ public sealed class RenderPath : Resource
         ArgumentNullException.ThrowIfNull(sourcePasses);
         var sourceList = sourcePasses as IReadOnlyList<RenderPassToggle> ?? sourcePasses.ToArray();
 
-        if (sourceList.Count == passes.Count)
+        if (sourceList.Count == _passes.Count)
         {
             var matches = true;
-            for (var i = 0; i < passes.Count; ++i)
+            for (var i = 0; i < _passes.Count; ++i)
             {
-                if (!string.Equals(passes[i].GetPassName(), sourceList[i].Name, StringComparison.Ordinal))
+                if (!string.Equals(_passes[i].GetPassName(), sourceList[i].Name, StringComparison.Ordinal))
                 {
                     matches = false;
                     break;
@@ -136,10 +136,10 @@ public sealed class RenderPath : Resource
                 return sourceList;
         }
 
-        var result = new RenderPassToggle[passes.Count];
-        for (var i = 0; i < passes.Count; ++i)
+        var result = new RenderPassToggle[_passes.Count];
+        for (var i = 0; i < _passes.Count; ++i)
         {
-            var pass = passes[i];
+            var pass = _passes[i];
             var match = sourceList.FirstOrDefault(staticToggle => string.Equals(staticToggle.Name, pass.GetPassName(), StringComparison.Ordinal));
             var enabled = match.Name is not null ? match.Enabled : pass.IsEnabledByDefault();
             result[i] = new RenderPassToggle(pass.GetPassName(), enabled);
@@ -150,28 +150,28 @@ public sealed class RenderPath : Resource
     public void AddPass(RenderPass pass)
     {
         ArgumentNullException.ThrowIfNull(pass);
-        passes.Add(pass);
+        _passes.Add(pass);
     }
 
     public bool RemovePass(RenderPass pass)
     {
         ArgumentNullException.ThrowIfNull(pass);
-        return passes.Remove(pass);
+        return _passes.Remove(pass);
     }
 
     public bool ReorderPass(RenderPass pass, uint index)
     {
         ArgumentNullException.ThrowIfNull(pass);
 
-        if (index >= passes.Count)
+        if (index >= _passes.Count)
             return false;
 
-        var oldIndex = passes.IndexOf(pass);
+        var oldIndex = _passes.IndexOf(pass);
         if (oldIndex < 0)
             return false;
 
-        passes.RemoveAt(oldIndex);
-        passes.Insert((int)index, pass);
+        _passes.RemoveAt(oldIndex);
+        _passes.Insert((int)index, pass);
         return true;
     }
 
@@ -184,7 +184,7 @@ public sealed class RenderPath : Resource
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
-        passes.Clear();
+        _passes.Clear();
         var trimmed = text.AsSpan().TrimStart();
         var loaded = trimmed.Length > 0 && trimmed[0] switch
         {
@@ -195,7 +195,7 @@ public sealed class RenderPath : Resource
         if (!loaded)
             return false;
 
-        MemoryUse = (uint)(passes.Count * 256);
+        MemoryUse = (uint)(_passes.Count * 256);
         return true;
     }
 
@@ -205,7 +205,7 @@ public sealed class RenderPath : Resource
 
         var xml = new XMLFile(Name);
         var root = xml.CreateRoot("renderpath");
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
         {
             var passElement = root.CreateChild("pass");
             passElement.SetAttribute("name", pass.GetPassName());
@@ -511,20 +511,20 @@ public sealed class RenderPath : Resource
 
     private sealed class SerializedRenderPass : RenderPass
     {
-        private readonly Dictionary<string, object?> attributes = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, object?> parameters = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, object?> _attributes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
 
         public SerializedRenderPass(string passName)
             : base(passName)
         {
         }
 
-        public IReadOnlyDictionary<string, object?> Parameters => parameters;
+        public IReadOnlyDictionary<string, object?> Parameters => _parameters;
 
         public void SetParameter(string name, object? value)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            parameters[name] = value;
+            _parameters[name] = value;
         }
 
         public bool ApplyAttribute(string name, object? value)
@@ -535,9 +535,9 @@ public sealed class RenderPath : Resource
             {
                 if (value is Dictionary<string, object?> parameterValues)
                 {
-                    parameters.Clear();
+                    _parameters.Clear();
                     foreach (var (parameterName, parameterValue) in parameterValues)
-                        parameters[parameterName] = parameterValue;
+                        _parameters[parameterName] = parameterValue;
                     return true;
                 }
 
@@ -547,7 +547,7 @@ public sealed class RenderPath : Resource
             if (SetAttribute(name, value))
                 return true;
 
-            attributes[name] = value;
+            _attributes[name] = value;
             return true;
         }
 
@@ -555,7 +555,7 @@ public sealed class RenderPath : Resource
         {
             ArgumentNullException.ThrowIfNull(target);
 
-            foreach (var parameter in parameters)
+            foreach (var parameter in _parameters)
             {
                 var parameterName = GetExternalParameterName(parameter.Key);
                 DeclareParameter(parameterName, parameter.Value, target);
@@ -567,18 +567,18 @@ public sealed class RenderPath : Resource
             ArgumentNullException.ThrowIfNull(settings);
             ArgumentNullException.ThrowIfNull(parameters);
 
-            var needReadWriteColorBuffer = attributes.TryGetValue("Read+Write Color Output", out var readWriteValue)
+            var needReadWriteColorBuffer = _attributes.TryGetValue("Read+Write Color Output", out var readWriteValue)
                 && readWriteValue is bool enableReadWrite
                 && enableReadWrite;
-            var needBilinearColorSampler = attributes.TryGetValue("Bilinear Color Sampler", out var bilinearValue)
+            var needBilinearColorSampler = _attributes.TryGetValue("Bilinear Color Sampler", out var bilinearValue)
                 && bilinearValue is bool enableBilinear
                 && enableBilinear;
-            var disableOnDefaultParameters = attributes.TryGetValue("Disable On Default Parameters", out var disableValue)
+            var disableOnDefaultParameters = _attributes.TryGetValue("Disable On Default Parameters", out var disableValue)
                 && disableValue is bool disableOnDefaults
                 && disableOnDefaults;
 
             var shouldBeDisabled = disableOnDefaultParameters;
-            foreach (var (parameterName, defaultValue) in this.parameters)
+            foreach (var (parameterName, defaultValue) in this._parameters)
             {
                 var externalName = GetExternalParameterName(parameterName);
                 if (parameters.TryGetValue(externalName, out var value))
@@ -597,16 +597,16 @@ public sealed class RenderPath : Resource
             var clone = new SerializedRenderPass(GetPassName());
             clone.SetEnabledByDefault(IsEnabledByDefault());
             clone.SetComment(GetComment());
-            foreach (var attribute in attributes)
-                clone.attributes[attribute.Key] = attribute.Value;
-            foreach (var parameter in parameters)
+            foreach (var attribute in _attributes)
+                clone._attributes[attribute.Key] = attribute.Value;
+            foreach (var parameter in _parameters)
                 clone.SetParameter(parameter.Key, parameter.Value);
             return clone;
         }
 
         private string GetExternalParameterName(string parameterName)
         {
-            var prefix = attributes.TryGetValue("Parameters Prefix", out var prefixValue)
+            var prefix = _attributes.TryGetValue("Parameters Prefix", out var prefixValue)
                 ? prefixValue as string
                 : null;
             return string.IsNullOrEmpty(prefix) ? parameterName : prefix + parameterName;

@@ -4,13 +4,13 @@ namespace RedBolt;
 
 public sealed class MemoryBuffer : Deserializer
 {
-    private readonly byte[] buffer;
+    private readonly byte[] _buffer;
 
     public MemoryBuffer(byte[] data, bool readOnly = true)
         : base((uint)(data?.Length ?? 0))
     {
         ArgumentNullException.ThrowIfNull(data);
-        buffer = data;
+        _buffer = data;
         IsReadOnly = readOnly;
     }
 
@@ -31,12 +31,12 @@ public sealed class MemoryBuffer : Deserializer
 
     public bool IsReadOnly { get; }
 
-    public byte[] GetData() => buffer;
+    public byte[] GetData() => _buffer;
 
     public override uint Read(Span<byte> destination)
     {
         var available = (int)Math.Min((uint)destination.Length, Size - Position);
-        buffer.AsSpan((int)Position, available).CopyTo(destination);
+        _buffer.AsSpan((int)Position, available).CopyTo(destination);
         Position += (uint)available;
         return (uint)available;
     }
@@ -53,7 +53,7 @@ public sealed class MemoryBuffer : Deserializer
             return 0;
 
         var available = (int)Math.Min((uint)data.Length, Size - Position);
-        data[..available].CopyTo(buffer.AsSpan((int)Position, available));
+        data[..available].CopyTo(_buffer.AsSpan((int)Position, available));
         Position += (uint)available;
         return (uint)available;
     }

@@ -5,14 +5,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TextureFileTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public TextureFileTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
-    private ResourceCache Resources => fixture.Resources;
+    private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
     public void Repo_backed_rbfx_dds_textures_load_through_resource_cache()

@@ -12,9 +12,9 @@ public sealed class RandomEngine
     private const uint EngineMax = Modulus - 1;
 
     [ThreadStatic]
-    private static RandomEngine? defaultEngine;
+    private static RandomEngine? _defaultEngine;
 
-    private uint state;
+    private uint _state;
 
     public RandomEngine()
         : this((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds())
@@ -31,7 +31,7 @@ public sealed class RandomEngine
         Load(state);
     }
 
-    public static RandomEngine GetDefaultEngine() => defaultEngine ??= new RandomEngine();
+    public static RandomEngine GetDefaultEngine() => _defaultEngine ??= new RandomEngine();
 
     public static uint MaxRange() => EngineMax - EngineMin + 1;
 
@@ -42,7 +42,7 @@ public sealed class RandomEngine
         SetSeed(parsed);
     }
 
-    public string Save() => state.ToString(CultureInfo.InvariantCulture);
+    public string Save() => _state.ToString(CultureInfo.InvariantCulture);
 
     public uint GetUInt() => NextRaw() - EngineMin;
 
@@ -140,15 +140,15 @@ public sealed class RandomEngine
 
     private void SetSeed(uint seed)
     {
-        state = seed % Modulus;
-        if (state == 0)
-            state = 1;
+        _state = seed % Modulus;
+        if (_state == 0)
+            _state = 1;
     }
 
     private uint NextRaw()
     {
-        state = (uint)((ulong)state * Multiplier % Modulus);
-        return state;
+        _state = (uint)((ulong)_state * Multiplier % Modulus);
+        return _state;
     }
 
     private float[] GetDirection(int dimensions)
@@ -186,19 +186,19 @@ public sealed class RandomEngine
 
 public static partial class MathDefs
 {
-    private static uint randomSeed = 1;
+    private static uint _randomSeed = 1;
 
     public static void SetRandomSeed(uint seed)
     {
-        randomSeed = seed;
+        _randomSeed = seed;
     }
 
-    public static uint GetRandomSeed() => randomSeed;
+    public static uint GetRandomSeed() => _randomSeed;
 
     public static int Rand()
     {
-        randomSeed = unchecked(randomSeed * 214013u + 2531011u);
-        return (int)((randomSeed >> 16) & 32767u);
+        _randomSeed = unchecked(_randomSeed * 214013u + 2531011u);
+        return (int)((_randomSeed >> 16) & 32767u);
     }
 
     public static float RandStandardNormal()

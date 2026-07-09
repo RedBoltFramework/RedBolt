@@ -12,7 +12,7 @@ public enum CubeMapFace
 
 public sealed class TextureCube : Texture
 {
-    private readonly Dictionary<(CubeMapFace Face, uint Level), byte[]> faceData = new();
+    private readonly Dictionary<(CubeMapFace Face, uint Level), byte[]> _faceData = new();
 
     public TextureCube(string name)
         : base(name)
@@ -47,7 +47,7 @@ public sealed class TextureCube : Texture
             return false;
 
         SetDimensions(size, size, 1, format, multiSample, noMultiSampledAutoResolve);
-        faceData.Clear();
+        _faceData.Clear();
         RefreshTotalMemoryUse();
         return true;
     }
@@ -70,10 +70,10 @@ public sealed class TextureCube : Texture
             return false;
 
         var key = (face, level);
-        if (!faceData.TryGetValue(key, out var levelBytes))
+        if (!_faceData.TryGetValue(key, out var levelBytes))
         {
             levelBytes = new byte[checked(levelSize * levelSize * bytesPerPixel)];
-            faceData[key] = levelBytes;
+            _faceData[key] = levelBytes;
         }
 
         for (var row = 0; row < height; ++row)
@@ -131,11 +131,11 @@ public sealed class TextureCube : Texture
 
     public byte[]? GetData(CubeMapFace face, uint level)
     {
-        return faceData.TryGetValue((face, level), out var bytes) ? bytes.ToArray() : null;
+        return _faceData.TryGetValue((face, level), out var bytes) ? bytes.ToArray() : null;
     }
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)faceData.Sum(static item => item.Value.Length));
+        RefreshMemoryUse((uint)_faceData.Sum(static item => item.Value.Length));
     }
 }

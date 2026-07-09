@@ -22,14 +22,14 @@ internal static class TextureFormatUtility
 
 public abstract class Texture : ResourceWithMetadata
 {
-    private readonly Dictionary<TextureCoordinate, TextureAddressMode> addressModes = new()
+    private readonly Dictionary<TextureCoordinate, TextureAddressMode> _addressModes = new()
     {
         [TextureCoordinate.U] = TextureAddressMode.Wrap,
         [TextureCoordinate.V] = TextureAddressMode.Wrap,
         [TextureCoordinate.W] = TextureAddressMode.Wrap
     };
 
-    private readonly int[] mipsToSkip = [2, 1, 0];
+    private readonly int[] _mipsToSkip = [2, 1, 0];
 
     protected Texture(string name)
         : base(name)
@@ -73,10 +73,10 @@ public abstract class Texture : ResourceWithMetadata
 
     public void SetAddressMode(TextureCoordinate coordinate, TextureAddressMode mode)
     {
-        addressModes[coordinate] = mode;
+        _addressModes[coordinate] = mode;
     }
 
-    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) => addressModes.GetValueOrDefault(coordinate, TextureAddressMode.Wrap);
+    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) => _addressModes.GetValueOrDefault(coordinate, TextureAddressMode.Wrap);
 
     public void SetAnisotropy(uint level)
     {
@@ -122,16 +122,16 @@ public abstract class Texture : ResourceWithMetadata
 
     public void SetMipsToSkip(MaterialQuality quality, int toSkip)
     {
-        var index = Math.Clamp((int)quality, 0, mipsToSkip.Length - 1);
-        mipsToSkip[index] = Math.Max(toSkip, 0);
-        for (var i = 1; i < mipsToSkip.Length; ++i)
-            mipsToSkip[i] = Math.Min(mipsToSkip[i], mipsToSkip[i - 1]);
+        var index = Math.Clamp((int)quality, 0, _mipsToSkip.Length - 1);
+        _mipsToSkip[index] = Math.Max(toSkip, 0);
+        for (var i = 1; i < _mipsToSkip.Length; ++i)
+            _mipsToSkip[i] = Math.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
     }
 
     public int GetMipsToSkip(MaterialQuality quality)
     {
-        var index = Math.Clamp((int)quality, 0, mipsToSkip.Length - 1);
-        return mipsToSkip[index];
+        var index = Math.Clamp((int)quality, 0, _mipsToSkip.Length - 1);
+        return _mipsToSkip[index];
     }
 
     public int GetLevelWidth(uint level) => GetLevelDimension(Width, level);

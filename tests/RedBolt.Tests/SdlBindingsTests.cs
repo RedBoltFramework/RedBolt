@@ -148,21 +148,21 @@ public sealed class SdlBindingsTests
 
     private sealed class Utf8Pin : IDisposable
     {
-        private readonly byte[] bytes;
-        private readonly GCHandle handle;
+        private readonly byte[] _bytes;
+        private readonly GCHandle _handle;
 
         public Utf8Pin(string value)
         {
-            bytes = Encoding.UTF8.GetBytes(value + '\0');
-            handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            _bytes = Encoding.UTF8.GetBytes(value + '\0');
+            _handle = GCHandle.Alloc(_bytes, GCHandleType.Pinned);
         }
 
-        public ReadOnlySpan<byte> Bytes => bytes;
+        public ReadOnlySpan<byte> Bytes => _bytes;
 
         public void Dispose()
         {
-            if (handle.IsAllocated)
-                handle.Free();
+            if (_handle.IsAllocated)
+                _handle.Free();
         }
     }
 }

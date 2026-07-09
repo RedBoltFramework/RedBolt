@@ -22,84 +22,84 @@ public enum VariantType
 
 public readonly struct Variant : IEquatable<Variant>
 {
-    private readonly VariantType type;
-    private readonly bool boolValue;
-    private readonly int intValue;
-    private readonly float floatValue;
-    private readonly Vector2 vector2Value;
-    private readonly Vector3 vector3Value;
-    private readonly Vector4 vector4Value;
-    private readonly Quaternion quaternionValue;
-    private readonly Color colorValue;
-    private readonly IntRect intRectValue;
-    private readonly IntVector2 intVector2Value;
-    private readonly IntVector3 intVector3Value;
-    private readonly string? stringValue;
+    private readonly VariantType _type;
+    private readonly bool _boolValue;
+    private readonly int _intValue;
+    private readonly float _floatValue;
+    private readonly Vector2 _vector2Value;
+    private readonly Vector3 _vector3Value;
+    private readonly Vector4 _vector4Value;
+    private readonly Quaternion _quaternionValue;
+    private readonly Color _colorValue;
+    private readonly IntRect _intRectValue;
+    private readonly IntVector2 _intVector2Value;
+    private readonly IntVector3 _intVector3Value;
+    private readonly string? _stringValue;
 
     public Variant(bool value)
     {
-        type = VariantType.Bool;
-        boolValue = value;
+        _type = VariantType.Bool;
+        _boolValue = value;
     }
 
     public Variant(int value)
     {
-        type = VariantType.Int;
-        intValue = value;
+        _type = VariantType.Int;
+        _intValue = value;
     }
 
     public Variant(float value)
     {
-        type = VariantType.Float;
-        floatValue = value;
+        _type = VariantType.Float;
+        _floatValue = value;
     }
 
     public Variant(Vector2 value)
     {
-        type = VariantType.Vector2;
-        vector2Value = value;
+        _type = VariantType.Vector2;
+        _vector2Value = value;
     }
 
     public Variant(Vector3 value)
     {
-        type = VariantType.Vector3;
-        vector3Value = value;
+        _type = VariantType.Vector3;
+        _vector3Value = value;
     }
 
     public Variant(Vector4 value)
     {
-        type = VariantType.Vector4;
-        vector4Value = value;
+        _type = VariantType.Vector4;
+        _vector4Value = value;
     }
 
     public Variant(Quaternion value)
     {
-        type = VariantType.Quaternion;
-        quaternionValue = value;
+        _type = VariantType.Quaternion;
+        _quaternionValue = value;
     }
 
     public Variant(Color value)
     {
-        type = VariantType.Color;
-        colorValue = value;
+        _type = VariantType.Color;
+        _colorValue = value;
     }
 
     public Variant(IntRect value)
     {
-        type = VariantType.IntRect;
-        intRectValue = value;
+        _type = VariantType.IntRect;
+        _intRectValue = value;
     }
 
     public Variant(IntVector2 value)
     {
-        type = VariantType.IntVector2;
-        intVector2Value = value;
+        _type = VariantType.IntVector2;
+        _intVector2Value = value;
     }
 
     public Variant(IntVector3 value)
     {
-        type = VariantType.IntVector3;
-        intVector3Value = value;
+        _type = VariantType.IntVector3;
+        _intVector3Value = value;
     }
 
     public Variant(string? value)
@@ -107,55 +107,55 @@ public readonly struct Variant : IEquatable<Variant>
         if (value is null)
             return;
 
-        type = VariantType.String;
-        stringValue = value;
+        _type = VariantType.String;
+        _stringValue = value;
     }
 
-    public VariantType Type => type;
+    public VariantType Type => _type;
 
-    public bool IsEmpty => type == VariantType.None;
+    public bool IsEmpty => _type == VariantType.None;
 
-    public bool GetBool() => type == VariantType.Bool ? boolValue : throw CreateInvalidCastException(VariantType.Bool);
+    public bool GetBool() => _type == VariantType.Bool ? _boolValue : throw CreateInvalidCastException(VariantType.Bool);
 
-    public int GetInt() => type == VariantType.Int ? intValue : throw CreateInvalidCastException(VariantType.Int);
+    public int GetInt() => _type == VariantType.Int ? _intValue : throw CreateInvalidCastException(VariantType.Int);
 
-    public float GetFloat() => type == VariantType.Float ? floatValue : throw CreateInvalidCastException(VariantType.Float);
+    public float GetFloat() => _type == VariantType.Float ? _floatValue : throw CreateInvalidCastException(VariantType.Float);
 
-    public Vector2 GetVector2() => type == VariantType.Vector2 ? vector2Value : throw CreateInvalidCastException(VariantType.Vector2);
+    public Vector2 GetVector2() => _type == VariantType.Vector2 ? _vector2Value : throw CreateInvalidCastException(VariantType.Vector2);
 
-    public Vector3 GetVector3() => type == VariantType.Vector3 ? vector3Value : throw CreateInvalidCastException(VariantType.Vector3);
+    public Vector3 GetVector3() => _type == VariantType.Vector3 ? _vector3Value : throw CreateInvalidCastException(VariantType.Vector3);
 
-    public Vector4 GetVector4() => type == VariantType.Vector4 ? vector4Value : throw CreateInvalidCastException(VariantType.Vector4);
+    public Vector4 GetVector4() => _type == VariantType.Vector4 ? _vector4Value : throw CreateInvalidCastException(VariantType.Vector4);
 
-    public Quaternion GetQuaternion() => type == VariantType.Quaternion ? quaternionValue : throw CreateInvalidCastException(VariantType.Quaternion);
+    public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _quaternionValue : throw CreateInvalidCastException(VariantType.Quaternion);
 
-    public Color GetColor() => type == VariantType.Color ? colorValue : throw CreateInvalidCastException(VariantType.Color);
+    public Color GetColor() => _type == VariantType.Color ? _colorValue : throw CreateInvalidCastException(VariantType.Color);
 
-    public IntRect GetIntRect() => type == VariantType.IntRect ? intRectValue : throw CreateInvalidCastException(VariantType.IntRect);
+    public IntRect GetIntRect() => _type == VariantType.IntRect ? _intRectValue : throw CreateInvalidCastException(VariantType.IntRect);
 
-    public IntVector2 GetIntVector2() => type == VariantType.IntVector2 ? intVector2Value : throw CreateInvalidCastException(VariantType.IntVector2);
+    public IntVector2 GetIntVector2() => _type == VariantType.IntVector2 ? _intVector2Value : throw CreateInvalidCastException(VariantType.IntVector2);
 
-    public IntVector3 GetIntVector3() => type == VariantType.IntVector3 ? intVector3Value : throw CreateInvalidCastException(VariantType.IntVector3);
+    public IntVector3 GetIntVector3() => _type == VariantType.IntVector3 ? _intVector3Value : throw CreateInvalidCastException(VariantType.IntVector3);
 
-    public string GetString() => type == VariantType.String ? stringValue ?? string.Empty : throw CreateInvalidCastException(VariantType.String);
+    public string GetString() => _type == VariantType.String ? _stringValue ?? string.Empty : throw CreateInvalidCastException(VariantType.String);
 
     public object? GetObject()
     {
-        return type switch
+        return _type switch
         {
             VariantType.None => null,
-            VariantType.Bool => boolValue,
-            VariantType.Int => intValue,
-            VariantType.Float => floatValue,
-            VariantType.Vector2 => vector2Value,
-            VariantType.Vector3 => vector3Value,
-            VariantType.Vector4 => vector4Value,
-            VariantType.Quaternion => quaternionValue,
-            VariantType.Color => colorValue,
-            VariantType.IntRect => intRectValue,
-            VariantType.IntVector2 => intVector2Value,
-            VariantType.IntVector3 => intVector3Value,
-            VariantType.String => stringValue ?? string.Empty,
+            VariantType.Bool => _boolValue,
+            VariantType.Int => _intValue,
+            VariantType.Float => _floatValue,
+            VariantType.Vector2 => _vector2Value,
+            VariantType.Vector3 => _vector3Value,
+            VariantType.Vector4 => _vector4Value,
+            VariantType.Quaternion => _quaternionValue,
+            VariantType.Color => _colorValue,
+            VariantType.IntRect => _intRectValue,
+            VariantType.IntVector2 => _intVector2Value,
+            VariantType.IntVector3 => _intVector3Value,
+            VariantType.String => _stringValue ?? string.Empty,
             _ => null
         };
     }
@@ -184,24 +184,24 @@ public readonly struct Variant : IEquatable<Variant>
 
     public bool Equals(Variant other)
     {
-        if (type != other.type)
+        if (_type != other._type)
             return false;
 
-        return type switch
+        return _type switch
         {
             VariantType.None => true,
-            VariantType.Bool => boolValue == other.boolValue,
-            VariantType.Int => intValue == other.intValue,
-            VariantType.Float => floatValue.Equals(other.floatValue),
-            VariantType.Vector2 => vector2Value.Equals(other.vector2Value),
-            VariantType.Vector3 => vector3Value.Equals(other.vector3Value),
-            VariantType.Vector4 => vector4Value.Equals(other.vector4Value),
-            VariantType.Quaternion => quaternionValue.Equals(other.quaternionValue),
-            VariantType.Color => colorValue.Equals(other.colorValue),
-            VariantType.IntRect => intRectValue.Equals(other.intRectValue),
-            VariantType.IntVector2 => intVector2Value.Equals(other.intVector2Value),
-            VariantType.IntVector3 => intVector3Value.Equals(other.intVector3Value),
-            VariantType.String => string.Equals(stringValue, other.stringValue, StringComparison.Ordinal),
+            VariantType.Bool => _boolValue == other._boolValue,
+            VariantType.Int => _intValue == other._intValue,
+            VariantType.Float => _floatValue.Equals(other._floatValue),
+            VariantType.Vector2 => _vector2Value.Equals(other._vector2Value),
+            VariantType.Vector3 => _vector3Value.Equals(other._vector3Value),
+            VariantType.Vector4 => _vector4Value.Equals(other._vector4Value),
+            VariantType.Quaternion => _quaternionValue.Equals(other._quaternionValue),
+            VariantType.Color => _colorValue.Equals(other._colorValue),
+            VariantType.IntRect => _intRectValue.Equals(other._intRectValue),
+            VariantType.IntVector2 => _intVector2Value.Equals(other._intVector2Value),
+            VariantType.IntVector3 => _intVector3Value.Equals(other._intVector3Value),
+            VariantType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
             _ => false
         };
     }
@@ -211,44 +211,44 @@ public readonly struct Variant : IEquatable<Variant>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(type);
-        switch (type)
+        hash.Add(_type);
+        switch (_type)
         {
         case VariantType.Bool:
-            hash.Add(boolValue);
+            hash.Add(_boolValue);
             break;
         case VariantType.Int:
-            hash.Add(intValue);
+            hash.Add(_intValue);
             break;
         case VariantType.Float:
-            hash.Add(floatValue);
+            hash.Add(_floatValue);
             break;
         case VariantType.Vector2:
-            hash.Add(vector2Value);
+            hash.Add(_vector2Value);
             break;
         case VariantType.Vector3:
-            hash.Add(vector3Value);
+            hash.Add(_vector3Value);
             break;
         case VariantType.Vector4:
-            hash.Add(vector4Value);
+            hash.Add(_vector4Value);
             break;
         case VariantType.Quaternion:
-            hash.Add(quaternionValue);
+            hash.Add(_quaternionValue);
             break;
         case VariantType.Color:
-            hash.Add(colorValue);
+            hash.Add(_colorValue);
             break;
         case VariantType.IntRect:
-            hash.Add(intRectValue);
+            hash.Add(_intRectValue);
             break;
         case VariantType.IntVector2:
-            hash.Add(intVector2Value);
+            hash.Add(_intVector2Value);
             break;
         case VariantType.IntVector3:
-            hash.Add(intVector3Value);
+            hash.Add(_intVector3Value);
             break;
         case VariantType.String:
-            hash.Add(stringValue, StringComparer.Ordinal);
+            hash.Add(_stringValue, StringComparer.Ordinal);
             break;
         }
 
@@ -272,7 +272,7 @@ public readonly struct Variant : IEquatable<Variant>
 
     private InvalidCastException CreateInvalidCastException(VariantType expectedType)
     {
-        return new InvalidCastException($"Variant contains {type} instead of {expectedType}.");
+        return new InvalidCastException($"Variant contains {_type} instead of {expectedType}.");
     }
 }
 

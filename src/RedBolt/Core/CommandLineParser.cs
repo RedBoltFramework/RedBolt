@@ -4,8 +4,8 @@ namespace RedBolt;
 
 public sealed class CommandLineParser
 {
-    private readonly Dictionary<string, CommandLineOption> optionsByAlias = new(StringComparer.Ordinal);
-    private readonly List<CommandLineOption> options = [];
+    private readonly Dictionary<string, CommandLineOption> _optionsByAlias = new(StringComparer.Ordinal);
+    private readonly List<CommandLineOption> _options = [];
 
     public CommandLineParser(string applicationName)
     {
@@ -43,7 +43,7 @@ public sealed class CommandLineParser
             var equalsIndex = argument.IndexOf('=');
             var optionName = equalsIndex >= 0 ? argument[..equalsIndex] : argument;
             var inlineValue = equalsIndex >= 0 ? argument[(equalsIndex + 1)..] : null;
-            if (!optionsByAlias.TryGetValue(optionName, out var option))
+            if (!_optionsByAlias.TryGetValue(optionName, out var option))
                 return CommandLineParseResult.Failure($"Unknown option '{optionName}'.");
 
             string? optionValue = null;
@@ -81,13 +81,13 @@ public sealed class CommandLineParser
         builder.AppendLine();
         builder.AppendLine("Options:");
 
-        var renderedOptions = options
+        var renderedOptions = _options
             .Select(static option => option.RenderSignature())
             .Append("-h, --help")
             .ToArray();
         var width = renderedOptions.Max(static text => text.Length);
-        for (var index = 0; index < options.Count; ++index)
-            builder.Append("  ").Append(renderedOptions[index].PadRight(width)).Append("  ").AppendLine(options[index].Description);
+        for (var index = 0; index < _options.Count; ++index)
+            builder.Append("  ").Append(renderedOptions[index].PadRight(width)).Append("  ").AppendLine(_options[index].Description);
 
         builder.Append("  ").Append(renderedOptions[^1].PadRight(width)).Append("  ").AppendLine("Show this help message");
         return builder.ToString();
@@ -108,23 +108,23 @@ public sealed class CommandLineParser
         var option = new CommandLineOption(aliasList, description, valueName, action);
         foreach (var alias in aliasList)
         {
-            if (!optionsByAlias.TryAdd(alias, option))
+            if (!_optionsByAlias.TryAdd(alias, option))
                 throw new InvalidOperationException($"Command-line alias '{alias}' is already registered.");
         }
 
-        options.Add(option);
+        _options.Add(option);
     }
 
     private sealed class CommandLineOption
     {
-        private readonly Action<string?> apply;
+        private readonly Action<string?> _apply;
 
         public CommandLineOption(string[] aliases, string description, string? valueName, Action<string?> apply)
         {
             Aliases = aliases;
             Description = description;
             ValueName = valueName;
-            this.apply = apply;
+            this._apply = apply;
         }
 
         public string[] Aliases { get; }
@@ -137,7 +137,7 @@ public sealed class CommandLineParser
 
         public void Apply(string? value)
         {
-            apply(value);
+            _apply(value);
         }
 
         public string RenderSignature()

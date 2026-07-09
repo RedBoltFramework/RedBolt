@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public class StaticModel : Drawable
 {
-    private readonly List<Material?> materials = [];
+    private readonly List<Material?> _materials = [];
 
     public StaticModel()
         : base(DrawableFlags.Geometry)
@@ -43,19 +43,19 @@ public class StaticModel : Drawable
 
     public void SetMaterial(Material? material)
     {
-        if (materials.Count == 0)
+        if (_materials.Count == 0)
             ResizeMaterials(1);
 
-        for (var i = 0; i < materials.Count; ++i)
-            materials[i] = material;
+        for (var i = 0; i < _materials.Count; ++i)
+            _materials[i] = material;
     }
 
     public bool SetMaterial(uint index, Material? material)
     {
-        if (index >= materials.Count)
+        if (index >= _materials.Count)
             return false;
 
-        materials[(int)index] = material;
+        _materials[(int)index] = material;
         return true;
     }
 
@@ -74,7 +74,7 @@ public class StaticModel : Drawable
 
     public Material? GetMaterial(uint index = 0)
     {
-        return index < materials.Count ? materials[(int)index] : null;
+        return index < _materials.Count ? _materials[(int)index] : null;
     }
 
     public uint GetOcclusionLodLevel() => OcclusionLodLevel;
@@ -120,10 +120,10 @@ public class StaticModel : Drawable
 
     private void ResizeMaterials(uint count)
     {
-        while (materials.Count < count)
-            materials.Add(null);
+        while (_materials.Count < count)
+            _materials.Add(null);
 
-        while (materials.Count > count)
-            materials.RemoveAt(materials.Count - 1);
+        while (_materials.Count > count)
+            _materials.RemoveAt(_materials.Count - 1);
     }
 }

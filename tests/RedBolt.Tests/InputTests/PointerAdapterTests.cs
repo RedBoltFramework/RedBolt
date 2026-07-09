@@ -5,14 +5,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PointerAdapterTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public PointerAdapterTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => fixture.Input;
+    private RedBolt.Input Input => _fixture.Input;
 
     [Fact]
     public void Mouse_input_updates_pointer_state()

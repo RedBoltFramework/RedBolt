@@ -5,11 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RawShaderTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RawShaderTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public sealed class RawShaderTests
     {
         WithInitializedGraphics(() =>
         {
-            var vertexShader = fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture");
-            var pixelShader = fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture");
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture");
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture");
 
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
@@ -89,18 +89,18 @@ public sealed class RawShaderTests
             WindowHeight = 64
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 }

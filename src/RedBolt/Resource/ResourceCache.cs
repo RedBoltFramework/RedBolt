@@ -2,18 +2,18 @@ namespace RedBolt;
 
 public sealed class ResourceCache
 {
-    private readonly Dictionary<(Type Type, string Name), Resource> cache = new();
-    private readonly BackgroundLoader backgroundLoader;
-    private readonly Dictionary<Type, ulong> memoryBudgets = new();
-    private readonly List<string> resourceDirs = [];
-    private readonly Dictionary<Type, Delegate> loaders = new();
-    private int finishBackgroundResourcesMs = 5;
-    private bool returnFailedResources;
-    private bool searchPackagesFirst;
+    private readonly Dictionary<(Type Type, string Name), Resource> _cache = new();
+    private readonly BackgroundLoader _backgroundLoader;
+    private readonly Dictionary<Type, ulong> _memoryBudgets = new();
+    private readonly List<string> _resourceDirs = [];
+    private readonly Dictionary<Type, Delegate> _loaders = new();
+    private int _finishBackgroundResourcesMs = 5;
+    private bool _returnFailedResources;
+    private bool _searchPackagesFirst;
 
     public ResourceCache()
     {
-        backgroundLoader = new BackgroundLoader(this);
+        _backgroundLoader = new BackgroundLoader(this);
     }
 
     public void RegisterDefaultResources()
@@ -35,24 +35,24 @@ public sealed class ResourceCache
     public void RegisterLoader<T>(Func<string, T?> loader)
         where T : Resource
     {
-        loaders[typeof(T)] = loader ?? throw new ArgumentNullException(nameof(loader));
+        _loaders[typeof(T)] = loader ?? throw new ArgumentNullException(nameof(loader));
     }
 
     public bool AddManualResource(Resource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
         var key = (resource.GetType(), resource.Name);
-        if (cache.ContainsKey(key))
+        if (_cache.ContainsKey(key))
             return false;
 
         resource.OwnerCache = this;
-        cache.Add(key, resource);
+        _cache.Add(key, resource);
         return true;
     }
 
-    public IReadOnlyDictionary<(Type Type, string Name), Resource> AllResources => cache;
+    public IReadOnlyDictionary<(Type Type, string Name), Resource> AllResources => _cache;
 
-    public IReadOnlyList<string> ResourceDirs => resourceDirs;
+    public IReadOnlyList<string> ResourceDirs => _resourceDirs;
 
     public IReadOnlyDictionary<(Type Type, string Name), Resource> GetAllResources() => AllResources;
 
@@ -61,17 +61,17 @@ public sealed class ResourceCache
     public bool AddResourceDir(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (resourceDirs.Any(existing => string.Equals(existing, path, StringComparison.Ordinal)))
+        if (_resourceDirs.Any(existing => string.Equals(existing, path, StringComparison.Ordinal)))
             return false;
 
-        resourceDirs.Add(path);
+        _resourceDirs.Add(path);
         return true;
     }
 
     public bool RemoveResourceDir(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return resourceDirs.Remove(path);
+        return _resourceDirs.Remove(path);
     }
 
     public void SetMemoryBudget<T>(ulong budget)
@@ -86,7 +86,7 @@ public sealed class ResourceCache
         if (!typeof(Resource).IsAssignableFrom(type))
             throw new ArgumentException("Type must derive from Resource.", nameof(type));
 
-        memoryBudgets[type] = budget;
+        _memoryBudgets[type] = budget;
     }
 
     public ulong GetMemoryBudget<T>()
@@ -98,7 +98,7 @@ public sealed class ResourceCache
     public ulong GetMemoryBudget(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return memoryBudgets.GetValueOrDefault(type);
+        return _memoryBudgets.GetValueOrDefault(type);
     }
 
     public ulong GetMemoryUse<T>()
@@ -110,36 +110,36 @@ public sealed class ResourceCache
     public ulong GetMemoryUse(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return cache
+        return _cache
             .Where(item => item.Key.Type == type)
             .Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse);
     }
 
     public ulong GetTotalMemoryUse()
     {
-        return cache.Values.Aggregate(0ul, static (sum, resource) => sum + resource.MemoryUse);
+        return _cache.Values.Aggregate(0ul, static (sum, resource) => sum + resource.MemoryUse);
     }
 
     public void SetReturnFailedResources(bool enable)
     {
-        returnFailedResources = enable;
+        _returnFailedResources = enable;
     }
 
-    public bool GetReturnFailedResources() => returnFailedResources;
+    public bool GetReturnFailedResources() => _returnFailedResources;
 
     public void SetSearchPackagesFirst(bool value)
     {
-        searchPackagesFirst = value;
+        _searchPackagesFirst = value;
     }
 
-    public bool GetSearchPackagesFirst() => searchPackagesFirst;
+    public bool GetSearchPackagesFirst() => _searchPackagesFirst;
 
     public void SetFinishBackgroundResourcesMs(int ms)
     {
-        finishBackgroundResourcesMs = Math.Max(ms, 1);
+        _finishBackgroundResourcesMs = Math.Max(ms, 1);
     }
 
-    public int GetFinishBackgroundResourcesMs() => finishBackgroundResourcesMs;
+    public int GetFinishBackgroundResourcesMs() => _finishBackgroundResourcesMs;
 
     public bool BackgroundLoadResource<T>(string name, bool sendEventOnFailure = true, Resource? caller = null)
         where T : Resource
@@ -154,14 +154,14 @@ public sealed class ResourceCache
         if (!typeof(Resource).IsAssignableFrom(type))
             throw new ArgumentException("Type must derive from Resource.", nameof(type));
 
-        return backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
+        return _backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
     }
 
-    public uint GetNumBackgroundLoadResources() => (uint)backgroundLoader.GetNumQueuedResources();
+    public uint GetNumBackgroundLoadResources() => (uint)_backgroundLoader.GetNumQueuedResources();
 
     public void FinishBackgroundResources(int? maxMs = null)
     {
-        backgroundLoader.FinishResources(maxMs ?? finishBackgroundResourcesMs);
+        _backgroundLoader.FinishResources(maxMs ?? _finishBackgroundResourcesMs);
     }
 
     public T Get<T>(string name)
@@ -175,17 +175,17 @@ public sealed class ResourceCache
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        backgroundLoader.WaitForResource(typeof(T), name);
+        _backgroundLoader.WaitForResource(typeof(T), name);
 
         var key = (typeof(T), name);
-        if (cache.TryGetValue(key, out var cached))
+        if (_cache.TryGetValue(key, out var cached))
             return (T)cached;
 
         var resource = TryLoadResource<T>(name)
             ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
 
         resource.OwnerCache = this;
-        cache.Add(key, resource);
+        _cache.Add(key, resource);
         return resource;
     }
 
@@ -194,10 +194,10 @@ public sealed class ResourceCache
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        backgroundLoader.WaitForResource(typeof(T), name);
+        _backgroundLoader.WaitForResource(typeof(T), name);
 
         var key = (typeof(T), name);
-        if (cache.TryGetValue(key, out var cached))
+        if (_cache.TryGetValue(key, out var cached))
             return (T)cached;
 
         var resource = TryLoadResource<T>(name);
@@ -205,7 +205,7 @@ public sealed class ResourceCache
             return null;
 
         resource.OwnerCache = this;
-        cache[key] = resource;
+        _cache[key] = resource;
         return resource;
     }
 
@@ -213,13 +213,13 @@ public sealed class ResourceCache
         where T : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return cache.TryGetValue((typeof(T), name), out var resource) ? (T)resource : null;
+        return _cache.TryGetValue((typeof(T), name), out var resource) ? (T)resource : null;
     }
 
     public IReadOnlyList<T> GetResources<T>()
         where T : Resource
     {
-        return cache
+        return _cache
             .Where(static item => item.Key.Type == typeof(T))
             .Select(static item => (T)item.Value)
             .ToArray();
@@ -237,7 +237,7 @@ public sealed class ResourceCache
     public bool Exists<T>(string name)
         where T : Resource
     {
-        return cache.ContainsKey((typeof(T), name)) || !string.IsNullOrEmpty(GetResourceFileName(name));
+        return _cache.ContainsKey((typeof(T), name)) || !string.IsNullOrEmpty(GetResourceFileName(name));
     }
 
     public bool Exists(string name)
@@ -260,7 +260,7 @@ public sealed class ResourceCache
         if (Path.IsPathFullyQualified(resourceName) && File.Exists(resourceName))
             return resourceName;
 
-        foreach (var resourceDir in resourceDirs)
+        foreach (var resourceDir in _resourceDirs)
         {
             var candidate = Path.Combine(resourceDir, resourceName);
             if (File.Exists(candidate))
@@ -285,7 +285,7 @@ public sealed class ResourceCache
             return normalized.TrimStart('/');
 
         var fullName = Path.GetFullPath(normalized).Replace('\\', '/');
-        foreach (var resourceDir in resourceDirs)
+        foreach (var resourceDir in _resourceDirs)
         {
             var fullDir = Path.GetFullPath(resourceDir).Replace('\\', '/').TrimEnd('/') + "/";
             if (fullName.StartsWith(fullDir, StringComparison.Ordinal))
@@ -298,27 +298,27 @@ public sealed class ResourceCache
     public void ReleaseResource<T>(string name)
         where T : Resource
     {
-        cache.Remove((typeof(T), name));
+        _cache.Remove((typeof(T), name));
     }
 
     public void ReleaseResource(string resourceName, bool force = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
-        var keys = cache.Keys
+        var keys = _cache.Keys
             .Where(key => string.Equals(key.Name, resourceName, StringComparison.Ordinal))
             .ToArray();
         foreach (var key in keys)
-            cache.Remove(key);
+            _cache.Remove(key);
     }
 
     public void ReleaseResources<T>(bool force = false)
         where T : Resource
     {
-        var keys = cache.Keys
+        var keys = _cache.Keys
             .Where(static key => key.Type == typeof(T))
             .ToArray();
         foreach (var key in keys)
-            cache.Remove(key);
+            _cache.Remove(key);
     }
 
     public bool ReloadResource<T>(string name)
@@ -326,7 +326,7 @@ public sealed class ResourceCache
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        if (!cache.TryGetValue((typeof(T), name), out var resource))
+        if (!_cache.TryGetValue((typeof(T), name), out var resource))
             return false;
 
         return resource.Reload();
@@ -336,26 +336,26 @@ public sealed class ResourceCache
         where T : Resource
     {
         ArgumentNullException.ThrowIfNull(partialName);
-        var keys = cache.Keys
+        var keys = _cache.Keys
             .Where(key => key.Type == typeof(T) && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         foreach (var key in keys)
-            cache.Remove(key);
+            _cache.Remove(key);
     }
 
     public void ReleaseResources(string partialName, bool force = false)
     {
         ArgumentNullException.ThrowIfNull(partialName);
-        var keys = cache.Keys
+        var keys = _cache.Keys
             .Where(key => key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         foreach (var key in keys)
-            cache.Remove(key);
+            _cache.Remove(key);
     }
 
     public void ReleaseAllResources(bool force = false)
     {
-        cache.Clear();
+        _cache.Clear();
     }
 
     public void Clear() => ReleaseAllResources(force: true);
@@ -363,14 +363,14 @@ public sealed class ResourceCache
     internal bool CanBackgroundLoad(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
+        return _loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
     }
 
     internal bool HasResource(Type type, string name)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return cache.ContainsKey((type, name));
+        return _cache.ContainsKey((type, name));
     }
 
     internal Resource? LoadBackgroundResource(Type type, string name)
@@ -386,7 +386,7 @@ public sealed class ResourceCache
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(resource);
         resource.OwnerCache = this;
-        cache[(type, name)] = resource;
+        _cache[(type, name)] = resource;
     }
 
     private T? TryLoadResource<T>(string name)
@@ -399,7 +399,7 @@ public sealed class ResourceCache
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        if (loaders.TryGetValue(type, out var loader))
+        if (_loaders.TryGetValue(type, out var loader))
         {
             var loaded = loader.DynamicInvoke(name) as Resource;
             if (loaded is not null)
@@ -424,7 +424,7 @@ public sealed class ResourceCache
             return null;
 
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string name, Func<string, T> factory)
@@ -439,7 +439,7 @@ public sealed class ResourceCache
 
         var resource = factory(name);
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<string, T> factory)
@@ -455,7 +455,7 @@ public sealed class ResourceCache
 
         var resource = factory(logicalName);
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || returnFailedResources ? resource : null;
+        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<string, T> factory)

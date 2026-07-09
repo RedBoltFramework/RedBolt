@@ -7,13 +7,13 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderScope : IDisposable
 {
-    private readonly RenderContext? renderContext;
+    private readonly RenderContext? _renderContext;
 
     public RenderScope(RenderContext? renderContext, string name)
     {
-        this.renderContext = renderContext is not null && renderContext.IsDebugScopeEnabled() ? renderContext : null;
-        if (this.renderContext is not null)
-            this.renderContext.BeginGroup(name);
+        this._renderContext = renderContext is not null && renderContext.IsDebugScopeEnabled() ? renderContext : null;
+        if (this._renderContext is not null)
+            this._renderContext.BeginGroup(name);
     }
 
     public RenderScope(RenderContext? renderContext, string format, params object[] args)
@@ -23,6 +23,6 @@ public sealed class RenderScope : IDisposable
 
     public void Dispose()
     {
-        renderContext?.EndGroup();
+        _renderContext?.EndGroup();
     }
 }

@@ -4,16 +4,16 @@ namespace RedBolt;
 
 public sealed class Scene : Object
 {
-    private readonly Dictionary<uint, Component> components = [];
-    private readonly Dictionary<uint, Node> nodes = [];
-    private readonly Dictionary<string, List<Node>> taggedNodes = new(StringComparer.Ordinal);
-    private readonly List<ISceneUpdateListener> updateListeners = [];
-    private readonly List<StaticModel> staticModels = [];
-    private int asyncLoadingMs = 5;
-    private float elapsedTime;
-    private string fileName = string.Empty;
-    private uint nextComponentId = 1;
-    private uint nextNodeId = 1;
+    private readonly Dictionary<uint, Component> _components = [];
+    private readonly Dictionary<uint, Node> _nodes = [];
+    private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
+    private readonly List<ISceneUpdateListener> _updateListeners = [];
+    private readonly List<StaticModel> _staticModels = [];
+    private int _asyncLoadingMs = 5;
+    private float _elapsedTime;
+    private string _fileName = string.Empty;
+    private uint _nextComponentId = 1;
+    private uint _nextNodeId = 1;
 
     public Scene()
     {
@@ -23,7 +23,7 @@ public sealed class Scene : Object
 
     public Node Root { get; }
 
-    internal IReadOnlyList<StaticModel> StaticModels => staticModels;
+    internal IReadOnlyList<StaticModel> StaticModels => _staticModels;
 
     public bool UpdateEnabled { get; set; } = true;
 
@@ -31,11 +31,11 @@ public sealed class Scene : Object
 
     public float EffectiveTimeScale => UpdateEnabled ? TimeScale : 0.0f;
 
-    public float ElapsedTime => elapsedTime;
+    public float ElapsedTime => _elapsedTime;
 
-    public int AsyncLoadingMs => asyncLoadingMs;
+    public int AsyncLoadingMs => _asyncLoadingMs;
 
-    public string FileName => fileName;
+    public string FileName => _fileName;
 
     public uint Checksum { get; private set; }
 
@@ -83,17 +83,17 @@ public sealed class Scene : Object
 
     public void SetElapsedTime(float time)
     {
-        elapsedTime = time;
+        _elapsedTime = time;
     }
 
-    public float GetElapsedTime() => elapsedTime;
+    public float GetElapsedTime() => _elapsedTime;
 
     public void SetAsyncLoadingMs(int ms)
     {
-        asyncLoadingMs = Math.Max(ms, 1);
+        _asyncLoadingMs = Math.Max(ms, 1);
     }
 
-    public int GetAsyncLoadingMs() => asyncLoadingMs;
+    public int GetAsyncLoadingMs() => _asyncLoadingMs;
 
     public bool IsAsyncLoading() => false;
 
@@ -101,11 +101,11 @@ public sealed class Scene : Object
 
     public void SetFileName(string fileName)
     {
-        this.fileName = fileName ?? string.Empty;
-        Checksum = string.IsNullOrEmpty(this.fileName) ? 0u : StringHash.Calculate(this.fileName);
+        this._fileName = fileName ?? string.Empty;
+        Checksum = string.IsNullOrEmpty(this._fileName) ? 0u : StringHash.Calculate(this._fileName);
     }
 
-    public string GetFileName() => fileName;
+    public string GetFileName() => _fileName;
 
     public uint GetChecksum() => Checksum;
 
@@ -116,27 +116,27 @@ public sealed class Scene : Object
 
     public Node? GetNode(uint id)
     {
-        return nodes.GetValueOrDefault(id);
+        return _nodes.GetValueOrDefault(id);
     }
 
     public Component? GetComponent(uint id)
     {
-        return components.GetValueOrDefault(id);
+        return _components.GetValueOrDefault(id);
     }
 
     public IReadOnlyList<Node> GetNodesWithTag(string tag)
     {
-        return taggedNodes.TryGetValue(tag, out var tagged) ? tagged : Array.Empty<Node>();
+        return _taggedNodes.TryGetValue(tag, out var tagged) ? tagged : Array.Empty<Node>();
     }
 
     public IReadOnlyDictionary<uint, Node> GetAllNodes()
     {
-        return nodes;
+        return _nodes;
     }
 
     public IReadOnlyDictionary<uint, Component> GetAllComponents()
     {
-        return components;
+        return _components;
     }
 
     public void GetComponents<T>(List<T> result)
@@ -145,7 +145,7 @@ public sealed class Scene : Object
         ArgumentNullException.ThrowIfNull(result);
 
         result.Clear();
-        foreach (var component in components.Values)
+        foreach (var component in _components.Values)
         {
             if (component is T typed)
                 result.Add(typed);
@@ -201,7 +201,7 @@ public sealed class Scene : Object
                 for (var i = 0; i < listenerSnapshot.Count; ++i)
                     listenerSnapshot.Array[i]!.OnScenePostUpdate(effectiveTimeStep);
 
-                elapsedTime += effectiveTimeStep;
+                _elapsedTime += effectiveTimeStep;
             }
             finally
             {
@@ -219,20 +219,20 @@ public sealed class Scene : Object
 
     internal uint AllocateComponentId(uint requestedId)
     {
-        return AllocateId(components, ref nextComponentId, requestedId);
+        return AllocateId(_components, ref _nextComponentId, requestedId);
     }
 
     internal uint AllocateNodeId(uint requestedId)
     {
-        return AllocateId(nodes, ref nextNodeId, requestedId);
+        return AllocateId(_nodes, ref _nextNodeId, requestedId);
     }
 
     internal void NodeAdded(Node node)
     {
-        if (nodes.TryGetValue(node.Id, out var existingNode) && !ReferenceEquals(existingNode, node))
+        if (_nodes.TryGetValue(node.Id, out var existingNode) && !ReferenceEquals(existingNode, node))
             existingNode.Parent?.RemoveChild(existingNode);
 
-        if (!nodes.TryAdd(node.Id, node))
+        if (!_nodes.TryAdd(node.Id, node))
             return;
 
         foreach (var tag in node.Tags)
@@ -247,7 +247,7 @@ public sealed class Scene : Object
 
     internal void NodeRemoved(Node node)
     {
-        if (!nodes.Remove(node.Id))
+        if (!_nodes.Remove(node.Id))
             return;
 
         foreach (var child in node.Children)
@@ -262,44 +262,44 @@ public sealed class Scene : Object
 
     internal void NodeTagAdded(Node node, string tag)
     {
-        if (!taggedNodes.TryGetValue(tag, out var tagged))
-            taggedNodes[tag] = tagged = [];
+        if (!_taggedNodes.TryGetValue(tag, out var tagged))
+            _taggedNodes[tag] = tagged = [];
         tagged.Add(node);
     }
 
     internal void NodeTagRemoved(Node node, string tag)
     {
-        if (!taggedNodes.TryGetValue(tag, out var tagged))
+        if (!_taggedNodes.TryGetValue(tag, out var tagged))
             return;
 
         tagged.Remove(node);
         if (tagged.Count == 0)
-            taggedNodes.Remove(tag);
+            _taggedNodes.Remove(tag);
     }
 
     internal void ComponentAdded(Component component)
     {
-        if (components.TryGetValue(component.Id, out var existingComponent) && !ReferenceEquals(existingComponent, component))
+        if (_components.TryGetValue(component.Id, out var existingComponent) && !ReferenceEquals(existingComponent, component))
             existingComponent.Node.RemoveComponent(existingComponent);
 
-        components[component.Id] = component;
+        _components[component.Id] = component;
         component.OnSceneSet(null, this);
 
         if (component is ISceneUpdateListener listener)
-            updateListeners.Add(listener);
+            _updateListeners.Add(listener);
         if (component is StaticModel staticModel)
-            staticModels.Add(staticModel);
+            _staticModels.Add(staticModel);
     }
 
     internal void ComponentRemoved(Component component)
     {
-        if (!components.Remove(component.Id))
+        if (!_components.Remove(component.Id))
             return;
 
         if (component is ISceneUpdateListener listener)
-            updateListeners.Remove(listener);
+            _updateListeners.Remove(listener);
         if (component is StaticModel staticModel)
-            staticModels.Remove(staticModel);
+            _staticModels.Remove(staticModel);
 
         component.SetId(0);
         component.OnSceneSet(this, null);
@@ -307,7 +307,7 @@ public sealed class Scene : Object
 
     private void UpdateAttributeAnimations(float timeStep)
     {
-        var nodeSnapshot = SnapshotValues(nodes);
+        var nodeSnapshot = SnapshotValues(_nodes);
         try
         {
             for (var i = 0; i < nodeSnapshot.Count; ++i)
@@ -318,7 +318,7 @@ public sealed class Scene : Object
             nodeSnapshot.Dispose();
         }
 
-        var componentSnapshot = SnapshotValues(components);
+        var componentSnapshot = SnapshotValues(_components);
         try
         {
             for (var i = 0; i < componentSnapshot.Count; ++i)
@@ -354,9 +354,9 @@ public sealed class Scene : Object
 
     private Snapshot<ISceneUpdateListener> SnapshotUpdateListeners()
     {
-        var array = ArrayPool<ISceneUpdateListener>.Shared.Rent(updateListeners.Count);
-        updateListeners.CopyTo(array, 0);
-        return new Snapshot<ISceneUpdateListener>(array, updateListeners.Count);
+        var array = ArrayPool<ISceneUpdateListener>.Shared.Rent(_updateListeners.Count);
+        _updateListeners.CopyTo(array, 0);
+        return new Snapshot<ISceneUpdateListener>(array, _updateListeners.Count);
     }
 
     private static Snapshot<T> SnapshotValues<T>(Dictionary<uint, T> objects)

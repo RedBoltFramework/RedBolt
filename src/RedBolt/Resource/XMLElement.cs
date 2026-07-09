@@ -8,45 +8,45 @@ public sealed class XMLElement
 {
     private static readonly Regex NumberPattern = new(@"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", RegexOptions.Compiled);
 
-    private readonly XMLFile? file;
-    private readonly XElement? element;
+    private readonly XMLFile? _file;
+    private readonly XElement? _element;
 
     internal XMLElement(XMLFile? file, XElement? element)
     {
-        this.file = file;
-        this.element = element;
+        this._file = file;
+        this._element = element;
     }
 
-    public bool IsNull => element is null;
+    public bool IsNull => _element is null;
 
-    public bool NotNull => element is not null;
+    public bool NotNull => _element is not null;
 
-    public string Name => element?.Name.LocalName ?? string.Empty;
+    public string Name => _element?.Name.LocalName ?? string.Empty;
 
-    public string Value => element?.Value ?? string.Empty;
+    public string Value => _element?.Value ?? string.Empty;
 
-    public XElement? Element => element;
+    public XElement? Element => _element;
 
     public void SetName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (element is null)
+        if (_element is null)
             return;
 
-        element.Name = name;
+        _element.Name = name;
         NotifyChanged();
     }
 
     public XMLElement CreateChild(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (element is null)
-            return new XMLElement(file, null);
+        if (_element is null)
+            return new XMLElement(_file, null);
 
         var child = new XElement(name);
-        element.Add(child);
+        _element.Add(child);
         NotifyChanged();
-        return new XMLElement(file, child);
+        return new XMLElement(_file, child);
     }
 
     public XMLElement GetOrCreateChild(string name)
@@ -58,22 +58,22 @@ public sealed class XMLElement
     public bool AppendChild(XMLElement other, bool asCopy = false)
     {
         ArgumentNullException.ThrowIfNull(other);
-        if (element is null || other.element is null)
+        if (_element is null || other._element is null)
             return false;
 
-        var child = asCopy ? new XElement(other.element) : other.element;
-        element.Add(child);
+        var child = asCopy ? new XElement(other._element) : other._element;
+        _element.Add(child);
         NotifyChanged();
-        other.file?.RefreshMemoryUse();
+        other._file?.RefreshMemoryUse();
         return true;
     }
 
     public bool Remove()
     {
-        if (element?.Parent is null)
+        if (_element?.Parent is null)
             return false;
 
-        element.Remove();
+        _element.Remove();
         NotifyChanged();
         return true;
     }
@@ -81,10 +81,10 @@ public sealed class XMLElement
     public bool RemoveChild(XMLElement child)
     {
         ArgumentNullException.ThrowIfNull(child);
-        if (element is null || child.element?.Parent != element)
+        if (_element is null || child._element?.Parent != _element)
             return false;
 
-        child.element.Remove();
+        child._element.Remove();
         NotifyChanged();
         return true;
     }
@@ -98,12 +98,12 @@ public sealed class XMLElement
 
     public bool RemoveChildren(string name = "")
     {
-        if (element is null)
+        if (_element is null)
             return false;
 
         var children = string.IsNullOrEmpty(name)
-            ? element.Elements().ToArray()
-            : element.Elements(name).ToArray();
+            ? _element.Elements().ToArray()
+            : _element.Elements(name).ToArray();
         if (children.Length == 0)
             return false;
 
@@ -117,7 +117,7 @@ public sealed class XMLElement
     public bool RemoveAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var attribute = element?.Attribute(name);
+        var attribute = _element?.Attribute(name);
         if (attribute is null)
             return false;
 
@@ -128,10 +128,10 @@ public sealed class XMLElement
 
     public bool SetValue(string value)
     {
-        if (element is null)
+        if (_element is null)
             return false;
 
-        element.Value = value ?? string.Empty;
+        _element.Value = value ?? string.Empty;
         NotifyChanged();
         return true;
     }
@@ -139,10 +139,10 @@ public sealed class XMLElement
     public bool SetAttribute(string name, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (element is null)
+        if (_element is null)
             return false;
 
-        element.SetAttributeValue(name, value ?? string.Empty);
+        _element.SetAttributeValue(name, value ?? string.Empty);
         NotifyChanged();
         return true;
     }
@@ -196,39 +196,39 @@ public sealed class XMLElement
     public bool HasChild(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return element?.Element(name) is not null;
+        return _element?.Element(name) is not null;
     }
 
     public XMLElement GetChild(string name = "")
     {
-        if (element is null)
-            return new XMLElement(file, null);
+        if (_element is null)
+            return new XMLElement(_file, null);
 
         var child = string.IsNullOrEmpty(name)
-            ? element.Elements().FirstOrDefault()
-            : element.Element(name);
-        return new XMLElement(file, child);
+            ? _element.Elements().FirstOrDefault()
+            : _element.Element(name);
+        return new XMLElement(_file, child);
     }
 
     public XMLElement GetNext(string name = "")
     {
-        if (element is null)
-            return new XMLElement(file, null);
+        if (_element is null)
+            return new XMLElement(_file, null);
 
         var sibling = string.IsNullOrEmpty(name)
-            ? element.ElementsAfterSelf().FirstOrDefault()
-            : element.ElementsAfterSelf(name).FirstOrDefault();
-        return new XMLElement(file, sibling);
+            ? _element.ElementsAfterSelf().FirstOrDefault()
+            : _element.ElementsAfterSelf(name).FirstOrDefault();
+        return new XMLElement(_file, sibling);
     }
 
-    public XMLElement GetParent() => new(file, element?.Parent);
+    public XMLElement GetParent() => new(_file, _element?.Parent);
 
-    public uint GetNumAttributes() => (uint)(element?.Attributes().Count() ?? 0);
+    public uint GetNumAttributes() => (uint)(_element?.Attributes().Count() ?? 0);
 
     public bool HasAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return element?.Attribute(name) is not null;
+        return _element?.Attribute(name) is not null;
     }
 
     public string GetValue() => Value;
@@ -236,12 +236,12 @@ public sealed class XMLElement
     public string GetAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return element?.Attribute(name)?.Value ?? string.Empty;
+        return _element?.Attribute(name)?.Value ?? string.Empty;
     }
 
     public IReadOnlyList<string> GetAttributeNames()
     {
-        return element?.Attributes().Select(static attribute => attribute.Name.LocalName).ToArray() ?? Array.Empty<string>();
+        return _element?.Attributes().Select(static attribute => attribute.Name.LocalName).ToArray() ?? Array.Empty<string>();
     }
 
     public bool GetBool(string name)
@@ -310,7 +310,7 @@ public sealed class XMLElement
 
     public Matrix4 GetMatrix4(string name) => ParseMatrix4(GetAttribute(name));
 
-    public override string ToString() => element?.ToString() ?? string.Empty;
+    public override string ToString() => _element?.ToString() ?? string.Empty;
 
     private static string FormatFloats(params float[] values)
     {
@@ -427,5 +427,5 @@ public sealed class XMLElement
         return parsed.Length >= 4 ? new Vector4(parsed[0], parsed[1], parsed[2], parsed[3]) : Vector4.Zero;
     }
 
-    private void NotifyChanged() => file?.RefreshMemoryUse();
+    private void NotifyChanged() => _file?.RefreshMemoryUse();
 }

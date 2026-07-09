@@ -11,8 +11,8 @@ public sealed class Renderer
 {
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
 
-    private readonly List<Viewport?> viewports = [];
-    private readonly Dictionary<Viewport, ActiveRenderPipelineView> renderPipelineViews = [];
+    private readonly List<Viewport?> _viewports = [];
+    private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
 
     public int TextureAnisotropy { get; private set; } = 4;
 
@@ -28,14 +28,14 @@ public sealed class Renderer
 
     public Viewport? GetViewport(uint index = 0)
     {
-        return index < viewports.Count ? viewports[(int)index] : null;
+        return index < _viewports.Count ? _viewports[(int)index] : null;
     }
 
     public void SetViewport(uint index, Viewport viewport)
     {
         ArgumentNullException.ThrowIfNull(viewport);
         EnsureViewportCount(index + 1);
-        viewports[(int)index] = viewport;
+        _viewports[(int)index] = viewport;
     }
 
     public void SetViewport(Viewport viewport)
@@ -45,19 +45,19 @@ public sealed class Renderer
 
     public void ClearViewports()
     {
-        viewports.Clear();
-        renderPipelineViews.Clear();
+        _viewports.Clear();
+        _renderPipelineViews.Clear();
     }
 
-    public uint GetNumViewports() => (uint)viewports.Count;
+    public uint GetNumViewports() => (uint)_viewports.Count;
 
-    public uint GetNumViews() => (uint)viewports.Count(static viewport => viewport is not null);
+    public uint GetNumViews() => (uint)_viewports.Count(static viewport => viewport is not null);
 
     public Viewport? GetViewportForScene(Scene scene, uint index = 0)
     {
         ArgumentNullException.ThrowIfNull(scene);
         var matchIndex = 0u;
-        foreach (var viewport in viewports)
+        foreach (var viewport in _viewports)
         {
             if (viewport is null || !ReferenceEquals(viewport.Scene, scene))
                 continue;
@@ -72,8 +72,8 @@ public sealed class Renderer
     public void SetNumViewports(uint count)
     {
         EnsureViewportCount(count);
-        while (viewports.Count > count)
-            viewports.RemoveAt(viewports.Count - 1);
+        while (_viewports.Count > count)
+            _viewports.RemoveAt(_viewports.Count - 1);
     }
 
     public void SetTextureAnisotropy(int level)
@@ -117,7 +117,7 @@ public sealed class Renderer
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
-        if (viewports.Count > 0 && viewports[0] is { } viewport)
+        if (_viewports.Count > 0 && _viewports[0] is { } viewport)
         {
             var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
             if (renderPipeline is null)
@@ -140,20 +140,20 @@ public sealed class Renderer
 
     private RenderPipelineView GetOrCreateRenderPipelineView(Viewport viewport, RenderPipeline renderPipeline)
     {
-        if (renderPipelineViews.TryGetValue(viewport, out var existing)
+        if (_renderPipelineViews.TryGetValue(viewport, out var existing)
             && ReferenceEquals(existing.Pipeline, renderPipeline))
         {
             return existing.View;
         }
 
         var created = renderPipeline.Instantiate();
-        renderPipelineViews[viewport] = new ActiveRenderPipelineView(renderPipeline, created);
+        _renderPipelineViews[viewport] = new ActiveRenderPipelineView(renderPipeline, created);
         return created;
     }
 
     private void EnsureViewportCount(uint count)
     {
-        while (viewports.Count < count)
-            viewports.Add(null);
+        while (_viewports.Count < count)
+            _viewports.Add(null);
     }
 }

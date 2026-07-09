@@ -25,13 +25,13 @@ public sealed class Camera : Component
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 
-    private float aspectRatio = 1.0f;
-    private float farClip = DefaultFarClip;
-    private float fov = DefaultFov;
-    private float lodBias = 1.0f;
-    private float nearClip = DefaultNearClip;
-    private float orthoSize = DefaultOrthoSize;
-    private float zoom = 1.0f;
+    private float _aspectRatio = 1.0f;
+    private float _farClip = DefaultFarClip;
+    private float _fov = DefaultFov;
+    private float _lodBias = 1.0f;
+    private float _nearClip = DefaultNearClip;
+    private float _orthoSize = DefaultOrthoSize;
+    private float _zoom = 1.0f;
 
     public Camera()
     {
@@ -132,7 +132,7 @@ public sealed class Camera : Component
         set => SetZoom(value);
     }
 
-    public float GetAspectRatio() => aspectRatio;
+    public float GetAspectRatio() => _aspectRatio;
 
     public bool GetAutoAspectRatio() => AutoAspectRatio;
 
@@ -162,27 +162,27 @@ public sealed class Camera : Component
         return distance * distance;
     }
 
-    public float GetFarClip() => farClip;
+    public float GetFarClip() => _farClip;
 
     public FillMode GetFillMode() => FillMode;
 
     public bool GetFlipVertical() => FlipVertical;
 
-    public float GetFov() => fov;
+    public float GetFov() => _fov;
 
     public float GetHalfViewSize() => !Orthographic
-        ? MathF.Tan(fov * MathDefs.DegToRad * 0.5f) / zoom
-        : orthoSize * 0.5f / zoom;
+        ? MathF.Tan(_fov * MathDefs.DegToRad * 0.5f) / _zoom
+        : _orthoSize * 0.5f / _zoom;
 
-    public float GetLodBias() => lodBias;
+    public float GetLodBias() => _lodBias;
 
     public float GetLodDistance(float distance, float scale, float bias)
     {
-        var divisor = Math.Max(lodBias * bias * scale * zoom, MathDefs.Epsilon);
-        return !Orthographic ? distance / divisor : orthoSize / divisor;
+        var divisor = Math.Max(_lodBias * bias * scale * _zoom, MathDefs.Epsilon);
+        return !Orthographic ? distance / divisor : _orthoSize / divisor;
     }
 
-    public float GetNearClip() => nearClip;
+    public float GetNearClip() => _nearClip;
 
     public Matrix3x4 GetView()
     {
@@ -197,10 +197,10 @@ public sealed class Camera : Component
         Matrix4 projection;
         if (!Orthographic)
         {
-            var h = (1.0f / MathF.Tan(fov * MathDefs.DegToRad * 0.5f)) * zoom;
-            var w = h / Math.Max(aspectRatio, MathDefs.Epsilon);
-            var q = farClip / Math.Max(farClip - nearClip, MathDefs.Epsilon);
-            var r = -q * nearClip;
+            var h = (1.0f / MathF.Tan(_fov * MathDefs.DegToRad * 0.5f)) * _zoom;
+            var w = h / Math.Max(_aspectRatio, MathDefs.Epsilon);
+            var q = _farClip / Math.Max(_farClip - _nearClip, MathDefs.Epsilon);
+            var r = -q * _nearClip;
 
             projection = Matrix4.Zero;
             projection.M00 = w;
@@ -213,9 +213,9 @@ public sealed class Camera : Component
         }
         else
         {
-            var h = (1.0f / Math.Max(orthoSize * 0.5f, MathDefs.Epsilon)) * zoom;
-            var w = h / Math.Max(aspectRatio, MathDefs.Epsilon);
-            var q = 1.0f / Math.Max(farClip, MathDefs.Epsilon);
+            var h = (1.0f / Math.Max(_orthoSize * 0.5f, MathDefs.Epsilon)) * _zoom;
+            var w = h / Math.Max(_aspectRatio, MathDefs.Epsilon);
+            var q = 1.0f / Math.Max(_farClip, MathDefs.Epsilon);
 
             projection = Matrix4.Zero;
             projection.M00 = w;
@@ -245,7 +245,7 @@ public sealed class Camera : Component
 
     public Matrix4 GetInverseViewProj() => GetViewProj().Inverted;
 
-    public float GetOrthoSize() => orthoSize;
+    public float GetOrthoSize() => _orthoSize;
 
     public uint GetPrimaryViewMask() => PrimaryViewMask;
 
@@ -262,7 +262,7 @@ public sealed class Camera : Component
     public Vector2 GetViewSizeAt(float z)
     {
         var halfHeight = GetHalfViewSize();
-        var halfSize = new Vector2(aspectRatio * halfHeight, halfHeight);
+        var halfSize = new Vector2(_aspectRatio * halfHeight, halfHeight);
         return Orthographic ? halfSize : halfSize * z;
     }
 
@@ -270,7 +270,7 @@ public sealed class Camera : Component
 
     public ViewOverride GetViewOverrideFlags() => ViewOverrideFlags;
 
-    public float GetZoom() => zoom;
+    public float GetZoom() => _zoom;
 
     public uint GetZoneMask() => ZoneMask;
 
@@ -286,7 +286,7 @@ public sealed class Camera : Component
 
     public void SetAspectRatioInternal(float value)
     {
-        aspectRatio = value;
+        _aspectRatio = value;
     }
 
     public void SetAutoAspectRatio(bool enable)
@@ -301,7 +301,7 @@ public sealed class Camera : Component
 
     public void SetFarClip(float value)
     {
-        farClip = Math.Max(value, MathDefs.MinNearClip);
+        _farClip = Math.Max(value, MathDefs.MinNearClip);
     }
 
     public void SetFillMode(FillMode mode)
@@ -316,12 +316,12 @@ public sealed class Camera : Component
 
     public void SetFov(float value)
     {
-        fov = MathDefs.Clamp(value, 0.0f, MaxFov);
+        _fov = MathDefs.Clamp(value, 0.0f, MaxFov);
     }
 
     public void SetLodBias(float value)
     {
-        lodBias = Math.Max(value, MathDefs.Epsilon);
+        _lodBias = Math.Max(value, MathDefs.Epsilon);
     }
 
     public void SetMousePosition(Vector2 position)
@@ -331,7 +331,7 @@ public sealed class Camera : Component
 
     public void SetNearClip(float value)
     {
-        nearClip = Math.Max(value, MathDefs.MinNearClip);
+        _nearClip = Math.Max(value, MathDefs.MinNearClip);
     }
 
     public void SetOrthographic(bool enable)
@@ -341,15 +341,15 @@ public sealed class Camera : Component
 
     public void SetOrthoSize(float value)
     {
-        orthoSize = value;
-        aspectRatio = 1.0f;
+        _orthoSize = value;
+        _aspectRatio = 1.0f;
     }
 
     public void SetOrthoSize(Vector2 value)
     {
         AutoAspectRatio = false;
-        orthoSize = value.Y;
-        aspectRatio = value.Y != 0.0f ? value.X / value.Y : 1.0f;
+        _orthoSize = value.Y;
+        _aspectRatio = value.Y != 0.0f ? value.X / value.Y : 1.0f;
     }
 
     public void SetPrimaryViewMask(uint mask)
@@ -390,7 +390,7 @@ public sealed class Camera : Component
 
     public void SetZoom(float value)
     {
-        zoom = Math.Max(value, MathDefs.Epsilon);
+        _zoom = Math.Max(value, MathDefs.Epsilon);
     }
 
     public void SetZoneMask(uint mask)

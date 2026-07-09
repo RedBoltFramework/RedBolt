@@ -9,11 +9,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderPipelineTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RenderPipelineTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -130,10 +130,10 @@ public sealed class RenderPipelineTests
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var view = renderPipeline.Instantiate();
 
-        Assert.True(view.Define(viewport, fixture.Graphics));
+        Assert.True(view.Define(viewport, _fixture.Graphics));
 
-        view.Update(fixture.Graphics);
-        view.Render(fixture.Graphics, MaterialQuality.High);
+        view.Update(_fixture.Graphics);
+        view.Render(_fixture.Graphics, MaterialQuality.High);
 
         Assert.Equal(1, trackingPass.UpdateCalls);
         Assert.Equal(1, trackingPass.RenderCalls);
@@ -144,7 +144,7 @@ public sealed class RenderPipelineTests
     [Fact]
     public void Render_pipeline_publishes_normal_buffer_when_ssao_is_enabled()
     {
-        RbfxTestData.AddResourceDirs(fixture.Resources);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
         try
         {
             var scene = new Scene();
@@ -159,10 +159,10 @@ public sealed class RenderPipelineTests
             var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
             var view = renderPipeline.Instantiate();
 
-            Assert.True(view.Define(viewport, fixture.Graphics));
+            Assert.True(view.Define(viewport, _fixture.Graphics));
 
-            view.Update(fixture.Graphics);
-            view.Render(fixture.Graphics, MaterialQuality.High);
+            view.Update(_fixture.Graphics);
+            view.Render(_fixture.Graphics, MaterialQuality.High);
 
             Assert.True(capturePass.WasBufferPresent);
             Assert.Equal(TextureFormat.RGBA8, capturePass.CapturedFormat);
@@ -170,7 +170,7 @@ public sealed class RenderPipelineTests
         }
         finally
         {
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 
@@ -371,15 +371,15 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
         manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
 
-        manager.ClearDepthStencil(fixture.Graphics, manager.GetDepthStencilOutput(), ClearTarget.Depth | ClearTarget.Stencil, 0.5f, 7);
+        manager.ClearDepthStencil(_fixture.Graphics, manager.GetDepthStencilOutput(), ClearTarget.Depth | ClearTarget.Stencil, 0.5f, 7);
 
-        var currentRenderTargetCountField = typeof(Graphics).GetField("currentRenderTargetCount", BindingFlags.NonPublic | BindingFlags.Instance);
-        var renderTargetsField = typeof(Graphics).GetField("renderTargets", BindingFlags.NonPublic | BindingFlags.Instance);
+        var currentRenderTargetCountField = typeof(Graphics).GetField("_currentRenderTargetCount", BindingFlags.NonPublic | BindingFlags.Instance);
+        var renderTargetsField = typeof(Graphics).GetField("_renderTargets", BindingFlags.NonPublic | BindingFlags.Instance);
 
         Assert.NotNull(currentRenderTargetCountField);
         Assert.NotNull(renderTargetsField);
-        Assert.Equal(0, Assert.IsType<int>(currentRenderTargetCountField!.GetValue(fixture.Graphics)));
-        Assert.Null(Assert.IsType<ITextureView?[]>(renderTargetsField!.GetValue(fixture.Graphics))[0]);
+        Assert.Equal(0, Assert.IsType<int>(currentRenderTargetCountField!.GetValue(_fixture.Graphics)));
+        Assert.Null(Assert.IsType<ITextureView?[]>(renderTargetsField!.GetValue(_fixture.Graphics))[0]);
     }
 
     [Fact]
@@ -838,7 +838,7 @@ public sealed class RenderPipelineTests
         };
         bloom.Update(sharedState);
 
-        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "textures"));
+        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "_textures"));
         var caches = textures.Cast<object>().ToArray();
         Assert.Equal(5, caches.Length);
 
@@ -894,7 +894,7 @@ public sealed class RenderPipelineTests
         };
         bloom.Update(sharedState);
 
-        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "textures"));
+        var textures = Assert.IsAssignableFrom<IEnumerable>(GetPrivateField(bloom, "_textures"));
         var caches = textures.Cast<object>().ToArray();
         var first = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[0], "Final"));
         var second = Assert.IsType<TextureRenderBuffer>(GetPublicProperty(caches[1], "Final"));
@@ -933,11 +933,11 @@ public sealed class RenderPipelineTests
         var previousContext = Context.TryGetInstance();
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
-        fixture.Resources.AddResourceDir(tempRoot);
+        _fixture.Resources.AddResourceDir(tempRoot);
 
         try
         {
-            Context.SetInstance(fixture.Context);
+            Context.SetInstance(_fixture.Context);
             File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Default.renderpath"), """
                 {
                   "passes": [
@@ -960,7 +960,7 @@ public sealed class RenderPipelineTests
                 }
                 """);
 
-            fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            _fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
 
             var scene = new Scene();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
@@ -972,8 +972,8 @@ public sealed class RenderPipelineTests
         finally
         {
             Context.SetInstance(previousContext);
-            fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
-            fixture.Resources.RemoveResourceDir(tempRoot);
+            _fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            _fixture.Resources.RemoveResourceDir(tempRoot);
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
         }
@@ -985,17 +985,17 @@ public sealed class RenderPipelineTests
         const string renderPathName = "RenderPaths/Reload.renderpath";
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
-        fixture.Resources.AddResourceDir(tempRoot);
+        _fixture.Resources.AddResourceDir(tempRoot);
 
         try
         {
             var renderPathFile = Path.Combine(tempRoot, renderPathName);
             WriteRenderPath(renderPathFile, 1.25f, includeBloom: false);
-            fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
+            _fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
 
             var scene = new Scene();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
-            renderPipeline.SetRenderPath(fixture.Resources.GetResource<RenderPath>(renderPathName));
+            renderPipeline.SetRenderPath(_fixture.Resources.GetResource<RenderPath>(renderPathName));
 
             var renderPathChangedEvents = 0;
             renderPipeline.RenderPathChanged += (_, _) => ++renderPathChangedEvents;
@@ -1004,7 +1004,7 @@ public sealed class RenderPipelineTests
             Assert.DoesNotContain("BloomStrength", renderPipeline.GetRenderPathParameters().Keys);
 
             WriteRenderPath(renderPathFile, 2.5f, includeBloom: true);
-            Assert.True(fixture.Resources.ReloadResource<RenderPath>(renderPathName));
+            Assert.True(_fixture.Resources.ReloadResource<RenderPath>(renderPathName));
 
             Assert.Equal(1, renderPathChangedEvents);
             Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
@@ -1012,8 +1012,8 @@ public sealed class RenderPipelineTests
         }
         finally
         {
-            fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
-            fixture.Resources.RemoveResourceDir(tempRoot);
+            _fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
+            _fixture.Resources.RemoveResourceDir(tempRoot);
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
         }
@@ -1021,22 +1021,22 @@ public sealed class RenderPipelineTests
 
     private sealed class ParameterRenderPass : RenderPass
     {
-        private readonly string parameterName;
-        private readonly object? value;
+        private readonly string _parameterName;
+        private readonly object? _value;
 
         public ParameterRenderPass(string parameterName, object? value)
             : base(parameterName)
         {
-            this.parameterName = parameterName;
-            this.value = value;
+            this._parameterName = parameterName;
+            this._value = value;
         }
 
         public override void CollectParameters(IDictionary<string, object?> parameters)
         {
-            DeclareParameter(parameterName, value, parameters);
+            DeclareParameter(_parameterName, _value, parameters);
         }
 
-        public override RenderPass Clone() => new ParameterRenderPass(parameterName, value);
+        public override RenderPass Clone() => new ParameterRenderPass(_parameterName, _value);
     }
 
     private static object GetPrivateField(object instance, string name)
@@ -1057,7 +1057,7 @@ public sealed class RenderPipelineTests
 
     private sealed class TrackingRenderPass : RenderPass
     {
-        private readonly Counter counter;
+        private readonly Counter _counter;
 
         public TrackingRenderPass(string passName)
             : this(passName, new Counter())
@@ -1067,24 +1067,24 @@ public sealed class RenderPipelineTests
         private TrackingRenderPass(string passName, Counter counter)
             : base(passName)
         {
-            this.counter = counter;
+            this._counter = counter;
         }
 
-        public int UpdateCalls => counter.UpdateCalls;
+        public int UpdateCalls => _counter.UpdateCalls;
 
-        public int RenderCalls => counter.RenderCalls;
+        public int RenderCalls => _counter.RenderCalls;
 
         public override void Update(SharedRenderPassState sharedState)
         {
-            ++counter.UpdateCalls;
+            ++_counter.UpdateCalls;
         }
 
         public override void Render(SharedRenderPassState sharedState)
         {
-            ++counter.RenderCalls;
+            ++_counter.RenderCalls;
         }
 
-        public override RenderPass Clone() => new TrackingRenderPass(GetPassName(), counter);
+        public override RenderPass Clone() => new TrackingRenderPass(GetPassName(), _counter);
 
         private sealed class Counter
         {
@@ -1102,8 +1102,8 @@ public sealed class RenderPipelineTests
 
     private sealed class BufferCaptureRenderPass : RenderPass
     {
-        private readonly StringHash bufferId;
-        private readonly State state;
+        private readonly StringHash _bufferId;
+        private readonly State _state;
 
         public BufferCaptureRenderPass(string passName, StringHash bufferId)
             : this(passName, bufferId, new State())
@@ -1113,27 +1113,27 @@ public sealed class RenderPipelineTests
         private BufferCaptureRenderPass(string passName, StringHash bufferId, State state)
             : base(passName)
         {
-            this.bufferId = bufferId;
-            this.state = state;
+            this._bufferId = bufferId;
+            this._state = state;
         }
 
-        public bool WasBufferPresent => state.WasBufferPresent;
+        public bool WasBufferPresent => _state.WasBufferPresent;
 
-        public TextureFormat CapturedFormat => state.CapturedFormat;
+        public TextureFormat CapturedFormat => _state.CapturedFormat;
 
-        public IntVector2 CapturedSize => state.CapturedSize;
+        public IntVector2 CapturedSize => _state.CapturedSize;
 
         public override void Render(SharedRenderPassState sharedState)
         {
-            state.WasBufferPresent = sharedState.RenderBuffers.TryGetValue(bufferId, out var renderBuffer);
-            if (!state.WasBufferPresent || renderBuffer is null || renderBuffer.GetTexture() is not Texture texture)
+            _state.WasBufferPresent = sharedState.RenderBuffers.TryGetValue(_bufferId, out var renderBuffer);
+            if (!_state.WasBufferPresent || renderBuffer is null || renderBuffer.GetTexture() is not Texture texture)
                 return;
 
-            state.CapturedFormat = texture.Format;
-            state.CapturedSize = new IntVector2(texture.Width, texture.Height);
+            _state.CapturedFormat = texture.Format;
+            _state.CapturedSize = new IntVector2(texture.Width, texture.Height);
         }
 
-        public override RenderPass Clone() => new BufferCaptureRenderPass(GetPassName(), bufferId, state);
+        public override RenderPass Clone() => new BufferCaptureRenderPass(GetPassName(), _bufferId, _state);
 
         private sealed class State
         {

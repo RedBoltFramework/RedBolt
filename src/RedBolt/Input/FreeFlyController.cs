@@ -6,19 +6,19 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     public const float DefaultTouchRotationSensitivity = 1.0f;
     public const float DefaultAxisRotationSensitivity = 100.0f;
 
-    private float speed = 20.0f;
-    private float acceleratedSpeed = 100.0f;
-    private float mouseSensitivity = DefaultMouseSensitivity;
-    private float touchSensitivity = DefaultTouchRotationSensitivity;
-    private float axisSensitivity = DefaultAxisRotationSensitivity;
-    private float minPitch = -90.0f;
-    private float maxPitch = 90.0f;
-    private Input? input;
-    private bool isActive;
-    private bool oldMouseVisible = true;
-    private MouseMode oldMouseMode = MouseMode.Absolute;
-    private Quaternion? lastKnownCameraRotation;
-    private Vector3 lastKnownEulerAngles;
+    private float _speed = 20.0f;
+    private float _acceleratedSpeed = 100.0f;
+    private float _mouseSensitivity = DefaultMouseSensitivity;
+    private float _touchSensitivity = DefaultTouchRotationSensitivity;
+    private float _axisSensitivity = DefaultAxisRotationSensitivity;
+    private float _minPitch = -90.0f;
+    private float _maxPitch = 90.0f;
+    private Input? _input;
+    private bool _isActive;
+    private bool _oldMouseVisible = true;
+    private MouseMode _oldMouseMode = MouseMode.Absolute;
+    private Quaternion? _lastKnownCameraRotation;
+    private Vector3 _lastKnownEulerAngles;
 
     public FreeFlyController()
     {
@@ -33,97 +33,97 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     public void SetInput(Input? input)
     {
-        this.input = input;
+        this._input = input;
     }
 
-    public Input? GetInput() => input;
+    public Input? GetInput() => _input;
 
     public void SetSpeed(float value)
     {
-        speed = Math.Max(value, 0.0f);
+        _speed = Math.Max(value, 0.0f);
     }
 
-    public float GetSpeed() => speed;
+    public float GetSpeed() => _speed;
 
     public void SetAcceleratedSpeed(float value)
     {
-        acceleratedSpeed = Math.Max(value, 0.0f);
+        _acceleratedSpeed = Math.Max(value, 0.0f);
     }
 
-    public float GetAcceleratedSpeed() => acceleratedSpeed;
+    public float GetAcceleratedSpeed() => _acceleratedSpeed;
 
     public void SetMinPitch(float value)
     {
-        minPitch = value;
+        _minPitch = value;
     }
 
-    public float GetMinPitch() => minPitch;
+    public float GetMinPitch() => _minPitch;
 
     public void SetMaxPitch(float value)
     {
-        maxPitch = value;
+        _maxPitch = value;
     }
 
-    public float GetMaxPitch() => maxPitch;
+    public float GetMaxPitch() => _maxPitch;
 
     public void SetMouseSensitivity(float value)
     {
-        mouseSensitivity = value;
+        _mouseSensitivity = value;
     }
 
-    public float GetMouseSensitivity() => mouseSensitivity;
+    public float GetMouseSensitivity() => _mouseSensitivity;
 
     public void SetTouchSensitivity(float value)
     {
-        touchSensitivity = value;
+        _touchSensitivity = value;
     }
 
-    public float GetTouchSensitivity() => touchSensitivity;
+    public float GetTouchSensitivity() => _touchSensitivity;
 
     public void SetAxisSensitivity(float value)
     {
-        axisSensitivity = value;
+        _axisSensitivity = value;
     }
 
-    public float GetAxisSensitivity() => axisSensitivity;
+    public float GetAxisSensitivity() => _axisSensitivity;
 
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
-        if (currentNode is null && isActive && input is not null)
+        if (currentNode is null && _isActive && _input is not null)
         {
-            input.SetMouseVisible(oldMouseVisible);
-            input.SetMouseMode(oldMouseMode);
-            isActive = false;
+            _input.SetMouseVisible(_oldMouseVisible);
+            _input.SetMouseMode(_oldMouseMode);
+            _isActive = false;
         }
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {
-        if (!IsEnabledEffective || !IsAttached || input is null)
+        if (!IsEnabledEffective || !IsAttached || _input is null)
             return;
 
         var dearImGui = Context.Instance.GetSubsystem<IDearImGuiInputSink>();
         if (dearImGui?.WantCaptureMouse == true || dearImGui?.WantCaptureKeyboard == true)
             return;
 
-        if (isActive || input.MouseMode == MouseMode.Free)
+        if (_isActive || _input.MouseMode == MouseMode.Free)
         {
-            if (!isActive && input.GetMouseButtonPress(MouseButton.Right))
+            if (!_isActive && _input.GetMouseButtonPress(MouseButton.Right))
             {
-                isActive = true;
-                oldMouseVisible = input.IsMouseVisible();
-                oldMouseMode = input.MouseMode;
-                input.SetMouseVisible(false);
-                input.SetMouseMode(MouseMode.Relative);
+                _isActive = true;
+                _oldMouseVisible = _input.IsMouseVisible();
+                _oldMouseMode = _input.MouseMode;
+                _input.SetMouseVisible(false);
+                _input.SetMouseMode(MouseMode.Relative);
             }
-            else if (isActive && !input.GetMouseButtonDown(MouseButton.Right))
+            else if (_isActive && !_input.GetMouseButtonDown(MouseButton.Right))
             {
-                isActive = false;
-                input.SetMouseVisible(oldMouseVisible);
-                input.SetMouseMode(oldMouseMode);
+                _isActive = false;
+                _input.SetMouseVisible(_oldMouseVisible);
+                _input.SetMouseMode(_oldMouseMode);
             }
 
-            if (isActive)
+            if (_isActive)
                 HandleKeyboardAndMouse(timeStep);
         }
         else
@@ -139,7 +139,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private void HandleKeyboardAndMouse(float timeStep)
     {
         UpdateCameraAngles();
-        var eulerAngles = lastKnownEulerAngles + HandleMouse();
+        var eulerAngles = _lastKnownEulerAngles + HandleMouse();
         SetCameraAngles(eulerAngles);
 
         var translation = HandleKeyboard(timeStep);
@@ -149,33 +149,33 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     private Vector3 HandleMouse()
     {
-        if (input is null)
+        if (_input is null)
             return Vector3.Zero;
 
-        var mouseMove = input.GetMouseMove();
-        return new Vector3(mouseSensitivity * mouseMove.Y, mouseSensitivity * mouseMove.X, 0.0f);
+        var mouseMove = _input.GetMouseMove();
+        return new Vector3(_mouseSensitivity * mouseMove.Y, _mouseSensitivity * mouseMove.X, 0.0f);
     }
 
     private Vector3 HandleKeyboard(float timeStep)
     {
-        if (input is null)
+        if (_input is null)
             return Vector3.Zero;
 
-        var effectiveSpeed = input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift)
-            ? acceleratedSpeed
-            : speed;
+        var effectiveSpeed = _input.GetKeyDown(Key.LeftShift) || _input.GetKeyDown(Key.RightShift)
+            ? _acceleratedSpeed
+            : _speed;
         var result = Vector3.Zero;
-        if (input.GetScancodeDown(Scancode.W))
+        if (_input.GetScancodeDown(Scancode.W))
             result.Z += effectiveSpeed * timeStep;
-        if (input.GetScancodeDown(Scancode.S))
+        if (_input.GetScancodeDown(Scancode.S))
             result.Z -= effectiveSpeed * timeStep;
-        if (input.GetScancodeDown(Scancode.A))
+        if (_input.GetScancodeDown(Scancode.A))
             result.X -= effectiveSpeed * timeStep;
-        if (input.GetScancodeDown(Scancode.D))
+        if (_input.GetScancodeDown(Scancode.D))
             result.X += effectiveSpeed * timeStep;
-        if (input.GetScancodeDown(Scancode.Q))
+        if (_input.GetScancodeDown(Scancode.Q))
             result.Y -= effectiveSpeed * timeStep;
-        if (input.GetScancodeDown(Scancode.E))
+        if (_input.GetScancodeDown(Scancode.E))
             result.Y += effectiveSpeed * timeStep;
         return result;
     }
@@ -183,18 +183,18 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private void UpdateCameraAngles()
     {
         var rotation = Node.Rotation;
-        if (!lastKnownCameraRotation.HasValue || !lastKnownCameraRotation.Value.Equals(rotation))
+        if (!_lastKnownCameraRotation.HasValue || !_lastKnownCameraRotation.Value.Equals(rotation))
         {
-            lastKnownCameraRotation = rotation;
-            lastKnownEulerAngles = rotation.EulerAngles;
+            _lastKnownCameraRotation = rotation;
+            _lastKnownEulerAngles = rotation.EulerAngles;
         }
     }
 
     private void SetCameraAngles(Vector3 eulerAngles)
     {
-        eulerAngles.X = MathDefs.Clamp(eulerAngles.X, minPitch, maxPitch);
-        lastKnownEulerAngles = eulerAngles;
-        lastKnownCameraRotation = new Quaternion(eulerAngles);
-        Node.SetRotation(lastKnownCameraRotation.Value);
+        eulerAngles.X = MathDefs.Clamp(eulerAngles.X, _minPitch, _maxPitch);
+        _lastKnownEulerAngles = eulerAngles;
+        _lastKnownCameraRotation = new Quaternion(eulerAngles);
+        Node.SetRotation(_lastKnownCameraRotation.Value);
     }
 }

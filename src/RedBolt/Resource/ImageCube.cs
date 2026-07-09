@@ -2,8 +2,8 @@ namespace RedBolt;
 
 public sealed class ImageCube : Resource
 {
-    private readonly Image?[] faceImages = new Image[6];
-    private XMLFile? parametersXml;
+    private readonly Image?[] _faceImages = new Image[6];
+    private XMLFile? _parametersXml;
 
     public ImageCube(string name)
         : base(name)
@@ -14,16 +14,16 @@ public sealed class ImageCube : Resource
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        parametersXml = new XMLFile(Name + "#params");
-        if (!parametersXml.Load(source))
+        _parametersXml = new XMLFile(Name + "#params");
+        if (!_parametersXml.Load(source))
         {
-            parametersXml = null;
+            _parametersXml = null;
             return false;
         }
 
-        Array.Clear(faceImages);
+        Array.Clear(_faceImages);
 
-        var root = parametersXml.Root;
+        var root = _parametersXml.Root;
         var imageElement = root.GetChild("image");
         if (imageElement.NotNull)
         {
@@ -54,7 +54,7 @@ public sealed class ImageCube : Resource
         {
             var faceElement = root.GetChild("face");
             var faceIndex = 0;
-            while (faceElement.NotNull && faceIndex < faceImages.Length)
+            while (faceElement.NotNull && faceIndex < _faceImages.Length)
             {
                 var imageName = faceElement.GetAttribute("name");
                 var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
@@ -66,13 +66,13 @@ public sealed class ImageCube : Resource
                 faceElement = faceElement.GetNext("face");
             }
 
-            if (faceIndex != faceImages.Length)
+            if (faceIndex != _faceImages.Length)
                 return false;
         }
 
         var expectedSize = 0;
         var memoryUse = 0u;
-        foreach (var image in faceImages)
+        foreach (var image in _faceImages)
         {
             if (image is null)
                 return false;
@@ -90,17 +90,17 @@ public sealed class ImageCube : Resource
         return true;
     }
 
-    public IReadOnlyList<Image?> GetImages() => faceImages;
+    public IReadOnlyList<Image?> GetImages() => _faceImages;
 
-    public XMLFile? GetParametersXML() => parametersXml;
+    public XMLFile? GetParametersXML() => _parametersXml;
 
-    public Image? GetImage(CubeMapFace face) => faceImages[(int)face];
+    public Image? GetImage(CubeMapFace face) => _faceImages[(int)face];
 
     public void SetImage(CubeMapFace face, Image image)
     {
         ArgumentNullException.ThrowIfNull(image);
         image.Cubemap = true;
-        faceImages[(int)face] = image;
+        _faceImages[(int)face] = image;
         LinkSiblings();
     }
 
@@ -216,7 +216,7 @@ public sealed class ImageCube : Resource
     private void LinkSiblings()
     {
         Image? previous = null;
-        foreach (var image in faceImages)
+        foreach (var image in _faceImages)
         {
             if (image is null)
                 continue;

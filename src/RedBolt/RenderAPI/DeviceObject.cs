@@ -8,11 +8,11 @@ public abstract class DeviceObject : Object
     /// <summary>
     /// Android only: whether the data is lost due to context loss.
     /// </summary>
-    private bool dataLost;
+    private bool _dataLost;
     /// <summary>
     /// Debug name of the object.
     /// </summary>
-    private string debugName = string.Empty;
+    private string _debugName = string.Empty;
 
     protected DeviceObject(DeviceObjectFlag flags = DeviceObjectFlag.None)
     {
@@ -28,7 +28,7 @@ public abstract class DeviceObject : Object
     /// </summary>
     public virtual void Invalidate()
     {
-        dataLost = true;
+        _dataLost = true;
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public abstract class DeviceObject : Object
     /// </summary>
     public virtual void Restore()
     {
-        dataLost = false;
+        _dataLost = false;
     }
 
     /// <summary>
@@ -48,18 +48,18 @@ public abstract class DeviceObject : Object
 
     public RenderDevice? GetRenderDevice() => GetSubsystem<RenderDevice>();
 
-    public bool IsDataLost() => dataLost;
+    public bool IsDataLost() => _dataLost;
 
     public void ClearDataLost()
     {
-        dataLost = false;
+        _dataLost = false;
     }
 
-    public string GetDebugName() => debugName;
+    public string GetDebugName() => _debugName;
 
     public void SetDebugName(string debugName)
     {
-        this.debugName = debugName ?? string.Empty;
+        this._debugName = debugName ?? string.Empty;
     }
 
     /// <summary>

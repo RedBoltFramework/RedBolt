@@ -44,9 +44,9 @@ public sealed class Pass
         "Emission"
     ];
 
-    private readonly List<string> vertexTextureDefines = [];
-    private readonly List<string> pixelTextureDefines = [];
-    private uint pipelineStateHash;
+    private readonly List<string> _vertexTextureDefines = [];
+    private readonly List<string> _pixelTextureDefines = [];
+    private uint _pipelineStateHash;
 
     public Pass(string name)
     {
@@ -88,11 +88,11 @@ public sealed class Pass
 
     public string PixelShaderDefineExcludes { get; private set; } = string.Empty;
 
-    public IReadOnlyList<string> VertexTextureDefines => vertexTextureDefines;
+    public IReadOnlyList<string> VertexTextureDefines => _vertexTextureDefines;
 
-    public IReadOnlyList<string> PixelTextureDefines => pixelTextureDefines;
+    public IReadOnlyList<string> PixelTextureDefines => _pixelTextureDefines;
 
-    public uint GetPipelineStateHash() => pipelineStateHash;
+    public uint GetPipelineStateHash() => _pipelineStateHash;
 
     public void SetBlendMode(BlendMode mode)
     {
@@ -176,8 +176,8 @@ public sealed class Pass
     public void SetVertexTextureDefines(IEnumerable<string> textures)
     {
         ArgumentNullException.ThrowIfNull(textures);
-        vertexTextureDefines.Clear();
-        vertexTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
+        _vertexTextureDefines.Clear();
+        _vertexTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
         ReleaseShaders();
         RefreshPipelineStateHash();
     }
@@ -185,8 +185,8 @@ public sealed class Pass
     public void SetPixelTextureDefines(IEnumerable<string> textures)
     {
         ArgumentNullException.ThrowIfNull(textures);
-        pixelTextureDefines.Clear();
-        pixelTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
+        _pixelTextureDefines.Clear();
+        _pixelTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
         ReleaseShaders();
         RefreshPipelineStateHash();
     }
@@ -219,8 +219,8 @@ public sealed class Pass
         clone.SetPixelShaderDefines(PixelShaderDefines);
         clone.SetVertexShaderDefineExcludes(VertexShaderDefineExcludes);
         clone.SetPixelShaderDefineExcludes(PixelShaderDefineExcludes);
-        clone.SetVertexTextureDefines(vertexTextureDefines);
-        clone.SetPixelTextureDefines(pixelTextureDefines);
+        clone.SetVertexTextureDefines(_vertexTextureDefines);
+        clone.SetPixelTextureDefines(_pixelTextureDefines);
         clone.MarkShadersLoaded(ShadersLoadedFrameNumber);
         return clone;
     }
@@ -258,19 +258,19 @@ public sealed class Pass
         hash.Add(PixelShaderDefines, StringComparer.Ordinal);
         hash.Add(VertexShaderDefineExcludes, StringComparer.Ordinal);
         hash.Add(PixelShaderDefineExcludes, StringComparer.Ordinal);
-        foreach (var define in vertexTextureDefines)
+        foreach (var define in _vertexTextureDefines)
             hash.Add(define, StringComparer.Ordinal);
-        foreach (var define in pixelTextureDefines)
+        foreach (var define in _pixelTextureDefines)
             hash.Add(define, StringComparer.Ordinal);
-        pipelineStateHash = unchecked((uint)hash.ToHashCode());
+        _pipelineStateHash = unchecked((uint)hash.ToHashCode());
     }
 }
 
 public sealed class Technique : Resource
 {
     private static readonly Dictionary<string, uint> PassIndices = new(StringComparer.Ordinal);
-    private readonly List<Pass?> passes = [];
-    private readonly Dictionary<(uint VertexDefines, uint PixelDefines), Technique> cloneTechniques = new();
+    private readonly List<Pass?> _passes = [];
+    private readonly Dictionary<(uint VertexDefines, uint PixelDefines), Technique> _cloneTechniques = new();
 
     static Technique()
     {
@@ -308,8 +308,8 @@ public sealed class Technique : Resource
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        passes.Clear();
-        cloneTechniques.Clear();
+        _passes.Clear();
+        _cloneTechniques.Clear();
         MemoryUse = 0;
 
         var xml = new XMLFile(Name);
@@ -373,7 +373,7 @@ public sealed class Technique : Resource
                 pass.SetAlphaToCoverage(passElement.GetBool("alphatocoverage"));
         }
 
-        MemoryUse = (uint)(passes.Count * 128);
+        MemoryUse = (uint)(_passes.Count * 128);
         return true;
     }
 
@@ -384,13 +384,13 @@ public sealed class Technique : Resource
             return existing;
 
         var pass = new Pass(name);
-        if (pass.Index >= passes.Count)
+        if (pass.Index >= _passes.Count)
         {
-            while (passes.Count <= pass.Index)
-                passes.Add(null);
+            while (_passes.Count <= pass.Index)
+                _passes.Add(null);
         }
 
-        passes[(int)pass.Index] = pass;
+        _passes[(int)pass.Index] = pass;
         MemoryUse = (uint)(GetNumPasses() * 128);
         return pass;
     }
@@ -398,21 +398,21 @@ public sealed class Technique : Resource
     public void RemovePass(string name)
     {
         var index = GetPassIndex(name);
-        if (index < passes.Count)
-            passes[(int)index] = null;
+        if (index < _passes.Count)
+            _passes[(int)index] = null;
         MemoryUse = (uint)(GetNumPasses() * 128);
     }
 
     public void ReleaseShaders()
     {
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
             pass?.ReleaseShaders();
     }
 
     public Technique Clone(string cloneName = "")
     {
         var clone = new Technique(string.IsNullOrEmpty(cloneName) ? Name : cloneName);
-        foreach (var pass in passes)
+        foreach (var pass in _passes)
         {
             if (pass is null)
                 continue;
@@ -424,11 +424,11 @@ public sealed class Technique : Resource
         return clone;
     }
 
-    public bool HasPass(uint passIndex) => passIndex < passes.Count && passes[(int)passIndex] is not null;
+    public bool HasPass(uint passIndex) => passIndex < _passes.Count && _passes[(int)passIndex] is not null;
 
     public bool HasPass(string name) => GetPass(name) is not null;
 
-    public Pass? GetPass(uint passIndex) => passIndex < passes.Count ? passes[(int)passIndex] : null;
+    public Pass? GetPass(uint passIndex) => passIndex < _passes.Count ? _passes[(int)passIndex] : null;
 
     public Pass? GetPass(string name)
     {
@@ -436,11 +436,11 @@ public sealed class Technique : Resource
         return GetPass(index);
     }
 
-    public uint GetNumPasses() => (uint)passes.Count(static pass => pass is not null);
+    public uint GetNumPasses() => (uint)_passes.Count(static pass => pass is not null);
 
-    public IReadOnlyList<string> GetPassNames() => passes.Where(static pass => pass is not null).Select(static pass => pass!.Name).ToArray();
+    public IReadOnlyList<string> GetPassNames() => _passes.Where(static pass => pass is not null).Select(static pass => pass!.Name).ToArray();
 
-    public IReadOnlyList<Pass> GetPasses() => passes.Where(static pass => pass is not null).Select(static pass => pass!).ToArray();
+    public IReadOnlyList<Pass> GetPasses() => _passes.Where(static pass => pass is not null).Select(static pass => pass!).ToArray();
 
     public Technique CloneWithDefines(string vsDefines, string psDefines)
     {
@@ -448,7 +448,7 @@ public sealed class Technique : Resource
             return this;
 
         var key = (StringHash.Calculate(vsDefines ?? string.Empty), StringHash.Calculate(psDefines ?? string.Empty));
-        if (cloneTechniques.TryGetValue(key, out var cached))
+        if (_cloneTechniques.TryGetValue(key, out var cached))
             return cached;
 
         var clone = Clone(Name);
@@ -460,7 +460,7 @@ public sealed class Technique : Resource
                 pass.SetPixelShaderDefines(AppendWithSpace(pass.PixelShaderDefines, psDefines));
         }
 
-        cloneTechniques[key] = clone;
+        _cloneTechniques[key] = clone;
         return clone;
     }
 

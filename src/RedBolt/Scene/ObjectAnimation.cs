@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class ObjectAnimation : Resource
 {
-    private readonly Dictionary<string, ValueAnimationInfo> attributeAnimationInfos = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ValueAnimationInfo> _attributeAnimationInfos = new(StringComparer.Ordinal);
 
     public ObjectAnimation(string name)
         : base(name)
@@ -26,7 +26,7 @@ public sealed class ObjectAnimation : Resource
 
     public bool LoadXML(XMLElement source)
     {
-        attributeAnimationInfos.Clear();
+        _attributeAnimationInfos.Clear();
         for (var animationElement = source.GetChild("attributeanimation"); animationElement.NotNull; animationElement = animationElement.GetNext("attributeanimation"))
         {
             var name = animationElement.GetString("name");
@@ -46,7 +46,7 @@ public sealed class ObjectAnimation : Resource
 
     public bool SaveXML(XMLElement dest)
     {
-        foreach (var pair in attributeAnimationInfos)
+        foreach (var pair in _attributeAnimationInfos)
         {
             var element = dest.CreateChild("attributeanimation");
             element.SetString("name", pair.Key);
@@ -61,7 +61,7 @@ public sealed class ObjectAnimation : Resource
 
     public bool LoadJSON(JSONValue source)
     {
-        attributeAnimationInfos.Clear();
+        _attributeAnimationInfos.Clear();
         var attributeAnimations = source.Get("attributeanimations");
         if (attributeAnimations.IsNull || !attributeAnimations.IsObject)
             return true;
@@ -85,7 +85,7 @@ public sealed class ObjectAnimation : Resource
     public bool SaveJSON(JSONValue dest)
     {
         var animationsValue = new JSONValue(JSONValueType.Object);
-        foreach (var pair in attributeAnimationInfos)
+        foreach (var pair in _attributeAnimationInfos)
         {
             var animationValue = new JSONValue(JSONValueType.Object);
             if (!pair.Value.GetAnimation().SaveJSON(animationValue))
@@ -105,7 +105,7 @@ public sealed class ObjectAnimation : Resource
         ArgumentNullException.ThrowIfNull(attributeAnimation);
 
         attributeAnimation.SetOwner(this);
-        attributeAnimationInfos[name] = new ValueAnimationInfo(attributeAnimation, wrapMode, speed);
+        _attributeAnimationInfos[name] = new ValueAnimationInfo(attributeAnimation, wrapMode, speed);
         var eventData = new SceneEvents.AttributeAnimationAddedEvent
         {
             ObjectAnimation = this,
@@ -117,7 +117,7 @@ public sealed class ObjectAnimation : Resource
     public void RemoveAttributeAnimation(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (attributeAnimationInfos.Remove(name, out var info))
+        if (_attributeAnimationInfos.Remove(name, out var info))
         {
             var eventData = new SceneEvents.AttributeAnimationRemovedEvent
             {
@@ -132,7 +132,7 @@ public sealed class ObjectAnimation : Resource
     public void RemoveAttributeAnimation(ValueAnimation attributeAnimation)
     {
         ArgumentNullException.ThrowIfNull(attributeAnimation);
-        foreach (var pair in attributeAnimationInfos.ToArray())
+        foreach (var pair in _attributeAnimationInfos.ToArray())
         {
             if (!ReferenceEquals(pair.Value.GetAnimation(), attributeAnimation))
                 continue;
@@ -160,12 +160,12 @@ public sealed class ObjectAnimation : Resource
         return GetAttributeAnimationInfo(name)?.GetSpeed() ?? 1.0f;
     }
 
-    public IReadOnlyDictionary<string, ValueAnimationInfo> GetAttributeAnimationInfos() => attributeAnimationInfos;
+    public IReadOnlyDictionary<string, ValueAnimationInfo> GetAttributeAnimationInfos() => _attributeAnimationInfos;
 
     public ValueAnimationInfo? GetAttributeAnimationInfo(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return attributeAnimationInfos.GetValueOrDefault(name);
+        return _attributeAnimationInfos.GetValueOrDefault(name);
     }
 
     private static WrapMode ParseWrapMode(string value)

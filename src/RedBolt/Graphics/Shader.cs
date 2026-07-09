@@ -16,14 +16,14 @@ public sealed class Shader : Resource
         @"VERTEX_INPUT\((?<decl>[^)]*?\s(?<name>[A-Za-z_][A-Za-z0-9_]*))\)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private string sourceCode = string.Empty;
+    private string _sourceCode = string.Empty;
 
     public Shader(string name)
         : base(name)
     {
     }
 
-    public string SourceCode => sourceCode;
+    public string SourceCode => _sourceCode;
 
     public DateTime LastWriteTimeUtc { get; private set; }
 
@@ -44,8 +44,8 @@ public sealed class Shader : Resource
         if (!ProcessSource(resourceName, fileName, builder, visited))
             return false;
 
-        sourceCode = builder.ToString();
-        MemoryUse = (uint)Encoding.UTF8.GetByteCount(sourceCode);
+        _sourceCode = builder.ToString();
+        MemoryUse = (uint)Encoding.UTF8.GetByteCount(_sourceCode);
         return true;
     }
 
@@ -61,7 +61,7 @@ public sealed class Shader : Resource
     public string PrepareSource(ShaderStage stage, string defines, GraphicsBackend backend = GraphicsBackend.OpenGL,
         string extraCode = "")
     {
-        var (body, extensionDirectives) = ExtractExtensionDirectives(sourceCode);
+        var (body, extensionDirectives) = ExtractExtensionDirectives(_sourceCode);
         var versionRange = FindVersionDirective(body);
 
         var builder = new StringBuilder();

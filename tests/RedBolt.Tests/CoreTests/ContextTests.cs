@@ -5,26 +5,26 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ContextTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public ContextTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Engine_uses_context_registered_subsystems()
     {
-        Assert.Same(fixture.Engine.Context, Context.Instance);
-        Assert.Same(fixture.Engine, fixture.Engine.Context.GetSubsystem<Engine>());
-        Assert.Same(fixture.Time, fixture.Engine.Context.GetSubsystem<Time>());
-        Assert.Same(fixture.Resources, fixture.Engine.Context.GetSubsystem<ResourceCache>());
-        Assert.Same(fixture.Input, fixture.Engine.Context.GetSubsystem<Input>());
-        Assert.Same(fixture.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());
-        Assert.Same(fixture.RenderDevice, fixture.Engine.Context.GetSubsystem<RenderDevice>());
-        Assert.Same(fixture.RenderContext, fixture.RenderDevice.GetRenderContext());
-        Assert.Same(fixture.PipelineStateCache, fixture.Engine.Context.GetSubsystem<PipelineStateCache>());
-        Assert.Same(fixture.Renderer, fixture.Engine.Context.GetSubsystem<Renderer>());
+        Assert.Same(_fixture.Engine.Context, Context.Instance);
+        Assert.Same(_fixture.Engine, _fixture.Engine.Context.GetSubsystem<Engine>());
+        Assert.Same(_fixture.Time, _fixture.Engine.Context.GetSubsystem<Time>());
+        Assert.Same(_fixture.Resources, _fixture.Engine.Context.GetSubsystem<ResourceCache>());
+        Assert.Same(_fixture.Input, _fixture.Engine.Context.GetSubsystem<Input>());
+        Assert.Same(_fixture.Graphics, _fixture.Engine.Context.GetSubsystem<Graphics>());
+        Assert.Same(_fixture.RenderDevice, _fixture.Engine.Context.GetSubsystem<RenderDevice>());
+        Assert.Same(_fixture.RenderContext, _fixture.RenderDevice.GetRenderContext());
+        Assert.Same(_fixture.PipelineStateCache, _fixture.Engine.Context.GetSubsystem<PipelineStateCache>());
+        Assert.Same(_fixture.Renderer, _fixture.Engine.Context.GetSubsystem<Renderer>());
     }
 
     [Fact]
@@ -412,7 +412,7 @@ public sealed class ContextTests
         }
         finally
         {
-            Context.SetInstance(fixture.Engine.Context);
+            Context.SetInstance(_fixture.Engine.Context);
         }
     }
 

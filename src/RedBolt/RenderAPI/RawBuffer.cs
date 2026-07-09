@@ -6,11 +6,11 @@ namespace RedBolt;
 /// <summary>Common class for buffer on GPU and/or CPU.</summary>
 public class RawBuffer : DeviceObject
 {
-    private IBuffer? handle;
-    private RawBufferParams parameters;
-    private byte[] shadowData = [];
-    private bool locked;
-    private bool needsResolve;
+    private IBuffer? _handle;
+    private RawBufferParams _parameters;
+    private byte[] _shadowData = [];
+    private bool _locked;
+    private bool _needsResolve;
 
     public RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
         : base(flags)
@@ -27,27 +27,27 @@ public class RawBuffer : DeviceObject
     public override void Invalidate()
     {
         base.Invalidate();
-        ReleaseIfNotNull(handle);
-        handle = null;
+        ReleaseIfNotNull(_handle);
+        _handle = null;
     }
 
     public override void Restore()
     {
         base.Restore();
-        if (parameters.Size == 0)
+        if (_parameters.Size == 0)
         {
             ClearDataLost();
             return;
         }
 
-        if (!CreateGPU(ShouldCreateWithInitialData() ? shadowData : null))
+        if (!CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
         {
             Invalidate();
             return;
         }
 
-        if (!ShouldCreateWithInitialData() && shadowData.Length != 0)
-            UploadRange(shadowData, 0, parameters.Size);
+        if (!ShouldCreateWithInitialData() && _shadowData.Length != 0)
+            UploadRange(_shadowData, 0, _parameters.Size);
 
         ClearDataLost();
     }
@@ -55,11 +55,11 @@ public class RawBuffer : DeviceObject
     public override void Destroy()
     {
         base.Destroy();
-        ReleaseIfNotNull(handle);
-        handle = null;
-        shadowData = [];
-        locked = false;
-        needsResolve = false;
+        ReleaseIfNotNull(_handle);
+        _handle = null;
+        _shadowData = [];
+        _locked = false;
+        _needsResolve = false;
     }
 
     /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
@@ -74,7 +74,7 @@ public class RawBuffer : DeviceObject
         if (data is not null && data.Length != parameters.Size)
             return false;
 
-        this.parameters = parameters;
+        this._parameters = parameters;
         if (parameters.Size == 0)
         {
             ClearDataLost();
@@ -84,18 +84,18 @@ public class RawBuffer : DeviceObject
         var keepShadowData = (parameters.Flags & (BufferFlag.Shadowed | BufferFlag.Dynamic | BufferFlag.Immutable)) != 0 || data is not null;
         if (keepShadowData)
         {
-            shadowData = new byte[parameters.Size];
+            _shadowData = new byte[parameters.Size];
             if (data is not null)
-                Buffer.BlockCopy(data, 0, shadowData, 0, data.Length);
+                Buffer.BlockCopy(data, 0, _shadowData, 0, data.Length);
         }
 
-        if (CreateGPU(ShouldCreateWithInitialData() ? shadowData : null))
+        if (CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
         {
             if (!ShouldCreateWithInitialData() && data is not null)
                 UploadRange(data, 0, parameters.Size);
             ClearDataLost();
         }
-        else if (shadowData.Length != 0)
+        else if (_shadowData.Length != 0)
             ClearDataLost();
 
         return true;
@@ -105,7 +105,7 @@ public class RawBuffer : DeviceObject
     public void Update(byte[] data, uint size = 0)
     {
         ArgumentNullException.ThrowIfNull(data);
-        var dataSize = size != 0 ? size : parameters.Size;
+        var dataSize = size != 0 ? size : _parameters.Size;
         if (dataSize > data.Length)
             throw new ArgumentOutOfRangeException(nameof(size));
 
@@ -116,17 +116,17 @@ public class RawBuffer : DeviceObject
     public void UpdateRange(byte[] data, uint offset, uint size)
     {
         ArgumentNullException.ThrowIfNull(data);
-        if (locked)
+        if (_locked)
             throw new InvalidOperationException("Cannot update RawBuffer while it is mapped.");
-        if (offset + size > parameters.Size || size > data.Length)
+        if (offset + size > _parameters.Size || size > data.Length)
             throw new ArgumentOutOfRangeException(nameof(size));
         if (size == 0)
             return;
 
-        if (shadowData.Length != 0)
-            Buffer.BlockCopy(data, 0, shadowData, (int)offset, (int)size);
+        if (_shadowData.Length != 0)
+            Buffer.BlockCopy(data, 0, _shadowData, (int)offset, (int)size);
 
-        if ((parameters.Flags & BufferFlag.Immutable) != 0)
+        if ((_parameters.Flags & BufferFlag.Immutable) != 0)
         {
             RecreateImmutableBuffer();
             return;
@@ -139,58 +139,58 @@ public class RawBuffer : DeviceObject
     /// Memory is not guaranteed to be CPU-readable — consider using GetShadowData() if you need to read the data.</summary>
     public Memory<byte> Map()
     {
-        if (locked)
+        if (_locked)
             throw new InvalidOperationException("RawBuffer is already mapped.");
-        if (shadowData.Length == 0)
-            shadowData = new byte[parameters.Size];
+        if (_shadowData.Length == 0)
+            _shadowData = new byte[_parameters.Size];
 
-        locked = true;
-        return shadowData;
+        _locked = true;
+        return _shadowData;
     }
 
     /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
     public void Unmap()
     {
-        if (!locked)
+        if (!_locked)
             return;
 
-        locked = false;
-        if ((parameters.Flags & BufferFlag.Immutable) != 0)
+        _locked = false;
+        if ((_parameters.Flags & BufferFlag.Immutable) != 0)
             RecreateImmutableBuffer();
-        else if (shadowData.Length != 0)
-            UploadRange(shadowData, 0, parameters.Size);
+        else if (_shadowData.Length != 0)
+            UploadRange(_shadowData, 0, _parameters.Size);
     }
 
     /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.
     /// Don't access the GPU buffer data until the buffer was resolved!</summary>
     public void Resolve()
     {
-        if (!needsResolve || shadowData.Length == 0)
+        if (!_needsResolve || _shadowData.Length == 0)
             return;
 
-        UploadRange(shadowData, 0, parameters.Size);
+        UploadRange(_shadowData, 0, _parameters.Size);
     }
 
-    public BufferType GetBufferType() => parameters.Type;
+    public BufferType GetBufferType() => _parameters.Type;
 
-    public uint GetSize() => parameters.Size;
+    public uint GetSize() => _parameters.Size;
 
-    public uint GetStride() => parameters.Stride;
+    public uint GetStride() => _parameters.Stride;
 
-    public BufferFlag GetFlags() => parameters.Flags;
+    public BufferFlag GetFlags() => _parameters.Flags;
 
-    public bool IsLocked() => locked;
+    public bool IsLocked() => _locked;
 
-    public bool IsShadowed() => shadowData.Length != 0;
+    public bool IsShadowed() => _shadowData.Length != 0;
 
-    public byte[] GetShadowData() => shadowData;
+    public byte[] GetShadowData() => _shadowData;
 
-    public IBuffer? GetHandle() => handle;
+    public IBuffer? GetHandle() => _handle;
 
     private bool CreateGPU(byte[]? data)
     {
-        ReleaseIfNotNull(handle);
-        handle = null;
+        ReleaseIfNotNull(_handle);
+        _handle = null;
 
         var graphics = GetSubsystem<Graphics>();
         var device = graphics?.GetNativeRenderDevice();
@@ -201,17 +201,17 @@ public class RawBuffer : DeviceObject
         using var bufferDesc = new BufferDesc
         {
             Name = nativeName.Pointer,
-            Size = parameters.Size,
-            BindFlags = GetBindFlags(parameters.Type, parameters.Flags),
-            Usage = GetUsage(parameters.Flags),
-            CPUAccessFlags = GetCpuAccessFlags(parameters.Flags),
-            ElementByteStride = parameters.Stride,
+            Size = _parameters.Size,
+            BindFlags = GetBindFlags(_parameters.Type, _parameters.Flags),
+            Usage = GetUsage(_parameters.Flags),
+            CPUAccessFlags = GetCpuAccessFlags(_parameters.Flags),
+            ElementByteStride = _parameters.Stride,
             Mode = BufferMode.BufferModeUndefined
         };
 
         if (data is null)
         {
-            device.CreateBuffer(bufferDesc, null!, out handle);
+            device.CreateBuffer(bufferDesc, null!, out _handle);
         }
         else
         {
@@ -220,8 +220,8 @@ public class RawBuffer : DeviceObject
             try
             {
                 dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-                using var bufferData = new BufferData(dataHandle.AddrOfPinnedObject(), parameters.Size, immediateContext);
-                device.CreateBuffer(bufferDesc, bufferData, out handle);
+                using var bufferData = new BufferData(dataHandle.AddrOfPinnedObject(), _parameters.Size, immediateContext);
+                device.CreateBuffer(bufferDesc, bufferData, out _handle);
             }
             finally
             {
@@ -230,10 +230,10 @@ public class RawBuffer : DeviceObject
             }
         }
 
-        if (handle is { IsNull: true })
-            handle = null;
+        if (_handle is { IsNull: true })
+            _handle = null;
 
-        return handle is not null;
+        return _handle is not null;
     }
 
     private void UploadRange(byte[] data, uint offset, uint size)
@@ -241,11 +241,11 @@ public class RawBuffer : DeviceObject
         if (size == 0)
             return;
 
-        if (handle is null || handle.IsNull)
+        if (_handle is null || _handle.IsNull)
         {
             if (!CreateGPU(null))
             {
-                needsResolve = true;
+                _needsResolve = true;
                 return;
             }
         }
@@ -253,7 +253,7 @@ public class RawBuffer : DeviceObject
         var immediateContext = GetSubsystem<Graphics>()?.GetImmediateContext();
         if (immediateContext is null || immediateContext.IsNull)
         {
-            needsResolve = true;
+            _needsResolve = true;
             return;
         }
 
@@ -262,8 +262,8 @@ public class RawBuffer : DeviceObject
         {
             dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
             var pointer = IntPtr.Add(dataHandle.AddrOfPinnedObject(), (int)offset);
-            immediateContext.UpdateBuffer(handle!, offset, size, pointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-            needsResolve = false;
+            immediateContext.UpdateBuffer(_handle!, offset, size, pointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            _needsResolve = false;
             ClearDataLost();
         }
         finally
@@ -275,19 +275,19 @@ public class RawBuffer : DeviceObject
 
     private void RecreateImmutableBuffer()
     {
-        if (shadowData.Length == 0)
+        if (_shadowData.Length == 0)
             return;
 
-        if (!CreateGPU(shadowData))
-            needsResolve = true;
+        if (!CreateGPU(_shadowData))
+            _needsResolve = true;
         else
         {
-            needsResolve = false;
+            _needsResolve = false;
             ClearDataLost();
         }
     }
 
-    private bool ShouldCreateWithInitialData() => (parameters.Flags & (BufferFlag.Immutable | BufferFlag.Dynamic)) == BufferFlag.Immutable;
+    private bool ShouldCreateWithInitialData() => (_parameters.Flags & (BufferFlag.Immutable | BufferFlag.Dynamic)) == BufferFlag.Immutable;
 
     private static BindFlags GetBindFlags(BufferType type, BufferFlag flags)
     {

@@ -31,30 +31,30 @@ public sealed class VertexBuffer
         sizeof(uint)
     ];
 
-    private byte[] data = [];
-    private List<VertexElement> elements = [];
-    private uint elementMask;
-    private string? layoutSignature;
+    private byte[] _data = [];
+    private List<VertexElement> _elements = [];
+    private uint _elementMask;
+    private string? _layoutSignature;
 
     public bool IsDynamic { get; private set; }
 
     public bool Shadowed { get; private set; }
 
-    public IReadOnlyList<byte> Data => data;
+    public IReadOnlyList<byte> Data => _data;
 
-    public IReadOnlyList<VertexElement> Elements => elements;
+    public IReadOnlyList<VertexElement> Elements => _elements;
 
-    public uint ElementMask => elementMask;
+    public uint ElementMask => _elementMask;
 
     public uint VertexCount { get; private set; }
 
     public uint VertexSize { get; private set; }
 
-    public IReadOnlyList<byte> GetData() => data;
+    public IReadOnlyList<byte> GetData() => _data;
 
-    public IReadOnlyList<VertexElement> GetElements() => elements;
+    public IReadOnlyList<VertexElement> GetElements() => _elements;
 
-    public uint GetElementMask() => elementMask;
+    public uint GetElementMask() => _elementMask;
 
     public uint GetVertexCount() => VertexCount;
 
@@ -62,7 +62,7 @@ public sealed class VertexBuffer
 
     public uint GetElementOffset(VertexElementSemantic semantic, byte index = 0)
     {
-        foreach (var element in elements)
+        foreach (var element in _elements)
         {
             if (element.Semantic == semantic && element.Index == index)
                 return element.Offset;
@@ -81,13 +81,13 @@ public sealed class VertexBuffer
 
     public void SetData(ReadOnlySpan<byte> data)
     {
-        this.data = data.ToArray();
+        this._data = data.ToArray();
     }
 
     public void SetData(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        this.data = data.ToArray();
+        this._data = data.ToArray();
     }
 
     public void SetShadowed(bool enable)
@@ -97,15 +97,15 @@ public sealed class VertexBuffer
 
     public void SetSize(uint vertexCount, uint vertexSize, bool dynamic = false)
     {
-        elements = [];
-        elementMask = 0;
-        layoutSignature = null;
+        _elements = [];
+        _elementMask = 0;
+        _layoutSignature = null;
         VertexCount = vertexCount;
         VertexSize = vertexSize;
         IsDynamic = dynamic;
         var size = checked((int)(vertexCount * vertexSize));
-        if (data.Length != size)
-            data = new byte[size];
+        if (_data.Length != size)
+            _data = new byte[size];
     }
 
     public void SetSize(uint vertexCount, IEnumerable<VertexElement> elements, bool dynamic = false)
@@ -114,15 +114,15 @@ public sealed class VertexBuffer
 
         var elementList = elements.ToList();
         UpdateOffsets(elementList);
-        this.elements = elementList;
-        elementMask = CalculateElementMask(elementList);
-        layoutSignature = null;
+        this._elements = elementList;
+        _elementMask = CalculateElementMask(elementList);
+        _layoutSignature = null;
         VertexCount = vertexCount;
         VertexSize = GetVertexSize(elementList);
         IsDynamic = dynamic;
         var size = checked((int)(vertexCount * VertexSize));
-        if (data.Length != size)
-            data = new byte[size];
+        if (_data.Length != size)
+            _data = new byte[size];
     }
 
     public void SetSize(uint vertexCount, VertexMask elementMask, bool dynamic = false)
@@ -166,18 +166,18 @@ public sealed class VertexBuffer
 
     internal string GetLayoutSignature()
     {
-        if (layoutSignature is not null)
-            return layoutSignature;
-        if (elements.Count == 0)
-            return layoutSignature = string.Empty;
+        if (_layoutSignature is not null)
+            return _layoutSignature;
+        if (_elements.Count == 0)
+            return _layoutSignature = string.Empty;
 
-        var builder = new System.Text.StringBuilder(elements.Count * 20);
-        for (var i = 0; i < elements.Count; ++i)
+        var builder = new System.Text.StringBuilder(_elements.Count * 20);
+        for (var i = 0; i < _elements.Count; ++i)
         {
             if (i > 0)
                 builder.Append('|');
 
-            var element = elements[i];
+            var element = _elements[i];
             builder.Append((int)element.Semantic);
             builder.Append(':');
             builder.Append(element.Index);
@@ -189,8 +189,8 @@ public sealed class VertexBuffer
             builder.Append(element.StepRate);
         }
 
-        layoutSignature = builder.ToString();
-        return layoutSignature;
+        _layoutSignature = builder.ToString();
+        return _layoutSignature;
     }
 
     private static uint CalculateElementMask(IEnumerable<VertexElement> elements)

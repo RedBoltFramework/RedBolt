@@ -2,16 +2,16 @@ namespace RedBolt;
 
 public abstract class Serializable : Object
 {
-    private readonly List<AttributeInfo> attributes = [];
-    private readonly Dictionary<StringHash, object?> attributeValues = new();
-    private readonly Dictionary<StringHash, object?> instanceDefaultValues = new();
-    private bool setInstanceDefault;
+    private readonly List<AttributeInfo> _attributes = [];
+    private readonly Dictionary<StringHash, object?> _attributeValues = new();
+    private readonly Dictionary<StringHash, object?> _instanceDefaultValues = new();
+    private bool _setInstanceDefault;
 
-    public IReadOnlyList<AttributeInfo> Attributes => attributes;
+    public IReadOnlyList<AttributeInfo> Attributes => _attributes;
 
     public bool IsTemporary => Temporary;
 
-    public uint NumAttributes => (uint)attributes.Count;
+    public uint NumAttributes => (uint)_attributes.Count;
 
     public bool Temporary { get; private set; }
 
@@ -32,7 +32,7 @@ public abstract class Serializable : Object
 
     public object? GetAttribute(int index)
     {
-        return index >= 0 && index < attributes.Count ? OnGetAttribute(attributes[index]) : null;
+        return index >= 0 && index < _attributes.Count ? OnGetAttribute(_attributes[index]) : null;
     }
 
     public object? GetAttribute(uint index)
@@ -49,10 +49,10 @@ public abstract class Serializable : Object
 
     public object? GetAttributeDefault(int index)
     {
-        if (index < 0 || index >= attributes.Count)
+        if (index < 0 || index >= _attributes.Count)
             return null;
 
-        return GetAttributeDefault(attributes[index]);
+        return GetAttributeDefault(_attributes[index]);
     }
 
     public object? GetAttributeDefault(uint index)
@@ -75,7 +75,7 @@ public abstract class Serializable : Object
     public object? GetInstanceDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return instanceDefaultValues.GetValueOrDefault(new StringHash(name));
+        return _instanceDefaultValues.GetValueOrDefault(new StringHash(name));
     }
 
     public uint GetNumAttributes()
@@ -95,30 +95,30 @@ public abstract class Serializable : Object
         if (attribute.Getter is not null)
             return attribute.Getter(this);
 
-        return attributeValues.TryGetValue(attribute.NameHash, out var value) ? value : GetAttributeDefault(attribute);
+        return _attributeValues.TryGetValue(attribute.NameHash, out var value) ? value : GetAttributeDefault(attribute);
     }
 
     public virtual void OnSetAttribute(AttributeInfo attribute, object? value)
     {
         ArgumentNullException.ThrowIfNull(attribute);
 
-        if (setInstanceDefault)
-            instanceDefaultValues[attribute.NameHash] = value;
+        if (_setInstanceDefault)
+            _instanceDefaultValues[attribute.NameHash] = value;
 
         if (attribute.Setter is not null)
             attribute.Setter(this, value);
         else
-            attributeValues[attribute.NameHash] = value;
+            _attributeValues[attribute.NameHash] = value;
     }
 
     public void RemoveInstanceDefault()
     {
-        instanceDefaultValues.Clear();
+        _instanceDefaultValues.Clear();
     }
 
     public void ResetToDefault()
     {
-        foreach (var attribute in attributes)
+        foreach (var attribute in _attributes)
         {
             if ((attribute.Mode & (AttributeMode.NoEdit | AttributeMode.NodeId | AttributeMode.ComponentId | AttributeMode.NodeIdVector)) != 0)
                 continue;
@@ -139,10 +139,10 @@ public abstract class Serializable : Object
 
     public bool SetAttribute(int index, object? value)
     {
-        if (index < 0 || index >= attributes.Count)
+        if (index < 0 || index >= _attributes.Count)
             return false;
 
-        var attribute = attributes[index];
+        var attribute = _attributes[index];
         if (value is not null && !attribute.ValueType.IsInstanceOfType(value))
             return false;
 
@@ -171,13 +171,13 @@ public abstract class Serializable : Object
 
     public void SetInstanceDefault(bool enable)
     {
-        setInstanceDefault = enable;
+        _setInstanceDefault = enable;
     }
 
     public void SetInstanceDefault(string name, object? defaultValue)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        instanceDefaultValues[new StringHash(name)] = defaultValue;
+        _instanceDefaultValues[new StringHash(name)] = defaultValue;
     }
 
     public void SetTemporary(bool enable)
@@ -226,14 +226,14 @@ public abstract class Serializable : Object
             return new AttributeHandle(existing);
 
         var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, getter, setter);
-        attributes.Add(attribute);
+        _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
 
     private AttributeInfo? FindAttribute(string name)
     {
         var nameHash = new StringHash(name);
-        foreach (var attribute in attributes)
+        foreach (var attribute in _attributes)
         {
             if (attribute.NameHash == nameHash && string.Equals(attribute.Name, name, StringComparison.Ordinal))
                 return attribute;
@@ -244,6 +244,6 @@ public abstract class Serializable : Object
 
     private object? GetAttributeDefault(AttributeInfo attribute)
     {
-        return instanceDefaultValues.TryGetValue(attribute.NameHash, out var value) ? value : attribute.DefaultValue;
+        return _instanceDefaultValues.TryGetValue(attribute.NameHash, out var value) ? value : attribute.DefaultValue;
     }
 }

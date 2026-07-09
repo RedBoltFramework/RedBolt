@@ -82,52 +82,52 @@ layout(std140) uniform Material
     private static readonly bool ShaderBindingDiagnosticsEnabled = IsShaderBindingDiagnosticsEnabled();
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
 
-    private readonly float[] clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
-    private readonly ITextureView?[] renderTargets = new ITextureView?[1];
-    private readonly IBuffer?[] singleVertexBuffer = new IBuffer?[1];
-    private readonly Dictionary<Geometry, UploadedGeometry> uploadedGeometries = new();
-    private readonly Dictionary<VertexBuffer, IBuffer> uploadedVertexBuffers = new();
-    private readonly Dictionary<IndexBuffer, IBuffer> uploadedIndexBuffers = new();
-    private readonly Dictionary<Texture, UploadedTexture> uploadedTextures = new();
-    private readonly Dictionary<PipelineKey, PipelineResources> pipelines = new();
-    private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> fullscreenPipelines = new();
-    private readonly Dictionary<ClearFramebufferPipelineKey, FullscreenPipelineResources> clearFramebufferPipelines = new();
-    private readonly Dictionary<string, string> fullscreenShaderDefinesCache = new(StringComparer.Ordinal);
-    private readonly Dictionary<ShaderDefinesKey, string> shaderDefinesCache = new();
-    private readonly Dictionary<Pass, Pass> normalBufferPasses = new();
-    private readonly List<Light> lightsScratch = [];
-    private readonly List<Zone> zonesScratch = [];
+    private readonly float[] _clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
+    private readonly ITextureView?[] _renderTargets = new ITextureView?[1];
+    private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
+    private readonly Dictionary<Geometry, UploadedGeometry> _uploadedGeometries = new();
+    private readonly Dictionary<VertexBuffer, IBuffer> _uploadedVertexBuffers = new();
+    private readonly Dictionary<IndexBuffer, IBuffer> _uploadedIndexBuffers = new();
+    private readonly Dictionary<Texture, UploadedTexture> _uploadedTextures = new();
+    private readonly Dictionary<PipelineKey, PipelineResources> _pipelines = new();
+    private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> _fullscreenPipelines = new();
+    private readonly Dictionary<ClearFramebufferPipelineKey, FullscreenPipelineResources> _clearFramebufferPipelines = new();
+    private readonly Dictionary<string, string> _fullscreenShaderDefinesCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<ShaderDefinesKey, string> _shaderDefinesCache = new();
+    private readonly Dictionary<Pass, Pass> _normalBufferPasses = new();
+    private readonly List<Light> _lightsScratch = [];
+    private readonly List<Zone> _zonesScratch = [];
 
-    private GCHandle clearColorHandle;
-    private Texture2D? defaultAlbedoTexture;
-    private Texture2D? defaultNormalTexture;
-    private Texture2D? defaultPropertiesTexture;
-    private Texture2D? defaultEmissionTexture;
-    private GlFinishDelegate? glFinish;
-    private GlReadBufferDelegate? glReadBuffer;
-    private GlReadPixelsDelegate? glReadPixels;
-    private IDeviceContext? immediateContext;
-    private IRenderDevice? device;
-    private ISwapChain? swapChain;
-    private global::RedBolt.Bindings.Diligent.Viewport? diligentViewport;
-    private RenderOutputTargetInfo? swapChainOutputTarget;
-    private ITextureView? renderTargetView;
-    private ITextureView? depthStencilView;
-    private ITextureView? currentDepthStencilTarget;
-    private int currentRenderTargetCount;
-    private int configuredMultiSample = 1;
-    private Geometry? fullscreenQuadGeometry;
-    private global::RedBolt.Bindings.Diligent.TextureFormat currentColorTargetFormat;
-    private global::RedBolt.Bindings.Diligent.TextureFormat currentDepthTargetFormat;
-    private global::RedBolt.Bindings.Diligent.TextureFormat swapChainColorFormat;
-    private global::RedBolt.Bindings.Diligent.TextureFormat swapChainDepthFormat;
-    private readonly PipelineStateOutputDesc currentOutputDesc = new();
-    private IntRect currentViewport;
-    private IntVector2 currentRenderTargetSize;
-    private bool isSwapChainRenderTarget;
-    private IntPtr glContext;
-    private bool shaderReflectionDiagnosticsDumped;
-    private SdlWindow? window;
+    private GCHandle _clearColorHandle;
+    private Texture2D? _defaultAlbedoTexture;
+    private Texture2D? _defaultNormalTexture;
+    private Texture2D? _defaultPropertiesTexture;
+    private Texture2D? _defaultEmissionTexture;
+    private GlFinishDelegate? _glFinish;
+    private GlReadBufferDelegate? _glReadBuffer;
+    private GlReadPixelsDelegate? _glReadPixels;
+    private IDeviceContext? _immediateContext;
+    private IRenderDevice? _device;
+    private ISwapChain? _swapChain;
+    private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
+    private RenderOutputTargetInfo? _swapChainOutputTarget;
+    private ITextureView? _renderTargetView;
+    private ITextureView? _depthStencilView;
+    private ITextureView? _currentDepthStencilTarget;
+    private int _currentRenderTargetCount;
+    private int _configuredMultiSample = 1;
+    private Geometry? _fullscreenQuadGeometry;
+    private global::RedBolt.Bindings.Diligent.TextureFormat _currentColorTargetFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat _currentDepthTargetFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainColorFormat;
+    private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainDepthFormat;
+    private readonly PipelineStateOutputDesc _currentOutputDesc = new();
+    private IntRect _currentViewport;
+    private IntVector2 _currentRenderTargetSize;
+    private bool _isSwapChainRenderTarget;
+    private IntPtr _glContext;
+    private bool _shaderReflectionDiagnosticsDumped;
+    private SdlWindow? _window;
 
     public bool IsInitialized { get; private set; }
 
@@ -158,7 +158,7 @@ layout(std140) uniform Material
         _ = format;
 
         var normalizedLevel = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)requestedLevel), 1u, 16u);
-        return Math.Min(normalizedLevel, Math.Max(configuredMultiSample, 1));
+        return Math.Min(normalizedLevel, Math.Max(_configuredMultiSample, 1));
     }
 
     public bool IsRenderTargetFormatSupported(TextureFormat format)
@@ -176,7 +176,7 @@ layout(std140) uniform Material
         return shader is null ? null : new ShaderVariation(shader, type, defines);
     }
 
-    public IRenderDevice? GetNativeRenderDevice() => device;
+    public IRenderDevice? GetNativeRenderDevice() => _device;
 
     internal ITexture? GetTextureHandle(Texture texture)
     {
@@ -230,19 +230,19 @@ layout(std140) uniform Material
         var hdr = TextureFormatUtility.IsFloatColorFormat(colorFormat);
         var hasStencil = depthFormat == TextureFormat.Depth24Stencil8;
 
-        if (swapChainOutputTarget is not null
-            && swapChainOutputTarget.FullViewportRect == fullRect
-            && swapChainOutputTarget.ColorFormat == colorFormat
-            && swapChainOutputTarget.DepthStencilFormat == depthFormat
-            && swapChainOutputTarget.MultiSample == multiSample
-            && swapChainOutputTarget.LinearColorSpace == linearColorSpace
-            && swapChainOutputTarget.HDR == hdr
-            && swapChainOutputTarget.HasStencil == hasStencil)
+        if (_swapChainOutputTarget is not null
+            && _swapChainOutputTarget.FullViewportRect == fullRect
+            && _swapChainOutputTarget.ColorFormat == colorFormat
+            && _swapChainOutputTarget.DepthStencilFormat == depthFormat
+            && _swapChainOutputTarget.MultiSample == multiSample
+            && _swapChainOutputTarget.LinearColorSpace == linearColorSpace
+            && _swapChainOutputTarget.HDR == hdr
+            && _swapChainOutputTarget.HasStencil == hasStencil)
         {
-            return swapChainOutputTarget;
+            return _swapChainOutputTarget;
         }
 
-        swapChainOutputTarget = new RenderOutputTargetInfo(
+        _swapChainOutputTarget = new RenderOutputTargetInfo(
             RenderTargetView.SwapChainColor(),
             fullRect,
             colorFormat,
@@ -254,7 +254,7 @@ layout(std140) uniform Material
             hdr: hdr,
             hasReadableDepth: false,
             hasStencil: hasStencil);
-        return swapChainOutputTarget;
+        return _swapChainOutputTarget;
     }
 
     internal TextureFormat GetSwapChainColorTextureFormat(out bool isSrgb)
@@ -264,7 +264,7 @@ layout(std140) uniform Material
         => UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
 
     internal int GetSwapChainMultiSample()
-        => Math.Max(configuredMultiSample, 1);
+        => Math.Max(_configuredMultiSample, 1);
 
     public void Initialize(EngineParameters parameters, Input input)
     {
@@ -277,19 +277,19 @@ layout(std140) uniform Material
         if (parameters.GraphicsBackend is not GraphicsBackend.Auto and not GraphicsBackend.OpenGL)
             throw new NotSupportedException($"The first RedBolt graphics backend supports OpenGL only, not {parameters.GraphicsBackend}.");
 
-        window = input.Window;
-        glContext = SdlNativeBindings.SdlGlCreateContext(window);
-        if (glContext == IntPtr.Zero)
+        _window = input.Window;
+        _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
+        if (_glContext == IntPtr.Zero)
             throw new InvalidOperationException("Generated SDL_GL_CreateContext binding returned a null context.");
 
         try
         {
-            CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
+            CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(_window, _glContext), "SDL_GL_MakeCurrent");
             _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
-            SdlNativeBindings.SdlGetWindowSize(window, out var actualWidth, out var actualHeight);
+            SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
             Width = actualWidth;
             Height = actualHeight;
-            configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
+            _configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
 
             var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
@@ -305,19 +305,19 @@ layout(std140) uniform Material
             if (factory.IsNull)
                 throw new InvalidOperationException("Generated GetEngineFactoryOpenGL binding returned a null factory.");
 
-            factory.CreateDeviceAndSwapChainGL(engineCreateInfo, out device, out immediateContext, swapChainDesc, out swapChain);
-            if (device.IsNull || immediateContext.IsNull || swapChain.IsNull)
+            factory.CreateDeviceAndSwapChainGL(engineCreateInfo, out _device, out _immediateContext, swapChainDesc, out _swapChain);
+            if (_device.IsNull || _immediateContext.IsNull || _swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateDeviceAndSwapChainGL binding returned a null device, context, or swap chain.");
 
-            renderTargetView = swapChain.GetCurrentBackBufferRTV();
-            depthStencilView = swapChain.GetDepthBufferDSV();
-            if (renderTargetView.IsNull || depthStencilView.IsNull)
+            _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
+            _depthStencilView = _swapChain.GetDepthBufferDSV();
+            if (_renderTargetView.IsNull || _depthStencilView.IsNull)
                 throw new InvalidOperationException("Swap chain render target or depth view was null.");
-            swapChainColorFormat = GetTextureViewFormat(renderTargetView);
-            swapChainDepthFormat = GetTextureViewFormat(depthStencilView);
-            renderTargets[0] = renderTargetView;
+            _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
+            _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
+            _renderTargets[0] = _renderTargetView;
 
-            clearColorHandle = GCHandle.Alloc(clearColor, GCHandleType.Pinned);
+            _clearColorHandle = GCHandle.Alloc(_clearColor, GCHandleType.Pinned);
             IsInitialized = true;
         }
         catch
@@ -337,7 +337,7 @@ layout(std140) uniform Material
     /// </summary>
     internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
     {
-        if (!IsInitialized || viewport is null || immediateContext is null || swapChain is null || renderTargetView is null || depthStencilView is null)
+        if (!IsInitialized || viewport is null || _immediateContext is null || _swapChain is null || _renderTargetView is null || _depthStencilView is null)
             return;
 
         Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
@@ -356,30 +356,30 @@ layout(std140) uniform Material
     /// </summary>
     internal void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
     {
-        if (!IsInitialized || immediateContext is null)
+        if (!IsInitialized || _immediateContext is null)
             return;
 
         if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
 
-        renderTargets[0] = colorTarget is { } targetView ? ResolveRenderTargetView(targetView) : null;
-        currentRenderTargetCount = colorTarget is not null ? 1 : 0;
-        currentColorTargetFormat = colorTarget is { } colorView ? ResolveColorTargetFormat(colorView) : 0;
-        currentDepthStencilTarget = depthStencilTarget is { } depthTarget
+        _renderTargets[0] = colorTarget is { } targetView ? ResolveRenderTargetView(targetView) : null;
+        _currentRenderTargetCount = colorTarget is not null ? 1 : 0;
+        _currentColorTargetFormat = colorTarget is { } colorView ? ResolveColorTargetFormat(colorView) : 0;
+        _currentDepthStencilTarget = depthStencilTarget is { } depthTarget
             ? ResolveRenderTargetView(depthTarget)
             : null;
-        currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
-        currentViewport = viewportRect;
-        currentRenderTargetSize = ResolveRenderTargetSize(colorTarget, depthStencilTarget, viewportRect);
-        isSwapChainRenderTarget = colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true;
+        _currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
+        _currentViewport = viewportRect;
+        _currentRenderTargetSize = ResolveRenderTargetSize(colorTarget, depthStencilTarget, viewportRect);
+        _isSwapChainRenderTarget = colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true;
         UpdateCurrentOutputDesc(colorTarget, depthStencilTarget);
 
         MarkRenderTargetDirty(colorTarget);
         MarkRenderTargetDirty(depthStencilTarget);
 
-        ApplyDiligentViewport(immediateContext, viewportRect);
-        immediateContext.SetRenderTargets((uint)currentRenderTargetCount,
-            currentRenderTargetCount == 0 ? Array.Empty<ITextureView?>() : renderTargets, currentDepthStencilTarget!,
+        ApplyDiligentViewport(_immediateContext, viewportRect);
+        _immediateContext.SetRenderTargets((uint)_currentRenderTargetCount,
+            _currentRenderTargetCount == 0 ? Array.Empty<ITextureView?>() : _renderTargets, _currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
@@ -393,14 +393,14 @@ layout(std140) uniform Material
 
     internal void SetViewport(IntRect viewportRect)
     {
-        if (!IsInitialized || immediateContext is null)
+        if (!IsInitialized || _immediateContext is null)
             return;
 
         if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
 
-        currentViewport = viewportRect;
-        ApplyDiligentViewport(immediateContext, viewportRect);
+        _currentViewport = viewportRect;
+        ApplyDiligentViewport(_immediateContext, viewportRect);
     }
 
     /// <summary>
@@ -409,37 +409,37 @@ layout(std140) uniform Material
     internal void ClearCurrentRenderTargets(Color? color = null, bool clearColorTarget = true, bool clearDepth = true, bool clearStencil = false,
         float depth = 1.0f, byte stencil = 0)
     {
-        if (!IsInitialized || immediateContext is null)
+        if (!IsInitialized || _immediateContext is null)
             return;
 
         if (color is { } clearValue)
         {
-            clearColor[0] = clearValue.R;
-            clearColor[1] = clearValue.G;
-            clearColor[2] = clearValue.B;
-            clearColor[3] = clearValue.A;
+            _clearColor[0] = clearValue.R;
+            _clearColor[1] = clearValue.G;
+            _clearColor[2] = clearValue.B;
+            _clearColor[3] = clearValue.A;
         }
 
         if (clearColorTarget)
         {
-            for (var i = 0; i < currentRenderTargetCount; ++i)
+            for (var i = 0; i < _currentRenderTargetCount; ++i)
             {
-                if (renderTargets[i] is { } target)
+                if (_renderTargets[i] is { } target)
                 {
-                    immediateContext.ClearRenderTarget(target, clearColorHandle.AddrOfPinnedObject(),
+                    _immediateContext.ClearRenderTarget(target, _clearColorHandle.AddrOfPinnedObject(),
                         ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 }
             }
         }
 
-        if ((clearDepth || clearStencil) && currentDepthStencilTarget is not null)
+        if ((clearDepth || clearStencil) && _currentDepthStencilTarget is not null)
         {
             var flags = ClearDepthStencilFlags.ClearDepthFlagNone;
             if (clearDepth)
                 flags |= ClearDepthStencilFlags.ClearDepthFlag;
             if (clearStencil)
                 flags |= ClearDepthStencilFlags.ClearStencilFlag;
-            immediateContext.ClearDepthStencil(currentDepthStencilTarget, flags, depth, stencil,
+            _immediateContext.ClearDepthStencil(_currentDepthStencilTarget, flags, depth, stencil,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
     }
@@ -461,11 +461,11 @@ layout(std140) uniform Material
             viewport.Camera.SetAspectRatioInternal(aspectRatio);
         }
 
-        viewport.Scene.GetComponents(lightsScratch);
+        viewport.Scene.GetComponents(_lightsScratch);
         Light? directionalLight = null;
-        for (var i = 0; i < lightsScratch.Count; ++i)
+        for (var i = 0; i < _lightsScratch.Count; ++i)
         {
-            var light = lightsScratch[i];
+            var light = _lightsScratch[i];
             if (!light.IsAttached || !light.IsEnabledEffective || light.GetLightType() != LightType.Directional)
                 continue;
 
@@ -524,11 +524,11 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(viewport);
 
-        if (immediateContext is null)
+        if (_immediateContext is null)
             return;
 
         var targetRect = viewportRect ?? new IntRect(0, 0, Width, Height);
-        ApplyDiligentViewport(immediateContext, targetRect);
+        ApplyDiligentViewport(_immediateContext, targetRect);
         var staticModels = viewport.Scene.StaticModels;
         for (var staticModelIndex = 0; staticModelIndex < staticModels.Count; ++staticModelIndex)
         {
@@ -542,7 +542,7 @@ layout(std140) uniform Material
     /// </summary>
     internal void PresentFrame(string? screenshotPath = null, Action? beforePresent = null)
     {
-        if (!IsInitialized || swapChain is null)
+        if (!IsInitialized || _swapChain is null)
             return;
 
         beforePresent?.Invoke();
@@ -550,38 +550,38 @@ layout(std140) uniform Material
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SavePresentedFrameScreenshot(screenshotPath);
 
-        swapChain.Present(0);
+        _swapChain.Present(0);
     }
 
     internal void UnbindRenderTargets()
     {
-        if (!IsInitialized || immediateContext is null)
+        if (!IsInitialized || _immediateContext is null)
             return;
 
-        immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
+        _immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
-        renderTargets[0] = null;
-        currentRenderTargetCount = 0;
-        currentDepthStencilTarget = null;
-        currentColorTargetFormat = 0;
-        currentDepthTargetFormat = 0;
-        currentViewport = default;
-        currentRenderTargetSize = default;
-        isSwapChainRenderTarget = false;
-        currentOutputDesc.ClearRenderTargetFormats();
-        currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
-        currentOutputDesc.MultiSample = 1;
+        _renderTargets[0] = null;
+        _currentRenderTargetCount = 0;
+        _currentDepthStencilTarget = null;
+        _currentColorTargetFormat = 0;
+        _currentDepthTargetFormat = 0;
+        _currentViewport = default;
+        _currentRenderTargetSize = default;
+        _isSwapChainRenderTarget = false;
+        _currentOutputDesc.ClearRenderTargetFormats();
+        _currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
+        _currentOutputDesc.MultiSample = 1;
     }
 
-    public IDeviceContext? GetImmediateContext() => immediateContext;
+    public IDeviceContext? GetImmediateContext() => _immediateContext;
 
-    internal IntRect GetCurrentViewportRect() => currentViewport;
+    internal IntRect GetCurrentViewportRect() => _currentViewport;
 
-    internal IntVector2 GetCurrentRenderTargetSize() => currentRenderTargetSize;
+    internal IntVector2 GetCurrentRenderTargetSize() => _currentRenderTargetSize;
 
-    internal PipelineStateOutputDesc GetCurrentRenderTargetsDesc() => currentOutputDesc;
+    internal PipelineStateOutputDesc GetCurrentRenderTargetsDesc() => _currentOutputDesc;
 
-    internal bool IsSwapChainRenderTarget() => isSwapChainRenderTarget;
+    internal bool IsSwapChainRenderTarget() => _isSwapChainRenderTarget;
 
     internal void DrawCopyTexture(Texture sourceTexture, bool bilinearFiltering = false, bool flipVertical = false)
     {
@@ -609,12 +609,12 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(sourceTexture);
 
-        if (!IsInitialized || immediateContext is null || renderTargetView is null)
+        if (!IsInitialized || _immediateContext is null || _renderTargetView is null)
             return false;
         if (sourceTexture is not Texture2D sourceTexture2D)
             return false;
 
-        var destinationTexture = renderTargetView.GetTexture();
+        var destinationTexture = _renderTargetView.GetTexture();
         if (destinationTexture.IsNull)
             return false;
 
@@ -624,7 +624,7 @@ layout(std140) uniform Material
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             destinationTexture,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.CopyTexture(copyAttributes);
+        _immediateContext.CopyTexture(copyAttributes);
         return true;
     }
 
@@ -636,7 +636,7 @@ layout(std140) uniform Material
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
         ArgumentNullException.ThrowIfNull(parameters);
 
-        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+        if (!IsInitialized || _immediateContext is null || _device is null || _currentRenderTargetCount == 0)
             return;
 
         var pipeline = GetOrCreateFullscreenPipeline(shaderName, shaderDefines, blendMode, bilinearColorSampler);
@@ -661,7 +661,7 @@ layout(std140) uniform Material
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
 
-        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+        if (!IsInitialized || _immediateContext is null || _device is null || _currentRenderTargetCount == 0)
             return;
 
         var pipeline = GetOrCreateFullscreenPipeline(shaderName, shaderDefines, blendMode, bilinearColorSampler);
@@ -684,7 +684,7 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
-        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+        if (!IsInitialized || _immediateContext is null || _device is null || _currentRenderTargetCount == 0)
             return;
 
         var pipeline = GetOrCreateClearFramebufferPipeline(flags);
@@ -692,7 +692,7 @@ layout(std140) uniform Material
             return;
 
         if (flags.HasFlag(ClearTarget.Stencil))
-            immediateContext.SetStencilRef(stencil);
+            _immediateContext.SetStencilRef(stencil);
 
         DrawFullscreenQuad(
             pipeline,
@@ -709,7 +709,7 @@ layout(std140) uniform Material
         Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
         where TParameters : struct
     {
-        if (!IsInitialized || immediateContext is null || device is null || currentRenderTargetCount == 0)
+        if (!IsInitialized || _immediateContext is null || _device is null || _currentRenderTargetCount == 0)
             return;
 
         var pipeline = GetOrCreateClearFramebufferPipeline(flags);
@@ -717,7 +717,7 @@ layout(std140) uniform Material
             return;
 
         if (flags.HasFlag(ClearTarget.Stencil))
-            immediateContext.SetStencilRef(stencil);
+            _immediateContext.SetStencilRef(stencil);
 
         DrawFullscreenQuad(
             pipeline,
@@ -742,13 +742,13 @@ layout(std140) uniform Material
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
-        if (!IsInitialized || device is null || immediateContext is null || renderTargetView is null)
+        if (!IsInitialized || _device is null || _immediateContext is null || _renderTargetView is null)
             throw new InvalidOperationException("Graphics system is not initialized.");
 
         if (TrySaveCurrentFramebufferScreenshot(fileName))
             return;
 
-        var sourceTexture = renderTargetView.GetTexture();
+        var sourceTexture = _renderTargetView.GetTexture();
         if (!sourceTexture.IsNull)
         {
             SaveTexture(sourceTexture, fileName);
@@ -763,7 +763,7 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(sourceTexture);
 
-        if (device is null || immediateContext is null)
+        if (_device is null || _immediateContext is null)
             throw new InvalidOperationException("Graphics system is not initialized.");
 
         using var sourceDescription = sourceTexture.GetDesc();
@@ -787,7 +787,7 @@ layout(std140) uniform Material
         ITexture? stagingTexture = null;
         try
         {
-            device.CreateTexture(stagingDescription, null!, out stagingTexture);
+            _device.CreateTexture(stagingDescription, null!, out stagingTexture);
             if (stagingTexture is null || stagingTexture.IsNull)
                 throw new InvalidOperationException("Failed to create the staging texture for screenshot capture.");
 
@@ -796,12 +796,12 @@ layout(std140) uniform Material
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
                 stagingTexture,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-            immediateContext.CopyTexture(copyAttributes);
-            immediateContext.Flush();
-            immediateContext.WaitForIdle();
+            _immediateContext.CopyTexture(copyAttributes);
+            _immediateContext.Flush();
+            _immediateContext.WaitForIdle();
 
             using var mappedSubresource = new MappedTextureSubresource();
-            immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedSubresource);
+            _immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedSubresource);
             try
             {
                 var rgbaPixels = new byte[checked(width * height * 4)];
@@ -810,7 +810,7 @@ layout(std140) uniform Material
             }
             finally
             {
-                immediateContext.UnmapTextureSubresource(stagingTexture, 0, 0);
+                _immediateContext.UnmapTextureSubresource(stagingTexture, 0, 0);
             }
         }
         finally
@@ -830,9 +830,9 @@ layout(std140) uniform Material
         if (TrySaveCurrentFramebufferScreenshot(fileName, GlBack))
             return;
 
-        if (renderTargetView is not null)
+        if (_renderTargetView is not null)
         {
-            var sourceTexture = renderTargetView.GetTexture();
+            var sourceTexture = _renderTargetView.GetTexture();
             if (!sourceTexture.IsNull)
             {
                 SaveTexture(sourceTexture, fileName);
@@ -850,7 +850,7 @@ layout(std140) uniform Material
 
     private bool TrySaveCurrentFramebufferScreenshot(string fileName, uint readBuffer)
     {
-        if (glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
+        if (_glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
             return false;
 
         EnsureOpenGlReadbackFunctions();
@@ -858,9 +858,9 @@ layout(std140) uniform Material
         var rgbaPixels = new byte[checked(Width * Height * 4)];
         using var pinnedPixels = new PinnedBuffer(rgbaPixels);
 
-        glFinish!.Invoke();
-        glReadBuffer!.Invoke(readBuffer);
-        glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
+        _glFinish!.Invoke();
+        _glReadBuffer!.Invoke(readBuffer);
+        _glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
         FlipImageRows(rgbaPixels, Width, Height);
         ImageFileWriter.Save(fileName, Width, Height, rgbaPixels);
         return true;
@@ -868,9 +868,9 @@ layout(std140) uniform Material
 
     private void EnsureOpenGlReadbackFunctions()
     {
-        glFinish ??= LoadOpenGlProcedure<GlFinishDelegate>("glFinish");
-        glReadBuffer ??= LoadOpenGlProcedure<GlReadBufferDelegate>("glReadBuffer");
-        glReadPixels ??= LoadOpenGlProcedure<GlReadPixelsDelegate>("glReadPixels");
+        _glFinish ??= LoadOpenGlProcedure<GlFinishDelegate>("glFinish");
+        _glReadBuffer ??= LoadOpenGlProcedure<GlReadBufferDelegate>("glReadBuffer");
+        _glReadPixels ??= LoadOpenGlProcedure<GlReadPixelsDelegate>("glReadPixels");
     }
 
     private static T LoadOpenGlProcedure<T>(string name)
@@ -888,71 +888,71 @@ layout(std140) uniform Material
     {
         Width = 0;
         Height = 0;
-        renderTargets[0] = null;
-        renderTargetView = null;
-        depthStencilView = null;
-        swapChainOutputTarget = null;
-        swapChainColorFormat = 0;
-        swapChainDepthFormat = 0;
-        currentRenderTargetCount = 0;
-        currentDepthStencilTarget = null;
-        currentColorTargetFormat = 0;
-        currentDepthTargetFormat = 0;
+        _renderTargets[0] = null;
+        _renderTargetView = null;
+        _depthStencilView = null;
+        _swapChainOutputTarget = null;
+        _swapChainColorFormat = 0;
+        _swapChainDepthFormat = 0;
+        _currentRenderTargetCount = 0;
+        _currentDepthStencilTarget = null;
+        _currentColorTargetFormat = 0;
+        _currentDepthTargetFormat = 0;
 
-        foreach (var uploaded in uploadedGeometries.Values)
+        foreach (var uploaded in _uploadedGeometries.Values)
             uploaded.Dispose();
-        uploadedGeometries.Clear();
+        _uploadedGeometries.Clear();
 
-        foreach (var uploaded in uploadedVertexBuffers.Values)
+        foreach (var uploaded in _uploadedVertexBuffers.Values)
             ReleaseIfNotNull(uploaded);
-        uploadedVertexBuffers.Clear();
+        _uploadedVertexBuffers.Clear();
 
-        foreach (var uploaded in uploadedIndexBuffers.Values)
+        foreach (var uploaded in _uploadedIndexBuffers.Values)
             ReleaseIfNotNull(uploaded);
-        uploadedIndexBuffers.Clear();
+        _uploadedIndexBuffers.Clear();
 
-        foreach (var uploaded in uploadedTextures.Values)
+        foreach (var uploaded in _uploadedTextures.Values)
             uploaded.Dispose();
-        uploadedTextures.Clear();
+        _uploadedTextures.Clear();
 
-        defaultAlbedoTexture = null;
-        defaultNormalTexture = null;
+        _defaultAlbedoTexture = null;
+        _defaultNormalTexture = null;
 
-        foreach (var pipeline in pipelines.Values)
+        foreach (var pipeline in _pipelines.Values)
             pipeline.Dispose();
-        pipelines.Clear();
+        _pipelines.Clear();
 
-        foreach (var pipeline in fullscreenPipelines.Values)
+        foreach (var pipeline in _fullscreenPipelines.Values)
             pipeline.Dispose();
-        fullscreenPipelines.Clear();
+        _fullscreenPipelines.Clear();
 
-        foreach (var pipeline in clearFramebufferPipelines.Values)
+        foreach (var pipeline in _clearFramebufferPipelines.Values)
             pipeline.Dispose();
-        clearFramebufferPipelines.Clear();
+        _clearFramebufferPipelines.Clear();
 
-        fullscreenQuadGeometry = null;
-        diligentViewport?.Dispose();
-        diligentViewport = null;
+        _fullscreenQuadGeometry = null;
+        _diligentViewport?.Dispose();
+        _diligentViewport = null;
 
-        ReleaseIfNotNull(swapChain);
-        swapChain = null;
-        ReleaseIfNotNull(immediateContext);
-        immediateContext = null;
-        ReleaseIfNotNull(device);
-        device = null;
+        ReleaseIfNotNull(_swapChain);
+        _swapChain = null;
+        ReleaseIfNotNull(_immediateContext);
+        _immediateContext = null;
+        ReleaseIfNotNull(_device);
+        _device = null;
 
-        if (clearColorHandle.IsAllocated)
-            clearColorHandle.Free();
+        if (_clearColorHandle.IsAllocated)
+            _clearColorHandle.Free();
 
-        if (glContext != IntPtr.Zero)
+        if (_glContext != IntPtr.Zero)
         {
-            if (window is not null && !window.IsNull)
-                _ = SdlNativeBindings.SdlGlMakeCurrent(window, IntPtr.Zero);
-            SdlNativeBindings.SdlGlDeleteContext(glContext);
-            glContext = IntPtr.Zero;
+            if (_window is not null && !_window.IsNull)
+                _ = SdlNativeBindings.SdlGlMakeCurrent(_window, IntPtr.Zero);
+            SdlNativeBindings.SdlGlDeleteContext(_glContext);
+            _glContext = IntPtr.Zero;
         }
 
-        window = null;
+        _window = null;
         IsInitialized = false;
     }
 
@@ -1143,7 +1143,7 @@ layout(std140) uniform Material
     {
         var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, light);
         var uploadedGeometry = GetOrCreateUploadedGeometry(geometry);
-        if (pipeline is null || uploadedGeometry is null || immediateContext is null)
+        if (pipeline is null || uploadedGeometry is null || _immediateContext is null)
             return default;
 
         UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone);
@@ -1181,17 +1181,17 @@ layout(std140) uniform Material
             "Light", pipeline.LightBuffer, LightBufferSize);
         BindMaterialTextures(pipeline, material);
 
-        immediateContext.SetPipelineState(pipeline.PipelineState);
-        immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        _immediateContext.SetPipelineState(pipeline.PipelineState);
+        _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         nuint vertexOffset = 0;
-        singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        immediateContext.SetVertexBuffers(0, 1, singleVertexBuffer, in vertexOffset,
+        _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
+        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-        immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+        _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+        _immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
         return (1u, geometry.GetPrimitiveCount());
     }
 
@@ -1204,15 +1204,15 @@ layout(std140) uniform Material
         var effectiveFillMode = GetEffectiveFillMode(camera, material);
         var reverseCulling = camera.GetReverseCulling();
         var alphaToCoverage = pass.AlphaToCoverage || material.GetAlphaToCoverage();
-        var colorFormat = currentColorTargetFormat != 0 ? currentColorTargetFormat : GetSwapChainColorFormat();
-        var depthFormat = currentDepthTargetFormat != 0 ? currentDepthTargetFormat : GetSwapChainDepthFormat();
+        var colorFormat = _currentColorTargetFormat != 0 ? _currentColorTargetFormat : GetSwapChainColorFormat();
+        var depthFormat = _currentDepthTargetFormat != 0 ? _currentDepthTargetFormat : GetSwapChainDepthFormat();
         var key = new PipelineKey(pass.VertexShader, pass.PixelShader, vertexDefines, pixelDefines,
             BuildLayoutSignature(vertexBuffer), effectiveCullMode, effectiveFillMode, pass.DepthTestMode,
             pass.DepthWrite, alphaToCoverage, reverseCulling, colorFormat, depthFormat);
-        if (pipelines.TryGetValue(key, out var cached))
+        if (_pipelines.TryGetValue(key, out var cached))
             return cached;
 
-        if (device is null)
+        if (_device is null)
             return null;
 
         var vertexShaderResource = resourceCache.GetResourceOrNull<Shader>(pass.VertexShader);
@@ -1222,9 +1222,9 @@ layout(std140) uniform Material
 
         var preparedVertexSource = vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
         var preparedPixelSource = pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
-        var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
             pass.VertexShader, preparedVertexSource);
-        var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
             pass.PixelShader, preparedPixelSource);
         var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
 
@@ -1261,16 +1261,16 @@ layout(std140) uniform Material
             psoCreateInfo.GraphicsPipelineRTVFormats[0] = colorFormat;
             psoCreateInfo.GraphicsPipelineDSVFormat = depthFormat;
 
-            device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create pipeline state for {pass.VertexShader}/{pass.PixelShader}.");
 
-            var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
-            var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
-            var materialBuffer = CreateUniformBuffer(device, "Material", MaterialBufferSize);
-            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
-            var lightBuffer = CreateUniformBuffer(device, "Light", LightBufferSize);
-            var zoneBuffer = CreateUniformBuffer(device, "Zone", ZoneBufferSize);
+            var cameraBuffer = CreateUniformBuffer(_device, "Camera", CameraBufferSize);
+            var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
+            var materialBuffer = CreateUniformBuffer(_device, "Material", MaterialBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
+            var lightBuffer = CreateUniformBuffer(_device, "Light", LightBufferSize);
+            var zoneBuffer = CreateUniformBuffer(_device, "Zone", ZoneBufferSize);
             pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
             if (shaderResources.IsNull)
                 throw new InvalidOperationException($"Failed to create shader resources for {pass.VertexShader}/{pass.PixelShader}.");
@@ -1281,7 +1281,7 @@ layout(std140) uniform Material
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
                 customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
             layoutArray = null;
-            pipelines[key] = cached;
+            _pipelines[key] = cached;
             return cached;
         }
         finally
@@ -1293,7 +1293,7 @@ layout(std140) uniform Material
     private FullscreenPipelineResources? GetOrCreateFullscreenPipeline(string shaderName, string shaderDefines,
         BlendMode blendMode, bool bilinearColorSampler)
     {
-        if (device is null)
+        if (_device is null)
             return null;
 
         var effectiveShaderDefines = GetOrCreateFullscreenShaderDefines(shaderDefines);
@@ -1302,9 +1302,9 @@ layout(std140) uniform Material
             effectiveShaderDefines,
             blendMode,
             bilinearColorSampler,
-            currentColorTargetFormat,
-            currentDepthTargetFormat);
-        if (fullscreenPipelines.TryGetValue(key, out var cached))
+            _currentColorTargetFormat,
+            _currentDepthTargetFormat);
+        if (_fullscreenPipelines.TryGetValue(key, out var cached))
             return cached;
 
         var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
@@ -1314,8 +1314,8 @@ layout(std140) uniform Material
 
         var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, effectiveShaderDefines, GraphicsBackend.OpenGL);
         var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, GraphicsBackend.OpenGL);
-        var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
-        var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
+        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
+        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
         var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
 
         TemporaryLayoutArray? layoutArray = null;
@@ -1349,18 +1349,18 @@ layout(std140) uniform Material
                 GraphicsPipelineInputLayoutNumElements = (uint)layoutArray.Count
             };
 
-            psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
-            psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
+            psoCreateInfo.GraphicsPipelineRTVFormats[0] = _currentColorTargetFormat;
+            psoCreateInfo.GraphicsPipelineDSVFormat = _currentDepthTargetFormat;
             ConfigureBlendState(psoCreateInfo, blendMode, colorWriteEnabled: true);
 
-            device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create fullscreen pipeline state for {shaderName}.");
 
-            var frameBuffer = CreateUniformBuffer(device, "Frame", FrameBufferSize);
-            var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
-            var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
-            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
+            var frameBuffer = CreateUniformBuffer(_device, "Frame", FrameBufferSize);
+            var cameraBuffer = CreateUniformBuffer(_device, "Camera", CameraBufferSize);
+            var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
 
             pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
             if (shaderResources.IsNull)
@@ -1379,7 +1379,7 @@ layout(std140) uniform Material
                 customLayout,
                 layoutArray);
             layoutArray = null;
-            fullscreenPipelines[key] = cached;
+            _fullscreenPipelines[key] = cached;
             return cached;
         }
         finally
@@ -1390,12 +1390,12 @@ layout(std140) uniform Material
 
     private FullscreenPipelineResources? GetOrCreateClearFramebufferPipeline(ClearTarget flags)
     {
-        if (device is null)
+        if (_device is null)
             return null;
 
         flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
-        var key = new ClearFramebufferPipelineKey(flags, currentColorTargetFormat, currentDepthTargetFormat);
-        if (clearFramebufferPipelines.TryGetValue(key, out var cached))
+        var key = new ClearFramebufferPipelineKey(flags, _currentColorTargetFormat, _currentDepthTargetFormat);
+        if (_clearFramebufferPipelines.TryGetValue(key, out var cached))
             return cached;
 
         const string shaderName = "X_ClearFramebuffer";
@@ -1407,8 +1407,8 @@ layout(std140) uniform Material
 
         var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, GraphicsBackend.OpenGL);
         var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
-        var vertexShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
-        var pixelShader = CreateShader(device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
+        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
+        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
         var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
         var settings = GetClearFramebufferPipelineSettings(flags);
 
@@ -1454,18 +1454,18 @@ layout(std140) uniform Material
                 GraphicsPipelineInputLayoutNumElements = (uint)layoutArray.Count
             };
 
-            psoCreateInfo.GraphicsPipelineRTVFormats[0] = currentColorTargetFormat;
-            psoCreateInfo.GraphicsPipelineDSVFormat = currentDepthTargetFormat;
+            psoCreateInfo.GraphicsPipelineRTVFormats[0] = _currentColorTargetFormat;
+            psoCreateInfo.GraphicsPipelineDSVFormat = _currentDepthTargetFormat;
             ConfigureBlendState(psoCreateInfo, BlendMode.Replace, settings.ColorWriteEnabled);
 
-            device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create clear framebuffer pipeline state for {shaderName}.");
 
-            var frameBuffer = CreateUniformBuffer(device, "Frame", FrameBufferSize);
-            var cameraBuffer = CreateUniformBuffer(device, "Camera", CameraBufferSize);
-            var objectBuffer = CreateUniformBuffer(device, "Object", ObjectBufferSize);
-            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(device, "Custom", customLayout.Size) : null;
+            var frameBuffer = CreateUniformBuffer(_device, "Frame", FrameBufferSize);
+            var cameraBuffer = CreateUniformBuffer(_device, "Camera", CameraBufferSize);
+            var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
+            var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
 
             pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
             if (shaderResources.IsNull)
@@ -1484,7 +1484,7 @@ layout(std140) uniform Material
                 customLayout,
                 layoutArray);
             layoutArray = null;
-            clearFramebufferPipelines[key] = cached;
+            _clearFramebufferPipelines[key] = cached;
             return cached;
         }
         finally
@@ -1495,8 +1495,8 @@ layout(std140) uniform Material
 
     private Geometry GetOrCreateFullscreenQuadGeometry()
     {
-        if (fullscreenQuadGeometry is not null)
-            return fullscreenQuadGeometry;
+        if (_fullscreenQuadGeometry is not null)
+            return _fullscreenQuadGeometry;
 
         var vertexBuffer = new VertexBuffer();
         vertexBuffer.SetSize(4, [new VertexElement(VertexElementType.Vector4, VertexElementSemantic.Position)]);
@@ -1519,7 +1519,7 @@ layout(std140) uniform Material
         geometry.SetVertexBuffer(0, vertexBuffer);
         geometry.SetIndexBuffer(indexBuffer);
         geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6, 0, 4);
-        fullscreenQuadGeometry = geometry;
+        _fullscreenQuadGeometry = geometry;
         return geometry;
     }
 
@@ -1553,7 +1553,7 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
-        if (immediateContext is null)
+        if (_immediateContext is null)
             return;
 
         var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
@@ -1572,7 +1572,7 @@ layout(std140) uniform Material
         Texture? depthTexture, in TParameters parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical)
         where TParameters : struct
     {
-        if (immediateContext is null)
+        if (_immediateContext is null)
             return;
 
         var uploadedGeometry = GetOrCreateUploadedGeometry(GetOrCreateFullscreenQuadGeometry());
@@ -1590,7 +1590,7 @@ layout(std140) uniform Material
     private void DrawFullscreenQuadCore(FullscreenPipelineResources pipeline, UploadedGeometry uploadedGeometry,
         Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture)
     {
-        if (immediateContext is null)
+        if (_immediateContext is null)
             return;
 
         BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, "Frame", pipeline.FrameBuffer, FrameBufferSize);
@@ -1612,17 +1612,17 @@ layout(std140) uniform Material
         if (depthTexture is Texture2D depthTexture2D)
             BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetShaderResourceView(depthTexture2D));
 
-        immediateContext.SetPipelineState(pipeline.PipelineState);
-        immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        _immediateContext.SetPipelineState(pipeline.PipelineState);
+        _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         nuint vertexOffset = 0;
-        singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        immediateContext.SetVertexBuffers(0, 1, singleVertexBuffer, in vertexOffset,
+        _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
+        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-        immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+        _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+        _immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
     }
 
     private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, byte[]? scratch,
@@ -1976,10 +1976,10 @@ layout(std140) uniform Material
 
     private UploadedGeometry? GetOrCreateUploadedGeometry(Geometry geometry)
     {
-        if (uploadedGeometries.TryGetValue(geometry, out var uploaded))
+        if (_uploadedGeometries.TryGetValue(geometry, out var uploaded))
             return uploaded;
 
-        if (device is null || immediateContext is null)
+        if (_device is null || _immediateContext is null)
             return null;
 
         var vertexBuffer = geometry.GetVertexBuffer(0);
@@ -1995,7 +1995,7 @@ layout(std140) uniform Material
             _FirstIndexLocation: geometry.GetIndexStart());
 
         uploaded = new UploadedGeometry(gpuVertexBuffer, gpuIndexBuffer, drawIndexedAttribs);
-        uploadedGeometries[geometry] = uploaded;
+        _uploadedGeometries[geometry] = uploaded;
         return uploaded;
     }
 
@@ -2035,50 +2035,50 @@ layout(std140) uniform Material
 
     private IBuffer GetOrCreateUploadedVertexBuffer(VertexBuffer vertexBuffer)
     {
-        if (uploadedVertexBuffers.TryGetValue(vertexBuffer, out var uploaded))
+        if (_uploadedVertexBuffers.TryGetValue(vertexBuffer, out var uploaded))
             return uploaded;
 
-        if (device is null || immediateContext is null)
+        if (_device is null || _immediateContext is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
         var vertexData = vertexBuffer.GetData().ToArray();
-        uploaded = CreateBuffer(device, immediateContext, "RedBoltModelVB", vertexData,
+        uploaded = CreateBuffer(_device, _immediateContext, "RedBoltModelVB", vertexData,
             (ulong)vertexData.Length, BindFlags.BindVertexBuffer, vertexBuffer.GetVertexSize());
-        uploadedVertexBuffers[vertexBuffer] = uploaded;
+        _uploadedVertexBuffers[vertexBuffer] = uploaded;
         return uploaded;
     }
 
     private IBuffer GetOrCreateUploadedIndexBuffer(IndexBuffer indexBuffer)
     {
-        if (uploadedIndexBuffers.TryGetValue(indexBuffer, out var uploaded))
+        if (_uploadedIndexBuffers.TryGetValue(indexBuffer, out var uploaded))
             return uploaded;
 
-        if (device is null || immediateContext is null)
+        if (_device is null || _immediateContext is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        uploaded = CreateIndexBuffer(device, immediateContext, indexBuffer, indexBuffer.GetUnpackedData().ToArray());
-        uploadedIndexBuffers[indexBuffer] = uploaded;
+        uploaded = CreateIndexBuffer(_device, _immediateContext, indexBuffer, indexBuffer.GetUnpackedData().ToArray());
+        _uploadedIndexBuffers[indexBuffer] = uploaded;
         return uploaded;
     }
 
     private Texture2D GetDefaultAlbedoTexture()
     {
-        return defaultAlbedoTexture ??= CreateFallbackTexture("#fallback-albedo", DefaultAlbedoTextureData);
+        return _defaultAlbedoTexture ??= CreateFallbackTexture("#fallback-albedo", DefaultAlbedoTextureData);
     }
 
     private Texture2D GetDefaultNormalTexture()
     {
-        return defaultNormalTexture ??= CreateFallbackTexture("#fallback-normal", DefaultNormalTextureData);
+        return _defaultNormalTexture ??= CreateFallbackTexture("#fallback-normal", DefaultNormalTextureData);
     }
 
     private Texture2D GetDefaultPropertiesTexture()
     {
-        return defaultPropertiesTexture ??= CreateFallbackTexture("#fallback-properties", DefaultPropertiesTextureData);
+        return _defaultPropertiesTexture ??= CreateFallbackTexture("#fallback-properties", DefaultPropertiesTextureData);
     }
 
     private Texture2D GetDefaultEmissionTexture()
     {
-        return defaultEmissionTexture ??= CreateFallbackTexture("#fallback-emission", DefaultEmissionTextureData);
+        return _defaultEmissionTexture ??= CreateFallbackTexture("#fallback-emission", DefaultEmissionTextureData);
     }
 
     private static Texture2D CreateFallbackTexture(string name, ReadOnlySpan<byte> rgbaPixels)
@@ -2122,16 +2122,16 @@ layout(std140) uniform Material
 
     private UploadedTexture GetOrCreateUploadedTexture(Texture2D texture, bool bindUnorderedAccess)
     {
-        if (uploadedTextures.TryGetValue(texture, out var uploaded))
+        if (_uploadedTextures.TryGetValue(texture, out var uploaded))
         {
             if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
-            uploadedTextures.Remove(texture);
+            _uploadedTextures.Remove(texture);
         }
 
-        if (device is null)
+        if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new PinnedUtf8(texture.Name);
@@ -2163,8 +2163,8 @@ layout(std140) uniform Material
 
             using var dataHandle = new PinnedBuffer(data);
             using var subresource = new TextureSubResData(dataHandle.Pointer, (nuint)(texture.Width * texture.GetComponents()), 0);
-            using var textureData = new TextureData(subresource, 1, immediateContext);
-            device.CreateTexture(textureDesc, textureData, out var gpuTextureWithData);
+            using var textureData = new TextureData(subresource, 1, _immediateContext);
+            _device.CreateTexture(textureDesc, textureData, out var gpuTextureWithData);
             if (gpuTextureWithData.IsNull)
                 throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -2172,7 +2172,7 @@ layout(std140) uniform Material
                 gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource));
             uploaded = new UploadedTexture(texture, gpuTextureWithData, shaderResourceView, null, null, null,
                 supportsUnorderedAccess: false);
-            uploadedTextures[texture] = uploaded;
+            _uploadedTextures[texture] = uploaded;
             return uploaded;
         }
 
@@ -2183,7 +2183,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -2196,22 +2196,22 @@ layout(std140) uniform Material
             : null;
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, targetView, depthView, readOnlyDepthView,
             resolvedTexture, supportsUnorderedAccess: bindUnorderedAccess);
-        uploadedTextures[texture] = uploaded;
+        _uploadedTextures[texture] = uploaded;
         return uploaded;
     }
 
     private UploadedTexture GetOrCreateUploadedTexture(TextureCube texture, bool bindUnorderedAccess)
     {
-        if (uploadedTextures.TryGetValue(texture, out var uploaded))
+        if (_uploadedTextures.TryGetValue(texture, out var uploaded))
         {
             if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
-            uploadedTextures.Remove(texture);
+            _uploadedTextures.Remove(texture);
         }
 
-        if (device is null)
+        if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new PinnedUtf8(texture.Name);
@@ -2237,7 +2237,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -2245,22 +2245,22 @@ layout(std140) uniform Material
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
-        uploadedTextures[texture] = uploaded;
+        _uploadedTextures[texture] = uploaded;
         return uploaded;
     }
 
     private UploadedTexture GetOrCreateUploadedTexture(Texture2DArray texture, bool bindUnorderedAccess)
     {
-        if (uploadedTextures.TryGetValue(texture, out var uploaded))
+        if (_uploadedTextures.TryGetValue(texture, out var uploaded))
         {
             if (UploadedTextureMatches(texture, uploaded, bindUnorderedAccess))
                 return uploaded;
 
             uploaded.Dispose();
-            uploadedTextures.Remove(texture);
+            _uploadedTextures.Remove(texture);
         }
 
-        if (device is null)
+        if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new PinnedUtf8(texture.Name);
@@ -2289,7 +2289,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -2297,7 +2297,7 @@ layout(std140) uniform Material
         shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
-        uploadedTextures[texture] = uploaded;
+        _uploadedTextures[texture] = uploaded;
         return uploaded;
     }
 
@@ -2305,7 +2305,7 @@ layout(std140) uniform Material
     {
         if (!NeedsResolvedTexture(texture))
             return (null, null);
-        if (device is null)
+        if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var resolvedDescOwner = CreateTextureDesc();
@@ -2320,7 +2320,7 @@ layout(std140) uniform Material
         resolvedDesc.BindFlags = sourceDesc.BindFlags;
         resolvedDesc.Usage = Usage.UsageDefault;
         resolvedDesc.SampleCount = 1;
-        device.CreateTexture(resolvedDesc, null!, out var resolvedTexture);
+        _device.CreateTexture(resolvedDesc, null!, out var resolvedTexture);
         if (resolvedTexture.IsNull)
             throw new InvalidOperationException($"Failed to create resolved GPU texture for {texture.Name}.");
 
@@ -2375,7 +2375,7 @@ layout(std140) uniform Material
 
     private void EnsureUploadedTextureResolved(Texture texture, UploadedTexture uploaded)
     {
-        if (!uploaded.ResolveDirty || uploaded.ResolvedTexture is null || immediateContext is null)
+        if (!uploaded.ResolveDirty || uploaded.ResolvedTexture is null || _immediateContext is null)
             return;
 
         using var resolveAttribsOwner = CreateResolveTextureSubresourceAttribs();
@@ -2387,7 +2387,7 @@ layout(std140) uniform Material
         {
             resolveAttribs.SrcSlice = slice;
             resolveAttribs.DstSlice = slice;
-            immediateContext.ResolveTextureSubresource(uploaded.Texture, uploaded.ResolvedTexture, resolveAttribs);
+            _immediateContext.ResolveTextureSubresource(uploaded.Texture, uploaded.ResolvedTexture, resolveAttribs);
         }
 
         uploaded.ClearResolveDirty();
@@ -2397,7 +2397,7 @@ layout(std140) uniform Material
     {
         if (view is not { } actualView || actualView.RenderTexture is null)
             return;
-        if (!uploadedTextures.TryGetValue(actualView.RenderTexture, out var uploaded))
+        if (!_uploadedTextures.TryGetValue(actualView.RenderTexture, out var uploaded))
             return;
 
         uploaded.MarkDirty();
@@ -2407,8 +2407,8 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainColor => renderTargetView ?? throw new InvalidOperationException("Swap chain color target is not available."),
-            RenderTargetViewType.SwapChainDepthStencil => depthStencilView ?? throw new InvalidOperationException("Swap chain depth target is not available."),
+            RenderTargetViewType.SwapChainColor => _renderTargetView ?? throw new InvalidOperationException("Swap chain color target is not available."),
+            RenderTargetViewType.SwapChainDepthStencil => _depthStencilView ?? throw new InvalidOperationException("Swap chain depth target is not available."),
             RenderTargetViewType.Resource => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ResourceSlice => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ReadOnlyResource => ResolveTextureReadOnlyDepthView(view),
@@ -2524,23 +2524,23 @@ layout(std140) uniform Material
 
     public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainColorFormat()
     {
-        if (swapChainColorFormat != 0)
-            return swapChainColorFormat;
-        if (swapChain is null)
+        if (_swapChainColorFormat != 0)
+            return _swapChainColorFormat;
+        if (_swapChain is null)
             return 0;
 
-        using var desc = swapChain.GetDesc();
+        using var desc = _swapChain.GetDesc();
         return desc.ColorBufferFormat;
     }
 
     public global::RedBolt.Bindings.Diligent.TextureFormat GetSwapChainDepthFormat()
     {
-        if (swapChainDepthFormat != 0)
-            return swapChainDepthFormat;
-        if (swapChain is null)
+        if (_swapChainDepthFormat != 0)
+            return _swapChainDepthFormat;
+        if (_swapChain is null)
             return 0;
 
-        using var desc = swapChain.GetDesc();
+        using var desc = _swapChain.GetDesc();
         return desc.DepthBufferFormat;
     }
 
@@ -2569,27 +2569,27 @@ layout(std140) uniform Material
 
     private void UpdateCurrentOutputDesc(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
     {
-        currentOutputDesc.ClearRenderTargetFormats();
+        _currentOutputDesc.ClearRenderTargetFormats();
         if (colorTarget is { } colorView)
-            currentOutputDesc.SetRenderTargetFormat(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
+            _currentOutputDesc.SetRenderTargetFormat(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
 
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
         if (depthStencilTarget is { } depthView)
         {
             depthFormat = ResolveDepthTargetFormat(depthView);
-            currentOutputDesc.DepthStencilFormat = UnmapTextureFormat(depthFormat, out _);
+            _currentOutputDesc.DepthStencilFormat = UnmapTextureFormat(depthFormat, out _);
         }
         else
-            currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
-        currentOutputDesc.MultiSample = (uint)Math.Max(
+            _currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
+        _currentOutputDesc.MultiSample = (uint)Math.Max(
             colorTarget?.GetMultiSample()
             ?? depthStencilTarget?.GetMultiSample()
-            ?? Math.Max(configuredMultiSample, 1), 1);
+            ?? Math.Max(_configuredMultiSample, 1), 1);
     }
 
     private void ApplyDiligentViewport(IDeviceContext immediateContext, IntRect viewportRect)
     {
-        var viewport = diligentViewport ??= new global::RedBolt.Bindings.Diligent.Viewport();
+        var viewport = _diligentViewport ??= new global::RedBolt.Bindings.Diligent.Viewport();
         viewport.TopLeftX = viewportRect.Left;
         viewport.TopLeftY = viewportRect.Top;
         viewport.Width = viewportRect.Width;
@@ -2835,7 +2835,7 @@ layout(std140) uniform Material
             usesLighting,
             light is not null,
             light?.GetLightType() ?? LightType.Directional);
-        if (shaderDefinesCache.TryGetValue(key, out var cachedDefines))
+        if (_shaderDefinesCache.TryGetValue(key, out var cachedDefines))
             return cachedDefines;
 
         var defines = new List<string> { "URHO3D_GEOMETRY_STATIC" };
@@ -2875,7 +2875,7 @@ layout(std140) uniform Material
             defines.AddRange(passDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         cachedDefines = string.Join(' ', defines.Distinct(StringComparer.OrdinalIgnoreCase));
-        shaderDefinesCache[key] = cachedDefines;
+        _shaderDefinesCache[key] = cachedDefines;
         return cachedDefines;
     }
 
@@ -2912,7 +2912,7 @@ layout(std140) uniform Material
 
     private Pass GetOrCreateNormalBufferPass(Pass referencePass)
     {
-        if (normalBufferPasses.TryGetValue(referencePass, out var cachedPass))
+        if (_normalBufferPasses.TryGetValue(referencePass, out var cachedPass))
             return cachedPass;
 
         var normalPass = referencePass.Clone();
@@ -2922,7 +2922,7 @@ layout(std140) uniform Material
         normalPass.SetPixelShader(NormalBufferShaderName);
         normalPass.SetVertexShaderDefines(AppendShaderDefines(referencePass.VertexShaderDefines, NormalBufferShaderDefines));
         normalPass.SetPixelShaderDefines(AppendShaderDefines(referencePass.PixelShaderDefines, NormalBufferShaderDefines));
-        normalBufferPasses[referencePass] = normalPass;
+        _normalBufferPasses[referencePass] = normalPass;
         return normalPass;
     }
 
@@ -3254,12 +3254,12 @@ layout(std140) uniform Material
 
     private Zone? FindZone(Scene scene, Vector3 worldPosition)
     {
-        scene.GetComponents(zonesScratch);
+        scene.GetComponents(_zonesScratch);
 
         Zone? bestZone = null;
-        for (var i = 0; i < zonesScratch.Count; ++i)
+        for (var i = 0; i < _zonesScratch.Count; ++i)
         {
-            var zone = zonesScratch[i];
+            var zone = _zonesScratch[i];
             if (!zone.IsAttached || !zone.IsEnabledEffective || !zone.IsInside(worldPosition))
                 continue;
 
@@ -3422,12 +3422,12 @@ layout(std140) uniform Material
 
     private unsafe void UpdateBuffer(IBuffer buffer, ReadOnlySpan<byte> data)
     {
-        if (immediateContext is null)
+        if (_immediateContext is null)
             return;
 
         fixed (byte* dataPointer = data)
         {
-            immediateContext.UpdateBuffer(buffer, 0, (nuint)data.Length, (nint)dataPointer,
+            _immediateContext.UpdateBuffer(buffer, 0, (nuint)data.Length, (nint)dataPointer,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
     }
@@ -3576,10 +3576,10 @@ layout(std140) uniform Material
         string vertexDefines, string pixelDefines, IShader vertexShader, IShader pixelShader, IPipelineState pipelineState,
         IShaderResourceBinding shaderResources)
     {
-        if (!ShaderReflectionDiagnosticsEnabled || shaderReflectionDiagnosticsDumped)
+        if (!ShaderReflectionDiagnosticsEnabled || _shaderReflectionDiagnosticsDumped)
             return;
 
-        shaderReflectionDiagnosticsDumped = true;
+        _shaderReflectionDiagnosticsDumped = true;
 
         var diagnosticBaseName = $"{SanitizeDiagnosticName(pass.VertexShader)}_{SanitizeDiagnosticName(pass.PixelShader)}";
         var vertexPath = Path.Combine(Path.GetTempPath(), $"{diagnosticBaseName}.vs.glsl");
@@ -3724,11 +3724,11 @@ layout(std140) uniform Material
             return geometryStaticDefine;
         if (ContainsShaderDefine(shaderDefines, geometryStaticDefine))
             return shaderDefines;
-        if (fullscreenShaderDefinesCache.TryGetValue(shaderDefines, out var cachedDefines))
+        if (_fullscreenShaderDefinesCache.TryGetValue(shaderDefines, out var cachedDefines))
             return cachedDefines;
 
         cachedDefines = AppendShaderDefine(shaderDefines, geometryStaticDefine);
-        fullscreenShaderDefinesCache[shaderDefines] = cachedDefines;
+        _fullscreenShaderDefinesCache[shaderDefines] = cachedDefines;
         return cachedDefines;
     }
 
@@ -3968,24 +3968,24 @@ layout(std140) uniform Material
 
     private sealed class TemporaryLayoutArray : IDisposable
     {
-        private readonly IntPtr memory;
-        private readonly PinnedUtf8 semantic;
+        private readonly IntPtr _memory;
+        private readonly PinnedUtf8 _semantic;
 
         public TemporaryLayoutArray(IReadOnlyList<LayoutElementSpec> elements)
         {
-            semantic = new PinnedUtf8("ATTRIB");
+            _semantic = new PinnedUtf8("ATTRIB");
             Count = elements.Count;
             if (Count == 0)
                 throw new InvalidOperationException("Graphics pipeline layout may not be empty.");
 
             var layoutElementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
-            memory = Marshal.AllocHGlobal(Count * layoutElementSize);
+            _memory = Marshal.AllocHGlobal(Count * layoutElementSize);
             for (var i = 0; i < Count; ++i)
             {
-                var ptr = memory + i * layoutElementSize;
+                var ptr = _memory + i * layoutElementSize;
                 var element = LayoutElement.CreateManagedWrapper(ptr, ownsHandle: false);
                 var spec = elements[i];
-                element.HLSLSemantic = semantic.Pointer;
+                element.HLSLSemantic = _semantic.Pointer;
                 element.InputIndex = spec.InputIndex;
                 element.BufferSlot = spec.BufferSlot;
                 element.NumComponents = spec.NumComponents;
@@ -3997,7 +3997,7 @@ layout(std140) uniform Material
                 element.InstanceDataStepRate = spec.InstanceDataStepRate;
             }
 
-            First = LayoutElement.CreateManagedWrapper(memory, ownsHandle: false);
+            First = LayoutElement.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public LayoutElement First { get; }
@@ -4006,21 +4006,21 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
-            semantic.Dispose();
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            _semantic.Dispose();
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 
     private sealed class TextureDescOwner : IDisposable
     {
-        private readonly IntPtr memory;
+        private readonly IntPtr _memory;
 
         public TextureDescOwner(int size)
         {
-            memory = Marshal.AllocHGlobal(size);
-            Marshal.Copy(new byte[size], 0, memory, size);
-            Desc = TextureDesc.CreateManagedWrapper(memory, ownsHandle: false);
+            _memory = Marshal.AllocHGlobal(size);
+            Marshal.Copy(new byte[size], 0, _memory, size);
+            Desc = TextureDesc.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public TextureDesc Desc { get; }
@@ -4029,20 +4029,20 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 
     private sealed class TextureViewDescOwner : IDisposable
     {
-        private readonly IntPtr memory;
+        private readonly IntPtr _memory;
 
         public TextureViewDescOwner(int size)
         {
-            memory = Marshal.AllocHGlobal(size);
-            Marshal.Copy(new byte[size], 0, memory, size);
-            Desc = TextureViewDesc.CreateManagedWrapper(memory, ownsHandle: false);
+            _memory = Marshal.AllocHGlobal(size);
+            Marshal.Copy(new byte[size], 0, _memory, size);
+            Desc = TextureViewDesc.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public TextureViewDesc Desc { get; }
@@ -4051,8 +4051,8 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 
@@ -4070,14 +4070,14 @@ layout(std140) uniform Material
 
     private sealed class ResolveTextureSubresourceAttribsOwner : IDisposable
     {
-        private readonly IntPtr memory;
+        private readonly IntPtr _memory;
 
         public ResolveTextureSubresourceAttribsOwner()
         {
-            memory = Marshal.AllocHGlobal(Marshal.SizeOf<ResolveTextureSubresourceAttribsData>());
-            Marshal.Copy(new byte[Marshal.SizeOf<ResolveTextureSubresourceAttribsData>()], 0, memory,
+            _memory = Marshal.AllocHGlobal(Marshal.SizeOf<ResolveTextureSubresourceAttribsData>());
+            Marshal.Copy(new byte[Marshal.SizeOf<ResolveTextureSubresourceAttribsData>()], 0, _memory,
                 Marshal.SizeOf<ResolveTextureSubresourceAttribsData>());
-            Attribs = ResolveTextureSubresourceAttribs.CreateManagedWrapper(memory, ownsHandle: false);
+            Attribs = ResolveTextureSubresourceAttribs.CreateManagedWrapper(_memory, ownsHandle: false);
         }
 
         public ResolveTextureSubresourceAttribs Attribs { get; }
@@ -4086,8 +4086,8 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
-            if (memory != IntPtr.Zero)
-                Marshal.FreeHGlobal(memory);
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
     }
 
@@ -4114,8 +4114,8 @@ layout(std140) uniform Material
 
     private sealed class UploadedTexture : IDisposable
     {
-        private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> sliceViews = [];
-        private readonly Dictionary<RawTextureUAVKey, ITextureView> uavs = [];
+        private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> _sliceViews = [];
+        private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
 
         public UploadedTexture(Texture sourceTexture, ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
             ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null,
@@ -4171,22 +4171,22 @@ layout(std140) uniform Material
 
         public bool TryGetSliceView(TextureViewType viewType, uint slice, out ITextureView view)
         {
-            return sliceViews.TryGetValue((viewType, slice), out view!);
+            return _sliceViews.TryGetValue((viewType, slice), out view!);
         }
 
         public void CacheSliceView(TextureViewType viewType, uint slice, ITextureView view)
         {
-            sliceViews[(viewType, slice)] = view;
+            _sliceViews[(viewType, slice)] = view;
         }
 
         public bool TryGetUav(RawTextureUAVKey key, out ITextureView view)
         {
-            return uavs.TryGetValue(key, out view!);
+            return _uavs.TryGetValue(key, out view!);
         }
 
         public void CacheUav(RawTextureUAVKey key, ITextureView view)
         {
-            uavs[key] = view;
+            _uavs[key] = view;
         }
 
         public void MarkDirty()
@@ -4209,19 +4209,19 @@ layout(std140) uniform Material
 
     private sealed class PinnedBuffer : IDisposable
     {
-        private readonly GCHandle handle;
+        private readonly GCHandle _handle;
 
         public PinnedBuffer(byte[] data)
         {
-            handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            _handle = GCHandle.Alloc(data, GCHandleType.Pinned);
         }
 
-        public nint Pointer => handle.AddrOfPinnedObject();
+        public nint Pointer => _handle.AddrOfPinnedObject();
 
         public void Dispose()
         {
-            if (handle.IsAllocated)
-                handle.Free();
+            if (_handle.IsAllocated)
+                _handle.Free();
         }
     }
 }

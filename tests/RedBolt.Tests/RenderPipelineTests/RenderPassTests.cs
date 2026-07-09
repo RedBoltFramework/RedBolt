@@ -25,18 +25,18 @@ public sealed class RenderPassTests
 
     private sealed class TrackingRenderPass : RenderPass
     {
-        private RenderBuffer? buffer;
+        private RenderBuffer? _buffer;
 
         public TrackingRenderPass()
             : base("Tracking")
         {
         }
 
-        public RenderBuffer? Buffer => buffer;
+        public RenderBuffer? Buffer => _buffer;
 
         public bool Connect(SharedRenderPassState sharedState, bool required)
         {
-            return ConnectToRenderBuffer(ref buffer, "Test", sharedState, required);
+            return ConnectToRenderBuffer(ref _buffer, "Test", sharedState, required);
         }
 
         public override RenderPass Clone() => new TrackingRenderPass();

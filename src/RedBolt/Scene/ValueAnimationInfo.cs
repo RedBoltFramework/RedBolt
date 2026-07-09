@@ -2,14 +2,14 @@ namespace RedBolt;
 
 public class ValueAnimationInfo
 {
-    private static readonly object emptyTarget = new();
-    private readonly WeakReference<object> target;
-    private readonly bool hasTarget;
-    private float lastScaledTime;
+    private static readonly object _emptyTarget = new();
+    private readonly WeakReference<object> _target;
+    private readonly bool _hasTarget;
+    private float _lastScaledTime;
 
     public ValueAnimationInfo(ValueAnimation animation, WrapMode wrapMode, float speed)
     {
-        target = new WeakReference<object>(emptyTarget);
+        _target = new WeakReference<object>(_emptyTarget);
         Animation = animation ?? throw new ArgumentNullException(nameof(animation));
         WrapMode = wrapMode;
         Speed = speed;
@@ -17,8 +17,8 @@ public class ValueAnimationInfo
 
     public ValueAnimationInfo(object target, ValueAnimation animation, WrapMode wrapMode, float speed)
     {
-        this.target = new WeakReference<object>(target ?? throw new ArgumentNullException(nameof(target)));
-        hasTarget = true;
+        this._target = new WeakReference<object>(target ?? throw new ArgumentNullException(nameof(target)));
+        _hasTarget = true;
         Animation = animation ?? throw new ArgumentNullException(nameof(animation));
         WrapMode = wrapMode;
         Speed = speed;
@@ -36,7 +36,7 @@ public class ValueAnimationInfo
 
     public object GetTarget()
     {
-        return hasTarget && target.TryGetTarget(out var value) ? value : null!;
+        return _hasTarget && _target.TryGetTarget(out var value) ? value : null!;
     }
 
     public ValueAnimation GetAnimation() => Animation;
@@ -59,7 +59,7 @@ public class ValueAnimationInfo
 
     public bool Update(float timeStep)
     {
-        if (hasTarget && GetTarget() is null)
+        if (_hasTarget && GetTarget() is null)
             return true;
 
         return SetTime(Time + timeStep * Speed);
@@ -67,7 +67,7 @@ public class ValueAnimationInfo
 
     public bool SetTime(float time)
     {
-        if (hasTarget && GetTarget() is null)
+        if (_hasTarget && GetTarget() is null)
             return true;
 
         Time = time;
@@ -80,11 +80,11 @@ public class ValueAnimationInfo
 
         if (Animation.HasEventFrames())
         {
-            foreach (var frame in GetEventFrames(lastScaledTime, scaledTime))
+            foreach (var frame in GetEventFrames(_lastScaledTime, scaledTime))
                 EventTriggered?.Invoke(frame);
         }
 
-        lastScaledTime = scaledTime;
+        _lastScaledTime = scaledTime;
         return finished;
     }
 

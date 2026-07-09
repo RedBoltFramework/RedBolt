@@ -6,10 +6,10 @@ namespace RedBolt;
 /// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
 public sealed class RawTexture : DeviceObject
 {
-    private RawTextureParams parameters;
-    private SamplerStateDesc samplerStateDesc = new();
-    private Texture? texture;
-    private readonly Dictionary<RawTextureUAVKey, ITextureView> uavs = [];
+    private RawTextureParams _parameters;
+    private SamplerStateDesc _samplerStateDesc = new();
+    private Texture? _texture;
+    private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
 
     public RawTexture()
     {
@@ -26,14 +26,14 @@ public sealed class RawTexture : DeviceObject
     {
         if (!TryCreateManagedTexture(parameters, out var createdTexture, out var finalizedParameters))
         {
-            texture = null;
-            this.parameters = default;
+            _texture = null;
+            this._parameters = default;
             return false;
         }
 
-        texture = createdTexture;
-        this.parameters = finalizedParameters;
-        uavs.Clear();
+        _texture = createdTexture;
+        this._parameters = finalizedParameters;
+        _uavs.Clear();
         ApplySamplerState();
         SetDebugName($"RawTexture #{parameters.GetHashCode():X8}");
         return true;
@@ -42,28 +42,28 @@ public sealed class RawTexture : DeviceObject
     /// <summary>Set default sampler to be used for this texture.</summary>
     public void SetSamplerStateDesc(SamplerStateDesc desc)
     {
-        samplerStateDesc = desc ?? throw new ArgumentNullException(nameof(desc));
+        _samplerStateDesc = desc ?? throw new ArgumentNullException(nameof(desc));
         ApplySamplerState();
     }
 
-    public RawTextureParams GetParams() => parameters;
+    public RawTextureParams GetParams() => _parameters;
 
-    public SamplerStateDesc GetSamplerStateDesc() => samplerStateDesc;
+    public SamplerStateDesc GetSamplerStateDesc() => _samplerStateDesc;
 
-    public Texture? GetTexture() => texture;
+    public Texture? GetTexture() => _texture;
 
     public ITexture? GetHandle()
     {
         var renderDevice = GetRenderDevice();
-        return texture is not null ? renderDevice?.GetTextureHandle(texture) : null;
+        return _texture is not null ? renderDevice?.GetTextureHandle(_texture) : null;
     }
 
     /// <summary>Create UAV for given array slices and mip levels.</summary>
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
-        if (texture is null || !parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
+        if (_texture is null || !_parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
             return null;
-        if (!GetRenderDevice()?.IsUnorderedAccessFormatSupported(parameters.Format) ?? true)
+        if (!GetRenderDevice()?.IsUnorderedAccessFormatSupported(_parameters.Format) ?? true)
             return null;
 
         if (GetUAV(key) is { } cachedView)
@@ -75,7 +75,7 @@ public sealed class RawTexture : DeviceObject
 
         if (GetUAV(effectiveKey) is { } normalizedView)
         {
-            uavs[key] = normalizedView;
+            _uavs[key] = normalizedView;
             return normalizedView;
         }
 
@@ -83,20 +83,20 @@ public sealed class RawTexture : DeviceObject
         if (createdView is null || createdView.IsNull)
             return null;
 
-        uavs[key] = createdView;
-        uavs[effectiveKey] = createdView;
+        _uavs[key] = createdView;
+        _uavs[effectiveKey] = createdView;
         return createdView;
     }
 
     public ITextureView? GetUAV(RawTextureUAVKey key)
     {
-        return uavs.TryGetValue(key, out var view) ? view : null;
+        return _uavs.TryGetValue(key, out var view) ? view : null;
     }
 
     /// <summary>For render target and depth-stencil textures, mark shader resource view dirty.</summary>
     public void MarkDirty()
     {
-        if (texture is null)
+        if (_texture is null)
             return;
 
         RenderTargetView.Texture(this).MarkDirty();
@@ -105,33 +105,33 @@ public sealed class RawTexture : DeviceObject
     public override void Invalidate()
     {
         base.Invalidate();
-        uavs.Clear();
+        _uavs.Clear();
     }
 
     public override void Restore()
     {
         base.Restore();
-        uavs.Clear();
+        _uavs.Clear();
     }
 
     public override void Destroy()
     {
         base.Destroy();
-        uavs.Clear();
-        texture = null;
+        _uavs.Clear();
+        _texture = null;
     }
 
     private void ApplySamplerState()
     {
-        if (texture is null)
+        if (_texture is null)
             return;
 
-        texture.SetFilterMode(samplerStateDesc.FilterMode);
-        texture.SetAddressMode(TextureCoordinate.U, samplerStateDesc[TextureCoordinate.U]);
-        texture.SetAddressMode(TextureCoordinate.V, samplerStateDesc[TextureCoordinate.V]);
-        texture.SetAddressMode(TextureCoordinate.W, samplerStateDesc[TextureCoordinate.W]);
-        texture.SetAnisotropy(samplerStateDesc.Anisotropy);
-        texture.SetShadowCompare(samplerStateDesc.ShadowCompare);
+        _texture.SetFilterMode(_samplerStateDesc.FilterMode);
+        _texture.SetAddressMode(TextureCoordinate.U, _samplerStateDesc[TextureCoordinate.U]);
+        _texture.SetAddressMode(TextureCoordinate.V, _samplerStateDesc[TextureCoordinate.V]);
+        _texture.SetAddressMode(TextureCoordinate.W, _samplerStateDesc[TextureCoordinate.W]);
+        _texture.SetAnisotropy(_samplerStateDesc.Anisotropy);
+        _texture.SetShadowCompare(_samplerStateDesc.ShadowCompare);
     }
 
     private static bool TryCreateManagedTexture(RawTextureParams parameters, out Texture createdTexture, out RawTextureParams finalizedParameters)
@@ -219,19 +219,19 @@ public sealed class RawTexture : DeviceObject
     {
         if (!key.CanRead && !key.CanWrite)
             return false;
-        if (key.FirstSlice >= parameters.ArraySize)
+        if (key.FirstSlice >= _parameters.ArraySize)
             return false;
-        if (key.FirstLevel >= parameters.NumLevelsRtv)
+        if (key.FirstLevel >= _parameters.NumLevelsRtv)
             return false;
 
         if (key.NumLevels == 0u)
-            key = key with { NumLevels = parameters.NumLevelsRtv - key.FirstLevel };
+            key = key with { NumLevels = _parameters.NumLevelsRtv - key.FirstLevel };
         if (key.NumSlices == 0u)
-            key = key with { NumSlices = parameters.ArraySize - key.FirstSlice };
+            key = key with { NumSlices = _parameters.ArraySize - key.FirstSlice };
 
-        if (key.FirstSlice + key.NumSlices > parameters.ArraySize)
+        if (key.FirstSlice + key.NumSlices > _parameters.ArraySize)
             return false;
-        if (key.FirstLevel + key.NumLevels > parameters.NumLevelsRtv)
+        if (key.FirstLevel + key.NumLevels > _parameters.NumLevelsRtv)
             return false;
 
         return true;

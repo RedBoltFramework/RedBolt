@@ -5,59 +5,59 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class EngineTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public EngineTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Fps_helpers_roundtrip()
     {
-        fixture.Engine.SetMinFps(0);
-        fixture.Engine.SetMaxFps(144);
-        fixture.Engine.SetMaxInactiveFps(30);
-        fixture.Engine.SetTimeStepSmoothing(0);
-        fixture.Engine.SetPauseMinimized(false);
-        fixture.Engine.SetAutoExit(false);
+        _fixture.Engine.SetMinFps(0);
+        _fixture.Engine.SetMaxFps(144);
+        _fixture.Engine.SetMaxInactiveFps(30);
+        _fixture.Engine.SetTimeStepSmoothing(0);
+        _fixture.Engine.SetPauseMinimized(false);
+        _fixture.Engine.SetAutoExit(false);
 
-        Assert.Equal(0, fixture.Engine.GetMinFps());
-        Assert.Equal(144, fixture.Engine.GetMaxFps());
-        Assert.Equal(30, fixture.Engine.GetMaxInactiveFps());
-        Assert.Equal(1, fixture.Engine.GetTimeStepSmoothing());
-        Assert.False(fixture.Engine.GetPauseMinimized());
-        Assert.False(fixture.Engine.GetAutoExit());
+        Assert.Equal(0, _fixture.Engine.GetMinFps());
+        Assert.Equal(144, _fixture.Engine.GetMaxFps());
+        Assert.Equal(30, _fixture.Engine.GetMaxInactiveFps());
+        Assert.Equal(1, _fixture.Engine.GetTimeStepSmoothing());
+        Assert.False(_fixture.Engine.GetPauseMinimized());
+        Assert.False(_fixture.Engine.GetAutoExit());
     }
 
     [Fact]
     public void Parameter_helpers_roundtrip()
     {
-        fixture.Engine.SetParameter("CustomParameter", 42);
-        Assert.True(fixture.Engine.HasParameter("CustomParameter"));
-        Assert.Equal(42, fixture.Engine.GetParameter("CustomParameter"));
+        _fixture.Engine.SetParameter("CustomParameter", 42);
+        Assert.True(_fixture.Engine.HasParameter("CustomParameter"));
+        Assert.Equal(42, _fixture.Engine.GetParameter("CustomParameter"));
     }
 
     [Fact]
     public void Time_step_helpers_work()
     {
-        fixture.Engine.SetNextTimeStep(0.125f);
+        _fixture.Engine.SetNextTimeStep(0.125f);
         var observed = -1.0f;
-        var before = fixture.Engine.GetNextTimeStep();
-        fixture.Engine.RunFrame(timeStep => observed = timeStep);
+        var before = _fixture.Engine.GetNextTimeStep();
+        _fixture.Engine.RunFrame(timeStep => observed = timeStep);
 
         Assert.True(MathDefs.ApproximatelyEquivalent(observed, 0.125f));
         Assert.True(MathDefs.ApproximatelyEquivalent(before, 0.125f));
-        Assert.True(fixture.Engine.GetNextTimeStep() >= 0.0f);
+        Assert.True(_fixture.Engine.GetNextTimeStep() >= 0.0f);
 
-        fixture.Time.SetTimerPeriod(1u);
-        Assert.Equal(1u, fixture.Time.GetFrameNumber());
-        Assert.Equal(1u, fixture.Time.GetTimerPeriod());
+        _fixture.Time.SetTimerPeriod(1u);
+        Assert.Equal(1u, _fixture.Time.GetFrameNumber());
+        Assert.Equal(1u, _fixture.Time.GetTimerPeriod());
 
         // Frame timing from the same RunFrame call.
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetTimeStep(), 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetElapsedTime(), 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(fixture.Time.GetFramesPerSecond(), 8.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(_fixture.Time.GetTimeStep(), 0.125f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(_fixture.Time.GetElapsedTime(), 0.125f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(_fixture.Time.GetFramesPerSecond(), 8.0f));
     }
 
     [Fact]

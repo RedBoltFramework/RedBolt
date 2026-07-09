@@ -5,11 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RawBufferTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RawBufferTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class RawBufferTests
     [Fact]
     public void Render_pool_caches_quantized_uniform_buffers()
     {
-        var renderPool = fixture.RenderDevice.GetRenderPool();
+        var renderPool = _fixture.RenderDevice.GetRenderPool();
 
         var first = renderPool.GetUniformBuffer(3u, 513u);
         var second = renderPool.GetUniformBuffer(3u, 600u);
@@ -60,7 +60,7 @@ public sealed class RawBufferTests
             Assert.False(buffer.GetHandle()!.IsNull);
             Assert.Equal(payload, buffer.GetShadowData());
 
-            Assert.True(fixture.RenderDevice.EmulateLossAndRestore());
+            Assert.True(_fixture.RenderDevice.EmulateLossAndRestore());
             Assert.NotNull(buffer.GetHandle());
             Assert.False(buffer.GetHandle()!.IsNull);
             Assert.Equal(payload, buffer.GetShadowData());
@@ -77,16 +77,16 @@ public sealed class RawBufferTests
             WindowHeight = 64
         };
 
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
         }
     }
 }

@@ -33,29 +33,29 @@ public sealed class WorkItem
 
 public sealed class WorkQueue : Object
 {
-    private static uint threadIndexCount = 1;
-    private static WorkQueue? workQueue;
+    private static uint _threadIndexCount = 1;
+    private static WorkQueue? _workQueue;
 
-    private uint numProcessingThreads;
+    private uint _numProcessingThreads;
 
-    private readonly List<(TaskPriority Priority, TaskFunctionDelegate? Task)> fallbackTaskQueue = [];
+    private readonly List<(TaskPriority Priority, TaskFunctionDelegate? Task)> _fallbackTaskQueue = [];
 
-    private List<TaskFunctionDelegate> mainThreadTasks = [];
-    private List<TaskFunctionDelegate> mainThreadTasksSwap = [];
-    private readonly object mainThreadTasksLock = new();
+    private List<TaskFunctionDelegate> _mainThreadTasks = [];
+    private List<TaskFunctionDelegate> _mainThreadTasksSwap = [];
+    private readonly object _mainThreadTasksLock = new();
 
-    private int maxNonThreadedWorkMs = 5;
+    private int _maxNonThreadedWorkMs = 5;
 
-    private int pendingTaskCount;
+    private int _pendingTaskCount;
 
-    private List<List<TaskFunctionDelegate>> pendingImmediateTasks = [];
+    private List<List<TaskFunctionDelegate>> _pendingImmediateTasks = [];
 
     public WorkQueue()
     {
-        if (workQueue == null)
+        if (_workQueue == null)
         {
-            threadIndexCount = 1;
-            workQueue = this;
+            _threadIndexCount = 1;
+            _workQueue = this;
         }
 
         SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent _) => Update());
@@ -63,24 +63,24 @@ public sealed class WorkQueue : Object
 
     public void Initialize(uint numThreads)
     {
-        if (numProcessingThreads > 0)
+        if (_numProcessingThreads > 0)
             return;
 
-        numProcessingThreads = numThreads + 1;
-        threadIndexCount = 1;
+        _numProcessingThreads = numThreads + 1;
+        _threadIndexCount = 1;
 
         if (numThreads > 0)
         {
-            ThreadPool.SetMinThreads((int)numProcessingThreads, (int)numProcessingThreads);
+            ThreadPool.SetMinThreads((int)_numProcessingThreads, (int)_numProcessingThreads);
 
-            for (var i = 1u; i < numProcessingThreads; ++i)
+            for (var i = 1u; i < _numProcessingThreads; ++i)
             {
                 PostTaskForThread(_ => { }, TaskPriority.Immediate, i);
             }
 
             CompleteAll();
 
-            threadIndexCount = numProcessingThreads;
+            _threadIndexCount = _numProcessingThreads;
         }
     }
 
@@ -111,17 +111,17 @@ public sealed class WorkQueue : Object
             return;
         }
 
-        if (numProcessingThreads > 1)
+        if (_numProcessingThreads > 1)
         {
             if (priority == TaskPriority.Immediate)
             {
                 var threadIndex = (int)GetThreadIndex();
                 EnsurePendingImmediateSize(threadIndex + 1);
-                pendingImmediateTasks[threadIndex].Add(task);
+                _pendingImmediateTasks[threadIndex].Add(task);
             }
             else
             {
-                Interlocked.Increment(ref pendingTaskCount);
+                Interlocked.Increment(ref _pendingTaskCount);
                 ThreadPool.UnsafeQueueUserWorkItem(_ =>
                 {
                     try
@@ -130,7 +130,7 @@ public sealed class WorkQueue : Object
                     }
                     finally
                     {
-                        Interlocked.Decrement(ref pendingTaskCount);
+                        Interlocked.Decrement(ref _pendingTaskCount);
                     }
                 }, null);
             }
@@ -140,7 +140,7 @@ public sealed class WorkQueue : Object
         if (priority == TaskPriority.Immediate)
             task(0, this);
         else
-            fallbackTaskQueue.Add((priority, task));
+            _fallbackTaskQueue.Add((priority, task));
     }
 
     public void PostTaskForThread(Action<int> task, TaskPriority priority, uint threadIndex)
@@ -166,9 +166,9 @@ public sealed class WorkQueue : Object
             return;
         }
 
-        if (numProcessingThreads > 1)
+        if (_numProcessingThreads > 1)
         {
-            Interlocked.Increment(ref pendingTaskCount);
+            Interlocked.Increment(ref _pendingTaskCount);
             ThreadPool.UnsafeQueueUserWorkItem(_ =>
             {
                 try
@@ -177,7 +177,7 @@ public sealed class WorkQueue : Object
                 }
                 finally
                 {
-                    Interlocked.Decrement(ref pendingTaskCount);
+                    Interlocked.Decrement(ref _pendingTaskCount);
                 }
             }, null);
             return;
@@ -186,7 +186,7 @@ public sealed class WorkQueue : Object
         if (priority == TaskPriority.Immediate)
             task(0, this);
         else
-            fallbackTaskQueue.Add((priority, task));
+            _fallbackTaskQueue.Add((priority, task));
     }
 
     public void PostTaskForMainThread(Action<int> task, TaskPriority priority = TaskPriority.Medium)
@@ -201,7 +201,7 @@ public sealed class WorkQueue : Object
 
     public void PostTaskForMainThread(TaskFunctionDelegate task, TaskPriority priority = TaskPriority.Medium)
     {
-        if (numProcessingThreads > 1 && IsProcessingThread())
+        if (_numProcessingThreads > 1 && IsProcessingThread())
         {
             PostTaskForThread(task, priority, 0);
             return;
@@ -225,19 +225,19 @@ public sealed class WorkQueue : Object
 
     public void PostDelayedTaskForMainThread(TaskFunctionDelegate task)
     {
-        lock (mainThreadTasksLock)
+        lock (_mainThreadTasksLock)
         {
-            mainThreadTasks.Add(task);
+            _mainThreadTasks.Add(task);
         }
     }
 
     public void CompleteImmediateForThisThread()
     {
-        if (numProcessingThreads > 1)
+        if (_numProcessingThreads > 1)
         {
             var threadIndex = (int)GetThreadIndex();
             EnsurePendingImmediateSize(threadIndex + 1);
-            var pending = pendingImmediateTasks[threadIndex];
+            var pending = _pendingImmediateTasks[threadIndex];
             if (pending.Count > 0)
             {
                 var tasksToRun = pending.ToArray();
@@ -252,16 +252,16 @@ public sealed class WorkQueue : Object
     {
         CompleteImmediateForThisThread();
 
-        while (Interlocked.CompareExchange(ref pendingTaskCount, 0, 0) > 0)
+        while (Interlocked.CompareExchange(ref _pendingTaskCount, 0, 0) > 0)
         {
             Thread.Sleep(0);
         }
 
-        if (fallbackTaskQueue.Count > 0)
+        if (_fallbackTaskQueue.Count > 0)
         {
-            foreach (var (_, task) in fallbackTaskQueue)
+            foreach (var (_, task) in _fallbackTaskQueue)
                 task?.Invoke(0, this);
-            fallbackTaskQueue.Clear();
+            _fallbackTaskQueue.Clear();
         }
 
         while (ProcessMainThreadTasks())
@@ -271,9 +271,9 @@ public sealed class WorkQueue : Object
 
     public uint GetNumIncomplete()
     {
-        var result = (uint)fallbackTaskQueue.Count;
-        result += (uint)Volatile.Read(ref pendingTaskCount);
-        foreach (var pending in pendingImmediateTasks)
+        var result = (uint)_fallbackTaskQueue.Count;
+        result += (uint)Volatile.Read(ref _pendingTaskCount);
+        foreach (var pending in _pendingImmediateTasks)
             result += (uint)pending.Count;
         return result;
     }
@@ -285,37 +285,37 @@ public sealed class WorkQueue : Object
 
     public void SetNonThreadedWorkMs(int ms)
     {
-        maxNonThreadedWorkMs = Math.Max(ms, 1);
+        _maxNonThreadedWorkMs = Math.Max(ms, 1);
     }
 
     public int GetNonThreadedWorkMs()
     {
-        return maxNonThreadedWorkMs;
+        return _maxNonThreadedWorkMs;
     }
 
     public uint GetNumProcessingThreads()
     {
-        return numProcessingThreads;
+        return _numProcessingThreads;
     }
 
     public bool IsMultithreaded()
     {
-        return numProcessingThreads > 1;
+        return _numProcessingThreads > 1;
     }
 
     public static uint GetThreadIndex()
     {
-        return workQueue?.GetThreadIndexImpl() ?? 0;
+        return _workQueue?.GetThreadIndexImpl() ?? 0;
     }
 
     public static uint GetThreadIndexCount()
     {
-        return threadIndexCount;
+        return _threadIndexCount;
     }
 
     public static bool IsProcessingThread()
     {
-        return GetThreadIndex() < threadIndexCount;
+        return GetThreadIndex() < _threadIndexCount;
     }
 
     [Obsolete("Use PostTaskForMainThread instead.")]
@@ -367,61 +367,61 @@ public sealed class WorkQueue : Object
 
     private uint GetThreadIndexImpl()
     {
-        if (numProcessingThreads <= 1)
+        if (_numProcessingThreads <= 1)
             return Thread.CurrentThread.ManagedThreadId == GetMainThreadId() ? 0u : uint.MaxValue;
 
         return Thread.CurrentThread.ManagedThreadId == GetMainThreadId()
             ? 0u
-            : (uint)(Math.Abs(Thread.CurrentThread.ManagedThreadId) % (int)numProcessingThreads);
+            : (uint)(Math.Abs(Thread.CurrentThread.ManagedThreadId) % (int)_numProcessingThreads);
     }
 
     private void ProcessPostedTasks()
     {
-        if (fallbackTaskQueue.Count > 0)
+        if (_fallbackTaskQueue.Count > 0)
         {
             var timer = Stopwatch.StartNew();
-            var budget = maxNonThreadedWorkMs * 1000L;
-            for (var i = 0; i < fallbackTaskQueue.Count; ++i)
+            var budget = _maxNonThreadedWorkMs * 1000L;
+            for (var i = 0; i < _fallbackTaskQueue.Count; ++i)
             {
                 if (timer.ElapsedTicks * 1_000_000L / Stopwatch.Frequency >= budget)
                     break;
 
-                var task = fallbackTaskQueue[i].Task;
+                var task = _fallbackTaskQueue[i].Task;
                 if (task != null)
                 {
                     task(0, this);
-                    fallbackTaskQueue[i] = (fallbackTaskQueue[i].Priority, null);
+                    _fallbackTaskQueue[i] = (_fallbackTaskQueue[i].Priority, null);
                 }
             }
 
-            fallbackTaskQueue.RemoveAll(static t => t.Task == null);
+            _fallbackTaskQueue.RemoveAll(static t => t.Task == null);
         }
     }
 
     private bool ProcessMainThreadTasks()
     {
-        lock (mainThreadTasksLock)
+        lock (_mainThreadTasksLock)
         {
-            (mainThreadTasks, mainThreadTasksSwap) = (mainThreadTasksSwap, mainThreadTasks);
+            (_mainThreadTasks, _mainThreadTasksSwap) = (_mainThreadTasksSwap, _mainThreadTasks);
         }
 
-        foreach (var callback in mainThreadTasksSwap)
+        foreach (var callback in _mainThreadTasksSwap)
             callback(0, this);
 
-        var nothingToRun = mainThreadTasksSwap.Count == 0;
-        mainThreadTasksSwap.Clear();
+        var nothingToRun = _mainThreadTasksSwap.Count == 0;
+        _mainThreadTasksSwap.Clear();
 
         return !nothingToRun;
     }
 
     private void EnsurePendingImmediateSize(int size)
     {
-        while (pendingImmediateTasks.Count < size)
+        while (_pendingImmediateTasks.Count < size)
         {
-            lock (pendingImmediateTasks)
+            lock (_pendingImmediateTasks)
             {
-                while (pendingImmediateTasks.Count < size)
-                    pendingImmediateTasks.Add([]);
+                while (_pendingImmediateTasks.Count < size)
+                    _pendingImmediateTasks.Add([]);
             }
         }
     }
@@ -433,12 +433,12 @@ public sealed class WorkQueue : Object
             : (TaskPriority)((uint)TaskPriority.Low - Math.Min(priority, 2u));
     }
 
-    private static int mainThreadId = -1;
+    private static int _mainThreadId = -1;
 
     internal static void SetMainThread()
     {
-        mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        _mainThreadId = Thread.CurrentThread.ManagedThreadId;
     }
 
-    internal static int GetMainThreadId() => mainThreadId;
+    internal static int GetMainThreadId() => _mainThreadId;
 }

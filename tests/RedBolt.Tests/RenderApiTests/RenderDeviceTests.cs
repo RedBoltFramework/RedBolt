@@ -5,20 +5,20 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderDeviceTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RenderDeviceTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Render_device_is_registered_as_engine_subsystem()
     {
-        Assert.Same(fixture.RenderDevice, fixture.Context.GetSubsystem<RenderDevice>());
-        Assert.Same(fixture.RenderContext, fixture.RenderDevice.GetRenderContext());
-        Assert.NotNull(fixture.RenderDevice.GetRenderPool());
-        Assert.NotNull(fixture.RenderDevice.GetDefaultQueue());
+        Assert.Same(_fixture.RenderDevice, _fixture.Context.GetSubsystem<RenderDevice>());
+        Assert.Same(_fixture.RenderContext, _fixture.RenderDevice.GetRenderContext());
+        Assert.NotNull(_fixture.RenderDevice.GetRenderPool());
+        Assert.NotNull(_fixture.RenderDevice.GetDefaultQueue());
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Render_pool_exposes_rbfx_style_default_settings_surface()
     {
-        var settings = fixture.RenderDevice.GetRenderPool().Settings;
+        var settings = _fixture.RenderDevice.GetRenderPool().Settings;
 
         Assert.Equal(1u, settings.TextureCacheMinFrames);
         Assert.Equal(1000u, settings.TextureCacheMaxFrames);

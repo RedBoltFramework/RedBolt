@@ -2,8 +2,8 @@ namespace RedBolt;
 
 public abstract class LogicComponent : Component, ISceneUpdateListener
 {
-    private UpdateEvent updateEventMask = UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate | UpdateEvent.UseFixedUpdate | UpdateEvent.UseFixedPostUpdate;
-    private bool delayedStartCalled;
+    private UpdateEvent _updateEventMask = UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate | UpdateEvent.UseFixedUpdate | UpdateEvent.UseFixedPostUpdate;
+    private bool _delayedStartCalled;
 
     public virtual void Start()
     {
@@ -35,12 +35,12 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
 
     public void SetUpdateEventMask(UpdateEvent mask)
     {
-        updateEventMask = mask;
+        _updateEventMask = mask;
     }
 
-    public UpdateEvent GetUpdateEventMask() => updateEventMask;
+    public UpdateEvent GetUpdateEventMask() => _updateEventMask;
 
-    public bool IsDelayedStartCalled() => delayedStartCalled;
+    public bool IsDelayedStartCalled() => _delayedStartCalled;
 
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
@@ -55,19 +55,19 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
         if (!IsEnabledEffective)
             return;
 
-        if (!delayedStartCalled)
+        if (!_delayedStartCalled)
         {
             DelayedStart();
-            delayedStartCalled = true;
+            _delayedStartCalled = true;
         }
 
-        if ((updateEventMask & UpdateEvent.UseUpdate) != 0)
+        if ((_updateEventMask & UpdateEvent.UseUpdate) != 0)
             Update(timeStep);
     }
 
     void ISceneUpdateListener.OnScenePostUpdate(float timeStep)
     {
-        if (IsEnabledEffective && (updateEventMask & UpdateEvent.UsePostUpdate) != 0)
+        if (IsEnabledEffective && (_updateEventMask & UpdateEvent.UsePostUpdate) != 0)
             PostUpdate(timeStep);
     }
 }

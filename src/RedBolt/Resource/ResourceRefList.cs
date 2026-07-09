@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class ResourceRefList : IEquatable<ResourceRefList>
 {
-    private readonly List<string> names = [];
+    private readonly List<string> _names = [];
 
     public ResourceRefList(uint type)
         : this(type, [])
@@ -13,12 +13,12 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
     {
         ArgumentNullException.ThrowIfNull(names);
         Type = type;
-        this.names.AddRange(names);
+        this._names.AddRange(names);
     }
 
     public static ResourceRefList Empty { get; } = new(0u);
 
-    public IReadOnlyList<string> Names => names;
+    public IReadOnlyList<string> Names => _names;
 
     public uint Type { get; }
 
@@ -46,7 +46,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
         {
             var hash = 2166136261u;
             hash = (hash ^ Type) * 16777619u;
-            foreach (var name in names)
+            foreach (var name in _names)
                 hash = (hash ^ StringHash.Calculate(name)) * 16777619u;
             return hash;
         }
@@ -54,7 +54,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 
     public bool Equals(ResourceRefList? other)
     {
-        return other is not null && Type == other.Type && names.SequenceEqual(other.names);
+        return other is not null && Type == other.Type && _names.SequenceEqual(other._names);
     }
 
     public override bool Equals(object? obj)
@@ -66,6 +66,6 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 
     public override string ToString()
     {
-        return Type == 0u ? string.Join(',', names) : $"{Type};{string.Join(',', names)}";
+        return Type == 0u ? string.Join(',', _names) : $"{Type};{string.Join(',', _names)}";
     }
 }

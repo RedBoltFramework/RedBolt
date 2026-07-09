@@ -419,7 +419,7 @@ public readonly record struct VertexShaderAttribute(VertexElementSemantic Semant
 /// <summary>Description of immutable texture sampler bound to the pipeline.</summary>
 public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
 {
-    private readonly TextureAddressMode[] addressModes = [TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap];
+    private readonly TextureAddressMode[] _addressModes = [TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap];
 
     public TextureFilterMode FilterMode { get; set; } = TextureFilterMode.Default;
 
@@ -433,8 +433,8 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
 
     public TextureAddressMode this[TextureCoordinate coordinate]
     {
-        get => addressModes[(int)coordinate];
-        set => addressModes[(int)coordinate] = value;
+        get => _addressModes[(int)coordinate];
+        set => _addressModes[(int)coordinate] = value;
     }
 
     public static SamplerStateDesc Default(TextureAddressMode addressMode = TextureAddressMode.Clamp) => Create(TextureFilterMode.Default, addressMode);
@@ -453,7 +453,7 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
         return FilterMode == other.FilterMode
             && Anisotropy == other.Anisotropy
             && ShadowCompare == other.ShadowCompare
-            && addressModes.SequenceEqual(other.addressModes)
+            && _addressModes.SequenceEqual(other._addressModes)
             && MinLod.Equals(other.MinLod)
             && MaxLod.Equals(other.MaxLod);
     }
@@ -466,7 +466,7 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
         hash.Add(FilterMode);
         hash.Add(Anisotropy);
         hash.Add(ShadowCompare);
-        foreach (var addressMode in addressModes)
+        foreach (var addressMode in _addressModes)
             hash.Add(addressMode);
         hash.Add(MinLod);
         hash.Add(MaxLod);
@@ -558,7 +558,7 @@ public readonly record struct InputLayoutElementDesc(
 /// <summary>Description of input layout of graphics pipeline state.</summary>
 public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 {
-    private readonly InputLayoutElementDesc[] elements = new InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
+    private readonly InputLayoutElementDesc[] _elements = new InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
 
     public InputLayoutDesc()
     {
@@ -572,11 +572,11 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 
     public uint Size { get; private set; }
 
-    public ReadOnlySpan<InputLayoutElementDesc> Elements => elements.AsSpan(0, checked((int)Size));
+    public ReadOnlySpan<InputLayoutElementDesc> Elements => _elements.AsSpan(0, checked((int)Size));
 
     public void Clear()
     {
-        Array.Clear(elements, 0, elements.Length);
+        Array.Clear(_elements, 0, _elements.Length);
         Size = 0;
     }
 
@@ -586,8 +586,8 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
         if (value.Length > RenderApiLimits.MaxNumVertexElements)
             throw new ArgumentOutOfRangeException(nameof(value));
 
-        Array.Clear(elements, 0, elements.Length);
-        Array.Copy(value, elements, value.Length);
+        Array.Clear(_elements, 0, _elements.Length);
+        Array.Copy(value, _elements, value.Length);
         Size = (uint)value.Length;
     }
 
@@ -598,7 +598,7 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 
         for (var i = 0; i < Size; ++i)
         {
-            if (elements[i] != other.elements[i])
+            if (_elements[i] != other._elements[i])
                 return false;
         }
 
@@ -612,7 +612,7 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
         var hash = new HashCode();
         hash.Add(Size);
         for (var i = 0; i < Size; ++i)
-            hash.Add(elements[i]);
+            hash.Add(_elements[i]);
         return hash.ToHashCode();
     }
 }
@@ -622,8 +622,8 @@ public readonly record struct NamedSamplerStateDesc(StringHash Name, SamplerStat
 /// <summary>Description of immutable texture samplers used by the pipeline.</summary>
 public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 {
-    private readonly StringHash[] names = new StringHash[RenderApiLimits.MaxNumImmutableSamplers];
-    private readonly SamplerStateDesc[] desc = new SamplerStateDesc[RenderApiLimits.MaxNumImmutableSamplers];
+    private readonly StringHash[] _names = new StringHash[RenderApiLimits.MaxNumImmutableSamplers];
+    private readonly SamplerStateDesc[] _desc = new SamplerStateDesc[RenderApiLimits.MaxNumImmutableSamplers];
 
     public ImmutableSamplersDesc()
     {
@@ -635,20 +635,20 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
             return;
 
         for (var i = 0; i < other.Size; ++i)
-            Add(other.names[i], other.desc[i]);
+            Add(other._names[i], other._desc[i]);
     }
 
     public uint Size { get; private set; }
 
-    public ReadOnlySpan<StringHash> Names => names.AsSpan(0, checked((int)Size));
+    public ReadOnlySpan<StringHash> Names => _names.AsSpan(0, checked((int)Size));
 
-    public ReadOnlySpan<SamplerStateDesc> Descriptions => desc.AsSpan(0, checked((int)Size));
+    public ReadOnlySpan<SamplerStateDesc> Descriptions => _desc.AsSpan(0, checked((int)Size));
 
     /// <summary>Clear the collection.</summary>
     public void Clear()
     {
-        Array.Clear(names, 0, names.Length);
-        Array.Clear(desc, 0, desc.Length);
+        Array.Clear(_names, 0, _names.Length);
+        Array.Clear(_desc, 0, _desc.Length);
         Size = 0;
     }
 
@@ -659,8 +659,8 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
         if (Size >= RenderApiLimits.MaxNumImmutableSamplers)
             throw new InvalidOperationException("Too many immutable samplers.");
 
-        names[Size] = name;
-        desc[Size] = CloneSamplerStateDesc(samplerDesc);
+        _names[Size] = name;
+        _desc[Size] = CloneSamplerStateDesc(samplerDesc);
         ++Size;
     }
 
@@ -676,7 +676,7 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 
         for (var i = 0; i < Size; ++i)
         {
-            if (names[i] != other.names[i] || !desc[i].Equals(other.desc[i]))
+            if (_names[i] != other._names[i] || !_desc[i].Equals(other._desc[i]))
                 return false;
         }
 
@@ -691,8 +691,8 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
         hash.Add(Size);
         for (var i = 0; i < Size; ++i)
         {
-            hash.Add(names[i]);
-            hash.Add(desc[i]);
+            hash.Add(_names[i]);
+            hash.Add(_desc[i]);
         }
 
         return hash.ToHashCode();
@@ -718,7 +718,7 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 /// <summary>Description of pipeline state output (depth-stencil and render targets).</summary>
 public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc>
 {
-    private readonly TextureFormat[] renderTargetFormats = new TextureFormat[RenderApiLimits.MaxRenderTargets];
+    private readonly TextureFormat[] _renderTargetFormats = new TextureFormat[RenderApiLimits.MaxRenderTargets];
 
     public PipelineStateOutputDesc()
     {
@@ -740,18 +740,18 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
 
     public uint MultiSample { get; set; } = 1u;
 
-    public ReadOnlySpan<TextureFormat> RenderTargetFormats => renderTargetFormats.AsSpan(0, checked((int)NumRenderTargets));
+    public ReadOnlySpan<TextureFormat> RenderTargetFormats => _renderTargetFormats.AsSpan(0, checked((int)NumRenderTargets));
 
     public void ClearRenderTargetFormats()
     {
-        Array.Clear(renderTargetFormats, 0, renderTargetFormats.Length);
+        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
         NumRenderTargets = 0u;
     }
 
     public void SetRenderTargetFormat(TextureFormat format)
     {
-        Array.Clear(renderTargetFormats, 0, renderTargetFormats.Length);
-        renderTargetFormats[0] = format;
+        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
+        _renderTargetFormats[0] = format;
         NumRenderTargets = 1u;
     }
 
@@ -760,8 +760,8 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
         if (formats.Length > RenderApiLimits.MaxRenderTargets)
             throw new ArgumentOutOfRangeException(nameof(formats), $"At most {RenderApiLimits.MaxRenderTargets} render targets are supported.");
 
-        Array.Clear(renderTargetFormats, 0, renderTargetFormats.Length);
-        formats.CopyTo(renderTargetFormats);
+        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
+        formats.CopyTo(_renderTargetFormats);
         NumRenderTargets = (uint)formats.Length;
     }
 
@@ -778,7 +778,7 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
         hash.Add(NumRenderTargets);
         hash.Add(MultiSample);
         for (var i = 0; i < NumRenderTargets; ++i)
-            hash.Add(renderTargetFormats[i]);
+            hash.Add(_renderTargetFormats[i]);
         return unchecked((uint)hash.ToHashCode());
     }
 
@@ -795,7 +795,7 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
 
         for (var i = 0; i < NumRenderTargets; ++i)
         {
-            if (renderTargetFormats[i] != other.renderTargetFormats[i])
+            if (_renderTargetFormats[i] != other._renderTargetFormats[i])
                 return false;
         }
 
@@ -1093,9 +1093,9 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
 
 public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
 {
-    private readonly GraphicsPipelineStateDesc? graphicsDesc;
-    private readonly ComputePipelineStateDesc? computeDesc;
-    private readonly uint hash;
+    private readonly GraphicsPipelineStateDesc? _graphicsDesc;
+    private readonly ComputePipelineStateDesc? _computeDesc;
+    private readonly uint _hash;
 
     public PipelineStateDesc()
     {
@@ -1104,36 +1104,36 @@ public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
     public PipelineStateDesc(GraphicsPipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
-        graphicsDesc = new GraphicsPipelineStateDesc(desc);
-        hash = graphicsDesc.ToHash();
+        _graphicsDesc = new GraphicsPipelineStateDesc(desc);
+        _hash = _graphicsDesc.ToHash();
     }
 
     public PipelineStateDesc(ComputePipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
-        computeDesc = new ComputePipelineStateDesc(desc);
-        hash = computeDesc.ToHash();
+        _computeDesc = new ComputePipelineStateDesc(desc);
+        _hash = _computeDesc.ToHash();
     }
 
-    public uint ToHash() => hash;
+    public uint ToHash() => _hash;
 
-    public PipelineStateType GetPipelineType() => computeDesc is not null ? PipelineStateType.Compute : PipelineStateType.Graphics;
+    public PipelineStateType GetPipelineType() => _computeDesc is not null ? PipelineStateType.Compute : PipelineStateType.Graphics;
 
-    public string GetDebugName() => graphicsDesc?.DebugName ?? computeDesc?.DebugName ?? string.Empty;
+    public string GetDebugName() => _graphicsDesc?.DebugName ?? _computeDesc?.DebugName ?? string.Empty;
 
-    public GraphicsPipelineStateDesc? AsGraphics() => graphicsDesc is not null ? new GraphicsPipelineStateDesc(graphicsDesc) : null;
+    public GraphicsPipelineStateDesc? AsGraphics() => _graphicsDesc is not null ? new GraphicsPipelineStateDesc(_graphicsDesc) : null;
 
-    public ComputePipelineStateDesc? AsCompute() => computeDesc is not null ? new ComputePipelineStateDesc(computeDesc) : null;
+    public ComputePipelineStateDesc? AsCompute() => _computeDesc is not null ? new ComputePipelineStateDesc(_computeDesc) : null;
 
     public bool Equals(PipelineStateDesc? other)
     {
         if (other is null)
             return false;
 
-        return hash == other.hash
+        return _hash == other._hash
             && GetPipelineType() == other.GetPipelineType()
-            && Equals(graphicsDesc, other.graphicsDesc)
-            && Equals(computeDesc, other.computeDesc);
+            && Equals(_graphicsDesc, other._graphicsDesc)
+            && Equals(_computeDesc, other._computeDesc);
     }
 
     public override bool Equals(object? obj) => Equals(obj as PipelineStateDesc);
@@ -1141,10 +1141,10 @@ public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
     public override int GetHashCode()
     {
         var hashCode = new HashCode();
-        hashCode.Add(hash);
+        hashCode.Add(_hash);
         hashCode.Add(GetPipelineType());
-        hashCode.Add(graphicsDesc);
-        hashCode.Add(computeDesc);
+        hashCode.Add(_graphicsDesc);
+        hashCode.Add(_computeDesc);
         return hashCode.ToHashCode();
     }
 }

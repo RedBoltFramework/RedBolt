@@ -2,67 +2,67 @@ namespace RedBolt;
 
 public class AttributeAnimationInfo : ValueAnimationInfo
 {
-    private readonly Animatable animatable;
-    private readonly AttributeInfo attributeInfo;
+    private readonly Animatable _animatable;
+    private readonly AttributeInfo _attributeInfo;
 
     public AttributeAnimationInfo(Animatable animatable, AttributeInfo attributeInfo, ValueAnimation attributeAnimation, WrapMode wrapMode, float speed)
         : base(animatable, attributeAnimation, wrapMode, speed)
     {
-        this.animatable = animatable;
-        this.attributeInfo = attributeInfo;
+        this._animatable = animatable;
+        this._attributeInfo = attributeInfo;
     }
 
     public AttributeAnimationInfo(AttributeAnimationInfo other)
-        : this(other.animatable, other.attributeInfo, other.Animation, other.GetWrapMode(), other.GetSpeed())
+        : this(other._animatable, other._attributeInfo, other.Animation, other.GetWrapMode(), other.GetSpeed())
     {
     }
 
-    public AttributeInfo GetAttributeInfo() => attributeInfo;
+    public AttributeInfo GetAttributeInfo() => _attributeInfo;
 
     protected override void ApplyValue(object? newValue)
     {
-        animatable.SetAttribute(attributeInfo.Name, newValue);
+        _animatable.SetAttribute(_attributeInfo.Name, newValue);
     }
 }
 
 public class Animatable : Serializable
 {
-    private readonly Dictionary<string, AttributeAnimationInfo> attributeAnimationInfos = new(StringComparer.Ordinal);
-    private readonly HashSet<string> objectAnimationAttributeNames = new(StringComparer.Ordinal);
-    private bool animationEnabled = true;
-    private ObjectAnimation? objectAnimation;
+    private readonly Dictionary<string, AttributeAnimationInfo> _attributeAnimationInfos = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _objectAnimationAttributeNames = new(StringComparer.Ordinal);
+    private bool _animationEnabled = true;
+    private ObjectAnimation? _objectAnimation;
 
     public void SetAnimationEnabled(bool enable)
     {
-        animationEnabled = enable;
+        _animationEnabled = enable;
     }
 
-    public bool GetAnimationEnabled() => animationEnabled;
+    public bool GetAnimationEnabled() => _animationEnabled;
 
     public void SetAnimationTime(float time)
     {
-        foreach (var info in attributeAnimationInfos.Values)
+        foreach (var info in _attributeAnimationInfos.Values)
             info.SetTime(time);
     }
 
     public void SetObjectAnimation(ObjectAnimation? objectAnimation)
     {
-        foreach (var name in objectAnimationAttributeNames.ToArray())
+        foreach (var name in _objectAnimationAttributeNames.ToArray())
             RemoveAttributeAnimation(name);
-        objectAnimationAttributeNames.Clear();
+        _objectAnimationAttributeNames.Clear();
 
-        this.objectAnimation = objectAnimation;
+        this._objectAnimation = objectAnimation;
         if (objectAnimation is null)
             return;
 
         foreach (var pair in objectAnimation.GetAttributeAnimationInfos())
         {
             SetAttributeAnimation(pair.Key, pair.Value.GetAnimation(), pair.Value.GetWrapMode(), pair.Value.GetSpeed());
-            objectAnimationAttributeNames.Add(pair.Key);
+            _objectAnimationAttributeNames.Add(pair.Key);
         }
     }
 
-    public ObjectAnimation? GetObjectAnimation() => objectAnimation;
+    public ObjectAnimation? GetObjectAnimation() => _objectAnimation;
 
     public void RemoveObjectAnimation()
     {
@@ -103,7 +103,7 @@ public class Animatable : Serializable
     public void RemoveAttributeAnimation(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (attributeAnimationInfos.Remove(name))
+        if (_attributeAnimationInfos.Remove(name))
             OnAttributeAnimationRemoved();
     }
 
@@ -158,16 +158,16 @@ public class Animatable : Serializable
             return;
 
         attributeAnimation.SetOwner(this);
-        attributeAnimationInfos[name] = new AttributeAnimationInfo(this, attributeInfo, attributeAnimation, wrapMode, speed);
+        _attributeAnimationInfos[name] = new AttributeAnimationInfo(this, attributeInfo, attributeAnimation, wrapMode, speed);
         OnAttributeAnimationAdded();
     }
 
     protected void UpdateAttributeAnimations(float timeStep)
     {
-        if (!animationEnabled)
+        if (!_animationEnabled)
             return;
 
-        foreach (var info in attributeAnimationInfos.Values)
+        foreach (var info in _attributeAnimationInfos.Values)
             info.Update(timeStep);
     }
 
@@ -178,6 +178,6 @@ public class Animatable : Serializable
 
     protected AttributeAnimationInfo? GetAttributeAnimationInfo(string name)
     {
-        return attributeAnimationInfos.GetValueOrDefault(name);
+        return _attributeAnimationInfos.GetValueOrDefault(name);
     }
 }

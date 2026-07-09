@@ -18,11 +18,11 @@ public enum CompressedFormat
 
 public sealed class Image : Resource
 {
-    private byte[] data = System.Array.Empty<byte>();
-    private CompressedFormat compressedFormat;
-    private Image? nextLevel;
-    private Image? nextSibling;
-    private uint numCompressedLevels;
+    private byte[] _data = System.Array.Empty<byte>();
+    private CompressedFormat _compressedFormat;
+    private Image? _nextLevel;
+    private Image? _nextSibling;
+    private uint _numCompressedLevels;
 
     public Image(string name)
         : base(name)
@@ -37,7 +37,7 @@ public sealed class Image : Resource
 
     public uint Components { get; private set; }
 
-    public uint NumCompressedLevels => numCompressedLevels;
+    public uint NumCompressedLevels => _numCompressedLevels;
 
     public bool Cubemap { get; internal set; }
 
@@ -45,7 +45,7 @@ public sealed class Image : Resource
 
     public bool SRGB { get; internal set; }
 
-    public CompressedFormat CompressedFormat => compressedFormat;
+    public CompressedFormat CompressedFormat => _compressedFormat;
 
     public override bool BeginLoad(Stream source)
     {
@@ -79,7 +79,7 @@ public sealed class Image : Resource
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        destination.Write(data);
+        destination.Write(_data);
         return true;
     }
 
@@ -94,12 +94,12 @@ public sealed class Image : Resource
         Height = height;
         Depth = depth;
         Components = components;
-        data = new byte[checked(width * height * depth * (int)components)];
-        MemoryUse = (uint)data.Length;
-        compressedFormat = CompressedFormat.None;
-        numCompressedLevels = 0;
-        nextLevel = null;
-        nextSibling = null;
+        _data = new byte[checked(width * height * depth * (int)components)];
+        MemoryUse = (uint)_data.Length;
+        _compressedFormat = CompressedFormat.None;
+        _numCompressedLevels = 0;
+        _nextLevel = null;
+        _nextSibling = null;
         return true;
     }
 
@@ -108,11 +108,11 @@ public sealed class Image : Resource
         ArgumentNullException.ThrowIfNull(pixelData);
         if (IsCompressed())
             throw new InvalidOperationException("Cannot overwrite pixel data for a compressed image.");
-        if (pixelData.Length != data.Length)
+        if (pixelData.Length != _data.Length)
             throw new ArgumentException("Pixel data size does not match image size.", nameof(pixelData));
 
-        pixelData.CopyTo(data, 0);
-        nextLevel = null;
+        pixelData.CopyTo(_data, 0);
+        _nextLevel = null;
     }
 
     public void SetPixel(int x, int y, Color color) => SetPixel(x, y, 0, color);
@@ -121,7 +121,7 @@ public sealed class Image : Resource
     {
         var offset = GetOffset(x, y, z);
         WriteColor(offset, color);
-        nextLevel = null;
+        _nextLevel = null;
     }
 
     public void SetPixelInt(int x, int y, uint uintColor) => SetPixelInt(x, y, 0, uintColor);
@@ -154,7 +154,7 @@ public sealed class Image : Resource
             }
         }
 
-        nextLevel = null;
+        _nextLevel = null;
         return true;
     }
 
@@ -174,7 +174,7 @@ public sealed class Image : Resource
             }
         }
 
-        nextLevel = null;
+        _nextLevel = null;
         return true;
     }
 
@@ -199,9 +199,9 @@ public sealed class Image : Resource
 
         Width = resized.Width;
         Height = resized.Height;
-        data = resized.data;
+        _data = resized._data;
         MemoryUse = resized.MemoryUse;
-        nextLevel = null;
+        _nextLevel = null;
         return true;
     }
 
@@ -306,9 +306,9 @@ public sealed class Image : Resource
 
     public IntVector3 GetSize() => new(Width, Height, Depth);
 
-    public byte[] GetData() => data;
+    public byte[] GetData() => _data;
 
-    public bool IsCompressed() => compressedFormat != CompressedFormat.None;
+    public bool IsCompressed() => _compressedFormat != CompressedFormat.None;
 
     public bool IsCubemap() => Cubemap;
 
@@ -321,18 +321,18 @@ public sealed class Image : Resource
         if (IsCompressed())
             return GetDecompressedImageLevel(1) ?? GetDecompressedImage() ?? this;
 
-        if (nextLevel is not null)
-            return nextLevel;
+        if (_nextLevel is not null)
+            return _nextLevel;
 
         var nextWidth = Math.Max(Width / 2, 1);
         var nextHeight = Math.Max(Height / 2, 1);
         var nextDepth = Math.Max(Depth / 2, 1);
-        nextLevel = new Image(Name + "#mip");
-        nextLevel.SetSize(nextWidth, nextHeight, nextDepth, Components);
-        nextLevel.Cubemap = Cubemap;
-        nextLevel.Array = Array;
-        nextLevel.SRGB = SRGB;
-        nextLevel.SetNextSibling(nextSibling?.GetNextLevel());
+        _nextLevel = new Image(Name + "#mip");
+        _nextLevel.SetSize(nextWidth, nextHeight, nextDepth, Components);
+        _nextLevel.Cubemap = Cubemap;
+        _nextLevel.Array = Array;
+        _nextLevel.SRGB = SRGB;
+        _nextLevel.SetNextSibling(_nextSibling?.GetNextLevel());
 
         for (var z = 0; z < nextDepth; ++z)
         {
@@ -343,19 +343,19 @@ public sealed class Image : Resource
                     var u = nextWidth == 1 ? 0.5f : x / (float)(nextWidth - 1);
                     var v = nextHeight == 1 ? 0.5f : y / (float)(nextHeight - 1);
                     var w = nextDepth == 1 ? 0.5f : z / (float)(nextDepth - 1);
-                    nextLevel.SetPixel(x, y, z, Depth == 1 ? GetPixelBilinear(u, v) : GetPixelTrilinear(u, v, w));
+                    _nextLevel.SetPixel(x, y, z, Depth == 1 ? GetPixelBilinear(u, v) : GetPixelTrilinear(u, v, w));
                 }
             }
         }
 
-        return nextLevel;
+        return _nextLevel;
     }
 
-    public Image? GetNextSibling() => nextSibling;
+    public Image? GetNextSibling() => _nextSibling;
 
     internal void SetNextSibling(Image? sibling)
     {
-        nextSibling = sibling;
+        _nextSibling = sibling;
     }
 
     public Image ConvertToRGBA()
@@ -407,7 +407,7 @@ public sealed class Image : Resource
         for (var level = 0u; level < index; ++level)
         {
             offset = checked(offset + ImageDds.GetCompressedLevelSize(
-                compressedFormat,
+                _compressedFormat,
                 GetLevelDimension(Width, level),
                 GetLevelDimension(Height, level),
                 GetLevelDimension(Depth, level)));
@@ -416,11 +416,11 @@ public sealed class Image : Resource
         var levelWidth = GetLevelDimension(Width, index);
         var levelHeight = GetLevelDimension(Height, index);
         var levelDepth = GetLevelDimension(Depth, index);
-        var levelSize = ImageDds.GetCompressedLevelSize(compressedFormat, levelWidth, levelHeight, levelDepth);
-        if (offset + levelSize > data.Length)
+        var levelSize = ImageDds.GetCompressedLevelSize(_compressedFormat, levelWidth, levelHeight, levelDepth);
+        if (offset + levelSize > _data.Length)
             return default;
 
-        return new CompressedLevel(new ReadOnlyMemory<byte>(data, offset, levelSize), compressedFormat, levelWidth, levelHeight, levelDepth);
+        return new CompressedLevel(new ReadOnlyMemory<byte>(_data, offset, levelSize), _compressedFormat, levelWidth, levelHeight, levelDepth);
     }
 
     public Image? GetDecompressedImageLevel(uint index)
@@ -448,7 +448,7 @@ public sealed class Image : Resource
         if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, compressedLevel.Depth, 4))
             return null;
 
-        if (!compressedLevel.Decompress(decompressed.data))
+        if (!compressedLevel.Decompress(decompressed._data))
             return null;
 
         decompressed.Cubemap = Cubemap;
@@ -469,7 +469,7 @@ public sealed class Image : Resource
     {
         var clone = new Image(Name + "#clone");
         clone.SetSize(Width, Height, Depth, Components);
-        clone.SetData((byte[])data.Clone());
+        clone.SetData((byte[])_data.Clone());
         clone.Cubemap = Cubemap;
         clone.Array = Array;
         clone.SRGB = SRGB;
@@ -492,14 +492,14 @@ public sealed class Image : Resource
         Height = height;
         Depth = depth;
         Components = components;
-        compressedFormat = format;
-        numCompressedLevels = Math.Max(levels, 1u);
-        data = pixelData;
+        _compressedFormat = format;
+        _numCompressedLevels = Math.Max(levels, 1u);
+        _data = pixelData;
         Cubemap = cubemap;
         Array = array;
         SRGB = sRgb;
         MemoryUse = (uint)pixelData.Length;
-        nextLevel = null;
+        _nextLevel = null;
     }
 
     private int GetOffset(int x, int y, int z)
@@ -514,10 +514,10 @@ public sealed class Image : Resource
     {
         return Components switch
         {
-            1 => new Color(data[offset] / 255.0f, data[offset] / 255.0f, data[offset] / 255.0f, 1.0f),
-            2 => new Color(data[offset] / 255.0f, data[offset] / 255.0f, data[offset] / 255.0f, data[offset + 1] / 255.0f),
-            3 => new Color(data[offset] / 255.0f, data[offset + 1] / 255.0f, data[offset + 2] / 255.0f, 1.0f),
-            4 => new Color(data[offset] / 255.0f, data[offset + 1] / 255.0f, data[offset + 2] / 255.0f, data[offset + 3] / 255.0f),
+            1 => new Color(_data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset] / 255.0f, 1.0f),
+            2 => new Color(_data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset + 1] / 255.0f),
+            3 => new Color(_data[offset] / 255.0f, _data[offset + 1] / 255.0f, _data[offset + 2] / 255.0f, 1.0f),
+            4 => new Color(_data[offset] / 255.0f, _data[offset + 1] / 255.0f, _data[offset + 2] / 255.0f, _data[offset + 3] / 255.0f),
             _ => Color.Transparent
         };
     }
@@ -525,26 +525,26 @@ public sealed class Image : Resource
     private void SwapPixels(int leftOffset, int rightOffset)
     {
         for (var i = 0; i < Components; ++i)
-            (data[leftOffset + i], data[rightOffset + i]) = (data[rightOffset + i], data[leftOffset + i]);
+            (_data[leftOffset + i], _data[rightOffset + i]) = (_data[rightOffset + i], _data[leftOffset + i]);
     }
 
     private void SwapRows(int topOffset, int bottomOffset, int rowStride)
     {
         for (var i = 0; i < rowStride; ++i)
-            (data[topOffset + i], data[bottomOffset + i]) = (data[bottomOffset + i], data[topOffset + i]);
+            (_data[topOffset + i], _data[bottomOffset + i]) = (_data[bottomOffset + i], _data[topOffset + i]);
     }
 
     private void WriteColor(int offset, Color color)
     {
         color.Clip(clipAlpha: true);
         var packed = color.ToUInt();
-        data[offset] = (byte)(packed & 0xff);
+        _data[offset] = (byte)(packed & 0xff);
         if (Components > 1)
-            data[offset + 1] = (byte)((packed >> 8) & 0xff);
+            _data[offset + 1] = (byte)((packed >> 8) & 0xff);
         if (Components > 2)
-            data[offset + 2] = (byte)((packed >> 16) & 0xff);
+            _data[offset + 2] = (byte)((packed >> 16) & 0xff);
         if (Components > 3)
-            data[offset + 3] = (byte)((packed >> 24) & 0xff);
+            _data[offset + 3] = (byte)((packed >> 24) & 0xff);
     }
 
     private static int GetLevelDimension(int size, uint level)

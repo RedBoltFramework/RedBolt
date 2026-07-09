@@ -25,14 +25,14 @@ public sealed class JSONValue : IEquatable<JSONValue>
     private static readonly IReadOnlyList<JSONValue> EmptyArray = Array.Empty<JSONValue>();
     private static readonly IReadOnlyDictionary<string, JSONValue> EmptyObject = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
 
-    private Action? onChanged;
-    private JSONValueType valueType;
-    private JSONNumberType numberType;
-    private bool boolValue;
-    private double numberValue;
-    private string stringValue = string.Empty;
-    private List<JSONValue> arrayValue = [];
-    private Dictionary<string, JSONValue> objectValue = new(StringComparer.Ordinal);
+    private Action? _onChanged;
+    private JSONValueType _valueType;
+    private JSONNumberType _numberType;
+    private bool _boolValue;
+    private double _numberValue;
+    private string _stringValue = string.Empty;
+    private List<JSONValue> _arrayValue = [];
+    private Dictionary<string, JSONValue> _objectValue = new(StringComparer.Ordinal);
 
     public JSONValue()
     {
@@ -101,15 +101,15 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public JSONValue this[int index]
     {
-        get => IsArray && index >= 0 && index < arrayValue.Count ? arrayValue[index] : new JSONValue();
+        get => IsArray && index >= 0 && index < _arrayValue.Count ? _arrayValue[index] : new JSONValue();
         set
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             EnsureArray();
-            while (arrayValue.Count <= index)
-                arrayValue.Add(CreateChild(new JSONValue()));
+            while (_arrayValue.Count <= index)
+                _arrayValue.Add(CreateChild(new JSONValue()));
 
-            arrayValue[index] = CreateChild(value);
+            _arrayValue[index] = CreateChild(value);
             NotifyChanged();
         }
     }
@@ -119,7 +119,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
         get
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(key);
-            return IsObject && objectValue.TryGetValue(key, out var value) ? value : new JSONValue();
+            return IsObject && _objectValue.TryGetValue(key, out var value) ? value : new JSONValue();
         }
         set
         {
@@ -128,41 +128,41 @@ public sealed class JSONValue : IEquatable<JSONValue>
         }
     }
 
-    public bool IsNull => valueType == JSONValueType.Null;
+    public bool IsNull => _valueType == JSONValueType.Null;
 
-    public bool IsBool => valueType == JSONValueType.Bool;
+    public bool IsBool => _valueType == JSONValueType.Bool;
 
-    public bool IsNumber => valueType == JSONValueType.Number;
+    public bool IsNumber => _valueType == JSONValueType.Number;
 
-    public bool IsString => valueType == JSONValueType.String;
+    public bool IsString => _valueType == JSONValueType.String;
 
-    public bool IsArray => valueType == JSONValueType.Array;
+    public bool IsArray => _valueType == JSONValueType.Array;
 
-    public bool IsObject => valueType == JSONValueType.Object;
+    public bool IsObject => _valueType == JSONValueType.Object;
 
-    public JSONValueType GetValueType() => valueType;
+    public JSONValueType GetValueType() => _valueType;
 
-    public JSONNumberType GetNumberType() => IsNumber ? numberType : JSONNumberType.NaN;
+    public JSONNumberType GetNumberType() => IsNumber ? _numberType : JSONNumberType.NaN;
 
-    public string GetValueTypeName() => valueType.ToString();
+    public string GetValueTypeName() => _valueType.ToString();
 
     public string GetNumberTypeName() => GetNumberType().ToString();
 
-    public bool GetBool(bool defaultValue = false) => IsBool ? boolValue : defaultValue;
+    public bool GetBool(bool defaultValue = false) => IsBool ? _boolValue : defaultValue;
 
-    public int GetInt(int defaultValue = 0) => IsNumber ? (int)numberValue : defaultValue;
+    public int GetInt(int defaultValue = 0) => IsNumber ? (int)_numberValue : defaultValue;
 
-    public uint GetUInt(uint defaultValue = 0) => IsNumber ? (uint)Math.Max(numberValue, 0.0) : defaultValue;
+    public uint GetUInt(uint defaultValue = 0) => IsNumber ? (uint)Math.Max(_numberValue, 0.0) : defaultValue;
 
-    public float GetFloat(float defaultValue = 0.0f) => IsNumber ? (float)numberValue : defaultValue;
+    public float GetFloat(float defaultValue = 0.0f) => IsNumber ? (float)_numberValue : defaultValue;
 
-    public double GetDouble(double defaultValue = 0.0) => IsNumber ? numberValue : defaultValue;
+    public double GetDouble(double defaultValue = 0.0) => IsNumber ? _numberValue : defaultValue;
 
-    public string GetString(string? defaultValue = null) => IsString ? stringValue : defaultValue ?? string.Empty;
+    public string GetString(string? defaultValue = null) => IsString ? _stringValue : defaultValue ?? string.Empty;
 
-    public IReadOnlyList<JSONValue> GetArray() => IsArray ? arrayValue : EmptyArray;
+    public IReadOnlyList<JSONValue> GetArray() => IsArray ? _arrayValue : EmptyArray;
 
-    public IReadOnlyDictionary<string, JSONValue> GetObject() => IsObject ? objectValue : EmptyObject;
+    public IReadOnlyDictionary<string, JSONValue> GetObject() => IsObject ? _objectValue : EmptyObject;
 
     public JSONValue Get(string key)
     {
@@ -172,18 +172,18 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public JSONValue Get(int index)
     {
-        if (IsObject && index >= 0 && index < objectValue.Count)
-            return objectValue.ElementAt(index).Value;
+        if (IsObject && index >= 0 && index < _objectValue.Count)
+            return _objectValue.ElementAt(index).Value;
 
         return this[index];
     }
 
     public uint Size()
     {
-        return valueType switch
+        return _valueType switch
         {
-            JSONValueType.Array => (uint)arrayValue.Count,
-            JSONValueType.Object => (uint)objectValue.Count,
+            JSONValueType.Array => (uint)_arrayValue.Count,
+            JSONValueType.Object => (uint)_objectValue.Count,
             _ => 0u
         };
     }
@@ -191,44 +191,44 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public void Push(JSONValue value)
     {
         EnsureArray();
-        arrayValue.Add(CreateChild(value));
+        _arrayValue.Add(CreateChild(value));
         NotifyChanged();
     }
 
     public void Pop()
     {
-        if (!IsArray || arrayValue.Count == 0)
+        if (!IsArray || _arrayValue.Count == 0)
             return;
 
-        arrayValue.RemoveAt(arrayValue.Count - 1);
+        _arrayValue.RemoveAt(_arrayValue.Count - 1);
         NotifyChanged();
     }
 
     public void Insert(uint position, JSONValue value)
     {
         EnsureArray();
-        var index = (int)Math.Min(position, (uint)arrayValue.Count);
-        arrayValue.Insert(index, CreateChild(value));
+        var index = (int)Math.Min(position, (uint)_arrayValue.Count);
+        _arrayValue.Insert(index, CreateChild(value));
         NotifyChanged();
     }
 
     public void Erase(uint position, uint length = 1)
     {
-        if (!IsArray || position >= arrayValue.Count || length == 0)
+        if (!IsArray || position >= _arrayValue.Count || length == 0)
             return;
 
-        var count = (int)Math.Min(length, (uint)arrayValue.Count - position);
-        arrayValue.RemoveRange((int)position, count);
+        var count = (int)Math.Min(length, (uint)_arrayValue.Count - position);
+        _arrayValue.RemoveRange((int)position, count);
         NotifyChanged();
     }
 
     public void Resize(uint newSize)
     {
         EnsureArray();
-        while (arrayValue.Count > newSize)
-            arrayValue.RemoveAt(arrayValue.Count - 1);
-        while (arrayValue.Count < newSize)
-            arrayValue.Add(CreateChild(new JSONValue()));
+        while (_arrayValue.Count > newSize)
+            _arrayValue.RemoveAt(_arrayValue.Count - 1);
+        while (_arrayValue.Count < newSize)
+            _arrayValue.Add(CreateChild(new JSONValue()));
         NotifyChanged();
     }
 
@@ -236,14 +236,14 @@ public sealed class JSONValue : IEquatable<JSONValue>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         EnsureObject();
-        objectValue[key] = CreateChild(value);
+        _objectValue[key] = CreateChild(value);
         NotifyChanged();
     }
 
     public bool Erase(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        if (!IsObject || !objectValue.Remove(key))
+        if (!IsObject || !_objectValue.Remove(key))
             return false;
 
         NotifyChanged();
@@ -253,15 +253,15 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public bool Contains(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        return IsObject && objectValue.ContainsKey(key);
+        return IsObject && _objectValue.ContainsKey(key);
     }
 
     public void Clear()
     {
         if (IsArray)
-            arrayValue.Clear();
+            _arrayValue.Clear();
         else if (IsObject)
-            objectValue.Clear();
+            _objectValue.Clear();
         else
             return;
 
@@ -277,42 +277,42 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public void Set(bool value)
     {
         ResetType(JSONValueType.Bool);
-        boolValue = value;
+        _boolValue = value;
         NotifyChanged();
     }
 
     public void Set(int value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.Int);
-        numberValue = value;
+        _numberValue = value;
         NotifyChanged();
     }
 
     public void Set(uint value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.UInt);
-        numberValue = value;
+        _numberValue = value;
         NotifyChanged();
     }
 
     public void Set(float value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.FloatDouble);
-        numberValue = value;
+        _numberValue = value;
         NotifyChanged();
     }
 
     public void Set(double value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.FloatDouble);
-        numberValue = value;
+        _numberValue = value;
         NotifyChanged();
     }
 
     public void Set(string? value)
     {
         ResetType(JSONValueType.String);
-        stringValue = value ?? string.Empty;
+        _stringValue = value ?? string.Empty;
         NotifyChanged();
     }
 
@@ -321,7 +321,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
         ArgumentNullException.ThrowIfNull(value);
         ResetType(JSONValueType.Array);
         foreach (var item in value)
-            arrayValue.Add(CreateChild(item));
+            _arrayValue.Add(CreateChild(item));
         NotifyChanged();
     }
 
@@ -330,7 +330,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
         ArgumentNullException.ThrowIfNull(value);
         ResetType(JSONValueType.Object);
         foreach (var item in value)
-            objectValue[item.Key] = CreateChild(item.Value);
+            _objectValue[item.Key] = CreateChild(item.Value);
         NotifyChanged();
     }
 
@@ -343,17 +343,17 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public bool Equals(JSONValue? other)
     {
-        if (other is null || valueType != other.valueType || GetNumberType() != other.GetNumberType())
+        if (other is null || _valueType != other._valueType || GetNumberType() != other.GetNumberType())
             return false;
 
-        return valueType switch
+        return _valueType switch
         {
             JSONValueType.Null => true,
-            JSONValueType.Bool => boolValue == other.boolValue,
-            JSONValueType.Number => numberValue.Equals(other.numberValue),
-            JSONValueType.String => string.Equals(stringValue, other.stringValue, StringComparison.Ordinal),
-            JSONValueType.Array => arrayValue.SequenceEqual(other.arrayValue),
-            JSONValueType.Object => objectValue.Count == other.objectValue.Count && objectValue.All(pair => other.objectValue.TryGetValue(pair.Key, out var otherValue) && pair.Value.Equals(otherValue)),
+            JSONValueType.Bool => _boolValue == other._boolValue,
+            JSONValueType.Number => _numberValue.Equals(other._numberValue),
+            JSONValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
+            JSONValueType.Array => _arrayValue.SequenceEqual(other._arrayValue),
+            JSONValueType.Object => _objectValue.Count == other._objectValue.Count && _objectValue.All(pair => other._objectValue.TryGetValue(pair.Key, out var otherValue) && pair.Value.Equals(otherValue)),
             _ => false
         };
     }
@@ -363,14 +363,14 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(valueType);
-        hash.Add(numberType);
-        hash.Add(boolValue);
-        hash.Add(numberValue);
-        hash.Add(stringValue, StringComparer.Ordinal);
-        foreach (var item in arrayValue)
+        hash.Add(_valueType);
+        hash.Add(_numberType);
+        hash.Add(_boolValue);
+        hash.Add(_numberValue);
+        hash.Add(_stringValue, StringComparer.Ordinal);
+        foreach (var item in _arrayValue)
             hash.Add(item);
-        foreach (var item in objectValue)
+        foreach (var item in _objectValue)
         {
             hash.Add(item.Key, StringComparer.Ordinal);
             hash.Add(item.Value);
@@ -393,38 +393,38 @@ public sealed class JSONValue : IEquatable<JSONValue>
             case JsonArray jsonArray:
                 value.ResetType(JSONValueType.Array);
                 foreach (var item in jsonArray)
-                    value.arrayValue.Add(FromJsonNode(item, onChanged));
+                    value._arrayValue.Add(FromJsonNode(item, onChanged));
                 break;
 
             case JsonObject jsonObject:
                 value.ResetType(JSONValueType.Object);
                 foreach (var item in jsonObject)
-                    value.objectValue[item.Key] = FromJsonNode(item.Value, onChanged);
+                    value._objectValue[item.Key] = FromJsonNode(item.Value, onChanged);
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<bool>(out var boolResult):
                 value.ResetType(JSONValueType.Bool);
-                value.boolValue = boolResult;
+                value._boolValue = boolResult;
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<int>(out var intResult):
                 value.ResetType(JSONValueType.Number, JSONNumberType.Int);
-                value.numberValue = intResult;
+                value._numberValue = intResult;
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<uint>(out var uintResult):
                 value.ResetType(JSONValueType.Number, JSONNumberType.UInt);
-                value.numberValue = uintResult;
+                value._numberValue = uintResult;
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<double>(out var doubleResult):
                 value.ResetType(JSONValueType.Number, JSONNumberType.FloatDouble);
-                value.numberValue = doubleResult;
+                value._numberValue = doubleResult;
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<string>(out var stringResult):
                 value.ResetType(JSONValueType.String);
-                value.stringValue = stringResult ?? string.Empty;
+                value._stringValue = stringResult ?? string.Empty;
                 break;
 
             default:
@@ -437,17 +437,17 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     internal JsonNode? ToJsonNode()
     {
-        return valueType switch
+        return _valueType switch
         {
             JSONValueType.Null => null,
-            JSONValueType.Bool => JsonValue.Create(boolValue),
-            JSONValueType.Number => numberType switch
+            JSONValueType.Bool => JsonValue.Create(_boolValue),
+            JSONValueType.Number => _numberType switch
             {
                 JSONNumberType.Int => JsonValue.Create(GetInt()),
                 JSONNumberType.UInt => JsonValue.Create(GetUInt()),
-                _ => JsonValue.Create(numberValue)
+                _ => JsonValue.Create(_numberValue)
             },
-            JSONValueType.String => JsonValue.Create(stringValue),
+            JSONValueType.String => JsonValue.Create(_stringValue),
             JSONValueType.Array => ToJsonArray(),
             JSONValueType.Object => ToJsonObject(),
             _ => null
@@ -456,30 +456,30 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     internal void SetChangeCallbackRecursive(Action? callback)
     {
-        onChanged = callback;
-        foreach (var item in arrayValue)
+        _onChanged = callback;
+        foreach (var item in _arrayValue)
             item.SetChangeCallbackRecursive(callback);
-        foreach (var item in objectValue.Values)
+        foreach (var item in _objectValue.Values)
             item.SetChangeCallbackRecursive(callback);
     }
 
     private void CopyFrom(JSONValue value)
     {
-        ResetType(value.valueType, value.numberType);
-        boolValue = value.boolValue;
-        numberValue = value.numberValue;
-        stringValue = value.stringValue;
+        ResetType(value._valueType, value._numberType);
+        _boolValue = value._boolValue;
+        _numberValue = value._numberValue;
+        _stringValue = value._stringValue;
 
         if (value.IsArray)
         {
-            foreach (var item in value.arrayValue)
-                arrayValue.Add(CreateChild(item));
+            foreach (var item in value._arrayValue)
+                _arrayValue.Add(CreateChild(item));
         }
 
         if (value.IsObject)
         {
-            foreach (var item in value.objectValue)
-                objectValue[item.Key] = CreateChild(item.Value);
+            foreach (var item in value._objectValue)
+                _objectValue[item.Key] = CreateChild(item.Value);
         }
     }
 
@@ -487,7 +487,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
     {
         ArgumentNullException.ThrowIfNull(value);
         var child = new JSONValue(value);
-        child.SetChangeCallbackRecursive(onChanged);
+        child.SetChangeCallbackRecursive(_onChanged);
         return child;
     }
 
@@ -503,25 +503,25 @@ public sealed class JSONValue : IEquatable<JSONValue>
             ResetType(JSONValueType.Object);
     }
 
-    private void NotifyChanged() => onChanged?.Invoke();
+    private void NotifyChanged() => _onChanged?.Invoke();
 
     private void ResetType(JSONValueType valueType, JSONNumberType numberType = JSONNumberType.NaN)
     {
-        this.valueType = valueType;
-        this.numberType = valueType == JSONValueType.Number
+        this._valueType = valueType;
+        this._numberType = valueType == JSONValueType.Number
             ? numberType == JSONNumberType.NaN ? JSONNumberType.FloatDouble : numberType
             : JSONNumberType.NaN;
-        boolValue = false;
-        numberValue = 0.0;
-        stringValue = string.Empty;
-        arrayValue = [];
-        objectValue = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+        _boolValue = false;
+        _numberValue = 0.0;
+        _stringValue = string.Empty;
+        _arrayValue = [];
+        _objectValue = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
     }
 
     private JsonArray ToJsonArray()
     {
         var result = new JsonArray();
-        foreach (var item in arrayValue)
+        foreach (var item in _arrayValue)
             result.Add(item.ToJsonNode());
         return result;
     }
@@ -529,7 +529,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
     private JsonObject ToJsonObject()
     {
         var result = new JsonObject();
-        foreach (var item in objectValue)
+        foreach (var item in _objectValue)
             result[item.Key] = item.Value.ToJsonNode();
         return result;
     }

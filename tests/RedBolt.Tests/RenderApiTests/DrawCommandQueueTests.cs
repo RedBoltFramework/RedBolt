@@ -6,17 +6,17 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DrawCommandQueueTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public DrawCommandQueueTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Draw_command_queue_records_graphics_commands_as_snapshots()
     {
-        var queue = fixture.RenderDevice.GetDefaultQueue();
+        var queue = _fixture.RenderDevice.GetDefaultQueue();
         var pipelineState = CreateGraphicsPipelineState();
         var vertexBuffer0 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32u, 16u, BufferFlag.Shadowed));
         var vertexBuffer1 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 48u, 16u, BufferFlag.Shadowed));
@@ -38,8 +38,8 @@ public sealed class DrawCommandQueueTests
         queue.SetIndexBuffer(null);
         queue.Draw(4u, 8u);
 
-        var commands = GetPrivateField<List<DrawCommandDescription>>(queue, "drawCommands");
-        var scissorRects = GetPrivateField<List<IntRect>>(queue, "scissorRects");
+        var commands = GetPrivateField<List<DrawCommandDescription>>(queue, "_drawCommands");
+        var scissorRects = GetPrivateField<List<IntRect>>(queue, "_scissorRects");
 
         Assert.Equal(2, commands.Count);
         Assert.Equal([IntRect.Zero, scissor0, scissor1], scissorRects);
@@ -72,7 +72,7 @@ public sealed class DrawCommandQueueTests
     [Fact]
     public void Draw_command_queue_execute_updates_render_context_stats_for_recorded_commands()
     {
-        var queue = fixture.RenderDevice.GetDefaultQueue();
+        var queue = _fixture.RenderDevice.GetDefaultQueue();
         var graphicsState = CreateGraphicsPipelineState();
         var computeState = CreateComputePipelineState();
 
@@ -84,20 +84,20 @@ public sealed class DrawCommandQueueTests
         queue.SetPipelineState(computeState);
         queue.Dispatch(new IntVector3(4, 5, 6));
 
-        fixture.RenderContext.ResetStats();
-        queue.ExecuteInContext(fixture.RenderContext);
+        _fixture.RenderContext.ResetStats();
+        queue.ExecuteInContext(_fixture.RenderContext);
 
-        var stats = fixture.RenderContext.GetStats();
+        var stats = _fixture.RenderContext.GetStats();
         Assert.Equal<uint>(1u, stats.NumDraws);
         Assert.Equal<uint>(15u, stats.NumPrimitives);
         Assert.Equal<uint>(1u, stats.NumDispatches);
-        Assert.Equal<uint>(0x5Au, GetPrivateField<uint>(fixture.RenderContext, "clipPlaneMask"));
+        Assert.Equal<uint>(0x5Au, GetPrivateField<uint>(_fixture.RenderContext, "_clipPlaneMask"));
     }
 
     [Fact]
     public void Draw_command_queue_rejects_mismatched_pipeline_and_buffer_state()
     {
-        var queue = fixture.RenderDevice.GetDefaultQueue();
+        var queue = _fixture.RenderDevice.GetDefaultQueue();
         var graphicsState = CreateGraphicsPipelineState();
         var computeState = CreateComputePipelineState();
         var indexBuffer = new RawBuffer(new RawBufferParams(BufferType.Index, 12u, 2u, BufferFlag.Shadowed));
@@ -116,7 +116,7 @@ public sealed class DrawCommandQueueTests
 
     private PipelineState CreateGraphicsPipelineState()
     {
-        var cache = fixture.Context.GetSubsystem<PipelineStateCache>();
+        var cache = _fixture.Context.GetSubsystem<PipelineStateCache>();
         Assert.NotNull(cache);
 
         var desc = new GraphicsPipelineStateDesc
@@ -132,7 +132,7 @@ public sealed class DrawCommandQueueTests
 
     private PipelineState CreateComputePipelineState()
     {
-        var cache = fixture.Context.GetSubsystem<PipelineStateCache>();
+        var cache = _fixture.Context.GetSubsystem<PipelineStateCache>();
         Assert.NotNull(cache);
 
         var desc = new ComputePipelineStateDesc

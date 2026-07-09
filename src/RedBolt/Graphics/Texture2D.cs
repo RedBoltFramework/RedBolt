@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class Texture2D : Texture
 {
-    private readonly Dictionary<uint, byte[]> levelData = new();
+    private readonly Dictionary<uint, byte[]> _levelData = new();
 
     public Texture2D(string name)
         : base(name)
@@ -45,7 +45,7 @@ public sealed class Texture2D : Texture
             return false;
 
         SetDimensions(width, height, 1, format, multiSample, noMultiSampledAutoResolve);
-        levelData.Clear();
+        _levelData.Clear();
         RefreshTotalMemoryUse();
         return true;
     }
@@ -68,10 +68,10 @@ public sealed class Texture2D : Texture
         if (data.Length != expected)
             return false;
 
-        if (!levelData.TryGetValue(level, out var levelBytes))
+        if (!_levelData.TryGetValue(level, out var levelBytes))
         {
             levelBytes = new byte[checked(levelWidth * levelHeight * bytesPerPixel)];
-            levelData[level] = levelBytes;
+            _levelData[level] = levelBytes;
         }
 
         for (var row = 0; row < height; ++row)
@@ -92,10 +92,10 @@ public sealed class Texture2D : Texture
         return GetDataNoCopy(level)?.ToArray();
     }
 
-    internal byte[]? GetDataNoCopy(uint level) => levelData.TryGetValue(level, out var bytes) ? bytes : null;
+    internal byte[]? GetDataNoCopy(uint level) => _levelData.TryGetValue(level, out var bytes) ? bytes : null;
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)levelData.Sum(static item => item.Value.Length));
+        RefreshMemoryUse((uint)_levelData.Sum(static item => item.Value.Length));
     }
 }

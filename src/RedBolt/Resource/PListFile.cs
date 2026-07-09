@@ -2,14 +2,14 @@ namespace RedBolt;
 
 public sealed class PListFile : Resource
 {
-    private readonly Dictionary<string, PListValue> root = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PListValue> _root = new(StringComparer.Ordinal);
 
     public PListFile(string name)
         : base(name)
     {
     }
 
-    public IReadOnlyDictionary<string, PListValue> Root => root;
+    public IReadOnlyDictionary<string, PListValue> Root => _root;
 
     public IReadOnlyDictionary<string, PListValue> GetRoot() => Root;
 
@@ -25,9 +25,9 @@ public sealed class PListFile : Resource
         if (plistElement.IsNull)
             return false;
 
-        root.Clear();
+        _root.Clear();
         var dictElement = plistElement.GetChild("dict");
-        if (!LoadDict(root, dictElement))
+        if (!LoadDict(_root, dictElement))
             return false;
 
         MemoryUse = source.CanSeek

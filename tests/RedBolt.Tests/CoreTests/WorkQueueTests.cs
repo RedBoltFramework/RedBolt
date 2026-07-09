@@ -5,15 +5,15 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class WorkQueueTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public WorkQueueTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     private WorkQueue GetWorkQueue() =>
-        fixture.Context.GetSubsystem<WorkQueue>()
+        _fixture.Context.GetSubsystem<WorkQueue>()
             ?? throw new InvalidOperationException("WorkQueue is not registered in Context.");
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class WorkQueueTests
         var workQueue = GetWorkQueue();
         Assert.NotNull(workQueue);
         Assert.IsType<WorkQueue>(workQueue);
-        Assert.Same(fixture.Engine.Context, workQueue.Context);
+        Assert.Same(_fixture.Engine.Context, workQueue.Context);
     }
 
     [Fact]

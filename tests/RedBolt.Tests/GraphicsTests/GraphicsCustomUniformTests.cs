@@ -5,11 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class GraphicsCustomUniformTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public GraphicsCustomUniformTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -149,8 +149,8 @@ public sealed class GraphicsCustomUniformTests
 
     private object CreateLayout(string shaderName, string defines, bool includeVertexShader = true, bool includePixelShader = true)
     {
-        var vertexShader = includeVertexShader ? fixture.Graphics.GetShader(ShaderType.VS, shaderName, defines) : null;
-        var pixelShader = includePixelShader ? fixture.Graphics.GetShader(ShaderType.PS, shaderName, defines) : null;
+        var vertexShader = includeVertexShader ? _fixture.Graphics.GetShader(ShaderType.VS, shaderName, defines) : null;
+        var pixelShader = includePixelShader ? _fixture.Graphics.GetShader(ShaderType.PS, shaderName, defines) : null;
 
         if (includeVertexShader)
             Assert.NotNull(vertexShader);
@@ -203,18 +203,18 @@ public sealed class GraphicsCustomUniformTests
             WindowHeight = 64
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 

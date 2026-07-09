@@ -8,9 +8,9 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 {
     private static readonly Encoding Utf8 = Encoding.UTF8;
 
-    private byte[] bytes = [0];
-    private int byteLength;
-    private bool disposed;
+    private byte[] _bytes = [0];
+    private int _byteLength;
+    private bool _disposed;
 
     public static CString Empty { get; } = new(string.Empty);
 
@@ -28,7 +28,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         get
         {
             ThrowIfDisposed();
-            return bytes.AsSpan(0, byteLength + 1);
+            return _bytes.AsSpan(0, _byteLength + 1);
         }
     }
 
@@ -37,7 +37,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         get
         {
             ThrowIfDisposed();
-            return Utf8.GetCharCount(bytes.AsSpan(0, byteLength));
+            return Utf8.GetCharCount(_bytes.AsSpan(0, _byteLength));
         }
     }
 
@@ -46,21 +46,21 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         get
         {
             ThrowIfDisposed();
-            return byteLength;
+            return _byteLength;
         }
     }
 
     public void Clear()
     {
         ThrowIfDisposed();
-        byteLength = 0;
-        bytes[0] = 0;
+        _byteLength = 0;
+        _bytes[0] = 0;
     }
 
     public string ConvertToString()
     {
         ThrowIfDisposed();
-        return Utf8.GetString(bytes, 0, byteLength);
+        return Utf8.GetString(_bytes, 0, _byteLength);
     }
 
     public static CString Format(string format, ReadOnlySpan<object?> args)
@@ -147,13 +147,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             return false;
 
         ThrowIfDisposed();
-        return byteLength == other.byteLength && bytes.AsSpan(0, byteLength).SequenceEqual(other.bytes.AsSpan(0, other.byteLength));
+        return _byteLength == other._byteLength && _bytes.AsSpan(0, _byteLength).SequenceEqual(other._bytes.AsSpan(0, other._byteLength));
     }
 
     public bool Equals(string? other)
     {
         ThrowIfDisposed();
-        return other is not null && EqualsUtf8BytesString(bytes.AsSpan(0, byteLength), other);
+        return other is not null && EqualsUtf8BytesString(_bytes.AsSpan(0, _byteLength), other);
     }
 
     public override bool Equals(object? obj)
@@ -168,8 +168,8 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         ThrowIfDisposed();
 
         var hash = 0x811C9DC5u;
-        for (var i = 0; i < byteLength; ++i)
-            hash = (hash ^ bytes[i]) * 16777619;
+        for (var i = 0; i < _byteLength; ++i)
+            hash = (hash ^ _bytes[i]) * 16777619;
 
         return unchecked((int)hash);
     }
@@ -198,12 +198,12 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     public void Dispose()
     {
-        if (disposed)
+        if (_disposed)
             return;
 
-        bytes = [];
-        byteLength = 0;
-        disposed = true;
+        _bytes = [];
+        _byteLength = 0;
+        _disposed = true;
     }
 
     private void Set(string value)
@@ -213,9 +213,9 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         value ??= string.Empty;
         var rawByteLength = Utf8.GetByteCount(value);
         EnsureCapacity(rawByteLength + 1);
-        Utf8.GetBytes(value.AsSpan(), bytes);
-        byteLength = rawByteLength;
-        bytes[byteLength] = 0;
+        Utf8.GetBytes(value.AsSpan(), _bytes);
+        _byteLength = rawByteLength;
+        _bytes[_byteLength] = 0;
     }
 
     private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)
@@ -293,7 +293,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                 AppendText(text.AsSpan());
                 return;
             case CString cstring:
-                AppendBytes(cstring.bytes.AsSpan(0, cstring.byteLength));
+                AppendBytes(cstring._bytes.AsSpan(0, cstring._byteLength));
                 return;
             case char text:
                 AppendText(text);
@@ -326,10 +326,10 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         if (value.IsEmpty)
             return;
 
-        EnsureCapacity(byteLength + value.Length + 1);
-        value.CopyTo(bytes.AsSpan(byteLength));
-        byteLength += value.Length;
-        bytes[byteLength] = 0;
+        EnsureCapacity(_byteLength + value.Length + 1);
+        value.CopyTo(_bytes.AsSpan(_byteLength));
+        _byteLength += value.Length;
+        _bytes[_byteLength] = 0;
     }
 
     private void AppendText(ReadOnlySpan<char> text)
@@ -338,10 +338,10 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             return;
 
         var requiredLength = Utf8.GetByteCount(text);
-        EnsureCapacity(byteLength + requiredLength + 1);
-        Utf8.GetBytes(text, bytes.AsSpan(byteLength, requiredLength));
-        byteLength += requiredLength;
-        bytes[byteLength] = 0;
+        EnsureCapacity(_byteLength + requiredLength + 1);
+        Utf8.GetBytes(text, _bytes.AsSpan(_byteLength, requiredLength));
+        _byteLength += requiredLength;
+        _bytes[_byteLength] = 0;
     }
 
     private void AppendText(char value)
@@ -353,21 +353,21 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     private void EnsureCapacity(int requiredCapacity)
     {
-        if (bytes.Length >= requiredCapacity)
+        if (_bytes.Length >= requiredCapacity)
             return;
 
-        var newCapacity = bytes.Length == 0 ? 1 : bytes.Length;
+        var newCapacity = _bytes.Length == 0 ? 1 : _bytes.Length;
         while (newCapacity < requiredCapacity)
             newCapacity *= 2;
 
         var newBytes = new byte[newCapacity];
-        bytes.AsSpan(0, byteLength + 1).CopyTo(newBytes);
-        bytes = newBytes;
+        _bytes.AsSpan(0, _byteLength + 1).CopyTo(newBytes);
+        _bytes = newBytes;
     }
 
     private void ThrowIfDisposed()
     {
-        if (disposed)
+        if (_disposed)
             throw new ObjectDisposedException(nameof(CString));
     }
 
@@ -459,35 +459,35 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     [InterpolatedStringHandler]
     public ref struct CStringInterpolatedStringHandler
     {
-        private readonly CString target;
+        private readonly CString _target;
 
         public CStringInterpolatedStringHandler(int literalLength, int formattedCount, CString target)
         {
             ArgumentNullException.ThrowIfNull(target);
 
-            this.target = target;
-            this.target.Clear();
+            this._target = target;
+            this._target.Clear();
         }
 
         public void AppendLiteral(string value)
         {
-            target.AppendText(value.AsSpan());
+            _target.AppendText(value.AsSpan());
         }
 
         public void AppendFormatted(string? value)
         {
             if (!string.IsNullOrEmpty(value))
-                target.AppendText(value.AsSpan());
+                _target.AppendText(value.AsSpan());
         }
 
         public void AppendFormatted(ReadOnlySpan<char> value)
         {
-            target.AppendText(value);
+            _target.AppendText(value);
         }
 
         public void AppendFormatted(char value)
         {
-            target.AppendText(value);
+            _target.AppendText(value);
         }
 
         public void AppendFormatted(CString? value)
@@ -495,19 +495,19 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             if (value is null)
                 return;
 
-            target.AppendBytes(value.bytes.AsSpan(0, value.byteLength));
+            _target.AppendBytes(value._bytes.AsSpan(0, value._byteLength));
         }
 
         public void AppendFormatted<T>(T value)
             where T : ISpanFormattable
         {
-            target.AppendSpanFormattable(value, default);
+            _target.AppendSpanFormattable(value, default);
         }
 
         public void AppendFormatted<T>(T value, string? format)
             where T : ISpanFormattable
         {
-            target.AppendSpanFormattable(value, format.AsSpan());
+            _target.AppendSpanFormattable(value, format.AsSpan());
         }
     }
 }

@@ -6,11 +6,11 @@ namespace RedBolt;
 public sealed class OutlineGroup : Component
 {
     private static readonly string[] OutlinedPassNames = ["deferred", "deferred_decal", "base", "alpha"];
-    private readonly HashSet<Drawable> drawables = [];
-    private readonly Dictionary<Material, CachedOutlineMaterial> cachedMaterials = [];
-    private Color color = Color.White;
-    private byte renderOrder = 128;
-    private bool isDebug;
+    private readonly HashSet<Drawable> _drawables = [];
+    private readonly Dictionary<Material, CachedOutlineMaterial> _cachedMaterials = [];
+    private Color _color = Color.White;
+    private byte _renderOrder = 128;
+    private bool _isDebug;
 
     public OutlineGroup()
     {
@@ -40,17 +40,17 @@ public sealed class OutlineGroup : Component
             false);
     }
 
-    public bool HasDrawables() => drawables.Count > 0;
+    public bool HasDrawables() => _drawables.Count > 0;
 
     public bool ContainsDrawable(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return drawables.Contains(drawable);
+        return _drawables.Contains(drawable);
     }
 
     public void ClearDrawables()
     {
-        drawables.Clear();
+        _drawables.Clear();
     }
 
     public bool HasDrawable(Drawable drawable) => ContainsDrawable(drawable);
@@ -58,60 +58,60 @@ public sealed class OutlineGroup : Component
     public bool AddDrawable(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return drawables.Add(drawable);
+        return _drawables.Add(drawable);
     }
 
     public bool RemoveDrawable(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return drawables.Remove(drawable);
+        return _drawables.Remove(drawable);
     }
 
-    public IReadOnlyCollection<Drawable> GetDrawables() => drawables;
-    internal HashSet<Drawable>.Enumerator GetDrawableEnumerator() => drawables.GetEnumerator();
+    public IReadOnlyCollection<Drawable> GetDrawables() => _drawables;
+    internal HashSet<Drawable>.Enumerator GetDrawableEnumerator() => _drawables.GetEnumerator();
 
     public void SetColor(Color color)
     {
-        if (this.color == color)
+        if (this._color == color)
             return;
 
-        this.color = color;
-        foreach (var cachedMaterial in cachedMaterials.Values)
+        this._color = color;
+        foreach (var cachedMaterial in _cachedMaterials.Values)
             cachedMaterial.Material.SetShaderParameter("OutlineColor", color.ToVector4(), isCustom: true);
     }
 
-    public Color GetColor() => color;
+    public Color GetColor() => _color;
 
     public void SetRenderOrder(uint renderOrder)
     {
         var normalized = checked((byte)renderOrder);
-        if (this.renderOrder == normalized)
+        if (this._renderOrder == normalized)
             return;
 
-        this.renderOrder = normalized;
-        foreach (var cachedMaterial in cachedMaterials.Values)
+        this._renderOrder = normalized;
+        foreach (var cachedMaterial in _cachedMaterials.Values)
             cachedMaterial.Material.SetRenderOrder(normalized);
     }
 
-    public byte GetRenderOrder() => renderOrder;
+    public byte GetRenderOrder() => _renderOrder;
 
     public void SetDebug(bool debug)
     {
-        isDebug = debug;
+        _isDebug = debug;
     }
 
-    public bool IsDebug() => isDebug;
+    public bool IsDebug() => _isDebug;
 
     public Material GetOutlineMaterial(Material referenceMaterial)
     {
         ArgumentNullException.ThrowIfNull(referenceMaterial);
 
         var sourceHash = CalculateMaterialHash(referenceMaterial);
-        if (cachedMaterials.TryGetValue(referenceMaterial, out var cached) && cached.SourceHash == sourceHash)
+        if (_cachedMaterials.TryGetValue(referenceMaterial, out var cached) && cached.SourceHash == sourceHash)
             return cached.Material;
 
         var outlineMaterial = CreateOutlineMaterial(referenceMaterial);
-        cachedMaterials[referenceMaterial] = new CachedOutlineMaterial(sourceHash, outlineMaterial);
+        _cachedMaterials[referenceMaterial] = new CachedOutlineMaterial(sourceHash, outlineMaterial);
         return outlineMaterial;
     }
 
@@ -121,8 +121,8 @@ public sealed class OutlineGroup : Component
         outlineMaterial.CopyFrom(referenceMaterial);
         outlineMaterial.SetAlphaToCoverage(false);
         outlineMaterial.SetFillMode(FillMode.Solid);
-        outlineMaterial.SetRenderOrder(renderOrder);
-        outlineMaterial.SetShaderParameter("OutlineColor", color.ToVector4(), isCustom: true);
+        outlineMaterial.SetRenderOrder(_renderOrder);
+        outlineMaterial.SetShaderParameter("OutlineColor", _color.ToVector4(), isCustom: true);
 
         var outlineTechniques = new List<TechniqueEntry>(referenceMaterial.GetTechniques().Count);
         foreach (var entry in referenceMaterial.GetTechniques())

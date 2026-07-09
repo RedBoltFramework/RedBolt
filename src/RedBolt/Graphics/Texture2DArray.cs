@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class Texture2DArray : Texture
 {
-    private readonly Dictionary<(uint Slice, uint Level), byte[]> sliceData = new();
+    private readonly Dictionary<(uint Slice, uint Level), byte[]> _sliceData = new();
 
     public Texture2DArray(string name)
         : base(name)
@@ -56,7 +56,7 @@ public sealed class Texture2DArray : Texture
             return false;
 
         SetDimensions(width, height, (int)layers, format, multiSample, noMultiSampledAutoResolve);
-        sliceData.Clear();
+        _sliceData.Clear();
         RefreshTotalMemoryUse();
         return true;
     }
@@ -80,10 +80,10 @@ public sealed class Texture2DArray : Texture
             return false;
 
         var key = (slice, level);
-        if (!sliceData.TryGetValue(key, out var levelBytes))
+        if (!_sliceData.TryGetValue(key, out var levelBytes))
         {
             levelBytes = new byte[checked(levelWidth * levelHeight * bytesPerPixel)];
-            sliceData[key] = levelBytes;
+            _sliceData[key] = levelBytes;
         }
 
         for (var row = 0; row < height; ++row)
@@ -133,11 +133,11 @@ public sealed class Texture2DArray : Texture
 
     public byte[]? GetData(uint slice, uint level)
     {
-        return sliceData.TryGetValue((slice, level), out var bytes) ? bytes.ToArray() : null;
+        return _sliceData.TryGetValue((slice, level), out var bytes) ? bytes.ToArray() : null;
     }
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)sliceData.Sum(static item => item.Value.Length));
+        RefreshMemoryUse((uint)_sliceData.Sum(static item => item.Value.Length));
     }
 }

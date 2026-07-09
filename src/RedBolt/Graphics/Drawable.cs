@@ -41,11 +41,11 @@ public abstract class Drawable : Component
         DrawableFlags = drawableFlags;
     }
 
-    private BoundingBox boundingBox;
-    private BoundingBox worldBoundingBox;
-    private bool worldBoundingBoxDirty = true;
+    private BoundingBox _boundingBox;
+    private BoundingBox _worldBoundingBox;
+    private bool _worldBoundingBoxDirty = true;
 
-    public BoundingBox BoundingBox => boundingBox;
+    public BoundingBox BoundingBox => _boundingBox;
 
     public BoundingBox WorldBoundingBox => GetWorldBoundingBox();
 
@@ -75,7 +75,7 @@ public abstract class Drawable : Component
 
     public ReflectionMode ReflectionMode { get; set; }
 
-    public BoundingBox GetBoundingBox() => boundingBox;
+    public BoundingBox GetBoundingBox() => _boundingBox;
 
     public DrawableFlags GetDrawableFlags() => DrawableFlags;
 
@@ -105,13 +105,13 @@ public abstract class Drawable : Component
 
     public BoundingBox GetWorldBoundingBox()
     {
-        if (worldBoundingBoxDirty)
+        if (_worldBoundingBoxDirty)
         {
             OnWorldBoundingBoxUpdate();
-            worldBoundingBoxDirty = false;
+            _worldBoundingBoxDirty = false;
         }
 
-        return worldBoundingBox;
+        return _worldBoundingBox;
     }
 
     public void SetDrawDistance(float distance)
@@ -176,23 +176,23 @@ public abstract class Drawable : Component
 
     public void MarkForUpdate()
     {
-        worldBoundingBoxDirty = true;
+        _worldBoundingBoxDirty = true;
     }
 
     protected void SetLocalBoundingBox(BoundingBox box)
     {
-        boundingBox = box;
+        _boundingBox = box;
         MarkForUpdate();
     }
 
     protected void SetWorldBoundingBox(BoundingBox box)
     {
-        worldBoundingBox = box;
+        _worldBoundingBox = box;
     }
 
     protected virtual void OnWorldBoundingBoxUpdate()
     {
-        worldBoundingBox = IsAttached ? boundingBox.Transformed(Node.GetWorldTransform()) : boundingBox;
+        _worldBoundingBox = IsAttached ? _boundingBox.Transformed(Node.GetWorldTransform()) : _boundingBox;
     }
 
     protected internal override void OnMarkedDirty(Node node)

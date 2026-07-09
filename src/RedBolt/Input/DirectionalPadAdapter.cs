@@ -12,72 +12,72 @@ public enum DirectionalPadAdapterMask : uint
 
 public sealed class DirectionalPadAdapter
 {
-    private Input? input;
-    private bool enabled;
-    private DirectionalPadAdapterMask subscriptionMask = DirectionalPadAdapterMask.All;
-    private float axisUpperThreshold = 0.6f;
-    private float axisLowerThreshold = 0.4f;
-    private float repeatDelay = 0.5f;
-    private float repeatInterval = 0.03f;
-    private Vector2 externalDirection = Vector2.Zero;
+    private Input? _input;
+    private bool _enabled;
+    private DirectionalPadAdapterMask _subscriptionMask = DirectionalPadAdapterMask.All;
+    private float _axisUpperThreshold = 0.6f;
+    private float _axisLowerThreshold = 0.4f;
+    private float _repeatDelay = 0.5f;
+    private float _repeatInterval = 0.03f;
+    private Vector2 _externalDirection = Vector2.Zero;
 
     public DirectionalPadAdapter(Input? input = null)
     {
-        this.input = input;
+        this._input = input;
     }
 
     public void SetInput(Input? input)
     {
-        this.input = input;
+        this._input = input;
     }
 
-    public Input? GetInput() => input;
+    public Input? GetInput() => _input;
 
     public void SetEnabled(bool enabled)
     {
-        this.enabled = enabled;
+        this._enabled = enabled;
     }
 
-    public bool IsEnabled() => enabled;
+    public bool IsEnabled() => _enabled;
 
     public void SetSubscriptionMask(DirectionalPadAdapterMask mask)
     {
-        subscriptionMask = mask;
+        _subscriptionMask = mask;
     }
 
-    public DirectionalPadAdapterMask GetSubscriptionMask() => subscriptionMask;
+    public DirectionalPadAdapterMask GetSubscriptionMask() => _subscriptionMask;
 
     public void SetAxisUpperThreshold(float threshold)
     {
-        axisUpperThreshold = threshold;
+        _axisUpperThreshold = threshold;
     }
 
-    public float GetAxisUpperThreshold() => axisUpperThreshold;
+    public float GetAxisUpperThreshold() => _axisUpperThreshold;
 
     public void SetAxisLowerThreshold(float threshold)
     {
-        axisLowerThreshold = threshold;
+        _axisLowerThreshold = threshold;
     }
 
-    public float GetAxisLowerThreshold() => axisLowerThreshold;
+    public float GetAxisLowerThreshold() => _axisLowerThreshold;
 
     public void SetRepeatDelay(float delayInSeconds)
     {
-        repeatDelay = Math.Max(delayInSeconds, 0.0f);
+        _repeatDelay = Math.Max(delayInSeconds, 0.0f);
     }
 
-    public float GetRepeatDelay() => repeatDelay;
+    public float GetRepeatDelay() => _repeatDelay;
 
     public void SetRepeatInterval(float intervalInSeconds)
     {
-        repeatInterval = Math.Max(intervalInSeconds, 0.0f);
+        _repeatInterval = Math.Max(intervalInSeconds, 0.0f);
     }
 
-    public float GetRepeatInterval() => repeatInterval;
+    public float GetRepeatInterval() => _repeatInterval;
 
     public void SetExternalDirection(Vector2 direction)
     {
-        externalDirection = direction;
+        _externalDirection = direction;
     }
 
     public bool GetKeyDown(Key key)
@@ -94,7 +94,7 @@ public sealed class DirectionalPadAdapter
 
     public bool GetScancodeDown(Scancode scancode)
     {
-        if (!enabled)
+        if (!_enabled)
             return false;
 
         return scancode switch
@@ -124,78 +124,78 @@ public sealed class DirectionalPadAdapter
 
     private Vector2 GetJoystickDirection()
     {
-        if (input is null)
+        if (_input is null)
             return Vector2.Zero;
 
         var x = 0.0f;
         var y = 0.0f;
-        x += AxisToDirection(input.GetControllerAxisPosition(ControllerAxis.LeftX));
-        y += AxisToDirection(input.GetControllerAxisPosition(ControllerAxis.LeftY));
-        x += AxisToDirection(input.GetJoystickAxisPosition(0u));
-        y += AxisToDirection(input.GetJoystickAxisPosition(1u));
+        x += AxisToDirection(_input.GetControllerAxisPosition(ControllerAxis.LeftX));
+        y += AxisToDirection(_input.GetControllerAxisPosition(ControllerAxis.LeftY));
+        x += AxisToDirection(_input.GetJoystickAxisPosition(0u));
+        y += AxisToDirection(_input.GetJoystickAxisPosition(1u));
 
-        if (input.GetHatDown(HatPosition.Right))
+        if (_input.GetHatDown(HatPosition.Right))
             x += 1.0f;
-        if (input.GetHatDown(HatPosition.Left))
+        if (_input.GetHatDown(HatPosition.Left))
             x -= 1.0f;
-        if (input.GetHatDown(HatPosition.Down))
+        if (_input.GetHatDown(HatPosition.Down))
             y += 1.0f;
-        if (input.GetHatDown(HatPosition.Up))
+        if (_input.GetHatDown(HatPosition.Up))
             y -= 1.0f;
         return new Vector2(x, y);
     }
 
     private bool IsRightActive()
     {
-        return externalDirection.X > axisLowerThreshold
-            || ((subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.D, Key.Right))
-            || ((subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && input is not null &&
-                (input.GetControllerAxisPosition(ControllerAxis.LeftX) >= axisUpperThreshold
-                 || input.GetJoystickAxisPosition(0u) >= axisUpperThreshold
-                 || input.GetHatDown(HatPosition.Right)));
+        return _externalDirection.X > _axisLowerThreshold
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.D, Key.Right))
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && _input is not null &&
+                (_input.GetControllerAxisPosition(ControllerAxis.LeftX) >= _axisUpperThreshold
+                 || _input.GetJoystickAxisPosition(0u) >= _axisUpperThreshold
+                 || _input.GetHatDown(HatPosition.Right)));
     }
 
     private bool IsLeftActive()
     {
-        return externalDirection.X < -axisLowerThreshold
-            || ((subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.A, Key.Left))
-            || ((subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && input is not null &&
-                (input.GetControllerAxisPosition(ControllerAxis.LeftX) <= -axisUpperThreshold
-                 || input.GetJoystickAxisPosition(0u) <= -axisUpperThreshold
-                 || input.GetHatDown(HatPosition.Left)));
+        return _externalDirection.X < -_axisLowerThreshold
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.A, Key.Left))
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && _input is not null &&
+                (_input.GetControllerAxisPosition(ControllerAxis.LeftX) <= -_axisUpperThreshold
+                 || _input.GetJoystickAxisPosition(0u) <= -_axisUpperThreshold
+                 || _input.GetHatDown(HatPosition.Left)));
     }
 
     private bool IsUpActive()
     {
-        return externalDirection.Y < -axisLowerThreshold
-            || ((subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.W, Key.Up))
-            || ((subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && input is not null &&
-                (input.GetControllerAxisPosition(ControllerAxis.LeftY) <= -axisUpperThreshold
-                 || input.GetJoystickAxisPosition(1u) <= -axisUpperThreshold
-                 || input.GetHatDown(HatPosition.Up)));
+        return _externalDirection.Y < -_axisLowerThreshold
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.W, Key.Up))
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && _input is not null &&
+                (_input.GetControllerAxisPosition(ControllerAxis.LeftY) <= -_axisUpperThreshold
+                 || _input.GetJoystickAxisPosition(1u) <= -_axisUpperThreshold
+                 || _input.GetHatDown(HatPosition.Up)));
     }
 
     private bool IsDownActive()
     {
-        return externalDirection.Y > axisLowerThreshold
-            || ((subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.S, Key.Down))
-            || ((subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && input is not null &&
-                (input.GetControllerAxisPosition(ControllerAxis.LeftY) >= axisUpperThreshold
-                 || input.GetJoystickAxisPosition(1u) >= axisUpperThreshold
-                 || input.GetHatDown(HatPosition.Down)));
+        return _externalDirection.Y > _axisLowerThreshold
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0 && IsPressed(Scancode.S, Key.Down))
+            || ((_subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0 && _input is not null &&
+                (_input.GetControllerAxisPosition(ControllerAxis.LeftY) >= _axisUpperThreshold
+                 || _input.GetJoystickAxisPosition(1u) >= _axisUpperThreshold
+                 || _input.GetHatDown(HatPosition.Down)));
     }
 
     private float AxisToDirection(float axis)
     {
-        if (axis >= axisUpperThreshold)
+        if (axis >= _axisUpperThreshold)
             return 1.0f;
-        if (axis <= -axisUpperThreshold)
+        if (axis <= -_axisUpperThreshold)
             return -1.0f;
         return 0.0f;
     }
 
     private bool IsPressed(Scancode scancode, Key key)
     {
-        return input is not null && (input.GetScancodeDown(scancode) || input.GetKeyDown(key));
+        return _input is not null && (_input.GetScancodeDown(scancode) || _input.GetKeyDown(key));
     }
 }

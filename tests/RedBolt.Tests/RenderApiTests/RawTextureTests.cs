@@ -6,11 +6,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RawTextureTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RawTextureTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class RawTextureTests
     [Fact]
     public void Render_pool_recycles_transient_textures_by_params()
     {
-        var renderPool = fixture.RenderDevice.GetRenderPool();
+        var renderPool = _fixture.RenderDevice.GetRenderPool();
         var parameters = new RawTextureParams(
             TextureType.Texture2D,
             TextureFormat.RGBA8,
@@ -107,7 +107,7 @@ public sealed class RawTextureTests
     [Fact]
     public void Render_pool_reuses_persistent_textures_for_matching_persistence_keys()
     {
-        var renderPool = fixture.RenderDevice.GetRenderPool();
+        var renderPool = _fixture.RenderDevice.GetRenderPool();
         var parameters = new RawTextureParams(
             TextureType.Texture2D,
             TextureFormat.RGBA8,
@@ -246,18 +246,18 @@ public sealed class RawTextureTests
             WindowHeight = 64
         };
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
             action();
         }
         finally
         {
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
 }

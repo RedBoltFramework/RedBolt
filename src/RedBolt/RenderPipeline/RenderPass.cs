@@ -17,42 +17,42 @@ public readonly record struct RenderPassTraits(
 /// </summary>
 public abstract class RenderPass : Serializable
 {
-    private string passName = string.Empty;
-    private bool enabledByDefault = true;
-    private string comment = string.Empty;
-    private bool isEnabledByUser;
-    private bool isEnabledInternally = true;
-    private RenderPassTraits traits;
+    private string _passName = string.Empty;
+    private bool _enabledByDefault = true;
+    private string _comment = string.Empty;
+    private bool _isEnabledByUser;
+    private bool _isEnabledInternally = true;
+    private RenderPassTraits _traits;
 
     protected RenderPass(string? passName = null)
     {
-        this.passName = passName ?? string.Empty;
-        isEnabledByUser = enabledByDefault;
+        this._passName = passName ?? string.Empty;
+        _isEnabledByUser = _enabledByDefault;
 
         RegisterAttribute(
             "Pass Name",
             typeof(string),
-            self => ((RenderPass)self).passName,
-            (self, value) => ((RenderPass)self).passName = value as string ?? string.Empty,
+            self => ((RenderPass)self)._passName,
+            (self, value) => ((RenderPass)self)._passName = value as string ?? string.Empty,
             string.Empty);
         RegisterAttribute(
             "Is Enabled By Default",
             typeof(bool),
-            self => ((RenderPass)self).enabledByDefault,
-            (self, value) => ((RenderPass)self).enabledByDefault = value is bool enabled && enabled,
+            self => ((RenderPass)self)._enabledByDefault,
+            (self, value) => ((RenderPass)self)._enabledByDefault = value is bool enabled && enabled,
             true);
         RegisterAttribute(
             "Comment",
             typeof(string),
-            self => ((RenderPass)self).comment,
-            (self, value) => ((RenderPass)self).comment = value as string ?? string.Empty,
+            self => ((RenderPass)self)._comment,
+            (self, value) => ((RenderPass)self)._comment = value as string ?? string.Empty,
             string.Empty);
     }
 
     /// <summary>
     /// Return unique pass name.
     /// </summary>
-    public virtual string GetPassName() => string.IsNullOrWhiteSpace(passName) ? GetType().Name : passName;
+    public virtual string GetPassName() => string.IsNullOrWhiteSpace(_passName) ? GetType().Name : _passName;
 
     /// <summary>
     /// Create missing parameters in the global map with default values.
@@ -100,36 +100,36 @@ public abstract class RenderPass : Serializable
 
     public void SetEnabled(bool enabled)
     {
-        isEnabledByUser = enabled;
+        _isEnabledByUser = enabled;
     }
 
-    public bool IsEnabledEffectively() => isEnabledByUser && isEnabledInternally;
+    public bool IsEnabledEffectively() => _isEnabledByUser && _isEnabledInternally;
 
-    public RenderPassTraits GetTraits() => traits;
+    public RenderPassTraits GetTraits() => _traits;
 
-    public bool IsEnabledByDefault() => enabledByDefault;
+    public bool IsEnabledByDefault() => _enabledByDefault;
 
     public void SetEnabledByDefault(bool enabled)
     {
-        enabledByDefault = enabled;
-        isEnabledByUser = enabled;
+        _enabledByDefault = enabled;
+        _isEnabledByUser = enabled;
     }
 
-    public string GetComment() => comment;
+    public string GetComment() => _comment;
 
     public void SetComment(string value)
     {
-        comment = value ?? string.Empty;
+        _comment = value ?? string.Empty;
     }
 
     protected void SetTraits(RenderPassTraits value)
     {
-        traits = value;
+        _traits = value;
     }
 
     protected void SetInternallyEnabled(bool enabled)
     {
-        isEnabledInternally = enabled;
+        _isEnabledInternally = enabled;
     }
 
     protected void DeclareParameter(string name, object? value, IDictionary<string, object?> parameters)

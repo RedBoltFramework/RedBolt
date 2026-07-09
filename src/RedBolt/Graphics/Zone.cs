@@ -12,12 +12,12 @@ public sealed class Zone : Drawable
     public static readonly Color DefaultAmbientColor = new(0.1f, 0.1f, 0.1f);
     public static readonly Color DefaultFogColor = Color.Black;
 
-    private Texture? zoneTexture;
-    private ResourceRef zoneTextureAttribute = new(StringHash.Calculate("TextureCube"), string.Empty);
-    private Matrix3x4 inverseWorld = Matrix3x4.Identity;
-    private bool inverseWorldDirty = true;
-    private Color ambientStartColor = DefaultAmbientColor;
-    private Color ambientEndColor = DefaultAmbientColor;
+    private Texture? _zoneTexture;
+    private ResourceRef _zoneTextureAttribute = new(StringHash.Calculate("TextureCube"), string.Empty);
+    private Matrix3x4 _inverseWorld = Matrix3x4.Identity;
+    private bool _inverseWorldDirty = true;
+    private Color _ambientStartColor = DefaultAmbientColor;
+    private Color _ambientEndColor = DefaultAmbientColor;
 
     public Zone()
         : base(DrawableFlags.Zone)
@@ -60,8 +60,8 @@ public sealed class Zone : Drawable
     public void SetAmbientColor(Color color)
     {
         AmbientColor = color;
-        ambientStartColor = color;
-        ambientEndColor = color;
+        _ambientStartColor = color;
+        _ambientEndColor = color;
     }
 
     public Color GetAmbientColor() => AmbientColor;
@@ -153,37 +153,37 @@ public sealed class Zone : Drawable
 
     public void SetZoneTexture(Texture? texture)
     {
-        zoneTexture = texture;
+        _zoneTexture = texture;
     }
 
-    public Texture? GetZoneTexture() => zoneTexture;
+    public Texture? GetZoneTexture() => _zoneTexture;
 
     public void SetZoneTextureAttr(ResourceRef value)
     {
-        zoneTextureAttribute = value;
+        _zoneTextureAttribute = value;
     }
 
-    public ResourceRef GetZoneTextureAttr() => zoneTextureAttribute;
+    public ResourceRef GetZoneTextureAttr() => _zoneTextureAttribute;
 
     public Matrix3x4 GetInverseWorldTransform()
     {
-        if (inverseWorldDirty)
+        if (_inverseWorldDirty)
         {
-            inverseWorld = IsAttached ? BuildInverseWorldTransform() : Matrix3x4.Identity;
-            inverseWorldDirty = false;
+            _inverseWorld = IsAttached ? BuildInverseWorldTransform() : Matrix3x4.Identity;
+            _inverseWorldDirty = false;
         }
 
-        return inverseWorld;
+        return _inverseWorld;
     }
 
     public Color GetAmbientStartColor()
     {
-        return AmbientGradient ? ambientStartColor : AmbientColor;
+        return AmbientGradient ? _ambientStartColor : AmbientColor;
     }
 
     public Color GetAmbientEndColor()
     {
-        return AmbientGradient ? ambientEndColor : AmbientColor;
+        return AmbientGradient ? _ambientEndColor : AmbientColor;
     }
 
     public Vector3 GetAmbientLighting() => (AmbientColor * AmbientBrightness).ToVector3();
@@ -202,9 +202,9 @@ public sealed class Zone : Drawable
 
     private void MarkZoneDirty()
     {
-        inverseWorldDirty = true;
-        ambientStartColor = AmbientColor;
-        ambientEndColor = AmbientColor;
+        _inverseWorldDirty = true;
+        _ambientStartColor = AmbientColor;
+        _ambientEndColor = AmbientColor;
     }
 
     private Matrix3x4 BuildInverseWorldTransform()

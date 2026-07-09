@@ -6,11 +6,11 @@ namespace RedBolt;
 internal static class Log
 {
     private static readonly object SyncRoot = new();
-    private static ILoggerFactory loggerFactory = new LoggerFactory();
-    private static ILogger currentLogger = loggerFactory.CreateLogger("RedBolt");
-    private static bool initialized;
+    private static ILoggerFactory _loggerFactory = new LoggerFactory();
+    private static ILogger _currentLogger = _loggerFactory.CreateLogger("RedBolt");
+    private static bool _initialized;
 
-    public static ILogger Logger => currentLogger;
+    public static ILogger Logger => _currentLogger;
 
     public static void Initialize(EngineParameters parameters)
     {
@@ -40,10 +40,10 @@ internal static class Log
 
         lock (SyncRoot)
         {
-            loggerFactory.Dispose();
-            loggerFactory = factory;
-            currentLogger = factory.CreateLogger("RedBolt");
-            initialized = true;
+            _loggerFactory.Dispose();
+            _loggerFactory = factory;
+            _currentLogger = factory.CreateLogger("RedBolt");
+            _initialized = true;
         }
     }
 
@@ -51,12 +51,12 @@ internal static class Log
     {
         lock (SyncRoot)
         {
-            if (initialized)
+            if (_initialized)
             {
-                loggerFactory.Dispose();
-                loggerFactory = new LoggerFactory();
-                currentLogger = loggerFactory.CreateLogger("RedBolt");
-                initialized = false;
+                _loggerFactory.Dispose();
+                _loggerFactory = new LoggerFactory();
+                _currentLogger = _loggerFactory.CreateLogger("RedBolt");
+                _initialized = false;
             }
         }
     }
@@ -78,7 +78,7 @@ internal static class Log
 
     private sealed class FileLoggerProvider(string path) : ILoggerProvider
     {
-        private readonly string path = Path.GetFullPath(path);
+        private readonly string _path = Path.GetFullPath(path);
         private static readonly object FileSync = new();
 
         public void Dispose()
@@ -87,7 +87,7 @@ internal static class Log
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new FileLogger(path, categoryName, FileSync);
+            return new FileLogger(_path, categoryName, FileSync);
         }
 
         private sealed class FileLogger(string path, string categoryName, object sync) : ILogger

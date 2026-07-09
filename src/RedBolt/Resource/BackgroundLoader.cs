@@ -13,13 +13,13 @@ internal sealed class BackgroundLoadItem
 
 public sealed class BackgroundLoader
 {
-    private readonly ResourceCache owner;
-    private readonly object sync = new();
-    private readonly Dictionary<(Type Type, string Name), BackgroundLoadItem> queue = new();
+    private readonly ResourceCache _owner;
+    private readonly object _sync = new();
+    private readonly Dictionary<(Type Type, string Name), BackgroundLoadItem> _queue = new();
 
     internal BackgroundLoader(ResourceCache owner)
     {
-        this.owner = owner;
+        this._owner = owner;
     }
 
     public bool QueueResource(Type type, string name, bool sendEventOnFailure = true, Resource? caller = null)
@@ -27,23 +27,23 @@ public sealed class BackgroundLoader
         ArgumentNullException.ThrowIfNull(type);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        if (!owner.CanBackgroundLoad(type))
+        if (!_owner.CanBackgroundLoad(type))
             return false;
 
-        var sanitizedName = owner.SanitateResourceName(name);
+        var sanitizedName = _owner.SanitateResourceName(name);
         var key = (type, sanitizedName);
 
-        lock (sync)
+        lock (_sync)
         {
-            if (queue.ContainsKey(key) || owner.HasResource(type, sanitizedName))
+            if (_queue.ContainsKey(key) || _owner.HasResource(type, sanitizedName))
                 return false;
 
-            queue.Add(key, new BackgroundLoadItem
+            _queue.Add(key, new BackgroundLoadItem
             {
                 Type = type,
                 Name = sanitizedName,
                 SendEventOnFailure = sendEventOnFailure,
-                LoadTask = Task.Run(() => owner.LoadBackgroundResource(type, sanitizedName))
+                LoadTask = Task.Run(() => _owner.LoadBackgroundResource(type, sanitizedName))
             });
         }
 
@@ -55,10 +55,10 @@ public sealed class BackgroundLoader
         ArgumentNullException.ThrowIfNull(type);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var key = (type, owner.SanitateResourceName(name));
+        var key = (type, _owner.SanitateResourceName(name));
         BackgroundLoadItem? item;
-        lock (sync)
-            queue.TryGetValue(key, out item);
+        lock (_sync)
+            _queue.TryGetValue(key, out item);
 
         if (item is null)
             return;
@@ -73,9 +73,9 @@ public sealed class BackgroundLoader
         while (true)
         {
             List<KeyValuePair<(Type Type, string Name), BackgroundLoadItem>> completed;
-            lock (sync)
+            lock (_sync)
             {
-                completed = queue
+                completed = _queue
                     .Where(static item => item.Value.LoadTask.IsCompleted)
                     .ToList();
             }
@@ -94,8 +94,8 @@ public sealed class BackgroundLoader
 
     public int GetNumQueuedResources()
     {
-        lock (sync)
-            return queue.Count;
+        lock (_sync)
+            return _queue.Count;
     }
 
     private void FinishResource((Type Type, string Name) key, BackgroundLoadItem item)
@@ -110,13 +110,13 @@ public sealed class BackgroundLoader
             resource = null;
         }
 
-        lock (sync)
+        lock (_sync)
         {
-            if (!queue.Remove(key))
+            if (!_queue.Remove(key))
                 return;
         }
 
         if (resource is not null)
-            owner.StoreBackgroundResource(key.Type, key.Name, resource);
+            _owner.StoreBackgroundResource(key.Type, key.Name, resource);
     }
 }

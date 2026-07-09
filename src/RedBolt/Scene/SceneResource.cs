@@ -20,7 +20,7 @@ public sealed class SceneResource : Resource
 
     private static readonly Lazy<Dictionary<string, Type>> ComponentTypes = new(BuildComponentTypeMap);
 
-    private SceneResourceFormat? loadFormat;
+    private SceneResourceFormat? _loadFormat;
 
     static SceneResource()
     {
@@ -53,7 +53,7 @@ public sealed class SceneResource : Resource
             case SceneResourceFormat.Json:
             {
                 JsonSerializer.Serialize(destination, sceneData, SerializerOptions);
-                loadFormat = SceneResourceFormat.Json;
+                _loadFormat = SceneResourceFormat.Json;
                 return true;
             }
             case SceneResourceFormat.Xml:
@@ -61,7 +61,7 @@ public sealed class SceneResource : Resource
                 var xml = new XMLFile(Name);
                 var root = xml.CreateRoot(GetXmlRootName());
                 WriteSceneXml(root, sceneData);
-                loadFormat = SceneResourceFormat.Xml;
+                _loadFormat = SceneResourceFormat.Xml;
                 return xml.Save(destination);
             }
             default:
@@ -76,7 +76,7 @@ public sealed class SceneResource : Resource
         return Save(destination, format, asPrefab);
     }
 
-    public override bool Save(Stream destination) => Save(destination, loadFormat ?? SceneResourceFormat.Xml, IsPrefab);
+    public override bool Save(Stream destination) => Save(destination, _loadFormat ?? SceneResourceFormat.Xml, IsPrefab);
 
     public override bool BeginLoad(Stream source)
     {
@@ -93,12 +93,12 @@ public sealed class SceneResource : Resource
             if (!xml.FromString(text))
                 return false;
             sceneData = ReadSceneXml(xml.GetRoot(GetXmlRootName()));
-            loadFormat = SceneResourceFormat.Xml;
+            _loadFormat = SceneResourceFormat.Xml;
         }
         else
         {
             sceneData = JsonSerializer.Deserialize<SerializedScene>(text, SerializerOptions);
-            loadFormat = SceneResourceFormat.Json;
+            _loadFormat = SceneResourceFormat.Json;
         }
 
         if (sceneData is null)

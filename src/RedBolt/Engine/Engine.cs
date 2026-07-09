@@ -4,18 +4,18 @@ namespace RedBolt;
 
 public sealed class Engine
 {
-    private readonly Dictionary<string, object?> customParameters = new(StringComparer.Ordinal);
-    private readonly HiresTimer frameTimer = new();
-    private float? nextTimeStep;
-    private readonly List<float> lastTimeSteps = [];
-    private float currentTimeStep;
-    private long timeOut;
-    private Context? previousContext;
-    private readonly Context context = new();
+    private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
+    private readonly HiresTimer _frameTimer = new();
+    private float? _nextTimeStep;
+    private readonly List<float> _lastTimeSteps = [];
+    private float _currentTimeStep;
+    private long _timeOut;
+    private Context? _previousContext;
+    private readonly Context _context = new();
 
     public EngineParameters Parameters { get; private set; } = new();
 
-    public Context Context => context;
+    public Context Context => _context;
 
     public bool IsInitialized { get; private set; }
 
@@ -77,10 +77,10 @@ public sealed class Engine
 
         IsInitialized = true;
         IsExiting = false;
-        currentTimeStep = 0.0f;
-        nextTimeStep = null;
-        lastTimeSteps.Clear();
-        frameTimer.Reset();
+        _currentTimeStep = 0.0f;
+        _nextTimeStep = null;
+        _lastTimeSteps.Clear();
+        _frameTimer.Reset();
         Log.Logger.LogDebug("Engine initialized.");
         return true;
     }
@@ -97,8 +97,8 @@ public sealed class Engine
         var graphics = GetRequiredSubsystem<Graphics>();
         var renderer = GetRequiredSubsystem<Renderer>();
 
-        var timeStep = nextTimeStep ?? currentTimeStep;
-        nextTimeStep = null;
+        var timeStep = _nextTimeStep ?? _currentTimeStep;
+        _nextTimeStep = null;
         if (timeStep < 0.0f)
             timeStep = 0.0f;
 
@@ -127,8 +127,8 @@ public sealed class Engine
         }
 
         time.EndFrame();
-        context.SendEvent<CoreEvents.EndFrameEvent>();
-        context.SendEvent<CoreEvents.EndFramePrivateEvent>();
+        _context.SendEvent<CoreEvents.EndFrameEvent>();
+        _context.SendEvent<CoreEvents.EndFramePrivateEvent>();
         ApplyFrameLimit();
     }
 
@@ -181,10 +181,10 @@ public sealed class Engine
 
     public void SetNextTimeStep(float seconds)
     {
-        nextTimeStep = Math.Max(seconds, 0.0f);
+        _nextTimeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => nextTimeStep ?? GetRequiredSubsystem<Time>().TimeStep;
+    public float GetNextTimeStep() => _nextTimeStep ?? GetRequiredSubsystem<Time>().TimeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -195,19 +195,19 @@ public sealed class Engine
             return;
         }
 
-        customParameters[name] = value;
+        _customParameters[name] = value;
     }
 
     public bool HasParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return customParameters.ContainsKey(name) || EngineParameterBinding.IsKnown(name);
+        return _customParameters.ContainsKey(name) || EngineParameterBinding.IsKnown(name);
     }
 
     public object? GetParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (customParameters.TryGetValue(name, out var value))
+        if (_customParameters.TryGetValue(name, out var value))
             return value;
 
         return EngineParameterBinding.TryGetValue(Parameters, name, out value) ? value : null;
@@ -224,20 +224,20 @@ public sealed class Engine
         GetRequiredSubsystem<Input>().Shutdown();
         Context.Reset();
         if (ReferenceEquals(RedBolt.Context.TryGetInstance(), Context))
-            RedBolt.Context.SetInstance(previousContext);
+            RedBolt.Context.SetInstance(_previousContext);
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
-        nextTimeStep = null;
-        currentTimeStep = 0.0f;
-        lastTimeSteps.Clear();
-        timeOut = 0;
-        frameTimer.Reset();
+        _nextTimeStep = null;
+        _currentTimeStep = 0.0f;
+        _lastTimeSteps.Clear();
+        _timeOut = 0;
+        _frameTimer.Reset();
     }
 
     private void InitializeContext()
     {
-        previousContext = RedBolt.Context.TryGetInstance();
+        _previousContext = RedBolt.Context.TryGetInstance();
         Context.Reset();
         RedBolt.Context.SetInstance(Context);
         Context.RegisterSubsystem(Context);
@@ -259,7 +259,7 @@ public sealed class Engine
             MaxFps = 0;
 
         ApplyConfiguredResourcePaths();
-        timeOut = (long)Parameters.TimeOut * 1_000_000L;
+        _timeOut = (long)Parameters.TimeOut * 1_000_000L;
     }
 
     private void ApplyLiveParameter(string name)
@@ -329,7 +329,7 @@ public sealed class Engine
             TimeStep = time.TimeStep
         };
 
-        context.SendEvent(ref eventData);
+        _context.SendEvent(ref eventData);
     }
 
     private void SendCoreEvents(float timeStep)
@@ -338,31 +338,31 @@ public sealed class Engine
         {
             TimeStep = timeStep
         };
-        context.SendEvent(ref inputReadyEventData);
+        _context.SendEvent(ref inputReadyEventData);
 
         var updateEventData = new CoreEvents.UpdateEvent
         {
             TimeStep = timeStep
         };
-        context.SendEvent(ref updateEventData);
+        _context.SendEvent(ref updateEventData);
 
         var postUpdateEventData = new CoreEvents.PostUpdateEvent
         {
             TimeStep = timeStep
         };
-        context.SendEvent(ref postUpdateEventData);
+        _context.SendEvent(ref postUpdateEventData);
 
         var renderUpdateEventData = new CoreEvents.RenderUpdateEvent
         {
             TimeStep = timeStep
         };
-        context.SendEvent(ref renderUpdateEventData);
+        _context.SendEvent(ref renderUpdateEventData);
 
         var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent
         {
             TimeStep = timeStep
         };
-        context.SendEvent(ref postRenderUpdateEventData);
+        _context.SendEvent(ref postRenderUpdateEventData);
     }
 
     private static IReadOnlyList<string> SplitPathList(string value)
@@ -393,7 +393,7 @@ public sealed class Engine
             long targetMax = 1_000_000L / maxFps;
             while (true)
             {
-                elapsed = frameTimer.GetUSec(false);
+                elapsed = _frameTimer.GetUSec(false);
                 if (elapsed >= targetMax)
                     break;
 
@@ -405,11 +405,11 @@ public sealed class Engine
             }
         }
 
-        elapsed = frameTimer.GetUSec(true);
-        if (timeOut > 0)
+        elapsed = _frameTimer.GetUSec(true);
+        if (_timeOut > 0)
         {
-            timeOut -= elapsed;
-            if (timeOut <= 0)
+            _timeOut -= elapsed;
+            if (_timeOut <= 0)
                 Exit();
         }
 
@@ -420,18 +420,18 @@ public sealed class Engine
                 elapsed = targetMin;
         }
 
-        currentTimeStep = 0.0f;
-        lastTimeSteps.Add(elapsed / 1_000_000.0f);
-        if (lastTimeSteps.Count > TimeStepSmoothing)
+        _currentTimeStep = 0.0f;
+        _lastTimeSteps.Add(elapsed / 1_000_000.0f);
+        if (_lastTimeSteps.Count > TimeStepSmoothing)
         {
-            lastTimeSteps.RemoveRange(0, TimeStepSmoothing);
-            foreach (var value in lastTimeSteps)
-                currentTimeStep += value;
-            currentTimeStep /= lastTimeSteps.Count;
+            _lastTimeSteps.RemoveRange(0, TimeStepSmoothing);
+            foreach (var value in _lastTimeSteps)
+                _currentTimeStep += value;
+            _currentTimeStep /= _lastTimeSteps.Count;
         }
         else
-            currentTimeStep = lastTimeSteps[^1];
+            _currentTimeStep = _lastTimeSteps[^1];
 
-        nextTimeStep = currentTimeStep;
+        _nextTimeStep = _currentTimeStep;
     }
 }

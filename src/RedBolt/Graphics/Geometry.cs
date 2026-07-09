@@ -24,9 +24,9 @@ public enum GeometryType
 
 public sealed class Geometry
 {
-    private readonly List<VertexBuffer?> vertexBuffers = [null];
+    private readonly List<VertexBuffer?> _vertexBuffers = [null];
 
-    public IReadOnlyList<VertexBuffer?> VertexBuffers => vertexBuffers;
+    public IReadOnlyList<VertexBuffer?> VertexBuffers => _vertexBuffers;
 
     public IndexBuffer? IndexBuffer { get; private set; }
 
@@ -53,7 +53,7 @@ public sealed class Geometry
 
     public float GetLodDistance() => LodDistance;
 
-    public uint GetNumVertexBuffers() => (uint)vertexBuffers.Count;
+    public uint GetNumVertexBuffers() => (uint)_vertexBuffers.Count;
 
     public PrimitiveType GetPrimitiveType() => PrimitiveType;
 
@@ -85,31 +85,31 @@ public sealed class Geometry
 
     public bool SetNumVertexBuffers(uint count)
     {
-        vertexBuffers.Clear();
+        _vertexBuffers.Clear();
         for (var index = 0; index < count; ++index)
-            vertexBuffers.Add(null);
+            _vertexBuffers.Add(null);
         return true;
     }
 
     public bool SetVertexBuffer(uint index, VertexBuffer? buffer)
     {
-        if (index >= vertexBuffers.Count)
+        if (index >= _vertexBuffers.Count)
             return false;
 
-        vertexBuffers[(int)index] = buffer;
+        _vertexBuffers[(int)index] = buffer;
         return true;
     }
 
     public void SetVertexBuffers(IEnumerable<VertexBuffer?> buffers)
     {
         ArgumentNullException.ThrowIfNull(buffers);
-        vertexBuffers.Clear();
-        vertexBuffers.AddRange(buffers);
+        _vertexBuffers.Clear();
+        _vertexBuffers.AddRange(buffers);
     }
 
     public VertexBuffer? GetVertexBuffer(uint index)
     {
-        return index < vertexBuffers.Count ? vertexBuffers[(int)index] : null;
+        return index < _vertexBuffers.Count ? _vertexBuffers[(int)index] : null;
     }
 
     public void SetIndexBuffer(IndexBuffer? buffer)

@@ -7,18 +7,18 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderDevice : Object
 {
-    private readonly object deviceObjectsLock = new();
-    private readonly List<DeviceObject> deviceObjects = [];
-    private readonly RenderPool renderPool;
-    private readonly RenderContext renderContext;
-    private readonly DrawCommandQueue defaultQueue;
-    private RenderDeviceStats maxStats = new();
+    private readonly object _deviceObjectsLock = new();
+    private readonly List<DeviceObject> _deviceObjects = [];
+    private readonly RenderPool _renderPool;
+    private readonly RenderContext _renderContext;
+    private readonly DrawCommandQueue _defaultQueue;
+    private RenderDeviceStats _maxStats = new();
 
     public RenderDevice()
     {
-        renderPool = new RenderPool(this);
-        renderContext = new RenderContext(this);
-        defaultQueue = new DrawCommandQueue(this);
+        _renderPool = new RenderPool(this);
+        _renderContext = new RenderContext(this);
+        _defaultQueue = new DrawCommandQueue(this);
     }
 
     /// <summary>
@@ -130,15 +130,15 @@ public sealed class RenderDevice : Object
     public RenderDeviceStats GetStats()
     {
         var currentStats = new RenderDeviceStats();
-        maxStats = Max(maxStats, currentStats);
+        _maxStats = Max(_maxStats, currentStats);
         return currentStats;
     }
 
     public RenderDeviceStats GetMaxStats() => new()
     {
-        NumPrimitives = maxStats.NumPrimitives,
-        NumDraws = maxStats.NumDraws,
-        NumDispatches = maxStats.NumDispatches
+        NumPrimitives = _maxStats.NumPrimitives,
+        NumDraws = _maxStats.NumDraws,
+        NumDispatches = _maxStats.NumDispatches
     };
 
     public TextureFilterMode GetDefaultTextureFilterMode()
@@ -162,9 +162,9 @@ public sealed class RenderDevice : Object
 
     public TextureFormat GetDefaultDepthFormat() => GetDefaultDepthStencilFormat();
 
-    public RenderContext GetRenderContext() => renderContext;
+    public RenderContext GetRenderContext() => _renderContext;
 
-    public RenderPool GetRenderPool() => renderPool;
+    public RenderPool GetRenderPool() => _renderPool;
 
     public IntVector2 GetSwapChainSize()
     {
@@ -184,7 +184,7 @@ public sealed class RenderDevice : Object
         return (FrameIndex)Math.Max((long)frameNumber, (long)FrameIndex.None);
     }
 
-    public DrawCommandQueue GetDefaultQueue() => defaultQueue;
+    public DrawCommandQueue GetDefaultQueue() => _defaultQueue;
 
     internal ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
@@ -222,10 +222,10 @@ public sealed class RenderDevice : Object
     {
         ArgumentNullException.ThrowIfNull(deviceObject);
 
-        lock (deviceObjectsLock)
+        lock (_deviceObjectsLock)
         {
-            if (!deviceObjects.Contains(deviceObject))
-                deviceObjects.Add(deviceObject);
+            if (!_deviceObjects.Contains(deviceObject))
+                _deviceObjects.Add(deviceObject);
         }
     }
 
@@ -233,21 +233,21 @@ public sealed class RenderDevice : Object
     {
         ArgumentNullException.ThrowIfNull(deviceObject);
 
-        lock (deviceObjectsLock)
-            deviceObjects.Remove(deviceObject);
+        lock (_deviceObjectsLock)
+            _deviceObjects.Remove(deviceObject);
     }
 
     internal void OnEngineShutdown()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
-        renderPool.Invalidate();
+        _renderPool.Invalidate();
     }
 
     private void SendDeviceObjectEvent(DeviceObjectEvent deviceObjectEvent)
     {
         DeviceObject[] snapshot;
-        lock (deviceObjectsLock)
-            snapshot = [.. deviceObjects];
+        lock (_deviceObjectsLock)
+            snapshot = [.. _deviceObjects];
 
         foreach (var deviceObject in snapshot)
             deviceObject.ProcessDeviceObjectEvent(deviceObjectEvent);

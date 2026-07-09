@@ -2,8 +2,8 @@ namespace RedBolt;
 
 public abstract class Component : Animatable
 {
-    private bool enabled = true;
-    private Node? node;
+    private bool _enabled = true;
+    private Node? _node;
 
     protected Component()
     {
@@ -17,19 +17,19 @@ public abstract class Component : Animatable
 
     public bool Enabled
     {
-        get => enabled;
+        get => _enabled;
         set => SetEnabled(value);
     }
 
     public uint Id { get; private set; }
 
-    public bool IsAttached => node is not null;
+    public bool IsAttached => _node is not null;
 
-    public Node Node => node ?? throw new InvalidOperationException("Component is not attached to a node.");
+    public Node Node => _node ?? throw new InvalidOperationException("Component is not attached to a node.");
 
-    public Scene? Scene => node?.Scene;
+    public Scene? Scene => _node?.Scene;
 
-    public bool IsEnabledEffective => Enabled && (node?.IsEnabled ?? false);
+    public bool IsEnabledEffective => Enabled && (_node?.IsEnabled ?? false);
 
     public uint GetID()
     {
@@ -39,33 +39,33 @@ public abstract class Component : Animatable
     public T? GetComponent<T>()
         where T : Component
     {
-        return node?.GetComponent<T>();
+        return _node?.GetComponent<T>();
     }
 
     public uint GetIndexInParent()
     {
-        return node?.GetComponentIndex(this) ?? uint.MaxValue;
+        return _node?.GetComponentIndex(this) ?? uint.MaxValue;
     }
 
     public void Remove()
     {
-        node?.RemoveComponent(this);
+        _node?.RemoveComponent(this);
     }
 
     public void SetEnabled(bool enable)
     {
-        if (enabled == enable)
+        if (_enabled == enable)
             return;
 
-        enabled = enable;
+        _enabled = enable;
         OnSetEnabled();
 
-        if (node is { Scene: { } scene })
+        if (_node is { Scene: { } scene })
         {
             var eventData = new SceneEvents.ComponentEnabledChangedEvent
             {
                 Scene = scene,
-                Node = node,
+                Node = _node,
                 Component = this
             };
             scene.SendEvent(ref eventData);
@@ -74,19 +74,19 @@ public abstract class Component : Animatable
 
     internal void Attach(Node node)
     {
-        var previousNode = this.node;
+        var previousNode = this._node;
 
-        this.node = node;
+        this._node = node;
         OnNodeSet(previousNode, node);
         OnAttached();
     }
 
     internal void Detach()
     {
-        var previousNode = node;
+        var previousNode = _node;
 
         OnDetached();
-        node = null;
+        _node = null;
         OnNodeSet(previousNode, null);
     }
 

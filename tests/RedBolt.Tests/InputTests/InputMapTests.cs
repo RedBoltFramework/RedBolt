@@ -5,14 +5,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class InputMapTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public InputMapTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => fixture.Input;
+    private RedBolt.Input Input => _fixture.Input;
 
     [Fact]
     public void Dead_zone_clamps_to_zero()

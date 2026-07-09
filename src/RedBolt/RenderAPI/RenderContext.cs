@@ -9,18 +9,18 @@ public class RenderContext : Object
 {
     private static readonly RenderTargetView[] SwapChainColorTarget = [RenderTargetView.SwapChainColor()];
 
-    private readonly RenderDevice renderDevice;
-    private readonly RenderPool renderPool;
-    private readonly RenderDeviceStats stats = new();
-    private RenderTargetView[] currentRenderTargets = [];
-    private readonly RenderTargetView[] singleRenderTarget = new RenderTargetView[1];
-    private OptionalRawTextureRTV currentDepthStencil;
-    private uint clipPlaneMask;
+    private readonly RenderDevice _renderDevice;
+    private readonly RenderPool _renderPool;
+    private readonly RenderDeviceStats _stats = new();
+    private RenderTargetView[] _currentRenderTargets = [];
+    private readonly RenderTargetView[] _singleRenderTarget = new RenderTargetView[1];
+    private OptionalRawTextureRTV _currentDepthStencil;
+    private uint _clipPlaneMask;
 
     public RenderContext(RenderDevice renderDevice)
     {
-        this.renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
-        renderPool = renderDevice.GetRenderPool();
+        this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
+        _renderPool = renderDevice.GetRenderPool();
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ public class RenderContext : Object
     /// </summary>
     public void ResetStats()
     {
-        stats.NumPrimitives = 0;
-        stats.NumDraws = 0;
-        stats.NumDispatches = 0;
+        _stats.NumPrimitives = 0;
+        _stats.NumDraws = 0;
+        _stats.NumDispatches = 0;
     }
 
     /// <summary>
@@ -39,8 +39,8 @@ public class RenderContext : Object
     public void ResetRenderTargets()
     {
         GetGraphics()?.UnbindRenderTargets();
-        currentRenderTargets = [];
-        currentDepthStencil = default;
+        _currentRenderTargets = [];
+        _currentDepthStencil = default;
         UpdateCurrentRenderTargetInfo();
     }
 
@@ -53,10 +53,10 @@ public class RenderContext : Object
         if (graphics is null)
             return;
 
-        var size = renderDevice.GetSwapChainSize();
+        var size = _renderDevice.GetSwapChainSize();
         graphics.SetSwapChainRenderTargets(new IntRect(0, 0, size.X, size.Y));
-        currentRenderTargets = SwapChainColorTarget;
-        currentDepthStencil = RenderTargetView.SwapChainDepthStencil();
+        _currentRenderTargets = SwapChainColorTarget;
+        _currentDepthStencil = RenderTargetView.SwapChainDepthStencil();
         UpdateCurrentRenderTargetInfo();
     }
 
@@ -76,13 +76,13 @@ public class RenderContext : Object
         var viewportSize = ResolveRenderTargetSize(colorTarget, depthStencil);
         graphics.SetRenderTargets(new IntRect(0, 0, viewportSize.X, viewportSize.Y), colorTarget, depthStencil);
         if (renderTargets.Length == 0)
-            currentRenderTargets = [];
+            _currentRenderTargets = [];
         else
         {
-            singleRenderTarget[0] = renderTargets[0];
-            currentRenderTargets = singleRenderTarget;
+            _singleRenderTarget[0] = renderTargets[0];
+            _currentRenderTargets = _singleRenderTarget;
         }
-        currentDepthStencil = depthStencil;
+        _currentDepthStencil = depthStencil;
         UpdateCurrentRenderTargetInfo();
     }
 
@@ -125,7 +125,7 @@ public class RenderContext : Object
     /// </summary>
     public void ClearRenderTarget(uint index, Color color)
     {
-        if (index >= currentRenderTargets.Length)
+        if (index >= _currentRenderTargets.Length)
             throw new ArgumentOutOfRangeException(nameof(index));
         if (index != 0)
             throw new NotSupportedException("The current managed renderer supports only one bound color render target in this slice.");
@@ -144,7 +144,7 @@ public class RenderContext : Object
     /// </summary>
     public void SetClipPlaneMask(uint mask)
     {
-        clipPlaneMask = mask;
+        _clipPlaneMask = mask;
     }
 
     /// <summary>
@@ -162,10 +162,10 @@ public class RenderContext : Object
     public bool IsBoundAsRenderTarget(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        if (currentDepthStencil.GetValueOrDefault()?.RenderTexture == texture)
+        if (_currentDepthStencil.GetValueOrDefault()?.RenderTexture == texture)
             return true;
 
-        foreach (var view in currentRenderTargets)
+        foreach (var view in _currentRenderTargets)
         {
             if (view.RenderTexture == texture)
                 return true;
@@ -176,13 +176,13 @@ public class RenderContext : Object
 
     public IDeviceContext? GetHandle() => GetGraphics()?.GetImmediateContext();
 
-    public RenderDeviceStats GetStats() => stats;
+    public RenderDeviceStats GetStats() => _stats;
 
-    public RenderDeviceStats GetMutableStats() => stats;
+    public RenderDeviceStats GetMutableStats() => _stats;
 
-    public RenderDevice GetRenderDevice() => renderDevice;
+    public RenderDevice GetRenderDevice() => _renderDevice;
 
-    public RenderPool GetRenderPool() => renderPool;
+    public RenderPool GetRenderPool() => _renderPool;
 
     public bool IsDebugScopeEnabled() => false;
 
@@ -231,11 +231,11 @@ public class RenderContext : Object
     {
         var depthStencilView = depthStencil.GetValueOrDefault();
         if (colorTarget?.IsSwapChain == true || depthStencilView?.IsSwapChain == true)
-            return renderDevice.GetSwapChainSize();
+            return _renderDevice.GetSwapChainSize();
         if (colorTarget?.RenderTexture is { } colorTexture)
             return new IntVector2(colorTexture.Width, colorTexture.Height);
         if (depthStencilView?.RenderTexture is { } depthTexture)
             return new IntVector2(depthTexture.Width, depthTexture.Height);
-        return renderDevice.GetSwapChainSize();
+        return _renderDevice.GetSwapChainSize();
     }
 }

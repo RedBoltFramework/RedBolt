@@ -13,41 +13,41 @@ public enum PointerAdapterMask : uint
 
 public sealed class PointerAdapter
 {
-    private readonly DirectionAggregator directionAdapter;
-    private Input? input;
-    private bool enabled;
-    private PointerAdapterMask subscriptionMask = PointerAdapterMask.All;
-    private Vector2 pointerPosition = Vector2.Zero;
-    private bool pointerPressed;
-    private float cursorSpeed;
-    private float maxCursorSpeed = 100.0f;
-    private float cursorAcceleration = 1.0f;
+    private readonly DirectionAggregator _directionAdapter;
+    private Input? _input;
+    private bool _enabled;
+    private PointerAdapterMask _subscriptionMask = PointerAdapterMask.All;
+    private Vector2 _pointerPosition = Vector2.Zero;
+    private bool _pointerPressed;
+    private float _cursorSpeed;
+    private float _maxCursorSpeed = 100.0f;
+    private float _cursorAcceleration = 1.0f;
 
     public PointerAdapter(Input? input = null)
     {
-        this.input = input;
-        directionAdapter = new DirectionAggregator(input);
+        this._input = input;
+        _directionAdapter = new DirectionAggregator(input);
     }
 
     public void SetInput(Input? input)
     {
-        this.input = input;
-        directionAdapter.SetInput(input);
+        this._input = input;
+        _directionAdapter.SetInput(input);
     }
 
-    public Input? GetInput() => input;
+    public Input? GetInput() => _input;
 
     public void SetEnabled(bool enabled)
     {
-        this.enabled = enabled;
-        directionAdapter.SetEnabled(enabled);
+        this._enabled = enabled;
+        _directionAdapter.SetEnabled(enabled);
     }
 
-    public bool IsEnabled() => enabled;
+    public bool IsEnabled() => _enabled;
 
     public void SetSubscriptionMask(PointerAdapterMask mask)
     {
-        subscriptionMask = mask;
+        _subscriptionMask = mask;
 
         var directionMask = DirectionAggregatorMask.None;
         if ((mask & PointerAdapterMask.Keyboard) != 0)
@@ -56,77 +56,77 @@ public sealed class PointerAdapter
             directionMask |= DirectionAggregatorMask.Joystick;
         if ((mask & PointerAdapterMask.Touch) != 0)
             directionMask |= DirectionAggregatorMask.Touch;
-        directionAdapter.SetSubscriptionMask(directionMask);
+        _directionAdapter.SetSubscriptionMask(directionMask);
     }
 
-    public PointerAdapterMask GetSubscriptionMask() => subscriptionMask;
+    public PointerAdapterMask GetSubscriptionMask() => _subscriptionMask;
 
     public void SetUIElement(object? element)
     {
-        directionAdapter.SetUIElement(element);
+        _directionAdapter.SetUIElement(element);
     }
 
-    public object? GetUIElement() => directionAdapter.GetUIElement();
+    public object? GetUIElement() => _directionAdapter.GetUIElement();
 
     public void SetCursorSpeed(float cursorSpeed)
     {
-        maxCursorSpeed = Math.Max(cursorSpeed, 0.0f);
+        _maxCursorSpeed = Math.Max(cursorSpeed, 0.0f);
     }
 
-    public float GetCursorVelocity() => maxCursorSpeed;
+    public float GetCursorVelocity() => _maxCursorSpeed;
 
     public void SetCursorAcceleration(float cursorAcceleration)
     {
-        this.cursorAcceleration = Math.Max(cursorAcceleration, 0.0f);
+        this._cursorAcceleration = Math.Max(cursorAcceleration, 0.0f);
     }
 
-    public float GetCursorAcceleration() => cursorAcceleration;
+    public float GetCursorAcceleration() => _cursorAcceleration;
 
-    public bool IsButtonDown() => pointerPressed;
+    public bool IsButtonDown() => _pointerPressed;
 
-    public IntVector2 GetPointerPosition() => Vector2.RoundToInt(pointerPosition);
+    public IntVector2 GetPointerPosition() => Vector2.RoundToInt(_pointerPosition);
 
     public IntVector2 GetUIPointerPosition() => GetPointerPosition();
 
-    public DirectionAggregator GetDirectionAggregator() => directionAdapter;
+    public DirectionAggregator GetDirectionAggregator() => _directionAdapter;
 
     public void Update(float timeStep)
     {
-        if (!enabled)
+        if (!_enabled)
             return;
 
-        pointerPressed = false;
+        _pointerPressed = false;
 
-        if (input is not null && (subscriptionMask & PointerAdapterMask.Mouse) != 0)
+        if (_input is not null && (_subscriptionMask & PointerAdapterMask.Mouse) != 0)
         {
-            pointerPosition = input.GetMousePosition().ToVector2();
-            pointerPressed = input.GetMouseButtonDown(MouseButton.Left);
+            _pointerPosition = _input.GetMousePosition().ToVector2();
+            _pointerPressed = _input.GetMouseButtonDown(MouseButton.Left);
         }
 
-        if ((subscriptionMask & (PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick | PointerAdapterMask.Touch)) != 0)
+        if ((_subscriptionMask & (PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick | PointerAdapterMask.Touch)) != 0)
         {
-            directionAdapter.SetEnabled(true);
-            var direction = directionAdapter.GetDirection();
+            _directionAdapter.SetEnabled(true);
+            var direction = _directionAdapter.GetDirection();
             if (!direction.ApproximatelyEquivalent(Vector2.Zero))
             {
-                cursorSpeed = Math.Min(maxCursorSpeed, cursorSpeed + cursorAcceleration * Math.Max(timeStep, 0.0f) * maxCursorSpeed);
-                pointerPosition += direction * cursorSpeed * Math.Max(timeStep, 0.0f);
+                _cursorSpeed = Math.Min(_maxCursorSpeed, _cursorSpeed + _cursorAcceleration * Math.Max(timeStep, 0.0f) * _maxCursorSpeed);
+                _pointerPosition += direction * _cursorSpeed * Math.Max(timeStep, 0.0f);
             }
             else
             {
-                cursorSpeed = 0.0f;
+                _cursorSpeed = 0.0f;
             }
         }
 
-        if (input is not null && (subscriptionMask & PointerAdapterMask.Joystick) != 0)
-            pointerPressed |= input.GetControllerButtonDown(ControllerButton.A);
+        if (_input is not null && (_subscriptionMask & PointerAdapterMask.Joystick) != 0)
+            _pointerPressed |= _input.GetControllerButtonDown(ControllerButton.A);
     }
 
     public void UpdatePointer(Vector2 position, bool press, bool moveMouse = false)
     {
-        pointerPosition = position;
-        pointerPressed = press;
-        if (moveMouse && input is not null)
-            input.SetMousePosition(Vector2.RoundToInt(position));
+        _pointerPosition = position;
+        _pointerPressed = press;
+        if (moveMouse && _input is not null)
+            _input.SetMousePosition(Vector2.RoundToInt(position));
     }
 }

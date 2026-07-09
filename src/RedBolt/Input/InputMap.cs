@@ -5,8 +5,8 @@ public sealed class InputMap : ResourceWithMetadata
     public const float DefaultDeadZone = 0.1f;
 
     private static readonly ActionMapping EmptyMapping = new();
-    private readonly Dictionary<string, ActionMapping> actions = new(StringComparer.Ordinal);
-    private float deadZone = DefaultDeadZone;
+    private readonly Dictionary<string, ActionMapping> _actions = new(StringComparer.Ordinal);
+    private float _deadZone = DefaultDeadZone;
 
     public InputMap(string name, Input? input = null)
         : base(name)
@@ -16,7 +16,7 @@ public sealed class InputMap : ResourceWithMetadata
 
     public Input? Input { get; private set; }
 
-    public IReadOnlyDictionary<string, ActionMapping> Mappings => actions;
+    public IReadOnlyDictionary<string, ActionMapping> Mappings => _actions;
 
     public void SetInput(Input? input)
     {
@@ -25,15 +25,15 @@ public sealed class InputMap : ResourceWithMetadata
 
     public void SetDeadZone(float deadZone)
     {
-        this.deadZone = Math.Max(deadZone, 0.0f);
+        this._deadZone = Math.Max(deadZone, 0.0f);
     }
 
-    public float GetDeadZone() => deadZone;
+    public float GetDeadZone() => _deadZone;
 
     public void MapKeyboardKey(string action, Scancode scancode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveKeyboardKey(scancode);
 
         GetOrAddMapping(action).AddKeyboardKey(scancode);
@@ -42,7 +42,7 @@ public sealed class InputMap : ResourceWithMetadata
     public void MapMouseButton(string action, MouseButton mouseButton)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveMouseButton(mouseButton);
 
         GetOrAddMapping(action).AddMouseButton(mouseButton);
@@ -51,7 +51,7 @@ public sealed class InputMap : ResourceWithMetadata
     public void MapControllerButton(string action, ControllerButton button)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveControllerButton(button);
 
         GetOrAddMapping(action).AddControllerButton(button);
@@ -60,7 +60,7 @@ public sealed class InputMap : ResourceWithMetadata
     public void MapJoystickButton(string action, uint buttonIndex)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveJoystickButton(buttonIndex);
 
         GetOrAddMapping(action).AddJoystickButton(buttonIndex);
@@ -70,7 +70,7 @@ public sealed class InputMap : ResourceWithMetadata
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         var mapping = ControllerAxisMapping.ForController(axis, neutral, pressed);
-        foreach (var actionMapping in actions.Values)
+        foreach (var actionMapping in _actions.Values)
             actionMapping.RemoveControllerAxis(mapping);
 
         GetOrAddMapping(action).AddControllerAxis(mapping);
@@ -80,7 +80,7 @@ public sealed class InputMap : ResourceWithMetadata
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         var mapping = ControllerAxisMapping.ForJoystick(axis, neutral, pressed);
-        foreach (var actionMapping in actions.Values)
+        foreach (var actionMapping in _actions.Values)
             actionMapping.RemoveControllerAxis(mapping);
 
         GetOrAddMapping(action).AddControllerAxis(mapping);
@@ -89,7 +89,7 @@ public sealed class InputMap : ResourceWithMetadata
     public void MapHat(string action, HatPosition hatPosition)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveHat(hatPosition);
 
         GetOrAddMapping(action).AddHat(hatPosition);
@@ -99,7 +99,7 @@ public sealed class InputMap : ResourceWithMetadata
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
-        foreach (var mapping in actions.Values)
+        foreach (var mapping in _actions.Values)
             mapping.RemoveScreenButton(elementName);
 
         GetOrAddMapping(action).AddScreenButton(elementName);
@@ -108,12 +108,12 @@ public sealed class InputMap : ResourceWithMetadata
     public ActionMapping GetMapping(string action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        return actions.GetValueOrDefault(action) ?? EmptyMapping;
+        return _actions.GetValueOrDefault(action) ?? EmptyMapping;
     }
 
     public ActionMapping GetMappingByHash(StringHash actionHash)
     {
-        foreach (var action in actions)
+        foreach (var action in _actions)
         {
             if (new StringHash(action.Key) == actionHash)
                 return action.Value;
@@ -129,7 +129,7 @@ public sealed class InputMap : ResourceWithMetadata
     public float Evaluate(string action, Input input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return GetMapping(action).Evaluate(input, deadZone);
+        return GetMapping(action).Evaluate(input, _deadZone);
     }
 
     public float EvaluateByHash(StringHash actionHash) => Input is not null ? EvaluateByHash(actionHash, Input) : 0.0f;
@@ -137,7 +137,7 @@ public sealed class InputMap : ResourceWithMetadata
     public float EvaluateByHash(StringHash actionHash, Input input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return GetMappingByHash(actionHash).Evaluate(input, deadZone);
+        return GetMappingByHash(actionHash).Evaluate(input, _deadZone);
     }
 
     public static IReadOnlyList<string> GetScanCodeNames() => Enum.GetNames<Scancode>();
@@ -150,10 +150,10 @@ public sealed class InputMap : ResourceWithMetadata
 
     private ActionMapping GetOrAddMapping(string action)
     {
-        if (!actions.TryGetValue(action, out var mapping))
+        if (!_actions.TryGetValue(action, out var mapping))
         {
             mapping = new ActionMapping();
-            actions.Add(action, mapping);
+            _actions.Add(action, mapping);
         }
 
         return mapping;
@@ -161,41 +161,41 @@ public sealed class InputMap : ResourceWithMetadata
 
     public sealed class ActionMapping
     {
-        private readonly List<Scancode> keyboardKeys = [];
-        private readonly List<MouseButton> mouseButtons = [];
-        private readonly List<ControllerButtonMapping> controllerButtons = [];
-        private readonly List<ControllerAxisMapping> controllerAxes = [];
-        private readonly List<HatPosition> controllerHats = [];
-        private readonly List<string> screenButtons = [];
+        private readonly List<Scancode> _keyboardKeys = [];
+        private readonly List<MouseButton> _mouseButtons = [];
+        private readonly List<ControllerButtonMapping> _controllerButtons = [];
+        private readonly List<ControllerAxisMapping> _controllerAxes = [];
+        private readonly List<HatPosition> _controllerHats = [];
+        private readonly List<string> _screenButtons = [];
 
-        public IReadOnlyList<Scancode> KeyboardKeys => keyboardKeys;
+        public IReadOnlyList<Scancode> KeyboardKeys => _keyboardKeys;
 
-        public IReadOnlyList<MouseButton> MouseButtons => mouseButtons;
+        public IReadOnlyList<MouseButton> MouseButtons => _mouseButtons;
 
-        public IReadOnlyList<ControllerButtonMapping> ControllerButtons => controllerButtons;
+        public IReadOnlyList<ControllerButtonMapping> ControllerButtons => _controllerButtons;
 
-        public IReadOnlyList<ControllerAxisMapping> ControllerAxes => controllerAxes;
+        public IReadOnlyList<ControllerAxisMapping> ControllerAxes => _controllerAxes;
 
-        public IReadOnlyList<HatPosition> ControllerHats => controllerHats;
+        public IReadOnlyList<HatPosition> ControllerHats => _controllerHats;
 
-        public IReadOnlyList<string> ScreenButtons => screenButtons;
+        public IReadOnlyList<string> ScreenButtons => _screenButtons;
 
         public float Evaluate(Input input, float deadZone)
         {
             ArgumentNullException.ThrowIfNull(input);
-            foreach (var scancode in keyboardKeys)
+            foreach (var scancode in _keyboardKeys)
             {
                 if (IsScancodeDown(input, scancode))
                     return 1.0f;
             }
 
-            foreach (var mouseButton in mouseButtons)
+            foreach (var mouseButton in _mouseButtons)
             {
                 if (input.GetMouseButtonDown(mouseButton))
                     return 1.0f;
             }
 
-            foreach (var controllerButton in controllerButtons)
+            foreach (var controllerButton in _controllerButtons)
             {
                 var pressed = controllerButton.IsController
                     ? input.GetControllerButtonDown(controllerButton.GetControllerButton())
@@ -204,7 +204,7 @@ public sealed class InputMap : ResourceWithMetadata
                     return 1.0f;
             }
 
-            foreach (var controllerAxis in controllerAxes)
+            foreach (var controllerAxis in _controllerAxes)
             {
                 var position = controllerAxis.IsController
                     ? input.GetControllerAxisPosition(controllerAxis.GetControllerAxis())
@@ -214,13 +214,13 @@ public sealed class InputMap : ResourceWithMetadata
                     return translated;
             }
 
-            foreach (var controllerHat in controllerHats)
+            foreach (var controllerHat in _controllerHats)
             {
                 if (input.GetHatDown(controllerHat))
                     return 1.0f;
             }
 
-            foreach (var screenButton in screenButtons)
+            foreach (var screenButton in _screenButtons)
             {
                 if (input.GetScreenButtonDown(screenButton))
                     return 1.0f;
@@ -231,57 +231,57 @@ public sealed class InputMap : ResourceWithMetadata
 
         internal void AddKeyboardKey(Scancode scancode)
         {
-            if (!keyboardKeys.Contains(scancode))
-                keyboardKeys.Add(scancode);
+            if (!_keyboardKeys.Contains(scancode))
+                _keyboardKeys.Add(scancode);
         }
 
-        internal void RemoveKeyboardKey(Scancode scancode) => keyboardKeys.Remove(scancode);
+        internal void RemoveKeyboardKey(Scancode scancode) => _keyboardKeys.Remove(scancode);
 
         internal void AddMouseButton(MouseButton mouseButton)
         {
-            if (mouseButton != MouseButton.None && !mouseButtons.Contains(mouseButton))
-                mouseButtons.Add(mouseButton);
+            if (mouseButton != MouseButton.None && !_mouseButtons.Contains(mouseButton))
+                _mouseButtons.Add(mouseButton);
         }
 
-        internal void RemoveMouseButton(MouseButton mouseButton) => mouseButtons.Remove(mouseButton);
+        internal void RemoveMouseButton(MouseButton mouseButton) => _mouseButtons.Remove(mouseButton);
 
         internal void AddControllerButton(ControllerButton button)
         {
             var mapping = ControllerButtonMapping.ForController(button);
-            if (!controllerButtons.Contains(mapping))
-                controllerButtons.Add(mapping);
+            if (!_controllerButtons.Contains(mapping))
+                _controllerButtons.Add(mapping);
         }
 
-        internal void RemoveControllerButton(ControllerButton button) => controllerButtons.RemoveAll(mapping => mapping.IsController && mapping.Button == (uint)button);
+        internal void RemoveControllerButton(ControllerButton button) => _controllerButtons.RemoveAll(mapping => mapping.IsController && mapping.Button == (uint)button);
 
         internal void AddJoystickButton(uint buttonIndex)
         {
             var mapping = ControllerButtonMapping.ForJoystick(buttonIndex);
-            if (!controllerButtons.Contains(mapping))
-                controllerButtons.Add(mapping);
+            if (!_controllerButtons.Contains(mapping))
+                _controllerButtons.Add(mapping);
         }
 
-        internal void RemoveJoystickButton(uint buttonIndex) => controllerButtons.RemoveAll(mapping => !mapping.IsController && mapping.Button == buttonIndex);
+        internal void RemoveJoystickButton(uint buttonIndex) => _controllerButtons.RemoveAll(mapping => !mapping.IsController && mapping.Button == buttonIndex);
 
-        internal void AddControllerAxis(ControllerAxisMapping mapping) => controllerAxes.Add(mapping);
+        internal void AddControllerAxis(ControllerAxisMapping mapping) => _controllerAxes.Add(mapping);
 
-        internal void RemoveControllerAxis(ControllerAxisMapping mapping) => controllerAxes.RemoveAll(existing => existing.OverlapsWith(mapping));
+        internal void RemoveControllerAxis(ControllerAxisMapping mapping) => _controllerAxes.RemoveAll(existing => existing.OverlapsWith(mapping));
 
         internal void AddHat(HatPosition hatPosition)
         {
-            if (!controllerHats.Contains(hatPosition))
-                controllerHats.Add(hatPosition);
+            if (!_controllerHats.Contains(hatPosition))
+                _controllerHats.Add(hatPosition);
         }
 
-        internal void RemoveHat(HatPosition hatPosition) => controllerHats.Remove(hatPosition);
+        internal void RemoveHat(HatPosition hatPosition) => _controllerHats.Remove(hatPosition);
 
         internal void AddScreenButton(string elementName)
         {
-            if (!screenButtons.Contains(elementName, StringComparer.Ordinal))
-                screenButtons.Add(elementName);
+            if (!_screenButtons.Contains(elementName, StringComparer.Ordinal))
+                _screenButtons.Add(elementName);
         }
 
-        internal void RemoveScreenButton(string elementName) => screenButtons.RemoveAll(screenButton => string.Equals(screenButton, elementName, StringComparison.Ordinal));
+        internal void RemoveScreenButton(string elementName) => _screenButtons.RemoveAll(screenButton => string.Equals(screenButton, elementName, StringComparison.Ordinal));
 
         private static bool IsScancodeDown(Input input, Scancode scancode)
         {

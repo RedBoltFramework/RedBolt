@@ -5,9 +5,9 @@ namespace RedBolt;
 /// </summary>
 public class PipelineState : DeviceObject
 {
-    private readonly WeakReference<PipelineStateCache>? owner;
-    private readonly PipelineStateDesc desc = new();
-    private readonly ShaderProgramReflection reflection = new();
+    private readonly WeakReference<PipelineStateCache>? _owner;
+    private readonly PipelineStateDesc _desc = new();
+    private readonly ShaderProgramReflection _reflection = new();
 
     public PipelineState()
     {
@@ -15,9 +15,9 @@ public class PipelineState : DeviceObject
 
     internal PipelineState(PipelineStateCache owner, PipelineStateDesc desc)
     {
-        this.owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
-        this.desc = desc ?? throw new ArgumentNullException(nameof(desc));
-        reflection = ShaderProgramReflection.FromDesc(desc);
+        this._owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
+        this._desc = desc ?? throw new ArgumentNullException(nameof(desc));
+        _reflection = ShaderProgramReflection.FromDesc(desc);
         IsValid = desc.AsGraphics()?.IsInitialized() == true || desc.AsCompute()?.IsInitialized() == true;
         SetDebugName($"{desc.GetDebugName()} #{desc.ToHash()}");
     }
@@ -30,11 +30,11 @@ public class PipelineState : DeviceObject
 
     public bool IsValid { get; protected set; } = true;
 
-    public PipelineStateType GetPipelineType() => desc.GetPipelineType();
+    public PipelineStateType GetPipelineType() => _desc.GetPipelineType();
 
-    public PipelineStateDesc GetDesc() => desc;
+    public PipelineStateDesc GetDesc() => _desc;
 
-    public ShaderProgramReflection GetReflection() => reflection;
+    public ShaderProgramReflection GetReflection() => _reflection;
 
     public override void Invalidate()
     {
@@ -45,13 +45,13 @@ public class PipelineState : DeviceObject
     public override void Restore()
     {
         base.Restore();
-        IsValid = desc.AsGraphics()?.IsInitialized() == true || desc.AsCompute()?.IsInitialized() == true || owner is null;
+        IsValid = _desc.AsGraphics()?.IsInitialized() == true || _desc.AsCompute()?.IsInitialized() == true || _owner is null;
     }
 
     public override void Destroy()
     {
         base.Destroy();
-        if (owner is not null && owner.TryGetTarget(out var pipelineStateCache))
-            pipelineStateCache.ReleasePipelineState(desc);
+        if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
+            pipelineStateCache.ReleasePipelineState(_desc);
     }
 }

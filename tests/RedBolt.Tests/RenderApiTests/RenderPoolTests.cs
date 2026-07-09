@@ -6,17 +6,17 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderPoolTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public RenderPoolTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
     [Fact]
     public void Render_pool_allocates_aligned_scratch_buffers_and_reuses_base_block_after_release()
     {
-        var renderPool = fixture.RenderDevice.GetRenderPool();
+        var renderPool = _fixture.RenderDevice.GetRenderPool();
 
         var first = renderPool.AllocateScratchBuffer(1u);
         var second = renderPool.AllocateScratchBuffer(17u);
@@ -39,7 +39,7 @@ public sealed class RenderPoolTests
     [Fact]
     public void Render_pool_grows_base_scratch_buffer_after_temporary_overflow_is_released()
     {
-        var renderPool = fixture.RenderDevice.GetRenderPool();
+        var renderPool = _fixture.RenderDevice.GetRenderPool();
         var initialCapacity = GetScratchBufferCapacity(renderPool);
 
         var temporary = renderPool.AllocateScratchBuffer(initialCapacity + 16u);
@@ -66,7 +66,7 @@ public sealed class RenderPoolTests
 
     private static uint GetScratchBufferCapacity(RenderPool renderPool)
     {
-        var field = typeof(RenderPool).GetField("scratchBufferCapacity", BindingFlags.Instance | BindingFlags.NonPublic)
+        var field = typeof(RenderPool).GetField("_scratchBufferCapacity", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("RenderPool.scratchBufferCapacity was not found.");
         return Assert.IsType<uint>(field.GetValue(renderPool));
     }

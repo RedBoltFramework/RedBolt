@@ -67,12 +67,12 @@ public sealed class Light : Drawable
     public const float DefaultShadowSplit = 1000.0f;
     public const float DefaultTemperature = 6590.0f;
 
-    private LightType lightType = LightType.Point;
-    private float range = DefaultRange;
-    private float fov = DefaultLightFov;
-    private float aspectRatio = 1.0f;
-    private Texture? rampTexture;
-    private Texture? shapeTexture;
+    private LightType _lightType = LightType.Point;
+    private float _range = DefaultRange;
+    private float _fov = DefaultLightFov;
+    private float _aspectRatio = 1.0f;
+    private Texture? _rampTexture;
+    private Texture? _shapeTexture;
 
     public Light()
         : base(DrawableFlags.Light)
@@ -80,7 +80,7 @@ public sealed class Light : Drawable
         RefreshBoundingBox();
     }
 
-    public LightType LightType => lightType;
+    public LightType LightType => _lightType;
 
     public LightImportance LightImportance { get; private set; } = LightImportance.Auto;
 
@@ -102,11 +102,11 @@ public sealed class Light : Drawable
 
     public float IndirectBrightness { get; private set; } = 1.0f;
 
-    public float Range => range;
+    public float Range => _range;
 
-    public float Fov => fov;
+    public float Fov => _fov;
 
-    public float AspectRatio => aspectRatio;
+    public float AspectRatio => _aspectRatio;
 
     public float FadeDistance { get; private set; }
 
@@ -128,11 +128,11 @@ public sealed class Light : Drawable
 
     public void SetLightType(LightType type)
     {
-        lightType = type;
+        _lightType = type;
         RefreshBoundingBox();
     }
 
-    public LightType GetLightType() => lightType;
+    public LightType GetLightType() => _lightType;
 
     public void SetLightImportance(LightImportance importance)
     {
@@ -241,27 +241,27 @@ public sealed class Light : Drawable
 
     public void SetRange(float range)
     {
-        this.range = Math.Max(range, 0.0f);
+        this._range = Math.Max(range, 0.0f);
         RefreshBoundingBox();
     }
 
-    public float GetRange() => range;
+    public float GetRange() => _range;
 
     public void SetFov(float fov)
     {
-        this.fov = MathDefs.Clamp(fov, 0.0f, MathDefs.MaxFov);
+        this._fov = MathDefs.Clamp(fov, 0.0f, MathDefs.MaxFov);
         MarkForUpdate();
     }
 
-    public float GetFov() => fov;
+    public float GetFov() => _fov;
 
     public void SetAspectRatio(float aspectRatio)
     {
-        this.aspectRatio = Math.Max(aspectRatio, MathDefs.Epsilon);
+        this._aspectRatio = Math.Max(aspectRatio, MathDefs.Epsilon);
         MarkForUpdate();
     }
 
-    public float GetAspectRatio() => aspectRatio;
+    public float GetAspectRatio() => _aspectRatio;
 
     public void SetFadeDistance(float distance)
     {
@@ -331,22 +331,22 @@ public sealed class Light : Drawable
 
     public void SetRampTexture(Texture? texture)
     {
-        rampTexture = texture;
+        _rampTexture = texture;
     }
 
-    public Texture? GetRampTexture() => rampTexture;
+    public Texture? GetRampTexture() => _rampTexture;
 
     public void SetShapeTexture(Texture? texture)
     {
-        shapeTexture = texture;
+        _shapeTexture = texture;
     }
 
-    public Texture? GetShapeTexture() => shapeTexture;
+    public Texture? GetShapeTexture() => _shapeTexture;
 
     public float GetDistanceTo(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return lightType == LightType.Directional || !IsAttached ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
+        return _lightType == LightType.Directional || !IsAttached ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
     }
 
     public int GetNumShadowSplits()
@@ -368,16 +368,16 @@ public sealed class Light : Drawable
 
     public (float Cutoff, float InverseCutoff) GetCutoffParams()
     {
-        if (lightType != LightType.Spot)
+        if (_lightType != LightType.Spot)
             return (-2.0f, 1.0f);
 
-        var cutoff = MathDefs.Cos(fov * 0.5f);
+        var cutoff = MathDefs.Cos(_fov * 0.5f);
         return (cutoff, 1.0f / (1.0f - cutoff));
     }
 
     private void RefreshBoundingBox()
     {
-        var size = lightType == LightType.Directional ? MathDefs.LargeValue : range;
+        var size = _lightType == LightType.Directional ? MathDefs.LargeValue : _range;
         SetLocalBoundingBox(new BoundingBox(-size, size));
     }
 }

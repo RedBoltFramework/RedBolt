@@ -8,7 +8,7 @@ namespace RedBolt;
 /// </summary>
 public sealed class UniformBufferReflection
 {
-    private readonly List<IShaderResourceVariable> variables = [];
+    private readonly List<IShaderResourceVariable> _variables = [];
 
     public uint Size { get; internal set; }
 
@@ -16,13 +16,13 @@ public sealed class UniformBufferReflection
 
     public string InternalName { get; internal set; } = string.Empty;
 
-    public IReadOnlyList<IShaderResourceVariable> Variables => variables;
+    public IReadOnlyList<IShaderResourceVariable> Variables => _variables;
 
     internal void AddVariable(IShaderResourceVariable variable)
     {
         ArgumentNullException.ThrowIfNull(variable);
-        if (!variables.Contains(variable))
-            variables.Add(variable);
+        if (!_variables.Contains(variable))
+            _variables.Add(variable);
     }
 }
 
@@ -55,10 +55,10 @@ public sealed class ShaderResourceReflection
 /// </summary>
 public sealed class ShaderProgramReflection
 {
-    private readonly UniformBufferReflection?[] uniformBuffers = new UniformBufferReflection?[RenderApiLimits.MaxShaderParameterGroups];
-    private readonly Dictionary<StringHash, UniformReflection> uniforms = [];
-    private readonly Dictionary<StringHash, ShaderResourceReflection> shaderResources = [];
-    private readonly Dictionary<StringHash, ShaderResourceReflection> unorderedAccessViews = [];
+    private readonly UniformBufferReflection?[] _uniformBuffers = new UniformBufferReflection?[RenderApiLimits.MaxShaderParameterGroups];
+    private readonly Dictionary<StringHash, UniformReflection> _uniforms = [];
+    private readonly Dictionary<StringHash, ShaderResourceReflection> _shaderResources = [];
+    private readonly Dictionary<StringHash, ShaderResourceReflection> _unorderedAccessViews = [];
 
     public ShaderProgramReflection()
     {
@@ -101,29 +101,29 @@ public sealed class ShaderProgramReflection
     public UniformBufferReflection? GetUniformBuffer(ShaderParameterGroup group)
     {
         var index = (int)group;
-        return index >= 0 && index < uniformBuffers.Length ? uniformBuffers[index] : null;
+        return index >= 0 && index < _uniformBuffers.Length ? _uniformBuffers[index] : null;
     }
 
     public UniformReflection? GetUniform(StringHash name)
     {
-        return uniforms.TryGetValue(name, out var uniform) ? uniform : null;
+        return _uniforms.TryGetValue(name, out var uniform) ? uniform : null;
     }
 
     public ShaderResourceReflection? GetShaderResource(StringHash name)
     {
-        return shaderResources.TryGetValue(name, out var shaderResource) ? shaderResource : null;
+        return _shaderResources.TryGetValue(name, out var shaderResource) ? shaderResource : null;
     }
 
     public ShaderResourceReflection? GetUnorderedAccessView(StringHash name)
     {
-        return unorderedAccessViews.TryGetValue(name, out var unorderedAccessView) ? unorderedAccessView : null;
+        return _unorderedAccessViews.TryGetValue(name, out var unorderedAccessView) ? unorderedAccessView : null;
     }
 
-    public IReadOnlyDictionary<StringHash, UniformReflection> GetUniforms() => uniforms;
+    public IReadOnlyDictionary<StringHash, UniformReflection> GetUniforms() => _uniforms;
 
-    public IReadOnlyDictionary<StringHash, ShaderResourceReflection> GetShaderResources() => shaderResources;
+    public IReadOnlyDictionary<StringHash, ShaderResourceReflection> GetShaderResources() => _shaderResources;
 
-    public IReadOnlyDictionary<StringHash, ShaderResourceReflection> GetUnorderedAccessViews() => unorderedAccessViews;
+    public IReadOnlyDictionary<StringHash, ShaderResourceReflection> GetUnorderedAccessViews() => _unorderedAccessViews;
 
     public void ConnectToShaderVariables(PipelineStateType pipelineType, IShaderResourceBinding binding)
     {
@@ -132,7 +132,7 @@ public sealed class ShaderProgramReflection
         foreach (var shaderType in GetShaderTypes(pipelineType))
         {
             var variables = GetShaderVariables(binding, shaderType);
-            foreach (var uniformBuffer in uniformBuffers)
+            foreach (var uniformBuffer in _uniformBuffers)
             {
                 if (uniformBuffer is null || string.IsNullOrWhiteSpace(uniformBuffer.InternalName))
                     continue;
@@ -141,8 +141,8 @@ public sealed class ShaderProgramReflection
                     uniformBuffer.AddVariable(variable);
             }
 
-            ConnectResources(shaderResources, variables);
-            ConnectResources(unorderedAccessViews, variables);
+            ConnectResources(_shaderResources, variables);
+            ConnectResources(_unorderedAccessViews, variables);
         }
     }
 
@@ -204,7 +204,7 @@ public sealed class ShaderProgramReflection
     private void AddUniformBuffer(ShaderParameterGroup group, string internalName, uint size)
     {
         var index = (int)group;
-        if (uniformBuffers[index] is { } existingBuffer)
+        if (_uniformBuffers[index] is { } existingBuffer)
         {
             if (existingBuffer.Size != 0 && size != 0 && existingBuffer.Size != size)
                 return;
@@ -213,7 +213,7 @@ public sealed class ShaderProgramReflection
             return;
         }
 
-        uniformBuffers[index] = new UniformBufferReflection
+        _uniformBuffers[index] = new UniformBufferReflection
         {
             InternalName = internalName,
             Size = size
@@ -258,18 +258,18 @@ public sealed class ShaderProgramReflection
     private void AddUniform(UniformReflection uniform)
     {
         var nameHash = new StringHash(uniform.Name);
-        if (uniforms.TryGetValue(nameHash, out var existingUniform))
+        if (_uniforms.TryGetValue(nameHash, out var existingUniform))
             return;
 
-        uniforms[nameHash] = uniform;
+        _uniforms[nameHash] = uniform;
     }
 
     private void AddShaderResource(StringHash name, string internalName)
     {
-        if (shaderResources.ContainsKey(name))
+        if (_shaderResources.ContainsKey(name))
             return;
 
-        shaderResources[name] = new ShaderResourceReflection
+        _shaderResources[name] = new ShaderResourceReflection
         {
             InternalName = internalName
         };
@@ -277,10 +277,10 @@ public sealed class ShaderProgramReflection
 
     private void AddUnorderedAccessView(StringHash name, string internalName)
     {
-        if (unorderedAccessViews.ContainsKey(name))
+        if (_unorderedAccessViews.ContainsKey(name))
             return;
 
-        unorderedAccessViews[name] = new ShaderResourceReflection
+        _unorderedAccessViews[name] = new ShaderResourceReflection
         {
             InternalName = internalName
         };
@@ -288,7 +288,7 @@ public sealed class ShaderProgramReflection
 
     private void RecalculateUniformHash()
     {
-        foreach (var uniformBuffer in uniformBuffers)
+        foreach (var uniformBuffer in _uniformBuffers)
         {
             if (uniformBuffer is null)
                 continue;
@@ -298,7 +298,7 @@ public sealed class ShaderProgramReflection
                 uniformBuffer.Hash = CombineHash(uniformBuffer.Hash, uniformBuffer.Size);
         }
 
-        foreach (var (nameHash, uniform) in uniforms)
+        foreach (var (nameHash, uniform) in _uniforms)
         {
             var uniformBuffer = GetUniformBuffer(uniform.Group);
             if (uniformBuffer is null)

@@ -5,14 +5,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ControllerTests
 {
-    private readonly HeadlessEngineFixture fixture;
+    private readonly HeadlessEngineFixture _fixture;
 
     public ControllerTests(HeadlessEngineFixture fixture)
     {
-        this.fixture = fixture;
+        this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => fixture.Input;
+    private RedBolt.Input Input => _fixture.Input;
 
     [Fact]
     public void FreeFlyController_keyboard_translation_works()

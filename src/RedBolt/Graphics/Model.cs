@@ -6,9 +6,9 @@ namespace RedBolt;
 
 public sealed class Model : ResourceWithMetadata
 {
-    private readonly List<List<Geometry>> geometries = [];
-    private readonly List<Vector3> geometryCenters = [];
-    private BoundingBox boundingBox = new(-0.5f, 0.5f);
+    private readonly List<List<Geometry>> _geometries = [];
+    private readonly List<Vector3> _geometryCenters = [];
+    private BoundingBox _boundingBox = new(-0.5f, 0.5f);
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -39,15 +39,15 @@ public sealed class Model : ResourceWithMetadata
         SetGeometry(0, 0, geometry);
     }
 
-    public IReadOnlyList<IReadOnlyList<Geometry>> Geometries => geometries;
+    public IReadOnlyList<IReadOnlyList<Geometry>> Geometries => _geometries;
 
-    public IReadOnlyList<Vector3> GeometryCenters => geometryCenters;
+    public IReadOnlyList<Vector3> GeometryCenters => _geometryCenters;
 
-    public BoundingBox BoundingBox => boundingBox;
+    public BoundingBox BoundingBox => _boundingBox;
 
-    public uint NumGeometries => (uint)geometries.Count;
+    public uint NumGeometries => (uint)_geometries.Count;
 
-    public uint VertexCount => geometries.Count == 0 || geometries[0].Count == 0 ? 0u : geometries[0][0].VertexCount;
+    public uint VertexCount => _geometries.Count == 0 || _geometries[0].Count == 0 ? 0u : _geometries[0][0].VertexCount;
 
     public override bool BeginLoad(Stream source)
     {
@@ -72,11 +72,11 @@ public sealed class Model : ResourceWithMetadata
         if (modelData?.Geometries is null || modelData.Geometries.Count == 0)
             return false;
 
-        geometries.Clear();
-        geometryCenters.Clear();
+        _geometries.Clear();
+        _geometryCenters.Clear();
 
         SetNumGeometries((uint)modelData.Geometries.Count);
-        boundingBox = modelData.BoundingBox ?? new BoundingBox();
+        _boundingBox = modelData.BoundingBox ?? new BoundingBox();
 
         for (var i = 0; i < modelData.Geometries.Count; ++i)
         {
@@ -102,12 +102,12 @@ public sealed class Model : ResourceWithMetadata
             SetGeometry((uint)i, 0u, geometry);
             SetGeometryCenter((uint)i, geometryData.Center ?? CalculateCenter(geometryData.Positions));
 
-            if (!boundingBox.Defined)
-                boundingBox = new BoundingBox(geometryData.Positions);
+            if (!_boundingBox.Defined)
+                _boundingBox = new BoundingBox(geometryData.Positions);
         }
 
-        if (!boundingBox.Defined)
-            boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3>)Array.Empty<Vector3>()).ToArray());
+        if (!_boundingBox.Defined)
+            _boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3>)Array.Empty<Vector3>()).ToArray());
 
         MemoryUse = (uint)modelData.Geometries.Sum(static item => ((item.Positions?.Count ?? 0) * 12) + ((item.Indices?.Count ?? 0) * 4));
         return true;
@@ -115,9 +115,9 @@ public sealed class Model : ResourceWithMetadata
 
     private bool LoadUrhoModel(Deserializer source)
     {
-        geometries.Clear();
-        geometryCenters.Clear();
-        boundingBox = new BoundingBox();
+        _geometries.Clear();
+        _geometryCenters.Clear();
+        _boundingBox = new BoundingBox();
 
         var fileId = source.ReadFileID();
         if (fileId is not ("UMDL" or "UMD2" or "UMD3"))
@@ -243,11 +243,11 @@ public sealed class Model : ResourceWithMetadata
         if (!SkipSkeleton(source))
             return false;
 
-        boundingBox = source.ReadBoundingBox();
+        _boundingBox = source.ReadBoundingBox();
         for (var geometryIndex = 0u; geometryIndex < numGeometries && !source.IsEof(); ++geometryIndex)
             SetGeometryCenter(geometryIndex, source.ReadVector3());
-        while (geometryCenters.Count < geometries.Count)
-            geometryCenters.Add(Vector3.Zero);
+        while (_geometryCenters.Count < _geometries.Count)
+            _geometryCenters.Add(Vector3.Zero);
 
         MemoryUse = (uint)(vertexBuffers.Sum(static buffer => buffer.GetData().Count)
             + indexBuffers.Sum(static buffer => buffer.GetIndexCount() * buffer.GetIndexSize()));
@@ -299,10 +299,10 @@ public sealed class Model : ResourceWithMetadata
 
     public void SetBoundingBox(BoundingBox box)
     {
-        boundingBox = box;
+        _boundingBox = box;
     }
 
-    public BoundingBox GetBoundingBox() => boundingBox;
+    public BoundingBox GetBoundingBox() => _boundingBox;
 
     public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
 
@@ -312,25 +312,25 @@ public sealed class Model : ResourceWithMetadata
 
     public void SetNumGeometries(uint num)
     {
-        while (geometries.Count < num)
+        while (_geometries.Count < num)
         {
-            geometries.Add([]);
-            geometryCenters.Add(Vector3.Zero);
+            _geometries.Add([]);
+            _geometryCenters.Add(Vector3.Zero);
         }
 
-        while (geometries.Count > num)
+        while (_geometries.Count > num)
         {
-            geometries.RemoveAt(geometries.Count - 1);
-            geometryCenters.RemoveAt(geometryCenters.Count - 1);
+            _geometries.RemoveAt(_geometries.Count - 1);
+            _geometryCenters.RemoveAt(_geometryCenters.Count - 1);
         }
     }
 
     public bool SetNumGeometryLodLevels(uint index, uint num)
     {
-        if (index >= geometries.Count)
+        if (index >= _geometries.Count)
             return false;
 
-        var lodLevels = geometries[(int)index];
+        var lodLevels = _geometries[(int)index];
         while (lodLevels.Count < num)
             lodLevels.Add(new Geometry());
 
@@ -344,10 +344,10 @@ public sealed class Model : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(geometry);
 
-        if (index >= geometries.Count)
+        if (index >= _geometries.Count)
             return false;
 
-        var lodLevels = geometries[(int)index];
+        var lodLevels = _geometries[(int)index];
         if (lodLevel >= lodLevels.Count)
             return false;
 
@@ -357,10 +357,10 @@ public sealed class Model : ResourceWithMetadata
 
     public Geometry? GetGeometry(uint index, uint lodLevel = 0)
     {
-        if (index >= geometries.Count)
+        if (index >= _geometries.Count)
             return null;
 
-        var lodLevels = geometries[(int)index];
+        var lodLevels = _geometries[(int)index];
         if (lodLevels.Count == 0)
             return null;
 
@@ -369,21 +369,21 @@ public sealed class Model : ResourceWithMetadata
 
     public uint GetNumGeometryLodLevels(uint index)
     {
-        return index < geometries.Count ? (uint)geometries[(int)index].Count : 0u;
+        return index < _geometries.Count ? (uint)_geometries[(int)index].Count : 0u;
     }
 
     public bool SetGeometryCenter(uint index, Vector3 center)
     {
-        if (index >= geometryCenters.Count)
+        if (index >= _geometryCenters.Count)
             return false;
 
-        geometryCenters[(int)index] = center;
+        _geometryCenters[(int)index] = center;
         return true;
     }
 
     public Vector3 GetGeometryCenter(uint index)
     {
-        return index < geometryCenters.Count ? geometryCenters[(int)index] : Vector3.Zero;
+        return index < _geometryCenters.Count ? _geometryCenters[(int)index] : Vector3.Zero;
     }
 
     private static Vector3 CalculateCenter(IReadOnlyList<Vector3> positions)

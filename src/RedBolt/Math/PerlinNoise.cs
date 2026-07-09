@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class PerlinNoise
 {
-    private readonly int[] permutation = new int[512];
+    private readonly int[] _permutation = new int[512];
 
     public PerlinNoise()
         : this(RandomEngine.GetDefaultEngine())
@@ -15,7 +15,7 @@ public sealed class PerlinNoise
         var basePermutation = Enumerable.Range(0, 256).ToArray();
         random.Shuffle(basePermutation);
         for (var i = 0; i < 512; ++i)
-            permutation[i] = basePermutation[i & 255];
+            _permutation[i] = basePermutation[i & 255];
     }
 
     public float Get(float x)
@@ -24,8 +24,8 @@ public sealed class PerlinNoise
         var xi = ((int)floor) & 255;
         var xf = x - floor;
         var u = Fade(xf);
-        var a = Gradient(permutation[xi], xf);
-        var b = Gradient(permutation[xi + 1], xf - 1.0f);
+        var a = Gradient(_permutation[xi], xf);
+        var b = Gradient(_permutation[xi + 1], xf - 1.0f);
         return MathDefs.Lerp(a, b, u) * 0.5f + 0.5f;
     }
 

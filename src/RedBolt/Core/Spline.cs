@@ -10,7 +10,7 @@ public enum InterpolationMode
 
 public sealed class Spline
 {
-    private readonly List<object?> knots = [];
+    private readonly List<object?> _knots = [];
 
     public Spline()
         : this(InterpolationMode.BezierCurve)
@@ -30,24 +30,24 @@ public sealed class Spline
 
     public InterpolationMode InterpolationMode { get; private set; }
 
-    public IReadOnlyList<object?> GetKnots() => knots;
+    public IReadOnlyList<object?> GetKnots() => _knots;
 
-    public object? GetKnot(uint index) => index < knots.Count ? knots[(int)index] : null;
+    public object? GetKnot(uint index) => index < _knots.Count ? _knots[(int)index] : null;
 
     public object? GetPoint(float factor)
     {
-        if (knots.Count == 0)
+        if (_knots.Count == 0)
             return null;
-        if (knots.Count == 1)
-            return knots[0];
+        if (_knots.Count == 1)
+            return _knots[0];
 
         var t = MathDefs.Clamp(factor, 0.0f, 1.0f);
         return InterpolationMode switch
         {
-            InterpolationMode.LinearCurve => LinearInterpolation(knots, t),
-            InterpolationMode.CatmullRomCurve => CatmullRomInterpolation(knots, t, fullPath: false),
-            InterpolationMode.CatmullRomFullCurve => CatmullRomInterpolation(knots, t, fullPath: true),
-            _ => BezierInterpolation(knots, t)
+            InterpolationMode.LinearCurve => LinearInterpolation(_knots, t),
+            InterpolationMode.CatmullRomCurve => CatmullRomInterpolation(_knots, t, fullPath: false),
+            InterpolationMode.CatmullRomFullCurve => CatmullRomInterpolation(_knots, t, fullPath: true),
+            _ => BezierInterpolation(_knots, t)
         };
     }
 
@@ -59,41 +59,41 @@ public sealed class Spline
     public void SetKnots(IEnumerable<object?> knots)
     {
         ArgumentNullException.ThrowIfNull(knots);
-        this.knots.Clear();
-        this.knots.AddRange(knots);
+        this._knots.Clear();
+        this._knots.AddRange(knots);
     }
 
     public void SetKnot(object? knot, uint index)
     {
-        if (index < this.knots.Count)
-            this.knots[(int)index] = knot;
+        if (index < this._knots.Count)
+            this._knots[(int)index] = knot;
     }
 
     public void AddKnot(object? knot)
     {
-        knots.Add(knot);
+        _knots.Add(knot);
     }
 
     public void AddKnot(object? knot, uint index)
     {
-        knots.Insert((int)Math.Min(index, (uint)knots.Count), knot);
+        _knots.Insert((int)Math.Min(index, (uint)_knots.Count), knot);
     }
 
     public void RemoveKnot()
     {
-        if (knots.Count > 0)
-            knots.RemoveAt(knots.Count - 1);
+        if (_knots.Count > 0)
+            _knots.RemoveAt(_knots.Count - 1);
     }
 
     public void RemoveKnot(uint index)
     {
-        if (index < knots.Count)
-            knots.RemoveAt((int)index);
+        if (index < _knots.Count)
+            _knots.RemoveAt((int)index);
     }
 
     public void Clear()
     {
-        knots.Clear();
+        _knots.Clear();
     }
 
     private static object? BezierInterpolation(IReadOnlyList<object?> knots, float t)

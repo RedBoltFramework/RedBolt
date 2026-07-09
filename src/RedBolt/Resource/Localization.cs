@@ -2,47 +2,47 @@ namespace RedBolt;
 
 public sealed class Localization
 {
-    private readonly List<string> languages = [];
-    private readonly Dictionary<string, Dictionary<StringHash, string>> strings = new(StringComparer.Ordinal);
-    private ResourceCache? resources;
-    private int languageIndex = -1;
+    private readonly List<string> _languages = [];
+    private readonly Dictionary<string, Dictionary<StringHash, string>> _strings = new(StringComparer.Ordinal);
+    private ResourceCache? _resources;
+    private int _languageIndex = -1;
 
     public Localization(ResourceCache? resources = null)
     {
-        this.resources = resources;
+        this._resources = resources;
     }
 
     public void SetResourceCache(ResourceCache? resources)
     {
-        this.resources = resources;
+        this._resources = resources;
     }
 
-    public ResourceCache? GetResourceCache() => resources;
+    public ResourceCache? GetResourceCache() => _resources;
 
-    public int GetNumLanguages() => languages.Count;
+    public int GetNumLanguages() => _languages.Count;
 
-    public int GetLanguageIndex() => languageIndex;
+    public int GetLanguageIndex() => _languageIndex;
 
     public int GetLanguageIndex(string language)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
-        return languages.FindIndex(existing => string.Equals(existing, language, StringComparison.Ordinal));
+        return _languages.FindIndex(existing => string.Equals(existing, language, StringComparison.Ordinal));
     }
 
     public string GetLanguage()
     {
-        return languageIndex >= 0 && languageIndex < languages.Count ? languages[languageIndex] : string.Empty;
+        return _languageIndex >= 0 && _languageIndex < _languages.Count ? _languages[_languageIndex] : string.Empty;
     }
 
     public string GetLanguage(int index)
     {
-        return index >= 0 && index < languages.Count ? languages[index] : string.Empty;
+        return index >= 0 && index < _languages.Count ? _languages[index] : string.Empty;
     }
 
     public void SetLanguage(int index)
     {
-        if (index >= 0 && index < languages.Count)
-            languageIndex = index;
+        if (index >= 0 && index < _languages.Count)
+            _languageIndex = index;
     }
 
     public void SetLanguage(string language)
@@ -50,36 +50,36 @@ public sealed class Localization
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
         var index = GetLanguageIndex(language);
         if (index >= 0)
-            languageIndex = index;
+            _languageIndex = index;
     }
 
     public string Get(string id, int index = -1)
     {
         if (string.IsNullOrEmpty(id))
             return string.Empty;
-        if (languages.Count == 0)
+        if (_languages.Count == 0)
             return id;
 
-        var language = index >= 0 && index < languages.Count ? languages[index] : GetLanguage();
+        var language = index >= 0 && index < _languages.Count ? _languages[index] : GetLanguage();
         if (string.IsNullOrEmpty(language))
             return id;
 
-        return strings.TryGetValue(language, out var translations) && translations.TryGetValue(new StringHash(id), out var translation) && !string.IsNullOrEmpty(translation)
+        return _strings.TryGetValue(language, out var translations) && translations.TryGetValue(new StringHash(id), out var translation) && !string.IsNullOrEmpty(translation)
             ? translation
             : id;
     }
 
     public void Reset()
     {
-        languages.Clear();
-        strings.Clear();
-        languageIndex = -1;
+        _languages.Clear();
+        _strings.Clear();
+        _languageIndex = -1;
     }
 
     public void LoadJSONFile(string name, string language = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var jsonFile = resources?.GetResource<JSONFile>(name);
+        var jsonFile = _resources?.GetResource<JSONFile>(name);
         if (jsonFile is null)
             return;
 
@@ -128,16 +128,16 @@ public sealed class Localization
 
     private void StoreTranslation(string id, string language, string translatedString)
     {
-        if (!strings.TryGetValue(language, out var translations))
+        if (!_strings.TryGetValue(language, out var translations))
         {
             translations = new Dictionary<StringHash, string>();
-            strings.Add(language, translations);
+            _strings.Add(language, translations);
         }
 
         translations[new StringHash(id)] = translatedString;
-        if (!languages.Contains(language, StringComparer.Ordinal))
-            languages.Add(language);
-        if (languageIndex < 0)
-            languageIndex = 0;
+        if (!_languages.Contains(language, StringComparer.Ordinal))
+            _languages.Add(language);
+        if (_languageIndex < 0)
+            _languageIndex = 0;
     }
 }

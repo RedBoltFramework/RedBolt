@@ -5,11 +5,11 @@ public sealed class ApproximateEqualityComparer<T> : IEqualityComparer<T>
 {
     public static readonly ApproximateEqualityComparer<T> Default = new();
 
-    private readonly float epsilon;
+    private readonly float _epsilon;
 
     public ApproximateEqualityComparer(float epsilon = MathDefs.Epsilon)
     {
-        this.epsilon = epsilon;
+        this._epsilon = epsilon;
     }
 
     public bool Equals(T? x, T? y)
@@ -19,7 +19,7 @@ public sealed class ApproximateEqualityComparer<T> : IEqualityComparer<T>
         if (y is null)
             return false;
 
-        return x.ApproximatelyEquivalent(y, epsilon);
+        return x.ApproximatelyEquivalent(y, _epsilon);
     }
 
     public int GetHashCode(T obj) => obj.GetHashCode();

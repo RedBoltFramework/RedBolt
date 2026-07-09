@@ -4,18 +4,18 @@ public delegate void RefEventHandler<T>(ref T args) where T : struct;
 
 public readonly struct ContextEventSubscription : IDisposable
 {
-    private readonly Context? context;
-    private readonly ulong subscriptionId;
+    private readonly Context? _context;
+    private readonly ulong _subscriptionId;
 
     internal ContextEventSubscription(Context context, ulong subscriptionId)
     {
-        this.context = context;
-        this.subscriptionId = subscriptionId;
+        this._context = context;
+        this._subscriptionId = subscriptionId;
     }
 
     public void Dispose()
     {
-        context?.Unsubscribe(subscriptionId);
+        _context?.Unsubscribe(_subscriptionId);
     }
 }
 
@@ -43,28 +43,28 @@ public sealed class Context
         public bool RequiresCompaction { get; set; }
     }
 
-    private static Context? instance;
+    private static Context? _instance;
 
-    private readonly Dictionary<Type, object> subsystems = [];
-    private readonly Dictionary<Type, StructEventSubscriptionBucket> structEventSubscriptions = [];
-    private readonly VariantMap globalVars = [];
-    private ulong nextSubscriptionId = 1;
+    private readonly Dictionary<Type, object> _subsystems = [];
+    private readonly Dictionary<Type, StructEventSubscriptionBucket> _structEventSubscriptions = [];
+    private readonly VariantMap _globalVars = [];
+    private ulong _nextSubscriptionId = 1;
 
     public static Context Instance
     {
-        get => instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
+        get => _instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
     }
 
-    public static Context? TryGetInstance() => instance;
+    public static Context? TryGetInstance() => _instance;
 
-    public static void SetInstance(Context? context) => instance = context;
+    public static void SetInstance(Context? context) => _instance = context;
 
     public void Reset()
     {
-        subsystems.Clear();
-        structEventSubscriptions.Clear();
-        globalVars.Clear();
-        nextSubscriptionId = 1;
+        _subsystems.Clear();
+        _structEventSubscriptions.Clear();
+        _globalVars.Clear();
+        _nextSubscriptionId = 1;
     }
 
     public void InitializeEngineSubsystems(Engine engine)
@@ -85,27 +85,27 @@ public sealed class Context
     public void RegisterSubsystem(object subsystem)
     {
         ArgumentNullException.ThrowIfNull(subsystem);
-        subsystems[subsystem.GetType()] = subsystem;
+        _subsystems[subsystem.GetType()] = subsystem;
     }
 
     public void RegisterSubsystem<T>(T subsystem)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(subsystem);
-        subsystems[typeof(T)] = subsystem;
+        _subsystems[typeof(T)] = subsystem;
     }
 
     public bool RemoveSubsystem<T>()
         where T : class
-        => subsystems.Remove(typeof(T));
+        => _subsystems.Remove(typeof(T));
 
     public T? GetSubsystem<T>()
         where T : class
     {
-        if (subsystems.TryGetValue(typeof(T), out var subsystem))
+        if (_subsystems.TryGetValue(typeof(T), out var subsystem))
             return (T)subsystem;
 
-        foreach (var registeredSubsystem in subsystems.Values)
+        foreach (var registeredSubsystem in _subsystems.Values)
         {
             if (registeredSubsystem is T typedSubsystem)
                 return typedSubsystem;
@@ -136,7 +136,7 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        foreach (var bucket in structEventSubscriptions.Values)
+        foreach (var bucket in _structEventSubscriptions.Values)
             RemoveMatchingSubscriptions(bucket, subscription => IsReceiverMatch(subscription, receiver));
 
         RemoveEmptyEventBuckets();
@@ -147,7 +147,7 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
 
-        foreach (var bucket in structEventSubscriptions.Values)
+        foreach (var bucket in _structEventSubscriptions.Values)
         {
             RemoveMatchingSubscriptions(
                 bucket,
@@ -167,7 +167,7 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(senders);
 
-        foreach (var bucket in structEventSubscriptions.Values)
+        foreach (var bucket in _structEventSubscriptions.Values)
         {
             RemoveMatchingSubscriptions(
                 bucket,
@@ -182,7 +182,7 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        foreach (var bucket in structEventSubscriptions.Values)
+        foreach (var bucket in _structEventSubscriptions.Values)
         {
             if (HasMatchingSubscription(bucket, subscription => IsReceiverMatch(subscription, receiver)))
                 return true;
@@ -195,7 +195,7 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
-        if (!structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
+        if (!_structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
             return false;
 
         return HasMatchingSubscription(bucket, subscription => IsReceiverMatch(subscription, receiver));
@@ -206,7 +206,7 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
 
-        if (!structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
+        if (!_structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
             return false;
 
         return HasMatchingSubscription(bucket,
@@ -220,14 +220,14 @@ public sealed class Context
 
     public Variant GetGlobalVar(StringHash key)
     {
-        return globalVars.TryGetValue(key, out var value) ? value : default;
+        return _globalVars.TryGetValue(key, out var value) ? value : default;
     }
 
-    public VariantMap GetGlobalVars() => globalVars;
+    public VariantMap GetGlobalVars() => _globalVars;
 
     public void SetGlobalVar(StringHash key, Variant value)
     {
-        globalVars[key] = value;
+        _globalVars[key] = value;
     }
 
     public void SendEvent<T>() where T : struct
@@ -246,7 +246,7 @@ public sealed class Context
         if (sender is Object { BlockEvents: true })
             return;
 
-        if (!structEventSubscriptions.TryGetValue(typeof(T), out var bucket) || bucket.Subscriptions.Count == 0)
+        if (!_structEventSubscriptions.TryGetValue(typeof(T), out var bucket) || bucket.Subscriptions.Count == 0)
             return;
 
         ++bucket.DispatchDepth;
@@ -305,10 +305,10 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(handler);
 
         var eventType = typeof(T);
-        if (!structEventSubscriptions.TryGetValue(eventType, out var bucket))
-            structEventSubscriptions[eventType] = bucket = new StructEventSubscriptionBucket();
+        if (!_structEventSubscriptions.TryGetValue(eventType, out var bucket))
+            _structEventSubscriptions[eventType] = bucket = new StructEventSubscriptionBucket();
 
-        var subscriptionId = nextSubscriptionId++;
+        var subscriptionId = _nextSubscriptionId++;
         bucket.Subscriptions.Add(new StructEventSubscription
         {
             Id = subscriptionId,
@@ -322,7 +322,7 @@ public sealed class Context
 
     internal void Unsubscribe(ulong subscriptionId)
     {
-        foreach (var bucket in structEventSubscriptions.Values)
+        foreach (var bucket in _structEventSubscriptions.Values)
         {
             if (RemoveMatchingSubscriptions(bucket, subscription => subscription.Id == subscriptionId) != 0)
                 break;
@@ -418,16 +418,16 @@ public sealed class Context
         }
 
         if (bucket.DispatchDepth == 0 && bucket.Subscriptions.Count == 0)
-            structEventSubscriptions.Remove(eventType);
+            _structEventSubscriptions.Remove(eventType);
     }
 
     private void RemoveEmptyEventBuckets()
     {
-        var emptyEventTypeKeys = structEventSubscriptions
+        var emptyEventTypeKeys = _structEventSubscriptions
             .Where(static pair => pair.Value.DispatchDepth == 0 && pair.Value.Subscriptions.Count == 0)
             .Select(static pair => pair.Key)
             .ToArray();
         foreach (var key in emptyEventTypeKeys)
-            structEventSubscriptions.Remove(key);
+            _structEventSubscriptions.Remove(key);
     }
 }

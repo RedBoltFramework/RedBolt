@@ -19,16 +19,16 @@ catch (Exception ex)
 
 sealed class StaticSceneApplication : Application
 {
-    private readonly Random random = new(1);
-    private readonly CString heapSizeLine = new();
-    private readonly CString gen0CollectionsLine = new();
-    private readonly CString gen1CollectionsLine = new();
-    private readonly CString gen2CollectionsLine = new();
-    private readonly CString totalAllocatedLine = new();
-    private readonly CString fpsLine = new();
-    private readonly Timer fpsTimer = new();
-    private ContextEventSubscription? dearImGuiSubscription;
-    private bool fpsUpdated;
+    private readonly Random _random = new(1);
+    private readonly CString _heapSizeLine = new();
+    private readonly CString _gen0CollectionsLine = new();
+    private readonly CString _gen1CollectionsLine = new();
+    private readonly CString _gen2CollectionsLine = new();
+    private readonly CString _totalAllocatedLine = new();
+    private readonly CString _fpsLine = new();
+    private readonly Timer _fpsTimer = new();
+    private ContextEventSubscription? _dearImGuiSubscription;
+    private bool _fpsUpdated;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -44,7 +44,7 @@ sealed class StaticSceneApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
-        dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
 
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();
@@ -114,30 +114,30 @@ sealed class StaticSceneApplication : Application
         if (engineTime is null)
             return;
 
-        if (!fpsUpdated || fpsTimer.GetMSec(true) >= 1000)
+        if (!_fpsUpdated || _fpsTimer.GetMSec(true) >= 1000)
         {
-            fpsUpdated = true;
-            fpsTimer.Reset();
+            _fpsUpdated = true;
+            _fpsTimer.Reset();
 
             var fps = engineTime.GetFramesPerSecond();
             if (float.IsInfinity(fps))
-                fpsLine.FormatInPlace("FPS: Infinity");
+                _fpsLine.FormatInPlace("FPS: Infinity");
             else
-                fpsLine.FormatInPlace($"FPS: {fps:F1}");
+                _fpsLine.FormatInPlace($"FPS: {fps:F1}");
         }
     }
 
     protected override void Stop()
     {
-        dearImGuiSubscription?.Dispose();
-        dearImGuiSubscription = null;
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
 
-        heapSizeLine.Dispose();
-        gen0CollectionsLine.Dispose();
-        gen1CollectionsLine.Dispose();
-        gen2CollectionsLine.Dispose();
-        totalAllocatedLine.Dispose();
-        fpsLine.Dispose();
+        _heapSizeLine.Dispose();
+        _gen0CollectionsLine.Dispose();
+        _gen1CollectionsLine.Dispose();
+        _gen2CollectionsLine.Dispose();
+        _totalAllocatedLine.Dispose();
+        _fpsLine.Dispose();
     }
 
     private void DrawGCStats()
@@ -151,24 +151,24 @@ sealed class StaticSceneApplication : Application
         if (ImGui.Begin("Stats\0"u8, out _, flags))
         {
             var heapSize = GC.GetTotalMemory(false) / (1024.0 * 1024.0);
-            heapSizeLine.FormatInPlace($"Heap Size: {heapSize:F1} MB");
+            _heapSizeLine.FormatInPlace($"Heap Size: {heapSize:F1} MB");
 
-            gen0CollectionsLine.FormatInPlace($"Gen 0 Collections: {GC.CollectionCount(0)}");
+            _gen0CollectionsLine.FormatInPlace($"Gen 0 Collections: {GC.CollectionCount(0)}");
 
-            gen1CollectionsLine.FormatInPlace($"Gen 1 Collections: {GC.CollectionCount(1)}");
+            _gen1CollectionsLine.FormatInPlace($"Gen 1 Collections: {GC.CollectionCount(1)}");
 
-            gen2CollectionsLine.FormatInPlace($"Gen 2 Collections: {GC.CollectionCount(2)}");
+            _gen2CollectionsLine.FormatInPlace($"Gen 2 Collections: {GC.CollectionCount(2)}");
 
             var totalAllocated = GC.GetTotalAllocatedBytes() / (1024.0 * 1024.0);
-            totalAllocatedLine.FormatInPlace($"Total Allocated: {totalAllocated:F1} MB");
+            _totalAllocatedLine.FormatInPlace($"Total Allocated: {totalAllocated:F1} MB");
 
-            ImGui.TextUnformatted(heapSizeLine.Bytes);
-            ImGui.TextUnformatted(gen0CollectionsLine.Bytes);
-            ImGui.TextUnformatted(gen1CollectionsLine.Bytes);
-            ImGui.TextUnformatted(gen2CollectionsLine.Bytes);
-            ImGui.TextUnformatted(totalAllocatedLine.Bytes);
+            ImGui.TextUnformatted(_heapSizeLine.Bytes);
+            ImGui.TextUnformatted(_gen0CollectionsLine.Bytes);
+            ImGui.TextUnformatted(_gen1CollectionsLine.Bytes);
+            ImGui.TextUnformatted(_gen2CollectionsLine.Bytes);
+            ImGui.TextUnformatted(_totalAllocatedLine.Bytes);
 
-            ImGui.TextUnformatted(fpsLine.Bytes);
+            ImGui.TextUnformatted(_fpsLine.Bytes);
         }
 
         ImGui.End();
@@ -217,6 +217,6 @@ sealed class StaticSceneApplication : Application
 
     private float RandomRange(float min, float max)
     {
-        return min + (float)random.NextDouble() * (max - min);
+        return min + (float)_random.NextDouble() * (max - min);
     }
 }
