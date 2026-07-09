@@ -1,7 +1,5 @@
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using System.Buffers;
-using System.Buffers.Text;
 
 try
 {
@@ -19,17 +17,12 @@ catch (Exception ex)
 sealed class StaticSceneApplication : Application
 {
     private readonly Random random = new(1);
-    private readonly byte[] heapSizeLine = new byte[64];
-    private readonly byte[] gen0CollectionsLine = new byte[64];
-    private readonly byte[] gen1CollectionsLine = new byte[64];
-    private readonly byte[] gen2CollectionsLine = new byte[64];
-    private readonly byte[] totalAllocatedLine = new byte[64];
-    private readonly byte[] fpsLine = new byte[64];
-    private long cachedHeapSizeBytes = -1;
-    private int cachedGen0Collections = -1;
-    private int cachedGen1Collections = -1;
-    private int cachedGen2Collections = -1;
-    private long cachedTotalAllocatedBytes = -1;
+    private readonly CString heapSizeLine = new();
+    private readonly CString gen0CollectionsLine = new();
+    private readonly CString gen1CollectionsLine = new();
+    private readonly CString gen2CollectionsLine = new();
+    private readonly CString totalAllocatedLine = new();
+    private readonly CString fpsLine = new();
     private ContextEventSubscription? dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
@@ -117,6 +110,13 @@ sealed class StaticSceneApplication : Application
     {
         dearImGuiSubscription?.Dispose();
         dearImGuiSubscription = null;
+
+        heapSizeLine.Dispose();
+        gen0CollectionsLine.Dispose();
+        gen1CollectionsLine.Dispose();
+        gen2CollectionsLine.Dispose();
+        totalAllocatedLine.Dispose();
+        fpsLine.Dispose();
     }
 
     private void DrawGCStats()
@@ -129,73 +129,34 @@ sealed class StaticSceneApplication : Application
 
         if (ImGui.Begin("Stats\0"u8, out _, flags))
         {
-            UpdateMegabyteLine(this.heapSizeLine, "Heap Size: "u8, ref this.cachedHeapSizeBytes, GC.GetTotalMemory(false));
-            UpdateIntegerLine(this.gen0CollectionsLine, "Gen 0 Collections: "u8, ref this.cachedGen0Collections, GC.CollectionCount(0));
-            UpdateIntegerLine(this.gen1CollectionsLine, "Gen 1 Collections: "u8, ref this.cachedGen1Collections, GC.CollectionCount(1));
-            UpdateIntegerLine(this.gen2CollectionsLine, "Gen 2 Collections: "u8, ref this.cachedGen2Collections, GC.CollectionCount(2));
-            UpdateMegabyteLine(this.totalAllocatedLine, "Total Allocated: "u8, ref this.cachedTotalAllocatedBytes, GC.GetTotalAllocatedBytes());
+            var heapSize = GC.GetTotalMemory(false) / (1024.0 * 1024.0);
+            heapSizeLine.FormatInPlace($"Heap Size: {heapSize:F1} MB");
 
-            DrawStatLine(this.heapSizeLine);
-            DrawStatLine(this.gen0CollectionsLine);
-            DrawStatLine(this.gen1CollectionsLine);
-            DrawStatLine(this.gen2CollectionsLine);
-            DrawStatLine(this.totalAllocatedLine);
-            UpdateFpsLine(this.fpsLine, "FPS: "u8, Context.GetSubsystem<EngineTime>()?.GetFramesPerSecond() ?? 0.0f);
-            DrawStatLine(this.fpsLine);
+            gen0CollectionsLine.FormatInPlace($"Gen 0 Collections: {GC.CollectionCount(0)}");
+
+            gen1CollectionsLine.FormatInPlace($"Gen 1 Collections: {GC.CollectionCount(1)}");
+
+            gen2CollectionsLine.FormatInPlace($"Gen 2 Collections: {GC.CollectionCount(2)}");
+
+            var totalAllocated = GC.GetTotalAllocatedBytes() / (1024.0 * 1024.0);
+            totalAllocatedLine.FormatInPlace($"Total Allocated: {totalAllocated:F1} MB");
+
+            ImGui.TextUnformatted(heapSizeLine.Bytes);
+            ImGui.TextUnformatted(gen0CollectionsLine.Bytes);
+            ImGui.TextUnformatted(gen1CollectionsLine.Bytes);
+            ImGui.TextUnformatted(gen2CollectionsLine.Bytes);
+            ImGui.TextUnformatted(totalAllocatedLine.Bytes);
+
+            var fps = Context.GetSubsystem<EngineTime>()?.GetFramesPerSecond() ?? 0.0f;
+            if (float.IsInfinity(fps))
+                fpsLine.FormatInPlace("FPS: Infinity");
+            else
+                fpsLine.FormatInPlace($"FPS: {fps:F1}");
+
+            ImGui.TextUnformatted(fpsLine.Bytes);
         }
 
         ImGui.End();
-    }
-
-    private static void DrawStatLine(byte[] value)
-    {
-        ImGui.TextUnformatted(value);
-    }
-
-    private static void UpdateMegabyteLine(byte[] buffer, ReadOnlySpan<byte> label, ref long cachedValue, long valueBytes)
-    {
-        if (cachedValue == valueBytes)
-            return;
-
-        cachedValue = valueBytes;
-        var target = buffer.AsSpan();
-        label.CopyTo(target);
-        var offset = label.Length;
-        var valueMegabytes = valueBytes / (1024.0 * 1024.0);
-        if (!Utf8Formatter.TryFormat(valueMegabytes, target[offset..], out var written, new StandardFormat('F', 1)))
-            throw new InvalidOperationException("Failed to format GC stats megabyte value.");
-
-        offset += written;
-        " MB\0"u8.CopyTo(target[offset..]);
-    }
-
-    private static void UpdateFpsLine(byte[] buffer, ReadOnlySpan<byte> label, float fps)
-    {
-        var target = buffer.AsSpan();
-        label.CopyTo(target);
-        var offset = label.Length;
-        if (float.IsInfinity(fps))
-            "Infinity\0"u8.CopyTo(target[offset..]);
-        else if (!Utf8Formatter.TryFormat(fps, target[offset..], out var written, new StandardFormat('F', 1)))
-            throw new InvalidOperationException("Failed to format FPS value.");
-        else
-            "\0"u8.CopyTo(target[(offset + written)..]);
-    }
-
-    private static void UpdateIntegerLine(byte[] buffer, ReadOnlySpan<byte> label, ref int cachedValue, int value)
-    {
-        if (cachedValue == value)
-            return;
-
-        cachedValue = value;
-        var target = buffer.AsSpan();
-        label.CopyTo(target);
-        var offset = label.Length;
-        if (!Utf8Formatter.TryFormat(value, target[offset..], out var written))
-            throw new InvalidOperationException("Failed to format GC stats integer value.");
-
-        offset += written;
-        "\0"u8.CopyTo(target[offset..]);
     }
 
     private static string FindResourcePrefixPath()

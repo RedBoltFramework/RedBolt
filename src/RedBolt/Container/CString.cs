@@ -1,0 +1,513 @@
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+
+namespace RedBolt;
+
+public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposable
+{
+    private static readonly Encoding Utf8 = Encoding.UTF8;
+
+    private byte[] bytes = [0];
+    private int byteLength;
+    private bool disposed;
+
+    public static CString Empty { get; } = new(string.Empty);
+
+    public CString()
+    {
+    }
+
+    public CString(string value)
+    {
+        Set(value);
+    }
+
+    public ReadOnlySpan<byte> Bytes
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return bytes.AsSpan(0, byteLength + 1);
+        }
+    }
+
+    public int Length
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return Utf8.GetCharCount(bytes.AsSpan(0, byteLength));
+        }
+    }
+
+    public int ByteLength
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return byteLength;
+        }
+    }
+
+    public void Clear()
+    {
+        ThrowIfDisposed();
+        byteLength = 0;
+        bytes[0] = 0;
+    }
+
+    public string ConvertToString()
+    {
+        ThrowIfDisposed();
+        return Utf8.GetString(bytes, 0, byteLength);
+    }
+
+    public static CString Format(string format, ReadOnlySpan<object?> args)
+    {
+        var value = new CString();
+        value.FormatInPlace(format, args);
+        return value;
+    }
+
+    public static CString Format(string format, params object?[] args)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        var value = new CString();
+        value.FormatInPlace(format, args);
+        return value;
+    }
+
+    public void FormatInPlace(string format, ReadOnlySpan<object?> args)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        ThrowIfDisposed();
+
+        Clear();
+
+        if (format.Length == 0)
+            return;
+
+        var formatSpan = format.AsSpan();
+        var segmentStart = 0;
+        for (var index = 0; index < formatSpan.Length; ++index)
+        {
+            var current = formatSpan[index];
+            if (current == '{')
+            {
+                AppendText(formatSpan.Slice(segmentStart, index - segmentStart));
+
+                if (index + 1 < formatSpan.Length && formatSpan[index + 1] == '{')
+                {
+                    AppendText('{');
+                    segmentStart = index + 2;
+                    ++index;
+                    continue;
+                }
+
+                ParsePlaceholder(formatSpan, index + 1, args, out var consumed);
+                segmentStart = consumed;
+                index = consumed - 1;
+                continue;
+            }
+
+            if (current == '}')
+            {
+                AppendText(formatSpan.Slice(segmentStart, index - segmentStart));
+
+                if (index + 1 < formatSpan.Length && formatSpan[index + 1] == '}')
+                {
+                    AppendText('}');
+                    segmentStart = index + 2;
+                    ++index;
+                    continue;
+                }
+
+                throw new FormatException("Input string was not in a correct format.");
+            }
+        }
+
+        if (segmentStart < formatSpan.Length)
+            AppendText(formatSpan[segmentStart..]);
+    }
+
+    public void FormatInPlace(string format, params object?[] args)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        FormatInPlace(format, (ReadOnlySpan<object?>)args);
+    }
+
+    public void FormatInPlace([InterpolatedStringHandlerArgument("")] CStringInterpolatedStringHandler handler)
+    {
+    }
+
+    public bool Equals(CString? other)
+    {
+        if (other is null)
+            return false;
+
+        ThrowIfDisposed();
+        return byteLength == other.byteLength && bytes.AsSpan(0, byteLength).SequenceEqual(other.bytes.AsSpan(0, other.byteLength));
+    }
+
+    public bool Equals(string? other)
+    {
+        ThrowIfDisposed();
+        return other is not null && EqualsUtf8BytesString(bytes.AsSpan(0, byteLength), other);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is CString cstring
+            ? Equals(cstring)
+            : obj is string value && Equals(value);
+    }
+
+    public override int GetHashCode()
+    {
+        ThrowIfDisposed();
+
+        var hash = 0x811C9DC5u;
+        for (var i = 0; i < byteLength; ++i)
+            hash = (hash ^ bytes[i]) * 16777619;
+
+        return unchecked((int)hash);
+    }
+
+    public override string ToString()
+    {
+        return ConvertToString();
+    }
+
+    public static implicit operator CString(string value) => new(value);
+
+    public static bool operator ==(CString? left, CString? right)
+    {
+        if (left is null && right is null)
+            return true;
+        if (left is null || right is null)
+            return false;
+
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CString? left, CString? right)
+    {
+        return !(left == right);
+    }
+
+    public void Dispose()
+    {
+        if (disposed)
+            return;
+
+        bytes = [];
+        byteLength = 0;
+        disposed = true;
+    }
+
+    private void Set(string value)
+    {
+        ThrowIfDisposed();
+
+        value ??= string.Empty;
+        var rawByteLength = Utf8.GetByteCount(value);
+        EnsureCapacity(rawByteLength + 1);
+        Utf8.GetBytes(value.AsSpan(), bytes);
+        byteLength = rawByteLength;
+        bytes[byteLength] = 0;
+    }
+
+    private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)
+    {
+        if (index >= format.Length)
+            throw new FormatException("Input string was not in a correct format.");
+
+        var position = index;
+        if (position >= format.Length || format[position] < '0' || format[position] > '9')
+            throw new FormatException("Input string was not in a correct format.");
+
+        var argumentIndex = 0;
+        while (position < format.Length)
+        {
+            var current = format[position];
+            if (current < '0' || current > '9')
+                break;
+
+            argumentIndex = (argumentIndex * 10) + (current - '0');
+            ++position;
+        }
+
+        if (position >= format.Length)
+            throw new FormatException("Input string was not in a correct format.");
+
+        if (argumentIndex >= args.Length)
+            throw new FormatException($"Index ({argumentIndex}) must be non-negative and less than the size of the argument list.");
+
+        if (format[position] == ',')
+        {
+            ++position;
+            if (position >= format.Length)
+                throw new FormatException("Input string was not in a correct format.");
+
+            var hasSign = format[position] == '+' || format[position] == '-';
+            if (hasSign)
+                ++position;
+
+            while (position < format.Length && format[position] >= '0' && format[position] <= '9')
+                ++position;
+
+            if (position >= format.Length)
+                throw new FormatException("Input string was not in a correct format.");
+        }
+
+        ReadOnlySpan<char> argFormat = default;
+        if (format[position] == ':')
+        {
+            ++position;
+            var formatSpecStart = position;
+            while (position < format.Length && format[position] != '}')
+                ++position;
+
+            if (position >= format.Length)
+                throw new FormatException("Input string was not in a correct format.");
+
+            argFormat = format.Slice(formatSpecStart, position - formatSpecStart);
+        }
+
+        if (position >= format.Length || format[position] != '}')
+            throw new FormatException("Input string was not in a correct format.");
+
+        AppendArg(args[argumentIndex], argFormat);
+        consumed = position + 1;
+    }
+
+    private void AppendArg(object? value, ReadOnlySpan<char> format)
+    {
+        if (value is null)
+            return;
+
+        switch (value)
+        {
+            case string text:
+                AppendText(text.AsSpan());
+                return;
+            case CString cstring:
+                AppendBytes(cstring.bytes.AsSpan(0, cstring.byteLength));
+                return;
+            case char text:
+                AppendText(text);
+                return;
+            case ISpanFormattable spanFormattable:
+                AppendSpanFormattable(spanFormattable, format);
+                return;
+            default:
+                throw new FormatException($"Formatting type '{value.GetType().FullName}' would allocate. Convert it explicitly before passing it to CString.");
+        }
+    }
+
+    private void AppendSpanFormattable<T>(T value, ReadOnlySpan<char> format)
+        where T : ISpanFormattable
+    {
+        Span<char> chars = stackalloc char[256];
+
+        if (!value.TryFormat(chars, out var written, format, CultureInfo.InvariantCulture))
+        {
+            chars = stackalloc char[512];
+            if (!value.TryFormat(chars, out written, format, CultureInfo.InvariantCulture))
+                throw new FormatException($"The argument value '{value}' cannot be formatted with span-based formatting.");
+        }
+
+        AppendText(chars[..written]);
+    }
+
+    private void AppendBytes(ReadOnlySpan<byte> value)
+    {
+        if (value.IsEmpty)
+            return;
+
+        EnsureCapacity(byteLength + value.Length + 1);
+        value.CopyTo(bytes.AsSpan(byteLength));
+        byteLength += value.Length;
+        bytes[byteLength] = 0;
+    }
+
+    private void AppendText(ReadOnlySpan<char> text)
+    {
+        if (text.IsEmpty)
+            return;
+
+        var requiredLength = Utf8.GetByteCount(text);
+        EnsureCapacity(byteLength + requiredLength + 1);
+        Utf8.GetBytes(text, bytes.AsSpan(byteLength, requiredLength));
+        byteLength += requiredLength;
+        bytes[byteLength] = 0;
+    }
+
+    private void AppendText(char value)
+    {
+        Span<char> chars = stackalloc char[1];
+        chars[0] = value;
+        AppendText(chars);
+    }
+
+    private void EnsureCapacity(int requiredCapacity)
+    {
+        if (bytes.Length >= requiredCapacity)
+            return;
+
+        var newCapacity = bytes.Length == 0 ? 1 : bytes.Length;
+        while (newCapacity < requiredCapacity)
+            newCapacity *= 2;
+
+        var newBytes = new byte[newCapacity];
+        bytes.AsSpan(0, byteLength + 1).CopyTo(newBytes);
+        bytes = newBytes;
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (disposed)
+            throw new ObjectDisposedException(nameof(CString));
+    }
+
+    private static bool EqualsUtf8BytesString(ReadOnlySpan<byte> valueBytes, string text)
+    {
+        var charSpan = text.AsSpan();
+        if (valueBytes.Length == 0)
+            return charSpan.IsEmpty;
+
+        var expectedByteLength = Utf8.GetByteCount(charSpan);
+        if (expectedByteLength != valueBytes.Length)
+            return false;
+
+        var byteOffset = 0;
+        var charOffset = 0;
+
+        Span<byte> expected = stackalloc byte[4];
+
+        while (charOffset < charSpan.Length)
+        {
+            var rune = (uint)charSpan[charOffset++];
+            if (rune is >= 0xD800u and <= 0xDBFFu)
+            {
+                if (charOffset < charSpan.Length && (uint)charSpan[charOffset] is >= 0xDC00u and <= 0xDFFFu)
+                {
+                    rune = (uint)char.ConvertToUtf32((char)rune, charSpan[charOffset++]);
+                }
+                else
+                {
+                    rune = 0xFFFD;
+                }
+            }
+            else if (rune is >= 0xDC00u and <= 0xDFFFu)
+            {
+                rune = 0xFFFD;
+            }
+
+            var encoded = EncodeUtf8(rune, expected);
+            if (encoded < 0)
+                return false;
+
+            if (byteOffset + encoded > valueBytes.Length)
+                return false;
+
+            if (!valueBytes.Slice(byteOffset, encoded).SequenceEqual(expected[..encoded]))
+                return false;
+
+            byteOffset += encoded;
+        }
+
+        return byteOffset == valueBytes.Length;
+    }
+
+    private static int EncodeUtf8(uint rune, Span<byte> destination)
+    {
+        if (rune <= 0x7Fu)
+        {
+            destination[0] = (byte)rune;
+            return 1;
+        }
+
+        if (rune <= 0x7FFu)
+        {
+            destination[0] = (byte)(0xC0u | (rune >> 6));
+            destination[1] = (byte)(0x80u | (rune & 0x3Fu));
+            return 2;
+        }
+
+        if (rune <= 0xFFFFu)
+        {
+            destination[0] = (byte)(0xE0u | (rune >> 12));
+            destination[1] = (byte)(0x80u | ((rune >> 6) & 0x3Fu));
+            destination[2] = (byte)(0x80u | (rune & 0x3Fu));
+            return 3;
+        }
+
+        if (rune <= 0x10FFFFu)
+        {
+            destination[0] = (byte)(0xF0u | (rune >> 18));
+            destination[1] = (byte)(0x80u | ((rune >> 12) & 0x3Fu));
+            destination[2] = (byte)(0x80u | ((rune >> 6) & 0x3Fu));
+            destination[3] = (byte)(0x80u | (rune & 0x3Fu));
+            return 4;
+        }
+
+        return -1;
+    }
+
+    [InterpolatedStringHandler]
+    public ref struct CStringInterpolatedStringHandler
+    {
+        private readonly CString target;
+
+        public CStringInterpolatedStringHandler(int literalLength, int formattedCount, CString target)
+        {
+            ArgumentNullException.ThrowIfNull(target);
+
+            this.target = target;
+            this.target.Clear();
+        }
+
+        public void AppendLiteral(string value)
+        {
+            target.AppendText(value.AsSpan());
+        }
+
+        public void AppendFormatted(string? value)
+        {
+            if (!string.IsNullOrEmpty(value))
+                target.AppendText(value.AsSpan());
+        }
+
+        public void AppendFormatted(ReadOnlySpan<char> value)
+        {
+            target.AppendText(value);
+        }
+
+        public void AppendFormatted(char value)
+        {
+            target.AppendText(value);
+        }
+
+        public void AppendFormatted(CString? value)
+        {
+            if (value is null)
+                return;
+
+            target.AppendBytes(value.bytes.AsSpan(0, value.byteLength));
+        }
+
+        public void AppendFormatted<T>(T value)
+            where T : ISpanFormattable
+        {
+            target.AppendSpanFormattable(value, default);
+        }
+
+        public void AppendFormatted<T>(T value, string? format)
+            where T : ISpanFormattable
+        {
+            target.AppendSpanFormattable(value, format.AsSpan());
+        }
+    }
+}
