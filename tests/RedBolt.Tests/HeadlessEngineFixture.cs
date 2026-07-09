@@ -23,7 +23,7 @@ public sealed class HeadlessEngineFixture : IDisposable
 
     public Context Context => Engine.Context;
 
-    public EngineTime Time => GetRequiredSubsystem<EngineTime>();
+    public Time Time => GetRequiredSubsystem<Time>();
 
     public ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
 

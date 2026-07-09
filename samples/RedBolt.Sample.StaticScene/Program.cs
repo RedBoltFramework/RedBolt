@@ -23,7 +23,9 @@ sealed class StaticSceneApplication : Application
     private readonly CString gen2CollectionsLine = new();
     private readonly CString totalAllocatedLine = new();
     private readonly CString fpsLine = new();
+    private readonly Timer fpsTimer = new();
     private ContextEventSubscription? dearImGuiSubscription;
+    private bool fpsUpdated;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -104,6 +106,22 @@ sealed class StaticSceneApplication : Application
             Exit();
             return;
         }
+
+        var engineTime = Context.GetSubsystem<Time>();
+        if (engineTime is null)
+            return;
+
+        if (!fpsUpdated || fpsTimer.GetMSec(true) >= 1000)
+        {
+            fpsUpdated = true;
+            fpsTimer.Reset();
+
+            var fps = engineTime.GetFramesPerSecond();
+            if (float.IsInfinity(fps))
+                fpsLine.FormatInPlace("FPS: Infinity");
+            else
+                fpsLine.FormatInPlace($"FPS: {fps:F1}");
+        }
     }
 
     protected override void Stop()
@@ -146,12 +164,6 @@ sealed class StaticSceneApplication : Application
             ImGui.TextUnformatted(gen1CollectionsLine.Bytes);
             ImGui.TextUnformatted(gen2CollectionsLine.Bytes);
             ImGui.TextUnformatted(totalAllocatedLine.Bytes);
-
-            var fps = Context.GetSubsystem<EngineTime>()?.GetFramesPerSecond() ?? 0.0f;
-            if (float.IsInfinity(fps))
-                fpsLine.FormatInPlace("FPS: Infinity");
-            else
-                fpsLine.FormatInPlace($"FPS: {fps:F1}");
 
             ImGui.TextUnformatted(fpsLine.Bytes);
         }

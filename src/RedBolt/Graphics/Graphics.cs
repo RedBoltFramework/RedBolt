@@ -1525,7 +1525,7 @@ layout(std140) uniform Material
 
     private void UpdateFullscreenFrameBuffer(IBuffer buffer)
     {
-        var time = Context.TryGetInstance()?.GetSubsystem<EngineTime>();
+        var time = Context.TryGetInstance()?.GetSubsystem<Time>();
         Span<byte> data = stackalloc byte[FrameBufferSize];
         data.Clear();
         WriteFloat(data, 0, time?.TimeStep ?? 0.0f);

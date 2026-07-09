@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
-
 namespace RedBolt;
 
 public sealed class Timer
@@ -52,48 +50,6 @@ public sealed class HiresTimer
     private static long ToMicroseconds(long ticks)
     {
         return Math.Max(0L, (long)(ticks * (1_000_000.0 / Stopwatch.Frequency)));
-    }
-}
-
-public static class Time
-{
-    public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
-
-    public static uint GetSystemTime()
-    {
-        return (uint)Environment.TickCount64;
-    }
-
-    public static uint GetTimeSinceEpoch()
-    {
-        return (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    }
-
-    public static string GetTimeStamp(string? format = null)
-    {
-        return GetTimeStamp(DateTimeOffset.Now, format);
-    }
-
-    public static string GetTimeStamp(uint timestamp, string? format = null)
-    {
-        return GetTimeStamp(DateTimeOffset.FromUnixTimeSeconds(timestamp).ToLocalTime(), format);
-    }
-
-    public static string GetTimeStamp(DateTimeOffset timestamp, string? format = null)
-    {
-        return timestamp.ToString(string.IsNullOrEmpty(format) ? DefaultDateTimeFormat : format, CultureInfo.InvariantCulture);
-    }
-
-    public static void Sleep(uint milliseconds)
-    {
-        var remaining = milliseconds;
-        while (remaining > int.MaxValue)
-        {
-            Thread.Sleep(int.MaxValue);
-            remaining -= int.MaxValue;
-        }
-
-        Thread.Sleep((int)remaining);
     }
 }
 

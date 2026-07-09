@@ -83,7 +83,7 @@ The first-cube implementation should also establish the low-GC baseline: no avoi
 |---|---|
 | `RedBoltObject` | Base class if needed for diagnostics/type identity. Avoid heavy inheritance initially. |
 | `SubsystemRegistry` | Register and retrieve engine systems by type. |
-| `EngineTime` | Delta time and frame number. |
+| `Time` | Delta time and frame number. |
 | `RedBoltException` | Runtime error with subsystem context. |
 | Logging | C#-native logging abstraction with console output and native log forwarding. Do not directly port rbfx logging internals unless needed for compatibility. |
 | Math types | Copy and adapt the existing rbfx C# math types from `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/CSharp/Managed/Math`. |

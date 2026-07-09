@@ -17,7 +17,7 @@ public sealed class ContextTests
     {
         Assert.Same(fixture.Engine.Context, Context.Instance);
         Assert.Same(fixture.Engine, fixture.Engine.Context.GetSubsystem<Engine>());
-        Assert.Same(fixture.Time, fixture.Engine.Context.GetSubsystem<EngineTime>());
+        Assert.Same(fixture.Time, fixture.Engine.Context.GetSubsystem<Time>());
         Assert.Same(fixture.Resources, fixture.Engine.Context.GetSubsystem<ResourceCache>());
         Assert.Same(fixture.Input, fixture.Engine.Context.GetSubsystem<Input>());
         Assert.Same(fixture.Graphics, fixture.Engine.Context.GetSubsystem<Graphics>());

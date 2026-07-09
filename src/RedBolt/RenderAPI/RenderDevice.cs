@@ -156,7 +156,7 @@ public sealed class RenderDevice : Object
 
     public FrameIndex GetFrameIndex()
     {
-        var frameNumber = GetSubsystem<EngineTime>()?.GetFrameNumber() ?? 0UL;
+        var frameNumber = GetSubsystem<Time>()?.GetFrameNumber() ?? 0U;
         return (FrameIndex)Math.Max((long)frameNumber, (long)FrameIndex.None);
     }
 

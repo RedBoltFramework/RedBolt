@@ -72,7 +72,7 @@ public sealed class Context
         ArgumentNullException.ThrowIfNull(engine);
 
         RegisterSubsystem(engine);
-        RegisterSubsystem(new EngineTime());
+        RegisterSubsystem(new Time());
         RegisterSubsystem(new WorkQueue());
         RegisterSubsystem(new ResourceCache());
         RegisterSubsystem(new Input());

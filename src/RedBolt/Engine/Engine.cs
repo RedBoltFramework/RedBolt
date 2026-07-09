@@ -92,7 +92,7 @@ public sealed class Engine
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
-        var time = GetRequiredSubsystem<EngineTime>();
+        var time = GetRequiredSubsystem<Time>();
         var input = GetRequiredSubsystem<Input>();
         var graphics = GetRequiredSubsystem<Graphics>();
         var renderer = GetRequiredSubsystem<Renderer>();
@@ -102,7 +102,7 @@ public sealed class Engine
         if (timeStep < 0.0f)
             timeStep = 0.0f;
 
-        time.Advance(timeStep);
+        time.BeginFrame(timeStep);
         SendBeginFrameEvent();
 
         if (!IsHeadless)
@@ -126,6 +126,7 @@ public sealed class Engine
                 renderer.RenderFrame(graphics, beforePresent: null);
         }
 
+        time.EndFrame();
         context.SendEvent<CoreEvents.EndFrameEvent>();
         context.SendEvent<CoreEvents.EndFramePrivateEvent>();
         ApplyFrameLimit();
@@ -183,7 +184,7 @@ public sealed class Engine
         nextTimeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => nextTimeStep ?? GetRequiredSubsystem<EngineTime>().TimeStep;
+    public float GetNextTimeStep() => nextTimeStep ?? GetRequiredSubsystem<Time>().TimeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -321,7 +322,7 @@ public sealed class Engine
 
     private void SendBeginFrameEvent()
     {
-        var time = GetRequiredSubsystem<EngineTime>();
+        var time = GetRequiredSubsystem<Time>();
         var eventData = new CoreEvents.BeginFrameEvent
         {
             FrameNumber = (int)time.FrameNumber,

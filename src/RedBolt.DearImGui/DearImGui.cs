@@ -160,7 +160,7 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
         var io = this.io;
         if (io is null)
             return;
-        io.DeltaTime = context.GetSubsystem<EngineTime>()?.TimeStep ?? 0.0f;
+        io.DeltaTime = context.GetSubsystem<Time>()?.TimeStep ?? 0.0f;
 
         var renderDevice = context.GetSubsystem<RenderDevice>();
         if (renderDevice == null)
