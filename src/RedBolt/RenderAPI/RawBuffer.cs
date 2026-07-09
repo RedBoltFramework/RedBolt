@@ -3,6 +3,7 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+/// <summary>Common class for buffer on GPU and/or CPU.</summary>
 public class RawBuffer : DeviceObject
 {
     private IBuffer? handle;
@@ -61,6 +62,7 @@ public class RawBuffer : DeviceObject
         needsResolve = false;
     }
 
+    /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
     public bool Create(RawBufferParams parameters, byte[]? data = null)
     {
         Destroy();
@@ -99,6 +101,7 @@ public class RawBuffer : DeviceObject
         return true;
     }
 
+    /// <summary>Update buffer data. If size is not set, the buffer size is used.</summary>
     public void Update(byte[] data, uint size = 0)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -109,6 +112,7 @@ public class RawBuffer : DeviceObject
         UpdateRange(data, 0, dataSize);
     }
 
+    /// <summary>Update buffer data range.</summary>
     public void UpdateRange(byte[] data, uint offset, uint size)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -131,6 +135,8 @@ public class RawBuffer : DeviceObject
         UploadRange(data, offset, size);
     }
 
+    /// <summary>Map buffer contents onto CPU-writeable memory. Old buffer data is discarded.
+    /// Memory is not guaranteed to be CPU-readable — consider using GetShadowData() if you need to read the data.</summary>
     public Memory<byte> Map()
     {
         if (locked)
@@ -142,6 +148,7 @@ public class RawBuffer : DeviceObject
         return shadowData;
     }
 
+    /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
     public void Unmap()
     {
         if (!locked)
@@ -154,6 +161,8 @@ public class RawBuffer : DeviceObject
             UploadRange(shadowData, 0, parameters.Size);
     }
 
+    /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.
+    /// Don't access the GPU buffer data until the buffer was resolved!</summary>
     public void Resolve()
     {
         if (!needsResolve || shadowData.Length == 0)

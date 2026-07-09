@@ -2,6 +2,8 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+/// <summary>Common class for all GPU textures.
+/// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
 public sealed class RawTexture : DeviceObject
 {
     private RawTextureParams parameters;
@@ -19,6 +21,7 @@ public sealed class RawTexture : DeviceObject
             throw new InvalidOperationException($"Failed to create raw texture for type '{parameters.Type}' and format '{parameters.Format}'.");
     }
 
+    /// <summary>Validate parameters and create GPU texture.</summary>
     public bool Create(RawTextureParams parameters)
     {
         if (!TryCreateManagedTexture(parameters, out var createdTexture, out var finalizedParameters))
@@ -36,6 +39,7 @@ public sealed class RawTexture : DeviceObject
         return true;
     }
 
+    /// <summary>Set default sampler to be used for this texture.</summary>
     public void SetSamplerStateDesc(SamplerStateDesc desc)
     {
         samplerStateDesc = desc ?? throw new ArgumentNullException(nameof(desc));
@@ -54,6 +58,7 @@ public sealed class RawTexture : DeviceObject
         return texture is not null ? renderDevice?.GetTextureHandle(texture) : null;
     }
 
+    /// <summary>Create UAV for given array slices and mip levels.</summary>
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
         if (texture is null || !parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
@@ -88,6 +93,7 @@ public sealed class RawTexture : DeviceObject
         return uavs.TryGetValue(key, out var view) ? view : null;
     }
 
+    /// <summary>For render target and depth-stencil textures, mark shader resource view dirty.</summary>
     public void MarkDirty()
     {
         if (texture is null)

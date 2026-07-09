@@ -1,23 +1,42 @@
 namespace RedBolt;
 
+/// <summary>
+/// Base class for writable texture or texture region. Readability is not guaranteed.
+/// </summary>
 public abstract class RenderBuffer
 {
     public bool IsEnabled { get; private set; } = true;
 
+    /// <summary>
+    /// Set whether the render buffer is enabled. Disabled buffers should not be accessed during the frame.
+    /// </summary>
     public void SetEnabled(bool enabled)
     {
         IsEnabled = enabled;
     }
 
+    /// <summary>
+    /// Return readable texture. May return null if not supported.
+    /// </summary>
     public abstract Texture? GetTexture();
 
+    /// <summary>
+    /// Return render surface. Face could be specified for cubemap texture.
+    /// </summary>
     public abstract RenderTargetView GetView(uint slice = 0u);
 
     public abstract RenderTargetView GetReadOnlyDepthView(uint slice = 0u);
 
+    /// <summary>
+    /// Return effective viewport rectangle.
+    /// Always equal to whole texture for TextureRenderBuffer, not so for viewport buffers.
+    /// </summary>
     public abstract IntRect GetViewportRect();
 }
 
+/// <summary>
+/// Writable and readable render buffer texture (2D or cubemap).
+/// </summary>
 public sealed class TextureRenderBuffer : RenderBuffer
 {
     private readonly RenderBufferParams bufferParams;

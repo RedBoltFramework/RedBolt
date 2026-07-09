@@ -1,5 +1,8 @@
 namespace RedBolt;
 
+/// <summary>
+/// Class that manages all render buffers within viewport and viewport itself.
+/// </summary>
 public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
@@ -176,6 +179,10 @@ public sealed class RenderBufferManager
         return buffer;
     }
 
+    /// <summary>
+    /// Swap color buffers used to render to and to read from.
+    /// Invalid if SupportOutputColorReadWrite is not requested.
+    /// </summary>
     public void SwapColorBuffers(bool synchronizeContents)
     {
         if (!frameSettings.SupportColorReadWrite)
@@ -273,6 +280,9 @@ public sealed class RenderBufferManager
         DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical, destinationLinearColorSpace);
     }
 
+    /// <summary>
+    /// Draw region of input texture into currently bound render buffer. sRGB is taken into account.
+    /// </summary>
     public void DrawTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
         ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
     {
@@ -309,6 +319,9 @@ public sealed class RenderBufferManager
             flipVertical);
     }
 
+    /// <summary>
+    /// Draw input texture into currently bound render buffer. sRGB is taken into account.
+    /// </summary>
     public void DrawTexture(Graphics graphics, string debugComment, Texture sourceTexture,
         ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
     {
@@ -366,6 +379,10 @@ public sealed class RenderBufferManager
         graphics.SetRenderTargets(viewport, colorBuffer.GetView(), depthView);
     }
 
+    /// <summary>
+    /// Clear depth and/or stencil render target(s).
+    /// Changes currently bound depth-stencil and render targets.
+    /// </summary>
     public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(graphics);
@@ -380,6 +397,10 @@ public sealed class RenderBufferManager
             stencil: stencil);
     }
 
+    /// <summary>
+    /// Clear color render target.
+    /// Changes currently bound render targets.
+    /// </summary>
     public void ClearColor(Graphics graphics, RenderBuffer colorBuffer, Color color)
     {
         ArgumentNullException.ThrowIfNull(graphics);
@@ -389,6 +410,11 @@ public sealed class RenderBufferManager
         graphics.ClearCurrentRenderTargets(color, clearColorTarget: true, clearDepth: false, clearStencil: false);
     }
 
+    /// <summary>
+    /// Clears currently writable color output if more than one color buffers are used.
+    /// If rectangle is specified, only part of render target is cleared.
+    /// Changes currently bound depth-stencil and render targets.
+    /// </summary>
     public void ClearOutputRect(Graphics graphics, IntRect viewportRect, ClearTarget flags, Color color, float depth, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(graphics);
@@ -437,14 +463,32 @@ public sealed class RenderBufferManager
         ClearOutput(graphics, ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, color, depth, stencil);
     }
 
+    /// <summary>
+    /// Return depth-stencil buffer. Stays the same during the frame.
+    /// </summary>
     public RenderBuffer GetDepthStencilOutput() => depthStencilBuffer;
 
+    /// <summary>
+    /// Return color render buffer. Changes on SwapColorBuffers.
+    /// </summary>
     public RenderBuffer GetColorOutput() => writeableColorBuffer;
 
+    /// <summary>
+    /// Return readable depth texture.
+    /// It's not allowed to write depth and read it from shader input simultaneously for same depth-stencil buffer.
+    /// </summary>
     public Texture? GetDepthStencilTexture() => depthStencilBuffer.GetTexture();
 
+    /// <summary>
+    /// Return secondary color render buffer texture that can be used while writing to color render buffer.
+    /// Texture content is defined at the moment of previous SwapColorBuffers.
+    /// Content is undefined if SwapColorBuffers was not called during current frame.
+    /// </summary>
     public Texture? GetSecondaryColorTexture() => readableColorBuffer?.GetTexture();
 
+    /// <summary>
+    /// Return size of output region (not size of output texture itself).
+    /// </summary>
     public IntVector2 GetOutputSize() => viewportRect.Size;
 
     public Vector2 GetInvOutputSize()
@@ -455,6 +499,9 @@ public sealed class RenderBufferManager
             size.Y > 0 ? 1.0f / size.Y : 0.0f);
     }
 
+    /// <summary>
+    /// Return identity offset and scale used to convert clip space to UV space.
+    /// </summary>
     public Vector4 GetDefaultClipToUVSpaceOffsetAndScale() => new(0.5f, 0.5f, 0.5f, 0.5f);
 
     public TextureFormat GetOutputColorFormat() => colorOutputParams.TextureFormat;

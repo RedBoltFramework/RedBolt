@@ -2,6 +2,9 @@ using System.Globalization;
 
 namespace RedBolt;
 
+/// <summary>
+/// Utility class to add debug scope markers.
+/// </summary>
 public sealed class RenderScope : IDisposable
 {
     private readonly RenderContext? renderContext;

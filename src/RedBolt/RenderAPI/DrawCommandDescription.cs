@@ -1,7 +1,9 @@
 namespace RedBolt;
 
+/// <summary>Shader resource group, range in array.</summary>
 public readonly record struct ShaderResourceRange(uint First, uint Second);
 
+/// <summary>Description of draw command.</summary>
 public sealed class DrawCommandDescription
 {
     public PipelineState? PipelineState { get; set; }
@@ -16,8 +18,10 @@ public sealed class DrawCommandDescription
 
     public ShaderResourceRange UnorderedAccessViews { get; set; }
 
+    /// <summary>Index of scissor rectangle. 0 if disabled.</summary>
     public uint ScissorRect { get; set; }
 
+    /// <summary>Stencil reference value.</summary>
     public uint StencilRef { get; set; }
 
     public uint IndexStart { get; set; }

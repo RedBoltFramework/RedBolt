@@ -1,19 +1,26 @@
 namespace RedBolt;
 
+/// <summary>Queue of draw commands.</summary>
 public class DrawCommandQueue : Object
 {
     private readonly RenderDevice renderDevice;
+    /// <summary>Scissor rects.</summary>
     private readonly List<IntRect> scissorRects = [];
+    /// <summary>Draw operations.</summary>
     private readonly List<DrawCommandDescription> drawCommands = [];
+    /// <summary>Current draw operation.</summary>
     private DrawCommandDescription currentDrawCommand = new();
+    /// <summary>Whether to enable clip plane.</summary>
     private uint clipPlaneMask;
 
+    /// <summary>Construct.</summary>
     public DrawCommandQueue(RenderDevice renderDevice)
     {
         this.renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
         Reset();
     }
 
+    /// <summary>Reset queue.</summary>
     public void Reset()
     {
         clipPlaneMask = 0;
@@ -23,21 +30,25 @@ public class DrawCommandQueue : Object
         scissorRects.Add(IntRect.Zero);
     }
 
+    /// <summary>Set clip plane enabled for all draw commands in the queue.</summary>
     public void SetClipPlaneMask(uint mask)
     {
         clipPlaneMask = mask;
     }
 
+    /// <summary>Set pipeline state. Must be called first.</summary>
     public void SetPipelineState(PipelineState pipelineState)
     {
         currentDrawCommand.PipelineState = pipelineState ?? throw new ArgumentNullException(nameof(pipelineState));
     }
 
+    /// <summary>Set stencil reference value.</summary>
     public void SetStencilRef(uint @ref)
     {
         currentDrawCommand.StencilRef = @ref;
     }
 
+    /// <summary>Set scissor rect.</summary>
     public void SetScissorRect(IntRect scissorRect)
     {
         if (scissorRects.Count > 1 && scissorRects[^1] == scissorRect)
@@ -47,6 +58,7 @@ public class DrawCommandQueue : Object
         scissorRects.Add(scissorRect);
     }
 
+    /// <summary>Set vertex buffers.</summary>
     public void SetVertexBuffers(ReadOnlySpan<RawBuffer?> buffers)
     {
         if (buffers.Length > RenderApiLimits.MaxVertexStreams)
@@ -56,11 +68,13 @@ public class DrawCommandQueue : Object
         buffers.CopyTo(currentDrawCommand.VertexBuffers);
     }
 
+    /// <summary>Set index buffer.</summary>
     public void SetIndexBuffer(RawBuffer? buffer)
     {
         currentDrawCommand.IndexBuffer = buffer;
     }
 
+    /// <summary>Enqueue draw non-indexed geometry.</summary>
     public void Draw(uint vertexStart, uint vertexCount)
     {
         ValidateGraphicsDraw(indexed: false, vertexCount);
@@ -72,6 +86,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Enqueue draw indexed geometry.</summary>
     public void DrawIndexed(uint indexStart, uint indexCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
@@ -83,6 +98,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Enqueue draw indexed geometry with vertex index offset.</summary>
     public void DrawIndexed(uint indexStart, uint indexCount, uint baseVertexIndex)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
@@ -94,6 +110,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Enqueue draw instanced geometry.</summary>
     public void DrawInstanced(uint vertexStart, uint vertexCount, uint instanceStart, uint instanceCount)
     {
         ValidateGraphicsDraw(indexed: false, vertexCount);
@@ -105,6 +122,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Enqueue draw indexed, instanced geometry.</summary>
     public void DrawIndexedInstanced(uint indexStart, uint indexCount, uint instanceStart, uint instanceCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
@@ -116,6 +134,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Enqueue draw indexed, instanced geometry with vertex index offset.</summary>
     public void DrawIndexedInstanced(uint indexStart, uint indexCount, uint baseVertexIndex, uint instanceStart, uint instanceCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
@@ -127,6 +146,7 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
+    /// <summary>Dispatch compute shader.</summary>
     public void Dispatch(IntVector3 numGroups)
     {
         var pipelineState = currentDrawCommand.PipelineState ?? throw new InvalidOperationException("Pipeline state must be set before dispatch.");
@@ -141,6 +161,7 @@ public class DrawCommandQueue : Object
 
     public RenderDevice GetRenderDevice() => renderDevice;
 
+    /// <summary>Execute commands in the queue.</summary>
     public virtual void ExecuteInContext(RenderContext renderContext)
     {
         ArgumentNullException.ThrowIfNull(renderContext);

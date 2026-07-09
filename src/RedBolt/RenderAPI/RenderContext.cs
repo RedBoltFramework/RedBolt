@@ -2,6 +2,9 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+/// <summary>
+/// Render context that consumes render commands.
+/// </summary>
 public class RenderContext : Object
 {
     private static readonly RenderTargetView[] SwapChainColorTarget = [RenderTargetView.SwapChainColor()];
@@ -20,6 +23,9 @@ public class RenderContext : Object
         renderPool = renderDevice.GetRenderPool();
     }
 
+    /// <summary>
+    /// Reset statistics.
+    /// </summary>
     public void ResetStats()
     {
         stats.NumPrimitives = 0;
@@ -27,6 +33,9 @@ public class RenderContext : Object
         stats.NumDispatches = 0;
     }
 
+    /// <summary>
+    /// Reset render targets and depth-stencil buffer.
+    /// </summary>
     public void ResetRenderTargets()
     {
         GetGraphics()?.UnbindRenderTargets();
@@ -35,6 +44,9 @@ public class RenderContext : Object
         UpdateCurrentRenderTargetInfo();
     }
 
+    /// <summary>
+    /// Set backbuffer render target and associated depth-stencil buffer.
+    /// </summary>
     public void SetSwapChainRenderTargets()
     {
         var graphics = GetGraphics();
@@ -48,6 +60,9 @@ public class RenderContext : Object
         UpdateCurrentRenderTargetInfo();
     }
 
+    /// <summary>
+    /// Set specified render targets and depth-stencil buffer. Either can be null.
+    /// </summary>
     public void SetRenderTargets(OptionalRawTextureRTV depthStencil, ReadOnlySpan<RenderTargetView> renderTargets)
     {
         var graphics = GetGraphics();
@@ -71,6 +86,9 @@ public class RenderContext : Object
         UpdateCurrentRenderTargetInfo();
     }
 
+    /// <summary>
+    /// Set viewport that covers the entirety of currently bound render target.
+    /// </summary>
     public void SetFullViewport()
     {
         var size = GetCurrentRenderTargetSize();
@@ -80,11 +98,17 @@ public class RenderContext : Object
         SetViewport(new IntRect(0, 0, size.X, size.Y));
     }
 
+    /// <summary>
+    /// Set viewport that covers the specified area of currently bound render targets.
+    /// </summary>
     public void SetViewport(IntRect viewport)
     {
         GetGraphics()?.SetViewport(viewport);
     }
 
+    /// <summary>
+    /// Clear depth-stencil buffer. Viewport and scissor are ignored.
+    /// </summary>
     public void ClearDepthStencil(ClearTarget flags, float depth = 1.0f, uint stencil = 0)
     {
         GetGraphics()?.ClearCurrentRenderTargets(
@@ -96,6 +120,9 @@ public class RenderContext : Object
             stencil: checked((byte)stencil));
     }
 
+    /// <summary>
+    /// Clear render target at given index. Viewport and scissor are ignored.
+    /// </summary>
     public void ClearRenderTarget(uint index, Color color)
     {
         if (index >= currentRenderTargets.Length)
@@ -112,17 +139,26 @@ public class RenderContext : Object
             stencil: 0);
     }
 
+    /// <summary>
+    /// Set whether the clip plane is enabled. Only used for OpenGL.
+    /// </summary>
     public void SetClipPlaneMask(uint mask)
     {
         clipPlaneMask = mask;
     }
 
+    /// <summary>
+    /// Execute draw commands from queue.
+    /// </summary>
     public void Execute(DrawCommandQueue drawQueue)
     {
         ArgumentNullException.ThrowIfNull(drawQueue);
         drawQueue.ExecuteInContext(this);
     }
 
+    /// <summary>
+    /// Check if the texture is already bound as a render target.
+    /// </summary>
     public bool IsBoundAsRenderTarget(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);

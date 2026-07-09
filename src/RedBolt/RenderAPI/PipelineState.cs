@@ -1,5 +1,8 @@
 namespace RedBolt;
 
+/// <summary>
+/// Cooked pipeline state.
+/// </summary>
 public class PipelineState : DeviceObject
 {
     private readonly WeakReference<PipelineStateCache>? owner;

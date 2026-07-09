@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
+/// <summary>
+/// Pool for different resources used by renderer.
+/// </summary>
 public class RenderPool : Object
 {
     private const uint InitialScratchBufferSize = 64u * 1024u;
@@ -65,6 +68,11 @@ public class RenderPool : Object
 
     public RenderDevice GetRenderDevice() => renderDevice;
 
+    /// <summary>
+    /// Return uniform buffer.
+    /// Buffers are recycled immediately, pass different ids to get different buffers.
+    /// Don't store the pointer between frames.
+    /// </summary>
     public RawBuffer GetUniformBuffer(uint id, uint size)
     {
         var quantizedSize = (size + 511u) / 512u * 512u;
@@ -79,6 +87,11 @@ public class RenderPool : Object
         return uniformBuffer;
     }
 
+    /// <summary>
+    /// Return texture.
+    /// Transient textures are recycled on demand, same parameters will return different textures between recycles.
+    /// Persistent textures are not recycled, same parameters will return same texture.
+    /// </summary>
     public RawTexture GetTexture(RawTextureParams parameters, nint persistenceKey = default)
     {
         return persistenceKey != default
@@ -86,6 +99,9 @@ public class RenderPool : Object
             : GetTransientTexture(parameters);
     }
 
+    /// <summary>
+    /// Allocate scratch buffer. Don't store the pointer between frames.
+    /// </summary>
     public nint AllocateScratchBuffer(uint size)
     {
         var alignedSize = AlignScratchSize(size);
@@ -106,6 +122,9 @@ public class RenderPool : Object
         return buffer;
     }
 
+    /// <summary>
+    /// Release scratch buffer.
+    /// </summary>
     public void ReleaseScratchBuffer(nint buffer)
     {
         var isTemporary = temporaryScratchBufferAllocations.Remove(buffer);
@@ -126,6 +145,9 @@ public class RenderPool : Object
         }
     }
 
+    /// <summary>
+    /// Recycle all transient textures.
+    /// </summary>
     public void RecycleTextures()
     {
         CleanupOldTextures();

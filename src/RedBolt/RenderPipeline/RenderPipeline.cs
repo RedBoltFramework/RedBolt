@@ -1,5 +1,8 @@
 namespace RedBolt;
 
+/// <summary>
+/// Scene component that spawns render pipeline instances.
+/// </summary>
 public class RenderPipeline : Component
 {
     public const string DefaultRenderPathName = "RenderPaths/Default.renderpath";
@@ -23,10 +26,19 @@ public class RenderPipeline : Component
 
     public uint Revision => revision;
 
+    /// <summary>
+    /// Invoked when settings change.
+    /// </summary>
     public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
 
+    /// <summary>
+    /// Invoked when render path parameters change.
+    /// </summary>
     public event Action<RenderPipeline>? ParametersChanged;
 
+    /// <summary>
+    /// Invoked when render path changes.
+    /// </summary>
     public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
 
     public void SetSettings(RenderPipelineSettings settings)
@@ -68,6 +80,9 @@ public class RenderPipeline : Component
         RaiseParametersChanged();
     }
 
+    /// <summary>
+    /// Update render pass enabled state.
+    /// </summary>
     public void SetRenderPassEnabled(string passName, bool enabled)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(passName);
@@ -111,6 +126,9 @@ public class RenderPipeline : Component
         RaiseParametersChanged();
     }
 
+    /// <summary>
+    /// Update existing render path parameter.
+    /// </summary>
     public void UpdateRenderPathParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -133,12 +151,18 @@ public class RenderPipeline : Component
             frameShaderParameters[name] = value;
     }
 
+    /// <summary>
+    /// Add or update render path parameter.
+    /// </summary>
     public void SetFrameShaderParameter(string name, object? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         frameShaderParameters[name] = value;
     }
 
+    /// <summary>
+    /// Create new instance of render pipeline.
+    /// </summary>
     public virtual RenderPipelineView Instantiate() => new DefaultRenderPipelineView(this);
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
@@ -218,6 +242,9 @@ public class RenderPipeline : Component
             SetRenderPath(defaultRenderPath);
     }
 
+    /// <summary>
+    /// Default implementation of render pipeline instance.
+    /// </summary>
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline renderPipeline;

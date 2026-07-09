@@ -40,6 +40,9 @@ public enum RenderTargetViewType
     SwapChainDepthStencil
 }
 
+/// <summary>
+/// Lightweight reference to a render target view in texture or in swap chain.
+/// </summary>
 public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTargetViewType Type, uint Slice = 0u)
 {
     public static RenderTargetView SwapChainColor() => new(null, RenderTargetViewType.SwapChainColor);
@@ -94,8 +97,14 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         return ReadOnlyDepthSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
     }
 
+    /// <summary>
+    /// Return whether the view belongs to the swap chain.
+    /// </summary>
     public bool IsSwapChain => Type is RenderTargetViewType.SwapChainColor or RenderTargetViewType.SwapChainDepthStencil;
 
+    /// <summary>
+    /// Mark referenced texture as dirty.
+    /// </summary>
     public void MarkDirty()
     {
         if (IsSwapChain)
@@ -104,8 +113,14 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ResolveRenderDevice().MarkRenderTargetDirty(this);
     }
 
+    /// <summary>
+    /// Return effective view handle.
+    /// </summary>
     public ITextureView GetView() => ResolveRenderDevice().ResolveRenderTargetView(this);
 
+    /// <summary>
+    /// Return texture format.
+    /// </summary>
     public TextureFormat GetFormat()
     {
         if (RenderTexture is not null)
@@ -117,6 +132,9 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
             : graphics.GetSwapChainColorTextureFormat(out _);
     }
 
+    /// <summary>
+    /// Return multi-sample level.
+    /// </summary>
     public int GetMultiSample()
     {
         if (RenderTexture is not null)

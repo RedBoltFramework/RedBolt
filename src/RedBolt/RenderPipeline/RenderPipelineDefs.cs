@@ -2,14 +2,32 @@ namespace RedBolt;
 
 public readonly record struct RenderPassToggle(string Name, bool Enabled);
 
+/// <summary>
+/// Sub-passes of user pass.
+/// </summary>
 public enum BatchCompositorSubpass
 {
+    /// <summary>
+    /// Geometry buffer building pass of deferred rendering.
+    /// </summary>
     Deferred,
+    /// <summary>
+    /// Base pass, optionally lit with forward rendering.
+    /// </summary>
     Base,
+    /// <summary>
+    /// Additive light pass for forward rendering.
+    /// </summary>
     Light,
+    /// <summary>
+    /// Artificial value that indicates to ignore subpass-specific properties.
+    /// </summary>
     Ignored
 }
 
+/// <summary>
+/// Traits of scene pass.
+/// </summary>
 [Flags]
 public enum DrawableProcessorPassFlag
 {
@@ -26,6 +44,9 @@ public enum DrawableProcessorPassFlag
     PipelineStateCallback = 1 << 9
 }
 
+/// <summary>
+/// Flags that control how exactly batches are rendered.
+/// </summary>
 [Flags]
 public enum BatchRenderFlag
 {
@@ -40,10 +61,16 @@ public enum BatchRenderFlag
     EnableAmbientAndVertexLighting = EnableAmbientLighting | EnableVertexLights
 }
 
+/// <summary>
+/// Render buffer traits.
+/// </summary>
 [Flags]
 public enum RenderBufferFlag
 {
     None = 0,
+    /// <summary>
+    /// Texture content is preserved between frames.
+    /// </summary>
     Persistent = 1 << 0,
     FixedTextureSize = 1 << 1,
     BilinearFiltering = 1 << 2,
@@ -51,19 +78,48 @@ public enum RenderBufferFlag
     NoMultiSampledAutoResolve = 1 << 4
 }
 
+/// <summary>
+/// Render buffer parameters. Actual render buffer size is controlled externally.
+/// </summary>
 public readonly record struct RenderBufferParams(TextureFormat TextureFormat, int MultiSampleLevel = 1, RenderBufferFlag Flags = RenderBufferFlag.None);
 
+/// <summary>
+/// Color space of primary color outputs of render pipeline.
+/// Color buffer is guaranteed to have Red, Green and Blue channels regardless of this choice.
+/// </summary>
 public enum RenderPipelineColorSpace
 {
+    /// <summary>
+    /// Low dynamic range lighting in Gamma space, trimmed to [0, 1].
+    /// </summary>
     GammaLDR,
+    /// <summary>
+    /// Low dynamic range lighting in Linear space, trimmed to [0, 1].
+    /// </summary>
     LinearLDR,
+    /// <summary>
+    /// High dynamic range lighting in Linear space. Should be tone mapped before frame end.
+    /// </summary>
     LinearHDR,
+    /// <summary>
+    /// Use the color space that matches output render texture.
+    /// </summary>
     Optimized
 }
 
+/// <summary>
+/// Controls how DrawTexture[Region] handles Gamma and Linear color space.
+/// </summary>
 public enum ColorSpaceTransition
 {
+    /// <summary>
+    /// Read and write as is.
+    /// </summary>
     None,
+    /// <summary>
+    /// Write linear data to output texture if output is sRGB.
+    /// Write gamma data to output texture if output is not sRGB.
+    /// </summary>
     Automatic
 }
 
@@ -81,20 +137,45 @@ internal static class RenderPipelineColorSpaceUtility
     }
 }
 
+/// <summary>
+/// Rarely-changing settings of render buffer manager.
+/// </summary>
 public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManagerSettings>
 {
+    /// <summary>
+    /// Whether to inherit multisample level from output render texture.
+    /// </summary>
     public bool InheritMultiSampleLevel { get; set; } = true;
 
+    /// <summary>
+    /// Multisample level of both output color buffers and depth buffer.
+    /// </summary>
     public int MultiSampleLevel { get; set; } = 1;
 
+    /// <summary>
+    /// Preferred color space of both output color buffers.
+    /// </summary>
     public RenderPipelineColorSpace ColorSpace { get; set; }
 
+    /// <summary>
+    /// Whether output color buffers are required to have at least bilinear filtering.
+    /// </summary>
     public bool FilteredColor { get; set; }
 
+    /// <summary>
+    /// Whether the depth-stencil buffer is required to have stencil.
+    /// </summary>
     public bool StencilBuffer { get; set; }
 
+    /// <summary>
+    /// Whether the depth buffer should be readable.
+    /// </summary>
     public bool ReadableDepth { get; set; }
 
+    /// <summary>
+    /// Whether the both of output color buffers should be usable with other render targets.
+    /// OpenGL backbuffer color cannot do that.
+    /// </summary>
     public bool ColorUsableWithMultipleRenderTargets { get; set; }
 
     public uint CalculatePipelineStateHash()
@@ -139,10 +220,19 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
     }
 }
 
+/// <summary>
+/// Frequently-changing settings of render buffer manager.
+/// </summary>
 public struct RenderBufferManagerFrameSettings
 {
+    /// <summary>
+    /// Whether the both of output color buffers should be readable.
+    /// </summary>
     public bool ReadableColor { get; set; }
 
+    /// <summary>
+    /// Whether it's should be supported to read from and write to output color buffer simultaneously.
+    /// </summary>
     public bool SupportColorReadWrite { get; set; }
 
     public bool FilteredColor { get; set; }
@@ -150,6 +240,9 @@ public struct RenderBufferManagerFrameSettings
     public bool ReadableDepth { get; set; }
 }
 
+/// <summary>
+/// Traits of post-processing pass.
+/// </summary>
 [Flags]
 public enum RenderOutputFlag
 {
@@ -158,14 +251,29 @@ public enum RenderOutputFlag
     NeedColorOutputBilinear = 1 << 1
 }
 
+/// <summary>
+/// Render pipeline frame statistics.
+/// </summary>
 public sealed class RenderPipelineStats
 {
+    /// <summary>
+    /// Total number of lights processed.
+    /// </summary>
     public uint NumLights { get; set; }
 
+    /// <summary>
+    /// Total number of lights with shadows processed.
+    /// </summary>
     public uint NumShadowedLights { get; set; }
 
+    /// <summary>
+    /// Total number of geometries in the frame (excluding shadow casters).
+    /// </summary>
     public uint NumGeometries { get; set; }
 
+    /// <summary>
+    /// Number of occluders rendered.
+    /// </summary>
     public uint NumOccluders { get; set; }
 }
 
@@ -177,36 +285,71 @@ public readonly record struct UIBatchStateKey;
 
 public readonly record struct UIBatchStateCreateContext;
 
+/// <summary>
+/// Region of shadow map that contains one or more shadow split.
+/// </summary>
 public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture, IntRect Rect)
 {
+    /// <summary>
+    /// Return whether the shadow map region is not empty.
+    /// </summary>
     public bool IsEmpty => Texture is null;
 }
 
+/// <summary>
+/// Pipeline state cache callback used to create actual pipeline state.
+/// </summary>
 public abstract class BatchStateCacheCallback
 {
+    /// <summary>
+    /// Create pipeline state for given context and key.
+    /// Only attributes that contribute to pipeline state hashes are safe to use.
+    /// </summary>
     public abstract PipelineState? CreateBatchPipelineState(
         BatchStateCreateKey key,
         BatchStateCreateContext context,
         PipelineStateOutputDesc outputDesc);
 
+    /// <summary>
+    /// Create placeholder pipeline state when actual pipeline state creation fails.
+    /// </summary>
     public abstract PipelineState? CreateBatchPipelineStatePlaceholder(
         uint vertexStride,
         PipelineStateOutputDesc outputDesc);
 }
 
+/// <summary>
+/// Pipeline state cache callback used to create actual pipeline state for UI batches.
+/// </summary>
 public abstract class UIBatchStateCacheCallback
 {
+    /// <summary>
+    /// Create pipeline state for given key.
+    /// Only attributes that contribute to pipeline state hashes are safe to use.
+    /// </summary>
     public abstract PipelineState? CreateUIBatchPipelineState(
         UIBatchStateKey key,
         UIBatchStateCreateContext context);
 }
 
+/// <summary>
+/// Light processor callback.
+/// </summary>
 public abstract class LightProcessorCallback
 {
+    /// <summary>
+    /// Return whether light needs shadow.
+    /// </summary>
     public abstract bool IsLightShadowed(Light light);
 
+    /// <summary>
+    /// Return best shadow map size for given light. Should be safe to call from multiple threads.
+    /// </summary>
     public abstract uint GetShadowMapSize(Light light, uint numActiveSplits);
 
+    /// <summary>
+    /// Allocate shadow map for one frame.
+    /// </summary>
     public abstract ShadowMapRegion AllocateTransientShadowMap(IntVector2 size);
 }
 
@@ -239,10 +382,19 @@ public enum ReflectionQuality
 
 public sealed class LightProcessorCacheSettings : IEquatable<LightProcessorCacheSettings>
 {
+    /// <summary>
+    /// How many lights there could be before cache is cleaned up aggressively.
+    /// </summary>
     public uint Budget { get; set; } = 64;
 
+    /// <summary>
+    /// Number of seconds to keep cached LightProcessor if cache size is within the budget.
+    /// </summary>
     public uint NormalTimeToLive { get; set; } = 60;
 
+    /// <summary>
+    /// Number of seconds to keep cached LightProcessor if cache size is out of the budget.
+    /// </summary>
     public uint AggressiveTimeToLive { get; set; } = 2;
 
     public bool Equals(LightProcessorCacheSettings? other)
@@ -593,6 +745,9 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
     }
 }
 
+/// <summary>
+/// Settings that contribute to shader defines.
+/// </summary>
 public class ShaderProgramCompositorSettings : IEquatable<ShaderProgramCompositorSettings>
 {
     public RenderBufferManagerSettings RenderBufferManager { get; } = new();
@@ -635,6 +790,9 @@ public class ShaderProgramCompositorSettings : IEquatable<ShaderProgramComposito
     public override int GetHashCode() => HashCode.Combine(RenderBufferManager, SceneProcessor, ShadowMapAllocator, InstancingBuffer);
 }
 
+/// <summary>
+/// Settings of default render pipeline.
+/// </summary>
 public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IEquatable<RenderPipelineSettings>
 {
     public bool DrawDebugGeometry { get; set; } = true;
@@ -724,8 +882,15 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
     }
 }
 
+/// <summary>
+/// Reference to input shader resource. Only textures are supported now.
+/// </summary>
 public readonly record struct ShaderResourceDesc(StringHash Name, Texture? Texture);
 
+/// <summary>
+/// Generic description of shader parameter.
+/// Beware of Variant allocations for types larger than Vector4!
+/// </summary>
 public readonly record struct ShaderParameterDesc(StringHash Name, Variant Value);
 
 public sealed class RenderOutputTargetInfo
@@ -802,6 +967,9 @@ public sealed class RenderOutputTargetInfo
     }
 }
 
+/// <summary>
+/// Common parameters of rendered frame.
+/// </summary>
 public sealed class CommonFrameInfo
 {
     public uint FrameNumber { get; set; }
@@ -819,6 +987,9 @@ public sealed class CommonFrameInfo
     public Camera?[] Cameras { get; } = new Camera?[2];
 }
 
+/// <summary>
+/// Base interface of render pipeline required by Render Pipeline classes.
+/// </summary>
 public interface IRenderPipelineInterface
 {
     bool IsLinearColorSpace { get; }
@@ -836,18 +1007,36 @@ public interface IRenderPipelineInterface
     event Action<RenderPipelineStats>? CollectStatistics;
 }
 
+/// <summary>
+/// Base interface of render pipeline viewport instance.
+/// </summary>
 public abstract class RenderPipelineView : IRenderPipelineInterface
 {
     public abstract bool IsLinearColorSpace { get; }
 
+    /// <summary>
+    /// Called in the beginning of the update to check if pipeline should be executed.
+    /// </summary>
     public abstract bool Define(Viewport viewport, Graphics graphics);
 
+    /// <summary>
+    /// Called for defined pipelines before rendering. Frame info is only partially filled.
+    /// </summary>
     public abstract void Update(Graphics graphics);
 
+    /// <summary>
+    /// Called for updated pipelines in appropriate order.
+    /// </summary>
     public abstract void Render(Graphics graphics, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null);
 
+    /// <summary>
+    /// Return frame info with all members filled.
+    /// </summary>
     public abstract CommonFrameInfo GetFrameInfo();
 
+    /// <summary>
+    /// Return render pipeline statistics for profiling.
+    /// </summary>
     public abstract RenderPipelineStats GetStats();
 
     public event Action<CommonFrameInfo>? UpdateBegin;

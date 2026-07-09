@@ -1,17 +1,30 @@
 namespace RedBolt;
 
+/// <summary>
+/// Generic pipeline state cache.
+/// </summary>
 public sealed class PipelineStateCache : DeviceObject
 {
     private byte[] cachedData = [];
     private readonly Dictionary<PipelineStateDesc, WeakReference<PipelineState>> states = [];
 
+    /// <summary>
+    /// Initialize pipeline state cache. Optionally loads cached pipeline states from memory blob.
+    /// </summary>
     public void Initialize(byte[]? data = null)
     {
         cachedData = data is null || data.Length == 0 ? [] : [.. data];
     }
 
+    /// <summary>
+    /// Stores cached pipeline states to memory blob.
+    /// </summary>
     public byte[] GetCachedData() => [.. cachedData];
 
+    /// <summary>
+    /// Create new or return existing pipeline state. Returned state may be invalid.
+    /// Return null if description is malformed.
+    /// </summary>
     public PipelineState? GetPipelineState(PipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
@@ -24,12 +37,18 @@ public sealed class PipelineStateCache : DeviceObject
         return pipelineState;
     }
 
+    /// <summary>
+    /// Create new or return existing graphics pipeline state.
+    /// </summary>
     public PipelineState? GetGraphicsPipelineState(GraphicsPipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
         return desc.IsInitialized() ? GetPipelineState(new PipelineStateDesc(desc)) : null;
     }
 
+    /// <summary>
+    /// Create new or return existing compute pipeline state.
+    /// </summary>
     public PipelineState? GetComputePipelineState(ComputePipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
@@ -56,6 +75,9 @@ public sealed class PipelineStateCache : DeviceObject
         states.Clear();
     }
 
+    /// <summary>
+    /// Internal. Remove pipeline state with given description from cache.
+    /// </summary>
     internal void ReleasePipelineState(PipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);

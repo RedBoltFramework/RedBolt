@@ -2,6 +2,9 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+/// <summary>
+/// Wrapper for window and GAPI backend.
+/// </summary>
 public sealed class RenderDevice : Object
 {
     private readonly object deviceObjectsLock = new();
@@ -18,12 +21,18 @@ public sealed class RenderDevice : Object
         defaultQueue = new DrawCommandQueue(this);
     }
 
+    /// <summary>
+    /// Restore device if is was lost. Only applicable for Android.
+    /// </summary>
     public bool Restore()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Restore);
         return true;
     }
 
+    /// <summary>
+    /// Emulate device loss and restore. Only applicable for Android.
+    /// </summary>
     public bool EmulateLossAndRestore()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Invalidate);
@@ -31,27 +40,42 @@ public sealed class RenderDevice : Object
         return true;
     }
 
+    /// <summary>
+    /// Check if texture format is supported on hardware.
+    /// </summary>
     public bool IsTextureFormatSupported(TextureFormat format)
     {
         return format != TextureFormat.Unknown;
     }
 
+    /// <summary>
+    /// Check if texture format is supported on hardware as render target or depth stencil.
+    /// </summary>
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
         var graphics = GetSubsystem<Graphics>();
         return graphics?.IsRenderTargetFormatSupported(format) ?? false;
     }
 
+    /// <summary>
+    /// Check if texture format is supported as UAV.
+    /// </summary>
     public bool IsUnorderedAccessFormatSupported(TextureFormat format)
     {
         return format is TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
     }
 
+    /// <summary>
+    /// Check if given level of MSAA is supported on hardware.
+    /// </summary>
     public bool IsMultiSampleSupported(TextureFormat format, int multiSample)
     {
         return GetSupportedMultiSample(format, multiSample) == multiSample;
     }
 
+    /// <summary>
+    /// Select supported multi-sample level for given format.
+    /// </summary>
     public int GetSupportedMultiSample(TextureFormat format, int multiSample)
     {
         var graphics = GetSubsystem<Graphics>();

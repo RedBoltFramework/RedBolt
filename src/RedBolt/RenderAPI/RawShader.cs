@@ -4,6 +4,8 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+/// <summary>Base class for GPU shader. It should be kept alive as long as the shader is used by any
+/// pipeline state. Shader handle is null if shader is not loaded or failed to load.</summary>
 public class RawShader : DeviceObject
 {
     private IShader? handle;
@@ -45,6 +47,7 @@ public class RawShader : DeviceObject
 
     public IShader? GetHandle() => handle;
 
+    /// <summary>Create shader from platform-specific binary.</summary>
     public void CreateFromBinary(ShaderBytecode bytecode)
     {
         ArgumentNullException.ThrowIfNull(bytecode);

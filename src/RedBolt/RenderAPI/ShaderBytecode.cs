@@ -4,6 +4,9 @@ namespace RedBolt;
 
 public sealed class ShaderBytecode : IEquatable<ShaderBytecode>
 {
+    /// <summary>
+    /// Version of the shader bytecode format. Increment when serialization format changes.
+    /// </summary>
     public const uint Version = 1;
 
     public ShaderBytecode()
@@ -32,6 +35,9 @@ public sealed class ShaderBytecode : IEquatable<ShaderBytecode>
 
     public byte[] Bytecode { get; set; } = [];
 
+    /// <summary>
+    /// Vertex input layout, if applicable.
+    /// </summary>
     public List<VertexShaderAttribute> VertexAttributes { get; } = [];
 
     public bool IsEmpty() => Bytecode.Length == 0;

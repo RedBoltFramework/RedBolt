@@ -3,8 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
+/// <summary>Reference to the region in constant buffer within collection. Plain old data.</summary>
+/// <param name="Index">Index of buffer in collection.</param>
+/// <param name="Offset">Offset in the buffer.</param>
+/// <param name="Size">Size of the chunk.</param>
 public readonly record struct ConstantBufferCollectionRef(uint Index, uint Offset, uint Size);
 
+/// <summary>Buffer of shader parameters ready to be uploaded.</summary>
 public sealed class ConstantBufferCollection
 {
     private sealed class BufferEntry
@@ -13,11 +18,16 @@ public sealed class ConstantBufferCollection
         public uint Used;
     }
 
+    /// <summary>Buffers.</summary>
     private readonly List<BufferEntry> buffers = [];
+    /// <summary>Current buffer index.</summary>
     private uint currentBufferIndex;
+    /// <summary>Alignment of each block.</summary>
     private uint alignment = 1;
+    /// <summary>Size of buffers.</summary>
     private uint bufferSize = 16384;
 
+    /// <summary>Clear and/or initialize for work.</summary>
     public void ClearAndInitialize(uint alignment)
     {
         this.alignment = Math.Max(alignment, 1u);
@@ -29,6 +39,7 @@ public sealed class ConstantBufferCollection
             AllocateBuffer();
     }
 
+    /// <summary>Allocate new block.</summary>
     public (ConstantBufferCollectionRef Ref, Memory<byte> Data) AddBlock(uint size)
     {
         if (size > bufferSize)
@@ -50,14 +61,19 @@ public sealed class ConstantBufferCollection
         return (new ConstantBufferCollectionRef(currentBufferIndex, offset, size), memory);
     }
 
+    /// <summary>Return number of buffers.</summary>
     public uint GetNumBuffers() => currentBufferIndex + 1;
 
+    /// <summary>Return used size of the CPU buffer.</summary>
     public uint GetBufferSize(uint index) => buffers[(int)index].Used;
 
+    /// <summary>Return best size of GPU buffer. Round up to next power of two.</summary>
     public uint GetGPUBufferSize(uint index) => Math.Max(512u, MathDefs.NextPowerOfTwo(GetBufferSize(index)));
 
+    /// <summary>Return buffer data.</summary>
     public ReadOnlyMemory<byte> GetBufferData(uint index) => buffers[(int)index].Data.AsMemory(0, (int)GetBufferSize(index));
 
+    /// <summary>Copy variant parameter into storage.</summary>
     public static bool StoreParameter(Span<byte> destination, Variant value)
     {
         return value.Type switch
@@ -73,6 +89,7 @@ public sealed class ConstantBufferCollection
         };
     }
 
+    /// <summary>Copy new simple parameter into storage. Trim if too much data provided.</summary>
     public static bool StoreParameter<T>(Span<byte> destination, T value)
         where T : unmanaged
     {
@@ -86,24 +103,30 @@ public sealed class ConstantBufferCollection
         return true;
     }
 
+    /// <summary>Copy new Matrix3 parameter into storage.</summary>
     public static bool StoreParameter(Span<byte> destination, Matrix3 value)
     {
         var data = new Matrix3x4(value);
         return StoreParameter(destination, data);
     }
 
+    /// <summary>Copy new Matrix3x4 parameter into storage.</summary>
     public static bool StoreParameter(Span<byte> destination, Matrix3x4 value)
     {
         var matrix = value.Matrix4;
         return StoreParameter(destination, matrix);
     }
 
+    /// <summary>Add new Vector4 array parameter.</summary>
     public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Vector4> values) => StoreSpan(destination, values);
 
+    /// <summary>Add new Matrix3x4 array parameter.</summary>
     public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix3x4> values) => StoreSpan(destination, values);
 
+    /// <summary>Add new Matrix4 array parameter.</summary>
     public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix4> values) => StoreSpan(destination, values);
 
+    /// <summary>Allocate one more buffer.</summary>
     private void AllocateBuffer()
     {
         buffers.Add(new BufferEntry

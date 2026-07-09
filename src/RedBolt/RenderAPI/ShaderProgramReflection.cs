@@ -3,6 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
+/// <summary>
+/// Description of uniform buffer used by the shader program.
+/// </summary>
 public sealed class UniformBufferReflection
 {
     private readonly List<IShaderResourceVariable> variables = [];
@@ -23,6 +26,9 @@ public sealed class UniformBufferReflection
     }
 }
 
+/// <summary>
+/// Description of specific uniform in the shader program.
+/// </summary>
 public readonly record struct UniformReflection(
     string Name,
     ShaderParameterGroup Group,
@@ -34,6 +40,9 @@ public readonly record struct UniformReflection(
     byte NumColumns,
     uint ArraySize);
 
+/// <summary>
+/// Description of resource used by the shader program, excluding uniform buffers and samplers.
+/// </summary>
 public sealed class ShaderResourceReflection
 {
     public string InternalName { get; internal set; } = string.Empty;
@@ -41,6 +50,9 @@ public sealed class ShaderResourceReflection
     public IShaderResourceVariable? Variable { get; internal set; }
 }
 
+/// <summary>
+/// Description of shader program: uniform buffers, resources, etc.
+/// </summary>
 public sealed class ShaderProgramReflection
 {
     private readonly UniformBufferReflection?[] uniformBuffers = new UniformBufferReflection?[RenderApiLimits.MaxShaderParameterGroups];
@@ -52,6 +64,10 @@ public sealed class ShaderProgramReflection
     {
     }
 
+    /// <summary>
+    /// Create reflection from shaders.
+    /// It works only for GAPIs that can provide per-shader reflection data (this is everyone but old OpenGL).
+    /// </summary>
     public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     {
         ArgumentNullException.ThrowIfNull(shaders);
@@ -65,6 +81,10 @@ public sealed class ShaderProgramReflection
         RecalculateUniformHash();
     }
 
+    /// <summary>
+    /// Create reflection from shaders.
+    /// It works only for GAPIs that can provide per-shader reflection data (this is everyone but old OpenGL).
+    /// </summary>
     public ShaderProgramReflection(IEnumerable<IShader?> shaders)
     {
         ArgumentNullException.ThrowIfNull(shaders);

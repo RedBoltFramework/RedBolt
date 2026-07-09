@@ -4,82 +4,147 @@ namespace RedBolt;
 
 public static class RenderApiLimits
 {
+    /// <summary>Maximum number of bound render targets supported by the engine. Hardware limit could be lower.</summary>
     public const uint MaxRenderTargets = 8;
+
+    /// <summary>Maximum number of bound vertex buffers supported by the engine.</summary>
     public const uint MaxVertexStreams = 4;
+
+    /// <summary>
+    /// Some vertex elements in layout may be unused and the hard GPU limit is only applied to the used ones.
+    /// </summary>
     public const uint MaxNumVertexElements = 32;
+
+    /// <summary>
+    /// Max number of immutable samplers on CPU side. Can be extended freely if needed.
+    /// </summary>
     public const uint MaxNumImmutableSamplers = 16;
+
     public const uint MaxShaderParameterGroups = 7;
 }
 
+/// <summary>Index of the frame, counted by the presents of the primary swap chain.</summary>
 public enum FrameIndex : long
 {
     None = 0,
     First = 1
 }
 
+/// <summary>GAPI used for rendering.</summary>
 public enum RenderBackend
 {
+    /// <summary>Direct3D 11.1 or later.</summary>
     D3D11,
+    /// <summary>Direct3D 12.0 for SDK 10.0.17763.0 or later.</summary>
     D3D12,
+    /// <summary>OpenGL 4.1 (for Desktop) or OpenGL ES 3.0 (for mobiles) or later.</summary>
     OpenGL,
+    /// <summary>Vulkan 1.0 or later.</summary>
     Vulkan,
     Count
 }
 
+/// <summary>Window mode.</summary>
 public enum WindowMode
 {
+    /// <summary>Windowed.</summary>
     Windowed,
+    /// <summary>Borderless "full-screen" window.</summary>
     Borderless,
+    /// <summary>Native full-screen.</summary>
     Fullscreen
 }
 
+/// <summary>Shader translation policy.</summary>
 public enum ShaderTranslationPolicy
 {
+    /// <summary>
+    /// Do not translate shaders, use universal GLSL shaders directly.
+    /// This mode is only supported for OpenGL and OpenGL ES backends (GLSL-based backends).
+    /// </summary>
     Verbatim,
+    /// <summary>
+    /// Preprocess and translate shader to the target language through SPIR-V without any optimization.
+    /// This results in slower shader compilation, especially in Debug builds.
+    /// This mode may help to work around OpenGL driver bugs if used for GLSL-based backends.
+    /// </summary>
     Translate,
+    /// <summary>
+    /// Fully process and optimize shader via SPIR-V Tools.
+    /// This results in even slower shader compilation, especially in Debug builds.
+    /// This mode may improve realtime performance of the shaders, especially on mobile platforms.
+    /// </summary>
     Optimize
 }
 
+/// <summary>Description of fullscreen mode (resolution and refresh rate).</summary>
 public readonly record struct FullscreenMode(IntVector2 Size, int RefreshRate);
 
+/// <summary>Description of the window and GAPI. Some settings may be changed in real time.</summary>
 public sealed class WindowSettings
 {
+    /// <summary>Type of window (windowed, borderless fullscreen, native fullscreen).</summary>
     public WindowMode Mode { get; set; }
 
+    /// <summary>
+    /// Windowed: size of the window in units. May be different from the size in pixels due to DPI scale.
+    /// Fullscreen: display resolution in pixels.
+    /// Borderless: ignored.
+    /// Set to 0 to pick automatically.
+    /// </summary>
     public IntVector2 Size { get; set; }
 
+    /// <summary>Window title.</summary>
     public string Title { get; set; } = string.Empty;
 
+    /// <summary>Windowed only: whether the window can be resized.</summary>
     public bool Resizable { get; set; }
 
+    /// <summary>Fullscreen and Borderless only: index of the monitor.</summary>
     public int Monitor { get; set; }
 
+    /// <summary>Whether to enable vertical synchronization.</summary>
     public bool VSync { get; set; }
 
+    /// <summary>Refresh rate. 0 to pick automatically.</summary>
     public int RefreshRate { get; set; }
 
+    /// <summary>Multi-sampling level.</summary>
     public int MultiSample { get; set; } = 1;
 
+    /// <summary>Whether to use sRGB framebuffer.</summary>
     public bool SRgb { get; set; }
 
+    /// <summary>
+    /// Mobiles: orientation hints.
+    /// Could be any combination of "LandscapeLeft", "LandscapeRight", "Portrait" and "PortraitUpsideDown".
+    /// </summary>
     public IReadOnlyList<string> Orientations { get; set; } = ["LandscapeLeft", "LandscapeRight"];
 }
 
+/// <summary>Immutable settings of the render device.</summary>
 public sealed class RenderDeviceSettings
 {
+    /// <summary>Render backend to use.</summary>
     public RenderBackend Backend { get; set; }
 
+    /// <summary>Pointer to external window native handle.</summary>
     public nint ExternalWindowHandle { get; set; }
 
+    /// <summary>Whether to enable debug mode on GPU if possible.</summary>
     public bool GpuDebug { get; set; }
 
+    /// <summary>Adapter ID.</summary>
     public uint? AdapterId { get; set; }
 
+    /// <summary>Extra tweaks for Vulkan backend.</summary>
     public RenderDeviceSettingsVulkan Vulkan { get; set; } = new();
 
+    /// <summary>Extra tweaks for D3D12 backend.</summary>
     public RenderDeviceSettingsD3D12 D3D12 { get; set; } = new();
 }
 
+/// <summary>Extra tweaks for Vulkan backend.</summary>
 public sealed class RenderDeviceSettingsVulkan
 {
     public List<string> InstanceExtensions { get; } = [];
@@ -107,6 +172,7 @@ public sealed class RenderDeviceSettingsVulkan
     public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
 }
 
+/// <summary>Extra tweaks for D3D12 backend.</summary>
 public sealed class RenderDeviceSettingsD3D12
 {
     public uint?[] CpuDescriptorHeapAllocationSize { get; } = new uint?[4];
@@ -124,6 +190,7 @@ public sealed class RenderDeviceSettingsD3D12
     public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
 }
 
+/// <summary>Capabilities of the render device.</summary>
 public sealed class RenderDeviceCaps
 {
     public bool ComputeShaders { get; set; }
@@ -147,12 +214,16 @@ public sealed class RenderDeviceCaps
     public uint MaxRenderTargetSize { get; set; }
 }
 
+/// <summary>Statistics of the render device and/or context.</summary>
 public sealed class RenderDeviceStats
 {
+    /// <summary>Number of primitives drawn (triangles, lines, patches, etc.)</summary>
     public uint NumPrimitives { get; set; }
 
+    /// <summary>Number of draw operations.</summary>
     public uint NumDraws { get; set; }
 
+    /// <summary>Number of compute dispatches.</summary>
     public uint NumDispatches { get; set; }
 }
 
@@ -167,8 +238,19 @@ public sealed class RenderPoolSettings
     public uint LogPeriod { get; set; } = 1000u;
 }
 
+/// <summary>Parameters of the RawBuffer.</summary>
 public readonly record struct RawBufferParams(BufferType Type, uint Size, uint Stride, BufferFlag Flags);
 
+/// <param name="Size">Size of the topmost mip level of the single 2D texture for 2D and cube textures and arrays.
+/// Size of the topmost mip level for 3D textures.</param>
+/// <param name="ArraySize">Array size for array types. Ignored for single textures.</param>
+/// <param name="NumLevels">Number of mip levels. 0 to deduce automatically.</param>
+/// <param name="MultiSample">Number of samples per pixel. 1 to disable multi-sampling.</param>
+/// <param name="NumLevelsRtv">Number of mip levels of the render target. This value is deduced automatically.
+/// If the texture used multi-sampling with automatic resolve and has multiple mip levels, two textures are created:
+/// multi-sampled texture with single mip level (aka NumLevelsRtv) used as RTV,
+/// and resolved texture with multiple mip levels (aka NumLevels) used as SRV.
+/// Otherwise, NumLevelsRtv is equal to NumLevels.</param>
 public readonly record struct RawTextureParams(
     TextureType Type,
     TextureFormat Format,
@@ -179,6 +261,10 @@ public readonly record struct RawTextureParams(
     uint MultiSample = 1u,
     uint NumLevelsRtv = 0u);
 
+/// <param name="FirstSlice">The first array slice or cube face to be viewed.</param>
+/// <param name="FirstLevel">The first mip level to be viewed.</param>
+/// <param name="NumSlices">The number of array slices or cube faces to be viewed. 0 to deduce automatically.</param>
+/// <param name="NumLevels">The number of mip levels to be viewed. 0 to deduce automatically.</param>
 public readonly record struct RawTextureUAVKey(
     bool CanWrite = true,
     bool CanRead = true,
@@ -196,43 +282,72 @@ public readonly record struct RawTextureUAVKey(
     public RawTextureUAVKey FromSlice(uint slice, uint numSlices = 0u) => this with { FirstSlice = slice, NumSlices = numSlices };
 }
 
+/// <summary>GPU buffer types.</summary>
 public enum BufferType
 {
+    /// <summary>Vertex buffer for per-vertex or per-instance data.</summary>
     Vertex,
+    /// <summary>Index buffer.</summary>
     Index,
+    /// <summary>Uniform aka constant buffer.</summary>
     Uniform
 }
 
+/// <summary>Buffer usage flags.</summary>
 [Flags]
 public enum BufferFlag
 {
     None = 0,
+    /// <summary>Buffer maintains up-to-date CPU-readable copy of the data. Some buffer types cannot be shadowed.</summary>
     Shadowed = 1 << 0,
+    /// <summary>Buffer is dynamic and will be updated frequently.</summary>
     Dynamic = 1 << 1,
+    /// <summary>Buffer data is discarded when frame ends.</summary>
     Discard = 1 << 2,
+    /// <summary>Buffer can be accessed via unordered access view.</summary>
     BindUnorderedAccess = 1 << 3,
+    /// <summary>
+    /// Buffer contains instance data. This hint is used only on OpenGL ES platforms to emulate base instance.
+    /// </summary>
     PerInstanceData = 1 << 4,
+    /// <summary>Buffer data cannot change after creation. Data updates lead to buffer recreation.</summary>
     Immutable = 1 << 5
 }
 
+/// <summary>GPU texture types.</summary>
 public enum TextureType
 {
+    /// <summary>Singular 2D texture.</summary>
     Texture2D,
+    /// <summary>Singular cube texture.</summary>
     TextureCube,
+    /// <summary>Singular 3D texture. Support is not guaranteed.</summary>
     Texture3D,
+    /// <summary>Array of 2D textures. Support is not guaranteed.</summary>
     Texture2DArray
 }
 
+/// <summary>Texture usage flags.</summary>
 [Flags]
 public enum TextureFlag
 {
     None = 0,
+    /// <summary>Texture can be used as render target.</summary>
     BindRenderTarget = 1 << 1,
+    /// <summary>Texture can be used as depth-stencil target.</summary>
     BindDepthStencil = 1 << 2,
+    /// <summary>Texture can be used via unordered access view.</summary>
     BindUnorderedAccess = 1 << 3,
+    /// <summary>
+    /// Whether NOT to resolve multisampled texture after rendering.
+    /// If set, multisampled texture is used as is. Keep in mind that you cannot easily sample such texture in shader.
+    /// By default, shader resource view will point to the resolved texture.
+    /// Automatically resolved textures cannot be accessed via unordered access view.
+    /// </summary>
     NoMultiSampledAutoResolve = 1 << 4
 }
 
+/// <summary>Shader types.</summary>
 public enum ShaderType
 {
     VS = 0,
@@ -244,6 +359,7 @@ public enum ShaderType
     MaxShaderTypes
 }
 
+/// <summary>Vertex declaration element semantics.</summary>
 public enum VertexElementSemantic : byte
 {
     Position = 0,
@@ -257,6 +373,7 @@ public enum VertexElementSemantic : byte
     ObjectIndex
 }
 
+/// <summary>Arbitrary vertex declaration element datatypes.</summary>
 public enum VertexElementType : byte
 {
     Int = 0,
@@ -268,6 +385,7 @@ public enum VertexElementType : byte
     UByte4Norm
 }
 
+/// <summary>Texture filtering mode.</summary>
 public enum TextureFilterMode : byte
 {
     Nearest,
@@ -278,6 +396,7 @@ public enum TextureFilterMode : byte
     Default
 }
 
+/// <summary>Texture addressing mode.</summary>
 public enum TextureAddressMode
 {
     Wrap,
@@ -286,6 +405,7 @@ public enum TextureAddressMode
     Border
 }
 
+/// <summary>Texture coordinates.</summary>
 public enum TextureCoordinate
 {
     U,
@@ -293,8 +413,10 @@ public enum TextureCoordinate
     W
 }
 
+/// <summary>Description of the single input required by the vertex shader.</summary>
 public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);
 
+/// <summary>Description of immutable texture sampler bound to the pipeline.</summary>
 public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
 {
     private readonly TextureAddressMode[] addressModes = [TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap];
@@ -364,6 +486,9 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
     }
 }
 
+/// <summary>
+/// Internal event sent to DeviceObject by RenderDevice.
+/// </summary>
 public enum DeviceObjectEvent
 {
     Invalidate,
@@ -375,6 +500,10 @@ public enum DeviceObjectEvent
 public enum DeviceObjectFlag : byte
 {
     None = 0,
+    /// <summary>
+    /// Device object should be created only on CPU side, like in "headless" engine mode.
+    /// Such object cannot be used during rendering. Headless objects could be constructed from any thread.
+    /// </summary>
     Headless = 1 << 0
 }
 
@@ -387,6 +516,7 @@ public enum ClearTarget
     Stencil = 0x4
 }
 
+/// <summary>Stencil operation.</summary>
 public enum StencilOp
 {
     Keep = 0,
@@ -396,6 +526,7 @@ public enum StencilOp
     Decr
 }
 
+/// <summary>Hard-coded uniform buffer slots.</summary>
 public enum ShaderParameterGroup
 {
     Frame = 0,
@@ -407,12 +538,14 @@ public enum ShaderParameterGroup
     Custom
 }
 
+/// <summary>Pipeline state type.</summary>
 public enum PipelineStateType
 {
     Graphics,
     Compute
 }
 
+/// <summary>Description of input layout element.</summary>
 public readonly record struct InputLayoutElementDesc(
     uint BufferIndex,
     uint BufferStride,
@@ -422,6 +555,7 @@ public readonly record struct InputLayoutElementDesc(
     VertexElementSemantic ElementSemantic,
     byte ElementSemanticIndex);
 
+/// <summary>Description of input layout of graphics pipeline state.</summary>
 public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 {
     private readonly InputLayoutElementDesc[] elements = new InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
@@ -485,6 +619,7 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
 
 public readonly record struct NamedSamplerStateDesc(StringHash Name, SamplerStateDesc Desc);
 
+/// <summary>Description of immutable texture samplers used by the pipeline.</summary>
 public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 {
     private readonly StringHash[] names = new StringHash[RenderApiLimits.MaxNumImmutableSamplers];
@@ -509,6 +644,7 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 
     public ReadOnlySpan<SamplerStateDesc> Descriptions => desc.AsSpan(0, checked((int)Size));
 
+    /// <summary>Clear the collection.</summary>
     public void Clear()
     {
         Array.Clear(names, 0, names.Length);
@@ -516,6 +652,7 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
         Size = 0;
     }
 
+    /// <summary>Add sampler to collection.</summary>
     public void Add(StringHash name, SamplerStateDesc samplerDesc)
     {
         ArgumentNullException.ThrowIfNull(samplerDesc);
@@ -578,6 +715,7 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
     }
 }
 
+/// <summary>Description of pipeline state output (depth-stencil and render targets).</summary>
 public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc>
 {
     private readonly TextureFormat[] renderTargetFormats = new TextureFormat[RenderApiLimits.MaxRenderTargets];
@@ -669,6 +807,9 @@ public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc
     public override int GetHashCode() => unchecked((int)ToHash());
 }
 
+/// <summary>
+/// Description of graphics pipeline state.
+/// </summary>
 public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
 {
     public string DebugName { get; set; } = string.Empty;
@@ -709,14 +850,29 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 
     public uint StencilWriteMask { get; set; }
 
+    /// <summary>
+    /// Input layout.
+    /// </summary>
     public InputLayoutDesc InputLayout { get; } = new();
 
+    /// <summary>
+    /// Primitive topology.
+    /// </summary>
     public PrimitiveType PrimitiveType { get; set; }
 
+    /// <summary>
+    /// Render Target(s) and Depth Stencil formats.
+    /// </summary>
     public PipelineStateOutputDesc Output { get; } = new();
 
+    /// <summary>
+    /// Immutable Samplers.
+    /// </summary>
     public ImmutableSamplersDesc Samplers { get; } = new();
 
+    /// <summary>
+    /// Whether to use depth-stencil in read-only mode.
+    /// </summary>
     public bool ReadOnlyDepth { get; set; }
 
     public RawShader? VertexShader { get; set; }
@@ -879,12 +1035,21 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
     }
 }
 
+/// <summary>
+/// Description of compute pipeline state.
+/// </summary>
 public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
 {
     public string DebugName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Immutable Samplers.
+    /// </summary>
     public ImmutableSamplersDesc Samplers { get; } = new();
 
+    /// <summary>
+    /// Compute shader.
+    /// </summary>
     public RawShader? ComputeShader { get; set; }
 
     public ComputePipelineStateDesc()

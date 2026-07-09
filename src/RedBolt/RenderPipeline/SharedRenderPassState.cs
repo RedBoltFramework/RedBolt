@@ -1,5 +1,8 @@
 namespace RedBolt;
 
+/// <summary>
+/// State of render pipeline that can be accessed by render path and render passes.
+/// </summary>
 public sealed class SharedRenderPassState
 {
     public static readonly StringHash AlbedoBufferId = "GeometryBuffer.Albedo";

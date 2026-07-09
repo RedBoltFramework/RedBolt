@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace RedBolt;
 
+/// <summary>
+/// Base class for serializable resource that uses Archive serialization.
+/// </summary>
 public sealed class RenderPath : Resource
 {
     private readonly List<RenderPass> passes = [];
@@ -18,6 +21,9 @@ public sealed class RenderPath : Resource
 
     public RenderPassTraits GetAggregatedPassTraits() => traits;
 
+    /// <summary>
+    /// Fill missing parameters with defaults.
+    /// </summary>
     public void CollectParameters(IDictionary<string, object?> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -26,6 +32,9 @@ public sealed class RenderPath : Resource
             pass.CollectParameters(parameters);
     }
 
+    /// <summary>
+    /// Initialize render path before using it in view.
+    /// </summary>
     public void InitializeView(RenderPipelineView view)
     {
         ArgumentNullException.ThrowIfNull(view);
@@ -34,6 +43,9 @@ public sealed class RenderPath : Resource
             pass.InitializeView(view);
     }
 
+    /// <summary>
+    /// Update settings for all passes.
+    /// </summary>
     public void UpdateParameters(RenderPipelineSettings settings, IReadOnlyList<RenderPassToggle> enabledPasses, IReadOnlyDictionary<string, object?> parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -61,6 +73,9 @@ public sealed class RenderPath : Resource
         }
     }
 
+    /// <summary>
+    /// Perform update that does not invoke any rendering commands.
+    /// </summary>
     public void Update(SharedRenderPassState sharedState)
     {
         ArgumentNullException.ThrowIfNull(sharedState);
@@ -72,6 +87,9 @@ public sealed class RenderPath : Resource
         }
     }
 
+    /// <summary>
+    /// Execute render commands.
+    /// </summary>
     public void Render(SharedRenderPassState sharedState)
     {
         ArgumentNullException.ThrowIfNull(sharedState);
@@ -83,6 +101,9 @@ public sealed class RenderPath : Resource
         }
     }
 
+    /// <summary>
+    /// Make deep copy of RenderPath.
+    /// </summary>
     public RenderPath Clone()
     {
         var clone = new RenderPath(Name);
@@ -91,6 +112,9 @@ public sealed class RenderPath : Resource
         return clone;
     }
 
+    /// <summary>
+    /// Repair the array of enabled render passes.
+    /// </summary>
     public IReadOnlyList<RenderPassToggle> RepairEnabledRenderPasses(IEnumerable<RenderPassToggle> sourcePasses)
     {
         ArgumentNullException.ThrowIfNull(sourcePasses);
