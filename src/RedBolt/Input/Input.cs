@@ -99,7 +99,7 @@ public sealed class Input
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, parameters.MultiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, Math.Max(parameters.MultiSample, 0)), "SDL_GL_SetAttribute multisample samples");
 
-            using var title = new PinnedUtf8(parameters.WindowTitle);
+            using var title = new CString(parameters.WindowTitle);
             var windowFlags = SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown;
             if (parameters.FullScreen)
                 windowFlags |= SdlWindowFlags.SdlWindowFullscreenDesktop;
@@ -140,7 +140,7 @@ public sealed class Input
         if (!IsInitialized || _window is null || _window.IsNull)
             return;
 
-        using var pinnedTitle = new PinnedUtf8(title);
+        using var pinnedTitle = new CString(title);
         SdlNativeBindings.SdlSetWindowTitle(_window, pinnedTitle.Bytes);
     }
 

@@ -70,8 +70,8 @@ public class RawShader : DeviceObject
         if (device is null || device.IsNull)
             return;
 
-        using var shaderName = new PinnedUtf8(GetDebugName());
-        using var entryPoint = new PinnedUtf8("main");
+        using var shaderName = new CString(GetDebugName());
+        using var entryPoint = new CString("main");
         using var shaderDesc = new ShaderDesc
         {
             Name = shaderName.Pointer,
@@ -87,7 +87,7 @@ public class RawShader : DeviceObject
 
         if (string.Equals(_bytecode.Mime, "application/glsl", StringComparison.Ordinal))
         {
-            using var source = new PinnedUtf8(Encoding.UTF8.GetString(_bytecode.Bytecode));
+            using var source = new CString(Encoding.UTF8.GetString(_bytecode.Bytecode));
             shaderCreateInfo.Source = source.Pointer;
             shaderCreateInfo.SourceLanguage = ShaderSourceLanguage.ShaderSourceLanguageGlslVerbatim;
             device.CreateShader(shaderCreateInfo, out _handle, out var compilerOutput);

@@ -197,7 +197,7 @@ public class RawBuffer : DeviceObject
         if (device is null || device.IsNull)
             return false;
 
-        using var nativeName = new PinnedUtf8(GetDebugName());
+        using var nativeName = new CString(GetDebugName());
         using var bufferDesc = new BufferDesc
         {
             Name = nativeName.Pointer,

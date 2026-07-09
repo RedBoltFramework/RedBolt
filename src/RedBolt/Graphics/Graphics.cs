@@ -876,7 +876,7 @@ layout(std140) uniform Material
     private static T LoadOpenGlProcedure<T>(string name)
         where T : Delegate
     {
-        using var pinnedName = new PinnedUtf8(name);
+        using var pinnedName = new CString(name);
         var procedure = SdlNativeBindings.SdlGlGetProcAddress(pinnedName.Bytes);
         if (procedure == IntPtr.Zero)
             throw new InvalidOperationException($"OpenGL procedure '{name}' is not available.");
@@ -1232,7 +1232,7 @@ layout(std140) uniform Material
         try
         {
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
-            using var pipelineName = new PinnedUtf8($"{pass.VertexShader}:{pass.PixelShader}:{key.LayoutSignature}");
+            using var pipelineName = new CString($"{pass.VertexShader}:{pass.PixelShader}:{key.LayoutSignature}");
             using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
@@ -1324,7 +1324,7 @@ layout(std140) uniform Material
             var quadGeometry = GetOrCreateFullscreenQuadGeometry();
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
-            using var pipelineName = new PinnedUtf8($"{shaderName}:{shaderDefines}:fullscreen");
+            using var pipelineName = new CString($"{shaderName}:{shaderDefines}:fullscreen");
             using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
@@ -1418,7 +1418,7 @@ layout(std140) uniform Material
             var quadGeometry = GetOrCreateFullscreenQuadGeometry();
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
-            using var pipelineName = new PinnedUtf8($"{shaderName}:{flags}:clear");
+            using var pipelineName = new CString($"{shaderName}:{flags}:clear");
             using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
@@ -2134,7 +2134,7 @@ layout(std140) uniform Material
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        using var nativeName = new PinnedUtf8(texture.Name);
+        using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
         var textureDesc = textureDescOwner.Desc;
         textureDesc.Name = nativeName.Pointer;
@@ -2214,7 +2214,7 @@ layout(std140) uniform Material
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        using var nativeName = new PinnedUtf8(texture.Name);
+        using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
         var textureDesc = textureDescOwner.Desc;
         textureDesc.Name = nativeName.Pointer;
@@ -2263,7 +2263,7 @@ layout(std140) uniform Material
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        using var nativeName = new PinnedUtf8(texture.Name);
+        using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
         var textureDesc = textureDescOwner.Desc;
         textureDesc.Name = nativeName.Pointer;
@@ -3341,9 +3341,9 @@ layout(std140) uniform Material
     internal static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
         string name, string source)
     {
-        using var shaderName = new PinnedUtf8(name);
-        using var entryPoint = new PinnedUtf8("main");
-        using var shaderSource = new PinnedUtf8(source);
+        using var shaderName = new CString(name);
+        using var entryPoint = new CString("main");
+        using var shaderSource = new CString(source);
         using var shaderDesc = new ShaderDesc
         {
             Name = shaderName.Pointer,
@@ -3370,7 +3370,7 @@ layout(std140) uniform Material
 
     private static IBuffer CreateUniformBuffer(IRenderDevice device, string name, uint size)
     {
-        using var nativeName = new PinnedUtf8(name);
+        using var nativeName = new CString(name);
         using var bufferDesc = new BufferDesc();
         bufferDesc.Name = nativeName.Pointer;
         bufferDesc.Size = (nuint)size;
@@ -3386,7 +3386,7 @@ layout(std140) uniform Material
     private static IBuffer CreateBuffer(IRenderDevice device, IDeviceContext immediateContext, string name, byte[] data,
         ulong size, BindFlags bindFlags, uint elementStride)
     {
-        using var nativeName = new PinnedUtf8(name);
+        using var nativeName = new CString(name);
         using var bufferDesc = new BufferDesc();
         bufferDesc.Name = nativeName.Pointer;
         bufferDesc.Size = (nuint)size;
@@ -3969,11 +3969,11 @@ layout(std140) uniform Material
     private sealed class TemporaryLayoutArray : IDisposable
     {
         private readonly IntPtr _memory;
-        private readonly PinnedUtf8 _semantic;
+        private readonly CString _semantic;
 
         public TemporaryLayoutArray(IReadOnlyList<LayoutElementSpec> elements)
         {
-            _semantic = new PinnedUtf8("ATTRIB");
+            _semantic = new CString("ATTRIB");
             Count = elements.Count;
             if (Count == 0)
                 throw new InvalidOperationException("Graphics pipeline layout may not be empty.");

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace RedBolt;
@@ -8,19 +9,33 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 {
     private static readonly Encoding Utf8 = Encoding.UTF8;
 
-    private byte[] _bytes = [0];
+    private IntPtr _bytes;
     private int _byteLength;
+    private int _capacity;
     private bool _disposed;
 
     public static CString Empty { get; } = new(string.Empty);
 
     public CString()
     {
+        _bytes = Marshal.AllocHGlobal(1);
+        _capacity = 1;
     }
 
     public CString(string value)
     {
+        _bytes = Marshal.AllocHGlobal(1);
+        _capacity = 1;
         Set(value);
+    }
+
+    public IntPtr Pointer
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _bytes;
+        }
     }
 
     public ReadOnlySpan<byte> Bytes
@@ -28,7 +43,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         get
         {
             ThrowIfDisposed();
-            return _bytes.AsSpan(0, _byteLength + 1);
+            unsafe { return new ReadOnlySpan<byte>((void*)_bytes, _byteLength + 1); }
         }
     }
 
@@ -37,7 +52,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         get
         {
             ThrowIfDisposed();
-            return Utf8.GetCharCount(_bytes.AsSpan(0, _byteLength));
+            return Utf8.GetCharCount(Bytes[.._byteLength]);
         }
     }
 
@@ -54,13 +69,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     {
         ThrowIfDisposed();
         _byteLength = 0;
-        _bytes[0] = 0;
+        Marshal.WriteByte(_bytes, 0, 0);
     }
 
     public string ConvertToString()
     {
         ThrowIfDisposed();
-        return Utf8.GetString(_bytes, 0, _byteLength);
+        return Utf8.GetString(Bytes[.._byteLength]);
     }
 
     public static CString Format(string format, ReadOnlySpan<object?> args)
@@ -147,13 +162,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             return false;
 
         ThrowIfDisposed();
-        return _byteLength == other._byteLength && _bytes.AsSpan(0, _byteLength).SequenceEqual(other._bytes.AsSpan(0, other._byteLength));
+        return _byteLength == other._byteLength && Bytes[.._byteLength].SequenceEqual(other.Bytes[..other._byteLength]);
     }
 
     public bool Equals(string? other)
     {
         ThrowIfDisposed();
-        return other is not null && EqualsUtf8BytesString(_bytes.AsSpan(0, _byteLength), other);
+        return other is not null && EqualsUtf8BytesString(Bytes[.._byteLength], other);
     }
 
     public override bool Equals(object? obj)
@@ -167,9 +182,10 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     {
         ThrowIfDisposed();
 
+        var bytes = Bytes;
         var hash = 0x811C9DC5u;
         for (var i = 0; i < _byteLength; ++i)
-            hash = (hash ^ _bytes[i]) * 16777619;
+            hash = (hash ^ bytes[i]) * 16777619;
 
         return unchecked((int)hash);
     }
@@ -201,7 +217,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         if (_disposed)
             return;
 
-        _bytes = [];
+        if (_bytes != IntPtr.Zero)
+        {
+            Marshal.FreeHGlobal(_bytes);
+            _bytes = IntPtr.Zero;
+        }
+
+        _capacity = 0;
         _byteLength = 0;
         _disposed = true;
     }
@@ -213,9 +235,9 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         value ??= string.Empty;
         var rawByteLength = Utf8.GetByteCount(value);
         EnsureCapacity(rawByteLength + 1);
-        Utf8.GetBytes(value.AsSpan(), _bytes);
+        unsafe { Utf8.GetBytes(value.AsSpan(), new Span<byte>((void*)_bytes, rawByteLength)); }
         _byteLength = rawByteLength;
-        _bytes[_byteLength] = 0;
+        Marshal.WriteByte(_bytes, _byteLength, 0);
     }
 
     private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)
@@ -293,7 +315,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                 AppendText(text.AsSpan());
                 return;
             case CString cstring:
-                AppendBytes(cstring._bytes.AsSpan(0, cstring._byteLength));
+                AppendBytes(cstring.Bytes[..cstring._byteLength]);
                 return;
             case char text:
                 AppendText(text);
@@ -327,9 +349,9 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             return;
 
         EnsureCapacity(_byteLength + value.Length + 1);
-        value.CopyTo(_bytes.AsSpan(_byteLength));
+        unsafe { value.CopyTo(new Span<byte>((void*)(_bytes + _byteLength), value.Length)); }
         _byteLength += value.Length;
-        _bytes[_byteLength] = 0;
+        Marshal.WriteByte(_bytes, _byteLength, 0);
     }
 
     private void AppendText(ReadOnlySpan<char> text)
@@ -339,9 +361,9 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
         var requiredLength = Utf8.GetByteCount(text);
         EnsureCapacity(_byteLength + requiredLength + 1);
-        Utf8.GetBytes(text, _bytes.AsSpan(_byteLength, requiredLength));
+        unsafe { Utf8.GetBytes(text, new Span<byte>((void*)(_bytes + _byteLength), requiredLength)); }
         _byteLength += requiredLength;
-        _bytes[_byteLength] = 0;
+        Marshal.WriteByte(_bytes, _byteLength, 0);
     }
 
     private void AppendText(char value)
@@ -353,16 +375,15 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     private void EnsureCapacity(int requiredCapacity)
     {
-        if (_bytes.Length >= requiredCapacity)
+        if (_capacity >= requiredCapacity)
             return;
 
-        var newCapacity = _bytes.Length == 0 ? 1 : _bytes.Length;
+        var newCapacity = _capacity == 0 ? 1 : _capacity;
         while (newCapacity < requiredCapacity)
             newCapacity *= 2;
 
-        var newBytes = new byte[newCapacity];
-        _bytes.AsSpan(0, _byteLength + 1).CopyTo(newBytes);
-        _bytes = newBytes;
+        _bytes = Marshal.ReAllocHGlobal(_bytes, (IntPtr)newCapacity);
+        _capacity = newCapacity;
     }
 
     private void ThrowIfDisposed()
@@ -495,7 +516,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             if (value is null)
                 return;
 
-            _target.AppendBytes(value._bytes.AsSpan(0, value._byteLength));
+            _target.AppendBytes(value.Bytes[..value._byteLength]);
         }
 
         public void AppendFormatted<T>(T value)
