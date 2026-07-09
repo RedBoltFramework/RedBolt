@@ -104,7 +104,7 @@ public sealed class RenderBufferManager
         ResolveOutputParams(renderTarget);
         RefreshManagedTextureBuffers();
 
-        var needReadableDepth = settings.ReadableDepth;
+        var needReadableDepth = settings.ReadableDepth || frameSettings.ReadableDepth;
         var needSecondaryBuffer = frameSettings.SupportColorReadWrite;
         var needSimpleTexture = frameSettings.ReadableColor || needReadableDepth || settings.ColorUsableWithMultipleRenderTargets;
         var isFullRectOutput = renderTarget is null || renderTarget.FullViewportRect == viewportRect;

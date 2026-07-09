@@ -1543,7 +1543,7 @@ layout(std140) uniform Material
     private void UpdateFullscreenObjectBuffer(IBuffer buffer)
     {
         Span<byte> data = stackalloc byte[ObjectBufferSize];
-        WriteMatrix4(data, 0, Matrix4.Identity);
+        WriteMatrix4Raw(data, 0, Matrix4.Identity);
         WriteVector4(data, 64, DefaultAmbient);
         UpdateBuffer(buffer, data);
     }
@@ -1816,7 +1816,7 @@ layout(std140) uniform Material
                 return (buffer, field, value) =>
                 {
                     if (field.Kind == CustomUniformKind.Matrix4)
-                        WriteMatrix4(buffer, field.Offset, getter(value));
+                        WriteMatrix4Raw(buffer, field.Offset, getter(value));
                 };
             }
 
@@ -1907,7 +1907,7 @@ layout(std140) uniform Material
 
             case CustomUniformKind.Matrix4:
                 if (value is Matrix4 matrix4)
-                    WriteMatrix4(buffer, field.Offset, matrix4);
+                    WriteMatrix4Raw(buffer, field.Offset, matrix4);
                 break;
         }
     }
@@ -2699,15 +2699,22 @@ layout(std140) uniform Material
         };
     }
 
+    private static byte[] BuildFullscreenCameraBufferData(Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    {
+        var data = new byte[CameraBufferSize];
+        WriteFullscreenCameraBufferData(data, clipToUvOffsetAndScale, invInputSize, flipVertical);
+        return data;
+    }
+
     private static void WriteFullscreenCameraBufferData(Span<byte> data, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
     {
         var projection = Matrix4.Identity;
         if (flipVertical)
             projection.M11 = -1.0f;
 
-        WriteMatrix4(data, 0, Matrix4.Identity);
-        WriteMatrix4(data, 64, Matrix4.Identity);
-        WriteMatrix4(data, 128, projection);
+        WriteMatrix4Raw(data, 0, Matrix4.Identity);
+        WriteMatrix4Raw(data, 64, Matrix4.Identity);
+        WriteMatrix4Raw(data, 128, projection);
         WriteVector4(data, 192, Vector4.Zero);
         WriteVector4(data, 208, Vector4.Zero);
         WriteFloat(data, 224, 0.0f);
@@ -2723,12 +2730,18 @@ layout(std140) uniform Material
         WriteFloat(data, 364, 0.0f);
     }
 
+    private static void WriteFullscreenCameraBufferData(byte[] data, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        WriteFullscreenCameraBufferData(data.AsSpan(), clipToUvOffsetAndScale, invInputSize, flipVertical);
+    }
+
     private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
     {
         Span<byte> data = stackalloc byte[CameraBufferSize];
-        WriteMatrix4(data, 0, camera.GetView().Matrix4);
-        WriteMatrix4(data, 64, camera.GetInverseView().Matrix4);
-        WriteMatrix4(data, 128, camera.GetGPUViewProj());
+        WriteMatrix4Raw(data, 0, camera.GetView().Matrix4);
+        WriteMatrix4Raw(data, 64, camera.GetInverseView().Matrix4);
+        WriteMatrix4Raw(data, 128, camera.GetGPUViewProj());
         WriteVector4(data, 192, new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
         var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3.Zero;
         WriteVector4(data, 208, new Vector4(cameraPosition, 0.0f));
@@ -2750,7 +2763,7 @@ layout(std140) uniform Material
     private void UpdateObjectBuffer(IBuffer buffer, Matrix4 modelMatrix, Vector4 ambient)
     {
         Span<byte> data = stackalloc byte[ObjectBufferSize];
-        WriteMatrix4(data, 0, modelMatrix);
+        WriteMatrix4Raw(data, 0, modelMatrix);
         WriteVector4(data, 64, ambient);
         UpdateBuffer(buffer, data);
     }
@@ -3464,12 +3477,18 @@ layout(std140) uniform Material
         WriteFloat(buffer, offset + 12, value.W);
     }
 
-    private static void WriteMatrix4(Span<byte> buffer, int offset, Matrix4 value)
+    private static void WriteMatrix4Raw(Span<byte> buffer, int offset, Matrix4 value)
     {
         // rbfx stores Matrix4 in row-major CPU order and memcpy's it into uniform buffers.
         // GLSL consumes mat4 from std140 as column-major storage and shaders use vec4 * mat4,
         // so uploading raw rbfx memory yields the expected transposed shader-side math.
         System.Runtime.InteropServices.MemoryMarshal.Write(buffer.Slice(offset, 16 * sizeof(float)), in value);
+    }
+
+    private static void WriteMatrix4(byte[] buffer, int offset, Matrix4 value)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        WriteMatrix4Raw(buffer.AsSpan(), offset, value);
     }
 
     private static void CheckSdlGl(int result, string operation)

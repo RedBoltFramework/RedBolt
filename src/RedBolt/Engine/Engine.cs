@@ -7,6 +7,7 @@ public sealed class Engine
     private readonly Dictionary<string, object?> customParameters = new(StringComparer.Ordinal);
     private readonly System.Diagnostics.Stopwatch frameClock = new();
     private float? nextTimeStep;
+    private Context? previousContext;
     private readonly Context context = new();
 
     public EngineParameters Parameters { get; private set; } = new();
@@ -219,7 +220,7 @@ public sealed class Engine
         GetRequiredSubsystem<Input>().Shutdown();
         Context.Reset();
         if (ReferenceEquals(RedBolt.Context.TryGetInstance(), Context))
-            RedBolt.Context.SetInstance(null);
+            RedBolt.Context.SetInstance(previousContext);
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
@@ -229,6 +230,7 @@ public sealed class Engine
 
     private void InitializeContext()
     {
+        previousContext = RedBolt.Context.TryGetInstance();
         Context.Reset();
         RedBolt.Context.SetInstance(Context);
         Context.RegisterSubsystem(Context);

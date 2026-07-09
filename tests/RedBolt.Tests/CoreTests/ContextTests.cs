@@ -374,6 +374,7 @@ public sealed class ContextTests
     [Fact]
     public void Engine_shutdown_clears_global_context_instance()
     {
+        var previousContext = Context.TryGetInstance();
         var engine = new Engine();
         try
         {
@@ -387,7 +388,7 @@ public sealed class ContextTests
 
             engine.Shutdown();
 
-            Assert.Null(Context.TryGetInstance());
+            Assert.Same(previousContext, Context.TryGetInstance());
         }
         finally
         {
