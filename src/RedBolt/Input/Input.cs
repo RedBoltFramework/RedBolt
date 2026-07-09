@@ -162,9 +162,16 @@ public sealed class Input
         if (!Enabled || !IsInitialized || nativeEvent is null)
             return;
 
+        var dearImGui = Context.Instance.GetSubsystem<IDearImGuiInputSink>();
+
         while (SdlNativeBindings.SdlPollEvent(nativeEvent) != 0)
         {
             var eventType = (SdlEventType)nativeEvent.Type;
+            var eventHandledByDearImGui = dearImGui?.ProcessEvent(nativeEvent.Handle) == true;
+
+            if (eventHandledByDearImGui || ShouldConsumeEventByDearImGui(dearImGui, eventType))
+                continue;
+
             if (eventType == SdlEventType.SdlQuit)
             {
                 ExitRequested = true;
@@ -204,6 +211,19 @@ public sealed class Input
         }
 
         Context.Instance.SendEvent<InputEvents.InputEndEvent>();
+    }
+
+    private static bool ShouldConsumeEventByDearImGui(IDearImGuiInputSink? dearImGui, SdlEventType eventType)
+    {
+        if (dearImGui is null)
+            return false;
+
+        return eventType switch
+        {
+            SdlEventType.SdlKeydown or SdlEventType.SdlKeyup => dearImGui.WantCaptureKeyboard,
+            SdlEventType.SdlMousebuttondown or SdlEventType.SdlMousebuttonup or SdlEventType.SdlMousemotion or SdlEventType.SdlMousewheel => dearImGui.WantCaptureMouse,
+            _ => false
+        };
     }
 
     public static Key GetKeyFromName(string name)

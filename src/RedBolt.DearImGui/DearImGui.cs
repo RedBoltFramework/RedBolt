@@ -3,7 +3,7 @@ using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-public sealed class DearImGui : IDisposable
+public sealed class DearImGui : IDisposable, IDearImGuiInputSink
 {
     private readonly Context context;
     private nint imContext;

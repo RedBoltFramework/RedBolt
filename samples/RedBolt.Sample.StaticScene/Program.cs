@@ -122,13 +122,12 @@ sealed class StaticSceneApplication : Application
     private void DrawGCStats()
     {
         ImGui.SetNextWindowPos(new Vector2(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280, 160), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2(280, 180), ImGuiCond.ImGuiCondFirstUseEver);
 
         var flags = ImGuiWindowFlags.ImGuiWindowFlagsNoResize
-                  | ImGuiWindowFlags.ImGuiWindowFlagsNoMove
                   | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings;
 
-        if (ImGui.Begin("GC Stats\0"u8, out _, flags))
+        if (ImGui.Begin("Stats\0"u8, out _, flags))
         {
             UpdateMegabyteLine(this.heapSizeLine, "Heap Size: "u8, ref this.cachedHeapSizeBytes, GC.GetTotalMemory(false));
             UpdateIntegerLine(this.gen0CollectionsLine, "Gen 0 Collections: "u8, ref this.cachedGen0Collections, GC.CollectionCount(0));

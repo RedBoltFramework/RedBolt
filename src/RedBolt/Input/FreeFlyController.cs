@@ -102,6 +102,10 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         if (!IsEnabledEffective || !IsAttached || input is null)
             return;
 
+        var dearImGui = Context.Instance.GetSubsystem<IDearImGuiInputSink>();
+        if (dearImGui?.WantCaptureMouse == true || dearImGui?.WantCaptureKeyboard == true)
+            return;
+
         if (isActive || input.MouseMode == MouseMode.Free)
         {
             if (!isActive && input.GetMouseButtonPress(MouseButton.Right))
