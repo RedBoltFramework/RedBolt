@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public abstract class Serializable
+public abstract class Serializable : Object
 {
     private readonly List<AttributeInfo> attributes = [];
     private readonly Dictionary<StringHash, object?> attributeValues = new();
@@ -119,7 +119,12 @@ public abstract class Serializable
     public void ResetToDefault()
     {
         foreach (var attribute in attributes)
+        {
+            if ((attribute.Mode & (AttributeMode.NoEdit | AttributeMode.NodeId | AttributeMode.ComponentId | AttributeMode.NodeIdVector)) != 0)
+                continue;
+
             OnSetAttribute(attribute, GetAttributeDefault(attribute));
+        }
     }
 
     public virtual bool Save(Stream destination)
@@ -137,7 +142,11 @@ public abstract class Serializable
         if (index < 0 || index >= attributes.Count)
             return false;
 
-        OnSetAttribute(attributes[index], value);
+        var attribute = attributes[index];
+        if (value is not null && !attribute.ValueType.IsInstanceOfType(value))
+            return false;
+
+        OnSetAttribute(attribute, value);
         return true;
     }
 
@@ -151,6 +160,9 @@ public abstract class Serializable
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
         if (attribute is null)
+            return false;
+
+        if (value is not null && !attribute.ValueType.IsInstanceOfType(value))
             return false;
 
         OnSetAttribute(attribute, value);
@@ -170,7 +182,34 @@ public abstract class Serializable
 
     public void SetTemporary(bool enable)
     {
+        if (Temporary == enable)
+            return;
+
         Temporary = enable;
+
+        switch (this)
+        {
+            case Node node:
+            {
+                var eventData = new SceneEvents.TemporaryChangedEvent
+                {
+                    Scene = node.Scene,
+                    Serializable = this
+                };
+                node.Scene.SendEvent(ref eventData);
+                break;
+            }
+            case Component { Scene: { } scene }:
+            {
+                var eventData = new SceneEvents.TemporaryChangedEvent
+                {
+                    Scene = scene,
+                    Serializable = this
+                };
+                scene.SendEvent(ref eventData);
+                break;
+            }
+        }
     }
 
     protected AttributeHandle RegisterAttribute(

@@ -66,4 +66,35 @@ public sealed class ObjectAnimationTests
         Assert.Null(node.GetObjectAnimation());
         Assert.Null(node.GetAttributeAnimation("Position"));
     }
+
+    [Fact]
+    public void Add_remove_dispatch_attribute_animation_events()
+    {
+        var objectAnimation = new ObjectAnimation("Animations/Object");
+        var animation = new ValueAnimation("Animations/Fov");
+        animation.SetKeyFrame(0.0f, 45.0f);
+        animation.SetKeyFrame(1.0f, 90.0f);
+        var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            var receiver = new object();
+            var added = 0;
+            var removed = 0;
+            using var addSubscription =
+                context.SubscribeToEvent<SceneEvents.AttributeAnimationAddedEvent>(receiver, objectAnimation, (ref SceneEvents.AttributeAnimationAddedEvent _) => ++added);
+            using var removeSubscription =
+                context.SubscribeToEvent<SceneEvents.AttributeAnimationRemovedEvent>(receiver, objectAnimation, (ref SceneEvents.AttributeAnimationRemovedEvent _) => ++removed);
+
+            objectAnimation.AddAttributeAnimation("FOV", animation);
+            objectAnimation.RemoveAttributeAnimation("FOV");
+
+            Assert.Equal(1, added);
+            Assert.Equal(1, removed);
+        }
+        finally
+        {
+            Context.SetInstance(null);
+        }
+    }
 }

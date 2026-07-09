@@ -9,6 +9,7 @@ public sealed class Time : Object
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
     private readonly Timer elapsedTime = new();
+    private double elapsedTimeSeconds;
     private uint frameNumber;
     private float timeStep;
     private uint timerPeriod;
@@ -25,7 +26,7 @@ public sealed class Time : Object
         private set => timeStep = value;
     }
 
-    public double ElapsedTime => elapsedTime.GetMSec(false) / 1000.0;
+    public double ElapsedTime => elapsedTimeSeconds;
 
     public uint TimerPeriod => timerPeriod;
 
@@ -85,6 +86,7 @@ public sealed class Time : Object
             ++FrameNumber;
 
         TimeStep = elapsedTimeStep;
+        elapsedTimeSeconds += elapsedTimeStep;
     }
 
     internal void EndFrame()

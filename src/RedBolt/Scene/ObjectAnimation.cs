@@ -38,7 +38,7 @@ public sealed class ObjectAnimation : Resource
                 name,
                 animation,
                 ParseWrapMode(animationElement.GetString("wrapmode")),
-                animationElement.HasAttribute("speed") ? animationElement.GetFloat("speed") : 1.0f);
+                animationElement.GetFloat("speed"));
         }
 
         return true;
@@ -62,7 +62,11 @@ public sealed class ObjectAnimation : Resource
     public bool LoadJSON(JSONValue source)
     {
         attributeAnimationInfos.Clear();
-        foreach (var pair in source.Get("attributeanimations").GetObject())
+        var attributeAnimations = source.Get("attributeanimations");
+        if (attributeAnimations.IsNull || !attributeAnimations.IsObject)
+            return true;
+
+        foreach (var pair in attributeAnimations.GetObject())
         {
             var animation = new ValueAnimation(Name + ":" + pair.Key);
             if (!animation.LoadJSON(pair.Value))
@@ -72,7 +76,7 @@ public sealed class ObjectAnimation : Resource
                 pair.Key,
                 animation,
                 ParseWrapMode(pair.Value.Get("wrapmode").GetString()),
-                pair.Value.Get("speed").GetFloat(1.0f));
+                pair.Value.Get("speed").GetFloat());
         }
 
         return true;
@@ -102,13 +106,27 @@ public sealed class ObjectAnimation : Resource
 
         attributeAnimation.SetOwner(this);
         attributeAnimationInfos[name] = new ValueAnimationInfo(attributeAnimation, wrapMode, speed);
+        var eventData = new SceneEvents.AttributeAnimationAddedEvent
+        {
+            ObjectAnimation = this,
+            Name = name
+        };
+        SendEvent(ref eventData);
     }
 
     public void RemoveAttributeAnimation(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (attributeAnimationInfos.Remove(name, out var info))
+        {
+            var eventData = new SceneEvents.AttributeAnimationRemovedEvent
+            {
+                ObjectAnimation = this,
+                Name = name
+            };
+            SendEvent(ref eventData);
             info.GetAnimation().SetOwner(null);
+        }
     }
 
     public void RemoveAttributeAnimation(ValueAnimation attributeAnimation)

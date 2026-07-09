@@ -1,9 +1,13 @@
+using System.Buffers;
+
 namespace RedBolt;
 
-public sealed class Scene
+public sealed class Scene : Object
 {
-    private readonly HashSet<uint> componentIds = [];
-    private readonly HashSet<uint> nodeIds = [];
+    private readonly Dictionary<uint, Component> components = [];
+    private readonly Dictionary<uint, Node> nodes = [];
+    private readonly Dictionary<string, List<Node>> taggedNodes = new(StringComparer.Ordinal);
+    private readonly List<ISceneUpdateListener> updateListeners = [];
     private readonly List<StaticModel> staticModels = [];
     private int asyncLoadingMs = 5;
     private float elapsedTime;
@@ -14,6 +18,7 @@ public sealed class Scene
     public Scene()
     {
         Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
+        NodeAdded(Root);
     }
 
     public Node Root { get; }
@@ -53,14 +58,23 @@ public sealed class Scene
 
     public void SetUpdateEnabled(bool enable)
     {
+        if (UpdateEnabled == enable)
+            return;
+
         UpdateEnabled = enable;
+
+        var eventData = new SceneEvents.SceneUpdatesChangedEvent
+        {
+            Scene = this
+        };
+        SendEvent(ref eventData);
     }
 
     public bool IsUpdateEnabled() => UpdateEnabled;
 
     public void SetTimeScale(float scale)
     {
-        TimeScale = Math.Max(scale, 0.0f);
+        TimeScale = Math.Max(scale, MathDefs.Epsilon);
     }
 
     public float GetTimeScale() => TimeScale;
@@ -69,7 +83,7 @@ public sealed class Scene
 
     public void SetElapsedTime(float time)
     {
-        elapsedTime = Math.Max(time, 0.0f);
+        elapsedTime = time;
     }
 
     public float GetElapsedTime() => elapsedTime;
@@ -102,43 +116,27 @@ public sealed class Scene
 
     public Node? GetNode(uint id)
     {
-        if (Root.Id == id)
-            return Root;
-
-        return Root.GetChildren(recursive: true).FirstOrDefault(node => node.Id == id);
+        return nodes.GetValueOrDefault(id);
     }
 
     public Component? GetComponent(uint id)
     {
-        foreach (var component in GetAllComponents().Values)
-        {
-            if (component.Id == id)
-                return component;
-        }
-
-        return null;
+        return components.GetValueOrDefault(id);
     }
 
     public IReadOnlyList<Node> GetNodesWithTag(string tag)
     {
-        return Root.GetChildrenWithTag(tag, recursive: true);
+        return taggedNodes.TryGetValue(tag, out var tagged) ? tagged : Array.Empty<Node>();
     }
 
     public IReadOnlyDictionary<uint, Node> GetAllNodes()
     {
-        var result = new Dictionary<uint, Node> { [Root.Id] = Root };
-        foreach (var node in Root.GetChildren(recursive: true))
-            result[node.Id] = node;
-        return result;
+        return nodes;
     }
 
     public IReadOnlyDictionary<uint, Component> GetAllComponents()
     {
-        var result = new Dictionary<uint, Component>();
-        AddNodeComponents(Root, result);
-        foreach (var node in Root.GetChildren(recursive: true))
-            AddNodeComponents(node, result);
-        return result;
+        return components;
     }
 
     public void GetComponents<T>(List<T> result)
@@ -147,80 +145,246 @@ public sealed class Scene
         ArgumentNullException.ThrowIfNull(result);
 
         result.Clear();
-        Root.FindComponents(ComponentSearchFlag.Self | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive, result);
+        foreach (var component in components.Values)
+        {
+            if (component is T typed)
+                result.Add(typed);
+        }
     }
 
     public void Update(float timeStep)
     {
-        if (!UpdateEnabled)
-            return;
+        var effectiveTimeStep = timeStep * TimeScale;
 
-        var effectiveTimeStep = Math.Max(timeStep, 0.0f) * TimeScale;
-        elapsedTime += effectiveTimeStep;
+        var forcedUpdateEvent = new SceneEvents.SceneForcedUpdateEvent
+        {
+            Scene = this,
+            TimeStep = effectiveTimeStep
+        };
+        SendEvent(ref forcedUpdateEvent);
 
-        var updateListeners = GetAllComponents().Values.OfType<ISceneUpdateListener>().ToArray();
-        foreach (var listener in updateListeners)
-            listener.OnSceneUpdate(effectiveTimeStep);
-        foreach (var listener in updateListeners)
-            listener.OnScenePostUpdate(effectiveTimeStep);
+        if (UpdateEnabled)
+        {
+            var listenerSnapshot = SnapshotUpdateListeners();
+            try
+            {
+                var sceneUpdateEvent = new SceneEvents.SceneUpdateEvent
+                {
+                    Scene = this,
+                    TimeStep = effectiveTimeStep
+                };
+                SendEvent(ref sceneUpdateEvent);
+                for (var i = 0; i < listenerSnapshot.Count; ++i)
+                    listenerSnapshot.Array[i]!.OnSceneUpdate(effectiveTimeStep);
+
+                var attributeAnimationUpdateEvent = new SceneEvents.AttributeAnimationUpdateEvent
+                {
+                    Scene = this,
+                    TimeStep = effectiveTimeStep
+                };
+                SendEvent(ref attributeAnimationUpdateEvent);
+                UpdateAttributeAnimations(effectiveTimeStep);
+
+                var subsystemUpdateEvent = new SceneEvents.SceneSubsystemUpdateEvent
+                {
+                    Scene = this,
+                    TimeStep = effectiveTimeStep
+                };
+                SendEvent(ref subsystemUpdateEvent);
+
+                var postUpdateEvent = new SceneEvents.ScenePostUpdateEvent
+                {
+                    Scene = this,
+                    TimeStep = effectiveTimeStep
+                };
+                SendEvent(ref postUpdateEvent);
+                for (var i = 0; i < listenerSnapshot.Count; ++i)
+                    listenerSnapshot.Array[i]!.OnScenePostUpdate(effectiveTimeStep);
+
+                elapsedTime += effectiveTimeStep;
+            }
+            finally
+            {
+                listenerSnapshot.Dispose();
+            }
+        }
+
+        var forcedPostUpdateEvent = new SceneEvents.SceneForcedPostUpdateEvent
+        {
+            Scene = this,
+            TimeStep = effectiveTimeStep
+        };
+        SendEvent(ref forcedPostUpdateEvent);
     }
 
     internal uint AllocateComponentId(uint requestedId)
     {
-        return AllocateId(componentIds, ref nextComponentId, requestedId, "component");
+        return AllocateId(components, ref nextComponentId, requestedId);
     }
 
     internal uint AllocateNodeId(uint requestedId)
     {
-        return AllocateId(nodeIds, ref nextNodeId, requestedId, "node");
+        return AllocateId(nodes, ref nextNodeId, requestedId);
     }
 
-    internal void RegisterComponent(Component component)
+    internal void NodeAdded(Node node)
     {
+        if (nodes.TryGetValue(node.Id, out var existingNode) && !ReferenceEquals(existingNode, node))
+            existingNode.Parent?.RemoveChild(existingNode);
+
+        if (!nodes.TryAdd(node.Id, node))
+            return;
+
+        foreach (var tag in node.Tags)
+            NodeTagAdded(node, tag);
+
+        foreach (var component in node.Components)
+            ComponentAdded(component);
+
+        foreach (var child in node.Children)
+            NodeAdded(child);
+    }
+
+    internal void NodeRemoved(Node node)
+    {
+        if (!nodes.Remove(node.Id))
+            return;
+
+        foreach (var child in node.Children)
+            NodeRemoved(child);
+
+        foreach (var component in node.Components)
+            ComponentRemoved(component);
+
+        foreach (var tag in node.Tags)
+            NodeTagRemoved(node, tag);
+    }
+
+    internal void NodeTagAdded(Node node, string tag)
+    {
+        if (!taggedNodes.TryGetValue(tag, out var tagged))
+            taggedNodes[tag] = tagged = [];
+        tagged.Add(node);
+    }
+
+    internal void NodeTagRemoved(Node node, string tag)
+    {
+        if (!taggedNodes.TryGetValue(tag, out var tagged))
+            return;
+
+        tagged.Remove(node);
+        if (tagged.Count == 0)
+            taggedNodes.Remove(tag);
+    }
+
+    internal void ComponentAdded(Component component)
+    {
+        if (components.TryGetValue(component.Id, out var existingComponent) && !ReferenceEquals(existingComponent, component))
+            existingComponent.Node.RemoveComponent(existingComponent);
+
+        components[component.Id] = component;
+        component.OnSceneSet(null, this);
+
+        if (component is ISceneUpdateListener listener)
+            updateListeners.Add(listener);
         if (component is StaticModel staticModel)
             staticModels.Add(staticModel);
     }
 
-    internal void UnregisterComponent(Component component)
+    internal void ComponentRemoved(Component component)
     {
+        if (!components.Remove(component.Id))
+            return;
+
+        if (component is ISceneUpdateListener listener)
+            updateListeners.Remove(listener);
         if (component is StaticModel staticModel)
             staticModels.Remove(staticModel);
+
+        component.SetId(0);
+        component.OnSceneSet(this, null);
     }
 
-    internal void ReleaseComponentId(uint id)
+    private void UpdateAttributeAnimations(float timeStep)
     {
-        componentIds.Remove(id);
+        var nodeSnapshot = SnapshotValues(nodes);
+        try
+        {
+            for (var i = 0; i < nodeSnapshot.Count; ++i)
+                nodeSnapshot.Array[i]!.ApplyAttributeAnimations(timeStep);
+        }
+        finally
+        {
+            nodeSnapshot.Dispose();
+        }
+
+        var componentSnapshot = SnapshotValues(components);
+        try
+        {
+            for (var i = 0; i < componentSnapshot.Count; ++i)
+                componentSnapshot.Array[i]!.ApplyAttributeAnimations(timeStep);
+        }
+        finally
+        {
+            componentSnapshot.Dispose();
+        }
     }
 
-    internal void ReleaseNodeId(uint id)
+    private static uint AllocateId<T>(Dictionary<uint, T> objects, ref uint nextId, uint requestedId)
+        where T : class
     {
-        if (id != Root.Id)
-            nodeIds.Remove(id);
+        if (requestedId != 0 && !objects.ContainsKey(requestedId))
+        {
+            if (requestedId >= nextId)
+                nextId = requestedId + 1;
+            return requestedId;
+        }
+
+        return NextFreeId(objects, ref nextId);
     }
 
-    private static void AddNodeComponents(Node node, Dictionary<uint, Component> result)
+    private static uint NextFreeId<T>(Dictionary<uint, T> objects, ref uint nextId)
+        where T : class
     {
-        foreach (var component in node.Components)
-            result[component.Id] = component;
-    }
-
-    private static uint AllocateId(HashSet<uint> ids, ref uint nextId, uint requestedId, string kind)
-    {
-        var id = requestedId == 0 ? NextFreeId(ids, ref nextId) : requestedId;
-        if (!ids.Add(id))
-            throw new InvalidOperationException($"Scene {kind} ID {id} is already in use.");
-
-        if (id >= nextId)
-            nextId = id + 1;
-
-        return id;
-    }
-
-    private static uint NextFreeId(HashSet<uint> ids, ref uint nextId)
-    {
-        while (nextId == 0 || ids.Contains(nextId))
+        while (nextId == 0 || objects.ContainsKey(nextId))
             ++nextId;
 
         return nextId++;
+    }
+
+    private Snapshot<ISceneUpdateListener> SnapshotUpdateListeners()
+    {
+        var array = ArrayPool<ISceneUpdateListener>.Shared.Rent(updateListeners.Count);
+        updateListeners.CopyTo(array, 0);
+        return new Snapshot<ISceneUpdateListener>(array, updateListeners.Count);
+    }
+
+    private static Snapshot<T> SnapshotValues<T>(Dictionary<uint, T> objects)
+        where T : class
+    {
+        var array = ArrayPool<T>.Shared.Rent(objects.Count);
+        var index = 0;
+        foreach (var value in objects.Values)
+            array[index++] = value;
+        return new Snapshot<T>(array, index);
+    }
+
+    private readonly ref struct Snapshot<T>
+        where T : class
+    {
+        public Snapshot(T[] array, int count)
+        {
+            Array = array;
+            Count = count;
+        }
+
+        public T[] Array { get; }
+        public int Count { get; }
+
+        public void Dispose()
+        {
+            System.Array.Clear(Array, 0, Count);
+            ArrayPool<T>.Shared.Return(Array);
+        }
     }
 }

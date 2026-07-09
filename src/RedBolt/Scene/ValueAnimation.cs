@@ -246,7 +246,7 @@ public sealed class ValueAnimation : Resource
         else if (type != valueType)
             return false;
 
-        if (keyFrames.Any(frame => MathDefs.ApproximatelyEquivalent(frame.Time, time)))
+        if (keyFrames.Any(frame => frame.Time == time))
             return false;
 
         keyFrames.Add(new VAnimKeyFrame { Time = time, Value = value });
@@ -273,7 +273,7 @@ public sealed class ValueAnimation : Resource
     {
         return InterpolationMethod switch
         {
-            InterpMethod.None => keyFrames.Count > 0,
+            InterpMethod.None => true,
             InterpMethod.Linear => keyFrames.Count > 1,
             InterpMethod.Spline => keyFrames.Count > 2,
             _ => false
@@ -310,7 +310,7 @@ public sealed class ValueAnimation : Resource
         var result = new List<VAnimEventFrame>();
         foreach (var frame in eventFrames)
         {
-            if (frame.Time > beginTime && frame.Time <= endTime)
+            if (frame.Time >= beginTime && frame.Time <= endTime)
                 result.Add(frame);
         }
 
@@ -330,11 +330,16 @@ public sealed class ValueAnimation : Resource
     {
         var denominator = keyFrames[index2].Time - keyFrames[index1].Time;
         var t = denominator == 0.0f ? 0.0f : (scaledTime - keyFrames[index1].Time) / denominator;
-        var previous = index1 > 0 ? keyFrames[index1 - 1].Value : keyFrames[index1].Value;
-        var next = index2 + 1 < keyFrames.Count ? keyFrames[index2 + 1].Value : keyFrames[index2].Value;
-        var scale = (1.0f - SplineTension) * 0.5f;
-        var tangent1 = SubtractAndMultiply(keyFrames[index2].Value, previous, scale);
-        var tangent2 = SubtractAndMultiply(next, keyFrames[index1].Value, scale);
+        var tangent1 = index1 == 0
+            ? Equals(keyFrames[0].Value, keyFrames[^1].Value)
+                ? SubtractAndMultiply(keyFrames[1].Value, keyFrames[^2].Value, SplineTension)
+                : SubtractAndMultiply(keyFrames[0].Value, keyFrames[0].Value, SplineTension)
+            : SubtractAndMultiply(keyFrames[index1 + 1].Value, keyFrames[index1 - 1].Value, SplineTension);
+        var tangent2 = index2 == keyFrames.Count - 1
+            ? Equals(keyFrames[0].Value, keyFrames[^1].Value)
+                ? SubtractAndMultiply(keyFrames[1].Value, keyFrames[^2].Value, SplineTension)
+                : SubtractAndMultiply(keyFrames[^1].Value, keyFrames[^1].Value, SplineTension)
+            : SubtractAndMultiply(keyFrames[index2 + 1].Value, keyFrames[index2 - 1].Value, SplineTension);
         return Hermite(keyFrames[index1].Value, tangent1, keyFrames[index2].Value, tangent2, t);
     }
 
@@ -346,15 +351,15 @@ public sealed class ValueAnimation : Resource
             (Vector2 left, Vector2 right) => left.Lerp(right, t),
             (Vector3 left, Vector3 right) => left.Lerp(right, t),
             (Vector4 left, Vector4 right) => left.Lerp(right, t),
-            (Quaternion left, Quaternion right) => left.Nlerp(right, t, shortestPath: true),
+            (Quaternion left, Quaternion right) => left.Slerp(right, t),
             (Color left, Color right) => left.Lerp(right, t),
-            (IntVector2 left, IntVector2 right) => new IntVector2(MathDefs.RoundToInt(MathDefs.Lerp(left.X, right.X, t)), MathDefs.RoundToInt(MathDefs.Lerp(left.Y, right.Y, t))),
-            (IntVector3 left, IntVector3 right) => new IntVector3(MathDefs.RoundToInt(MathDefs.Lerp(left.X, right.X, t)), MathDefs.RoundToInt(MathDefs.Lerp(left.Y, right.Y, t)), MathDefs.RoundToInt(MathDefs.Lerp(left.Z, right.Z, t))),
+            (IntVector2 left, IntVector2 right) => new IntVector2((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t)),
+            (IntVector3 left, IntVector3 right) => new IntVector3((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t), (int)(left.Z * (1.0f - t) + right.Z * t)),
             (IntRect left, IntRect right) => new IntRect(
-                MathDefs.RoundToInt(MathDefs.Lerp(left.Left, right.Left, t)),
-                MathDefs.RoundToInt(MathDefs.Lerp(left.Top, right.Top, t)),
-                MathDefs.RoundToInt(MathDefs.Lerp(left.Right, right.Right, t)),
-                MathDefs.RoundToInt(MathDefs.Lerp(left.Bottom, right.Bottom, t))),
+                (int)(left.Left * (1.0f - t) + right.Left * t),
+                (int)(left.Top * (1.0f - t) + right.Top * t),
+                (int)(left.Right * (1.0f - t) + right.Right * t),
+                (int)(left.Bottom * (1.0f - t) + right.Bottom * t)),
             _ => lhs
         };
     }
@@ -367,10 +372,8 @@ public sealed class ValueAnimation : Resource
             (Vector2 left, Vector2 right) => (left - right) * t,
             (Vector3 left, Vector3 right) => (left - right) * t,
             (Vector4 left, Vector4 right) => (left - right) * t,
+            (Quaternion left, Quaternion right) => (left - right) * t,
             (Color left, Color right) => (left - right) * t,
-            (IntVector2 left, IntVector2 right) => (left - right).ToVector2() * t,
-            (IntVector3 left, IntVector3 right) => (left - right).ToVector3() * t,
-            (IntRect left, IntRect right) => new Vector4(left.Left - right.Left, left.Top - right.Top, left.Right - right.Right, left.Bottom - right.Bottom) * t,
             _ => null
         };
     }
@@ -390,19 +393,8 @@ public sealed class ValueAnimation : Resource
             (Vector2 v1, Vector2 m1, Vector2 v2, Vector2 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             (Vector3 v1, Vector3 m1, Vector3 v2, Vector3 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             (Vector4 v1, Vector4 m1, Vector4 v2, Vector4 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
+            (Quaternion v1, Quaternion m1, Quaternion v2, Quaternion m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             (Color v1, Color m1, Color v2, Color m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (IntVector2 v1, Vector2 m1, IntVector2 v2, Vector2 m2) => new IntVector2(
-                MathDefs.RoundToInt(v1.X * h1 + v2.X * h2 + m1.X * h3 + m2.X * h4),
-                MathDefs.RoundToInt(v1.Y * h1 + v2.Y * h2 + m1.Y * h3 + m2.Y * h4)),
-            (IntVector3 v1, Vector3 m1, IntVector3 v2, Vector3 m2) => new IntVector3(
-                MathDefs.RoundToInt(v1.X * h1 + v2.X * h2 + m1.X * h3 + m2.X * h4),
-                MathDefs.RoundToInt(v1.Y * h1 + v2.Y * h2 + m1.Y * h3 + m2.Y * h4),
-                MathDefs.RoundToInt(v1.Z * h1 + v2.Z * h2 + m1.Z * h3 + m2.Z * h4)),
-            (IntRect v1, Vector4 m1, IntRect v2, Vector4 m2) => new IntRect(
-                MathDefs.RoundToInt(v1.Left * h1 + v2.Left * h2 + m1.X * h3 + m2.X * h4),
-                MathDefs.RoundToInt(v1.Top * h1 + v2.Top * h2 + m1.Y * h3 + m2.Y * h4),
-                MathDefs.RoundToInt(v1.Right * h1 + v2.Right * h2 + m1.Z * h3 + m2.Z * h4),
-                MathDefs.RoundToInt(v1.Bottom * h1 + v2.Bottom * h2 + m1.W * h3 + m2.W * h4)),
             _ => Interpolate(value1, value2, t)
         };
     }

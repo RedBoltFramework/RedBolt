@@ -27,7 +27,7 @@ public abstract class Component : Animatable
 
     public Node Node => node ?? throw new InvalidOperationException("Component is not attached to a node.");
 
-    public Scene Scene => Node.Scene;
+    public Scene? Scene => node?.Scene;
 
     public bool IsEnabledEffective => Enabled && (node?.IsEnabled ?? false);
 
@@ -59,28 +59,35 @@ public abstract class Component : Animatable
 
         enabled = enable;
         OnSetEnabled();
+
+        if (node is { Scene: { } scene })
+        {
+            var eventData = new SceneEvents.ComponentEnabledChangedEvent
+            {
+                Scene = scene,
+                Node = node,
+                Component = this
+            };
+            scene.SendEvent(ref eventData);
+        }
     }
 
     internal void Attach(Node node)
     {
         var previousNode = this.node;
-        var previousScene = previousNode?.Scene;
 
         this.node = node;
         OnNodeSet(previousNode, node);
-        OnSceneSet(previousScene, node.Scene);
         OnAttached();
     }
 
     internal void Detach()
     {
         var previousNode = node;
-        var previousScene = previousNode?.Scene;
 
         OnDetached();
         node = null;
         OnNodeSet(previousNode, null);
-        OnSceneSet(previousScene, null);
     }
 
     internal void SetId(uint id)
@@ -112,7 +119,7 @@ public abstract class Component : Animatable
     {
     }
 
-    protected virtual void OnSetEnabled()
+    protected internal virtual void OnSetEnabled()
     {
     }
 }

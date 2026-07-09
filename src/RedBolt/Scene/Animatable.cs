@@ -171,6 +171,11 @@ public class Animatable : Serializable
             info.Update(timeStep);
     }
 
+    internal void ApplyAttributeAnimations(float timeStep)
+    {
+        UpdateAttributeAnimations(timeStep);
+    }
+
     protected AttributeAnimationInfo? GetAttributeAnimationInfo(string name)
     {
         return attributeAnimationInfos.GetValueOrDefault(name);

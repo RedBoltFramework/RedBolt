@@ -48,12 +48,18 @@ public abstract class Object
 
     public void SendEvent<T>() where T : struct
     {
+        if (Context.TryGetInstance() is null)
+            return;
+
         var args = new T();
         Context.SendEvent(this, ref args);
     }
 
     public void SendEvent<T>(ref T args) where T : struct
     {
+        if (Context.TryGetInstance() is null)
+            return;
+
         Context.SendEvent(this, ref args);
     }
 

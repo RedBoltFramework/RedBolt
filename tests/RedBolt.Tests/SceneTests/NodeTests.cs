@@ -41,8 +41,40 @@ public sealed class NodeTests
         var node = scene.CreateChild("Vars");
         node.SetVar("Health", 100);
         Assert.Equal(100, node.GetVar("Health"));
+        node.SetVarByHash(new StringHash("Armor"), 50);
+        Assert.Null(node.GetVar("Armor"));
         Assert.True(node.RemoveVar("Health"));
         Assert.Null(node.GetVar("Health"));
+    }
+
+    [Fact]
+    public void Transform2d_helpers_canonicalize_z_components()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("TwoD");
+        node.SetPosition(new Vector3(1.0f, 2.0f, 3.0f));
+        node.SetScale(new Vector3(4.0f, 5.0f, 6.0f));
+
+        node.SetPosition2D(new Vector2(7.0f, 8.0f));
+        Assert.Equal(0.0f, node.Position.Z);
+
+        node.SetScale2D(new Vector2(9.0f, 10.0f));
+        Assert.Equal(1.0f, node.Scale.Z);
+
+        node.SetTransform2D(new Vector2(11.0f, 12.0f), 30.0f, new Vector2(13.0f, 14.0f));
+        Assert.Equal(0.0f, node.Position.Z);
+        Assert.Equal(1.0f, node.Scale.Z);
+    }
+
+    [Fact]
+    public void FindComponents_honors_exact_vs_derived_search()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Search");
+        node.CreateComponent<Camera>();
+
+        Assert.Empty(node.FindComponents<Component>(ComponentSearchFlag.Self));
+        Assert.Single(node.FindComponents<Component>(ComponentSearchFlag.Self | ComponentSearchFlag.Derived));
     }
 
     [Fact]

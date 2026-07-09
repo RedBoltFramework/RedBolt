@@ -45,15 +45,9 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         if (currentNode is not null)
-        {
-            delayedStartCalled = false;
             Start();
-        }
         else if (previousNode is not null)
-        {
             Stop();
-            delayedStartCalled = false;
-        }
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)

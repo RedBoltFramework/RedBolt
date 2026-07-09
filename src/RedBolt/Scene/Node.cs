@@ -143,7 +143,7 @@ public sealed class Node : Animatable
 
     public Quaternion WorldRotation => Parent is null ? rotation : (Parent.WorldRotation * rotation).Normalized;
 
-    public Vector3 WorldScale => Parent is null ? scale : Parent.WorldScale * scale;
+    public Vector3 WorldScale => Parent is null ? scale : (Parent.GetWorldTransform() * GetTransformMatrix()).Scale;
 
     public Vector3 WorldRight => WorldRotation * Vector3.Right;
 
@@ -151,8 +151,8 @@ public sealed class Node : Animatable
 
     public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
-        var child = new Node(Scene, this, name, Scene.AllocateNodeId(id), temporary);
-        children.Add(child);
+        var child = new Node(Scene, parent: null, name: name, id: Scene.AllocateNodeId(id), temporary: temporary);
+        AddChild(child);
         return child;
     }
 
@@ -165,10 +165,7 @@ public sealed class Node : Animatable
         where T : Component, new()
     {
         var component = new T();
-        component.SetId(Scene.AllocateComponentId(id));
-        component.Attach(this);
-        components.Add(component);
-        Scene.RegisterComponent(component);
+        AddComponent(component, id);
         return component;
     }
 
@@ -181,11 +178,29 @@ public sealed class Node : Animatable
         if (Activator.CreateInstance(type) is not Component component)
             return null;
 
+        AddComponent(component, id);
+        return component;
+    }
+
+    public void AddComponent(Component component, uint id = 0)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+        if (component.IsAttached)
+            throw new InvalidOperationException("Component already belongs to a node.");
+
         component.SetId(Scene.AllocateComponentId(id));
         component.Attach(this);
         components.Add(component);
-        Scene.RegisterComponent(component);
-        return component;
+        Scene.ComponentAdded(component);
+        component.OnMarkedDirty(this);
+
+        var eventData = new SceneEvents.ComponentAddedEvent
+        {
+            Scene = Scene,
+            Node = this,
+            Component = component
+        };
+        Scene.SendEvent(ref eventData);
     }
 
     public T GetOrCreateComponent<T>(uint id = 0)
@@ -204,10 +219,27 @@ public sealed class Node : Animatable
         clone.SetId(Scene.AllocateComponentId(id));
         clone.Attach(this);
         components.Add(clone);
-        Scene.RegisterComponent(clone);
+        Scene.ComponentAdded(clone);
         clone.CopyAttributes(component);
         clone.SetTemporary(component.IsTemporary);
         clone.ApplyAttributes();
+
+        var componentAddedEvent = new SceneEvents.ComponentAddedEvent
+        {
+            Scene = Scene,
+            Node = this,
+            Component = clone
+        };
+        Scene.SendEvent(ref componentAddedEvent);
+
+        var componentClonedEvent = new SceneEvents.ComponentClonedEvent
+        {
+            Scene = Scene,
+            Node = this,
+            Component = component,
+            CloneComponent = clone
+        };
+        Scene.SendEvent(ref componentClonedEvent);
         return clone;
     }
 
@@ -282,16 +314,7 @@ public sealed class Node : Animatable
     public T? GetParentComponent<T>()
         where T : Component
     {
-        var node = Parent;
-        while (node is not null)
-        {
-            var component = node.GetComponent<T>();
-            if (component is not null)
-                return component;
-            node = node.Parent;
-        }
-
-        return null;
+        return Parent?.GetComponent<T>();
     }
 
     public Node? GetParent() => Parent;
@@ -581,8 +604,15 @@ public sealed class Node : Animatable
 
         if (components.Remove(component))
         {
-            Scene.UnregisterComponent(component);
-            Scene.ReleaseComponentId(component.Id);
+            var eventData = new SceneEvents.ComponentRemovedEvent
+            {
+                Scene = Scene,
+                Node = this,
+                Component = component
+            };
+            Scene.SendEvent(ref eventData);
+
+            Scene.ComponentRemoved(component);
             component.Detach();
         }
     }
@@ -591,7 +621,7 @@ public sealed class Node : Animatable
     {
         ArgumentNullException.ThrowIfNull(component);
         var oldIndex = components.IndexOf(component);
-        if (oldIndex < 0)
+        if (oldIndex < 0 || index >= components.Count)
             return;
 
         components.RemoveAt(oldIndex);
@@ -629,10 +659,17 @@ public sealed class Node : Animatable
         if (!ReferenceEquals(node.Parent, this) || !children.Remove(node))
             return;
 
-        node.UnregisterComponentsRecursive();
-        node.ReleaseSceneIdsRecursive();
+        var eventData = new SceneEvents.NodeRemovedEvent
+        {
+            Scene = Scene,
+            Parent = this,
+            Node = node
+        };
+        Scene.SendEvent(ref eventData);
+
         node.Parent = null;
         node.MarkDirty();
+        Scene.NodeRemoved(node);
     }
 
     public void AddChild(Node node, uint index = uint.MaxValue)
@@ -643,24 +680,29 @@ public sealed class Node : Animatable
         if (!ReferenceEquals(node.Scene, Scene))
             throw new InvalidOperationException("Cross-scene parenting is not supported by the managed scene slice.");
 
-        var worldPosition = node.WorldPosition;
-        var worldRotation = node.WorldRotation;
-        var worldScale = node.WorldScale;
         var wasAttached = node.Parent is not null;
 
-        node.Parent?.DetachChildForReparent(node);
-        children.Insert((int)Math.Min(index, (uint)children.Count), node);
+        node.Parent?.DetachChildForReparent(node, this);
+        var insertIndex = index >= children.Count ? children.Count : (int)index;
+        children.Insert(insertIndex, node);
         node.Parent = this;
         if (!wasAttached)
-            node.RegisterComponentsRecursive();
-        node.SetWorldTransform(worldPosition, worldRotation, worldScale);
+            Scene.NodeAdded(node);
         node.MarkDirty();
+
+        var eventData = new SceneEvents.NodeAddedEvent
+        {
+            Scene = Scene,
+            Parent = this,
+            Node = node
+        };
+        Scene.SendEvent(ref eventData);
     }
 
     public void ReorderChild(Node child, uint index)
     {
         ArgumentNullException.ThrowIfNull(child);
-        if (!ReferenceEquals(child.Parent, this))
+        if (!ReferenceEquals(child.Parent, this) || index >= children.Count)
             return;
 
         children.Remove(child);
@@ -716,19 +758,38 @@ public sealed class Node : Animatable
         var worldScale = WorldScale;
         var wasAttached = Parent is not null;
 
-        Parent?.DetachChildForReparent(this);
+        Parent?.DetachChildForReparent(this, parent);
         parent.children.Add(this);
         Parent = parent;
         if (!wasAttached)
-            RegisterComponentsRecursive();
+            Scene.NodeAdded(this);
         SetWorldTransform(worldPosition, worldRotation, worldScale);
         MarkDirty();
+
+        var eventData = new SceneEvents.NodeAddedEvent
+        {
+            Scene = Scene,
+            Parent = parent,
+            Node = this
+        };
+        Scene.SendEvent(ref eventData);
     }
 
     public void AddTag(string tag)
     {
         if (!string.IsNullOrEmpty(tag) && !tags.Contains(tag))
+        {
             tags.Add(tag);
+            Scene.NodeTagAdded(this, tag);
+
+            var eventData = new SceneEvents.NodeTagAddedEvent
+            {
+                Scene = Scene,
+                Node = this,
+                Tag = tag
+            };
+            Scene.SendEvent(ref eventData);
+        }
     }
 
     public void AddTags(string tags, char separator = ';')
@@ -787,9 +848,27 @@ public sealed class Node : Animatable
 
     public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3.Right), space);
 
-    public void RemoveAllTags() => tags.Clear();
+    public void RemoveAllTags()
+    {
+        for (var index = tags.Count - 1; index >= 0; --index)
+            RemoveTag(tags[index]);
+    }
 
-    public bool RemoveTag(string tag) => tags.Remove(tag);
+    public bool RemoveTag(string tag)
+    {
+        if (!tags.Remove(tag))
+            return false;
+
+        Scene.NodeTagRemoved(this, tag);
+        var eventData = new SceneEvents.NodeTagRemovedEvent
+        {
+            Scene = Scene,
+            Node = this,
+            Tag = tag
+        };
+        Scene.SendEvent(ref eventData);
+        return true;
+    }
 
     public bool RemoveVar(string key) => variables.Remove(new StringHash(key));
 
@@ -859,7 +938,7 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
-    public void SetPosition2D(Vector2 position) => SetPosition(new Vector3(position.X, position.Y, this.position.Z));
+    public void SetPosition2D(Vector2 position) => SetPosition(new Vector3(position.X, position.Y, 0.0f));
 
     public void SetPosition2D(float x, float y) => SetPosition2D(new Vector2(x, y));
 
@@ -882,7 +961,7 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
-    public void SetScale2D(Vector2 scale) => SetScale(new Vector3(scale.X, scale.Y, this.scale.Z));
+    public void SetScale2D(Vector2 scale) => SetScale(new Vector3(scale.X, scale.Y, 1.0f));
 
     public void SetScale2D(float x, float y) => SetScale2D(new Vector2(x, y));
 
@@ -942,15 +1021,19 @@ public sealed class Node : Animatable
 
     public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
-    public void SetTransform2D(Vector2 position, float rotation) => SetTransform(new Vector3(position.X, position.Y, this.position.Z), Quaternion.FromRotation2D(rotation));
+    public void SetTransform2D(Vector2 position, float rotation) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
 
-    public void SetTransform2D(Vector2 position, float rotation, float scale) => SetTransform(new Vector3(position.X, position.Y, this.position.Z), Quaternion.FromRotation2D(rotation), scale);
+    public void SetTransform2D(Vector2 position, float rotation, float scale) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale, scale, 1.0f));
 
-    public void SetTransform2D(Vector2 position, float rotation, Vector2 scale) => SetTransform(new Vector3(position.X, position.Y, this.position.Z), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, this.scale.Z));
+    public void SetTransform2D(Vector2 position, float rotation, Vector2 scale) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, 1.0f));
 
-    public void SetVar(string key, object? value) => SetVarByHash(new StringHash(key), value);
+    public void SetVar(string key, object? value) => variables[new StringHash(key)] = value;
 
-    public void SetVarByHash(StringHash key, object? value) => variables[key] = value;
+    public void SetVarByHash(StringHash key, object? value)
+    {
+        if (variables.ContainsKey(key))
+            variables[key] = value;
+    }
 
     public void SetVariables(IEnumerable<KeyValuePair<StringHash, object?>> variables)
     {
@@ -961,8 +1044,8 @@ public sealed class Node : Animatable
 
     public void SetWorldDirection(Vector3 direction)
     {
-        if (Quaternion.LookRotation(direction, Vector3.Up, out var worldRotation))
-            SetWorldRotation(worldRotation);
+        if (direction.LengthSquared > 0.0f)
+            SetWorldRotation(Quaternion.FromRotationTo(Vector3.Forward, direction.NormalizedOrDefault));
     }
 
     public void SetWorldPosition(Vector3 position)
@@ -970,7 +1053,7 @@ public sealed class Node : Animatable
         SetPosition(Parent is null ? position : Parent.WorldToLocal(position));
     }
 
-    public void SetWorldPosition2D(Vector2 position) => SetWorldPosition(new Vector3(position.X, position.Y, WorldPosition.Z));
+    public void SetWorldPosition2D(Vector2 position) => SetWorldPosition(new Vector3(position.X, position.Y, 0.0f));
 
     public void SetWorldPosition2D(float x, float y) => SetWorldPosition2D(new Vector2(x, y));
 
@@ -988,7 +1071,7 @@ public sealed class Node : Animatable
         SetScale(Parent is null ? scale : scale / Parent.WorldScale);
     }
 
-    public void SetWorldScale2D(Vector2 scale) => SetWorldScale(new Vector3(scale.X, scale.Y, WorldScale.Z));
+    public void SetWorldScale2D(Vector2 scale) => SetWorldScale(new Vector3(scale.X, scale.Y, 1.0f));
 
     public void SetWorldScale2D(float x, float y) => SetWorldScale2D(new Vector2(x, y));
 
@@ -1036,7 +1119,17 @@ public sealed class Node : Animatable
 
     public void SetName(string name)
     {
-        this.name = name ?? string.Empty;
+        name ??= string.Empty;
+        if (this.name == name)
+            return;
+
+        this.name = name;
+        var eventData = new SceneEvents.NodeNameChangedEvent
+        {
+            Scene = Scene,
+            Node = this
+        };
+        Scene.SendEvent(ref eventData);
     }
 
     internal void SetId(uint id)
@@ -1047,7 +1140,25 @@ public sealed class Node : Animatable
     private void NotifyNodeSetEnabled()
     {
         foreach (var component in components)
+        {
             component.OnNodeSetEnabled(this);
+            component.OnSetEnabled();
+
+            var componentEventData = new SceneEvents.ComponentEnabledChangedEvent
+            {
+                Scene = Scene,
+                Node = this,
+                Component = component
+            };
+            Scene.SendEvent(ref componentEventData);
+        }
+
+        var eventData = new SceneEvents.NodeEnabledChangedEvent
+        {
+            Scene = Scene,
+            Node = this
+        };
+        Scene.SendEvent(ref eventData);
 
         foreach (var child in children)
             child.NotifyNodeSetEnabled();
@@ -1061,12 +1172,6 @@ public sealed class Node : Animatable
             if (recursive)
                 child.AddChildren(result, recursive: true);
         }
-    }
-
-    private void DetachChildForReparent(Node child)
-    {
-        if (children.Remove(child))
-            child.Parent = null;
     }
 
     private Node CloneRecursive(Node parent)
@@ -1088,32 +1193,15 @@ public sealed class Node : Animatable
         }
 
         clone.ApplyAttributes();
+
+        var eventData = new SceneEvents.NodeClonedEvent
+        {
+            Scene = Scene,
+            Node = this,
+            CloneNode = clone
+        };
+        Scene.SendEvent(ref eventData);
         return clone;
-    }
-
-    private void RegisterComponentsRecursive()
-    {
-        foreach (var component in components)
-            Scene.RegisterComponent(component);
-        foreach (var child in children)
-            child.RegisterComponentsRecursive();
-    }
-
-    private void UnregisterComponentsRecursive()
-    {
-        foreach (var child in children)
-            child.UnregisterComponentsRecursive();
-        foreach (var component in components)
-            Scene.UnregisterComponent(component);
-    }
-
-    private void ReleaseSceneIdsRecursive()
-    {
-        foreach (var child in children)
-            child.ReleaseSceneIdsRecursive();
-        foreach (var component in components)
-            Scene.ReleaseComponentId(component.Id);
-        Scene.ReleaseNodeId(Id);
     }
 
     internal void FindComponents<T>(ComponentSearchFlag flags, List<T> result)
@@ -1125,16 +1213,16 @@ public sealed class Node : Animatable
         if ((flags & ComponentSearchFlag.Parent) != 0)
         {
             var parentFlags = (flags & ComponentSearchFlag.ParentRecursive) != 0
-                ? flags
-                : flags & ~ComponentSearchFlag.Parent;
+                ? flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive)
+                : flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive);
             Parent?.FindComponents(parentFlags | ComponentSearchFlag.Self, result);
         }
 
         if ((flags & ComponentSearchFlag.Children) != 0)
         {
             var childFlags = (flags & ComponentSearchFlag.ChildrenRecursive) != 0
-                ? flags
-                : flags & ~ComponentSearchFlag.Children;
+                ? flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive)
+                : flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive | ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive);
             foreach (var child in children)
                 child.FindComponents(childFlags | ComponentSearchFlag.Self, result);
         }
@@ -1149,8 +1237,30 @@ public sealed class Node : Animatable
 
         foreach (var component in node.components)
         {
-            if (component is T typed && (!enabledOnly || component.IsEnabledEffective))
+            var matches = (flags & ComponentSearchFlag.Derived) != 0 ? component is T : component.GetType() == typeof(T);
+            if (matches && component is T typed && (!enabledOnly || component.IsEnabledEffective))
                 result.Add(typed);
         }
+    }
+
+    private void DetachChildForReparent(Node child, Node newParent)
+    {
+        if (!children.Remove(child))
+            return;
+
+        if (!ReferenceEquals(newParent.Scene, Scene))
+        {
+            RemoveChild(child);
+            return;
+        }
+
+        var eventData = new SceneEvents.NodeRemovedEvent
+        {
+            Scene = Scene,
+            Parent = this,
+            Node = child
+        };
+        Scene.SendEvent(ref eventData);
+        child.Parent = null;
     }
 }

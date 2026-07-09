@@ -2,20 +2,26 @@ namespace RedBolt;
 
 public class ValueAnimationInfo
 {
-    private readonly WeakReference<object?>? target;
+    private static readonly object emptyTarget = new();
+    private readonly WeakReference<object> target;
+    private readonly bool hasTarget;
     private float lastScaledTime;
 
     public ValueAnimationInfo(ValueAnimation animation, WrapMode wrapMode, float speed)
-        : this(target: null, animation, wrapMode, speed)
     {
-    }
-
-    public ValueAnimationInfo(object? target, ValueAnimation animation, WrapMode wrapMode, float speed)
-    {
-        this.target = target is null ? null : new WeakReference<object?>(target);
+        target = new WeakReference<object>(emptyTarget);
         Animation = animation ?? throw new ArgumentNullException(nameof(animation));
         WrapMode = wrapMode;
-        Speed = Math.Max(speed, 0.0f);
+        Speed = speed;
+    }
+
+    public ValueAnimationInfo(object target, ValueAnimation animation, WrapMode wrapMode, float speed)
+    {
+        this.target = new WeakReference<object>(target ?? throw new ArgumentNullException(nameof(target)));
+        hasTarget = true;
+        Animation = animation ?? throw new ArgumentNullException(nameof(animation));
+        WrapMode = wrapMode;
+        Speed = speed;
     }
 
     public event Action<VAnimEventFrame>? EventTriggered;
@@ -28,9 +34,9 @@ public class ValueAnimationInfo
 
     public float Time { get; private set; }
 
-    public object? GetTarget()
+    public object GetTarget()
     {
-        return target is not null && target.TryGetTarget(out var value) ? value : null;
+        return hasTarget && target.TryGetTarget(out var value) ? value : null!;
     }
 
     public ValueAnimation GetAnimation() => Animation;
@@ -48,16 +54,22 @@ public class ValueAnimationInfo
 
     public void SetSpeed(float speed)
     {
-        Speed = Math.Max(speed, 0.0f);
+        Speed = speed;
     }
 
     public bool Update(float timeStep)
     {
+        if (hasTarget && GetTarget() is null)
+            return true;
+
         return SetTime(Time + timeStep * Speed);
     }
 
     public bool SetTime(float time)
     {
+        if (hasTarget && GetTarget() is null)
+            return true;
+
         Time = time;
         if (!Animation.IsValid())
             return true;

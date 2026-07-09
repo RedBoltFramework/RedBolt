@@ -33,6 +33,24 @@ public sealed class LogicComponentTests
         Assert.Equal(1, logic.StopCount);
     }
 
+    [Fact]
+    public void Delayed_start_is_not_replayed_after_reattach()
+    {
+        var scene = new Scene();
+        var firstNode = scene.CreateChild("First");
+        var secondNode = scene.CreateChild("Second");
+        var logic = firstNode.CreateComponent<CountingLogic>();
+
+        scene.Update(0.1f);
+        firstNode.RemoveComponent(logic);
+        secondNode.AddComponent(logic);
+        scene.Update(0.1f);
+
+        Assert.Equal(2, logic.StartCount);
+        Assert.Equal(1, logic.StopCount);
+        Assert.Equal(1, logic.DelayedStartCount);
+    }
+
     private sealed class CountingLogic : LogicComponent
     {
         public int StartCount { get; private set; }

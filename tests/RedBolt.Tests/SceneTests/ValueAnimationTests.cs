@@ -93,10 +93,31 @@ public sealed class ValueAnimationTests
         Assert.True(MathDefs.ApproximatelyEquivalent((float)looping.LastValue!, 2.5f));
     }
 
+    [Fact]
+    public void Event_frame_begin_boundary_and_negative_speed_follow_rbfx_rules()
+    {
+        var animation = new ValueAnimation("Animations/Test");
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 10.0f);
+        animation.SetEventFrame(0.25f, new StringHash(11u));
+
+        Assert.Single(animation.GetEventFrames(0.25f, 0.5f));
+
+        var info = new TestValueAnimationInfo(new object(), animation, WrapMode.Clamp, -1.0f);
+        info.SetTime(1.0f);
+        info.Update(1.0f);
+        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 0.0f));
+    }
+
     private sealed class TestValueAnimationInfo : ValueAnimationInfo
     {
         public TestValueAnimationInfo(ValueAnimation animation, WrapMode wrapMode, float speed)
             : base(animation, wrapMode, speed)
+        {
+        }
+
+        public TestValueAnimationInfo(object target, ValueAnimation animation, WrapMode wrapMode, float speed)
+            : base(target, animation, wrapMode, speed)
         {
         }
 
