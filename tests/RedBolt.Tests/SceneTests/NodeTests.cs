@@ -5,6 +5,22 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class NodeTests
 {
+    private sealed class ListenerProbe : Component
+    {
+        public int DirtyCount { get; private set; }
+        public int NodeEnabledCount { get; private set; }
+
+        protected override void OnMarkedDirty(Node node)
+        {
+            ++DirtyCount;
+        }
+
+        protected override void OnNodeSetEnabled(Node node)
+        {
+            ++NodeEnabledCount;
+        }
+    }
+
     [Fact]
     public void SetAttribute_name_updates_property()
     {
@@ -78,6 +94,77 @@ public sealed class NodeTests
     }
 
     [Fact]
+    public void Component_queries_are_exact_and_runtime_overloads_work()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Node");
+        var camera = node.CreateComponent<Camera>();
+        var parent = scene.CreateChild("Parent");
+        var child = parent.CreateChild("Child");
+        child.CreateComponent<Camera>();
+
+        Assert.Null(node.GetComponent<Component>());
+        Assert.Empty(node.GetComponents<Component>());
+        Assert.Null(node.GetNthComponent<Component>(0));
+        Assert.False(node.HasComponent<Component>());
+        Assert.Same(camera, node.GetDerivedComponent<Component>());
+
+        Assert.Same(camera, node.GetComponent(typeof(Camera)));
+        Assert.Same(camera, node.GetOrCreateComponent(typeof(Camera)));
+        Assert.True(node.HasComponent(typeof(Camera)));
+        Assert.Null(node.GetComponent(typeof(Component)));
+        Assert.Empty(parent.GetChildrenWithComponent<Component>(recursive: true));
+        Assert.Same(child, parent.GetChildrenWithComponent<Camera>(recursive: true).Single());
+
+        node.RemoveComponent(typeof(Camera));
+        Assert.False(node.HasComponent(typeof(Camera)));
+    }
+
+    [Fact]
+    public void Attribute_lookup_and_world_space_helpers_work()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Node");
+
+        var (serializable, attributeIndex) = node.FindComponentAttribute("@/Position");
+        Assert.Same(node, serializable);
+        Assert.Equal("Position", serializable!.GetAttributes()[(int)attributeIndex].Name);
+
+        node.SetScale(new Vector3(-2.0f, 3.0f, 4.0f));
+        Assert.True(node.GetSignedWorldScale().ApproximatelyEquivalent(new Vector3(-2.0f, 3.0f, 4.0f)));
+
+        node.SetWorldTransform2D(new Vector2(7.0f, 8.0f), 30.0f, new Vector2(9.0f, 10.0f));
+        Assert.Equal(0.0f, node.GetWorldPosition().Z);
+        Assert.Equal(1.0f, node.GetWorldScale().Z);
+    }
+
+    [Fact]
+    public void Listener_callbacks_follow_dirty_and_enabled_state()
+    {
+        var scene = new Scene();
+        var source = scene.CreateChild("Source");
+        source.SetPosition(new Vector3(1.0f, 2.0f, 3.0f));
+
+        var listenerNode = scene.CreateChild("Listener");
+        var listener = listenerNode.CreateComponent<ListenerProbe>();
+        var baselineDirtyCount = listener.DirtyCount;
+
+        source.AddListener(listener);
+        Assert.Single(source.GetListeners());
+        Assert.Equal(baselineDirtyCount + 1, listener.DirtyCount);
+
+        _ = source.GetWorldPosition();
+        source.SetPosition(new Vector3(4.0f, 5.0f, 6.0f));
+        Assert.Equal(baselineDirtyCount + 2, listener.DirtyCount);
+
+        source.SetEnabled(false);
+        Assert.Equal(1, listener.NodeEnabledCount);
+
+        source.RemoveListener(listener);
+        Assert.Empty(source.GetListeners());
+    }
+
+    [Fact]
     public void Local_to_world_transform_math_works()
     {
         var scene = new Scene();
@@ -103,6 +190,26 @@ public sealed class NodeTests
         Assert.True(child.GetWorldPosition().ApproximatelyEquivalent(new Vector3(12.0f, 2.0f, 0.0f)));
         Assert.True(child.GetWorldScale().ApproximatelyEquivalent(new Vector3(4.0f, 4.0f, 4.0f)));
         Assert.True(child.GetPosition().ApproximatelyEquivalent(new Vector3(1.0f, 1.0f, 0.0f)));
+    }
+
+    [Fact]
+    public void Scene_root_transform_does_not_affect_root_children()
+    {
+        var scene = new Scene();
+        scene.Root.SetTransform(new Vector3(10.0f, 20.0f, 30.0f), Quaternion.FromAngleAxis(45.0f, Vector3.Up), new Vector3(2.0f, 3.0f, 4.0f));
+
+        var child = scene.CreateChild("Child");
+        child.SetTransform(new Vector3(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(30.0f, Vector3.Right), new Vector3(4.0f, 5.0f, 6.0f));
+
+        Assert.True(child.GetWorldPosition().ApproximatelyEquivalent(child.GetPosition()));
+        Assert.True(child.GetWorldRotation().ApproximatelyEquivalent(child.GetRotation()));
+        Assert.True(child.GetWorldScale().ApproximatelyEquivalent(child.GetScale()));
+
+        child.SetWorldTransform(new Vector3(7.0f, 8.0f, 9.0f), Quaternion.FromAngleAxis(15.0f, Vector3.Forward), new Vector3(2.0f, 2.5f, 3.0f));
+
+        Assert.True(child.GetPosition().ApproximatelyEquivalent(new Vector3(7.0f, 8.0f, 9.0f)));
+        Assert.True(child.GetRotation().ApproximatelyEquivalent(Quaternion.FromAngleAxis(15.0f, Vector3.Forward)));
+        Assert.True(child.GetScale().ApproximatelyEquivalent(new Vector3(2.0f, 2.5f, 3.0f)));
     }
 
     [Fact]
@@ -135,6 +242,63 @@ public sealed class NodeTests
         node.ScaleAround(Vector3.Zero, new Vector3(2.0f, 1.0f, 1.0f), TransformSpace.Parent);
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3(4.0f, 0.0f, 0.0f)));
         Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3(4.0f, 3.0f, 4.0f)));
+    }
+
+    [Fact]
+    public void Persistent_counts_and_child_id_overload_work()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Parent");
+
+        node.CreateChild("PersistentChild");
+        var temporaryChild = node.CreateChild(123u, temporary: true);
+        node.CreateComponent<Camera>();
+        node.CreateComponent<StaticModel>().SetTemporary(true);
+
+        Assert.Equal(123u, temporaryChild.Id);
+        Assert.Equal(string.Empty, temporaryChild.Name);
+        Assert.True(temporaryChild.IsTemporaryEffective());
+        Assert.Equal(1u, node.GetNumPersistentChildren());
+        Assert.Equal(1u, node.GetNumPersistentComponents());
+    }
+
+    [Fact]
+    public void Silent_transform_helpers_do_not_mark_dirty()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Silent");
+        var child = node.CreateChild("Child");
+        var listener = scene.CreateChild("Listener").CreateComponent<ListenerProbe>();
+
+        _ = node.GetWorldPosition();
+        _ = child.GetWorldPosition();
+        node.AddListener(listener);
+        var baselineDirtyCount = listener.DirtyCount;
+        node.SetPositionSilent(new Vector3(1.0f, 2.0f, 3.0f));
+        node.SetRotationSilent(Quaternion.FromAngleAxis(30.0f, Vector3.Up));
+        node.SetScaleSilent(new Vector3(4.0f, 5.0f, 6.0f));
+
+        Assert.Equal(baselineDirtyCount, listener.DirtyCount);
+        Assert.False(node.IsDirty);
+        Assert.False(child.IsDirty);
+        Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3(1.0f, 2.0f, 3.0f)));
+        Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3(4.0f, 5.0f, 6.0f)));
+
+        node.SetTransformSilent(new Vector3(-1.0f, -2.0f, -3.0f), Quaternion.FromAngleAxis(15.0f, Vector3.Right), new Vector3(0.5f, 0.6f, 0.7f));
+
+        Assert.Equal(baselineDirtyCount, listener.DirtyCount);
+        Assert.False(node.IsDirty);
+        Assert.False(child.IsDirty);
+        Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3(-1.0f, -2.0f, -3.0f)));
+        Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3(0.5f, 0.6f, 0.7f)));
+
+        node.SetTransformMatrixSilent(new Matrix3x4(new Vector3(7.0f, 8.0f, 9.0f), Quaternion.Identity, new Vector3(2.0f, 3.0f, 4.0f)));
+
+        Assert.Equal(baselineDirtyCount, listener.DirtyCount);
+        Assert.False(node.IsDirty);
+        Assert.False(child.IsDirty);
+        Assert.True(node.GetWorldPosition().ApproximatelyEquivalent(new Vector3(7.0f, 8.0f, 9.0f)));
+        Assert.True(node.GetWorldScale().ApproximatelyEquivalent(new Vector3(2.0f, 3.0f, 4.0f)));
     }
 
     [Fact]
@@ -176,6 +340,44 @@ public sealed class NodeTests
         scene.Root.RemoveChildren(recursive: false);
         Assert.Equal(0u, scene.Root.GetNumChildren());
         Assert.Null(parent.Parent);
+    }
+
+    [Fact]
+    public void SetEnabled_does_not_disable_children_without_recursion()
+    {
+        var scene = new Scene();
+        var parent = scene.CreateChild("Parent");
+        var child = parent.CreateChild("Child");
+
+        parent.SetEnabled(false);
+
+        Assert.False(parent.IsEnabled);
+        Assert.False(parent.IsEnabledSelf);
+        Assert.True(child.IsEnabled);
+        Assert.True(child.IsEnabledSelf);
+    }
+
+    [Fact]
+    public void Deep_enabled_state_restores_previous_child_state()
+    {
+        var scene = new Scene();
+        var parent = scene.CreateChild("Parent");
+        var child = parent.CreateChild("Child");
+        child.SetEnabled(false);
+
+        parent.SetDeepEnabled(false);
+
+        Assert.False(parent.IsEnabled);
+        Assert.True(parent.IsEnabledSelf);
+        Assert.False(child.IsEnabled);
+        Assert.False(child.IsEnabledSelf);
+
+        parent.ResetDeepEnabled();
+
+        Assert.True(parent.IsEnabled);
+        Assert.True(parent.IsEnabledSelf);
+        Assert.False(child.IsEnabled);
+        Assert.False(child.IsEnabledSelf);
     }
 
     [Fact]

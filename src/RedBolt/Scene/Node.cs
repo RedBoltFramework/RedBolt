@@ -4,9 +4,12 @@ public sealed class Node : Animatable
 {
     private readonly List<Component> components = [];
     private readonly List<Node> children = [];
+    private readonly List<Component> listeners = [];
     private readonly List<string> tags = [];
     private readonly Dictionary<StringHash, object?> variables = new();
+    private bool dirty;
     private bool enabled = true;
+    private bool enabledPrev = true;
     private string name = string.Empty;
     private Vector3 position = Vector3.Zero;
     private Quaternion rotation = Quaternion.Identity;
@@ -105,9 +108,11 @@ public sealed class Node : Animatable
         set => SetEnabled(value);
     }
 
-    public bool IsEnabled => enabled && (Parent?.IsEnabled ?? true);
+    public bool IsEnabled => enabled;
 
-    public bool IsEnabledSelf => enabled;
+    public bool IsEnabledSelf => enabledPrev;
+
+    public bool IsDirty => dirty;
 
     public Node? Parent { get; private set; }
 
@@ -139,11 +144,32 @@ public sealed class Node : Animatable
 
     public Vector3 WorldDirection => WorldRotation * Vector3.Forward;
 
-    public Vector3 WorldPosition => Parent is null ? position : Parent.LocalToWorld(position);
+    public Vector3 WorldPosition
+    {
+        get
+        {
+            ClearDirty();
+            return IsTransformHierarchyRoot() ? position : Parent!.LocalToWorld(position);
+        }
+    }
 
-    public Quaternion WorldRotation => Parent is null ? rotation : (Parent.WorldRotation * rotation).Normalized;
+    public Quaternion WorldRotation
+    {
+        get
+        {
+            ClearDirty();
+            return IsTransformHierarchyRoot() ? rotation : (Parent!.WorldRotation * rotation).Normalized;
+        }
+    }
 
-    public Vector3 WorldScale => Parent is null ? scale : (Parent.GetWorldTransform() * GetTransformMatrix()).Scale;
+    public Vector3 WorldScale
+    {
+        get
+        {
+            ClearDirty();
+            return IsTransformHierarchyRoot() ? scale : (Parent!.GetWorldTransform() * GetTransformMatrix()).Scale;
+        }
+    }
 
     public Vector3 WorldRight => WorldRotation * Vector3.Right;
 
@@ -154,6 +180,11 @@ public sealed class Node : Animatable
         var child = new Node(Scene, parent: null, name: name, id: Scene.AllocateNodeId(id), temporary: temporary);
         AddChild(child);
         return child;
+    }
+
+    public Node CreateChild(uint id, bool temporary = false)
+    {
+        return CreateChild(name: string.Empty, id: id, temporary: temporary);
     }
 
     public Node CreateTemporaryChild(string name = "", uint id = 0)
@@ -169,7 +200,7 @@ public sealed class Node : Animatable
         return component;
     }
 
-    internal Component? CreateComponent(Type type, uint id = 0)
+    public Component? CreateComponent(Type type, uint id = 0)
     {
         ArgumentNullException.ThrowIfNull(type);
         if (type.IsAbstract || !typeof(Component).IsAssignableFrom(type))
@@ -207,6 +238,12 @@ public sealed class Node : Animatable
         where T : Component, new()
     {
         return GetComponent<T>() ?? CreateComponent<T>(id);
+    }
+
+    public Component? GetOrCreateComponent(Type type, uint id = 0)
+    {
+        ValidateComponentType(type, nameof(type));
+        return GetComponent(type) ?? CreateComponent(type, id);
     }
 
     public Component? CloneComponent(Component component, uint id = 0)
@@ -254,12 +291,27 @@ public sealed class Node : Animatable
     {
         foreach (var component in components)
         {
-            if (component is T typed)
+            if (component.GetType() == typeof(T) && component is T typed)
                 return typed;
         }
 
         return null;
     }
+
+    public Component? GetComponent(Type componentType)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        foreach (var component in components)
+        {
+            if (component.GetType() == componentType)
+                return component;
+        }
+
+        return null;
+    }
+
+    public IReadOnlyList<Component> GetComponents() => Components;
 
     public IReadOnlyList<T> GetComponents<T>()
         where T : Component
@@ -267,8 +319,22 @@ public sealed class Node : Animatable
         var result = new List<T>();
         foreach (var component in components)
         {
-            if (component is T typed)
+            if (component.GetType() == typeof(T) && component is T typed)
                 result.Add(typed);
+        }
+
+        return result;
+    }
+
+    public IReadOnlyList<Component> GetComponents(Type componentType)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        var result = new List<Component>();
+        foreach (var component in components)
+        {
+            if (component.GetType() == componentType)
+                result.Add(component);
         }
 
         return result;
@@ -285,7 +351,7 @@ public sealed class Node : Animatable
         var current = 0u;
         foreach (var component in components)
         {
-            if (component is not T typed)
+            if (component.GetType() != typeof(T) || component is not T typed)
                 continue;
 
             if (current == index)
@@ -297,10 +363,47 @@ public sealed class Node : Animatable
         return null;
     }
 
+    public Component? GetNthComponent(Type componentType, uint index)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        foreach (var component in components)
+        {
+            if (component.GetType() != componentType)
+                continue;
+
+            if (index == 0)
+                return component;
+
+            --index;
+        }
+
+        return null;
+    }
+
     public T? GetDerivedComponent<T>()
         where T : Component
     {
-        return GetComponent<T>();
+        foreach (var component in components)
+        {
+            if (component is T typed)
+                return typed;
+        }
+
+        return null;
+    }
+
+    public Component? GetDerivedComponent(Type componentType)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        foreach (var component in components)
+        {
+            if (componentType.IsInstanceOfType(component))
+                return component;
+        }
+
+        return null;
     }
 
     public bool HasComponent<T>()
@@ -309,12 +412,35 @@ public sealed class Node : Animatable
         return GetComponent<T>() is not null;
     }
 
+    public bool HasComponent(Type componentType)
+    {
+        return GetComponent(componentType) is not null;
+    }
+
     public uint GetNumComponents() => (uint)components.Count;
+
+    public uint GetNumPersistentComponents()
+    {
+        uint count = 0;
+        foreach (var component in components)
+        {
+            if (!component.IsTemporary)
+                ++count;
+        }
+
+        return count;
+    }
 
     public T? GetParentComponent<T>()
         where T : Component
     {
         return Parent?.GetComponent<T>();
+    }
+
+    public Component? GetParentComponent(Type componentType)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+        return Parent?.GetComponent(componentType);
     }
 
     public Node? GetParent() => Parent;
@@ -366,6 +492,18 @@ public sealed class Node : Animatable
         uint count = (uint)children.Count;
         foreach (var child in children)
             count += child.GetNumChildren(recursive: true);
+        return count;
+    }
+
+    public uint GetNumPersistentChildren()
+    {
+        uint count = 0;
+        foreach (var child in children)
+        {
+            if (!child.IsTemporary)
+                ++count;
+        }
+
         return count;
     }
 
@@ -436,7 +574,7 @@ public sealed class Node : Animatable
         var result = new List<Node>();
         foreach (var child in children)
         {
-            if (child.components.Any(componentType.IsInstanceOfType))
+            if (child.components.Any(component => component.GetType() == componentType))
                 result.Add(child);
             if (recursive)
                 result.AddRange(child.GetChildrenWithComponent(componentType, recursive: true));
@@ -461,6 +599,31 @@ public sealed class Node : Animatable
             ? GetChild(index)
             : GetChild(childName, firstRecursive);
         return child is not null && !isLast ? child.FindChild(subPath) : child;
+    }
+
+    public (Serializable? Serializable, uint AttributeIndex) FindComponentAttribute(string path)
+    {
+        if (string.IsNullOrEmpty(path) || path[0] != '@')
+            return default;
+
+        var separator = path.IndexOf('/');
+        if (separator < 0)
+            return default;
+
+        var componentName = path[1..separator];
+        var attributeName = path[(separator + 1)..];
+        var serializable = GetSerializableByName(componentName);
+        if (serializable is null)
+            return default;
+
+        var attributes = serializable.GetAttributes();
+        for (var i = 0; i < attributes.Count; ++i)
+        {
+            if (string.Equals(attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
+                return (serializable, (uint)i);
+        }
+
+        return default;
     }
 
     public bool IsChildOf(Node node)
@@ -501,7 +664,7 @@ public sealed class Node : Animatable
         return false;
     }
 
-    public bool IsTransformHierarchyRoot() => Parent is null;
+    public bool IsTransformHierarchyRoot() => Parent is null || ReferenceEquals(Parent, Scene.Root);
 
     public Vector3 GetPosition() => Position;
 
@@ -539,6 +702,8 @@ public sealed class Node : Animatable
 
     public Vector3 GetWorldScale() => WorldScale;
 
+    public Vector3 GetSignedWorldScale() => GetWorldTransform().SignedScale(WorldRotation.RotationMatrix);
+
     public Vector2 GetWorldScale2D() => new(WorldScale.X, WorldScale.Y);
 
     public Matrix3x4 GetWorldTransform() => new(WorldPosition, WorldRotation, WorldScale);
@@ -572,11 +737,28 @@ public sealed class Node : Animatable
         return null;
     }
 
+    public Component? FindComponent(Type componentType, ComponentSearchFlag flags = ComponentSearchFlag.Default)
+    {
+        foreach (var component in FindComponents(componentType, flags))
+            return component;
+
+        return null;
+    }
+
     public IReadOnlyList<T> FindComponents<T>(ComponentSearchFlag flags = ComponentSearchFlag.Default)
         where T : Component
     {
         var result = new List<T>();
         FindComponents(flags, result);
+        return result;
+    }
+
+    public IReadOnlyList<Component> FindComponents(Type componentType, ComponentSearchFlag flags = ComponentSearchFlag.Default)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        var result = new List<Component>();
+        FindComponents(flags, componentType, result);
         return result;
     }
 
@@ -593,8 +775,26 @@ public sealed class Node : Animatable
     {
         for (var index = components.Count - 1; index >= 0; --index)
         {
-            if (components[index] is T component)
+            if (components[index].GetType() == typeof(T) && components[index] is T component)
                 RemoveComponent(component);
+        }
+    }
+
+    public void RemoveComponent(Type componentType)
+    {
+        var component = GetComponent(componentType);
+        if (component is not null)
+            RemoveComponent(component);
+    }
+
+    public void RemoveComponents(Type componentType)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        for (var index = components.Count - 1; index >= 0; --index)
+        {
+            if (components[index].GetType() == componentType)
+                RemoveComponent(components[index]);
         }
     }
 
@@ -612,6 +812,7 @@ public sealed class Node : Animatable
             };
             Scene.SendEvent(ref eventData);
 
+            RemoveListener(component);
             Scene.ComponentRemoved(component);
             component.Detach();
         }
@@ -724,18 +925,25 @@ public sealed class Node : Animatable
 
     public void SetEnabled(bool enable)
     {
-        if (enabled == enable)
-            return;
+        SetEnabled(enable, recursive: false, storeSelf: true);
+    }
 
-        enabled = enable;
-        NotifyNodeSetEnabled();
+    public void SetDeepEnabled(bool enable)
+    {
+        SetEnabled(enable, recursive: true, storeSelf: false);
+    }
+
+    public void ResetDeepEnabled()
+    {
+        SetEnabled(enabledPrev, recursive: false, storeSelf: false);
+
+        foreach (var child in children)
+            child.ResetDeepEnabled();
     }
 
     public void SetEnabledRecursive(bool enable)
     {
-        SetEnabled(enable);
-        foreach (var child in children)
-            child.SetEnabledRecursive(enable);
+        SetEnabled(enable, recursive: true, storeSelf: true);
     }
 
     public void SetParent(Node? parent)
@@ -817,12 +1025,32 @@ public sealed class Node : Animatable
 
     public IReadOnlyDictionary<StringHash, object?> GetVars() => Variables;
 
+    public IReadOnlyList<Component> GetListeners() => listeners.ToArray();
+
+    public void AddListener(Component? component)
+    {
+        if (component is null || listeners.Contains(component))
+            return;
+
+        listeners.Add(component);
+        if (dirty)
+            component.OnMarkedDirty(this);
+    }
+
+    public void RemoveListener(Component? component)
+    {
+        if (component is null)
+            return;
+
+        listeners.Remove(component);
+    }
+
     public bool LookAt(Vector3 target, Vector3? up = null, TransformSpace space = TransformSpace.World)
     {
         var worldTarget = space switch
         {
             TransformSpace.Local => LocalToWorld(target),
-            TransformSpace.Parent => Parent is null ? target : Parent.LocalToWorld(target),
+            TransformSpace.Parent => IsTransformHierarchyRoot() ? target : Parent!.LocalToWorld(target),
             _ => target
         };
 
@@ -839,6 +1067,14 @@ public sealed class Node : Animatable
 
     public void MarkDirty()
     {
+        if (dirty)
+            return;
+
+        dirty = true;
+
+        foreach (var listener in listeners)
+            listener.OnMarkedDirty(this);
+
         foreach (var component in components)
             component.OnMarkedDirty(this);
 
@@ -887,7 +1123,7 @@ public sealed class Node : Animatable
                 SetRotation((delta * rotation).Normalized);
                 break;
             case TransformSpace.World:
-                if (Parent is null)
+                if (IsTransformHierarchyRoot())
                     SetRotation((delta * rotation).Normalized);
                 else
                 {
@@ -906,7 +1142,7 @@ public sealed class Node : Animatable
         {
             TransformSpace.Local => GetTransformMatrix() * point,
             TransformSpace.Parent => point,
-            TransformSpace.World => Parent is null ? point : Parent.WorldToLocal(point),
+            TransformSpace.World => IsTransformHierarchyRoot() ? point : Parent!.WorldToLocal(point),
             _ => point
         };
         var oldRotation = rotation;
@@ -915,7 +1151,7 @@ public sealed class Node : Animatable
         {
             TransformSpace.Local => (rotation * delta).Normalized,
             TransformSpace.Parent => (delta * rotation).Normalized,
-            TransformSpace.World when Parent is null => (delta * rotation).Normalized,
+            TransformSpace.World when IsTransformHierarchyRoot() => (delta * rotation).Normalized,
             TransformSpace.World => (rotation * WorldRotation.Inverse * delta * WorldRotation).Normalized,
             _ => rotation
         };
@@ -938,6 +1174,11 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
+    public void SetPositionSilent(Vector3 position)
+    {
+        this.position = position;
+    }
+
     public void SetPosition2D(Vector2 position) => SetPosition(new Vector3(position.X, position.Y, 0.0f));
 
     public void SetPosition2D(float x, float y) => SetPosition2D(new Vector2(x, y));
@@ -946,6 +1187,11 @@ public sealed class Node : Animatable
     {
         this.rotation = rotation.Normalized;
         MarkDirty();
+    }
+
+    public void SetRotationSilent(Quaternion rotation)
+    {
+        this.rotation = rotation;
     }
 
     public void SetRotation2D(float rotation) => SetRotation(Quaternion.FromRotation2D(rotation));
@@ -959,6 +1205,11 @@ public sealed class Node : Animatable
             Math.Abs(scale.Y) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Y,
             Math.Abs(scale.Z) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Z);
         MarkDirty();
+    }
+
+    public void SetScaleSilent(Vector3 scale)
+    {
+        this.scale = scale;
     }
 
     public void SetScale2D(Vector2 scale) => SetScale(new Vector3(scale.X, scale.Y, 1.0f));
@@ -981,7 +1232,7 @@ public sealed class Node : Animatable
         {
             TransformSpace.Local => GetTransformMatrix() * point,
             TransformSpace.Parent => point,
-            TransformSpace.World => Parent is null ? point : Parent.WorldToLocal(point),
+            TransformSpace.World => IsTransformHierarchyRoot() ? point : Parent!.WorldToLocal(point),
             _ => point
         };
         var oldScale = this.scale;
@@ -1017,7 +1268,16 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
+    public void SetTransformSilent(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        this.position = position;
+        this.rotation = rotation;
+        this.scale = scale;
+    }
+
     public void SetTransformMatrix(Matrix3x4 matrix) => SetTransform(matrix.Translation, matrix.Rotation, matrix.Scale);
+
+    public void SetTransformMatrixSilent(Matrix3x4 matrix) => SetTransformSilent(matrix.Translation, matrix.Rotation, matrix.Scale);
 
     public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
@@ -1050,7 +1310,7 @@ public sealed class Node : Animatable
 
     public void SetWorldPosition(Vector3 position)
     {
-        SetPosition(Parent is null ? position : Parent.WorldToLocal(position));
+        SetPosition(IsTransformHierarchyRoot() ? position : Parent!.WorldToLocal(position));
     }
 
     public void SetWorldPosition2D(Vector2 position) => SetWorldPosition(new Vector3(position.X, position.Y, 0.0f));
@@ -1059,7 +1319,7 @@ public sealed class Node : Animatable
 
     public void SetWorldRotation(Quaternion rotation)
     {
-        SetRotation(Parent is null ? rotation : Parent.WorldRotation.Inverse * rotation);
+        SetRotation(IsTransformHierarchyRoot() ? rotation : Parent!.WorldRotation.Inverse * rotation);
     }
 
     public void SetWorldRotation2D(float rotation) => SetWorldRotation(Quaternion.FromRotation2D(rotation));
@@ -1068,7 +1328,7 @@ public sealed class Node : Animatable
 
     public void SetWorldScale(Vector3 scale)
     {
-        SetScale(Parent is null ? scale : scale / Parent.WorldScale);
+        SetScale(IsTransformHierarchyRoot() ? scale : scale / Parent!.WorldScale);
     }
 
     public void SetWorldScale2D(Vector2 scale) => SetWorldScale(new Vector3(scale.X, scale.Y, 1.0f));
@@ -1096,6 +1356,12 @@ public sealed class Node : Animatable
     }
 
     public void SetWorldTransform(Matrix3x4 worldTransform) => SetWorldTransform(worldTransform.Translation, worldTransform.Rotation, worldTransform.Scale);
+
+    public void SetWorldTransform2D(Vector2 position, float rotation) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
+
+    public void SetWorldTransform2D(Vector2 position, float rotation, float scale) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale, scale, 1.0f));
+
+    public void SetWorldTransform2D(Vector2 position, float rotation, Vector2 scale) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, 1.0f));
 
     public void Translate(Vector3 delta, TransformSpace space = TransformSpace.Local)
     {
@@ -1137,11 +1403,29 @@ public sealed class Node : Animatable
         Id = id;
     }
 
-    private void NotifyNodeSetEnabled()
+    private void SetEnabled(bool enable, bool recursive, bool storeSelf)
     {
+        if (storeSelf)
+            enabledPrev = enable;
+
+        if (enable == enabled)
+        {
+            if (recursive)
+            {
+                foreach (var child in children)
+                    child.SetEnabled(enable, recursive: true, storeSelf: storeSelf);
+            }
+
+            return;
+        }
+
+        enabled = enable;
+
+        foreach (var listener in listeners)
+            listener.OnNodeSetEnabled(this);
+
         foreach (var component in components)
         {
-            component.OnNodeSetEnabled(this);
             component.OnSetEnabled();
 
             var componentEventData = new SceneEvents.ComponentEnabledChangedEvent
@@ -1160,8 +1444,11 @@ public sealed class Node : Animatable
         };
         Scene.SendEvent(ref eventData);
 
-        foreach (var child in children)
-            child.NotifyNodeSetEnabled();
+        if (recursive)
+        {
+            foreach (var child in children)
+                child.SetEnabled(enable, recursive: true, storeSelf: storeSelf);
+        }
     }
 
     private void AddChildren(List<Node> result, bool recursive)
@@ -1228,6 +1515,29 @@ public sealed class Node : Animatable
         }
     }
 
+    internal void FindComponents(ComponentSearchFlag flags, Type componentType, List<Component> result)
+    {
+        if ((flags & ComponentSearchFlag.Self) != 0)
+            AddMatchingComponents(this, flags, componentType, result);
+
+        if ((flags & ComponentSearchFlag.Parent) != 0)
+        {
+            var parentFlags = (flags & ComponentSearchFlag.ParentRecursive) != 0
+                ? flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive)
+                : flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive);
+            Parent?.FindComponents(parentFlags | ComponentSearchFlag.Self, componentType, result);
+        }
+
+        if ((flags & ComponentSearchFlag.Children) != 0)
+        {
+            var childFlags = (flags & ComponentSearchFlag.ChildrenRecursive) != 0
+                ? flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive)
+                : flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive | ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive);
+            foreach (var child in children)
+                child.FindComponents(childFlags | ComponentSearchFlag.Self, componentType, result);
+        }
+    }
+
     private static void AddMatchingComponents<T>(Node node, ComponentSearchFlag flags, List<T> result)
         where T : Component
     {
@@ -1241,6 +1551,68 @@ public sealed class Node : Animatable
             if (matches && component is T typed && (!enabledOnly || component.IsEnabledEffective))
                 result.Add(typed);
         }
+    }
+
+    private static void AddMatchingComponents(Node node, ComponentSearchFlag flags, Type componentType, List<Component> result)
+    {
+        var enabledOnly = (flags & ComponentSearchFlag.EnabledOnly) != 0;
+        if (enabledOnly && !node.IsEnabled)
+            return;
+
+        foreach (var component in node.components)
+        {
+            var matches = (flags & ComponentSearchFlag.Derived) != 0
+                ? componentType.IsInstanceOfType(component)
+                : component.GetType() == componentType;
+            if (matches && (!enabledOnly || component.IsEnabledEffective))
+                result.Add(component);
+        }
+    }
+
+    private Serializable? GetSerializableByName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return this;
+
+        var index = 0u;
+        var separator = name.IndexOf('#');
+        if (separator >= 0)
+        {
+            if (!uint.TryParse(name[(separator + 1)..], out index))
+                return null;
+            name = name[..separator];
+        }
+
+        foreach (var component in components)
+        {
+            if (!string.Equals(component.GetType().Name, name, StringComparison.Ordinal))
+                continue;
+
+            if (index == 0)
+                return component;
+
+            --index;
+        }
+
+        return null;
+    }
+
+    private static void ValidateComponentType(Type componentType, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(componentType);
+        if (!typeof(Component).IsAssignableFrom(componentType))
+            throw new ArgumentException("Type must derive from Component.", paramName);
+    }
+
+    private void ClearDirty()
+    {
+        if (!dirty)
+            return;
+
+        if (!IsTransformHierarchyRoot())
+            Parent!.ClearDirty();
+
+        dirty = false;
     }
 
     private void DetachChildForReparent(Node child, Node newParent)
