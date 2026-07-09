@@ -32,10 +32,51 @@ set(REDBOLT_IMGUI_PARSE_SOURCE "${REDBOLT_IMGUI_GENERATED_DIR}/ImGuiAll.cpp")
 set(REDBOLT_DILIGENT_PARSE_HEADER "${REDBOLT_DILIGENT_GENERATED_DIR}/DiligentAll.hpp")
 set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/include")
 set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/RedBolt/DiligentSupport.hpp")
+set(REDBOLT_SHARPCPP_E2E_GENERATED_ROOT "${REDBOLT_GENERATED_ROOT}/sharpcpp-e2e")
+set(REDBOLT_SHARPCPP_E2E_FILE_STEM "SharpCppTestsE2E")
+set(REDBOLT_SHARPCPP_E2E_GENERATED_STAMP "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}/generate.stamp")
+set(REDBOLT_SHARPCPP_E2E_GENERATOR_LOG_FILE "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}/generator.log")
 set(REDBOLT_DOTNET_SOLUTION "${CMAKE_CURRENT_SOURCE_DIR}/RedBolt.slnx")
+set(REDBOLT_SHARPCPP_E2E_COMPAT_PROPS "${REDBOLT_SHARPCPP_ROOT}/.CMakeLast.props")
+set(REDBOLT_SHARPCPP_E2E_NATIVE_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}SharpCppTestsE2E_Native${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+set(REDBOLT_SHARPCPP_E2E_COMPAT_PROPS_CONTENT "<Project>\n")
+string(APPEND REDBOLT_SHARPCPP_E2E_COMPAT_PROPS_CONTENT
+    "  <PropertyGroup Condition=\"'$(Configuration)' == ''\">\n"
+    "    <SharpCppCMakeBuildDir>${CMAKE_BINARY_DIR}</SharpCppCMakeBuildDir>\n"
+    "    <SharpCppOutputDir>${CMAKE_BINARY_DIR}/bin/Debug</SharpCppOutputDir>\n"
+    "    <SharpCppIntermediateRoot>${CMAKE_BINARY_DIR}/obj/managed/Debug</SharpCppIntermediateRoot>\n"
+    "    <SharpCppE2ENativeLibraryPath>${CMAKE_BINARY_DIR}/bin/Debug/${REDBOLT_SHARPCPP_E2E_NATIVE_NAME}</SharpCppE2ENativeLibraryPath>\n"
+    "  </PropertyGroup>\n"
+    "  <PropertyGroup Condition=\"'$(Configuration)' == 'Debug'\">\n"
+    "    <SharpCppCMakeBuildDir>${CMAKE_BINARY_DIR}</SharpCppCMakeBuildDir>\n"
+    "    <SharpCppOutputDir>${CMAKE_BINARY_DIR}/bin/Debug</SharpCppOutputDir>\n"
+    "    <SharpCppIntermediateRoot>${CMAKE_BINARY_DIR}/obj/managed/Debug</SharpCppIntermediateRoot>\n"
+    "    <SharpCppE2ENativeLibraryPath>${CMAKE_BINARY_DIR}/bin/Debug/${REDBOLT_SHARPCPP_E2E_NATIVE_NAME}</SharpCppE2ENativeLibraryPath>\n"
+    "  </PropertyGroup>\n"
+    "  <PropertyGroup Condition=\"'$(Configuration)' == 'Release'\">\n"
+    "    <SharpCppCMakeBuildDir>${CMAKE_BINARY_DIR}</SharpCppCMakeBuildDir>\n"
+    "    <SharpCppOutputDir>${CMAKE_BINARY_DIR}/bin/Release</SharpCppOutputDir>\n"
+    "    <SharpCppIntermediateRoot>${CMAKE_BINARY_DIR}/obj/managed/Release</SharpCppIntermediateRoot>\n"
+    "    <SharpCppE2ENativeLibraryPath>${CMAKE_BINARY_DIR}/bin/Release/${REDBOLT_SHARPCPP_E2E_NATIVE_NAME}</SharpCppE2ENativeLibraryPath>\n"
+    "  </PropertyGroup>\n"
+    "  <PropertyGroup Condition=\"'$(Configuration)' == 'RelWithDebInfo'\">\n"
+    "    <SharpCppCMakeBuildDir>${CMAKE_BINARY_DIR}</SharpCppCMakeBuildDir>\n"
+    "    <SharpCppOutputDir>${CMAKE_BINARY_DIR}/bin/RelWithDebInfo</SharpCppOutputDir>\n"
+    "    <SharpCppIntermediateRoot>${CMAKE_BINARY_DIR}/obj/managed/RelWithDebInfo</SharpCppIntermediateRoot>\n"
+    "    <SharpCppE2ENativeLibraryPath>${CMAKE_BINARY_DIR}/bin/RelWithDebInfo/${REDBOLT_SHARPCPP_E2E_NATIVE_NAME}</SharpCppE2ENativeLibraryPath>\n"
+    "  </PropertyGroup>\n"
+    "  <PropertyGroup Condition=\"'$(MSBuildProjectName)' == 'SharpCpp.Tests.E2E'\">\n"
+    "    <SharpCppGeneratedDir>${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}</SharpCppGeneratedDir>\n"
+    "    <SharpCppGeneratedStamp>${REDBOLT_SHARPCPP_E2E_GENERATED_STAMP}</SharpCppGeneratedStamp>\n"
+    "  </PropertyGroup>\n"
+    "</Project>\n")
+file(WRITE "${REDBOLT_SHARPCPP_E2E_COMPAT_PROPS}" "${REDBOLT_SHARPCPP_E2E_COMPAT_PROPS_CONTENT}")
 
 set(REDBOLT_THIRDPARTY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern/thirdparty" CACHE PATH "Path to RedBolt's copied native dependency sources" FORCE)
 set(REDBOLT_SHARPCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree used by RedBolt generators")
+set(REDBOLT_SHARPCPP_E2E_TOOL "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Tool/SharpCpp.Tool.csproj")
+set(REDBOLT_SHARPCPP_E2E_CSPROJ "${REDBOLT_SHARPCPP_ROOT}/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
@@ -176,11 +217,17 @@ add_custom_target(restore
         --nologo
         "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
         "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+        "-p:UseWorkloadResolver=false"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Restoring RedBolt .NET solution"
     VERBATIM)
 
 function(redbolt_add_dotnet_project_target csproj_path)
+    set(options)
+    set(oneValueArgs OUT_VARIABLE)
+    set(multiValueArgs DEPENDS PROPERTIES)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
     get_filename_component(project_file_name "${csproj_path}" NAME)
     string(REGEX REPLACE "\\.csproj$" "" project_name "${project_file_name}")
     set(project_target_name "${project_name}")
@@ -192,9 +239,13 @@ function(redbolt_add_dotnet_project_target csproj_path)
         message(FATAL_ERROR "Dotnet target name collision for ${csproj_path} -> ${project_target_name}")
     endif()
 
+    if(NOT "${ARG_OUT_VARIABLE}" STREQUAL "")
+        set("${ARG_OUT_VARIABLE}" "${project_target_name}" PARENT_SCOPE)
+    endif()
+
     if(CMAKE_GENERATOR MATCHES "Visual Studio")
         include_external_msproject("${project_target_name}" "${csproj_path}" restore)
-        add_dependencies("${project_target_name}" redbolt-generate-native-bindings RedBolt.Native)
+        add_dependencies("${project_target_name}" redbolt-generate-native-bindings RedBolt.Native ${ARG_DEPENDS})
     else()
         add_custom_target("${project_target_name}"
             COMMAND "${DOTNET_EXECUTABLE}" build "${csproj_path}"
@@ -204,7 +255,8 @@ function(redbolt_add_dotnet_project_target csproj_path)
                 -m:1
                 "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
                 "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-            DEPENDS restore redbolt-generate-native-bindings RedBolt.Native
+                ${ARG_PROPERTIES}
+            DEPENDS restore redbolt-generate-native-bindings RedBolt.Native ${ARG_DEPENDS}
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
             COMMENT "Building ${project_target_name} with generated native bindings"
             VERBATIM)
@@ -222,10 +274,96 @@ foreach(project_entry IN LISTS REDBOLT_DOTNET_PROJECT_ENTRIES)
     list(APPEND REDBOLT_DOTNET_PROJECTS "${CMAKE_CURRENT_SOURCE_DIR}/${project_relative_path}")
 endforeach()
 list(REMOVE_DUPLICATES REDBOLT_DOTNET_PROJECTS)
+
+file(GLOB_RECURSE REDBOLT_SHARPCPP_E2E_INPUT_HEADERS CONFIGURE_DEPENDS
+    "${REDBOLT_SHARPCPP_ROOT}/tests/SharpCpp.Tests.E2E/*/*.hpp")
+file(MAKE_DIRECTORY "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}")
+add_custom_command(
+    OUTPUT "${REDBOLT_SHARPCPP_E2E_GENERATED_STAMP}"
+    COMMAND "${CMAKE_COMMAND}"
+        "-DGENERATOR_DLL=${REDBOLT_BIN_DIR}/SharpCpp.Tool.dll"
+        "-DGENERATED_STAMP=${REDBOLT_SHARPCPP_E2E_GENERATED_STAMP}"
+        "-DGENERATED_DIR=${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}"
+        -P "${REDBOLT_SHARPCPP_ROOT}/tests/SharpCpp.Tests.E2E/CheckGeneratedStaleness.cmake"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}"
+    COMMAND "${CMAKE_COMMAND}" -E env
+        "LD_LIBRARY_PATH=$<SHELL_PATH:${REDBOLT_BIN_DIR}>:$ENV{LD_LIBRARY_PATH}"
+        "${DOTNET_EXECUTABLE}" run --project "${REDBOLT_SHARPCPP_E2E_TOOL}"
+        --configuration $<IF:$<CONFIG:Debug>,Debug,Release>
+        --no-launch-profile
+        --no-restore
+        -- generate-sample
+        --generated-root "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}"
+        --project-root "${REDBOLT_SHARPCPP_ROOT}"
+        --file-stem "${REDBOLT_SHARPCPP_E2E_FILE_STEM}"
+        --log-file "${REDBOLT_SHARPCPP_E2E_GENERATOR_LOG_FILE}"
+    COMMAND "${CMAKE_COMMAND}" -E touch "${REDBOLT_SHARPCPP_E2E_GENERATED_STAMP}"
+    DEPENDS SharpCpp.Tool ${REDBOLT_SHARPCPP_E2E_INPUT_HEADERS} ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
+        "${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Directory.Build.props"
+        "${REDBOLT_SHARPCPP_E2E_TOOL}"
+    WORKING_DIRECTORY "${REDBOLT_SHARPCPP_ROOT}"
+    VERBATIM
+    USES_TERMINAL)
+
+add_custom_target(redbolt-sharpcpp-e2e-generated
+    DEPENDS "${REDBOLT_SHARPCPP_E2E_GENERATED_STAMP}")
+
+file(GLOB REDBOLT_SHARPCPP_E2E_GENERATED_CPP_FILES CONFIGURE_DEPENDS "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}/*.g.cpp")
+if(NOT REDBOLT_SHARPCPP_E2E_GENERATED_CPP_FILES)
+    file(WRITE "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}/.stub.cpp" "// stub - replaced by generator\n")
+    set(REDBOLT_SHARPCPP_E2E_GENERATED_CPP_FILES "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}/.stub.cpp")
+endif()
+
+add_library(SharpCppTestsE2E_Native SHARED ${REDBOLT_SHARPCPP_E2E_GENERATED_CPP_FILES})
+add_dependencies(SharpCppTestsE2E_Native redbolt-sharpcpp-e2e-generated)
+target_compile_features(SharpCppTestsE2E_Native PRIVATE cxx_std_20)
+set_target_properties(
+    SharpCppTestsE2E_Native
+    PROPERTIES
+        CXX_SCAN_FOR_MODULES OFF
+        UNITY_BUILD ON
+        UNITY_BUILD_BATCH_SIZE 100
+        RUNTIME_OUTPUT_DIRECTORY "${REDBOLT_BIN_DIR}"
+        LIBRARY_OUTPUT_DIRECTORY "${REDBOLT_BIN_DIR}"
+        ARCHIVE_OUTPUT_DIRECTORY "${REDBOLT_BIN_DIR}")
+target_include_directories(
+    SharpCppTestsE2E_Native
+    PRIVATE
+        "${REDBOLT_SHARPCPP_ROOT}/include"
+        "${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}"
+        "${REDBOLT_SHARPCPP_ROOT}/tests/SharpCpp.Tests.E2E")
+target_compile_options(SharpCppTestsE2E_Native PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wno-attributes>)
+
 set(REDBOLT_MANAGED_DOTNET_TARGETS)
 foreach(csproj_file IN LISTS REDBOLT_DOTNET_PROJECTS)
-    redbolt_add_dotnet_project_target("${csproj_file}")
+    if(csproj_file STREQUAL "${REDBOLT_SHARPCPP_E2E_CSPROJ}")
+        redbolt_add_dotnet_project_target(
+            "${csproj_file}"
+            OUT_VARIABLE REDBOLT_SHARPCPP_E2E_TARGET
+            DEPENDS redbolt-sharpcpp-e2e-generated redbolt-sharpcpp-e2e-native
+            PROPERTIES
+                "-p:SharpCppGeneratedDir=${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}")
+    else()
+        redbolt_add_dotnet_project_target("${csproj_file}")
+    endif()
 endforeach()
+
+add_custom_target(redbolt-sharpcpp-e2e-native DEPENDS SharpCppTestsE2E_Native)
+
+add_custom_target(redbolt-sharpcpp-e2e-tests
+    COMMAND "${CMAKE_COMMAND}" -E env
+        "SharpCppGeneratedDir=${REDBOLT_SHARPCPP_E2E_GENERATED_ROOT}"
+        "LD_LIBRARY_PATH=$<SHELL_PATH:${REDBOLT_BIN_DIR}>:$ENV{LD_LIBRARY_PATH}"
+        "${DOTNET_EXECUTABLE}" test "${REDBOLT_SHARPCPP_E2E_CSPROJ}"
+            --configuration $<CONFIG>
+            --no-build
+            --no-restore
+            --logger "console;verbosity=minimal"
+    DEPENDS "${REDBOLT_SHARPCPP_E2E_TARGET}" redbolt-sharpcpp-e2e-native
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Running SharpCpp generic E2E tests"
+    VERBATIM)
 
 add_custom_target(redbolt-managed ALL
     DEPENDS ${REDBOLT_MANAGED_DOTNET_TARGETS})

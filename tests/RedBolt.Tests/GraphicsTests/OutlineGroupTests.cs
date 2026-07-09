@@ -45,7 +45,7 @@ public sealed class OutlineGroupTests
         var pass = technique?.GetPass("base") ?? technique?.GetPass("alpha");
 
         Assert.NotNull(pass);
-        Assert.Equal("v2/M_OutlinePixel", pass!.PixelShader);
+        Assert.Equal("M_OutlinePixel", pass!.PixelShader);
         Assert.Equal(CompareMode.Always, pass.DepthTestMode);
         Assert.False(pass.DepthWrite);
         Assert.Equal(BlendMode.Replace, pass.BlendMode);

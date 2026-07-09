@@ -26,6 +26,7 @@
     <Project Path="SharpCpp/src/SharpCpp.Tool/SharpCpp.Tool.csproj" />
   </Folder>
   <Folder Name="/SharpCpp/tests/">
+    <Project Path="SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
     <Project Path="SharpCpp/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
     <Project Path="SharpCpp/tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
     <Project Path="SharpCpp/tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
