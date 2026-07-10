@@ -21,6 +21,7 @@ Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipel
 - `Variant` now includes the explicit RedBolt-only `CString` extension after all upstream enum values. It preserves `CString` instances for native-pointer consumers and serializes as UTF-8 text; resource reference string output now follows rbfx's `type-name;payload` form, including an empty-list trailing separator.
 - Managed `Variant` getters now follow rbfx conversion/default behavior instead of throwing on type mismatch, including numeric conversions, quaternion/matrix identity defaults, `Vector4` to `Color` aliasing, and no-allocation empty collection defaults. `Get<T>()` dispatches to the same contracts without boxing normal value types.
 - `Variant.ToString()` now matches rbfx's Context dependency for resource-reference string serialization: no active Context produces an empty string, while an active Context enables registered type-name output.
+- `Variant.Convert(...)` and immutable `Variant.FromString(...)` now cover rbfx's scalar conversion behavior plus string parsing for scalars, buffers, resource references, and the RedBolt `CString` extension. String-parsed math, pointers, custom values, and curves remain partial.
 - `Variant`, `Object`/`Context`, and `WorkQueue` remain partial Core items and must continue to be reconciled directly against rbfx before marking complete.
 
 ## Verification

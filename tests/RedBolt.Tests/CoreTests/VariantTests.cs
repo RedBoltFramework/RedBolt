@@ -50,6 +50,19 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Convert_matches_rbfx_scalar_and_string_contracts()
+    {
+        Assert.Equal(3, new Variant(3.9f).Convert(VariantType.Int).GetInt());
+        Assert.True(new Variant(1).Convert(VariantType.Bool).GetBool());
+        Assert.Equal("3", new Variant(3).Convert(VariantType.String).GetString());
+        Assert.True(Variant.FromString(VariantType.Bool, " yes").GetBool());
+        Assert.Equal(42, Variant.FromString(VariantType.Int, "42").GetInt());
+        Assert.Equal(0.5f, Variant.FromString(VariantType.Float, "0.5").GetFloat());
+        Assert.Equal(new byte[] { 1, 2, 3 }, Variant.FromString(VariantType.Buffer, "1 2 3").GetBuffer());
+        Assert.Equal(VariantType.None, new Variant(1).Convert(VariantType.Vector3).Type);
+    }
+
+    [Fact]
     public void CString_extension_preserves_cstring_value_contract()
     {
         using var value = new CString("Native text");

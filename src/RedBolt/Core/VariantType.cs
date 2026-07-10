@@ -550,6 +550,48 @@ public readonly struct Variant : IEquatable<Variant>
         return VariantType.None;
     }
 
+    public Variant Convert(VariantType targetType)
+    {
+        if (targetType == _type)
+            return this;
+        if (targetType == VariantType.None)
+            return default;
+        if (targetType == VariantType.String)
+            return ToString();
+
+        if (_type == VariantType.String)
+            return FromString(targetType, _stringValue);
+
+        return targetType switch
+        {
+            VariantType.Int => new Variant(GetInt()),
+            VariantType.Bool => new Variant(GetBool()),
+            VariantType.Float => new Variant(GetFloat()),
+            VariantType.Double => new Variant(GetDouble()),
+            VariantType.Int64 => new Variant(GetInt64()),
+            _ => default
+        };
+    }
+
+    public static Variant FromString(VariantType type, string value)
+    {
+        value ??= string.Empty;
+        return type switch
+        {
+            VariantType.Int => new Variant(ParseInt(value)),
+            VariantType.Int64 => new Variant(ParseInt64(value)),
+            VariantType.Bool => new Variant(ParseBool(value)),
+            VariantType.Float => new Variant(ParseFloat(value)),
+            VariantType.Double => new Variant(ParseDouble(value)),
+            VariantType.String => new Variant(value),
+            VariantType.CString => new Variant(new CString(value)),
+            VariantType.Buffer => new Variant(ParseBuffer(value)),
+            VariantType.ResourceRef => new Variant(ResourceRef.Parse(value)),
+            VariantType.ResourceRefList => new Variant(ResourceRefList.Parse(value)),
+            _ => default
+        };
+    }
+
     public bool IsZero()
     {
         return _type switch
@@ -873,6 +915,52 @@ public readonly struct Variant : IEquatable<Variant>
     private static TTo Reinterpret<TFrom, TTo>(TFrom value)
     {
         return Unsafe.As<TFrom, TTo>(ref value);
+    }
+
+    private static bool ParseBool(string value)
+    {
+        foreach (var character in value)
+        {
+            if (character is ' ' or '\t')
+                continue;
+
+            return char.ToLowerInvariant(character) is 't' or 'y' or '1';
+        }
+
+        return false;
+    }
+
+    private static int ParseInt(string value)
+    {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
+    }
+
+    private static long ParseInt64(string value)
+    {
+        return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0L;
+    }
+
+    private static float ParseFloat(string value)
+    {
+        return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : 0.0f;
+    }
+
+    private static double ParseDouble(string value)
+    {
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : 0.0;
+    }
+
+    private static byte[] ParseBuffer(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Array.Empty<byte>();
+
+        var tokens = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var result = new byte[tokens.Length];
+        for (var index = 0; index < tokens.Length; ++index)
+            result[index] = byte.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var item) ? item : (byte)0;
+
+        return result;
     }
 
     private static string BufferToString(byte[] buffer)
