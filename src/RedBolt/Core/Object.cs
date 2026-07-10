@@ -12,6 +12,22 @@ public abstract class Object
         return Context.GetSubsystem<T>();
     }
 
+    /// <summary>
+    /// Return subsystem by type.
+    /// </summary>
+    public object? GetSubsystem(StringHash type)
+    {
+        return Context.GetSubsystem(type);
+    }
+
+    /// <summary>
+    /// Return all subsystems from Context.
+    /// </summary>
+    public SubsystemCache GetSubsystems()
+    {
+        return Context.GetSubsystems();
+    }
+
     public Object? GetEventSender()
     {
         return Context.GetEventSender();
