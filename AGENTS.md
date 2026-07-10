@@ -51,7 +51,6 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 
 ## Workflow Expectations
 
-- Keep progress and durable decisions in `RENDER_PORT_PROGRESS.md`.
 - Trim stale guesses, superseded notes, and completed low-value items from that file.
 - Commit coherent checkpoints so progress is not stranded between sessions.
 - Keep the sample build healthy while porting rendering.

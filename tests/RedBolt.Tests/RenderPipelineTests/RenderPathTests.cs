@@ -188,7 +188,7 @@ public sealed class RenderPathTests
     {
         var resources = new ResourceCache();
         resources.RegisterDefaultResources();
-        var upstreamCoreData = GetUpstreamRbfxCoreData();
+        var upstreamCoreData = GetCoreData();
         resources.AddResourceDir(upstreamCoreData);
 
         try
@@ -223,17 +223,18 @@ public sealed class RenderPathTests
         }
     }
 
-    private static string GetUpstreamRbfxCoreData()
+    private static string GetCoreData()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "RENDER_PORT_PROGRESS.md")))
+        while (directory is not null)
+        {
+            var coreData = Path.Combine(directory.FullName, "bin", "CoreData");
+            if (Directory.Exists(coreData))
+                return Path.GetFullPath(coreData);
             directory = directory.Parent;
+        }
 
-        Assert.NotNull(directory);
-
-        var coreData = Path.GetFullPath(Path.Combine(directory!.FullName, "..", "rbfx", "bin", "CoreData"));
-        Assert.True(Directory.Exists(coreData), $"Expected upstream rbfx CoreData directory at '{coreData}'.");
-        return coreData;
+        throw new InvalidOperationException("Could not find upstream Rbfx CoreData directory.");
     }
 
     private sealed class TrackingRenderPass : RenderPass
