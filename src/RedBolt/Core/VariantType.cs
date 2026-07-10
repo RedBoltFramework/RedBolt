@@ -594,6 +594,9 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.IntRect => new Variant(ParseIntRect(value)),
             VariantType.Vector2i => new Variant(ParseIntVector2(value)),
             VariantType.Vector3i => new Variant(ParseIntVector3(value)),
+            VariantType.Matrix3 => new Variant(ParseMatrix3(value)),
+            VariantType.Matrix3x4 => new Variant(ParseMatrix3x4(value)),
+            VariantType.Matrix4 => new Variant(ParseMatrix4(value)),
             VariantType.String => new Variant(value),
             VariantType.CString => new Variant(new CString(value)),
             VariantType.Buffer => new Variant(ParseBuffer(value)),
@@ -1060,6 +1063,37 @@ public readonly struct Variant : IEquatable<Variant>
     {
         var values = ParseIntTokens(value);
         return values.Length < 3 ? Vector3i.Zero : new Vector3i(values[0], values[1], values[2]);
+    }
+
+    private static Matrix3 ParseMatrix3(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 9
+            ? default
+            : new Matrix3(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]);
+    }
+
+    private static Matrix3x4 ParseMatrix3x4(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 12
+            ? default
+            : new Matrix3x4(
+                values[0], values[1], values[2], values[3],
+                values[4], values[5], values[6], values[7],
+                values[8], values[9], values[10], values[11]);
+    }
+
+    private static Matrix4 ParseMatrix4(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 16
+            ? default
+            : new Matrix4(
+                values[0], values[1], values[2], values[3],
+                values[4], values[5], values[6], values[7],
+                values[8], values[9], values[10], values[11],
+                values[12], values[13], values[14], values[15]);
     }
 
     private static string BufferToString(byte[] buffer)
