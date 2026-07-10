@@ -1,0 +1,1474 @@
+# RedBolt Port Checklist — `Source/Urho3D`
+
+Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
+
+## How this list is ordered
+
+- **Subsystems (subfolders) are ranked so that base / depended-on subsystems come first.** Part A is the
+  essential core needed for a running, scene-rendering engine. Part B lists optional subsystems (each marked
+  `OPTIONAL`) that layer on top of the core and can be deferred / skipped.
+- **Within each subsystem, files are ordered base-first**: base classes, structs, and defs/enums come before the
+  types that use them. Port a file only after everything above it in its subsystem (and every Part-A subsystem
+  above it) exists.
+- **Each file is its own item; the classes/structs it declares are a nested sub-list, one per line.**
+  `A : B` means `A` derives from `B` — port `B` first (it is either earlier in this list or in an earlier subsystem).
+- Cross-subsystem back-edges (a "lower" file needing a "higher" one) are flagged inline with `⤴ needs <X>`.
+
+## Status legend
+
+- `[ ]` — not started
+- `[~]` — partially ported
+- `[x]` — done
+- `[-]` — **EXCLUDED** (intentionally not ported)
+
+## Exclusion convention
+
+An item may be marked `[-] EXCLUDED` **only** when it is C++-only infrastructure with no meaningful C# analogue —
+i.e. it is fully replaced by the .NET BCL, a C# language feature, generated interop, or the managed `Context`
+pattern. Every exclusion MUST follow this format so the decision is auditable:
+
+- `[-] FileOrClass` — **EXCLUDED** · reason: `<short justification>` · replaced-by: `<C# mechanism>`
+
+Rules:
+- Exclusion is a deliberate, reviewable decision, not a shortcut. When in doubt, keep it `[ ]` and port it.
+- Excluding a *file* excludes all its classes; excluding a single *class* is done at the class sub-bullet.
+- If porting later reveals behavior that the C# replacement does not cover, promote the item back to `[ ]`
+  and port it (per AGENTS.md: deviations from the engine must be fixed).
+
+## Existing RedBolt port surface (reconcile before re-porting)
+
+Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Scene`, `RenderAPI`,
+`RenderPipeline`, `Graphics`, `Input`, `Engine`, `SystemUI`. Generated bindings exist for `Container`, `Core`,
+`Math`, `Resource`, `Scene`, `Script`, `UI`. Update statuses as you reconcile.
+
+---
+
+# PART A — ESSENTIAL CORE (port in this order)
+
+## A1. Container — foundation, no engine deps
+
+- [-] `Allocator.h` — **EXCLUDED** · reason: custom pool allocator · replaced-by: .NET GC
+- [-] `Hash.h` — **EXCLUDED** · reason: hash-combine helpers · replaced-by: `System.HashCode` / `GetHashCode`
+- [-] `Functors.h` — **EXCLUDED** · reason: C++ functor adapters · replaced-by: delegates / `Func<>`
+- [-] `Str.h` — **EXCLUDED** · reason: `ea::string` wrapper · replaced-by: `System.String`
+- [-] `ByteVector.h` — **EXCLUDED** · reason: `ea::vector<u8>` alias · replaced-by: `byte[]` / `List<byte>`
+- [-] `TransformedSpan.h` — **EXCLUDED** · reason: projecting span view · replaced-by: LINQ `Select` / `Span<T>`
+- [-] `RefCounted.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
+- [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
+- [ ] `ConstString.h`
+  - [ ] `ConstString` (compile-time string handle)
+- [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
+- [ ] `IndexAllocator.h`
+  - [ ] `IndexAllocator`
+- [ ] `Array2D.h`
+  - [ ] `Array2D<T>`
+- [ ] `MultiVector.h`
+  - [ ] `MultiVector<T>`
+- [ ] `KeyFrameSet.h`
+  - [ ] `KeyFrameSet<T>`
+
+## A2. Math — depends on Container
+
+- [~] `MathDefs.h`
+  - [ ] math constants / free functions (enums, `Clamp`, `Lerp`, etc.)
+- [ ] `VectorCommon.h`
+  - [ ] `Detail::VectorTraits<T,N>`
+- [~] `Vector2.h`
+  - [~] `Vector2`
+  - [~] `IntVector2`
+- [~] `Vector3.h`
+  - [~] `Vector3`
+  - [~] `IntVector3`
+- [~] `Vector4.h`
+  - [~] `Vector4 : Detail::VectorTraits<float,4>`
+- [~] `Rect.h`
+  - [~] `Rect`
+  - [~] `IntRect`
+  - [ ] `IntRectIterator`
+- [~] `Matrix2.h`
+  - [~] `Matrix2`
+- [~] `Matrix3.h`
+  - [~] `Matrix3`
+- [~] `Matrix4.h`
+  - [~] `Matrix4`
+- [~] `Matrix3x4.h`
+  - [~] `Matrix3x4`
+- [~] `Quaternion.h`
+  - [~] `Quaternion`
+- [~] `Color.h`
+  - [~] `Color`
+- [~] `StringHash.h`
+  - [~] `StringHash` (port early — pervasive dependency)
+- [ ] `Random.h`
+  - [ ] random free functions
+- [x] `RandomEngine.h`
+  - [x] `RandomEngine`
+- [~] `PerlinNoise.h`
+  - [~] `PerlinNoise`
+- [~] `EaseMath.h`
+  - [ ] easing free functions
+- [ ] `WrappedScalar.h`
+  - [ ] `WrappedScalar<T>`
+- [ ] `NumericRange.h`
+  - [ ] `NumericRange<T>`
+- [~] `Plane.h`
+  - [~] `Plane`
+- [~] `Ray.h`
+  - [~] `Ray`
+- [~] `BoundingBox.h`
+  - [~] `BoundingBox`
+- [~] `Sphere.h`
+  - [ ] `Circle`
+  - [~] `Sphere`
+- [ ] `Frustum.h`
+  - [ ] `Frustum`
+- [ ] `Polyhedron.h`
+  - [ ] `Polyhedron`
+- [ ] `AreaAllocator.h`
+  - [ ] `AreaAllocator`
+- [~] `Transform.h`
+  - [~] `struct Transform`
+  - [ ] `struct DoubleTransform`
+- [ ] `SphericalHarmonics.h`
+  - [ ] `SphericalHarmonics9` / SH types
+- [ ] `TetrahedralMesh.h`
+  - [ ] `struct TetrahedralMeshSurface`
+  - [ ] `TetrahedralMesh`
+- [ ] `InverseKinematics.h`
+  - [ ] `struct IKSettings`
+  - [ ] `struct IKNode`
+  - [ ] `struct IKNodeSegment`
+  - [ ] `IKTrigonometricChain`
+  - [ ] `IKEyeChain`
+  - [ ] `IKChain`
+  - [ ] `IKSpineChain : IKChain`
+  - [ ] `IKFabrikChain : IKChain`
+
+## A3. Core — depends on Container, Math
+
+- [-] `NonCopyable.h` — **EXCLUDED** · reason: does not map to C# concepts
+- [-] `Macros.h` — **EXCLUDED** · reason: preprocessor macros · replaced-by: attributes + source generators
+- [-] `AssertBase.h` — **EXCLUDED** · reason: assert plumbing · replaced-by: `System.Diagnostics.Debug`
+- [-] `Assert.h` — **EXCLUDED** · reason: assert macros · replaced-by: `Debug.Assert` / `Trace.Assert`
+- [-] `TypeTrait.h` — **EXCLUDED** · reason: C++ template traits · replaced-by: generics + reflection
+- [-] `Format.h` — **EXCLUDED** · reason: fmt-style formatting · replaced-by: interpolation / `string.Format`
+- [-] `IteratorRange.h` — **EXCLUDED** · reason: iterator pair range · replaced-by: `IEnumerable<T>`
+- [-] `EnumIterator.h` — **EXCLUDED** · reason: enum iteration helper · replaced-by: `Enum.GetValues`
+- [-] `TupleUtils.h` — **EXCLUDED** · reason: tuple metaprogramming · replaced-by: value tuples
+- [-] `Mutex.h` — **EXCLUDED** · reason: OS mutex wrappers · replaced-by: `System.Threading` (`lock`, `Mutex`)
+- [-] `Condition.h` — **EXCLUDED** · reason: condition variable · replaced-by: `ManualResetEventSlim` / `Monitor`
+- [-] `Thread.h` — **EXCLUDED** · reason: OS thread wrapper · replaced-by: `System.Threading.Thread` / TPL
+- [-] `PE.h` — **EXCLUDED** · reason: Win32 PE parsing · replaced-by: n/a (platform-specific)
+- [-] `TypeInfo.h` - **EXCLUDED** · reason: use C# type system
+- [-] `Exception.h` - **EXCLUDED** · reason: use C# `RuntimeException` / `ArgumentException` or similar.
+- [x] `Timer.h`
+  - [x] `Timer`
+  - [x] `HiresTimer`
+  - [x] `Time : Object`
+  - [x] `TimedCounter`
+- [ ] `StringUtils.h`
+  - [ ] string parsing/formatting free functions
+- [ ] `StringHashRegister.h`
+  - [ ] `StringHashRegister`
+- [-] `Signal.h` - **EXCLUDED** · reason: use C# events
+- [~] `Variant.h`
+  - [~] `struct ResourceRef`
+  - [~] `struct ResourceRefList`
+  - [~] `Variant`
+  - [ ] `CustomVariantValueImpl<T>`
+- [ ] `VariantCurve.h`
+  - [ ] `VariantCurve : KeyFrameSet<VariantCurvePoint>`
+- [~] `Attribute.h`
+  - [ ] `AttributeAccessor : RefCounted`
+  - [~] `AttributeInfo`
+- [~] `ObjectReflection.h`
+  - [~] `ObjectReflection : RefCounted`
+  - [ ] `ObjectReflectionRegistry`
+- [~] `Object.h`
+  - [~] `Object : RefCounted`
+  - [ ] `EventHandler`
+- [~] `Context.h`
+  - [ ] `EventReceiverGroup : RefCounted`
+  - [~] `Context : RefCounted, ObjectReflectionRegistry` (use managed global `Context` pattern)
+- [ ] `ObjectCategory.h`
+  - [ ] category constants
+- [~] `CoreEvents.h`
+  - [~] core event `StringHash` definitions
+- [ ] `SubsystemCache.h`
+  - [ ] `SubsystemCache`
+- [ ] `ObjectRevisionTracker.h`
+  - [ ] `ObjectRevisionTracker`
+- [~] `Spline.h`
+  - [~] `Spline`
+- [~] `WorkQueue.h`
+  - [~] `WorkQueue : Object`
+- [ ] `ProcessUtils.h`
+  - [ ] process/CPU free functions
+- [ ] `CommandLine.h`
+  - [ ] command-line parsing helpers
+- [ ] `Profiler.h`
+  - [ ] profiler scopes (thin shim acceptable)
+- [ ] `ThreadSafeCache.h`
+  - [ ] `ThreadSafeCache<T>`
+- [ ] `StopToken.h`
+  - [ ] `StopToken`
+
+## A4. IO — depends on Container, Core
+
+- [ ] `IODefs.h`
+  - [ ] IO enums / constants
+- [ ] `ScanFlags.h`
+  - [ ] `ScanFlags`
+- [ ] `FileIdentifier.h`
+  - [ ] `struct FileIdentifier`
+- [~] `Deserializer.h`
+  - [~] `Deserializer`
+- [~] `Serializer.h`
+  - [~] `Serializer`
+- [ ] `AbstractFile.h`
+  - [ ] `AbstractFile : Deserializer, Serializer`
+- [~] `MemoryBuffer.h`
+  - [~] `MemoryBuffer : AbstractFile`
+- [~] `VectorBuffer.h`
+  - [~] `VectorBuffer : AbstractFile`
+- [ ] `File.h`
+  - [ ] `File : Object, AbstractFile`
+- [ ] `Compression.h`
+  - [ ] compression free functions
+- [~] `Log.h`
+  - [ ] `Logger`
+  - [~] `Log : Object`
+- [ ] `IOEvents.h`
+  - [ ] IO event definitions
+- [ ] `ArchiveBase.h`
+  - [ ] `ArchiveBase`
+  - [ ] `ArchiveBlockBase`
+- [ ] `Archive.h`
+  - [ ] `ArchiveBlock : MovableNonCopyable`
+  - [ ] `Archive`
+- [ ] `ArchiveSerializationBasic.h`
+  - [ ] basic archive serialization helpers
+- [ ] `ArchiveSerializationContainer.h`
+  - [ ] container archive serialization helpers
+- [ ] `ArchiveSerializationVariant.h`
+  - [ ] variant archive serialization helpers
+- [ ] `ArchiveSerialization.h`
+  - [ ] aggregate serialization entry points
+- [ ] `BinaryArchive.h`
+  - [ ] `BinaryOutputArchiveBlock : ArchiveBlockBase`
+  - [ ] `BinaryOutputArchive : BinaryArchiveBase<...>`
+  - [ ] `BinaryInputArchiveBlock : ArchiveBlockBase`
+  - [ ] `BinaryInputArchive : BinaryArchiveBase<...>`
+- [ ] `Base64Archive.h`
+  - [ ] `Base64OutputArchive : VectorBuffer, BinaryOutputArchive`
+  - [ ] `Base64InputArchive : VectorBuffer, BinaryInputArchive`
+- [ ] `MountPoint.h`
+  - [ ] `MountPoint : Object`
+  - [ ] `WatchableMountPoint : MountPoint`
+- [ ] `MountedRoot.h`
+  - [ ] `MountedRoot : MountPoint`
+- [ ] `MountedDirectory.h`
+  - [ ] `MountedDirectory : WatchableMountPoint`
+- [ ] `MountedAliasRoot.h`
+  - [ ] `MountedAliasRoot : MountPoint`
+- [ ] `MountedExternalMemory.h`
+  - [ ] `MountedExternalMemory : MountPoint`
+- [ ] `PackageFile.h`
+  - [ ] `PackageFile : MountPoint`
+- [ ] `VirtualFileSystem.h`
+  - [ ] `VirtualFileSystem : Object`
+  - [ ] `MountPointGuard : MovableNonCopyable`
+- [ ] `FileSystem.h`
+  - [ ] `FileSystem : Object`
+  - [ ] `TemporaryDir : MovableNonCopyable`
+- [ ] `FileWatcher.h`
+  - [ ] `FileWatcher : Object, Thread`
+- [ ] `MultiFileWatcher.h`
+  - [ ] `MultiFileWatcher : Object`
+- [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
+- [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
+- [ ] `NamedPipe.h`
+  - [ ] `NamedPipe : Object, AbstractFile`
+
+## A5. Resource — depends on IO, Core
+
+- [ ] `ResourceEvents.h`
+  - [ ] resource event definitions
+- [ ] `Decompress.h`
+  - [ ] texture decompress free functions
+- [~] `Resource.h`
+  - [~] `Resource : Object`
+  - [ ] `SimpleResource : Resource`
+  - [~] `ResourceWithMetadata : Resource`
+- [~] `Image.h`
+  - [~] `struct CompressedLevel`
+  - [~] `Image : Resource`
+- [ ] `ImageDDS.h`
+  - [ ] DDS format helpers
+- [~] `ImageCube.h`
+  - [~] `ImageCube : Resource`
+- [~] `JSONValue.h`
+  - [~] `JSONValue`
+- [~] `JSONFile.h`
+  - [~] `JSONFile : Resource`
+- [~] `XMLElement.h`
+  - [~] `XMLElement`
+  - [ ] `XPathResultSet`
+  - [ ] `XPathQuery`
+- [~] `XMLFile.h`
+  - [~] `XMLFile : Resource`
+- [ ] `JSONArchive.h`
+  - [ ] `JSONOutputArchiveBlock : ArchiveBlockBase`
+  - [ ] `JSONOutputArchive : JSONArchiveBase<...>`
+  - [ ] `JSONInputArchiveBlock : ArchiveBlockBase`
+  - [ ] `JSONInputArchive : JSONArchiveBase<...>`
+- [ ] `XMLArchive.h`
+  - [ ] `XMLOutputArchiveBlock : ArchiveBlockBase`
+  - [ ] `XMLOutputArchive : XMLArchiveBase<...>`
+  - [ ] `XMLInputArchiveBlock : ArchiveBlockBase`
+  - [ ] `XMLInputArchive : XMLArchiveBase<...>`
+- [~] `BinaryFile.h`
+  - [~] `BinaryFile : Resource`
+- [~] `PListFile.h`
+  - [~] `PListValue`
+  - [~] `PListFile : Resource`
+- [~] `Localization.h`
+  - [~] `Localization : Object`
+- [~] `BackgroundLoader.h`
+  - [~] `struct BackgroundLoadItem`
+  - [~] `BackgroundLoader : RefCounted, Thread`
+- [~] `ResourceCache.h`
+  - [ ] `ResourceRouter : Object`
+  - [~] `ResourceCache : Object`
+- [ ] `GraphPin.h`
+  - [ ] `GraphPin`
+  - [ ] `GraphDataPin : GraphPin`
+  - [ ] `GraphOutPin : GraphDataPin`
+  - [ ] `GraphInPin : GraphDataPin`
+  - [ ] `GraphEnterPin : GraphPin`
+  - [ ] `GraphExitPin : GraphPin`
+- [ ] `GraphNode.h`
+  - [ ] `GraphNodeProperty`
+  - [ ] `GraphNode : Object`
+- [ ] `Graph.h`
+  - [ ] `Graph : Object`
+- [~] `SerializableResource.h` ⤴ needs `Scene/Serializable`
+  - [~] `SerializableResource : SimpleResource`
+
+## A6. Scene — depends on Resource, Core
+
+- [~] `SceneEvents.h`
+  - [ ] scene event definitions
+- [ ] `AnimationDefs.h`
+  - [ ] animation enums / constants
+- [ ] `PrefabTypes.h`
+  - [ ] prefab enums / constants
+- [~] `Serializable.h`
+  - [~] `Serializable : Object`
+- [~] `ValueAnimationInfo.h`
+  - [~] `ValueAnimationInfo : RefCounted`
+- [~] `ValueAnimation.h`
+  - [~] `ValueAnimation : Resource`
+- [~] `ObjectAnimation.h`
+  - [~] `ObjectAnimation : Resource`
+- [~] `Animatable.h`
+  - [~] `AttributeAnimationInfo : ValueAnimationInfo`
+  - [~] `Animatable : Serializable`
+- [~] `Component.h`
+  - [~] `Component : Serializable`
+- [~] `Node.h`
+  - [ ] `struct NodeImpl`
+  - [~] `Node : Serializable`
+- [~] `LogicComponent.h`
+  - [~] `LogicComponent : Component`
+- [ ] `TrackedComponent.h`
+  - [ ] `TrackedComponentBase : Component`
+  - [ ] `TrackedComponentRegistryBase : Component`
+  - [ ] `ReferencedComponentBase : TrackedComponentBase`
+  - [ ] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
+- [~] `UnknownComponent.h`
+  - [~] `UnknownComponent : Component`
+- [ ] `NodePrefab.h`
+  - [ ] `AttributePrefab`
+  - [ ] `SerializablePrefab`
+  - [ ] `NodePrefab`
+- [ ] `PrefabReader.h`
+  - [ ] `PrefabReader : NonCopyable`
+  - [ ] `PrefabReaderFromMemory : PrefabReader`
+  - [ ] `PrefabReaderFromArchive : PrefabReader`
+- [ ] `PrefabWriter.h`
+  - [ ] `PrefabWriter : NonCopyable`
+  - [ ] `PrefabWriterToMemory : PrefabWriter`
+  - [ ] `PrefabWriterToArchive : PrefabWriter`
+- [ ] `PrefabResource.h`
+  - [ ] `PrefabResource : SimpleResource`
+- [ ] `PrefabReference.h`
+  - [ ] `PrefabReference : Component`
+- [ ] `SceneResolver.h`
+  - [ ] `SceneResolver`
+- [~] `Scene.h`
+  - [~] `Scene : Node`
+- [~] `SceneResource.h`
+  - [~] `SceneResource : Resource`
+- [~] `SplinePath.h`
+  - [~] `SplinePath : Component`
+- [~] `ShakeComponent.h`
+  - [~] `ShakeComponent : LogicComponent`
+- [ ] `WorldOrigin.h`
+  - [ ] `WorldOrigin : LogicComponent`
+
+## A7. RenderAPI — depends on Core, Math (current effort)
+
+- [~] `RenderAPIDefs.h`
+  - [~] `struct FullscreenMode`
+  - [~] `struct WindowSettings`
+  - [~] `struct RenderDeviceSettingsVulkan`
+  - [~] `struct RenderDeviceSettingsD3D12`
+  - [~] `struct RenderDeviceSettings`
+  - [~] `struct RenderDeviceCaps`
+  - [~] `struct RenderDeviceStats`
+  - [~] `struct VertexShaderAttribute`
+  - [~] `struct SamplerStateDesc`
+  - [~] `struct PipelineStateOutputDesc`
+  - [~] `struct InputLayoutElementDesc`
+  - [~] `struct InputLayoutDesc`
+  - [~] `struct ImmutableSamplersDesc`
+- [ ] `RenderAPIUtils.h`
+  - [ ] RenderAPI free functions
+- [-] `GAPIIncludes.h` — **EXCLUDED** · reason: Diligent header aggregation · replaced-by: generated Diligent bindings
+- [~] `ShaderBytecode.h`
+  - [~] `ShaderBytecode`
+- [~] `DeviceObject.h`
+  - [~] `DeviceObject`
+- [~] `RawShader.h`
+  - [~] `RawShader : Object, DeviceObject`
+- [~] `ShaderProgramReflection.h`
+  - [~] `ShaderProgramReflection : RefCounted`
+- [~] `RawBuffer.h`
+  - [~] `RawBuffer`
+- [~] `RawTexture.h`
+  - [~] `struct RawTextureParams`
+  - [~] `struct RawTextureUAVKey`
+  - [ ] `struct RawTextureHandles`
+  - [~] `RawTexture : DeviceObject`
+- [~] `RenderTargetView.h`
+  - [~] `RenderTargetView`
+- [~] `ConstantBufferCollection.h`
+  - [~] `ConstantBufferCollection`
+- [~] `PipelineState.h`
+  - [~] `struct GraphicsPipelineStateDesc`
+  - [~] `struct ComputePipelineStateDesc`
+  - [~] `PipelineStateDesc`
+  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>`
+  - [~] `PipelineStateCache : Object, DeviceObject`
+- [~] `RenderPool.h`
+  - [~] `RenderPool : Object`
+- [~] `RenderScope.h`
+  - [~] `RenderScope : NonCopyable`
+- [~] `RenderContext.h`
+  - [~] `RenderContext : Object`
+- [~] `DrawCommandQueue.h`
+  - [~] `DrawCommandQueue`
+- [~] `RenderDevice.h`
+  - [~] `RenderDevice : Object`
+
+## A8. Shader — depends on Core, IO (feeds Graphics)
+
+- [ ] `ShaderDefs.h`
+  - [ ] `struct ShaderDefineArray`
+- [ ] `ShaderSourceLogger.h`
+  - [ ] shader source logging helpers
+- [ ] `ShaderOptimizer.h`
+  - [ ] shader optimizer helpers
+- [ ] `ShaderTranslator.h`
+  - [ ] shader translation helpers
+- [ ] `ShaderCompiler.h`
+  - [ ] shader compiler helpers
+
+## A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
+
+- [~] `GraphicsDefs.h`
+  - [~] `struct VertexElement`
+  - [ ] graphics enums / constants
+- [~] `GraphicsEvents.h`
+  - [ ] graphics event definitions
+- [ ] `DrawableEvents.h`
+  - [ ] drawable event definitions
+- [ ] `GraphicsUtils.h`
+  - [ ] graphics free functions
+- [ ] `Tangent.h`
+  - [ ] tangent generation free functions
+- [ ] `PipelineStateTracker.h`
+  - [ ] `PipelineStateSubscription`
+  - [ ] `PipelineStateTracker`
+- [ ] `Skeleton.h`
+  - [ ] `Bone`
+  - [ ] `Skeleton`
+- [~] `Geometry.h`
+  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>`
+- [~] `IndexBuffer.h`
+  - [~] `IndexBuffer : RawBuffer, PipelineStateTracker`
+  - [ ] `DynamicIndexBuffer : Object`
+- [~] `VertexBuffer.h`
+  - [~] `VertexBuffer : RawBuffer, PipelineStateTracker`
+  - [ ] `DynamicVertexBuffer : Object`
+- [~] `Texture.h`
+  - [~] `Texture : ResourceWithMetadata, RawTexture`
+- [~] `Texture2D.h`
+  - [~] `Texture2D : Texture`
+- [~] `Texture3D.h`
+  - [~] `Texture3D : Texture`
+- [~] `TextureCube.h`
+  - [~] `TextureCube : Texture`
+- [~] `Texture2DArray.h`
+  - [~] `Texture2DArray : Texture`
+- [ ] `RenderSurface.h`
+  - [ ] `RenderSurface : RefCounted`
+- [~] `Shader.h`
+  - [~] `Shader : Resource`
+- [~] `ShaderVariation.h`
+  - [~] `ShaderVariation`
+- [ ] `ModelView.h`
+  - [ ] `struct ModelVertexFormat`
+  - [ ] `struct ModelVertex`
+  - [ ] `struct ModelVertexMorph`
+  - [ ] `struct GeometryLODView`
+  - [ ] `struct GeometryView`
+  - [ ] `struct BoneView`
+  - [ ] `struct ModelMorphView`
+  - [ ] `ModelView : Object`
+- [~] `Model.h`
+  - [~] `Model : ResourceWithMetadata`
+- [ ] `AnimationTrack.h`
+  - [ ] `struct AnimationTrack : KeyFrameSet<AnimationKeyFrame>`
+  - [ ] `struct VariantAnimationTrack : VariantCurve`
+- [ ] `Animation.h`
+  - [ ] `Animation : ResourceWithMetadata, ObjectRevisionTracker`
+- [~] `Camera.h`
+  - [~] `Camera : Component`
+- [ ] `CameraOperator.h`
+  - [ ] `CameraOperator : Component`
+- [~] `Viewport.h`
+  - [~] `Viewport : Object`
+- [~] `Drawable.h`
+  - [ ] `struct SourceBatch`
+  - [~] `Drawable : Component, PipelineStateTracker`
+- [~] `OctreeQuery.h`
+  - [ ] `OctreeQuery : NonCopyable`
+  - [ ] `PointOctreeQuery : OctreeQuery`
+  - [ ] `SphereOctreeQuery : OctreeQuery`
+  - [ ] `BoxOctreeQuery : OctreeQuery`
+  - [ ] `FrustumOctreeQuery : OctreeQuery`
+  - [ ] `struct OctreeQueryResult`
+  - [~] `struct RayQueryResult`
+  - [ ] `RayOctreeQuery : NonCopyable`
+  - [ ] `AllContentOctreeQuery : OctreeQuery`
+- [~] `Octree.h`
+  - [~] `Octant`
+  - [ ] `ZoneLookupIndex`
+  - [~] `Octree : Component`
+- [~] `Zone.h`
+  - [~] `Zone : Drawable`
+- [~] `Light.h`
+  - [~] `struct BiasParameters`
+  - [~] `struct CascadeParameters`
+  - [~] `struct FocusParameters`
+  - [~] `Light : Drawable`
+- [~] `Technique.h`
+  - [~] `Pass : RefCounted, PipelineStateTracker`
+  - [~] `Technique : Resource`
+- [~] `Material.h`
+  - [~] `struct TechniqueEntry`
+  - [ ] `ShaderParameterAnimationInfo : ValueAnimationInfo`
+  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>`
+- [~] `StaticModel.h`
+  - [~] `StaticModel : Drawable`
+- [ ] `AnimatedModel.h`
+  - [ ] `AnimatedModel : StaticModel`
+- [~] `StaticModelGroup.h`
+  - [~] `StaticModelGroup : StaticModel`
+- [~] `Skybox.h`
+  - [~] `Skybox : StaticModel`
+- [ ] `AnimationStateSource.h`
+  - [ ] `AnimationStateSource`
+- [ ] `AnimationState.h`
+  - [ ] `struct AnimatedAttributeReference`
+  - [ ] `AnimationState : RefCounted`
+- [ ] `AnimationController.h`
+  - [ ] `AnimationParameters`
+  - [ ] `AnimationController : AnimationStateSource`
+- [ ] `SoftwareModelAnimator.h`
+  - [ ] `SoftwareModelAnimator : Object`
+- [ ] `BillboardSet.h`
+  - [ ] `struct Billboard`
+  - [ ] `BillboardSet : Drawable`
+- [ ] `ParticleEffect.h`
+  - [ ] `ParticleEffect : Resource`
+- [ ] `ParticleEmitter.h`
+  - [ ] `ParticleEmitter : BillboardSet`
+- [ ] `RibbonTrail.h`
+  - [ ] `struct TrailPoint`
+  - [ ] `RibbonTrail : Drawable`
+- [ ] `DecalSet.h`
+  - [ ] `struct DecalVertex`
+  - [ ] `struct Decal`
+  - [ ] `DecalSet : Drawable`
+- [~] `CustomGeometry.h`
+  - [~] `CustomGeometry : Drawable`
+- [ ] `Terrain.h`
+  - [ ] `Terrain : Component`
+- [ ] `TerrainPatch.h`
+  - [ ] `TerrainPatch : Drawable`
+- [ ] `LightProbeGroup.h`
+  - [ ] `LightProbeGroup : Component`
+- [ ] `GlobalIllumination.h`
+  - [ ] `GlobalIllumination : Component`
+- [ ] `ReflectionProbeData.h`
+  - [ ] reflection probe data structs
+- [ ] `ReflectionProbe.h`
+  - [ ] `ReflectionProbeManager : TrackedComponentRegistryBase`
+  - [ ] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>`
+- [ ] `CubemapRenderer.h`
+  - [ ] `CubemapRenderer`
+- [~] `OutlineGroup.h`
+  - [~] `OutlineGroup : Component`
+- [ ] `OcclusionBuffer.h`
+  - [ ] `OcclusionBuffer : Object`
+- [ ] `DebugRenderer.h`
+  - [ ] `DebugRenderer : Component`
+- [~] `Renderer.h`
+  - [~] `Renderer : Object`
+- [~] `Graphics.h`
+  - [~] `Graphics : Object`
+- [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
+  - [ ] `LightBakingSettings`
+- [ ] `LightBaker.h` ⤴ pairs with `Glow`
+  - [ ] `LightBaker : Component`
+
+## A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
+
+- [~] `RenderPipelineDefs.h`
+  - [~] `RenderPipelineInterface`
+  - [ ] pipeline enums / settings structs
+- [ ] `ShaderConsts.h`
+  - [ ] shader constant name definitions
+- [ ] `PipelineBatchSortKey.h`
+  - [ ] batch sort-key structs
+- [~] `SharedRenderPassState.h`
+  - [~] `struct SharedRenderPassState : NonCopyable`
+- [~] `RenderBuffer.h`
+  - [~] `RenderBuffer : Object`
+  - [~] `TextureRenderBuffer : RenderBuffer`
+  - [~] `ViewportColorRenderBuffer : RenderBuffer`
+  - [ ] `ViewportDepthStencilRenderBuffer : RenderBuffer`
+- [~] `RenderBufferManager.h`
+  - [~] `RenderBufferManager : Object`
+- [ ] `ShadowMapAllocator.h`
+  - [ ] `ShadowMapAllocator : Object`
+- [ ] `InstancingBuffer.h`
+  - [ ] `InstancingBuffer : Object`
+- [ ] `ShaderProgramCompositor.h`
+  - [ ] `ShaderProgramCompositor : Object`
+- [ ] `StaticPipelineStateCache.h`
+  - [ ] `StaticPipelineStateCache : Object`
+- [ ] `BatchStateCache.h`
+  - [ ] `BatchStateCache : NonCopyable`
+  - [ ] `UIBatchStateCache : NonCopyable`
+- [ ] `PipelineStateBuilder.h`
+  - [ ] `PipelineStateBuilder : Object, BatchStateCacheCallback`
+- [ ] `CameraProcessor.h`
+  - [ ] `CameraProcessor : Object`
+- [ ] `LightProcessorQuery.h`
+  - [ ] `PointLightGeometryQuery : SphereOctreeQuery`
+  - [ ] `SpotLightGeometryQuery : FrustumOctreeQuery`
+  - [ ] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery`
+- [ ] `ShadowSplitProcessor.h`
+  - [ ] `ShadowSplitProcessor`
+- [ ] `LightAccumulator.h`
+  - [ ] `LightAccumulator`
+- [ ] `LightProcessor.h`
+  - [ ] `LightProcessor : NonCopyable`
+  - [ ] `LightProcessorCache : NonCopyable`
+- [ ] `DrawableProcessor.h`
+  - [ ] `DrawableProcessorPass : Object`
+  - [ ] `DrawableProcessor : Object`
+- [ ] `BatchCompositor.h`
+  - [ ] `BatchCompositorPass : DrawableProcessorPass`
+  - [ ] `BatchCompositor : Object`
+- [ ] `BatchRenderer.h`
+  - [ ] `BatchRenderer : Object`
+- [~] `RenderPass.h`
+  - [~] `RenderPass`
+- [~] `RenderPath.h`
+  - [~] `RenderPath : SimpleResource`
+- [ ] `ScenePass.h`
+  - [ ] `UnorderedScenePass : ScenePass`
+  - [ ] `BackToFrontScenePass : ScenePass`
+- [ ] `SceneProcessor.h`
+  - [ ] `SceneProcessor : Object, LightProcessorCallback`
+- [ ] `OutlineScenePass.h`
+  - [ ] `OutlineScenePass : ScenePass`
+- [ ] `RenderPipelineDebugger.h`
+  - [ ] `struct DebugFrameSnapshotBatch`
+  - [ ] `struct DebugFrameSnapshotQuad`
+  - [ ] `struct DebugFrameSnapshotPass`
+  - [ ] `struct DebugFrameSnapshot`
+  - [ ] `RenderPipelineDebugger`
+- [~] `Passes/FullScreenShaderPass.h`
+  - [~] `FullScreenShaderPass : RenderPass`
+- [~] `Passes/AmbientOcclusionPass.h`
+  - [~] `AmbientOcclusionPass : RenderPass`
+- [~] `Passes/AutoExposurePass.h`
+  - [~] `AutoExposurePass : RenderPass`
+- [~] `Passes/BloomPass.h`
+  - [~] `BloomPass : RenderPass`
+- [~] `Passes/ToneMappingPass.h`
+  - [~] `ToneMappingPass : RenderPass`
+- [~] `Passes/OutlineRenderPass.h`
+  - [~] `OutlineRenderPass : RenderPass`
+- [~] `RenderPipeline.h`
+  - [~] `RenderPipelineView`
+  - [~] `RenderPipeline : Component`
+- [~] `DefaultRenderPipeline.h`
+  - [~] `DefaultRenderPipelineView`
+- [ ] `StereoRenderPipeline.h`
+  - [ ] `StereoRenderPipelineView : RenderPipelineView`
+  - [ ] `StereoRenderPipeline : RenderPipeline`
+- [ ] `LightmapRenderPipeline.h` ⤴ pairs with `Glow`
+  - [ ] `LightmapRenderPipelineView`
+
+## A11. Input — depends on Core, Graphics (window)
+
+- [ ] `InputConstants.h`
+  - [ ] key / button / scancode constants
+- [~] `InputEvents.h`
+  - [ ] input event definitions
+- [~] `AxisAdapter.h`
+  - [~] `AxisAdapter`
+- [~] `Input.h`
+  - [ ] `struct TouchState`
+  - [ ] `struct JoystickState`
+  - [~] `Input : Object`
+- [~] `InputMap.h`
+  - [ ] `struct KeyboardKeyMapping`
+  - [~] `struct ControllerButtonMapping`
+  - [~] `struct ControllerAxisMapping`
+  - [ ] `struct ControllerHatMapping`
+  - [ ] `struct MouseButtonMapping`
+  - [ ] `struct ScreenButtonMapping`
+  - [~] `struct ActionMapping`
+  - [~] `InputMap : SimpleResource`
+- [ ] `MultitouchAdapter.h`
+  - [ ] `MultitouchAdapter : Object`
+- [~] `PointerAdapter.h`
+  - [~] `PointerAdapter : Object`
+- [~] `DirectionAggregator.h`
+  - [~] `DirectionAggregator : Object`
+- [~] `DirectionalPadAdapter.h`
+  - [~] `DirectionalPadAdapter : Object`
+- [~] `FreeFlyController.h`
+  - [~] `FreeFlyController : Component`
+- [~] `MoveAndOrbitComponent.h`
+  - [~] `MoveAndOrbitComponent : LogicComponent`
+- [~] `MoveAndOrbitController.h`
+  - [~] `MoveAndOrbitController : Component`
+
+## A12. Engine — top-level orchestration, depends on all Part-A above
+
+- [ ] `EngineDefs.h`
+  - [ ] engine parameter-name constants
+- [ ] `EngineEvents.h`
+  - [ ] engine event definitions
+- [ ] `StateManagerEvents.h`
+  - [ ] state-manager event definitions
+- [ ] `ApplicationFlavor.h`
+  - [ ] `struct ApplicationFlavorPattern`
+  - [ ] `struct ApplicationFlavor`
+- [ ] `ConfigFile.h`
+  - [ ] `struct ConfigVariableDefinition`
+  - [ ] `ConfigFile : Object`
+- [~] `Engine.h`
+  - [~] `Engine : Object`
+- [ ] `StateManager.h`
+  - [ ] `ApplicationState : Object`
+  - [ ] `StateManager : Object`
+- [~] `Application.h`
+  - [~] `Application : Object`
+
+---
+
+# PART B — OPTIONAL SUBSYSTEMS (port after Part A)
+
+Ordered so that optional subsystems depended on by other optional subsystems come first.
+
+## B1. Actions `OPTIONAL` — tweening/action system; depends on Scene
+
+- [ ] `ActionState.h`
+  - [ ] `ActionState`
+- [ ] `Attribute.h`
+  - [ ] attribute-action helpers
+- [ ] `BaseAction.h`
+  - [ ] `BaseAction : Serializable`
+- [ ] `FiniteTimeAction.h`
+  - [ ] `FiniteTimeAction : BaseAction`
+- [ ] `FiniteTimeActionState.h`
+  - [ ] `FiniteTimeActionState : ActionState`
+- [ ] `ActionInstant.h`
+  - [ ] `ActionInstant : FiniteTimeAction`
+- [ ] `ActionInstantState.h`
+  - [ ] `ActionInstantState : FiniteTimeActionState`
+- [ ] `AttributeAction.h`
+  - [ ] `AttributeAction : FiniteTimeAction`
+- [ ] `AttributeActionState.h`
+  - [ ] `AttributeActionState : FiniteTimeActionState`
+- [ ] `Move.h`
+  - [ ] `MoveBy : AttributeAction`
+  - [ ] `MoveByQuadratic : MoveBy`
+  - [ ] `JumpBy : AttributeAction`
+  - [ ] `ScaleBy : AttributeAction`
+  - [ ] `RotateBy : AttributeAction`
+  - [ ] `RotateAround : AttributeAction`
+- [ ] `Misc.h`
+  - [ ] `RemoveSelf : FiniteTimeAction`
+  - [ ] `DelayTime : FiniteTimeAction`
+  - [ ] `Show : AttributeAction`
+  - [ ] `Hide : AttributeAction`
+  - [ ] `Enable : AttributeAction`
+  - [ ] `Disable : AttributeAction`
+  - [ ] `Blink : AttributeAction`
+- [ ] `Ease.h`
+  - [ ] `ActionEase : FiniteTimeAction`
+  - [ ] `EaseElastic : ActionEase`
+  - [ ] `EaseBackIn/Out/InOut : ActionEase`
+  - [ ] `EaseBounceOut/In/InOut : ActionEase`
+  - [ ] `EaseSineOut/In/InOut : ActionEase`
+  - [ ] `EaseExponentialOut/In/InOut : ActionEase`
+  - [ ] `EaseElasticIn/Out/InOut : EaseElastic`
+- [ ] `CallFunc.h`
+  - [ ] `ActionCallHandler : RefCounted`
+  - [ ] `CallFunc : ActionInstant`
+  - [ ] `SendEvent : ActionInstant`
+- [ ] `ShaderParameter.h` ⤴ needs `Graphics/Material`
+  - [ ] `ShaderParameterAction : FiniteTimeAction`
+  - [ ] `ShaderParameterTo : ShaderParameterAction`
+  - [ ] `ShaderParameterFromTo : ShaderParameterTo`
+- [ ] `Parallel.h`
+  - [ ] `Parallel : FiniteTimeAction`
+- [ ] `Sequence.h`
+  - [ ] `Sequence : FiniteTimeAction`
+- [ ] `Repeat.h`
+  - [ ] `Repeat : FiniteTimeAction`
+  - [ ] `RepeatForever : FiniteTimeAction`
+- [ ] `ActionSet.h`
+  - [ ] `ActionSet : Resource`
+- [ ] `ActionBuilder.h`
+  - [ ] `ActionBuilder`
+- [ ] `ActionManager.h`
+  - [ ] `ActionManager`
+
+## B2. Audio `OPTIONAL` — depends on Scene, Resource
+
+- [ ] `AudioDefs.h`
+  - [ ] audio enums / constants
+- [ ] `AudioEvents.h`
+  - [ ] audio event definitions
+- [ ] `Sound.h`
+  - [ ] `Sound : ResourceWithMetadata`
+- [ ] `SoundStream.h`
+  - [ ] `SoundStream : RefCounted`
+- [ ] `BufferedSoundStream.h`
+  - [ ] `BufferedSoundStream : SoundStream`
+- [ ] `OggVorbisSoundStream.h`
+  - [ ] `OggVorbisSoundStream : SoundStream`
+- [ ] `SoundSource.h`
+  - [ ] `SoundSource : Component`
+- [ ] `SoundSource3D.h`
+  - [ ] `SoundSource3D : SoundSource`
+- [ ] `SoundListener.h`
+  - [ ] `SoundListener : Component`
+- [ ] `Microphone.h`
+  - [ ] `Microphone : Object`
+- [ ] `Audio.h`
+  - [ ] `Audio : Object`
+
+## B3. UI `OPTIONAL` — retained-mode UI; depends on Graphics, Resource, Input
+
+- [ ] `UIEvents.h`
+  - [ ] UI event definitions
+- [ ] `FontFace.h`
+  - [ ] `struct FontGlyph`
+  - [ ] `FontFace : RefCounted`
+- [ ] `FontFaceBitmap.h`
+  - [ ] `FontFaceBitmap : FontFace`
+- [ ] `FontFaceFreeType.h`
+  - [ ] `FontFaceFreeType : FontFace`
+- [ ] `Font.h`
+  - [ ] `Font : Resource`
+- [ ] `UIBatch.h`
+  - [ ] `UIBatch`
+- [~] `UIElement.h`
+  - [~] `UIElement : Animatable`
+- [ ] `UISelectable.h`
+  - [ ] `UISelectable : UIElement`
+- [ ] `BorderImage.h`
+  - [ ] `BorderImage : UIElement`
+- [ ] `Sprite.h`
+  - [ ] `Sprite : UIElement`
+- [ ] `Cursor.h`
+  - [ ] `struct CursorShapeInfo`
+  - [ ] `Cursor : BorderImage`
+- [ ] `Button.h`
+  - [ ] `Button : BorderImage`
+- [ ] `CheckBox.h`
+  - [ ] `CheckBox : BorderImage`
+- [ ] `Slider.h`
+  - [ ] `Slider : BorderImage`
+- [ ] `ScrollBar.h`
+  - [ ] `ScrollBar : BorderImage`
+- [ ] `ProgressBar.h`
+  - [ ] `ProgressBar : BorderImage`
+- [ ] `LineEdit.h`
+  - [ ] `LineEdit : BorderImage`
+- [ ] `Text.h`
+  - [ ] `Text : UISelectable`
+- [ ] `Text3D.h`
+  - [ ] `Text3D : Drawable`
+- [ ] `TextRenderer3D.h`
+  - [ ] `TextRenderer3D : LogicComponent`
+- [ ] `ScrollView.h`
+  - [ ] `ScrollView : UIElement`
+- [ ] `ListView.h`
+  - [ ] `ListView : ScrollView`
+- [ ] `ToolTip.h`
+  - [ ] `ToolTip : UIElement`
+- [ ] `Menu.h`
+  - [ ] `Menu : Button`
+- [ ] `DropDownList.h`
+  - [ ] `DropDownList : Menu`
+- [ ] `Window.h`
+  - [ ] `Window : BorderImage`
+- [ ] `View3D.h`
+  - [ ] `View3D : Window`
+- [ ] `FileSelector.h`
+  - [ ] `FileSelector : Object`
+- [ ] `MessageBox.h`
+  - [ ] `MessageBox : Object`
+- [ ] `SplashScreen.h` ⤴ needs `Engine/StateManager`
+  - [ ] `SplashScreen : ApplicationState`
+- [ ] `UIComponent.h`
+  - [ ] `UIComponent : Component`
+- [ ] `UI.h`
+  - [ ] `UI : Object`
+
+## B4. Physics `OPTIONAL` — Bullet; depends on Scene, Graphics
+
+- [ ] `PhysicsDefs.h`
+  - [ ] physics enums / constants
+- [ ] `PhysicsEvents.h`
+  - [ ] physics event definitions
+- [ ] `PhysicsUtils.h`
+  - [ ] Bullet <-> engine conversion helpers
+- [ ] `CollisionGeometryDataCache.h`
+  - [ ] `CollisionGeometryDataCache : Object`
+- [ ] `PhysicsWorld.h`
+  - [ ] `struct PhysicsRaycastResult`
+  - [ ] `PhysicsWorld : Component, btIDebugDraw`
+- [ ] `CollisionShape.h`
+  - [ ] `CollisionShape : Component`
+- [ ] `RigidBody.h`
+  - [ ] `RigidBody : Component, btMotionState`
+- [ ] `Constraint.h`
+  - [ ] `Constraint : Component`
+- [ ] `KinematicCharacterController.h`
+  - [ ] `KinematicCharacterController : Component`
+- [ ] `RaycastVehicleWheel.h`
+  - [ ] `RaycastVehicleWheel : Component`
+- [ ] `RaycastVehicle.h`
+  - [ ] `RaycastVehicle : LogicComponent`
+- [ ] `TriggerAnimator.h`
+  - [ ] `TriggerAnimator : Component`
+
+## B5. Physics2D `OPTIONAL` — Box2D; depends on Scene, Graphics
+
+- [ ] `Physics2D.h`
+  - [ ] registration entry point
+- [ ] `PhysicsEvents2D.h`
+  - [ ] 2D physics event definitions
+- [ ] `PhysicsUtils2D.h`
+  - [ ] Box2D <-> engine conversion helpers
+- [ ] `PhysicsWorld2D.h`
+  - [ ] `struct PhysicsRaycastResult2D`
+  - [ ] `PhysicsWorld2D : Component, b2ContactListener, b2Draw`
+- [ ] `RigidBody2D.h`
+  - [ ] `RigidBody2D : Component`
+- [ ] `CollisionShape2D.h`
+  - [ ] `CollisionShape2D : Component`
+- [ ] `CollisionBox2D.h`
+  - [ ] `CollisionBox2D : CollisionShape2D`
+- [ ] `CollisionCircle2D.h`
+  - [ ] `CollisionCircle2D : CollisionShape2D`
+- [ ] `CollisionPolygon2D.h`
+  - [ ] `CollisionPolygon2D : CollisionShape2D`
+- [ ] `CollisionChain2D.h`
+  - [ ] `CollisionChain2D : CollisionShape2D`
+- [ ] `CollisionEdge2D.h`
+  - [ ] `CollisionEdge2D : CollisionShape2D`
+- [ ] `Constraint2D.h`
+  - [ ] `Constraint2D : Component`
+- [ ] `ConstraintDistance2D.h`
+  - [ ] `ConstraintDistance2D : Constraint2D`
+- [ ] `ConstraintFriction2D.h`
+  - [ ] `ConstraintFriction2D : Constraint2D`
+- [ ] `ConstraintGear2D.h`
+  - [ ] `ConstraintGear2D : Constraint2D`
+- [ ] `ConstraintMotor2D.h`
+  - [ ] `ConstraintMotor2D : Constraint2D`
+- [ ] `ConstraintMouse2D.h`
+  - [ ] `ConstraintMouse2D : Constraint2D`
+- [ ] `ConstraintPrismatic2D.h`
+  - [ ] `ConstraintPrismatic2D : Constraint2D`
+- [ ] `ConstraintPulley2D.h`
+  - [ ] `ConstraintPulley2D : Constraint2D`
+- [ ] `ConstraintRevolute2D.h`
+  - [ ] `ConstraintRevolute2D : Constraint2D`
+- [ ] `ConstraintRope2D.h`
+  - [ ] `ConstraintRope2D : Constraint2D`
+- [ ] `ConstraintWeld2D.h`
+  - [ ] `ConstraintWeld2D : Constraint2D`
+- [ ] `ConstraintWheel2D.h`
+  - [ ] `ConstraintWheel2D : Constraint2D`
+
+## B6. Urho2D `OPTIONAL` — 2D sprites/tiles; depends on Graphics, Physics2D
+
+- [ ] `Urho2D.h`
+  - [ ] registration entry point
+- [ ] `Urho2DEvents.h`
+  - [ ] Urho2D event definitions
+- [ ] `Sprite2D.h`
+  - [ ] `Sprite2D : Resource`
+- [ ] `SpriteSheet2D.h`
+  - [ ] `SpriteSheet2D : Resource`
+- [ ] `Drawable2D.h`
+  - [ ] `Drawable2D : Drawable`
+- [ ] `StaticSprite2D.h`
+  - [ ] `StaticSprite2D : Drawable2D`
+- [ ] `StretchableSprite2D.h`
+  - [ ] `StretchableSprite2D : StaticSprite2D`
+- [ ] `SpriterData2D.h`
+  - [ ] Spriter data structs
+- [ ] `SpriterInstance2D.h`
+  - [ ] `SpriterInstance2D`
+- [ ] `AnimationSet2D.h`
+  - [ ] `AnimationSet2D : Resource`
+- [ ] `AnimatedSprite2D.h`
+  - [ ] `AnimatedSprite2D : StaticSprite2D`
+- [ ] `ParticleEffect2D.h`
+  - [ ] `ParticleEffect2D : Resource`
+- [ ] `ParticleEmitter2D.h`
+  - [ ] `ParticleEmitter2D : Drawable2D`
+- [ ] `TileMapDefs2D.h`
+  - [ ] `struct TileMapInfo2D`
+  - [ ] `PropertySet2D : RefCounted`
+  - [ ] `Tile2D : RefCounted`
+  - [ ] `TileMapObject2D : RefCounted`
+- [ ] `TmxFile2D.h`
+  - [ ] `TmxFile2D : Resource`
+- [ ] `TileMapLayer2D.h`
+  - [ ] `TileMapLayer2D : Component`
+- [ ] `TileMap2D.h`
+  - [ ] `TileMap2D : Component`
+- [ ] `Renderer2D.h`
+  - [ ] `Renderer2D : Drawable`
+
+## B7. Navigation `OPTIONAL` — Recast/Detour; depends on Scene, Graphics
+
+- [ ] `NavigationDefs.h`
+  - [ ] navigation enums / constants
+- [ ] `NavigationEvents.h`
+  - [ ] navigation event definitions
+- [ ] `NavigationUtils.h`
+  - [ ] navigation helpers / registration
+- [ ] `NavBuildData.h`
+  - [ ] `struct NavAreaStub`
+  - [ ] `struct NavBuildData : NonCopyable`
+  - [ ] `struct SimpleNavBuildData : NavBuildData`
+  - [ ] `struct DynamicNavBuildData : NavBuildData`
+- [ ] `NavigationMesh.h`
+  - [ ] `struct NavigationPathPoint`
+  - [ ] `NavigationMesh : Component`
+- [ ] `DynamicNavigationMesh.h`
+  - [ ] `DynamicNavigationMesh : NavigationMesh`
+- [ ] `NavArea.h`
+  - [ ] `NavArea : Component`
+- [ ] `Navigable.h`
+  - [ ] `Navigable : Component`
+- [ ] `Obstacle.h`
+  - [ ] `Obstacle : Component`
+- [ ] `OffMeshConnection.h`
+  - [ ] `OffMeshConnection : Component`
+- [ ] `CrowdAgent.h`
+  - [ ] `CrowdAgent : Component`
+- [ ] `CrowdManager.h`
+  - [ ] `CrowdManager : Component`
+
+## B8. Network `OPTIONAL` — depends on IO, Core
+
+- [ ] `Protocol.h`
+  - [ ] protocol message-id constants
+- [ ] `PacketTypeFlags.h`
+  - [ ] `PacketTypeFlags`
+- [ ] `NetworkEvents.h`
+  - [ ] network event definitions
+- [ ] `URL.h`
+  - [ ] `URL`
+- [ ] `MessageUtils.h`
+  - [ ] `LargeMessageWriter`
+  - [ ] `LargeMessageReader`
+  - [ ] `MultiMessageWriter`
+- [ ] `ClockSynchronizer.h`
+  - [ ] `FilteredUint`
+  - [ ] `ClockSynchronizer`
+- [ ] `AbstractConnection.h`
+  - [ ] `AbstractConnection : Object, IDFamily<AbstractConnection>`
+- [ ] `Transport/NetworkConnection.h`
+  - [ ] `NetworkConnection : Object`
+- [ ] `Transport/NetworkServer.h`
+  - [ ] `NetworkServer : Object`
+- [ ] `Transport/DataChannel/DataChannelConnection.h`
+  - [ ] `DataChannelConnection : NetworkConnection`
+- [ ] `Transport/DataChannel/DataChannelServer.h`
+  - [ ] `DataChannelServer : NetworkServer`
+- [ ] `Connection.h`
+  - [ ] `Connection : AbstractConnection`
+- [ ] `HttpRequest.h`
+  - [ ] `HttpRequest : RefCounted, Deserializer, Thread`
+- [ ] `LANDiscoveryManager.h`
+  - [ ] `LANDiscoveryManager : Object`
+- [ ] `Network.h`
+  - [ ] `Network : Object`
+
+## B9. Replica `OPTIONAL` — scene replication; depends on Network, Scene, Graphics
+
+- [ ] `NetworkId.h`
+  - [ ] `NetworkId`
+- [ ] `NetworkSettingsConsts.h`
+  - [ ] network settings constants
+- [ ] `ProtocolMessages.h`
+  - [ ] protocol message structs
+- [ ] `NetworkCallbacks.h`
+  - [ ] network callback interfaces
+- [ ] `NetworkTime.h`
+  - [ ] `NetworkTime`
+- [ ] `NetworkValue.h`
+  - [ ] `NetworkValue<T>` / interpolation helpers
+- [ ] `TickSynchronizer.h`
+  - [ ] `TickSynchronizer`
+  - [ ] `SceneUpdateSynchronizer : Object`
+- [ ] `ClientInputStatistics.h`
+  - [ ] `ClientInputStatistics`
+- [ ] `NetworkObject.h`
+  - [ ] `NetworkObject`
+- [ ] `StaticNetworkObject.h`
+  - [ ] `StaticNetworkObject : NetworkObject`
+- [ ] `BehaviorNetworkObject.h`
+  - [ ] `NetworkBehavior`
+  - [ ] `BehaviorNetworkObject : StaticNetworkObject`
+- [ ] `BaseFeedbackBehavior.h`
+  - [ ] `BaseFeedbackBehavior<T>`
+- [ ] `ReplicatedTransform.h`
+  - [ ] `ReplicatedTransform : NetworkBehavior`
+- [ ] `ReplicatedParent.h`
+  - [ ] `ReplicatedParent : NetworkBehavior`
+- [ ] `ReplicatedAnimation.h`
+  - [ ] `ReplicatedAnimation : NetworkBehavior`
+- [ ] `FilteredByOwner.h`
+  - [ ] `FilteredByOwner : NetworkBehavior`
+- [ ] `FilteredByDistance.h`
+  - [ ] `FilteredByDistance : NetworkBehavior`
+- [ ] `TrackedAnimatedModel.h`
+  - [ ] `TrackedAnimatedModel : NetworkBehavior`
+- [ ] `PredictedKinematicController.h` ⤴ needs `Physics`
+  - [ ] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
+- [ ] `ReplicationManager.h`
+  - [ ] `NetworkObjectRegistry : ReferencedComponentRegistryBase`
+  - [ ] `ReplicationManager : NetworkObjectRegistry`
+- [ ] `ClientReplica.h`
+  - [ ] `ClientReplicaClock : Object`
+  - [ ] `ClientReplica : ClientReplicaClock`
+- [ ] `ServerReplicator.h`
+  - [ ] `ServerReplicator : Object`
+
+## B10. IK `OPTIONAL` — inverse kinematics; depends on Scene, Math/InverseKinematics
+
+- [ ] `IK.h`
+  - [ ] registration entry point
+- [ ] `IKEvents.h`
+  - [ ] IK event definitions
+- [ ] `AllSolvers.h`
+  - [ ] solver aggregation header
+- [ ] `IKSolverComponent.h`
+  - [ ] `IKSolverComponent : Component`
+- [ ] `IKIdentitySolver.h`
+  - [ ] `IKIdentitySolver : IKSolverComponent`
+- [ ] `IKLimbSolver.h`
+  - [ ] `IKLimbSolver : IKSolverComponent`
+- [ ] `IKLegSolver.h`
+  - [ ] `IKLegSolver : IKSolverComponent`
+- [ ] `IKArmSolver.h`
+  - [ ] `IKArmSolver : IKSolverComponent`
+- [ ] `IKChainSolver.h`
+  - [ ] `IKChainSolver : IKSolverComponent`
+- [ ] `IKHeadSolver.h`
+  - [ ] `IKHeadSolver : IKSolverComponent`
+- [ ] `IKSpineSolver.h`
+  - [ ] `IKSpineSolver : IKSolverComponent`
+- [ ] `IKRotateTo.h`
+  - [ ] `IKRotateTo : IKSolverComponent`
+- [ ] `IKStickTargets.h`
+  - [ ] `IKStickTargets : IKSolverComponent`
+- [ ] `IKSolver.h`
+  - [ ] `IKSolver : LogicComponent`
+
+## B11. Particles `OPTIONAL` — particle graph system; depends on Scene, Graphics
+
+- [ ] `Helpers.h`
+  - [ ] particle helper free functions
+- [ ] `Span.h`
+  - [ ] `Span` view type
+- [ ] `SpanVariants.h`
+  - [ ] span variant types
+- [ ] `UpdateContext.h`
+  - [ ] `UpdateContext`
+- [ ] `ParticleGraphMemory.h`
+  - [ ] particle graph memory pool
+- [ ] `ParticleGraphPin.h`
+  - [ ] `ParticleGraphPin`
+- [ ] `Attribute.h`
+  - [ ] particle attribute descriptors
+- [ ] `ParticleGraphNode.h`
+  - [ ] `ParticleGraphNode : Serializable`
+- [ ] `ParticleGraphNodeInstance.h`
+  - [ ] `ParticleGraphNodeInstance : NonCopyable`
+- [ ] `ParticleGraphSystem.h`
+  - [ ] `ParticleGraphSystem : Object, ObjectReflectionRegistry`
+- [ ] `ParticleGraph.h`
+  - [ ] `ParticleGraph : Object`
+- [ ] `ParticleGraphLayer.h`
+  - [ ] `ParticleGraphLayer : Serializable`
+- [ ] `ParticleGraphLayerInstance.h`
+  - [ ] `ParicleGraphUniform`
+  - [ ] `ParticleGraphLayerInstance`
+- [ ] `TemplateNode.h`
+  - [ ] `TemplateNode<TInstance, ...>`
+- [ ] `PatternMatchingNode.h`
+  - [ ] `PatternMatchingNode : ParticleGraphNode`
+- [ ] `ParticleGraphEffect.h`
+  - [ ] `ParticleGraphEffect : Resource`
+- [ ] `ParticleGraphEmitter.h`
+  - [ ] `ParticleGraphEmitter : Component`
+- [ ] `Nodes/` (graph node library — each `: TemplateNode<...>`, `: PatternMatchingNode`, or `: ParticleGraphNode`)
+  - [ ] arithmetic: `Add`, `Subtract`, `Multiply`, `Divide`, `Negate`, `Clamp`, `Lerp`, `Slerp`, `Normalized`, `Make`, `Break`, `Cast`, `Length`
+  - [ ] sources: `Constant`, `Curve`, `Random`, `Uniform` (`GetUniform`/`SetUniform`), `Attribute` (`GetAttribute`/`SetAttribute`), `Print`
+  - [ ] lifecycle: `Emit`, `Expire`, `Destroy`
+  - [ ] motion: `Move`, `ApplyForce`, `LimitVelocity`
+  - [ ] time: `TimeStep`, `TimeStepScale`, `EffectTime`, `NormalizedEffectTime`
+  - [ ] shapes: `Box`, `Circle`, `Cone`, `Sphere`, `Hemisphere`
+  - [ ] noise: `Noise3D`, `CurlNoise3D`
+  - [ ] emitter: `BurstTimer`, `EmitterPosition`, `EmitterRotation`, `EmitterScale`, `LocalToWorld`, `WorldToLocal`
+  - [ ] render: `RenderBillboard`, `RenderMesh`
+
+## B12. Glow `OPTIONAL` — lightmap baking (Embree); depends on Graphics, Scene
+
+- [ ] `Helpers.h`
+  - [ ] glow helper free functions
+- [-] `EmbreeForward.h` — **EXCLUDED** · reason: Embree forward decls · replaced-by: generated Embree interop
+- [ ] `LightmapUVGenerator.h`
+  - [ ] `struct LightmapUVGenerationSettings`
+- [ ] `RaytracerScene.h`
+  - [ ] `RaytracerScene : RefCounted`
+- [ ] `BakedLight.h`
+  - [ ] baked light structs
+- [ ] `BakedLightCache.h`
+  - [ ] `BakedLightCache`
+  - [ ] `BakedLightMemoryCache : BakedLightCache`
+- [ ] `BakedSceneBackground.h`
+  - [ ] baked scene background structs
+- [ ] `BakedSceneChunk.h`
+  - [ ] baked scene chunk structs
+- [ ] `BakedSceneCollector.h`
+  - [ ] `BakedSceneCollector`
+  - [ ] `DefaultBakedSceneCollector : BakedSceneCollector`
+- [ ] `StaticModelForLightmap.h`
+  - [ ] `StaticModelForLightmap : Drawable`
+- [ ] `LightmapCharter.h`
+  - [ ] chart layout helpers
+- [ ] `LightmapGeometryBuffer.h`
+  - [ ] geometry buffer structs
+- [ ] `LightmapStitcher.h`
+  - [ ] seam stitching helpers
+- [ ] `LightmapFilter.h`
+  - [ ] lightmap filtering helpers
+- [ ] `LightTracer.h`
+  - [ ] light tracing helpers
+- [ ] `IncrementalLightBaker.h`
+  - [ ] `IncrementalLightBaker`
+
+## B13. RmlUI `OPTIONAL` — RmlUi HTML/CSS UI; depends on UI, Graphics
+
+- [ ] `RmlSystem.h`
+  - [ ] `RmlSystem : RefCounted, Rml::SystemInterface`
+- [ ] `RmlFile.h`
+  - [ ] `RmlFile : Rml::FileInterface`
+- [ ] `RmlRenderer.h`
+  - [ ] `RmlRenderer : Object, Rml::RenderInterface`
+- [ ] `RmlEventListeners.h`
+  - [ ] `PipeEventListener : Rml::EventListener, NonCopyable`
+  - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`
+  - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
+- [ ] `RmlUI.h`
+  - [ ] `RmlUI : Object`
+- [ ] `RmlUIComponent.h`
+  - [ ] `RmlUIComponent : LogicComponent`
+- [ ] `RmlCanvasComponent.h`
+  - [ ] `RmlCanvasComponent : LogicComponent`
+- [ ] `RmlSerializableInspector.h`
+  - [ ] `RmlSerializableInspector : RmlUIComponent`
+
+## B14. SystemUI `OPTIONAL` — Dear ImGui editor/debug; depends on Graphics, Input
+
+- [ ] `SystemUIEvents.h`
+  - [ ] system-UI event definitions
+- [ ] `ImGui.h`
+  - [ ] ImGui integration helpers
+- [ ] `Widgets.h`
+  - [ ] shared widget free functions
+- [ ] `ImGuiDiligentRendererEx.h`
+  - [ ] `ImGuiDiligentRendererEx`
+- [ ] `SystemUI.h`
+  - [ ] `SystemUI : Object`
+- [ ] `Console.h`
+  - [ ] `Console : Object`
+- [ ] `DebugHud.h`
+  - [ ] `DebugHud : Object`
+- [ ] `SystemMessageBox.h`
+  - [ ] `SystemMessageBox : Object`
+- [ ] `BaseWidget.h`
+  - [ ] `BaseWidget : Object`
+- [ ] `ResourceInspectorWidget.h`
+  - [ ] `ResourceInspectorWidget : BaseWidget`
+- [ ] `SceneWidget.h`
+  - [ ] `SceneWidget : BaseWidget`
+- [ ] `Texture2DWidget.h`
+  - [ ] `Texture2DWidget : BaseWidget`
+- [ ] `TransformGizmo.h`
+  - [ ] `TransformGizmo`
+  - [ ] `TransformNodesGizmo`
+- [ ] `DragDropPayload.h`
+  - [ ] `DragDropPayload : RefCounted`
+  - [ ] `struct ResourceFileDescriptor`
+  - [ ] `ResourceDragDropPayload : DragDropPayload`
+  - [ ] `NodeComponentDragDropPayload : DragDropPayload`
+- [ ] `SerializableInspectorWidget.h`
+  - [ ] `SerializableInspectorWidget : Object`
+- [ ] `NodeInspectorWidget.h`
+  - [ ] `NodeInspectorWidget : Object`
+- [ ] `SceneHierarchyWidget.h`
+  - [ ] `SceneHierarchyWidget : Object`
+- [ ] `MaterialInspectorWidget.h`
+  - [ ] `MaterialInspectorWidget : Object`
+- [ ] `AnimationInspectorWidget.h`
+  - [ ] `AnimationInspectorWidget : ResourceInspectorWidget`
+- [ ] `ModelInspectorWidget.h`
+  - [ ] `ModelInspectorWidget : ResourceInspectorWidget`
+- [ ] `Texture2DInspectorWidget.h`
+  - [ ] `Texture2DInspectorWidget : ResourceInspectorWidget`
+- [ ] `TextureCubeInspectorWidget.h`
+  - [ ] `SphericalHarmonicsGenerator : Object`
+  - [ ] `TextureCubeInspectorWidget : ResourceInspectorWidget`
+- [ ] `StandardSerializableHooks.h`
+  - [ ] serializable inspector hooks registration
+
+## B15. Plugins `OPTIONAL` — plugin/module system; depends on Core, Engine
+
+- [ ] `Plugin.h`
+  - [ ] `Plugin : Object`
+- [ ] `PluginApplication.h`
+  - [ ] `PluginApplication : Object`
+  - [ ] `MainPluginApplication : PluginApplication`
+- [ ] `DynamicModule.h`
+  - [ ] `DynamicModule : Object`
+- [ ] `ModulePlugin.h`
+  - [ ] `ModulePlugin : Plugin`
+- [ ] `ScriptBundlePlugin.h`
+  - [ ] `ScriptBundlePlugin : Plugin`
+- [ ] `PluginManager.h`
+  - [ ] `PluginStack : Object`
+  - [ ] `PluginManager : Object`
+
+## B16. Script `OPTIONAL` — managed scripting host; depends on Core
+
+- [~] `Script.h`
+  - [~] `ScriptRuntimeApi`
+  - [ ] `Script : Object`
+  - [ ] `GCHandleRef`
+
+## B17. XR `OPTIONAL` — OpenXR VR; depends on Graphics, RenderAPI, Scene
+
+- [-] `OpenXRAPI.h` — **EXCLUDED** · reason: OpenXR loader decls · replaced-by: generated OpenXR interop
+- [ ] `VREvents.h`
+  - [ ] VR event definitions
+- [ ] `VRUtils.h`
+  - [ ] `struct ButtonCommand`
+- [ ] `VirtualReality.h`
+  - [ ] `struct VRRigDesc`
+  - [ ] `XRBinding : Object`
+  - [ ] `XRActionGroup : Object`
+  - [ ] `VirtualReality : Object`
+- [ ] `OpenXR.h`
+  - [ ] `OpenXR : VirtualReality`
+- [ ] `VRRig.h`
+  - [ ] `VRRig : LogicComponent`
+
+## B18. Utility `OPTIONAL` — asset pipeline & editor tooling; depends on many (port last)
+
+- [ ] `UtilityLibrary.h`
+  - [ ] registration entry point
+- [ ] `AssetTransformer.h`
+  - [ ] `struct AssetTransformerInput`
+  - [ ] `struct AssetTransformerOutput`
+  - [ ] `struct AssetTransformerDependency`
+  - [ ] `AssetTransformer : Serializable`
+- [ ] `AssetTransformerHierarchy.h`
+  - [ ] `AssetTransformerHierarchy : Object`
+- [ ] `BaseAssetPostTransformer.h`
+  - [ ] `BaseAssetPostTransformer : AssetTransformer`
+- [ ] `CalculateAnimationVelocityTransformer.h`
+  - [ ] `CalculateAnimationVelocityTransformer : BaseAssetPostTransformer`
+- [ ] `GenerateWorldSpaceTracksTransformer.h`
+  - [ ] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
+- [ ] `RetargetAnimationsTransformer.h`
+  - [ ] `RetargetAnimationsTransformer : BaseAssetPostTransformer`
+- [ ] `AnimationMetadata.h`
+  - [ ] animation metadata helpers
+- [ ] `AssetPipeline.h`
+  - [ ] `AssetPipeline : Resource`
+- [ ] `FileSystemReflection.h`
+  - [ ] `struct FileSystemEntry`
+  - [ ] `FileSystemReflection : Object`
+- [ ] `PackedSceneData.h`
+  - [ ] `PackedNodeData`
+  - [ ] `PackedComponentData`
+  - [ ] `PackedNodeComponentData`
+  - [ ] `PackedSceneData`
+- [ ] `SceneSelection.h`
+  - [ ] `struct PackedSceneSelection`
+  - [ ] `SceneSelection`
+- [ ] `GLTFImporter.h`
+  - [ ] `struct GLTFImporterSettings`
+  - [ ] `GLTFImporterCallback`
+  - [ ] `GLTFImporter : Object`
+- [ ] `SceneRendererToTexture.h`
+  - [ ] `CustomBackbufferTexture : Object`
+  - [ ] `SceneRendererToTexture : CustomBackbufferTexture`
+- [ ] `SceneViewerApplication.h` ⤴ needs `Plugins`
+  - [ ] `SceneViewerApplication : MainPluginApplication`

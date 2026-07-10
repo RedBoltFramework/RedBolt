@@ -103,7 +103,6 @@ public sealed class Engine
             timeStep = 0.0f;
 
         time.BeginFrame(timeStep);
-        SendBeginFrameEvent();
 
         if (!IsHeadless)
         {
@@ -127,8 +126,6 @@ public sealed class Engine
         }
 
         time.EndFrame();
-        _context.SendEvent<CoreEvents.EndFrameEvent>();
-        _context.SendEvent<CoreEvents.EndFramePrivateEvent>();
         ApplyFrameLimit();
     }
 
@@ -318,18 +315,6 @@ public sealed class Engine
                 resources.AddResourceDir(combinedPath);
             }
         }
-    }
-
-    private void SendBeginFrameEvent()
-    {
-        var time = GetRequiredSubsystem<Time>();
-        var eventData = new CoreEvents.BeginFrameEvent
-        {
-            FrameNumber = (int)time.FrameNumber,
-            TimeStep = time.TimeStep
-        };
-
-        _context.SendEvent(ref eventData);
     }
 
     private void SendCoreEvents(float timeStep)

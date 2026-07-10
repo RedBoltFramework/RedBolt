@@ -46,6 +46,18 @@ public sealed class RandomEngineTests
     [Fact]
     public void Vector_random_produces_valid_units_and_bounds()
     {
+        Span<float> normal = stackalloc float[5];
+        new RandomEngine(5u).GetStandardNormalFloatArray(normal);
+        foreach (var value in normal)
+            Assert.True(float.IsFinite(value));
+
+        Span<float> directionArray = stackalloc float[4];
+        new RandomEngine(6u).GetDirection(directionArray);
+        var directionLength = 0.0f;
+        foreach (var value in directionArray)
+            directionLength += value * value;
+        Assert.True(MathDefs.ApproximatelyEquivalent(directionLength, 1.0f, MathDefs.LargeEpsilon));
+
         var dir = new RandomEngine(2u).GetDirectionVector3();
         Assert.True(MathDefs.ApproximatelyEquivalent(dir.Length, 1.0f, MathDefs.LargeEpsilon));
 

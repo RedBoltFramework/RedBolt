@@ -1,81 +1,83 @@
 using System.Diagnostics;
+
 namespace RedBolt;
 
 public sealed class Timer
 {
-    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private uint _startTime;
+
+    public Timer()
+    {
+        Reset();
+    }
 
     public uint GetMSec(bool reset = false)
     {
-        var elapsed = ToUIntMilliseconds(_stopwatch.ElapsedMilliseconds);
+        var currentTime = Time.GetSystemTime();
+        var elapsedTime = currentTime - _startTime;
         if (reset)
-            Reset();
+            _startTime = currentTime;
 
-        return elapsed;
+        return elapsedTime;
     }
 
     public void Reset()
     {
-        _stopwatch.Restart();
-    }
-
-    private static uint ToUIntMilliseconds(long milliseconds)
-    {
-        return (uint)Math.Min(uint.MaxValue, Math.Max(0, milliseconds));
+        _startTime = Time.GetSystemTime();
     }
 }
 
 public sealed class HiresTimer
 {
-    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private long _startTime;
+
+    public HiresTimer()
+    {
+        Reset();
+    }
 
     public long GetUSec(bool reset = false)
     {
-        var elapsed = ToMicroseconds(_stopwatch.ElapsedTicks);
-        if (reset)
-            Reset();
+        var currentTime = Stopwatch.GetTimestamp();
+        var elapsedTime = currentTime - _startTime;
+        if (elapsedTime < 0)
+            elapsedTime = 0;
 
-        return elapsed;
+        if (reset)
+            _startTime = currentTime;
+
+        return elapsedTime * 1_000_000L / Stopwatch.Frequency;
     }
 
     public void Reset()
     {
-        _stopwatch.Restart();
+        _startTime = Stopwatch.GetTimestamp();
     }
 
     public static bool IsSupported() => Stopwatch.IsHighResolution;
 
     public static long GetFrequency() => Stopwatch.Frequency;
-
-    private static long ToMicroseconds(long ticks)
-    {
-        return Math.Max(0L, (long)(ticks * (1_000_000.0 / Stopwatch.Frequency)));
-    }
 }
 
 public sealed class TimedCounter
 {
     private readonly Timer _timer = new();
-    private readonly float[] _data;
     private readonly uint _intervalLengthMs;
     private int _current;
     private float _accumulator;
+    private readonly float[] _data;
 
     public TimedCounter(int intervalCount, uint intervalLengthMs)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(intervalCount);
-        _data = new float[intervalCount];
-        this._intervalLengthMs = intervalLengthMs;
+        _intervalLengthMs = intervalLengthMs;
         _current = intervalCount - 1;
+        _data = new float[intervalCount];
     }
 
-    public int Current => _current;
+    public int GetCurrent() => _current;
 
-    public IReadOnlyList<float> Data => _data;
-
-    public int GetCurrent() => Current;
-
-    public IReadOnlyList<float> GetData() => Data;
+    public IReadOnlyList<float> GetData() => _data;
 
     public void AddSample(float value)
     {
@@ -86,7 +88,11 @@ public sealed class TimedCounter
     public float GetAverage()
     {
         RotateIfNeeded();
-        return _data.Sum() / _data.Length;
+        var sum = 0.0f;
+        foreach (var value in _data)
+            sum += value;
+
+        return sum / _data.Length;
     }
 
     public float GetLast()
@@ -97,12 +103,12 @@ public sealed class TimedCounter
 
     private void RotateIfNeeded()
     {
-        if (_timer.GetMSec() < _intervalLengthMs)
-            return;
-
-        _timer.Reset();
-        _current = (_current + 1) % _data.Length;
-        _data[_current] = _accumulator;
-        _accumulator = 0.0f;
+        if (_timer.GetMSec(false) >= _intervalLengthMs)
+        {
+            _timer.Reset();
+            _current = (_current + 1) % _data.Length;
+            _data[_current] = _accumulator;
+            _accumulator = 0.0f;
+        }
     }
 }

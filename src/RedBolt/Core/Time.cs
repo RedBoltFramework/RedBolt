@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Threading;
 
 namespace RedBolt;
@@ -9,7 +8,6 @@ public sealed class Time : Object
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
     private readonly Timer _elapsedTime = new();
-    private double _elapsedTimeSeconds;
     private uint _frameNumber;
     private float _timeStep;
     private uint _timerPeriod;
@@ -23,10 +21,9 @@ public sealed class Time : Object
     public float TimeStep
     {
         get => _timeStep;
-        private set => _timeStep = value;
     }
 
-    public double ElapsedTime => _elapsedTimeSeconds;
+    public float ElapsedTime => GetElapsedTime();
 
     public uint TimerPeriod => _timerPeriod;
 
@@ -34,11 +31,14 @@ public sealed class Time : Object
 
     public float GetTimeStep() => TimeStep;
 
-    public float GetElapsedTime() => (float)ElapsedTime;
+    public float GetElapsedTime() => _elapsedTime.GetMSec(false) / 1000.0f;
 
-    public float GetFramesPerSecond() => TimeStep > 0.0f ? 1.0f / TimeStep : float.PositiveInfinity;
+    public float GetFramesPerSecond() => 1.0f / _timeStep;
 
-    public void SetTimerPeriod(uint milliseconds) => _timerPeriod = milliseconds;
+    public void SetTimerPeriod(uint milliseconds)
+    {
+        _timerPeriod = milliseconds;
+    }
 
     public uint GetTimerPeriod() => _timerPeriod;
 
@@ -52,19 +52,18 @@ public sealed class Time : Object
         return (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
-    public static string GetTimeStamp(string? format = null)
+    public static string GetTimeStamp(string format = null!)
     {
-        return GetTimeStamp(DateTimeOffset.Now, format);
+        return GetTimeStamp(GetTimeSinceEpoch(), format);
     }
 
-    public static string GetTimeStamp(uint timestamp, string? format = null)
+    public static string GetTimeStamp(uint timestamp, string format = null!)
     {
-        return GetTimeStamp(DateTimeOffset.FromUnixTimeSeconds(timestamp).ToLocalTime(), format);
-    }
-
-    public static string GetTimeStamp(DateTimeOffset timestamp, string? format = null)
-    {
-        return timestamp.ToString(string.IsNullOrEmpty(format) ? DefaultDateTimeFormat : format, CultureInfo.InvariantCulture);
+        format ??= DefaultDateTimeFormat;
+        return DateTimeOffset
+            .FromUnixTimeSeconds(timestamp)
+            .ToLocalTime()
+            .ToString(format);
     }
 
     public static void Sleep(uint milliseconds)
@@ -81,15 +80,23 @@ public sealed class Time : Object
 
     internal void BeginFrame(float elapsedTimeStep)
     {
-        ++FrameNumber;
-        if (FrameNumber == 0)
-            ++FrameNumber;
+        ++_frameNumber;
+        if (_frameNumber == 0)
+            ++_frameNumber;
 
-        TimeStep = elapsedTimeStep;
-        _elapsedTimeSeconds += elapsedTimeStep;
+        _timeStep = elapsedTimeStep;
+
+        var eventData = new CoreEvents.BeginFrameEvent
+        {
+            FrameNumber = (int)_frameNumber,
+            TimeStep = _timeStep
+        };
+        SendEvent(ref eventData);
     }
 
     internal void EndFrame()
     {
+        SendEvent<CoreEvents.EndFrameEvent>();
+        SendEvent<CoreEvents.EndFramePrivateEvent>();
     }
 }

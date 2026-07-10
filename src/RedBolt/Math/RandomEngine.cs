@@ -12,7 +12,7 @@ public sealed class RandomEngine
     private const uint EngineMax = Modulus - 1;
 
     [ThreadStatic]
-    private static RandomEngine? _defaultEngine;
+    private static RandomEngine _defaultEngine = null!;
 
     private uint _state;
 
@@ -23,7 +23,9 @@ public sealed class RandomEngine
 
     public RandomEngine(uint seed)
     {
-        SetSeed(seed);
+        _state = seed % Modulus;
+        if (_state == 0)
+            _state = 1;
     }
 
     public RandomEngine(string state)
@@ -39,12 +41,17 @@ public sealed class RandomEngine
     {
         if (!uint.TryParse(state, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
             parsed = 1;
-        SetSeed(parsed);
+
+        _state = parsed;
     }
 
     public string Save() => _state.ToString(CultureInfo.InvariantCulture);
 
-    public uint GetUInt() => NextRaw() - EngineMin;
+    public uint GetUInt()
+    {
+        _state = (uint)((ulong)_state * Multiplier % Modulus);
+        return _state - EngineMin;
+    }
 
     public uint GetUInt(uint range)
     {
@@ -116,19 +123,22 @@ public sealed class RandomEngine
 
     public Vector2 GetDirectionVector2()
     {
-        var direction = GetDirection(2);
+        Span<float> direction = stackalloc float[2];
+        GetDirection(direction);
         return new Vector2(direction[0], direction[1]);
     }
 
     public Vector3 GetDirectionVector3()
     {
-        var direction = GetDirection(3);
+        Span<float> direction = stackalloc float[3];
+        GetDirection(direction);
         return new Vector3(direction[0], direction[1], direction[2]);
     }
 
     public Quaternion GetQuaternion()
     {
-        var direction = GetDirection(4);
+        Span<float> direction = stackalloc float[4];
+        GetDirection(direction);
         return new Quaternion(direction[0], direction[1], direction[2], direction[3]);
     }
 
@@ -138,49 +148,43 @@ public sealed class RandomEngine
 
     public Vector3 GetVector3(BoundingBox boundingBox) => GetVector3(boundingBox.Min, boundingBox.Max);
 
-    private void SetSeed(uint seed)
+    public void GetStandardNormalFloatArray(Span<float> array)
     {
-        _state = seed % Modulus;
-        if (_state == 0)
-            _state = 1;
+        for (var i = 0; i < array.Length / 2; ++i)
+        {
+            var pair = GetStandardNormalFloatPair();
+            array[i * 2] = pair.First;
+            array[i * 2 + 1] = pair.Second;
+        }
+
+        if (array.Length % 2 != 0)
+            array[^1] = GetStandardNormalFloat();
     }
 
-    private uint NextRaw()
+    public void GetDirection(Span<float> direction)
     {
-        _state = (uint)((ulong)_state * Multiplier % Modulus);
-        return _state;
-    }
+        if (direction.Length <= 0)
+            throw new ArgumentOutOfRangeException(nameof(direction));
 
-    private float[] GetDirection(int dimensions)
-    {
-        var direction = new float[dimensions];
         for (var i = 0u; i < MaxIterations; ++i)
         {
-            FillStandardNormal(direction);
-            var lengthSquared = direction.Sum(static value => value * value);
-            if (lengthSquared > MathDefs.Epsilon)
+            GetStandardNormalFloatArray(direction);
+
+            var length = 0.0f;
+            foreach (var x in direction)
+                length += x * x;
+
+            if (length > MathDefs.Epsilon)
             {
-                var inverseLength = 1.0f / MathF.Sqrt(lengthSquared);
+                var reciprocalLength = 1.0f / MathF.Sqrt(length);
                 for (var j = 0; j < direction.Length; ++j)
-                    direction[j] *= inverseLength;
-                return direction;
+                    direction[j] *= reciprocalLength;
+                return;
             }
         }
 
+        direction.Clear();
         direction[0] = 1.0f;
-        return direction;
-    }
-
-    private void FillStandardNormal(float[] values)
-    {
-        for (var i = 0; i < values.Length / 2; ++i)
-        {
-            var pair = GetStandardNormalFloatPair();
-            values[i * 2] = pair.First;
-            values[i * 2 + 1] = pair.Second;
-        }
-        if (values.Length % 2 != 0)
-            values[^1] = GetStandardNormalFloat();
     }
 }
 
