@@ -37,7 +37,8 @@ public enum VariantType
     Int64,
     Custom,
     VariantCurve,
-    StringVariantMap
+    StringVariantMap,
+    CString
 }
 
 public readonly struct Variant : IEquatable<Variant>
@@ -75,7 +76,8 @@ public readonly struct Variant : IEquatable<Variant>
         "Int64",
         "Custom",
         "VariantCurve",
-        "StringVariantMap"
+        "StringVariantMap",
+        "CString"
     ];
 
     private readonly VariantType _type;
@@ -96,6 +98,7 @@ public readonly struct Variant : IEquatable<Variant>
     private readonly Vector2i _intVector2Value;
     private readonly Vector3i _intVector3Value;
     private readonly string _stringValue = string.Empty;
+    private readonly CString _cstringValue = CString.Empty;
     private readonly byte[] _bufferValue = [];
     private readonly ResourceRef _resourceRefValue;
     private readonly ResourceRefList _resourceRefListValue = ResourceRefList.Empty;
@@ -123,6 +126,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Quaternion => new Variant(Quaternion.IDENTITY),
             VariantType.Color => new Variant(Color.Black),
             VariantType.String => new Variant(string.Empty),
+            VariantType.CString => new Variant(new CString()),
             VariantType.ResourceRef => new Variant(ResourceRef.Empty),
             VariantType.ResourceRefList => new Variant(ResourceRefList.Empty),
             VariantType.VariantVector => new Variant(new VariantVector()),
@@ -323,6 +327,12 @@ public readonly struct Variant : IEquatable<Variant>
         _stringValue = value;
     }
 
+    public Variant(CString value)
+    {
+        _type = VariantType.CString;
+        _cstringValue = value ?? new CString();
+    }
+
     public VariantType Type => _type;
 
     public bool IsEmpty => _type == VariantType.None;
@@ -366,6 +376,8 @@ public readonly struct Variant : IEquatable<Variant>
     public StringHash GetStringHash() => _type == VariantType.Int ? new StringHash(GetUInt()) : StringHash.Empty;
 
     public string GetString() => _type == VariantType.String ? _stringValue : throw CreateInvalidCastException(VariantType.String);
+
+    public CString GetCString() => _type == VariantType.CString ? _cstringValue : throw CreateInvalidCastException(VariantType.CString);
 
     public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue ?? [] : throw CreateInvalidCastException(VariantType.Buffer);
 
@@ -422,6 +434,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Quaternion => _quaternionValue == Quaternion.IDENTITY,
             VariantType.Color => _colorValue == Color.White,
             VariantType.String => string.IsNullOrEmpty(_stringValue),
+            VariantType.CString => _cstringValue.ByteLength == 0,
             VariantType.Buffer => _bufferValue.Length == 0,
             VariantType.ResourceRef => string.IsNullOrEmpty(_resourceRefValue.Name),
             VariantType.ResourceRefList => _resourceRefListValue.Names.All(static name => string.IsNullOrEmpty(name)),
@@ -462,6 +475,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Vector2i => _intVector2Value,
             VariantType.Vector3i => _intVector3Value,
             VariantType.String => _stringValue,
+            VariantType.CString => _cstringValue,
             VariantType.Buffer => _bufferValue,
             VariantType.ResourceRef => _resourceRefValue,
             VariantType.ResourceRefList => _resourceRefListValue,
@@ -512,6 +526,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantMap typedValue => typedValue,
             StringVariantMap typedValue => typedValue,
             string typedValue => typedValue,
+            CString typedValue => typedValue,
             _ => throw new ArgumentException($"Unsupported Variant value type '{value.GetType().Name}'.", nameof(value))
         };
     }
@@ -541,6 +556,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Vector2i => _intVector2Value.Equals(other._intVector2Value),
             VariantType.Vector3i => _intVector3Value.Equals(other._intVector3Value),
             VariantType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
+            VariantType.CString => _cstringValue.Equals(other._cstringValue),
             VariantType.Buffer => _bufferValue.AsSpan().SequenceEqual(other._bufferValue),
             VariantType.ResourceRef => _resourceRefValue.Equals(other._resourceRefValue),
             VariantType.ResourceRefList => _resourceRefListValue.Equals(other._resourceRefListValue),
@@ -614,6 +630,9 @@ public readonly struct Variant : IEquatable<Variant>
         case VariantType.String:
             hash.Add(_stringValue, StringComparer.Ordinal);
             break;
+        case VariantType.CString:
+            hash.Add(_cstringValue);
+            break;
         case VariantType.Buffer:
             foreach (var item in _bufferValue)
                 hash.Add(item);
@@ -667,6 +686,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Quaternion => _quaternionValue.ToString(),
             VariantType.Color => _colorValue.ToString(),
             VariantType.String => _stringValue,
+            VariantType.CString => _cstringValue.ToString(),
             VariantType.Buffer => BufferToString(_bufferValue),
             VariantType.ResourceRef => _resourceRefValue.ToString(),
             VariantType.ResourceRefList => _resourceRefListValue.ToString(),
@@ -712,6 +732,7 @@ public readonly struct Variant : IEquatable<Variant>
     public static implicit operator Variant(VariantMap value) => new(value);
     public static implicit operator Variant(StringVariantMap value) => new(value);
     public static implicit operator Variant(string value) => new(value);
+    public static implicit operator Variant(CString value) => new(value);
     public static bool operator ==(Variant lhs, Variant rhs) => lhs.Equals(rhs);
     public static bool operator !=(Variant lhs, Variant rhs) => !lhs.Equals(rhs);
 
@@ -867,6 +888,7 @@ public static class VariantTypeUtility
             VariantMap => VariantType.VariantMap,
             StringVariantMap => VariantType.StringVariantMap,
             string => VariantType.String,
+            CString => VariantType.CString,
             _ => VariantType.None
         };
     }
@@ -881,6 +903,9 @@ public static class VariantTypeUtility
         if (value is Variant variant)
             value = variant.GetObject();
 
+        if (type == VariantType.CString)
+            return JsonSerializer.Serialize(value is CString cstring ? cstring.ConvertToString() : string.Empty, SerializerOptions);
+
         return JsonSerializer.Serialize(value, GetClrType(type), SerializerOptions);
     }
 
@@ -891,6 +916,9 @@ public static class VariantTypeUtility
 
     public static object? Deserialize(string json, VariantType type)
     {
+        if (type == VariantType.CString)
+            return new CString(JsonSerializer.Deserialize<string>(json, SerializerOptions) ?? string.Empty);
+
         return JsonSerializer.Deserialize(json, GetClrType(type), SerializerOptions);
     }
 
@@ -930,6 +958,7 @@ public static class VariantTypeUtility
             VariantType.VariantMap => typeof(VariantMap),
             VariantType.StringVariantMap => typeof(StringVariantMap),
             VariantType.String => typeof(string),
+            VariantType.CString => typeof(string),
             _ => typeof(object)
         };
     }

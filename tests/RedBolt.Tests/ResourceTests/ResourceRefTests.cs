@@ -10,6 +10,7 @@ public sealed class ResourceRefTests
         var materialRef = ResourceRef.Parse("Material;Materials/FirstCube");
         Assert.Equal(StringHash.Calculate("Material"), materialRef.Type);
         Assert.Equal("Materials/FirstCube", materialRef.Name);
+        Assert.Equal("Material;Materials/FirstCube", materialRef.ToString());
         Assert.NotEqual(0u, materialRef.ToHash());
         Assert.False(ResourceRef.IsNullOrEmpty(materialRef));
     }
@@ -20,6 +21,8 @@ public sealed class ResourceRefTests
         var list = ResourceRefList.Parse("Material;Materials/One;Materials/Two");
         var expected = new ResourceRefList(StringHash.Calculate("Material"), ["Materials/One", "Materials/Two"]);
         Assert.True(list.Equals(expected));
+        Assert.Equal("Material;Materials/One;Materials/Two", list.ToString());
+        Assert.Equal("Material;", new ResourceRefList("Material").ToString());
         Assert.NotEqual(0u, list.ToHash());
         Assert.False(ResourceRefList.IsNullOrEmpty(list));
         Assert.True(ResourceRefList.IsNullOrEmpty(ResourceRefList.Empty));

@@ -63,9 +63,6 @@ public readonly record struct ResourceRef
     public override string ToString()
     {
         var typeName = new StringHash(Type).Reverse();
-        if (string.IsNullOrEmpty(typeName))
-            typeName = Type != 0u ? Type.ToString() : string.Empty;
-
-        return string.IsNullOrEmpty(typeName) ? Name : $"{typeName};{Name}";
+        return $"{typeName};{Name}";
     }
 }

@@ -90,14 +90,6 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList?>
     public override string ToString()
     {
         var typeName = new StringHash(Type).Reverse();
-        if (string.IsNullOrEmpty(typeName))
-            typeName = Type != 0u ? Type.ToString() : string.Empty;
-
-        if (_names.Count == 0)
-            return typeName;
-
-        return string.IsNullOrEmpty(typeName)
-            ? string.Join(';', _names)
-            : $"{typeName};{string.Join(';', _names)}";
+        return $"{typeName};{string.Join(';', _names)}";
     }
 }

@@ -18,6 +18,7 @@ Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipel
 - The remaining `AttributeInfo` gap is the wider rbfx `Variant`-typed metadata/default-value representation; it depends on completing the managed `Variant` surface.
 - `Context` now has rbfx-style explicit `StringHash` subsystem registration, lookup, removal, and cache access in addition to its existing generic managed APIs.
 - `Object` now forwards rbfx dynamic subsystem lookup and full subsystem-cache access through the managed global `Context`.
+- `Variant` now includes the explicit RedBolt-only `CString` extension after all upstream enum values. It preserves `CString` instances for native-pointer consumers and serializes as UTF-8 text; resource reference string output now follows rbfx's `type-name;payload` form, including an empty-list trailing separator.
 - `Variant`, `Object`/`Context`, and `WorkQueue` remain partial Core items and must continue to be reconciled directly against rbfx before marking complete.
 
 ## Verification
