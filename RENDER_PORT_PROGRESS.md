@@ -308,3 +308,11 @@ Slice 1 through the first runtime integration layer are landed:
 - Continue from the new pipeline-owned scene-render seam into real offscreen output selection and pass-to-pass data flow.
 - Replace the current direct scene draw in `Graphics.RenderScene` with pipeline-owned processors and batching once the post-process/output plumbing is in place.
 - Keep rebuilding with `cmake --build --preset Debug --target redbolt-csharp` after each slice.
+
+## Scene: Node 1:1 alignment (slice)
+- Ported rbfx world-transform caching into `Node` (`_worldTransform`/`_worldRotation`/`_dirty` + `UpdateWorldTransform`); world getters now match `Node.cpp` (`if (dirty_) UpdateWorldTransform()`), removing per-read `Matrix3x4` allocation (GC win). `LocalToWorld` now uses `GetWorldTransform() * v` like C++.
+- Reordered backing fields to mirror C++ member layout (NodeImpl group, vars, worldOriginUpdateMode_).
+- Added missing C++ members: `WorldOriginUpdateMode` (new enum + property/get/set), void-dest collectors `GetChildren`/`GetChildrenWithComponent`/`GetChildrenWithTag` + recursive helpers, `GetChildByNameOrIndex`, `GetDependencyNodes`.
+- Serialization/prefab surface (`SerializeInBlock`, `Load/Save*`, `InstantiatePrefab`, `GeneratePrefab`, `GetEffectiveScopeHint`, `SetScene`/`ResetScene`, `SafeCreateComponent`, `GetMutableVar*`) preserved as commented C++ — blocked on Archive/Variant/prefab/Serializer layers not yet ported.
+- Updated `NodeTests.Silent_transform_helpers_do_not_mark_dirty` to reflect faithful rbfx semantics (silent set leaves cached world transform stale until `MarkDirty`).
+- Build green, 443 tests pass, StaticScene sample renders.

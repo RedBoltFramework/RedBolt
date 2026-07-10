@@ -2,18 +2,23 @@ namespace RedBolt;
 
 public sealed class Node : Animatable
 {
-    private readonly List<Component> _components = [];
-    private readonly List<Node> _children = [];
-    private readonly List<Component> _listeners = [];
-    private readonly List<string> _tags = [];
-    private readonly Dictionary<StringHash, object?> _variables = new();
+    private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;
     private bool _enabled = true;
     private bool _enabledPrev = true;
-    private string _name = string.Empty;
     private Vector3 _position = Vector3.Zero;
     private Quaternion _rotation = Quaternion.Identity;
     private Vector3 _scale = Vector3.One;
+    private Quaternion _worldRotation = Quaternion.Identity;
+    private readonly List<Component> _components = [];
+    private readonly List<Node> _children = [];
+    private readonly List<Component> _listeners = [];
+    // NodeImpl.
+    private readonly List<Node> _dependencyNodes = [];
+    private string _name = string.Empty;
+    private readonly List<string> _tags = [];
+    private readonly Dictionary<StringHash, object?> _variables = new();
+    private WorldOriginUpdateMode _worldOriginUpdateMode = WorldOriginUpdateMode.Move;
 
     internal Node(Scene scene, Node? parent, string name, uint id, bool temporary = false)
     {
@@ -86,6 +91,42 @@ public sealed class Node : Animatable
             .ToArray();
     }
 
+    // The following serialization / prefab entry points depend on the not-yet-ported
+    // Archive / Variant / prefab (PrefabReader, PrefabWriter, NodePrefab, SerializablePrefab,
+    // PrefabResource, SceneResolver) and Deserializer/Serializer/XMLElement/JSONValue layers.
+    // They are preserved verbatim from rbfx and will be ported once that infrastructure exists.
+    //
+    // void Node::SerializeInBlock(Archive& archive);
+    // void Node::SerializeInBlock(Archive& archive, bool serializeTemporary, PrefabSaveFlags saveFlags, PrefabLoadFlags loadFlags);
+    // void Node::LoadInternal(const SerializablePrefab& nodePrefab, PrefabReader& reader, SceneResolver& resolver, PrefabLoadFlags flags);
+    // bool Node::Load(PrefabReader& reader, PrefabLoadFlags flags);
+    // void Node::SaveInternal(PrefabWriter& writer) const;
+    // bool Node::Save(PrefabWriter& writer) const;
+    // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
+    // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
+    // void Node::GeneratePrefab(NodePrefab& prefab) const;
+    // NodePrefab Node::GeneratePrefab() const;
+    // AttributeScopeHint Node::GetEffectiveScopeHint() const;
+    // bool Node::Load(Deserializer& source);
+    // bool Node::LoadXML(const XMLElement& source);
+    // bool Node::LoadJSON(const JSONValue& source);
+    // bool Node::Save(Serializer& dest) const;
+    // bool Node::SaveXML(XMLElement& dest) const;
+    // bool Node::SaveJSON(JSONValue& dest) const;
+    // bool Node::SaveXML(Serializer& dest, const ea::string& indentation) const;
+    // bool Node::SaveJSON(Serializer& dest, const ea::string& indentation) const;
+    // bool Node::Load(Deserializer& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs);
+    // bool Node::LoadXML(const XMLElement& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs, bool removeComponents);
+    // bool Node::LoadJSON(const JSONValue& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs);
+    // Node* Node::CloneRecursive(Node* parent, SceneResolver& resolver);
+    // Component* Node::SafeCreateComponent(const ea::string& typeName, StringHash type, unsigned id);
+    //
+    // Scene lifetime helpers - the managed Scene is currently constructor-owned and non-nullable,
+    // so these mutators do not yet map onto the C# API surface:
+    //
+    // void Node::SetScene(Scene* scene) { scene_ = scene; }
+    // void Node::ResetScene() { SetID(0); SetScene(nullptr); }
+
     public IReadOnlyList<Node> Children => _children;
 
     public IReadOnlyList<Component> Components => _components;
@@ -136,20 +177,30 @@ public sealed class Node : Animatable
 
     public Scene Scene { get; }
 
+    public WorldOriginUpdateMode WorldOriginUpdateMode
+    {
+        get => _worldOriginUpdateMode;
+        set => _worldOriginUpdateMode = value;
+    }
+
+    public void SetWorldOriginUpdateMode(WorldOriginUpdateMode mode) => _worldOriginUpdateMode = mode;
+
+    public WorldOriginUpdateMode GetWorldOriginUpdateMode() => _worldOriginUpdateMode;
+
     public Vector3 Direction => _rotation * Vector3.Forward;
 
     public Vector3 Right => _rotation * Vector3.Right;
 
     public Vector3 Up => _rotation * Vector3.Up;
 
-    public Vector3 WorldDirection => WorldRotation * Vector3.Forward;
-
     public Vector3 WorldPosition
     {
         get
         {
-            ClearDirty();
-            return IsTransformHierarchyRoot() ? _position : Parent!.LocalToWorld(_position);
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldTransform.Translation;
         }
     }
 
@@ -157,8 +208,43 @@ public sealed class Node : Animatable
     {
         get
         {
-            ClearDirty();
-            return IsTransformHierarchyRoot() ? _rotation : (Parent!.WorldRotation * _rotation).Normalized;
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldRotation;
+        }
+    }
+
+    public Vector3 WorldDirection
+    {
+        get
+        {
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldRotation * Vector3.Forward;
+        }
+    }
+
+    public Vector3 WorldUp
+    {
+        get
+        {
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldRotation * Vector3.Up;
+        }
+    }
+
+    public Vector3 WorldRight
+    {
+        get
+        {
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldRotation * Vector3.Right;
         }
     }
 
@@ -166,14 +252,12 @@ public sealed class Node : Animatable
     {
         get
         {
-            ClearDirty();
-            return IsTransformHierarchyRoot() ? _scale : (Parent!.GetWorldTransform() * GetTransformMatrix()).Scale;
+            if (_dirty)
+                UpdateWorldTransform();
+
+            return _worldTransform.Scale;
         }
     }
-
-    public Vector3 WorldRight => WorldRotation * Vector3.Right;
-
-    public Vector3 WorldUp => WorldRotation * Vector3.Up;
 
     public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
@@ -538,25 +622,45 @@ public sealed class Node : Animatable
 
     public IReadOnlyList<Node> GetChildren(bool recursive = false)
     {
-        if (!recursive)
-            return _children.ToArray();
+        var dest = new List<Node>();
+        GetChildren(dest, recursive);
+        return dest;
+    }
 
-        var result = new List<Node>();
-        AddChildren(result, recursive: true);
-        return result;
+    public void GetChildren(List<Node> dest, bool recursive = false)
+    {
+        dest.Clear();
+
+        if (!recursive)
+        {
+            foreach (var child in _children)
+                dest.Add(child);
+        }
+        else
+            GetChildrenRecursive(dest);
     }
 
     public IReadOnlyList<Node> GetChildrenWithTag(string tag, bool recursive = false)
     {
-        var result = new List<Node>();
-        foreach (var child in _children)
+        var dest = new List<Node>();
+        GetChildrenWithTag(dest, tag, recursive);
+        return dest;
+    }
+
+    public void GetChildrenWithTag(List<Node> dest, string tag, bool recursive = false)
+    {
+        dest.Clear();
+
+        if (!recursive)
         {
-            if (child.HasTag(tag))
-                result.Add(child);
-            if (recursive)
-                result.AddRange(child.GetChildrenWithTag(tag, recursive: true));
+            foreach (var child in _children)
+            {
+                if (child.HasTag(tag))
+                    dest.Add(child);
+            }
         }
-        return result;
+        else
+            GetChildrenWithTagRecursive(dest, tag);
     }
 
     public IReadOnlyList<Node> GetChildrenWithComponent<T>(bool recursive = false)
@@ -565,21 +669,49 @@ public sealed class Node : Animatable
         return GetChildrenWithComponent(typeof(T), recursive);
     }
 
+    public void GetChildrenWithComponent<T>(List<Node> dest, bool recursive = false)
+        where T : Component
+    {
+        GetChildrenWithComponent(dest, typeof(T), recursive);
+    }
+
     public IReadOnlyList<Node> GetChildrenWithComponent(Type componentType, bool recursive = false)
     {
-        ArgumentNullException.ThrowIfNull(componentType);
-        if (!typeof(Component).IsAssignableFrom(componentType))
-            throw new ArgumentException("Type must derive from Component.", nameof(componentType));
+        var dest = new List<Node>();
+        GetChildrenWithComponent(dest, componentType, recursive);
+        return dest;
+    }
 
-        var result = new List<Node>();
-        foreach (var child in _children)
+    public void GetChildrenWithComponent(List<Node> dest, Type componentType, bool recursive = false)
+    {
+        ValidateComponentType(componentType, nameof(componentType));
+
+        dest.Clear();
+
+        if (!recursive)
         {
-            if (child._components.Any(component => component.GetType() == componentType))
-                result.Add(child);
-            if (recursive)
-                result.AddRange(child.GetChildrenWithComponent(componentType, recursive: true));
+            foreach (var child in _children)
+            {
+                if (child.HasComponent(componentType))
+                    dest.Add(child);
+            }
         }
-        return result;
+        else
+            GetChildrenWithComponentRecursive(dest, componentType);
+    }
+
+    public Node? GetChildByNameOrIndex(string name, bool recursive = false)
+    {
+        if (string.IsNullOrEmpty(name))
+            return null;
+
+        if (name[0] == '#')
+        {
+            if (uint.TryParse(name.AsSpan(1), out var index) || (name.Length == 2 && name[1] == '0'))
+                return GetChild(index);
+        }
+
+        return GetChild(new StringHash(name), recursive);
     }
 
     public Node? FindChild(string path, bool firstRecursive = false)
@@ -702,11 +834,23 @@ public sealed class Node : Animatable
 
     public Vector3 GetWorldScale() => WorldScale;
 
-    public Vector3 GetSignedWorldScale() => GetWorldTransform().SignedScale(WorldRotation.RotationMatrix);
+    public Vector3 GetSignedWorldScale()
+    {
+        if (_dirty)
+            UpdateWorldTransform();
+
+        return _worldTransform.SignedScale(_worldRotation.RotationMatrix);
+    }
 
     public Vector2 GetWorldScale2D() => new(WorldScale.X, WorldScale.Y);
 
-    public Matrix3x4 GetWorldTransform() => new(WorldPosition, WorldRotation, WorldScale);
+    public Matrix3x4 GetWorldTransform()
+    {
+        if (_dirty)
+            UpdateWorldTransform();
+
+        return _worldTransform;
+    }
 
     public Vector3 GetWorldUp() => WorldUp;
 
@@ -716,9 +860,9 @@ public sealed class Node : Animatable
 
     public bool HasVar(StringHash key) => _variables.ContainsKey(key);
 
-    public Vector3 LocalToWorld(Vector3 localPosition) => WorldPosition + WorldRotation * (localPosition * WorldScale);
+    public Vector3 LocalToWorld(Vector3 localPosition) => GetWorldTransform() * localPosition;
 
-    public Vector3 LocalToWorld(Vector4 localVector) => WorldRotation * (new Vector3(localVector.X, localVector.Y, localVector.Z) * WorldScale) + WorldPosition * localVector.W;
+    public Vector3 LocalToWorld(Vector4 localVector) => GetWorldTransform() * localVector;
 
     public Vector2 LocalToWorld2D(Vector2 localVector) => LocalToWorld(new Vector3(localVector.X, localVector.Y, 0.0f)).ToVector2();
 
@@ -1023,7 +1167,21 @@ public sealed class Node : Animatable
         return _variables.GetValueOrDefault(key);
     }
 
+    // Variant* Node::GetMutableVar(const ea::string& key)
+    // {
+    //     auto i = vars_.find(key);
+    //     return i != vars_.end() ? &i->second : nullptr;
+    // }
+    //
+    // Variant* Node::GetMutableVarByHash(StringHash key)
+    // {
+    //     auto i = vars_.find_by_hash(key.Value());
+    //     return i != vars_.end() ? &i->second : nullptr;
+    // }
+
     public IReadOnlyDictionary<StringHash, object?> GetVars() => Variables;
+
+    public IReadOnlyList<Node> GetDependencyNodes() => _dependencyNodes;
 
     public IReadOnlyList<Component> GetListeners() => _listeners.ToArray();
 
@@ -1451,13 +1609,35 @@ public sealed class Node : Animatable
         }
     }
 
-    private void AddChildren(List<Node> result, bool recursive)
+    private void GetChildrenRecursive(List<Node> dest)
     {
-        foreach (var child in _children)
+        foreach (var node in _children)
         {
-            result.Add(child);
-            if (recursive)
-                child.AddChildren(result, recursive: true);
+            dest.Add(node);
+            if (node._children.Count != 0)
+                node.GetChildrenRecursive(dest);
+        }
+    }
+
+    private void GetChildrenWithComponentRecursive(List<Node> dest, Type componentType)
+    {
+        foreach (var node in _children)
+        {
+            if (node.HasComponent(componentType))
+                dest.Add(node);
+            if (node._children.Count != 0)
+                node.GetChildrenWithComponentRecursive(dest, componentType);
+        }
+    }
+
+    private void GetChildrenWithTagRecursive(List<Node> dest, string tag)
+    {
+        foreach (var node in _children)
+        {
+            if (node.HasTag(tag))
+                dest.Add(node);
+            if (node._children.Count != 0)
+                node.GetChildrenWithTagRecursive(dest, tag);
         }
     }
 
@@ -1604,13 +1784,21 @@ public sealed class Node : Animatable
             throw new ArgumentException("Type must derive from Component.", paramName);
     }
 
-    private void ClearDirty()
+    private void UpdateWorldTransform()
     {
-        if (!_dirty)
-            return;
+        var transform = GetTransformMatrix();
 
-        if (!IsTransformHierarchyRoot())
-            Parent!.ClearDirty();
+        // Assume the root node (scene) has identity transform.
+        if (IsTransformHierarchyRoot())
+        {
+            _worldTransform = transform;
+            _worldRotation = _rotation;
+        }
+        else
+        {
+            _worldTransform = Parent!.GetWorldTransform() * transform;
+            _worldRotation = Parent!.WorldRotation * _rotation;
+        }
 
         _dirty = false;
     }

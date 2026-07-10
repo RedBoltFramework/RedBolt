@@ -297,6 +297,12 @@ public sealed class NodeTests
         Assert.Equal(baselineDirtyCount, listener.DirtyCount);
         Assert.False(node.IsDirty);
         Assert.False(child.IsDirty);
+        Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3(7.0f, 8.0f, 9.0f)));
+        Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3(2.0f, 3.0f, 4.0f)));
+
+        // Silent setters intentionally leave the cached world transform stale until the node is
+        // marked dirty (matches rbfx: GetWorldPosition only recalculates when dirty_ is set).
+        node.MarkDirty();
         Assert.True(node.GetWorldPosition().ApproximatelyEquivalent(new Vector3(7.0f, 8.0f, 9.0f)));
         Assert.True(node.GetWorldScale().ApproximatelyEquivalent(new Vector3(2.0f, 3.0f, 4.0f)));
     }
