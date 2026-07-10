@@ -229,6 +229,31 @@ public sealed class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
+    public void Unsubscribe<T>(object receiver) where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+
+        if (_structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
+            RemoveMatchingSubscriptions(bucket, subscription => IsReceiverMatch(subscription, receiver));
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void Unsubscribe<T>(object receiver, Object sender) where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+
+        if (_structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
+        {
+            RemoveMatchingSubscriptions(
+                bucket,
+                subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
     public void UnsubscribeFromEvents(object receiver, Object sender)
     {
         Unsubscribe(receiver, sender);

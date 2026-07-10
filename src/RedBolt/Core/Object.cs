@@ -63,7 +63,13 @@ public abstract class Object
         return Context.SubscribeToEvent(this, sender, handler);
     }
 
-    public void UnsubscribeFromEvent(Object sender) => Context.Unsubscribe(this, sender);
+    public void UnsubscribeFromEvent<T>() where T : struct => Context.Unsubscribe<T>(this);
+
+    public void UnsubscribeFromEvent<T>(Object sender) where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(sender);
+        Context.Unsubscribe<T>(this, sender);
+    }
 
     public void UnsubscribeFromEvents(Object sender)
     {
