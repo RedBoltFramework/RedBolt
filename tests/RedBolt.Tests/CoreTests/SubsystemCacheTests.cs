@@ -3,10 +3,10 @@ namespace RedBolt.Tests;
 public class SubsystemCacheTests
 {
     [Fact]
-    public void ObjectReflection_uses_fully_qualified_type_name()
+    public void Cache_uses_fully_qualified_csharp_type_name()
     {
-        Assert.Equal("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject", ObjectReflection<TestReflectionObject>.ClassName);
-        Assert.Equal(new StringHash("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject"), ObjectReflection<TestReflectionObject>.TypeId);
+        Assert.Equal("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject", typeof(TestReflectionObject).GetClassName());
+        Assert.Equal(new StringHash("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject"), new StringHash(typeof(TestReflectionObject).GetClassName()));
     }
 
     [Fact]
@@ -16,14 +16,14 @@ public class SubsystemCacheTests
         var time = new Time();
         var dynamicSubsystem = new TestDynamicSubsystem();
 
-        cache.Add(ObjectReflection<Time>.TypeId, time);
-        cache.Add(ObjectReflection<TestDynamicSubsystem>.TypeId, dynamicSubsystem);
+        cache.Add(typeof(Time).GetClassName(), time);
+        cache.Add(typeof(TestDynamicSubsystem).GetClassName(), dynamicSubsystem);
 
         Assert.Same(time, cache.Get<Time>());
         Assert.Same(dynamicSubsystem, cache.Get<TestDynamicSubsystem>());
         Assert.Equal(2, cache.GetContainer().Count);
 
-        cache.Remove(ObjectReflection<Time>.TypeId);
+        cache.Remove(typeof(Time).GetClassName());
 
         Assert.Null(cache.Get<Time>());
         Assert.Same(dynamicSubsystem, cache.Get<TestDynamicSubsystem>());

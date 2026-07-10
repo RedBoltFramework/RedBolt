@@ -39,6 +39,10 @@ Do not try to transplant the full render stack at once. Land small coherent slic
 - Named events are `StringHash`-based and are main-thread-only.
 - When changing event behavior, add or update focused tests.
 
+## Managed Type Metadata
+
+- Do not port `URHO3D_OBJECT`-related static metadata code. Use the C# type system and reflection instead.
+
 ## Render Port Guidance
 
 - Match rbfx resource formats and default behaviors whenever possible. Avoid RedBolt-only side formats if upstream rbfx already defines the asset/runtime contract.

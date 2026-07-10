@@ -9,10 +9,10 @@ public sealed class ObjectReflectionTests
     }
 
     [Fact]
-    public void Provides_fallback_metadata()
+    public void Managed_type_metadata_uses_the_csharp_type_system()
     {
-        Assert.Equal("RedBolt.StaticModel", ObjectReflection<StaticModel>.ClassName);
-        Assert.Equal(StringHash.Calculate("RedBolt.StaticModel"), ObjectReflection<StaticModel>.TypeId.Value);
+        Assert.Equal("RedBolt.StaticModel", typeof(StaticModel).GetClassName());
+        Assert.Equal(StringHash.Calculate("RedBolt.StaticModel"), new StringHash(typeof(StaticModel).GetClassName()).Value);
     }
 
     [Fact]
@@ -34,8 +34,9 @@ public sealed class ObjectReflectionTests
 
         Assert.True(registry.IsReflected<FactoryObject>());
         Assert.Same(reflection, registry.GetReflection<FactoryObject>());
-        Assert.IsType<FactoryObject>(registry.CreateObject(ObjectReflection<FactoryObject>.TypeId));
-        Assert.Equal(new[] { ObjectReflection<FactoryObject>.TypeId }, registry.GetObjectCategories()["Core"]);
+        var typeId = new StringHash(typeof(FactoryObject).GetClassName());
+        Assert.IsType<FactoryObject>(registry.CreateObject(typeId));
+        Assert.Equal(new[] { typeId }, registry.GetObjectCategories()["Core"]);
         Assert.Equal(2, reflection.GetAttribute("Value").DefaultValue);
         Assert.Equal(AttributeScopeHint.Node, reflection.GetEffectiveScopeHint());
 
