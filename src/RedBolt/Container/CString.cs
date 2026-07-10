@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,25 +8,41 @@ namespace RedBolt;
 
 public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposable
 {
+    [InlineArray(SmallBufferSize)]
+    private struct SmallBuffer
+    {
+        public byte Element0;
+    }
+
+    private const int SmallBufferSize = 16;
+    private const string InvalidFormatMessage = "Input string was not in a correct format.";
+
     private static readonly Encoding Utf8 = Encoding.UTF8;
 
-    private IntPtr _bytes;
+    private SmallBuffer _data;
     private int _byteLength;
     private int _capacity;
-    private bool _disposed;
+
+    private bool UsesSmallBuffer => _capacity <= SmallBufferSize;
+    private IntPtr HeapPointer
+    {
+        get => ReadHeapPointer();
+        set => WriteHeapPointer(value);
+    }
+    private Span<byte> WritableStorage => GetStorage();
+    private ReadOnlySpan<byte> Storage => GetStorage();
+    private ReadOnlySpan<byte> ContentBytes => Storage[.._byteLength];
+    private ReadOnlySpan<byte> TerminatedBytes => Storage[..(_byteLength + 1)];
 
     public static CString Empty { get; } = new(string.Empty);
 
     public CString()
     {
-        _bytes = Marshal.AllocHGlobal(1);
-        _capacity = 1;
+        InitializeSmallBuffer();
     }
 
-    public CString(string value)
+    public CString(string value) : this()
     {
-        _bytes = Marshal.AllocHGlobal(1);
-        _capacity = 1;
         Set(value);
     }
 
@@ -33,50 +50,22 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     {
         get
         {
-            ThrowIfDisposed();
-            return _bytes;
+            if (UsesSmallBuffer)
+                MoveToHeapStorage(SmallBufferSize + 1);
+
+            return HeapPointer;
         }
     }
 
-    public ReadOnlySpan<byte> Bytes
-    {
-        get
-        {
-            ThrowIfDisposed();
-            unsafe { return new ReadOnlySpan<byte>((void*)_bytes, _byteLength + 1); }
-        }
-    }
+    public ReadOnlySpan<byte> Bytes => TerminatedBytes;
 
-    public int Length
-    {
-        get
-        {
-            ThrowIfDisposed();
-            return Utf8.GetCharCount(Bytes[.._byteLength]);
-        }
-    }
+    public int Length => Utf8.GetCharCount(ContentBytes);
 
-    public int ByteLength
-    {
-        get
-        {
-            ThrowIfDisposed();
-            return _byteLength;
-        }
-    }
+    public int ByteLength => _byteLength;
 
-    public void Clear()
-    {
-        ThrowIfDisposed();
-        _byteLength = 0;
-        Marshal.WriteByte(_bytes, 0, 0);
-    }
+    public void Clear() => SetByteLength(0);
 
-    public string ConvertToString()
-    {
-        ThrowIfDisposed();
-        return Utf8.GetString(Bytes[.._byteLength]);
-    }
+    public string ConvertToString() => Utf8.GetString(ContentBytes);
 
     public static CString Format(string format, ReadOnlySpan<object?> args)
     {
@@ -87,16 +76,12 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     public static CString Format(string format, params object?[] args)
     {
-        ArgumentNullException.ThrowIfNull(format);
-        var value = new CString();
-        value.FormatInPlace(format, args);
-        return value;
+        return Format(format, (ReadOnlySpan<object?>)args);
     }
 
     public void FormatInPlace(string format, ReadOnlySpan<object?> args)
     {
         ArgumentNullException.ThrowIfNull(format);
-        ThrowIfDisposed();
 
         Clear();
 
@@ -138,7 +123,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                     continue;
                 }
 
-                throw new FormatException("Input string was not in a correct format.");
+                throw InvalidFormat();
             }
         }
 
@@ -148,7 +133,6 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     public void FormatInPlace(string format, params object?[] args)
     {
-        ArgumentNullException.ThrowIfNull(format);
         FormatInPlace(format, (ReadOnlySpan<object?>)args);
     }
 
@@ -161,14 +145,12 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         if (other is null)
             return false;
 
-        ThrowIfDisposed();
-        return _byteLength == other._byteLength && Bytes[.._byteLength].SequenceEqual(other.Bytes[..other._byteLength]);
+        return _byteLength == other._byteLength && ContentBytes.SequenceEqual(other.ContentBytes);
     }
 
     public bool Equals(string? other)
     {
-        ThrowIfDisposed();
-        return other is not null && EqualsUtf8BytesString(Bytes[.._byteLength], other);
+        return other is not null && EqualsUtf8BytesString(ContentBytes, other);
     }
 
     public override bool Equals(object? obj)
@@ -180,80 +162,56 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
 
     public override int GetHashCode()
     {
-        ThrowIfDisposed();
-
-        var bytes = Bytes;
+        var bytes = ContentBytes;
         var hash = 0x811C9DC5u;
-        for (var i = 0; i < _byteLength; ++i)
+        for (var i = 0; i < bytes.Length; ++i)
             hash = (hash ^ bytes[i]) * 16777619;
 
         return unchecked((int)hash);
     }
 
-    public override string ToString()
-    {
-        return ConvertToString();
-    }
+    public override string ToString() => ConvertToString();
 
     public static implicit operator CString(string value) => new(value);
 
     public static bool operator ==(CString? left, CString? right)
     {
-        if (left is null && right is null)
-            return true;
-        if (left is null || right is null)
-            return false;
-
-        return left.Equals(right);
+        return ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));
     }
 
-    public static bool operator !=(CString? left, CString? right)
-    {
-        return !(left == right);
-    }
+    public static bool operator !=(CString? left, CString? right) => !(left == right);
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
+        if (!UsesSmallBuffer)
+            Marshal.FreeHGlobal(HeapPointer);
 
-        if (_bytes != IntPtr.Zero)
-        {
-            Marshal.FreeHGlobal(_bytes);
-            _bytes = IntPtr.Zero;
-        }
-
-        _capacity = 0;
-        _byteLength = 0;
-        _disposed = true;
+        InitializeSmallBuffer();
     }
 
     private void Set(string value)
     {
-        ThrowIfDisposed();
-
         value ??= string.Empty;
         var rawByteLength = Utf8.GetByteCount(value);
         EnsureCapacity(rawByteLength + 1);
-        unsafe { Utf8.GetBytes(value.AsSpan(), new Span<byte>((void*)_bytes, rawByteLength)); }
-        _byteLength = rawByteLength;
-        Marshal.WriteByte(_bytes, _byteLength, 0);
+        Utf8.GetBytes(value.AsSpan(), WritableStorage[..rawByteLength]);
+        SetByteLength(rawByteLength);
     }
 
     private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)
     {
         if (index >= format.Length)
-            throw new FormatException("Input string was not in a correct format.");
+            throw InvalidFormat();
 
         var position = index;
-        if (position >= format.Length || format[position] < '0' || format[position] > '9')
-            throw new FormatException("Input string was not in a correct format.");
+        if (position >= format.Length || !IsAsciiDigit(format[position]))
+            throw InvalidFormat();
 
         var argumentIndex = 0;
         while (position < format.Length)
         {
             var current = format[position];
-            if (current < '0' || current > '9')
+            if (!IsAsciiDigit(current))
                 break;
 
             argumentIndex = (argumentIndex * 10) + (current - '0');
@@ -261,7 +219,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         }
 
         if (position >= format.Length)
-            throw new FormatException("Input string was not in a correct format.");
+            throw InvalidFormat();
 
         if (argumentIndex >= args.Length)
             throw new FormatException($"Index ({argumentIndex}) must be non-negative and less than the size of the argument list.");
@@ -270,17 +228,17 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         {
             ++position;
             if (position >= format.Length)
-                throw new FormatException("Input string was not in a correct format.");
+                throw InvalidFormat();
 
             var hasSign = format[position] == '+' || format[position] == '-';
             if (hasSign)
                 ++position;
 
-            while (position < format.Length && format[position] >= '0' && format[position] <= '9')
+            while (position < format.Length && IsAsciiDigit(format[position]))
                 ++position;
 
             if (position >= format.Length)
-                throw new FormatException("Input string was not in a correct format.");
+                throw InvalidFormat();
         }
 
         ReadOnlySpan<char> argFormat = default;
@@ -292,13 +250,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                 ++position;
 
             if (position >= format.Length)
-                throw new FormatException("Input string was not in a correct format.");
+                throw InvalidFormat();
 
             argFormat = format.Slice(formatSpecStart, position - formatSpecStart);
         }
 
         if (position >= format.Length || format[position] != '}')
-            throw new FormatException("Input string was not in a correct format.");
+            throw InvalidFormat();
 
         AppendArg(args[argumentIndex], argFormat);
         consumed = position + 1;
@@ -315,7 +273,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                 AppendText(text.AsSpan());
                 return;
             case CString cstring:
-                AppendBytes(cstring.Bytes[..cstring._byteLength]);
+                AppendBytes(cstring.ContentBytes);
                 return;
             case char text:
                 AppendText(text);
@@ -348,10 +306,10 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         if (value.IsEmpty)
             return;
 
-        EnsureCapacity(_byteLength + value.Length + 1);
-        unsafe { value.CopyTo(new Span<byte>((void*)(_bytes + _byteLength), value.Length)); }
-        _byteLength += value.Length;
-        Marshal.WriteByte(_bytes, _byteLength, 0);
+        var appendedByteLength = _byteLength + value.Length;
+        EnsureCapacity(appendedByteLength + 1);
+        value.CopyTo(WritableStorage.Slice(_byteLength, value.Length));
+        SetByteLength(appendedByteLength);
     }
 
     private void AppendText(ReadOnlySpan<char> text)
@@ -360,10 +318,10 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             return;
 
         var requiredLength = Utf8.GetByteCount(text);
-        EnsureCapacity(_byteLength + requiredLength + 1);
-        unsafe { Utf8.GetBytes(text, new Span<byte>((void*)(_bytes + _byteLength), requiredLength)); }
-        _byteLength += requiredLength;
-        Marshal.WriteByte(_bytes, _byteLength, 0);
+        var appendedByteLength = _byteLength + requiredLength;
+        EnsureCapacity(appendedByteLength + 1);
+        Utf8.GetBytes(text, WritableStorage.Slice(_byteLength, requiredLength));
+        SetByteLength(appendedByteLength);
     }
 
     private void AppendText(char value)
@@ -382,54 +340,73 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
         while (newCapacity < requiredCapacity)
             newCapacity *= 2;
 
-        _bytes = Marshal.ReAllocHGlobal(_bytes, (IntPtr)newCapacity);
+        if (UsesSmallBuffer)
+            MoveToHeapStorage(newCapacity);
+        else
+            HeapPointer = Marshal.ReAllocHGlobal(HeapPointer, (IntPtr)newCapacity);
+
         _capacity = newCapacity;
     }
 
-    private void ThrowIfDisposed()
+    private void InitializeSmallBuffer()
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(CString));
+        _capacity = SmallBufferSize;
+        SetByteLength(0);
+    }
+
+    private unsafe IntPtr ReadHeapPointer()
+    {
+        fixed (SmallBuffer* buffer = &_data)
+            return *(IntPtr*)buffer;
+    }
+
+    private unsafe void WriteHeapPointer(IntPtr value)
+    {
+        fixed (SmallBuffer* buffer = &_data)
+            *(IntPtr*)buffer = value;
+    }
+
+    private Span<byte> GetStorage()
+    {
+        if (UsesSmallBuffer)
+            return _data;
+
+        unsafe { return new Span<byte>((void*)HeapPointer, _capacity); }
+    }
+
+    private void MoveToHeapStorage(int newCapacity)
+    {
+        var newBuffer = Marshal.AllocHGlobal(newCapacity);
+        unsafe { TerminatedBytes.CopyTo(new Span<byte>((void*)newBuffer, _byteLength + 1)); }
+        HeapPointer = newBuffer;
+        _capacity = newCapacity;
+    }
+
+    private void SetByteLength(int value)
+    {
+        _byteLength = value;
+        WritableStorage[_byteLength] = 0;
     }
 
     private static bool EqualsUtf8BytesString(ReadOnlySpan<byte> valueBytes, string text)
     {
-        var charSpan = text.AsSpan();
-        if (valueBytes.Length == 0)
-            return charSpan.IsEmpty;
-
-        var expectedByteLength = Utf8.GetByteCount(charSpan);
+        var chars = text.AsSpan();
+        var expectedByteLength = Utf8.GetByteCount(chars);
         if (expectedByteLength != valueBytes.Length)
             return false;
 
         var byteOffset = 0;
-        var charOffset = 0;
-
         Span<byte> expected = stackalloc byte[4];
-
-        while (charOffset < charSpan.Length)
+        while (!chars.IsEmpty)
         {
-            var rune = (uint)charSpan[charOffset++];
-            if (rune is >= 0xD800u and <= 0xDBFFu)
+            var status = Rune.DecodeFromUtf16(chars, out var rune, out var charsConsumed);
+            if (status != OperationStatus.Done)
             {
-                if (charOffset < charSpan.Length && (uint)charSpan[charOffset] is >= 0xDC00u and <= 0xDFFFu)
-                {
-                    rune = (uint)char.ConvertToUtf32((char)rune, charSpan[charOffset++]);
-                }
-                else
-                {
-                    rune = 0xFFFD;
-                }
-            }
-            else if (rune is >= 0xDC00u and <= 0xDFFFu)
-            {
-                rune = 0xFFFD;
+                rune = Rune.ReplacementChar;
+                charsConsumed = 1;
             }
 
-            var encoded = EncodeUtf8(rune, expected);
-            if (encoded < 0)
-                return false;
-
+            var encoded = rune.EncodeToUtf8(expected);
             if (byteOffset + encoded > valueBytes.Length)
                 return false;
 
@@ -437,45 +414,15 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
                 return false;
 
             byteOffset += encoded;
+            chars = chars[charsConsumed..];
         }
 
         return byteOffset == valueBytes.Length;
     }
 
-    private static int EncodeUtf8(uint rune, Span<byte> destination)
-    {
-        if (rune <= 0x7Fu)
-        {
-            destination[0] = (byte)rune;
-            return 1;
-        }
+    private static bool IsAsciiDigit(char value) => value is >= '0' and <= '9';
 
-        if (rune <= 0x7FFu)
-        {
-            destination[0] = (byte)(0xC0u | (rune >> 6));
-            destination[1] = (byte)(0x80u | (rune & 0x3Fu));
-            return 2;
-        }
-
-        if (rune <= 0xFFFFu)
-        {
-            destination[0] = (byte)(0xE0u | (rune >> 12));
-            destination[1] = (byte)(0x80u | ((rune >> 6) & 0x3Fu));
-            destination[2] = (byte)(0x80u | (rune & 0x3Fu));
-            return 3;
-        }
-
-        if (rune <= 0x10FFFFu)
-        {
-            destination[0] = (byte)(0xF0u | (rune >> 18));
-            destination[1] = (byte)(0x80u | ((rune >> 12) & 0x3Fu));
-            destination[2] = (byte)(0x80u | ((rune >> 6) & 0x3Fu));
-            destination[3] = (byte)(0x80u | (rune & 0x3Fu));
-            return 4;
-        }
-
-        return -1;
-    }
+    private static FormatException InvalidFormat() => new(InvalidFormatMessage);
 
     [InterpolatedStringHandler]
     public ref struct CStringInterpolatedStringHandler
@@ -516,7 +463,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
             if (value is null)
                 return;
 
-            _target.AppendBytes(value.Bytes[..value._byteLength]);
+            _target.AppendBytes(value.ContentBytes);
         }
 
         public void AppendFormatted<T>(T value)

@@ -20,6 +20,22 @@ public sealed class CStringTests
     }
 
     [Fact]
+    public void Small_values_use_inline_storage_until_capacity_is_exceeded()
+    {
+        var value = new CString("inline");
+
+        value.FormatInPlace("12345678901234");
+        Assert.Equal(16, GetCapacity(value));
+
+        value.FormatInPlace("123456789012345");
+        Assert.Equal(16, GetCapacity(value));
+
+        value.FormatInPlace("1234567890123456");
+        Assert.True(GetCapacity(value) > 16);
+        Assert.Equal("1234567890123456", value.ConvertToString());
+    }
+
+    [Fact]
     public void Implicit_conversion_from_string()
     {
         CString value = "hello";
@@ -166,6 +182,24 @@ public sealed class CStringTests
         Assert.Contains(nameof(HiddenAllocatingType), exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Dispose_releases_heap_storage_and_resets_to_inline_storage()
+    {
+        var value = new CString("1234567890123456");
+        var heapPointer = value.Pointer;
+
+        value.Dispose();
+        value.Dispose();
+
+        Assert.Equal(0, value.ByteLength);
+        Assert.Equal((byte)0, value.Bytes[0]);
+        Assert.NotEqual(heapPointer, value.Pointer);
+
+        value.FormatInPlace("hello");
+
+        Assert.Equal("hello", value.ConvertToString());
+    }
+
     private static long MeasureAllocatedBytes(Action action)
     {
         action();
@@ -174,6 +208,13 @@ public sealed class CStringTests
         action();
         var afterBytes = GC.GetAllocatedBytesForCurrentThread();
         return afterBytes - beforeBytes;
+    }
+
+    private static int GetCapacity(CString value)
+    {
+        var field = typeof(CString).GetField("_capacity", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return (int)field.GetValue(value)!;
     }
 
     private sealed class HiddenAllocatingType
