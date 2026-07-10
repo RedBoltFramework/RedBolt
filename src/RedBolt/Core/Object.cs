@@ -6,6 +6,12 @@ public abstract class Object
 
     public bool BlockEvents { get; set; }
 
+    public string GetTypeName() => GetType().GetClassName();
+
+    public StringHash GetTypeNameHash() => GetTypeName();
+
+    public string GetCategory() => Context.GetReflection(GetTypeNameHash())?.Category ?? string.Empty;
+
     public T? GetSubsystem<T>()
         where T : class
     {

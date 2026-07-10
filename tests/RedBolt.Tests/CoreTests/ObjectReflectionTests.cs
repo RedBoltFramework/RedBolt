@@ -42,4 +42,24 @@ public sealed class ObjectReflectionTests
         registry.RemoveReflection<FactoryObject>();
         Assert.False(registry.IsReflected<FactoryObject>());
     }
+
+    [Fact]
+    public void Object_reads_type_and_category_from_managed_reflection()
+    {
+        var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            context.AddFactoryReflection<FactoryObject>("Core");
+            var value = new FactoryObject();
+
+            Assert.Equal(typeof(FactoryObject).GetClassName(), value.GetTypeName());
+            Assert.Equal(new StringHash(typeof(FactoryObject).GetClassName()), value.GetTypeNameHash());
+            Assert.Equal("Core", value.GetCategory());
+        }
+        finally
+        {
+            Context.SetInstance(null);
+        }
+    }
 }

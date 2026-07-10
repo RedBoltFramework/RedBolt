@@ -25,6 +25,7 @@ Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipel
 - `Variant.Lerp(...)` now follows rbfx's type-directed interpolation for numeric values, vectors, quaternions, colors, integer rectangles, and integer vectors; unsupported types return the left-hand value unchanged.
 - `Variant` now accepts `VectorBuffer` as rbfx does and returns copied `VectorBuffer` views of stored buffers. `byte[]` construction now copies input storage, matching rbfx `VariantBuffer` value semantics.
 - `ObjectReflectionRegistry` now manages C# `Type`-backed reflection records, factories, categories, attribute ownership, metadata, and lookup/removal. `Context` derives from it, while reflection identity uses managed type names instead of rbfx static type methods.
+- `Object` now exposes instance type name/hash and category through managed `Type` metadata and the active `Context` reflection registry, without `URHO3D_OBJECT`-style static helpers.
 - `Variant`, `Object`/`Context`, and `WorkQueue` remain partial Core items and must continue to be reconciled directly against rbfx before marking complete.
 
 ## Verification
