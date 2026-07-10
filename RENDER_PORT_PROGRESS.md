@@ -23,6 +23,7 @@ Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipel
 - `Variant.ToString()` now matches rbfx's Context dependency for resource-reference string serialization: no active Context produces an empty string, while an active Context enables registered type-name output.
 - `Variant.Convert(...)` and immutable `Variant.FromString(...)` now cover rbfx's scalar conversion behavior plus string parsing for scalars, vectors, colors, quaternions, rectangles, integer vectors, matrices, buffers, resource references, and the RedBolt `CString` extension. The rbfx `VoidPtr` contract is represented by `IntPtr`; RefCounted pointers, custom values, and curves remain partial.
 - `Variant.Lerp(...)` now follows rbfx's type-directed interpolation for numeric values, vectors, quaternions, colors, integer rectangles, and integer vectors; unsupported types return the left-hand value unchanged.
+- `Variant` now accepts `VectorBuffer` as rbfx does and returns copied `VectorBuffer` views of stored buffers. `byte[]` construction now copies input storage, matching rbfx `VariantBuffer` value semantics.
 - `Variant`, `Object`/`Context`, and `WorkQueue` remain partial Core items and must continue to be reconciled directly against rbfx before marking complete.
 
 ## Verification

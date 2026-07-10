@@ -269,7 +269,15 @@ public readonly struct Variant : IEquatable<Variant>
     public Variant(byte[] value)
     {
         _type = VariantType.Buffer;
-        _bufferValue = value ?? [];
+        _bufferValue = value is null ? [] : (byte[])value.Clone();
+    }
+
+    /// <summary>
+    /// Construct from a VectorBuffer and store as a buffer.
+    /// </summary>
+    public Variant(VectorBuffer value)
+        : this(value.GetBuffer())
+    {
     }
 
     /// <summary>
@@ -480,6 +488,11 @@ public readonly struct Variant : IEquatable<Variant>
     public CString GetCString() => _type == VariantType.CString ? _cstringValue : CString.Empty;
 
     public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue : Array.Empty<byte>();
+
+    /// <summary>
+    /// Return VectorBuffer containing the buffer or empty on type mismatch.
+    /// </summary>
+    public VectorBuffer GetVectorBuffer() => new(GetBuffer());
 
     /// <summary>
     /// Return void pointer or null on type mismatch.
@@ -752,6 +765,7 @@ public readonly struct Variant : IEquatable<Variant>
             Vector2i typedValue => typedValue,
             Vector3i typedValue => typedValue,
             byte[] typedValue => typedValue,
+            VectorBuffer typedValue => typedValue,
             ResourceRef typedValue => typedValue,
             ResourceRefList typedValue => typedValue,
             Matrix3 typedValue => typedValue,
@@ -964,6 +978,7 @@ public readonly struct Variant : IEquatable<Variant>
     public static implicit operator Variant(Vector2i value) => new(value);
     public static implicit operator Variant(Vector3i value) => new(value);
     public static implicit operator Variant(byte[] value) => new(value);
+    public static implicit operator Variant(VectorBuffer value) => new(value);
     public static implicit operator Variant(IntPtr value) => new(value);
     public static implicit operator Variant(ResourceRef value) => new(value);
     public static implicit operator Variant(ResourceRefList value) => new(value);
@@ -1319,6 +1334,7 @@ public static class VariantTypeUtility
             Vector2i => VariantType.Vector2i,
             Vector3i => VariantType.Vector3i,
             byte[] => VariantType.Buffer,
+            VectorBuffer => VariantType.Buffer,
             IntPtr => VariantType.VoidPtr,
             ResourceRef => VariantType.ResourceRef,
             ResourceRefList => VariantType.ResourceRefList,

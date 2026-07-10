@@ -46,6 +46,27 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Buffer_and_vector_buffer_match_rbfx_copy_contracts()
+    {
+        var bytes = new byte[] { 1, 2, 3 };
+        var bufferVariant = new Variant(bytes);
+        bytes[0] = 9;
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, bufferVariant.GetBuffer());
+
+        var vectorBuffer = new VectorBuffer(new byte[] { 4, 5, 6 });
+        var vectorBufferVariant = new Variant(vectorBuffer);
+        vectorBuffer.GetBuffer()[0] = 9;
+
+        Assert.Equal(VariantType.Buffer, vectorBufferVariant.Type);
+        Assert.Equal(new byte[] { 4, 5, 6 }, vectorBufferVariant.GetBuffer());
+
+        var returnedBuffer = vectorBufferVariant.GetVectorBuffer();
+        returnedBuffer.GetBuffer()[0] = 9;
+        Assert.Equal(new byte[] { 4, 5, 6 }, vectorBufferVariant.GetBuffer());
+    }
+
+    [Fact]
     public void Getters_match_rbfx_conversion_and_default_contracts()
     {
         Assert.Equal(3, new Variant(3.9f).GetInt());
