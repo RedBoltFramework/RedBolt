@@ -92,4 +92,10 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList?>
         var typeName = new StringHash(Type).Reverse();
         return $"{typeName};{string.Join(';', _names)}";
     }
+
+    public string ToString(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return $"{context.GetTypeName(new StringHash(Type))};{string.Join(';', _names)}";
+    }
 }

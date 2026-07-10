@@ -1,3 +1,5 @@
+using RedBolt.Bindings.Sdl;
+
 namespace RedBolt;
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
@@ -44,6 +46,7 @@ public sealed class Context : ObjectReflectionRegistry
     }
 
     private static Context? _instance;
+    private static int _sdlInitCounter;
 
     private readonly SubsystemCache _subsystems = new();
     private readonly Dictionary<Type, object> _subsystemsByType = [];
@@ -133,6 +136,31 @@ public sealed class Context : ObjectReflectionRegistry
 
         if (typeToRemove is not null)
             _subsystemsByType.Remove(typeToRemove);
+    }
+
+    public bool RequireSdl(uint sdlFlags)
+    {
+        ++_sdlInitCounter;
+
+        if (_sdlInitCounter == 1 && SdlNativeBindings.SdlInit(0) != 0)
+            return false;
+
+        var remainingFlags = sdlFlags & ~SdlNativeBindings.SdlWasInit(0);
+        return remainingFlags == 0 || SdlNativeBindings.SdlInitSubSystem(remainingFlags) == 0;
+    }
+
+    public void ReleaseSdl()
+    {
+        --_sdlInitCounter;
+
+        if (_sdlInitCounter == 0)
+        {
+            SdlNativeBindings.SdlQuitSubSystem(uint.MaxValue);
+            SdlNativeBindings.SdlQuit();
+        }
+
+        if (_sdlInitCounter < 0)
+            throw new InvalidOperationException("Too many calls to Context.ReleaseSdl().");
     }
 
     public bool RemoveSubsystem<T>()
@@ -286,6 +314,20 @@ public sealed class Context : ObjectReflectionRegistry
                 bucket,
                 subscription =>
                     IsReceiverMatch(subscription, receiver) && (subscription.Sender is null || !senders.Contains(subscription.Sender)));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<Type> eventTypes)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(eventTypes);
+
+        foreach (var (eventType, bucket) in _structEventSubscriptions)
+        {
+            if (!eventTypes.Contains(eventType))
+                RemoveMatchingSubscriptions(bucket, subscription => IsReceiverMatch(subscription, receiver));
         }
 
         RemoveEmptyEventBuckets();

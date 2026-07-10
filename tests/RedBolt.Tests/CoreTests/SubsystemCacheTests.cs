@@ -5,8 +5,8 @@ public class SubsystemCacheTests
     [Fact]
     public void Cache_uses_fully_qualified_csharp_type_name()
     {
-        Assert.Equal("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject", typeof(TestReflectionObject).GetClassName());
-        Assert.Equal(new StringHash("RedBolt.Tests.SubsystemCacheTests.TestReflectionObject"), new StringHash(typeof(TestReflectionObject).GetClassName()));
+        Assert.Equal("TestReflectionObject", typeof(TestReflectionObject).GetClassName());
+        Assert.Equal(new StringHash("TestReflectionObject"), new StringHash(typeof(TestReflectionObject).GetClassName()));
     }
 
     [Fact]

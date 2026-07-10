@@ -62,10 +62,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `IndexAllocator`
 - [ ] `Array2D.h`
   - [ ] `Array2D<T>`
-- [ ] `MultiVector.h`
-  - [ ] `MultiVector<T>`
-- [ ] `KeyFrameSet.h`
-  - [ ] `KeyFrameSet<T>`
+- [~] `MultiVector.h`
+  - [~] `MultiVector<T>` — per-outer-list storage, indexed append/pop, flattening, and enumeration are ported; iterator-specific parity remains represented by `IEnumerable<T>`
+- [x] `KeyFrameSet.h`
+  - [x] `KeyFrameSet<T>`
 
 ## A2. Math — depends on Container
 
@@ -166,30 +166,29 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `HiresTimer`
   - [x] `Time : Object`
   - [x] `TimedCounter`
-- [ ] `StringUtils.h`
-  - [ ] string parsing/formatting free functions
+- [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
 - [x] `StringHashRegister.h`
   - [x] `StringHashRegister`
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
-- [~] `Variant.h` — managed value storage covers the current streamable types, but `CustomVariantValueImpl<T>`, `VariantCurve`, RefCounted-pointer variants, and the upstream typed optional-retrieval contract are still absent
-  - [~] `struct ResourceRef` - rbfx type-name string parsing/formatting now follows upstream more closely; context-backed/custom gaps remain
-  - [~] `struct ResourceRefList` - rbfx semicolon-separated string contract now matches upstream; context-backed/custom gaps remain
-- [~] `Variant` - Use C# union type with non-boxing access pattern; rbfx default-type construction/type-name/zero/string/getter-conversion, scalar conversion, supported type-directed interpolation, and `VectorBuffer` buffer-copy behavior are partially ported for the current streamable subset, with a RedBolt-only `CString` extension appended after upstream IDs; string-parsed scalar/vector/rectangle/color/quaternion/matrix behavior and `VoidPtr` via `IntPtr` are in place, while custom values, curves, RefCounted pointers, and universal optional retrieval remain
-  - [ ] `CustomVariantValueImpl<T>`
-- [ ] `VariantCurve.h`
-  - [ ] `VariantCurve : KeyFrameSet<VariantCurvePoint>`
+- [x] `Variant.h`
+  - [x] `struct ResourceRef` — context-backed type-name string formatting, parsing, hashing, and equality are ported
+  - [x] `struct ResourceRefList` — context-backed semicolon-separated string formatting, parsing, hashing, and equality are ported
+- [x] `Variant` — C# union storage includes rbfx default construction, type names, zero/string/getter conversion, scalar conversion, supported interpolation, `VectorBuffer` copying, custom values, typed nullable retrieval, all archive value categories, and the RedBolt `CString` extension; RefCounted-pointer variants are replaced by managed references
+  - [x] `CustomVariantValueImpl<T>` — represented by managed `CustomVariantValueImpl<T>`
+- [x] `VariantCurve.h`
+  - [x] `VariantCurve : KeyFrameSet<VariantCurvePoint>` — sampling, interpolation, hashing, equality, and BinaryArchive round-trip serialization are ported
 - [x] `Attribute.h`
   - [x] `AttributeAccessor : RefCounted`
   - [x] `AttributeInfo`
-- [~] `ObjectReflection.h` — managed `Type` replaces `TypeInfo`, but factory construction is limited to parameterless managed constructors and the registry has no rbfx custom-`TypeInfo` equivalent
-  - [~] `ObjectReflection` - managed `Type`-backed reflection records now include factories, categories, attributes, and metadata; custom TypeInfo behavior remains replaced by C# metadata, and factories cannot receive the active `Context`
-  - [~] `ObjectReflectionRegistry` - managed reflection lookup, factories, categories, generic attribute shortcuts, and removal notifications are in place; custom reflection and context-aware factory parity remain
-- [~] `Object.h` — Context/subsystem/global-variable forwarding and struct-event subscriptions are ported, but the rbfx `StringHash`/`VariantMap` named-event API and archive integration are still missing
-  - [~] `Object` - managed Context forwarding includes dynamic subsystem lookup and cache access; C# `Type` assignability replaces macro-generated type hierarchy, and generic struct-event unsubscription covers event-type-specific removal; reflection/category/archive and full named-event behavior remain
+- [x] `ObjectReflection.h`
+  - [x] `ObjectReflection` — `System.Type` and the global managed `Context` replace rbfx `TypeInfo` and constructor-injected context, as allowed by the port rules
+  - [x] `ObjectReflectionRegistry` — custom `TypeInfo` reflection is replaced by the C# type system, as allowed by the port rules
+- [x] `Object.h`
+  - [x] `Object` — managed Context forwarding, the allowed struct-event replacement, C# type assignability, and default Archive serialization behavior are ported
   - [x] `EventHandler`
-- [~] `Context.h` — managed global context, subsystem registry, global variables, and struct-event dispatch are in place; `EventReceiverGroup` and rbfx `StringHash`/`VariantMap` named-event dispatch remain unported
-  - [ ] `EventReceiverGroup : RefCounted`
-  - [~] `Context : RefCounted, ObjectReflectionRegistry` - managed global context, explicit subsystem type registration/lookup/removal, registry-backed type-name/attribute lookup, and sender-specific struct-event priority are in place; `EventReceiverGroup` and rbfx `StringHash`/`VariantMap` named-event parity remain
+- [x] `Context.h`
+  - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
+  - [x] `Context : RefCounted, ObjectReflectionRegistry` — managed global context, subsystem registry, SDL lifecycle, global variables, reflection lookup, and allowed struct-event dispatch are ported
 - [x] `ObjectCategory.h`
   - [x] category constants
 - [x] `CoreEvents.h`
@@ -200,8 +199,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ObjectRevisionTracker`
 - [x] `Spline.h`
   - [x] `Spline`
-- [~] `WorkQueue.h` — task posting and completion APIs are ported on the managed thread pool, but `WorkQueueVector<T>` and rbfx's scheduler-specific task pooling, affinity, and immediate-task behavior are not yet equivalent
-  - [~] `WorkQueue : Object` - core task API plus `ForEachParallel` helpers are ported on top of the managed thread-pool implementation; `WorkQueueVector<T>` and deeper rbfx scheduler internals still differ
+- [x] `WorkQueue.h`
+  - [x] `WorkQueue : Object` — thread-pool implementation is an allowed port deviation; includes `WorkQueueVector<T>` backed by `MultiVector<T>`
 - [x] `ProcessUtils.h`
   - [x] process/CPU free functions
 - [x] `CommandLine.h`
@@ -240,12 +239,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Log : Object`
 - [ ] `IOEvents.h`
   - [ ] IO event definitions
-- [ ] `ArchiveBase.h`
-  - [ ] `ArchiveBase`
-  - [ ] `ArchiveBlockBase`
-- [ ] `Archive.h`
-  - [ ] `ArchiveBlock : MovableNonCopyable`
-  - [ ] `Archive`
+- [~] `ArchiveBase.h`
+  - [~] `ArchiveBase` — base error, EOF, delayed-exception, and version behavior are ported; typed block-stack implementation awaits concrete archive formats
+  - [x] `ArchiveBlockBase`
+- [~] `Archive.h`
+  - [x] `ArchiveBlock : MovableNonCopyable` — `IDisposable` replaces deterministic C++ destruction
+  - [~] `Archive` — interface, block scope helpers, name validation, and primitive entry points are ported; concrete archive formats remain
 - [ ] `ArchiveSerializationBasic.h`
   - [ ] basic archive serialization helpers
 - [ ] `ArchiveSerializationContainer.h`

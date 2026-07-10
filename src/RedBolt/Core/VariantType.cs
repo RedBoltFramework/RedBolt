@@ -85,6 +85,7 @@ public readonly struct Variant : IEquatable<Variant>
     private static readonly StringVector EmptyStringVector = new();
     private static readonly VariantMap EmptyVariantMap = new();
     private static readonly StringVariantMap EmptyStringVariantMap = new();
+    private static readonly VariantCurve EmptyVariantCurve = new();
 
     private readonly VariantType _type;
     private readonly bool _boolValue;
@@ -116,9 +117,10 @@ public readonly struct Variant : IEquatable<Variant>
     private readonly StringVector _stringVectorValue = new();
     private readonly VariantMap _variantMapValue = new();
     private readonly StringVariantMap _stringVariantMapValue = new();
-    private readonly object? _customValue;
+    private readonly VariantCurve _variantCurveValue = EmptyVariantCurve;
+    private readonly CustomVariantValue _customValue = CustomVariantValue.Empty;
 
-    private Variant(object value)
+    private Variant(CustomVariantValue value)
     {
         _type = VariantType.Custom;
         _customValue = value;
@@ -156,6 +158,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Rect => new Variant(Rect.Zero),
             VariantType.Vector3i => new Variant(Vector3i.Zero),
             VariantType.StringVariantMap => new Variant(new StringVariantMap()),
+            VariantType.VariantCurve => new Variant(new VariantCurve()),
             VariantType.Buffer =>
                 new Variant(Array.Empty<byte>()),
             _ => default
@@ -350,6 +353,12 @@ public readonly struct Variant : IEquatable<Variant>
         _stringVariantMapValue = value ?? new StringVariantMap();
     }
 
+    public Variant(VariantCurve value)
+    {
+        _type = VariantType.VariantCurve;
+        _variantCurveValue = value ?? EmptyVariantCurve;
+    }
+
     public Variant(string value)
     {
         if (value is null)
@@ -524,6 +533,34 @@ public readonly struct Variant : IEquatable<Variant>
 
     public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue : EmptyStringVariantMap;
 
+    public VariantCurve GetVariantCurve() => _type == VariantType.VariantCurve ? _variantCurveValue : EmptyVariantCurve;
+
+    public T GetCustom<T>()
+    {
+        return _type == VariantType.Custom && _customValue.TryGetValue(out T value) ? value : default!;
+    }
+
+    public bool IsCustomType<T>()
+    {
+        return _type == VariantType.Custom && _customValue.IsType<T>();
+    }
+
+    public bool TryGetCustom<T>(out T value)
+    {
+        if (_type == VariantType.Custom)
+            return _customValue.TryGetValue(out value);
+
+        value = default!;
+        return false;
+    }
+
+    public CustomVariantValue GetCustomVariantValue() => _type == VariantType.Custom ? _customValue : CustomVariantValue.Empty;
+
+    public static Variant MakeCustomValue<T>(T value)
+    {
+        return new Variant(new CustomVariantValueImpl<T>(value));
+    }
+
     /// <summary>
     /// Return the value, template version.
     /// </summary>
@@ -565,11 +602,16 @@ public readonly struct Variant : IEquatable<Variant>
         if (type == typeof(Matrix3x4)) return Reinterpret<Matrix3x4, T>(GetMatrix3x4());
         if (type == typeof(Matrix4)) return Reinterpret<Matrix4, T>(GetMatrix4());
         if (type == typeof(StringVariantMap)) return Reinterpret<StringVariantMap, T>(GetStringVariantMap());
+        if (type == typeof(VariantCurve)) return Reinterpret<VariantCurve, T>(GetVariantCurve());
+        if (_type == VariantType.Custom) return GetCustom<T>();
 
         throw new ArgumentException($"Unsupported Variant value type '{type.Name}'.", nameof(T));
     }
 
-    // TODO: port: template <class T> ea::optional<T> GetOptional() const;
+    public T? GetOptional<T>() where T : struct
+    {
+        return IsEmpty ? null : Get<T>();
+    }
 
     public string GetTypeName() => GetTypeName(_type);
 
@@ -703,7 +745,9 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Matrix3x4 => _matrix3x4Value == Matrix3x4.IDENTITY,
             VariantType.Matrix4 => _matrix4Value == Matrix4.IDENTITY,
             VariantType.Rect => _rectValue == Rect.Zero,
+            VariantType.Custom => _customValue.IsZero(),
             VariantType.StringVariantMap => _stringVariantMapValue.Count == 0,
+            VariantType.VariantCurve => _variantCurveValue.KeyFrames.Count == 0,
             _ => true
         };
     }
@@ -742,7 +786,8 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.StringVector => _stringVectorValue,
             VariantType.VariantMap => _variantMapValue,
             VariantType.StringVariantMap => _stringVariantMapValue,
-            VariantType.Custom => _customValue,
+            VariantType.VariantCurve => _variantCurveValue,
+            VariantType.Custom => _customValue.Value,
             _ => null!
         };
     }
@@ -788,10 +833,12 @@ public readonly struct Variant : IEquatable<Variant>
             StringVector typedValue => typedValue,
             VariantMap typedValue => typedValue,
             StringVariantMap typedValue => typedValue,
+            VariantCurve typedValue => typedValue,
+            CustomVariantValue typedValue => new Variant(typedValue),
             string typedValue => typedValue,
             CString typedValue => typedValue,
             IntPtr typedValue => typedValue,
-            _ => new Variant(value)
+            _ => new Variant(new CustomVariantValue(value))
         };
     }
 
@@ -832,6 +879,8 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.StringVector => SequenceEqual(_stringVectorValue, other._stringVectorValue),
             VariantType.VariantMap => DictionaryEqual(_variantMapValue, other._variantMapValue),
             VariantType.StringVariantMap => DictionaryEqual(_stringVariantMapValue, other._stringVariantMapValue),
+            VariantType.VariantCurve => _variantCurveValue.Equals(other._variantCurveValue),
+            VariantType.Custom => _customValue.Equals(other._customValue),
             _ => false
         };
     }
@@ -932,6 +981,12 @@ public readonly struct Variant : IEquatable<Variant>
         case VariantType.StringVariantMap:
             AddDictionaryHash(ref hash, _stringVariantMapValue);
             break;
+        case VariantType.VariantCurve:
+            hash.Add(_variantCurveValue);
+            break;
+        case VariantType.Custom:
+            hash.Add(_customValue);
+            break;
         }
 
         return hash.ToHashCode();
@@ -957,8 +1012,8 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.CString => _cstringValue.ToString(),
             VariantType.Buffer => BufferToString(_bufferValue),
             VariantType.VoidPtr => string.Empty,
-            VariantType.ResourceRef => Context.TryGetInstance() is not null ? _resourceRefValue.ToString() : string.Empty,
-            VariantType.ResourceRefList => Context.TryGetInstance() is not null ? _resourceRefListValue.ToString() : string.Empty,
+            VariantType.ResourceRef => Context.TryGetInstance() is { } context ? _resourceRefValue.ToString(context) : string.Empty,
+            VariantType.ResourceRefList => Context.TryGetInstance() is { } context ? _resourceRefListValue.ToString(context) : string.Empty,
             VariantType.IntRect => _intRectValue.ToString(),
             VariantType.Vector2i => _intVector2Value.ToString(),
             VariantType.Vector3i => _intVector3Value.ToString(),
@@ -967,6 +1022,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Matrix4 => _matrix4Value.ToString(),
             VariantType.Double => _doubleValue.ToString(CultureInfo.InvariantCulture),
             VariantType.Rect => _rectValue.ToString(),
+            VariantType.Custom => _customValue.ToString(),
             _ => string.Empty
         };
     }
@@ -1002,6 +1058,7 @@ public readonly struct Variant : IEquatable<Variant>
     public static implicit operator Variant(StringVector value) => new(value);
     public static implicit operator Variant(VariantMap value) => new(value);
     public static implicit operator Variant(StringVariantMap value) => new(value);
+    public static implicit operator Variant(VariantCurve value) => new(value);
     public static implicit operator Variant(string value) => new(value);
     public static implicit operator Variant(CString value) => new(value);
     public static bool operator ==(Variant lhs, Variant rhs) => lhs.Equals(rhs);
@@ -1358,6 +1415,7 @@ public static class VariantTypeUtility
             StringVector => VariantType.StringVector,
             VariantMap => VariantType.VariantMap,
             StringVariantMap => VariantType.StringVariantMap,
+            VariantCurve => VariantType.VariantCurve,
             string => VariantType.String,
             CString => VariantType.CString,
             _ => VariantType.None
@@ -1429,6 +1487,7 @@ public static class VariantTypeUtility
             VariantType.StringVector => typeof(StringVector),
             VariantType.VariantMap => typeof(VariantMap),
             VariantType.StringVariantMap => typeof(StringVariantMap),
+            VariantType.VariantCurve => typeof(VariantCurve),
             VariantType.String => typeof(string),
             VariantType.CString => typeof(string),
             _ => typeof(object)

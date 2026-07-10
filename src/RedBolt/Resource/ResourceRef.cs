@@ -65,4 +65,10 @@ public readonly record struct ResourceRef
         var typeName = new StringHash(Type).Reverse();
         return $"{typeName};{Name}";
     }
+
+    public string ToString(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return $"{context.GetTypeName(new StringHash(Type))};{Name}";
+    }
 }

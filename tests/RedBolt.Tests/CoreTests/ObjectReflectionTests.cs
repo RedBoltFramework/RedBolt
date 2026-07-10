@@ -19,8 +19,8 @@ public sealed class ObjectReflectionTests
     [Fact]
     public void Managed_type_metadata_uses_the_csharp_type_system()
     {
-        Assert.Equal("RedBolt.StaticModel", typeof(StaticModel).GetClassName());
-        Assert.Equal(StringHash.Calculate("RedBolt.StaticModel"), new StringHash(typeof(StaticModel).GetClassName()).Value);
+        Assert.Equal("StaticModel", typeof(StaticModel).GetClassName());
+        Assert.Equal(StringHash.Calculate("StaticModel"), new StringHash(typeof(StaticModel).GetClassName()).Value);
         Assert.Equal(typeof(StaticModel), ObjectReflection<StaticModel>.Type);
         Assert.Equal(typeof(StaticModel).GetClassName(), ObjectReflection<StaticModel>.ClassName);
         Assert.Equal(new StringHash(typeof(StaticModel).GetClassName()), ObjectReflection<StaticModel>.TypeId);

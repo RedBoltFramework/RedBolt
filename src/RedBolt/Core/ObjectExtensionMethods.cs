@@ -9,7 +9,7 @@ public static class ObjectExtensionMethods
 
     public static string GetClassName(this Type type)
     {
-        return GetFormattedTypeName(type, fullyQualified: true);
+        return GetFormattedTypeName(type, fullyQualified: false);
     }
 
     public static StringHash GetTypeId(this Type type)

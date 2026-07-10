@@ -98,7 +98,9 @@ public sealed class VariantTests
         {
             Assert.Equal(string.Empty, value.ToString());
 
-            Context.SetInstance(new Context());
+            var context = new Context();
+            context.Reflect<Material>();
+            Context.SetInstance(context);
             Assert.Equal("Material;Materials/Test", value.ToString());
         }
         finally
@@ -156,5 +158,40 @@ public sealed class VariantTests
         Assert.Equal("Native text", roundTrip.ConvertToString());
         Assert.Equal(VariantType.CString, roundTripVariant.Type);
         Assert.Equal("Native text", roundTripVariant.GetCString().ConvertToString());
+    }
+
+    [Fact]
+    public void Custom_values_preserve_type_equality_zero_and_string_contracts()
+    {
+        var value = Variant.MakeCustomValue(new CustomValue { Value = 7 });
+        var equalValue = Variant.MakeCustomValue(new CustomValue { Value = 7 });
+        var zeroValue = Variant.MakeCustomValue(default(CustomValue));
+
+        Assert.Equal(VariantType.Custom, value.Type);
+        Assert.True(value.IsCustomType<CustomValue>());
+        Assert.False(value.IsCustomType<int>());
+        Assert.True(value.TryGetCustom<CustomValue>(out var retrievedValue));
+        Assert.Equal(7, retrievedValue.Value);
+        Assert.Equal(0, value.GetCustom<int>());
+        Assert.Equal(value, equalValue);
+        Assert.False(value.IsZero());
+        Assert.True(zeroValue.IsZero());
+        Assert.Equal("7", value.ToString());
+        Assert.Equal(value, Variant.FromObject(new CustomVariantValueImpl<CustomValue>(new CustomValue { Value = 7 })));
+    }
+
+    [Fact]
+    public void Optional_retrieval_matches_empty_and_value_contracts()
+    {
+        var empty = default(Variant).GetOptional<int>();
+        var value = new Variant(42).GetOptional<int>();
+
+        Assert.Null(empty);
+        Assert.Equal(42, value);
+    }
+
+    private readonly record struct CustomValue(int Value)
+    {
+        public override string ToString() => Value.ToString();
     }
 }

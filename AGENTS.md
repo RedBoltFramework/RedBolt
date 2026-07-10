@@ -1,83 +1,185 @@
-# RedBolt Agent Notes
+# ==========================================================================
+# RedBolt Port
+# ==========================================================================
+# Read this ENTIRE file before doing anything. Follow it literally.
+# Do exactly what is written. Do not invent steps. Do not skip steps.
+# ==========================================================================
 
-## Main goal
+## 1. WHAT YOU ARE DOING
 
-1:1 (or as close as possible) port of /home/rk/Desktop/src/rbfx/rbfx game engine to C#. We still use idiomatic C# and avoid non-portable things, but logic and structure should be as close to original as possible. No shortcuts!
+You are porting the rbfx C++ game engine to C#, one class at a time.
+The port must be 1:1 (as close as possible) to the original C++ code.
 
-**IMPORTANT**: If you observe deviations from the original engine - they must be fixed immediately!
+- Original C++ source lives in: /home/rk/Desktop/src/rbfx/rbfx
+- Your C# target project is: /home/rk/Desktop/src/rbfx/RedBolt
 
-## Project Snapshot
+"1:1" means: same classes, same methods, same fields, same order, same logic.
+You may only change things that this document explicitly allows you to change.
 
-RedBolt is a C# port of rbfx. Native dependency access is generated through SharpCpp from clang-parsed SDL and Diligent headers; hand-authored engine code lives above that generated interop layer.
+If you see any existing C# code that deviates from the C++ original and is NOT
+on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
 
-The current rendering effort is an incremental port of:
+## 2. TOOLS YOU MUST USE
 
-- `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderAPI`
-- `/home/rk/Desktop/src/rbfx/rbfx/Source/Urho3D/RenderPipeline`
+- jcodemunch (jcodemunch-mcp): use this to read/search BOTH rbfx and RedBolt.
+  - ALWAYS use jcodemunch to explore code.
+    - ALWAYS update index at the session start.
+  - DO NOT use plain grep, glob, find, cat, or Read for code exploration.
+- dotnet-trace: (optional) use this to check for GC allocations in the running sample.
+- debug-mcp: use this to debug crashes and wrong behavior at runtime.
+  - Do NOT pass a `--timeout` argument to debug-mcp.
+- apitrace: use this to debug rendering / visual bugs.
 
-The target is a full port of the graphics API and pipeline: all classes, behavior, and hookups should be ported unless the omitted piece is only C++ utility infrastructure that has no meaningful C# equivalent.
+## 3. THE WORK LOOP (do this for EACH class)
 
-Do not try to transplant the full render stack at once. Land small coherent slices and keep them building, but each slice should move toward full rbfx parity rather than introducing long-lived custom shortcuts.
+Do these steps IN ORDER. Finish one step fully before starting the next.
 
-## Binding And Interop Rules
+STEP 1 - Find the C++ class
+  - Use jcodemunch to open the C++ class outline (all methods, fields, bases).
+  - Write down: base classes, interfaces, every method, every field.
 
-- Prefer idiomatic C# constructs.
-- Avoid superfluous getters when a property is the natural API.
-- No manual bindings.
-- If bindings are not enough:
-  - fix our generator
-  - fix SharpCpp
-- Do not add hand-authored C/C++ facade headers, C ABI forwarding functions, P/Invoke declarations, or C# binding-wrapper classes for dependency APIs.
-- Generated C# and C++ binding artifacts belong in the CMake build tree, not in the source tree.
+STEP 2 - Match the class shape
+  - Make sure the C# class has the SAME base classes / interfaces.
+  - Make sure the C# class exists in a matching namespace/file location.
 
-## Context And Event Model
+STEP 3 - Match every member, one by one
+  For EACH method and field in the C++ outline:
+    a. Confirm the C# class has that same member.
+       - If it is missing: ADD it.
+       - If it is extra (not in C++ and not an allowed deviation): REMOVE it.
+    b. Put members in the SAME ORDER as the C++ file. Reorder if needed.
+    c. Rename to C# conventions (see section 4).
+    d. Match the C# type to the C++ type as closely as possible (see section 5).
+    e. Match the method body logic line-by-line to the C++ body.
+    f. Implement copy-constructors as `ICloneable.Clone()`.
+    g. Match member access (do not use `internal` for ported functions ever).
 
-- Use the managed global `Context` pattern rather than constructor-injecting context through the port.
-- Set the active context with `Context.SetInstance(ctx)` and access it with `Context.Instance`.
-- `Engine` owns the active `Context`, registers core subsystems during initialization, and clears the global instance on shutdown.
-- Subsystem registration and lookup may be used concurrently.
-- Named events are `StringHash`-based and are main-thread-only.
-- When changing event behavior, add or update focused tests.
+STEP 4 - Build and test (see section 6). Do not move on until it is GREEN.
 
-## Managed Type Metadata
+STEP 5 - Update status of ported items in `out/PORTING_CHECKLIST.md`. If completed,
+mark them as such. If incomplete, mark them as such and clarify what is missing.
+Make a note of any accepted deviations.
 
-- Do not port `URHO3D_OBJECT`-related static metadata code. Use the C# type system and reflection instead.
+## 4. NAMING RULES (follow exactly)
 
-## Render Port Guidance
+- Classes: PascalCase          (e.g. RenderPipeline)
+- Methods: PascalCase          (e.g. GetRenderPath)
+- Properties: PascalCase       (e.g. IsEnabled)
+- Public fields: PascalCase    (e.g. FrameCount)
+- Private fields: _camelCase   with leading underscore (e.g. _frameCount)
+- Local variables: camelCase   (e.g. frameCount)
+- Method parameters: camelCase (e.g. renderPath)
+- Constants: PascalCase
 
-- Match rbfx resource formats and default behaviors whenever possible. Avoid RedBolt-only side formats if upstream rbfx already defines the asset/runtime contract.
-- Prefer incremental managed ports that compile and are tested over broad partial translations.
-- Native libraries are wrapped using our custom generators based on SharpCpp. Sometimes generated bindings are insufficient.
-  - You can:
-    - Fix SharpCpp to produce correct bindings (preferred way)
-    - Add a custom supporting C++ library that links to C++ dependencies to offer helper code (best avoided, unless preferred way is impossible)
+## 5. TYPE MAPPING RULES
 
+- Match the C++ type as closely as C# allows.
+- C++ getter/setter PAIRS may become a C# property, BUT the getter/setter
+  body logic must still match the C++ code exactly.
+- DO use nullable referebce types (no `?` on types).
+- Prefer plain C# constructs over clever ones.
+- A single value that C++ exposes as a getter should be a C# property,
+  not a `GetX()` method, UNLESS matching C++ shape is clearer.
 
-## Workflow Expectations
+## 6. BUILD AND VERIFY (run these commands)
 
-- Trim stale guesses, superseded notes, and completed low-value items from that file.
-- Commit coherent checkpoints so progress is not stranded between sessions.
-- Keep the sample build healthy while porting rendering.
-- Always use jcodemunch to explore rbfx and RedBolt repositories, avoid using standard search/grep/glob tools.
-- Use `apitrace` to triage rendering issues.
-- Use `debug-mcp` (but without `--timeout`) to debug issues.
+Build:
+  cmake --preset dev
+  cmake --build --preset Debug --target restore
+  cmake --build --preset Debug --target RedBolt
 
-## Build And Verification
+Run the sample and capture a screenshot:
+  out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
-- Bootstrap / full managed build:
+Run the tests (adjust the filter to your area):
+  dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
 
-```bash
-cmake --preset dev
-cmake --build --preset Debug --target restore
-cmake --build --preset Debug --target RedBolt
-out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
-```
+Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
-- The managed build should keep producing sample outputs in:
-  - `/home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug`
-- Verify screenshots for valid visual output.
+The build output binaries are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug
 
-## Current Constraint
+## 7. THINGS YOU MUST ALWAYS DO
 
-- Assume named-event dispatch is single-threaded on the main thread.
-- Do not reintroduce locking around the event bus unless the threading model changes deliberately.
+- Port EVERY function and method, even ones that look useless or redundant.
+- Port EVERY code comment if such exists.
+- Port EVERY doxygen documentation comment as C# xml documentation comment.
+- Keep the code building at all times. Small working slices, not big broken ones.
+- Add or update focused unit tests when you change behavior.
+- After ANY change: build, run tests, and run the StaticScene sample.
+- After finishing a slice: commit a coherent checkpoint.
+- If the current API cannot express a piece of C++ yet:
+    - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
+      so it is ported later. Do not silently drop it.
+- Use the global Context pattern:
+    - Set it with Context.SetInstance(ctx).
+    - Read it with Context.Instance.
+    - Do NOT pass Context through constructors.
+
+## 8. THINGS YOU MUST NEVER DO
+
+- NEVER use nullables with reference types.
+- NEVER introduce your own comments outside of allowed cases.
+- NEVER write manual/hand-authored native bindings.
+- NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
+  P/Invoke declarations, or C# wrapper classes for native dependency APIs.
+- NEVER use nullable types.
+- NEVER take shortcuts that make C# diverge from C++ logic (except section 9).
+- NEVER port things C# already provides (see section 10).
+- NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:
+  no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
+- NEVER commit unless the build is green and tests pass.
+
+## 9. BINDINGS: HOW TO GET NATIVE ACCESS
+
+Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated bindings.
+
+- Use SharpCpp to AUTOMATICALLY generate the bindings.
+- If the generated bindings are not enough, in this priority order:
+    1. Fix our generator so it produces correct bindings. (PREFERRED)
+    2. Fix SharpCpp so it produces correct bindings.
+    3. Only as a LAST RESORT, add a small supporting C++ helper library that
+       links to the C++ dependency. Avoid this unless 1 and 2 are impossible.
+- Generated C# and C++ binding artifacts go in the CMake BUILD TREE,
+  never in the source tree.
+
+## 10. ALLOWED DEVIATIONS (only these)
+
+These are the ONLY places C# is allowed to differ from C++:
+
+- RefCounted / SharedPtr / WeakPtr are dropped ON PURPOSE. They must NOT exist.
+- SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
+- CommandLineParser is used instead of CLI11.
+- WorkQueue is rebuilt using a thread-pool.
+- Minor API tweaks are allowed ONLY to avoid GC churn.
+- Do NOT re-port things C# already has, for example:
+    - Threading primitives (locks, tasks, thread pools)
+    - Math functions and constants
+    - Standard containers / collections
+    - String utilities
+- Math type aliases are different, but used
+  - `Vector[234]` -> `Vector[234]f`
+  - `IntVector[234]` -> `Vector[234]i`
+- `CString` is our addition and is to be kept, as well as related customizations of other APIs
+- No URHO3D_OBJECT-related metadata code -> replaced by C# type system/reflection with `ObjectReflection` as a facade
+
+Anything not on this list must match C++.
+
+## 11. SUCCESS CRITERIA (all must be true)
+
+- [ ] The project builds with no errors.
+- [ ] All tests pass.
+- [ ] The C# class outline matches the C++ class outline as closely as possible.
+- [ ] The C# method bodies match the C++ method bodies as closely as possible.
+- [ ] The RedBolt.Sample.StaticScene sample runs and shows a correct scene.
+- [ ] Optional: The StaticScene sample does not allocate GC memory continuously
+      (verify with dotnet-trace: steady-state allocations should be flat).
+- [ ] All tasks from the goal section are completed.
+
+## 12. IF YOU ARE UNSURE
+
+- Re-read the C++ source with jcodemunch. The C++ code is the source of truth.
+- Match the C++ code. When in doubt, copy the C++ structure and logic.
+- Do not guess at runtime behavior. Use debug-mcp or apitrace to confirm.
+- Prompt user to clarify deviations
+  - Record agreed deviations in AGENTS.md file

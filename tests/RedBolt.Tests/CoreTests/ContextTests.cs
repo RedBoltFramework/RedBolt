@@ -299,6 +299,30 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_unsubscribe_from_all_events_except_keeps_requested_struct_event_types()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var receiver = new TestObject();
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => { });
+            receiver.SubscribeToEvent<PongEvent>((ref PongEvent _) => { });
+
+            receiver.UnsubscribeFromAllEventsExcept([typeof(PongEvent)]);
+
+            Assert.False(receiver.HasSubscribedToEvent<PingEvent>());
+            Assert.True(receiver.HasSubscribedToEvent<PongEvent>());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void Context_supports_unsubscribe_during_dispatch()
     {
         var previousContext = Context.TryGetInstance();

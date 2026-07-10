@@ -1,8 +1,14 @@
 namespace RedBolt;
 
-public abstract class Object
+public abstract class Object : IArchiveSerializable
 {
     public Context Context => Context.Instance;
+
+    public virtual void SerializeInBlock(Archive archive)
+    {
+        ArgumentNullException.ThrowIfNull(archive);
+        throw new InvalidOperationException($"Serialization is not supported for type '{GetTypeName()}'.");
+    }
 
     public bool BlockEvents { get; set; }
 
@@ -86,6 +92,12 @@ public abstract class Object
     {
         ArgumentNullException.ThrowIfNull(senders);
         Context.UnsubscribeAllExcept(this, senders);
+    }
+
+    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<Type> eventTypes)
+    {
+        ArgumentNullException.ThrowIfNull(eventTypes);
+        Context.UnsubscribeAllExcept(this, eventTypes);
     }
 
     public void SendEvent<T>() where T : struct

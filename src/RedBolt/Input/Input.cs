@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Sdl;
+using System.Text;
 
 namespace RedBolt;
 
@@ -86,9 +87,11 @@ public sealed class Input
         _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
 
-        var initResult = SdlNativeBindings.SdlInit(SdlInitVideo);
-        if (initResult != 0)
-            throw new InvalidOperationException($"Generated SDL_Init binding failed with {initResult}.");
+        if (!Context.Instance.RequireSdl(SdlInitVideo))
+        {
+            Context.Instance.ReleaseSdl();
+            throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
+        }
 
         try
         {
@@ -563,7 +566,7 @@ public sealed class Input
         _window = null;
 
         if (IsInitialized)
-            SdlNativeBindings.SdlQuit();
+            Context.Instance.ReleaseSdl();
 
         IsInitialized = false;
         ExitRequested = false;
