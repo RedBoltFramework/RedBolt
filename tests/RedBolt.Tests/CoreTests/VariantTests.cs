@@ -32,6 +32,24 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Resource_reference_string_conversion_requires_context()
+    {
+        var value = new Variant(new ResourceRef("Material", "Materials/Test"));
+        Context.SetInstance(null);
+        try
+        {
+            Assert.Equal(string.Empty, value.ToString());
+
+            Context.SetInstance(new Context());
+            Assert.Equal("Material;Materials/Test", value.ToString());
+        }
+        finally
+        {
+            Context.SetInstance(null);
+        }
+    }
+
+    [Fact]
     public void CString_extension_preserves_cstring_value_contract()
     {
         using var value = new CString("Native text");
