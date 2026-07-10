@@ -46,7 +46,7 @@ public abstract class AttributeAccessor
     public abstract void Set(Serializable ptr, object? src);
 }
 
-public sealed class AttributeInfo
+public sealed class AttributeInfo : ICloneable
 {
     private readonly Dictionary<StringHash, object?> _metadata = new();
 
@@ -86,7 +86,7 @@ public sealed class AttributeInfo
 
     public StringHash NameHash { get; }
 
-    public AttributeScopeHint ScopeHint { get; internal set; } = AttributeScopeHint.Attribute;
+    public AttributeScopeHint ScopeHint { get; set; } = AttributeScopeHint.Attribute;
 
     public bool ShouldLoad => (Mode & AttributeMode.File) != 0;
 
@@ -99,7 +99,47 @@ public sealed class AttributeInfo
         return _metadata.GetValueOrDefault(key);
     }
 
-    internal void SetMetadata(StringHash key, object? value)
+    public T GetMetadata<T>(StringHash key)
+    {
+        return GetMetadata(key) is T value ? value : default!;
+    }
+
+    /// <summary>
+    /// Convert enum value to string.
+    /// </summary>
+    public string ConvertEnumToString(uint value)
+    {
+        return EnumNames[(int)value];
+    }
+
+    /// <summary>
+    /// Convert enum value to integer.
+    /// </summary>
+    public uint ConvertEnumToUInt(string value)
+    {
+        for (var index = 0; index < EnumNames.Count; ++index)
+        {
+            if (string.Equals(EnumNames[index], value, StringComparison.OrdinalIgnoreCase))
+                return (uint)index;
+        }
+
+        return uint.MaxValue;
+    }
+
+    public object Clone()
+    {
+        var result = new AttributeInfo(Name, ValueType, DefaultValue, Mode, EnumNames, Accessor)
+        {
+            ScopeHint = ScopeHint
+        };
+
+        foreach (var (key, value) in _metadata)
+            result.SetMetadata(key, value);
+
+        return result;
+    }
+
+    public void SetMetadata(StringHash key, object? value)
     {
         _metadata[key] = value;
     }
@@ -138,13 +178,15 @@ public readonly struct AttributeHandle
 
     public AttributeHandle SetMetadata(StringHash key, object? value)
     {
-        _attribute.SetMetadata(key, value);
+        if (_attribute is not null)
+            _attribute.SetMetadata(key, value);
         return this;
     }
 
     public AttributeHandle SetScopeHint(AttributeScopeHint scopeHint)
     {
-        _attribute.ScopeHint = scopeHint;
+        if (_attribute is not null)
+            _attribute.ScopeHint = scopeHint;
         return this;
     }
 }
