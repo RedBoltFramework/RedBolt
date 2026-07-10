@@ -583,6 +583,17 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Bool => new Variant(ParseBool(value)),
             VariantType.Float => new Variant(ParseFloat(value)),
             VariantType.Double => new Variant(ParseDouble(value)),
+            VariantType.Vector2 => new Variant(ParseVector2(value)),
+            VariantType.Vector3 => new Variant(ParseVector3(value)),
+            VariantType.DoubleVector2 => new Variant(ParseDoubleVector2(value)),
+            VariantType.DoubleVector3 => new Variant(ParseDoubleVector3(value)),
+            VariantType.Vector4 => new Variant(ParseVector4(value)),
+            VariantType.Quaternion => new Variant(ParseQuaternion(value)),
+            VariantType.Color => new Variant(ParseColor(value)),
+            VariantType.Rect => new Variant(ParseRect(value)),
+            VariantType.IntRect => new Variant(ParseIntRect(value)),
+            VariantType.Vector2i => new Variant(ParseIntVector2(value)),
+            VariantType.Vector3i => new Variant(ParseIntVector3(value)),
             VariantType.String => new Variant(value),
             VariantType.CString => new Variant(new CString(value)),
             VariantType.Buffer => new Variant(ParseBuffer(value)),
@@ -961,6 +972,94 @@ public readonly struct Variant : IEquatable<Variant>
             result[index] = byte.TryParse(tokens[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var item) ? item : (byte)0;
 
         return result;
+    }
+
+    private static float[] ParseFloatTokens(string value)
+    {
+        var tokens = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var result = new float[tokens.Length];
+        for (var index = 0; index < tokens.Length; ++index)
+            result[index] = ParseFloat(tokens[index]);
+        return result;
+    }
+
+    private static int[] ParseIntTokens(string value)
+    {
+        var tokens = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var result = new int[tokens.Length];
+        for (var index = 0; index < tokens.Length; ++index)
+            result[index] = ParseInt(tokens[index]);
+        return result;
+    }
+
+    private static Vector2f ParseVector2(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 2 ? Vector2f.ZERO : new Vector2f(values[0], values[1]);
+    }
+
+    private static Vector3f ParseVector3(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 3 ? Vector3f.ZERO : new Vector3f(values[0], values[1], values[2]);
+    }
+
+    private static Vector2d ParseDoubleVector2(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 2 ? Vector2d.ZERO : new Vector2d(values[0], values[1]);
+    }
+
+    private static Vector3d ParseDoubleVector3(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 3 ? Vector3d.ZERO : new Vector3d(values[0], values[1], values[2]);
+    }
+
+    private static Vector4f ParseVector4(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 4 ? Vector4f.ZERO : new Vector4f(values[0], values[1], values[2], values[3]);
+    }
+
+    private static Quaternion ParseQuaternion(string value)
+    {
+        var values = ParseFloatTokens(value);
+        if (values.Length < 3)
+            return Quaternion.IDENTITY;
+        if (values.Length < 4)
+            return Quaternion.FromEulerAngles(values[0], values[1], values[2]);
+        return new Quaternion(values[0], values[1], values[2], values[3]);
+    }
+
+    private static Color ParseColor(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 3 ? new Color() : new Color(values[0], values[1], values[2], values.Length > 3 ? values[3] : 1.0f);
+    }
+
+    private static Rect ParseRect(string value)
+    {
+        var values = ParseFloatTokens(value);
+        return values.Length < 4 ? Rect.Zero : new Rect(values[0], values[1], values[2], values[3]);
+    }
+
+    private static IntRect ParseIntRect(string value)
+    {
+        var values = ParseIntTokens(value);
+        return values.Length < 4 ? IntRect.Zero : new IntRect(values[0], values[1], values[2], values[3]);
+    }
+
+    private static Vector2i ParseIntVector2(string value)
+    {
+        var values = ParseIntTokens(value);
+        return values.Length < 2 ? Vector2i.Zero : new Vector2i(values[0], values[1]);
+    }
+
+    private static Vector3i ParseIntVector3(string value)
+    {
+        var values = ParseIntTokens(value);
+        return values.Length < 3 ? Vector3i.Zero : new Vector3i(values[0], values[1], values[2]);
     }
 
     private static string BufferToString(byte[] buffer)

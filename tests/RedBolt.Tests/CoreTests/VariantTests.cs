@@ -59,6 +59,11 @@ public sealed class VariantTests
         Assert.Equal(42, Variant.FromString(VariantType.Int, "42").GetInt());
         Assert.Equal(0.5f, Variant.FromString(VariantType.Float, "0.5").GetFloat());
         Assert.Equal(new byte[] { 1, 2, 3 }, Variant.FromString(VariantType.Buffer, "1 2 3").GetBuffer());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Vector3, "1 2 3").GetVector3());
+        Assert.Equal(Vector3f.ZERO, Variant.FromString(VariantType.Vector3, "1 2").GetVector3());
+        Assert.Equal(new Color(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Color, "1 2 3").GetColor());
+        Assert.Equal(Quaternion.FromEulerAngles(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Quaternion, "1 2 3").GetQuaternion());
+        Assert.Equal(new IntRect(1, 2, 3, 4), Variant.FromString(VariantType.IntRect, "1 2 3 4").GetIntRect());
         Assert.Equal(VariantType.None, new Variant(1).Convert(VariantType.Vector3).Type);
     }
 
