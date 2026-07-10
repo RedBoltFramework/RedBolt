@@ -625,6 +625,31 @@ public readonly struct Variant : IEquatable<Variant>
         };
     }
 
+    /// <summary>
+    /// Linear interpolation. Supported for scalars, vectors and some other types.
+    /// </summary>
+    public Variant Lerp(Variant rhs, float t)
+    {
+        return _type switch
+        {
+            VariantType.Float => new Variant(MathDefs.Lerp(GetFloat(), rhs.GetFloat(), t)),
+            VariantType.Double => new Variant(GetDouble() * (1.0 - t) + rhs.GetDouble() * t),
+            VariantType.Int => new Variant(unchecked((int)(GetInt() * (1.0 - t) + rhs.GetInt() * t))),
+            VariantType.Int64 => new Variant(unchecked((long)(GetInt64() * (1.0 - t) + rhs.GetInt64() * t))),
+            VariantType.Vector2 => new Variant(GetVector2().Lerp(rhs.GetVector2(), t)),
+            VariantType.Vector3 => new Variant(GetVector3().Lerp(rhs.GetVector3(), t)),
+            VariantType.DoubleVector2 => new Variant(GetDoubleVector2().Lerp(rhs.GetDoubleVector2(), t)),
+            VariantType.DoubleVector3 => new Variant(GetDoubleVector3().Lerp(rhs.GetDoubleVector3(), t)),
+            VariantType.Vector4 => new Variant(GetVector4().Lerp(rhs.GetVector4(), t)),
+            VariantType.Quaternion => new Variant(GetQuaternion().Slerp(rhs.GetQuaternion(), t)),
+            VariantType.Color => new Variant(GetColor().Lerp(rhs.GetColor(), t)),
+            VariantType.IntRect => LerpIntRect(rhs, t),
+            VariantType.Vector2i => LerpIntVector2(rhs, t),
+            VariantType.Vector3i => LerpIntVector3(rhs, t),
+            _ => this
+        };
+    }
+
     public bool IsZero()
     {
         return _type switch
@@ -1091,6 +1116,39 @@ public readonly struct Variant : IEquatable<Variant>
     {
         var values = ParseIntTokens(value);
         return values.Length < 3 ? Vector3i.Zero : new Vector3i(values[0], values[1], values[2]);
+    }
+
+    private Variant LerpIntRect(Variant rhs, float t)
+    {
+        var s = 1.0f - t;
+        var left = GetIntRect();
+        var right = rhs.GetIntRect();
+        return new Variant(new IntRect(
+            unchecked((int)(left.Left * s + right.Left * t)),
+            unchecked((int)(left.Top * s + right.Top * t)),
+            unchecked((int)(left.Right * s + right.Right * t)),
+            unchecked((int)(left.Bottom * s + right.Bottom * t))));
+    }
+
+    private Variant LerpIntVector2(Variant rhs, float t)
+    {
+        var s = 1.0f - t;
+        var left = GetIntVector2();
+        var right = rhs.GetIntVector2();
+        return new Variant(new Vector2i(
+            unchecked((int)(left.X * s + right.X * t)),
+            unchecked((int)(left.Y * s + right.Y * t))));
+    }
+
+    private Variant LerpIntVector3(Variant rhs, float t)
+    {
+        var s = 1.0f - t;
+        var left = GetIntVector3();
+        var right = rhs.GetIntVector3();
+        return new Variant(new Vector3i(
+            unchecked((int)(left.X * s + right.X * t)),
+            unchecked((int)(left.Y * s + right.Y * t)),
+            unchecked((int)(left.Z * s + right.Z * t))));
     }
 
     private static Matrix3 ParseMatrix3(string value)

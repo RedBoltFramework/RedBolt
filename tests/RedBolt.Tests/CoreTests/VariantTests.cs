@@ -31,6 +31,21 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Lerp_matches_rbfx_supported_type_contracts()
+    {
+        Assert.Equal(2, new Variant(1).Lerp(new Variant(4), 0.5f).GetInt());
+        Assert.Equal(2L, new Variant(1L).Lerp(new Variant(4L), 0.5f).GetInt64());
+        Assert.Equal(2.5, new Variant(1.0).Lerp(new Variant(4.0), 0.5f).GetDouble());
+        Assert.Equal(new Vector3f(2.0f, 3.0f, 4.0f), new Variant(new Vector3f(1.0f, 2.0f, 3.0f)).Lerp(new Variant(new Vector3f(3.0f, 4.0f, 5.0f)), 0.5f).GetVector3());
+        Assert.Equal(new Color(0.5f, 0.5f, 0.5f), new Variant(Color.Black).Lerp(new Variant(Color.White), 0.5f).GetColor());
+        Assert.Equal(new IntRect(2, 3, 4, 5), new Variant(new IntRect(1, 2, 3, 4)).Lerp(new Variant(new IntRect(3, 4, 5, 6)), 0.5f).GetIntRect());
+        Assert.Equal(new Vector2i(2, 3), new Variant(new Vector2i(1, 2)).Lerp(new Variant(new Vector2i(3, 4)), 0.5f).GetIntVector2());
+
+        var unsupported = new Variant("left");
+        Assert.Equal(unsupported, unsupported.Lerp(new Variant("right"), 0.5f));
+    }
+
+    [Fact]
     public void Getters_match_rbfx_conversion_and_default_contracts()
     {
         Assert.Equal(3, new Variant(3.9f).GetInt());
