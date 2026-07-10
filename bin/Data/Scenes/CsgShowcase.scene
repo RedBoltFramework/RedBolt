@@ -1,0 +1,1235 @@
+<?xml version="1.0"?>
+<resource _id="1">
+	<attributes>
+		<attribute name="Next Node ID" type="Int" value="465" />
+		<attribute name="Next Component ID" type="Int" value="428" />
+	</attributes>
+	<components>
+		<component _id="1" _typeName="Octree" />
+		<component _id="2" _typeName="RenderPipeline">
+			<attributes>
+				<attribute name="Render Passes" type="VariantVector">
+					<value>
+						<element type="String" value="Postprocess: Exposure" />
+						<element type="Bool" value="true" />
+						<element type="String" value="Postprocess: SSAO" />
+						<element type="Bool" value="false" />
+						<element type="String" value="Postprocess: Bloom" />
+						<element type="Bool" value="false" />
+						<element type="String" value="Postprocess: Draw Outlines" />
+						<element type="Bool" value="true" />
+						<element type="String" value="Postprocess: Tone Mapping" />
+						<element type="Bool" value="true" />
+						<element type="String" value="Postprocess: Adjust Color" />
+						<element type="Bool" value="true" />
+						<element type="String" value="Postprocess: FXAA v2" />
+						<element type="Bool" value="false" />
+						<element type="String" value="Postprocess: FXAA v3" />
+						<element type="Bool" value="true" />
+						<element type="String" value="Postprocess: Chromatic Aberration" />
+						<element type="Bool" value="false" />
+						<element type="String" value="Postprocess: Vignette" />
+						<element type="Bool" value="false" />
+					</value>
+				</attribute>
+				<attribute name="Render Path Parameters" type="StringVariantMap">
+					<value>
+						<element key="Vignette: Radius" type="Float" value="0.500000" />
+						<element key="Adjust Color: ColorOffset" type="Vector4" value="0 0 0 0" />
+						<element key="Exposure: Max" type="Float" value="3.000000" />
+						<element key="Vignette: Intensity" type="Float" value="0.400000" />
+						<element key="SSAO: Far Distance" type="Float" value="100.000000" />
+						<element key="SSAO: Near Distance" type="Float" value="1.000000" />
+						<element key="Bloom: Base Intensity" type="Float" value="1.000000" />
+						<element key="SSAO: Begin Fade Distance" type="Float" value="100.000000" />
+						<element key="Adjust Color: HSVParams" type="Vector4" value="1 1 1 1" />
+						<element key="Bloom: Num Iterations" type="Int" value="5" />
+						<element key="Bloom: Min Brightness" type="Float" value="0.800000" />
+						<element key="SSAO: Strength" type="Float" value="0.700000" />
+						<element key="SSAO: Exponent" type="Float" value="1.500000" />
+						<element key="Chromatic Aberration: Amount" type="Float" value="0.400000" />
+						<element key="SSAO: Downscale" type="Int" value="0" />
+						<element key="Bloom: Max Brightness" type="Float" value="1.000000" />
+						<element key="Tone Mapping: Mode" type="Int" value="0" />
+						<element key="Exposure: Automatic" type="Bool" value="false" />
+						<element key="Tone Mapping: Mode@" type="StringVector">
+							<value>
+								<element value="None" />
+								<element value="Reinhard" />
+								<element value="ReinhardWhite" />
+								<element value="Uncharted2" />
+							</value>
+						</element>
+						<element key="Exposure: Adapt Rate" type="Float" value="0.600000" />
+						<element key="SSAO: Normal Threshold" type="Float" value="0.200000" />
+						<element key="Exposure: Min" type="Float" value="1.000000" />
+						<element key="SSAO: Depth Threshold" type="Float" value="0.100000" />
+						<element key="SSAO: Far Radius" type="Float" value="1.000000" />
+						<element key="Bloom: Iteration Intensity Factor" type="Float" value="1.000000" />
+						<element key="FXAA: FXAAParams" type="Vector3" value="0.4 0.5 0.75" />
+						<element key="SSAO: End Fade Distance" type="Float" value="200.000000" />
+						<element key="Adjust Color: ColorFilter" type="Vector4" value="1 1 1 1" />
+						<element key="SSAO: Near Radius" type="Float" value="0.050000" />
+						<element key="Vignette: Color" type="Color" value="0 0 0 0.4" />
+					</value>
+				</attribute>
+				<attribute name="Color Space" type="String" value="HDR Linear" />
+				<attribute name="PCF Kernel Size" type="Int" value="5" />
+			</attributes>
+		</component>
+		<component _id="12" _typeName="ReflectionProbeManager" />
+	</components>
+	<nodes>
+		<node _id="2">
+			<attributes>
+				<attribute name="Name" type="String" value="Skybox" />
+			</attributes>
+			<components>
+				<component _id="3" _typeName="Skybox">
+					<attributes>
+						<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+						<attribute name="Material" type="ResourceRefList" value="Material;Materials/DefaultSkybox.xml" />
+					</attributes>
+				</component>
+			</components>
+		</node>
+		<node _id="3">
+			<attributes>
+				<attribute name="Name" type="String" value="Global Zone" />
+			</attributes>
+			<components>
+				<component _id="4" _typeName="Zone">
+					<attributes>
+						<attribute name="Bounding Box Min" type="Vector3" value="-1000 -1000 -1000" />
+						<attribute name="Bounding Box Max" type="Vector3" value="1000 1000 1000" />
+						<attribute name="Ambient Color" type="Color" value="0 0 0 1" />
+						<attribute name="Background Brightness" type="Float" value="0.500000" />
+						<attribute name="Zone Texture" type="ResourceRef" value="TextureCube;Textures/DefaultSkybox.xml" />
+					</attributes>
+				</component>
+			</components>
+		</node>
+		<node _id="4">
+			<attributes>
+				<attribute name="Name" type="String" value="Global Light" />
+				<attribute name="Rotation" type="Quaternion" value="0.888074 0.325058 0.325058 0" />
+			</attributes>
+			<components>
+				<component _id="5" _typeName="Light">
+					<attributes>
+						<attribute name="Light Type" type="String" value="Directional" />
+						<attribute name="Brightness Multiplier" type="Float" value="0.500000" />
+						<attribute name="Cast Shadows" type="Bool" value="true" />
+					</attributes>
+				</component>
+			</components>
+		</node>
+		<node _id="24">
+			<attributes>
+				<attribute name="Name" type="String" value="CSG Boxes" />
+				<attribute name="Position" type="Vector3" value="0 1 0" />
+			</attributes>
+			<nodes>
+				<node _id="7">
+					<attributes>
+						<attribute name="Name" type="String" value="Union" />
+					</attributes>
+					<components>
+						<component _id="13" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="42" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="18">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="37" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="25">
+					<attributes>
+						<attribute name="Name" type="String" value="Intersection" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
+					</attributes>
+					<components>
+						<component _id="51" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="52" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="26">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="53" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="37">
+					<attributes>
+						<attribute name="Name" type="String" value="Difference" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
+					</attributes>
+					<components>
+						<component _id="62" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="63" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="38">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="64" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="54">
+			<attributes>
+				<attribute name="Name" type="String" value="CSG Sphere+Box" />
+				<attribute name="Position" type="Vector3" value="4 1 0" />
+			</attributes>
+			<nodes>
+				<node _id="55">
+					<attributes>
+						<attribute name="Name" type="String" value="Union" />
+					</attributes>
+					<components>
+						<component _id="81" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="82" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="56">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="83" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="62">
+					<attributes>
+						<attribute name="Name" type="String" value="Intersection" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
+					</attributes>
+					<components>
+						<component _id="88" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="89" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="63">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="90" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="69">
+					<attributes>
+						<attribute name="Name" type="String" value="Difference" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
+					</attributes>
+					<components>
+						<component _id="95" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="96" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="70">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="97" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="91">
+			<attributes>
+				<attribute name="Name" type="String" value="CSG Box+Sphere" />
+				<attribute name="Position" type="Vector3" value="8 1 0" />
+			</attributes>
+			<nodes>
+				<node _id="92">
+					<attributes>
+						<attribute name="Name" type="String" value="Union" />
+					</attributes>
+					<components>
+						<component _id="114" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="115" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="93">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="116" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="104">
+					<attributes>
+						<attribute name="Name" type="String" value="Intersection" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
+					</attributes>
+					<components>
+						<component _id="125" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="126" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="105">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="127" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="116">
+					<attributes>
+						<attribute name="Name" type="String" value="Difference" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
+					</attributes>
+					<components>
+						<component _id="136" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="137" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="117">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.004 0.373 0.857" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="138" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="143">
+			<attributes>
+				<attribute name="Name" type="String" value="CSG Sphere+Sphere" />
+				<attribute name="Position" type="Vector3" value="12 1 0" />
+			</attributes>
+			<nodes>
+				<node _id="144">
+					<attributes>
+						<attribute name="Name" type="String" value="Union" />
+					</attributes>
+					<components>
+						<component _id="159" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="160" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="145">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="161" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="161">
+					<attributes>
+						<attribute name="Name" type="String" value="Intersection" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
+					</attributes>
+					<components>
+						<component _id="174" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="175" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="162">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="176" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="178">
+					<attributes>
+						<attribute name="Name" type="String" value="Difference" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
+					</attributes>
+					<components>
+						<component _id="189" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="190" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="179">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 0.372886 0.857412" />
+								<attribute name="Rotation" type="Quaternion" value="0.914392 -0.097166 0.39076 0.041523" />
+							</attributes>
+							<components>
+								<component _id="191" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="228">
+			<attributes>
+				<attribute name="Name" type="String" value="CSG Boxes-inside" />
+				<attribute name="Position" type="Vector3" value="-4 1 0" />
+			</attributes>
+			<nodes>
+				<node _id="229">
+					<attributes>
+						<attribute name="Name" type="String" value="Union" />
+					</attributes>
+					<components>
+						<component _id="232" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="233" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="230">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="-0.003813 -0.049347 -0.013523" />
+								<attribute name="Scale" type="Vector3" value="0.8 0.8 0.8" />
+							</attributes>
+							<components>
+								<component _id="234" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="235">
+					<attributes>
+						<attribute name="Name" type="String" value="Intersection" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
+					</attributes>
+					<components>
+						<component _id="238" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="239" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="236">
+							<attributes>
+								<attribute name="Scale" type="Vector3" value="0.8 0.8 0.8" />
+							</attributes>
+							<components>
+								<component _id="240" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+				<node _id="241">
+					<attributes>
+						<attribute name="Name" type="String" value="Difference" />
+						<attribute name="Position" type="Vector3" value="0 0 8.007124" />
+					</attributes>
+					<components>
+						<component _id="244" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+								<attribute name="Materials" type="ResourceRefList" value="Material;Materials/Stone.xml" />
+							</attributes>
+						</component>
+						<component _id="245" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="242">
+							<attributes>
+								<attribute name="Scale" type="Vector3" value="0.8 0.8 0.8" />
+							</attributes>
+							<components>
+								<component _id="246" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
+									</attributes>
+								</component>
+							</components>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="429">
+			<attributes>
+				<attribute name="Position" type="Vector3" value="-4 0 4" />
+			</attributes>
+			<nodes>
+				<node _id="288">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="0 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="281" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="284" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="338">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.046495 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="326" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="340">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="323" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="341">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="322" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="390">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="4 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="363" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="364" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="391">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.046495 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="365" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="392">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="366" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="393">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="367" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="400">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="8 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="372" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="373" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="401">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.046495 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="374" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="402">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="375" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="403">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="376" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="413">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="12 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="383" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="384" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="414">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.046495 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="385" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="415">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="386" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="416">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="387" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+		<node _id="430">
+			<attributes>
+				<attribute name="Position" type="Vector3" value="-4 0 8" />
+			</attributes>
+			<nodes>
+				<node _id="431">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="0 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="396" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="397" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="432">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.8 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="398" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="433">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="399" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="434">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="400" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="438">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="4 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="403" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="404" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="439">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.8 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="405" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="DifferenceAB" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="440">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="406" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="441">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="407" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="448">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="8 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="412" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="413" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="449">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.8 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="414" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="450">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="415" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="451">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="416" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+				<node _id="461">
+					<attributes>
+						<attribute name="Name" type="String" value="CSG Tree" />
+						<attribute name="Position" type="Vector3" value="12 0.5 8.148615" />
+					</attributes>
+					<components>
+						<component _id="423" _typeName="CsgRoot">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+							</attributes>
+						</component>
+						<component _id="424" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Material" type="ResourceRefList" value="Material;;" />
+							</attributes>
+						</component>
+					</components>
+					<nodes>
+						<node _id="462">
+							<attributes>
+								<attribute name="Position" type="Vector3" value="0 0.8 0" />
+								<attribute name="Scale" type="Vector3" value="0.797966 1 0.797702" />
+							</attributes>
+							<components>
+								<component _id="425" _typeName="CsgBrush">
+									<attributes>
+										<attribute name="Operation" type="String" value="Intersection" />
+										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+									</attributes>
+								</component>
+							</components>
+							<nodes>
+								<node _id="463">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="426" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+								<node _id="464">
+									<attributes>
+										<attribute name="Position" type="Vector3" value="0 0 -1" />
+										<attribute name="Rotation" type="Quaternion" value="0.92388 0.382683 0 0" />
+										<attribute name="Scale" type="Vector3" value="1.001 1 1" />
+									</attributes>
+									<components>
+										<component _id="427" _typeName="CsgBrush">
+											<attributes>
+												<attribute name="Operation" type="String" value="DifferenceAB" />
+												<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
+											</attributes>
+										</component>
+									</components>
+								</node>
+							</nodes>
+						</node>
+					</nodes>
+				</node>
+			</nodes>
+		</node>
+	</nodes>
+	<auxiliary />
+</resource>
+

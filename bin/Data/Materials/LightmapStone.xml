@@ -1,0 +1,5 @@
+<material>
+    <technique name="Techniques/Diff.xml" />
+    <texture slot="Albedo" name="Textures/StoneDiffuse.dds" />
+    <shader vsdefines="LIGHTMAP" psdefines="LIGHTMAP" />
+</material>

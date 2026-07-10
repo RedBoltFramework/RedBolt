@@ -1,0 +1,55 @@
+<rml>
+<head>
+    <link type="text/template" href="HelloRmlUI_Window.rml"/>
+    <title>Sample Window</title>
+    <style>
+        button, input, select {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body template="window" style="width: 300px">
+    <div data-model="{{__data_model_id}}">
+        <h1>Text Header 1</h1>
+        <h2>Text Header 2</h2>
+        <h3>Text Header 3</h3>
+        <b>Bold text</b>, <i>italic text</i>, <s><span>striked out text</span></s>.
+        <pre>
+Text
+   with
+      preserved
+         whitespaces.</pre>
+        <hr/>
+        <h3>Buttons</h3>
+        <button data-event-click="count">Clicked {{counter}} times!</button>
+        <input type="submit" disabled>Click!</input>
+        <button onclick="sound:Sounds/PlayerFist.wav">Sound!</button>
+        <h3>Inputs</h3>
+        <textarea></textarea>
+        <input type="checkbox" checked="false"/> <label>Greatness</label><br/>
+        <input type="text" value="foo"/><br/>
+        <input type="password" value="foo"/><br/>
+        <form>
+            <input type="radio" value="1"/> Radio 1<br/>
+            <input type="radio" value="2"/> Radio 2<br/>
+        </form>
+        <input type="range" min="10" max="50" step="2" data-value="slider_value"/>&nbsp;<span>{{slider_value}}</span><br/>
+        <input type="range" min="10" max="50" step="1" data-value="font_size"/>&nbsp;<span>{{font_size}}px</span><br/>
+        <select>
+            <option>Foo</option>
+            <option>Bar</option>
+        </select>
+        <h3>Variant binds</h3>
+        {{variant}}<br/>
+        <div data-for="v : variant_vector">
+        {{v}}<br/>
+        </div>
+        {{variant_map.int}}<br/>
+        {{variant_map.str}}<br/>
+        <h3>Progress bars</h3>
+        <progress class="horizontal" data-value="progress" />
+        <progress class="vertical" direction="top" data-value="progress" style="height: 100dp;"/>
+    </div>
+</body>
+</rml>

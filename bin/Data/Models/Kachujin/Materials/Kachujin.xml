@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<material>
+	<technique name="Techniques/DiffNormalSpec.xml" />
+	<texture slot="Albedo" name="Models/Kachujin/Textures/Kachujin_diffuse.png" />
+	<texture slot="Normal" name="Models/Kachujin/Textures/Kachujin_normal.png" />
+	<texture slot="Properties" name="Models/Kachujin/Textures/Kachujin_specular.png" />
+	<parameter name="MatDiffColor" value="1.0 1.0 1.0 1" />
+	<parameter name="MatSpecColor" value="1.0 1.0 1.0 50" />
+	<parameter name="MatEmissiveColor" value="0 0 0 1" />
+</material>

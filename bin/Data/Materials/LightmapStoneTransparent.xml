@@ -1,0 +1,6 @@
+<material>
+    <technique name="Techniques/DiffAlpha.xml" />
+    <texture slot="Albedo" name="Textures/StoneDiffuse.dds" />
+    <shader vsdefines="LIGHTMAP" psdefines="LIGHTMAP" />
+    <parameter name="MatDiffColor" value="1 1 0 0.7" />
+</material>
