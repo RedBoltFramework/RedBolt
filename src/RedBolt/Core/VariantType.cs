@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt;
 
@@ -79,6 +80,11 @@ public readonly struct Variant : IEquatable<Variant>
         "StringVariantMap",
         "CString"
     ];
+
+    private static readonly VariantVector EmptyVariantVector = new();
+    private static readonly StringVector EmptyStringVector = new();
+    private static readonly VariantMap EmptyVariantMap = new();
+    private static readonly StringVariantMap EmptyStringVariantMap = new();
 
     private readonly VariantType _type;
     private readonly bool _boolValue;
@@ -337,67 +343,195 @@ public readonly struct Variant : IEquatable<Variant>
 
     public bool IsEmpty => _type == VariantType.None;
 
-    public bool GetBool() => _type == VariantType.Bool ? _boolValue : throw CreateInvalidCastException(VariantType.Bool);
+    public bool GetBool()
+    {
+        return _type switch
+        {
+            VariantType.Bool => _boolValue,
+            VariantType.Int => _intValue != 0,
+            VariantType.Int64 => _int64Value != 0,
+            VariantType.Float => _floatValue != 0.0f,
+            VariantType.Double => _doubleValue != 0.0,
+            _ => false
+        };
+    }
 
-    public int GetInt() => _type == VariantType.Int ? _intValue : throw CreateInvalidCastException(VariantType.Int);
+    public int GetInt()
+    {
+        return _type switch
+        {
+            VariantType.Int => _intValue,
+            VariantType.Int64 => unchecked((int)_int64Value),
+            VariantType.Float => unchecked((int)_floatValue),
+            VariantType.Double => unchecked((int)_doubleValue),
+            VariantType.Bool => _boolValue ? 1 : 0,
+            _ => 0
+        };
+    }
 
-    public long GetInt64() => _type == VariantType.Int64 ? _int64Value : throw CreateInvalidCastException(VariantType.Int64);
+    public long GetInt64()
+    {
+        return _type switch
+        {
+            VariantType.Int64 => _int64Value,
+            VariantType.Int => _intValue,
+            VariantType.Float => unchecked((long)_floatValue),
+            VariantType.Double => unchecked((long)_doubleValue),
+            VariantType.Bool => _boolValue ? 1L : 0L,
+            _ => 0L
+        };
+    }
 
-    public float GetFloat() => _type == VariantType.Float ? _floatValue : throw CreateInvalidCastException(VariantType.Float);
+    public float GetFloat()
+    {
+        return _type switch
+        {
+            VariantType.Float => _floatValue,
+            VariantType.Double => unchecked((float)_doubleValue),
+            VariantType.Int => _intValue,
+            VariantType.Int64 => _int64Value,
+            VariantType.Bool => _boolValue ? 1.0f : 0.0f,
+            _ => 0.0f
+        };
+    }
 
-    public double GetDouble() => _type == VariantType.Double ? _doubleValue : throw CreateInvalidCastException(VariantType.Double);
+    public double GetDouble()
+    {
+        return _type switch
+        {
+            VariantType.Double => _doubleValue,
+            VariantType.Float => _floatValue,
+            VariantType.Int => _intValue,
+            VariantType.Int64 => _int64Value,
+            VariantType.Bool => _boolValue ? 1.0 : 0.0,
+            _ => 0.0
+        };
+    }
 
-    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _vector2Value : throw CreateInvalidCastException(VariantType.Vector2);
+    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _vector2Value : Vector2f.ZERO;
 
-    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _doubleVector2Value : throw CreateInvalidCastException(VariantType.DoubleVector2);
+    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _doubleVector2Value : Vector2d.ZERO;
 
-    public Vector3f GetVector3() => _type == VariantType.Vector3 ? _vector3Value : throw CreateInvalidCastException(VariantType.Vector3);
+    public Vector3f GetVector3() => _type == VariantType.Vector3 ? _vector3Value : Vector3f.ZERO;
 
-    public Vector3d GetDoubleVector3() => _type == VariantType.DoubleVector3 ? _doubleVector3Value : throw CreateInvalidCastException(VariantType.DoubleVector3);
+    public Vector3d GetDoubleVector3() => _type == VariantType.DoubleVector3 ? _doubleVector3Value : Vector3d.ZERO;
 
-    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _vector4Value : throw CreateInvalidCastException(VariantType.Vector4);
+    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _vector4Value : Vector4f.ZERO;
 
-    public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _quaternionValue : throw CreateInvalidCastException(VariantType.Quaternion);
+    public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _quaternionValue : Quaternion.IDENTITY;
 
-    public Color GetColor() => _type == VariantType.Color ? _colorValue : throw CreateInvalidCastException(VariantType.Color);
+    public Color GetColor() => _type switch
+    {
+        VariantType.Color => _colorValue,
+        VariantType.Vector4 => new Color(_vector4Value.X, _vector4Value.Y, _vector4Value.Z, _vector4Value.W),
+        _ => Color.White
+    };
 
-    public Rect GetRect() => _type == VariantType.Rect ? _rectValue : throw CreateInvalidCastException(VariantType.Rect);
+    public Rect GetRect() => _type == VariantType.Rect ? _rectValue : Rect.Zero;
 
-    public IntRect GetIntRect() => _type == VariantType.IntRect ? _intRectValue : throw CreateInvalidCastException(VariantType.IntRect);
+    public IntRect GetIntRect() => _type == VariantType.IntRect ? _intRectValue : IntRect.Zero;
 
-    public Vector2i GetIntVector2() => _type == VariantType.Vector2i ? _intVector2Value : throw CreateInvalidCastException(VariantType.Vector2i);
+    public Vector2i GetIntVector2() => _type == VariantType.Vector2i ? _intVector2Value : Vector2i.Zero;
 
-    public Vector3i GetIntVector3() => _type == VariantType.Vector3i ? _intVector3Value : throw CreateInvalidCastException(VariantType.Vector3i);
+    public Vector3i GetIntVector3() => _type == VariantType.Vector3i ? _intVector3Value : Vector3i.Zero;
 
-    public uint GetUInt() => _type == VariantType.Int ? unchecked((uint)_intValue) : throw CreateInvalidCastException(VariantType.Int);
+    public uint GetUInt()
+    {
+        return _type switch
+        {
+            VariantType.Int => unchecked((uint)_intValue),
+            VariantType.Int64 => unchecked((uint)_int64Value),
+            VariantType.Float => unchecked((uint)_floatValue),
+            VariantType.Double => unchecked((uint)_doubleValue),
+            VariantType.Bool => _boolValue ? 1u : 0u,
+            _ => 0u
+        };
+    }
 
-    public ulong GetUInt64() => _type == VariantType.Int64 ? unchecked((ulong)_int64Value) : throw CreateInvalidCastException(VariantType.Int64);
+    public ulong GetUInt64()
+    {
+        return _type switch
+        {
+            VariantType.Int64 => unchecked((ulong)_int64Value),
+            VariantType.Int => unchecked((ulong)_intValue),
+            VariantType.Float => unchecked((ulong)_floatValue),
+            VariantType.Double => unchecked((ulong)_doubleValue),
+            VariantType.Bool => _boolValue ? 1u : 0u,
+            _ => 0u
+        };
+    }
 
     public StringHash GetStringHash() => _type == VariantType.Int ? new StringHash(GetUInt()) : StringHash.Empty;
 
-    public string GetString() => _type == VariantType.String ? _stringValue : throw CreateInvalidCastException(VariantType.String);
+    public string GetString() => _type == VariantType.String ? _stringValue : string.Empty;
 
-    public CString GetCString() => _type == VariantType.CString ? _cstringValue : throw CreateInvalidCastException(VariantType.CString);
+    public CString GetCString() => _type == VariantType.CString ? _cstringValue : CString.Empty;
 
-    public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue ?? [] : throw CreateInvalidCastException(VariantType.Buffer);
+    public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue : Array.Empty<byte>();
 
-    public ResourceRef GetResourceRef() => _type == VariantType.ResourceRef ? _resourceRefValue : throw CreateInvalidCastException(VariantType.ResourceRef);
+    public ResourceRef GetResourceRef() => _type == VariantType.ResourceRef ? _resourceRefValue : ResourceRef.Empty;
 
-    public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? _resourceRefListValue ?? ResourceRefList.Empty : throw CreateInvalidCastException(VariantType.ResourceRefList);
+    public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? _resourceRefListValue : ResourceRefList.Empty;
 
-    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? _matrix3Value : throw CreateInvalidCastException(VariantType.Matrix3);
+    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? _matrix3Value : Matrix3.IDENTITY;
 
-    public Matrix3x4 GetMatrix3x4() => _type == VariantType.Matrix3x4 ? _matrix3x4Value : throw CreateInvalidCastException(VariantType.Matrix3x4);
+    public Matrix3x4 GetMatrix3x4() => _type == VariantType.Matrix3x4 ? _matrix3x4Value : Matrix3x4.IDENTITY;
 
-    public Matrix4 GetMatrix4() => _type == VariantType.Matrix4 ? _matrix4Value : throw CreateInvalidCastException(VariantType.Matrix4);
+    public Matrix4 GetMatrix4() => _type == VariantType.Matrix4 ? _matrix4Value : Matrix4.IDENTITY;
 
-    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? _variantVectorValue ?? new VariantVector() : throw CreateInvalidCastException(VariantType.VariantVector);
+    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? _variantVectorValue : EmptyVariantVector;
 
-    public StringVector GetStringVector() => _type == VariantType.StringVector ? _stringVectorValue ?? new StringVector() : throw CreateInvalidCastException(VariantType.StringVector);
+    public StringVector GetStringVector() => _type == VariantType.StringVector ? _stringVectorValue : EmptyStringVector;
 
-    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? _variantMapValue ?? new VariantMap() : throw CreateInvalidCastException(VariantType.VariantMap);
+    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? _variantMapValue : EmptyVariantMap;
 
-    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue ?? new StringVariantMap() : throw CreateInvalidCastException(VariantType.StringVariantMap);
+    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue : EmptyStringVariantMap;
+
+    /// <summary>
+    /// Return the value, template version.
+    /// </summary>
+    public T Get<T>()
+    {
+        var type = typeof(T);
+        if (type.IsEnum)
+            return (T)Enum.ToObject(type, GetInt());
+
+        if (type == typeof(int)) return Reinterpret<int, T>(GetInt());
+        if (type == typeof(uint)) return Reinterpret<uint, T>(GetUInt());
+        if (type == typeof(long)) return Reinterpret<long, T>(GetInt64());
+        if (type == typeof(ulong)) return Reinterpret<ulong, T>(GetUInt64());
+        if (type == typeof(StringHash)) return Reinterpret<StringHash, T>(GetStringHash());
+        if (type == typeof(bool)) return Reinterpret<bool, T>(GetBool());
+        if (type == typeof(float)) return Reinterpret<float, T>(GetFloat());
+        if (type == typeof(double)) return Reinterpret<double, T>(GetDouble());
+        if (type == typeof(Vector2f)) return Reinterpret<Vector2f, T>(GetVector2());
+        if (type == typeof(Vector2d)) return Reinterpret<Vector2d, T>(GetDoubleVector2());
+        if (type == typeof(Vector3f)) return Reinterpret<Vector3f, T>(GetVector3());
+        if (type == typeof(Vector3d)) return Reinterpret<Vector3d, T>(GetDoubleVector3());
+        if (type == typeof(Vector4f)) return Reinterpret<Vector4f, T>(GetVector4());
+        if (type == typeof(Quaternion)) return Reinterpret<Quaternion, T>(GetQuaternion());
+        if (type == typeof(Color)) return Reinterpret<Color, T>(GetColor());
+        if (type == typeof(string)) return Reinterpret<string, T>(GetString());
+        if (type == typeof(CString)) return Reinterpret<CString, T>(GetCString());
+        if (type == typeof(byte[])) return Reinterpret<byte[], T>(GetBuffer());
+        if (type == typeof(ResourceRef)) return Reinterpret<ResourceRef, T>(GetResourceRef());
+        if (type == typeof(ResourceRefList)) return Reinterpret<ResourceRefList, T>(GetResourceRefList());
+        if (type == typeof(VariantVector)) return Reinterpret<VariantVector, T>(GetVariantVector());
+        if (type == typeof(StringVector)) return Reinterpret<StringVector, T>(GetStringVector());
+        if (type == typeof(VariantMap)) return Reinterpret<VariantMap, T>(GetVariantMap());
+        if (type == typeof(Rect)) return Reinterpret<Rect, T>(GetRect());
+        if (type == typeof(IntRect)) return Reinterpret<IntRect, T>(GetIntRect());
+        if (type == typeof(Vector2i)) return Reinterpret<Vector2i, T>(GetIntVector2());
+        if (type == typeof(Vector3i)) return Reinterpret<Vector3i, T>(GetIntVector3());
+        if (type == typeof(Matrix3)) return Reinterpret<Matrix3, T>(GetMatrix3());
+        if (type == typeof(Matrix3x4)) return Reinterpret<Matrix3x4, T>(GetMatrix3x4());
+        if (type == typeof(Matrix4)) return Reinterpret<Matrix4, T>(GetMatrix4());
+        if (type == typeof(StringVariantMap)) return Reinterpret<StringVariantMap, T>(GetStringVariantMap());
+
+        throw new ArgumentException($"Unsupported Variant value type '{type.Name}'.", nameof(T));
+    }
+
+    // TODO: port: template <class T> ea::optional<T> GetOptional() const;
 
     public string GetTypeName() => GetTypeName(_type);
 
@@ -736,9 +870,9 @@ public readonly struct Variant : IEquatable<Variant>
     public static bool operator ==(Variant lhs, Variant rhs) => lhs.Equals(rhs);
     public static bool operator !=(Variant lhs, Variant rhs) => !lhs.Equals(rhs);
 
-    private InvalidCastException CreateInvalidCastException(VariantType expectedType)
+    private static TTo Reinterpret<TFrom, TTo>(TFrom value)
     {
-        return new InvalidCastException($"Variant contains {_type} instead of {expectedType}.");
+        return Unsafe.As<TFrom, TTo>(ref value);
     }
 
     private static string BufferToString(byte[] buffer)
