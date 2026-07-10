@@ -88,6 +88,33 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_gives_sender_specific_handler_priority_over_general_handler()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            var generalCalls = 0;
+            var specificCalls = 0;
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++generalCalls);
+            receiver.SubscribeToEvent<PingEvent>(sender, (ref PingEvent _) => ++specificCalls);
+
+            sender.SendEvent<PingEvent>();
+
+            Assert.Equal(0, generalCalls);
+            Assert.Equal(1, specificCalls);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void Context_unsubscribe_removes_receiver_handlers()
     {
         var previousContext = Context.TryGetInstance();

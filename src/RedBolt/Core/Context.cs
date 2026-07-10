@@ -392,6 +392,9 @@ public sealed class Context : ObjectReflectionRegistry
                 if (subscription.Sender is not null && !ReferenceEquals(subscription.Sender, sender))
                     continue;
 
+                if (subscription.Sender is null && sender is not null && HasSpecificSubscription(bucket, receiver, sender))
+                    continue;
+
                 if (receiver is Object { BlockEvents: true })
                     continue;
 
@@ -418,6 +421,20 @@ public sealed class Context : ObjectReflectionRegistry
             return false;
 
         return ReferenceEquals(targetReceiver, receiver);
+    }
+
+    private static bool HasSpecificSubscription(StructEventSubscriptionBucket bucket, object? receiver, Object sender)
+    {
+        foreach (var subscription in bucket.Subscriptions)
+        {
+            if (subscription.IsRemoved || !ReferenceEquals(subscription.Sender, sender))
+                continue;
+
+            if (subscription.TryGetReceiver(out var targetReceiver) && ReferenceEquals(targetReceiver, receiver))
+                return true;
+        }
+
+        return false;
     }
 
     private ContextEventSubscription SubscribeToEventCore<T>(object? receiver, Object? senderFilter, RefEventHandler<T> handler) where T : struct
