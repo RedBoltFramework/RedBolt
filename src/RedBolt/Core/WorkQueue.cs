@@ -20,6 +20,15 @@ public delegate void TaskFunctionDelegate(int threadIndex, WorkQueue queue);
 [Obsolete("Use TaskFunctionDelegate instead.")]
 public delegate void WorkFunctionDelegate(int threadIndex);
 
+public sealed class WorkQueueVector<T> : MultiVector<T>
+{
+    public void Clear() => base.Clear(WorkQueue.GetThreadIndexCount());
+
+    public MultiVector<T>.Index Insert(T value) => PushBack(WorkQueue.GetThreadIndex(), value);
+
+    public T Emplace(Func<T> factory) => EmplaceBack(WorkQueue.GetThreadIndex(), factory);
+}
+
 [Obsolete("WorkItem is deprecated. Use TaskFunctionDelegate instead.")]
 public sealed class WorkItem
 {

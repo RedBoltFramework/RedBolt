@@ -5,6 +5,20 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class WorkQueueTests
 {
+    [Fact]
+    public void Work_queue_vector_partitions_values_by_processing_thread()
+    {
+        var values = new WorkQueueVector<int>();
+        values.Clear();
+
+        var index = values.Insert(42);
+
+        Assert.Equal(0u, index.Outer);
+        Assert.Equal(0u, index.Inner);
+        Assert.Equal(42, values[index]);
+        Assert.Equal(1u, values.Size());
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public WorkQueueTests(HeadlessEngineFixture fixture)
