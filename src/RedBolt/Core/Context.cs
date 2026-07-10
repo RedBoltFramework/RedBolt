@@ -180,6 +180,22 @@ public sealed class Context : ObjectReflectionRegistry
         return _subsystems;
     }
 
+    public string GetTypeName(StringHash objectType)
+    {
+        return GetReflection(objectType)?.ClassName ?? string.Empty;
+    }
+
+    public AttributeInfo GetAttribute(StringHash objectType, string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return GetReflection(objectType)?.GetAttribute(name) ?? null!;
+    }
+
+    public AttributeInfo GetAttribute<T>(string name) where T : Object
+    {
+        return GetAttribute(ObjectReflection<T>.TypeId, name);
+    }
+
     private static StringHash GetSubsystemTypeId(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);

@@ -106,4 +106,17 @@ public sealed class ObjectReflectionTests
             Context.SetInstance(null);
         }
     }
+
+    [Fact]
+    public void Context_forwards_reflection_type_names_and_attributes()
+    {
+        var context = new Context();
+        var reflection = context.AddReflection<FactoryObject>();
+        reflection.AddAttribute(new AttributeInfo("Value", typeof(int), 42));
+
+        Assert.Equal(typeof(FactoryObject).GetClassName(), context.GetTypeName(ObjectReflection<FactoryObject>.TypeId));
+        Assert.Equal(42, context.GetAttribute<FactoryObject>("Value").DefaultValue);
+        Assert.Null(context.GetAttribute<FactoryObject>("Missing"));
+        Assert.Equal(string.Empty, context.GetTypeName("Missing"));
+    }
 }
