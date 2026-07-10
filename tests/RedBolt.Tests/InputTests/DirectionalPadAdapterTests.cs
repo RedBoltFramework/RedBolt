@@ -54,7 +54,7 @@ public sealed class DirectionalPadAdapterTests
         var adapter = new DirectionalPadAdapter(Input);
         adapter.SetEnabled(true);
         Input.SetHatPosition(HatPosition.LeftDown);
-        adapter.SetExternalDirection(new Vector2(1.0f, -1.0f));
+        adapter.SetExternalDirection(new Vector2f(1.0f, -1.0f));
 
         Assert.True(adapter.GetScancodeDown(Scancode.Left));
         Assert.True(adapter.GetScancodeDown(Scancode.Down));

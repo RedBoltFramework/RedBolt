@@ -103,7 +103,7 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
     public static Matrix4 Zero => ZERO;
     public static Matrix4 Identity => IDENTITY;
 
-    public Vector3 Translation
+    public Vector3f Translation
     {
         get => new(M03, M13, M23);
         set
@@ -120,7 +120,7 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
     {
         get
         {
-            var invScale = new Vector3(
+            var invScale = new Vector3f(
                 1.0f / MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
                 1.0f / MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
                 1.0f / MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
@@ -142,7 +142,7 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
 
     public Quaternion Rotation => new(RotationMatrix);
 
-    public Vector3 Scale
+    public Vector3f Scale
     {
         get => new(
             MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
@@ -284,21 +284,21 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
         M22 = scale;
     }
 
-    public Vector3 SignedScale(Matrix3 rotation) => new(
+    public Vector3f SignedScale(Matrix3 rotation) => new(
         rotation.M00 * M00 + rotation.M10 * M10 + rotation.M20 * M20,
         rotation.M01 * M01 + rotation.M11 * M11 + rotation.M21 * M21,
         rotation.M02 * M02 + rotation.M12 * M12 + rotation.M22 * M22);
 
-    public void Decompose(out Vector3 translation, out Quaternion rotation, out Vector3 scale)
+    public void Decompose(out Vector3f translation, out Quaternion rotation, out Vector3f scale)
     {
         translation = Translation;
         scale = Scale;
-        var invScale = new Vector3(1.0f / scale.X, 1.0f / scale.Y, 1.0f / scale.Z);
+        var invScale = new Vector3f(1.0f / scale.X, 1.0f / scale.Y, 1.0f / scale.Z);
         rotation = new Quaternion(this.Matrix3.Scaled(invScale));
     }
 
-    public Vector4 Row(int i) => new(this[i, 0], this[i, 1], this[i, 2], this[i, 3]);
-    public Vector4 Column(int j) => new(this[0, j], this[1, j], this[2, j], this[3, j]);
+    public Vector4f Row(int i) => new(this[i, 0], this[i, 1], this[i, 2], this[i, 3]);
+    public Vector4f Column(int j) => new(this[0, j], this[1, j], this[2, j], this[3, j]);
 
     public bool ApproximatelyEquivalent(Matrix4 rhs, float epsilon = MathDefs.Epsilon) =>
         MathDefs.ApproximatelyEquivalent(M00, rhs.M00, epsilon) &&
@@ -355,17 +355,17 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
     public static bool operator !=(Matrix4 lhs, Matrix4 rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator *(Matrix4 lhs, Vector3 rhs)
+    public static Vector3f operator *(Matrix4 lhs, Vector3f rhs)
     {
         var invW = 1.0f / (lhs.M30 * rhs.X + lhs.M31 * rhs.Y + lhs.M32 * rhs.Z + lhs.M33);
-        return new Vector3(
+        return new Vector3f(
             (lhs.M00 * rhs.X + lhs.M01 * rhs.Y + lhs.M02 * rhs.Z + lhs.M03) * invW,
             (lhs.M10 * rhs.X + lhs.M11 * rhs.Y + lhs.M12 * rhs.Z + lhs.M13) * invW,
             (lhs.M20 * rhs.X + lhs.M21 * rhs.Y + lhs.M22 * rhs.Z + lhs.M23) * invW);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 operator *(Matrix4 lhs, Vector4 rhs) => new(
+    public static Vector4f operator *(Matrix4 lhs, Vector4f rhs) => new(
         lhs.M00 * rhs.X + lhs.M01 * rhs.Y + lhs.M02 * rhs.Z + lhs.M03 * rhs.W,
         lhs.M10 * rhs.X + lhs.M11 * rhs.Y + lhs.M12 * rhs.Z + lhs.M13 * rhs.W,
         lhs.M20 * rhs.X + lhs.M21 * rhs.Y + lhs.M22 * rhs.Z + lhs.M23 * rhs.W,

@@ -10,8 +10,8 @@ public sealed class ShakeComponent : LogicComponent
     private float _traumaPower = 2.0f;
     private float _traumaFalloff = 1.0f;
     private float _timeScale = DefaultTimeScale;
-    private Vector3 _shiftRange = Vector3.Zero;
-    private Vector3 _rotationRange = Vector3.Zero;
+    private Vector3f _shiftRange = Vector3f.Zero;
+    private Vector3f _rotationRange = Vector3f.Zero;
 
     public ShakeComponent()
     {
@@ -20,8 +20,8 @@ public sealed class ShakeComponent : LogicComponent
         RegisterAttribute("Trauma Power", typeof(float), self => ((ShakeComponent)self).GetTraumaPower(), (self, value) => ((ShakeComponent)self).SetTraumaPower(value is float typed ? typed : 2.0f), 2.0f);
         RegisterAttribute("Trauma Falloff", typeof(float), self => ((ShakeComponent)self).GetTraumaFalloff(), (self, value) => ((ShakeComponent)self).SetTraumaFalloff(value is float typed ? typed : 1.0f), 1.0f);
         RegisterAttribute("Time Scale", typeof(float), self => ((ShakeComponent)self).GetTimeScale(), (self, value) => ((ShakeComponent)self).SetTimeScale(value is float typed ? typed : DefaultTimeScale), DefaultTimeScale);
-        RegisterAttribute("Shift Range", typeof(Vector3), self => ((ShakeComponent)self).GetShiftRange(), (self, value) => ((ShakeComponent)self).SetShiftRange(value is Vector3 typed ? typed : Vector3.Zero), Vector3.Zero);
-        RegisterAttribute("Rotation Range", typeof(Vector3), self => ((ShakeComponent)self).GetRotationRange(), (self, value) => ((ShakeComponent)self).SetRotationRange(value is Vector3 typed ? typed : Vector3.Zero), Vector3.Zero);
+        RegisterAttribute("Shift Range", typeof(Vector3f), self => ((ShakeComponent)self).GetShiftRange(), (self, value) => ((ShakeComponent)self).SetShiftRange(value is Vector3f typed ? typed : Vector3f.Zero), Vector3f.Zero);
+        RegisterAttribute("Rotation Range", typeof(Vector3f), self => ((ShakeComponent)self).GetRotationRange(), (self, value) => ((ShakeComponent)self).SetRotationRange(value is Vector3f typed ? typed : Vector3f.Zero), Vector3f.Zero);
     }
 
     public void SetTimeScale(float value)
@@ -59,19 +59,19 @@ public sealed class ShakeComponent : LogicComponent
 
     public float GetTraumaFalloff() => _traumaFalloff;
 
-    public void SetShiftRange(Vector3 value)
+    public void SetShiftRange(Vector3f value)
     {
         _shiftRange = value;
     }
 
-    public Vector3 GetShiftRange() => _shiftRange;
+    public Vector3f GetShiftRange() => _shiftRange;
 
-    public void SetRotationRange(Vector3 value)
+    public void SetRotationRange(Vector3f value)
     {
         _rotationRange = value;
     }
 
-    public Vector3 GetRotationRange() => _rotationRange;
+    public Vector3f GetRotationRange() => _rotationRange;
 
     public override void Update(float timeStep)
     {
@@ -82,25 +82,25 @@ public sealed class ShakeComponent : LogicComponent
         _trauma = Math.Max(0.0f, _trauma - _traumaFalloff * timeStep);
         if (MathDefs.ApproximatelyEquivalent(_trauma, 0.0f))
         {
-            Node.SetPosition(Vector3.Zero);
+            Node.SetPosition(Vector3f.Zero);
             Node.SetRotation(Quaternion.Identity);
             SetUpdateEventMask(UpdateEvent.UseNoEvent);
             return;
         }
 
         var scale = MathDefs.Pow(_trauma, _traumaPower);
-        var offset = Vector3.Zero;
-        if (_shiftRange != Vector3.Zero)
+        var offset = Vector3f.Zero;
+        if (_shiftRange != Vector3f.Zero)
         {
-            offset = (new Vector3(_perlinNoise.Get(_time), _perlinNoise.Get(_time + 1.0f), _perlinNoise.Get(_time + 2.0f)) * 2.0f - Vector3.One)
+            offset = (new Vector3f(_perlinNoise.Get(_time), _perlinNoise.Get(_time + 1.0f), _perlinNoise.Get(_time + 2.0f)) * 2.0f - Vector3f.One)
                 * _shiftRange * scale;
         }
         Node.SetPosition(offset);
 
-        var rotation = Vector3.Zero;
-        if (_rotationRange != Vector3.Zero)
+        var rotation = Vector3f.Zero;
+        if (_rotationRange != Vector3f.Zero)
         {
-            rotation = (new Vector3(_perlinNoise.Get(_time + 3.0f), _perlinNoise.Get(_time + 4.0f), _perlinNoise.Get(_time + 5.0f)) * 2.0f - Vector3.One)
+            rotation = (new Vector3f(_perlinNoise.Get(_time + 3.0f), _perlinNoise.Get(_time + 4.0f), _perlinNoise.Get(_time + 5.0f)) * 2.0f - Vector3f.One)
                 * _rotationRange * scale;
         }
         Node.SetRotation(new Quaternion(rotation));

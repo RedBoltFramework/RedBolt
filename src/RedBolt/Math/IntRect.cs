@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
@@ -19,7 +20,7 @@ public struct IntRect : IEquatable<IntRect>
         Bottom = bottom;
     }
 
-    public IntRect(IntVector2 min, IntVector2 max)
+    public IntRect(Vector2i min, Vector2i max)
     {
         Left = min.X;
         Top = min.Y;
@@ -27,13 +28,31 @@ public struct IntRect : IEquatable<IntRect>
         Bottom = max.Y;
     }
 
+    public IntRect(int[] data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Length < 4)
+            throw new ArgumentException("Expected at least four elements.", nameof(data));
+
+        Left = data[0];
+        Top = data[1];
+        Right = data[2];
+        Bottom = data[3];
+    }
+
     public static readonly IntRect Zero = new(0, 0, 0, 0);
 
-    public int Height => Bottom - Top;
-    public IntVector2 Max => new(Right, Bottom);
-    public IntVector2 Min => new(Left, Top);
-    public IntVector2 Size => new(Width, Height);
-    public int Width => Right - Left;
+    public readonly int[] Data => [Left, Top, Right, Bottom];
+
+    public readonly int Height => Bottom - Top;
+    public readonly Vector2i Max => new(Right, Bottom);
+    public readonly Vector2i Min => new(Left, Top);
+    public readonly Vector2i Size => new(Width, Height);
+    public readonly int Width => Right - Left;
+
+    public readonly IntRectIterator Begin() => new(this, Min);
+
+    public readonly IntRectIterator End() => new(this, new Vector2i(Left, Bottom));
 
     public void Clear()
     {
@@ -58,11 +77,20 @@ public struct IntRect : IEquatable<IntRect>
             Clear();
     }
 
-    public Intersection IsInside(IntVector2 point)
+    public readonly Intersection IsInside(Vector2i point)
     {
         return point.X < Left || point.Y < Top || point.X >= Right || point.Y >= Bottom
             ? Intersection.Outside
             : Intersection.Inside;
+    }
+
+    public readonly Intersection IsInside(IntRect rect)
+    {
+        if (rect.Right < Left || rect.Left > Right || rect.Bottom < Top || rect.Top > Bottom)
+            return Intersection.Outside;
+        if (rect.Left < Left || rect.Right > Right || rect.Top < Top || rect.Bottom > Bottom)
+            return Intersection.Intersects;
+        return Intersection.Inside;
     }
 
     public void Merge(IntRect rect)
@@ -87,15 +115,62 @@ public struct IntRect : IEquatable<IntRect>
         }
     }
 
-    public bool Equals(IntRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
-    public override bool Equals(object? obj) => obj is IntRect other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+    public readonly bool Contains(Vector2i point) => IsInside(point) == Intersection.Inside;
+
+    public readonly bool Equals(IntRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
+    public override bool Equals(object obj) => obj is IntRect other && Equals(other);
+    public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+    public readonly uint ToHash() => (uint)GetHashCode();
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Left, Top, Right, Bottom);
 
     public static bool operator ==(IntRect lhs, IntRect rhs) => lhs.Equals(rhs);
     public static bool operator !=(IntRect lhs, IntRect rhs) => !lhs.Equals(rhs);
     public static IntRect operator +(IntRect lhs, IntRect rhs) => new(lhs.Left + rhs.Left, lhs.Top + rhs.Top, lhs.Right + rhs.Right, lhs.Bottom + rhs.Bottom);
     public static IntRect operator -(IntRect lhs, IntRect rhs) => new(lhs.Left - rhs.Left, lhs.Top - rhs.Top, lhs.Right - rhs.Right, lhs.Bottom - rhs.Bottom);
-    public static IntRect operator *(IntRect lhs, IntRect rhs) => new(lhs.Left * rhs.Left, lhs.Top * rhs.Top, lhs.Right * rhs.Right, lhs.Bottom * rhs.Bottom);
-    public static IntRect operator /(IntRect lhs, IntRect rhs) => new(lhs.Left / rhs.Left, lhs.Top / rhs.Top, lhs.Right / rhs.Right, lhs.Bottom / rhs.Bottom);
+    public static IntRect operator *(IntRect lhs, float rhs) => new((int)(lhs.Left * rhs), (int)(lhs.Top * rhs), (int)(lhs.Right * rhs), (int)(lhs.Bottom * rhs));
+    public static IntRect operator /(IntRect lhs, float rhs) => new((int)(lhs.Left / rhs), (int)(lhs.Top / rhs), (int)(lhs.Right / rhs), (int)(lhs.Bottom / rhs));
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct IntRectIterator : IEquatable<IntRectIterator>
+{
+    private IntRect _rect;
+    private Vector2i _index;
+
+    public IntRectIterator(IntRect rect, Vector2i index)
+    {
+        _rect = rect;
+        _index = index;
+    }
+
+    public readonly Vector2i Current => _index;
+
+    public static IntRectIterator operator ++(IntRectIterator value)
+    {
+        ++value._index.X;
+        if (value._index.X >= value._rect.Right)
+        {
+            ++value._index.Y;
+            value._index.X = value._rect.Left;
+
+            if (value._index.Y >= value._rect.Bottom)
+                value._index.Y = value._rect.Bottom;
+        }
+
+        return value;
+    }
+
+    public readonly bool Equals(IntRectIterator other)
+    {
+        Debug.Assert(_rect == other._rect);
+        return _index == other._index;
+    }
+
+    public override readonly bool Equals(object obj) => obj is IntRectIterator other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(_rect, _index);
+
+    public static bool operator ==(IntRectIterator lhs, IntRectIterator rhs) => lhs.Equals(rhs);
+
+    public static bool operator !=(IntRectIterator lhs, IntRectIterator rhs) => !lhs.Equals(rhs);
 }

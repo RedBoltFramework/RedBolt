@@ -135,22 +135,22 @@ public sealed class PListValue : IEquatable<PListValue>
             : IntRect.Zero;
     }
 
-    public IntVector2 GetIntVector2()
+    public Vector2i GetIntVector2()
     {
         if (_type != PListValueType.String)
-            return IntVector2.Zero;
+            return Vector2i.Zero;
 
         var numbers = ParseNumbers();
-        return numbers.Length >= 2 ? new IntVector2(numbers[0], numbers[1]) : IntVector2.Zero;
+        return numbers.Length >= 2 ? new Vector2i(numbers[0], numbers[1]) : Vector2i.Zero;
     }
 
-    public IntVector3 GetIntVector3()
+    public Vector3i GetIntVector3()
     {
         if (_type != PListValueType.String)
-            return IntVector3.Zero;
+            return Vector3i.Zero;
 
         var numbers = ParseNumbers();
-        return numbers.Length >= 3 ? new IntVector3(numbers[0], numbers[1], numbers[2]) : IntVector3.Zero;
+        return numbers.Length >= 3 ? new Vector3i(numbers[0], numbers[1], numbers[2]) : Vector3i.Zero;
     }
 
     public IReadOnlyDictionary<string, PListValue> GetValueMap() => _type == PListValueType.ValueMap ? _valueMap : EmptyValueMap;

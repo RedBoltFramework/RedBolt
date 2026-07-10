@@ -119,7 +119,8 @@ public sealed class SplinePath : Component
         CalculateLength();
     }
 
-    public InterpolationMode GetInterpolationMode() => _spline.InterpolationMode;
+    public InterpolationMode GetInterpolationMode() => _spline.GetInterpolationMode();
+
 
     public void SetSpeed(float speed)
     {
@@ -130,7 +131,7 @@ public sealed class SplinePath : Component
 
     public float GetLength() => _length;
 
-    public Vector3 GetPosition() => GetPoint(_traveled);
+    public Vector3f GetPosition() => GetPoint(_traveled);
 
     public void SetPosition(float factor)
     {
@@ -145,10 +146,11 @@ public sealed class SplinePath : Component
 
     public Node? GetControlledNode() => _controlledNode;
 
-    public Vector3 GetPoint(float factor)
+    public Vector3f GetPoint(float factor)
     {
         RefreshSplineKnots();
-        return _spline.GetPoint(MathDefs.Clamp(factor, 0.0f, 1.0f)) as Vector3? ?? Vector3.Zero;
+        var point = _spline.GetPoint(MathDefs.Clamp(factor, 0.0f, 1.0f));
+        return point.Type == VariantType.Vector3 ? point.GetVector3() : Vector3f.Zero;
     }
 
     public void Move(float timeStep)

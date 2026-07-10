@@ -2,10 +2,6 @@ namespace RedBolt;
 
 public abstract class Object
 {
-    public static string GetTypeNameStatic() => nameof(Object);
-
-    public static StringHash GetTypeStatic() => nameof(Object);
-
     public Context Context => Context.Instance;
 
     public bool BlockEvents { get; set; }
@@ -16,20 +12,30 @@ public abstract class Object
         return Context.GetSubsystem<T>();
     }
 
+    public Object? GetEventSender()
+    {
+        return Context.GetEventSender();
+    }
+
+    public EventHandler? GetEventHandler()
+    {
+        return Context.GetEventHandler();
+    }
+
     public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
     {
         return Context.SubscribeToEvent(this, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(object sender, RefEventHandler<T> handler) where T : struct
+    public ContextEventSubscription SubscribeToEvent<T>(Object sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
         return Context.SubscribeToEvent(this, sender, handler);
     }
 
-    public void UnsubscribeFromEvent(object sender) => Context.Unsubscribe(this, sender);
+    public void UnsubscribeFromEvent(Object sender) => Context.Unsubscribe(this, sender);
 
-    public void UnsubscribeFromEvents(object sender)
+    public void UnsubscribeFromEvents(Object sender)
     {
         ArgumentNullException.ThrowIfNull(sender);
         Context.UnsubscribeFromEvents(this, sender);
@@ -40,7 +46,7 @@ public abstract class Object
         Context.Unsubscribe(this);
     }
 
-    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<object> senders)
+    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<Object> senders)
     {
         ArgumentNullException.ThrowIfNull(senders);
         Context.UnsubscribeAllExcept(this, senders);
@@ -92,7 +98,7 @@ public abstract class Object
         return Context.HasSubscribedToEvent<T>(this);
     }
 
-    public bool HasSubscribedToEvent<T>(object sender) where T : struct
+    public bool HasSubscribedToEvent<T>(Object sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
         return Context.HasSubscribedToEvent<T>(this, sender);

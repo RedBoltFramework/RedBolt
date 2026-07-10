@@ -18,7 +18,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private bool _oldMouseVisible = true;
     private MouseMode _oldMouseMode = MouseMode.Absolute;
     private Quaternion? _lastKnownCameraRotation;
-    private Vector3 _lastKnownEulerAngles;
+    private Vector3f _lastKnownEulerAngles;
 
     public FreeFlyController()
     {
@@ -143,28 +143,28 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         SetCameraAngles(eulerAngles);
 
         var translation = HandleKeyboard(timeStep);
-        if (translation != Vector3.Zero)
+        if (translation != Vector3f.Zero)
             Node.Translate(translation, TransformSpace.Local);
     }
 
-    private Vector3 HandleMouse()
+    private Vector3f HandleMouse()
     {
         if (_input is null)
-            return Vector3.Zero;
+            return Vector3f.Zero;
 
         var mouseMove = _input.GetMouseMove();
-        return new Vector3(_mouseSensitivity * mouseMove.Y, _mouseSensitivity * mouseMove.X, 0.0f);
+        return new Vector3f(_mouseSensitivity * mouseMove.Y, _mouseSensitivity * mouseMove.X, 0.0f);
     }
 
-    private Vector3 HandleKeyboard(float timeStep)
+    private Vector3f HandleKeyboard(float timeStep)
     {
         if (_input is null)
-            return Vector3.Zero;
+            return Vector3f.Zero;
 
         var effectiveSpeed = _input.GetKeyDown(Key.LeftShift) || _input.GetKeyDown(Key.RightShift)
             ? _acceleratedSpeed
             : _speed;
-        var result = Vector3.Zero;
+        var result = Vector3f.Zero;
         if (_input.GetScancodeDown(Scancode.W))
             result.Z += effectiveSpeed * timeStep;
         if (_input.GetScancodeDown(Scancode.S))
@@ -190,7 +190,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         }
     }
 
-    private void SetCameraAngles(Vector3 eulerAngles)
+    private void SetCameraAngles(Vector3f eulerAngles)
     {
         eulerAngles.X = MathDefs.Clamp(eulerAngles.X, _minPitch, _maxPitch);
         _lastKnownEulerAngles = eulerAngles;

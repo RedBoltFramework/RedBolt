@@ -12,7 +12,7 @@ public sealed class RenderBufferManager
     private readonly struct ClearFramebufferParameters
     {
         [ShaderParameterName("Color")]
-        public Vector4 Color { get; init; }
+        public Vector4f Color { get; init; }
 
         [ShaderParameterName("Depth")]
         public float Depth { get; init; }
@@ -171,7 +171,7 @@ public sealed class RenderBufferManager
         return state;
     }
 
-    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2 size = default)
+    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2f size = default)
     {
         var buffer = new TextureRenderBuffer(bufferParams, size);
         RegisterTextureBuffer(buffer);
@@ -301,7 +301,7 @@ public sealed class RenderBufferManager
             : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
         var shaderDefines = GetCopyFramebufferShaderDefines(sourceTexture, mode, destinationLinearColorSpace);
 
-        var invInputSize = new Vector2(
+        var invInputSize = new Vector2f(
             sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
             sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
         graphics.DrawFullscreenQuad(
@@ -441,7 +441,7 @@ public sealed class RenderBufferManager
 
         var clearParameters = new ClearFramebufferParameters
         {
-            Color = new Vector4(color.R, color.G, color.B, color.A),
+            Color = new Vector4f(color.R, color.G, color.B, color.A),
             Depth = GetFullscreenQuadClearDepth(depth)
         };
         graphics.DrawClearFramebufferQuad(
@@ -489,12 +489,12 @@ public sealed class RenderBufferManager
     /// <summary>
     /// Return size of output region (not size of output texture itself).
     /// </summary>
-    public IntVector2 GetOutputSize() => _viewportRect.Size;
+    public Vector2i GetOutputSize() => _viewportRect.Size;
 
-    public Vector2 GetInvOutputSize()
+    public Vector2f GetInvOutputSize()
     {
         var size = GetOutputSize();
-        return new Vector2(
+        return new Vector2f(
             size.X > 0 ? 1.0f / size.X : 0.0f,
             size.Y > 0 ? 1.0f / size.Y : 0.0f);
     }
@@ -502,7 +502,7 @@ public sealed class RenderBufferManager
     /// <summary>
     /// Return identity offset and scale used to convert clip space to UV space.
     /// </summary>
-    public Vector4 GetDefaultClipToUVSpaceOffsetAndScale() => new(0.5f, 0.5f, 0.5f, 0.5f);
+    public Vector4f GetDefaultClipToUVSpaceOffsetAndScale() => new(0.5f, 0.5f, 0.5f, 0.5f);
 
     public TextureFormat GetOutputColorFormat() => _colorOutputParams.TextureFormat;
 
@@ -704,7 +704,7 @@ public sealed class RenderBufferManager
 
     private static bool ShouldUseFullscreenQuadClear(IntRect viewportRect, IntRect outputViewportRect) => viewportRect != outputViewportRect;
 
-    private static Vector4 GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
+    private static Vector4f GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
     {
         var safeWidth = Math.Max(width, 1);
         var safeHeight = Math.Max(height, 1);
@@ -712,7 +712,7 @@ public sealed class RenderBufferManager
         var right = sourceRect.Right / (float)safeWidth;
         var top = sourceRect.Top / (float)safeHeight;
         var bottom = sourceRect.Bottom / (float)safeHeight;
-        return new Vector4(
+        return new Vector4f(
             (left + right) * 0.5f,
             (top + bottom) * 0.5f,
             (right - left) * 0.5f,

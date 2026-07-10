@@ -107,7 +107,7 @@ public sealed class JsonXmlResourceTests
         xml.FromString("<newRoot />");
         var root = xml.GetOrCreateRoot("newRoot");
         var childA = root.CreateChild("child");
-        childA.SetVector3("position", new Vector3(1.0f, 2.0f, 3.0f));
+        childA.SetVector3("position", new Vector3f(1.0f, 2.0f, 3.0f));
         root.CreateChild("sibling");
         Assert.True(root.HasChild("child"));
         Assert.Equal("sibling", childA.GetNext("sibling").Name);
@@ -120,10 +120,10 @@ public sealed class JsonXmlResourceTests
         var xml = new XMLFile("test.xml");
         xml.FromString("<newRoot />");
         var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
-        child.SetVector3("position", new Vector3(1.0f, 2.0f, 3.0f));
+        child.SetVector3("position", new Vector3f(1.0f, 2.0f, 3.0f));
         var materialRef = ResourceRef.Parse("Material;Materials/FirstCube");
         child.SetResourceRef("material", materialRef);
-        Assert.True(child.GetVector3("position").ApproximatelyEquivalent(new Vector3(1.0f, 2.0f, 3.0f)));
+        Assert.True(child.GetVector3("position").ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.Equal(materialRef, child.GetResourceRef("material"));
         Assert.Equal(2u, child.GetNumAttributes());
     }
@@ -134,8 +134,8 @@ public sealed class JsonXmlResourceTests
         var xml = new XMLFile("test.xml");
         xml.FromString("<newRoot />");
         var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
-        child.SetBoundingBox("bounds", new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(4.0f, 5.0f, 6.0f)));
-        Assert.True(child.GetBoundingBox("bounds").Min.ApproximatelyEquivalent(new Vector3(-1.0f, -2.0f, -3.0f)));
+        child.SetBoundingBox("bounds", new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(4.0f, 5.0f, 6.0f)));
+        Assert.True(child.GetBoundingBox("bounds").Min.ApproximatelyEquivalent(new Vector3f(-1.0f, -2.0f, -3.0f)));
     }
 
     [Fact]

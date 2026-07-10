@@ -54,8 +54,8 @@ public sealed class PListFileTests
     {
         var plist = LoadSample();
         Assert.Equal(new IntRect(1, 2, 4, 6), plist.GetRoot()["Rect"].GetIntRect());
-        Assert.Equal(new IntVector2(5, 6), plist.GetRoot()["Vector2"].GetIntVector2());
-        Assert.Equal(new IntVector3(7, 8, 9), plist.GetRoot()["Vector3"].GetIntVector3());
+        Assert.Equal(new Vector2i(5, 6), plist.GetRoot()["Vector2"].GetIntVector2());
+        Assert.Equal(new Vector3i(7, 8, 9), plist.GetRoot()["Vector3"].GetIntVector3());
     }
 
     [Fact]

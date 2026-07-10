@@ -78,7 +78,7 @@ public enum ShaderTranslationPolicy
 }
 
 /// <summary>Description of fullscreen mode (resolution and refresh rate).</summary>
-public readonly record struct FullscreenMode(IntVector2 Size, int RefreshRate);
+public readonly record struct FullscreenMode(Vector2i Size, int RefreshRate);
 
 /// <summary>Description of the window and GAPI. Some settings may be changed in real time.</summary>
 public sealed class WindowSettings
@@ -92,7 +92,7 @@ public sealed class WindowSettings
     /// Borderless: ignored.
     /// Set to 0 to pick automatically.
     /// </summary>
-    public IntVector2 Size { get; set; }
+    public Vector2i Size { get; set; }
 
     /// <summary>Window title.</summary>
     public string Title { get; set; } = string.Empty;
@@ -255,7 +255,7 @@ public readonly record struct RawTextureParams(
     TextureType Type,
     TextureFormat Format,
     TextureFlag Flags,
-    IntVector3 Size,
+    Vector3i Size,
     uint ArraySize = 1u,
     uint NumLevels = 0u,
     uint MultiSample = 1u,

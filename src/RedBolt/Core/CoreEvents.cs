@@ -4,7 +4,7 @@ public static class CoreEvents
 {
     public struct BeginFrameEvent
     {
-        public int FrameNumber;
+        public uint FrameNumber;
         public float TimeStep;
     }
 

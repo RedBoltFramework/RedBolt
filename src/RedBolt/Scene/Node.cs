@@ -6,9 +6,9 @@ public sealed class Node : Animatable
     private bool _dirty;
     private bool _enabled = true;
     private bool _enabledPrev = true;
-    private Vector3 _position = Vector3.Zero;
+    private Vector3f _position = Vector3f.Zero;
     private Quaternion _rotation = Quaternion.Identity;
-    private Vector3 _scale = Vector3.One;
+    private Vector3f _scale = Vector3f.One;
     private Quaternion _worldRotation = Quaternion.Identity;
     private readonly List<Component> _components = [];
     private readonly List<Node> _children = [];
@@ -48,10 +48,10 @@ public sealed class Node : Animatable
             Array.Empty<string>());
         RegisterAttribute(
             "Position",
-            typeof(Vector3),
+            typeof(Vector3f),
             self => ((Node)self).Position,
-            (self, value) => ((Node)self).Position = value is Vector3 position ? position : Vector3.Zero,
-            Vector3.Zero);
+            (self, value) => ((Node)self).Position = value is Vector3f position ? position : Vector3f.Zero,
+            Vector3f.Zero);
         RegisterAttribute(
             "Rotation",
             typeof(Quaternion),
@@ -60,10 +60,10 @@ public sealed class Node : Animatable
             Quaternion.Identity);
         RegisterAttribute(
             "Scale",
-            typeof(Vector3),
+            typeof(Vector3f),
             self => ((Node)self).Scale,
-            (self, value) => ((Node)self).Scale = value is Vector3 scale ? scale : Vector3.One,
-            Vector3.One);
+            (self, value) => ((Node)self).Scale = value is Vector3f scale ? scale : Vector3f.One,
+            Vector3f.One);
         RegisterAttribute(
             "Variables",
             typeof(IReadOnlyDictionary<StringHash, object?>),
@@ -102,8 +102,8 @@ public sealed class Node : Animatable
     // bool Node::Load(PrefabReader& reader, PrefabLoadFlags flags);
     // void Node::SaveInternal(PrefabWriter& writer) const;
     // bool Node::Save(PrefabWriter& writer) const;
-    // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
-    // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
+    // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3f& position, const Quaternion& rotation);
+    // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3f& position, const Quaternion& rotation);
     // void Node::GeneratePrefab(NodePrefab& prefab) const;
     // NodePrefab Node::GeneratePrefab() const;
     // AttributeScopeHint Node::GetEffectiveScopeHint() const;
@@ -157,7 +157,7 @@ public sealed class Node : Animatable
 
     public Node? Parent { get; private set; }
 
-    public Vector3 Position
+    public Vector3f Position
     {
         get => _position;
         set => SetPosition(value);
@@ -169,7 +169,7 @@ public sealed class Node : Animatable
         set => SetRotation(value);
     }
 
-    public Vector3 Scale
+    public Vector3f Scale
     {
         get => _scale;
         set => SetScale(value);
@@ -187,13 +187,13 @@ public sealed class Node : Animatable
 
     public WorldOriginUpdateMode GetWorldOriginUpdateMode() => _worldOriginUpdateMode;
 
-    public Vector3 Direction => _rotation * Vector3.Forward;
+    public Vector3f Direction => _rotation * Vector3f.Forward;
 
-    public Vector3 Right => _rotation * Vector3.Right;
+    public Vector3f Right => _rotation * Vector3f.Right;
 
-    public Vector3 Up => _rotation * Vector3.Up;
+    public Vector3f Up => _rotation * Vector3f.Up;
 
-    public Vector3 WorldPosition
+    public Vector3f WorldPosition
     {
         get
         {
@@ -215,40 +215,40 @@ public sealed class Node : Animatable
         }
     }
 
-    public Vector3 WorldDirection
+    public Vector3f WorldDirection
     {
         get
         {
             if (_dirty)
                 UpdateWorldTransform();
 
-            return _worldRotation * Vector3.Forward;
+            return _worldRotation * Vector3f.Forward;
         }
     }
 
-    public Vector3 WorldUp
+    public Vector3f WorldUp
     {
         get
         {
             if (_dirty)
                 UpdateWorldTransform();
 
-            return _worldRotation * Vector3.Up;
+            return _worldRotation * Vector3f.Up;
         }
     }
 
-    public Vector3 WorldRight
+    public Vector3f WorldRight
     {
         get
         {
             if (_dirty)
                 UpdateWorldTransform();
 
-            return _worldRotation * Vector3.Right;
+            return _worldRotation * Vector3f.Right;
         }
     }
 
-    public Vector3 WorldScale
+    public Vector3f WorldScale
     {
         get
         {
@@ -798,43 +798,43 @@ public sealed class Node : Animatable
 
     public bool IsTransformHierarchyRoot() => Parent is null || ReferenceEquals(Parent, Scene.Root);
 
-    public Vector3 GetPosition() => Position;
+    public Vector3f GetPosition() => Position;
 
-    public Vector2 GetPosition2D() => new(_position.X, _position.Y);
+    public Vector2f GetPosition2D() => new(_position.X, _position.Y);
 
     public Quaternion GetRotation() => Rotation;
 
     public float GetRotation2D() => _rotation.RollAngle;
 
-    public Vector3 GetDirection() => Direction;
+    public Vector3f GetDirection() => Direction;
 
-    public Vector3 GetRight() => Right;
+    public Vector3f GetRight() => Right;
 
-    public Vector3 GetScale() => Scale;
+    public Vector3f GetScale() => Scale;
 
-    public Vector2 GetScale2D() => new(_scale.X, _scale.Y);
+    public Vector2f GetScale2D() => new(_scale.X, _scale.Y);
 
     public Transform GetTransform() => new(_position, _rotation, _scale);
 
     public Matrix3x4 GetTransformMatrix() => new(_position, _rotation, _scale);
 
-    public Vector3 GetUp() => Up;
+    public Vector3f GetUp() => Up;
 
-    public Vector3 GetWorldDirection() => WorldDirection;
+    public Vector3f GetWorldDirection() => WorldDirection;
 
-    public Vector3 GetWorldPosition() => WorldPosition;
+    public Vector3f GetWorldPosition() => WorldPosition;
 
-    public Vector2 GetWorldPosition2D() => new(WorldPosition.X, WorldPosition.Y);
+    public Vector2f GetWorldPosition2D() => new(WorldPosition.X, WorldPosition.Y);
 
     public Quaternion GetWorldRotation() => WorldRotation;
 
     public float GetWorldRotation2D() => WorldRotation.RollAngle;
 
-    public Vector3 GetWorldRight() => WorldRight;
+    public Vector3f GetWorldRight() => WorldRight;
 
-    public Vector3 GetWorldScale() => WorldScale;
+    public Vector3f GetWorldScale() => WorldScale;
 
-    public Vector3 GetSignedWorldScale()
+    public Vector3f GetSignedWorldScale()
     {
         if (_dirty)
             UpdateWorldTransform();
@@ -842,7 +842,7 @@ public sealed class Node : Animatable
         return _worldTransform.SignedScale(_worldRotation.RotationMatrix);
     }
 
-    public Vector2 GetWorldScale2D() => new(WorldScale.X, WorldScale.Y);
+    public Vector2f GetWorldScale2D() => new(WorldScale.X, WorldScale.Y);
 
     public Matrix3x4 GetWorldTransform()
     {
@@ -852,7 +852,7 @@ public sealed class Node : Animatable
         return _worldTransform;
     }
 
-    public Vector3 GetWorldUp() => WorldUp;
+    public Vector3f GetWorldUp() => WorldUp;
 
     public bool HasTag(string tag) => _tags.Contains(tag);
 
@@ -860,17 +860,17 @@ public sealed class Node : Animatable
 
     public bool HasVar(StringHash key) => _variables.ContainsKey(key);
 
-    public Vector3 LocalToWorld(Vector3 localPosition) => GetWorldTransform() * localPosition;
+    public Vector3f LocalToWorld(Vector3f localPosition) => GetWorldTransform() * localPosition;
 
-    public Vector3 LocalToWorld(Vector4 localVector) => GetWorldTransform() * localVector;
+    public Vector3f LocalToWorld(Vector4f localVector) => GetWorldTransform() * localVector;
 
-    public Vector2 LocalToWorld2D(Vector2 localVector) => LocalToWorld(new Vector3(localVector.X, localVector.Y, 0.0f)).ToVector2();
+    public Vector2f LocalToWorld2D(Vector2f localVector) => LocalToWorld(new Vector3f(localVector.X, localVector.Y, 0.0f)).ToVector2();
 
-    public Vector3 WorldToLocal(Vector3 worldPosition) => WorldRotation.Inverse * (worldPosition - WorldPosition) / WorldScale;
+    public Vector3f WorldToLocal(Vector3f worldPosition) => WorldRotation.Inverse * (worldPosition - WorldPosition) / WorldScale;
 
-    public Vector3 WorldToLocal(Vector4 worldVector) => WorldRotation.Inverse * (new Vector3(worldVector.X, worldVector.Y, worldVector.Z) - WorldPosition * worldVector.W) / WorldScale;
+    public Vector3f WorldToLocal(Vector4f worldVector) => WorldRotation.Inverse * (new Vector3f(worldVector.X, worldVector.Y, worldVector.Z) - WorldPosition * worldVector.W) / WorldScale;
 
-    public Vector2 WorldToLocal2D(Vector2 worldVector) => WorldToLocal(new Vector3(worldVector.X, worldVector.Y, 0.0f)).ToVector2();
+    public Vector2f WorldToLocal2D(Vector2f worldVector) => WorldToLocal(new Vector3f(worldVector.X, worldVector.Y, 0.0f)).ToVector2();
 
     public T? FindComponent<T>(ComponentSearchFlag flags = ComponentSearchFlag.Default)
         where T : Component
@@ -1203,7 +1203,7 @@ public sealed class Node : Animatable
         _listeners.Remove(component);
     }
 
-    public bool LookAt(Vector3 target, Vector3? up = null, TransformSpace space = TransformSpace.World)
+    public bool LookAt(Vector3f target, Vector3f? up = null, TransformSpace space = TransformSpace.World)
     {
         var worldTarget = space switch
         {
@@ -1216,7 +1216,7 @@ public sealed class Node : Animatable
         if (direction.LengthSquared <= MathDefs.Epsilon)
             return false;
 
-        if (!Quaternion.LookRotation(direction, up ?? Vector3.Up, out var newRotation))
+        if (!Quaternion.LookRotation(direction, up ?? Vector3f.Up, out var newRotation))
             return false;
 
         SetWorldRotation(newRotation);
@@ -1240,7 +1240,7 @@ public sealed class Node : Animatable
             child.MarkDirty();
     }
 
-    public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3.Right), space);
+    public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Right), space);
 
     public void RemoveAllTags()
     {
@@ -1268,7 +1268,7 @@ public sealed class Node : Animatable
 
     public bool RemoveVarByHash(StringHash key) => _variables.Remove(key);
 
-    public void Roll(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3.Forward), space);
+    public void Roll(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Forward), space);
 
     public void Rotate(Quaternion delta, TransformSpace space = TransformSpace.Local)
     {
@@ -1294,7 +1294,7 @@ public sealed class Node : Animatable
 
     public void Rotate2D(float delta, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromRotation2D(delta), space);
 
-    public void RotateAround(Vector3 point, Quaternion delta, TransformSpace space = TransformSpace.Local)
+    public void RotateAround(Vector3f point, Quaternion delta, TransformSpace space = TransformSpace.Local)
     {
         var parentSpacePoint = space switch
         {
@@ -1319,27 +1319,27 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
-    public void RotateAround2D(Vector2 point, float delta, TransformSpace space = TransformSpace.Local) => RotateAround(new Vector3(point.X, point.Y, 0.0f), Quaternion.FromRotation2D(delta), space);
+    public void RotateAround2D(Vector2f point, float delta, TransformSpace space = TransformSpace.Local) => RotateAround(new Vector3f(point.X, point.Y, 0.0f), Quaternion.FromRotation2D(delta), space);
 
-    public void SetDirection(Vector3 direction)
+    public void SetDirection(Vector3f direction)
     {
-        SetRotation(new Quaternion(Vector3.Forward, direction));
+        SetRotation(new Quaternion(Vector3f.Forward, direction));
     }
 
-    public void SetPosition(Vector3 position)
+    public void SetPosition(Vector3f position)
     {
         this._position = position;
         MarkDirty();
     }
 
-    public void SetPositionSilent(Vector3 position)
+    public void SetPositionSilent(Vector3f position)
     {
         this._position = position;
     }
 
-    public void SetPosition2D(Vector2 position) => SetPosition(new Vector3(position.X, position.Y, 0.0f));
+    public void SetPosition2D(Vector2f position) => SetPosition(new Vector3f(position.X, position.Y, 0.0f));
 
-    public void SetPosition2D(float x, float y) => SetPosition2D(new Vector2(x, y));
+    public void SetPosition2D(float x, float y) => SetPosition2D(new Vector2f(x, y));
 
     public void SetRotation(Quaternion rotation)
     {
@@ -1354,37 +1354,37 @@ public sealed class Node : Animatable
 
     public void SetRotation2D(float rotation) => SetRotation(Quaternion.FromRotation2D(rotation));
 
-    public void SetScale(float scale) => SetScale(new Vector3(scale, scale, scale));
+    public void SetScale(float scale) => SetScale(new Vector3f(scale, scale, scale));
 
-    public void SetScale(Vector3 scale)
+    public void SetScale(Vector3f scale)
     {
-        this._scale = new Vector3(
+        this._scale = new Vector3f(
             Math.Abs(scale.X) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.X,
             Math.Abs(scale.Y) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Y,
             Math.Abs(scale.Z) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Z);
         MarkDirty();
     }
 
-    public void SetScaleSilent(Vector3 scale)
+    public void SetScaleSilent(Vector3f scale)
     {
         this._scale = scale;
     }
 
-    public void SetScale2D(Vector2 scale) => SetScale(new Vector3(scale.X, scale.Y, 1.0f));
+    public void SetScale2D(Vector2f scale) => SetScale(new Vector3f(scale.X, scale.Y, 1.0f));
 
-    public void SetScale2D(float x, float y) => SetScale2D(new Vector2(x, y));
+    public void SetScale2D(float x, float y) => SetScale2D(new Vector2f(x, y));
 
-    public void ScaleBy(float scale) => ScaleBy(new Vector3(scale, scale, scale));
+    public void ScaleBy(float scale) => ScaleBy(new Vector3f(scale, scale, scale));
 
-    public void ScaleBy(Vector3 scale)
+    public void ScaleBy(Vector3f scale)
     {
         this._scale *= scale;
         MarkDirty();
     }
 
-    public void ScaleBy2D(Vector2 scale) => ScaleBy(new Vector3(scale.X, scale.Y, 1.0f));
+    public void ScaleBy2D(Vector2f scale) => ScaleBy(new Vector3f(scale.X, scale.Y, 1.0f));
 
-    public void ScaleAround(Vector3 point, Vector3 scale, TransformSpace space = TransformSpace.Local)
+    public void ScaleAround(Vector3f point, Vector3f scale, TransformSpace space = TransformSpace.Local)
     {
         var parentSpacePoint = space switch
         {
@@ -1396,12 +1396,12 @@ public sealed class Node : Animatable
         var oldScale = this._scale;
 
         this._scale *= scale;
-        var oldRelativePosition = Vector3.One / oldScale * (_position - parentSpacePoint);
+        var oldRelativePosition = Vector3f.One / oldScale * (_position - parentSpacePoint);
         _position = this._scale * oldRelativePosition + parentSpacePoint;
         MarkDirty();
     }
 
-    public void ScaleAround2D(Vector2 point, Vector2 scale, TransformSpace space = TransformSpace.Local) => ScaleAround(new Vector3(point.X, point.Y, 0.0f), new Vector3(scale.X, scale.Y, 1.0f), space);
+    public void ScaleAround2D(Vector2f point, Vector2f scale, TransformSpace space = TransformSpace.Local) => ScaleAround(new Vector3f(point.X, point.Y, 0.0f), new Vector3f(scale.X, scale.Y, 1.0f), space);
 
     public void SetTags(IEnumerable<string> tags)
     {
@@ -1409,16 +1409,16 @@ public sealed class Node : Animatable
         AddTags(tags);
     }
 
-    public void SetTransform(Vector3 position, Quaternion rotation)
+    public void SetTransform(Vector3f position, Quaternion rotation)
     {
         this._position = position;
         this._rotation = rotation.Normalized;
         MarkDirty();
     }
 
-    public void SetTransform(Vector3 position, Quaternion rotation, float scale) => SetTransform(position, rotation, new Vector3(scale, scale, scale));
+    public void SetTransform(Vector3f position, Quaternion rotation, float scale) => SetTransform(position, rotation, new Vector3f(scale, scale, scale));
 
-    public void SetTransform(Vector3 position, Quaternion rotation, Vector3 scale)
+    public void SetTransform(Vector3f position, Quaternion rotation, Vector3f scale)
     {
         this._position = position;
         this._rotation = rotation.Normalized;
@@ -1426,7 +1426,7 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
-    public void SetTransformSilent(Vector3 position, Quaternion rotation, Vector3 scale)
+    public void SetTransformSilent(Vector3f position, Quaternion rotation, Vector3f scale)
     {
         this._position = position;
         this._rotation = rotation;
@@ -1439,11 +1439,11 @@ public sealed class Node : Animatable
 
     public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
-    public void SetTransform2D(Vector2 position, float rotation) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
+    public void SetTransform2D(Vector2f position, float rotation) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
 
-    public void SetTransform2D(Vector2 position, float rotation, float scale) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale, scale, 1.0f));
+    public void SetTransform2D(Vector2f position, float rotation, float scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale, scale, 1.0f));
 
-    public void SetTransform2D(Vector2 position, float rotation, Vector2 scale) => SetTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, 1.0f));
+    public void SetTransform2D(Vector2f position, float rotation, Vector2f scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
     public void SetVar(string key, object? value) => _variables[new StringHash(key)] = value;
 
@@ -1460,20 +1460,20 @@ public sealed class Node : Animatable
             this._variables[item.Key] = item.Value;
     }
 
-    public void SetWorldDirection(Vector3 direction)
+    public void SetWorldDirection(Vector3f direction)
     {
         if (direction.LengthSquared > 0.0f)
-            SetWorldRotation(Quaternion.FromRotationTo(Vector3.Forward, direction.NormalizedOrDefault));
+            SetWorldRotation(Quaternion.FromRotationTo(Vector3f.Forward, direction.NormalizedOrDefault));
     }
 
-    public void SetWorldPosition(Vector3 position)
+    public void SetWorldPosition(Vector3f position)
     {
         SetPosition(IsTransformHierarchyRoot() ? position : Parent!.WorldToLocal(position));
     }
 
-    public void SetWorldPosition2D(Vector2 position) => SetWorldPosition(new Vector3(position.X, position.Y, 0.0f));
+    public void SetWorldPosition2D(Vector2f position) => SetWorldPosition(new Vector3f(position.X, position.Y, 0.0f));
 
-    public void SetWorldPosition2D(float x, float y) => SetWorldPosition2D(new Vector2(x, y));
+    public void SetWorldPosition2D(float x, float y) => SetWorldPosition2D(new Vector2f(x, y));
 
     public void SetWorldRotation(Quaternion rotation)
     {
@@ -1482,31 +1482,31 @@ public sealed class Node : Animatable
 
     public void SetWorldRotation2D(float rotation) => SetWorldRotation(Quaternion.FromRotation2D(rotation));
 
-    public void SetWorldScale(float scale) => SetWorldScale(new Vector3(scale, scale, scale));
+    public void SetWorldScale(float scale) => SetWorldScale(new Vector3f(scale, scale, scale));
 
-    public void SetWorldScale(Vector3 scale)
+    public void SetWorldScale(Vector3f scale)
     {
         SetScale(IsTransformHierarchyRoot() ? scale : scale / Parent!.WorldScale);
     }
 
-    public void SetWorldScale2D(Vector2 scale) => SetWorldScale(new Vector3(scale.X, scale.Y, 1.0f));
+    public void SetWorldScale2D(Vector2f scale) => SetWorldScale(new Vector3f(scale.X, scale.Y, 1.0f));
 
-    public void SetWorldScale2D(float x, float y) => SetWorldScale2D(new Vector2(x, y));
+    public void SetWorldScale2D(float x, float y) => SetWorldScale2D(new Vector2f(x, y));
 
-    public void SetWorldTransform(Vector3 position, Quaternion rotation)
+    public void SetWorldTransform(Vector3f position, Quaternion rotation)
     {
         SetWorldPosition(position);
         SetWorldRotation(rotation);
     }
 
-    public void SetWorldTransform(Vector3 position, Quaternion rotation, float scale)
+    public void SetWorldTransform(Vector3f position, Quaternion rotation, float scale)
     {
         SetWorldPosition(position);
         SetWorldRotation(rotation);
         SetWorldScale(scale);
     }
 
-    public void SetWorldTransform(Vector3 position, Quaternion rotation, Vector3 scale)
+    public void SetWorldTransform(Vector3f position, Quaternion rotation, Vector3f scale)
     {
         SetWorldPosition(position);
         SetWorldRotation(rotation);
@@ -1515,13 +1515,13 @@ public sealed class Node : Animatable
 
     public void SetWorldTransform(Matrix3x4 worldTransform) => SetWorldTransform(worldTransform.Translation, worldTransform.Rotation, worldTransform.Scale);
 
-    public void SetWorldTransform2D(Vector2 position, float rotation) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
+    public void SetWorldTransform2D(Vector2f position, float rotation) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
 
-    public void SetWorldTransform2D(Vector2 position, float rotation, float scale) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale, scale, 1.0f));
+    public void SetWorldTransform2D(Vector2f position, float rotation, float scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale, scale, 1.0f));
 
-    public void SetWorldTransform2D(Vector2 position, float rotation, Vector2 scale) => SetWorldTransform(new Vector3(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3(scale.X, scale.Y, 1.0f));
+    public void SetWorldTransform2D(Vector2f position, float rotation, Vector2f scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
-    public void Translate(Vector3 delta, TransformSpace space = TransformSpace.Local)
+    public void Translate(Vector3f delta, TransformSpace space = TransformSpace.Local)
     {
         switch (space)
         {
@@ -1537,9 +1537,9 @@ public sealed class Node : Animatable
         }
     }
 
-    public void Translate2D(Vector2 delta, TransformSpace space = TransformSpace.Local) => Translate(new Vector3(delta.X, delta.Y, 0.0f), space);
+    public void Translate2D(Vector2f delta, TransformSpace space = TransformSpace.Local) => Translate(new Vector3f(delta.X, delta.Y, 0.0f), space);
 
-    public void Yaw(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3.Up), space);
+    public void Yaw(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Up), space);
 
     public void SetName(string name)
     {

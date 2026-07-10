@@ -40,8 +40,8 @@ public abstract class RenderBuffer
 public sealed class TextureRenderBuffer : RenderBuffer
 {
     private readonly RenderBufferParams _bufferParams;
-    private readonly Vector2 _sizeMultiplier = Vector2.One;
-    private readonly IntVector2 _fixedSize;
+    private readonly Vector2f _sizeMultiplier = Vector2f.One;
+    private readonly Vector2i _fixedSize;
 
     public TextureRenderBuffer(Texture texture, IntRect viewportRect)
     {
@@ -50,16 +50,16 @@ public sealed class TextureRenderBuffer : RenderBuffer
         _bufferParams = new RenderBufferParams(texture.Format, texture.MultiSample);
     }
 
-    public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2 size = default)
+    public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2f size = default)
     {
         this._bufferParams = bufferParams;
         Texture = (bufferParams.Flags & RenderBufferFlag.CubeMap) != 0
             ? new TextureCube($"RenderBuffer.{Guid.NewGuid():N}")
             : new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
 
-        var effectiveSize = size == default ? Vector2.One : size;
+        var effectiveSize = size == default ? Vector2f.One : size;
         if ((bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
-            _fixedSize = new IntVector2(Math.Max(1, (int)Math.Round(effectiveSize.X)), Math.Max(1, (int)Math.Round(effectiveSize.Y)));
+            _fixedSize = new Vector2i(Math.Max(1, (int)Math.Round(effectiveSize.X)), Math.Max(1, (int)Math.Round(effectiveSize.Y)));
         else
             _sizeMultiplier = effectiveSize;
     }
@@ -109,7 +109,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
                 case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat, _bufferParams.MultiSampleLevel,
                     (_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0):
-                    nextSize = new IntVector2(textureCube.Width, textureCube.Height);
+                    nextSize = new Vector2i(textureCube.Width, textureCube.Height);
                     break;
 
                 default:
@@ -128,10 +128,10 @@ public sealed class TextureRenderBuffer : RenderBuffer
         ViewportRect = new IntRect(0, 0, nextSize.X, nextSize.Y);
     }
 
-    private IntVector2 CalculateTextureSize(IntVector2 outputSize)
+    private Vector2i CalculateTextureSize(Vector2i outputSize)
     {
         if ((_bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
-            return new IntVector2(Math.Max(_fixedSize.X, 1), Math.Max(_fixedSize.Y, 1));
+            return new Vector2i(Math.Max(_fixedSize.X, 1), Math.Max(_fixedSize.Y, 1));
 
         var width = _sizeMultiplier.X <= 1.0f
             ? Math.Max(1, (int)Math.Round(outputSize.X * _sizeMultiplier.X))
@@ -139,7 +139,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
         var height = _sizeMultiplier.Y <= 1.0f
             ? Math.Max(1, (int)Math.Round(outputSize.Y * _sizeMultiplier.Y))
             : Math.Max(1, (int)Math.Round(_sizeMultiplier.Y));
-        return new IntVector2(width, height);
+        return new Vector2i(width, height);
     }
 
     private static bool IsDepthTextureFormat(TextureFormat format)

@@ -24,8 +24,8 @@ public sealed class Input
     private MouseButton _mouseButtonPress;
     private int _mouseMoveWheel;
     private HatPosition _hatPosition = HatPosition.Center;
-    private IntVector2 _backbufferSize = IntVector2.Zero;
-    private Vector2 _systemToBackbufferScale = Vector2.One;
+    private Vector2i _backbufferSize = Vector2i.Zero;
+    private Vector2f _systemToBackbufferScale = Vector2f.One;
     private bool _lastMouseGrabbed;
     private bool _lastMouseVisible = true;
     private MouseMode _lastMouseMode = MouseMode.Absolute;
@@ -38,15 +38,15 @@ public sealed class Input
 
     public MouseMode MouseMode { get; private set; } = MouseMode.Absolute;
 
-    public IntVector2 MouseMove { get; private set; }
+    public Vector2i MouseMove { get; private set; }
 
     public int MouseMoveWheel => _mouseMoveWheel;
 
-    public IntVector2 MousePosition { get; private set; } = IntVector2.Zero;
+    public Vector2i MousePosition { get; private set; } = Vector2i.Zero;
 
     public Qualifier Qualifiers { get; private set; }
 
-    public Vector2 SystemToBackbufferScale => _systemToBackbufferScale;
+    public Vector2f SystemToBackbufferScale => _systemToBackbufferScale;
 
     public bool MouseVisible { get; private set; } = true;
 
@@ -82,8 +82,8 @@ public sealed class Input
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SDL_VIDEODRIVER")))
             Environment.SetEnvironmentVariable("SDL_VIDEODRIVER", "x11");
 
-        _backbufferSize = new IntVector2(parameters.WindowWidth, parameters.WindowHeight);
-        _systemToBackbufferScale = Vector2.One;
+        _backbufferSize = new Vector2i(parameters.WindowWidth, parameters.WindowHeight);
+        _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
 
         var initResult = SdlNativeBindings.SdlInit(SdlInitVideo);
@@ -154,7 +154,7 @@ public sealed class Input
         _mouseButtonClick = MouseButton.None;
         _mouseButtonPress = MouseButton.None;
         _mouseMoveWheel = 0;
-        MouseMove = IntVector2.Zero;
+        MouseMove = Vector2i.Zero;
     }
 
     public void PollEvents()
@@ -345,16 +345,16 @@ public sealed class Input
         return _screenButtonsDown.Contains(elementName);
     }
 
-    public Vector2 GetRelativeMousePosition()
+    public Vector2f GetRelativeMousePosition()
     {
         return _backbufferSize.X > 0 && _backbufferSize.Y > 0
-            ? new Vector2((float)MousePosition.X / _backbufferSize.X, (float)MousePosition.Y / _backbufferSize.Y)
-            : Vector2.Zero;
+            ? new Vector2f((float)MousePosition.X / _backbufferSize.X, (float)MousePosition.Y / _backbufferSize.Y)
+            : Vector2f.Zero;
     }
 
-    public IntVector2 GetMousePosition() => MousePosition;
+    public Vector2i GetMousePosition() => MousePosition;
 
-    public IntVector2 GetMouseMove() => MouseMove;
+    public Vector2i GetMouseMove() => MouseMove;
 
     public int GetMouseMoveX() => MouseMove.X;
 
@@ -362,17 +362,17 @@ public sealed class Input
 
     public int GetMouseMoveWheel() => MouseMoveWheel;
 
-    public Vector2 GetSystemToBackbufferScale() => _systemToBackbufferScale;
+    public Vector2f GetSystemToBackbufferScale() => _systemToBackbufferScale;
 
-    public IntVector2 SystemToBackbuffer(IntVector2 value) => new(
+    public Vector2i SystemToBackbuffer(Vector2i value) => new(
         (int)MathF.Round(value.X * _systemToBackbufferScale.X),
         (int)MathF.Round(value.Y * _systemToBackbufferScale.Y));
 
-    public IntVector2 BackbufferToSystem(IntVector2 value) => new(
+    public Vector2i BackbufferToSystem(Vector2i value) => new(
         _systemToBackbufferScale.X != 0.0f ? (int)MathF.Round(value.X / _systemToBackbufferScale.X) : value.X,
         _systemToBackbufferScale.Y != 0.0f ? (int)MathF.Round(value.Y / _systemToBackbufferScale.Y) : value.Y);
 
-    public void SetMousePosition(IntVector2 position)
+    public void SetMousePosition(Vector2i position)
     {
         MousePosition = position;
     }
@@ -464,7 +464,7 @@ public sealed class Input
 
     public void CenterMousePosition()
     {
-        MousePosition = new IntVector2(_backbufferSize.X / 2, _backbufferSize.Y / 2);
+        MousePosition = new Vector2i(_backbufferSize.X / 2, _backbufferSize.Y / 2);
     }
 
     public bool GetQualifierDown(Qualifier qualifier)
@@ -581,11 +581,11 @@ public sealed class Input
         _mouseButtonPress = MouseButton.None;
         _mouseMoveWheel = 0;
         _hatPosition = HatPosition.Center;
-        MouseMove = IntVector2.Zero;
-        MousePosition = IntVector2.Zero;
+        MouseMove = Vector2i.Zero;
+        MousePosition = Vector2i.Zero;
         Qualifiers = Qualifier.None;
-        _backbufferSize = IntVector2.Zero;
-        _systemToBackbufferScale = Vector2.One;
+        _backbufferSize = Vector2i.Zero;
+        _systemToBackbufferScale = Vector2f.One;
         HasFocus = true;
         IsMinimized = false;
     }
@@ -629,8 +629,8 @@ public sealed class Input
 
     private void HandleMouseMotion(SdlEvent @event)
     {
-        MousePosition = new IntVector2(@event.MotionX, @event.MotionY);
-        MouseMove = new IntVector2(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
+        MousePosition = new Vector2i(@event.MotionX, @event.MotionY);
+        MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
     }
 
     private void HandleWindowEvent(SdlEvent @event)

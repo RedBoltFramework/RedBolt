@@ -7,8 +7,8 @@ public sealed class Zone : Drawable
     public const float DefaultFogHeight = 0.0f;
     public const float DefaultFogHeightScale = 0.5f;
 
-    public static readonly Vector3 DefaultBoundingBoxMin = new(-10.0f, -10.0f, -10.0f);
-    public static readonly Vector3 DefaultBoundingBoxMax = new(10.0f, 10.0f, 10.0f);
+    public static readonly Vector3f DefaultBoundingBoxMin = new(-10.0f, -10.0f, -10.0f);
+    public static readonly Vector3f DefaultBoundingBoxMax = new(10.0f, 10.0f, 10.0f);
     public static readonly Color DefaultAmbientColor = new(0.1f, 0.1f, 0.1f);
     public static readonly Color DefaultFogColor = Color.Black;
 
@@ -186,9 +186,9 @@ public sealed class Zone : Drawable
         return AmbientGradient ? _ambientEndColor : AmbientColor;
     }
 
-    public Vector3 GetAmbientLighting() => (AmbientColor * AmbientBrightness).ToVector3();
+    public Vector3f GetAmbientLighting() => (AmbientColor * AmbientBrightness).ToVector3();
 
-    public bool IsInside(Vector3 point)
+    public bool IsInside(Vector3f point)
     {
         var localPoint = IsAttached ? Node.WorldToLocal(point) : point;
         return BoundingBox.IsInside(localPoint) != Intersection.Outside;
@@ -209,10 +209,10 @@ public sealed class Zone : Drawable
 
     private Matrix3x4 BuildInverseWorldTransform()
     {
-        var origin = Node.WorldToLocal(Vector3.Zero);
-        var xAxis = Node.WorldToLocal(Vector3.Right) - origin;
-        var yAxis = Node.WorldToLocal(Vector3.Up) - origin;
-        var zAxis = Node.WorldToLocal(Vector3.Forward) - origin;
+        var origin = Node.WorldToLocal(Vector3f.Zero);
+        var xAxis = Node.WorldToLocal(Vector3f.Right) - origin;
+        var yAxis = Node.WorldToLocal(Vector3f.Up) - origin;
+        var zAxis = Node.WorldToLocal(Vector3f.Forward) - origin;
         return new Matrix3x4(
             xAxis.X, yAxis.X, zAxis.X, origin.X,
             xAxis.Y, yAxis.Y, zAxis.Y, origin.Y,

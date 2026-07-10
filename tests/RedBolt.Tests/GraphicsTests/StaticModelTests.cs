@@ -65,12 +65,12 @@ public sealed class StaticModelTests
 
         cube.SetScaleInLightmap(2.0f);
         cube.SetLightmapIndex(3u);
-        cube.SetLightmapScaleOffset(new Vector4(1.0f, 2.0f, 3.0f, 4.0f));
+        cube.SetLightmapScaleOffset(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f));
         Assert.True(cube.GetBakeLightmap());
         Assert.True(cube.GetBakeLightmapEffective());
         Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetScaleInLightmap(), 2.0f));
         Assert.Equal(3u, cube.GetLightmapIndex());
-        Assert.Equal(new Vector4(1.0f, 2.0f, 3.0f, 4.0f), cube.GetLightmapScaleOffset());
+        Assert.Equal(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f), cube.GetLightmapScaleOffset());
     }
 
     [Fact]
@@ -97,11 +97,11 @@ public sealed class StaticModelTests
         var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
 
-        Assert.Equal(Intersection.Inside, model.GetBoundingBox().IsInside(Vector3.Zero));
-        Assert.True(cube.IsInsideLocal(Vector3.Zero));
+        Assert.Equal(Intersection.Inside, model.GetBoundingBox().IsInside(Vector3f.Zero));
+        Assert.True(cube.IsInsideLocal(Vector3f.Zero));
 
-        cube.Node.SetTransform(new Vector3(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 2.0f, 2.0f));
-        Assert.Equal(Intersection.Inside, cube.GetWorldBoundingBox().IsInside(new Vector3(10.5f, 0.0f, 0.0f)));
-        Assert.True(cube.IsInside(new Vector3(10.5f, 0.0f, 0.0f)));
+        cube.Node.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f));
+        Assert.Equal(Intersection.Inside, cube.GetWorldBoundingBox().IsInside(new Vector3f(10.5f, 0.0f, 0.0f)));
+        Assert.True(cube.IsInside(new Vector3f(10.5f, 0.0f, 0.0f)));
     }
 }

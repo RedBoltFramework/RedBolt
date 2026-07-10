@@ -21,17 +21,17 @@ public enum LightImportance
     NotImportant
 }
 
-public readonly record struct CascadeParameters(Vector4 Splits, float FadeStart, float BiasAutoAdjust = 1.0f)
+public readonly record struct CascadeParameters(Vector4f Splits, float FadeStart, float BiasAutoAdjust = 1.0f)
 {
     public CascadeParameters(float split1, float split2, float split3, float split4, float fadeStart, float biasAutoAdjust = 1.0f)
-        : this(new Vector4(split1, split2, split3, split4), fadeStart, biasAutoAdjust)
+        : this(new Vector4f(split1, split2, split3, split4), fadeStart, biasAutoAdjust)
     {
     }
 
     public float GetShadowRange() => Math.Max(Math.Max(Splits.X, Splits.Y), Math.Max(Splits.Z, Splits.W));
 
     public CascadeParameters Validated() => new(
-        new Vector4(Math.Max(Splits.X, 0.0f), Math.Max(Splits.Y, 0.0f), Math.Max(Splits.Z, 0.0f), Math.Max(Splits.W, 0.0f)),
+        new Vector4f(Math.Max(Splits.X, 0.0f), Math.Max(Splits.Y, 0.0f), Math.Max(Splits.Z, 0.0f), Math.Max(Splits.W, 0.0f)),
         MathDefs.Clamp(FadeStart, MathDefs.Epsilon, 1.0f),
         BiasAutoAdjust);
 }

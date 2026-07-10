@@ -371,7 +371,7 @@ public sealed class AutoExposurePass : RenderPass
 
         var applyExposureParameters = new ApplyExposureParameters
         {
-            MinMaxExposure = new Vector2(_currentParameters.MinExposure, _currentParameters.MaxExposure),
+            MinMaxExposure = new Vector2f(_currentParameters.MinExposure, _currentParameters.MaxExposure),
             AutoExposureMiddleGrey = 0.6f
         };
 
@@ -427,7 +427,7 @@ public sealed class AutoExposurePass : RenderPass
     private struct InputInvSizeParameters
     {
         [ShaderParameterName("InputInvSize")]
-        public Vector2 InputInvSize;
+        public Vector2f InputInvSize;
     }
 
     private struct AdaptRateParameters
@@ -439,7 +439,7 @@ public sealed class AutoExposurePass : RenderPass
     private struct ApplyExposureParameters
     {
         [ShaderParameterName("MinMaxExposure")]
-        public Vector2 MinMaxExposure;
+        public Vector2f MinMaxExposure;
 
         [ShaderParameterName("AutoExposureMiddleGrey")]
         public float AutoExposureMiddleGrey;
@@ -452,13 +452,13 @@ public sealed class AutoExposurePass : RenderPass
 
         _cachedBuffers ??= new CachedBuffers
         {
-            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(128, 128)),
-            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(64, 64)),
-            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(16, 16)),
-            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2(4, 4)),
-            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2(1, 1)),
-            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2(1, 1)),
-            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2(1, 1))
+            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(128, 128)),
+            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(64, 64)),
+            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(16, 16)),
+            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(4, 4)),
+            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1)),
+            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2f(1, 1)),
+            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1))
         };
         return _cachedBuffers;
     }
@@ -475,10 +475,10 @@ public sealed class AutoExposurePass : RenderPass
 
     private void EvaluateLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
     {
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Color128, buffers.Lum64, "LUMINANCE64", new Vector2(1.0f / 128.0f, 1.0f / 128.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum64, buffers.Lum16, "LUMINANCE16", new Vector2(1.0f / 64.0f, 1.0f / 64.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum16, buffers.Lum4, "LUMINANCE4", new Vector2(1.0f / 16.0f, 1.0f / 16.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum4, buffers.Lum1, "LUMINANCE1", new Vector2(1.0f / 4.0f, 1.0f / 4.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Color128, buffers.Lum64, "LUMINANCE64", new Vector2f(1.0f / 128.0f, 1.0f / 128.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum64, buffers.Lum16, "LUMINANCE16", new Vector2f(1.0f / 64.0f, 1.0f / 64.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum16, buffers.Lum4, "LUMINANCE4", new Vector2f(1.0f / 16.0f, 1.0f / 16.0f));
+        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum4, buffers.Lum1, "LUMINANCE1", new Vector2f(1.0f / 4.0f, 1.0f / 4.0f));
     }
 
     private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
@@ -503,14 +503,14 @@ public sealed class AutoExposurePass : RenderPass
             secondaryTexture: buffers.Lum1.Texture,
             depthTexture: null,
             adaptRateParameters,
-            new Vector2(1.0f, 1.0f),
+            new Vector2f(1.0f, 1.0f),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
         _isAdaptedLuminanceInitialized = true;
     }
 
     private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source,
-        TextureRenderBuffer target, string shaderDefines, Vector2 inputInvSize)
+        TextureRenderBuffer target, string shaderDefines, Vector2f inputInvSize)
     {
         var inputInvSizeParameters = new InputInvSizeParameters
         {
@@ -545,8 +545,8 @@ public sealed class BloomPass : RenderPass
     private const string MaxBrightnessName = "Bloom: Max Brightness";
     private const string IntensityName = "Bloom: Base Intensity";
     private const string IterationFactorName = "Bloom: Iteration Intensity Factor";
-    private static readonly Vector3 LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
-    private static readonly Vector3 GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
+    private static readonly Vector3f LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
+    private static readonly Vector3f GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
     private readonly List<TextureCache> _textures = [];
     private readonly List<float> _intensityMultipliers = [];
     private Parameters _currentParameters = new();
@@ -686,16 +686,16 @@ public sealed class BloomPass : RenderPass
     private struct BloomParameters
     {
         [ShaderParameterName("LuminanceWeights")]
-        public Vector3 LuminanceWeights;
+        public Vector3f LuminanceWeights;
 
         [ShaderParameterName("Intensity")]
         public float Intensity;
 
         [ShaderParameterName("InputInvSize")]
-        public Vector2 InputInvSize;
+        public Vector2f InputInvSize;
 
         [ShaderParameterName("Threshold")]
-        public Vector2 Threshold;
+        public Vector2f Threshold;
     }
 
     private void InvalidateTextureCache()
@@ -712,7 +712,7 @@ public sealed class BloomPass : RenderPass
         {
             var format = _isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
             var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
-            var sizeMultiplier = Vector2.One / (1u << (int)i);
+            var sizeMultiplier = Vector2f.One / (1u << (int)i);
             _textures.Add(new TextureCache
             {
                 Final = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
@@ -721,7 +721,7 @@ public sealed class BloomPass : RenderPass
         }
     }
 
-    private uint GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3 luminanceWeights)
+    private uint GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3f luminanceWeights)
     {
         var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
         if (viewportTexture is null)
@@ -734,7 +734,7 @@ public sealed class BloomPass : RenderPass
         var bloomParameters = CreateBloomParameters(
             luminanceWeights,
             intensity: 0.0f,
-            new Vector2(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height));
+            new Vector2f(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height));
 
         renderBufferManager.SetRenderTargets(graphics, destination);
         graphics.DrawFullscreenQuad(
@@ -761,10 +761,10 @@ public sealed class BloomPass : RenderPass
     }
 
     private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
-        TextureRenderBuffer temporary, Vector3 luminanceWeights)
+        TextureRenderBuffer temporary, Vector3f luminanceWeights)
     {
         var texture = final.Texture;
-        var invInputSize = new Vector2(
+        var invInputSize = new Vector2f(
             texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
             texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
 
@@ -807,7 +807,7 @@ public sealed class BloomPass : RenderPass
 
     private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
     {
-        var bloomParameters = CreateBloomParameters(Vector3.Zero, intensity, renderBufferManager.GetInvOutputSize());
+        var bloomParameters = CreateBloomParameters(Vector3f.Zero, intensity, renderBufferManager.GetInvOutputSize());
         graphics.DrawFullscreenQuad(
             "Apply bloom",
             "P_Bloom",
@@ -822,7 +822,7 @@ public sealed class BloomPass : RenderPass
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
     }
 
-    private BloomParameters CreateBloomParameters(Vector3 luminanceWeights, float intensity, Vector2 inputInvSize)
+    private BloomParameters CreateBloomParameters(Vector3f luminanceWeights, float intensity, Vector2f inputInvSize)
     {
         var thresholdGap = Math.Max(0.01f, _currentParameters.MaxBrightness - _currentParameters.MinBrightness);
         return new BloomParameters
@@ -830,7 +830,7 @@ public sealed class BloomPass : RenderPass
             LuminanceWeights = luminanceWeights,
             Intensity = intensity,
             InputInvSize = inputInvSize,
-            Threshold = new Vector2(_currentParameters.MinBrightness, 1.0f / thresholdGap)
+            Threshold = new Vector2f(_currentParameters.MinBrightness, 1.0f / thresholdGap)
         };
     }
 }
@@ -951,8 +951,8 @@ public sealed class AmbientOcclusionPass : RenderPass
             return;
 
         var clipToTextureSpace = Matrix4.Identity;
-        clipToTextureSpace.Scale = new Vector3(0.5f, 0.5f, 1.0f);
-        clipToTextureSpace.Translation = new Vector3(0.5f, 0.5f, 0.0f);
+        clipToTextureSpace.Scale = new Vector3f(0.5f, 0.5f, 1.0f);
+        clipToTextureSpace.Translation = new Vector3f(0.5f, 0.5f, 0.0f);
 
         var viewToTextureSpace = clipToTextureSpace * camera.GetGPUProjection();
         var textureToViewSpace = viewToTextureSpace.Inverted;
@@ -1004,10 +1004,10 @@ public sealed class AmbientOcclusionPass : RenderPass
     private struct AmbientOcclusionParameters
     {
         [ShaderParameterName("InputInvSize")]
-        public Vector2 InputInvSize;
+        public Vector2f InputInvSize;
 
         [ShaderParameterName("BlurStep")]
-        public Vector2 BlurStep;
+        public Vector2f BlurStep;
 
         [ShaderParameterName("Strength")]
         public float Strength;
@@ -1016,10 +1016,10 @@ public sealed class AmbientOcclusionPass : RenderPass
         public float Exponent;
 
         [ShaderParameterName("RadiusInfo")]
-        public Vector4 RadiusInfo;
+        public Vector4f RadiusInfo;
 
         [ShaderParameterName("FadeDistance")]
-        public Vector2 FadeDistance;
+        public Vector2f FadeDistance;
 
         [ShaderParameterName("ViewToTexture")]
         public Matrix4 ViewToTexture;
@@ -1048,7 +1048,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             return;
 
         var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
-        var sizeMultiplier = Vector2.One / (1u << (int)_currentParameters.Downscale);
+        var sizeMultiplier = Vector2f.One / (1u << (int)_currentParameters.Downscale);
         var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
         _textures = new TextureCache
         {
@@ -1070,7 +1070,7 @@ public sealed class AmbientOcclusionPass : RenderPass
 
         var radiusSlope = (_currentParameters.RadiusFar - _currentParameters.RadiusNear)
             / Math.Max(1.0f, _currentParameters.DistanceFar - _currentParameters.DistanceNear);
-        var radiusInfo = new Vector4(
+        var radiusInfo = new Vector4f(
             radiusSlope,
             _currentParameters.RadiusNear - radiusSlope * _currentParameters.DistanceNear,
             _currentParameters.RadiusNear,
@@ -1083,7 +1083,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             Strength = _currentParameters.Strength,
             Exponent = _currentParameters.Exponent,
             RadiusInfo = radiusInfo,
-            FadeDistance = new Vector2(_currentParameters.FadeDistanceBegin, _currentParameters.FadeDistanceEnd),
+            FadeDistance = new Vector2f(_currentParameters.FadeDistanceBegin, _currentParameters.FadeDistanceEnd),
             ViewToTexture = viewToTextureSpace,
             TextureToView = textureToViewSpace,
             WorldToView = worldToViewSpaceCorrected
@@ -1111,18 +1111,18 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
-        var textureSize = new IntVector2(_textures.CurrentTarget.Texture.Width, _textures.CurrentTarget.Texture.Height);
-        var blurStep = new Vector2(
+        var textureSize = new Vector2i(_textures.CurrentTarget.Texture.Width, _textures.CurrentTarget.Texture.Height);
+        var blurStep = new Vector2f(
             textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
             textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
 
         var shaderDefines = _normalBuffer is not null ? "BLUR DEFERRED" : "BLUR";
-        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(blurStep.X, 0.0f), shaderDefines, "SSAO Blur Horizontally");
-        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
+        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2f(blurStep.X, 0.0f), shaderDefines, "SSAO Blur Horizontally");
+        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2f(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
     }
 
     private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture,
-        Matrix4 textureToViewSpace, Vector2 blurStep, string shaderDefines, string debugComment)
+        Matrix4 textureToViewSpace, Vector2f blurStep, string shaderDefines, string debugComment)
     {
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
@@ -1203,7 +1203,7 @@ public sealed class OutlineRenderPass : RenderPass
 
         var outlineParameters = new OutlineParameters
         {
-            InputInvSize = new Vector2(
+            InputInvSize = new Vector2f(
             texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
             texture.Height > 0 ? 1.0f / texture.Height : 0.0f)
         };
@@ -1234,7 +1234,7 @@ public sealed class OutlineRenderPass : RenderPass
     private struct OutlineParameters
     {
         [ShaderParameterName("InputInvSize")]
-        public Vector2 InputInvSize;
+        public Vector2f InputInvSize;
     }
 }
 

@@ -28,7 +28,7 @@ public sealed class ControllerTests
         scene.Update(0.5f);
         Input.SetKey(Key.W, Scancode.W, false);
 
-        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3(0.0f, 0.0f, 10.0f)));
+        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(0.0f, 0.0f, 10.0f)));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class ControllerTests
         Input.SetKey(Key.E, Scancode.E, false);
         Input.SetKey(Key.S, Scancode.S, false);
 
-        Assert.True(movement.GetVelocity().ApproximatelyEquivalent(new Vector3(1.0f, 0.0f, 1.0f)));
+        Assert.True(movement.GetVelocity().ApproximatelyEquivalent(new Vector3f(1.0f, 0.0f, 1.0f)));
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetYaw(), 25.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), 25.0f));
         Assert.Equal("Input/MoveController", controller.GetInputMapAttr().Name);

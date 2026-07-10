@@ -115,16 +115,16 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
     }
 
     public float SumRGB() => R + G + B;
-    public Vector3 ToHSL()
+    public Vector3f ToHSL()
     {
         Bounds(out var min, out var max, clipped: true);
-        return new Vector3(Hue(min, max), SaturationHSL(min, max), (max + min) * 0.5f);
+        return new Vector3f(Hue(min, max), SaturationHSL(min, max), (max + min) * 0.5f);
     }
 
-    public Vector3 ToHSV()
+    public Vector3f ToHSV()
     {
         Bounds(out var min, out var max, clipped: true);
-        return new Vector3(Hue(min, max), SaturationHSV(min, max), max);
+        return new Vector3f(Hue(min, max), SaturationHSV(min, max), max);
     }
 
     public uint ToUInt()
@@ -145,8 +145,8 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
-    public Vector3 ToVector3() => new(R, G, B);
-    public Vector4 ToVector4() => new(R, G, B, A);
+    public Vector3f ToVector3() => new(R, G, B);
+    public Vector4f ToVector4() => new(R, G, B, A);
     public float Value() => MaxRGB();
 
     public bool ApproximatelyEquivalent(Color rhs, float epsilon = MathDefs.Epsilon) =>

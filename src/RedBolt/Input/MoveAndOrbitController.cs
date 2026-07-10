@@ -123,7 +123,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
         if (!MathDefs.ApproximatelyEquivalent(originalPitch, pitch))
             _component.SetPitch(pitch);
 
-        var velocity = new Vector3(MathDefs.Clamp(right, -1.0f, 1.0f), 0.0f, MathDefs.Clamp(forward, -1.0f, 1.0f));
+        var velocity = new Vector3f(MathDefs.Clamp(right, -1.0f, 1.0f), 0.0f, MathDefs.Clamp(forward, -1.0f, 1.0f));
         if (!_component.GetVelocity().ApproximatelyEquivalent(velocity))
             _component.SetVelocity(velocity);
     }

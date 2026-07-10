@@ -27,7 +27,7 @@ public class StaticModel : Drawable
 
     public uint LightmapIndex { get; set; }
 
-    public Vector4 LightmapScaleOffset { get; set; } = new(1.0f, 1.0f, 0.0f, 0.0f);
+    public Vector4f LightmapScaleOffset { get; set; } = new(1.0f, 1.0f, 0.0f, 0.0f);
 
     public void SetModel(Model? model)
     {
@@ -102,21 +102,21 @@ public class StaticModel : Drawable
 
     public uint GetLightmapIndex() => LightmapIndex;
 
-    public void SetLightmapScaleOffset(Vector4 scaleOffset)
+    public void SetLightmapScaleOffset(Vector4f scaleOffset)
     {
         LightmapScaleOffset = scaleOffset;
     }
 
-    public Vector4 GetLightmapScaleOffset() => LightmapScaleOffset;
+    public Vector4f GetLightmapScaleOffset() => LightmapScaleOffset;
 
     public Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
         return Model?.GetGeometry(batchIndex, level);
     }
 
-    public bool IsInside(Vector3 point) => IsInsideLocal(Node.WorldToLocal(point));
+    public bool IsInside(Vector3f point) => IsInsideLocal(Node.WorldToLocal(point));
 
-    public bool IsInsideLocal(Vector3 point) => GetBoundingBox().IsInside(point) != Intersection.Outside;
+    public bool IsInsideLocal(Vector3f point) => GetBoundingBox().IsInside(point) != Intersection.Outside;
 
     private void ResizeMaterials(uint count)
     {

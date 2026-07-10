@@ -20,7 +20,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D,
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
-            new IntVector3(16, 8, 1)));
+            new Vector3i(16, 8, 1)));
 
         var texture = Assert.IsType<Texture2D>(rawTexture.GetTexture());
         var parameters = rawTexture.GetParams();
@@ -41,7 +41,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D,
             TextureFormat.RGBA8,
             TextureFlag.None,
-            new IntVector3(4, 4, 1)));
+            new Vector3i(4, 4, 1)));
         var samplerState = SamplerStateDesc.Bilinear(TextureAddressMode.Clamp);
         samplerState[TextureCoordinate.W] = TextureAddressMode.Mirror;
         samplerState.Anisotropy = 6;
@@ -65,12 +65,12 @@ public sealed class RawTextureTests
             TextureType.TextureCube,
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
-            new IntVector3(32, 16, 1)));
+            new Vector3i(32, 16, 1)));
         var arrayTexture = new RawTexture(new RawTextureParams(
             TextureType.Texture2DArray,
             TextureFormat.Depth24Stencil8,
             TextureFlag.BindDepthStencil,
-            new IntVector3(8, 4, 1),
+            new Vector3i(8, 4, 1),
             ArraySize: 3u));
 
         var cube = Assert.IsType<TextureCube>(cubeTexture.GetTexture());
@@ -91,7 +91,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D,
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
-            new IntVector3(64, 64, 1));
+            new Vector3i(64, 64, 1));
 
         var first = renderPool.GetTexture(parameters);
         var second = renderPool.GetTexture(parameters);
@@ -112,7 +112,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D,
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
-            new IntVector3(32, 32, 1));
+            new Vector3i(32, 32, 1));
 
         var first = renderPool.GetTexture(parameters, persistenceKey: (nint)1);
         var second = renderPool.GetTexture(parameters, persistenceKey: (nint)1);
@@ -129,7 +129,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D,
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
-            new IntVector3(16, 16, 1)));
+            new Vector3i(16, 16, 1)));
 
         var renderTargetView = RenderTargetView.Texture(rawTexture);
         var readOnlyDepthView = RenderTargetView.ReadOnlyDepth(rawTexture);
@@ -147,7 +147,7 @@ public sealed class RawTextureTests
                 TextureType.Texture2D,
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget,
-                new IntVector3(32, 16, 1)));
+                new Vector3i(32, 16, 1)));
 
             var handle = rawTexture.GetHandle();
 
@@ -169,7 +169,7 @@ public sealed class RawTextureTests
                 TextureType.Texture2D,
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
-                new IntVector3(16, 16, 1)));
+                new Vector3i(16, 16, 1)));
             var key = new RawTextureUAVKey(NumLevels: 1u);
 
             var firstView = rawTexture.CreateUAV(key);
@@ -197,7 +197,7 @@ public sealed class RawTextureTests
                 TextureType.Texture2DArray,
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
-                new IntVector3(8, 8, 1),
+                new Vector3i(8, 8, 1),
                 ArraySize: 4u,
                 NumLevels: 3u));
             var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstSlice: 1u, FirstLevel: 1u);
@@ -229,7 +229,7 @@ public sealed class RawTextureTests
                 TextureType.Texture2D,
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget,
-                new IntVector3(16, 16, 1)));
+                new Vector3i(16, 16, 1)));
 
             Assert.Null(rawTexture.CreateUAV(new RawTextureUAVKey()));
             Assert.Null(rawTexture.GetUAV(new RawTextureUAVKey()));

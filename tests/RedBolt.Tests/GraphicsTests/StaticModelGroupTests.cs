@@ -25,9 +25,9 @@ public sealed class StaticModelGroupTests
         group.SetModel(model);
         group.SetMaterial(material);
         var a = scene.CreateChild("A");
-        a.SetPosition(new Vector3(30.0f, 0.0f, 0.0f));
+        a.SetPosition(new Vector3f(30.0f, 0.0f, 0.0f));
         var b = scene.CreateChild("B");
-        b.SetPosition(new Vector3(40.0f, 0.0f, 0.0f));
+        b.SetPosition(new Vector3f(40.0f, 0.0f, 0.0f));
 
         group.AddInstanceNode(a);
         group.AddInstanceNode(b);

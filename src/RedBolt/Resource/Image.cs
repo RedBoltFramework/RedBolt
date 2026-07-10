@@ -304,7 +304,7 @@ public sealed class Image : Resource
 
     public uint GetComponents() => Components;
 
-    public IntVector3 GetSize() => new(Width, Height, Depth);
+    public Vector3i GetSize() => new(Width, Height, Depth);
 
     public byte[] GetData() => _data;
 

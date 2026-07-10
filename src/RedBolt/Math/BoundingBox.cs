@@ -5,9 +5,9 @@ namespace RedBolt;
 [StructLayout(LayoutKind.Sequential)]
 public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<BoundingBox>
 {
-    public Vector3 Min;
+    public Vector3f Min;
     private float _dummyMin;
-    public Vector3 Max;
+    public Vector3f Max;
     private float _dummyMax;
 
     public BoundingBox(BoundingBox box)
@@ -20,13 +20,13 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public BoundingBox(Rect rect)
     {
-        Min = new Vector3(rect.Min, 0.0f);
-        Max = new Vector3(rect.Max, 0.0f);
+        Min = new Vector3f(rect.Min, 0.0f);
+        Max = new Vector3f(rect.Max, 0.0f);
         _dummyMin = 0.0f;
         _dummyMax = 0.0f;
     }
 
-    public BoundingBox(Vector3 min, Vector3 max)
+    public BoundingBox(Vector3f min, Vector3f max)
     {
         Min = min;
         Max = max;
@@ -36,16 +36,16 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public BoundingBox(float min, float max)
     {
-        Min = new Vector3(min, min, min);
-        Max = new Vector3(max, max, max);
+        Min = new Vector3f(min, min, min);
+        Max = new Vector3f(max, max, max);
         _dummyMin = 0.0f;
         _dummyMax = 0.0f;
     }
 
-    public BoundingBox(IReadOnlyList<Vector3> vertices)
+    public BoundingBox(IReadOnlyList<Vector3f> vertices)
     {
-        Min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-        Max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        Min = new Vector3f(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Max = new Vector3f(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
         _dummyMin = 0.0f;
         _dummyMax = 0.0f;
         Define(vertices);
@@ -53,35 +53,35 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public BoundingBox(Sphere sphere)
     {
-        Min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-        Max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        Min = new Vector3f(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Max = new Vector3f(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
         _dummyMin = 0.0f;
         _dummyMax = 0.0f;
         Define(sphere);
     }
 
-    public Vector3 Center => (Min + Max) * 0.5f;
+    public Vector3f Center => (Min + Max) * 0.5f;
     public bool Defined => Min.X != float.PositiveInfinity;
-    public Vector3 HalfSize => (Max - Min) * 0.5f;
-    public Vector3 Size => Max - Min;
+    public Vector3f HalfSize => (Max - Min) * 0.5f;
+    public Vector3f Size => Max - Min;
 
     public void Clear()
     {
-        Min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-        Max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        Min = new Vector3f(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Max = new Vector3f(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
     }
 
     public void Define(BoundingBox box) => Define(box.Min, box.Max);
-    public void Define(Rect rect) => Define(new Vector3(rect.Min, 0.0f), new Vector3(rect.Max, 0.0f));
-    public void Define(float min, float max) => Define(new Vector3(min, min, min), new Vector3(max, max, max));
-    public void Define(Vector3 point) => Min = Max = point;
-    public void Define(Vector3 min, Vector3 max)
+    public void Define(Rect rect) => Define(new Vector3f(rect.Min, 0.0f), new Vector3f(rect.Max, 0.0f));
+    public void Define(float min, float max) => Define(new Vector3f(min, min, min), new Vector3f(max, max, max));
+    public void Define(Vector3f point) => Min = Max = point;
+    public void Define(Vector3f min, Vector3f max)
     {
         Min = min;
         Max = max;
     }
 
-    public void Define(IReadOnlyList<Vector3> vertices)
+    public void Define(IReadOnlyList<Vector3f> vertices)
     {
         Clear();
         Merge(vertices);
@@ -89,7 +89,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public void Define(Sphere sphere)
     {
-        var offset = new Vector3(sphere.Radius, sphere.Radius, sphere.Radius);
+        var offset = new Vector3f(sphere.Radius, sphere.Radius, sphere.Radius);
         Define(sphere.Center - offset, sphere.Center + offset);
     }
 
@@ -112,7 +112,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
             Clear();
     }
 
-    public Intersection IsInside(Vector3 point)
+    public Intersection IsInside(Vector3f point)
     {
         return point.X < Min.X || point.X > Max.X || point.Y < Min.Y || point.Y > Max.Y || point.Z < Min.Z || point.Z > Max.Z
             ? Intersection.Outside
@@ -165,7 +165,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public Intersection IsInsideFast(Sphere sphere) => IsInside(sphere) == Intersection.Outside ? Intersection.Outside : Intersection.Inside;
 
-    public void Merge(Vector3 point)
+    public void Merge(Vector3f point)
     {
         if (point.X < Min.X)
             Min.X = point.X;
@@ -181,7 +181,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
             Max.Z = point.Z;
     }
 
-    public void Merge(IReadOnlyList<Vector3> vertices)
+    public void Merge(IReadOnlyList<Vector3f> vertices)
     {
         foreach (var vertex in vertices)
             Merge(vertex);
@@ -197,7 +197,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public void Merge(Sphere sphere)
     {
-        var offset = new Vector3(sphere.Radius, sphere.Radius, sphere.Radius);
+        var offset = new Vector3f(sphere.Radius, sphere.Radius, sphere.Radius);
         Merge(sphere.Center - offset);
         Merge(sphere.Center + offset);
     }
@@ -206,12 +206,12 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         var rect = new Rect();
         rect.Merge((projection * Min).ToVector2());
-        rect.Merge((projection * new Vector3(Max.X, Min.Y, Min.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(Min.X, Max.Y, Min.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(Max.X, Max.Y, Min.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(Min.X, Min.Y, Max.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(Max.X, Min.Y, Max.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(Min.X, Max.Y, Max.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Max.X, Min.Y, Min.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Min.X, Max.Y, Min.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Max.X, Max.Y, Min.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Min.X, Min.Y, Max.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Max.X, Min.Y, Max.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(Min.X, Max.Y, Max.Z)).ToVector2());
         rect.Merge((projection * Max).ToVector2());
         return rect;
     }
@@ -227,12 +227,12 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
         var rect = new Rect();
         rect.Merge((projection * projMin).ToVector2());
-        rect.Merge((projection * new Vector3(projMax.X, projMin.Y, projMin.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(projMin.X, projMax.Y, projMin.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(projMax.X, projMax.Y, projMin.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(projMin.X, projMin.Y, projMax.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(projMax.X, projMin.Y, projMax.Z)).ToVector2());
-        rect.Merge((projection * new Vector3(projMin.X, projMax.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMax.X, projMin.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMin.X, projMax.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMax.X, projMax.Y, projMin.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMin.X, projMin.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMax.X, projMin.Y, projMax.Z)).ToVector2());
+        rect.Merge((projection * new Vector3f(projMin.X, projMax.Y, projMax.Z)).ToVector2());
         rect.Merge((projection * projMax).ToVector2());
         return rect;
     }
@@ -240,10 +240,10 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     public void Transform(Matrix3 transform) => this = Transformed(transform);
     public void Transform(Matrix3x4 transform) => this = Transformed(transform);
 
-    public float DistanceToPoint(Vector3 point)
+    public float DistanceToPoint(Vector3f point)
     {
         var offset = Center - point;
-        return Vector3.Max(Vector3.Zero, offset.Abs - HalfSize).Length;
+        return Vector3f.Max(Vector3f.Zero, offset.Abs - HalfSize).Length;
     }
 
     public BoundingBox Transformed(Matrix3 transform)
@@ -255,7 +255,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         var newCenter = transform * Center;
         var oldEdge = HalfSize;
-        var newEdge = new Vector3(
+        var newEdge = new Vector3f(
             Math.Abs(transform.M00) * oldEdge.X + Math.Abs(transform.M01) * oldEdge.Y + Math.Abs(transform.M02) * oldEdge.Z,
             Math.Abs(transform.M10) * oldEdge.X + Math.Abs(transform.M11) * oldEdge.Y + Math.Abs(transform.M12) * oldEdge.Z,
             Math.Abs(transform.M20) * oldEdge.X + Math.Abs(transform.M21) * oldEdge.Y + Math.Abs(transform.M22) * oldEdge.Z);

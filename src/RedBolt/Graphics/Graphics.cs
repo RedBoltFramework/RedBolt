@@ -63,8 +63,8 @@ layout(std140) uniform Material
 #define cFadeOffsetScale uFadeOffsetScale.xy
 """;
 
-    private static readonly Vector4 DefaultAmbient = new(0.0f, 0.0f, 0.0f, 1.0f);
-    private static readonly Vector4 DefaultFogColor = new(0.03f, 0.05f, 0.09f, 1.0f);
+    private static readonly Vector4f DefaultAmbient = new(0.0f, 0.0f, 0.0f, 1.0f);
+    private static readonly Vector4f DefaultFogColor = new(0.03f, 0.05f, 0.09f, 1.0f);
     private static readonly byte[] DefaultAlbedoTextureData = [255, 255, 255, 255];
     private static readonly byte[] DefaultNormalTextureData = [128, 128, 255, 255];
     private static readonly byte[] DefaultPropertiesTextureData = [255, 255, 255, 255];
@@ -123,7 +123,7 @@ layout(std140) uniform Material
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainDepthFormat;
     private readonly PipelineStateOutputDesc _currentOutputDesc = new();
     private IntRect _currentViewport;
-    private IntVector2 _currentRenderTargetSize;
+    private Vector2i _currentRenderTargetSize;
     private bool _isSwapChainRenderTarget;
     private IntPtr _glContext;
     private bool _shaderReflectionDiagnosticsDumped;
@@ -577,7 +577,7 @@ layout(std140) uniform Material
 
     internal IntRect GetCurrentViewportRect() => _currentViewport;
 
-    internal IntVector2 GetCurrentRenderTargetSize() => _currentRenderTargetSize;
+    internal Vector2i GetCurrentRenderTargetSize() => _currentRenderTargetSize;
 
     internal PipelineStateOutputDesc GetCurrentRenderTargetsDesc() => _currentOutputDesc;
 
@@ -587,7 +587,7 @@ layout(std140) uniform Material
     {
         ArgumentNullException.ThrowIfNull(sourceTexture);
 
-        var invInputSize = new Vector2(
+        var invInputSize = new Vector2f(
             sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
             sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
         DrawFullscreenQuad(
@@ -601,7 +601,7 @@ layout(std140) uniform Material
             depthTexture: null,
             EmptyFullscreenParameters,
             invInputSize,
-            new Vector4(0.5f, 0.5f, 0.5f, 0.5f),
+            new Vector4f(0.5f, 0.5f, 0.5f, 0.5f),
             flipVertical);
     }
 
@@ -630,7 +630,7 @@ layout(std140) uniform Material
 
     internal void DrawFullscreenQuad(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
         bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
-        IReadOnlyDictionary<string, object?> parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale,
+        IReadOnlyDictionary<string, object?> parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale,
         bool flipVertical = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
@@ -656,7 +656,7 @@ layout(std140) uniform Material
 
     internal void DrawFullscreenQuad<TParameters>(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
         bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
-        in TParameters parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical = false)
+        in TParameters parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical = false)
         where TParameters : struct
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
@@ -680,7 +680,7 @@ layout(std140) uniform Material
     }
 
     internal void DrawClearFramebufferQuad(string debugComment, ClearTarget flags, IReadOnlyDictionary<string, object?> parameters,
-        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
+        Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
@@ -706,7 +706,7 @@ layout(std140) uniform Material
     }
 
     internal void DrawClearFramebufferQuad<TParameters>(string debugComment, ClearTarget flags, in TParameters parameters,
-        Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, byte stencil = 0)
+        Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, byte stencil = 0)
         where TParameters : struct
     {
         if (!IsInitialized || _immediateContext is null || _device is null || _currentRenderTargetCount == 0)
@@ -963,9 +963,9 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
-        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+        var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
@@ -1045,9 +1045,9 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
-        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+        var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
@@ -1093,9 +1093,9 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3.Zero);
+        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
-        var drawableAmbient = drawableZone is not null ? new Vector4(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+        var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
 
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
@@ -1139,7 +1139,7 @@ layout(std140) uniform Material
 
     private (uint DrawCalls, uint Primitives) RenderGeometryPass(ResourceCache resourceCache, Viewport viewport, Material material,
         Pass pass, Geometry geometry, VertexBuffer vertexBuffer, StaticModel staticModel, Zone? cameraZone, Zone? drawableZone,
-        Vector4 drawableAmbient, Light? light)
+        Vector4f drawableAmbient, Light? light)
     {
         var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, light);
         var uploadedGeometry = GetOrCreateUploadedGeometry(geometry);
@@ -1533,7 +1533,7 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
-    private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    private void UpdateFullscreenCameraBuffer(IBuffer buffer, Vector4f clipToUvOffsetAndScale, Vector2f invInputSize, bool flipVertical)
     {
         Span<byte> data = stackalloc byte[CameraBufferSize];
         WriteFullscreenCameraBufferData(data, clipToUvOffsetAndScale, invInputSize, flipVertical);
@@ -1549,7 +1549,7 @@ layout(std140) uniform Material
     }
 
     private void DrawFullscreenQuad(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
-        IReadOnlyDictionary<string, object?> parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical)
+        IReadOnlyDictionary<string, object?> parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
@@ -1569,7 +1569,7 @@ layout(std140) uniform Material
     }
 
     private void DrawFullscreenQuad<TParameters>(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture,
-        Texture? depthTexture, in TParameters parameters, Vector2 invInputSize, Vector4 clipToUvOffsetAndScale, bool flipVertical)
+        Texture? depthTexture, in TParameters parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical)
         where TParameters : struct
     {
         if (_immediateContext is null)
@@ -1780,9 +1780,9 @@ layout(std140) uniform Material
                 };
             }
 
-            if (type == typeof(Vector2))
+            if (type == typeof(Vector2f))
             {
-                var getter = Expression.Lambda<Func<T, Vector2>>(access, parameter).Compile();
+                var getter = Expression.Lambda<Func<T, Vector2f>>(access, parameter).Compile();
                 return (buffer, field, value) =>
                 {
                     if (field.Kind == CustomUniformKind.Vector2)
@@ -1790,19 +1790,19 @@ layout(std140) uniform Material
                 };
             }
 
-            if (type == typeof(Vector3))
+            if (type == typeof(Vector3f))
             {
-                var getter = Expression.Lambda<Func<T, Vector3>>(access, parameter).Compile();
+                var getter = Expression.Lambda<Func<T, Vector3f>>(access, parameter).Compile();
                 return (buffer, field, value) =>
                 {
                     if (field.Kind == CustomUniformKind.Vector3)
-                        WriteVector4(buffer, field.Offset, new Vector4(getter(value), 0.0f));
+                        WriteVector4(buffer, field.Offset, new Vector4f(getter(value), 0.0f));
                 };
             }
 
-            if (type == typeof(Vector4))
+            if (type == typeof(Vector4f))
             {
-                var getter = Expression.Lambda<Func<T, Vector4>>(access, parameter).Compile();
+                var getter = Expression.Lambda<Func<T, Vector4f>>(access, parameter).Compile();
                 return (buffer, field, value) =>
                 {
                     if (field.Kind == CustomUniformKind.Vector4)
@@ -1891,17 +1891,17 @@ layout(std140) uniform Material
                 break;
 
             case CustomUniformKind.Vector2:
-                if (value is Vector2 vector2)
+                if (value is Vector2f vector2)
                     WriteVector2(buffer, field.Offset, vector2);
                 break;
 
             case CustomUniformKind.Vector3:
-                if (value is Vector3 vector3)
-                    WriteVector4(buffer, field.Offset, new Vector4(vector3, 0.0f));
+                if (value is Vector3f vector3)
+                    WriteVector4(buffer, field.Offset, new Vector4f(vector3, 0.0f));
                 break;
 
             case CustomUniformKind.Vector4:
-                if (value is Vector4 vector4)
+                if (value is Vector4f vector4)
                     WriteVector4(buffer, field.Offset, vector4);
                 break;
 
@@ -2556,15 +2556,15 @@ layout(std140) uniform Material
         _ => 0
     };
 
-    private IntVector2 ResolveRenderTargetSize(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget, IntRect viewportRect)
+    private Vector2i ResolveRenderTargetSize(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget, IntRect viewportRect)
     {
         if (colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true)
-            return new IntVector2(Width, Height);
+            return new Vector2i(Width, Height);
         if (colorTarget?.RenderTexture is { } colorTexture)
-            return new IntVector2(colorTexture.Width, colorTexture.Height);
+            return new Vector2i(colorTexture.Width, colorTexture.Height);
         if (depthStencilTarget?.RenderTexture is { } depthTexture)
-            return new IntVector2(depthTexture.Width, depthTexture.Height);
-        return new IntVector2(viewportRect.Width, viewportRect.Height);
+            return new Vector2i(depthTexture.Width, depthTexture.Height);
+        return new Vector2i(viewportRect.Width, viewportRect.Height);
     }
 
     private void UpdateCurrentOutputDesc(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
@@ -2699,14 +2699,14 @@ layout(std140) uniform Material
         };
     }
 
-    private static byte[] BuildFullscreenCameraBufferData(Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    private static byte[] BuildFullscreenCameraBufferData(Vector4f clipToUvOffsetAndScale, Vector2f invInputSize, bool flipVertical)
     {
         var data = new byte[CameraBufferSize];
         WriteFullscreenCameraBufferData(data, clipToUvOffsetAndScale, invInputSize, flipVertical);
         return data;
     }
 
-    private static void WriteFullscreenCameraBufferData(Span<byte> data, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    private static void WriteFullscreenCameraBufferData(Span<byte> data, Vector4f clipToUvOffsetAndScale, Vector2f invInputSize, bool flipVertical)
     {
         var projection = Matrix4.Identity;
         if (flipVertical)
@@ -2715,22 +2715,22 @@ layout(std140) uniform Material
         WriteMatrix4Raw(data, 0, Matrix4.Identity);
         WriteMatrix4Raw(data, 64, Matrix4.Identity);
         WriteMatrix4Raw(data, 128, projection);
-        WriteVector4(data, 192, Vector4.Zero);
-        WriteVector4(data, 208, Vector4.Zero);
+        WriteVector4(data, 192, Vector4f.Zero);
+        WriteVector4(data, 208, Vector4f.Zero);
         WriteFloat(data, 224, 0.0f);
         WriteFloat(data, 228, 1.0f);
-        WriteVector4(data, 240, new Vector4(0.0f, 0.0f, 0.5f, 0.5f));
-        WriteVector4(data, 256, Vector4.Zero);
+        WriteVector4(data, 240, new Vector4f(0.0f, 0.0f, 0.5f, 0.5f));
+        WriteVector4(data, 256, Vector4f.Zero);
         WriteVector4(data, 272, clipToUvOffsetAndScale);
-        WriteVector4(data, 288, Vector4.Zero);
+        WriteVector4(data, 288, Vector4f.Zero);
         WriteVector2(data, 304, invInputSize);
         WriteVector4(data, 320, DefaultAmbient);
-        WriteVector4(data, 336, Vector4.Zero);
-        WriteVector3(data, 352, new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
+        WriteVector4(data, 336, Vector4f.Zero);
+        WriteVector3(data, 352, new Vector3f(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
         WriteFloat(data, 364, 0.0f);
     }
 
-    private static void WriteFullscreenCameraBufferData(byte[] data, Vector4 clipToUvOffsetAndScale, Vector2 invInputSize, bool flipVertical)
+    private static void WriteFullscreenCameraBufferData(byte[] data, Vector4f clipToUvOffsetAndScale, Vector2f invInputSize, bool flipVertical)
     {
         ArgumentNullException.ThrowIfNull(data);
         WriteFullscreenCameraBufferData(data.AsSpan(), clipToUvOffsetAndScale, invInputSize, flipVertical);
@@ -2742,25 +2742,25 @@ layout(std140) uniform Material
         WriteMatrix4Raw(data, 0, camera.GetView().Matrix4);
         WriteMatrix4Raw(data, 64, camera.GetInverseView().Matrix4);
         WriteMatrix4Raw(data, 128, camera.GetGPUViewProj());
-        WriteVector4(data, 192, new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3.Zero;
-        WriteVector4(data, 208, new Vector4(cameraPosition, 0.0f));
+        WriteVector4(data, 192, new Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        WriteVector4(data, 208, new Vector4f(cameraPosition, 0.0f));
         WriteFloat(data, 224, camera.GetNearClip());
         WriteFloat(data, 228, camera.GetFarClip());
         WriteVector4(data, 240, GetDepthMode(camera));
         var frustumSize = camera.GetViewSizeAt(camera.GetFarClip());
-        WriteVector4(data, 256, new Vector4(frustumSize.X, frustumSize.Y, camera.GetFarClip(), 0.0f));
-        WriteVector4(data, 272, new Vector4(0.0f, 0.0f, 1.0f, 1.0f));
+        WriteVector4(data, 256, new Vector4f(frustumSize.X, frustumSize.Y, camera.GetFarClip(), 0.0f));
+        WriteVector4(data, 272, new Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
         WriteVector4(data, 288, GetDepthReconstruct(camera));
-        WriteVector2(data, 304, new Vector2(1.0f / Math.Max(Width, 1), 1.0f / Math.Max(Height, 1)));
-        WriteVector4(data, 320, zone is not null ? new Vector4(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient);
+        WriteVector2(data, 304, new Vector2f(1.0f / Math.Max(Width, 1), 1.0f / Math.Max(Height, 1)));
+        WriteVector4(data, 320, zone is not null ? new Vector4f(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient);
         WriteVector4(data, 336, GetFogParameters(camera, zone));
-        WriteVector3(data, 352, zone is not null ? zone.GetFogColor().ToVector3() : new Vector3(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
+        WriteVector3(data, 352, zone is not null ? zone.GetFogColor().ToVector3() : new Vector3f(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
         WriteFloat(data, 364, 0.0f);
         UpdateBuffer(buffer, data);
     }
 
-    private void UpdateObjectBuffer(IBuffer buffer, Matrix4 modelMatrix, Vector4 ambient)
+    private void UpdateObjectBuffer(IBuffer buffer, Matrix4 modelMatrix, Vector4f ambient)
     {
         Span<byte> data = stackalloc byte[ObjectBufferSize];
         WriteMatrix4Raw(data, 0, modelMatrix);
@@ -2771,24 +2771,24 @@ layout(std140) uniform Material
     private void UpdateMaterialBuffer(IBuffer buffer, Material material)
     {
         Span<byte> data = stackalloc byte[MaterialBufferSize];
-        WriteVector4(data, 0, material.GetShaderParameter("UOffset") is Vector4 uOffset ? uOffset : Vector4.Zero);
-        WriteVector4(data, 16, material.GetShaderParameter("VOffset") is Vector4 vOffset ? vOffset : Vector4.Zero);
-        WriteVector4(data, 32, material.GetShaderParameter("MatDiffColor") is Vector4 diff ? diff : Vector4.One);
-        WriteVector4(data, 48, material.GetShaderParameter("MatSpecColor") is Vector4 spec ? spec : new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        WriteVector4(data, 0, material.GetShaderParameter("UOffset") is Vector4f uOffset ? uOffset : Vector4f.Zero);
+        WriteVector4(data, 16, material.GetShaderParameter("VOffset") is Vector4f vOffset ? vOffset : Vector4f.Zero);
+        WriteVector4(data, 32, material.GetShaderParameter("MatDiffColor") is Vector4f diff ? diff : Vector4f.One);
+        WriteVector4(data, 48, material.GetShaderParameter("MatSpecColor") is Vector4f spec ? spec : new Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
 
-        var emissive = material.GetShaderParameter("MatEmissiveColor") as Vector3? ?? Vector3.Zero;
+        var emissive = material.GetShaderParameter("MatEmissiveColor") as Vector3f? ?? Vector3f.Zero;
         var roughness = material.GetShaderParameter("Roughness") is float roughnessValue ? roughnessValue : 1.0f;
-        WriteVector4(data, 64, new Vector4(emissive, roughness));
+        WriteVector4(data, 64, new Vector4f(emissive, roughness));
 
-        var env = material.GetShaderParameter("MatEnvMapColor") as Vector3? ?? Vector3.One;
+        var env = material.GetShaderParameter("MatEnvMapColor") as Vector3f? ?? Vector3f.One;
         var metallic = material.GetShaderParameter("Metallic") is float metallicValue ? metallicValue : 1.0f;
-        WriteVector4(data, 80, new Vector4(env, metallic));
+        WriteVector4(data, 80, new Vector4f(env, metallic));
 
         var normalScale = material.GetShaderParameter("NormalScale") is float normalScaleValue ? normalScaleValue : 1.0f;
         var dielectricReflectance = material.GetShaderParameter("DielectricReflectance") is float dielectric ? dielectric : 0.5f;
         var alphaCutoff = material.GetShaderParameter("AlphaCutoff") is float alpha ? alpha : 0.5f;
-        WriteVector4(data, 96, new Vector4(normalScale, dielectricReflectance, alphaCutoff, 0.0f));
-        WriteVector4(data, 112, new Vector4(0.0f, 1.0f, 0.0f, 0.0f));
+        WriteVector4(data, 96, new Vector4f(normalScale, dielectricReflectance, alphaCutoff, 0.0f));
+        WriteVector4(data, 112, new Vector4f(0.0f, 1.0f, 0.0f, 0.0f));
         UpdateBuffer(buffer, data);
     }
 
@@ -2797,15 +2797,15 @@ layout(std140) uniform Material
         Span<byte> data = stackalloc byte[LightBufferSize];
         if (light is not null && light.IsAttached)
         {
-            WriteVector4(data, 0, new Vector4(light.Node.WorldPosition, 0.0f));
-            WriteVector4(data, 16, new Vector4((-light.Node.WorldDirection).Normalized, 0.0f));
-            WriteVector4(data, 32, new Vector4(light.GetEffectiveColor().ToVector3(), light.GetEffectiveSpecularIntensity()));
+            WriteVector4(data, 0, new Vector4f(light.Node.WorldPosition, 0.0f));
+            WriteVector4(data, 16, new Vector4f((-light.Node.WorldDirection).Normalized, 0.0f));
+            WriteVector4(data, 32, new Vector4f(light.GetEffectiveColor().ToVector3(), light.GetEffectiveSpecularIntensity()));
         }
         else
         {
-            WriteVector4(data, 0, Vector4.Zero);
-            WriteVector4(data, 16, new Vector4(0.0f, -1.0f, 0.0f, 0.0f));
-            WriteVector4(data, 32, Vector4.Zero);
+            WriteVector4(data, 0, Vector4f.Zero);
+            WriteVector4(data, 16, new Vector4f(0.0f, -1.0f, 0.0f, 0.0f));
+            WriteVector4(data, 32, Vector4f.Zero);
         }
 
         UpdateBuffer(buffer, data);
@@ -3214,27 +3214,27 @@ layout(std140) uniform Material
             Math.Clamp(rect.Bottom, 0, Height));
     }
 
-    private static Vector4 GetDepthMode(Camera camera)
+    private static Vector4f GetDepthMode(Camera camera)
     {
         if (camera.IsOrthographic())
-            return new Vector4(1.0f, 0.0f, 0.5f, 0.5f);
+            return new Vector4f(1.0f, 0.0f, 0.5f, 0.5f);
 
-        return new Vector4(0.0f, 0.0f, 0.0f, 1.0f / Math.Max(camera.GetFarClip(), MathDefs.Epsilon));
+        return new Vector4f(0.0f, 0.0f, 0.0f, 1.0f / Math.Max(camera.GetFarClip(), MathDefs.Epsilon));
     }
 
-    private static Vector4 GetDepthReconstruct(Camera camera)
+    private static Vector4f GetDepthReconstruct(Camera camera)
     {
         var nearClip = camera.GetNearClip();
         var farClip = camera.GetFarClip();
         var range = Math.Max(farClip - nearClip, MathDefs.Epsilon);
-        return new Vector4(
+        return new Vector4f(
             farClip / range,
             -nearClip / range,
             camera.IsOrthographic() ? 1.0f : 0.0f,
             camera.IsOrthographic() ? 0.0f : 1.0f);
     }
 
-    private static Vector4 GetFogParameters(Camera camera, Zone? zone)
+    private static Vector4f GetFogParameters(Camera camera, Zone? zone)
     {
         var farClip = camera.GetFarClip();
         var fogStart = zone is not null ? Math.Min(zone.GetFogStart(), farClip) : farClip;
@@ -3242,7 +3242,7 @@ layout(std140) uniform Material
         if (fogStart >= fogEnd * (1.0f - 0.0001f))
             fogStart = fogEnd * (1.0f - 0.0001f);
         var fogRange = Math.Max(fogEnd - fogStart, MathDefs.Epsilon);
-        return new Vector4(fogEnd / farClip, farClip / fogRange, 0.0f, 0.0f);
+        return new Vector4f(fogEnd / farClip, farClip / fogRange, 0.0f, 0.0f);
     }
 
     private static float GetZoneRoughnessToLodFactor(Zone? zone)
@@ -3252,7 +3252,7 @@ layout(std140) uniform Material
             : 1.0f;
     }
 
-    private Zone? FindZone(Scene scene, Vector3 worldPosition)
+    private Zone? FindZone(Scene scene, Vector3f worldPosition)
     {
         scene.GetComponents(_zonesScratch);
 
@@ -3270,10 +3270,10 @@ layout(std140) uniform Material
         return bestZone;
     }
 
-    private Vector4 GetAmbientForDrawable(Scene scene, Drawable drawable)
+    private Vector4f GetAmbientForDrawable(Scene scene, Drawable drawable)
     {
         var zone = FindZone(scene, drawable.Node.WorldPosition);
-        return zone is not null ? new Vector4(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
+        return zone is not null ? new Vector4f(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
     }
 
     private static void BindTexture(PipelineResources pipeline, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -3456,20 +3456,20 @@ layout(std140) uniform Material
         MemoryMarshal.Write(buffer.Slice(offset, sizeof(float)), in value);
     }
 
-    private static void WriteVector2(Span<byte> buffer, int offset, Vector2 value)
+    private static void WriteVector2(Span<byte> buffer, int offset, Vector2f value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);
     }
 
-    private static void WriteVector3(Span<byte> buffer, int offset, Vector3 value)
+    private static void WriteVector3(Span<byte> buffer, int offset, Vector3f value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);
         WriteFloat(buffer, offset + 8, value.Z);
     }
 
-    private static void WriteVector4(Span<byte> buffer, int offset, Vector4 value)
+    private static void WriteVector4(Span<byte> buffer, int offset, Vector4f value)
     {
         WriteFloat(buffer, offset + 0, value.X);
         WriteFloat(buffer, offset + 4, value.Y);

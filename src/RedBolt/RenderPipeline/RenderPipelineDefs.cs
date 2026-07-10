@@ -350,7 +350,7 @@ public abstract class LightProcessorCallback
     /// <summary>
     /// Allocate shadow map for one frame.
     /// </summary>
-    public abstract ShadowMapRegion AllocateTransientShadowMap(IntVector2 size);
+    public abstract ShadowMapRegion AllocateTransientShadowMap(Vector2i size);
 }
 
 public enum DrawableAmbientMode
@@ -503,7 +503,7 @@ public sealed class BatchRendererSettings : IEquatable<BatchRendererSettings>
 
     public DrawableAmbientMode AmbientMode { get; set; } = DrawableAmbientMode.Directional;
 
-    public Vector2 VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
+    public Vector2f VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
 
     public uint CalculatePipelineStateHash()
     {
@@ -634,7 +634,7 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
 
     public DrawableAmbientMode AmbientMode { get; set; } = DrawableAmbientMode.Directional;
 
-    public Vector2 VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
+    public Vector2f VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
 
     public SpecularQuality SpecularQuality { get; set; } = SpecularQuality.Simple;
 
@@ -889,7 +889,7 @@ public readonly record struct ShaderResourceDesc(StringHash Name, Texture? Textu
 
 /// <summary>
 /// Generic description of shader parameter.
-/// Beware of Variant allocations for types larger than Vector4!
+/// Beware of Variant allocations for types larger than Vector4f!
 /// </summary>
 public readonly record struct ShaderParameterDesc(StringHash Name, Variant Value);
 
@@ -976,7 +976,7 @@ public sealed class CommonFrameInfo
 
     public float TimeStep { get; set; }
 
-    public IntVector2 ViewportSize { get; set; }
+    public Vector2i ViewportSize { get; set; }
 
     public IntRect ViewportRect { get; set; }
 

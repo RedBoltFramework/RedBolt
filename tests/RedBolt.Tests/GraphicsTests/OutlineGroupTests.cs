@@ -26,13 +26,13 @@ public sealed class OutlineGroupTests
 
         Assert.Same(outlineMaterial, cachedMaterial);
         Assert.Equal(17u, outlineMaterial.GetRenderOrder());
-        Assert.Equal(new Vector4(0.2f, 0.4f, 0.6f, 1.0f), Assert.IsType<Vector4>(outlineMaterial.GetShaderParameter("OutlineColor")));
+        Assert.Equal(new Vector4f(0.2f, 0.4f, 0.6f, 1.0f), Assert.IsType<Vector4f>(outlineMaterial.GetShaderParameter("OutlineColor")));
         Assert.True(outlineMaterial.ShaderParameters["OutlineColor"].IsCustom);
 
         outlineGroup.SetColor(new Color(0.8f, 0.3f, 0.1f, 1.0f));
         outlineGroup.SetRenderOrder(23u);
 
-        Assert.Equal(new Vector4(0.8f, 0.3f, 0.1f, 1.0f), Assert.IsType<Vector4>(outlineMaterial.GetShaderParameter("OutlineColor")));
+        Assert.Equal(new Vector4f(0.8f, 0.3f, 0.1f, 1.0f), Assert.IsType<Vector4f>(outlineMaterial.GetShaderParameter("OutlineColor")));
         Assert.Equal(23u, outlineMaterial.GetRenderOrder());
     }
 

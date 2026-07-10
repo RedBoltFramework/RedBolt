@@ -1,42 +1,101 @@
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public sealed class MemoryBuffer : Deserializer
+public sealed unsafe class MemoryBuffer : AbstractFile
 {
     private readonly byte[] _buffer;
+    private readonly byte* _bufferPtr;
+    private readonly int _bufferOffset;
+    private readonly bool _usesUnmanagedBuffer;
+    private readonly GCHandle _pinnedBuffer;
 
-    public MemoryBuffer(byte[] data, bool readOnly = true)
-        : base((uint)(data?.Length ?? 0))
+    public MemoryBuffer(nint data, uint size, bool readOnly = false)
+        : base(size)
+    {
+        _buffer = [];
+        _bufferPtr = (byte*)data;
+        _bufferOffset = 0;
+        _usesUnmanagedBuffer = true;
+        _pinnedBuffer = default;
+        IsReadOnly = readOnly;
+
+        if (_bufferPtr == null)
+            Size = 0;
+    }
+
+    public MemoryBuffer(byte[] data)
+        : base(GetBufferSize(data))
     {
         ArgumentNullException.ThrowIfNull(data);
         _buffer = data;
-        IsReadOnly = readOnly;
+        _pinnedBuffer = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+        _bufferPtr = (byte*)_pinnedBuffer.AddrOfPinnedObject();
+        _bufferOffset = 0;
+        _usesUnmanagedBuffer = false;
+        IsReadOnly = false;
     }
 
-    public MemoryBuffer(IEnumerable<byte> data, bool readOnly = true)
-        : this(data?.ToArray() ?? throw new ArgumentNullException(nameof(data)), readOnly)
+    public MemoryBuffer(ReadOnlyMemory<byte> data)
+        : base((uint)data.Length)
     {
+        if (!MemoryMarshal.TryGetArray(data, out var segment))
+        {
+            _buffer = data.ToArray();
+            _bufferOffset = 0;
+        }
+        else
+        {
+            _buffer = segment.Array ?? [];
+            _bufferOffset = segment.Offset;
+        }
+
+        _pinnedBuffer = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+        _bufferPtr = (byte*)_pinnedBuffer.AddrOfPinnedObject() + _bufferOffset;
+        _usesUnmanagedBuffer = false;
+        IsReadOnly = true;
     }
 
     public MemoryBuffer(string text)
-        : this(Encoding.UTF8.GetBytes(text ?? string.Empty))
+        : this(Encoding.UTF8.GetBytes(text ?? string.Empty).AsMemory())
     {
     }
 
-    public MemoryBuffer(uint size)
-        : this(new byte[size], readOnly: false)
+    public MemoryBuffer(VectorBuffer data)
+        : base(GetBufferSize(data))
     {
+        ArgumentNullException.ThrowIfNull(data);
+        _buffer = data.GetBuffer();
+        _pinnedBuffer = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+        _bufferPtr = (byte*)_pinnedBuffer.AddrOfPinnedObject();
+        _bufferOffset = 0;
+        _usesUnmanagedBuffer = false;
+        IsReadOnly = false;
+    }
+
+    ~MemoryBuffer()
+    {
+        if (_pinnedBuffer.IsAllocated)
+            _pinnedBuffer.Free();
     }
 
     public bool IsReadOnly { get; }
 
-    public byte[] GetData() => _buffer;
+    public nint GetData() => (nint)_bufferPtr;
 
     public override uint Read(Span<byte> destination)
     {
         var available = (int)Math.Min((uint)destination.Length, Size - Position);
-        _buffer.AsSpan((int)Position, available).CopyTo(destination);
+        if (_usesUnmanagedBuffer)
+        {
+            new ReadOnlySpan<byte>(_bufferPtr + checked((int)Position), available).CopyTo(destination);
+        }
+        else
+        {
+            _buffer.AsSpan(_bufferOffset + checked((int)Position), available).CopyTo(destination);
+        }
+
         Position += (uint)available;
         return (uint)available;
     }
@@ -49,12 +108,29 @@ public sealed class MemoryBuffer : Deserializer
 
     public override uint Write(ReadOnlySpan<byte> data)
     {
-        if (IsReadOnly)
-            return 0;
-
         var available = (int)Math.Min((uint)data.Length, Size - Position);
-        data[..available].CopyTo(_buffer.AsSpan((int)Position, available));
+        if (_usesUnmanagedBuffer)
+        {
+            data[..available].CopyTo(new Span<byte>(_bufferPtr + checked((int)Position), available));
+        }
+        else
+        {
+            data[..available].CopyTo(_buffer.AsSpan(_bufferOffset + checked((int)Position), available));
+        }
+
         Position += (uint)available;
         return (uint)available;
+    }
+
+    private static uint GetBufferSize(byte[] data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return (uint)data.Length;
+    }
+
+    private static uint GetBufferSize(VectorBuffer data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return data.Size;
     }
 }

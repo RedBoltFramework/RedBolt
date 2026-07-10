@@ -34,7 +34,7 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
     public static Matrix2 Zero => ZERO;
     public static Matrix2 Identity => IDENTITY;
 
-    public Vector2 Scale => new(
+    public Vector2f Scale => new(
         MathF.Sqrt(M00 * M00 + M10 * M10),
         MathF.Sqrt(M01 * M01 + M11 * M11));
 
@@ -52,7 +52,7 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
 
     public float[] Data => [M00, M01, M10, M11];
 
-    public void SetScale(Vector2 scale)
+    public void SetScale(Vector2f scale)
     {
         M00 = scale.X;
         M11 = scale.Y;
@@ -64,7 +64,7 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         M11 = scale;
     }
 
-    public Matrix2 Scaled(Vector2 scale) => new(
+    public Matrix2 Scaled(Vector2f scale) => new(
         M00 * scale.X,
         M01 * scale.Y,
         M10 * scale.X,
@@ -88,7 +88,7 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
     public static bool operator !=(Matrix2 lhs, Matrix2 rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator *(Matrix2 lhs, Vector2 rhs) => new(
+    public static Vector2f operator *(Matrix2 lhs, Vector2f rhs) => new(
         lhs.M00 * rhs.X + lhs.M01 * rhs.Y,
         lhs.M10 * rhs.X + lhs.M11 * rhs.Y);
 

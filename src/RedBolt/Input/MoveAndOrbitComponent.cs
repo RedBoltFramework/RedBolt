@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class MoveAndOrbitComponent : LogicComponent
 {
-    private Vector3 _velocity = Vector3.Zero;
+    private Vector3f _velocity = Vector3f.Zero;
     private float _yaw;
     private float _pitch;
 
@@ -10,10 +10,10 @@ public sealed class MoveAndOrbitComponent : LogicComponent
     {
         RegisterAttribute(
             "Velocity",
-            typeof(Vector3),
+            typeof(Vector3f),
             self => ((MoveAndOrbitComponent)self).GetVelocity(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetVelocity(value is Vector3 velocityValue ? velocityValue : Vector3.Zero),
-            Vector3.Zero);
+            (self, value) => ((MoveAndOrbitComponent)self).SetVelocity(value is Vector3f velocityValue ? velocityValue : Vector3f.Zero),
+            Vector3f.Zero);
         RegisterAttribute(
             "Yaw",
             typeof(float),
@@ -28,7 +28,7 @@ public sealed class MoveAndOrbitComponent : LogicComponent
             0.0f);
     }
 
-    public void SetVelocity(Vector3 velocity)
+    public void SetVelocity(Vector3f velocity)
     {
         this._velocity = velocity;
     }
@@ -43,7 +43,7 @@ public sealed class MoveAndOrbitComponent : LogicComponent
         this._pitch = MathDefs.Clamp(pitch, -90.0f, 90.0f);
     }
 
-    public Vector3 GetVelocity() => _velocity;
+    public Vector3f GetVelocity() => _velocity;
 
     public float GetYaw() => _yaw;
 

@@ -16,8 +16,8 @@ public sealed class DirectionAggregator
     private readonly AxisAdapter _axisAdapter = new();
     private bool _enabled;
     private DirectionAggregatorMask _subscriptionMask = DirectionAggregatorMask.All;
-    private Vector2 _externalDirection = Vector2.Zero;
-    private Vector2 _touchDirection = Vector2.Zero;
+    private Vector2f _externalDirection = Vector2f.Zero;
+    private Vector2f _touchDirection = Vector2f.Zero;
     private object? _uiElement;
 
     public DirectionAggregator(Input? input = null)
@@ -60,20 +60,20 @@ public sealed class DirectionAggregator
 
     public float GetDeadZone() => _axisAdapter.GetDeadZone();
 
-    public void SetExternalDirection(Vector2 direction)
+    public void SetExternalDirection(Vector2f direction)
     {
         _externalDirection = direction;
     }
 
-    public void SetTouchDirection(Vector2 direction)
+    public void SetTouchDirection(Vector2f direction)
     {
         _touchDirection = direction;
     }
 
-    public Vector2 GetDirection()
+    public Vector2f GetDirection()
     {
         if (!_enabled)
-            return Vector2.Zero;
+            return Vector2f.Zero;
 
         var direction = _externalDirection;
         if ((_subscriptionMask & DirectionAggregatorMask.Touch) != 0)
@@ -89,7 +89,7 @@ public sealed class DirectionAggregator
         return ClampDirection(direction);
     }
 
-    private Vector2 GetKeyboardDirection()
+    private Vector2f GetKeyboardDirection()
     {
         var x = 0.0f;
         var y = 0.0f;
@@ -101,13 +101,13 @@ public sealed class DirectionAggregator
             y += 1.0f;
         if (IsPressed(Scancode.W, Key.Up))
             y -= 1.0f;
-        return new Vector2(x, y);
+        return new Vector2f(x, y);
     }
 
-    private Vector2 GetJoystickDirection()
+    private Vector2f GetJoystickDirection()
     {
         if (_input is null)
-            return Vector2.Zero;
+            return Vector2f.Zero;
 
         var x = _axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftX));
         var y = _axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftY));
@@ -123,7 +123,7 @@ public sealed class DirectionAggregator
         if (_input.GetHatDown(HatPosition.Up))
             y -= 1.0f;
 
-        return new Vector2(x, y);
+        return new Vector2f(x, y);
     }
 
     private bool IsPressed(Scancode scancode, Key key)
@@ -131,9 +131,9 @@ public sealed class DirectionAggregator
         return _input is not null && (_input.GetScancodeDown(scancode) || _input.GetKeyDown(key));
     }
 
-    private static Vector2 ClampDirection(Vector2 direction)
+    private static Vector2f ClampDirection(Vector2f direction)
     {
-        return new Vector2(
+        return new Vector2f(
             MathDefs.Clamp(direction.X, -1.0f, 1.0f),
             MathDefs.Clamp(direction.Y, -1.0f, 1.0f));
     }

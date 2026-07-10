@@ -28,7 +28,7 @@ public sealed class ModelFileTests
             Assert.Equal(1u, plane.GetNumGeometryLodLevels(0));
             Assert.NotNull(plane.GetGeometry(0)!.GetVertexBuffer(0));
             Assert.True((((VertexMask)plane.GetGeometry(0)!.GetVertexBuffer(0)!.GetElementMask()) & VertexMask.Position) != 0);
-            Assert.Equal(Intersection.Inside, plane.GetBoundingBox().IsInside(Vector3.Zero));
+            Assert.Equal(Intersection.Inside, plane.GetBoundingBox().IsInside(Vector3f.Zero));
 
             Assert.NotNull(mushroom.GetGeometry(0));
             Assert.True(mushroom.GetNumGeometryLodLevels(0) >= 2u);

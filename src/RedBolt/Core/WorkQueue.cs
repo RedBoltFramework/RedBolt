@@ -318,6 +318,56 @@ public sealed class WorkQueue : Object
         return GetThreadIndex() < _threadIndexCount;
     }
 
+    public static void ForEachParallel(WorkQueue workQueue, uint bucket, uint size, Action<uint, uint> callback)
+    {
+        ArgumentNullException.ThrowIfNull(workQueue);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (size <= bucket)
+        {
+            if (size > 0)
+                callback(0, size);
+            return;
+        }
+
+        var offset = -checked((int)bucket);
+        var maxThreads = Math.Max(1u, workQueue.GetNumProcessingThreads());
+        for (var i = 0u; i < maxThreads; ++i)
+        {
+            workQueue.PostTask((_, _) =>
+            {
+                while (true)
+                {
+                    var beginIndex = (uint)(Interlocked.Add(ref offset, checked((int)bucket)));
+                    if (beginIndex >= size)
+                        break;
+
+                    var endIndex = Math.Min(beginIndex + bucket, size);
+                    callback(beginIndex, endIndex);
+                }
+            }, TaskPriority.Immediate);
+        }
+        workQueue.CompleteImmediateForThisThread();
+    }
+
+    public static void ForEachParallel<T>(WorkQueue workQueue, uint bucket, IReadOnlyList<T> collection, Action<uint, T> callback)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var collectionSize = (uint)collection.Count;
+        ForEachParallel(workQueue, bucket, collectionSize, (beginIndex, endIndex) =>
+        {
+            for (var index = beginIndex; index < endIndex; ++index)
+                callback(index, collection[checked((int)index)]);
+        });
+    }
+
+    public static void ForEachParallel<T>(WorkQueue workQueue, IReadOnlyList<T> collection, Action<uint, T> callback)
+    {
+        ForEachParallel(workQueue, 1u, collection, callback);
+    }
+
     [Obsolete("Use PostTaskForMainThread instead.")]
     public void CallFromMainThread(Action<uint> workFunction)
     {

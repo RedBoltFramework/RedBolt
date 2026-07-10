@@ -186,7 +186,7 @@ public class RenderContext : Object
 
     public bool IsDebugScopeEnabled() => false;
 
-    public IntVector2 GetCurrentRenderTargetSize()
+    public Vector2i GetCurrentRenderTargetSize()
     {
         UpdateCurrentRenderTargetInfo();
         return GetGraphics()?.GetCurrentRenderTargetSize() ?? default;
@@ -227,15 +227,15 @@ public class RenderContext : Object
 
     private Graphics? GetGraphics() => GetSubsystem<Graphics>();
 
-    private IntVector2 ResolveRenderTargetSize(RenderTargetView? colorTarget, OptionalRawTextureRTV depthStencil)
+    private Vector2i ResolveRenderTargetSize(RenderTargetView? colorTarget, OptionalRawTextureRTV depthStencil)
     {
         var depthStencilView = depthStencil.GetValueOrDefault();
         if (colorTarget?.IsSwapChain == true || depthStencilView?.IsSwapChain == true)
             return _renderDevice.GetSwapChainSize();
         if (colorTarget?.RenderTexture is { } colorTexture)
-            return new IntVector2(colorTexture.Width, colorTexture.Height);
+            return new Vector2i(colorTexture.Width, colorTexture.Height);
         if (depthStencilView?.RenderTexture is { } depthTexture)
-            return new IntVector2(depthTexture.Width, depthTexture.Height);
+            return new Vector2i(depthTexture.Width, depthTexture.Height);
         return _renderDevice.GetSwapChainSize();
     }
 }

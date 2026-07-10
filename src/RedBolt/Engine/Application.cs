@@ -13,7 +13,7 @@ public abstract class Application
 
     public int ExitCode { get; private set; }
 
-    public string? ErrorMessage { get; private set; }
+    public string ErrorMessage { get; private set; } = string.Empty;
 
     public int MaxFrameCount { get; set; } = 10_000;
 
@@ -51,14 +51,15 @@ public abstract class Application
 
     public int Run()
     {
-        return Run(null);
+        return Run(Environment.GetCommandLineArgs().Skip(1).ToArray());
     }
 
-    public int Run(string[]? args)
+    public int Run(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         var parameters = new EngineParameters();
         Setup(parameters);
-        args ??= Environment.GetCommandLineArgs().Skip(1).ToArray();
 
         if (parameters.EngineCliParameters)
         {
@@ -147,7 +148,7 @@ public abstract class Application
         Engine.Exit();
     }
 
-    protected void ErrorExit(string? message = null)
+    protected void ErrorExit(string message = "")
     {
         ErrorMessage = string.IsNullOrWhiteSpace(message)
             ? "Application has been terminated due to unexpected error."

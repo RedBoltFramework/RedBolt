@@ -318,4 +318,48 @@ public sealed class WorkQueueTests
         Assert.Equal(0u, workQueue.GetNumProcessingThreads());
         Assert.False(workQueue.IsMultithreaded());
     }
+
+    [Fact]
+    public void ForEachParallel_calls_callback_directly_when_size_does_not_exceed_bucket()
+    {
+        var workQueue = GetWorkQueue();
+        var ranges = new List<(uint Begin, uint End)>();
+
+        WorkQueue.ForEachParallel(workQueue, 4u, 3u, (begin, end) => ranges.Add((begin, end)));
+
+        Assert.Equal([(0u, 3u)], ranges);
+    }
+
+    [Fact]
+    public void ForEachParallel_covers_full_index_range_without_gaps()
+    {
+        var workQueue = GetWorkQueue();
+        workQueue.Initialize(0);
+
+        var processed = new bool[10];
+        WorkQueue.ForEachParallel(workQueue, 3u, 10u, (begin, end) =>
+        {
+            for (var index = begin; index < end; ++index)
+                processed[index] = true;
+        });
+
+        Assert.All(processed, Assert.True);
+    }
+
+    [Fact]
+    public void ForEachParallel_collection_overload_reports_index_and_value()
+    {
+        var workQueue = GetWorkQueue();
+        workQueue.Initialize(0);
+        var values = new[] { 10, 20, 30, 40 };
+        var results = new List<(uint Index, int Value)>();
+
+        WorkQueue.ForEachParallel(workQueue, 2u, values, (index, value) => results.Add((index, value)));
+
+        Assert.Equal(values.Length, results.Count);
+        Assert.Contains((0u, 10), results);
+        Assert.Contains((1u, 20), results);
+        Assert.Contains((2u, 30), results);
+        Assert.Contains((3u, 40), results);
+    }
 }

@@ -3,8 +3,8 @@ namespace RedBolt;
 public abstract class Serializable : Object
 {
     private readonly List<AttributeInfo> _attributes = [];
-    private readonly Dictionary<StringHash, object?> _attributeValues = new();
-    private readonly Dictionary<StringHash, object?> _instanceDefaultValues = new();
+    private readonly Dictionary<StringHash, object> _attributeValues = new();
+    private readonly Dictionary<StringHash, object> _instanceDefaultValues = new();
     private bool _setInstanceDefault;
 
     public IReadOnlyList<AttributeInfo> Attributes => _attributes;
@@ -30,24 +30,24 @@ public abstract class Serializable : Object
             SetAttribute(attribute.Name, source.GetAttribute(attribute.Name));
     }
 
-    public object? GetAttribute(int index)
+    public object GetAttribute(int index)
     {
         return index >= 0 && index < _attributes.Count ? OnGetAttribute(_attributes[index]) : null;
     }
 
-    public object? GetAttribute(uint index)
+    public object GetAttribute(uint index)
     {
         return index <= int.MaxValue ? GetAttribute((int)index) : null;
     }
 
-    public object? GetAttribute(string name)
+    public object GetAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
         return attribute is not null ? OnGetAttribute(attribute) : null;
     }
 
-    public object? GetAttributeDefault(int index)
+    public object GetAttributeDefault(int index)
     {
         if (index < 0 || index >= _attributes.Count)
             return null;
@@ -55,12 +55,12 @@ public abstract class Serializable : Object
         return GetAttributeDefault(_attributes[index]);
     }
 
-    public object? GetAttributeDefault(uint index)
+    public object GetAttributeDefault(uint index)
     {
         return index <= int.MaxValue ? GetAttributeDefault((int)index) : null;
     }
 
-    public object? GetAttributeDefault(string name)
+    public object GetAttributeDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
@@ -72,7 +72,7 @@ public abstract class Serializable : Object
         return Attributes;
     }
 
-    public object? GetInstanceDefault(string name)
+    public object GetInstanceDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return _instanceDefaultValues.GetValueOrDefault(new StringHash(name));
@@ -88,25 +88,25 @@ public abstract class Serializable : Object
         return false;
     }
 
-    public virtual object? OnGetAttribute(AttributeInfo attribute)
+    public virtual object OnGetAttribute(AttributeInfo attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
 
-        if (attribute.Getter is not null)
-            return attribute.Getter(this);
+        if (attribute.Accessor is not null)
+            return attribute.Accessor.Get(this);
 
         return _attributeValues.TryGetValue(attribute.NameHash, out var value) ? value : GetAttributeDefault(attribute);
     }
 
-    public virtual void OnSetAttribute(AttributeInfo attribute, object? value)
+    public virtual void OnSetAttribute(AttributeInfo attribute, object value)
     {
         ArgumentNullException.ThrowIfNull(attribute);
 
         if (_setInstanceDefault)
             _instanceDefaultValues[attribute.NameHash] = value;
 
-        if (attribute.Setter is not null)
-            attribute.Setter(this, value);
+        if (attribute.Accessor is not null)
+            attribute.Accessor.Set(this, value);
         else
             _attributeValues[attribute.NameHash] = value;
     }
@@ -137,7 +137,7 @@ public abstract class Serializable : Object
         return false;
     }
 
-    public bool SetAttribute(int index, object? value)
+    public bool SetAttribute(int index, object value)
     {
         if (index < 0 || index >= _attributes.Count)
             return false;
@@ -150,12 +150,12 @@ public abstract class Serializable : Object
         return true;
     }
 
-    public bool SetAttribute(uint index, object? value)
+    public bool SetAttribute(uint index, object value)
     {
         return index <= int.MaxValue && SetAttribute((int)index, value);
     }
 
-    public bool SetAttribute(string name, object? value)
+    public bool SetAttribute(string name, object value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
@@ -174,7 +174,7 @@ public abstract class Serializable : Object
         _setInstanceDefault = enable;
     }
 
-    public void SetInstanceDefault(string name, object? defaultValue)
+    public void SetInstanceDefault(string name, object defaultValue)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _instanceDefaultValues[new StringHash(name)] = defaultValue;
@@ -215,22 +215,41 @@ public abstract class Serializable : Object
     protected AttributeHandle RegisterAttribute(
         string name,
         Type valueType,
-        Func<Serializable, object?>? getter = null,
-        Action<Serializable, object?>? setter = null,
-        object? defaultValue = null,
+        AttributeAccessor accessor,
+        object defaultValue = null,
         AttributeMode mode = AttributeMode.Default,
-        IReadOnlyList<string>? enumNames = null)
+        IReadOnlyList<string> enumNames = null)
+    {
+        ArgumentNullException.ThrowIfNull(accessor);
+
+        var existing = FindAttribute(name);
+        if (existing is not null)
+            return new AttributeHandle(existing);
+
+        var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, accessor);
+        _attributes.Add(attribute);
+        return new AttributeHandle(attribute);
+    }
+
+    protected AttributeHandle RegisterAttribute(
+        string name,
+        Type valueType,
+        Func<Serializable, object> getter = null,
+        Action<Serializable, object> setter = null,
+        object defaultValue = null,
+        AttributeMode mode = AttributeMode.Default,
+        IReadOnlyList<string> enumNames = null)
     {
         var existing = FindAttribute(name);
         if (existing is not null)
             return new AttributeHandle(existing);
 
-        var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, getter, setter);
+        var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, accessor: null, getter, setter);
         _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
 
-    private AttributeInfo? FindAttribute(string name)
+    private AttributeInfo FindAttribute(string name)
     {
         var nameHash = new StringHash(name);
         foreach (var attribute in _attributes)
@@ -242,7 +261,7 @@ public abstract class Serializable : Object
         return null;
     }
 
-    private object? GetAttributeDefault(AttributeInfo attribute)
+    private object GetAttributeDefault(AttributeInfo attribute)
     {
         return _instanceDefaultValues.TryGetValue(attribute.NameHash, out var value) ? value : attribute.DefaultValue;
     }

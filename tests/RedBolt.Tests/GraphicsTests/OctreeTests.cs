@@ -30,7 +30,7 @@ public sealed class OctreeTests
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
         var cube = scene.CreateChild("Cube").CreateComponent<StaticModel>();
-        cube.Node.SetPosition(new Vector3(10.0f, 0.0f, 0.0f));
+        cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
         octree.Update();
 
@@ -46,7 +46,7 @@ public sealed class OctreeTests
 
         var cube = scene.CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
-        cube.Node.SetPosition(new Vector3(10.0f, 0.0f, 0.0f));
+        cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
         octree.Update();
 
@@ -61,12 +61,12 @@ public sealed class OctreeTests
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
         var cubeNode = scene.CreateChild("Cube");
-        cubeNode.SetPosition(new Vector3(10.0f, 0.0f, 0.0f));
+        cubeNode.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         var cube = cubeNode.CreateComponent<StaticModel>();
         octree.QueueUpdate(cube);
         octree.Update();
 
-        var ray = new Ray(cube.GetWorldBoundingBox().Center - Vector3.Forward * 10.0f, Vector3.Forward);
+        var ray = new Ray(cube.GetWorldBoundingBox().Center - Vector3f.Forward * 10.0f, Vector3f.Forward);
         var hit = octree.RaycastSingle(ray, maxDistance: 100.0f);
         Assert.NotNull(hit);
         Assert.Same(cube, hit.Drawable);
@@ -81,7 +81,7 @@ public sealed class OctreeTests
 
         var manual = new StaticModel();
         manual.SetBoundingBox(new BoundingBox(
-            new Vector3(20.0f, 20.0f, 20.0f), new Vector3(21.0f, 21.0f, 21.0f)));
+            new Vector3f(20.0f, 20.0f, 20.0f), new Vector3f(21.0f, 21.0f, 21.0f)));
         octree.AddManualDrawable(manual);
         Assert.Contains(manual, octree.GetAllDrawables());
 

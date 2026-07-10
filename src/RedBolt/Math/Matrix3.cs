@@ -33,7 +33,7 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
         M22 = v22;
     }
 
-    public Matrix3(float angle, Vector3 axis)
+    public Matrix3(float angle, Vector3f axis)
         : this(Quaternion.FromAngleAxis(angle, axis).RotationMatrix)
     {
     }
@@ -43,15 +43,21 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
     {
     }
 
+    public static readonly Matrix3 ZERO = new(
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f);
     public static readonly Matrix3 IDENTITY = new();
+
+    public static Matrix3 Zero => ZERO;
     public static Matrix3 Identity => IDENTITY;
-    public Vector3 Scale => new(
+    public Vector3f Scale => new(
         MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
         MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
         MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
     public Matrix3 Transposed => new(M00, M10, M20, M01, M11, M21, M02, M12, M22);
 
-    public void SetScale(Vector3 scale)
+    public void SetScale(Vector3f scale)
     {
         M00 = scale.X;
         M11 = scale.Y;
@@ -65,12 +71,12 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
         M22 = scale;
     }
 
-    public Vector3 SignedScale(Matrix3 rotation) => new(
+    public Vector3f SignedScale(Matrix3 rotation) => new(
         rotation.M00 * M00 + rotation.M10 * M10 + rotation.M20 * M20,
         rotation.M01 * M01 + rotation.M11 * M11 + rotation.M21 * M21,
         rotation.M02 * M02 + rotation.M12 * M12 + rotation.M22 * M22);
 
-    public Matrix3 Scaled(Vector3 scale) => new(
+    public Matrix3 Scaled(Vector3f scale) => new(
         M00 * scale.X, M01 * scale.Y, M02 * scale.Z,
         M10 * scale.X, M11 * scale.Y, M12 * scale.Z,
         M20 * scale.X, M21 * scale.Y, M22 * scale.Z);
@@ -114,7 +120,7 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
     public static bool operator !=(Matrix3 lhs, Matrix3 rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator *(Matrix3 lhs, Vector3 rhs) => new(
+    public static Vector3f operator *(Matrix3 lhs, Vector3f rhs) => new(
         lhs.M00 * rhs.X + lhs.M01 * rhs.Y + lhs.M02 * rhs.Z,
         lhs.M10 * rhs.X + lhs.M11 * rhs.Y + lhs.M12 * rhs.Z,
         lhs.M20 * rhs.X + lhs.M21 * rhs.Y + lhs.M22 * rhs.Z);

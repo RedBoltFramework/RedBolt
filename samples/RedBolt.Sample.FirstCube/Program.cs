@@ -34,11 +34,11 @@ sealed class FirstCubeApplication : Application
         scene.CreateComponent<Octree>();
 
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.Position = new Vector3(0.0f, 2.0f, -6.0f);
+        cameraNode.Position = new Vector3f(0.0f, 2.0f, -6.0f);
         var camera = cameraNode.CreateComponent<Camera>();
 
         var lightNode = scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3(0.4f, -1.0f, 0.6f));
+        lightNode.SetDirection(new Vector3f(0.4f, -1.0f, 0.6f));
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
 

@@ -137,7 +137,7 @@ public sealed class RenderPipelineTests
 
         Assert.Equal(1, trackingPass.UpdateCalls);
         Assert.Equal(1, trackingPass.RenderCalls);
-        Assert.Equal(new IntVector2(320, 200), view.GetFrameInfo().ViewportSize);
+        Assert.Equal(new Vector2i(320, 200), view.GetFrameInfo().ViewportSize);
         Assert.Equal(0u, view.GetStats().NumGeometries);
     }
 
@@ -166,7 +166,7 @@ public sealed class RenderPipelineTests
 
             Assert.True(capturePass.WasBufferPresent);
             Assert.Equal(TextureFormat.RGBA8, capturePass.CapturedFormat);
-            Assert.Equal(new IntVector2(320, 200), capturePass.CapturedSize);
+            Assert.Equal(new Vector2i(320, 200), capturePass.CapturedSize);
         }
         finally
         {
@@ -191,7 +191,7 @@ public sealed class RenderPipelineTests
         manager.SwapColorBuffers(synchronizeContents: false);
 
         Assert.NotSame(firstColor, manager.GetColorOutput());
-        Assert.Equal(new IntVector2(640, 360), manager.GetOutputSize());
+        Assert.Equal(new Vector2i(640, 360), manager.GetOutputSize());
     }
 
     [Fact]
@@ -859,10 +859,10 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
-        var scaled = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8), new Vector2(0.5f, 0.5f));
+        var scaled = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8), new Vector2f(0.5f, 0.5f));
         var fixedSize = manager.CreateColorBuffer(
             new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.FixedTextureSize),
-            new Vector2(12, 6));
+            new Vector2f(12, 6));
 
         Assert.Equal((64, 32), (scaled.Texture.Width, scaled.Texture.Height));
         Assert.Equal((12, 6), (fixedSize.Texture.Width, fixedSize.Texture.Height));
@@ -918,7 +918,7 @@ public sealed class RenderPipelineTests
 
         var cubemap = manager.CreateColorBuffer(
             new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.CubeMap | RenderBufferFlag.FixedTextureSize),
-            new Vector2(32, 32));
+            new Vector2f(32, 32));
 
         var cubeTexture = Assert.IsType<TextureCube>(cubemap.Texture);
         Assert.Equal((32, 32), (cubeTexture.Width, cubeTexture.Height));
@@ -1121,7 +1121,7 @@ public sealed class RenderPipelineTests
 
         public TextureFormat CapturedFormat => _state.CapturedFormat;
 
-        public IntVector2 CapturedSize => _state.CapturedSize;
+        public Vector2i CapturedSize => _state.CapturedSize;
 
         public override void Render(SharedRenderPassState sharedState)
         {
@@ -1130,7 +1130,7 @@ public sealed class RenderPipelineTests
                 return;
 
             _state.CapturedFormat = texture.Format;
-            _state.CapturedSize = new IntVector2(texture.Width, texture.Height);
+            _state.CapturedSize = new Vector2i(texture.Width, texture.Height);
         }
 
         public override RenderPass Clone() => new BufferCaptureRenderPass(GetPassName(), _bufferId, _state);
@@ -1139,7 +1139,7 @@ public sealed class RenderPipelineTests
         {
             public bool WasBufferPresent;
             public TextureFormat CapturedFormat;
-            public IntVector2 CapturedSize;
+            public Vector2i CapturedSize;
         }
     }
 

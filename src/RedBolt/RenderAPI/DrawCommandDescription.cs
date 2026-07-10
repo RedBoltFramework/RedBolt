@@ -34,7 +34,7 @@ public sealed class DrawCommandDescription
 
     public uint InstanceCount { get; set; }
 
-    public IntVector3 NumGroups { get; set; }
+    public Vector3i NumGroups { get; set; }
 
     public DrawCommandDescription()
     {

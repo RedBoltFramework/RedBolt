@@ -24,6 +24,8 @@ public abstract class Deserializer : Serializer
 
     public uint GetSize() => Size;
 
+    public virtual uint GetChecksum() => 0;
+
     public virtual bool IsEof() => Position >= Size;
 
     public uint SeekRelative(int delta)
@@ -46,9 +48,39 @@ public abstract class Deserializer : Serializer
         return buffer;
     }
 
+    public void ReadBuffer(List<byte> byteVector)
+    {
+        ArgumentNullException.ThrowIfNull(byteVector);
+
+        var size = checked((int)ReadVLE());
+        byteVector.Clear();
+        if (size == 0)
+            return;
+
+        var buffer = new byte[size];
+        _ = Read(buffer);
+        byteVector.AddRange(buffer);
+    }
+
     public sbyte ReadByte() => unchecked((sbyte)ReadUByte());
 
     public Color ReadColor() => new(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+
+    public Vector3d ReadPackedVector3(VectorBinaryEncoding encoding, float param = 1.0f)
+    {
+        return encoding switch
+        {
+            VectorBinaryEncoding.Float =>
+                new Vector3d(
+                    double.CreateChecked(ReadFloat()),
+                    double.CreateChecked(ReadFloat()),
+                    double.CreateChecked(ReadFloat())),
+            VectorBinaryEncoding.Double => ReadDoubleVector3(),
+            VectorBinaryEncoding.Int32 => new Vector3d(ReadIntVector3()) / MathDefs.MaxInt * param,
+            VectorBinaryEncoding.Int16 => new Vector3d(ReadShort(), ReadShort(), ReadShort()) / MathDefs.MaxShort * param,
+            _ => Vector3d.ZERO
+        };
+    }
 
     public double ReadDouble()
     {
@@ -87,9 +119,25 @@ public abstract class Deserializer : Serializer
 
     public IntRect ReadIntRect() => new(ReadInt(), ReadInt(), ReadInt(), ReadInt());
 
-    public IntVector2 ReadIntVector2() => new(ReadInt(), ReadInt());
+    public Vector2i ReadIntVector2() => new(ReadInt(), ReadInt());
 
-    public IntVector3 ReadIntVector3() => new(ReadInt(), ReadInt(), ReadInt());
+    public Vector3i ReadIntVector3() => new(ReadInt(), ReadInt(), ReadInt());
+
+    public Matrix3 ReadMatrix3() => new(
+        ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat());
+
+    public Matrix3x4 ReadMatrix3x4() => new(
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+
+    public Matrix4 ReadMatrix4() => new(
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
+        ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
 
     public string ReadLine()
     {
@@ -108,7 +156,45 @@ public abstract class Deserializer : Serializer
 
     public Quaternion ReadQuaternion() => new(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
 
+    public Quaternion ReadPackedQuaternion(VectorBinaryEncoding encoding)
+    {
+        switch (encoding)
+        {
+            case VectorBinaryEncoding.Double:
+            case VectorBinaryEncoding.Int32:
+            case VectorBinaryEncoding.Float:
+                return ReadQuaternion();
+
+            case VectorBinaryEncoding.Int16:
+            {
+                var factor = (float)MathDefs.MaxShort;
+                var value = new Quaternion(
+                    ReadShort() * factor,
+                    ReadShort() * factor,
+                    ReadShort() * factor,
+                    ReadShort() * factor);
+                value.Normalize();
+                return value;
+            }
+
+            default:
+                return Quaternion.IDENTITY;
+        }
+    }
+
     public Rect ReadRect() => new(ReadVector2(), ReadVector2());
+
+    public ResourceRef ReadResourceRef() => new(ReadStringHash().Value, ReadString());
+
+    public ResourceRefList ReadResourceRefList()
+    {
+        var type = ReadStringHash().Value;
+        var size = ReadVLE();
+        var names = new StringVector();
+        for (var i = 0u; i < size; ++i)
+            names.Add(ReadString());
+        return new ResourceRefList(type, names);
+    }
 
     public short ReadShort()
     {
@@ -132,6 +218,24 @@ public abstract class Deserializer : Serializer
     }
 
     public StringHash ReadStringHash() => new(ReadUInt());
+
+    public StringVariantMap ReadStringVariantMap()
+    {
+        var result = new StringVariantMap();
+        var count = ReadVLE();
+        for (var i = 0u; i < count; ++i)
+            result[ReadString()] = ReadVariant();
+        return result;
+    }
+
+    public StringVector ReadStringVector()
+    {
+        var result = new StringVector();
+        var count = ReadVLE();
+        for (var i = 0u; i < count; ++i)
+            result.Add(ReadString());
+        return result;
+    }
 
     public byte ReadUByte()
     {
@@ -161,11 +265,75 @@ public abstract class Deserializer : Serializer
         return BinaryPrimitives.ReadUInt16LittleEndian(buffer);
     }
 
-    public Vector2 ReadVector2() => new(ReadFloat(), ReadFloat());
+    public Vector2f ReadVector2() => new(ReadFloat(), ReadFloat());
 
-    public Vector3 ReadVector3() => new(ReadFloat(), ReadFloat(), ReadFloat());
+    public Vector2d ReadDoubleVector2() => new(ReadDouble(), ReadDouble());
 
-    public Vector4 ReadVector4() => new(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+    public Vector3f ReadVector3() => new(ReadFloat(), ReadFloat(), ReadFloat());
+
+    public Vector3d ReadDoubleVector3() => new(ReadDouble(), ReadDouble(), ReadDouble());
+
+    public Vector4f ReadVector4() => new(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+
+    public Variant ReadVariant()
+    {
+        var type = (VariantType)ReadUByte();
+        return ReadVariant(type);
+    }
+
+    public Variant ReadVariant(VariantType type)
+    {
+        return type switch
+        {
+            VariantType.None => default,
+            VariantType.Int => new Variant(ReadInt()),
+            VariantType.Bool => new Variant(ReadBool()),
+            VariantType.Float => new Variant(ReadFloat()),
+            VariantType.Vector2 => new Variant(ReadVector2()),
+            VariantType.DoubleVector2 => new Variant(ReadDoubleVector2()),
+            VariantType.Vector3 => new Variant(ReadVector3()),
+            VariantType.DoubleVector3 => new Variant(ReadDoubleVector3()),
+            VariantType.Vector4 => new Variant(ReadVector4()),
+            VariantType.Quaternion => new Variant(ReadQuaternion()),
+            VariantType.Color => new Variant(ReadColor()),
+            VariantType.String => new Variant(ReadString()),
+            VariantType.Buffer => new Variant(ReadBuffer()),
+            VariantType.ResourceRef => new Variant(ReadResourceRef()),
+            VariantType.ResourceRefList => new Variant(ReadResourceRefList()),
+            VariantType.VariantVector => new Variant(ReadVariantVector()),
+            VariantType.VariantMap => new Variant(ReadVariantMap()),
+            VariantType.IntRect => new Variant(ReadIntRect()),
+            VariantType.Vector2i => new Variant(ReadIntVector2()),
+            VariantType.Matrix3 => new Variant(ReadMatrix3()),
+            VariantType.Matrix3x4 => new Variant(ReadMatrix3x4()),
+            VariantType.Matrix4 => new Variant(ReadMatrix4()),
+            VariantType.Double => new Variant(ReadDouble()),
+            VariantType.StringVector => new Variant(ReadStringVector()),
+            VariantType.Rect => new Variant(ReadRect()),
+            VariantType.Vector3i => new Variant(ReadIntVector3()),
+            VariantType.Int64 => new Variant(ReadInt64()),
+            VariantType.StringVariantMap => new Variant(ReadStringVariantMap()),
+            _ => default
+        };
+    }
+
+    public VariantMap ReadVariantMap()
+    {
+        var result = new VariantMap();
+        var count = ReadVLE();
+        for (var i = 0u; i < count; ++i)
+            result[ReadStringHash()] = ReadVariant();
+        return result;
+    }
+
+    public VariantVector ReadVariantVector()
+    {
+        var result = new VariantVector();
+        var count = ReadVLE();
+        for (var i = 0u; i < count; ++i)
+            result.Add(ReadVariant());
+        return result;
+    }
 
     public uint ReadVLE()
     {

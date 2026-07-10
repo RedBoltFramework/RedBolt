@@ -144,7 +144,7 @@ public sealed class RawTexture : DeviceObject
 
         var normalizedArraySize = Math.Max(parameters.ArraySize, 1u);
         var normalizedMultiSample = Math.Max(parameters.MultiSample, 1u);
-        var normalizedSize = new IntVector3(
+        var normalizedSize = new Vector3i(
             Math.Max(parameters.Size.X, 1),
             Math.Max(parameters.Size.Y, 1),
             Math.Max(parameters.Size.Z, 1));
@@ -171,7 +171,7 @@ public sealed class RawTexture : DeviceObject
                 if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
                     parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
                     return false;
-                normalizedSize = new IntVector3(edge, edge, 1);
+                normalizedSize = new Vector3i(edge, edge, 1);
                 textureCandidate = textureCube;
                 break;
             }
@@ -197,7 +197,7 @@ public sealed class RawTexture : DeviceObject
             parameters.Type,
             parameters.Format,
             parameters.Flags,
-            new IntVector3(textureCandidate.Width, textureCandidate.Height, textureCandidate.Depth),
+            new Vector3i(textureCandidate.Width, textureCandidate.Height, textureCandidate.Depth),
             parameters.Type == TextureType.Texture2DArray ? (uint)textureCandidate.Depth : normalizedArraySize,
             textureCandidate.Levels,
             (uint)textureCandidate.MultiSample,

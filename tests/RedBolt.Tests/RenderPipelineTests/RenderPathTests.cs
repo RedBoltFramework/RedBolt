@@ -152,7 +152,7 @@ public sealed class RenderPathTests
                             "name": "Parameters",
                             "type": "StringVariantMap",
                             "value": [
-                              { "key": "HSVParams", "type": "Vector4", "value": "1 1 1 1" }
+                              { "key": "HSVParams", "type": "Vector4f", "value": "1 1 1 1" }
                             ]
                           }
                         ]
@@ -171,7 +171,7 @@ public sealed class RenderPathTests
             var pass = Assert.IsType<FullScreenShaderPass>(Assert.Single(renderPath.GetPasses()));
             Assert.Equal("Postprocess: Adjust Color", pass.GetPassName());
             Assert.Equal("Adjust output color RGB and HSV.", pass.GetComment());
-            Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4f>(collectedParameters["Adjust Color: HSVParams"]));
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
         }
@@ -212,7 +212,7 @@ public sealed class RenderPathTests
             Assert.Contains("Exposure: Automatic", collectedParameters.Keys);
             Assert.Contains("Bloom: Num Iterations", collectedParameters.Keys);
             Assert.Contains("Tone Mapping: Mode", collectedParameters.Keys);
-            Assert.Equal(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4f>(collectedParameters["Adjust Color: HSVParams"]));
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadableDepth);

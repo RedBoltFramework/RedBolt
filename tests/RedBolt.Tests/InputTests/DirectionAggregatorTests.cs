@@ -22,7 +22,7 @@ public sealed class DirectionAggregatorTests
         Input.SetKey(Key.W, Scancode.W, true);
         Input.SetKey(Key.D, Scancode.D, true);
 
-        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2(1.0f, -1.0f)));
+        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2f(1.0f, -1.0f)));
 
         Input.SetKey(Key.W, Scancode.W, false);
         Input.SetKey(Key.D, Scancode.D, false);
@@ -37,7 +37,7 @@ public sealed class DirectionAggregatorTests
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.1f);
         Input.SetControllerAxis(ControllerAxis.LeftY, -0.5f);
 
-        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2(0.0f, -0.375f), 0.001f));
+        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2f(0.0f, -0.375f), 0.001f));
 
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.0f);
         Input.SetControllerAxis(ControllerAxis.LeftY, 0.0f);
@@ -49,9 +49,9 @@ public sealed class DirectionAggregatorTests
         var aggregator = new DirectionAggregator();
         aggregator.SetEnabled(true);
         aggregator.SetSubscriptionMask(DirectionAggregatorMask.Touch);
-        aggregator.SetExternalDirection(new Vector2(0.25f, 0.25f));
-        aggregator.SetTouchDirection(new Vector2(1.0f, -1.0f));
+        aggregator.SetExternalDirection(new Vector2f(0.25f, 0.25f));
+        aggregator.SetTouchDirection(new Vector2f(1.0f, -1.0f));
 
-        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2(1.0f, -0.75f), 0.001f));
+        Assert.True(aggregator.GetDirection().ApproximatelyEquivalent(new Vector2f(1.0f, -0.75f), 0.001f));
     }
 }

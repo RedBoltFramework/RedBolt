@@ -7,8 +7,8 @@ public sealed class SplinePathTests
     [Fact]
     public void Linear_spline_interpolation_works()
     {
-        var spline = new Spline([new Vector3(0.0f, 0.0f, 0.0f), new Vector3(10.0f, 0.0f, 0.0f)], InterpolationMode.LinearCurve);
-        Assert.True(((Vector3?)spline.GetPoint(0.5f) ?? Vector3.Zero).ApproximatelyEquivalent(new Vector3(5.0f, 0.0f, 0.0f)));
+        var spline = new Spline([new Variant(new Vector3f(0.0f, 0.0f, 0.0f)), new Variant(new Vector3f(10.0f, 0.0f, 0.0f))], InterpolationMode.LinearCurve);
+        Assert.True(spline.GetPoint(0.5f).GetVector3().ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f)));
     }
 
     [Fact]
@@ -16,15 +16,22 @@ public sealed class SplinePathTests
     {
         var spline = new Spline(
         [
-            new Vector3(0.0f, 0.0f, 0.0f),
-            new Vector3(10.0f, 0.0f, 0.0f),
-            new Vector3(20.0f, 0.0f, 0.0f),
-            new Vector3(30.0f, 0.0f, 0.0f)
+            new Variant(new Vector3f(0.0f, 0.0f, 0.0f)),
+            new Variant(new Vector3f(10.0f, 0.0f, 0.0f)),
+            new Variant(new Vector3f(20.0f, 0.0f, 0.0f)),
+            new Variant(new Vector3f(30.0f, 0.0f, 0.0f))
         ],
         InterpolationMode.CatmullRomFullCurve);
 
-        var point = (Vector3?)spline.GetPoint(0.5f) ?? Vector3.Zero;
+        var point = spline.GetPoint(0.5f).GetVector3();
         Assert.True(point.X > 10.0f && point.X < 20.0f);
+    }
+
+    [Fact]
+    public void Double_spline_interpolation_works()
+    {
+        var spline = new Spline([new Variant(2.0), new Variant(6.0)], InterpolationMode.LinearCurve);
+        Assert.Equal(4.0, spline.GetPoint(0.5f).GetDouble());
     }
 
     [Fact]
@@ -36,9 +43,9 @@ public sealed class SplinePathTests
         path.SetInterpolationMode(InterpolationMode.LinearCurve);
         path.SetSpeed(5.0f);
         var a = scene.CreateChild("A", 10);
-        a.SetWorldPosition(new Vector3(0.0f, 0.0f, 0.0f));
+        a.SetWorldPosition(new Vector3f(0.0f, 0.0f, 0.0f));
         var b = scene.CreateChild("B", 11);
-        b.SetWorldPosition(new Vector3(10.0f, 0.0f, 0.0f));
+        b.SetWorldPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         var controlled = scene.CreateChild("Controlled", 12);
 
         path.AddControlPoint(a);
@@ -49,7 +56,7 @@ public sealed class SplinePathTests
 
         Assert.Equal((uint)2, path.GetControlPointIdsAttr()[0]);
         Assert.True(path.GetLength() > 0.0f);
-        Assert.True(controlled.GetWorldPosition().ApproximatelyEquivalent(new Vector3(5.0f, 0.0f, 0.0f), 0.05f));
+        Assert.True(controlled.GetWorldPosition().ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f), 0.05f));
 
         path.RemoveControlPoint(a);
         Assert.Equal((uint)1, path.GetControlPointIdsAttr()[0]);
@@ -64,9 +71,9 @@ public sealed class SplinePathTests
         var pathNode = scene.CreateChild("Path");
         var path = pathNode.CreateComponent<SplinePath>();
         var a = scene.CreateChild("A", 30);
-        a.SetWorldPosition(new Vector3(0.0f, 0.0f, 0.0f));
+        a.SetWorldPosition(new Vector3f(0.0f, 0.0f, 0.0f));
         var b = scene.CreateChild("B", 31);
-        b.SetWorldPosition(new Vector3(20.0f, 0.0f, 0.0f));
+        b.SetWorldPosition(new Vector3f(20.0f, 0.0f, 0.0f));
         var controlled = scene.CreateChild("Controlled", 32);
         path.SetControlPointIdsAttr([2u, 30u, 31u]);
         path.SetControlledIdAttr(32u);
@@ -75,6 +82,6 @@ public sealed class SplinePathTests
         path.SetPosition(0.25f);
 
         Assert.Same(controlled, path.GetControlledNode());
-        Assert.True(path.GetPoint(0.25f).ApproximatelyEquivalent(new Vector3(5.0f, 0.0f, 0.0f), 0.05f));
+        Assert.True(path.GetPoint(0.25f).ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f), 0.05f));
     }
 }

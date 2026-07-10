@@ -1,184 +1,373 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum InterpolationMode
 {
+    /// <summary>Bezier interpolation.</summary>
     BezierCurve = 0,
+    /// <summary>Catmull-Rom interpolation. The first and last knots control velocity and are not included on the path.</summary>
     CatmullRomCurve,
+    /// <summary>Linear interpolation.</summary>
     LinearCurve,
+    /// <summary>Catmull-Rom full path interpolation. Start and end knots are duplicated or looped as necessary to move through the full path.</summary>
     CatmullRomFullCurve
 }
 
-public sealed class Spline
+/// <summary>Spline class to get a point on it based off the interpolation mode.</summary>
+public sealed class Spline : ICloneable, IEquatable<Spline>
 {
-    private readonly List<object?> _knots = [];
+    private InterpolationMode _interpolationMode;
+    private VariantVector _knots = new();
 
+    /// <summary>Default constructor.</summary>
     public Spline()
         : this(InterpolationMode.BezierCurve)
     {
     }
 
+    /// <summary>Constructor setting interpolation mode.</summary>
     public Spline(InterpolationMode mode)
     {
-        InterpolationMode = mode;
+        _interpolationMode = mode;
     }
 
-    public Spline(IEnumerable<object?> knots, InterpolationMode mode = InterpolationMode.BezierCurve)
-        : this(mode)
+    /// <summary>Constructor setting knots and interpolation mode.</summary>
+    public Spline(VariantVector knots, InterpolationMode mode = InterpolationMode.BezierCurve)
     {
-        SetKnots(knots);
+        _interpolationMode = mode;
+        _knots = knots ?? new VariantVector();
     }
 
-    public InterpolationMode InterpolationMode { get; private set; }
+    /// <summary>Return the interpolation mode.</summary>
+    public InterpolationMode GetInterpolationMode() => _interpolationMode;
 
-    public IReadOnlyList<object?> GetKnots() => _knots;
+    /// <summary>Return the knots of the spline.</summary>
+    public VariantVector GetKnots() => _knots;
 
-    public object? GetKnot(uint index) => index < _knots.Count ? _knots[(int)index] : null;
+    /// <summary>Return the knot at the specific index.</summary>
+    public Variant GetKnot(uint index) => _knots[(int)index];
 
-    public object? GetPoint(float factor)
+    /// <summary>Return the T of the point of the spline at f from 0.f - 1.f.</summary>
+    public Variant GetPoint(float f)
     {
-        if (_knots.Count == 0)
-            return null;
-        if (_knots.Count == 1)
-            return _knots[0];
+        if (_knots.Count < 2)
+            return _knots.Count == 1 ? _knots[0] : default;
 
-        var t = MathDefs.Clamp(factor, 0.0f, 1.0f);
-        return InterpolationMode switch
+        if (f > 1.0f)
+            f = 1.0f;
+        else if (f < 0.0f)
+            f = 0.0f;
+
+        switch (_interpolationMode)
         {
-            InterpolationMode.LinearCurve => LinearInterpolation(_knots, t),
-            InterpolationMode.CatmullRomCurve => CatmullRomInterpolation(_knots, t, fullPath: false),
-            InterpolationMode.CatmullRomFullCurve => CatmullRomInterpolation(_knots, t, fullPath: true),
-            _ => BezierInterpolation(_knots, t)
-        };
+        case InterpolationMode.BezierCurve:
+            return BezierInterpolation(_knots, f);
+        case InterpolationMode.CatmullRomCurve:
+            return CatmullRomInterpolation(_knots, f);
+        case InterpolationMode.LinearCurve:
+            return LinearInterpolation(_knots, f);
+        case InterpolationMode.CatmullRomFullCurve:
+        {
+            // TODO: port: Do not allocate a new vector each time.
+            var fullKnots = new VariantVector();
+            if (_knots.Count > 1)
+            {
+                // Non-cyclic case: duplicate start and end
+                if (!_knots[0].Equals(_knots[^1]))
+                {
+                    fullKnots.Add(_knots[0]);
+                    fullKnots.AddRange(_knots);
+                    fullKnots.Add(_knots[^1]);
+                }
+                // Cyclic case: smooth the tangents
+                else
+                {
+                    fullKnots.Add(_knots[^2]);
+                    fullKnots.AddRange(_knots);
+                    fullKnots.Add(_knots[1]);
+                }
+            }
+            return CatmullRomInterpolation(fullKnots, f);
+        }
+        default:
+            Log.Logger.LogError("Unsupported interpolation mode");
+            return default;
+        }
     }
 
+    /// <summary>Set the interpolation mode.</summary>
     public void SetInterpolationMode(InterpolationMode interpolationMode)
     {
-        InterpolationMode = interpolationMode;
+        _interpolationMode = interpolationMode;
     }
 
-    public void SetKnots(IEnumerable<object?> knots)
+    /// <summary>Set the knots of the spline.</summary>
+    public void SetKnots(VariantVector knots)
     {
-        ArgumentNullException.ThrowIfNull(knots);
-        this._knots.Clear();
-        this._knots.AddRange(knots);
+        _knots = knots ?? new VariantVector();
     }
 
-    public void SetKnot(object? knot, uint index)
-    {
-        if (index < this._knots.Count)
-            this._knots[(int)index] = knot;
-    }
-
-    public void AddKnot(object? knot)
-    {
-        _knots.Add(knot);
-    }
-
-    public void AddKnot(object? knot, uint index)
-    {
-        _knots.Insert((int)Math.Min(index, (uint)_knots.Count), knot);
-    }
-
-    public void RemoveKnot()
-    {
-        if (_knots.Count > 0)
-            _knots.RemoveAt(_knots.Count - 1);
-    }
-
-    public void RemoveKnot(uint index)
+    /// <summary>Set the value of an existing knot.</summary>
+    public void SetKnot(Variant knot, uint index)
     {
         if (index < _knots.Count)
-            _knots.RemoveAt((int)index);
+        {
+            if (_knots.Count > 0 && _knots[0].Type == knot.Type)
+                _knots[(int)index] = knot;
+            else if (_knots.Count == 0)
+                _knots.Add(knot);
+            else
+                Log.Logger.LogError(
+                    "Attempted to set a Spline's Knot value of type {KnotType} where elements are already using {ExistingType}",
+                    knot.Type,
+                    _knots[0].Type);
+        }
     }
 
+    /// <summary>Add a knot to the end of the spline.</summary>
+    public void AddKnot(Variant knot)
+    {
+        if (_knots.Count > 0 && _knots[0].Type == knot.Type)
+            _knots.Add(knot);
+        else if (_knots.Count == 0)
+            _knots.Add(knot);
+        else
+            Log.Logger.LogError(
+                "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
+                knot.Type,
+                _knots[0].Type);
+    }
+
+    /// <summary>Add a knot to the spline at a specific index.</summary>
+    public void AddKnot(Variant knot, uint index)
+    {
+        if (index > _knots.Count)
+            index = (uint)_knots.Count;
+
+        if (_knots.Count > 0 && _knots[0].Type == knot.Type)
+            _knots.Insert((int)index, knot);
+        else if (_knots.Count == 0)
+            _knots.Add(knot);
+        else
+            Log.Logger.LogError(
+                "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
+                knot.Type,
+                _knots[0].Type);
+    }
+
+    /// <summary>Remove the last knot on the spline.</summary>
+    public void RemoveKnot()
+    {
+        _knots.RemoveAt(_knots.Count - 1);
+    }
+
+    /// <summary>Remove the knot at the specific index.</summary>
+    public void RemoveKnot(uint index)
+    {
+        _knots.RemoveAt((int)index);
+    }
+
+    /// <summary>Clear the spline.</summary>
     public void Clear()
     {
         _knots.Clear();
     }
 
-    private static object? BezierInterpolation(IReadOnlyList<object?> knots, float t)
+    public object Clone()
     {
-        var points = knots.ToArray();
-        for (var count = points.Length - 1; count > 0; --count)
-        {
-            for (var i = 0; i < count; ++i)
-                points[i] = Interpolate(points[i], points[i + 1], t);
-        }
-        return points[0];
+        return new Spline(new VariantVector(_knots), _interpolationMode);
     }
 
-    private static object? CatmullRomInterpolation(IReadOnlyList<object?> originalKnots, float t, bool fullPath)
+    public bool Equals(Spline? other)
     {
-        if (originalKnots.Count < 2)
-            return originalKnots.Count == 1 ? originalKnots[0] : null;
+        return other is not null && _interpolationMode == other._interpolationMode && _knots.SequenceEqual(other._knots);
+    }
 
-        if (!fullPath && originalKnots.Count < 4)
-            return LinearInterpolation(originalKnots, t);
+    public override bool Equals(object? obj)
+    {
+        return obj is Spline other && Equals(other);
+    }
 
-        var segmentCount = fullPath ? originalKnots.Count - 1 : originalKnots.Count - 3;
-        if (segmentCount <= 0)
-            return LinearInterpolation(originalKnots, t);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(_interpolationMode);
+        foreach (var knot in _knots)
+            hash.Add(knot);
+        return hash.ToHashCode();
+    }
 
-        var scaled = t * segmentCount;
-        var segment = Math.Min((int)MathF.Floor(scaled), segmentCount - 1);
-        var localT = scaled - segment;
+    public static bool operator ==(Spline lhs, Spline rhs) => lhs.Equals(rhs);
 
-        object? p0;
-        object? p1;
-        object? p2;
-        object? p3;
-        if (fullPath)
+    public static bool operator !=(Spline lhs, Spline rhs) => !lhs.Equals(rhs);
+
+    /// <summary>Perform Bezier interpolation on the spline.</summary>
+    private Variant BezierInterpolation(VariantVector knots, float t)
+    {
+        if (knots.Count == 2)
         {
-            p0 = originalKnots[Math.Max(segment - 1, 0)];
-            p1 = originalKnots[segment];
-            p2 = originalKnots[Math.Min(segment + 1, originalKnots.Count - 1)];
-            p3 = originalKnots[Math.Min(segment + 2, originalKnots.Count - 1)];
+            switch (knots[0].Type)
+            {
+            case VariantType.Float:
+            case VariantType.Vector2:
+            case VariantType.Vector3:
+            case VariantType.Vector4:
+            case VariantType.Color:
+            case VariantType.Double:
+                return LinearInterpolation(knots[0], knots[1], t);
+            default:
+                return default;
+            }
         }
         else
         {
-            p0 = originalKnots[segment];
-            p1 = originalKnots[segment + 1];
-            p2 = originalKnots[segment + 2];
-            p3 = originalKnots[segment + 3];
+            // TODO: port: Do not allocate a new vector each time.
+            var interpolatedKnots = new VariantVector();
+            for (var i = 1; i < knots.Count; ++i)
+            {
+                switch (knots[0].Type)
+                {
+                case VariantType.Float:
+                case VariantType.Vector2:
+                case VariantType.Vector3:
+                case VariantType.Vector4:
+                case VariantType.Color:
+                case VariantType.Double:
+                    interpolatedKnots.Add(LinearInterpolation(knots[i - 1], knots[i], t));
+                    break;
+                default:
+                    return default;
+                }
+            }
+            return BezierInterpolation(interpolatedKnots, t);
         }
-
-        return CatmullRom(p0, p1, p2, p3, localT);
     }
 
-    private static object? LinearInterpolation(IReadOnlyList<object?> knots, float t)
+    /// <summary>Perform Spline interpolation on the spline.</summary>
+    private Variant CatmullRomInterpolation(VariantVector knots, float t)
     {
-        var scaled = t * (knots.Count - 1);
-        var index = Math.Min((int)MathF.Floor(scaled), knots.Count - 2);
-        var localT = scaled - index;
-        return Interpolate(knots[index], knots[index + 1], localT);
-    }
+        if (knots.Count < 4)
+            return default;
 
-    private static object? CatmullRom(object? p0, object? p1, object? p2, object? p3, float t)
-    {
+        if (t >= 1.0f)
+            return knots[^2];
+
+        var originIndex = (int)(t * (knots.Count - 3));
+        t %= 1.0f / (knots.Count - 3);
+        t *= knots.Count - 3;
         var t2 = t * t;
         var t3 = t2 * t;
+
+        switch (knots[originIndex].Type)
+        {
+        case VariantType.Float:
+            return CalculateCatmullRom(
+                knots[originIndex].GetFloat(),
+                knots[originIndex + 1].GetFloat(),
+                knots[originIndex + 2].GetFloat(),
+                knots[originIndex + 3].GetFloat(),
+                t,
+                t2,
+                t3);
+        case VariantType.Vector2:
+            return CalculateCatmullRom(
+                knots[originIndex].GetVector2(),
+                knots[originIndex + 1].GetVector2(),
+                knots[originIndex + 2].GetVector2(),
+                knots[originIndex + 3].GetVector2(),
+                t,
+                t2,
+                t3);
+        case VariantType.Vector3:
+            return CalculateCatmullRom(
+                knots[originIndex].GetVector3(),
+                knots[originIndex + 1].GetVector3(),
+                knots[originIndex + 2].GetVector3(),
+                knots[originIndex + 3].GetVector3(),
+                t,
+                t2,
+                t3);
+        case VariantType.Vector4:
+            return CalculateCatmullRom(
+                knots[originIndex].GetVector4(),
+                knots[originIndex + 1].GetVector4(),
+                knots[originIndex + 2].GetVector4(),
+                knots[originIndex + 3].GetVector4(),
+                t,
+                t2,
+                t3);
+        case VariantType.Color:
+            return CalculateCatmullRom(
+                knots[originIndex].GetColor(),
+                knots[originIndex + 1].GetColor(),
+                knots[originIndex + 2].GetColor(),
+                knots[originIndex + 3].GetColor(),
+                t,
+                t2,
+                t3);
+        case VariantType.Double:
+            return CalculateCatmullRom(
+                knots[originIndex].GetDouble(),
+                knots[originIndex + 1].GetDouble(),
+                knots[originIndex + 2].GetDouble(),
+                knots[originIndex + 3].GetDouble(),
+                t,
+                t2,
+                t3);
+        default:
+            return default;
+        }
+    }
+
+    /// <summary>Perform linear interpolation on the spline.</summary>
+    private Variant LinearInterpolation(VariantVector knots, float t)
+    {
+        if (knots.Count < 2)
+            return default;
+
+        if (t >= 1.0f)
+            return knots[^1];
+
+        var originIndex = Math.Clamp((int)(t * (knots.Count - 1)), 0, knots.Count - 2);
+        t %= 1.0f / (knots.Count - 1);
+        t *= knots.Count - 1;
+        return LinearInterpolation(knots[originIndex], knots[originIndex + 1], t);
+    }
+
+    /// <summary>Linear interpolation between two Variants based on underlying type.</summary>
+    private Variant LinearInterpolation(Variant lhs, Variant rhs, float t)
+    {
+        switch (lhs.Type)
+        {
+        case VariantType.Float:
+            return MathDefs.Lerp(lhs.GetFloat(), rhs.GetFloat(), t);
+        case VariantType.Vector2:
+            return lhs.GetVector2().Lerp(rhs.GetVector2(), t);
+        case VariantType.Vector3:
+            return lhs.GetVector3().Lerp(rhs.GetVector3(), t);
+        case VariantType.Vector4:
+            return lhs.GetVector4().Lerp(rhs.GetVector4(), t);
+        case VariantType.Color:
+            return lhs.GetColor().Lerp(rhs.GetColor(), t);
+        case VariantType.Double:
+            return lhs.GetDouble() * (1.0 - t) + rhs.GetDouble() * t;
+        default:
+            return default;
+        }
+    }
+
+    private static Variant CalculateCatmullRom<T>(T p0, T p1, T p2, T p3, float t, float t2, float t3)
+    {
         return (p0, p1, p2, p3) switch
         {
             (float a, float b, float c, float d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
-            (Vector2 a, Vector2 b, Vector2 c, Vector2 d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
-            (Vector3 a, Vector3 b, Vector3 c, Vector3 d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
-            (Vector4 a, Vector4 b, Vector4 c, Vector4 d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
+            (Vector2f a, Vector2f b, Vector2f c, Vector2f d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
+            (Vector3f a, Vector3f b, Vector3f c, Vector3f d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
+            (Vector4f a, Vector4f b, Vector4f c, Vector4f d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
             (Color a, Color b, Color c, Color d) => 0.5f * ((2.0f * b) + (-a + c) * t + (2.0f * a - 5.0f * b + 4.0f * c - d) * t2 + (-a + 3.0f * b - 3.0f * c + d) * t3),
-            _ => Interpolate(p1, p2, t)
-        };
-    }
-
-    private static object? Interpolate(object? lhs, object? rhs, float t)
-    {
-        return (lhs, rhs) switch
-        {
-            (float left, float right) => MathDefs.Lerp(left, right, t),
-            (Vector2 left, Vector2 right) => left.Lerp(right, t),
-            (Vector3 left, Vector3 right) => left.Lerp(right, t),
-            (Vector4 left, Vector4 right) => left.Lerp(right, t),
-            (Quaternion left, Quaternion right) => left.Nlerp(right, t, shortestPath: true),
-            (Color left, Color right) => left.Lerp(right, t),
-            _ => lhs
+            (double a, double b, double c, double d) => 0.5 * ((2.0 * b) + (-a + c) * t + (2.0 * a - 5.0 * b + 4.0 * c - d) * t2 + (-a + 3.0 * b - 3.0 * c + d) * t3),
+            _ => default
         };
     }
 }

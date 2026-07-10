@@ -107,7 +107,7 @@ public sealed class RenderDevice : Object
         return new WindowSettings
         {
             Mode = GetWindowMode(parameters),
-            Size = new IntVector2(
+            Size = new Vector2i(
                 graphics is { IsInitialized: true } ? graphics.Width : parameters.WindowWidth,
                 graphics is { IsInitialized: true } ? graphics.Height : parameters.WindowHeight),
             Title = parameters.WindowTitle,
@@ -166,15 +166,15 @@ public sealed class RenderDevice : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
-    public IntVector2 GetSwapChainSize()
+    public Vector2i GetSwapChainSize()
     {
         var graphics = GetSubsystem<Graphics>();
         return graphics is { IsInitialized: true }
-            ? new IntVector2(graphics.Width, graphics.Height)
+            ? new Vector2i(graphics.Width, graphics.Height)
             : GetWindowSettings().Size;
     }
 
-    public IntVector2 GetWindowSize() => GetSwapChainSize();
+    public Vector2i GetWindowSize() => GetSwapChainSize();
 
     public float GetDpiScale() => 1.0f;
 

@@ -2,11 +2,11 @@ namespace RedBolt;
 
 public sealed class CustomGeometryVertex
 {
-    public Vector3 Position;
-    public Vector3 Normal;
+    public Vector3f Position;
+    public Vector3f Normal;
     public uint Color;
-    public Vector2 TexCoord;
-    public Vector4 Tangent;
+    public Vector2f TexCoord;
+    public Vector4f Tangent;
 }
 
 public sealed class CustomGeometry : Drawable
@@ -94,7 +94,7 @@ public sealed class CustomGeometry : Drawable
         return true;
     }
 
-    public void DefineVertex(Vector3 position)
+    public void DefineVertex(Vector3f position)
     {
         if (_geometryIndex >= _vertices.Count)
             return;
@@ -102,7 +102,7 @@ public sealed class CustomGeometry : Drawable
         _vertices[(int)_geometryIndex].Add(new CustomGeometryVertex { Position = position });
     }
 
-    public void DefineNormal(Vector3 normal)
+    public void DefineNormal(Vector3f normal)
     {
         if (!TryGetLastVertex(out var vertex))
             return;
@@ -125,7 +125,7 @@ public sealed class CustomGeometry : Drawable
         _elementMask |= MaskColor;
     }
 
-    public void DefineTexCoord(Vector2 texCoord)
+    public void DefineTexCoord(Vector2f texCoord)
     {
         if (!TryGetLastVertex(out var vertex))
             return;
@@ -134,7 +134,7 @@ public sealed class CustomGeometry : Drawable
         _elementMask |= MaskTexCoord;
     }
 
-    public void DefineTangent(Vector4 tangent)
+    public void DefineTangent(Vector4f tangent)
     {
         if (!TryGetLastVertex(out var vertex))
             return;
@@ -312,7 +312,7 @@ public sealed class CustomGeometry : Drawable
             Distance = distance,
             Position = ray.Origin + ray.Direction * distance,
             Normal = -ray.Direction,
-            TextureUV = Vector2.Zero,
+            TextureUV = Vector2f.Zero,
             SubObject = uint.MaxValue
         };
     }

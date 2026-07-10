@@ -359,6 +359,42 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_exposes_active_event_sender_and_handler_during_dispatch()
+    {
+        var previousContext = Context.TryGetInstance();
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            object? observedSender = null;
+            EventHandler? observedHandler = null;
+
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) =>
+            {
+                observedSender = receiver.GetEventSender();
+                observedHandler = receiver.GetEventHandler();
+            });
+
+            sender.SendEvent<PingEvent>();
+
+            Assert.Same(sender, observedSender);
+            Assert.NotNull(observedHandler);
+            Assert.Same(receiver, observedHandler!.Receiver);
+            Assert.Null(observedHandler.Sender);
+            Assert.Equal(typeof(PingEvent), observedHandler.EventType);
+            Assert.Null(receiver.GetEventSender());
+            Assert.Null(receiver.GetEventHandler());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void Context_can_unsubscribe_from_all_events_except_selected_event_types_and_senders()
     {
         var previousContext = Context.TryGetInstance();

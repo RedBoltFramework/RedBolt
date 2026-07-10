@@ -88,7 +88,7 @@ public sealed class Time : Object
 
         var eventData = new CoreEvents.BeginFrameEvent
         {
-            FrameNumber = (int)_frameNumber,
+            FrameNumber = _frameNumber,
             TimeStep = _timeStep
         };
         SendEvent(ref eventData);

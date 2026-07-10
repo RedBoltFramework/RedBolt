@@ -117,8 +117,8 @@ public sealed class ConstantBufferCollection
         return StoreParameter(destination, matrix);
     }
 
-    /// <summary>Add new Vector4 array parameter.</summary>
-    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Vector4> values) => StoreSpan(destination, values);
+    /// <summary>Add new Vector4f array parameter.</summary>
+    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Vector4f> values) => StoreSpan(destination, values);
 
     /// <summary>Add new Matrix3x4 array parameter.</summary>
     public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix3x4> values) => StoreSpan(destination, values);

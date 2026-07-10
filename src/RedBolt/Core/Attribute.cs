@@ -23,18 +23,42 @@ public enum AttributeScopeHint
     Scene
 }
 
+/// <summary>
+/// Abstract base class for invoking attribute accessors.
+/// </summary>
+public abstract class AttributeAccessor
+{
+    /// <summary>
+    /// Construct.
+    /// </summary>
+    protected AttributeAccessor()
+    {
+    }
+
+    /// <summary>
+    /// Get the attribute.
+    /// </summary>
+    public abstract object Get(Serializable ptr);
+
+    /// <summary>
+    /// Set the attribute.
+    /// </summary>
+    public abstract void Set(Serializable ptr, object src);
+}
+
 public sealed class AttributeInfo
 {
-    private readonly Dictionary<StringHash, object?> _metadata = new();
+    private readonly Dictionary<StringHash, object> _metadata = new();
 
     public AttributeInfo(
         string name,
         Type valueType,
-        object? defaultValue = null,
+        object defaultValue = null,
         AttributeMode mode = AttributeMode.Default,
-        IReadOnlyList<string>? enumNames = null,
-        Func<Serializable, object?>? getter = null,
-        Action<Serializable, object?>? setter = null)
+        IReadOnlyList<string> enumNames = null,
+        AttributeAccessor accessor = null,
+        Func<Serializable, object> getter = null,
+        Action<Serializable, object> setter = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(valueType);
@@ -45,15 +69,16 @@ public sealed class AttributeInfo
         DefaultValue = defaultValue;
         Mode = mode;
         EnumNames = enumNames?.ToArray() ?? [];
-        Getter = getter;
-        Setter = setter;
+        Accessor = accessor ?? (getter is not null || setter is not null ? new DelegateAttributeAccessor(getter, setter) : null);
     }
 
-    public object? DefaultValue { get; }
+    public AttributeAccessor Accessor { get; }
+
+    public object DefaultValue { get; }
 
     public IReadOnlyList<string> EnumNames { get; }
 
-    public IReadOnlyDictionary<StringHash, object?> Metadata => _metadata;
+    public IReadOnlyDictionary<StringHash, object> Metadata => _metadata;
 
     public AttributeMode Mode { get; }
 
@@ -69,40 +94,57 @@ public sealed class AttributeInfo
 
     public Type ValueType { get; }
 
-    internal Func<Serializable, object?>? Getter { get; }
-
-    internal Action<Serializable, object?>? Setter { get; }
-
-    public object? GetMetadata(StringHash key)
+    public object GetMetadata(StringHash key)
     {
         return _metadata.GetValueOrDefault(key);
     }
 
-    internal void SetMetadata(StringHash key, object? value)
+    internal void SetMetadata(StringHash key, object value)
     {
         _metadata[key] = value;
+    }
+
+    private sealed class DelegateAttributeAccessor : AttributeAccessor
+    {
+        private readonly Func<Serializable, object> _getter;
+        private readonly Action<Serializable, object> _setter;
+
+        public DelegateAttributeAccessor(Func<Serializable, object> getter, Action<Serializable, object> setter)
+        {
+            _getter = getter;
+            _setter = setter;
+        }
+
+        public override object Get(Serializable ptr)
+        {
+            return _getter(ptr);
+        }
+
+        public override void Set(Serializable ptr, object src)
+        {
+            _setter(ptr, src);
+        }
     }
 }
 
 public readonly struct AttributeHandle
 {
-    private readonly AttributeInfo? _attribute;
+    private readonly AttributeInfo _attribute;
 
-    internal AttributeHandle(AttributeInfo? attribute)
+    internal AttributeHandle(AttributeInfo attribute)
     {
         this._attribute = attribute;
     }
 
-    public AttributeHandle SetMetadata(StringHash key, object? value)
+    public AttributeHandle SetMetadata(StringHash key, object value)
     {
-        _attribute?.SetMetadata(key, value);
+        _attribute.SetMetadata(key, value);
         return this;
     }
 
     public AttributeHandle SetScopeHint(AttributeScopeHint scopeHint)
     {
-        if (_attribute is not null)
-            _attribute.ScopeHint = scopeHint;
+        _attribute.ScopeHint = scopeHint;
         return this;
     }
 }

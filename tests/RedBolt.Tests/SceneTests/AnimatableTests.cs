@@ -11,13 +11,13 @@ public sealed class AnimatableTests
         var scene = new Scene();
         var node = scene.CreateChild("Animated");
         var animation = new ValueAnimation("Animations/NodePosition");
-        animation.SetKeyFrame(0.0f, new Vector3(0.0f, 0.0f, 0.0f));
-        animation.SetKeyFrame(1.0f, new Vector3(10.0f, 0.0f, 0.0f));
+        animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f));
+        animation.SetKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f));
 
         node.SetAttributeAnimation("Position", animation);
         node.SetAnimationTime(0.5f);
 
-        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3(5.0f, 0.0f, 0.0f)));
+        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f)));
         Assert.Same(animation, node.GetAttributeAnimation("Position"));
     }
 
@@ -43,8 +43,8 @@ public sealed class AnimatableTests
     {
         var node = new Scene().CreateChild("Animated");
         var animation = new ValueAnimation("Animations/NodePosition");
-        animation.SetKeyFrame(0.0f, new Vector3(0.0f, 0.0f, 0.0f));
-        animation.SetKeyFrame(1.0f, new Vector3(1.0f, 0.0f, 0.0f));
+        animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f));
+        animation.SetKeyFrame(1.0f, new Vector3f(1.0f, 0.0f, 0.0f));
 
         node.SetAttributeAnimation("Position", animation);
         node.RemoveAttributeAnimation("Position");

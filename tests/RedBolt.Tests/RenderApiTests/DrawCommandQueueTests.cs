@@ -82,7 +82,7 @@ public sealed class DrawCommandQueueTests
         queue.SetIndexBuffer(null);
         queue.DrawInstanced(2u, 5u, 7u, 3u);
         queue.SetPipelineState(computeState);
-        queue.Dispatch(new IntVector3(4, 5, 6));
+        queue.Dispatch(new Vector3i(4, 5, 6));
 
         _fixture.RenderContext.ResetStats();
         queue.ExecuteInContext(_fixture.RenderContext);

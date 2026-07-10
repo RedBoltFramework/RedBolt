@@ -58,7 +58,7 @@ public sealed class GraphicsCustomUniformTests
                 ?? throw new InvalidOperationException("Graphics.WriteCustomParameterValue was not found.");
             var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
 
-            writeMethod.Invoke(null, [buffer, inputInvSize, new Vector2(0.25f, 0.5f)]);
+            writeMethod.Invoke(null, [buffer, inputInvSize, new Vector2f(0.25f, 0.5f)]);
 
             Assert.Equal(0.25f, BitConverter.ToSingle(buffer, inputOffset));
             Assert.Equal(0.5f, BitConverter.ToSingle(buffer, inputOffset + 4));
@@ -82,14 +82,14 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["InputInvSize"] = new(new Vector2(0.5f, 0.25f), true)
+            ["InputInvSize"] = new(new Vector2f(0.5f, 0.25f), true)
         };
         object?[] arguments = [field, parameters, null];
 
         var found = (bool)(lookupMethod.Invoke(null, arguments) ?? false);
 
         Assert.True(found);
-        Assert.Equal(new Vector2(0.5f, 0.25f), Assert.IsType<Vector2>(arguments[2]));
+        Assert.Equal(new Vector2f(0.5f, 0.25f), Assert.IsType<Vector2f>(arguments[2]));
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["InputInvSize"] = new(new Vector2(0.5f, 0.25f), false)
+            ["InputInvSize"] = new(new Vector2f(0.5f, 0.25f), false)
         };
         object?[] arguments = [field, parameters, null];
 
@@ -130,7 +130,7 @@ public sealed class GraphicsCustomUniformTests
             var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
             var parameters = new OutlineParameters
             {
-                InputInvSize = new Vector2(0.25f, 0.5f)
+                InputInvSize = new Vector2f(0.25f, 0.5f)
             };
 
             writeMethod.Invoke(null, [buffer, layout, parameters]);
@@ -220,6 +220,6 @@ public sealed class GraphicsCustomUniformTests
 
     private readonly struct OutlineParameters
     {
-        public Vector2 InputInvSize { get; init; }
+        public Vector2f InputInvSize { get; init; }
     }
 }

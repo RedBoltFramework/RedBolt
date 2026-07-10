@@ -5,24 +5,24 @@ namespace RedBolt;
 [StructLayout(LayoutKind.Sequential)]
 public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
 {
-    public Vector3 Origin;
-    public Vector3 Direction;
+    public Vector3f Origin;
+    public Vector3f Direction;
 
-    public Ray(Vector3 origin, Vector3 direction)
+    public Ray(Vector3f origin, Vector3f direction)
     {
         Origin = origin;
         Direction = direction.Normalized;
     }
 
-    public Vector3 Project(Vector3 point)
+    public Vector3f Project(Vector3f point)
     {
         var offset = point - Origin;
         return Origin + offset.DotProduct(Direction) * Direction;
     }
 
-    public float Distance(Vector3 point) => (point - Project(point)).Length;
+    public float Distance(Vector3f point) => (point - Project(point)).Length;
 
-    public Vector3 ClosestPoint(Ray ray)
+    public Vector3f ClosestPoint(Ray ray)
     {
         var p13 = Origin - ray.Origin;
         var p43 = ray.Direction;
@@ -39,7 +39,7 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         return Origin + numerator / denominator * Direction;
     }
 
-    public void Define(Vector3 origin, Vector3 direction)
+    public void Define(Vector3f origin, Vector3f direction)
     {
         Origin = origin;
         Direction = direction.Normalized;
@@ -91,7 +91,7 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         return distance >= 0.0f ? distance : (-b + sqrt) / (2.0f * a);
     }
 
-    public float HitDistance(Vector3 v0, Vector3 v1, Vector3 v2, out Vector3 outNormal, out Vector3 outBary)
+    public float HitDistance(Vector3f v0, Vector3f v1, Vector3f v2, out Vector3f outNormal, out Vector3f outBary)
     {
         var edge1 = v1 - v0;
         var edge2 = v2 - v0;
@@ -111,15 +111,15 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
                     if (distance >= 0.0f)
                     {
                         outNormal = edge1.CrossProduct(edge2);
-                        outBary = new Vector3(1.0f - u / det - v / det, u / det, v / det);
+                        outBary = new Vector3f(1.0f - u / det - v / det, u / det, v / det);
                         return distance;
                     }
                 }
             }
         }
 
-        outNormal = Vector3.Zero;
-        outBary = Vector3.Zero;
+        outNormal = Vector3f.Zero;
+        outBary = Vector3f.Zero;
         return float.PositiveInfinity;
     }
 

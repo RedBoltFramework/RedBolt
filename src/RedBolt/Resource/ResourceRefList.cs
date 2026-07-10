@@ -4,8 +4,28 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 {
     private readonly List<string> _names = [];
 
+    public ResourceRefList(StringHash type)
+        : this(type.Value, [])
+    {
+    }
+
+    public ResourceRefList(string type)
+        : this(new StringHash(type).Value, [])
+    {
+    }
+
     public ResourceRefList(uint type)
         : this(type, [])
+    {
+    }
+
+    public ResourceRefList(StringHash type, IEnumerable<string> names)
+        : this(type.Value, names)
+    {
+    }
+
+    public ResourceRefList(string type, IEnumerable<string> names)
+        : this(new StringHash(type).Value, names)
     {
     }
 
@@ -13,7 +33,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
     {
         ArgumentNullException.ThrowIfNull(names);
         Type = type;
-        this._names.AddRange(names);
+        _names.AddRange(names);
     }
 
     public static ResourceRefList Empty { get; } = new(0u);
@@ -22,7 +42,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 
     public uint Type { get; }
 
-    public static bool IsNullOrEmpty(ResourceRefList? resourceRefList)
+    public static bool IsNullOrEmpty(ResourceRefList resourceRefList)
     {
         return resourceRefList is null || resourceRefList.Type == 0u || resourceRefList.Names.Count == 0;
     }
@@ -33,11 +53,14 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
             return new ResourceRefList(0u, []);
 
         var parts = value.Split(';', StringSplitOptions.TrimEntries);
-        if (parts.Length == 1)
-            return new ResourceRefList(0u, parts[0].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        if (parts.Length == 0 || string.IsNullOrEmpty(parts[0]))
+            return Empty;
 
-        var type = uint.TryParse(parts[0], out var parsedType) ? parsedType : StringHash.Calculate(parts[0]);
-        return new ResourceRefList(type, parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        var type = uint.TryParse(parts[0], out var parsedType) ? parsedType : new StringHash(parts[0]).Value;
+        if (parts.Length == 1)
+            return new ResourceRefList(type);
+
+        return new ResourceRefList(type, parts.Skip(1).Where(static name => !string.IsNullOrEmpty(name)));
     }
 
     public uint ToHash()
@@ -52,12 +75,12 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
         }
     }
 
-    public bool Equals(ResourceRefList? other)
+    public bool Equals(ResourceRefList other)
     {
         return other is not null && Type == other.Type && _names.SequenceEqual(other._names);
     }
 
-    public override bool Equals(object? obj)
+    public override bool Equals(object obj)
     {
         return obj is ResourceRefList other && Equals(other);
     }
@@ -66,6 +89,15 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 
     public override string ToString()
     {
-        return Type == 0u ? string.Join(',', _names) : $"{Type};{string.Join(',', _names)}";
+        var typeName = new StringHash(Type).Reverse();
+        if (string.IsNullOrEmpty(typeName))
+            typeName = Type != 0u ? Type.ToString() : string.Empty;
+
+        if (_names.Count == 0)
+            return typeName;
+
+        return string.IsNullOrEmpty(typeName)
+            ? string.Join(';', _names)
+            : $"{typeName};{string.Join(';', _names)}";
     }
 }

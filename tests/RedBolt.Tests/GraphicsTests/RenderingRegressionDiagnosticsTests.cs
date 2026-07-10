@@ -33,7 +33,7 @@ public sealed class RenderingRegressionDiagnosticsTests
             var modelNode = scene.CreateChild("Mushroom");
 
             var cameraNode = scene.CreateChild("Camera");
-            cameraNode.SetPosition(new Vector3(0.0f, 2.0f, -6.0f));
+            cameraNode.SetPosition(new Vector3f(0.0f, 2.0f, -6.0f));
             var camera = cameraNode.CreateComponent<Camera>();
             camera.SetAspectRatio(960.0f / 540.0f);
 
@@ -75,9 +75,9 @@ public sealed class RenderingRegressionDiagnosticsTests
             if (worldFacing)
                 ++result.FrontFacingInWorld;
 
-            var clip0 = viewProj * new Vector4(p0, 1.0f);
-            var clip1 = viewProj * new Vector4(p1, 1.0f);
-            var clip2 = viewProj * new Vector4(p2, 1.0f);
+            var clip0 = viewProj * new Vector4f(p0, 1.0f);
+            var clip1 = viewProj * new Vector4f(p1, 1.0f);
+            var clip2 = viewProj * new Vector4f(p2, 1.0f);
             var clipVisible = clip0.W > MathDefs.Epsilon && clip1.W > MathDefs.Epsilon && clip2.W > MathDefs.Epsilon;
             if (clipVisible)
                 ++result.ProjectedInFront;
@@ -92,9 +92,9 @@ public sealed class RenderingRegressionDiagnosticsTests
             if (!worldFacing || !clipVisible)
                 continue;
 
-            var ndc0 = new Vector2(clip0.X / clip0.W, clip0.Y / clip0.W);
-            var ndc1 = new Vector2(clip1.X / clip1.W, clip1.Y / clip1.W);
-            var ndc2 = new Vector2(clip2.X / clip2.W, clip2.Y / clip2.W);
+            var ndc0 = new Vector2f(clip0.X / clip0.W, clip0.Y / clip0.W);
+            var ndc1 = new Vector2f(clip1.X / clip1.W, clip1.Y / clip1.W);
+            var ndc2 = new Vector2f(clip2.X / clip2.W, clip2.Y / clip2.W);
             var signedArea = (ndc1.X - ndc0.X) * (ndc2.Y - ndc0.Y) - (ndc1.Y - ndc0.Y) * (ndc2.X - ndc0.X);
 
             result.ExaminedTriangles = 1;
@@ -106,7 +106,7 @@ public sealed class RenderingRegressionDiagnosticsTests
         return result;
     }
 
-    private static Vector3[] ReadPositions(VertexBuffer vertexBuffer)
+    private static Vector3f[] ReadPositions(VertexBuffer vertexBuffer)
     {
         var positionOffset = vertexBuffer.GetElementOffset(VertexElementSemantic.Position);
         Assert.NotEqual(uint.MaxValue, positionOffset);
@@ -114,11 +114,11 @@ public sealed class RenderingRegressionDiagnosticsTests
         var rawData = vertexBuffer.GetData().ToArray();
         var vertexSize = checked((int)vertexBuffer.GetVertexSize());
         var vertexCount = checked((int)vertexBuffer.GetVertexCount());
-        var positions = new Vector3[vertexCount];
+        var positions = new Vector3f[vertexCount];
         for (var i = 0; i < vertexCount; ++i)
         {
             var offset = checked(i * vertexSize + (int)positionOffset);
-            positions[i] = new Vector3(
+            positions[i] = new Vector3f(
                 BitConverter.ToSingle(rawData, offset + 0),
                 BitConverter.ToSingle(rawData, offset + 4),
                 BitConverter.ToSingle(rawData, offset + 8));

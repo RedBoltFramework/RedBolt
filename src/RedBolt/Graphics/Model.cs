@@ -7,7 +7,7 @@ namespace RedBolt;
 public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> _geometries = [];
-    private readonly List<Vector3> _geometryCenters = [];
+    private readonly List<Vector3f> _geometryCenters = [];
     private BoundingBox _boundingBox = new(-0.5f, 0.5f);
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -41,7 +41,7 @@ public sealed class Model : ResourceWithMetadata
 
     public IReadOnlyList<IReadOnlyList<Geometry>> Geometries => _geometries;
 
-    public IReadOnlyList<Vector3> GeometryCenters => _geometryCenters;
+    public IReadOnlyList<Vector3f> GeometryCenters => _geometryCenters;
 
     public BoundingBox BoundingBox => _boundingBox;
 
@@ -107,7 +107,7 @@ public sealed class Model : ResourceWithMetadata
         }
 
         if (!_boundingBox.Defined)
-            _boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3>)Array.Empty<Vector3>()).ToArray());
+            _boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3f>)Array.Empty<Vector3f>()).ToArray());
 
         MemoryUse = (uint)modelData.Geometries.Sum(static item => ((item.Positions?.Count ?? 0) * 12) + ((item.Indices?.Count ?? 0) * 4));
         return true;
@@ -247,7 +247,7 @@ public sealed class Model : ResourceWithMetadata
         for (var geometryIndex = 0u; geometryIndex < numGeometries && !source.IsEof(); ++geometryIndex)
             SetGeometryCenter(geometryIndex, source.ReadVector3());
         while (_geometryCenters.Count < _geometries.Count)
-            _geometryCenters.Add(Vector3.Zero);
+            _geometryCenters.Add(Vector3f.Zero);
 
         MemoryUse = (uint)(vertexBuffers.Sum(static buffer => buffer.GetData().Count)
             + indexBuffers.Sum(static buffer => buffer.GetIndexCount() * buffer.GetIndexSize()));
@@ -306,7 +306,7 @@ public sealed class Model : ResourceWithMetadata
 
     public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
 
-    public IReadOnlyList<Vector3> GetGeometryCenters() => GeometryCenters;
+    public IReadOnlyList<Vector3f> GetGeometryCenters() => GeometryCenters;
 
     public uint GetNumGeometries() => NumGeometries;
 
@@ -315,7 +315,7 @@ public sealed class Model : ResourceWithMetadata
         while (_geometries.Count < num)
         {
             _geometries.Add([]);
-            _geometryCenters.Add(Vector3.Zero);
+            _geometryCenters.Add(Vector3f.Zero);
         }
 
         while (_geometries.Count > num)
@@ -372,7 +372,7 @@ public sealed class Model : ResourceWithMetadata
         return index < _geometries.Count ? (uint)_geometries[(int)index].Count : 0u;
     }
 
-    public bool SetGeometryCenter(uint index, Vector3 center)
+    public bool SetGeometryCenter(uint index, Vector3f center)
     {
         if (index >= _geometryCenters.Count)
             return false;
@@ -381,23 +381,23 @@ public sealed class Model : ResourceWithMetadata
         return true;
     }
 
-    public Vector3 GetGeometryCenter(uint index)
+    public Vector3f GetGeometryCenter(uint index)
     {
-        return index < _geometryCenters.Count ? _geometryCenters[(int)index] : Vector3.Zero;
+        return index < _geometryCenters.Count ? _geometryCenters[(int)index] : Vector3f.Zero;
     }
 
-    private static Vector3 CalculateCenter(IReadOnlyList<Vector3> positions)
+    private static Vector3f CalculateCenter(IReadOnlyList<Vector3f> positions)
     {
         if (positions.Count == 0)
-            return Vector3.Zero;
+            return Vector3f.Zero;
 
-        var sum = Vector3.Zero;
+        var sum = Vector3f.Zero;
         foreach (var position in positions)
             sum += position;
         return sum / positions.Count;
     }
 
-    private static byte[] ToVertexBytes(IReadOnlyList<Vector3> positions)
+    private static byte[] ToVertexBytes(IReadOnlyList<Vector3f> positions)
     {
         var data = new byte[positions.Count * 12];
         var offset = 0;
@@ -421,8 +421,8 @@ public sealed class Model : ResourceWithMetadata
     private sealed class SerializedGeometry
     {
         public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.TriangleList;
-        public List<Vector3>? Positions { get; set; }
+        public List<Vector3f>? Positions { get; set; }
         public List<uint>? Indices { get; set; }
-        public Vector3? Center { get; set; }
+        public Vector3f? Center { get; set; }
     }
 }

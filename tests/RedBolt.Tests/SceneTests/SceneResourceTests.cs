@@ -98,7 +98,7 @@ public sealed class SceneResourceTests
         scene.SetFileName("Scenes/Sample.scene");
 
         var node = scene.CreateChild("CameraNode", 42, temporary: true);
-        node.SetTransform(new Vector3(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(45.0f, Vector3.Up), new Vector3(2.0f, 2.0f, 2.0f));
+        node.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(45.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f));
         node.SetTags(["editor", "camera"]);
         node.SetVar("Health", 100);
 
@@ -108,7 +108,7 @@ public sealed class SceneResourceTests
         camera.SetNearClip(0.5f);
         camera.SetFarClip(50.0f);
 
-        node.CreateChild("Child", 55).SetPosition(new Vector3(0.0f, 1.0f, 0.0f));
+        node.CreateChild("Child", 55).SetPosition(new Vector3f(0.0f, 1.0f, 0.0f));
         return resource;
     }
 
@@ -126,7 +126,7 @@ public sealed class SceneResourceTests
         Assert.True(node.IsTemporary);
         Assert.True(node.HasTag("editor"));
         Assert.Equal(100, node.GetVar("Health"));
-        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3(1.0f, 2.0f, 3.0f)));
+        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.Equal(55u, node.GetChild("Child")?.Id);
 
         var camera = scene.GetComponent(24) as Camera;

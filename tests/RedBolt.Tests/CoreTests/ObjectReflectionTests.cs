@@ -7,8 +7,8 @@ public sealed class ObjectReflectionTests
     [Fact]
     public void Provides_fallback_metadata()
     {
-        Assert.Equal(nameof(StaticModel), ObjectReflection<StaticModel>.ClassName);
-        Assert.Equal(StringHash.Calculate(nameof(StaticModel)), ObjectReflection<StaticModel>.TypeId.Value);
+        Assert.Equal("RedBolt.StaticModel", ObjectReflection<StaticModel>.ClassName);
+        Assert.Equal(StringHash.Calculate("RedBolt.StaticModel"), ObjectReflection<StaticModel>.TypeId.Value);
     }
 
     [Fact]

@@ -29,8 +29,8 @@ public sealed class GraphicsMatrixPackingTests
         var method = typeof(Graphics).GetMethod("BuildFullscreenCameraBufferData", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("Graphics.BuildFullscreenCameraBufferData was not found.");
 
-        var regular = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4(0.5f), new Vector2(0.25f, 0.5f), false]));
-        var flipped = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4(0.5f), new Vector2(0.25f, 0.5f), true]));
+        var regular = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4f(0.5f), new Vector2f(0.25f, 0.5f), false]));
+        var flipped = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4f(0.5f), new Vector2f(0.25f, 0.5f), true]));
 
         Assert.Equal(1.0f, BitConverter.ToSingle(regular, 128 + 5 * sizeof(float)));
         Assert.Equal(-1.0f, BitConverter.ToSingle(flipped, 128 + 5 * sizeof(float)));

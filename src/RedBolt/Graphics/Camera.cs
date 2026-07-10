@@ -50,7 +50,7 @@ public sealed class Camera : Component
         RegisterAttribute("Shadow View Mask", typeof(uint), self => ((Camera)self).GetShadowViewMask(), (self, value) => ((Camera)self).SetShadowViewMask((uint)value!), DefaultViewMask);
         RegisterAttribute("Zone Mask", typeof(uint), self => ((Camera)self).GetZoneMask(), (self, value) => ((Camera)self).SetZoneMask((uint)value!), DefaultZoneMask);
         RegisterAttribute("View Override Flags", typeof(ViewOverride), self => ((Camera)self).GetViewOverrideFlags(), (self, value) => ((Camera)self).SetViewOverrideFlags((ViewOverride)value!), ViewOverride.None);
-        RegisterAttribute("Projection Offset", typeof(Vector2), self => ((Camera)self).GetProjectionOffset(), (self, value) => ((Camera)self).SetProjectionOffset((Vector2)value!), Vector2.Zero);
+        RegisterAttribute("Projection Offset", typeof(Vector2f), self => ((Camera)self).GetProjectionOffset(), (self, value) => ((Camera)self).SetProjectionOffset((Vector2f)value!), Vector2f.Zero);
         RegisterAttribute("Use Reflection", typeof(bool), self => ((Camera)self).GetUseReflection(), (self, value) => ((Camera)self).SetUseReflection(value is bool enabled && enabled), false);
         RegisterAttribute("Use Clipping", typeof(bool), self => ((Camera)self).GetUseClipping(), (self, value) => ((Camera)self).SetUseClipping(value is bool enabled && enabled), false);
         RegisterAttribute("Draw Debug Geometry", typeof(bool), self => ((Camera)self).GetDrawDebugGeometry(), (self, value) => ((Camera)self).SetDrawDebugGeometry(value is bool enabled && enabled), true);
@@ -94,7 +94,7 @@ public sealed class Camera : Component
         set => SetLodBias(value);
     }
 
-    public Vector2 MousePosition { get; private set; }
+    public Vector2f MousePosition { get; private set; }
 
     public float NearClip
     {
@@ -112,7 +112,7 @@ public sealed class Camera : Component
 
     public uint PrimaryViewMask { get; set; } = DefaultViewMask;
 
-    public Vector2 ProjectionOffset { get; set; }
+    public Vector2f ProjectionOffset { get; set; }
 
     public uint ShadowViewMask { get; set; } = DefaultViewMask;
 
@@ -138,11 +138,11 @@ public sealed class Camera : Component
 
     public bool GetDrawDebugGeometry() => DrawDebugGeometry;
 
-    public float GetDistance(Vector3 worldPos)
+    public float GetDistance(Vector3f worldPos)
     {
         if (!Orthographic)
         {
-            var cameraPos = IsAttached ? Node.WorldPosition : Vector3.Zero;
+            var cameraPos = IsAttached ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).Length;
         }
 
@@ -150,11 +150,11 @@ public sealed class Camera : Component
         return Math.Abs(viewPos.Z);
     }
 
-    public float GetDistanceSquared(Vector3 worldPos)
+    public float GetDistanceSquared(Vector3f worldPos)
     {
         if (!Orthographic)
         {
-            var cameraPos = IsAttached ? Node.WorldPosition : Vector3.Zero;
+            var cameraPos = IsAttached ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).LengthSquared;
         }
 
@@ -249,7 +249,7 @@ public sealed class Camera : Component
 
     public uint GetPrimaryViewMask() => PrimaryViewMask;
 
-    public Vector2 GetProjectionOffset() => ProjectionOffset;
+    public Vector2f GetProjectionOffset() => ProjectionOffset;
 
     public bool GetReverseCulling() => FlipVertical ^ UseReflection;
 
@@ -259,10 +259,10 @@ public sealed class Camera : Component
 
     public bool GetUseReflection() => UseReflection;
 
-    public Vector2 GetViewSizeAt(float z)
+    public Vector2f GetViewSizeAt(float z)
     {
         var halfHeight = GetHalfViewSize();
-        var halfSize = new Vector2(_aspectRatio * halfHeight, halfHeight);
+        var halfSize = new Vector2f(_aspectRatio * halfHeight, halfHeight);
         return Orthographic ? halfSize : halfSize * z;
     }
 
@@ -324,7 +324,7 @@ public sealed class Camera : Component
         _lodBias = Math.Max(value, MathDefs.Epsilon);
     }
 
-    public void SetMousePosition(Vector2 position)
+    public void SetMousePosition(Vector2f position)
     {
         MousePosition = position;
     }
@@ -345,7 +345,7 @@ public sealed class Camera : Component
         _aspectRatio = 1.0f;
     }
 
-    public void SetOrthoSize(Vector2 value)
+    public void SetOrthoSize(Vector2f value)
     {
         AutoAspectRatio = false;
         _orthoSize = value.Y;
@@ -357,7 +357,7 @@ public sealed class Camera : Component
         PrimaryViewMask = mask;
     }
 
-    public void SetProjectionOffset(Vector2 offset)
+    public void SetProjectionOffset(Vector2f offset)
     {
         ProjectionOffset = offset;
     }

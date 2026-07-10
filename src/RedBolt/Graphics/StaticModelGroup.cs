@@ -157,7 +157,7 @@ public sealed class StaticModelGroup : StaticModel
                 Distance = distance,
                 Position = ray.Origin + ray.Direction * distance,
                 Normal = -ray.Direction,
-                TextureUV = Vector2.Zero,
+                TextureUV = Vector2f.Zero,
                 SubObject = (uint)i
             };
         }

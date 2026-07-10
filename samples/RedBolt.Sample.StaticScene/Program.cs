@@ -53,13 +53,13 @@ sealed class StaticSceneApplication : Application
         outlineGroup.SetColor(new Color(1.0f, 0.1f, 0.9f, 1.0f));
 
         var planeNode = scene.CreateChild("Plane");
-        planeNode.SetScale(new Vector3(100.0f, 1.0f, 100.0f));
+        planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var plane = planeNode.CreateComponent<StaticModel>();
         plane.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
         plane.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
 
         var lightNode = scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3(0.6f, -1.0f, 0.8f));
+        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f));
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
 
@@ -67,7 +67,7 @@ sealed class StaticSceneApplication : Application
         for (var i = 0; i < 200; ++i)
         {
             var mushroomNode = scene.CreateChild("Mushroom");
-            var position = new Vector3(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f));
+            var position = new Vector3f(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f));
             mushroomNode.SetPosition(position);
             mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, RandomRange(0.0f, 360.0f), 0.0f));
             mushroomNode.SetScale(0.5f + RandomRange(0.0f, 2.0f));
@@ -85,7 +85,7 @@ sealed class StaticSceneApplication : Application
         foreach (var x in new[] { -5.5f, 0.0f, 5.5f })
         {
             var outlinedNode = scene.CreateChild("OutlinedMushroom");
-            outlinedNode.SetPosition(new Vector3(x, 0.0f, 9.0f));
+            outlinedNode.SetPosition(new Vector3f(x, 0.0f, 9.0f));
             outlinedNode.SetScale(3.75f);
             var outlinedMushroom = outlinedNode.CreateComponent<StaticModel>();
             outlinedMushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
@@ -94,7 +94,7 @@ sealed class StaticSceneApplication : Application
         }
 
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3(0.0f, 5.0f, 0.0f));
+        cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
         var camera = cameraNode.CreateComponent<Camera>();
         var controller = cameraNode.CreateComponent<FreeFlyController>();
         controller.SetInput(Input);
@@ -142,8 +142,8 @@ sealed class StaticSceneApplication : Application
 
     private void DrawGCStats()
     {
-        ImGui.SetNextWindowPos(new Vector2(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(280, 180), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.SetNextWindowPos(new Vector2f(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2f(280, 180), ImGuiCond.ImGuiCondFirstUseEver);
 
         var flags = ImGuiWindowFlags.ImGuiWindowFlagsNoResize
                   | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings;

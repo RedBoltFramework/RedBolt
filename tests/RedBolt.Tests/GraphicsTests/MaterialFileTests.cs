@@ -28,8 +28,8 @@ public sealed class MaterialFileTests
             Assert.Equal("LitSolid", material.GetPass(0, "base")?.VertexShader);
             Assert.Equal(BlendMode.Add, material.GetPass(0, "light")?.BlendMode);
 
-            var specColor = Assert.IsType<Vector4>(material.GetShaderParameter("MatSpecColor"));
-            Assert.Equal(new Vector4(0.3f, 0.3f, 0.3f, 16.0f), specColor);
+            var specColor = Assert.IsType<Vector4f>(material.GetShaderParameter("MatSpecColor"));
+            Assert.Equal(new Vector4f(0.3f, 0.3f, 0.3f, 16.0f), specColor);
             Assert.Contains("PACKEDNORMAL", material.GetPixelShaderDefines(), StringComparison.Ordinal);
             Assert.NotNull(material.GetTexture("Albedo"));
             Assert.NotNull(material.GetTexture("Normal"));

@@ -147,7 +147,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Dispatch compute shader.</summary>
-    public void Dispatch(IntVector3 numGroups)
+    public void Dispatch(Vector3i numGroups)
     {
         var pipelineState = _currentDrawCommand.PipelineState ?? throw new InvalidOperationException("Pipeline state must be set before dispatch.");
         if (pipelineState.GetPipelineType() != PipelineStateType.Compute)

@@ -52,7 +52,7 @@ public sealed class EngineTests
         receiver.SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent eventData) =>
         {
             ++beginFrameCalls;
-            Assert.Equal(1, eventData.FrameNumber);
+            Assert.Equal(1u, eventData.FrameNumber);
             Assert.True(MathDefs.ApproximatelyEquivalent(eventData.TimeStep, 0.125f));
         });
         receiver.SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => ++endFrameCalls);

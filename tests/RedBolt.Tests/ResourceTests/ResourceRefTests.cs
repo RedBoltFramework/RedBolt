@@ -17,11 +17,25 @@ public sealed class ResourceRefTests
     [Fact]
     public void ResourceRefList_parse_equality_and_hash_work()
     {
-        var list = ResourceRefList.Parse("Material;Materials/One,Materials/Two");
+        var list = ResourceRefList.Parse("Material;Materials/One;Materials/Two");
         var expected = new ResourceRefList(StringHash.Calculate("Material"), ["Materials/One", "Materials/Two"]);
         Assert.True(list.Equals(expected));
         Assert.NotEqual(0u, list.ToHash());
         Assert.False(ResourceRefList.IsNullOrEmpty(list));
         Assert.True(ResourceRefList.IsNullOrEmpty(ResourceRefList.Empty));
+    }
+
+    [Fact]
+    public void Type_only_resource_refs_follow_rbfx_string_contract()
+    {
+        var resourceRef = ResourceRef.Parse("Material");
+        Assert.Equal(StringHash.Calculate("Material"), resourceRef.Type);
+        Assert.Equal(string.Empty, resourceRef.Name);
+        Assert.Equal("Material;", resourceRef.ToString());
+
+        var resourceRefList = ResourceRefList.Parse("Texture2D;A.png;B.png");
+        Assert.Equal(StringHash.Calculate("Texture2D"), resourceRefList.Type);
+        Assert.Equal(["A.png", "B.png"], resourceRefList.Names);
+        Assert.Equal("Texture2D;A.png;B.png", resourceRefList.ToString());
     }
 }

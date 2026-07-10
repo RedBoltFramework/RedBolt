@@ -21,32 +21,34 @@ public readonly struct ContextEventSubscription : IDisposable
 
 public sealed class Context
 {
-    private sealed class StructEventSubscription
-    {
-        public required ulong Id { get; init; }
-
-        public required WeakReference<object>? Receiver { get; init; }
-
-        public object? SenderFilter { get; init; }
-
-        public required Delegate Handler { get; init; }
-
-        public bool IsRemoved { get; set; }
-    }
-
     private sealed class StructEventSubscriptionBucket
     {
-        public List<StructEventSubscription> Subscriptions { get; } = [];
+        public List<EventHandler> Subscriptions { get; } = [];
 
         public int DispatchDepth { get; set; }
 
         public bool RequiresCompaction { get; set; }
     }
 
+    private readonly struct ActiveEventInvocation
+    {
+        public ActiveEventInvocation(Object? sender, EventHandler handler)
+        {
+            Sender = sender;
+            Handler = handler;
+        }
+
+        public Object? Sender { get; }
+
+        public EventHandler Handler { get; }
+    }
+
     private static Context? _instance;
 
-    private readonly Dictionary<Type, object> _subsystems = [];
+    private readonly SubsystemCache _subsystems = new();
+    private readonly Dictionary<Type, object> _subsystemsByType = [];
     private readonly Dictionary<Type, StructEventSubscriptionBucket> _structEventSubscriptions = [];
+    private readonly List<ActiveEventInvocation> _activeEventInvocations = [];
     private readonly VariantMap _globalVars = [];
     private ulong _nextSubscriptionId = 1;
 
@@ -61,8 +63,10 @@ public sealed class Context
 
     public void Reset()
     {
+        _subsystemsByType.Clear();
         _subsystems.Clear();
         _structEventSubscriptions.Clear();
+        _activeEventInvocations.Clear();
         _globalVars.Clear();
         _nextSubscriptionId = 1;
     }
@@ -85,33 +89,51 @@ public sealed class Context
     public void RegisterSubsystem(object subsystem)
     {
         ArgumentNullException.ThrowIfNull(subsystem);
-        _subsystems[subsystem.GetType()] = subsystem;
+        _subsystemsByType[subsystem.GetType()] = subsystem;
+        _subsystems.Add(GetSubsystemTypeId(subsystem.GetType()), subsystem);
     }
 
     public void RegisterSubsystem<T>(T subsystem)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(subsystem);
-        _subsystems[typeof(T)] = subsystem;
+        _subsystemsByType[typeof(T)] = subsystem;
+        _subsystems.Add(GetSubsystemTypeId(subsystem.GetType()), subsystem);
     }
 
     public bool RemoveSubsystem<T>()
         where T : class
-        => _subsystems.Remove(typeof(T));
+    {
+        if (!_subsystemsByType.Remove(typeof(T), out var subsystem))
+            return false;
+
+        _subsystems.Remove(GetSubsystemTypeId(subsystem.GetType()));
+        return true;
+    }
 
     public T? GetSubsystem<T>()
         where T : class
     {
-        if (_subsystems.TryGetValue(typeof(T), out var subsystem))
+        if (_subsystemsByType.TryGetValue(typeof(T), out var subsystem))
             return (T)subsystem;
 
-        foreach (var registeredSubsystem in _subsystems.Values)
+        var cachedSubsystem = _subsystems.Get<T>();
+        if (cachedSubsystem is not null)
+            return cachedSubsystem;
+
+        foreach (var registeredSubsystem in _subsystemsByType.Values)
         {
             if (registeredSubsystem is T typedSubsystem)
                 return typedSubsystem;
         }
 
         return null;
+    }
+
+    private static StringHash GetSubsystemTypeId(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return type.GetTypeId();
     }
 
     public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
@@ -125,7 +147,7 @@ public sealed class Context
         return SubscribeToEventCore(receiver, senderFilter: null, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(object receiver, object sender, RefEventHandler<T> handler) where T : struct
+    public ContextEventSubscription SubscribeToEvent<T>(object receiver, Object sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -142,7 +164,7 @@ public sealed class Context
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe(object receiver, object sender)
+    public void Unsubscribe(object receiver, Object sender)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -151,18 +173,18 @@ public sealed class Context
         {
             RemoveMatchingSubscriptions(
                 bucket,
-                subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.SenderFilter, sender));
+                subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
         }
 
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeFromEvents(object receiver, object sender)
+    public void UnsubscribeFromEvents(object receiver, Object sender)
     {
         Unsubscribe(receiver, sender);
     }
 
-    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<object> senders)
+    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<Object> senders)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(senders);
@@ -172,7 +194,7 @@ public sealed class Context
             RemoveMatchingSubscriptions(
                 bucket,
                 subscription =>
-                    IsReceiverMatch(subscription, receiver) && (subscription.SenderFilter is null || !senders.Contains(subscription.SenderFilter)));
+                    IsReceiverMatch(subscription, receiver) && (subscription.Sender is null || !senders.Contains(subscription.Sender)));
         }
 
         RemoveEmptyEventBuckets();
@@ -201,7 +223,7 @@ public sealed class Context
         return HasMatchingSubscription(bucket, subscription => IsReceiverMatch(subscription, receiver));
     }
 
-    public bool HasSubscribedToEvent<T>(object receiver, object sender) where T : struct
+    public bool HasSubscribedToEvent<T>(object receiver, Object sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -210,12 +232,22 @@ public sealed class Context
             return false;
 
         return HasMatchingSubscription(bucket,
-            subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.SenderFilter, sender));
+            subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
     }
 
     public bool HasEventHandlers(object receiver)
     {
         return HasSubscribedToEvent(receiver);
+    }
+
+    public Object? GetEventSender()
+    {
+        return _activeEventInvocations.Count > 0 ? _activeEventInvocations[^1].Sender : null;
+    }
+
+    public EventHandler? GetEventHandler()
+    {
+        return _activeEventInvocations.Count > 0 ? _activeEventInvocations[^1].Handler : null;
     }
 
     public Variant GetGlobalVar(StringHash key)
@@ -241,7 +273,7 @@ public sealed class Context
         SendEvent(sender: null, ref args);
     }
 
-    public void SendEvent<T>(object? sender, ref T args) where T : struct
+    public void SendEvent<T>(Object? sender, ref T args) where T : struct
     {
         if (sender is Object { BlockEvents: true })
             return;
@@ -259,20 +291,28 @@ public sealed class Context
                 if (subscription.IsRemoved)
                     continue;
 
-                if (!TryGetReceiver(subscription, out var receiver))
+                if (!subscription.TryGetReceiver(out var receiver))
                 {
                     subscription.IsRemoved = true;
                     bucket.RequiresCompaction = true;
                     continue;
                 }
 
-                if (subscription.SenderFilter is not null && !ReferenceEquals(subscription.SenderFilter, sender))
+                if (subscription.Sender is not null && !ReferenceEquals(subscription.Sender, sender))
                     continue;
 
                 if (receiver is Object { BlockEvents: true })
                     continue;
 
-                ((RefEventHandler<T>)subscription.Handler)(ref args);
+                _activeEventInvocations.Add(new ActiveEventInvocation(sender, subscription));
+                try
+                {
+                    ((RefEventHandler<T>)subscription.Handler)(ref args);
+                }
+                finally
+                {
+                    _activeEventInvocations.RemoveAt(_activeEventInvocations.Count - 1);
+                }
             }
         }
         finally
@@ -281,26 +321,15 @@ public sealed class Context
         }
     }
 
-    private static bool IsReceiverMatch(StructEventSubscription subscription, object receiver)
+    private static bool IsReceiverMatch(EventHandler subscription, object receiver)
     {
-        if (!TryGetReceiver(subscription, out var targetReceiver))
+        if (!subscription.TryGetReceiver(out var targetReceiver))
             return false;
 
         return ReferenceEquals(targetReceiver, receiver);
     }
 
-    private static bool TryGetReceiver(StructEventSubscription subscription, out object? receiver)
-    {
-        if (subscription.Receiver is null)
-        {
-            receiver = null;
-            return true;
-        }
-
-        return subscription.Receiver.TryGetTarget(out receiver);
-    }
-
-    private ContextEventSubscription SubscribeToEventCore<T>(object? receiver, object? senderFilter, RefEventHandler<T> handler) where T : struct
+    private ContextEventSubscription SubscribeToEventCore<T>(object? receiver, Object? senderFilter, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -309,13 +338,7 @@ public sealed class Context
             _structEventSubscriptions[eventType] = bucket = new StructEventSubscriptionBucket();
 
         var subscriptionId = _nextSubscriptionId++;
-        bucket.Subscriptions.Add(new StructEventSubscription
-        {
-            Id = subscriptionId,
-            Receiver = receiver is null ? null : new WeakReference<object>(receiver),
-            SenderFilter = senderFilter,
-            Handler = handler
-        });
+        bucket.Subscriptions.Add(new EventHandler(subscriptionId, receiver, senderFilter, eventType, handler));
 
         return new ContextEventSubscription(this, subscriptionId);
     }
@@ -333,7 +356,7 @@ public sealed class Context
 
     private static int RemoveMatchingSubscriptions(
         StructEventSubscriptionBucket bucket,
-        Predicate<StructEventSubscription> predicate)
+        Predicate<EventHandler> predicate)
     {
         if (bucket.DispatchDepth > 0)
         {
@@ -343,7 +366,7 @@ public sealed class Context
                 if (subscription.IsRemoved)
                     continue;
 
-                if (subscription.Receiver is not null && !subscription.Receiver.TryGetTarget(out _))
+                if (!subscription.TryGetReceiver(out _) && subscription.HasReceiver)
                 {
                     subscription.IsRemoved = true;
                     bucket.RequiresCompaction = true;
@@ -366,7 +389,7 @@ public sealed class Context
         for (var i = bucket.Subscriptions.Count - 1; i >= 0; --i)
         {
             var subscription = bucket.Subscriptions[i];
-            if (subscription.Receiver is not null && !subscription.Receiver.TryGetTarget(out _))
+            if (!subscription.TryGetReceiver(out _) && subscription.HasReceiver)
             {
                 bucket.Subscriptions.RemoveAt(i);
                 ++removedCount;
@@ -383,7 +406,7 @@ public sealed class Context
         return removedCount;
     }
 
-    private bool HasMatchingSubscription(StructEventSubscriptionBucket bucket, Func<StructEventSubscription, bool> predicate)
+    private bool HasMatchingSubscription(StructEventSubscriptionBucket bucket, Func<EventHandler, bool> predicate)
     {
         RemoveMatchingSubscriptions(bucket, static subscription => false);
 

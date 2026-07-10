@@ -96,6 +96,6 @@ public sealed class LightTests
         light.SetLightType(LightType.Directional);
         // Directional light has zero distance and infinite bounding box.
         // The default bounding box for directional light contains the origin.
-        Assert.NotEqual(Intersection.Outside, light.GetWorldBoundingBox().IsInside(Vector3.Zero));
+        Assert.NotEqual(Intersection.Outside, light.GetWorldBoundingBox().IsInside(Vector3f.Zero));
     }
 }

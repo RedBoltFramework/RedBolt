@@ -17,14 +17,14 @@ public sealed class CommandLineParser
     public void AddFlag(IEnumerable<string> aliases, string description, Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        AddOptionCore(aliases, description, valueName: null, _ => action());
+        AddOptionCore(new FlagCommandLineOption(GetAliases(aliases), description, action));
     }
 
     public void AddOption(IEnumerable<string> aliases, string valueName, string description, Action<string> action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(valueName);
         ArgumentNullException.ThrowIfNull(action);
-        AddOptionCore(aliases, description, valueName, value => action(value!));
+        AddOptionCore(new ValueCommandLineOption(GetAliases(aliases), description, valueName, action));
     }
 
     public CommandLineParseResult Parse(IReadOnlyList<string> args)
@@ -42,28 +42,28 @@ public sealed class CommandLineParser
 
             var equalsIndex = argument.IndexOf('=');
             var optionName = equalsIndex >= 0 ? argument[..equalsIndex] : argument;
-            var inlineValue = equalsIndex >= 0 ? argument[(equalsIndex + 1)..] : null;
+            var hasInlineValue = equalsIndex >= 0;
+            var inlineValue = hasInlineValue ? argument[(equalsIndex + 1)..] : string.Empty;
             if (!_optionsByAlias.TryGetValue(optionName, out var option))
                 return CommandLineParseResult.Failure($"Unknown option '{optionName}'.");
 
-            string? optionValue = null;
-            if (option.RequiresValue)
-            {
-                if (inlineValue is not null)
-                    optionValue = inlineValue;
-                else if (index + 1 < args.Count)
-                    optionValue = args[++index];
-                else
-                    return CommandLineParseResult.Failure($"Option '{optionName}' requires a value.");
-            }
-            else if (inlineValue is not null)
-            {
-                return CommandLineParseResult.Failure($"Option '{optionName}' does not accept a value.");
-            }
-
             try
             {
-                option.Apply(optionValue);
+                if (option.RequiresValue)
+                {
+                    if (hasInlineValue)
+                        option.Apply(inlineValue);
+                    else if (index + 1 < args.Count)
+                        option.Apply(args[++index]);
+                    else
+                        return CommandLineParseResult.Failure($"Option '{optionName}' requires a value.");
+                }
+                else if (hasInlineValue)
+                {
+                    return CommandLineParseResult.Failure($"Option '{optionName}' does not accept a value.");
+                }
+                else
+                    option.Apply();
             }
             catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException)
             {
@@ -81,11 +81,18 @@ public sealed class CommandLineParser
         builder.AppendLine();
         builder.AppendLine("Options:");
 
-        var renderedOptions = _options
-            .Select(static option => option.RenderSignature())
-            .Append("-h, --help")
-            .ToArray();
-        var width = renderedOptions.Max(static text => text.Length);
+        var renderedOptions = new string[_options.Count + 1];
+        var width = 0;
+        for (var index = 0; index < _options.Count; ++index)
+        {
+            var renderedOption = _options[index].RenderSignature();
+            renderedOptions[index] = renderedOption;
+            width = Math.Max(width, renderedOption.Length);
+        }
+
+        renderedOptions[^1] = "-h, --help";
+        width = Math.Max(width, renderedOptions[^1].Length);
+
         for (var index = 0; index < _options.Count; ++index)
             builder.Append("  ").Append(renderedOptions[index].PadRight(width)).Append("  ").AppendLine(_options[index].Description);
 
@@ -93,20 +100,28 @@ public sealed class CommandLineParser
         return builder.ToString();
     }
 
-    private void AddOptionCore(IEnumerable<string> aliases, string description, string? valueName, Action<string?> action)
+    private static string[] GetAliases(IEnumerable<string> aliases)
     {
         ArgumentNullException.ThrowIfNull(aliases);
-        ArgumentNullException.ThrowIfNull(action);
 
-        var aliasList = aliases
-            .Where(static alias => !string.IsNullOrWhiteSpace(alias))
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-        if (aliasList.Length == 0)
+        var aliasSet = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var alias in aliases)
+        {
+            if (!string.IsNullOrWhiteSpace(alias))
+                aliasSet.Add(alias);
+        }
+
+        if (aliasSet.Count == 0)
             throw new ArgumentException("At least one alias must be provided.", nameof(aliases));
 
-        var option = new CommandLineOption(aliasList, description, valueName, action);
-        foreach (var alias in aliasList)
+        var aliasList = new string[aliasSet.Count];
+        aliasSet.CopyTo(aliasList);
+        return aliasList;
+    }
+
+    private void AddOptionCore(CommandLineOption option)
+    {
+        foreach (var alias in option.Aliases)
         {
             if (!_optionsByAlias.TryAdd(alias, option))
                 throw new InvalidOperationException($"Command-line alias '{alias}' is already registered.");
@@ -115,44 +130,87 @@ public sealed class CommandLineParser
         _options.Add(option);
     }
 
-    private sealed class CommandLineOption
+    private abstract class CommandLineOption
     {
-        private readonly Action<string?> _apply;
-
-        public CommandLineOption(string[] aliases, string description, string? valueName, Action<string?> apply)
+        protected CommandLineOption(string[] aliases, string description)
         {
             Aliases = aliases;
             Description = description;
-            ValueName = valueName;
-            this._apply = apply;
         }
 
         public string[] Aliases { get; }
 
         public string Description { get; }
 
-        public string? ValueName { get; }
+        public abstract bool RequiresValue { get; }
 
-        public bool RequiresValue => ValueName is not null;
+        public virtual void Apply()
+        {
+        }
 
-        public void Apply(string? value)
+        public virtual void Apply(string value)
+        {
+        }
+
+        public abstract string RenderSignature();
+    }
+
+    private sealed class FlagCommandLineOption : CommandLineOption
+    {
+        private readonly Action _apply;
+
+        public FlagCommandLineOption(string[] aliases, string description, Action apply)
+            : base(aliases, description)
+        {
+            _apply = apply;
+        }
+
+        public override bool RequiresValue => false;
+
+        public override void Apply()
+        {
+            _apply();
+        }
+
+        public override string RenderSignature()
+        {
+            return string.Join(", ", Aliases);
+        }
+    }
+
+    private sealed class ValueCommandLineOption : CommandLineOption
+    {
+        private readonly Action<string> _apply;
+
+        public ValueCommandLineOption(string[] aliases, string description, string valueName, Action<string> apply)
+            : base(aliases, description)
+        {
+            ValueName = valueName;
+            _apply = apply;
+        }
+
+        public string ValueName { get; }
+
+        public override bool RequiresValue => true;
+
+        public override void Apply(string value)
         {
             _apply(value);
         }
 
-        public string RenderSignature()
+        public override string RenderSignature()
         {
             var signature = string.Join(", ", Aliases);
-            return ValueName is null ? signature : $"{signature} <{ValueName}>";
+            return $"{signature} <{ValueName}>";
         }
     }
 }
 
-public readonly record struct CommandLineParseResult(bool IsSuccess, bool IsHelpRequested, string? ErrorMessage)
+public readonly record struct CommandLineParseResult(bool IsSuccess, bool IsHelpRequested, string ErrorMessage)
 {
-    public static CommandLineParseResult Success() => new(true, false, null);
+    public static CommandLineParseResult Success() => new(true, false, string.Empty);
 
-    public static CommandLineParseResult HelpRequested() => new(true, true, null);
+    public static CommandLineParseResult HelpRequested() => new(true, true, string.Empty);
 
     public static CommandLineParseResult Failure(string errorMessage) => new(false, false, errorMessage);
 }

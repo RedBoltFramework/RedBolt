@@ -329,7 +329,10 @@ public sealed class RenderPath : Resource
 
     private static VariantType ParseVariantType(string value)
     {
-        return Enum.TryParse<VariantType>(value, ignoreCase: true, out var type) ? type : VariantType.None;
+        if (Enum.TryParse<VariantType>(value, ignoreCase: true, out var type))
+            return type;
+
+        return Variant.GetTypeFromName(value);
     }
 
     private static object? DeserializeAttributeValue(JsonElement valueElement, string typeName)
@@ -423,8 +426,8 @@ public sealed class RenderPath : Resource
             VariantType.Quaternion => ParseQuaternion(trimmed),
             VariantType.Color => ParseColor(trimmed),
             VariantType.IntRect => ParseIntRect(trimmed),
-            VariantType.IntVector2 => ParseIntVector2(trimmed),
-            VariantType.IntVector3 => ParseIntVector3(trimmed),
+            VariantType.Vector2i => ParseIntVector2(trimmed),
+            VariantType.Vector3i => ParseIntVector3(trimmed),
             _ => null
         };
     }
@@ -461,22 +464,22 @@ public sealed class RenderPath : Resource
         return result;
     }
 
-    private static Vector2 ParseVector2(string value)
+    private static Vector2f ParseVector2(string value)
     {
         var components = ParseFloatComponents(value, 2);
-        return new Vector2(components[0], components[1]);
+        return new Vector2f(components[0], components[1]);
     }
 
-    private static Vector3 ParseVector3(string value)
+    private static Vector3f ParseVector3(string value)
     {
         var components = ParseFloatComponents(value, 3);
-        return new Vector3(components[0], components[1], components[2]);
+        return new Vector3f(components[0], components[1], components[2]);
     }
 
-    private static Vector4 ParseVector4(string value)
+    private static Vector4f ParseVector4(string value)
     {
         var components = ParseFloatComponents(value, 4);
-        return new Vector4(components[0], components[1], components[2], components[3]);
+        return new Vector4f(components[0], components[1], components[2], components[3]);
     }
 
     private static Quaternion ParseQuaternion(string value)
@@ -497,16 +500,16 @@ public sealed class RenderPath : Resource
         return new IntRect(components[0], components[1], components[2], components[3]);
     }
 
-    private static IntVector2 ParseIntVector2(string value)
+    private static Vector2i ParseIntVector2(string value)
     {
         var components = ParseIntComponents(value, 2);
-        return new IntVector2(components[0], components[1]);
+        return new Vector2i(components[0], components[1]);
     }
 
-    private static IntVector3 ParseIntVector3(string value)
+    private static Vector3i ParseIntVector3(string value)
     {
         var components = ParseIntComponents(value, 3);
-        return new IntVector3(components[0], components[1], components[2]);
+        return new Vector3i(components[0], components[1], components[2]);
     }
 
     private sealed class SerializedRenderPass : RenderPass

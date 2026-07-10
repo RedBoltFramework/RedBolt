@@ -22,7 +22,7 @@ public sealed class ValueAnimationTests
         var animation = new ValueAnimation("Animations/Test");
         Assert.True(animation.SetKeyFrame(0.0f, 0.0f));
         Assert.False(animation.SetKeyFrame(0.0f, 1.0f));
-        Assert.False(animation.SetKeyFrame(1.0f, new Vector3(1.0f, 2.0f, 3.0f)));
+        Assert.False(animation.SetKeyFrame(1.0f, new Vector3f(1.0f, 2.0f, 3.0f)));
     }
 
     [Fact]
@@ -30,13 +30,13 @@ public sealed class ValueAnimationTests
     {
         var animation = new ValueAnimation("Animations/Test");
         animation.SetInterpolationMethod(InterpMethod.Spline);
-        Assert.True(animation.SetKeyFrame(0.0f, new Vector3(0.0f, 0.0f, 0.0f)));
-        Assert.True(animation.SetKeyFrame(1.0f, new Vector3(10.0f, 0.0f, 0.0f)));
-        Assert.True(animation.SetKeyFrame(2.0f, new Vector3(20.0f, 0.0f, 0.0f)));
-        Assert.True(animation.SetKeyFrame(3.0f, new Vector3(30.0f, 0.0f, 0.0f)));
+        Assert.True(animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f)));
+        Assert.True(animation.SetKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f)));
+        Assert.True(animation.SetKeyFrame(2.0f, new Vector3f(20.0f, 0.0f, 0.0f)));
+        Assert.True(animation.SetKeyFrame(3.0f, new Vector3f(30.0f, 0.0f, 0.0f)));
 
-        var value = (Vector3)animation.GetAnimationValue(1.5f)!;
-        Assert.True(value.ApproximatelyEquivalent(new Vector3(15.0f, 0.0f, 0.0f), 0.001f));
+        var value = (Vector3f)animation.GetAnimationValue(1.5f)!;
+        Assert.True(value.ApproximatelyEquivalent(new Vector3f(15.0f, 0.0f, 0.0f), 0.001f));
     }
 
     [Fact]

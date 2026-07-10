@@ -161,11 +161,11 @@ public sealed class XMLElement
 
     public bool SetColor(string name, Color value) => SetAttribute(name, value.ToString());
 
-    public bool SetVector2(string name, Vector2 value) => SetAttribute(name, value.ToString());
+    public bool SetVector2(string name, Vector2f value) => SetAttribute(name, value.ToString());
 
-    public bool SetVector3(string name, Vector3 value) => SetAttribute(name, value.ToString());
+    public bool SetVector3(string name, Vector3f value) => SetAttribute(name, value.ToString());
 
-    public bool SetVector4(string name, Vector4 value) => SetAttribute(name, value.ToString());
+    public bool SetVector4(string name, Vector4f value) => SetAttribute(name, value.ToString());
 
     public bool SetQuaternion(string name, Quaternion value) => SetAttribute(name, value.ToString());
 
@@ -173,9 +173,9 @@ public sealed class XMLElement
 
     public bool SetIntRect(string name, IntRect value) => SetAttribute(name, value.ToString());
 
-    public bool SetIntVector2(string name, IntVector2 value) => SetAttribute(name, value.ToString());
+    public bool SetIntVector2(string name, Vector2i value) => SetAttribute(name, value.ToString());
 
-    public bool SetIntVector3(string name, IntVector3 value) => SetAttribute(name, value.ToString());
+    public bool SetIntVector3(string name, Vector3i value) => SetAttribute(name, value.ToString());
 
     public bool SetMatrix3(string name, Matrix3 value) => SetAttribute(name, value.ToString());
 
@@ -284,9 +284,9 @@ public sealed class XMLElement
 
     public IntRect GetIntRect(string name) => ParseIntRect(GetAttribute(name));
 
-    public IntVector2 GetIntVector2(string name) => ParseIntVector2(GetAttribute(name));
+    public Vector2i GetIntVector2(string name) => ParseIntVector2(GetAttribute(name));
 
-    public IntVector3 GetIntVector3(string name) => ParseIntVector3(GetAttribute(name));
+    public Vector3i GetIntVector3(string name) => ParseIntVector3(GetAttribute(name));
 
     public Rect GetRect(string name) => ParseRect(GetAttribute(name));
 
@@ -298,11 +298,11 @@ public sealed class XMLElement
 
     public ResourceRefList GetResourceRefList(string name) => ResourceRefList.Parse(GetAttribute(name));
 
-    public Vector2 GetVector2(string name) => ParseVector2(GetAttribute(name));
+    public Vector2f GetVector2(string name) => ParseVector2(GetAttribute(name));
 
-    public Vector3 GetVector3(string name) => ParseVector3(GetAttribute(name));
+    public Vector3f GetVector3(string name) => ParseVector3(GetAttribute(name));
 
-    public Vector4 GetVector4(string name) => ParseVector4(GetAttribute(name));
+    public Vector4f GetVector4(string name) => ParseVector4(GetAttribute(name));
 
     public Matrix3 GetMatrix3(string name) => ParseMatrix3(GetAttribute(name));
 
@@ -341,7 +341,7 @@ public sealed class XMLElement
     {
         var parsed = ParseFloats(value);
         return parsed.Length >= 6
-            ? new BoundingBox(new Vector3(parsed[0], parsed[1], parsed[2]), new Vector3(parsed[3], parsed[4], parsed[5]))
+            ? new BoundingBox(new Vector3f(parsed[0], parsed[1], parsed[2]), new Vector3f(parsed[3], parsed[4], parsed[5]))
             : new BoundingBox();
     }
 
@@ -361,16 +361,16 @@ public sealed class XMLElement
         return parsed.Length >= 4 ? new IntRect(parsed[0], parsed[1], parsed[2], parsed[3]) : new IntRect();
     }
 
-    private static IntVector2 ParseIntVector2(string value)
+    private static Vector2i ParseIntVector2(string value)
     {
         var parsed = ParseInts(value);
-        return parsed.Length >= 2 ? new IntVector2(parsed[0], parsed[1]) : new IntVector2();
+        return parsed.Length >= 2 ? new Vector2i(parsed[0], parsed[1]) : new Vector2i();
     }
 
-    private static IntVector3 ParseIntVector3(string value)
+    private static Vector3i ParseIntVector3(string value)
     {
         var parsed = ParseInts(value);
-        return parsed.Length >= 3 ? new IntVector3(parsed[0], parsed[1], parsed[2]) : new IntVector3();
+        return parsed.Length >= 3 ? new Vector3i(parsed[0], parsed[1], parsed[2]) : new Vector3i();
     }
 
     private static Matrix3 ParseMatrix3(string value)
@@ -409,22 +409,22 @@ public sealed class XMLElement
         return parsed.Length >= 4 ? new Rect(parsed[0], parsed[1], parsed[2], parsed[3]) : new Rect();
     }
 
-    private static Vector2 ParseVector2(string value)
+    private static Vector2f ParseVector2(string value)
     {
         var parsed = ParseFloats(value);
-        return parsed.Length >= 2 ? new Vector2(parsed[0], parsed[1]) : Vector2.Zero;
+        return parsed.Length >= 2 ? new Vector2f(parsed[0], parsed[1]) : Vector2f.Zero;
     }
 
-    private static Vector3 ParseVector3(string value)
+    private static Vector3f ParseVector3(string value)
     {
         var parsed = ParseFloats(value);
-        return parsed.Length >= 3 ? new Vector3(parsed[0], parsed[1], parsed[2]) : Vector3.Zero;
+        return parsed.Length >= 3 ? new Vector3f(parsed[0], parsed[1], parsed[2]) : Vector3f.Zero;
     }
 
-    private static Vector4 ParseVector4(string value)
+    private static Vector4f ParseVector4(string value)
     {
         var parsed = ParseFloats(value);
-        return parsed.Length >= 4 ? new Vector4(parsed[0], parsed[1], parsed[2], parsed[3]) : Vector4.Zero;
+        return parsed.Length >= 4 ? new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3]) : Vector4f.Zero;
     }
 
     private void NotifyChanged() => _file?.RefreshMemoryUse();

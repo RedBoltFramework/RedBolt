@@ -67,7 +67,11 @@ public static partial class MathDefs
 
     public static bool Equals(float lhs, float rhs, float epsilon = Epsilon) => Math.Abs(lhs - rhs) <= epsilon;
 
+    public static bool Equals(double lhs, double rhs, double epsilon = Epsilon) => Math.Abs(lhs - rhs) <= epsilon;
+
     public static bool ApproximatelyEquivalent(float lhs, float rhs, float epsilon = Epsilon) => Math.Abs(lhs - rhs) <= epsilon;
+
+    public static bool ApproximatelyEquivalent(double lhs, double rhs, double epsilon = Epsilon) => Math.Abs(lhs - rhs) <= epsilon;
 
     public static float ExponentialDecay(float value) => Clamp(MathF.Pow(2.0f, -value), 0.0f, 1.0f);
 
@@ -210,6 +214,23 @@ public static partial class MathDefs
     public static float SnapTo(float value, float target, float epsilon = Epsilon) => Equals(value, target, epsilon) ? target : value;
 
     public static float Sqrt(float value) => MathF.Sqrt(value);
+
+    public static Vector4f VectorLerp(Vector4f lhs, Vector4f rhs, Vector4f t) => lhs + (rhs - lhs) * t;
+
+    public static Vector4f VectorMin(Vector4f lhs, Vector4f rhs) =>
+        new(Math.Min(lhs.X, rhs.X), Math.Min(lhs.Y, rhs.Y), Math.Min(lhs.Z, rhs.Z), Math.Min(lhs.W, rhs.W));
+
+    public static Vector4f VectorMax(Vector4f lhs, Vector4f rhs) =>
+        new(Math.Max(lhs.X, rhs.X), Math.Max(lhs.Y, rhs.Y), Math.Max(lhs.Z, rhs.Z), Math.Max(lhs.W, rhs.W));
+
+    public static Vector4f VectorFloor(Vector4f value) =>
+        new(Floor(value.X), Floor(value.Y), Floor(value.Z), Floor(value.W));
+
+    public static Vector4f VectorRound(Vector4f value) =>
+        new(Round(value.X), Round(value.Y), Round(value.Z), Round(value.W));
+
+    public static Vector4f VectorCeil(Vector4f value) =>
+        new(Ceil(value.X), Ceil(value.Y), Ceil(value.Z), Ceil(value.W));
 
     public static float Tan(float angle) => MathF.Tan(angle * DegToRad);
 

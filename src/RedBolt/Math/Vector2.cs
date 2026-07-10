@@ -1,63 +1,76 @@
 using System.Globalization;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Vector2 : IEquatable<Vector2>, IApproximateEquatable<Vector2>
+public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateEquatable<BaseRealVector2<T>>
+    where T : unmanaged, IFloatingPointIeee754<T>
 {
-    public float X;
-    public float Y;
+    public T X;
+    public T Y;
 
-    public Vector2(float x, float y)
+    public BaseRealVector2(T x, T y)
     {
         X = x;
         Y = y;
     }
 
-    public Vector2(IntVector2 vector)
+    public BaseRealVector2(T[] data)
     {
-        X = vector.X;
-        Y = vector.Y;
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Length < 2)
+            throw new ArgumentException("Expected at least two elements.", nameof(data));
+
+        X = data[0];
+        Y = data[1];
     }
 
-    public static readonly Vector2 ZERO = new(0.0f, 0.0f);
-    public static readonly Vector2 LEFT = new(-1.0f, 0.0f);
-    public static readonly Vector2 RIGHT = new(1.0f, 0.0f);
-    public static readonly Vector2 UP = new(0.0f, 1.0f);
-    public static readonly Vector2 DOWN = new(0.0f, -1.0f);
-    public static readonly Vector2 ONE = new(1.0f, 1.0f);
+    public BaseRealVector2(Vector2i vector)
+    {
+        X = T.CreateChecked(vector.X);
+        Y = T.CreateChecked(vector.Y);
+    }
 
-    public static Vector2 Zero => ZERO;
-    public static Vector2 Left => LEFT;
-    public static Vector2 Right => RIGHT;
-    public static Vector2 Up => UP;
-    public static Vector2 Down => DOWN;
-    public static Vector2 One => ONE;
+    public static readonly BaseRealVector2<T> ZERO = new(T.Zero, T.Zero);
+    public static readonly BaseRealVector2<T> LEFT = new(-T.One, T.Zero);
+    public static readonly BaseRealVector2<T> RIGHT = new(T.One, T.Zero);
+    public static readonly BaseRealVector2<T> UP = new(T.Zero, T.One);
+    public static readonly BaseRealVector2<T> DOWN = new(T.Zero, -T.One);
+    public static readonly BaseRealVector2<T> ONE = new(T.One, T.One);
 
-    public float[] Data => [X, Y];
-    public bool IsNaN => float.IsNaN(X) || float.IsNaN(Y);
-    public float Length => MathF.Sqrt(LengthSquared);
-    public float LengthSquared => X * X + Y * Y;
-    public Vector2 Abs => new(Math.Abs(X), Math.Abs(Y));
+    public static BaseRealVector2<T> Zero => ZERO;
+    public static BaseRealVector2<T> Left => LEFT;
+    public static BaseRealVector2<T> Right => RIGHT;
+    public static BaseRealVector2<T> Up => UP;
+    public static BaseRealVector2<T> Down => DOWN;
+    public static BaseRealVector2<T> One => ONE;
 
-    public Vector2 Normalized
+    public T[] Data => [X, Y];
+    public bool IsNaN => T.IsNaN(X) || T.IsNaN(Y);
+    public bool IsInf => T.IsInfinity(X) || T.IsInfinity(Y);
+    public T Length => T.Sqrt(LengthSquared);
+    public T LengthSquared => X * X + Y * Y;
+    public BaseRealVector2<T> Abs => new(T.Abs(X), T.Abs(Y));
+
+    public BaseRealVector2<T> Normalized
     {
         get
         {
             var lenSquared = LengthSquared;
-            if (!MathDefs.Equals(lenSquared, 1.0f) && lenSquared > 0.0f)
-                return this * (1.0f / MathF.Sqrt(lenSquared));
+            if (!MathDefs.Equals(double.CreateChecked(lenSquared), 1.0) && lenSquared > T.Zero)
+                return this * (T.One / T.Sqrt(lenSquared));
             return this;
         }
     }
 
-    public Vector2 NormalizedOrDefault => LengthSquared < MathDefs.LargeEpsilon * MathDefs.LargeEpsilon
+    public BaseRealVector2<T> NormalizedOrDefault => LengthSquared < T.CreateChecked(MathDefs.LargeEpsilon * MathDefs.LargeEpsilon)
         ? Zero
-        : this * (1.0f / Length);
+        : this * (T.One / Length);
 
-    public float this[int index]
+    public T this[int index]
     {
         get => index switch
         {
@@ -84,68 +97,123 @@ public struct Vector2 : IEquatable<Vector2>, IApproximateEquatable<Vector2>
     public void Normalize()
     {
         var lenSquared = LengthSquared;
-        if (!MathDefs.Equals(lenSquared, 1.0f) && lenSquared > 0.0f)
-            this *= 1.0f / MathF.Sqrt(lenSquared);
+        if (!MathDefs.Equals(double.CreateChecked(lenSquared), 1.0) && lenSquared > T.Zero)
+            this *= T.One / T.Sqrt(lenSquared);
     }
 
-    public float DotProduct(Vector2 rhs) => X * rhs.X + Y * rhs.Y;
+    public T DotProduct(BaseRealVector2<T> rhs) => X * rhs.X + Y * rhs.Y;
 
-    public float AbsDotProduct(Vector2 rhs) => Math.Abs(X * rhs.X) + Math.Abs(Y * rhs.Y);
+    public T AbsDotProduct(BaseRealVector2<T> rhs) => T.Abs(X * rhs.X) + T.Abs(Y * rhs.Y);
 
-    public float ProjectOntoAxis(Vector2 axis) => DotProduct(axis.Normalized);
+    public T CrossProduct(BaseRealVector2<T> rhs) => X * rhs.Y - Y * rhs.X;
 
-    public float Angle(Vector2 rhs) => MathF.Acos(DotProduct(rhs) / (Length * rhs.Length)) * MathDefs.RadToDeg;
+    public T ProjectOntoAxis(BaseRealVector2<T> axis) => DotProduct(axis.Normalized);
 
-    public Vector2 Lerp(Vector2 rhs, float t) => this * (1.0f - t) + rhs * t;
+    public T ProjectOntoLineScalar(BaseRealVector2<T> from, BaseRealVector2<T> to, bool clamped = false)
+    {
+        var direction = to - from;
+        var lengthSquared = direction.LengthSquared;
+        var factor = (this - from).DotProduct(direction) / lengthSquared;
+        return clamped ? T.Clamp(factor, T.Zero, T.One) : factor;
+    }
 
-    public bool ApproximatelyEquivalent(Vector2 rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(X, rhs.X, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon);
+    public BaseRealVector2<T> ProjectOntoLine(BaseRealVector2<T> from, BaseRealVector2<T> to, bool clamped = false) => from.Lerp(to, ProjectOntoLineScalar(from, to, clamped));
 
-    public bool Equals(Vector2 other) => this == other;
+    public T DistanceToPoint(BaseRealVector2<T> point) => (this - point).Length;
 
-    public override bool Equals(object? obj) => obj is Vector2 other && Equals(other);
+    public T ScalarCrossProduct(BaseRealVector2<T> rhs) => Y * rhs.X - X * rhs.Y;
+
+    public T Angle(BaseRealVector2<T> rhs) => T.Acos(DotProduct(rhs) / (Length * rhs.Length)) * T.CreateChecked(MathDefs.RadToDeg);
+
+    public T SignedAngle(BaseRealVector2<T> rhs) => Angle(rhs) * (ScalarCrossProduct(rhs) >= T.Zero ? T.One : -T.One);
+
+    public BaseRealVector2<T> Lerp(BaseRealVector2<T> rhs, T t) => this * (T.One - t) + rhs * t;
+
+    public BaseRealVector2<T> ReNormalized(T minLength, T maxLength, BaseRealVector2<T> defaultValue = default, T? epsilon = null)
+    {
+        var typedEpsilon = epsilon ?? T.CreateChecked(MathDefs.LargeEpsilon);
+        var lenSquared = LengthSquared;
+        if (lenSquared < typedEpsilon * typedEpsilon)
+            return defaultValue;
+
+        var length = T.Sqrt(lenSquared);
+        var newLength = T.Clamp(length, minLength, maxLength);
+        return this * (newLength / length);
+    }
+
+    public BaseRealVector2<T> GetOrthogonalClockwise() => new(Y, -X);
+
+    public BaseRealVector2<T> GetOrthogonalCounterClockwise() => new(-Y, X);
+
+    public Vector2i ToIntVector2() => new(int.CreateChecked(X), int.CreateChecked(Y));
+
+    public Vector3i ToIntVector3(int z = 0) => new(int.CreateChecked(X), int.CreateChecked(Y), z);
+
+    public BaseRealVector3<T> ToVector3(T z = default) => new(X, Y, z);
+
+    public Vector4f ToVector4(float z = 0.0f, float w = 0.0f) => new(float.CreateChecked(X), float.CreateChecked(Y), z, w);
+
+    public bool ApproximatelyEquivalent(BaseRealVector2<T> rhs, float epsilon = MathDefs.Epsilon)
+    {
+        var typedEpsilon = T.CreateChecked(epsilon);
+        return T.Abs(X - rhs.X) <= typedEpsilon && T.Abs(Y - rhs.Y) <= typedEpsilon;
+    }
+
+    public bool Equals(BaseRealVector2<T> other) => this == other;
+
+    public override bool Equals(object obj) => obj is BaseRealVector2<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
+
+    public uint ToHash() => unchecked((uint)(X.GetHashCode() * 37 + Y.GetHashCode()));
 
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1}", X, Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Vector2 lhs, Vector2 rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y;
+    public static bool operator ==(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Vector2 lhs, Vector2 rhs) => !(lhs == rhs);
+    public static bool operator !=(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator +(Vector2 lhs, Vector2 rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y);
+    public static BaseRealVector2<T> operator +(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator -(Vector2 value) => new(-value.X, -value.Y);
+    public static BaseRealVector2<T> operator -(BaseRealVector2<T> value) => new(-value.X, -value.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator -(Vector2 lhs, Vector2 rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y);
+    public static BaseRealVector2<T> operator -(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator *(Vector2 lhs, float rhs) => new(lhs.X * rhs, lhs.Y * rhs);
+    public static BaseRealVector2<T> operator *(BaseRealVector2<T> lhs, T rhs) => new(lhs.X * rhs, lhs.Y * rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator *(float lhs, Vector2 rhs) => rhs * lhs;
+    public static BaseRealVector2<T> operator *(T lhs, BaseRealVector2<T> rhs) => rhs * lhs;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator *(Vector2 lhs, Vector2 rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y);
+    public static BaseRealVector2<T> operator *(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator /(Vector2 lhs, float rhs) => new(lhs.X / rhs, lhs.Y / rhs);
+    public static BaseRealVector2<T> operator /(BaseRealVector2<T> lhs, T rhs) => new(lhs.X / rhs, lhs.Y / rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2 operator /(Vector2 lhs, Vector2 rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y);
+    public static BaseRealVector2<T> operator /(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y);
 
-    public static Vector2 Min(Vector2 lhs, Vector2 rhs) => new(Math.Min(lhs.X, rhs.X), Math.Min(lhs.Y, rhs.Y));
-    public static Vector2 Max(Vector2 lhs, Vector2 rhs) => new(Math.Max(lhs.X, rhs.X), Math.Max(lhs.Y, rhs.Y));
-    public static Vector2 Floor(Vector2 vec) => new(MathF.Floor(vec.X), MathF.Floor(vec.Y));
-    public static Vector2 Round(Vector2 vec) => new(MathF.Round(vec.X), MathF.Round(vec.Y));
-    public static Vector2 Ceil(Vector2 vec) => new(MathF.Ceiling(vec.X), MathF.Ceiling(vec.Y));
-    public static IntVector2 FloorToInt(Vector2 vec) => new((int)MathF.Floor(vec.X), (int)MathF.Floor(vec.Y));
-    public static IntVector2 RoundToInt(Vector2 vec) => new((int)MathF.Round(vec.X), (int)MathF.Round(vec.Y));
-    public static IntVector2 CeilToInt(Vector2 vec) => new((int)MathF.Ceiling(vec.X), (int)MathF.Ceiling(vec.Y));
+    public static BaseRealVector2<T> Lerp(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs, BaseRealVector2<T> t) => lhs + (rhs - lhs) * t;
+
+    public static BaseRealVector2<T> Min(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(T.Min(lhs.X, rhs.X), T.Min(lhs.Y, rhs.Y));
+
+    public static BaseRealVector2<T> Max(BaseRealVector2<T> lhs, BaseRealVector2<T> rhs) => new(T.Max(lhs.X, rhs.X), T.Max(lhs.Y, rhs.Y));
+
+    public static BaseRealVector2<T> Floor(BaseRealVector2<T> vec) => new(T.Floor(vec.X), T.Floor(vec.Y));
+
+    public static BaseRealVector2<T> Round(BaseRealVector2<T> vec) => new(T.Round(vec.X), T.Round(vec.Y));
+
+    public static BaseRealVector2<T> Ceil(BaseRealVector2<T> vec) => new(T.Ceiling(vec.X), T.Ceiling(vec.Y));
+
+    public static Vector2i FloorToInt(BaseRealVector2<T> vec) => new(int.CreateChecked(T.Floor(vec.X)), int.CreateChecked(T.Floor(vec.Y)));
+
+    public static Vector2i RoundToInt(BaseRealVector2<T> vec) => new(int.CreateChecked(T.Round(vec.X)), int.CreateChecked(T.Round(vec.Y)));
+
+    public static Vector2i CeilToInt(BaseRealVector2<T> vec) => new(int.CreateChecked(T.Ceiling(vec.X)), int.CreateChecked(T.Ceiling(vec.Y)));
 }

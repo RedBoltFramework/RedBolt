@@ -342,9 +342,9 @@ public sealed class SceneResource : Resource
             Name = element.GetString("name"),
             Enabled = !element.HasAttribute("enabled") || element.GetBool("enabled"),
             Temporary = element.HasAttribute("temporary") && element.GetBool("temporary"),
-            Position = element.HasAttribute("position") ? element.GetVector3("position") : Vector3.Zero,
+            Position = element.HasAttribute("position") ? element.GetVector3("position") : Vector3f.Zero,
             Rotation = element.HasAttribute("rotation") ? element.GetQuaternion("rotation") : Quaternion.Identity,
-            Scale = element.HasAttribute("scale") ? element.GetVector3("scale") : Vector3.One
+            Scale = element.HasAttribute("scale") ? element.GetVector3("scale") : Vector3f.One
         };
 
         var tagsElement = element.GetChild("tags");
@@ -432,9 +432,9 @@ public sealed class SceneResource : Resource
         public string? Name { get; set; }
         public bool Enabled { get; set; } = true;
         public bool Temporary { get; set; }
-        public Vector3 Position { get; set; }
+        public Vector3f Position { get; set; }
         public Quaternion Rotation { get; set; } = Quaternion.Identity;
-        public Vector3 Scale { get; set; } = Vector3.One;
+        public Vector3f Scale { get; set; } = Vector3f.One;
         public List<string> Tags { get; set; } = [];
         public List<SerializedVariable> Variables { get; set; } = [];
         public List<SerializedComponent> Components { get; set; } = [];

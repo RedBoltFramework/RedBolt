@@ -31,12 +31,12 @@ public sealed class ImageTests
         Assert.True(center.ApproximatelyEquivalent(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.01f));
 
         var mip = image.GetNextLevel();
-        Assert.Equal(new IntVector3(1, 1, 1), mip.GetSize());
+        Assert.Equal(new Vector3i(1, 1, 1), mip.GetSize());
         Assert.True(mip.GetPixel(0, 0).ApproximatelyEquivalent(center, 0.01f));
 
         var subimage = image.GetSubimage(new IntRect(1, 0, 2, 1));
         Assert.NotNull(subimage);
-        Assert.Equal(new IntVector3(1, 1, 1), subimage!.GetSize());
+        Assert.Equal(new Vector3i(1, 1, 1), subimage!.GetSize());
         Assert.True(image.Resize(4, 4));
         Assert.Equal(4, image.GetWidth());
         Assert.Equal(4, image.GetHeight());
@@ -84,19 +84,19 @@ public sealed class ImageTests
             cube.SetImage(pair.Item1, image);
         }
 
-        Assert.True(cube.SampleNearest(Vector3.Right).ApproximatelyEquivalent(new Color(1, 0, 0), 0.001f));
-        Assert.True(cube.SampleNearest(Vector3.Forward).ApproximatelyEquivalent(new Color(1, 0, 1), 0.001f));
+        Assert.True(cube.SampleNearest(Vector3f.Right).ApproximatelyEquivalent(new Color(1, 0, 0), 0.001f));
+        Assert.True(cube.SampleNearest(Vector3f.Forward).ApproximatelyEquivalent(new Color(1, 0, 1), 0.001f));
 
-        var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2(0.5f, 0.5f)).NormalizedOrDefault;
-        Assert.True(projected.ApproximatelyEquivalent(Vector3.Forward, 0.001f));
+        var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault;
+        Assert.True(projected.ApproximatelyEquivalent(Vector3f.Forward, 0.001f));
 
-        var (face, uv) = ImageCube.ProjectDirectionOnFace(Vector3.Up);
+        var (face, uv) = ImageCube.ProjectDirectionOnFace(Vector3f.Up);
         Assert.Equal(CubeMapFace.PositiveY, face);
-        Assert.True(uv.ApproximatelyEquivalent(new Vector2(0.5f, 0.5f), 0.001f));
+        Assert.True(uv.ApproximatelyEquivalent(new Vector2f(0.5f, 0.5f), 0.001f));
 
-        var texel = cube.ProjectDirectionOnFaceTexel(Vector3.Forward);
+        var texel = cube.ProjectDirectionOnFaceTexel(Vector3f.Forward);
         Assert.Equal(CubeMapFace.PositiveZ, texel.Face);
-        Assert.Equal(new IntVector2(1, 1), texel.Texel);
+        Assert.Equal(new Vector2i(1, 1), texel.Texel);
         Assert.True(cube.ProjectTexelOnCube(CubeMapFace.PositiveZ, 1, 1).Z > 0.0f);
     }
 

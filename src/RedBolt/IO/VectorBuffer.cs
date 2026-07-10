@@ -1,30 +1,48 @@
 namespace RedBolt;
 
-public sealed class VectorBuffer : Deserializer
+public sealed class VectorBuffer : AbstractFile
 {
-    private byte[] _buffer;
+    private const string VectorBufferName = "VectorBuffer";
+    private byte[] _buffer = [];
 
     public VectorBuffer()
-        : base(0)
     {
-        _buffer = [];
     }
 
-    public VectorBuffer(IEnumerable<byte> data)
-        : base((uint)(data?.Count() ?? 0))
+    public VectorBuffer(byte[] data)
     {
-        ArgumentNullException.ThrowIfNull(data);
-        _buffer = data.ToArray();
-        Size = (uint)_buffer.Length;
+        SetData(data);
     }
 
-    public IReadOnlyList<byte> Buffer => _buffer;
+    public VectorBuffer(nint data, uint size)
+    {
+        SetData(data, size);
+    }
 
-    public byte[] GetBuffer() => _buffer;
+    public VectorBuffer(Deserializer source, uint size)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        SetData(source, size);
+    }
 
-    public byte[] GetData() => _buffer;
+    public ReadOnlySpan<byte> Buffer => _buffer;
 
-    public byte[] GetModifiableData() => _buffer;
+    public override string Name => base.Name.Length != 0 ? base.Name : VectorBufferName;
+
+    public byte[] GetBuffer()
+    {
+        return _buffer;
+    }
+
+    public nint GetData()
+    {
+        return 0;
+    }
+
+    public nint GetModifiableData()
+    {
+        return 0;
+    }
 
     public void Clear()
     {
@@ -36,17 +54,22 @@ public sealed class VectorBuffer : Deserializer
     public override uint Read(Span<byte> destination)
     {
         var available = (int)Math.Min((uint)destination.Length, Size - Position);
-        _buffer.AsSpan((int)Position, available).CopyTo(destination);
+        _buffer.AsSpan(checked((int)Position), available).CopyTo(destination);
         Position += (uint)available;
         return (uint)available;
     }
 
     public void Resize(uint size)
     {
+        if (size == Size)
+            return;
+
+        var oldSize = Size;
         Array.Resize(ref _buffer, checked((int)size));
         Size = size;
-        if (Position > Size)
-            Position = Size;
+        Position = Math.Min(Position, Size);
+        if (size > oldSize)
+            _buffer.AsSpan(checked((int)oldSize), checked((int)(size - oldSize))).Clear();
     }
 
     public override uint Seek(uint position)
@@ -55,11 +78,32 @@ public sealed class VectorBuffer : Deserializer
         return Position;
     }
 
-    public void SetData(IEnumerable<byte> data)
+    public void SetData(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        _buffer = data.ToArray();
-        Size = (uint)_buffer.Length;
+        Resize((uint)data.Length);
+        data.AsSpan().CopyTo(_buffer);
+        Position = 0;
+    }
+
+    public void SetData(ReadOnlySpan<byte> data)
+    {
+        Resize((uint)data.Length);
+        data.CopyTo(_buffer);
+        Position = 0;
+    }
+
+    public void SetData(nint data, uint size)
+    {
+        if (data == 0)
+            size = 0;
+
+        Resize(size);
+        if (size != 0)
+            unsafe
+            {
+                new ReadOnlySpan<byte>((void*)data, checked((int)size)).CopyTo(_buffer);
+            }
         Position = 0;
     }
 
@@ -67,8 +111,9 @@ public sealed class VectorBuffer : Deserializer
     {
         ArgumentNullException.ThrowIfNull(source);
         Resize(size);
-        Position = 0;
-        _ = source.Read(_buffer.AsSpan(0, checked((int)size)));
+        var actualSize = source.Read(_buffer);
+        if (actualSize != size)
+            Resize(actualSize);
         Position = 0;
     }
 
@@ -78,7 +123,7 @@ public sealed class VectorBuffer : Deserializer
         if (end > Size)
             Resize(end);
 
-        data.CopyTo(_buffer.AsSpan((int)Position, data.Length));
+        data.CopyTo(_buffer.AsSpan(checked((int)Position), data.Length));
         Position = end;
         return (uint)data.Length;
     }

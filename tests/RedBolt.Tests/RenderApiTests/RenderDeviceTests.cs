@@ -65,7 +65,7 @@ public sealed class RenderDeviceTests
             Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.D3D12.QueryPoolSizes.Length);
 
             Assert.Equal(WindowMode.Fullscreen, windowSettings.Mode);
-            Assert.Equal(new IntVector2(1600, 900), windowSettings.Size);
+            Assert.Equal(new Vector2i(1600, 900), windowSettings.Size);
             Assert.Equal("Render Device Window", windowSettings.Title);
             Assert.True(windowSettings.Resizable);
             Assert.Equal(2, windowSettings.Monitor);

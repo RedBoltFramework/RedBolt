@@ -19,11 +19,11 @@ public sealed class ZoneTests
     public void BoundingBox_and_ambient_roundtrip()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
-        zone.SetBoundingBox(new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f)));
+        zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
         zone.SetAmbientColor(new Color(0.2f, 0.3f, 0.4f));
 
         Assert.True(zone.GetBoundingBox().Equals(
-            new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f))));
+            new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f))));
         Assert.Equal(new Color(0.2f, 0.3f, 0.4f), zone.GetAmbientColor());
     }
 
@@ -66,25 +66,25 @@ public sealed class ZoneTests
         zone.SetAmbientBrightness(2.0f);
         Assert.True(zone.GetAmbientStartColor().ApproximatelyEquivalent(zone.GetAmbientColor()));
         Assert.True(zone.GetAmbientEndColor().ApproximatelyEquivalent(zone.GetAmbientColor()));
-        Assert.True(zone.GetAmbientLighting().ApproximatelyEquivalent(new Vector3(0.4f, 0.6f, 0.8f)));
+        Assert.True(zone.GetAmbientLighting().ApproximatelyEquivalent(new Vector3f(0.4f, 0.6f, 0.8f)));
     }
 
     [Fact]
     public void Oriented_containment_works()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
-        zone.SetBoundingBox(new BoundingBox(new Vector3(-1.0f, -2.0f, -3.0f), new Vector3(1.0f, 2.0f, 3.0f)));
-        zone.Node.SetTransform(new Vector3(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 1.0f, 1.0f));
+        zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
+        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 1.0f, 1.0f));
         // World box: (3,-2,-3) to (7,2,3). Point (6,0,0) is inside.
-        Assert.True(zone.IsInside(new Vector3(6.0f, 0.0f, 0.0f)));
+        Assert.True(zone.IsInside(new Vector3f(6.0f, 0.0f, 0.0f)));
     }
 
     [Fact]
     public void Inverse_world_transform_works()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
-        zone.Node.SetTransform(new Vector3(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3(2.0f, 1.0f, 1.0f));
-        var result = zone.GetInverseWorldTransform() * new Vector3(6.0f, 0.0f, 0.0f);
-        Assert.True(result.ApproximatelyEquivalent(new Vector3(0.5f, 0.0f, 0.0f)));
+        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 1.0f, 1.0f));
+        var result = zone.GetInverseWorldTransform() * new Vector3f(6.0f, 0.0f, 0.0f);
+        Assert.True(result.ApproximatelyEquivalent(new Vector3f(0.5f, 0.0f, 0.0f)));
     }
 }

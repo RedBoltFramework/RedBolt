@@ -117,11 +117,11 @@ public sealed class Material : ResourceWithMetadata
 
     public uint ShaderParameterHash => _shaderParameterHash;
 
-    public Vector2 UVOffset { get; private set; }
+    public Vector2f UVOffset { get; private set; }
 
     public float UVRotation { get; private set; }
 
-    public Vector2 UVRepeat { get; private set; } = Vector2.One;
+    public Vector2f UVRepeat { get; private set; } = Vector2f.One;
 
     public string VertexShaderDefines { get; set; } = string.Empty;
 
@@ -339,12 +339,12 @@ public sealed class Material : ResourceWithMetadata
         RefreshShaderParameterHash();
     }
 
-    public void SetUVTransform(Vector2 offset, float rotation, float repeat)
+    public void SetUVTransform(Vector2f offset, float rotation, float repeat)
     {
-        SetUVTransform(offset, rotation, new Vector2(repeat, repeat));
+        SetUVTransform(offset, rotation, new Vector2f(repeat, repeat));
     }
 
-    public void SetUVTransform(Vector2 offset, float rotation, Vector2 repeat)
+    public void SetUVTransform(Vector2f offset, float rotation, Vector2f repeat)
     {
         UVOffset = offset;
         UVRotation = rotation;
@@ -353,8 +353,8 @@ public sealed class Material : ResourceWithMetadata
         var angle = rotation * MathDefs.DegToRad;
         var sin = MathF.Sin(angle);
         var cos = MathF.Cos(angle);
-        SetShaderParameter("UOffset", new Vector4(repeat.X * cos, repeat.Y * -sin, offset.X, 0.0f));
-        SetShaderParameter("VOffset", new Vector4(repeat.X * sin, repeat.Y * cos, offset.Y, 0.0f));
+        SetShaderParameter("UOffset", new Vector4f(repeat.X * cos, repeat.Y * -sin, offset.X, 0.0f));
+        SetShaderParameter("VOffset", new Vector4f(repeat.X * sin, repeat.Y * cos, offset.Y, 0.0f));
     }
 
     public void SetVertexShaderDefines(string defines)
@@ -399,9 +399,9 @@ public sealed class Material : ResourceWithMetadata
 
         return parsed.Length switch
         {
-            2 => new Vector2(parsed[0], parsed[1]),
-            3 => new Vector3(parsed[0], parsed[1], parsed[2]),
-            4 => new Vector4(parsed[0], parsed[1], parsed[2], parsed[3]),
+            2 => new Vector2f(parsed[0], parsed[1]),
+            3 => new Vector3f(parsed[0], parsed[1], parsed[2]),
+            4 => new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3]),
             _ => value
         };
     }
@@ -654,19 +654,19 @@ public sealed class Material : ResourceWithMetadata
         RenderOrder = 128;
         ShadowCullMode = CullMode.CounterClockwise;
         VertexShaderDefines = string.Empty;
-        UVOffset = Vector2.Zero;
+        UVOffset = Vector2f.Zero;
         UVRotation = 0.0f;
-        UVRepeat = Vector2.One;
+        UVRepeat = Vector2f.One;
 
         _shaderParameters.Clear();
         _textures.Clear();
         _techniques.Clear();
 
-        SetUVTransform(Vector2.Zero, 0.0f, Vector2.One);
-        SetShaderParameter("MatDiffColor", Vector4.One);
-        SetShaderParameter("MatEmissiveColor", Vector3.Zero);
-        SetShaderParameter("MatEnvMapColor", Vector3.One);
-        SetShaderParameter("MatSpecColor", new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        SetUVTransform(Vector2f.Zero, 0.0f, Vector2f.One);
+        SetShaderParameter("MatDiffColor", Vector4f.One);
+        SetShaderParameter("MatEmissiveColor", Vector3f.Zero);
+        SetShaderParameter("MatEnvMapColor", Vector3f.One);
+        SetShaderParameter("MatSpecColor", new Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
         SetShaderParameter("Roughness", 1.0f);
         SetShaderParameter("Metallic", 1.0f);
         SetShaderParameter("DielectricReflectance", 0.5f);
@@ -720,9 +720,9 @@ public sealed class Material : ResourceWithMetadata
             double scalar => scalar.ToString(CultureInfo.InvariantCulture),
             int integer => integer.ToString(CultureInfo.InvariantCulture),
             uint integer => integer.ToString(CultureInfo.InvariantCulture),
-            Vector2 vector => vector.ToString(),
-            Vector3 vector => vector.ToString(),
-            Vector4 vector => vector.ToString(),
+            Vector2f vector => vector.ToString(),
+            Vector3f vector => vector.ToString(),
+            Vector4f vector => vector.ToString(),
             Quaternion quaternion => quaternion.ToString(),
             Color color => color.ToString(),
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty

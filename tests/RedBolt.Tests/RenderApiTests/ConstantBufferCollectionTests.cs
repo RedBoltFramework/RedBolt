@@ -29,7 +29,7 @@ public sealed class ConstantBufferCollectionTests
     public void Constant_buffer_collection_stores_variant_and_matrix_parameters()
     {
         var vectorBytes = new byte[16];
-        Assert.True(ConstantBufferCollection.StoreParameter(vectorBytes, new Variant(new Vector4(1.0f, 2.0f, 3.0f, 4.0f))));
+        Assert.True(ConstantBufferCollection.StoreParameter(vectorBytes, new Variant(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f))));
         Assert.Equal([1.0f, 2.0f, 3.0f, 4.0f], MemoryMarshal.Cast<byte, float>(vectorBytes).ToArray());
 
         var matrixBytes = new byte[64];

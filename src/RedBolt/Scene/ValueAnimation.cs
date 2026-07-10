@@ -209,7 +209,7 @@ public sealed class ValueAnimation : Resource
 
     public void SetInterpolationMethod(InterpMethod method)
     {
-        if (method == InterpMethod.Spline && _valueType is VariantType.IntRect or VariantType.IntVector2 or VariantType.IntVector3)
+        if (method == InterpMethod.Spline && _valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i)
             method = InterpMethod.Linear;
 
         InterpolationMethod = method;
@@ -227,7 +227,7 @@ public sealed class ValueAnimation : Resource
 
         this._valueType = valueType;
         _interpolatable = VariantTypeUtility.IsInterpolatable(valueType);
-        if (valueType is VariantType.IntRect or VariantType.IntVector2 or VariantType.IntVector3 && InterpolationMethod == InterpMethod.Spline)
+        if (valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i && InterpolationMethod == InterpMethod.Spline)
             InterpolationMethod = InterpMethod.Linear;
         _keyFrames.Clear();
         _eventFrames.Clear();
@@ -348,13 +348,13 @@ public sealed class ValueAnimation : Resource
         return (lhs, rhs) switch
         {
             (float left, float right) => MathDefs.Lerp(left, right, t),
-            (Vector2 left, Vector2 right) => left.Lerp(right, t),
-            (Vector3 left, Vector3 right) => left.Lerp(right, t),
-            (Vector4 left, Vector4 right) => left.Lerp(right, t),
+            (Vector2f left, Vector2f right) => left.Lerp(right, t),
+            (Vector3f left, Vector3f right) => left.Lerp(right, t),
+            (Vector4f left, Vector4f right) => left.Lerp(right, t),
             (Quaternion left, Quaternion right) => left.Slerp(right, t),
             (Color left, Color right) => left.Lerp(right, t),
-            (IntVector2 left, IntVector2 right) => new IntVector2((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t)),
-            (IntVector3 left, IntVector3 right) => new IntVector3((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t), (int)(left.Z * (1.0f - t) + right.Z * t)),
+            (Vector2i left, Vector2i right) => new Vector2i((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t)),
+            (Vector3i left, Vector3i right) => new Vector3i((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t), (int)(left.Z * (1.0f - t) + right.Z * t)),
             (IntRect left, IntRect right) => new IntRect(
                 (int)(left.Left * (1.0f - t) + right.Left * t),
                 (int)(left.Top * (1.0f - t) + right.Top * t),
@@ -369,9 +369,9 @@ public sealed class ValueAnimation : Resource
         return (value1, value2) switch
         {
             (float left, float right) => (left - right) * t,
-            (Vector2 left, Vector2 right) => (left - right) * t,
-            (Vector3 left, Vector3 right) => (left - right) * t,
-            (Vector4 left, Vector4 right) => (left - right) * t,
+            (Vector2f left, Vector2f right) => (left - right) * t,
+            (Vector3f left, Vector3f right) => (left - right) * t,
+            (Vector4f left, Vector4f right) => (left - right) * t,
             (Quaternion left, Quaternion right) => (left - right) * t,
             (Color left, Color right) => (left - right) * t,
             _ => null
@@ -390,9 +390,9 @@ public sealed class ValueAnimation : Resource
         return (value1, tangent1, value2, tangent2) switch
         {
             (float v1, float m1, float v2, float m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector2 v1, Vector2 m1, Vector2 v2, Vector2 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector3 v1, Vector3 m1, Vector3 v2, Vector3 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector4 v1, Vector4 m1, Vector4 v2, Vector4 m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
+            (Vector2f v1, Vector2f m1, Vector2f v2, Vector2f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
+            (Vector3f v1, Vector3f m1, Vector3f v2, Vector3f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
+            (Vector4f v1, Vector4f m1, Vector4f v2, Vector4f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             (Quaternion v1, Quaternion m1, Quaternion v2, Quaternion m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             (Color v1, Color m1, Color v2, Color m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
             _ => Interpolate(value1, value2, t)
@@ -406,7 +406,10 @@ public sealed class ValueAnimation : Resource
 
     private static VariantType ParseVariantType(string value)
     {
-        return Enum.TryParse<VariantType>(value, ignoreCase: true, out var type) ? type : VariantType.None;
+        if (Enum.TryParse<VariantType>(value, ignoreCase: true, out var type))
+            return type;
+
+        return Variant.GetTypeFromName(value);
     }
 
     private void Reset()

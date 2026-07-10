@@ -35,7 +35,7 @@ public sealed class CameraTests
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetAspectRatio(2.0f);
-        camera.SetOrthoSize(new Vector2(40.0f, 20.0f));
+        camera.SetOrthoSize(new Vector2f(40.0f, 20.0f));
 
         Assert.False(camera.GetAutoAspectRatio());
         Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetAspectRatio(), 2.0f));
@@ -72,11 +72,11 @@ public sealed class CameraTests
     {
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
-        camera.SetProjectionOffset(new Vector2(0.1f, 0.2f));
-        camera.SetMousePosition(new Vector2(0.5f, 0.25f));
+        camera.SetProjectionOffset(new Vector2f(0.1f, 0.2f));
+        camera.SetMousePosition(new Vector2f(0.5f, 0.25f));
         camera.SetOrthographic(true);
 
-        Assert.True(camera.GetProjectionOffset().ApproximatelyEquivalent(new Vector2(0.1f, 0.2f)));
+        Assert.True(camera.GetProjectionOffset().ApproximatelyEquivalent(new Vector2f(0.1f, 0.2f)));
         Assert.True(camera.HasMousePosition());
         Assert.True(camera.IsOrthographic());
     }
@@ -88,7 +88,7 @@ public sealed class CameraTests
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetFillMode(FillMode.Point);
         Assert.Equal(FillMode.Point, camera.GetFillMode());
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetDistance(new Vector3(0.0f, 0.0f, 5.0f)), 5.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetDistance(new Vector3f(0.0f, 0.0f, 5.0f)), 5.0f));
         Assert.True(camera.GetLodDistance(100.0f, 1.0f, 1.0f) > 0.0f);
     }
 
@@ -97,12 +97,12 @@ public sealed class CameraTests
     {
         var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3(0.0f, 0.0f, -6.0f));
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -6.0f));
         var camera = cameraNode.CreateComponent<Camera>();
 
-        var transformed = camera.GetView().Matrix4 * new Vector4(Vector3.Zero, 1.0f);
-        Assert.True(new Vector3(transformed.X, transformed.Y, transformed.Z)
-            .ApproximatelyEquivalent(new Vector3(0.0f, 0.0f, 6.0f)));
+        var transformed = camera.GetView().Matrix4 * new Vector4f(Vector3f.Zero, 1.0f);
+        Assert.True(new Vector3f(transformed.X, transformed.Y, transformed.Z)
+            .ApproximatelyEquivalent(new Vector3f(0.0f, 0.0f, 6.0f)));
     }
 
     [Fact]
@@ -110,13 +110,13 @@ public sealed class CameraTests
     {
         var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3(0.0f, 0.0f, -6.0f));
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -6.0f));
         cameraNode.SetScale(4.0f);
         var camera = cameraNode.CreateComponent<Camera>();
 
-        var transformed = camera.GetView().Matrix4 * new Vector4(Vector3.Zero, 1.0f);
-        Assert.True(new Vector3(transformed.X, transformed.Y, transformed.Z)
-            .ApproximatelyEquivalent(new Vector3(0.0f, 0.0f, 6.0f)));
+        var transformed = camera.GetView().Matrix4 * new Vector4f(Vector3f.Zero, 1.0f);
+        Assert.True(new Vector3f(transformed.X, transformed.Y, transformed.Z)
+            .ApproximatelyEquivalent(new Vector3f(0.0f, 0.0f, 6.0f)));
     }
 
     [Fact]

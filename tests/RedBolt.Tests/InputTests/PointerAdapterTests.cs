@@ -21,11 +21,11 @@ public sealed class PointerAdapterTests
         adapter.SetEnabled(true);
         adapter.SetSubscriptionMask(PointerAdapterMask.Mouse);
 
-        Input.SetMousePosition(new IntVector2(12, 34));
+        Input.SetMousePosition(new Vector2i(12, 34));
         Input.SetMouseButton(MouseButton.Left, true);
         adapter.Update(0.0f);
 
-        Assert.Equal(new IntVector2(12, 34), adapter.GetPointerPosition());
+        Assert.Equal(new Vector2i(12, 34), adapter.GetPointerPosition());
         Assert.True(adapter.IsButtonDown());
     }
 
@@ -37,10 +37,10 @@ public sealed class PointerAdapterTests
         adapter.SetSubscriptionMask(PointerAdapterMask.Keyboard);
         adapter.SetCursorSpeed(20.0f);
         adapter.SetCursorAcceleration(1.0f);
-        adapter.GetDirectionAggregator().SetExternalDirection(new Vector2(1.0f, 0.0f));
+        adapter.GetDirectionAggregator().SetExternalDirection(new Vector2f(1.0f, 0.0f));
         adapter.Update(0.5f);
 
-        Assert.Equal(new IntVector2(5, 0), adapter.GetPointerPosition());
+        Assert.Equal(new Vector2i(5, 0), adapter.GetPointerPosition());
     }
 
     [Fact]
@@ -66,14 +66,14 @@ public sealed class PointerAdapterTests
         adapter.SetCursorSpeed(150.0f);
         adapter.SetCursorAcceleration(2.0f);
         adapter.SetUIElement("VirtualStick");
-        adapter.UpdatePointer(new Vector2(3.0f, 4.0f), press: true);
+        adapter.UpdatePointer(new Vector2f(3.0f, 4.0f), press: true);
 
         Assert.True(adapter.IsEnabled());
         Assert.Equal(PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick, adapter.GetSubscriptionMask());
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorVelocity(), 150.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorAcceleration(), 2.0f));
         Assert.Equal("VirtualStick", adapter.GetUIElement());
-        Assert.Equal(new IntVector2(3, 4), adapter.GetPointerPosition());
+        Assert.Equal(new Vector2i(3, 4), adapter.GetPointerPosition());
         Assert.True(adapter.IsButtonDown());
     }
 }

@@ -121,18 +121,18 @@ public sealed class RandomEngine
 
     public float GetNormalFloat(float mean, float sigma) => GetStandardNormalFloat() * sigma + mean;
 
-    public Vector2 GetDirectionVector2()
+    public Vector2f GetDirectionVector2()
     {
         Span<float> direction = stackalloc float[2];
         GetDirection(direction);
-        return new Vector2(direction[0], direction[1]);
+        return new Vector2f(direction[0], direction[1]);
     }
 
-    public Vector3 GetDirectionVector3()
+    public Vector3f GetDirectionVector3()
     {
         Span<float> direction = stackalloc float[3];
         GetDirection(direction);
-        return new Vector3(direction[0], direction[1], direction[2]);
+        return new Vector3f(direction[0], direction[1], direction[2]);
     }
 
     public Quaternion GetQuaternion()
@@ -142,11 +142,11 @@ public sealed class RandomEngine
         return new Quaternion(direction[0], direction[1], direction[2], direction[3]);
     }
 
-    public Vector2 GetVector2(Vector2 min, Vector2 max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y));
+    public Vector2f GetVector2(Vector2f min, Vector2f max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y));
 
-    public Vector3 GetVector3(Vector3 min, Vector3 max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y), GetFloat(min.Z, max.Z));
+    public Vector3f GetVector3(Vector3f min, Vector3f max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y), GetFloat(min.Z, max.Z));
 
-    public Vector3 GetVector3(BoundingBox boundingBox) => GetVector3(boundingBox.Min, boundingBox.Max);
+    public Vector3f GetVector3(BoundingBox boundingBox) => GetVector3(boundingBox.Min, boundingBox.Max);
 
     public void GetStandardNormalFloatArray(Span<float> array)
     {

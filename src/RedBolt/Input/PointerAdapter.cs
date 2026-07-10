@@ -17,7 +17,7 @@ public sealed class PointerAdapter
     private Input? _input;
     private bool _enabled;
     private PointerAdapterMask _subscriptionMask = PointerAdapterMask.All;
-    private Vector2 _pointerPosition = Vector2.Zero;
+    private Vector2f _pointerPosition = Vector2f.Zero;
     private bool _pointerPressed;
     private float _cursorSpeed;
     private float _maxCursorSpeed = 100.0f;
@@ -84,9 +84,9 @@ public sealed class PointerAdapter
 
     public bool IsButtonDown() => _pointerPressed;
 
-    public IntVector2 GetPointerPosition() => Vector2.RoundToInt(_pointerPosition);
+    public Vector2i GetPointerPosition() => Vector2f.RoundToInt(_pointerPosition);
 
-    public IntVector2 GetUIPointerPosition() => GetPointerPosition();
+    public Vector2i GetUIPointerPosition() => GetPointerPosition();
 
     public DirectionAggregator GetDirectionAggregator() => _directionAdapter;
 
@@ -107,7 +107,7 @@ public sealed class PointerAdapter
         {
             _directionAdapter.SetEnabled(true);
             var direction = _directionAdapter.GetDirection();
-            if (!direction.ApproximatelyEquivalent(Vector2.Zero))
+            if (!direction.ApproximatelyEquivalent(Vector2f.Zero))
             {
                 _cursorSpeed = Math.Min(_maxCursorSpeed, _cursorSpeed + _cursorAcceleration * Math.Max(timeStep, 0.0f) * _maxCursorSpeed);
                 _pointerPosition += direction * _cursorSpeed * Math.Max(timeStep, 0.0f);
@@ -122,11 +122,11 @@ public sealed class PointerAdapter
             _pointerPressed |= _input.GetControllerButtonDown(ControllerButton.A);
     }
 
-    public void UpdatePointer(Vector2 position, bool press, bool moveMouse = false)
+    public void UpdatePointer(Vector2f position, bool press, bool moveMouse = false)
     {
         _pointerPosition = position;
         _pointerPressed = press;
         if (moveMouse && _input is not null)
-            _input.SetMousePosition(Vector2.RoundToInt(position));
+            _input.SetMousePosition(Vector2f.RoundToInt(position));
     }
 }

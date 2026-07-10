@@ -10,11 +10,11 @@ public enum RayQueryLevel
 
 public sealed class RayQueryResult
 {
-    public Vector3 Position { get; init; }
+    public Vector3f Position { get; init; }
 
-    public Vector3 Normal { get; init; }
+    public Vector3f Normal { get; init; }
 
-    public Vector2 TextureUV { get; init; }
+    public Vector2f TextureUV { get; init; }
 
     public float Distance { get; init; }
 
@@ -87,16 +87,16 @@ public sealed class Octree : Component
 
         RegisterAttribute(
             "Bounding Box Min",
-            typeof(Vector3),
+            typeof(Vector3f),
             self => ((Octree)self)._worldBoundingBox.Min,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(value is Vector3 min ? min : -Vector3.One * DefaultOctreeSize, ((Octree)self)._worldBoundingBox.Max), ((Octree)self)._numLevels),
-            -Vector3.One * DefaultOctreeSize);
+            (self, value) => ((Octree)self).SetSize(new BoundingBox(value is Vector3f min ? min : -Vector3f.One * DefaultOctreeSize, ((Octree)self)._worldBoundingBox.Max), ((Octree)self)._numLevels),
+            -Vector3f.One * DefaultOctreeSize);
         RegisterAttribute(
             "Bounding Box Max",
-            typeof(Vector3),
+            typeof(Vector3f),
             self => ((Octree)self)._worldBoundingBox.Max,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(((Octree)self)._worldBoundingBox.Min, value is Vector3 max ? max : Vector3.One * DefaultOctreeSize), ((Octree)self)._numLevels),
-            Vector3.One * DefaultOctreeSize);
+            (self, value) => ((Octree)self).SetSize(new BoundingBox(((Octree)self)._worldBoundingBox.Min, value is Vector3f max ? max : Vector3f.One * DefaultOctreeSize), ((Octree)self)._numLevels),
+            Vector3f.One * DefaultOctreeSize);
         RegisterAttribute(
             "Number of Levels",
             typeof(uint),
@@ -182,7 +182,7 @@ public sealed class Octree : Component
             .ToArray();
     }
 
-    public IReadOnlyList<Drawable> GetDrawables(Vector3 point, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
+    public IReadOnlyList<Drawable> GetDrawables(Vector3f point, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
         return GetDrawables(drawableFlags, viewMask)
             .Where(drawable => drawable.GetWorldBoundingBox().IsInside(point) != Intersection.Outside)
@@ -218,7 +218,7 @@ public sealed class Octree : Component
 
     public object? QueryZone(Drawable drawable) => null;
 
-    public object? QueryZone(Vector3 drawablePosition, uint zoneMask) => null;
+    public object? QueryZone(Vector3f drawablePosition, uint zoneMask) => null;
 
     public object? GetBackgroundZone() => null;
 
@@ -282,7 +282,7 @@ public sealed class Octree : Component
             Distance = distance,
             Position = ray.Origin + ray.Direction * distance,
             Normal = -ray.Direction,
-            TextureUV = Vector2.Zero,
+            TextureUV = Vector2f.Zero,
             SubObject = 0
         };
     }

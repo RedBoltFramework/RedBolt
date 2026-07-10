@@ -19,22 +19,22 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         Z = z;
     }
 
-    public Quaternion(float angle, Vector3 axis)
+    public Quaternion(float angle, Vector3f axis)
     {
         this = FromAngleAxis(angle, axis);
     }
 
-    public Quaternion(Vector3 eulerAngles)
+    public Quaternion(Vector3f eulerAngles)
     {
         this = FromEulerAngles(eulerAngles.X, eulerAngles.Y, eulerAngles.Z);
     }
 
-    public Quaternion(Vector3 start, Vector3 end)
+    public Quaternion(Vector3f start, Vector3f end)
     {
         this = FromRotationTo(start, end);
     }
 
-    public Quaternion(Vector3 xAxis, Vector3 yAxis, Vector3 zAxis)
+    public Quaternion(Vector3f xAxis, Vector3f yAxis, Vector3f zAxis)
     {
         this = FromAxes(xAxis, yAxis, zAxis);
     }
@@ -47,11 +47,11 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     public static readonly Quaternion IDENTITY = new(1.0f, 0.0f, 0.0f, 0.0f);
     public static Quaternion Identity => IDENTITY;
 
-    public Vector3 Axis => new Vector3(X, Y, Z) / MathF.Sqrt(Math.Max(MathDefs.Epsilon, 1.0f - W * W));
+    public Vector3f Axis => new Vector3f(X, Y, Z) / MathF.Sqrt(Math.Max(MathDefs.Epsilon, 1.0f - W * W));
     public Quaternion Conjugated => new(W, -X, -Y, -Z);
     public float[] Data => [W, X, Y, Z];
     public float DotProduct(Quaternion rhs) => W * rhs.W + X * rhs.X + Y * rhs.Y + Z * rhs.Z;
-    public Vector3 EulerAngles => ToEulerAngles();
+    public Vector3f EulerAngles => ToEulerAngles();
     public Quaternion Inverse => Inversed;
     public Quaternion Inversed
     {
@@ -81,7 +81,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         2.0f * X * Z - 2.0f * W * Y,
         2.0f * Y * Z + 2.0f * W * X,
         1.0f - 2.0f * X * X - 2.0f * Y * Y);
-    public Vector3 Xyz => new(X, Y, Z);
+    public Vector3f Xyz => new(X, Y, Z);
     public float YawAngle => EulerAngles.Y;
 
     public Quaternion Normalized
@@ -154,7 +154,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     public override int GetHashCode() => HashCode.Combine(W, X, Y, Z);
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", W, X, Y, Z);
 
-    public static Quaternion FromAngleAxis(float angle, Vector3 axis)
+    public static Quaternion FromAngleAxis(float angle, Vector3f axis)
     {
         var normalizedAxis = axis.Normalized;
         var halfAngle = MathDefs.DegreesToRadians2(angle);
@@ -163,7 +163,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         return new Quaternion(cos, normalizedAxis.X * sin, normalizedAxis.Y * sin, normalizedAxis.Z * sin);
     }
 
-    public static Quaternion FromAxes(Vector3 xAxis, Vector3 yAxis, Vector3 zAxis)
+    public static Quaternion FromAxes(Vector3f xAxis, Vector3f yAxis, Vector3f zAxis)
     {
         return FromRotationMatrix(new Matrix3(
             xAxis.X, yAxis.X, zAxis.X,
@@ -190,7 +190,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
             cosY * cosX * sinZ - sinY * sinX * cosZ);
     }
 
-    public static Quaternion FromRotation2D(float angle) => FromAngleAxis(angle, Vector3.Forward);
+    public static Quaternion FromRotation2D(float angle) => FromAngleAxis(angle, Vector3f.Forward);
 
     public static Quaternion FromRotationMatrix(Matrix3 matrix)
     {
@@ -235,7 +235,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         }
     }
 
-    public static Quaternion FromRotationTo(Vector3 start, Vector3 end)
+    public static Quaternion FromRotationTo(Vector3f start, Vector3f end)
     {
         var normStart = start.Normalized;
         var normEnd = end.Normalized;
@@ -248,13 +248,13 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
             return new Quaternion(0.5f * scale, cross.X * invScale, cross.Y * invScale, cross.Z * invScale).Normalized;
         }
 
-        var axis = Vector3.Right.CrossProduct(normStart);
+        var axis = Vector3f.Right.CrossProduct(normStart);
         if (axis.Length < float.Epsilon)
-            axis = Vector3.Up.CrossProduct(normStart);
+            axis = Vector3f.Up.CrossProduct(normStart);
         return FromAngleAxis(180.0f, axis);
     }
 
-    public static bool LookRotation(Vector3 direction, Vector3 up, out Quaternion rotation)
+    public static bool LookRotation(Vector3f direction, Vector3f up, out Quaternion rotation)
     {
         var forward = direction.Normalized;
         var side = forward.CrossProduct(up);
@@ -266,7 +266,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
             rotation = new Quaternion(right, up2, forward);
         }
         else
-            rotation = FromRotationTo(Vector3.Forward, forward);
+            rotation = FromRotationTo(Vector3f.Forward, forward);
 
         return !rotation.IsNaN;
     }
@@ -285,15 +285,15 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         lhs.W * rhs.Y + lhs.Y * rhs.W + lhs.Z * rhs.X - lhs.X * rhs.Z,
         lhs.W * rhs.Z + lhs.Z * rhs.W + lhs.X * rhs.Y - lhs.Y * rhs.X);
 
-    public static Vector3 operator *(Quaternion lhs, Vector3 rhs)
+    public static Vector3f operator *(Quaternion lhs, Vector3f rhs)
     {
-        var qVec = new Vector3(lhs.X, lhs.Y, lhs.Z);
+        var qVec = new Vector3f(lhs.X, lhs.Y, lhs.Z);
         var cross1 = qVec.CrossProduct(rhs);
         var cross2 = qVec.CrossProduct(cross1);
         return rhs + 2.0f * (cross1 * lhs.W + cross2);
     }
 
-    private Vector3 ToEulerAngles()
+    private Vector3f ToEulerAngles()
     {
         var check = 2.0f * (-Y * Z + W * X);
         const float singularityThreshold = 0.999999f;
@@ -301,7 +301,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
 
         if (check < -singularityThreshold * unit)
         {
-            return new Vector3(
+            return new Vector3f(
                 -90.0f,
                 MathDefs.RadiansToDegrees(-MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z))),
                 0.0f);
@@ -309,13 +309,13 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
 
         if (check > singularityThreshold * unit)
         {
-            return new Vector3(
+            return new Vector3f(
                 90.0f,
                 MathDefs.RadiansToDegrees(-MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z))),
                 0.0f);
         }
 
-        return new Vector3(
+        return new Vector3f(
             MathDefs.RadiansToDegrees(MathF.Asin(check)),
             MathDefs.RadiansToDegrees(MathF.Atan2(2.0f * (X * Z + W * Y), 1.0f - 2.0f * (X * X + Y * Y))),
             MathDefs.RadiansToDegrees(MathF.Atan2(2.0f * (X * Y + W * Z), 1.0f - 2.0f * (X * X + Z * Z))));

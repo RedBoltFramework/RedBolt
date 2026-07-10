@@ -48,8 +48,8 @@ public sealed class MaterialTests
         material.SetShaderParameter("CustomValue", Material.ParseShaderParameterValue("1 2 3"), isCustom: true);
 
         var value = material.GetShaderParameter("CustomValue");
-        Assert.IsType<Vector3>(value);
-        Assert.Equal(new Vector3(1.0f, 2.0f, 3.0f), (Vector3)value);
+        Assert.IsType<Vector3f>(value);
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), (Vector3f)value);
         Assert.True(material.ShaderParameters["CustomValue"].IsCustom);
     }
 
@@ -57,10 +57,10 @@ public sealed class MaterialTests
     public void Uv_transform_metadata_works()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        material.SetUVTransform(new Vector2(0.25f, 0.5f), 90.0f, new Vector2(2.0f, 4.0f));
+        material.SetUVTransform(new Vector2f(0.25f, 0.5f), 90.0f, new Vector2f(2.0f, 4.0f));
 
-        Assert.True(material.UVOffset.ApproximatelyEquivalent(new Vector2(0.25f, 0.5f)));
-        Assert.True(material.UVRepeat.ApproximatelyEquivalent(new Vector2(2.0f, 4.0f)));
+        Assert.True(material.UVOffset.ApproximatelyEquivalent(new Vector2f(0.25f, 0.5f)));
+        Assert.True(material.UVRepeat.ApproximatelyEquivalent(new Vector2f(2.0f, 4.0f)));
     }
 
     [Fact]

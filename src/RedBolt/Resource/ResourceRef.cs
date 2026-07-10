@@ -1,8 +1,33 @@
 namespace RedBolt;
 
-public readonly record struct ResourceRef(uint Type, string Name)
+public readonly record struct ResourceRef
 {
+    public ResourceRef(StringHash type)
+        : this(type.Value, string.Empty)
+    {
+    }
+
+    public ResourceRef(StringHash type, string name)
+        : this(type.Value, name)
+    {
+    }
+
+    public ResourceRef(string type, string name)
+        : this(new StringHash(type).Value, name)
+    {
+    }
+
+    public ResourceRef(uint type, string name)
+    {
+        Type = type;
+        Name = name ?? string.Empty;
+    }
+
     public static ResourceRef Empty { get; } = new(0u, string.Empty);
+
+    public uint Type { get; init; }
+
+    public string Name { get; init; }
 
     public static bool IsNullOrEmpty(ResourceRef resourceRef)
     {
@@ -16,11 +41,11 @@ public readonly record struct ResourceRef(uint Type, string Name)
 
         var separator = value.IndexOf(';', StringComparison.Ordinal);
         if (separator < 0)
-            return new ResourceRef(0u, value.Trim());
+            return new ResourceRef(value.Trim(), string.Empty);
 
         var typePart = value[..separator].Trim();
         var namePart = value[(separator + 1)..].Trim();
-        var type = uint.TryParse(typePart, out var parsedType) ? parsedType : StringHash.Calculate(typePart);
+        var type = uint.TryParse(typePart, out var parsedType) ? parsedType : new StringHash(typePart).Value;
         return new ResourceRef(type, namePart);
     }
 
@@ -37,6 +62,10 @@ public readonly record struct ResourceRef(uint Type, string Name)
 
     public override string ToString()
     {
-        return Type == 0u ? Name : $"{Type};{Name}";
+        var typeName = new StringHash(Type).Reverse();
+        if (string.IsNullOrEmpty(typeName))
+            typeName = Type != 0u ? Type.ToString() : string.Empty;
+
+        return string.IsNullOrEmpty(typeName) ? Name : $"{typeName};{Name}";
     }
 }

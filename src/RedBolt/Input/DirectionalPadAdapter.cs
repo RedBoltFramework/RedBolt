@@ -19,7 +19,7 @@ public sealed class DirectionalPadAdapter
     private float _axisLowerThreshold = 0.4f;
     private float _repeatDelay = 0.5f;
     private float _repeatInterval = 0.03f;
-    private Vector2 _externalDirection = Vector2.Zero;
+    private Vector2f _externalDirection = Vector2f.Zero;
 
     public DirectionalPadAdapter(Input? input = null)
     {
@@ -75,7 +75,7 @@ public sealed class DirectionalPadAdapter
 
     public float GetRepeatInterval() => _repeatInterval;
 
-    public void SetExternalDirection(Vector2 direction)
+    public void SetExternalDirection(Vector2f direction)
     {
         _externalDirection = direction;
     }
@@ -107,7 +107,7 @@ public sealed class DirectionalPadAdapter
         };
     }
 
-    private Vector2 GetKeyboardDirection()
+    private Vector2f GetKeyboardDirection()
     {
         var x = 0.0f;
         var y = 0.0f;
@@ -119,13 +119,13 @@ public sealed class DirectionalPadAdapter
             y += 1.0f;
         if (IsPressed(Scancode.W, Key.Up))
             y -= 1.0f;
-        return new Vector2(x, y);
+        return new Vector2f(x, y);
     }
 
-    private Vector2 GetJoystickDirection()
+    private Vector2f GetJoystickDirection()
     {
         if (_input is null)
-            return Vector2.Zero;
+            return Vector2f.Zero;
 
         var x = 0.0f;
         var y = 0.0f;
@@ -142,7 +142,7 @@ public sealed class DirectionalPadAdapter
             y += 1.0f;
         if (_input.GetHatDown(HatPosition.Up))
             y -= 1.0f;
-        return new Vector2(x, y);
+        return new Vector2f(x, y);
     }
 
     private bool IsRightActive()

@@ -28,6 +28,6 @@ public sealed class SkyboxTests
         Assert.Equal(DrawableFlags.Geometry, skybox.GetDrawableFlags());
         Assert.Null(skybox.GetImage());
         Assert.Equal(Intersection.Inside,
-            skybox.GetWorldBoundingBox().IsInside(new Vector3(50_000.0f, 0.0f, 0.0f)));
+            skybox.GetWorldBoundingBox().IsInside(new Vector3f(50_000.0f, 0.0f, 0.0f)));
     }
 }

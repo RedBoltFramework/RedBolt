@@ -1,77 +1,80 @@
 using System.Globalization;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Vector3 : IEquatable<Vector3>, IApproximateEquatable<Vector3>
+public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateEquatable<BaseRealVector3<T>>
+    where T : unmanaged, IFloatingPointIeee754<T>
 {
-    public float X;
-    public float Y;
-    public float Z;
+    public T X;
+    public T Y;
+    public T Z;
 
-    public Vector3(float x = 0.0f, float y = 0.0f, float z = 0.0f)
+    public BaseRealVector3(T x, T y, T z = default)
     {
         X = x;
         Y = y;
         Z = z;
     }
 
-    public Vector3(Vector2 vector, float z = 0.0f)
+    public BaseRealVector3(BaseRealVector2<T> vector, T z = default)
     {
         X = vector.X;
         Y = vector.Y;
         Z = z;
     }
 
-    public Vector3(IntVector3 vector)
+    public BaseRealVector3(Vector3i vector)
     {
-        X = vector.X;
-        Y = vector.Y;
-        Z = vector.Z;
+        X = T.CreateChecked(vector.X);
+        Y = T.CreateChecked(vector.Y);
+        Z = T.CreateChecked(vector.Z);
     }
 
-    public static readonly Vector3 ZERO = new(0.0f, 0.0f, 0.0f);
-    public static readonly Vector3 LEFT = new(-1.0f, 0.0f, 0.0f);
-    public static readonly Vector3 RIGHT = new(1.0f, 0.0f, 0.0f);
-    public static readonly Vector3 UP = new(0.0f, 1.0f, 0.0f);
-    public static readonly Vector3 DOWN = new(0.0f, -1.0f, 0.0f);
-    public static readonly Vector3 FORWARD = new(0.0f, 0.0f, 1.0f);
-    public static readonly Vector3 BACK = new(0.0f, 0.0f, -1.0f);
-    public static readonly Vector3 ONE = new(1.0f, 1.0f, 1.0f);
+    public static readonly BaseRealVector3<T> ZERO = new(T.Zero, T.Zero, T.Zero);
+    public static readonly BaseRealVector3<T> LEFT = new(-T.One, T.Zero, T.Zero);
+    public static readonly BaseRealVector3<T> RIGHT = new(T.One, T.Zero, T.Zero);
+    public static readonly BaseRealVector3<T> UP = new(T.Zero, T.One, T.Zero);
+    public static readonly BaseRealVector3<T> DOWN = new(T.Zero, -T.One, T.Zero);
+    public static readonly BaseRealVector3<T> FORWARD = new(T.Zero, T.Zero, T.One);
+    public static readonly BaseRealVector3<T> BACK = new(T.Zero, T.Zero, -T.One);
+    public static readonly BaseRealVector3<T> ONE = new(T.One, T.One, T.One);
 
-    public static Vector3 Zero => ZERO;
-    public static Vector3 Left => LEFT;
-    public static Vector3 Right => RIGHT;
-    public static Vector3 Up => UP;
-    public static Vector3 Down => DOWN;
-    public static Vector3 Forward => FORWARD;
-    public static Vector3 Back => BACK;
-    public static Vector3 One => ONE;
+    public static BaseRealVector3<T> Zero => ZERO;
+    public static BaseRealVector3<T> Left => LEFT;
+    public static BaseRealVector3<T> Right => RIGHT;
+    public static BaseRealVector3<T> Up => UP;
+    public static BaseRealVector3<T> Down => DOWN;
+    public static BaseRealVector3<T> Forward => FORWARD;
+    public static BaseRealVector3<T> Back => BACK;
+    public static BaseRealVector3<T> One => ONE;
 
-    public float[] Data => [X, Y, Z];
-    public bool IsNaN => float.IsNaN(X) || float.IsNaN(Y) || float.IsNaN(Z);
-    public float Length => MathF.Sqrt(LengthSquared);
-    public float LengthSquared => X * X + Y * Y + Z * Z;
-    public Vector3 Abs => new(Math.Abs(X), Math.Abs(Y), Math.Abs(Z));
+    public T[] Data => [X, Y, Z];
+    public bool IsNaN => T.IsNaN(X) || T.IsNaN(Y) || T.IsNaN(Z);
+    public bool IsInf => T.IsInfinity(X) || T.IsInfinity(Y) || T.IsInfinity(Z);
+    public T Length => T.Sqrt(LengthSquared);
+    public T LengthSquared => X * X + Y * Y + Z * Z;
+    public BaseRealVector3<T> Abs => new(T.Abs(X), T.Abs(Y), T.Abs(Z));
 
-    public Vector3 Normalized
+    public BaseRealVector3<T> Normalized
     {
         get
         {
             var lenSquared = LengthSquared;
-            if (!MathDefs.Equals(lenSquared, 1.0f) && lenSquared > 0.0f)
-                return this * (1.0f / MathF.Sqrt(lenSquared));
+            if (!MathDefs.Equals(double.CreateChecked(lenSquared), 1.0) && lenSquared > T.Zero)
+                return this * (T.One / T.Sqrt(lenSquared));
             return this;
         }
     }
 
-    public Vector3 NormalizedOrDefault => LengthSquared < MathDefs.LargeEpsilon * MathDefs.LargeEpsilon
+    public BaseRealVector3<T> NormalizedOrDefault => LengthSquared < T.CreateChecked(MathDefs.LargeEpsilon * MathDefs.LargeEpsilon)
         ? Zero
-        : this * (1.0f / Length);
+        : this * (T.One / Length);
 
-    public float this[int index]
+    public T this[int index]
     {
         get => index switch
         {
@@ -99,111 +102,141 @@ public struct Vector3 : IEquatable<Vector3>, IApproximateEquatable<Vector3>
         }
     }
 
-    public static Vector3 FromXZ(Vector2 vector, float y = 0.0f) => new(vector.X, y, vector.Y);
+    public static BaseRealVector3<T> FromXZ(BaseRealVector2<T> vector, T y = default) => new(vector.X, y, vector.Y);
 
     public void Normalize()
     {
         var lenSquared = LengthSquared;
-        if (!MathDefs.Equals(lenSquared, 1.0f) && lenSquared > 0.0f)
-            this *= 1.0f / MathF.Sqrt(lenSquared);
+        if (!MathDefs.Equals(double.CreateChecked(lenSquared), 1.0) && lenSquared > T.Zero)
+            this *= T.One / T.Sqrt(lenSquared);
     }
 
-    public float DotProduct(Vector3 rhs) => X * rhs.X + Y * rhs.Y + Z * rhs.Z;
+    public T DotProduct(BaseRealVector3<T> rhs) => X * rhs.X + Y * rhs.Y + Z * rhs.Z;
 
-    public float AbsDotProduct(Vector3 rhs) => Math.Abs(X * rhs.X) + Math.Abs(Y * rhs.Y) + Math.Abs(Z * rhs.Z);
+    public T AbsDotProduct(BaseRealVector3<T> rhs) => T.Abs(X * rhs.X) + T.Abs(Y * rhs.Y) + T.Abs(Z * rhs.Z);
 
-    public float ProjectOntoAxis(Vector3 axis) => DotProduct(axis.Normalized);
+    public T ProjectOntoAxis(BaseRealVector3<T> axis) => DotProduct(axis.Normalized);
 
-    public Vector3 ProjectOntoPlane(Vector3 origin, Vector3 normal)
+    public BaseRealVector3<T> ProjectOntoPlane(BaseRealVector3<T> origin, BaseRealVector3<T> normal)
     {
         var delta = this - origin;
         return this - normal.Normalized * delta.ProjectOntoAxis(normal);
     }
 
-    public Vector3 ProjectOntoLine(Vector3 from, Vector3 to, bool clamped = false)
+    public T ProjectOntoLineScalar(BaseRealVector3<T> from, BaseRealVector3<T> to, bool clamped = false)
     {
         var direction = to - from;
-        var factor = (this - from).DotProduct(direction) / direction.LengthSquared;
-        if (clamped)
-            factor = MathDefs.Clamp(factor, 0.0f, 1.0f);
-        return from + direction * factor;
+        var lengthSquared = direction.LengthSquared;
+        var factor = (this - from).DotProduct(direction) / lengthSquared;
+        return clamped ? T.Clamp(factor, T.Zero, T.One) : factor;
     }
 
-    public float DistanceToPoint(Vector3 point) => (this - point).Length;
+    public BaseRealVector3<T> ProjectOntoLine(BaseRealVector3<T> from, BaseRealVector3<T> to, bool clamped = false)
+        => from.Lerp(to, ProjectOntoLineScalar(from, to, clamped));
 
-    public float DistanceToPlane(Vector3 origin, Vector3 normal) => (this - origin).ProjectOntoAxis(normal);
+    public T DistanceToPoint(BaseRealVector3<T> point) => (this - point).Length;
 
-    public Vector3 Orthogonalize(Vector3 axis) => axis.CrossProduct(this).CrossProduct(axis).Normalized;
+    public T DistanceToPlane(BaseRealVector3<T> origin, BaseRealVector3<T> normal) => (this - origin).ProjectOntoAxis(normal);
 
-    public Vector3 CrossProduct(Vector3 rhs) => new(
+    public BaseRealVector3<T> Orthogonalize(BaseRealVector3<T> axis) => axis.CrossProduct(this).CrossProduct(axis).Normalized;
+
+    public BaseRealVector3<T> CrossProduct(BaseRealVector3<T> rhs) => new(
         Y * rhs.Z - Z * rhs.Y,
         Z * rhs.X - X * rhs.Z,
         X * rhs.Y - Y * rhs.X);
 
-    public Vector3 Lerp(Vector3 rhs, float t) => this * (1.0f - t) + rhs * t;
+    public BaseRealVector3<T> Lerp(BaseRealVector3<T> rhs, T t) => this * (T.One - t) + rhs * t;
 
-    public float Angle(Vector3 rhs) => MathDefs.Acos(DotProduct(rhs) / (Length * rhs.Length));
+    public T Angle(BaseRealVector3<T> rhs) => T.Acos(DotProduct(rhs) / (Length * rhs.Length)) * T.CreateChecked(MathDefs.RadToDeg);
 
-    public Vector2 ToVector2() => new(X, Y);
+    public T SignedAngle(BaseRealVector3<T> rhs, BaseRealVector3<T> axis)
+    {
+        var angle = Angle(rhs);
+        var sign = CrossProduct(rhs).DotProduct(axis) < T.Zero ? -T.One : T.One;
+        return angle * sign;
+    }
 
-    public IntVector2 ToIntVector2() => new((int)X, (int)Y);
+    public BaseRealVector2<T> ToVector2() => new(X, Y);
 
-    public IntVector3 ToIntVector3() => new((int)X, (int)Y, (int)Z);
+    public Vector2i ToIntVector2() => new(int.CreateChecked(X), int.CreateChecked(Y));
 
-    public Vector2 ToXZ() => new(X, Z);
+    public Vector3i ToIntVector3() => new(int.CreateChecked(X), int.CreateChecked(Y), int.CreateChecked(Z));
 
-    public Vector4 ToVector4(float w) => new(this, w);
+    public BaseRealVector2<T> ToXZ() => new(X, Z);
 
-    public bool ApproximatelyEquivalent(Vector3 rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(X, rhs.X, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Z, rhs.Z, epsilon);
+    public Vector4f ToVector4(float w = 0.0f) => new(float.CreateChecked(X), float.CreateChecked(Y), float.CreateChecked(Z), w);
 
-    public bool Equals(Vector3 other) => this == other;
+    public BaseRealVector3<T> ReNormalized(T minLength, T maxLength, BaseRealVector3<T> defaultValue = default, T? epsilon = null)
+    {
+        var typedEpsilon = epsilon ?? T.CreateChecked(MathDefs.LargeEpsilon);
+        var lenSquared = LengthSquared;
+        if (lenSquared < typedEpsilon * typedEpsilon)
+            return defaultValue;
 
-    public override bool Equals(object? obj) => obj is Vector3 other && Equals(other);
+        var length = T.Sqrt(lenSquared);
+        var newLength = T.Clamp(length, minLength, maxLength);
+        return this * (newLength / length);
+    }
+
+    public bool ApproximatelyEquivalent(BaseRealVector3<T> rhs, float epsilon = MathDefs.Epsilon)
+    {
+        var typedEpsilon = T.CreateChecked(epsilon);
+        return T.Abs(X - rhs.X) <= typedEpsilon && T.Abs(Y - rhs.Y) <= typedEpsilon && T.Abs(Z - rhs.Z) <= typedEpsilon;
+    }
+
+    public bool Equals(BaseRealVector3<T> other) => this == other;
+
+    public override bool Equals(object obj) => obj is BaseRealVector3<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
 
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", X, Y, Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Vector3 lhs, Vector3 rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y && lhs.Z == rhs.Z;
+    public static bool operator ==(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y && lhs.Z == rhs.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Vector3 lhs, Vector3 rhs) => !(lhs == rhs);
+    public static bool operator !=(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator +(Vector3 lhs, Vector3 rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
+    public static BaseRealVector3<T> operator +(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator -(Vector3 value) => new(-value.X, -value.Y, -value.Z);
+    public static BaseRealVector3<T> operator -(BaseRealVector3<T> value) => new(-value.X, -value.Y, -value.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator -(Vector3 lhs, Vector3 rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y, lhs.Z - rhs.Z);
+    public static BaseRealVector3<T> operator -(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y, lhs.Z - rhs.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator *(Vector3 lhs, float rhs) => new(lhs.X * rhs, lhs.Y * rhs, lhs.Z * rhs);
+    public static BaseRealVector3<T> operator *(BaseRealVector3<T> lhs, T rhs) => new(lhs.X * rhs, lhs.Y * rhs, lhs.Z * rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator *(float lhs, Vector3 rhs) => rhs * lhs;
+    public static BaseRealVector3<T> operator *(T lhs, BaseRealVector3<T> rhs) => rhs * lhs;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator *(Vector3 lhs, Vector3 rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y, lhs.Z * rhs.Z);
+    public static BaseRealVector3<T> operator *(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y, lhs.Z * rhs.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator /(Vector3 lhs, float rhs) => new(lhs.X / rhs, lhs.Y / rhs, lhs.Z / rhs);
+    public static BaseRealVector3<T> operator /(BaseRealVector3<T> lhs, T rhs) => new(lhs.X / rhs, lhs.Y / rhs, lhs.Z / rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector3 operator /(Vector3 lhs, Vector3 rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z);
+    public static BaseRealVector3<T> operator /(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z);
 
-    public static Vector3 Lerp(Vector3 lhs, Vector3 rhs, Vector3 t) => lhs + (rhs - lhs) * t;
-    public static Vector3 Min(Vector3 lhs, Vector3 rhs) => new(Math.Min(lhs.X, rhs.X), Math.Min(lhs.Y, rhs.Y), Math.Min(lhs.Z, rhs.Z));
-    public static Vector3 Max(Vector3 lhs, Vector3 rhs) => new(Math.Max(lhs.X, rhs.X), Math.Max(lhs.Y, rhs.Y), Math.Max(lhs.Z, rhs.Z));
-    public static Vector3 Floor(Vector3 vec) => new(MathF.Floor(vec.X), MathF.Floor(vec.Y), MathF.Floor(vec.Z));
-    public static Vector3 Round(Vector3 vec) => new(MathF.Round(vec.X), MathF.Round(vec.Y), MathF.Round(vec.Z));
-    public static Vector3 Ceil(Vector3 vec) => new(MathF.Ceiling(vec.X), MathF.Ceiling(vec.Y), MathF.Ceiling(vec.Z));
-    public static IntVector3 FloorToInt(Vector3 vec) => new((int)MathF.Floor(vec.X), (int)MathF.Floor(vec.Y), (int)MathF.Floor(vec.Z));
-    public static IntVector3 RoundToInt(Vector3 vec) => new((int)MathF.Round(vec.X), (int)MathF.Round(vec.Y), (int)MathF.Round(vec.Z));
-    public static IntVector3 CeilToInt(Vector3 vec) => new((int)MathF.Ceiling(vec.X), (int)MathF.Ceiling(vec.Y), (int)MathF.Ceiling(vec.Z));
+    public static BaseRealVector3<T> Lerp(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs, BaseRealVector3<T> t) => lhs + (rhs - lhs) * t;
+
+    public static BaseRealVector3<T> Min(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(T.Min(lhs.X, rhs.X), T.Min(lhs.Y, rhs.Y), T.Min(lhs.Z, rhs.Z));
+
+    public static BaseRealVector3<T> Max(BaseRealVector3<T> lhs, BaseRealVector3<T> rhs) => new(T.Max(lhs.X, rhs.X), T.Max(lhs.Y, rhs.Y), T.Max(lhs.Z, rhs.Z));
+
+    public static BaseRealVector3<T> Floor(BaseRealVector3<T> vec) => new(T.Floor(vec.X), T.Floor(vec.Y), T.Floor(vec.Z));
+
+    public static BaseRealVector3<T> Round(BaseRealVector3<T> vec) => new(T.Round(vec.X), T.Round(vec.Y), T.Round(vec.Z));
+
+    public static BaseRealVector3<T> Ceil(BaseRealVector3<T> vec) => new(T.Ceiling(vec.X), T.Ceiling(vec.Y), T.Ceiling(vec.Z));
+
+    public static Vector3i FloorToInt(BaseRealVector3<T> vec) => new(int.CreateChecked(T.Floor(vec.X)), int.CreateChecked(T.Floor(vec.Y)), int.CreateChecked(T.Floor(vec.Z)));
+
+    public static Vector3i RoundToInt(BaseRealVector3<T> vec) => new(int.CreateChecked(T.Round(vec.X)), int.CreateChecked(T.Round(vec.Y)), int.CreateChecked(T.Round(vec.Z)));
+
+    public static Vector3i CeilToInt(BaseRealVector3<T> vec) => new(int.CreateChecked(T.Ceiling(vec.X)), int.CreateChecked(T.Ceiling(vec.Y)), int.CreateChecked(T.Ceiling(vec.Z)));
 }

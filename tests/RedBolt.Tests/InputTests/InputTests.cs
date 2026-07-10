@@ -87,7 +87,7 @@ public sealed class InputTests
         Assert.False(Input.GetEnabled());
         Assert.Equal(0, Input.GetMouseMoveX());
         Assert.Equal(0, Input.GetMouseMoveY());
-        Assert.Equal(Vector2.Zero, Input.GetRelativeMousePosition());
+        Assert.Equal(Vector2f.Zero, Input.GetRelativeMousePosition());
         Input.SetEnabled(true);
     }
 

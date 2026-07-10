@@ -22,13 +22,13 @@ public sealed class RenderContextTests
             renderContext.SetSwapChainRenderTargets();
 
             Assert.True(renderContext.IsSwapChainRenderTarget());
-            Assert.Equal(new IntVector2(64, 64), renderContext.GetCurrentRenderTargetSize());
+            Assert.Equal(new Vector2i(64, 64), renderContext.GetCurrentRenderTargetSize());
             Assert.Equal(new IntRect(0, 0, 64, 64), renderContext.GetCurrentViewport());
 
             renderContext.SetViewport(new IntRect(4, 8, 16, 24));
 
             Assert.Equal(new IntRect(4, 8, 16, 24), renderContext.GetCurrentViewport());
-            Assert.Equal(new IntVector2(64, 64), renderContext.GetCurrentRenderTargetSize());
+            Assert.Equal(new Vector2i(64, 64), renderContext.GetCurrentRenderTargetSize());
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
             Assert.Equal<uint>(1u, outputDesc.NumRenderTargets);
@@ -52,7 +52,7 @@ public sealed class RenderContextTests
             renderContext.SetRenderTargets(RenderTargetView.Texture(depthTexture), [RenderTargetView.Texture(colorTexture)]);
 
             Assert.False(renderContext.IsSwapChainRenderTarget());
-            Assert.Equal(new IntVector2(32, 16), renderContext.GetCurrentRenderTargetSize());
+            Assert.Equal(new Vector2i(32, 16), renderContext.GetCurrentRenderTargetSize());
             Assert.Equal(new IntRect(0, 0, 32, 16), renderContext.GetCurrentViewport());
             Assert.True(renderContext.IsBoundAsRenderTarget(colorTexture));
             Assert.True(renderContext.IsBoundAsRenderTarget(depthTexture));

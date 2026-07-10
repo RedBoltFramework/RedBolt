@@ -5,25 +5,25 @@ namespace RedBolt;
 [StructLayout(LayoutKind.Sequential)]
 public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
 {
-    public Vector3 Center;
+    public Vector3f Center;
     public float Radius;
 
-    public Sphere(Vector3? center = null, float radius = float.NegativeInfinity)
+    public Sphere(Vector3f? center = null, float radius = float.NegativeInfinity)
     {
-        Center = center ?? Vector3.Zero;
+        Center = center ?? Vector3f.Zero;
         Radius = radius;
     }
 
-    public Sphere(IReadOnlyList<Vector3> vertices)
+    public Sphere(IReadOnlyList<Vector3f> vertices)
     {
-        Center = Vector3.Zero;
+        Center = Vector3f.Zero;
         Radius = 0.0f;
         Define(vertices);
     }
 
     public Sphere(BoundingBox box)
     {
-        Center = Vector3.Zero;
+        Center = Vector3f.Zero;
         Radius = 0.0f;
         Define(box);
     }
@@ -32,18 +32,18 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
 
     public void Clear()
     {
-        Center = Vector3.Zero;
+        Center = Vector3f.Zero;
         Radius = float.NegativeInfinity;
     }
 
     public void Define(Sphere sphere) => Define(sphere.Center, sphere.Radius);
-    public void Define(Vector3 center, float radius)
+    public void Define(Vector3f center, float radius)
     {
         Center = center;
         Radius = radius;
     }
 
-    public void Define(IReadOnlyList<Vector3> vertices)
+    public void Define(IReadOnlyList<Vector3f> vertices)
     {
         Clear();
         Merge(vertices);
@@ -55,7 +55,7 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
         Merge(box);
     }
 
-    public Intersection IsInside(Vector3 point) => (point - Center).LengthSquared < Radius * Radius ? Intersection.Inside : Intersection.Outside;
+    public Intersection IsInside(Vector3f point) => (point - Center).LengthSquared < Radius * Radius ? Intersection.Inside : Intersection.Outside;
 
     public Intersection IsInside(Sphere sphere)
     {
@@ -97,7 +97,7 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
 
     public Intersection IsInsideFast(BoundingBox box) => IsInside(box) == Intersection.Outside ? Intersection.Outside : Intersection.Inside;
 
-    public void Merge(Vector3 point)
+    public void Merge(Vector3f point)
     {
         if (Radius < 0.0f)
         {
@@ -112,11 +112,11 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
         {
             var half = (distance - Radius) * 0.5f;
             Radius += half;
-            Center += distance > MathDefs.Epsilon ? offset * (half / distance) : Vector3.Zero;
+            Center += distance > MathDefs.Epsilon ? offset * (half / distance) : Vector3f.Zero;
         }
     }
 
-    public void Merge(IReadOnlyList<Vector3> vertices)
+    public void Merge(IReadOnlyList<Vector3f> vertices)
     {
         foreach (var vertex in vertices)
             Merge(vertex);
@@ -178,7 +178,7 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
     public static bool operator ==(Sphere lhs, Sphere rhs) => lhs.Equals(rhs);
     public static bool operator !=(Sphere lhs, Sphere rhs) => !lhs.Equals(rhs);
 
-    private static Vector3[] GetCorners(BoundingBox box) =>
+    private static Vector3f[] GetCorners(BoundingBox box) =>
     [
         box.Min,
         new(box.Max.X, box.Min.Y, box.Min.Z),

@@ -1,33 +1,45 @@
 using System.Globalization;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct IntVector2 : IEquatable<IntVector2>
+public struct BaseIntVector2<T> : IEquatable<BaseIntVector2<T>>
+    where T : unmanaged, IBinaryInteger<T>, ISignedNumber<T>
 {
-    public int X;
-    public int Y;
+    public T X;
+    public T Y;
 
-    public IntVector2(int x = 0, int y = 0)
+    public BaseIntVector2(T x = default, T y = default)
     {
         X = x;
         Y = y;
     }
 
-    public static readonly IntVector2 Zero = new(0, 0);
-    public static readonly IntVector2 Left = new(-1, 0);
-    public static readonly IntVector2 Right = new(1, 0);
-    public static readonly IntVector2 Up = new(0, 1);
-    public static readonly IntVector2 Down = new(0, -1);
-    public static readonly IntVector2 One = new(1, 1);
+    public BaseIntVector2(T[] data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Length < 2)
+            throw new ArgumentException("Expected at least two elements.", nameof(data));
 
-    public int[] Data => [X, Y];
+        X = data[0];
+        Y = data[1];
+    }
 
-    public float Length => MathF.Sqrt(X * X + Y * Y);
+    public static readonly BaseIntVector2<T> Zero = new();
+    public static readonly BaseIntVector2<T> Left = new(-T.One, T.Zero);
+    public static readonly BaseIntVector2<T> Right = new(T.One, T.Zero);
+    public static readonly BaseIntVector2<T> Up = new(T.Zero, T.One);
+    public static readonly BaseIntVector2<T> Down = new(T.Zero, -T.One);
+    public static readonly BaseIntVector2<T> One = new(T.One, T.One);
 
-    public int this[int index]
+    public T[] Data => [X, Y];
+
+    public float Length => MathF.Sqrt(float.CreateChecked(X * X + Y * Y));
+
+    public T this[int index]
     {
         get => index switch
         {
@@ -52,50 +64,64 @@ public struct IntVector2 : IEquatable<IntVector2>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(IntVector2 lhs, IntVector2 rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y;
+    public static bool operator ==(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => lhs.X == rhs.X && lhs.Y == rhs.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(IntVector2 lhs, IntVector2 rhs) => !(lhs == rhs);
+    public static bool operator !=(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => !(lhs == rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator +(IntVector2 lhs, IntVector2 rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y);
+    public static bool operator <(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => lhs.X < rhs.X || lhs.X == rhs.X && lhs.Y < rhs.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator -(IntVector2 value) => new(-value.X, -value.Y);
+    public static bool operator >(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => rhs < lhs;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator -(IntVector2 lhs, IntVector2 rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y);
+    public static bool operator <=(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => !(rhs < lhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator *(IntVector2 lhs, int rhs) => new(lhs.X * rhs, lhs.Y * rhs);
+    public static bool operator >=(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => !(lhs < rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator *(int lhs, IntVector2 rhs) => rhs * lhs;
+    public static BaseIntVector2<T> operator +(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator *(IntVector2 lhs, IntVector2 rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y);
+    public static BaseIntVector2<T> operator -(BaseIntVector2<T> value) => new(-value.X, -value.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator /(IntVector2 lhs, int rhs) => new(lhs.X / rhs, lhs.Y / rhs);
+    public static BaseIntVector2<T> operator -(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IntVector2 operator /(IntVector2 lhs, IntVector2 rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y);
+    public static BaseIntVector2<T> operator *(BaseIntVector2<T> lhs, T rhs) => new(lhs.X * rhs, lhs.Y * rhs);
 
-    public static IntVector2 Min(IntVector2 lhs, IntVector2 rhs) => new(Math.Min(lhs.X, rhs.X), Math.Min(lhs.Y, rhs.Y));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BaseIntVector2<T> operator *(T lhs, BaseIntVector2<T> rhs) => rhs * lhs;
 
-    public static IntVector2 Max(IntVector2 lhs, IntVector2 rhs) => new(Math.Max(lhs.X, rhs.X), Math.Max(lhs.Y, rhs.Y));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BaseIntVector2<T> operator *(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X * rhs.X, lhs.Y * rhs.Y);
 
-    public Vector2 ToVector2() => new(X, Y);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BaseIntVector2<T> operator /(BaseIntVector2<T> lhs, T rhs) => new(lhs.X / rhs, lhs.Y / rhs);
 
-    public Vector3 ToVector3() => new(X, Y, 0.0f);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static BaseIntVector2<T> operator /(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y);
 
-    public IntVector3 ToIntVector3() => new(X, Y, 0);
+    public static BaseIntVector2<T> Min(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X < rhs.X ? lhs.X : rhs.X, lhs.Y < rhs.Y ? lhs.Y : rhs.Y);
 
-    public bool Equals(IntVector2 other) => this == other;
+    public static BaseIntVector2<T> Max(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X > rhs.X ? lhs.X : rhs.X, lhs.Y > rhs.Y ? lhs.Y : rhs.Y);
 
-    public override bool Equals(object? obj) => obj is IntVector2 other && Equals(other);
+    public Vector2f ToVector2() => new(float.CreateChecked(X), float.CreateChecked(Y));
+
+    public Vector3f ToVector3() => new(float.CreateChecked(X), float.CreateChecked(Y), 0.0f);
+
+    public BaseIntVector3<T> ToIntVector3() => new(X, Y, T.Zero);
+
+    public bool Equals(BaseIntVector2<T> other) => this == other;
+
+    public override bool Equals(object? obj) => obj is BaseIntVector2<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
+
+    public uint ToHash() => unchecked((uint)(X.GetHashCode() * 37 + Y.GetHashCode()));
 
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1}", X, Y);
 }

@@ -11,16 +11,16 @@ public sealed class ShakeComponentTests
         var scene = new Scene();
         var node = scene.CreateChild("Shake");
         var shake = node.CreateComponent<ShakeComponent>();
-        shake.SetShiftRange(new Vector3(1.0f, 2.0f, 3.0f));
-        shake.SetRotationRange(new Vector3(4.0f, 5.0f, 6.0f));
+        shake.SetShiftRange(new Vector3f(1.0f, 2.0f, 3.0f));
+        shake.SetRotationRange(new Vector3f(4.0f, 5.0f, 6.0f));
         shake.SetTrauma(1.0f);
 
         scene.Update(0.1f);
-        Assert.False(node.Position.ApproximatelyEquivalent(Vector3.Zero));
+        Assert.False(node.Position.ApproximatelyEquivalent(Vector3f.Zero));
         Assert.False(node.Rotation.ApproximatelyEquivalent(Quaternion.Identity));
 
         scene.Update(2.0f);
-        Assert.True(node.Position.ApproximatelyEquivalent(Vector3.Zero));
+        Assert.True(node.Position.ApproximatelyEquivalent(Vector3f.Zero));
         Assert.True(node.Rotation.ApproximatelyEquivalent(Quaternion.Identity));
         Assert.Equal(UpdateEvent.UseNoEvent, shake.GetUpdateEventMask());
     }

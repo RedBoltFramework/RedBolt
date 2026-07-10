@@ -52,6 +52,155 @@ Port in dependency order instead of trying to transplant the full subsystem at o
 
 ## Current Slice
 
+Math generic-vector realignment on `2026-07-10`:
+
+- The old concrete `Vector2` / `Vector3` float structs have been removed instead of being kept as a compatibility-name layer.
+- `src/RedBolt/Math/Vector2.Generic.cs` and `src/RedBolt/Math/Vector3.Generic.cs` are now the canonical rbfx-style vector surface, with sequential-layout generic structs constrained to unmanaged IEEE floating-point scalars.
+- The generic vector types now cover the float-side helpers that previously only existed on the concrete structs, including integer conversion constructors, line-projection scalar helpers, signed angles, renormalization helpers, orthogonal helpers, and per-component min/max/floor/round/ceil plus `*ToInt`.
+- The engine now uses explicit `Vector2<float>` / `Vector3<float>` types throughout the managed codebase instead of a concrete-name wrapper or alias layer, while double-vector support continues through `Vector2<double>` / `Vector3<double>` and `DoubleTransform`.
+- `IntVector2`, `IntVector3`, `Vector4`, `Variant`, serializer/deserializer helpers, render-path parsing, scene transforms, and render/pipeline code were updated to the generic float vectors so the main `RedBolt` project builds without the deleted concrete vector types.
+
+Core `Spline` parity follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/Spline.cs` no longer uses an `object`-based placeholder surface; it now follows the rbfx `VariantVector`/`Variant` shape, including rbfx interpolation-mode dispatch, type-checked knot insertion, full-path Catmull-Rom endpoint duplication/looping, double interpolation support, equality operators, and `ICloneable.Clone()` as the copy-constructor equivalent.
+- `SplinePath` and focused spline tests were updated to consume `Variant` results explicitly instead of relying on the earlier object-cast placeholder path.
+
+Core `Variant` / resource-ref parity follow-up on `2026-07-10`:
+
+- `Variant` now matches the current rbfx value-contract more closely for the managed streamable subset: it has the rbfx type-name table, `Variant(VariantType)` default-value construction, `GetStringHash()`, `GetTypeName()`, `GetTypeFromName(...)`, `IsZero()`, explicit `uint`/`ulong`/`StringHash` handling through the rbfx `VAR_INT` / `VAR_INT64` slots, and rbfx-style `ToString()` behavior for primitive/math/resource/buffer cases instead of falling back to boxed `object.ToString()`.
+- `ResourceRef` and `ResourceRefList` now follow rbfx string semantics more closely too: single-token parses become type-only refs, `ResourceRefList` uses semicolon-separated names, and type names round-trip through the global `StringHash` reverse-register instead of serializing only numeric hashes when the original type text is known.
+- `Matrix3.ZERO` and `Matrix3x4.ZERO` are now present, which closes an audited rbfx constant gap that the `Variant(VariantType)` port depends on.
+- Verification for this slice used `dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --no-restore` (`464/464` passing), `cmake --build --preset Debug --target restore`, `cmake --build --preset Debug --target RedBolt`, and `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png` with a valid `1280x720` PNG output.
+
+IO packed-stream parity follow-up on `2026-07-10`:
+
+- `src/RedBolt/IO/IODefs.cs` now ports rbfx `VectorBinaryEncoding`, so the IO layer no longer has a missing upstream enum dependency for packed vector serialization.
+- `Deserializer` and `Serializer` now cover the current rbfx packed binary helpers too: `ReadPackedVector3`, `WritePackedVector3`, `ReadPackedQuaternion`, `WritePackedQuaternion`, and the in-place `ReadBuffer(...)` helper are in-tree with the same float/double/int32/int16 encoding split that upstream uses for the currently supported cases.
+- Focused IO coverage now verifies packed vector/quaternion round-trips across the supported encodings and the in-place buffer helper shape, and the full verification loop for this slice passed with `466/466` tests green, a successful `cmake --build --preset Debug --target restore`, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+IO buffer pointer parity follow-up on `2026-07-10`:
+
+- `MemoryBuffer` no longer drops the data pointer for managed backing storage: byte-array and string-backed buffers are now pinned so `GetData()` always exposes actual buffer memory like rbfx instead of returning null for managed-backed instances.
+- Focused IO coverage now also verifies the rbfx default-name behavior for `VectorBuffer`, managed-byte-array `MemoryBuffer.GetData()` pointer exposure, and UTF-8 string-backed `MemoryBuffer` pointer contents.
+- Full verification for this follow-up passed with `468/468` tests green, a successful `cmake --build --preset Debug --target restore`, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+IO empty-buffer pointer parity follow-up on `2026-07-10`:
+
+- `VectorBuffer.GetData()` and `GetModifiableData()` now match rbfx for the empty-buffer case instead of exposing a stale non-zero pointer after `Clear()` or zero-size state; they return `0` when `Size == 0`, like upstream `nullptr`.
+- Focused IO coverage now verifies the empty-buffer null-pointer contract before write, after write, and again after `Clear()`.
+- Full verification for this follow-up passed with `469/469` tests green, a successful `cmake --build --preset Debug --target restore`, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+IO identifier contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/IO/ScanFlags.cs` now ports rbfx `ScanFlags.h` as a managed flags enum, covering the upstream file/directory/hidden/append/recursive scan-bit contract.
+- `src/RedBolt/IO/FileIdentifier.cs` now ports the upstream `FileIdentifier` URI contract: scheme/path storage, `FromUri(...)`, `ToUri()`, `AppendPath(...)`, comparison/equality operators, and file-name sanitization that collapses `.` / `..` path segments for relative and absolute paths.
+- Focused IO coverage now verifies the key upstream URI cases: empty-scheme relative names, absolute file paths, `file:///...` parsing, other schemes such as `alias://`, URI reserialization, append-path behavior, and path-segment sanitization.
+- Full verification for this follow-up passed with `473/473` tests green, a successful `cmake --build --preset Debug --target restore`, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core event contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/CoreEvents.cs` now matches rbfx `CoreEvents.h` more closely for the managed struct-event surface: `BeginFrameEvent.FrameNumber` is `uint`, which aligns with upstream `unsigned` instead of narrowing the frame counter to signed `int`.
+- `src/RedBolt/Core/Time.cs` now sends the begin-frame event without the redundant cast, preserving the rbfx frame-number type through event dispatch.
+- Focused engine coverage continues to verify begin/end frame event dispatch, and the full verification loop for this follow-up passed with `473/473` tests green, a successful `cmake --build --preset Debug --target restore`, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core object-category contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/ObjectCategory.cs` now ports rbfx `ObjectCategory.h` as the managed constant surface, preserving the upstream category names, order, and string values for built-in components plus the plugin/user, render-pass, transformer, and UI categories.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ObjectCategoryTests.cs` now verifies the managed constants against the rbfx string values.
+- Full verification for this follow-up passed with `474/474` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core subsystem-cache contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/SubsystemCache.cs` now ports rbfx `SubsystemCache.h` as a managed subsystem cache object with the upstream add/remove/clear/get container shape, cached fast-path entries for the currently ported built-in subsystems, and a dynamic `StringHash` map for non-cached subsystem types.
+- `src/RedBolt/Core/Context.cs` now routes subsystem registration and removal through that cache while preserving the existing managed exact-type and interface lookup behavior that RedBolt already depends on.
+- `src/RedBolt/Core/ObjectReflection.cs` now ignores inherited base static type-name/type-id methods when resolving type metadata, so types without their own declared `GetTypeStatic()` no longer collapse incorrectly to `Object` and the new subsystem cache uses the real managed type identity.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/SubsystemCacheTests.cs` now verifies the type-id fallback path plus cached/dynamic subsystem add, remove, and clear behavior.
+- Full verification for this follow-up passed with `476/476` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core object-revision contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/ObjectRevisionTracker.cs` now ports rbfx `ObjectRevisionTracker.h` as the managed revision utility surface, including the upstream `InvalidRevision` sentinel, non-zero initial revision, `GetRevision()`, and wrap-safe `MarkRevisionUpdated()` behavior.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ObjectRevisionTrackerTests.cs` now verifies the initial revision value, monotonic updates, and zero-skipping wraparound contract.
+- Full verification for this follow-up passed with `478/478` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core process/platform utility follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/ProcessUtils.cs` now ports the process/CPU side of rbfx `ProcessUtils.h` as a managed static utility surface: `PlatformId`, dynamic library suffix selection, platform name/id, physical/logical CPU counts, minidump directory storage, total memory, login name, host name, OS version, UUID generation, process ID, and URL opening.
+- The Linux-side implementations now use the platform information available in the current managed/runtime environment (`/proc/cpuinfo`, `/proc/meminfo`, `RuntimeInformation`, `Environment`, `Guid`, and shell-executed URL opening) while preserving the upstream function names and return-shape contracts.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ProcessUtilsTests.cs` now verifies platform/name consistency, physical-vs-logical CPU count invariants, minidump directory trailing-slash behavior, total-memory/process-id/system-string availability, and UUID parseability.
+- Full verification for this follow-up passed with `482/482` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core thread-safe cache follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/ThreadSafeCache.cs` now ports rbfx `ThreadSafeCache.h` as a managed generic cache with the upstream invalidation flag, guarded one-time restore semantics, unchecked `Get()`, and default-invalid initial state.
+- The implementation uses the managed threading primitives allowed by the port rules (`lock` plus `Volatile.Read/Write`) in place of rbfx `SpinLockMutex` and `std::atomic_bool`, while preserving the same caller-visible restore/invalidate contract.
+- The C++ `operator=(const T&)` alias is left as an explicit `// TODO: port` note because C# has no direct assignment-operator surface for generic reference/value types.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ThreadSafeCacheTests.cs` now verifies the initial invalid state, restore/get behavior, reinvalidation behavior, and concurrent restore semantics where the first successful restore wins.
+- Full verification for this follow-up passed with `492/492` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core stop-token follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/StopToken.cs` now ports rbfx `StopToken.h` as a managed value-type token with shared internal stop state, `Stop()`, and `IsStopped()`, preserving the upstream copy-by-value behavior where all copies observe the same stop flag.
+- The managed implementation uses a shared `StrongBox<int>` plus `Volatile.Read/Write` to represent the rbfx `shared_ptr<atomic<bool>>` state without introducing any larger custom synchronization layer.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/StopTokenTests.cs` now verifies the default non-stopped state, the stop transition, and the shared-state behavior across value copies.
+- Full verification for this follow-up passed with `495/495` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core profiler shim follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/Profiler.cs` now ports the callable rbfx `Profiler.h` surface as the allowed thin shim: the upstream event/resource color constants plus `SetProfilerThreadName(...)`.
+- The managed implementation maps thread naming onto `Thread.CurrentThread.Name`, setting it only when the CLR thread has not yet been named because .NET thread names are write-once.
+- The rbfx Tracy profiling macros remain intentionally unported as macros; the checklist allowance for a thin shim is satisfied by the managed callable surface that current RedBolt code can actually invoke.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ProfilerTests.cs` now verifies the constant values, first-time thread naming, and the non-overwrite behavior for already named threads.
+- Full verification for this follow-up passed with `498/498` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core attribute-accessor follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/Attribute.cs` now ports rbfx `AttributeAccessor` as the managed abstract base for attribute reads/writes, and `AttributeInfo` can now store a real accessor object instead of only delegate placeholders.
+- `src/RedBolt/Scene/Serializable.cs` now supports accessor-backed attribute registration directly and routes `OnGetAttribute(...)` / `OnSetAttribute(...)` through the installed accessor when present, preserving the managed fallback storage path for plain attributes.
+- The new accessor-backed surface was kept free of `?` type annotations after the follow-up correction, matching the port rule against introducing nullable type syntax in new code.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/AttributeTests.cs` now verifies that `Serializable` get/set calls are routed through a concrete `AttributeAccessor` implementation.
+- Full verification for this follow-up passed with `499/499` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core work-queue helper follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/WorkQueue.cs` now ports the rbfx `ForEachParallel(...)` helper surface as static overloads on `WorkQueue`, which is the closest managed equivalent to the upstream free templates while preserving the name, bucketed range partitioning, immediate-task scheduling, and collection/index callback behavior.
+- The managed implementation uses the existing `WorkQueue` task API and the allowed thread-pool-based scheduler underneath, including the same direct-call fast path when `size <= bucket` and a thread-count fallback of at least one processing lane before `Initialize(...)` has run.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/WorkQueueTests.cs` now verifies the small-range direct path plus complete index coverage for both range and collection overloads.
+- Full verification for this follow-up passed with `485/485` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core event-handler contract follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/EventHandler.cs` now ports rbfx `EventHandler` as the managed event-dispatch metadata surface, preserving receiver, sender-filter, and event-type tracking around the struct-event system.
+- `src/RedBolt/Core/Context.cs` now tracks the active event sender and handler during dispatch, and `src/RedBolt/Core/Object.cs` exposes the matching rbfx-style `GetEventSender()` and `GetEventHandler()` helpers through the global managed context.
+- Sender-specific subscriptions now stay constrained to `RedBolt.Object`, matching the upstream object-event contract instead of accepting arbitrary managed senders.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/ContextTests.cs` now verifies that dispatch exposes the current sender and handler metadata only during active invocation and clears it afterward.
+- Full verification for this follow-up passed with `486/486` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/WorkQueueTests.cs` now verifies the direct-call small-range path, full coverage of a partitioned index range, and the collection overload’s index/value pairing.
+- Full verification for this follow-up passed with `485/485` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+Core command-line parser follow-up on `2026-07-10`:
+
+- `src/RedBolt/Core/CommandLineParser.cs` now serves as the completed managed replacement for rbfx `CommandLine.h` / CLI11 integration: flag and value options are represented by separate non-nullable option types, parse results are non-nullable, and the parser retains the existing help, `--name=value`, and usage-generation behavior without `?` type syntax.
+- `src/RedBolt/Engine/Application.cs` now keeps the immediate command-line error path non-nullable as well, with a non-null `ErrorMessage` surface and explicit `Run()` vs `Run(string[] args)` entry points instead of a nullable argument array.
+- Focused coverage in `tests/RedBolt.Tests/CoreTests/CommandLineParserTests.cs` now verifies help handling, flag/option application including empty inline option values, usage text, and value-mismatch failures, while `tests/RedBolt.Tests/EngineTests/ApplicationCommandLineTests.cs` continues to verify engine parameter application and unknown-option rejection through the application entry point.
+
+Math integer-rect follow-up on `2026-07-10`:
+
+- `src/RedBolt/Math/IntRect.cs` now ports the missing integer-side `Rect.h` helpers more closely: `IntRect` gained the upstream array constructor shape, scalar multiply/divide operators, rect-vs-rect `IsInside(...)`, `Contains(...)`, `Data`, `ToHash()`, and managed `Begin()` / `End()` helpers.
+- `IntRectIterator` now exists in-tree with the rbfx row-by-row increment semantics and rectangle/index equality behavior, which closes the previously missing `IntRectIterator` checklist gap even though the float-side `Rect` file remains only partially aligned overall.
+- Focused coverage in `tests/RedBolt.Tests/MathTests/GeometryTypesTests.cs` now verifies integer rect containment, row-major iterator traversal, and the exclusive-max containment rule.
+
+Math float-rect follow-up on `2026-07-10`:
+
+- `src/RedBolt/Math/Rect.cs` now ports the missing float-side `Rect.h` surface more closely too: the array constructor, `Data`, `Define(...)` overloads, `ToVector4()`, `ToHash()`, and the upstream scalar `*` / `/` operators are now in place, replacing the earlier non-rbfx componentwise `Rect * Rect` / `Rect / Rect` operators.
+- Focused coverage in `tests/RedBolt.Tests/MathTests/GeometryTypesTests.cs` now verifies the float rect define/copy path, clipping, scalar scaling round-trip, and vector4 conversion alongside the earlier merge/containment checks.
+
+Math vector4 follow-up on `2026-07-10`:
+
+- `src/RedBolt/Math/Vector4.cs` now ports more of the upstream `Vector4.h` instance surface: the two-`Vector2` and float-array constructors, `Length`, `LengthSquared`, `IsInf`, the indexed component accessor, axis projection, `ToVector2()` / `ToVector3()` / `ToIntVector2()` / `ToIntVector3()`, and the rbfx raw-float `ToHash()` contract are now in place.
+- `src/RedBolt/Math/MathDefs.cs` now also carries the remaining upstream namespace-level `Vector4` helper functions (`VectorLerp`, `VectorMin`, `VectorMax`, `VectorFloor`, `VectorRound`, `VectorCeil`) as the managed analogue of rbfx free functions, which closes the remaining `Vector4.h` checklist gap.
+- Focused coverage in `tests/RedBolt.Tests/MathTests/GeometryTypesTests.cs` now verifies the new constructors, indexer, projection helper, conversions, hash behavior, and the per-component free helper functions.
+
 StaticScene allocation triage on `2026-07-08`:
 
 - StaticScene is now visually correct again and late steady-state managed allocations have been removed from the final tree.
@@ -316,3 +465,44 @@ Slice 1 through the first runtime integration layer are landed:
 - Serialization/prefab surface (`SerializeInBlock`, `Load/Save*`, `InstantiatePrefab`, `GeneratePrefab`, `GetEffectiveScopeHint`, `SetScene`/`ResetScene`, `SafeCreateComponent`, `GetMutableVar*`) preserved as commented C++ — blocked on Archive/Variant/prefab/Serializer layers not yet ported.
 - Updated `NodeTests.Silent_transform_helpers_do_not_mark_dirty` to reflect faithful rbfx semantics (silent set leaves cached world transform stale until `MarkDirty`).
 - Build green, 443 tests pass, StaticScene sample renders.
+
+## IO: AbstractFile / buffer streams (slice)
+- Added managed `AbstractFile` so `MemoryBuffer` and `VectorBuffer` now match rbfx’s `AbstractFile`-based class hierarchy instead of inheriting `Deserializer` directly.
+- `AbstractFile` now carries rbfx-style file metadata members (`SetName`, `Name`, `AbsoluteName`, `IsOpen`, `Close`), and `VectorBuffer` now returns the upstream default name `"VectorBuffer"` until explicitly renamed.
+- `VectorBuffer(Deserializer, size)` and `SetData(Deserializer, size)` now clamp to the actual bytes read like rbfx instead of always preserving the requested size.
+- `VectorBuffer` now stores its payload in a managed `byte[]` without long-lived pinning, which keeps the public buffer surface much closer to rbfx `ByteVector`: `GetBuffer()` now exposes the live underlying storage instead of manufacturing a copied helper array on every call.
+- `MemoryBuffer(VectorBuffer)` now exposes the writable backing-buffer path over that shared managed storage, matching the upstream non-const `VectorBuffer&` constructor semantics without an intermediate copy layer.
+- `MemoryBuffer` and `VectorBuffer` now also expose rbfx-style pointer-surface entry points for native-backed data copies: `MemoryBuffer(nint, size, readOnly)`, `MemoryBuffer(VectorBuffer)`, `VectorBuffer(nint, size)`, and `VectorBuffer.SetData(nint, size)`.
+- Focused IO tests were added for the default-name path, writable `MemoryBuffer(VectorBuffer)`, and stream-backed `VectorBuffer` short-read behavior.
+- Focused IO tests now also cover the new pointer-surface copy path and verify that `MemoryBuffer(VectorBuffer)` writes through to the same underlying managed storage.
+- `MemoryBuffer` no longer carries the RedBolt-only `IEnumerable<byte>` and size constructors. Its managed constructor surface is now closer to rbfx: mutable `byte[]` maps to the non-const `ByteVector&` case, `ReadOnlyMemory<byte>` represents the const byte-vector case, and `string` stays explicitly read-only.
+- Managed-array-backed `MemoryBuffer` instances now also track segment offsets correctly for `ReadOnlyMemory<byte>` sources instead of assuming every pinned array starts at offset zero.
+- Focused IO coverage now also verifies that `MemoryBuffer(ReadOnlyMemory<byte>)` reports read-only state while `MemoryBuffer(byte[])` remains writable and writes through to the original managed storage.
+- Full verification for this follow-up passed with `488/488` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+- `VectorBuffer` now uses the upstream constructor set directly (`VectorBuffer()`, `VectorBuffer(byte[])`, `VectorBuffer(nint, size)`, `VectorBuffer(Deserializer, size)`) instead of carrying extra RedBolt-only enumerable and truncated-array constructor overloads.
+- `VectorBuffer.SetData(Deserializer, size)` now matches rbfx more closely by preserving only the actual byte count returned from the source read without doing extra trailing-byte clearing work.
+- To avoid long-lived pinning, `VectorBuffer.GetData()` and `GetModifiableData()` now remain null-pointer placeholders for managed storage; live code paths use `GetBuffer()` or `MemoryBuffer(VectorBuffer)` instead of relying on stable raw pointers.
+- Focused IO coverage now also verifies that the byte-array constructor copies source contents like the upstream `ByteVector` copy constructor, that `GetBuffer()` exposes live storage like rbfx `ByteVector&`, and that the managed `VectorBuffer` path does not expose a stable raw pointer.
+- Full verification for this follow-up passed with `489/489` tests green, a successful `cmake --build --preset Debug --target RedBolt`, and a valid `1280x720` StaticScene screenshot from `out/build/dev/bin/Debug/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png`.
+
+## IO / Core: serializer + variant follow-up (slice)
+- `VariantType` numeric ordering now matches rbfx for the stream-relevant entries that RedBolt currently supports, instead of using a local reordered enum that broke binary compatibility assumptions.
+- Managed `Variant` now covers the plain rbfx streamable subset needed by current IO work: `Int64`, `Double`, `Rect`, `Buffer`, `ResourceRef`, `ResourceRefList`, `Matrix3`, `Matrix3x4`, `Matrix4`, `VariantVector`, `StringVector`, `VariantMap`, and `StringVariantMap`.
+- `Serializer` and `Deserializer` now implement the corresponding matrix/resource/vector/map/variant helpers instead of leaving that whole surface absent.
+- Packed vector/quaternion helpers are still explicit `// TODO: port` gaps because `VectorBinaryEncoding` is not in-tree yet.
+- Focused IO coverage now also verifies matrix/resource helper round-trips, extended variant container round-trips, and rbfx `VariantType` numeric IDs used by stream serialization.
+
+## Math: Transform follow-up (slice)
+- `Transform` now matches the current rbfx `Transform.h` behavior surface much more closely: `Identity`, `FromMatrix3x4`, `ToMatrix3x4`, `Lerp`, `Inverse`, transform composition, point transform, and rotation transform are all in-tree.
+- `Matrix3x4` now exposes `Decompose(out translation, out rotation, out scale)`, which closes the immediate dependency for `Transform.FromMatrix3x4` and aligns this math slice better with upstream decomposition-based callers.
+- `DoubleTransform` is now in-tree and uses the generic `Vector3<double>` core directly for its position component instead of a dedicated compatibility wrapper type.
+- The current double-precision math follow-up also switched the variant/stream helper surface from bespoke `DoubleVector2` / `DoubleVector3` structs to `Vector2<double>` / `Vector3<double>`, keeping the migration moving toward generic vector usage.
+- A first attempt to push the same generic conversion through the float path showed that `Transform` / `Matrix3x4` are not an isolated cut: the next coherent float-side migration slice has to include at least `BoundingBox` and `Node`, which currently mix concrete `Vector3` with float-generic transform outputs and trigger ambiguous operator resolution when only the math leaf types are updated.
+- The temporary implicit bridge between concrete `Vector2` / `Vector3` and generic `Vector2<float>` / `Vector3<float>` was removed again; it made the tree compile briefly, but it also introduced ambiguous operator resolution and switch-expression typing in downstream scene/math code, so the generic migration now proceeds without compatibility glue.
+- Focused math coverage now verifies `Matrix3x4.Decompose(...)`, `Transform.FromMatrix3x4(...)`, `Transform.Lerp(...)`, `Transform.Inverse()`, and transform composition under the valid uniform-scale case.
+
+## Math: Vector2 follow-up (slice)
+- `Vector2<T>` now covers more of `Vector2.h`: the scalar-array constructor is in-tree, `ToHash()` is available, vector-parameter static `Lerp(...)` matches the upstream free helper shape, and `ReNormalized(...)` is back to the rbfx-style optional `defaultValue` / `eps` signature now that nullable native parameters are explicitly allowed.
+- `IntVector2` now also carries the upstream scalar-array constructor, lexicographic comparison surface (`<`, `>`, `<=`, `>=`), and `ToHash()`.
+- `NormalizedOrDefault(...)` on the generic vector side is still not shape-identical yet because current call sites use the property form; that follow-up remains under `Vector2.h`.
+- Focused math coverage now also verifies the new array constructors, lexicographic compare behavior, `ToHash()`, and the restored `ReNormalized(...)` default-value path.
