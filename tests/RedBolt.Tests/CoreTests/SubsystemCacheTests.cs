@@ -35,6 +35,23 @@ public class SubsystemCacheTests
         Assert.Empty(cache.GetContainer());
     }
 
+    [Fact]
+    public void Context_matches_rbfx_explicit_subsystem_type_contract()
+    {
+        var context = new Context();
+        var subsystem = new TestDynamicSubsystem();
+        var type = new StringHash("ExplicitSubsystem");
+
+        context.RegisterSubsystem(subsystem, type);
+
+        Assert.Same(subsystem, context.GetSubsystem(type));
+        Assert.Same(subsystem, context.GetSubsystems().Get(type));
+
+        context.RemoveSubsystem(type);
+
+        Assert.Null(context.GetSubsystem(type));
+    }
+
     private sealed class TestReflectionObject : RedBolt.Object
     {
     }

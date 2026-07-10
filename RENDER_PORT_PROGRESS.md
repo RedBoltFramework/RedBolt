@@ -16,6 +16,7 @@ Incrementally port rbfx `Source/Urho3D/RenderAPI` and `Source/Urho3D/RenderPipel
 
 - `AttributeInfo` now matches the available `Core/Attribute.h` value contracts more closely: accessor-backed attributes, cloning, typed metadata fallback, enum name conversion, scope hints, and safe empty `AttributeHandle` calls are covered.
 - The remaining `AttributeInfo` gap is the wider rbfx `Variant`-typed metadata/default-value representation; it depends on completing the managed `Variant` surface.
+- `Context` now has rbfx-style explicit `StringHash` subsystem registration, lookup, removal, and cache access in addition to its existing generic managed APIs.
 - `Variant`, `Object`/`Context`, and `WorkQueue` remain partial Core items and must continue to be reconciled directly against rbfx before marking complete.
 
 ## Verification

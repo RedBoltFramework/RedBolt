@@ -89,8 +89,17 @@ public sealed class Context
     public void RegisterSubsystem(object subsystem)
     {
         ArgumentNullException.ThrowIfNull(subsystem);
+        RegisterSubsystem(subsystem, GetSubsystemTypeId(subsystem.GetType()));
+    }
+
+    /// <summary>
+    /// Register a subsystem by explicitly using a type.
+    /// </summary>
+    public void RegisterSubsystem(object subsystem, StringHash type)
+    {
+        ArgumentNullException.ThrowIfNull(subsystem);
         _subsystemsByType[subsystem.GetType()] = subsystem;
-        _subsystems.Add(GetSubsystemTypeId(subsystem.GetType()), subsystem);
+        _subsystems.Add(type, subsystem);
     }
 
     public void RegisterSubsystem<T>(T subsystem)
@@ -98,7 +107,32 @@ public sealed class Context
     {
         ArgumentNullException.ThrowIfNull(subsystem);
         _subsystemsByType[typeof(T)] = subsystem;
-        _subsystems.Add(GetSubsystemTypeId(subsystem.GetType()), subsystem);
+        _subsystems.Add(GetSubsystemTypeId(typeof(T)), subsystem);
+    }
+
+    /// <summary>
+    /// Remove a subsystem.
+    /// </summary>
+    public void RemoveSubsystem(StringHash objectType)
+    {
+        var subsystem = _subsystems.Get(objectType);
+        _subsystems.Remove(objectType);
+
+        if (subsystem is null)
+            return;
+
+        Type typeToRemove = null!;
+        foreach (var (type, registeredSubsystem) in _subsystemsByType)
+        {
+            if (ReferenceEquals(registeredSubsystem, subsystem) && GetSubsystemTypeId(type) == objectType)
+            {
+                typeToRemove = type;
+                break;
+            }
+        }
+
+        if (typeToRemove is not null)
+            _subsystemsByType.Remove(typeToRemove);
     }
 
     public bool RemoveSubsystem<T>()
@@ -128,6 +162,22 @@ public sealed class Context
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Return subsystem by type.
+    /// </summary>
+    public object? GetSubsystem(StringHash type)
+    {
+        return _subsystems.Get(type);
+    }
+
+    /// <summary>
+    /// Return all subsystems.
+    /// </summary>
+    public SubsystemCache GetSubsystems()
+    {
+        return _subsystems;
     }
 
     private static StringHash GetSubsystemTypeId(Type type)
