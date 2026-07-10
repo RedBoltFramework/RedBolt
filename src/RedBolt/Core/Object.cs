@@ -10,6 +10,14 @@ public abstract class Object
 
     public StringHash GetTypeNameHash() => GetTypeName();
 
+    public bool IsInstanceOf(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return type.IsAssignableFrom(GetType());
+    }
+
+    public bool IsInstanceOf<T>() where T : Object => this is T;
+
     public string GetCategory() => Context.GetReflection(GetTypeNameHash())?.Category ?? string.Empty;
 
     public T? GetSubsystem<T>()

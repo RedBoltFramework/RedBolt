@@ -4,6 +4,14 @@ namespace RedBolt.Tests;
 
 public sealed class ObjectReflectionTests
 {
+    private class BaseObject : Object
+    {
+    }
+
+    private sealed class DerivedObject : BaseObject
+    {
+    }
+
     private sealed class FactoryObject : Object
     {
     }
@@ -23,6 +31,18 @@ public sealed class ObjectReflectionTests
     {
         Assert.Equal("Dictionary<String, List<Int32>>",
             typeof(Dictionary<string, List<int>>).GetFormattedTypeName());
+    }
+
+    [Fact]
+    public void Object_type_checks_use_csharp_assignability()
+    {
+        var value = new DerivedObject();
+
+        Assert.True(value.IsInstanceOf(typeof(Object)));
+        Assert.True(value.IsInstanceOf(typeof(BaseObject)));
+        Assert.True(value.IsInstanceOf<DerivedObject>());
+        Assert.True(value.IsInstanceOf<BaseObject>());
+        Assert.False(value.IsInstanceOf<FactoryObject>());
     }
 
     [Fact]
