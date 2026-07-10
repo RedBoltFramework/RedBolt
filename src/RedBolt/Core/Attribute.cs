@@ -74,7 +74,7 @@ public sealed class AttributeInfo : ICloneable
 
     public AttributeAccessor? Accessor { get; }
 
-    public object? DefaultValue { get; }
+    public object? DefaultValue { get; internal set; }
 
     public IReadOnlyList<string> EnumNames { get; }
 

@@ -19,7 +19,7 @@ public readonly struct ContextEventSubscription : IDisposable
     }
 }
 
-public sealed class Context
+public sealed class Context : ObjectReflectionRegistry
 {
     private sealed class StructEventSubscriptionBucket
     {
