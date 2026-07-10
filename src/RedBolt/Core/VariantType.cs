@@ -106,6 +106,7 @@ public readonly struct Variant : IEquatable<Variant>
     private readonly string _stringValue = string.Empty;
     private readonly CString _cstringValue = CString.Empty;
     private readonly byte[] _bufferValue = [];
+    private readonly IntPtr _voidPtrValue;
     private readonly ResourceRef _resourceRefValue;
     private readonly ResourceRefList _resourceRefListValue = ResourceRefList.Empty;
     private readonly Matrix3 _matrix3Value;
@@ -133,6 +134,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Color => new Variant(Color.Black),
             VariantType.String => new Variant(string.Empty),
             VariantType.CString => new Variant(new CString()),
+            VariantType.VoidPtr => new Variant(IntPtr.Zero),
             VariantType.ResourceRef => new Variant(ResourceRef.Empty),
             VariantType.ResourceRefList => new Variant(ResourceRefList.Empty),
             VariantType.VariantVector => new Variant(new VariantVector()),
@@ -270,6 +272,15 @@ public readonly struct Variant : IEquatable<Variant>
         _bufferValue = value ?? [];
     }
 
+    /// <summary>
+    /// Construct from a pointer.
+    /// </summary>
+    public Variant(IntPtr value)
+    {
+        _type = VariantType.VoidPtr;
+        _voidPtrValue = value;
+    }
+
     public Variant(ResourceRef value)
     {
         _type = VariantType.ResourceRef;
@@ -352,6 +363,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Int64 => _int64Value != 0,
             VariantType.Float => _floatValue != 0.0f,
             VariantType.Double => _doubleValue != 0.0,
+            VariantType.VoidPtr => _voidPtrValue != IntPtr.Zero,
             _ => false
         };
     }
@@ -469,6 +481,11 @@ public readonly struct Variant : IEquatable<Variant>
 
     public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue : Array.Empty<byte>();
 
+    /// <summary>
+    /// Return void pointer or null on type mismatch.
+    /// </summary>
+    public IntPtr GetVoidPtr() => _type == VariantType.VoidPtr ? _voidPtrValue : IntPtr.Zero;
+
     public ResourceRef GetResourceRef() => _type == VariantType.ResourceRef ? _resourceRefValue : ResourceRef.Empty;
 
     public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? _resourceRefListValue : ResourceRefList.Empty;
@@ -514,6 +531,7 @@ public readonly struct Variant : IEquatable<Variant>
         if (type == typeof(string)) return Reinterpret<string, T>(GetString());
         if (type == typeof(CString)) return Reinterpret<CString, T>(GetCString());
         if (type == typeof(byte[])) return Reinterpret<byte[], T>(GetBuffer());
+        if (type == typeof(IntPtr)) return Reinterpret<IntPtr, T>(GetVoidPtr());
         if (type == typeof(ResourceRef)) return Reinterpret<ResourceRef, T>(GetResourceRef());
         if (type == typeof(ResourceRefList)) return Reinterpret<ResourceRefList, T>(GetResourceRefList());
         if (type == typeof(VariantVector)) return Reinterpret<VariantVector, T>(GetVariantVector());
@@ -600,6 +618,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.String => new Variant(value),
             VariantType.CString => new Variant(new CString(value)),
             VariantType.Buffer => new Variant(ParseBuffer(value)),
+            VariantType.VoidPtr => new Variant(IntPtr.Zero),
             VariantType.ResourceRef => new Variant(ResourceRef.Parse(value)),
             VariantType.ResourceRefList => new Variant(ResourceRefList.Parse(value)),
             _ => default
@@ -626,6 +645,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.String => string.IsNullOrEmpty(_stringValue),
             VariantType.CString => _cstringValue.ByteLength == 0,
             VariantType.Buffer => _bufferValue.Length == 0,
+            VariantType.VoidPtr => _voidPtrValue == IntPtr.Zero,
             VariantType.ResourceRef => string.IsNullOrEmpty(_resourceRefValue.Name),
             VariantType.ResourceRefList => _resourceRefListValue.Names.All(static name => string.IsNullOrEmpty(name)),
             VariantType.VariantVector => _variantVectorValue.Count == 0,
@@ -667,6 +687,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.String => _stringValue,
             VariantType.CString => _cstringValue,
             VariantType.Buffer => _bufferValue,
+            VariantType.VoidPtr => _voidPtrValue,
             VariantType.ResourceRef => _resourceRefValue,
             VariantType.ResourceRefList => _resourceRefListValue,
             VariantType.Matrix3 => _matrix3Value,
@@ -717,6 +738,7 @@ public readonly struct Variant : IEquatable<Variant>
             StringVariantMap typedValue => typedValue,
             string typedValue => typedValue,
             CString typedValue => typedValue,
+            IntPtr typedValue => typedValue,
             _ => throw new ArgumentException($"Unsupported Variant value type '{value.GetType().Name}'.", nameof(value))
         };
     }
@@ -748,6 +770,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
             VariantType.CString => _cstringValue.Equals(other._cstringValue),
             VariantType.Buffer => _bufferValue.AsSpan().SequenceEqual(other._bufferValue),
+            VariantType.VoidPtr => _voidPtrValue == other._voidPtrValue,
             VariantType.ResourceRef => _resourceRefValue.Equals(other._resourceRefValue),
             VariantType.ResourceRefList => _resourceRefListValue.Equals(other._resourceRefListValue),
             VariantType.Matrix3 => _matrix3Value.Equals(other._matrix3Value),
@@ -827,6 +850,9 @@ public readonly struct Variant : IEquatable<Variant>
             foreach (var item in _bufferValue)
                 hash.Add(item);
             break;
+        case VariantType.VoidPtr:
+            hash.Add(_voidPtrValue);
+            break;
         case VariantType.ResourceRef:
             hash.Add(_resourceRefValue);
             break;
@@ -878,6 +904,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.String => _stringValue,
             VariantType.CString => _cstringValue.ToString(),
             VariantType.Buffer => BufferToString(_bufferValue),
+            VariantType.VoidPtr => string.Empty,
             VariantType.ResourceRef => Context.TryGetInstance() is not null ? _resourceRefValue.ToString() : string.Empty,
             VariantType.ResourceRefList => Context.TryGetInstance() is not null ? _resourceRefListValue.ToString() : string.Empty,
             VariantType.IntRect => _intRectValue.ToString(),
@@ -912,6 +939,7 @@ public readonly struct Variant : IEquatable<Variant>
     public static implicit operator Variant(Vector2i value) => new(value);
     public static implicit operator Variant(Vector3i value) => new(value);
     public static implicit operator Variant(byte[] value) => new(value);
+    public static implicit operator Variant(IntPtr value) => new(value);
     public static implicit operator Variant(ResourceRef value) => new(value);
     public static implicit operator Variant(ResourceRefList value) => new(value);
     public static implicit operator Variant(Matrix3 value) => new(value);
@@ -1233,6 +1261,7 @@ public static class VariantTypeUtility
             Vector2i => VariantType.Vector2i,
             Vector3i => VariantType.Vector3i,
             byte[] => VariantType.Buffer,
+            IntPtr => VariantType.VoidPtr,
             ResourceRef => VariantType.ResourceRef,
             ResourceRefList => VariantType.ResourceRefList,
             Matrix3 => VariantType.Matrix3,
@@ -1303,6 +1332,7 @@ public static class VariantTypeUtility
             VariantType.Vector2i => typeof(Vector2i),
             VariantType.Vector3i => typeof(Vector3i),
             VariantType.Buffer => typeof(byte[]),
+            VariantType.VoidPtr => typeof(IntPtr),
             VariantType.ResourceRef => typeof(ResourceRef),
             VariantType.ResourceRefList => typeof(ResourceRefList),
             VariantType.Matrix3 => typeof(Matrix3),

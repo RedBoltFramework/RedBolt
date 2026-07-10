@@ -9,6 +9,28 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Void_pointer_matches_rbfx_null_and_serialization_contracts()
+    {
+        var pointer = new IntPtr(0x1234);
+        var variant = new Variant(pointer);
+
+        Assert.Equal(VariantType.VoidPtr, variant.Type);
+        Assert.Equal(pointer, variant.GetVoidPtr());
+        Assert.Equal(pointer, variant.Get<IntPtr>());
+        Assert.Equal(pointer, variant.GetObject());
+        Assert.True(variant.GetBool());
+        Assert.False(variant.IsZero());
+        Assert.Equal(string.Empty, variant.ToString());
+        Assert.Equal(variant, Variant.FromObject(pointer));
+        Assert.Equal(VariantType.VoidPtr, VariantTypeUtility.GetVariantType(pointer));
+
+        var parsed = Variant.FromString(VariantType.VoidPtr, "0x1234");
+        Assert.Equal(IntPtr.Zero, parsed.GetVoidPtr());
+        Assert.False(parsed.GetBool());
+        Assert.True(parsed.IsZero());
+    }
+
+    [Fact]
     public void Getters_match_rbfx_conversion_and_default_contracts()
     {
         Assert.Equal(3, new Variant(3.9f).GetInt());
