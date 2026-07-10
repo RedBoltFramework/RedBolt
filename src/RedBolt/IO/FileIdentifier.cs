@@ -161,7 +161,7 @@ public struct FileIdentifier : IEquatable<FileIdentifier>, IComparable<FileIdent
         string.Equals(Scheme, other.Scheme, StringComparison.Ordinal)
         && string.Equals(FileName, other.FileName, StringComparison.Ordinal);
 
-    public override bool Equals(object obj) => obj is FileIdentifier other && Equals(other);
+    public override bool Equals(object? obj) => obj is FileIdentifier other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(Scheme, FileName);
 

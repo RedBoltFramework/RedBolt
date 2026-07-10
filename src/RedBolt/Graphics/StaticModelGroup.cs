@@ -88,11 +88,11 @@ public sealed class StaticModelGroup : StaticModel
             return;
 
         _instanceNodes.Clear();
-        if (IsAttached)
+        if (Scene is { } scene)
         {
             for (var i = 1; i < _nodeIdsAttribute.Count; ++i)
             {
-                var node = Scene.GetNode(_nodeIdsAttribute[i]);
+                var node = scene.GetNode(_nodeIdsAttribute[i]);
                 if (node is not null)
                     _instanceNodes.Add(node);
             }

@@ -111,7 +111,7 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
         MathDefs.ApproximatelyEquivalent(W, rhs.W, epsilon);
 
     public readonly bool Equals(Vector4f other) => this == other;
-    public override bool Equals(object obj) => obj is Vector4f other && Equals(other);
+    public override bool Equals(object? obj) => obj is Vector4f other && Equals(other);
     public override readonly int GetHashCode() => HashCode.Combine(X, Y, Z, W);
     public readonly uint ToHash()
     {

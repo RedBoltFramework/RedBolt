@@ -118,7 +118,7 @@ public struct IntRect : IEquatable<IntRect>
     public readonly bool Contains(Vector2i point) => IsInside(point) == Intersection.Inside;
 
     public readonly bool Equals(IntRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
-    public override bool Equals(object obj) => obj is IntRect other && Equals(other);
+    public override bool Equals(object? obj) => obj is IntRect other && Equals(other);
     public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
     public readonly uint ToHash() => (uint)GetHashCode();
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Left, Top, Right, Bottom);
@@ -166,7 +166,7 @@ public struct IntRectIterator : IEquatable<IntRectIterator>
         return _index == other._index;
     }
 
-    public override readonly bool Equals(object obj) => obj is IntRectIterator other && Equals(other);
+    public override readonly bool Equals(object? obj) => obj is IntRectIterator other && Equals(other);
 
     public override readonly int GetHashCode() => HashCode.Combine(_rect, _index);
 

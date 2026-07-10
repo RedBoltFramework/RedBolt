@@ -135,7 +135,7 @@ public struct Rect : IEquatable<Rect>, IApproximateEquatable<Rect>
         Min.ApproximatelyEquivalent(rhs.Min, epsilon) && Max.ApproximatelyEquivalent(rhs.Max, epsilon);
 
     public readonly bool Equals(Rect other) => Min.Equals(other.Min) && Max.Equals(other.Max);
-    public override bool Equals(object obj) => obj is Rect other && Equals(other);
+    public override bool Equals(object? obj) => obj is Rect other && Equals(other);
     public override readonly int GetHashCode() => HashCode.Combine(Min, Max);
     public readonly Vector4f ToVector4() => new(Min.X, Min.Y, Max.X, Max.Y);
     public readonly uint ToHash() => unchecked((uint)(Min.GetHashCode() * 37 + Max.GetHashCode()));

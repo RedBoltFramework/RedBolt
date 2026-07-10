@@ -67,7 +67,7 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
 
     public override int GetHashCode() => (int)_value;
 
-    public override bool Equals(object obj) => obj is StringHash other && Equals(other);
+    public override bool Equals(object? obj) => obj is StringHash other && Equals(other);
 
     public bool Equals(StringHash other) => _value == other._value;
 

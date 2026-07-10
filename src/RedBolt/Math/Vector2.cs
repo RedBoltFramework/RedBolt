@@ -161,7 +161,7 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
 
     public bool Equals(BaseRealVector2<T> other) => this == other;
 
-    public override bool Equals(object obj) => obj is BaseRealVector2<T> other && Equals(other);
+    public override bool Equals(object? obj) => obj is BaseRealVector2<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
 

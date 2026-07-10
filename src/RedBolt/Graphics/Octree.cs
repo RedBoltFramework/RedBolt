@@ -238,9 +238,9 @@ public sealed class Octree : Component
     private IEnumerable<Drawable> EnumerateDrawables()
     {
         var result = new HashSet<Drawable>(_manualDrawables);
-        if (IsAttached)
+        if (Scene is { } scene)
         {
-            foreach (var drawable in Scene.GetAllComponents().Values.OfType<Drawable>())
+            foreach (var drawable in scene.GetAllComponents().Values.OfType<Drawable>())
                 result.Add(drawable);
         }
 

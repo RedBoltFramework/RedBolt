@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class ResourceRefList : IEquatable<ResourceRefList>
+public sealed class ResourceRefList : IEquatable<ResourceRefList?>
 {
     private readonly List<string> _names = [];
 
@@ -42,7 +42,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
 
     public uint Type { get; }
 
-    public static bool IsNullOrEmpty(ResourceRefList resourceRefList)
+    public static bool IsNullOrEmpty(ResourceRefList? resourceRefList)
     {
         return resourceRefList is null || resourceRefList.Type == 0u || resourceRefList.Names.Count == 0;
     }
@@ -75,12 +75,12 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList>
         }
     }
 
-    public bool Equals(ResourceRefList other)
+    public bool Equals(ResourceRefList? other)
     {
         return other is not null && Type == other.Type && _names.SequenceEqual(other._names);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is ResourceRefList other && Equals(other);
     }

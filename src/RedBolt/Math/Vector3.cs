@@ -186,7 +186,7 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
 
     public bool Equals(BaseRealVector3<T> other) => this == other;
 
-    public override bool Equals(object obj) => obj is BaseRealVector3<T> other && Equals(other);
+    public override bool Equals(object? obj) => obj is BaseRealVector3<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
 

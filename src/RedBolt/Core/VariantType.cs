@@ -476,7 +476,7 @@ public readonly struct Variant : IEquatable<Variant>
         };
     }
 
-    public static Variant FromObject(object value)
+    public static Variant FromObject(object? value)
     {
         return value switch
         {
@@ -555,7 +555,7 @@ public readonly struct Variant : IEquatable<Variant>
         };
     }
 
-    public override bool Equals(object obj) => obj is Variant other && Equals(other);
+    public override bool Equals(object? obj) => obj is Variant other && Equals(other);
 
     public override int GetHashCode()
     {
@@ -831,7 +831,7 @@ public static class VariantTypeUtility
         SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
-    public static VariantType GetVariantType(object value)
+    public static VariantType GetVariantType(object? value)
     {
         return value switch
         {
