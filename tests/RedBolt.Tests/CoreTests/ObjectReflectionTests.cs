@@ -13,6 +13,9 @@ public sealed class ObjectReflectionTests
     {
         Assert.Equal("RedBolt.StaticModel", typeof(StaticModel).GetClassName());
         Assert.Equal(StringHash.Calculate("RedBolt.StaticModel"), new StringHash(typeof(StaticModel).GetClassName()).Value);
+        Assert.Equal(typeof(StaticModel), ObjectReflection<StaticModel>.Type);
+        Assert.Equal(typeof(StaticModel).GetClassName(), ObjectReflection<StaticModel>.ClassName);
+        Assert.Equal(new StringHash(typeof(StaticModel).GetClassName()), ObjectReflection<StaticModel>.TypeId);
     }
 
     [Fact]
@@ -42,6 +45,26 @@ public sealed class ObjectReflectionTests
 
         registry.RemoveReflection<FactoryObject>();
         Assert.False(registry.IsReflected<FactoryObject>());
+    }
+
+    [Fact]
+    public void Registry_reports_removal_and_forwards_generic_attribute_updates()
+    {
+        var registry = new ObjectReflectionRegistry();
+        var reflection = registry.AddReflection<FactoryObject>();
+        reflection.AddAttribute(new AttributeInfo("Value", typeof(int), 1));
+        ObjectReflection? removedReflection = null;
+        registry.ReflectionRemoved += reflection => removedReflection = reflection;
+
+        registry.UpdateAttributeDefaultValue<FactoryObject>("Value", new Variant(2));
+        Assert.Equal(2, reflection.GetAttribute("Value").DefaultValue);
+        Assert.Throws<InvalidOperationException>(() => registry.AddReflection<FactoryObject>());
+        registry.RemoveAttribute<FactoryObject>("Value");
+        registry.RemoveReflection<FactoryObject>();
+
+        Assert.Null(reflection.GetAttribute("Value"));
+        Assert.Same(reflection, removedReflection);
+        Assert.NotSame(reflection, registry.AddReflection<FactoryObject>());
     }
 
     [Fact]

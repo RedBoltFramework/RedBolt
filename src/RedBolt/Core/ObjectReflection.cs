@@ -139,6 +139,8 @@ public class ObjectReflectionRegistry
     private readonly Dictionary<StringHash, ObjectReflection> _reflections = [];
     private readonly Dictionary<string, List<StringHash>> _categories = new(StringComparer.Ordinal);
 
+    public event Action<ObjectReflection>? ReflectionRemoved;
+
     public ObjectReflection Reflect(Type type)
     {
         var reflection = new ObjectReflection(type);
@@ -153,6 +155,9 @@ public class ObjectReflectionRegistry
 
     public ObjectReflection AddReflection<T>(string category = "") where T : Object
     {
+        if (IsReflected<T>())
+            throw new InvalidOperationException($"Object {ObjectReflection<T>.ClassName} is reflected multiple times.");
+
         var reflection = Reflect<T>();
         SetReflectionCategory(typeof(T), category);
         return reflection;
@@ -169,19 +174,21 @@ public class ObjectReflectionRegistry
 
     public ObjectReflection GetReflection(StringHash typeNameHash) => _reflections.GetValueOrDefault(typeNameHash)!;
 
-    public ObjectReflection GetReflection<T>()
-    {
-        foreach (var reflection in _reflections.Values)
-        {
-            if (reflection.ManagedType == typeof(T))
-                return reflection;
-        }
-        return null!;
-    }
+    public ObjectReflection GetReflection<T>() => GetReflection(ObjectReflection<T>.TypeId);
 
     public bool IsReflected(StringHash typeNameHash) => _reflections.ContainsKey(typeNameHash);
 
-    public bool IsReflected<T>() => GetReflection<T>() is not null;
+    public bool IsReflected<T>() => IsReflected(ObjectReflection<T>.TypeId);
+
+    public void RemoveAttribute<T>(StringHash nameHash) where T : Object
+    {
+        GetReflection<T>()?.RemoveAttribute(nameHash);
+    }
+
+    public void UpdateAttributeDefaultValue<T>(StringHash nameHash, Variant value) where T : Object
+    {
+        GetReflection<T>()?.UpdateAttributeDefaultValue(nameHash, value);
+    }
 
     public void SetReflectionCategory(Type type, string category)
     {
@@ -196,7 +203,10 @@ public class ObjectReflectionRegistry
     public void RemoveReflection(StringHash typeNameHash)
     {
         if (_reflections.Remove(typeNameHash, out var reflection))
+        {
             RemoveReflectionFromCategory(reflection);
+            ReflectionRemoved?.Invoke(reflection);
+        }
     }
 
     public void RemoveReflection<T>()
