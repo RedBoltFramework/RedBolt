@@ -97,8 +97,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Quaternion`
 - [~] `Color.h`
   - [~] `Color`
-- [~] `StringHash.h`
-  - [~] `StringHash` (port early — pervasive dependency)
+- [x] `StringHash.h`
+  - [x] `StringHash` (port early — pervasive dependency)
 - [ ] `Random.h`
   - [ ] random free functions
 - [x] `RandomEngine.h`
@@ -168,13 +168,13 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `TimedCounter`
 - [ ] `StringUtils.h`
   - [ ] string parsing/formatting free functions
-- [ ] `StringHashRegister.h`
-  - [ ] `StringHashRegister`
+- [x] `StringHashRegister.h`
+  - [x] `StringHashRegister`
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
 - [~] `Variant.h`
   - [~] `struct ResourceRef`
   - [~] `struct ResourceRefList`
-  - [~] `Variant`
+  - [~] `Variant` - Use C# union type with non-boxing access pattern
   - [ ] `CustomVariantValueImpl<T>`
 - [ ] `VariantCurve.h`
   - [ ] `VariantCurve : KeyFrameSet<VariantCurvePoint>`
