@@ -70,21 +70,21 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## A2. Math — depends on Container
 
 - [~] `MathDefs.h`
-  - [ ] math constants / free functions (enums, `Clamp`, `Lerp`, etc.)
+  - [ ] math constants / free functions (enums, `Clamp`, `Lerp`, etc.), only ones not available in `System.Math`.
 - [ ] `VectorCommon.h`
-  - [ ] `Detail::VectorTraits<T,N>`
+  - [~] generic sequential-layout vector base pattern is now represented by `Vector2<T>` / `Vector3<T>` constrained to unmanaged IEEE floating-point scalars; `Detail::VectorTraits<T,N>` itself still has no direct managed analogue
 - [~] `Vector2.h`
-  - [~] `Vector2`
-  - [~] `IntVector2`
+  - [~] `Vector2<T>` — array ctor, `ToHash()`, vector-parameter static `Lerp`, and rbfx-style `ReNormalized(..., defaultValue, eps)` signature are now in-tree; `NormalizedOrDefault(...)` and remaining free-function parity still need follow-up
+  - [~] `IntVector2` — array ctor, lexicographic compare operators, and `ToHash()` are now in-tree; mutable-data/tie-style parity still has no direct managed analogue, as `Vector2i`
 - [~] `Vector3.h`
-  - [~] `Vector3`
-  - [~] `IntVector3`
-- [~] `Vector4.h`
-  - [~] `Vector4 : Detail::VectorTraits<float,4>`
+  - [~] `Vector3<T>`
+  - [~] `IntVector3` - as `Vector3i`
+- [x] `Vector4.h`
+  - [x] `Vector4 : Detail::VectorTraits<float,4>` - as `Vector4i`
 - [~] `Rect.h`
   - [~] `Rect`
   - [~] `IntRect`
-  - [ ] `IntRectIterator`
+  - [x] `IntRectIterator`
 - [~] `Matrix2.h`
   - [~] `Matrix2`
 - [~] `Matrix3.h`
@@ -127,8 +127,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `AreaAllocator.h`
   - [ ] `AreaAllocator`
 - [~] `Transform.h`
-  - [~] `struct Transform`
-  - [ ] `struct DoubleTransform`
+  - [x] `struct Transform`
+  - [x] `struct DoubleTransform`
 - [ ] `SphericalHarmonics.h`
   - [ ] `SphericalHarmonics9` / SH types
 - [ ] `TetrahedralMesh.h`
@@ -171,66 +171,66 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `StringHashRegister.h`
   - [x] `StringHashRegister`
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
-- [~] `Variant.h`
-  - [~] `struct ResourceRef`
-  - [~] `struct ResourceRefList`
-  - [~] `Variant` - Use C# union type with non-boxing access pattern
+- [~] `Variant.h` — managed value storage covers the current streamable types, but `CustomVariantValueImpl<T>`, `VariantCurve`, RefCounted-pointer variants, and the upstream typed optional-retrieval contract are still absent
+  - [~] `struct ResourceRef` - rbfx type-name string parsing/formatting now follows upstream more closely; context-backed/custom gaps remain
+  - [~] `struct ResourceRefList` - rbfx semicolon-separated string contract now matches upstream; context-backed/custom gaps remain
+- [~] `Variant` - Use C# union type with non-boxing access pattern; rbfx default-type construction/type-name/zero/string/getter-conversion, scalar conversion, supported type-directed interpolation, and `VectorBuffer` buffer-copy behavior are partially ported for the current streamable subset, with a RedBolt-only `CString` extension appended after upstream IDs; string-parsed scalar/vector/rectangle/color/quaternion/matrix behavior and `VoidPtr` via `IntPtr` are in place, while custom values, curves, RefCounted pointers, and universal optional retrieval remain
   - [ ] `CustomVariantValueImpl<T>`
 - [ ] `VariantCurve.h`
   - [ ] `VariantCurve : KeyFrameSet<VariantCurvePoint>`
-- [~] `Attribute.h`
-  - [ ] `AttributeAccessor : RefCounted`
-  - [~] `AttributeInfo`
-- [~] `ObjectReflection.h`
-  - [~] `ObjectReflection : RefCounted`
-  - [ ] `ObjectReflectionRegistry`
-- [~] `Object.h`
-  - [~] `Object : RefCounted`
-  - [ ] `EventHandler`
-- [~] `Context.h`
+- [x] `Attribute.h`
+  - [x] `AttributeAccessor : RefCounted`
+  - [x] `AttributeInfo`
+- [~] `ObjectReflection.h` — managed `Type` replaces `TypeInfo`, but factory construction is limited to parameterless managed constructors and the registry has no rbfx custom-`TypeInfo` equivalent
+  - [~] `ObjectReflection` - managed `Type`-backed reflection records now include factories, categories, attributes, and metadata; custom TypeInfo behavior remains replaced by C# metadata, and factories cannot receive the active `Context`
+  - [~] `ObjectReflectionRegistry` - managed reflection lookup, factories, categories, generic attribute shortcuts, and removal notifications are in place; custom reflection and context-aware factory parity remain
+- [~] `Object.h` — Context/subsystem/global-variable forwarding and struct-event subscriptions are ported, but the rbfx `StringHash`/`VariantMap` named-event API and archive integration are still missing
+  - [~] `Object` - managed Context forwarding includes dynamic subsystem lookup and cache access; C# `Type` assignability replaces macro-generated type hierarchy, and generic struct-event unsubscription covers event-type-specific removal; reflection/category/archive and full named-event behavior remain
+  - [x] `EventHandler`
+- [~] `Context.h` — managed global context, subsystem registry, global variables, and struct-event dispatch are in place; `EventReceiverGroup` and rbfx `StringHash`/`VariantMap` named-event dispatch remain unported
   - [ ] `EventReceiverGroup : RefCounted`
-  - [~] `Context : RefCounted, ObjectReflectionRegistry` (use managed global `Context` pattern)
-- [ ] `ObjectCategory.h`
-  - [ ] category constants
-- [~] `CoreEvents.h`
-  - [~] core event `StringHash` definitions
-- [ ] `SubsystemCache.h`
-  - [ ] `SubsystemCache`
-- [ ] `ObjectRevisionTracker.h`
-  - [ ] `ObjectRevisionTracker`
-- [~] `Spline.h`
-  - [~] `Spline`
-- [~] `WorkQueue.h`
-  - [~] `WorkQueue : Object`
-- [ ] `ProcessUtils.h`
-  - [ ] process/CPU free functions
-- [ ] `CommandLine.h`
-  - [ ] command-line parsing helpers
-- [ ] `Profiler.h`
-  - [ ] profiler scopes (thin shim acceptable)
-- [ ] `ThreadSafeCache.h`
-  - [ ] `ThreadSafeCache<T>`
-- [ ] `StopToken.h`
-  - [ ] `StopToken`
+  - [~] `Context : RefCounted, ObjectReflectionRegistry` - managed global context, explicit subsystem type registration/lookup/removal, registry-backed type-name/attribute lookup, and sender-specific struct-event priority are in place; `EventReceiverGroup` and rbfx `StringHash`/`VariantMap` named-event parity remain
+- [x] `ObjectCategory.h`
+  - [x] category constants
+- [x] `CoreEvents.h`
+  - [x] core event structs (named-event `StringHash` layer replaced by the allowed struct-based event format)
+- [x] `SubsystemCache.h`
+  - [x] `SubsystemCache`
+- [x] `ObjectRevisionTracker.h`
+  - [x] `ObjectRevisionTracker`
+- [x] `Spline.h`
+  - [x] `Spline`
+- [~] `WorkQueue.h` — task posting and completion APIs are ported on the managed thread pool, but `WorkQueueVector<T>` and rbfx's scheduler-specific task pooling, affinity, and immediate-task behavior are not yet equivalent
+  - [~] `WorkQueue : Object` - core task API plus `ForEachParallel` helpers are ported on top of the managed thread-pool implementation; `WorkQueueVector<T>` and deeper rbfx scheduler internals still differ
+- [x] `ProcessUtils.h`
+  - [x] process/CPU free functions
+- [x] `CommandLine.h`
+  - [x] command-line parsing helpers
+- [x] `Profiler.h`
+  - [x] profiler constants and thread-name shim
+- [x] `ThreadSafeCache.h`
+  - [x] `ThreadSafeCache<T>`
+- [x] `StopToken.h`
+  - [x] `StopToken`
 
 ## A4. IO — depends on Container, Core
 
-- [ ] `IODefs.h`
-  - [ ] IO enums / constants
-- [ ] `ScanFlags.h`
-  - [ ] `ScanFlags`
-- [ ] `FileIdentifier.h`
-  - [ ] `struct FileIdentifier`
+- [x] `IODefs.h`
+  - [x] IO enums / constants
+- [x] `ScanFlags.h`
+  - [x] `ScanFlags`
+- [x] `FileIdentifier.h`
+  - [x] `struct FileIdentifier`
 - [~] `Deserializer.h`
-  - [~] `Deserializer`
+  - [~] `Deserializer` - packed vector/quaternion helpers and in-place buffer read helper are now ported; custom-variant/context-backed gaps remain
 - [~] `Serializer.h`
-  - [~] `Serializer`
-- [ ] `AbstractFile.h`
-  - [ ] `AbstractFile : Deserializer, Serializer`
+  - [~] `Serializer` - packed vector/quaternion helpers are now ported; custom-variant/pointer serialization gaps remain
+- [x] `AbstractFile.h`
+  - [x] `AbstractFile : Deserializer, Serializer`
 - [~] `MemoryBuffer.h`
-  - [~] `MemoryBuffer : AbstractFile`
+  - [~] `MemoryBuffer : AbstractFile` - managed backing storage now exposes a real data pointer like rbfx, and the extra enumerable/size constructors are gone; the remaining gap is that C# still models the upstream const-vs-non-const pointer/`VectorBuffer` overload split with `ReadOnlyMemory<byte>` and a read-only flag where const overloading is not expressible
 - [~] `VectorBuffer.h`
-  - [~] `VectorBuffer : AbstractFile`
+  - [~] `VectorBuffer : AbstractFile` - managed `byte[]` backing, rbfx constructor surface, direct live `GetBuffer()` access, and default-name behavior are in place; the remaining gap is that raw `GetData()` / `GetModifiableData()` pointers are unavailable for managed storage so RedBolt avoids long-lived pinning there
 - [ ] `File.h`
   - [ ] `File : Object, AbstractFile`
 - [ ] `Compression.h`
@@ -278,9 +278,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `VirtualFileSystem.h`
   - [ ] `VirtualFileSystem : Object`
   - [ ] `MountPointGuard : MovableNonCopyable`
-- [ ] `FileSystem.h`
-  - [ ] `FileSystem : Object`
-  - [ ] `TemporaryDir : MovableNonCopyable`
+- [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [ ] `FileWatcher.h`
   - [ ] `FileWatcher : Object, Thread`
 - [ ] `MultiFileWatcher.h`

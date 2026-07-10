@@ -38,22 +38,31 @@ public abstract class AttributeAccessor
     /// <summary>
     /// Get the attribute.
     /// </summary>
-    public abstract object? Get(Serializable ptr);
+    public abstract void Get(Serializable ptr, ref Variant dest);
 
     /// <summary>
     /// Set the attribute.
     /// </summary>
-    public abstract void Set(Serializable ptr, object? src);
+    public abstract void Set(Serializable ptr, Variant src);
+
+    public virtual object? GetObject(Serializable ptr)
+    {
+        var result = default(Variant);
+        Get(ptr, ref result);
+        return result.GetObject();
+    }
+
+    public virtual void SetObject(Serializable ptr, object? src) => Set(ptr, Variant.FromObject(src));
 }
 
 public sealed class AttributeInfo : ICloneable
 {
-    private readonly Dictionary<StringHash, object?> _metadata = new();
+    private readonly Dictionary<StringHash, Variant> _metadata = new();
 
     public AttributeInfo(
         string name,
         Type valueType,
-        object? defaultValue = null,
+        Variant defaultValue = default,
         AttributeMode mode = AttributeMode.Default,
         IReadOnlyList<string>? enumNames = null,
         AttributeAccessor? accessor = null,
@@ -74,11 +83,11 @@ public sealed class AttributeInfo : ICloneable
 
     public AttributeAccessor? Accessor { get; }
 
-    public object? DefaultValue { get; internal set; }
+    public Variant DefaultValue { get; internal set; }
 
     public IReadOnlyList<string> EnumNames { get; }
 
-    public IReadOnlyDictionary<StringHash, object?> Metadata => _metadata;
+    public IReadOnlyDictionary<StringHash, Variant> Metadata => _metadata;
 
     public AttributeMode Mode { get; }
 
@@ -94,14 +103,14 @@ public sealed class AttributeInfo : ICloneable
 
     public Type ValueType { get; }
 
-    public object? GetMetadata(StringHash key)
+    public Variant GetMetadata(StringHash key)
     {
         return _metadata.GetValueOrDefault(key);
     }
 
     public T GetMetadata<T>(StringHash key)
     {
-        return GetMetadata(key) is T value ? value : default!;
+        return GetMetadata(key).Get<T>();
     }
 
     /// <summary>
@@ -139,7 +148,7 @@ public sealed class AttributeInfo : ICloneable
         return result;
     }
 
-    public void SetMetadata(StringHash key, object? value)
+    public void SetMetadata(StringHash key, Variant value)
     {
         _metadata[key] = value;
     }
@@ -155,15 +164,19 @@ public sealed class AttributeInfo : ICloneable
             _setter = setter;
         }
 
-        public override object? Get(Serializable ptr)
+        public override void Get(Serializable ptr, ref Variant dest)
         {
-            return _getter is not null ? _getter(ptr) : null;
+            dest = _getter is not null ? Variant.FromObject(_getter(ptr)) : default;
         }
 
-        public override void Set(Serializable ptr, object? src)
+        public override void Set(Serializable ptr, Variant src)
         {
-            _setter?.Invoke(ptr, src);
+            _setter?.Invoke(ptr, src.GetObject());
         }
+
+        public override object? GetObject(Serializable ptr) => _getter?.Invoke(ptr);
+
+        public override void SetObject(Serializable ptr, object? src) => _setter?.Invoke(ptr, src);
     }
 }
 
@@ -176,7 +189,7 @@ public readonly struct AttributeHandle
         this._attribute = attribute;
     }
 
-    public AttributeHandle SetMetadata(StringHash key, object? value)
+    public AttributeHandle SetMetadata(StringHash key, Variant value)
     {
         if (_attribute is not null)
             _attribute.SetMetadata(key, value);

@@ -93,7 +93,7 @@ public abstract class Serializable : Object
         ArgumentNullException.ThrowIfNull(attribute);
 
         if (attribute.Accessor is not null)
-            return attribute.Accessor.Get(this);
+            return attribute.Accessor.GetObject(this);
 
         return _attributeValues.TryGetValue(attribute.NameHash, out var value) ? value : GetAttributeDefault(attribute);
     }
@@ -106,7 +106,7 @@ public abstract class Serializable : Object
             _instanceDefaultValues[attribute.NameHash] = value;
 
         if (attribute.Accessor is not null)
-            attribute.Accessor.Set(this, value);
+            attribute.Accessor.SetObject(this, value);
         else
             _attributeValues[attribute.NameHash] = value;
     }
@@ -226,7 +226,7 @@ public abstract class Serializable : Object
         if (existing is not null)
             return new AttributeHandle(existing);
 
-        var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, accessor);
+        var attribute = new AttributeInfo(name, valueType, Variant.FromObject(defaultValue), mode, enumNames, accessor);
         _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
@@ -244,7 +244,7 @@ public abstract class Serializable : Object
         if (existing is not null)
             return new AttributeHandle(existing);
 
-        var attribute = new AttributeInfo(name, valueType, defaultValue, mode, enumNames, accessor: null, getter, setter);
+        var attribute = new AttributeInfo(name, valueType, Variant.FromObject(defaultValue), mode, enumNames, accessor: null, getter, setter);
         _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
@@ -263,6 +263,20 @@ public abstract class Serializable : Object
 
     private object? GetAttributeDefault(AttributeInfo attribute)
     {
-        return _instanceDefaultValues.TryGetValue(attribute.NameHash, out var value) ? value : attribute.DefaultValue;
+        if (_instanceDefaultValues.TryGetValue(attribute.NameHash, out var value))
+            return value;
+
+        var defaultValue = attribute.DefaultValue.GetObject();
+        if (attribute.ValueType.IsEnum)
+            return Enum.ToObject(attribute.ValueType, attribute.DefaultValue.GetInt());
+        if (attribute.ValueType == typeof(uint))
+            return attribute.DefaultValue.GetUInt();
+        if (attribute.ValueType == typeof(ulong))
+            return attribute.DefaultValue.GetUInt64();
+        if (attribute.ValueType.IsAssignableFrom(defaultValue.GetType()))
+            return defaultValue;
+        if (attribute.ValueType == typeof(IReadOnlyList<string>) && defaultValue is StringVector strings)
+            return strings;
+        return defaultValue;
     }
 }

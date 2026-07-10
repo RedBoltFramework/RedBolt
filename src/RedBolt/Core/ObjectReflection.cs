@@ -68,7 +68,7 @@ public sealed class ObjectReflection
     {
         var attribute = GetAttribute(nameHash);
         if (attribute is not null)
-            attribute.DefaultValue = value.GetObject();
+            attribute.DefaultValue = value;
     }
 
     public uint GetAttributeIndex(StringHash nameHash)

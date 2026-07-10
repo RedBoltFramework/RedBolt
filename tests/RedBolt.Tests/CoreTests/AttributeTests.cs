@@ -19,7 +19,7 @@ public class AttributeTests
     public void AttributeInfo_matches_rbfx_enum_metadata_and_copy_contract()
     {
         var attribute = new AttributeInfo("Value", typeof(int), 42, enumNames: ["Zero", "One"]);
-        attribute.SetMetadata("Metadata", "value");
+        attribute.SetMetadata("Metadata", new Variant("value"));
         attribute.ScopeHint = AttributeScopeHint.Scene;
 
         Assert.Equal("One", attribute.ConvertEnumToString(1));
@@ -38,7 +38,7 @@ public class AttributeTests
     [Fact]
     public void Default_attribute_handle_matches_rbfx_empty_handle_contract()
     {
-        default(AttributeHandle).SetMetadata("Metadata", "value").SetScopeHint(AttributeScopeHint.Scene);
+        default(AttributeHandle).SetMetadata("Metadata", new Variant("value")).SetScopeHint(AttributeScopeHint.Scene);
     }
 
     private sealed class AccessorSerializable : Serializable
@@ -52,14 +52,14 @@ public class AttributeTests
 
         private sealed class ValueAccessor : AttributeAccessor
         {
-            public override object Get(Serializable ptr)
+            public override void Get(Serializable ptr, ref Variant dest)
             {
-                return ((AccessorSerializable)ptr).StoredValue;
+                dest = new Variant(((AccessorSerializable)ptr).StoredValue);
             }
 
-            public override void Set(Serializable ptr, object src)
+            public override void Set(Serializable ptr, Variant src)
             {
-                ((AccessorSerializable)ptr).StoredValue = src is int value ? value : 0;
+                ((AccessorSerializable)ptr).StoredValue = src.GetInt();
             }
         }
     }

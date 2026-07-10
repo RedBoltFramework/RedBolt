@@ -116,6 +116,13 @@ public readonly struct Variant : IEquatable<Variant>
     private readonly StringVector _stringVectorValue = new();
     private readonly VariantMap _variantMapValue = new();
     private readonly StringVariantMap _stringVariantMapValue = new();
+    private readonly object? _customValue;
+
+    private Variant(object value)
+    {
+        _type = VariantType.Custom;
+        _customValue = value;
+    }
 
     public Variant(VariantType type)
     {
@@ -735,12 +742,18 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.StringVector => _stringVectorValue,
             VariantType.VariantMap => _variantMapValue,
             VariantType.StringVariantMap => _stringVariantMapValue,
+            VariantType.Custom => _customValue,
             _ => null!
         };
     }
 
     public static Variant FromObject(object? value)
     {
+        if (value is not null && value.GetType().IsEnum)
+            return new Variant(System.Convert.ToInt32(value, CultureInfo.InvariantCulture));
+        if (value is IEnumerable<string> stringCollection)
+            return new Variant(new StringVector(stringCollection));
+
         return value switch
         {
             null => default,
@@ -778,7 +791,7 @@ public readonly struct Variant : IEquatable<Variant>
             string typedValue => typedValue,
             CString typedValue => typedValue,
             IntPtr typedValue => typedValue,
-            _ => throw new ArgumentException($"Unsupported Variant value type '{value.GetType().Name}'.", nameof(value))
+            _ => new Variant(value)
         };
     }
 
