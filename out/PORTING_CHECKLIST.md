@@ -109,8 +109,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PerlinNoise`
 - [x] `EaseMath.h`
   - [x] easing free functions
-- [ ] `WrappedScalar.h`
-  - [ ] `WrappedScalar<T>`
+- [x] `WrappedScalar.h`
+  - [x] `WrappedScalarRange<T>`
+  - [x] `WrappedScalar<T>`
 - [ ] `NumericRange.h`
   - [ ] `NumericRange<T>`
 - [x] `Plane.h`
