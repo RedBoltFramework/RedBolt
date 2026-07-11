@@ -192,24 +192,39 @@ public static partial class MathDefs
 {
     private static uint _randomSeed = 1;
 
+    /// <summary>
+    /// Set the random seed. The default seed is 1.
+    /// </summary>
     public static void SetRandomSeed(uint seed)
     {
         _randomSeed = seed;
     }
 
+    /// <summary>
+    /// Return the current random seed.
+    /// </summary>
     public static uint GetRandomSeed() => _randomSeed;
 
+    /// <summary>
+    /// Return a random number between 0-32767. Should operate similarly to MSVC rand().
+    /// </summary>
+    /// <remarks>Alias: RandomInt.</remarks>
     public static int Rand()
     {
         _randomSeed = unchecked(_randomSeed * 214013u + 2531011u);
         return (int)((_randomSeed >> 16) & 32767u);
     }
 
+    /// <summary>
+    /// Return a standard normal distributed number.
+    /// </summary>
     public static float RandStandardNormal()
     {
         var value = 0.0f;
         for (var i = 0; i < 12; ++i)
             value += Rand() / 32768.0f;
+
+        // Now val is approximatly standard normal distributed
         return value - 6.0f;
     }
 

@@ -101,8 +101,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Color`
 - [x] `StringHash.h`
   - [x] `StringHash` (port early — pervasive dependency)
-- [ ] `Random.h`
-  - [ ] random free functions
+- [x] `Random.h`
+  - [x] random free functions
 - [x] `RandomEngine.h`
   - [x] `RandomEngine`
 - [x] `PerlinNoise.h`
