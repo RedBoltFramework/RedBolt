@@ -1,0 +1,41 @@
+using RedBolt;
+
+namespace RedBolt.Tests;
+
+public sealed class DecompressTests
+{
+    [Fact]
+    public void Dxt1_image_decompresses_to_rgba()
+    {
+        var blocks = new byte[8];
+        blocks[0] = 0x00;
+        blocks[1] = 0xf8;
+        blocks[2] = 0xe0;
+        blocks[3] = 0x07;
+        var rgba = new byte[4 * 4 * 4];
+
+        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, CompressedFormat.Dxt1);
+
+        Assert.Equal(255, rgba[0]);
+        Assert.Equal(0, rgba[1]);
+        Assert.Equal(0, rgba[2]);
+        Assert.Equal(255, rgba[3]);
+    }
+
+    [Fact]
+    public void Dxt_block_flips_preserve_supported_formats()
+    {
+        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Rgba));
+        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt1));
+        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt3));
+        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt5));
+        Assert.False(Decompress.IsFlipBlockImplemented(CompressedFormat.Etc1));
+
+        var source = new byte[8];
+        source[4] = 0b_00_01_10_11;
+        var destination = new byte[8];
+        Decompress.FlipBlockHorizontal(destination, source, CompressedFormat.Dxt1);
+
+        Assert.Equal(0b_11_10_01_00, destination[4]);
+    }
+}

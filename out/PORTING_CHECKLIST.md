@@ -303,8 +303,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `ResourceEvents.h`
   - [x] resource event definitions — C++ `URHO3D_EVENT` declarations are represented by public struct-based events.
-- [ ] `Decompress.h`
-  - [ ] texture decompress free functions
+- [~] `Decompress.h`
+  - [x] DXT image decompression and RGBA/BC block flipping are ported using `CompressedFormat` as the managed equivalent of C++ `TextureFormat`.
+  - [ ] ETC/ETCPACK and PVRTC image decompression — public methods are present with `TODO: port` markers.
 - [x] `Resource.h`
   - [x] `Resource : Object` — synchronous load state, naming, memory accounting, file loading/saving, and use timer behavior are ported
   - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
