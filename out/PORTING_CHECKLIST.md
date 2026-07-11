@@ -510,9 +510,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
-- [~] `GraphicsDefs.h`
-  - [~] `struct VertexElement`
-  - [ ] graphics enums / constants
+- [x] `GraphicsDefs.h`
+  - [x] `struct VertexElement` — fields, constructors, equality, inequality, and ToHash are ported
+  - [x] graphics enums / constants
 - [~] `GraphicsEvents.h`
   - [ ] graphics event definitions
 - [ ] `DrawableEvents.h`

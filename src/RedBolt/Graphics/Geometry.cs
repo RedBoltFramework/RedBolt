@@ -19,6 +19,7 @@ public enum GeometryType
     DirectionalBillboard,
     TrailFaceCamera,
     TrailBone,
+    MaxGeometryTypes,
     StaticNoInstancing
 }
 

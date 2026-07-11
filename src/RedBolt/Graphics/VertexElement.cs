@@ -22,6 +22,7 @@ public enum VertexMask : uint
 
 public struct VertexElement : IEquatable<VertexElement>
 {
+    /// <summary>Construct with type, semantic, index and whether is per-instance data.</summary>
     public VertexElement(
         VertexElementType type,
         VertexElementSemantic semantic,
@@ -36,30 +37,52 @@ public struct VertexElement : IEquatable<VertexElement>
         Offset = offset;
     }
 
+    /// <summary>Data type of element.</summary>
     public VertexElementType Type { get; set; } = VertexElementType.Vector3;
 
+    /// <summary>Semantic of element.</summary>
     public VertexElementSemantic Semantic { get; set; } = VertexElementSemantic.Position;
 
+    /// <summary>Semantic index of element, for example multi-texcoords.</summary>
     public byte Index { get; set; }
 
+    /// <summary>Instancing data steprate.</summary>
     public uint StepRate { get; set; }
 
+    /// <summary>Offset of element from vertex start. Filled by VertexBuffer once the vertex declaration is built.</summary>
     public uint Offset { get; set; }
 
+    /// <summary>Test for equality with another vertex element. Offset is intentionally not compared, as it's relevant only when an element exists within a vertex buffer.</summary>
     public readonly bool Equals(VertexElement other)
     {
         return Type == other.Type
             && Semantic == other.Semantic
             && Index == other.Index
-            && StepRate == other.StepRate
-            && Offset == other.Offset;
+            && StepRate == other.StepRate;
+    }
+
+    /// <summary>Return hash value of the vertex element.</summary>
+    public readonly uint ToHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, (uint)Type);
+        CombineHash(ref hash, (uint)Semantic);
+        CombineHash(ref hash, Index);
+        CombineHash(ref hash, StepRate);
+        CombineHash(ref hash, Offset);
+        return hash;
     }
 
     public override readonly bool Equals(object? obj) => obj is VertexElement other && Equals(other);
 
-    public override readonly int GetHashCode() => HashCode.Combine(Type, Semantic, Index, StepRate, Offset);
+    public override readonly int GetHashCode() => unchecked((int)ToHash());
 
     public static bool operator ==(VertexElement left, VertexElement right) => left.Equals(right);
 
     public static bool operator !=(VertexElement left, VertexElement right) => !left.Equals(right);
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
+    }
 }

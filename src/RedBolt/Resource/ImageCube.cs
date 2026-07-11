@@ -36,7 +36,7 @@ public sealed class ImageCube : Resource
             if (image.IsCubemap())
             {
                 var current = image;
-                foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+                for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
                 {
                     if (current is null)
                         return false;
@@ -115,7 +115,7 @@ public sealed class ImageCube : Resource
     public ImageCube GetDecompressedImageLevel(uint index)
     {
         var cube = new ImageCube(Name + "#level");
-        foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
         {
             var image = GetImage(face);
             if (image is null)
@@ -144,7 +144,7 @@ public sealed class ImageCube : Resource
     public SphericalHarmonicsColor9 CalculateSphericalHarmonics()
     {
         var result = new SphericalHarmonicsColor9(); var weightSum = 0f;
-        foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
         {
             var source = GetImage(face); if (source is null) continue;
             var level = Math.Min(source.IsCompressed() ? source.NumCompressedLevels - 1 : uint.MaxValue, GetSphericalHarmonicsMipLevel());

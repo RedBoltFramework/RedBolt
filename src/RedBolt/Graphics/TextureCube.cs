@@ -7,7 +7,8 @@ public enum CubeMapFace
     PositiveY,
     NegativeY,
     PositiveZ,
-    NegativeZ
+    NegativeZ,
+    MaxCubeMapFaces
 }
 
 public sealed class TextureCube : Texture
@@ -31,7 +32,7 @@ public sealed class TextureCube : Texture
         if (!imageCube.Load(source))
             return false;
 
-        foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
         {
             var image = imageCube.GetImage(face);
             if (image is null || !SetData(face, image))

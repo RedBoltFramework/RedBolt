@@ -142,7 +142,7 @@ public sealed class ImageTests
             Assert.True(image.SaveJPG(Path.Combine(directory, "image.jpg"), 90));
 
             var cube = new ImageCube("Cube");
-            foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>()) cube.SetImage(face, image);
+            for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1)) cube.SetImage(face, image);
             var evaluated = cube.GetOrCreateSphericalHarmonics().Evaluate(Vector3f.Forward);
             Assert.True(evaluated.X > 0 && evaluated.Y > 0 && evaluated.Z > 0);
         }
@@ -209,7 +209,7 @@ public sealed class ImageTests
 
             Assert.NotNull(cube.GetParametersXML());
 
-            foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+            for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
             {
                 var image = cube.GetImage(face);
                 Assert.NotNull(image);
