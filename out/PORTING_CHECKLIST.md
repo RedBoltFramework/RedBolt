@@ -738,8 +738,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [ ] `InputConstants.h`
   - [ ] key / button / scancode constants
-- [~] `InputEvents.h`
-  - [ ] input event definitions
+- [x] `InputEvents.h`
+  - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
 - [~] `AxisAdapter.h`
   - [~] `AxisAdapter`
 - [~] `Input.h`
