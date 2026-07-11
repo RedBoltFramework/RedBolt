@@ -362,15 +362,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] prefab enums / constants
 - [x] `Serializable.h`
   - [x] `Serializable : Object` — attribute access/defaults, binary/XML/JSON/Archive serialization, temporary state, copying, and managed reflection cloning are ported
-- [~] `ValueAnimationInfo.h`
-  - [~] `ValueAnimationInfo : RefCounted`
-- [~] `ValueAnimation.h`
-  - [~] `ValueAnimation : Resource`
-- [~] `ObjectAnimation.h`
-  - [~] `ObjectAnimation : Resource`
-- [~] `Animatable.h`
-  - [~] `AttributeAnimationInfo : ValueAnimationInfo`
-  - [~] `Animatable : Serializable`
+- [x] `ValueAnimationInfo.h`
+  - [x] `ValueAnimationInfo : RefCounted` — target lifetime, wrap modes, timing, event frames, and value application are ported
+- [x] `ValueAnimation.h`
+  - [x] `ValueAnimation : Resource` — XML/JSON persistence, interpolation, spline tangents, keyframes, and event frames are ported
+- [x] `ObjectAnimation.h`
+  - [x] `ObjectAnimation : Resource` — XML/JSON persistence and named attribute-animation ownership are ported
+- [x] `Animatable.h`
+  - [x] `AttributeAnimationInfo : ValueAnimationInfo`
+  - [x] `Animatable : Serializable` — object/attribute animation assignment, nested targeting, timing, and update application are ported
 - [~] `Component.h`
   - [~] `Component : Serializable`
 - [~] `Node.h`
