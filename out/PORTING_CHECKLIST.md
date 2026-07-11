@@ -285,9 +285,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
     - Memory linking, read-only opens, existence checks, and scanning are ported; `SendFileChangedEvent` remains a TODO until `ResourceEvents` and the C# event dispatch layer are ported.
 - [x] `PackageFile.h`
   - [x] `PackageFile : MountPoint`
-- [ ] `VirtualFileSystem.h`
-  - [ ] `VirtualFileSystem : Object`
-  - [ ] `MountPointGuard : MovableNonCopyable`
+- [x] `VirtualFileSystem.h`
+  - [x] `VirtualFileSystem : Object`
+  - [x] `MountPointGuard : MovableNonCopyable` — C# reference ownership with `IDisposable`; C++ move assignment has no direct C# operator equivalent and remains a TODO in the port.
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [ ] `FileWatcher.h`
   - [ ] `FileWatcher : Object, Thread`

@@ -82,6 +82,7 @@ public sealed class Context : ObjectReflectionRegistry
         RegisterSubsystem(engine);
         RegisterSubsystem(new Time());
         RegisterSubsystem(new WorkQueue());
+        RegisterSubsystem(new VirtualFileSystem());
         RegisterSubsystem(new ResourceCache());
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
