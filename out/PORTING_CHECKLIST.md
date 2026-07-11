@@ -271,7 +271,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `MountPoint` and `WatchableMountPoint`
   - [ ] `MountPoint : Object`
   - [ ] `WatchableMountPoint : MountPoint`
-- [ ] `MountedRoot.h`
+- [x] `MountedRoot.h`
+  - [x] `MountedRoot`
   - [ ] `MountedRoot : MountPoint`
 - [ ] `MountedDirectory.h`
   - [ ] `MountedDirectory : WatchableMountPoint`
