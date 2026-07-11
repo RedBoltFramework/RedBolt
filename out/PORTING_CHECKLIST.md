@@ -385,10 +385,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
 - [x] `UnknownComponent.h`
   - [x] `UnknownComponent : Component` — unknown type preservation and temporary placeholder loading across binary/XML/JSON are ported
-- [ ] `NodePrefab.h`
-  - [ ] `AttributePrefab`
-  - [ ] `SerializablePrefab`
-  - [ ] `NodePrefab`
+- [x] `NodePrefab.h` — pulled in as a required dependency of in-progress Node/SceneResource serialization
+  - [x] `AttributePrefab`
+  - [x] `SerializablePrefab`
+  - [x] `NodePrefab`
 - [ ] `PrefabReader.h`
   - [ ] `PrefabReader : NonCopyable`
   - [ ] `PrefabReaderFromMemory : PrefabReader`

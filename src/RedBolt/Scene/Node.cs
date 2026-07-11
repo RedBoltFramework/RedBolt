@@ -91,13 +91,100 @@ public sealed class Node : Animatable
             .ToArray();
     }
 
-    // The following serialization / prefab entry points depend on the not-yet-ported
-    // Archive / Variant / prefab (PrefabReader, PrefabWriter, NodePrefab, SerializablePrefab,
-    // PrefabResource, SceneResolver) and Deserializer/Serializer/XMLElement/JSONValue layers.
-    // They are preserved verbatim from rbfx and will be ported once that infrastructure exists.
-    //
-    // void Node::SerializeInBlock(Archive& archive);
-    // void Node::SerializeInBlock(Archive& archive, bool serializeTemporary, PrefabSaveFlags saveFlags, PrefabLoadFlags loadFlags);
+    public override void SerializeInBlock(Archive archive)
+    {
+        var prefab = archive.IsInput ? new NodePrefab() : GeneratePrefab();
+        prefab.SerializeInBlock(archive);
+        if (archive.IsInput) LoadPrefab(prefab, clearExisting: true);
+    }
+
+    public NodePrefab GeneratePrefab()
+    {
+        var prefab = new NodePrefab();
+        FillSerializablePrefab(prefab.Node, this, Id);
+        foreach (var component in _components.Where(static component => !component.IsTemporary))
+        {
+            var componentPrefab = new SerializablePrefab();
+            FillSerializablePrefab(componentPrefab, component, component.Id);
+            prefab.Components.Add(componentPrefab);
+        }
+        foreach (var child in _children.Where(static child => !child.IsTemporary))
+            prefab.Children.Add(child.GeneratePrefab());
+        return prefab;
+    }
+
+    public void LoadPrefab(NodePrefab prefab, bool clearExisting = true)
+    {
+        ArgumentNullException.ThrowIfNull(prefab);
+        if (clearExisting)
+        {
+            RemoveAllChildren();
+            RemoveAllComponents();
+        }
+        ApplySerializablePrefab(this, prefab.Node);
+        foreach (var componentPrefab in prefab.Components)
+        {
+            var type = ResolveComponentType(componentPrefab.TypeName);
+            Component component;
+            if (type is null || CreateComponent(type, componentPrefab.Id) is not { } created)
+            {
+                component = CreateComponent<UnknownComponent>(componentPrefab.Id);
+                ((UnknownComponent)component).SetOriginalTypeName(componentPrefab.TypeName);
+            }
+            else component = created;
+            ApplySerializablePrefab(component, componentPrefab);
+        }
+        foreach (var childPrefab in prefab.Children)
+        {
+            var child = CreateChild(id: childPrefab.Node.Id, temporary: childPrefab.Node.Temporary);
+            child.LoadPrefab(childPrefab);
+        }
+        ApplyAttributes();
+    }
+
+    private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
+    {
+        prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;
+        foreach (var attribute in value.Attributes.Where(static attribute => attribute.ShouldSave))
+        {
+            Variant variant;
+            if (value is Node node && attribute.Name == "Variables")
+            {
+                var map = new VariantMap();
+                foreach (var (key, item) in node._variables) map[key] = Variant.FromObject(item);
+                variant = new Variant(map);
+            }
+            else variant = Variant.FromObject(value.GetAttribute(attribute.Name));
+            prefab.Attributes.Add(new AttributePrefab { Name = attribute.Name, Value = variant });
+        }
+    }
+
+    private static void ApplySerializablePrefab(Serializable value, SerializablePrefab prefab)
+    {
+        value.SetTemporary(prefab.Temporary);
+        foreach (var attributePrefab in prefab.Attributes)
+        {
+            if (value is Node node && attributePrefab.Name == "Variables")
+            {
+                node.SetVariables(attributePrefab.Value.GetVariantMap().Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject())));
+                continue;
+            }
+            var attribute = value.Attributes.FirstOrDefault(attribute => attribute.Name == attributePrefab.Name);
+            if (attribute is null) continue;
+            object? converted = attribute.ValueType.IsEnum ? Enum.ToObject(attribute.ValueType, attributePrefab.Value.GetInt()) : attributePrefab.Value.GetObject();
+            if (attribute.ValueType == typeof(uint)) converted = attributePrefab.Value.GetUInt();
+            value.SetAttribute(attribute.Name, converted);
+        }
+        value.ApplyAttributes();
+    }
+
+    private static Type? ResolveComponentType(string typeName)
+    {
+        return typeof(Component).Assembly.GetTypes().FirstOrDefault(type => !type.IsAbstract && typeof(Component).IsAssignableFrom(type)
+            && (type.Name == typeName || type.FullName == typeName || type.GetClassName() == typeName));
+    }
+
+    // Remaining reader/writer overloads are represented by NodePrefab and Archive entry points above.
     // void Node::LoadInternal(const SerializablePrefab& nodePrefab, PrefabReader& reader, SceneResolver& resolver, PrefabLoadFlags flags);
     // bool Node::Load(PrefabReader& reader, PrefabLoadFlags flags);
     // void Node::SaveInternal(PrefabWriter& writer) const;

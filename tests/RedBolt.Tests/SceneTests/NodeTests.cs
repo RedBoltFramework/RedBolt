@@ -5,6 +5,32 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class NodeTests
 {
+    [Fact]
+    public void Node_prefab_archive_roundtrips_hierarchy_components_and_variables()
+    {
+        var previous = Context.TryGetInstance(); Context.SetInstance(new Context());
+        try
+        {
+            var scene = new Scene();
+            var child = scene.CreateChild("Child");
+            child.SetPosition(new Vector3f(1, 2, 3));
+            child.SetVar("score", 42);
+            var camera = child.CreateComponent<Camera>(); camera.SetFov(73);
+
+            var json = new JSONOutputArchive();
+            using (json.OpenUnorderedBlock("root")) scene.Root.SerializeInBlock(json);
+            var loadedScene = new Scene();
+            var input = new JSONInputArchive(json.ToJsonString());
+            using (input.OpenUnorderedBlock("root")) loadedScene.Root.SerializeInBlock(input);
+
+            var loadedChild = loadedScene.Root.GetChild("Child");
+            Assert.NotNull(loadedChild);
+            Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
+            Assert.Equal(42, loadedChild.GetVar("score"));
+            Assert.True(MathDefs.ApproximatelyEquivalent(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
+        }
+        finally { Context.SetInstance(previous); }
+    }
     private sealed class ListenerProbe : Component
     {
         public int DirtyCount { get; private set; }
