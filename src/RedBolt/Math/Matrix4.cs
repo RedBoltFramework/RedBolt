@@ -247,8 +247,14 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
         }
     }
     public Matrix4 Inverse => Inverted;
-    public bool IsNaN => Data.Any(float.IsNaN);
-    public bool IsInf => Data.Any(float.IsInfinity);
+    public bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M02) || float.IsNaN(M03)
+        || float.IsNaN(M10) || float.IsNaN(M11) || float.IsNaN(M12) || float.IsNaN(M13)
+        || float.IsNaN(M20) || float.IsNaN(M21) || float.IsNaN(M22) || float.IsNaN(M23)
+        || float.IsNaN(M30) || float.IsNaN(M31) || float.IsNaN(M32) || float.IsNaN(M33);
+    public bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M02) || float.IsInfinity(M03)
+        || float.IsInfinity(M10) || float.IsInfinity(M11) || float.IsInfinity(M12) || float.IsInfinity(M13)
+        || float.IsInfinity(M20) || float.IsInfinity(M21) || float.IsInfinity(M22) || float.IsInfinity(M23)
+        || float.IsInfinity(M30) || float.IsInfinity(M31) || float.IsInfinity(M32) || float.IsInfinity(M33);
 
     public float this[int i, int j]
     {

@@ -108,8 +108,12 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
                 inverseRotationScale.M20, inverseRotationScale.M21, inverseRotationScale.M22, inverseTranslation.Z);
         }
     }
-    public bool IsNaN => Data.Any(float.IsNaN);
-    public bool IsInf => Data.Any(float.IsInfinity);
+    public bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M02) || float.IsNaN(M03)
+        || float.IsNaN(M10) || float.IsNaN(M11) || float.IsNaN(M12) || float.IsNaN(M13)
+        || float.IsNaN(M20) || float.IsNaN(M21) || float.IsNaN(M22) || float.IsNaN(M23);
+    public bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M02) || float.IsInfinity(M03)
+        || float.IsInfinity(M10) || float.IsInfinity(M11) || float.IsInfinity(M12) || float.IsInfinity(M13)
+        || float.IsInfinity(M20) || float.IsInfinity(M21) || float.IsInfinity(M22) || float.IsInfinity(M23);
 
     public static Matrix3x4 FromTranslation(Vector3f translation) => new(translation, Quaternion.Identity, 1.0f);
     public static Matrix3x4 FromRotation(Quaternion rotation) => new(Vector3f.Zero, rotation, 1.0f);

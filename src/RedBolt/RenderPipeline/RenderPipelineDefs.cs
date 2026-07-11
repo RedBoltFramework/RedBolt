@@ -859,7 +859,7 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
 
     public void AdjustForRenderPath(RenderOutputFlag flags)
     {
-        RenderBufferManager.FilteredColor = flags.HasFlag(RenderOutputFlag.NeedColorOutputBilinear);
+        RenderBufferManager.FilteredColor = (flags & RenderOutputFlag.NeedColorOutputBilinear) == RenderOutputFlag.NeedColorOutputBilinear;
     }
 
     public bool Equals(RenderPipelineSettings? other)

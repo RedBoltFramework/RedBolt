@@ -65,8 +65,11 @@ public sealed class ResourceCache
     public bool AddResourceDir(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (_resourceDirs.Any(existing => string.Equals(existing, path, StringComparison.Ordinal)))
-            return false;
+        foreach (var existing in _resourceDirs)
+        {
+            if (string.Equals(existing, path, StringComparison.Ordinal))
+                return false;
+        }
 
         _resourceDirs.Add(path);
         return true;
@@ -462,7 +465,7 @@ public sealed class ResourceCache
         ArgumentNullException.ThrowIfNull(result);
         pathName ??= string.Empty;
         filter = string.IsNullOrEmpty(filter) ? "*" : filter;
-        if (!flags.HasFlag(ScanFlags.ScanAppend))
+        if ((flags & ScanFlags.ScanAppend) != ScanFlags.ScanAppend)
             result.Clear();
 
         foreach (var resourceDir in _resourceDirs)
@@ -470,21 +473,21 @@ public sealed class ResourceCache
             var root = Path.Combine(resourceDir, pathName);
             if (!Directory.Exists(root))
                 continue;
-            var options = flags.HasFlag(ScanFlags.ScanRecursive) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            if (flags.HasFlag(ScanFlags.ScanFiles))
+            var options = (flags & ScanFlags.ScanRecursive) == ScanFlags.ScanRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            if ((flags & ScanFlags.ScanFiles) == ScanFlags.ScanFiles)
             {
                 foreach (var file in Directory.EnumerateFiles(root, filter, options))
                 {
-                    if (!flags.HasFlag(ScanFlags.ScanHidden) && (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
+                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
                         continue;
                     result.Add(Path.GetRelativePath(resourceDir, file).Replace('\\', '/'));
                 }
             }
-            if (flags.HasFlag(ScanFlags.ScanDirs))
+            if ((flags & ScanFlags.ScanDirs) == ScanFlags.ScanDirs)
             {
                 foreach (var directory in Directory.EnumerateDirectories(root, filter, options))
                 {
-                    if (!flags.HasFlag(ScanFlags.ScanHidden) && (File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
+                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
                         continue;
                     result.Add(Path.GetRelativePath(resourceDir, directory).Replace('\\', '/'));
                 }

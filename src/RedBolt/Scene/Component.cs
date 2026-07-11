@@ -50,7 +50,17 @@ public abstract class Component : Animatable
     }
 
     public AttributeScopeHint GetEffectiveScopeHint()
-        => Attributes.Select(static attribute => attribute.ScopeHint).DefaultIfEmpty(AttributeScopeHint.Attribute).Max();
+    {
+        var result = AttributeScopeHint.Attribute;
+        for (var i = 0; i < Attributes.Count; ++i)
+        {
+            var hint = Attributes[i].ScopeHint;
+            if (i == 0 || hint > result)
+                result = hint;
+        }
+
+        return result;
+    }
 
     public override bool Save(Stream destination)
     {

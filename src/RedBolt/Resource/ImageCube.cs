@@ -368,8 +368,16 @@ public sealed class ImageCube : Resource
 
     private bool SetFaceTiles(Image image, params (CubeMapFace Face, int TileX, int TileY)[] tiles)
     {
-        var tileWidth = image.Width / tiles.Max(static tile => tile.TileX + 1);
-        var tileHeight = image.Height / tiles.Max(static tile => tile.TileY + 1);
+        var maxTileX = 1;
+        var maxTileY = 1;
+        foreach (var tile in tiles)
+        {
+            maxTileX = Math.Max(maxTileX, tile.TileX + 1);
+            maxTileY = Math.Max(maxTileY, tile.TileY + 1);
+        }
+
+        var tileWidth = image.Width / maxTileX;
+        var tileHeight = image.Height / maxTileY;
         foreach (var (face, tileX, tileY) in tiles)
         {
             var subImage = image.GetSubimage(new IntRect(tileX * tileWidth, tileY * tileHeight, (tileX + 1) * tileWidth, (tileY + 1) * tileHeight));

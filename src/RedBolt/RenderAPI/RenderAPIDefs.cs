@@ -453,7 +453,7 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
         return FilterMode == other.FilterMode
             && Anisotropy == other.Anisotropy
             && ShadowCompare == other.ShadowCompare
-            && _addressModes.SequenceEqual(other._addressModes)
+            && ManagedSequence.Equal(_addressModes, other._addressModes)
             && MinLod.Equals(other.MinLod)
             && MaxLod.Equals(other.MaxLod);
     }

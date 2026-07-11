@@ -154,7 +154,18 @@ public sealed class Pass
     public void SetPixelShaderDefines(string defines)
     {
         PixelShaderDefines = NormalizeDefines(defines);
-        IsAlphaMask = PixelShaderDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains("ALPHAMASK", StringComparer.OrdinalIgnoreCase);
+        var pixelDefines = PixelShaderDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var isAlphaMask = false;
+        foreach (var define in pixelDefines)
+        {
+            if (string.Equals(define, "ALPHAMASK", StringComparison.OrdinalIgnoreCase))
+            {
+                isAlphaMask = true;
+                break;
+            }
+        }
+
+        IsAlphaMask = isAlphaMask;
         ReleaseShaders();
         RefreshPipelineStateHash();
     }
@@ -436,7 +447,17 @@ public sealed class Technique : Resource
         return GetPass(index);
     }
 
-    public uint GetNumPasses() => (uint)_passes.Count(static pass => pass is not null);
+    public uint GetNumPasses()
+    {
+        var count = 0u;
+        foreach (var pass in _passes)
+        {
+            if (pass is not null)
+                ++count;
+        }
+
+        return count;
+    }
 
     public IReadOnlyList<string> GetPassNames() => _passes.Where(static pass => pass is not null).Select(static pass => pass!.Name).ToArray();
 

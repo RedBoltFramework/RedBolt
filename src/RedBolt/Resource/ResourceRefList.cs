@@ -77,7 +77,7 @@ public sealed class ResourceRefList : IEquatable<ResourceRefList?>
 
     public bool Equals(ResourceRefList? other)
     {
-        return other is not null && Type == other.Type && _names.SequenceEqual(other._names);
+        return other is not null && Type == other.Type && ManagedSequence.Equal(_names, other._names);
     }
 
     public override bool Equals(object? obj)

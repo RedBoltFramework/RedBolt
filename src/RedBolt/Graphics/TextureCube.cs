@@ -136,6 +136,9 @@ public sealed class TextureCube : Texture
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)_faceData.Sum(static item => item.Value.Length));
+        var total = 0;
+        foreach (var item in _faceData)
+            total += item.Value.Length;
+        RefreshMemoryUse((uint)total);
     }
 }

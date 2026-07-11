@@ -158,8 +158,8 @@ public sealed class ShaderBytecode : IEquatable<ShaderBytecode>
 
         return Type == other.Type
             && string.Equals(Mime, other.Mime, StringComparison.Ordinal)
-            && Bytecode.SequenceEqual(other.Bytecode)
-            && VertexAttributes.SequenceEqual(other.VertexAttributes);
+            && Bytecode.AsSpan().SequenceEqual(other.Bytecode)
+            && ManagedSequence.Equal(VertexAttributes, other.VertexAttributes);
     }
 
     public override bool Equals(object? obj) => Equals(obj as ShaderBytecode);

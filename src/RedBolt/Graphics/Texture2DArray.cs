@@ -138,6 +138,9 @@ public sealed class Texture2DArray : Texture
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)_sliceData.Sum(static item => item.Value.Length));
+        var total = 0;
+        foreach (var item in _sliceData)
+            total += item.Value.Length;
+        RefreshMemoryUse((uint)total);
     }
 }

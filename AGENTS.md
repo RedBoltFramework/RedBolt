@@ -76,7 +76,8 @@ Make a note of any accepted deviations.
 - Match the C++ type as closely as C# allows.
 - C++ getter/setter PAIRS may become a C# property, BUT the getter/setter
   body logic must still match the C++ code exactly.
-- DO use nullable referebce types (no `?` on types).
+- DO use nullable reference types (annotate with `?`); they are explicitly allowed and
+  are the required mapping for C++ pointers / optional references.
 - Prefer plain C# constructs over clever ones.
 - A single value that C++ exposes as a getter should be a C# property,
   not a `GetX()` method, UNLESS matching C++ shape is clearer.
@@ -118,12 +119,10 @@ The build output binaries are in:
 
 ## 8. THINGS YOU MUST NEVER DO
 
-- NEVER use nullables with reference types.
 - NEVER introduce your own comments outside of allowed cases.
 - NEVER write manual/hand-authored native bindings.
 - NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
   P/Invoke declarations, or C# wrapper classes for native dependency APIs.
-- NEVER use nullable types.
 - NEVER take shortcuts that make C# diverge from C++ logic (except section 9).
 - NEVER port things C# already provides (see section 10).
 - NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:

@@ -227,11 +227,11 @@ public sealed class Model : ResourceWithMetadata
                 var elementMask = (VertexMask)source.ReadUInt();
                 var vertexCount = source.ReadUInt();
                 var vertexSize = sizeof(uint);
-                if (elementMask.HasFlag(VertexMask.Position))
+                if ((elementMask & VertexMask.Position) == VertexMask.Position)
                     vertexSize += 3 * sizeof(float);
-                if (elementMask.HasFlag(VertexMask.Normal))
+                if ((elementMask & VertexMask.Normal) == VertexMask.Normal)
                     vertexSize += 3 * sizeof(float);
-                if (elementMask.HasFlag(VertexMask.Tangent))
+                if ((elementMask & VertexMask.Tangent) == VertexMask.Tangent)
                     vertexSize += 3 * sizeof(float);
 
                 var bytesToSkip = checked((int)vertexCount * vertexSize);
@@ -249,8 +249,12 @@ public sealed class Model : ResourceWithMetadata
         while (_geometryCenters.Count < _geometries.Count)
             _geometryCenters.Add(Vector3f.Zero);
 
-        MemoryUse = (uint)(vertexBuffers.Sum(static buffer => buffer.GetData().Count)
-            + indexBuffers.Sum(static buffer => buffer.GetIndexCount() * buffer.GetIndexSize()));
+        long totalBytes = 0;
+        foreach (var buffer in vertexBuffers)
+            totalBytes += buffer.GetData().Count;
+        foreach (var buffer in indexBuffers)
+            totalBytes += buffer.GetIndexCount() * buffer.GetIndexSize();
+        MemoryUse = (uint)totalBytes;
         return true;
     }
 

@@ -140,7 +140,16 @@ public sealed class RenderPath : Resource
         for (var i = 0; i < _passes.Count; ++i)
         {
             var pass = _passes[i];
-            var match = sourceList.FirstOrDefault(staticToggle => string.Equals(staticToggle.Name, pass.GetPassName(), StringComparison.Ordinal));
+            RenderPassToggle match = default;
+            for (var j = 0; j < sourceList.Count; ++j)
+            {
+                if (string.Equals(sourceList[j].Name, pass.GetPassName(), StringComparison.Ordinal))
+                {
+                    match = sourceList[j];
+                    break;
+                }
+            }
+
             var enabled = match.Name is not null ? match.Enabled : pass.IsEnabledByDefault();
             result[i] = new RenderPassToggle(pass.GetPassName(), enabled);
         }

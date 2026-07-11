@@ -230,7 +230,16 @@ public abstract class Serializable : Object
 
     public override void SerializeInBlock(Archive archive)
     {
-        var count = archive.IsInput ? 0u : (uint)_attributes.Count(static attribute => attribute.ShouldSave);
+        var count = 0u;
+        if (!archive.IsInput)
+        {
+            foreach (var attribute in _attributes)
+            {
+                if (attribute.ShouldSave)
+                    ++count;
+            }
+        }
+
         using var block = archive.OpenArrayBlock("attributes", count);
         if (archive.IsInput)
         {

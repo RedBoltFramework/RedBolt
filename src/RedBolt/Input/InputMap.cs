@@ -470,8 +470,13 @@ public sealed class InputMap : ResourceWithMetadata
 
         internal void AddScreenButton(string elementName)
         {
-            if (!_screenButtons.Contains(elementName, StringComparer.Ordinal))
-                _screenButtons.Add(elementName);
+            foreach (var screenButton in _screenButtons)
+            {
+                if (string.Equals(screenButton, elementName, StringComparison.Ordinal))
+                    return;
+            }
+
+            _screenButtons.Add(elementName);
         }
 
         internal void RemoveScreenButton(string elementName) => _screenButtons.RemoveAll(screenButton => string.Equals(screenButton, elementName, StringComparison.Ordinal));

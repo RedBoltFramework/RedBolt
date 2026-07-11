@@ -51,7 +51,17 @@ public sealed class Renderer
 
     public uint GetNumViewports() => (uint)_viewports.Count;
 
-    public uint GetNumViews() => (uint)_viewports.Count(static viewport => viewport is not null);
+    public uint GetNumViews()
+    {
+        var count = 0u;
+        foreach (var viewport in _viewports)
+        {
+            if (viewport is not null)
+                ++count;
+        }
+
+        return count;
+    }
 
     public Viewport? GetViewportForScene(Scene scene, uint index = 0)
     {

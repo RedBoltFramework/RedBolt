@@ -213,7 +213,8 @@ public sealed class Octree : Component
 
     public RayQueryResult? RaycastSingle(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
-        return Raycast(ray, level, maxDistance, drawableFlags, viewMask).FirstOrDefault();
+        var results = Raycast(ray, level, maxDistance, drawableFlags, viewMask);
+        return results.Count > 0 ? results[0] : null;
     }
 
     public object? QueryZone(Drawable drawable) => null;

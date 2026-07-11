@@ -169,7 +169,16 @@ public sealed class Node : Animatable
                 node.SetVariables(attributePrefab.Value.GetVariantMap().Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject())));
                 continue;
             }
-            var attribute = value.Attributes.FirstOrDefault(attribute => attribute.Name == attributePrefab.Name);
+            AttributeInfo? attribute = null;
+            foreach (var candidate in value.Attributes)
+            {
+                if (candidate.Name == attributePrefab.Name)
+                {
+                    attribute = candidate;
+                    break;
+                }
+            }
+
             if (attribute is null) continue;
             object? converted = attribute.ValueType.IsEnum ? Enum.ToObject(attribute.ValueType, attributePrefab.Value.GetInt()) : attributePrefab.Value.GetObject();
             if (attribute.ValueType == typeof(uint)) converted = attributePrefab.Value.GetUInt();
@@ -180,8 +189,14 @@ public sealed class Node : Animatable
 
     private static Type? ResolveComponentType(string typeName)
     {
-        return typeof(Component).Assembly.GetTypes().FirstOrDefault(type => !type.IsAbstract && typeof(Component).IsAssignableFrom(type)
-            && (type.Name == typeName || type.FullName == typeName || type.GetClassName() == typeName));
+        foreach (var type in typeof(Component).Assembly.GetTypes())
+        {
+            if (!type.IsAbstract && typeof(Component).IsAssignableFrom(type)
+                && (type.Name == typeName || type.FullName == typeName || type.GetClassName() == typeName))
+                return type;
+        }
+
+        return null;
     }
 
     // Remaining reader/writer overloads are represented by NodePrefab and Archive entry points above.

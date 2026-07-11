@@ -728,7 +728,7 @@ layout(std140) uniform Material
         if (pipeline is null)
             return;
 
-        if (flags.HasFlag(ClearTarget.Stencil))
+        if ((flags & ClearTarget.Stencil) == ClearTarget.Stencil)
             _immediateContext.SetStencilRef(stencil);
 
         DrawFullscreenQuad(
@@ -753,7 +753,7 @@ layout(std140) uniform Material
         if (pipeline is null)
             return;
 
-        if (flags.HasFlag(ClearTarget.Stencil))
+        if ((flags & ClearTarget.Stencil) == ClearTarget.Stencil)
             _immediateContext.SetStencilRef(stencil);
 
         DrawFullscreenQuad(
@@ -1957,20 +1957,33 @@ layout(std140) uniform Material
         if (customBuffer is null || customBuffer.Size == 0u)
             return new CustomUniformLayout(0u, []);
 
-        var fields = new List<CustomUniformField>();
-        foreach (var uniform in reflection.GetUniforms().Values
-                     .Where(uniform => uniform.Group == ShaderParameterGroup.Custom)
-                     .OrderBy(uniform => uniform.Offset)
-                     .ThenBy(uniform => uniform.Name, StringComparer.Ordinal))
+        var customUniforms = new List<UniformReflection>();
+        foreach (var uniform in reflection.GetUniforms().Values)
         {
-            fields.Add(new CustomUniformField(
+            if (uniform.Group == ShaderParameterGroup.Custom)
+                customUniforms.Add(uniform);
+        }
+
+        customUniforms.Sort(static (left, right) =>
+        {
+            var offsetComparison = left.Offset.CompareTo(right.Offset);
+            return offsetComparison != 0
+                ? offsetComparison
+                : string.CompareOrdinal(left.Name, right.Name);
+        });
+
+        var fields = new CustomUniformField[customUniforms.Count];
+        for (var i = 0; i < fields.Length; ++i)
+        {
+            var uniform = customUniforms[i];
+            fields[i] = new CustomUniformField(
                 uniform.Name,
                 GetCustomParameterName(uniform.Name),
                 MapCustomUniformKind(uniform),
-                checked((int)uniform.Offset)));
+                checked((int)uniform.Offset));
         }
 
-        return new CustomUniformLayout(customBuffer.Size, fields.ToArray());
+        return new CustomUniformLayout(customBuffer.Size, fields);
     }
 
     private static string GetCustomParameterName(string uniformName)
@@ -2078,7 +2091,10 @@ layout(std140) uniform Material
         if (_device is null || _immediateContext is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        var vertexData = vertexBuffer.GetData().ToArray();
+        var vertexSource = vertexBuffer.GetData();
+        var vertexData = new byte[vertexSource.Count];
+        for (var i = 0; i < vertexData.Length; ++i)
+            vertexData[i] = vertexSource[i];
         uploaded = CreateBuffer(_device, _immediateContext, "RedBoltModelVB", vertexData,
             (ulong)vertexData.Length, BindFlags.BindVertexBuffer, vertexBuffer.GetVertexSize());
         _uploadedVertexBuffers[vertexBuffer] = uploaded;
@@ -2093,7 +2109,11 @@ layout(std140) uniform Material
         if (_device is null || _immediateContext is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
-        uploaded = CreateIndexBuffer(_device, _immediateContext, indexBuffer, indexBuffer.GetUnpackedData().ToArray());
+        var indexSource = indexBuffer.GetUnpackedData();
+        var indices = new uint[indexSource.Count];
+        for (var i = 0; i < indices.Length; ++i)
+            indices[i] = indexSource[i];
+        uploaded = CreateIndexBuffer(_device, _immediateContext, indexBuffer, indices);
         _uploadedIndexBuffers[indexBuffer] = uploaded;
         return uploaded;
     }
@@ -2264,8 +2284,11 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        if (Enum.GetValues<CubeMapFace>().Any(face => texture.GetData(face, 0u) is { Length: > 0 }))
-            throw new NotSupportedException("CPU-backed TextureCube uploads are not implemented in the current managed renderer.");
+        for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; ++face)
+        {
+            if (texture.GetData(face, 0u) is { Length: > 0 })
+                throw new NotSupportedException("CPU-backed TextureCube uploads are not implemented in the current managed renderer.");
+        }
 
         textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
@@ -2913,7 +2936,15 @@ layout(std140) uniform Material
         if (!string.IsNullOrWhiteSpace(passDefines))
             defines.AddRange(passDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
-        cachedDefines = string.Join(' ', defines.Distinct(StringComparer.OrdinalIgnoreCase));
+        var uniqueDefines = new List<string>(defines.Count);
+        var seenDefines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var define in defines)
+        {
+            if (seenDefines.Add(define))
+                uniqueDefines.Add(define);
+        }
+
+        cachedDefines = string.Join(' ', uniqueDefines);
         _shaderDefinesCache[key] = cachedDefines;
         return cachedDefines;
     }
@@ -3040,7 +3071,16 @@ layout(std140) uniform Material
     private static void AddLayoutElement(List<LayoutElementSpec> target, VertexBuffer vertexBuffer,
         VertexElementSemantic semantic, byte index, uint inputIndex)
     {
-        var element = vertexBuffer.GetElements().FirstOrDefault(existing => existing.Semantic == semantic && existing.Index == index);
+        var elements = vertexBuffer.GetElements();
+        var element = default(VertexElement);
+        for (var i = 0; i < elements.Count; ++i)
+        {
+            if (elements[i].Semantic == semantic && elements[i].Index == index)
+            {
+                element = elements[i];
+                break;
+            }
+        }
         if (element == default && semantic != VertexElementSemantic.Position)
             return;
 
@@ -3155,10 +3195,10 @@ layout(std140) uniform Material
     private static ClearFramebufferPipelineSettings GetClearFramebufferPipelineSettings(ClearTarget flags)
     {
         flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
-        var clearStencil = flags.HasFlag(ClearTarget.Stencil);
+        var clearStencil = (flags & ClearTarget.Stencil) == ClearTarget.Stencil;
         return new ClearFramebufferPipelineSettings(
-            flags.HasFlag(ClearTarget.Color),
-            flags.HasFlag(ClearTarget.Depth),
+            (flags & ClearTarget.Color) == ClearTarget.Color,
+            (flags & ClearTarget.Depth) == ClearTarget.Depth,
             clearStencil,
             0xff,
             clearStencil ? (byte)0xff : (byte)0x00,
@@ -3450,7 +3490,9 @@ layout(std140) uniform Material
         }
         else
         {
-            var narrowed = indices.Select(static value => checked((ushort)value)).ToArray();
+            var narrowed = new ushort[indices.Length];
+            for (var i = 0; i < indices.Length; ++i)
+                narrowed[i] = checked((ushort)indices[i]);
             data = new byte[narrowed.Length * sizeof(ushort)];
             Buffer.BlockCopy(narrowed, 0, data, 0, data.Length);
         }
@@ -3717,7 +3759,11 @@ layout(std140) uniform Material
 
     private static string SanitizeDiagnosticName(string name)
     {
-        return string.Concat(name.Select(static ch => char.IsLetterOrDigit(ch) ? ch : '_'));
+        return string.Create(name.Length, name, static (span, value) =>
+        {
+            for (var i = 0; i < value.Length; ++i)
+                span[i] = char.IsLetterOrDigit(value[i]) ? value[i] : '_';
+        });
     }
 
     private static Dictionary<PipelineVariableKey, IShaderResourceVariable> BuildShaderVariableLookup(IShaderResourceBinding shaderResources)

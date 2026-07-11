@@ -181,7 +181,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
 
     public bool Equals(Spline? other)
     {
-        return other is not null && _interpolationMode == other._interpolationMode && _knots.SequenceEqual(other._knots);
+        return other is not null && _interpolationMode == other._interpolationMode && ManagedSequence.Equal(_knots, other._knots);
     }
 
     public override bool Equals(object? obj)

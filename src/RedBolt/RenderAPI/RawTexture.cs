@@ -192,11 +192,11 @@ public class RawTexture : DeviceObject
             ArraySize = type == TextureType.Texture2DArray ? arraySize : 1u,
             BindFlags = BindFlags.BindShaderResource
         };
-        if (flags.HasFlag(TextureFlag.BindRenderTarget))
+        if ((flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget)
             desc.BindFlags |= BindFlags.BindRenderTarget;
-        if (flags.HasFlag(TextureFlag.BindDepthStencil))
+        if ((flags & TextureFlag.BindDepthStencil) == TextureFlag.BindDepthStencil)
             desc.BindFlags |= BindFlags.BindDepthStencil;
-        if (flags.HasFlag(TextureFlag.BindUnorderedAccess))
+        if ((flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
             desc.BindFlags |= BindFlags.BindUnorderedAccess;
 
         glDevice.CreateTextureFromGLHandle(handle, 0u, desc, ResourceState.ResourceStateUnknown, out var texture);
@@ -465,7 +465,7 @@ public class RawTexture : DeviceObject
     /// <summary>Create UAV for given array slices and mip levels.</summary>
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
-        if (_texture is null || !_parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
+        if (_texture is null || (_parameters.Flags & TextureFlag.BindUnorderedAccess) != TextureFlag.BindUnorderedAccess)
             return null;
         if (!GetRenderDevice()?.IsUnorderedAccessFormatSupported(_parameters.Format) ?? true)
             return null;
@@ -535,7 +535,7 @@ public class RawTexture : DeviceObject
         if (_texture is null)
             return;
 
-        if (_parameters.MultiSample > 1u && !_parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve))
+        if (_parameters.MultiSample > 1u && (_parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve)
             _resolveDirty = true;
         else if (_parameters.NumLevels > 1u)
             _levelsDirty = true;
@@ -611,13 +611,13 @@ public class RawTexture : DeviceObject
             textureDesc.Depth = checked((uint)_parameters.Size.Z);
         else
             textureDesc.ArraySize = _parameters.ArraySize;
-        if (_parameters.Flags.HasFlag(TextureFlag.BindRenderTarget))
+        if ((_parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget)
             textureDesc.BindFlags |= BindFlags.BindRenderTarget;
-        if (_parameters.Flags.HasFlag(TextureFlag.BindDepthStencil))
+        if ((_parameters.Flags & TextureFlag.BindDepthStencil) == TextureFlag.BindDepthStencil)
             textureDesc.BindFlags |= BindFlags.BindDepthStencil;
-        if (_parameters.Flags.HasFlag(TextureFlag.BindUnorderedAccess))
+        if ((_parameters.Flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
-        if (_parameters.MultiSample == 1u && _parameters.Flags.HasFlag(TextureFlag.BindRenderTarget) && _parameters.NumLevelsRtv != 1u)
+        if (_parameters.MultiSample == 1u && (_parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget && _parameters.NumLevelsRtv != 1u)
             textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
 
         device.CreateTexture(textureDesc, null!, out _handle);
@@ -627,7 +627,7 @@ public class RawTexture : DeviceObject
             return false;
         }
 
-        if (_parameters.MultiSample != 1u && !_parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve))
+        if (_parameters.MultiSample != 1u && (_parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve)
         {
             textureDesc.MipLevels = _parameters.NumLevels;
             textureDesc.SampleCount = 1u;
@@ -796,8 +796,8 @@ public class RawTexture : DeviceObject
         if (parameters.Format == TextureFormat.Unknown)
             return false;
 
-        var isRenderTarget = parameters.Flags.HasFlag(TextureFlag.BindRenderTarget);
-        var isDepthStencil = parameters.Flags.HasFlag(TextureFlag.BindDepthStencil);
+        var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget;
+        var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) == TextureFlag.BindDepthStencil;
         if (isRenderTarget && isDepthStencil)
             return false;
 
@@ -813,7 +813,7 @@ public class RawTexture : DeviceObject
 
         var maxLevels = CalculateMipLevelCount(parameters.Size);
         var numLevels = parameters.NumLevels == 0u ? maxLevels : Math.Min(parameters.NumLevels, maxLevels);
-        if (isDepthStencil || (multiSample != 1u && flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
+        if (isDepthStencil || (multiSample != 1u && (flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
             numLevels = 1u;
         parameters = parameters with
         {
@@ -835,7 +835,7 @@ public class RawTexture : DeviceObject
                 var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
                 texture2D.SetNumLevels(parameters.NumLevels);
                 if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
-                    parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
+                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
                     return false;
                 textureCandidate = texture2D;
                 break;
@@ -847,7 +847,7 @@ public class RawTexture : DeviceObject
                 textureCube.SetNumLevels(parameters.NumLevels);
                 var edge = normalizedSize.X;
                 if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
-                    parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
+                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
                     return false;
                 normalizedSize = new Vector3i(edge, edge, 1);
                 textureCandidate = textureCube;
@@ -859,7 +859,7 @@ public class RawTexture : DeviceObject
                 var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
                 textureArray.SetNumLevels(parameters.NumLevels);
                 if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
-                    parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
+                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
                     return false;
                 textureCandidate = textureArray;
                 break;
@@ -947,7 +947,7 @@ public class RawTexture : DeviceObject
         if (parameters.NumLevelsRtv != 0u)
             return parameters.NumLevelsRtv;
 
-        return texture.MultiSample > 1 && !parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)
+        return texture.MultiSample > 1 && (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve
             ? 1u
             : texture.Levels;
     }

@@ -153,7 +153,16 @@ public class Animatable : Serializable
             return;
         }
 
-        var attributeInfo = Attributes.FirstOrDefault(attribute => string.Equals(attribute.Name, name, StringComparison.Ordinal));
+        AttributeInfo? attributeInfo = null;
+        foreach (var attribute in Attributes)
+        {
+            if (string.Equals(attribute.Name, name, StringComparison.Ordinal))
+            {
+                attributeInfo = attribute;
+                break;
+            }
+        }
+
         if (attributeInfo is null)
             return;
 

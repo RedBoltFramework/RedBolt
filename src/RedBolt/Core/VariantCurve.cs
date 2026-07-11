@@ -205,9 +205,9 @@ public sealed class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<Va
             && Name == other.Name
             && Interpolation == other.Interpolation
             && SplineTension == other.SplineTension
-            && InTangents.SequenceEqual(other.InTangents)
-            && OutTangents.SequenceEqual(other.OutTangents)
-            && KeyFrames.SequenceEqual(other.KeyFrames);
+            && ManagedSequence.Equal(InTangents, other.InTangents)
+            && ManagedSequence.Equal(OutTangents, other.OutTangents)
+            && ManagedSequence.Equal(KeyFrames, other.KeyFrames);
     }
 
     public override bool Equals(object? obj) => Equals(obj as VariantCurve);

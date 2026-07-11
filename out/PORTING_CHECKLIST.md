@@ -300,8 +300,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Image.h`
   - [x] `struct CompressedLevel` — RGBA and BC1/BC2/BC3 decompression are ported
   - [x] `Image : Resource` — image decoding, DDS mip access, pixels/resampling/subimages, mip chains, color LUTs, and BMP/PNG/TGA/JPG encoding are ported
-- [ ] `ImageDDS.h`
-  - [ ] DDS format helpers
+- [x] `ImageDDS.h`
+  - [x] DDS format helpers — ported as the `ImageDds` static loader plus the `CompressedLevel` decode helper (DDS header/DX10 parsing, BC1/BC2/BC3 decompression, RGBA conversion, and cubemap faces)
 - [x] `ImageCube.h`
   - [x] `ImageCube : Resource` — face/layout loading, projection/sampling, mip decompression, and spherical-harmonics calculation/cache are ported
 - [x] `JSONValue.h`
@@ -356,8 +356,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `SceneEvents.h`
   - [x] scene event definitions — update, network, drawable, animation, async loading, hierarchy, temporary, cloning, and world-origin payloads are ported
-- [ ] `AnimationDefs.h`
-  - [ ] animation enums / constants
+- [x] `AnimationDefs.h`
+  - [x] animation enums / constants — `WrapMode` (Loop/Once/Clamp) ported
 - [ ] `PrefabTypes.h`
   - [ ] prefab enums / constants
 - [x] `Serializable.h`
@@ -736,8 +736,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A11. Input — depends on Core, Graphics (window)
 
-- [ ] `InputConstants.h`
-  - [ ] key / button / scancode constants
+- [x] `InputConstants.h`
+  - [x] key / button / scancode constants — represented as C# enums (`Key`, `Scancode`, `MouseButton`, `Qualifier`, `MouseMode`, `HatPosition`, `ControllerButton`, `ControllerAxis`)
 - [x] `InputEvents.h`
   - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
 - [x] `AxisAdapter.h`

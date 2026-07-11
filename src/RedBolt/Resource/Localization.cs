@@ -140,7 +140,17 @@ public sealed class Localization : Object
         }
 
         translations[new StringHash(id)] = translatedString;
-        if (!_languages.Contains(language, StringComparer.Ordinal))
+        var hasLanguage = false;
+        foreach (var existing in _languages)
+        {
+            if (string.Equals(existing, language, StringComparison.Ordinal))
+            {
+                hasLanguage = true;
+                break;
+            }
+        }
+
+        if (!hasLanguage)
             _languages.Add(language);
         if (_languageIndex < 0)
             _languageIndex = 0;

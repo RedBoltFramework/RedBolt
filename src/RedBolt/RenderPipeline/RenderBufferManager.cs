@@ -391,8 +391,8 @@ public sealed class RenderBufferManager
         graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), colorTarget: null, depthStencilBuffer.GetView());
         graphics.ClearCurrentRenderTargets(
             clearColorTarget: false,
-            clearDepth: flags.HasFlag(ClearTarget.Depth),
-            clearStencil: flags.HasFlag(ClearTarget.Stencil),
+            clearDepth: (flags & ClearTarget.Depth) == ClearTarget.Depth,
+            clearStencil: (flags & ClearTarget.Stencil) == ClearTarget.Stencil,
             depth: depth,
             stencil: stencil);
     }
@@ -431,9 +431,9 @@ public sealed class RenderBufferManager
         {
             graphics.ClearCurrentRenderTargets(
                 color,
-                clearColorTarget: flags.HasFlag(ClearTarget.Color),
-                clearDepth: flags.HasFlag(ClearTarget.Depth),
-                clearStencil: flags.HasFlag(ClearTarget.Stencil),
+                clearColorTarget: (flags & ClearTarget.Color) == ClearTarget.Color,
+                clearDepth: (flags & ClearTarget.Depth) == ClearTarget.Depth,
+                clearStencil: (flags & ClearTarget.Stencil) == ClearTarget.Stencil,
                 depth: depth,
                 stencil: stencil);
             return;

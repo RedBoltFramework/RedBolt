@@ -89,8 +89,12 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
                 (M00 * M11 - M10 * M01) * invDet);
         }
     }
-    public bool IsNaN => Data.Any(float.IsNaN);
-    public bool IsInf => Data.Any(float.IsInfinity);
+    public bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M02)
+        || float.IsNaN(M10) || float.IsNaN(M11) || float.IsNaN(M12)
+        || float.IsNaN(M20) || float.IsNaN(M21) || float.IsNaN(M22);
+    public bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M02)
+        || float.IsInfinity(M10) || float.IsInfinity(M11) || float.IsInfinity(M12)
+        || float.IsInfinity(M20) || float.IsInfinity(M21) || float.IsInfinity(M22);
 
     public float Element(uint row, uint column) => Data[checked((int)(row * 3 + column))];
     public Vector3f Row(uint row) => new(Element(row, 0), Element(row, 1), Element(row, 2));

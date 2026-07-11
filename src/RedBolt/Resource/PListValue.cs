@@ -200,7 +200,7 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
             PListValueType.Float => _floatValue == other._floatValue,
             PListValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
             PListValueType.ValueMap => _valueMap.Count == other._valueMap.Count && _valueMap.All(item => other._valueMap.TryGetValue(item.Key, out var otherValue) && item.Value.Equals(otherValue)),
-            PListValueType.ValueVector => _valueVector.SequenceEqual(other._valueVector),
+            PListValueType.ValueVector => ManagedSequence.Equal(_valueVector, other._valueVector),
             _ => false
         };
     }

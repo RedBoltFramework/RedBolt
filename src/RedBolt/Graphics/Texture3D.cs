@@ -125,6 +125,9 @@ public sealed class Texture3D : Texture
 
     private void RefreshTotalMemoryUse()
     {
-        RefreshMemoryUse((uint)_levelData.Sum(static item => item.Value.Length));
+        var total = 0;
+        foreach (var item in _levelData)
+            total += item.Value.Length;
+        RefreshMemoryUse((uint)total);
     }
 }

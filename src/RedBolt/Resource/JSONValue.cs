@@ -498,7 +498,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
             JSONValueType.Bool => _boolValue == other._boolValue,
             JSONValueType.Number => _numberValue.Equals(other._numberValue),
             JSONValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
-            JSONValueType.Array => _arrayValue.SequenceEqual(other._arrayValue),
+            JSONValueType.Array => ManagedSequence.Equal(_arrayValue, other._arrayValue),
             JSONValueType.Object => _objectValue.Count == other._objectValue.Count && _objectValue.All(pair => other._objectValue.TryGetValue(pair.Key, out var otherValue) && pair.Value.Equals(otherValue)),
             _ => false
         };

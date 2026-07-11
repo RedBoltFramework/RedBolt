@@ -734,7 +734,7 @@ public readonly struct Variant : IEquatable<Variant>
             VariantType.Buffer => _bufferValue.Length == 0,
             VariantType.VoidPtr => _voidPtrValue == IntPtr.Zero,
             VariantType.ResourceRef => string.IsNullOrEmpty(_resourceRefValue.Name),
-            VariantType.ResourceRefList => _resourceRefListValue.Names.All(static name => string.IsNullOrEmpty(name)),
+            VariantType.ResourceRefList => AllNullOrEmpty(_resourceRefListValue.Names),
             VariantType.VariantVector => _variantVectorValue.Count == 0,
             VariantType.StringVector => _stringVectorValue.Count == 0,
             VariantType.VariantMap => _variantMapValue.Count == 0,
@@ -1309,9 +1309,20 @@ public readonly struct Variant : IEquatable<Variant>
         return true;
     }
 
-    private static bool SequenceEqual<T>(IEnumerable<T> lhs, IEnumerable<T> rhs)
+    private static bool SequenceEqual<T>(IReadOnlyList<T> lhs, IReadOnlyList<T> rhs)
     {
-        return lhs.SequenceEqual(rhs);
+        return ManagedSequence.Equal(lhs, rhs);
+    }
+
+    private static bool AllNullOrEmpty(IReadOnlyList<string> names)
+    {
+        for (var i = 0; i < names.Count; ++i)
+        {
+            if (!string.IsNullOrEmpty(names[i]))
+                return false;
+        }
+
+        return true;
     }
 }
 

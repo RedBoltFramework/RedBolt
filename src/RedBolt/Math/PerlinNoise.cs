@@ -14,7 +14,9 @@ public sealed class PerlinNoise
     public PerlinNoise(RandomEngine random)
     {
         ArgumentNullException.ThrowIfNull(random);
-        var basePermutation = Enumerable.Range(0, NumPer).ToArray();
+        var basePermutation = new int[NumPer];
+        for (var i = 0; i < NumPer; ++i)
+            basePermutation[i] = i;
         random.Shuffle(basePermutation);
         for (var i = 0; i < 512; ++i)
             _permutation[i] = basePermutation[i & 255];

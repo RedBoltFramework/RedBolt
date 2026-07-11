@@ -246,8 +246,11 @@ public sealed class ValueAnimation : Resource
         else if (type != _valueType)
             return false;
 
-        if (_keyFrames.Any(frame => frame.Time == time))
-            return false;
+        foreach (var existingFrame in _keyFrames)
+        {
+            if (existingFrame.Time == time)
+                return false;
+        }
 
         _keyFrames.Add(new VAnimKeyFrame { Time = time, Value = value });
         _keyFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
