@@ -128,4 +128,40 @@ public sealed class InputTests
         Assert.False(Input.GetToggleFullscreen());
         Assert.True(Input.GetTouchEmulation());
     }
+
+    [Fact]
+    public void Managed_state_changes_emit_upstream_input_events()
+    {
+        Input.SetKey(Key.B, Scancode.B, false);
+        Input.SetMouseButton(MouseButton.Right, false);
+        InputEvents.KeyDownEvent keyDown = default;
+        InputEvents.KeyUpEvent keyUp = default;
+        InputEvents.MouseButtonDownEvent mouseDown = default;
+        InputEvents.MouseButtonUpEvent mouseUp = default;
+        InputEvents.JoystickAxisMoveEvent axisMove = default;
+        InputEvents.JoystickHatMoveEvent hatMove = default;
+        using var keyDownSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyDownEvent>((ref InputEvents.KeyDownEvent value) => keyDown = value);
+        using var keyUpSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyUpEvent>((ref InputEvents.KeyUpEvent value) => keyUp = value);
+        using var mouseDownSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseButtonDownEvent>((ref InputEvents.MouseButtonDownEvent value) => mouseDown = value);
+        using var mouseUpSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseButtonUpEvent>((ref InputEvents.MouseButtonUpEvent value) => mouseUp = value);
+        using var axisSubscription = Context.Instance.SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>((ref InputEvents.JoystickAxisMoveEvent value) => axisMove = value);
+        using var hatSubscription = Context.Instance.SubscribeToEvent<InputEvents.JoystickHatMoveEvent>((ref InputEvents.JoystickHatMoveEvent value) => hatMove = value);
+
+        Input.SetKey(Key.B, Scancode.B, true);
+        Input.SetKey(Key.B, Scancode.B, false);
+        Input.SetMouseButton(MouseButton.Right, true, 2);
+        Input.SetMouseButton(MouseButton.Right, false);
+        Input.SetJoystickAxis(3, 0.75f);
+        Input.SetHatPosition(HatPosition.RightDown);
+
+        Assert.Equal(Key.B, keyDown.Key);
+        Assert.Equal(Scancode.B, keyUp.Scancode);
+        Assert.Equal(MouseButton.Right, mouseDown.Button);
+        Assert.Equal(2, mouseDown.Clicks);
+        Assert.Equal(MouseButton.Right, mouseUp.Button);
+        Assert.Equal(3, axisMove.Axis);
+        Assert.True(MathDefs.ApproximatelyEquivalent(axisMove.Position, 0.75f));
+        Assert.Equal(HatPosition.RightDown, hatMove.Position);
+        Input.SetHatPosition(HatPosition.Center);
+    }
 }

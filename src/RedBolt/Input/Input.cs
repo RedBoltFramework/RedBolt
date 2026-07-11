@@ -3,7 +3,7 @@ using System.Text;
 
 namespace RedBolt;
 
-public sealed class Input
+public sealed class Input : Object
 {
     private const uint SdlInitVideo = 0x00000020u;
     private static readonly Dictionary<Key, Scancode> KeyToScancode = BuildKeyToScancodeMap();
@@ -170,6 +170,10 @@ public sealed class Input
         while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
         {
             var eventType = (SdlEventType)_nativeEvent.Type;
+            var rawEvent = new InputEvents.SDLRawInputEvent { SDLEvent = _nativeEvent.Handle };
+            SendEvent(ref rawEvent);
+            if (rawEvent.Consumed)
+                continue;
             var eventHandledByDearImGui = dearImGui?.ProcessEvent(_nativeEvent.Handle) == true;
 
             if (eventHandledByDearImGui || ShouldConsumeEventByDearImGui(dearImGui, eventType))
@@ -178,6 +182,7 @@ public sealed class Input
             if (eventType == SdlEventType.SdlQuit)
             {
                 ExitRequested = true;
+                SendEvent<InputEvents.ExitRequestedEvent>();
             }
             else if (eventType == SdlEventType.SdlKeydown)
             {
@@ -201,11 +206,12 @@ public sealed class Input
             }
             else if (eventType == SdlEventType.SdlMousewheel)
             {
-                _mouseMoveWheel += _nativeEvent.WheelY;
+                SetMouseWheel(_nativeEvent.WheelY);
             }
             else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
             {
                 ExitRequested = true;
+                SendEvent<InputEvents.ExitRequestedEvent>();
             }
             else if (eventType == SdlEventType.SdlWindowevent)
             {
@@ -377,7 +383,17 @@ public sealed class Input
 
     public void SetMousePosition(Vector2i position)
     {
+        var delta = position - MousePosition;
         MousePosition = position;
+        if (delta != Vector2i.Zero)
+        {
+            var eventData = new InputEvents.MouseMoveEvent
+            {
+                X = position.X, Y = position.Y, DX = delta.X, DY = delta.Y,
+                Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+            };
+            SendEvent(ref eventData);
+        }
     }
 
     public void SetKey(Key key, bool newState)
@@ -387,6 +403,7 @@ public sealed class Input
 
     public void SetKey(Key key, Scancode scancode, bool newState)
     {
+        var wasDown = _keyDown.Contains(key);
         if (newState)
         {
             if (_keyDown.Add(key))
@@ -401,10 +418,28 @@ public sealed class Input
         }
 
         UpdateQualifiers(key, newState);
+        if (newState)
+        {
+            var eventData = new InputEvents.KeyDownEvent
+            {
+                Key = key, Scancode = scancode, Buttons = _mouseButtonDown,
+                Qualifiers = Qualifiers, Repeat = wasDown
+            };
+            SendEvent(ref eventData);
+        }
+        else if (wasDown)
+        {
+            var eventData = new InputEvents.KeyUpEvent
+            {
+                Key = key, Scancode = scancode, Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+            };
+            SendEvent(ref eventData);
+        }
     }
 
     public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)
     {
+        var wasDown = (_mouseButtonDown & button) != 0;
         if (newState)
         {
             if ((_mouseButtonDown & button) == 0)
@@ -418,11 +453,33 @@ public sealed class Input
 
         if (clicks > 0)
             _mouseButtonClick |= button;
+
+        if (newState && !wasDown)
+        {
+            var eventData = new InputEvents.MouseButtonDownEvent
+            {
+                Button = button, Buttons = _mouseButtonDown, Qualifiers = Qualifiers, Clicks = clicks
+            };
+            SendEvent(ref eventData);
+        }
+        else if (!newState && wasDown)
+        {
+            var eventData = new InputEvents.MouseButtonUpEvent
+            {
+                Button = button, Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+            };
+            SendEvent(ref eventData);
+        }
     }
 
     public void SetMouseWheel(int delta)
     {
         _mouseMoveWheel += delta;
+        var eventData = new InputEvents.MouseWheelEvent
+        {
+            Wheel = delta, Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+        };
+        SendEvent(ref eventData);
     }
 
     public void SetControllerButton(ControllerButton button, bool newState)
@@ -431,6 +488,7 @@ public sealed class Input
             _controllerButtonsDown.Add(button);
         else
             _controllerButtonsDown.Remove(button);
+        SendJoystickButtonEvent((int)button, newState);
     }
 
     public void SetJoystickButton(uint buttonIndex, bool newState)
@@ -439,21 +497,28 @@ public sealed class Input
             _joystickButtonsDown.Add(buttonIndex);
         else
             _joystickButtonsDown.Remove(buttonIndex);
+        SendJoystickButtonEvent(checked((int)buttonIndex), newState);
     }
 
     public void SetControllerAxis(ControllerAxis axis, float position)
     {
-        _controllerAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+        var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
+        _controllerAxisPositions[axis] = clamped;
+        SendJoystickAxisEvent((int)axis, clamped);
     }
 
     public void SetJoystickAxis(uint axis, float position)
     {
-        _joystickAxisPositions[axis] = MathDefs.Clamp(position, -1.0f, 1.0f);
+        var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
+        _joystickAxisPositions[axis] = clamped;
+        SendJoystickAxisEvent(checked((int)axis), clamped);
     }
 
     public void SetHatPosition(HatPosition position)
     {
         _hatPosition = position;
+        var eventData = new InputEvents.JoystickHatMoveEvent { JoystickID = 0, Hat = 0, Position = position };
+        SendEvent(ref eventData);
     }
 
     public void SetScreenButton(string elementName, bool newState)
@@ -491,6 +556,7 @@ public sealed class Input
 
     public void SetMouseMode(MouseMode mode, bool suppressEvent = false)
     {
+        var changed = MouseMode != mode;
         if (mode == MouseMode.Absolute)
             SetMouseGrabbed(false, suppressEvent: true);
         else if (mode == MouseMode.Relative || mode == MouseMode.Wrap)
@@ -499,6 +565,11 @@ public sealed class Input
         MouseMode = mode;
         if (!suppressEvent)
             _lastMouseMode = mode;
+        if (changed && !suppressEvent)
+        {
+            var eventData = new InputEvents.MouseModeChangedEvent { Mode = mode, MouseLocked = IsMouseLocked() };
+            SendEvent(ref eventData);
+        }
     }
 
     public void ResetMouseMode() => SetMouseMode(_lastMouseMode);
@@ -509,9 +580,15 @@ public sealed class Input
 
     public void SetMouseVisible(bool enable, bool suppressEvent = false)
     {
+        var changed = MouseVisible != enable;
         MouseVisible = enable;
         if (!suppressEvent)
             _lastMouseVisible = enable;
+        if (changed && !suppressEvent)
+        {
+            var eventData = new InputEvents.MouseVisibleChangedEvent { Visible = enable };
+            SendEvent(ref eventData);
+        }
     }
 
     public void ResetMouseVisible() => SetMouseVisible(_lastMouseVisible);
@@ -597,43 +674,43 @@ public sealed class Input
     {
         var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
-        if (_keyDown.Add(key))
-            _keyPress.Add(key);
-        if (_scancodeDown.Add(scancode))
-            _scancodePress.Add(scancode);
-
-        UpdateQualifiers(key, isDown: true);
+        SetKey(key, scancode, true);
         if (scancode == Scancode.Escape)
+        {
             ExitRequested = true;
+            SendEvent<InputEvents.ExitRequestedEvent>();
+        }
     }
 
     private void HandleKeyUp(SdlEvent @event)
     {
         var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
-        _keyDown.Remove(key);
-        _scancodeDown.Remove(scancode);
-        UpdateQualifiers(key, isDown: false);
+        SetKey(key, scancode, false);
     }
 
     private void HandleMouseButtonDown(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        _mouseButtonDown |= button;
-        _mouseButtonPress |= button;
+        SetMouseButton(button, true, @event.ButtonClicks);
     }
 
     private void HandleMouseButtonUp(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        _mouseButtonDown &= ~button;
-        _mouseButtonClick |= button;
+        SetMouseButton(button, false, @event.ButtonClicks);
     }
 
     private void HandleMouseMotion(SdlEvent @event)
     {
         MousePosition = new Vector2i(@event.MotionX, @event.MotionY);
         MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
+        var eventData = new InputEvents.MouseMoveEvent
+        {
+            X = MousePosition.X, Y = MousePosition.Y, DX = @event.MotionXrel, DY = @event.MotionYrel,
+            Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+        };
+        SendEvent(ref eventData);
     }
 
     private void HandleWindowEvent(SdlEvent @event)
@@ -647,6 +724,29 @@ public sealed class Input
             IsMinimized = true;
         else if (windowEvent == SdlWindowEventID.SdlWindoweventRestored)
             IsMinimized = false;
+
+        var eventData = new InputEvents.InputFocusEvent { Focus = HasFocus, Minimized = IsMinimized };
+        SendEvent(ref eventData);
+    }
+
+    private void SendJoystickButtonEvent(int button, bool down)
+    {
+        if (down)
+        {
+            var eventData = new InputEvents.JoystickButtonDownEvent { JoystickID = 0, Button = button };
+            SendEvent(ref eventData);
+        }
+        else
+        {
+            var eventData = new InputEvents.JoystickButtonUpEvent { JoystickID = 0, Button = button };
+            SendEvent(ref eventData);
+        }
+    }
+
+    private void SendJoystickAxisEvent(int axis, float position)
+    {
+        var eventData = new InputEvents.JoystickAxisMoveEvent { JoystickID = 0, Axis = axis, Position = position };
+        SendEvent(ref eventData);
     }
 
     private void UpdateQualifiers(Key key, bool isDown)
