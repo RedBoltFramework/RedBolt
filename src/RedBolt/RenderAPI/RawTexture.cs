@@ -19,6 +19,8 @@ public class RawTexture : DeviceObject
     private ITextureView[] _renderSurfaces = [];
     private ITextureView[] _readOnlyRenderSurfaces = [];
     private readonly List<ITextureView> _ownedUavs = [];
+    private readonly Box _updateBox = new();
+    private readonly TextureSubResData _updateSubresource = new();
     private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
     private bool _levelsDirty;
     private bool _resolveDirty;
@@ -124,26 +126,84 @@ public class RawTexture : DeviceObject
         _resolveDirty = false;
     }
 
-    public void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, ReadOnlySpan<byte> data,
+    public unsafe void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, ReadOnlySpan<byte> data,
         uint rowStride = 0u, uint sliceStride = 0u)
     {
-        if (_texture is null) throw new InvalidOperationException("Raw texture is not initialized.");
+        if (_texture is null)
+            throw new InvalidOperationException("Raw texture is not initialized.");
         if (level >= _parameters.NumLevels || arraySlice >= _parameters.ArraySize)
             throw new ArgumentOutOfRangeException(level >= _parameters.NumLevels ? nameof(level) : nameof(arraySlice));
-        if (rowStride != 0u && rowStride < _texture.GetRowDataSize(size.X))
-            throw new ArgumentOutOfRangeException(nameof(rowStride));
-        if (sliceStride != 0u && sliceStride < rowStride * (uint)Math.Max(size.Y, 1))
-            throw new ArgumentOutOfRangeException(nameof(sliceStride));
+        var levelSize = GetMipLevelSize(_parameters.Size, level);
+        if (offset.X < 0 || offset.Y < 0 || offset.Z < 0 || size.X <= 0 || size.Y <= 0 || size.Z <= 0 ||
+            offset.X + size.X > levelSize.X || offset.Y + size.Y > levelSize.Y || offset.Z + size.Z > levelSize.Z)
+            throw new ArgumentOutOfRangeException(nameof(size));
 
-        var success = _texture switch
+        var packedRowStride = checked((uint)size.X * GetTexelSize(_parameters.Format));
+        rowStride = rowStride != 0u ? rowStride : packedRowStride;
+        sliceStride = sliceStride != 0u ? sliceStride : checked(rowStride * (uint)size.Y);
+        if (rowStride < packedRowStride)
+            throw new ArgumentOutOfRangeException(nameof(rowStride));
+        if (sliceStride < rowStride * (uint)size.Y)
+            throw new ArgumentOutOfRangeException(nameof(sliceStride));
+        var requiredDataSize = checked((ulong)sliceStride * (uint)(size.Z - 1) +
+            (ulong)rowStride * (uint)size.Y);
+        if ((ulong)data.Length < requiredDataSize)
+            throw new ArgumentException("Texture update data is smaller than the specified region and strides.", nameof(data));
+
+        var context = GetSubsystem<Graphics>()?.GetImmediateContext();
+        if (context is null || _handle is null)
+            return;
+
+        _updateBox.MinX = checked((uint)offset.X);
+        _updateBox.MaxX = checked((uint)(offset.X + size.X));
+        _updateBox.MinY = checked((uint)offset.Y);
+        _updateBox.MaxY = checked((uint)(offset.Y + size.Y));
+        _updateBox.MinZ = checked((uint)offset.Z);
+        _updateBox.MaxZ = checked((uint)(offset.Z + size.Z));
+
+        nint scratchBuffer = 0;
+        try
         {
-            Texture2D texture => texture.SetData(level, offset.X, offset.Y, size.X, size.Y, data),
-            Texture3D texture => texture.SetData(level, offset.X, offset.Y, offset.Z, size.X, size.Y, size.Z, data),
-            TextureCube texture => texture.SetData((CubeMapFace)arraySlice, level, offset.X, offset.Y, size.X, size.Y, data),
-            Texture2DArray texture => texture.SetData(arraySlice, level, offset.X, offset.Y, size.X, size.Y, data),
-            _ => false
-        };
-        if (!success) throw new InvalidOperationException("Failed to update raw texture subresource.");
+            fixed (byte* sourceData = data)
+            {
+                var uploadData = sourceData;
+                if ((rowStride & 3u) != 0u || (sliceStride & 3u) != 0u)
+                {
+                    var alignedRowStride = (rowStride + 3u) & ~3u;
+                    var alignedSliceStride = checked(alignedRowStride * (uint)size.Y);
+                    scratchBuffer = GetRenderDevice()?.GetRenderPool().AllocateScratchBuffer(
+                        checked(alignedSliceStride * (uint)size.Z)) ?? 0;
+                    if (scratchBuffer == 0)
+                        throw new OutOfMemoryException("Failed to allocate texture upload scratch buffer.");
+                    var destination = (byte*)scratchBuffer;
+                    for (var z = 0; z < size.Z; ++z)
+                    {
+                        for (var y = 0; y < size.Y; ++y)
+                        {
+                            Buffer.MemoryCopy(sourceData + z * sliceStride + y * rowStride,
+                                destination + z * alignedSliceStride + y * alignedRowStride,
+                                alignedRowStride, rowStride);
+                        }
+                    }
+                    uploadData = destination;
+                    rowStride = alignedRowStride;
+                    sliceStride = alignedSliceStride;
+                }
+
+                _updateSubresource.PData = (nint)uploadData;
+                _updateSubresource.Stride = rowStride;
+                _updateSubresource.DepthStride = sliceStride;
+                context.UpdateTexture(_handle, level, arraySlice, _updateBox, _updateSubresource,
+                    ResourceStateTransitionMode.ResourceStateTransitionModeNone,
+                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+                _updateSubresource.PData = 0;
+            }
+        }
+        finally
+        {
+            if (scratchBuffer != 0)
+                GetRenderDevice()?.GetRenderPool().ReleaseScratchBuffer(scratchBuffer);
+        }
         MarkDirty();
     }
 
@@ -154,21 +214,99 @@ public class RawTexture : DeviceObject
         Update(level, offset, size, arraySlice, data.AsSpan(), rowStride, sliceStride);
     }
 
-    public bool Read(uint slice, uint level, Span<byte> buffer)
+    public unsafe bool Read(uint slice, uint level, Span<byte> buffer)
     {
         if (_texture is null || level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
             return false;
-        var data = _texture switch
+        var levelSize = GetMipLevelSize(_parameters.Size, level);
+        var rowSize = checked((uint)levelSize.X * GetTexelSize(_parameters.Format));
+        var requiredSize = checked(rowSize * (uint)levelSize.Y * (uint)levelSize.Z);
+        if ((uint)buffer.Length < requiredSize)
+            return false;
+        if (_handle is null)
+            return false;
+        if (_resolveDirty)
+            Resolve();
+        if (_levelsDirty)
+            GenerateLevels();
+
+        var graphics = GetSubsystem<Graphics>();
+        var device = graphics?.GetNativeRenderDevice();
+        var context = graphics?.GetImmediateContext();
+        if (device is null || context is null)
+            return false;
+
+        using var stagingName = new CString("RawTexture::Read staging texture");
+        using var stagingDesc = new TextureDesc
         {
-            Texture2D texture when slice == 0 => texture.GetData(level),
-            Texture3D texture when slice == 0 => texture.GetData(level),
-            TextureCube texture => texture.GetData((CubeMapFace)slice, level),
-            Texture2DArray texture => texture.GetData(slice, level),
-            _ => null
+            Name = stagingName.Pointer,
+            Type = _parameters.Type == TextureType.Texture3D
+                ? ResourceDimension.ResourceDimTex3d
+                : ResourceDimension.ResourceDimTex2d,
+            Usage = Usage.UsageStaging,
+            CPUAccessFlags = CpuAccessFlags.CpuAccessRead,
+            Format = Graphics.MapTextureFormat(_parameters.Format),
+            Width = checked((uint)levelSize.X),
+            Height = checked((uint)levelSize.Y),
+            MipLevels = 1u,
+            SampleCount = 1u
         };
-        if (data is null || buffer.Length < data.Length) return false;
-        data.CopyTo(buffer);
-        return true;
+        if (_parameters.Type == TextureType.Texture3D)
+            stagingDesc.Depth = checked((uint)levelSize.Z);
+        else
+            stagingDesc.ArraySize = 1u;
+        device.CreateTexture(stagingDesc, null!, out var stagingTexture);
+        if (stagingTexture is null || stagingTexture.IsNull)
+            return false;
+
+        try
+        {
+            using var copy = new CopyTextureAttribs(
+                _resolvedHandle ?? _handle,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+                stagingTexture,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition)
+            {
+                SrcMipLevel = level,
+                SrcSlice = slice
+            };
+            context.CopyTexture(copy);
+            context.WaitForIdle();
+
+            using var mapped = new MappedTextureSubresource();
+            context.MapTextureSubresource(stagingTexture, 0u, 0u, MapType.MapRead, MapFlags.MapFlagNone, null!, mapped);
+            if (mapped.PData == IntPtr.Zero)
+                return false;
+            try
+            {
+                var source = (byte*)mapped.PData;
+                var sourceRowStride = Math.Max((nuint)mapped.Stride, (nuint)((rowSize + 3u) & ~3u));
+                var sourceDepthStride = Math.Max((nuint)mapped.DepthStride,
+                    checked(sourceRowStride * (nuint)levelSize.Y));
+                fixed (byte* destinationStart = buffer)
+                {
+                    for (var z = 0; z < levelSize.Z; ++z)
+                    {
+                        for (var y = 0; y < levelSize.Y; ++y)
+                        {
+                            var sourceOffset = checked((nint)z * (nint)sourceDepthStride + (nint)y * (nint)sourceRowStride);
+                            var destinationOffset = checked((z * levelSize.Y + y) * (int)rowSize);
+                            Buffer.MemoryCopy(source + sourceOffset,
+                                destinationStart + destinationOffset, rowSize, rowSize);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                context.UnmapTextureSubresource(stagingTexture, 0u, 0u);
+            }
+            return true;
+        }
+        finally
+        {
+            Release(stagingTexture);
+        }
     }
 
     public bool Read(uint slice, uint level, byte[] buffer)
@@ -265,7 +403,6 @@ public class RawTexture : DeviceObject
         if (_texture is null)
             return;
 
-        RenderTargetView.Texture(this).MarkDirty();
         if (_parameters.MultiSample > 1u && !_parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve))
             _resolveDirty = true;
         else if (_parameters.NumLevels > 1u)
@@ -655,6 +792,23 @@ public class RawTexture : DeviceObject
         }
         return levels;
     }
+
+    private static Vector3i GetMipLevelSize(Vector3i size, uint level) => new(
+        Math.Max(size.X >> (int)level, 1),
+        Math.Max(size.Y >> (int)level, 1),
+        Math.Max(size.Z >> (int)level, 1));
+
+    private static uint GetTexelSize(TextureFormat format) => format switch
+    {
+        TextureFormat.R8 => 1u,
+        TextureFormat.RG16F => 4u,
+        TextureFormat.RGB8 => 4u,
+        TextureFormat.RGBA8 => 4u,
+        TextureFormat.RGBA16F => 8u,
+        TextureFormat.Depth32 => 4u,
+        TextureFormat.Depth24Stencil8 => 4u,
+        _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
+    };
 
     private static uint CalculateNumLevelsRtv(Texture texture, RawTextureParams parameters)
     {

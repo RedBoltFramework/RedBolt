@@ -271,6 +271,42 @@ public sealed class RawTextureTests
         });
     }
 
+    [Fact]
+    public void Raw_texture_updates_and_reads_native_texture_data()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.R8, TextureFlag.None, new Vector3i(3, 3, 1), NumLevels: 1u));
+            byte[] source = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            var destination = new byte[source.Length];
+
+            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(3, 3, 1), 0u, source, rowStride: 3u);
+
+            Assert.True(rawTexture.Read(0u, 0u, destination));
+            Assert.Equal(source, destination);
+        });
+    }
+
+    [Fact]
+    public void Raw_texture_update_hot_path_does_not_allocate_managed_memory()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), NumLevels: 1u));
+            var source = new byte[4 * 4 * 4];
+            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 4, 1), 0u, source);
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 32; ++i)
+                rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 4, 1), 0u, source);
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(0, allocated);
+        });
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters
