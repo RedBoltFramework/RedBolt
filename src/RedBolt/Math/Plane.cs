@@ -61,6 +61,30 @@ public struct Plane
 
     public Vector3f Reflect(Vector3f direction) => direction - 2.0f * Normal.DotProduct(direction) * Normal;
 
+    public Vector3f GetPoint() => -D * Normal;
+
+    public Ray Intersect(Plane other)
+    {
+        var direction = Normal.CrossProduct(other.Normal);
+        if (direction.ApproximatelyEquivalent(Vector3f.Zero, 1e-6f))
+            return new Ray(GetPoint(), Vector3f.Zero);
+        var determinant = Normal.DotProduct(other.Normal.CrossProduct(direction));
+        if (MathF.Abs(determinant) < 1e-6f)
+            return new Ray(GetPoint(), direction);
+        var point = D * other.Normal.CrossProduct(direction) + other.D * direction.CrossProduct(Normal);
+        return new Ray(-point / determinant, direction);
+    }
+
+    public Vector3f Intersect(Plane planeB, Plane planeC)
+    {
+        var determinant = Normal.DotProduct(planeB.Normal.CrossProduct(planeC.Normal));
+        if (MathF.Abs(determinant) < 1e-6f)
+            return GetPoint();
+        return (-D * planeB.Normal.CrossProduct(planeC.Normal)
+                - planeB.D * planeC.Normal.CrossProduct(Normal)
+                - planeC.D * Normal.CrossProduct(planeB.Normal)) / determinant;
+    }
+
     public void Transform(Matrix3 transform) => Define(new Matrix4(transform).Inverted.Transposed * Vector4f);
     public void Transform(Matrix3x4 transform) => Define(transform.Matrix4.Inverted.Transposed * Vector4f);
     public void Transform(Matrix4 transform) => Define(transform.Inverted.Transposed * Vector4f);

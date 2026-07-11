@@ -241,4 +241,54 @@ public static partial class MathDefs
     public static float Ceil(float value) => MathF.Ceiling(value);
 
     public static int CeilToInt(float value) => (int)MathF.Ceiling(value);
+
+    public static uint FloatToRawIntBits(float value) => unchecked((uint)BitConverter.SingleToInt32Bits(value));
+
+    public static Vector2f VectorClamp(Vector2f value, Vector2f min, Vector2f max) => Vector2f.Min(Vector2f.Max(value, min), max);
+    public static Vector3f VectorClamp(Vector3f value, Vector3f min, Vector3f max) => Vector3f.Min(Vector3f.Max(value, min), max);
+    public static Vector4f VectorClamp(Vector4f value, Vector4f min, Vector4f max) => VectorMin(VectorMax(value, min), max);
+
+    public static float Average(IEnumerable<float> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        var sum = 0.0f;
+        var count = 0;
+        foreach (var value in values) { sum += value; ++count; }
+        return count == 0 ? 0.0f : sum / count;
+    }
+
+    public static double Average(IEnumerable<double> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        var sum = 0.0;
+        var count = 0;
+        foreach (var value in values) { sum += value; ++count; }
+        return count == 0 ? 0.0 : sum / count;
+    }
+
+    public static int EncodeVariableLength(ulong value, Span<byte> destination)
+    {
+        var offset = 0;
+        do
+        {
+            if (offset >= destination.Length)
+                throw new ArgumentException("Destination is too small.", nameof(destination));
+            var current = (byte)(value & 0x7f);
+            value >>= 7;
+            destination[offset++] = value != 0 ? (byte)(current | 0x80) : current;
+        } while (value != 0);
+        return offset;
+    }
+
+    public static bool DecodeVariableLength(ref ulong value, ref uint offset, byte current)
+    {
+        value |= (ulong)(current & 0x7f) << checked((int)(offset * 7));
+        ++offset;
+        return (current & 0x80) == 0;
+    }
+
+    public static uint ZigzagEncode(int value) => unchecked((uint)((value << 1) ^ (value >> 31)));
+    public static ulong ZigzagEncode(long value) => unchecked((ulong)((value << 1) ^ (value >> 63)));
+    public static int ZigzagDecode(uint value) => unchecked((int)(value >> 1) ^ -(int)(value & 1));
+    public static long ZigzagDecode(ulong value) => unchecked((long)(value >> 1) ^ -(long)(value & 1));
 }

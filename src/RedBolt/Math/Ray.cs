@@ -2,6 +2,11 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
+public readonly record struct DistanceAndNormal(Vector3f Normal, float Distance)
+{
+    public DistanceAndNormal() : this(Vector3f.Zero, float.PositiveInfinity) { }
+}
+
 [StructLayout(LayoutKind.Sequential)]
 public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
 {
@@ -70,6 +75,23 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         CheckPlane(box.Min.Z, Direction.Z, Origin.Z, axis: 2, box, ref distance);
         CheckPlane(box.Max.Z, Direction.Z, Origin.Z, axis: 2, box, ref distance);
         return distance;
+    }
+
+    public DistanceAndNormal HitDistanceAndNormal(BoundingBox box)
+    {
+        if (!box.Defined)
+            return new DistanceAndNormal();
+        if (box.IsInside(Origin) != Intersection.Outside)
+            return new DistanceAndNormal(-Direction, 0.0f);
+
+        var result = new DistanceAndNormal();
+        CheckBoxFace(box.Min.X, Direction.X, Origin.X, 0, -1.0f, box, ref result);
+        CheckBoxFace(box.Max.X, Direction.X, Origin.X, 0, 1.0f, box, ref result);
+        CheckBoxFace(box.Min.Y, Direction.Y, Origin.Y, 1, -1.0f, box, ref result);
+        CheckBoxFace(box.Max.Y, Direction.Y, Origin.Y, 1, 1.0f, box, ref result);
+        CheckBoxFace(box.Min.Z, Direction.Z, Origin.Z, 2, -1.0f, box, ref result);
+        CheckBoxFace(box.Max.Z, Direction.Z, Origin.Z, 2, 1.0f, box, ref result);
+        return result;
     }
 
     public float HitDistance(Sphere sphere)
@@ -155,5 +177,32 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         };
         if (inside)
             distance = candidate;
+    }
+
+    private void CheckBoxFace(float plane, float direction, float origin, int axis, float normalSign,
+        BoundingBox box, ref DistanceAndNormal result)
+    {
+        if ((normalSign < 0.0f && !(origin < plane && direction > 0.0f))
+            || (normalSign > 0.0f && !(origin > plane && direction < 0.0f)))
+            return;
+        var distance = (plane - origin) / direction;
+        if (distance >= result.Distance)
+            return;
+        var point = Origin + distance * Direction;
+        var insideFace = axis switch
+        {
+            0 => point.Y >= box.Min.Y && point.Y <= box.Max.Y && point.Z >= box.Min.Z && point.Z <= box.Max.Z,
+            1 => point.X >= box.Min.X && point.X <= box.Max.X && point.Z >= box.Min.Z && point.Z <= box.Max.Z,
+            _ => point.X >= box.Min.X && point.X <= box.Max.X && point.Y >= box.Min.Y && point.Y <= box.Max.Y
+        };
+        if (!insideFace)
+            return;
+        var normal = axis switch
+        {
+            0 => new Vector3f(normalSign, 0, 0),
+            1 => new Vector3f(0, normalSign, 0),
+            _ => new Vector3f(0, 0, normalSign)
+        };
+        result = new DistanceAndNormal(normal, distance);
     }
 }

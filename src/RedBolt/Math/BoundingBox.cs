@@ -64,6 +64,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     public bool Defined => Min.X != float.PositiveInfinity;
     public Vector3f HalfSize => (Max - Min) * 0.5f;
     public Vector3f Size => Max - Min;
+    public float Volume => Size.X * Size.Y * Size.Z;
 
     public void Clear()
     {
@@ -202,6 +203,13 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         Merge(sphere.Center + offset);
     }
 
+    public BoundingBox Merged(Vector3f point) { var result = this; result.Merge(point); return result; }
+    public BoundingBox Merged(BoundingBox box) { var result = this; result.Merge(box); return result; }
+    public BoundingBox Merged(Sphere sphere) { var result = this; result.Merge(sphere); return result; }
+    public BoundingBox Clipped(BoundingBox box) { var result = this; result.Clip(box); return result; }
+    public BoundingBox Padded(Vector3f minPadding, Vector3f maxPadding) => new(Min - minPadding, Max + maxPadding);
+    public BoundingBox Padded(Vector3f padding) => Padded(padding, padding);
+
     public Rect Projected(Matrix3x4 projection)
     {
         var rect = new Rect();
@@ -244,6 +252,33 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         var offset = Center - point;
         return Vector3f.Max(Vector3f.Zero, offset.Abs - HalfSize).Length;
+    }
+
+    public float SignedDistanceToPoint(Vector3f point)
+    {
+        var delta = (Center - point).Abs - HalfSize;
+        var outerDistance = Vector3f.Max(Vector3f.Zero, delta).Length;
+        var innerDistance = Math.Max(delta.X, Math.Max(delta.Y, delta.Z));
+        return innerDistance < 0.0f ? innerDistance : outerDistance;
+    }
+
+    public float DistanceToBoundingBox(BoundingBox box)
+    {
+        var absoluteOffset = (Center - box.Center).Abs;
+        var delta = absoluteOffset - Vector3f.Max(HalfSize, box.HalfSize) - Vector3f.Min(HalfSize, box.HalfSize);
+        return Vector3f.Max(Vector3f.Zero, delta).Length;
+    }
+
+    public float SignedDistanceToBoundingBox(BoundingBox box)
+    {
+        var absoluteOffset = (Center - box.Center).Abs;
+        var maxHalfSize = Vector3f.Max(HalfSize, box.HalfSize);
+        var minHalfSize = Vector3f.Min(HalfSize, box.HalfSize);
+        var outerDelta = absoluteOffset - maxHalfSize - minHalfSize;
+        var outerDistance = Vector3f.Max(Vector3f.Zero, outerDelta).Length;
+        var innerDelta = maxHalfSize - absoluteOffset - minHalfSize;
+        var innerDistance = -Math.Min(innerDelta.X, Math.Min(innerDelta.Y, innerDelta.Z));
+        return innerDistance < 0.0f ? innerDistance : outerDistance;
     }
 
     public BoundingBox Transformed(Matrix3 transform)

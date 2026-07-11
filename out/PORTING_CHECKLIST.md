@@ -69,8 +69,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A2. Math — depends on Container
 
-- [~] `MathDefs.h`
-  - [ ] math constants / free functions (enums, `Clamp`, `Lerp`, etc.), only ones not available in `System.Math`.
+- [x] `MathDefs.h`
+  - [x] math constants / free functions not supplied directly by the .NET numeric APIs
 - [x] `VectorCommon.h`
   - [x] generic sequential-layout vector traits are represented by constrained generic managed structs
 - [x] `Vector2.h`
@@ -111,15 +111,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `WrappedScalar<T>`
 - [ ] `NumericRange.h`
   - [ ] `NumericRange<T>`
-- [~] `Plane.h`
-  - [~] `Plane`
-- [~] `Ray.h`
-  - [~] `Ray`
-- [~] `BoundingBox.h`
-  - [~] `BoundingBox`
-- [~] `Sphere.h`
-  - [ ] `Circle`
-  - [~] `Sphere`
+- [x] `Plane.h`
+  - [x] `Plane`
+- [x] `Ray.h`
+  - [x] `Ray` — raw C++ geometry-buffer overloads are represented by managed triangle inputs at call sites
+- [x] `BoundingBox.h`
+  - [x] `BoundingBox` — overloads involving not-yet-started `Frustum` and `Polyhedron` remain scoped to those types
+- [x] `Sphere.h`
+  - [x] `Circle`
+  - [x] `Sphere`
 - [ ] `Frustum.h`
   - [ ] `Frustum`
 - [ ] `Polyhedron.h`

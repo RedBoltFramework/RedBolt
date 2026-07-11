@@ -3,6 +3,30 @@ using System.Runtime.InteropServices;
 namespace RedBolt;
 
 [StructLayout(LayoutKind.Sequential)]
+public struct Circle
+{
+    public Vector3f Center;
+    public Vector3f Normal;
+    public float Radius;
+
+    public Circle(Vector3f center, Vector3f normal, float radius)
+    {
+        Center = center;
+        Normal = normal;
+        Radius = radius;
+    }
+
+    public readonly bool IsValid => Radius >= 0.0f;
+
+    public readonly Vector3f GetPoint(Vector3f directionHint)
+    {
+        if (!IsValid)
+            return Center;
+        return Center + directionHint.Orthogonalize(Normal) * Radius;
+    }
+}
+
+[StructLayout(LayoutKind.Sequential)]
 public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
 {
     public Vector3f Center;
@@ -96,6 +120,37 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
     }
 
     public Intersection IsInsideFast(BoundingBox box) => IsInside(box) == Intersection.Outside ? Intersection.Outside : Intersection.Inside;
+
+    public readonly float Distance(Vector3f point) => Math.Max((point - Center).Length - Radius, 0.0f);
+
+    public readonly Vector3f GetLocalPoint(float theta, float phi) => new(
+        Radius * MathDefs.Sin(theta) * MathDefs.Sin(phi),
+        Radius * MathDefs.Cos(phi),
+        Radius * MathDefs.Cos(theta) * MathDefs.Sin(phi));
+
+    public readonly Vector3f GetPoint(float theta, float phi) => Center + GetLocalPoint(theta, phi);
+
+    public readonly Circle Intersect(Sphere sphere, out float distanceFromCenter)
+    {
+        var offset = sphere.Center - Center;
+        var distance = offset.Length;
+        var outerRadius = Radius;
+        var innerRadius = sphere.Radius;
+        var clampedDistance = Math.Min(outerRadius + innerRadius, distance);
+        var areaSquared = (-clampedDistance + innerRadius - outerRadius)
+            * (-clampedDistance - innerRadius + outerRadius)
+            * (-clampedDistance + innerRadius + outerRadius)
+            * (clampedDistance + innerRadius + outerRadius);
+        var intersectionRadius = MathF.Sqrt(Math.Max(0.0f, areaSquared)) / (2.0f * clampedDistance);
+        var isOutside = distance > outerRadius + innerRadius;
+        var isInside = areaSquared < 0.0f;
+        distanceFromCenter = MathF.Sqrt(outerRadius * outerRadius - intersectionRadius * intersectionRadius);
+        var normal = offset / distance;
+        var center = Center + distanceFromCenter * normal;
+        return new Circle(center, normal, isInside || isOutside ? float.NegativeInfinity : intersectionRadius);
+    }
+
+    public readonly Circle Intersect(Sphere sphere) => Intersect(sphere, out _);
 
     public void Merge(Vector3f point)
     {
