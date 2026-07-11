@@ -120,6 +120,7 @@ internal static class Program
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
             FixSdlVoidPointerFunctions(compilation, descriptor);
+            FixStbVorbisBufferFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
@@ -206,7 +207,7 @@ internal static class Program
         if (!descriptor.UseMarshallerConfiguration)
             return clangArguments.ToList();
 
-        if (descriptor.Surface != "sdl" && descriptor.Surface != "dearimgui")
+        if (descriptor.Surface != "sdl" && descriptor.Surface != "dearimgui" && descriptor.Surface != "stb")
             return clangArguments.ToList();
 
         var marshallerArguments = new List<string>(clangArguments.Count);
@@ -319,7 +320,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui")
+        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui" || descriptor.Surface == "stb")
             return 0;
 
         if (descriptor.Surface == "diligent")
@@ -642,6 +643,20 @@ internal static class Program
         free.Parameters[0].AbiKind = BindingParameterAbiKind.Pointer;
     }
 
+    private static void FixStbVorbisBufferFunctions(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "stb")
+            return;
+
+        var function = compilation.Functions.FirstOrDefault(static item => item.NativeName == "stb_vorbis_get_samples_short_interleaved");
+        if (function is null || function.Parameters.Count != 4)
+            return;
+
+        function.Parameters[2].Type = BindingType.IntPtr;
+        function.Parameters[2].Direction = BindingParameterDirection.In;
+        function.Parameters[2].AbiKind = BindingParameterAbiKind.Value;
+    }
+
     private static int PruneMembers(IList<BindingNode> members, BindingSurfaceDescriptor descriptor)
     {
         var prunedCount = 0;
@@ -703,7 +718,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -750,6 +765,16 @@ internal static class Program
                     "redbolt_dearimgui",
                     "-xc++",
                     "-std=c++17",
+                    true),
+                "stb" => new BindingSurfaceDescriptor(
+                    "stb",
+                    "RedBolt.Bindings.Stb",
+                    "RedBolt.Bindings.Stb",
+                    "StbVorbisNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_stb",
+                    "-xc",
+                    "-std=c17",
                     true),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };

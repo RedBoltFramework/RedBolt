@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public abstract class Application
+public abstract class Application : Object
 {
     public const int FailureExitCode = 1;
 
@@ -19,15 +19,13 @@ public abstract class Application
 
     protected Engine Engine { get; }
 
-    protected ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
+    protected ResourceCache Resources => GetSubsystem<ResourceCache>()!;
 
-    protected Graphics Graphics => GetRequiredSubsystem<Graphics>();
+    protected Graphics Graphics => GetSubsystem<Graphics>()!;
 
-    protected Renderer Renderer => GetRequiredSubsystem<Renderer>();
+    protected Renderer Renderer => GetSubsystem<Renderer>()!;
 
-    protected Input Input => GetRequiredSubsystem<Input>();
-
-    protected Context Context => Engine.Context;
+    protected Input Input => GetSubsystem<Input>()!;
 
     protected virtual void Setup(EngineParameters parameters)
     {
@@ -186,10 +184,4 @@ public abstract class Application
         }
     }
 
-    private T GetRequiredSubsystem<T>()
-        where T : class
-    {
-        return Context.GetSubsystem<T>()
-            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
-    }
 }

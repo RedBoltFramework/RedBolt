@@ -23,33 +23,27 @@ public sealed class HeadlessEngineFixture : IDisposable
 
     public Context Context => Engine.Context;
 
-    public Time Time => GetRequiredSubsystem<Time>();
+    public Time Time => Engine.GetSubsystem<Time>()!;
 
-    public ResourceCache Resources => GetRequiredSubsystem<ResourceCache>();
+    public ResourceCache Resources => Engine.GetSubsystem<ResourceCache>()!;
 
-    public Input Input => GetRequiredSubsystem<Input>();
+    public Input Input => Engine.GetSubsystem<Input>()!;
 
-    public Renderer Renderer => GetRequiredSubsystem<Renderer>();
+    public Renderer Renderer => Engine.GetSubsystem<Renderer>()!;
 
-    public Graphics Graphics => GetRequiredSubsystem<Graphics>();
+    public Graphics Graphics => Engine.GetSubsystem<Graphics>()!;
 
-    public RenderDevice RenderDevice => GetRequiredSubsystem<RenderDevice>();
+    public RenderDevice RenderDevice => Engine.GetSubsystem<RenderDevice>()!;
 
     public RenderContext RenderContext => RenderDevice.GetRenderContext();
 
-    public PipelineStateCache PipelineStateCache => GetRequiredSubsystem<PipelineStateCache>();
+    public PipelineStateCache PipelineStateCache => Engine.GetSubsystem<PipelineStateCache>()!;
 
     public void Dispose()
     {
         Engine.Shutdown();
     }
 
-    private T GetRequiredSubsystem<T>()
-        where T : class
-    {
-        return Context.GetSubsystem<T>()
-            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
-    }
 }
 
 [CollectionDefinition(nameof(HeadlessEngineCollection))]

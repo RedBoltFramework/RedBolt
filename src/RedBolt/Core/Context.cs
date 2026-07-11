@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Sdl;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -144,10 +145,17 @@ public sealed class Context : ObjectReflectionRegistry
         ++_sdlInitCounter;
 
         if (_sdlInitCounter == 1 && SdlNativeBindings.SdlInit(0) != 0)
+        {
+            Log.Logger.LogError("Failed to initialise SDL: {SdlError}", DecodeSdlError());
             return false;
+        }
 
         var remainingFlags = sdlFlags & ~SdlNativeBindings.SdlWasInit(0);
-        return remainingFlags == 0 || SdlNativeBindings.SdlInitSubSystem(remainingFlags) == 0;
+        if (remainingFlags == 0 || SdlNativeBindings.SdlInitSubSystem(remainingFlags) == 0)
+            return true;
+
+        Log.Logger.LogError("Failed to initialise SDL subsystem: {SdlError}", DecodeSdlError());
+        return false;
     }
 
     public void ReleaseSdl()
@@ -162,6 +170,13 @@ public sealed class Context : ObjectReflectionRegistry
 
         if (_sdlInitCounter < 0)
             throw new InvalidOperationException("Too many calls to Context.ReleaseSdl().");
+    }
+
+    private static string DecodeSdlError()
+    {
+        var error = SdlNativeBindings.SdlGetError();
+        var length = error.IndexOf((byte)0);
+        return System.Text.Encoding.UTF8.GetString(length < 0 ? error : error[..length]);
     }
 
     public bool RemoveSubsystem<T>()

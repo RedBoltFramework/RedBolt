@@ -1,3 +1,6 @@
+using System.Runtime.InteropServices;
+using RedBolt.Bindings.Stb;
+
 namespace RedBolt;
 
 /// <summary>Sound resource.</summary>
@@ -31,14 +34,6 @@ public sealed class Sound : ResourceWithMetadata
             _ => LoadRaw(source)
         };
 
-        if (success)
-        {
-            var memoryStream = new MemoryStream();
-            source.CopyTo(memoryStream);
-            var rawData = memoryStream.ToArray();
-            SetData(rawData, (uint)rawData.Length);
-        }
-
         return success;
     }
 
@@ -48,7 +43,7 @@ public sealed class Sound : ResourceWithMetadata
         SetSize(dataSize);
         var buffer = new byte[dataSize];
         source.ReadExactly(buffer, 0, (int)dataSize);
-        _data = (sbyte[])(Array)buffer;
+        _data = CopyToSByteArray(buffer);
         return true;
     }
 
@@ -91,9 +86,11 @@ public sealed class Sound : ResourceWithMetadata
                         SetFormat(frequency, bits == 16, channels == 2);
                         var rawData = reader.ReadBytes((int)dataLen);
                         _data = CopyToSByteArray(rawData);
-                        // Convert 8-bit audio to signed
-                        for (var i = 0; i < dataLen; i++)
-                            _data[i] = unchecked((sbyte)((byte)_data[i] - 128));
+                        if (bits != 16)
+                        {
+                            for (var i = 0; i < dataLen; i++)
+                                _data[i] = unchecked((sbyte)((byte)_data[i] - 128));
+                        }
                         return true;
                     }
                     // skip unknown chunk
@@ -114,12 +111,37 @@ public sealed class Sound : ResourceWithMetadata
         var data = new byte[dataSize];
         source.ReadExactly(data, 0, (int)dataSize);
 
-        // Store compressed data; decoding happens via OggVorbisSoundStream
-        _data = CopyToSByteArray(data);
+        var compressedData = CopyToSByteArray(data);
+        var handle = GCHandle.Alloc(compressedData, GCHandleType.Pinned);
+        StbVorbis? decoder;
+        try
+        {
+            decoder = StbVorbisNativeBindings.StbVorbisOpenMemory(
+                handle.AddrOfPinnedObject(), checked((int)dataSize), out _, null!);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        if (decoder.IsNull)
+            return false;
+
+        try
+        {
+            var info = StbVorbisNativeBindings.StbVorbisGetInfo(decoder);
+            _compressedLength = StbVorbisNativeBindings.StbVorbisStreamLengthInSeconds(decoder);
+            _frequency = info.SampleRate;
+            _stereo = info.Channels > 1;
+        }
+        finally
+        {
+            StbVorbisNativeBindings.StbVorbisClose(decoder);
+        }
+
+        _data = compressedData;
         _dataSize = dataSize;
-        _frequency = 44100;
         _sixteenBit = true;
-        _stereo = true;
         _compressed = true;
 
         SetMemoryUse(dataSize);
@@ -141,6 +163,20 @@ public sealed class Sound : ResourceWithMetadata
         if (dataSize == 0) return;
         SetSize(dataSize);
         Array.Copy(data, _data!, dataSize);
+    }
+
+    internal void CopyData(sbyte[] source, int sourceOffset, int destinationOffset, int dataSize)
+    {
+        if (_data == null || dataSize <= 0)
+            return;
+        Buffer.BlockCopy(source, sourceOffset, _data, destinationOffset, dataSize);
+    }
+
+    internal void ClearData(int offset, int dataSize)
+    {
+        if (_data == null || dataSize <= 0)
+            return;
+        Array.Clear(_data, offset, dataSize);
     }
 
     public void SetFormat(uint frequency, bool sixteenBit, bool stereo)

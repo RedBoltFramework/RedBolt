@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class Engine
+public sealed class Engine : Object
 {
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private readonly HiresTimer _frameTimer = new();
@@ -10,12 +10,11 @@ public sealed class Engine
     private readonly List<float> _lastTimeSteps = [];
     private float _currentTimeStep;
     private long _timeOut;
+    private bool _audioPaused;
     private Context? _previousContext;
     private readonly Context _context = new();
 
     public EngineParameters Parameters { get; private set; } = new();
-
-    public Context Context => _context;
 
     public bool IsInitialized { get; private set; }
 
@@ -31,7 +30,7 @@ public sealed class Engine
 
     public int MinFps { get; private set; } = 10;
 
-    public bool PauseMinimized { get; private set; } = true;
+    public bool PauseMinimized { get; private set; }
 
     public int TimeStepSmoothing { get; private set; } = 2;
 
@@ -40,14 +39,14 @@ public sealed class Engine
         ArgumentNullException.ThrowIfNull(applicationParameters);
 
         if (IsInitialized)
-            throw new InvalidOperationException("Engine is already initialized.");
+            return true;
 
         Parameters = applicationParameters.Clone();
         InitializeContext();
-        var resources = GetRequiredSubsystem<ResourceCache>();
-        var input = GetRequiredSubsystem<Input>();
-        var graphics = GetRequiredSubsystem<Graphics>();
-        var renderer = GetRequiredSubsystem<Renderer>();
+        var resources = GetSubsystem<ResourceCache>()!;
+        var input = GetSubsystem<Input>()!;
+        var graphics = GetSubsystem<Graphics>()!;
+        var renderer = GetSubsystem<Renderer>()!;
 
         resources.RegisterDefaultResources();
         Log.Logger.LogInformation(
@@ -68,21 +67,22 @@ public sealed class Engine
                 input.Shutdown();
                 throw;
             }
+
+            var audio = GetSubsystem<Audio>()!;
+            if (Parameters.Sound)
+            {
+                audio.SetMode(
+                    Parameters.SoundBuffer,
+                    Parameters.SoundMixRate,
+                    (SpeakerMode)Parameters.SoundMode,
+                    Parameters.SoundInterpolation);
+            }
         }
 
         renderer.SetTextureQuality(Parameters.TextureQuality);
         renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
         renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
         input.SetTouchEmulation(Parameters.TouchEmulation);
-
-        var audio = Context.GetSubsystem<Audio>();
-        if (audio != null && audio.GetMixRate() == 0)
-        {
-            var audioBuffer = 100;
-            var mixRate = 44100;
-            var interpolation = true;
-            audio.SetMode(audioBuffer, mixRate, SpeakerMode.Auto, interpolation);
-        }
 
         IsInitialized = true;
         IsExiting = false;
@@ -94,6 +94,8 @@ public sealed class Engine
         return true;
     }
 
+    public void RunFrame() => RunFrame(static _ => { });
+
     public void RunFrame(Action<float> update)
     {
         ArgumentNullException.ThrowIfNull(update);
@@ -101,10 +103,16 @@ public sealed class Engine
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
-        var time = GetRequiredSubsystem<Time>();
-        var input = GetRequiredSubsystem<Input>();
-        var graphics = GetRequiredSubsystem<Graphics>();
-        var renderer = GetRequiredSubsystem<Renderer>();
+        var time = GetSubsystem<Time>()!;
+        var input = GetSubsystem<Input>()!;
+        var graphics = GetSubsystem<Graphics>()!;
+        var renderer = GetSubsystem<Renderer>()!;
+
+        if (!IsHeadless && !graphics.IsInitialized)
+        {
+            IsExiting = true;
+            return;
+        }
 
         var timeStep = _nextTimeStep ?? _currentTimeStep;
         _nextTimeStep = null;
@@ -112,6 +120,22 @@ public sealed class Engine
             timeStep = 0.0f;
 
         time.BeginFrame(timeStep);
+
+        var audio = GetSubsystem<Audio>()!;
+        var isPaused = !IsHeadless && PauseMinimized && input.IsMinimized;
+        if (isPaused)
+        {
+            if (audio.IsPlaying())
+            {
+                audio.Stop();
+                _audioPaused = true;
+            }
+        }
+        else if (_audioPaused)
+        {
+            audio.Play();
+            _audioPaused = false;
+        }
 
         if (!IsHeadless)
         {
@@ -123,7 +147,7 @@ public sealed class Engine
 
         if (!IsExiting)
         {
-            var shouldUpdate = IsHeadless || !PauseMinimized || !input.IsMinimized;
+            var shouldUpdate = !isPaused;
             if (shouldUpdate)
             {
                 SendCoreEvents(timeStep);
@@ -134,8 +158,8 @@ public sealed class Engine
                 renderer.RenderFrame(graphics, beforePresent: null);
         }
 
-        time.EndFrame();
         ApplyFrameLimit();
+        time.EndFrame();
     }
 
     public void Exit()
@@ -190,7 +214,7 @@ public sealed class Engine
         _nextTimeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => _nextTimeStep ?? GetRequiredSubsystem<Time>().TimeStep;
+    public float GetNextTimeStep() => _nextTimeStep ?? _currentTimeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -219,17 +243,35 @@ public sealed class Engine
         return EngineParameterBinding.TryGetValue(Parameters, name, out value) ? value : null;
     }
 
+    public void DumpProfiler()
+    {
+        if (!IsInitialized)
+            return;
+        Log.Logger.LogInformation("Profiler data is not available in the managed runtime.");
+    }
+
+    public void DumpResources(bool dumpFileName = false)
+    {
+        var resources = GetSubsystem<ResourceCache>()!;
+        Log.Logger.LogInformation("{ResourceUsage}", dumpFileName ? resources.PrintResources() : resources.PrintMemoryUsage());
+    }
+
+    public void DumpMemory()
+    {
+        Log.Logger.LogInformation("Managed memory: {MemoryBytes} bytes", GC.GetTotalMemory(forceFullCollection: false));
+    }
+
     public void Shutdown()
     {
         if (!IsInitialized)
             return;
 
-        Context.GetSubsystem<RenderDevice>()?.OnEngineShutdown();
-        GetRequiredSubsystem<Graphics>().Shutdown();
-        GetRequiredSubsystem<Renderer>().ClearViewports();
-        GetRequiredSubsystem<Input>().Shutdown();
-        Context.Reset();
-        if (ReferenceEquals(RedBolt.Context.TryGetInstance(), Context))
+        GetSubsystem<RenderDevice>()!.OnEngineShutdown();
+        GetSubsystem<Graphics>()!.Shutdown();
+        GetSubsystem<Renderer>()!.ClearViewports();
+        GetSubsystem<Input>()!.Shutdown();
+        _context.Reset();
+        if (ReferenceEquals(RedBolt.Context.TryGetInstance(), _context))
             RedBolt.Context.SetInstance(_previousContext);
         IsInitialized = false;
         IsExiting = false;
@@ -238,24 +280,40 @@ public sealed class Engine
         _currentTimeStep = 0.0f;
         _lastTimeSteps.Clear();
         _timeOut = 0;
+        _audioPaused = false;
         _frameTimer.Reset();
+    }
+
+    public void InitializeVirtualFileSystem(bool enableResourceRootFile)
+    {
+        ApplyConfiguredResourcePaths();
+    }
+
+    public string GetAppPreferencesDir() => Parameters.ApplicationPreferencesDir;
+
+    public void Update()
+    {
+        if (!IsInitialized)
+            throw new InvalidOperationException("Engine must be initialized before sending update events.");
+        SendCoreEvents(_currentTimeStep);
+    }
+
+    public void Render()
+    {
+        if (!IsInitialized || IsHeadless)
+            return;
+        var graphics = GetSubsystem<Graphics>()!;
+        var renderer = GetSubsystem<Renderer>()!;
+        renderer.RenderFrame(graphics, beforePresent: null);
     }
 
     private void InitializeContext()
     {
         _previousContext = RedBolt.Context.TryGetInstance();
-        Context.Reset();
-        RedBolt.Context.SetInstance(Context);
-        Context.RegisterSubsystem(Context);
+        _context.Reset();
+        RedBolt.Context.SetInstance(_context);
         WorkQueue.SetMainThread();
-        Context.InitializeEngineSubsystems(this);
-    }
-
-    private T GetRequiredSubsystem<T>()
-        where T : class
-    {
-        return Context.GetSubsystem<T>()
-            ?? throw new InvalidOperationException($"Required subsystem {typeof(T).Name} is not registered in Context.");
+        _context.InitializeEngineSubsystems(this);
     }
 
     private void ApplyInitializationParameters()
@@ -270,8 +328,8 @@ public sealed class Engine
 
     private void ApplyLiveParameter(string name)
     {
-        var renderer = Context.GetSubsystem<Renderer>();
-        var input = Context.GetSubsystem<Input>();
+        var renderer = GetSubsystem<Renderer>();
+        var input = GetSubsystem<Input>();
 
         switch (name)
         {
@@ -305,7 +363,7 @@ public sealed class Engine
             return;
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
-        var resources = GetRequiredSubsystem<ResourceCache>();
+        var resources = GetSubsystem<ResourceCache>()!;
         if (prefixPaths.Count == 0)
         {
             foreach (var resourcePath in resourcePaths)
@@ -373,11 +431,14 @@ public sealed class Engine
             : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
     }
 
-    private void ApplyFrameLimit()
+    public void ApplyFrameLimit()
     {
+        if (!IsInitialized)
+            return;
+
         uint maxFps = (uint)Math.Max(MaxFps, 0);
-        var input = Context.GetSubsystem<Input>();
-        if (input != null && !input.HasFocus)
+        var input = GetSubsystem<Input>();
+        if (input is not null && !input.HasFocus)
             maxFps = Math.Min((uint)Math.Max(MaxInactiveFps, 0), maxFps);
 
         long elapsed = 0;

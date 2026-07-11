@@ -37,12 +37,15 @@ set_target_properties(redbolt-imgui-backend PROPERTIES
 add_library(RedBolt.Native SHARED
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
-    "${REDBOLT_IMGUI_BINDINGS_CPP}")
+    "${REDBOLT_IMGUI_BINDINGS_CPP}"
+    "${REDBOLT_STB_BINDINGS_CPP}"
+    "${REDBOLT_STB_SOURCE_ROOT}/stb_impl.cpp")
 
 set_source_files_properties(
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
     "${REDBOLT_IMGUI_BINDINGS_CPP}"
+    "${REDBOLT_STB_BINDINGS_CPP}"
     PROPERTIES
         GENERATED TRUE
         COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU>:-w>"
@@ -62,6 +65,7 @@ set_target_properties(RedBolt.Native PROPERTIES
     BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
+target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_STB_INCLUDE_DIR}/STB")
 target_compile_options(RedBolt.Native PRIVATE
     "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
     "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")

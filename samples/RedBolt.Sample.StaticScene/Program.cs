@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using Timer = RedBolt.Timer;
 
 try
 {
@@ -19,16 +18,9 @@ catch (Exception ex)
 
 sealed class StaticSceneApplication : Application
 {
-    private readonly Random _random = new(1);
-    private readonly CString _heapSizeLine = new();
-    private readonly CString _gen0CollectionsLine = new();
-    private readonly CString _gen1CollectionsLine = new();
-    private readonly CString _gen2CollectionsLine = new();
-    private readonly CString _totalAllocatedLine = new();
-    private readonly CString _fpsLine = new();
-    private readonly Timer _fpsTimer = new();
+    private readonly Random _random = new();
+    private readonly CString _instructionLine = new();
     private ContextEventSubscription? _dearImGuiSubscription;
-    private bool _fpsUpdated;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -44,13 +36,11 @@ sealed class StaticSceneApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawGCStats());
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         var scene = new Scene();
         scene.CreateComponent<RenderPipeline>();
         scene.CreateComponent<Octree>();
-        var outlineGroup = scene.CreateComponent<OutlineGroup>();
-        outlineGroup.SetColor(new Color(1.0f, 0.1f, 0.9f, 1.0f));
 
         var planeNode = scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
@@ -63,7 +53,6 @@ sealed class StaticSceneApplication : Application
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
 
-        var outlinedMushrooms = 0;
         for (var i = 0; i < 200; ++i)
         {
             var mushroomNode = scene.CreateChild("Mushroom");
@@ -75,22 +64,6 @@ sealed class StaticSceneApplication : Application
             mushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
             mushroom.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
 
-            if (outlinedMushrooms < 18 && position.Z > 4.0f && position.Z < 28.0f && MathF.Abs(position.X) < 18.0f)
-            {
-                outlineGroup.AddDrawable(mushroom);
-                ++outlinedMushrooms;
-            }
-        }
-
-        foreach (var x in new[] { -5.5f, 0.0f, 5.5f })
-        {
-            var outlinedNode = scene.CreateChild("OutlinedMushroom");
-            outlinedNode.SetPosition(new Vector3f(x, 0.0f, 9.0f));
-            outlinedNode.SetScale(3.75f);
-            var outlinedMushroom = outlinedNode.CreateComponent<StaticModel>();
-            outlinedMushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
-            outlinedMushroom.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
-            outlineGroup.AddDrawable(outlinedMushroom);
         }
 
         var cameraNode = scene.CreateChild("Camera");
@@ -100,6 +73,8 @@ sealed class StaticSceneApplication : Application
         controller.SetInput(Input);
 
         Renderer.SetViewport(0, new Viewport(scene, camera));
+        Input.SetMouseMode(MouseMode.Relative);
+        Input.SetMouseVisible(false);
     }
 
     protected override void Update(float timeStep)
@@ -110,21 +85,6 @@ sealed class StaticSceneApplication : Application
             return;
         }
 
-        var engineTime = Context.GetSubsystem<Time>();
-        if (engineTime is null)
-            return;
-
-        if (!_fpsUpdated || _fpsTimer.GetMSec(true) >= 1000)
-        {
-            _fpsUpdated = true;
-            _fpsTimer.Reset();
-
-            var fps = engineTime.GetFramesPerSecond();
-            if (float.IsInfinity(fps))
-                _fpsLine.FormatInPlace("FPS: Infinity");
-            else
-                _fpsLine.FormatInPlace($"FPS: {fps:F1}");
-        }
     }
 
     protected override void Stop()
@@ -132,45 +92,14 @@ sealed class StaticSceneApplication : Application
         _dearImGuiSubscription?.Dispose();
         _dearImGuiSubscription = null;
 
-        _heapSizeLine.Dispose();
-        _gen0CollectionsLine.Dispose();
-        _gen1CollectionsLine.Dispose();
-        _gen2CollectionsLine.Dispose();
-        _totalAllocatedLine.Dispose();
-        _fpsLine.Dispose();
+        _instructionLine.Dispose();
     }
 
-    private void DrawGCStats()
+    private void DrawInstructions()
     {
-        ImGui.SetNextWindowPos(new Vector2f(8, 8), ImGuiCond.ImGuiCondFirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2f(280, 180), ImGuiCond.ImGuiCondFirstUseEver);
-
-        var flags = ImGuiWindowFlags.ImGuiWindowFlagsNoResize
-                  | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings;
-
-        if (ImGui.Begin("Stats\0"u8, out _, flags))
-        {
-            var heapSize = GC.GetTotalMemory(false) / (1024.0 * 1024.0);
-            _heapSizeLine.FormatInPlace($"Heap Size: {heapSize:F1} MB");
-
-            _gen0CollectionsLine.FormatInPlace($"Gen 0 Collections: {GC.CollectionCount(0)}");
-
-            _gen1CollectionsLine.FormatInPlace($"Gen 1 Collections: {GC.CollectionCount(1)}");
-
-            _gen2CollectionsLine.FormatInPlace($"Gen 2 Collections: {GC.CollectionCount(2)}");
-
-            var totalAllocated = GC.GetTotalAllocatedBytes() / (1024.0 * 1024.0);
-            _totalAllocatedLine.FormatInPlace($"Total Allocated: {totalAllocated:F1} MB");
-
-            ImGui.TextUnformatted(_heapSizeLine.Bytes);
-            ImGui.TextUnformatted(_gen0CollectionsLine.Bytes);
-            ImGui.TextUnformatted(_gen1CollectionsLine.Bytes);
-            ImGui.TextUnformatted(_gen2CollectionsLine.Bytes);
-            ImGui.TextUnformatted(_totalAllocatedLine.Bytes);
-
-            ImGui.TextUnformatted(_fpsLine.Bytes);
-        }
-
+        _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
+        if (ImGui.Begin("Static Scene\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted(_instructionLine.Bytes);
         ImGui.End();
     }
 

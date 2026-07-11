@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using RedBolt;
+using RedBolt.Bindings.DearImGui;
 
 try
 {
@@ -22,7 +23,9 @@ sealed class SoundSynthesisApplication : Application
     private float _filter = 0.5f;
     private float _accumulator;
     private float _osc1;
-    private float _osc2;
+    private float _osc2 = 180.0f;
+    private readonly CString _instructionLine = new();
+    private ContextEventSubscription? _dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -37,13 +40,7 @@ sealed class SoundSynthesisApplication : Application
 
     protected override void Start()
     {
-        var audio = Context.GetSubsystem<Audio>();
-        if (audio == null)
-        {
-            Console.Error.WriteLine("Audio subsystem not available.");
-            Exit(1);
-            return;
-        }
+        var audio = GetSubsystem<Audio>()!;
 
         if (!audio.SetMode(100, 44100, SpeakerMode.Mono))
         {
@@ -53,6 +50,8 @@ sealed class SoundSynthesisApplication : Application
         }
 
         audio.Play();
+        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Create a buffered sound stream for synthesized audio
         _soundStream = new BufferedSoundStream();
@@ -62,8 +61,9 @@ sealed class SoundSynthesisApplication : Application
         _soundSource = node.CreateComponent<SoundSource>();
         _soundSource.Play(_soundStream);
 
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
         Console.WriteLine("SoundSynthesis sample ready.");
-        Console.WriteLine("Keys: UP=Increase filter, DOWN=Decrease filter, ESC=Exit");
     }
 
     protected override void Update(float timeStep)
@@ -74,53 +74,56 @@ sealed class SoundSynthesisApplication : Application
             return;
         }
 
-        if (Input.GetKeyPress(Key.Up))
-        {
-            _filter = MathF.Min(_filter + 0.05f, 1.0f);
-            Console.WriteLine($"Filter: {_filter:F2}");
-        }
-        if (Input.GetKeyPress(Key.Down))
-        {
-            _filter = MathF.Max(_filter - 0.05f, 0.0f);
-            Console.WriteLine($"Filter: {_filter:F2}");
-        }
+        if (Input.GetKeyDown(Key.Up))
+            _filter += timeStep * 0.5f;
+        if (Input.GetKeyDown(Key.Down))
+            _filter -= timeStep * 0.5f;
+        _filter = MathDefs.Clamp(_filter, 0.01f, 1.0f);
 
         UpdateSound();
     }
 
     private void UpdateSound()
     {
-        if (_soundStream == null) return;
+        var targetLength = 1.0f / 10.0f;
+        var requiredLength = targetLength - _soundStream!.GetBufferLength();
+        if (requiredLength < 0.0f)
+            return;
 
-        // Generate ~100ms of audio data (44100 Hz * 0.1s = 4410 samples, 16-bit mono = 8820 bytes)
-        var sampleCount = 4410;
+        var sampleCount = (uint)(_soundStream.GetFrequency() * requiredLength);
+        if (sampleCount == 0)
+            return;
+
         var samples = new short[sampleCount];
 
         for (var i = 0; i < sampleCount; i++)
         {
-            // Two oscillators at slightly different frequencies
-            _osc1 += 0.05f;
-            _osc2 += 0.051f;
+            _osc1 = (_osc1 + 1.0f) % 360.0f;
+            _osc2 = (_osc2 + 1.002f) % 360.0f;
 
-            var sample = MathF.Sin(_osc1) * 0.5f + MathF.Sin(_osc2) * 0.3f;
-
-            // Apply low-pass filter
-            _accumulator = _accumulator * _filter + sample * (1.0f - _filter);
-
-            // Clamp to 16-bit range and scale
-            var value = _accumulator * 0.3f * short.MaxValue;
-            samples[i] = (short)MathDefs.Clamp(value, short.MinValue, short.MaxValue);
+            var newValue = MathDefs.Clamp((MathDefs.Sin(_osc1) + MathDefs.Sin(_osc2)) * 100000.0f, -32767.0f, 32767.0f);
+            _accumulator = MathDefs.Lerp(_accumulator, newValue, _filter);
+            samples[i] = (short)_accumulator;
         }
 
-        var bytes = new byte[sampleCount * sizeof(short)];
-        Buffer.BlockCopy(samples, 0, bytes, 0, bytes.Length);
-        _soundStream.AddData(bytes, (uint)bytes.Length);
+        _soundStream.AddData(samples, sampleCount * (uint)sizeof(short));
     }
 
     protected override void Stop()
     {
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+        _instructionLine.Dispose();
         _soundSource?.Stop();
-        Context.GetSubsystem<Audio>()?.Stop();
+        GetSubsystem<Audio>()!.Stop();
+    }
+
+    private void DrawInstructions()
+    {
+        _instructionLine.FormatInPlace($"Use cursor up and down to control sound filtering\nCoefficient: {_filter}");
+        if (ImGui.Begin("Sound Synthesis\\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted(_instructionLine.Bytes);
+        ImGui.End();
     }
 
     private static string FindResourcePrefixPath()

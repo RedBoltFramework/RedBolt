@@ -28,6 +28,21 @@ public struct TouchState
 /// <summary>Input state for a joystick.</summary>
 public struct JoystickState
 {
+    public JoystickState()
+    {
+        Joystick = IntPtr.Zero;
+        DeviceType = JoystickDeviceType.Unknown;
+        JoystickID = 0;
+        Controller = IntPtr.Zero;
+        ScreenJoystick = null;
+        Name = string.Empty;
+        Buttons = [];
+        ButtonPress = [];
+        Axes = [];
+        ValidAxis = [];
+        Hats = [];
+    }
+
     /// <summary>Initialize the number of buttons, axes and hats and set them to neutral state.</summary>
     public void Initialize(uint numButtons, uint numAxes, uint numHats)
     {
@@ -41,6 +56,11 @@ public struct JoystickState
     /// <summary>Reset button, axis and hat states to neutral.</summary>
     public void Reset()
     {
+        Buttons ??= [];
+        ButtonPress ??= [];
+        Axes ??= [];
+        ValidAxis ??= [];
+        Hats ??= [];
         Array.Fill(Buttons, false);
         Array.Fill(ButtonPress, false);
         Array.Fill(Axes, 0.0f);
@@ -87,25 +107,24 @@ public struct JoystickState
     /// <summary>UI element containing the screen joystick.</summary>
     public object? ScreenJoystick;
     /// <summary>Joystick name.</summary>
-    public string Name;
+    public string Name = string.Empty;
     /// <summary>Button up/down state.</summary>
-    public bool[] Buttons;
+    public bool[] Buttons = [];
     /// <summary>Button pressed on this frame.</summary>
-    public bool[] ButtonPress;
+    public bool[] ButtonPress = [];
     /// <summary>Axis position from -1 to 1.</summary>
-    public float[] Axes;
+    public float[] Axes = [];
     /// <summary>Valid axis position.</summary>
-    public bool[] ValidAxis;
+    public bool[] ValidAxis = [];
     /// <summary>POV hat bits.</summary>
-    public int[] Hats;
+    public int[] Hats = [];
 }
 
 public sealed class Input : Object
 {
     private const uint SdlInitVideo = 0x00000020u;
-    private static readonly Dictionary<Key, Scancode> KeyToScancode = BuildKeyToScancodeMap();
-    private static readonly Dictionary<Scancode, Key> ScancodeToKey = KeyToScancode.ToDictionary(static item => item.Value, static item => item.Key);
-
+    private const uint SdlInitJoystick = 0x00000200u;
+    private const uint SdlInitGameController = 0x00002000u;
     private readonly HashSet<Key> _keyDown = [];
     private readonly HashSet<Key> _keyPress = [];
     private readonly HashSet<Scancode> _scancodeDown = [];
@@ -115,18 +134,27 @@ public sealed class Input : Object
     private readonly Dictionary<ControllerAxis, float> _controllerAxisPositions = new();
     private readonly Dictionary<uint, float> _joystickAxisPositions = new();
     private readonly HashSet<string> _screenButtonsDown = new(StringComparer.Ordinal);
+    private readonly Dictionary<int, TouchState> _touches = [];
+    private readonly Dictionary<int, JoystickState> _joysticks = [];
+    private readonly Dictionary<int, SdlJoystick> _nativeJoysticks = [];
+    private readonly Dictionary<int, SdlGameController> _nativeControllers = [];
+    private readonly Timer _mousePressTimer = new();
+    private IntRect? _explicitWindowRect;
     private SdlEvent? _nativeEvent;
     private SdlWindow? _window;
     private MouseButton _mouseButtonClick;
     private MouseButton _mouseButtonDown;
     private MouseButton _mouseButtonPress;
+    private Vector2i _mousePressPosition = new(int.MinValue, int.MinValue);
     private int _mouseMoveWheel;
     private HatPosition _hatPosition = HatPosition.Center;
     private Vector2i _backbufferSize = Vector2i.Zero;
     private Vector2f _systemToBackbufferScale = Vector2f.One;
     private bool _lastMouseGrabbed;
-    private bool _lastMouseVisible = true;
+    private bool _lastMouseVisible;
     private MouseMode _lastMouseMode = MouseMode.Absolute;
+    private bool _suppressNextMouseMove;
+    private bool _mouseMoveScaled;
 
     public bool Enabled { get; set; } = true;
 
@@ -136,6 +164,8 @@ public sealed class Input : Object
 
     public MouseMode MouseMode { get; private set; } = MouseMode.Absolute;
 
+    public MouseMode GetMouseMode() => MouseMode;
+
     public Vector2i MouseMove { get; private set; }
 
     public int MouseMoveWheel => _mouseMoveWheel;
@@ -144,13 +174,15 @@ public sealed class Input : Object
 
     public Qualifier Qualifiers { get; private set; }
 
+    public Qualifier GetQualifiers() => Qualifiers;
+
     public Vector2f SystemToBackbufferScale => _systemToBackbufferScale;
 
-    public bool MouseVisible { get; private set; } = true;
+    public bool MouseVisible { get; private set; }
 
     public bool MouseGrabbed { get; private set; }
 
-    public bool HasFocus { get; private set; } = true;
+    public bool HasFocus { get; private set; }
 
     public bool IsMinimized { get; private set; }
 
@@ -174,17 +206,14 @@ public sealed class Input : Object
         if (IsInitialized)
             throw new InvalidOperationException("Input system is already initialized.");
 
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")))
-            throw new InvalidOperationException("RedBolt OpenGL first-cube path requires an X11 DISPLAY.");
-
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SDL_VIDEODRIVER")))
-            Environment.SetEnvironmentVariable("SDL_VIDEODRIVER", "x11");
-
-        _backbufferSize = new Vector2i(parameters.WindowWidth, parameters.WindowHeight);
+        var explicitRect = _explicitWindowRect;
+        var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;
+        var windowHeight = explicitRect?.Height > 0 ? explicitRect.Value.Height : parameters.WindowHeight;
+        _backbufferSize = new Vector2i(windowWidth, windowHeight);
         _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
 
-        if (!Context.Instance.RequireSdl(SdlInitVideo))
+        if (!Context.Instance.RequireSdl(SdlInitVideo | SdlInitJoystick | SdlInitGameController))
         {
             Context.Instance.ReleaseSdl();
             throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
@@ -212,10 +241,10 @@ public sealed class Input : Object
 
             _window = SdlNativeBindings.SdlCreateWindow(
                 title.Bytes,
-                x: parameters.WindowPositionX ?? 64,
-                y: parameters.WindowPositionY ?? 64,
-                w: parameters.WindowWidth,
-                h: parameters.WindowHeight,
+                x: explicitRect?.Left ?? parameters.WindowPositionX ?? 64,
+                y: explicitRect?.Top ?? parameters.WindowPositionY ?? 64,
+                w: windowWidth,
+                h: windowHeight,
                 flags: (uint)windowFlags);
 
             if (_window.IsNull)
@@ -225,6 +254,7 @@ public sealed class Input : Object
                 SdlNativeBindings.SdlMaximizeWindow(_window);
 
             _nativeEvent = new SdlEvent();
+            ResetJoysticks();
             IsInitialized = true;
         }
         catch
@@ -244,9 +274,13 @@ public sealed class Input : Object
         SdlNativeBindings.SdlSetWindowTitle(_window, pinnedTitle.Bytes);
     }
 
+    public void SetExplicitWindowRect(IntRect rect) => _explicitWindowRect = rect;
+
+    public void ResetExplicitWindowRect() => _explicitWindowRect = null;
+
     public void BeginFrame()
     {
-        Context.Instance.SendEvent<InputEvents.InputBeginEvent>();
+        SendEvent<InputEvents.InputBeginEvent>();
 
         ExitRequested = false;
         _keyPress.Clear();
@@ -255,6 +289,25 @@ public sealed class Input : Object
         _mouseButtonPress = MouseButton.None;
         _mouseMoveWheel = 0;
         MouseMove = Vector2i.Zero;
+        foreach (var joystickId in _joysticks.Keys.ToArray())
+        {
+            var joystick = _joysticks[joystickId];
+            Array.Fill(joystick.ButtonPress, false);
+            _joysticks[joystickId] = joystick;
+        }
+        foreach (var touchId in _touches.Keys.ToArray())
+        {
+            var touch = _touches[touchId];
+            touch.LastPosition = touch.Position;
+            touch.Delta = Vector2i.Zero;
+            _touches[touchId] = touch;
+        }
+    }
+
+    public void Update()
+    {
+        BeginFrame();
+        PollEvents();
     }
 
     public void PollEvents()
@@ -262,7 +315,7 @@ public sealed class Input : Object
         if (!Enabled || !IsInitialized || _nativeEvent is null)
             return;
 
-        var dearImGui = Context.Instance.GetSubsystem<IDearImGuiInputSink>();
+        var dearImGui = GetSubsystem<IDearImGuiInputSink>();
 
         while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
         {
@@ -324,6 +377,7 @@ public sealed class Input : Object
                 var axis = (ControllerAxis)(uint)_nativeEvent.CaxisAxis;
                 var position = NormalizeAxis(_nativeEvent.CaxisValue);
                 _controllerAxisPositions[axis] = position;
+                SetJoystickAxisState(_nativeEvent.CaxisWhich, (uint)axis, position, controller: true);
                 SendJoystickAxisEvent((int)axis, position, _nativeEvent.CaxisWhich);
             }
             else if (eventType is SdlEventType.SdlControllerbuttondown or SdlEventType.SdlControllerbuttonup)
@@ -331,6 +385,7 @@ public sealed class Input : Object
                 var button = (ControllerButton)(uint)_nativeEvent.CbuttonButton;
                 var down = eventType == SdlEventType.SdlControllerbuttondown;
                 if (down) _controllerButtonsDown.Add(button); else _controllerButtonsDown.Remove(button);
+                SetJoystickButtonState(_nativeEvent.CbuttonWhich, (uint)button, down, controller: true);
                 SendJoystickButtonEvent((int)button, down, _nativeEvent.CbuttonWhich);
             }
             else if (eventType == SdlEventType.SdlJoyaxismotion)
@@ -338,6 +393,7 @@ public sealed class Input : Object
                 var axis = (uint)_nativeEvent.JaxisAxis;
                 var position = NormalizeAxis(_nativeEvent.JaxisValue);
                 _joystickAxisPositions[axis] = position;
+                SetJoystickAxisState(_nativeEvent.JaxisWhich, axis, position, controller: false);
                 SendJoystickAxisEvent((int)axis, position, _nativeEvent.JaxisWhich);
             }
             else if (eventType is SdlEventType.SdlJoybuttondown or SdlEventType.SdlJoybuttonup)
@@ -345,11 +401,13 @@ public sealed class Input : Object
                 var button = (uint)_nativeEvent.JbuttonButton;
                 var down = eventType == SdlEventType.SdlJoybuttondown;
                 if (down) _joystickButtonsDown.Add(button); else _joystickButtonsDown.Remove(button);
+                SetJoystickButtonState(_nativeEvent.JbuttonWhich, button, down, controller: false);
                 SendJoystickButtonEvent((int)button, down, _nativeEvent.JbuttonWhich);
             }
             else if (eventType == SdlEventType.SdlJoyhatmotion)
             {
                 _hatPosition = (HatPosition)(uint)_nativeEvent.JhatValue;
+                SetJoystickHatState(_nativeEvent.JhatWhich, _nativeEvent.JhatHat, _hatPosition);
                 var hat = new InputEvents.JoystickHatMoveEvent
                 {
                     JoystickID = _nativeEvent.JhatWhich, Hat = _nativeEvent.JhatHat, Position = _hatPosition
@@ -358,12 +416,21 @@ public sealed class Input : Object
             }
             else if (eventType is SdlEventType.SdlJoydeviceadded or SdlEventType.SdlControllerdeviceadded)
             {
-                var connected = new InputEvents.JoystickConnectedEvent { JoystickID = _nativeEvent.JdeviceWhich };
-                SendEvent(ref connected);
+                var joystickId = OpenJoystick(_nativeEvent.JdeviceWhich);
+                if (joystickId >= 0)
+                {
+                    var connected = new InputEvents.JoystickConnectedEvent { JoystickID = joystickId };
+                    SendEvent(ref connected);
+                }
             }
             else if (eventType is SdlEventType.SdlJoydeviceremoved or SdlEventType.SdlControllerdeviceremoved)
             {
                 var joystickId = eventType == SdlEventType.SdlControllerdeviceremoved ? _nativeEvent.CdeviceWhich : _nativeEvent.JdeviceWhich;
+                if (_nativeControllers.Remove(joystickId, out var controller))
+                    SdlNativeBindings.SdlGameControllerClose(controller);
+                if (_nativeJoysticks.Remove(joystickId, out var joystick))
+                    SdlNativeBindings.SdlJoystickClose(joystick);
+                _joysticks.Remove(joystickId);
                 var disconnected = new InputEvents.JoystickDisconnectedEvent { JoystickID = joystickId };
                 SendEvent(ref disconnected);
             }
@@ -399,7 +466,10 @@ public sealed class Input : Object
             }
         }
 
-        Context.Instance.SendEvent<InputEvents.InputEndEvent>();
+        if (_suppressNextMouseMove && MouseMove != Vector2i.Zero)
+            UnsuppressMouseMove();
+
+        SendEvent<InputEvents.InputEndEvent>();
     }
 
     private static bool ShouldConsumeEventByDearImGui(IDearImGuiInputSink? dearImGui, SdlEventType eventType)
@@ -418,46 +488,38 @@ public sealed class Input : Object
     public static Key GetKeyFromName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (TryParseNamedValue(name, out Key key))
-            return key;
-        return name.Length == 1 ? (Key)char.ToLowerInvariant(name[0]) : Key.Unknown;
+        using var value = new CString(name);
+        return (Key)SdlNativeBindings.SdlGetKeyFromName(value.Bytes);
     }
 
-    public static Key GetKeyFromScancode(Scancode scancode) => ScancodeToKey.GetValueOrDefault(scancode, Key.Unknown);
+    public static Key GetKeyFromScancode(Scancode scancode) =>
+        (Key)SdlNativeBindings.SdlGetKeyFromScancode((SdlScancode)scancode);
 
-    public static string GetKeyName(Key key)
-    {
-        return key switch
-        {
-            >= Key.A and <= Key.Z => key.ToString(),
-            >= Key.Num0 and <= Key.Num9 => ((char)key).ToString(),
-            Key.Unknown => string.Empty,
-            _ => key.ToString()
-        };
-    }
+    public static string GetKeyName(Key key) => DecodeUtf8(SdlNativeBindings.SdlGetKeyName((int)key));
 
-    public static Scancode GetScancodeFromKey(Key key) => KeyToScancode.GetValueOrDefault(key, Scancode.Unknown);
+    public static Scancode GetScancodeFromKey(Key key) =>
+        (Scancode)SdlNativeBindings.SdlGetScancodeFromKey((int)key);
 
     public static Scancode GetScancodeFromName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (TryParseNamedValue(name, out Scancode scancode))
-            return scancode;
-        return GetScancodeFromKey(GetKeyFromName(name));
+        using var value = new CString(name);
+        return (Scancode)SdlNativeBindings.SdlGetScancodeFromName(value.Bytes);
     }
 
-    public static string GetScancodeName(Scancode scancode) => scancode == Scancode.Unknown ? string.Empty : scancode.ToString();
+    public static string GetScancodeName(Scancode scancode) =>
+        DecodeUtf8(SdlNativeBindings.SdlGetScancodeName((SdlScancode)scancode));
 
     public static string GetMouseButtonName(MouseButton button)
     {
         return button switch
         {
-            MouseButton.Left => nameof(MouseButton.Left),
-            MouseButton.Middle => nameof(MouseButton.Middle),
-            MouseButton.Right => nameof(MouseButton.Right),
-            MouseButton.X1 => nameof(MouseButton.X1),
-            MouseButton.X2 => nameof(MouseButton.X2),
-            _ => string.Empty
+            MouseButton.Left => "LMB",
+            MouseButton.Middle => "MMB",
+            MouseButton.Right => "RMB",
+            MouseButton.X1 => "X1",
+            MouseButton.X2 => "X2",
+            _ => "?"
         };
     }
 
@@ -523,13 +585,6 @@ public sealed class Input : Object
         return _hatPosition;
     }
 
-    public bool GetHatDown(HatPosition position)
-    {
-        return position == HatPosition.Center
-            ? _hatPosition == HatPosition.Center
-            : (_hatPosition & position) == position;
-    }
-
     public bool GetScreenButtonDown(string elementName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
@@ -538,22 +593,171 @@ public sealed class Input : Object
 
     public Vector2f GetRelativeMousePosition()
     {
-        return _backbufferSize.X > 0 && _backbufferSize.Y > 0
-            ? new Vector2f((float)MousePosition.X / _backbufferSize.X, (float)MousePosition.Y / _backbufferSize.Y)
+        var backbufferSize = GetBackbufferSize();
+        var position = GetMousePosition();
+        return backbufferSize.X != 0 && backbufferSize.Y != 0
+            ? new Vector2f((float)position.X / backbufferSize.X, (float)position.Y / backbufferSize.Y)
             : Vector2f.Zero;
     }
 
-    public Vector2i GetMousePosition() => MousePosition;
+    public Vector2i GetMousePosition()
+    {
+        if (!IsInitialized || _window is null || _window.IsNull)
+            return Vector2i.Zero;
 
-    public Vector2i GetMouseMove() => MouseMove;
+        if (_explicitWindowRect is { } rect)
+        {
+            SdlNativeBindings.SdlGetGlobalMouseState(out var x, out var y);
+            return SystemToBackbuffer(new Vector2i(x - rect.Left, y - rect.Top));
+        }
 
-    public int GetMouseMoveX() => MouseMove.X;
+        SdlNativeBindings.SdlGetMouseState(out var mouseX, out var mouseY);
+        return SystemToBackbuffer(new Vector2i(mouseX, mouseY));
+    }
 
-    public int GetMouseMoveY() => MouseMove.Y;
+    public Vector2i GetMouseMove() => _suppressNextMouseMove
+        ? Vector2i.Zero
+        : _mouseMoveScaled ? MouseMove : SystemToBackbuffer(MouseMove);
+
+    public int GetMouseMoveX() => GetMouseMove().X;
+
+    public int GetMouseMoveY() => GetMouseMove().Y;
 
     public int GetMouseMoveWheel() => MouseMoveWheel;
 
     public Vector2f GetSystemToBackbufferScale() => _systemToBackbufferScale;
+
+    public uint GetNumTouches() => (uint)_touches.Count;
+
+    public TouchState? GetTouch(uint index)
+    {
+        if (index >= _touches.Count)
+            return null;
+
+        var current = 0u;
+        foreach (var touch in _touches.Values)
+        {
+            if (current++ == index)
+                return touch;
+        }
+
+        return null;
+    }
+
+    public TouchState? GetTouchById(int touchId) => _touches.GetValueOrDefault(touchId);
+
+    public uint GetNumJoysticks() => (uint)_joysticks.Count;
+
+    public JoystickState? GetJoystick(int id) => _joysticks.GetValueOrDefault(id);
+
+    public JoystickState? GetJoystickByIndex(uint index)
+    {
+        if (index >= _joysticks.Count)
+            return null;
+
+        var current = 0u;
+        foreach (var joystick in _joysticks.Values)
+        {
+            if (current++ == index)
+                return joystick;
+        }
+
+        return null;
+    }
+
+    public JoystickState? GetJoystickByName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        foreach (var joystick in _joysticks.Values)
+        {
+            if (string.Equals(joystick.Name, name, StringComparison.Ordinal))
+                return joystick;
+        }
+
+        return null;
+    }
+
+    public int FindAccelerometerJoystickId()
+    {
+        using var hintName = new CString("SDL_ACCELEROMETER_AS_JOYSTICK");
+        var hint = SdlNativeBindings.SdlGetHint(hintName.Bytes);
+        if (hint.SequenceEqual("0"u8))
+            return -1;
+
+        foreach (var joystick in _joysticks.Values)
+        {
+            if (joystick.GetNumAxes() == 3 && joystick.GetNumButtons() == 0 && joystick.GetNumHats() == 0)
+                return joystick.JoystickID;
+        }
+
+        return -1;
+    }
+
+    public bool IsScreenJoystickVisible(int id) => false;
+
+    public bool GetScreenKeyboardSupport() => SdlNativeBindings.SdlHasScreenKeyboardSupport() == SdlBool.SdlTrue;
+
+    public bool IsScreenKeyboardVisible() => SdlNativeBindings.SdlIsTextInputActive() == SdlBool.SdlTrue;
+
+    public void SetScreenKeyboardVisible(bool enable)
+    {
+        if (enable == IsScreenKeyboardVisible())
+            return;
+        if (enable)
+            SdlNativeBindings.SdlStartTextInput();
+        else
+            SdlNativeBindings.SdlStopTextInput();
+    }
+
+    public int AddScreenJoystick(XMLFile? layoutFile = null, XMLFile? styleFile = null)
+    {
+        // TODO: port SDL screen joystick creation and UI layout/style integration.
+        return -1;
+    }
+
+    public bool RemoveScreenJoystick(int id) => false;
+
+    public void SetScreenJoystickVisible(int id, bool enable)
+    {
+    }
+
+    public bool RecordGesture()
+    {
+        if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
+            return false;
+        return SdlNativeBindings.SdlRecordGesture(-1) != 0;
+    }
+
+    public bool SaveGestures(Serializer dest)
+    {
+        ArgumentNullException.ThrowIfNull(dest);
+        // TODO: port SDL_SaveAllDollarTemplates through the managed serializer binding.
+        return false;
+    }
+
+    public bool SaveGesture(Serializer dest, uint gestureId)
+    {
+        ArgumentNullException.ThrowIfNull(dest);
+        // TODO: port SDL_SaveDollarTemplate through the managed serializer binding.
+        return false;
+    }
+
+    public uint LoadGestures(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        // TODO: port SDL_LoadDollarTemplates through the managed deserializer binding.
+        return 0;
+    }
+
+    public bool RemoveGesture(uint gestureId)
+    {
+        return SdlNativeBindings.SdlRemoveDollarTemplate((nint)gestureId) != 0;
+    }
+
+    public void RemoveAllGestures()
+    {
+        SdlNativeBindings.SdlRemoveAllDollarTemplates();
+    }
 
     public Vector2i SystemToBackbuffer(Vector2i value) => new(
         (int)MathF.Round(value.X * _systemToBackbufferScale.X),
@@ -563,10 +767,30 @@ public sealed class Input : Object
         _systemToBackbufferScale.X != 0.0f ? (int)MathF.Round(value.X / _systemToBackbufferScale.X) : value.X,
         _systemToBackbufferScale.Y != 0.0f ? (int)MathF.Round(value.Y / _systemToBackbufferScale.Y) : value.Y);
 
+    public Vector2i GetGlobalWindowPosition()
+    {
+        if (!IsInitialized || _window is null || _window.IsNull)
+            return Vector2i.Zero;
+        SdlNativeBindings.SdlGetWindowPosition(_window, out var x, out var y);
+        return new Vector2i(x, y);
+    }
+
+    public Vector2i GetGlobalWindowSize()
+    {
+        if (!IsInitialized || _window is null || _window.IsNull)
+            return Vector2i.Zero;
+        SdlNativeBindings.SdlGetWindowSize(_window, out var width, out var height);
+        return new Vector2i(width, height);
+    }
+
+    public Vector2i GetBackbufferSize() => _backbufferSize;
+
     public void SetMousePosition(Vector2i position)
     {
         var delta = position - MousePosition;
         MousePosition = position;
+        if (IsInitialized && _window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlWarpMouseInWindow(_window, position.X, position.Y);
         if (delta != Vector2i.Zero)
         {
             var eventData = new InputEvents.MouseMoveEvent
@@ -621,22 +845,25 @@ public sealed class Input : Object
 
     public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)
     {
-        var wasDown = (_mouseButtonDown & button) != 0;
         if (newState)
         {
             if ((_mouseButtonDown & button) == 0)
                 _mouseButtonPress |= button;
             _mouseButtonDown |= button;
+            _mousePressTimer.Reset();
+            _mousePressPosition = GetMousePosition();
         }
         else
         {
+            if (_mousePressTimer.GetMSec() < 250 && _mousePressPosition == GetMousePosition())
+                _mouseButtonClick |= button;
+
+            if ((_mouseButtonDown & button) == 0)
+                return;
             _mouseButtonDown &= ~button;
         }
 
-        if (clicks > 0)
-            _mouseButtonClick |= button;
-
-        if (newState && !wasDown)
+        if (newState)
         {
             var eventData = new InputEvents.MouseButtonDownEvent
             {
@@ -644,7 +871,7 @@ public sealed class Input : Object
             };
             SendEvent(ref eventData);
         }
-        else if (!newState && wasDown)
+        else
         {
             var eventData = new InputEvents.MouseButtonUpEvent
             {
@@ -656,6 +883,9 @@ public sealed class Input : Object
 
     public void SetMouseWheel(int delta)
     {
+        if (delta == 0)
+            return;
+
         _mouseMoveWheel += delta;
         var eventData = new InputEvents.MouseWheelEvent
         {
@@ -670,6 +900,7 @@ public sealed class Input : Object
             _controllerButtonsDown.Add(button);
         else
             _controllerButtonsDown.Remove(button);
+        SetJoystickButtonState(0, (uint)button, newState, controller: true);
         SendJoystickButtonEvent((int)button, newState);
     }
 
@@ -679,6 +910,7 @@ public sealed class Input : Object
             _joystickButtonsDown.Add(buttonIndex);
         else
             _joystickButtonsDown.Remove(buttonIndex);
+        SetJoystickButtonState(0, buttonIndex, newState, controller: false);
         SendJoystickButtonEvent(checked((int)buttonIndex), newState);
     }
 
@@ -686,6 +918,7 @@ public sealed class Input : Object
     {
         var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
         _controllerAxisPositions[axis] = clamped;
+        SetJoystickAxisState(0, (uint)axis, clamped, controller: true);
         SendJoystickAxisEvent((int)axis, clamped);
     }
 
@@ -693,12 +926,14 @@ public sealed class Input : Object
     {
         var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
         _joystickAxisPositions[axis] = clamped;
+        SetJoystickAxisState(0, axis, clamped, controller: false);
         SendJoystickAxisEvent(checked((int)axis), clamped);
     }
 
     public void SetHatPosition(HatPosition position)
     {
         _hatPosition = position;
+        SetJoystickHatState(0, 0, position);
         var eventData = new InputEvents.JoystickHatMoveEvent { JoystickID = 0, Hat = 0, Position = position };
         SendEvent(ref eventData);
     }
@@ -714,7 +949,7 @@ public sealed class Input : Object
 
     public void CenterMousePosition()
     {
-        MousePosition = new Vector2i(_backbufferSize.X / 2, _backbufferSize.Y / 2);
+        SetMousePosition(new Vector2i(_backbufferSize.X / 2, _backbufferSize.Y / 2));
     }
 
     public bool GetQualifierDown(Qualifier qualifier)
@@ -738,16 +973,62 @@ public sealed class Input : Object
 
     public void SetMouseMode(MouseMode mode, bool suppressEvent = false)
     {
-        var changed = MouseMode != mode;
-        if (mode == MouseMode.Absolute)
-            SetMouseGrabbed(false, suppressEvent: true);
-        else if (mode == MouseMode.Relative || mode == MouseMode.Wrap)
-            SetMouseGrabbed(true, suppressEvent: true);
+        var previousMode = MouseMode;
+        var changed = previousMode != mode;
+        if (!changed)
+        {
+            if (!suppressEvent)
+                _lastMouseMode = mode;
+            return;
+        }
 
-        MouseMode = mode;
+        if (IsInitialized)
+        {
+            SuppressNextMouseMove();
+            MouseMode = mode;
+
+            if (previousMode == MouseMode.Absolute && !MouseVisible)
+                SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+            else if (previousMode == MouseMode.Relative)
+            {
+                var result = SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+                if (result == -1)
+                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                SetMouseVisible(_lastMouseVisible, suppressEvent: true);
+            }
+            else if (previousMode == MouseMode.Wrap)
+                SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+        }
+
+        if (IsInitialized)
+        {
+            if (mode == MouseMode.Relative)
+            {
+                SetMouseVisible(false, suppressEvent: true);
+                var result = SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
+                if (result == -1)
+                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                SetMouseGrabbed(true, suppressEvent: true);
+            }
+            else
+            {
+                if (mode == MouseMode.Wrap)
+                {
+                    SetMouseGrabbed(true, suppressEvent: true);
+                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                }
+                else
+                    SetMouseGrabbed(!MouseVisible, suppressEvent: true);
+            }
+        }
+        else
+        {
+            MouseMode = mode;
+        }
+
         if (!suppressEvent)
             _lastMouseMode = mode;
-        if (changed && !suppressEvent)
+        if (!suppressEvent)
         {
             var eventData = new InputEvents.MouseModeChangedEvent { Mode = mode, MouseLocked = IsMouseLocked() };
             SendEvent(ref eventData);
@@ -762,14 +1043,49 @@ public sealed class Input : Object
 
     public void SetMouseVisible(bool enable, bool suppressEvent = false)
     {
-        var changed = MouseVisible != enable;
-        MouseVisible = enable;
-        if (!suppressEvent)
-            _lastMouseVisible = enable;
-        if (changed && !suppressEvent)
+        var startMouseVisible = MouseVisible;
+        if (TouchEmulation)
+            enable = true;
+        if (MouseMode == MouseMode.Relative)
         {
-            var eventData = new InputEvents.MouseVisibleChangedEvent { Visible = enable };
-            SendEvent(ref eventData);
+            if (!suppressEvent)
+                _lastMouseVisible = enable;
+            enable = false;
+        }
+
+        if (MouseVisible != enable)
+        {
+            if (IsInitialized)
+            {
+                if (!enable && HasFocus)
+                {
+                    if (MouseMode == MouseMode.Absolute)
+                        SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                    SdlNativeBindings.SdlShowCursor(0);
+                    MouseVisible = false;
+                }
+                else if (MouseMode != MouseMode.Relative)
+                {
+                    SetMouseGrabbed(false, suppressEvent);
+                    if (MouseMode == MouseMode.Absolute)
+                        SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                    SdlNativeBindings.SdlShowCursor(1);
+                    MouseVisible = true;
+                }
+            }
+            else
+                MouseVisible = enable;
+
+            if (MouseVisible != startMouseVisible)
+            {
+                SuppressNextMouseMove();
+                if (!suppressEvent)
+                {
+                    _lastMouseVisible = MouseVisible;
+                    var eventData = new InputEvents.MouseVisibleChangedEvent { Visible = MouseVisible };
+                    SendEvent(ref eventData);
+                }
+            }
         }
     }
 
@@ -782,13 +1098,22 @@ public sealed class Input : Object
             _lastMouseGrabbed = grab;
     }
 
-    public void ResetMouseGrabbed() => SetMouseGrabbed(_lastMouseGrabbed);
+    public void ResetMouseGrabbed() => SetMouseGrabbed(_lastMouseGrabbed, suppressEvent: true);
 
     public void SetToggleFullscreen(bool enable) => ToggleFullscreen = enable;
 
     public bool GetToggleFullscreen() => ToggleFullscreen;
 
-    public void SetTouchEmulation(bool enable) => TouchEmulation = enable;
+    public void SetTouchEmulation(bool enable)
+    {
+        if (TouchEmulation == enable)
+            return;
+        if (enable)
+            SetMouseVisible(true);
+        else
+            _touches.Clear();
+        TouchEmulation = enable;
+    }
 
     public bool GetTouchEmulation() => TouchEmulation;
 
@@ -796,7 +1121,7 @@ public sealed class Input : Object
 
     public bool IsMouseGrabbed() => MouseGrabbed;
 
-    public bool IsMouseLocked() => MouseMode != MouseMode.Absolute;
+    public bool IsMouseLocked() => !((MouseMode == MouseMode.Absolute && MouseVisible) || MouseMode == MouseMode.Free);
 
     public bool GetFocus() => HasFocus;
 
@@ -817,15 +1142,13 @@ public sealed class Input : Object
 
     public void Shutdown()
     {
+        var wasInitialized = IsInitialized;
         _nativeEvent?.Dispose();
         _nativeEvent = null;
 
         if (_window is not null && !_window.IsNull)
             SdlNativeBindings.SdlDestroyWindow(_window);
         _window = null;
-
-        if (IsInitialized)
-            Context.Instance.ReleaseSdl();
 
         IsInitialized = false;
         ExitRequested = false;
@@ -838,24 +1161,36 @@ public sealed class Input : Object
         _controllerAxisPositions.Clear();
         _joystickAxisPositions.Clear();
         _screenButtonsDown.Clear();
+        _touches.Clear();
+        foreach (var controller in _nativeControllers.Values)
+            SdlNativeBindings.SdlGameControllerClose(controller);
+        foreach (var joystick in _nativeJoysticks.Values)
+            SdlNativeBindings.SdlJoystickClose(joystick);
+        _nativeControllers.Clear();
+        _nativeJoysticks.Clear();
+        _joysticks.Clear();
+        if (wasInitialized)
+            Context.Instance.ReleaseSdl();
         _mouseButtonClick = MouseButton.None;
         _mouseButtonDown = MouseButton.None;
         _mouseButtonPress = MouseButton.None;
         _mouseMoveWheel = 0;
         _hatPosition = HatPosition.Center;
         MouseMove = Vector2i.Zero;
+        _suppressNextMouseMove = false;
+        _mouseMoveScaled = false;
         MousePosition = Vector2i.Zero;
         Qualifiers = Qualifier.None;
         _backbufferSize = Vector2i.Zero;
         _systemToBackbufferScale = Vector2f.One;
-        HasFocus = true;
+        HasFocus = false;
         IsMinimized = false;
     }
 
     private void HandleKeyDown(SdlEvent @event)
     {
-        var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
+        var key = ConvertSdlKeyCode((Key)@event.KeyKeysymSym, scancode);
         SetKey(key, scancode, true);
         if (scancode == Scancode.Escape)
         {
@@ -866,9 +1201,20 @@ public sealed class Input : Object
 
     private void HandleKeyUp(SdlEvent @event)
     {
-        var key = (Key)@event.KeyKeysymSym;
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
+        var key = ConvertSdlKeyCode((Key)@event.KeyKeysymSym, scancode);
         SetKey(key, scancode, false);
+    }
+
+    private static Key ConvertSdlKeyCode(Key key, Scancode scancode)
+    {
+        if (scancode == Scancode.AcBack)
+            return Key.Escape;
+
+        var value = (uint)key;
+        if (value is >= 'A' and <= 'Z')
+            value += 'a' - 'A';
+        return (Key)value;
     }
 
     private void HandleMouseButtonDown(SdlEvent @event)
@@ -887,6 +1233,7 @@ public sealed class Input : Object
     {
         MousePosition = new Vector2i(@event.MotionX, @event.MotionY);
         MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
+        _mouseMoveScaled = false;
         var eventData = new InputEvents.MouseMoveEvent
         {
             X = MousePosition.X, Y = MousePosition.Y, DX = @event.MotionXrel, DY = @event.MotionYrel,
@@ -899,14 +1246,94 @@ public sealed class Input : Object
     {
         var windowEvent = (SdlWindowEventID)@event.WindowEvent;
         if (windowEvent == SdlWindowEventID.SdlWindoweventFocusGained)
-            HasFocus = true;
+        {
+            GainFocus();
+            return;
+        }
         else if (windowEvent == SdlWindowEventID.SdlWindoweventFocusLost)
-            HasFocus = false;
+        {
+            LoseFocus();
+            return;
+        }
         else if (windowEvent == SdlWindowEventID.SdlWindoweventMinimized)
             IsMinimized = true;
         else if (windowEvent == SdlWindowEventID.SdlWindoweventRestored)
             IsMinimized = false;
 
+        var eventData = new InputEvents.InputFocusEvent { Focus = HasFocus, Minimized = IsMinimized };
+        SendEvent(ref eventData);
+    }
+
+    private void GainFocus()
+    {
+        ResetState();
+        HasFocus = true;
+        if (IsInitialized)
+        {
+            var mode = MouseMode;
+            MouseMode = MouseMode.Free;
+            SetMouseMode(mode, suppressEvent: true);
+        }
+        SuppressNextMouseMove();
+        if (!MouseVisible && IsInitialized)
+            SdlNativeBindings.SdlShowCursor(0);
+        SendInputFocusEvent();
+    }
+
+    private void LoseFocus()
+    {
+        ResetState();
+        HasFocus = false;
+        if (IsInitialized)
+        {
+            var mode = MouseMode;
+            SetMouseMode(MouseMode.Free, suppressEvent: true);
+            MouseMode = mode;
+            SdlNativeBindings.SdlShowCursor(1);
+        }
+        SendInputFocusEvent();
+    }
+
+    private void ResetState()
+    {
+        _keyDown.Clear();
+        _keyPress.Clear();
+        _scancodeDown.Clear();
+        _scancodePress.Clear();
+        _controllerButtonsDown.Clear();
+        _joystickButtonsDown.Clear();
+        _controllerAxisPositions.Clear();
+        _joystickAxisPositions.Clear();
+
+        foreach (var joystickId in _joysticks.Keys.ToArray())
+        {
+            var state = _joysticks[joystickId];
+            state.Reset();
+            _joysticks[joystickId] = state;
+        }
+
+        foreach (var touch in _touches.Values)
+        {
+            var eventData = new InputEvents.TouchEndEvent
+            {
+                TouchID = touch.TouchID,
+                X = touch.Position.X,
+                Y = touch.Position.Y
+            };
+            SendEvent(ref eventData);
+        }
+        _touches.Clear();
+        _mouseButtonDown = MouseButton.None;
+        _mouseButtonPress = MouseButton.None;
+        _mouseButtonClick = MouseButton.None;
+        Qualifiers = Qualifier.None;
+        _hatPosition = HatPosition.Center;
+        MouseMove = Vector2i.Zero;
+        _mouseMoveWheel = 0;
+    }
+
+    private void SendInputFocusEvent()
+    {
         var eventData = new InputEvents.InputFocusEvent { Focus = HasFocus, Minimized = IsMinimized };
         SendEvent(ref eventData);
     }
@@ -938,11 +1365,28 @@ public sealed class Input : Object
         var y = (int)MathF.Round(@event.TfingerY * _backbufferSize.Y);
         if (eventType == SdlEventType.SdlFingerdown)
         {
+            _touches[touchId] = new TouchState
+            {
+                TouchID = touchId,
+                Position = new Vector2i(x, y),
+                LastPosition = new Vector2i(x, y),
+                Delta = Vector2i.Zero,
+                Pressure = @event.TfingerPressure
+            };
             var value = new InputEvents.TouchBeginEvent { TouchID = touchId, X = x, Y = y, Pressure = @event.TfingerPressure };
             SendEvent(ref value);
         }
         else if (eventType == SdlEventType.SdlFingermotion)
         {
+            var touch = _touches.GetValueOrDefault(touchId);
+            touch.TouchID = touchId;
+            touch.LastPosition = touch.Position;
+            touch.Position = new Vector2i(x, y);
+            touch.Delta = new Vector2i(
+                (int)MathF.Round(@event.TfingerDx * _backbufferSize.X),
+                (int)MathF.Round(@event.TfingerDy * _backbufferSize.Y));
+            touch.Pressure = @event.TfingerPressure;
+            _touches[touchId] = touch;
             var value = new InputEvents.TouchMoveEvent
             {
                 TouchID = touchId, X = x, Y = y,
@@ -955,10 +1399,127 @@ public sealed class Input : Object
         {
             var value = new InputEvents.TouchEndEvent { TouchID = touchId, X = x, Y = y };
             SendEvent(ref value);
+            _touches.Remove(touchId);
         }
     }
 
+    private void ResetJoysticks()
+    {
+        foreach (var controller in _nativeControllers.Values)
+            SdlNativeBindings.SdlGameControllerClose(controller);
+        foreach (var joystick in _nativeJoysticks.Values)
+            SdlNativeBindings.SdlJoystickClose(joystick);
+        _nativeControllers.Clear();
+        _nativeJoysticks.Clear();
+        _joysticks.Clear();
+
+        var count = SdlNativeBindings.SdlNumJoysticks();
+        for (var i = 0; i < count; i++)
+            OpenJoystick(i);
+    }
+
+    private int OpenJoystick(int index)
+    {
+        var joystick = SdlNativeBindings.SdlJoystickOpen(index);
+        if (joystick.IsNull)
+            return -1;
+
+        var joystickId = SdlNativeBindings.SdlJoystickInstanceID(joystick);
+        var state = new JoystickState
+        {
+            Joystick = joystick.Handle,
+            DeviceType = (JoystickDeviceType)SdlNativeBindings.SdlJoystickGetDeviceType(index),
+            JoystickID = joystickId,
+            Name = DecodeUtf8(SdlNativeBindings.SdlJoystickName(joystick))
+        };
+
+        var controller = SdlNativeBindings.SdlIsGameController(index) == SdlBool.SdlTrue
+            ? SdlNativeBindings.SdlGameControllerOpen(index)
+            : null;
+        if (controller is { IsNull: false })
+        {
+            state.Controller = controller.Handle;
+            _nativeControllers[joystickId] = controller;
+        }
+
+        var numButtons = SdlNativeBindings.SdlJoystickNumButtons(joystick);
+        var numAxes = SdlNativeBindings.SdlJoystickNumAxes(joystick);
+        var numHats = SdlNativeBindings.SdlJoystickNumHats(joystick);
+        if (controller is { IsNull: false })
+        {
+            numButtons = Math.Max(numButtons, 15);
+            numAxes = Math.Max(numAxes, 6);
+        }
+
+        state.Initialize((uint)numButtons, (uint)numAxes, (uint)numHats);
+        state.JoystickID = joystickId;
+        _nativeJoysticks[joystickId] = joystick;
+        _joysticks[joystickId] = state;
+        return joystickId;
+    }
+
+    private JoystickState EnsureJoystickState(int joystickId, bool controller)
+    {
+        if (_joysticks.TryGetValue(joystickId, out var existing))
+            return existing;
+
+        var state = new JoystickState();
+        state.Initialize(controller ? 15u : 0u, controller ? 6u : 0u, controller ? 1u : 0u);
+        state.JoystickID = joystickId;
+        state.Controller = controller ? new IntPtr(1) : IntPtr.Zero;
+        state.DeviceType = controller ? JoystickDeviceType.GameController : JoystickDeviceType.Unknown;
+        _joysticks[joystickId] = state;
+        return state;
+    }
+
+    private void SetJoystickButtonState(int joystickId, uint button, bool down, bool controller)
+    {
+        var state = EnsureJoystickState(joystickId, controller);
+        var index = checked((int)button);
+        if (index >= state.Buttons.Length)
+        {
+            Array.Resize(ref state.Buttons, index + 1);
+            Array.Resize(ref state.ButtonPress, index + 1);
+        }
+
+        if (down && !state.Buttons[index])
+            state.ButtonPress[index] = true;
+        state.Buttons[index] = down;
+        _joysticks[joystickId] = state;
+    }
+
+    private void SetJoystickAxisState(int joystickId, uint axis, float position, bool controller)
+    {
+        var state = EnsureJoystickState(joystickId, controller);
+        var index = checked((int)axis);
+        if (index >= state.Axes.Length)
+        {
+            Array.Resize(ref state.Axes, index + 1);
+            Array.Resize(ref state.ValidAxis, index + 1);
+        }
+
+        state.Axes[index] = position;
+        state.ValidAxis[index] = true;
+        _joysticks[joystickId] = state;
+    }
+
+    private void SetJoystickHatState(int joystickId, byte hat, HatPosition position)
+    {
+        var state = EnsureJoystickState(joystickId, controller: false);
+        var index = hat;
+        if (index >= state.Hats.Length)
+            Array.Resize(ref state.Hats, index + 1);
+        state.Hats[index] = (int)position;
+        _joysticks[joystickId] = state;
+    }
+
     private static float NormalizeAxis(short value) => value >= 0 ? value / 32767.0f : value / 32768.0f;
+
+    private static string DecodeUtf8(ReadOnlySpan<byte> source)
+    {
+        var length = source.IndexOf((byte)0);
+        return Encoding.UTF8.GetString(length < 0 ? source : source[..length]);
+    }
 
     private static string DecodeNullTerminated(IEnumerable<sbyte> source)
     {
@@ -982,7 +1543,20 @@ public sealed class Input : Object
         if (isDown)
             Qualifiers |= qualifier;
         else
-            Qualifiers &= ~qualifier;
+        Qualifiers &= ~qualifier;
+    }
+
+    private void SuppressNextMouseMove()
+    {
+        _suppressNextMouseMove = true;
+        MouseMove = Vector2i.Zero;
+    }
+
+    private void UnsuppressMouseMove()
+    {
+        _suppressNextMouseMove = false;
+        MouseMove = Vector2i.Zero;
+        MousePosition = GetMousePosition();
     }
 
     private static MouseButton ToMouseButton(byte button)
@@ -996,46 +1570,6 @@ public sealed class Input : Object
             5 => MouseButton.X2,
             _ => MouseButton.None
         };
-    }
-
-    private static bool TryParseNamedValue<T>(string name, out T value)
-        where T : struct, Enum
-    {
-        var normalized = name.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal);
-        foreach (var enumName in Enum.GetNames<T>())
-        {
-            if (string.Equals(enumName, normalized, StringComparison.OrdinalIgnoreCase))
-            {
-                value = Enum.Parse<T>(enumName);
-                return true;
-            }
-        }
-
-        value = default;
-        return false;
-    }
-
-    private static Dictionary<Key, Scancode> BuildKeyToScancodeMap()
-    {
-        var result = new Dictionary<Key, Scancode>
-        {
-            [Key.Escape] = Scancode.Escape,
-            [Key.Space] = Scancode.Space,
-            [Key.Right] = Scancode.Right,
-            [Key.Left] = Scancode.Left,
-            [Key.Down] = Scancode.Down,
-            [Key.Up] = Scancode.Up,
-            [Key.LeftCtrl] = Scancode.LeftCtrl,
-            [Key.LeftShift] = Scancode.LeftShift,
-            [Key.LeftAlt] = Scancode.LeftAlt,
-            [Key.RightCtrl] = Scancode.RightCtrl,
-            [Key.RightShift] = Scancode.RightShift,
-            [Key.RightAlt] = Scancode.RightAlt
-        };
-
-        for (var key = Key.A; key <= Key.Z; ++key)
-            result[key] = (Scancode)((uint)Scancode.A + ((uint)key - (uint)Key.A));
-        return result;
     }
 
     private static SdlSysWMinfo CreateInitializedWmInfo()

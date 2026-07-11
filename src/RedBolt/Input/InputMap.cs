@@ -405,7 +405,8 @@ public sealed class InputMap : ResourceWithMetadata
 
             foreach (var controllerHat in _controllerHats)
             {
-                if (input.GetHatDown((HatPosition)controllerHat.HatPosition))
+                var hatPosition = (HatPosition)controllerHat.HatPosition;
+                if (hatPosition == HatPosition.Center || (input.GetHatPosition() & hatPosition) != 0)
                     return 1.0f;
             }
 

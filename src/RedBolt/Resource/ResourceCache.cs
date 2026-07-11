@@ -34,6 +34,14 @@ public sealed class ResourceCache
             name,
             GetRenderPathLookupNames(name),
             static resourceName => new RenderPath(resourceName)));
+        RegisterLoader<Sound>(name => LoadFileBackedResource(
+            name,
+            static resourceName =>
+            {
+                var sound = new Sound();
+                sound.SetName(resourceName);
+                return sound;
+            }));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)

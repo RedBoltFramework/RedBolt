@@ -23,7 +23,6 @@ on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
 
 - jcodemunch-mcp: use this to read/search BOTH rbfx and RedBolt.
   - ALWAYS use jcodemunch-mcp to explore code.
-    - ALWAYS update index at the session start.
   - DO NOT use plain grep, glob, find, cat, or Read for code exploration.
 - dotnet-trace: (optional) use this to check for GC allocations in the running sample.
 - debug-mcp: use this to debug crashes and wrong behavior at runtime.
@@ -33,6 +32,10 @@ on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
 ## 3. THE WORK LOOP (do this for EACH class)
 
 Do these steps IN ORDER. Finish one step fully before starting the next.
+
+STEP 0 - Preparation
+  - Re-read @AGENTS.md to refresh your memory.
+  - Update jcodemunch-mcp index of rbfx and RedBolt.
 
 STEP 1 - Find the C++ class
   - Use jcodemunch-mcp to open the C++ class outline (all methods, fields, bases).
@@ -105,6 +108,8 @@ The build output binaries are in:
 - Port EVERY function and method, even ones that look useless or redundant.
 - Port EVERY code comment if such exists.
 - Port EVERY doxygen documentation comment as C# xml documentation comment.
+- Port C++ code as is, no changes to the core logic.
+- Preserve C++ code layout.
 - Keep the code building at all times. Small working slices, not big broken ones.
 - Add or update focused unit tests when you change behavior.
 - After ANY change: build, run tests, and run the StaticScene sample.
@@ -116,10 +121,14 @@ The build output binaries are in:
     - Set it with Context.SetInstance(ctx).
     - Read it with Context.Instance.
     - Do NOT pass Context through constructors.
+- Copy necessary depednecnies into extern/thirdparty and wire them into build system.
 
 ## 8. THINGS YOU MUST NEVER DO
 
+- NEVER invent your own code to plug gaps -> ALWAYS just port C++ code.
+- NEVER invent your own defensive code only because you think it is better -> ALWAYS just port C++ code.
 - NEVER introduce your own comments outside of allowed cases.
+- NEVER rework code or adjust execution flow.
 - NEVER write manual/hand-authored native bindings.
 - NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
   P/Invoke declarations, or C# wrapper classes for native dependency APIs.
@@ -129,6 +138,7 @@ The build output binaries are in:
   no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
 - NEVER commit unless the build is green and tests pass.
 - NEVER delegate tasks to subagents.
+- NEVER insert absolute paths to code.
 
 ## 9. BINDINGS: HOW TO GET NATIVE ACCESS
 
@@ -166,6 +176,7 @@ These are the ONLY places C# is allowed to differ from C++:
   from a `friend` class is mapped to `internal` (or `protected internal` when it is also
   `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility
   violation of section 3. A member that is `public` in C++ must still be `public` in C#.
+- Use Dear ImGui instead of rbfx own UI/ subsystem in samples.
 
 Anything not on this list must match C++.
 

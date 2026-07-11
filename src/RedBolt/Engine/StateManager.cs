@@ -23,9 +23,9 @@ public abstract class ApplicationState : Object
     public object? GetViewport(uint index) => null;
     public object? GetViewportForScene(object? scene, uint index) => null;
 
-    public void SetMouseVisible(bool enable) { _mouseVisible = enable; if (IsActive()) Context.GetSubsystem<Input>()?.SetMouseVisible(enable); }
-    public void SetMouseGrabbed(bool grab) { _mouseGrabbed = grab; if (IsActive()) Context.GetSubsystem<Input>()?.SetMouseGrabbed(grab); }
-    public void SetMouseMode(MouseMode mode) { _mouseMode = mode; if (IsActive()) Context.GetSubsystem<Input>()?.SetMouseMode(mode); }
+    public void SetMouseVisible(bool enable) { _mouseVisible = enable; if (IsActive()) GetSubsystem<Input>()?.SetMouseVisible(enable); }
+    public void SetMouseGrabbed(bool grab) { _mouseGrabbed = grab; if (IsActive()) GetSubsystem<Input>()?.SetMouseGrabbed(grab); }
+    public void SetMouseMode(MouseMode mode) { _mouseMode = mode; if (IsActive()) GetSubsystem<Input>()?.SetMouseMode(mode); }
     public void SetCursor(object? cursor) { }
     public void SetNumViewports(uint num) { }
     public void SetViewport(uint index, object? viewport) { }

@@ -63,10 +63,7 @@ public class RenderPipeline : Component
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
 
-        var cache = Context.Instance.GetSubsystem<ResourceCache>();
-        if (cache is null)
-            return false;
-
+        var cache = GetSubsystem<ResourceCache>()!;
         var loaded = cache.GetResource<RenderPath>(resourceName);
         SetRenderPath(loaded);
         return true;
@@ -191,7 +188,7 @@ public class RenderPipeline : Component
     {
         _settings.Validate();
         _settings.PropagateImpliedSettings();
-        _settings.AdjustToSupported(Context.TryGetInstance()?.GetSubsystem<Graphics>());
+        _settings.AdjustToSupported(GetSubsystem<Graphics>());
         Touch();
         SettingsChanged?.Invoke(this, _settings);
     }
@@ -237,7 +234,7 @@ public class RenderPipeline : Component
         if (_renderPath is not null)
             return;
 
-        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var cache = GetSubsystem<ResourceCache>();
         if (cache?.GetResourceOrNull<RenderPath>(DefaultRenderPathName) is { } defaultRenderPath)
             SetRenderPath(defaultRenderPath);
     }

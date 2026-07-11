@@ -742,10 +742,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
 - [x] `AxisAdapter.h`
   - [x] `AxisAdapter` — dead zone, asymmetric sensitivity, neutral/inversion transforms, and archive persistence are ported
-- [x] `Input.h`
+- [ ] `Input.h`
   - [x] `struct TouchState` — touch ID, position, delta, pressure, and element reference are ported as a C# struct with public fields matching C++
   - [x] `struct JoystickState` — joystick/controller handles, button/axis/hat arrays, and accessor methods are ported as a C# struct with public fields matching C++
-  - [x] `Input : Object` — SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, and shutdown are ported
+  - [ ] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, and window helpers are ported; screen joystick and SDL gesture save/load archive APIs remain deferred
 - [x] `InputMap.h`
   - [x] `struct KeyboardKeyMapping` — scancode wrapper with archive serialization ported
   - [x] `struct ControllerButtonMapping`
@@ -784,8 +784,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ConfigFile.h`
   - [x] `struct ConfigVariableDefinition` — variable metadata with defaults, override, and priority flags
   - [x] `ConfigFile : Object` — flavor-based config, variable management, and archive serialization
-- [x] `Engine.h`
-  - [x] `Engine : Object` — engine initialization, frame loop, parameter management, FPS limiting, and shutdown are ported (parameter model uses `EngineParameters` class instead of `ConfigFile` for C# idiom)
+- [ ] `Engine.h`
+  - [ ] `Engine : Object` — engine initialization, frame loop, parameter management, FPS limiting, and shutdown are ported (parameter model uses `EngineParameters` class instead of `ConfigFile` for C# idiom); C++ diagnostics, console/debug HUD, virtual filesystem, and canvas-resize APIs remain incomplete
 - [x] `StateManager.h`
   - [x] `ApplicationState : Object` — state lifecycle (activate/deactivate/update), mouse mode, viewport, and fog color management ported (UI-dependent features deferred with TODO)
   - [x] `StateManager : Object` — state queue, caching, fade transitions, and transition event dispatch ported (UI fade overlay deferred with TODO)
@@ -876,19 +876,19 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `BufferedSoundStream.h`
   - [x] `BufferedSoundStream : SoundStream` — thread-safe buffered data with AddData/Clear ported
 - [x] `OggVorbisSoundStream.h`
-  - [x] `OggVorbisSoundStream : SoundStream` — compressed ogg stream skeleton ported (actual vorbis decoding deferred with TODO)
+  - [x] `OggVorbisSoundStream : SoundStream` — stb_vorbis-backed compressed stream, format metadata, seeking, looping, and PCM decoding ported
 - [x] `SoundSource.h`
   - [x] `SoundSource : Component` — Play/Stop, frequency/gain/panning/attenuation, mixing, and serialization ported
 - [x] `SoundSource3D.h`
-  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters ported (3D calculation deferred with TODO)
+  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters and listener-relative attenuation calculation are ported
 - [x] `SoundListener.h`
   - [x] `SoundListener : Component` — listener component ported
-- [x] `Microphone.h`
-  - [x] `Microphone : Object` — recording buffer, linked stream, and enable state ported (SDL capture deferred with TODO)
-- [x] `Audio.h`
-  - [x] `Audio : Object` — SDL audio device init, queued output, master gain types, sound source management, and render-update driven mixing ported
-- [x] `14_SoundEffects` sample — sound effect playback, music control, volume/panning via keyboard input ported
-- [x] `29_SoundSynthesis` sample — procedural audio synthesis via BufferedSoundStream with dual-oscillator and filter ported
+- [ ] `Microphone.h`
+  - [ ] `Microphone : Object` — recording buffer, linked stream, enable state, wake threshold, sleeping state, recording events, and queued SDL capture/device lifecycle are ported; SDL callback binding remains unavailable
+- [ ] `Audio.h`
+  - [ ] `Audio : Object` — SDL audio device init, queued output, direct managed mix output, master gain types, sound source management, render-update driven mixing, native microphone enumeration, and queued microphone capture are ported; SDL callback binding remains unavailable
+  - [x] `14_SoundEffects` sample — sound effect playback, music control, volume/panning/reach/LFE, microphone controls, and ImGui controls ported; startup WAV playback verified
+  - [x] `29_SoundSynthesis` sample — procedural audio synthesis ported with rbfx buffering, degree-based dual oscillators (including the C++ 180-degree second-oscillator start), filter, and ImGui instructions
 
 ## B3. UI `OPTIONAL` — retained-mode UI; depends on Graphics, Resource, Input
 

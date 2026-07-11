@@ -9,10 +9,10 @@ public static class SoundSourceConstants
 /// <summary>Sound source component with stereo position.</summary>
 public class SoundSource : Component
 {
-    protected Audio? Audio;
+    protected Audio Audio = null!;
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
-    internal float Frequency = 1.0f;
+    internal float Frequency;
     protected float Gain = 1.0f;
     protected float Attenuation = 1.0f;
     protected float Panning;
@@ -30,52 +30,57 @@ public class SoundSource : Component
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
     private bool _lowFrequency;
+    private bool _playing;
     private readonly object _playLock = new();
 
     public SoundSource()
     {
-        SetEnabled(false);
+        Audio = GetSubsystem<Audio>()!;
+        Audio.AddSoundSource(this);
+        UpdateMasterGain();
     }
 
     ~SoundSource()
     {
-        Stop();
+        Audio.RemoveSoundSource(this);
     }
 
     /// <summary>Play a sound.</summary>
-    public void Play(Sound? sound) => Play(sound, 1.0f, 1.0f, 0.0f);
+    public void Play(Sound? sound)
+    {
+        if (Frequency == 0.0f && sound != null)
+            Frequency = sound.GetFrequency();
+        PlayCore(sound);
+    }
 
     /// <summary>Play a sound with specified frequency.</summary>
-    public void Play(Sound? sound, float frequency) => Play(sound, frequency, 1.0f, 0.0f);
+    public void Play(Sound? sound, float frequency)
+    {
+        SetFrequency(frequency);
+        PlayCore(sound);
+    }
 
     /// <summary>Play a sound with specified frequency and gain.</summary>
-    public void Play(Sound? sound, float frequency, float gain) => Play(sound, frequency, gain, 0.0f);
+    public void Play(Sound? sound, float frequency, float gain)
+    {
+        SetFrequency(frequency);
+        SetGain(gain);
+        PlayCore(sound);
+    }
 
     /// <summary>Play a sound with specified frequency, gain and panning.</summary>
     public void Play(Sound? sound, float frequency, float gain, float panning)
     {
-        if (sound == null) return;
-        lock (_playLock)
-        {
-            Stop();
-            _sound = sound;
-            _soundStream = sound.IsCompressed() ? sound.GetDecoderStream() : null;
-            Frequency = frequency;
-            Gain = gain;
-            Panning = panning;
-            _timePosition = 0.0f;
-            _position = 0;
-            _fractPosition = 0;
-            _sendFinishedEvent = false;
+        SetFrequency(frequency);
+        SetGain(gain);
+        SetPanning(panning);
+        PlayCore(sound);
+    }
 
-            if (_soundStream != null)
-            {
-                _streamBuffer = null;
-                _unusedStreamSize = 0;
-            }
-        }
-        SetEnabled(true);
-        Audio?.AddSoundSource(this);
+    private void PlayCore(Sound? sound)
+    {
+        lock (_playLock)
+            PlayLockless(sound);
     }
 
     /// <summary>Start playing a sound stream.</summary>
@@ -84,50 +89,75 @@ public class SoundSource : Component
         if (stream == null) return;
         lock (_playLock)
         {
-            Stop();
-            _soundStream = stream;
             _sound = null;
-            _position = 0;
-            _fractPosition = 0;
-            _timePosition = 0.0f;
-            _sendFinishedEvent = false;
-            _streamBuffer = null;
-            _unusedStreamSize = 0;
-            Frequency = 1.0f;
+            if (Frequency == 0.0f)
+                Frequency = stream.GetFrequency();
+            PlayLockless(stream);
         }
-        SetEnabled(true);
-        Audio?.AddSoundSource(this);
     }
 
     /// <summary>Stop playback.</summary>
     public void Stop()
     {
-        Audio?.RemoveSoundSource(this);
         lock (_playLock)
-        {
-            _sound = null;
-            _soundStream = null;
-            _streamBuffer = null;
-        }
-        SetEnabled(false);
+            StopLockless();
     }
 
-    public void Seek(float seekTime) { /* TODO: port */ }
+    public void Seek(float seekTime)
+    {
+        if (_sound == null || (_soundStream != null && !_sound.IsCompressed()))
+            return;
+
+        seekTime = MathDefs.Clamp(seekTime, 0.0f, _sound.GetLength());
+
+        if (_soundStream == null)
+        {
+            SetPlayPosition((int)(seekTime * (_sound.GetSampleSize() * _sound.GetFrequency())));
+        }
+        else
+        {
+            if (_soundStream.Seek((uint)(seekTime * _soundStream.GetIntFrequency())))
+                _timePosition = seekTime;
+        }
+    }
 
     public void SetSoundType(string type)
     {
+        if (type == AudioDefs.SoundMaster)
+            return;
         SoundType = type;
         SoundTypeHash = new StringHash(type);
+        UpdateMasterGain();
     }
 
-    public void SetFrequency(float frequency) => Frequency = frequency;
-    public void SetGain(float gain) { Gain = MathDefs.Clamp(gain, 0.0f, 1.0f); }
-    public void SetAttenuation(float attenuation) => Attenuation = attenuation;
+    public void SetFrequency(float frequency) => Frequency = MathDefs.Clamp(frequency, 0.0f, 535232.0f);
+    public void SetGain(float gain) { Gain = Math.Max(gain, 0.0f); }
+    public void SetAttenuation(float attenuation) => Attenuation = MathDefs.Clamp(attenuation, 0.0f, 1.0f);
     public void SetPanning(float panning) { Panning = MathDefs.Clamp(panning, -1.0f, 1.0f); }
     public void SetReach(float reach) { Reach = MathDefs.Clamp(reach, -1.0f, 1.0f); }
     public void SetLowFrequency(bool state) => _lowFrequency = state;
     public void SetAutoRemoveMode(AutoRemoveMode mode) => AutoRemove = mode;
     public void SetIgnoreSceneTimeScale(bool ignoreSceneTimeScale) => _ignoreSceneTimeScale = ignoreSceneTimeScale;
+
+    public void SetSoundAttr(ResourceRef value)
+    {
+        var sound = ResourceRef.IsNullOrEmpty(value)
+            ? null
+            : GetSubsystem<ResourceCache>()!.GetResourceOrNull<Sound>(value.Name);
+
+        if (IsPlaying())
+        {
+            Play(sound);
+            return;
+        }
+
+        lock (_playLock)
+        {
+            _soundStream = null;
+            _streamBuffer = null;
+            _sound = sound;
+        }
+    }
 
     public Sound? GetSound() => _sound;
     public int GetPlayPosition() => _position;
@@ -141,10 +171,41 @@ public class SoundSource : Component
     public bool IsLowFrequency() => _lowFrequency;
     public AutoRemoveMode GetAutoRemoveMode() => AutoRemove;
     public bool GetIgnoreSceneTimeScale() => _ignoreSceneTimeScale;
-    public bool IsPlaying() => GetSound() != null || _soundStream != null;
+    public bool IsPlaying() => _playing && (_sound != null || _soundStream != null);
+
+    public void SetPlayPosition(int position)
+    {
+        lock (_playLock)
+            SetPlayPositionLockless(position);
+    }
 
     public virtual void Update(float timeStep)
     {
+        var effectiveTimeScale = GetEffectiveTimeScale();
+        if (effectiveTimeScale == 0.0f)
+            return;
+
+        if (!Audio.IsInitialized())
+            MixNull(timeStep, Frequency * effectiveTimeScale);
+
+        lock (_playLock)
+        {
+            if (_soundStream != null && !_playing)
+                StopLockless();
+        }
+
+        if (_playing || !_sendFinishedEvent || !IsAttached)
+            return;
+
+        _sendFinishedEvent = false;
+        var eventData = new AudioEvents.SoundFinishedEvent
+        {
+            Node = Node,
+            SoundSource = this,
+            Sound = _sound
+        };
+        Node.SendEvent(ref eventData);
+        DoAutoRemove(AutoRemove);
     }
 
     /// <summary>Mix sound source output to a 32-bit clipping buffer. Called by Audio.</summary>
@@ -152,93 +213,336 @@ public class SoundSource : Component
     {
         lock (_playLock)
         {
-            if (_sound == null && _soundStream == null)
+            if (!_playing || (_sound == null && _soundStream == null))
                 return;
 
-            var sound = _sound;
+            var effectiveTimeScale = GetEffectiveTimeScale();
+            if (effectiveTimeScale == 0.0f)
+                return;
+
             var stream = _soundStream;
-            float effectiveFrequency;
-            int sampleSize;
+            var effectiveFrequency = Frequency * effectiveTimeScale;
+            var sound = _sound;
+            var streamFilledSize = 0;
+            var decoded = 0u;
 
-            if (sound != null)
+            if (stream != null && _streamBuffer != null)
             {
-                // Check for streamed (compressed) playback
-                if (sound.IsCompressed())
-                {
-                    if (stream == null) return;
-                    effectiveFrequency = Frequency * stream.GetIntFrequency();
-                    sampleSize = (int)stream.GetSampleSize();
-                    // Decode stream data into buffer
-                    var bufferBytes = mixRate * SoundSourceConstants.StreamBufferLength * sampleSize;
-                    var decodeBuffer = new sbyte[bufferBytes];
-                    var decoded = stream.GetData(decodeBuffer, (uint)bufferBytes);
-                    sound = _streamBuffer;
-                    if (decoded == 0) { Stop(); return; }
-                }
-                else
-                {
-                    effectiveFrequency = Frequency * sound.GetIntFrequency();
-                    sampleSize = (int)sound.GetSampleSize();
-                }
-            }
-            else if (stream != null)
-            {
-                effectiveFrequency = Frequency * stream.GetIntFrequency();
-                sampleSize = (int)stream.GetSampleSize();
-                var bufferBytes = (uint)(mixRate * SoundSourceConstants.StreamBufferLength / 1000 * sampleSize);
-                var decodeBuffer = new sbyte[bufferBytes];
-                var decoded = stream.GetData(decodeBuffer, bufferBytes);
+                var streamBufferSize = (int)_streamBuffer.GetDataSize();
+                var sampleSize = (int)stream.GetSampleSize();
+                var neededSize = (int)(samples * effectiveFrequency / mixRate);
+                neededSize = checked((neededSize + 4) * sampleSize);
+                neededSize = Math.Clamp(neededSize - _unusedStreamSize, 0, streamBufferSize - _unusedStreamSize);
+
+                _position = 0;
+                var decodeBuffer = new sbyte[Math.Max(neededSize, 1)];
+                if (neededSize != 0)
+                    decoded = stream.GetData(decodeBuffer, (uint)neededSize);
+                _streamBuffer.CopyData(decodeBuffer, 0, _unusedStreamSize, (int)decoded);
+                if (decoded < neededSize)
+                    _streamBuffer.ClearData(_unusedStreamSize + (int)decoded, neededSize - (int)decoded);
+                streamFilledSize = neededSize + _unusedStreamSize;
                 sound = _streamBuffer;
-                if (stream.GetStopAtEnd() && decoded < bufferBytes) { Stop(); return; }
             }
-            else
-            {
+
+            if (sound == null)
                 return;
+
+            MixSound(sound, dest, samples, mixRate, effectiveFrequency, mode, interpolation);
+
+            if (stream != null && _streamBuffer != null)
+            {
+                _unusedStreamSize = Math.Max(streamFilledSize - _position, 0);
+                if (_unusedStreamSize != 0)
+                {
+                    var data = _streamBuffer.GetData()!;
+                    Buffer.BlockCopy(data, _position, data, 0, _unusedStreamSize);
+                }
+
+                if (decoded == 0 && stream.GetStopAtEnd())
+                {
+                    _playing = false;
+                    _position = 0;
+                }
             }
-
-            if (sound == null) return;
-
-            MixMono(sound, dest, samples, mixRate, effectiveFrequency, sampleSize);
         }
     }
 
     public void UpdateMasterGain()
     {
-        MasterGain = Audio?.GetSoundSourceMasterGain(SoundTypeHash) ?? 1.0f;
+        MasterGain = Audio.GetSoundSourceMasterGain(SoundTypeHash);
     }
 
     /// <summary>Set sound attribute for serialization.</summary>
     public ResourceRef GetSoundAttr() => GetSound() != null ? new ResourceRef(new StringHash(nameof(Sound)), GetSound()!.Name) : ResourceRef.Empty;
 
-    private void MixMono(Sound sound, int[] dest, uint samples, int mixRate, float effectiveFrequency, int sampleSize)
+    public void SetPlayingAttr(bool value)
     {
-        var data = sound.GetData();
-        if (data == null) return;
+        if (value && !IsPlaying() && _sound != null)
+            Play(_sound);
+        else if (!value)
+            Stop();
+    }
 
-        var freqFactor = effectiveFrequency / mixRate;
-        var gain = Gain * MasterGain * Attenuation;
-        if (gain <= 0.0f) return;
+    public int GetPositionAttr() => _position;
 
-        var panLeft = MathDefs.Clamp(1.0f - Panning, 0.0f, 1.0f) * gain;
-        var panRight = MathDefs.Clamp(1.0f + Panning, 0.0f, 1.0f) * gain;
+    public void SetPositionAttr(int value) => SetPlayPosition(value);
 
-        var intGain = (int)(gain * 32768);
-        var intLeft = (int)(panLeft * 32768);
-        var intRight = (int)(panRight * 32768);
+    private void PlayLockless(Sound? sound)
+    {
+        _timePosition = 0.0f;
 
-        var loops = 2; // assume stereo output, 2 channels
-        for (var i = 0u; i < samples * (uint)loops; i += (uint)loops)
+        if (sound != null)
         {
-            var sampleIndex = (int)((i / (uint)loops) * freqFactor * sampleSize);
-            if (sound.IsSixteenBit())
+            if (!sound.IsCompressed())
             {
-                var sampleBytes = new sbyte[2];
-                sampleBytes[0] = data[Math.Min(sampleIndex, data.Length - 2)];
-                sampleBytes[1] = data[Math.Min(sampleIndex + 1, data.Length - 1)];
-                var sample = BitConverter.ToInt16((byte[])(Array)sampleBytes, 0);
-                dest[i] += (sample * intLeft) >> 15;
-                dest[i + 1] += (sample * intRight) >> 15;
+                var data = sound.GetData();
+                if (data is { Length: > 0 })
+                {
+                    _soundStream = null;
+                    _streamBuffer = null;
+                    _sound = sound;
+                    _position = 0;
+                    _fractPosition = 0;
+                    _sendFinishedEvent = true;
+                    _playing = true;
+                    return;
+                }
+            }
+            else
+            {
+                PlayLockless(sound.GetDecoderStream());
+                _sound = sound;
+                return;
             }
         }
+
+        StopLockless();
+        _sound = null;
+    }
+
+    private void PlayLockless(SoundStream? stream)
+    {
+        _timePosition = 0.0f;
+
+        if (stream != null)
+        {
+            var sampleSize = stream.GetSampleSize();
+            var streamBufferSize = checked(sampleSize * stream.GetIntFrequency() * SoundSourceConstants.StreamBufferLength / 1000u);
+            _streamBuffer = new Sound();
+            _streamBuffer.SetSize(streamBufferSize);
+            _streamBuffer.SetFormat(stream.GetIntFrequency(), stream.IsSixteenBit(), stream.IsStereo());
+            _streamBuffer.SetLooped(true);
+            _soundStream = stream;
+            _unusedStreamSize = 0;
+            _position = 0;
+            _fractPosition = 0;
+            _sendFinishedEvent = true;
+            _playing = true;
+            return;
+        }
+
+        StopLockless();
+    }
+
+    private void StopLockless()
+    {
+        _position = 0;
+        _timePosition = 0.0f;
+        _soundStream = null;
+        _streamBuffer = null;
+        _unusedStreamSize = 0;
+        _playing = false;
+    }
+
+    private void SetPlayPositionLockless(int position)
+    {
+        if (_sound == null || _soundStream != null)
+            return;
+
+        _position = Math.Clamp(position, 0, (int)_sound.GetDataSize());
+        if (_sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
+            _timePosition = _position / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
+    }
+
+    private void MixNull(float timeStep, float effectiveFrequency)
+    {
+        lock (_playLock)
+        {
+            if (!_playing || _sound == null || !IsEnabledEffective)
+                return;
+
+            _timePosition += timeStep * effectiveFrequency / _sound.GetFrequency();
+            if (_sound.IsLooped())
+            {
+                if (_timePosition >= _sound.GetLength())
+                    _timePosition -= _sound.GetLength();
+            }
+            else if (_timePosition >= _sound.GetLength())
+            {
+                _playing = false;
+                _position = 0;
+                _timePosition = 0.0f;
+            }
+        }
+    }
+
+    private float GetEffectiveTimeScale()
+    {
+        if (_ignoreSceneTimeScale)
+            return 1.0f;
+        var scene = Scene;
+        if (!IsAttached || scene == null || !IsEnabledEffective)
+            return 0.0f;
+        return scene.GetEffectiveTimeScale();
+    }
+
+    private void MixSound(Sound sound, int[] dest, uint samples, int mixRate, float effectiveFrequency, SpeakerMode mode, bool interpolation)
+    {
+        var data = sound.GetData();
+        if (data == null)
+            return;
+
+        var outputChannels = mode switch
+        {
+            SpeakerMode.Mono => 1,
+            SpeakerMode.Stereo => 2,
+            SpeakerMode.Quadrophonic => 4,
+            SpeakerMode.Surround51 => 6,
+            _ => 0
+        };
+        if (outputChannels == 0)
+            return;
+
+        var sampleSize = (int)sound.GetSampleSize();
+        var channelSize = sound.IsSixteenBit() ? 2 : 1;
+        var sourceChannels = sound.IsStereo() ? 2 : 1;
+        var end = sound.GetEndOffset();
+        var repeat = sound.GetRepeatOffset();
+        var position = _position;
+        var fractPosition = _fractPosition;
+        var add = effectiveFrequency / mixRate;
+        var intAdd = (int)add;
+        var fractAdd = (int)((add - intAdd) * 65536.0f);
+        var gain = Gain * MasterGain * Attenuation;
+        var volume = (int)(256.0f * gain + 0.5f);
+        var leftVolume = (int)((-Panning + 1.0f) * (256.0f * gain + 0.5f));
+        var rightVolume = (int)((Panning + 1.0f) * (256.0f * gain + 0.5f));
+        var frontLeftVolume = (int)((-Panning + 1.0f) * (Reach + 1.0f) * (256.0f * gain + 0.5f));
+        var frontRightVolume = (int)((Panning + 1.0f) * (Reach + 1.0f) * (256.0f * gain + 0.5f));
+        var rearLeftVolume = (int)((-Panning + 1.0f) * (-Reach + 1.0f) * (256.0f * gain + 0.5f));
+        var rearRightVolume = (int)((Panning + 1.0f) * (-Reach + 1.0f) * (256.0f * gain + 0.5f));
+        var centerVolume = (int)(((frontLeftVolume + frontRightVolume) * 0.5f) * MathDefs.Clamp(Reach, 0.0f, 1.0f));
+
+        for (var sample = 0u; sample < samples && _playing; sample++)
+        {
+            if (position >= end)
+            {
+                if (sound.IsLooped() && end > repeat)
+                    position = repeat + (position - end) % (end - repeat);
+                else
+                {
+                    _playing = false;
+                    _sendFinishedEvent = true;
+                    position = 0;
+                    fractPosition = 0;
+                    _timePosition = 0.0f;
+                    break;
+                }
+            }
+
+            var nextPosition = position + sampleSize;
+            if (nextPosition >= end)
+                nextPosition = sound.IsLooped() && end > repeat ? repeat : position;
+
+            var firstLeft = ReadSample(data, position, sound.IsSixteenBit());
+            var firstRight = sourceChannels == 2 ? ReadSample(data, position + channelSize, sound.IsSixteenBit()) : firstLeft;
+            var nextLeft = ReadSample(data, nextPosition, sound.IsSixteenBit());
+            var nextRight = sourceChannels == 2 ? ReadSample(data, nextPosition + channelSize, sound.IsSixteenBit()) : nextLeft;
+            if (interpolation)
+            {
+                firstLeft = Interpolate(firstLeft, nextLeft, fractPosition);
+                firstRight = Interpolate(firstRight, nextRight, fractPosition);
+            }
+
+            var destination = checked((int)(sample * (uint)outputChannels));
+            if (sourceChannels == 1)
+            {
+                if (!_lowFrequency || mode == SpeakerMode.Surround51)
+                {
+                    if (mode == SpeakerMode.Mono)
+                        dest[destination] += firstLeft * volume / 256;
+                    else if (mode == SpeakerMode.Stereo)
+                    {
+                        dest[destination] += firstLeft * leftVolume / 256;
+                        dest[destination + 1] += firstLeft * rightVolume / 256;
+                    }
+                    else
+                    {
+                        if (_lowFrequency && mode == SpeakerMode.Surround51)
+                            dest[destination + 3] += firstLeft * volume / 256;
+                        else
+                        {
+                            dest[destination] += firstLeft * frontLeftVolume / 256;
+                            dest[destination + 1] += firstLeft * frontRightVolume / 256;
+                            if (mode == SpeakerMode.Surround51)
+                                dest[destination + 2] += firstLeft * centerVolume / 256;
+                            dest[destination + outputChannels - 2] += firstLeft * rearLeftVolume / 256;
+                            dest[destination + outputChannels - 1] += firstLeft * rearRightVolume / 256;
+                        }
+                    }
+                }
+            }
+            else if (mode == SpeakerMode.Mono)
+                dest[destination] += ((firstLeft + firstRight) / 2) * volume / 256;
+            else
+            {
+                dest[destination] += firstLeft * volume / 256;
+                dest[destination + 1] += firstRight * volume / 256;
+                if (outputChannels > 2)
+                {
+                    var rearOffset = mode == SpeakerMode.Surround51 ? 4 : 2;
+                    dest[destination + rearOffset] += firstLeft * volume / 256;
+                    dest[destination + rearOffset + 1] += firstRight * volume / 256;
+                }
+            }
+
+            position += intAdd * sampleSize;
+            fractPosition += fractAdd;
+            if (fractPosition > 65535)
+            {
+                fractPosition &= 65535;
+                position += sampleSize;
+            }
+
+            if (!sound.IsLooped() && position >= end)
+            {
+                _playing = false;
+                _sendFinishedEvent = true;
+                position = 0;
+                fractPosition = 0;
+                _timePosition = 0.0f;
+                break;
+            }
+        }
+
+        _position = position;
+        _fractPosition = fractPosition;
+        if (_soundStream != null && _soundStream.GetFrequency() != 0)
+            _timePosition += samples / (float)mixRate * effectiveFrequency / _soundStream.GetFrequency();
+        else if (_sound != null && _sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
+            _timePosition = _position / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
+    }
+
+    private static int ReadSample(sbyte[] data, int offset, bool sixteenBit)
+    {
+        if (sixteenBit)
+            return (short)((byte)data[offset] | ((byte)data[offset + 1] << 8));
+        return data[offset];
+    }
+
+    private static int Interpolate(int first, int second, int fraction)
+    {
+        return ((second - first) * fraction / 65536) + first;
     }
 }

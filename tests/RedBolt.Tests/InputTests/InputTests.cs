@@ -26,8 +26,12 @@ public sealed class InputTests
     {
         Assert.Equal(Key.A, RedBolt.Input.GetKeyFromName("A"));
         Assert.Equal("1", RedBolt.Input.GetKeyName(Key.Num1));
-        Assert.Equal(Scancode.A, RedBolt.Input.GetScancodeFromKey(Key.A));
-        Assert.Equal(Key.LeftCtrl, RedBolt.Input.GetKeyFromScancode(Scancode.LeftCtrl));
+        Assert.Equal(
+            (Scancode)RedBolt.Bindings.Sdl.SdlNativeBindings.SdlGetScancodeFromKey((int)Key.A),
+            RedBolt.Input.GetScancodeFromKey(Key.A));
+        Assert.Equal(
+            (Key)RedBolt.Bindings.Sdl.SdlNativeBindings.SdlGetKeyFromScancode((RedBolt.Bindings.Sdl.SdlScancode)Scancode.LeftCtrl),
+            RedBolt.Input.GetKeyFromScancode(Scancode.LeftCtrl));
     }
 
     [Fact]
@@ -65,6 +69,7 @@ public sealed class InputTests
     {
         Input.SetMouseButton(MouseButton.Left, true);
         Input.SetMouseWheel(2);
+        Input.SetMouseWheel(0);
         Assert.True(Input.GetMouseButtonDown(MouseButton.Left));
         Assert.True(Input.GetMouseButtonPress(MouseButton.Left));
         Assert.Equal(2, Input.GetMouseMoveWheel());
@@ -75,7 +80,7 @@ public sealed class InputTests
     {
         Input.SetMouseButton(MouseButton.Left, true);
         Input.BeginFrame();
-        Input.SetMouseButton(MouseButton.Left, false, clicks: 1);
+        Input.SetMouseButton(MouseButton.Left, false);
         Assert.False(Input.GetMouseButtonDown(MouseButton.Left));
         Assert.True(Input.GetMouseButtonClick(MouseButton.Left));
     }
@@ -113,11 +118,15 @@ public sealed class InputTests
     [Fact]
     public void Mouse_mode_and_lock_state_work()
     {
+        Input.SetMouseMode(MouseMode.Absolute);
+        Input.SetMouseGrabbed(false);
         Input.SetMouseMode(MouseMode.Relative);
+        Assert.True(Input.IsMouseLocked());
+        Assert.False(Input.IsMouseGrabbed());
         Input.SetMouseMode(MouseMode.Absolute, suppressEvent: true);
         Input.ResetMouseMode();
         Assert.True(Input.IsMouseLocked());
-        Assert.True(Input.IsMouseGrabbed());
+        Assert.False(Input.IsMouseGrabbed());
     }
 
     [Fact]
@@ -162,6 +171,32 @@ public sealed class InputTests
         Assert.Equal(3, axisMove.Axis);
         Assert.True(MathDefs.ApproximatelyEquivalent(axisMove.Position, 0.75f));
         Assert.Equal(HatPosition.RightDown, hatMove.Position);
+        Input.SetHatPosition(HatPosition.Center);
+    }
+
+    [Fact]
+    public void Joystick_state_queries_track_managed_updates()
+    {
+        Input.SetControllerButton(ControllerButton.A, true);
+        Input.SetControllerAxis(ControllerAxis.LeftX, 0.75f);
+        Input.SetHatPosition(HatPosition.RightDown);
+
+        Assert.Equal(1u, Input.GetNumJoysticks());
+        var joystick = Input.GetJoystick(0);
+        Assert.True(joystick.HasValue);
+        Assert.True(joystick.Value.IsController());
+        Assert.True(joystick.Value.GetButtonDown((uint)ControllerButton.A));
+        Assert.True(joystick.Value.GetButtonPress((uint)ControllerButton.A));
+        Assert.True(joystick.Value.HasAxisPosition((uint)ControllerAxis.LeftX));
+        Assert.True(MathDefs.ApproximatelyEquivalent(joystick.Value.GetAxisPosition((uint)ControllerAxis.LeftX), 0.75f));
+        Assert.Equal((int)HatPosition.RightDown, joystick.Value.GetHatPosition(0));
+
+        Input.BeginFrame();
+        joystick = Input.GetJoystick(0);
+        Assert.True(joystick.HasValue);
+        Assert.False(joystick.Value.GetButtonPress((uint)ControllerButton.A));
+
+        Input.SetControllerButton(ControllerButton.A, false);
         Input.SetHatPosition(HatPosition.Center);
     }
 }

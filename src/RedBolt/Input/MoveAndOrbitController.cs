@@ -69,8 +69,8 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             return;
         }
 
-        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
-        _inputMap = cache?.GetResourceOrNull<InputMap>(value.Name) ?? new InputMap(value.Name, _input);
+        var cache = GetSubsystem<ResourceCache>()!;
+        _inputMap = cache.GetResourceOrNull<InputMap>(value.Name) ?? new InputMap(value.Name, _input);
         _inputMap.SetInput(_input);
     }
 

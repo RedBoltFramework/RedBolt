@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
@@ -12,6 +14,7 @@ public sealed class Audio : Object
     private const ushort AudioS16Sys = 0x8010;
     private const int SdlAudioAllowAnyChange = 0x0000000F;
     private const int SdlAudioAllowFormatChange = 0x00000002;
+    private const int SdlAudioAllowChannelsChange = 0x00000004;
 
     private static readonly StringHash SoundMasterHash = new(AudioDefs.SoundMaster);
 
@@ -20,12 +23,15 @@ public sealed class Audio : Object
     private static readonly SpeakerMode[] AudioModeDowngrade = [SpeakerMode.Quadrophonic, SpeakerMode.Mono, SpeakerMode.Mono, SpeakerMode.Stereo, SpeakerMode.Quadrophonic];
 
     private readonly List<SoundSource> _soundSources = [];
+    private readonly List<Microphone> _microphones = [];
     private SoundListener? _listener;
     private readonly Dictionary<StringHash, float> _masterGain = [];
     private readonly HashSet<StringHash> _pausedSoundTypes = [];
     private readonly object _audioMutex = new();
+    private readonly Context _audioContext;
 
     private int[] _clipBuffer = [];
+    private short[] _outputBuffer = [];
     private uint _sampleSize;
     private uint _fragmentSize;
     private uint _bufferLengthMSec;
@@ -33,12 +39,12 @@ public sealed class Audio : Object
     private bool _interpolation = true;
     private SpeakerMode _speakerMode = SpeakerMode.Auto;
     private bool _playing;
-    private bool _initialized;
     private uint _deviceId;
     private ContextEventSubscription? _renderUpdateSubscription;
 
     public Audio()
     {
+        _audioContext = RedBolt.Context.Instance;
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
         RegisterAudioLibrary();
@@ -48,7 +54,7 @@ public sealed class Audio : Object
     ~Audio()
     {
         Release();
-        Context.ReleaseSdl();
+        _audioContext.ReleaseSdl();
     }
 
     private static void RegisterAudioLibrary() { }
@@ -78,7 +84,7 @@ public sealed class Audio : Object
         using var obtained = new SdlAudioSpec();
 
         var currentMode = speakerMode;
-        var allowedChanges = SdlAudioAllowAnyChange & ~SdlAudioAllowFormatChange;
+        var allowedChanges = SdlAudioAllowAnyChange & ~SdlAudioAllowFormatChange & ~SdlAudioAllowChannelsChange;
 
         if (speakerMode == SpeakerMode.Auto)
         {
@@ -101,10 +107,14 @@ public sealed class Audio : Object
         }
 
         if (_deviceId == 0)
+        {
+            Log.Logger.LogError("Could not initialize audio output: {SdlError}", DecodeUtf8(SdlNativeBindings.SdlGetError()));
             return false;
+        }
 
         if (obtained.Format != AudioS16Sys)
         {
+            Log.Logger.LogError("Could not initialize audio output, 16-bit buffer format not supported.");
             SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
@@ -115,20 +125,20 @@ public sealed class Audio : Object
 
         if (_speakerMode == SpeakerMode.Auto)
         {
+            Log.Logger.LogError("Could not identify channel configuration for audio output.");
             SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
         }
 
         _sampleSize = (uint)(sizeof(short) * AudioNumChannels[(int)_speakerMode]);
-        _fragmentSize = (uint)(obtained.Samples * obtained.Channels);
+        _fragmentSize = Math.Min(NextPowerOfTwo((uint)(mixRate >> 6)), obtained.Samples);
         _mixRate = obtained.Freq;
         _bufferLengthMSec = (uint)bufferLengthMSec;
         _interpolation = interpolation;
-        _initialized = true;
-
-        _clipBuffer = new int[_fragmentSize];
-        return true;
+        _clipBuffer = new int[_fragmentSize * AudioNumChannels[(int)_speakerMode]];
+        _outputBuffer = new short[_clipBuffer.Length];
+        return Play();
     }
 
     public bool RefreshMode() => SetMode((int)_bufferLengthMSec, _mixRate, _speakerMode, _interpolation);
@@ -136,37 +146,28 @@ public sealed class Audio : Object
     public void Close()
     {
         Release();
-        _initialized = false;
     }
 
     public void Update(float timeStep)
     {
-        if (!_initialized || !_playing) return;
+        if (!_playing) return;
 
         lock (_audioMutex)
         {
-            Array.Clear(_clipBuffer, 0, _clipBuffer.Length);
-            foreach (var source in _soundSources)
+            UpdateInternal(timeStep);
+            foreach (var microphone in _microphones)
             {
-                if (_pausedSoundTypes.Contains(source.SoundTypeHash)) continue;
-                source.UpdateMasterGain();
-                source.Mix(_clipBuffer, _fragmentSize / _sampleSize, _mixRate, _speakerMode, _interpolation);
+                microphone.UpdateNative();
+                microphone.CheckDirtiness();
             }
 
-            var sampleCount = (int)_fragmentSize;
-            var shortBuffer = new short[sampleCount];
-            for (var i = 0; i < sampleCount; i++)
-            {
-                var val = _clipBuffer[i];
-                if (val < short.MinValue) val = short.MinValue;
-                if (val > short.MaxValue) val = short.MaxValue;
-                shortBuffer[i] = (short)val;
-            }
+            var clipSamples = (int)(_fragmentSize * AudioNumChannels[(int)_speakerMode]);
+            MixOutput(_outputBuffer.AsSpan(0, clipSamples), _fragmentSize);
 
-            var handle = System.Runtime.InteropServices.GCHandle.Alloc(shortBuffer, System.Runtime.InteropServices.GCHandleType.Pinned);
+            var handle = System.Runtime.InteropServices.GCHandle.Alloc(_outputBuffer, System.Runtime.InteropServices.GCHandleType.Pinned);
             try
             {
-                SdlNativeBindings.SdlQueueAudio(_deviceId, handle.AddrOfPinnedObject(), (uint)(sampleCount * sizeof(short)));
+                SdlNativeBindings.SdlQueueAudio(_deviceId, handle.AddrOfPinnedObject(), (uint)(clipSamples * sizeof(short)));
             }
             finally
             {
@@ -177,16 +178,16 @@ public sealed class Audio : Object
 
     public bool Play()
     {
-        if (!_initialized) return false;
+        if (_playing) return true;
+        if (_deviceId == 0) return false;
         SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 0);
+        UpdateInternal(0.0f);
         _playing = true;
         return true;
     }
 
     public void Stop()
     {
-        if (_initialized)
-            SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 1);
         _playing = false;
     }
 
@@ -194,14 +195,43 @@ public sealed class Audio : Object
     {
         var hash = new StringHash(type);
         _masterGain[hash] = MathDefs.Clamp(gain, 0.0f, 1.0f);
+        foreach (var source in _soundSources)
+            source.UpdateMasterGain();
     }
 
-    public void PauseSoundType(string type) => _pausedSoundTypes.Add(new StringHash(type));
-    public void ResumeSoundType(string type) => _pausedSoundTypes.Remove(new StringHash(type));
-    public void ResumeAll() => _pausedSoundTypes.Clear();
+    public void PauseSoundType(string type)
+    {
+        lock (_audioMutex)
+            _pausedSoundTypes.Add(new StringHash(type));
+    }
+
+    public void ResumeSoundType(string type)
+    {
+        lock (_audioMutex)
+        {
+            _pausedSoundTypes.Remove(new StringHash(type));
+            UpdateInternal(0.0f);
+        }
+    }
+
+    public void ResumeAll()
+    {
+        lock (_audioMutex)
+        {
+            _pausedSoundTypes.Clear();
+            UpdateInternal(0.0f);
+        }
+    }
 
     public void SetListener(SoundListener? listener) => _listener = listener;
-    public void StopSound(Sound? sound) { /* TODO: port */ }
+    public void StopSound(Sound? sound)
+    {
+        for (var i = _soundSources.Count - 1; i >= 0; i--)
+        {
+            if (_soundSources[i].GetSound() == sound)
+                _soundSources[i].Stop();
+        }
+    }
 
     public uint GetSampleSize() => _sampleSize;
     public int GetMixRate() => _mixRate;
@@ -209,7 +239,7 @@ public sealed class Audio : Object
     public bool GetInterpolation() => _interpolation;
     public SpeakerMode GetSpeakerMode() => _speakerMode;
     public bool IsPlaying() => _playing;
-    public bool IsInitialized() => _initialized;
+    public bool IsInitialized() => _deviceId != 0;
 
     public float GetMasterGain(string type)
     {
@@ -222,12 +252,13 @@ public sealed class Audio : Object
     public IReadOnlyList<SoundSource> GetSoundSources() => _soundSources;
     public bool HasMasterGain(string type) => _masterGain.ContainsKey(new StringHash(type));
 
+    public object GetMutex() => _audioMutex;
+
     public void AddSoundSource(SoundSource soundSource)
     {
         lock (_audioMutex)
         {
-            if (!_soundSources.Contains(soundSource))
-                _soundSources.Add(soundSource);
+            _soundSources.Add(soundSource);
         }
     }
 
@@ -241,16 +272,128 @@ public sealed class Audio : Object
 
     public float GetSoundSourceMasterGain(StringHash typeHash)
     {
-        return _masterGain.TryGetValue(SoundMasterHash, out var master) &&
-               _masterGain.TryGetValue(typeHash, out var typeGain)
-            ? master * typeGain
-            : 1.0f;
+        if (!_masterGain.TryGetValue(SoundMasterHash, out var master))
+            return 1.0f;
+        if (typeHash.Equals(default(StringHash)) || typeHash == SoundMasterHash)
+            return master;
+        return _masterGain.TryGetValue(typeHash, out var typeGain) ? master * typeGain : master;
+    }
+
+    public void MixOutput(Span<short> dest, uint samples)
+    {
+        if (!_playing || _clipBuffer.Length == 0)
+        {
+            dest.Clear();
+            return;
+        }
+
+        var channels = AudioNumChannels[(int)_speakerMode];
+        lock (_audioMutex)
+        {
+            var destinationOffset = 0;
+            while (samples != 0 && destinationOffset < dest.Length)
+            {
+                var workSamples = Math.Min(samples, _fragmentSize);
+                var clipSamples = checked((int)(workSamples * (uint)channels));
+                clipSamples = Math.Min(clipSamples, dest.Length - destinationOffset);
+                workSamples = (uint)(clipSamples / channels);
+                clipSamples = checked((int)(workSamples * (uint)channels));
+                if (workSamples == 0)
+                    break;
+
+                Array.Clear(_clipBuffer, 0, clipSamples);
+                foreach (var source in _soundSources)
+                {
+                    if (_pausedSoundTypes.Contains(source.SoundTypeHash))
+                        continue;
+                    source.UpdateMasterGain();
+                    source.Mix(_clipBuffer, workSamples, _mixRate, _speakerMode, _interpolation);
+                }
+
+                for (var i = 0; i < clipSamples; i++)
+                    dest[destinationOffset + i] = (short)Math.Clamp(_clipBuffer[i], short.MinValue, short.MaxValue);
+
+                destinationOffset += clipSamples;
+                samples -= workSamples;
+            }
+        }
+    }
+
+    public IReadOnlyList<string> EnumerateMicrophones()
+    {
+        var count = SdlNativeBindings.SdlGetNumAudioDevices(1);
+        var result = new string[count];
+        for (var i = 0; i < count; i++)
+        {
+            result[i] = DecodeUtf8(SdlNativeBindings.SdlGetAudioDeviceName(i, 1));
+            foreach (var microphone in _microphones)
+            {
+                if (string.Equals(microphone.GetName(), result[i], StringComparison.OrdinalIgnoreCase))
+                    microphone.SetDeviceIndex((uint)i);
+            }
+        }
+        return result;
+    }
+
+    public Microphone? CreateMicrophone(string name, bool forSpeechRecog, uint wantedFreq, uint silenceLevelLimit = 0)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var deviceCount = SdlNativeBindings.SdlGetNumAudioDevices(1);
+        var frequencies = forSpeechRecog
+            ? new uint[] { 16000, 22050, 44100 }
+            : new uint[] { 44100, 22050, 16000 };
+        var attempts = wantedFreq == 0 ? frequencies : new[] { wantedFreq };
+
+        for (var deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
+        {
+            var deviceName = DecodeUtf8(SdlNativeBindings.SdlGetAudioDeviceName(deviceIndex, 1));
+            if (!string.Equals(name, deviceName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            for (var attempt = 0; attempt < attempts.Length; attempt++)
+            {
+                var frequency = attempts[attempt];
+                using var desired = new SdlAudioSpec
+                {
+                    Freq = checked((int)frequency),
+                    Format = AudioS16Sys,
+                    Channels = 1,
+                    Samples = checked((ushort)(frequency / 2))
+                };
+                using var obtained = new SdlAudioSpec();
+                using var deviceNameValue = new CString(deviceName);
+                var deviceId = SdlNativeBindings.SdlOpenAudioDevice(deviceNameValue.Bytes, 1, desired, obtained, 0);
+                if (deviceId == 0)
+                    continue;
+
+                var microphone = new Microphone();
+                microphone.SetWakeThreshold(silenceLevelLimit);
+                microphone.InitializeNative(deviceName, deviceId, desired.Samples, (uint)desired.Freq, (uint)attempt);
+                _microphones.Add(microphone);
+                return microphone;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    public void CloseMicrophoneForLoss(uint which)
+    {
+        foreach (var microphone in _microphones)
+        {
+            if (microphone.GetDeviceIndex() == which)
+            {
+                microphone.CloseNative();
+                microphone.SetDeviceIndex(uint.MaxValue);
+            }
+        }
     }
 
     private void HandleRenderUpdate(ref CoreEvents.RenderUpdateEvent eventData)
     {
-        if (_playing)
-            Update(eventData.TimeStep);
+        Update(eventData.TimeStep);
     }
 
     private void Release()
@@ -260,6 +403,19 @@ public sealed class Audio : Object
         {
             SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
+        }
+        _clipBuffer = [];
+        _outputBuffer = [];
+    }
+
+    private void UpdateInternal(float timeStep)
+    {
+        for (var i = _soundSources.Count - 1; i >= 0; i--)
+        {
+            var source = _soundSources[i];
+            if (_pausedSoundTypes.Contains(source.SoundTypeHash))
+                continue;
+            source.Update(timeStep);
         }
     }
 
@@ -273,5 +429,11 @@ public sealed class Audio : Object
         x |= x >> 8;
         x |= x >> 16;
         return x + 1;
+    }
+
+    private static string DecodeUtf8(ReadOnlySpan<byte> source)
+    {
+        var length = source.IndexOf((byte)0);
+        return Encoding.UTF8.GetString(length < 0 ? source : source[..length]);
     }
 }
