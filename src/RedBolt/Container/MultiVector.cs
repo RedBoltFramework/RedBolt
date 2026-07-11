@@ -50,13 +50,14 @@ public class MultiVector<T> : IEnumerable<T>
 
     public void CopyTo(List<T> dest)
     {
+        dest.Clear();
         foreach (var values in _values)
             dest.AddRange(values);
     }
 
     public T this[Index index] => _values[(int)index.Outer][(int)index.Inner];
 
-    public IReadOnlyList<List<T>> GetUnderlyingCollection() => _values;
+    public List<List<T>> GetUnderlyingCollection() => _values;
 
     public IEnumerator<T> GetEnumerator()
     {

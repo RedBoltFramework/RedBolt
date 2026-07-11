@@ -62,8 +62,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `IndexAllocator`
 - [ ] `Array2D.h`
   - [ ] `Array2D<T>`
-- [~] `MultiVector.h`
-  - [~] `MultiVector<T>` — per-outer-list storage, indexed append/pop, flattening, and enumeration are ported; iterator-specific parity remains represented by `IEnumerable<T>`
+- [x] `MultiVector.h`
+  - [x] `MultiVector<T>` — iterator APIs are represented idiomatically by `IEnumerable<T>` while preserving mutable underlying storage and rbfx collection behavior
 - [x] `KeyFrameSet.h`
   - [x] `KeyFrameSet<T>`
 
@@ -126,7 +126,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `Polyhedron`
 - [ ] `AreaAllocator.h`
   - [ ] `AreaAllocator`
-- [~] `Transform.h`
+- [x] `Transform.h`
   - [x] `struct Transform`
   - [x] `struct DoubleTransform`
 - [ ] `SphericalHarmonics.h`
