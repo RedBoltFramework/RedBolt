@@ -24,6 +24,16 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         this = FromAngleAxis(angle, axis);
     }
 
+    public Quaternion(float angle)
+    {
+        this = FromRotation2D(angle);
+    }
+
+    public Quaternion(float x, float y, float z)
+    {
+        this = FromEulerAngles(x, y, z);
+    }
+
     public Quaternion(Vector3f eulerAngles)
     {
         this = FromEulerAngles(eulerAngles.X, eulerAngles.Y, eulerAngles.Z);
@@ -47,7 +57,14 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     public static readonly Quaternion IDENTITY = new(1.0f, 0.0f, 0.0f, 0.0f);
     public static Quaternion Identity => IDENTITY;
 
-    public Vector3f Axis => new Vector3f(X, Y, Z) / MathF.Sqrt(Math.Max(MathDefs.Epsilon, 1.0f - W * W));
+    public Vector3f Axis
+    {
+        get
+        {
+            var inverseScale = MathF.Sqrt(Math.Max(0.0f, 1.0f - W * W));
+            return inverseScale < 1e-6f ? Vector3f.Up : new Vector3f(X, Y, Z) / inverseScale;
+        }
+    }
     public Quaternion Conjugated => new(W, -X, -Y, -Z);
     public float[] Data => [W, X, Y, Z];
     public float DotProduct(Quaternion rhs) => W * rhs.W + X * rhs.X + Y * rhs.Y + Z * rhs.Z;
@@ -67,6 +84,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     }
 
     public bool IsNaN => float.IsNaN(W) || float.IsNaN(X) || float.IsNaN(Y) || float.IsNaN(Z);
+    public bool IsInf => float.IsInfinity(W) || float.IsInfinity(X) || float.IsInfinity(Y) || float.IsInfinity(Z);
     public float Length => MathF.Sqrt(LengthSquared);
     public float LengthSquared => W * W + X * X + Y * Y + Z * Z;
     public float PitchAngle => EulerAngles.X;
@@ -83,6 +101,20 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         1.0f - 2.0f * X * X - 2.0f * Y * Y);
     public Vector3f Xyz => new(X, Y, Z);
     public float YawAngle => EulerAngles.Y;
+    public float Angle => 2.0f * MathDefs.Acos(W);
+    public Vector3f AngularVelocity
+    {
+        get
+        {
+            var inverseScale = MathF.Sqrt(Math.Max(0.0f, 1.0f - W * W));
+            if (inverseScale < MathDefs.Epsilon)
+                return Vector3f.Zero;
+            var sign = W >= 0.0f ? 1.0f : -1.0f;
+            var axis = new Vector3f(X, Y, Z) / inverseScale;
+            var angleRadians = 2.0f * MathF.Acos(sign * W);
+            return sign * axis * angleRadians;
+        }
+    }
 
     public Quaternion Normalized
     {
@@ -149,6 +181,32 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon) &&
         MathDefs.ApproximatelyEquivalent(Z, rhs.Z, epsilon);
 
+    public bool Equivalent(Quaternion rhs, float epsilon = MathDefs.Epsilon) =>
+        ApproximatelyEquivalent(rhs, epsilon) || ApproximatelyEquivalent(-rhs, epsilon);
+
+    public (Quaternion Swing, Quaternion Twist) ToSwingTwist(Vector3f twistAxis)
+    {
+        var rotationAxis = new Vector3f(X, Y, Z);
+        var projected = twistAxis * rotationAxis.ProjectOntoAxis(twistAxis);
+        var twist = new Quaternion(W, projected.X, projected.Y, projected.Z).Normalized;
+        return (this * twist.Conjugated, twist);
+    }
+
+    public float TwistAngle(Vector3f axis)
+    {
+        var twist = ToSwingTwist(axis).Twist;
+        var axisSign = twist.Axis.DotProduct(axis) >= 0.0f ? 1.0f : -1.0f;
+        return twist.Angle * axisSign;
+    }
+
+    public uint ToHash()
+    {
+        var hash = 37u;
+        foreach (var value in Data)
+            hash = unchecked(37u * hash + (uint)BitConverter.SingleToInt32Bits(value));
+        return hash;
+    }
+
     public bool Equals(Quaternion other) => this == other;
     public override bool Equals(object? obj) => obj is Quaternion other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(W, X, Y, Z);
@@ -161,6 +219,15 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         var sin = MathF.Sin(halfAngle);
         var cos = MathF.Cos(halfAngle);
         return new Quaternion(cos, normalizedAxis.X * sin, normalizedAxis.Y * sin, normalizedAxis.Z * sin);
+    }
+
+    public static Quaternion FromAngularVelocity(Vector3f angularVelocity)
+    {
+        var lengthSquared = angularVelocity.LengthSquared;
+        if (lengthSquared < MathDefs.Epsilon * MathDefs.Epsilon)
+            return Identity;
+        var length = MathF.Sqrt(lengthSquared);
+        return FromAngleAxis(length * MathDefs.RadToDeg, angularVelocity / length);
     }
 
     public static Quaternion FromAxes(Vector3f xAxis, Vector3f yAxis, Vector3f zAxis)

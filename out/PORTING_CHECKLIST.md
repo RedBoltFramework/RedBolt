@@ -93,10 +93,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Matrix4`
 - [x] `Matrix3x4.h`
   - [x] `Matrix3x4`
-- [~] `Quaternion.h`
-  - [~] `Quaternion`
-- [~] `Color.h`
-  - [~] `Color`
+- [x] `Quaternion.h`
+  - [x] `Quaternion`
+- [x] `Color.h`
+  - [x] `Color`
 - [x] `StringHash.h`
   - [x] `StringHash` (port early — pervasive dependency)
 - [ ] `Random.h`

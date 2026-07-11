@@ -6,6 +6,11 @@ namespace RedBolt;
 [StructLayout(LayoutKind.Sequential)]
 public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
 {
+    public readonly record struct ChannelMask(uint R, uint G, uint B, uint A);
+    public static readonly ChannelMask ABGR = new(0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    public static readonly ChannelMask ARGB = new(0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+    public static readonly ChannelMask RGB = new(0x00ff0000, 0x0000ff00, 0x000000ff, 0);
+
     public float R;
     public float G;
     public float B;
@@ -26,6 +31,23 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
         B = color.B;
         A = a;
     }
+
+    public Color(IReadOnlyList<float> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Count < 4)
+            throw new ArgumentException("At least four components are required.", nameof(data));
+        R = data[0]; G = data[1]; B = data[2]; A = data[3];
+    }
+
+    public Color(uint color, ChannelMask? mask = null)
+    {
+        R = G = B = 0.0f; A = 1.0f;
+        FromUIntMask(color, mask ?? ABGR);
+    }
+
+    public Color(Vector3f color) : this(color.X, color.Y, color.Z) { }
+    public Color(Vector4f color) : this(color.X, color.Y, color.Z, color.W) { }
 
     public static readonly Color White = new(1.0f, 1.0f, 1.0f, 1.0f);
     public static readonly Color Black = new(0.0f, 0.0f, 0.0f, 1.0f);
@@ -65,6 +87,31 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
         G = ((color >> 8) & 0xff) / 255.0f;
         R = (color & 0xff) / 255.0f;
     }
+
+    public void FromUIntMask(uint color, ChannelMask mask)
+    {
+        R = Unpack(color, mask.R, 0.0f);
+        G = Unpack(color, mask.G, 0.0f);
+        B = Unpack(color, mask.B, 0.0f);
+        A = Unpack(color, mask.A, 1.0f);
+    }
+
+    public uint ToUIntMask(ChannelMask mask) =>
+        Pack(R, mask.R) | Pack(G, mask.G) | Pack(B, mask.B) | Pack(A, mask.A);
+
+    public void FromHSV(float h, float s, float v, float a = 1.0f) => FromHcm(h, v * s, v - v * s, a);
+
+    public void FromHSL(float h, float s, float l, float a = 1.0f)
+    {
+        var chroma = (1.0f - MathF.Abs(2.0f * l - 1.0f)) * s;
+        FromHcm(h, chroma, l - chroma * 0.5f, a);
+    }
+
+    public static float ConvertGammaToLinear(float value) => value <= 0.04045f ? value / 12.92f : MathF.Pow((value + 0.055f) / 1.055f, 2.4f);
+    public static float ConvertLinearToGamma(float value) => value <= 0.0031308f ? value * 12.92f : 1.055f * MathF.Pow(value, 1.0f / 2.4f) - 0.055f;
+    public Color GammaToLinear() => new(ConvertGammaToLinear(R), ConvertGammaToLinear(G), ConvertGammaToLinear(B), A);
+    public Color LinearToGamma() => new(ConvertLinearToGamma(R), ConvertLinearToGamma(G), ConvertLinearToGamma(B), A);
+    public Color Abs() => new(MathF.Abs(R), MathF.Abs(G), MathF.Abs(B), MathF.Abs(A));
 
     public float Hue()
     {
@@ -155,7 +202,7 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
         MathDefs.ApproximatelyEquivalent(B, rhs.B, epsilon) &&
         MathDefs.ApproximatelyEquivalent(A, rhs.A, epsilon);
 
-    public bool Equals(Color other) => ApproximatelyEquivalent(other);
+    public bool Equals(Color other) => R == other.R && G == other.G && B == other.B && A == other.A;
     public override bool Equals(object? obj) => obj is Color other && Equals(other);
     public override int GetHashCode() => (int)ToUInt();
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", R, G, B, A);
@@ -168,6 +215,38 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
     public static Color operator *(Color lhs, float rhs) => new(lhs.R * rhs, lhs.G * rhs, lhs.B * rhs, lhs.A * rhs);
     public static Color operator *(float lhs, Color rhs) => rhs * lhs;
     public static Color operator *(Color lhs, Color rhs) => new(lhs.R * rhs.R, lhs.G * rhs.G, lhs.B * rhs.B, lhs.A * rhs.A);
+
+    private void FromHcm(float hue, float chroma, float minimum, float alpha)
+    {
+        hue = MathDefs.Fract(hue) * 6.0f;
+        var x = chroma * (1.0f - MathF.Abs(hue % 2.0f - 1.0f));
+        (R, G, B) = hue switch
+        {
+            < 1.0f => (chroma, x, 0.0f),
+            < 2.0f => (x, chroma, 0.0f),
+            < 3.0f => (0.0f, chroma, x),
+            < 4.0f => (0.0f, x, chroma),
+            < 5.0f => (x, 0.0f, chroma),
+            _ => (chroma, 0.0f, x)
+        };
+        R += minimum; G += minimum; B += minimum; A = alpha;
+    }
+
+    private static uint Pack(float value, uint mask)
+    {
+        if (mask == 0)
+            return 0;
+        var shift = System.Numerics.BitOperations.TrailingZeroCount(mask);
+        return ((uint)(Math.Clamp(value, 0.0f, 1.0f) * 255.0f) << shift) & mask;
+    }
+
+    private static float Unpack(uint value, uint mask, float fallback)
+    {
+        if (mask == 0)
+            return fallback;
+        var shift = System.Numerics.BitOperations.TrailingZeroCount(mask);
+        return ((value & mask) >> shift) / 255.0f;
+    }
 
     private float Hue(float min, float max)
     {
