@@ -2,6 +2,25 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
+public sealed class RawTextureHandles
+{
+    private readonly RawTexture _owner;
+
+    internal RawTextureHandles(RawTexture owner) => _owner = owner;
+
+    public ITexture? Texture => _owner.GetHandle();
+    public ITexture? ResolvedTexture => _owner.GetResolvedHandle();
+    public ITextureView? ShaderResourceView => _owner.GetShaderResourceView();
+    public ITextureView? RenderTargetView => _owner.GetRenderTargetView();
+    public ITextureView? DepthStencilView => _owner.GetDepthStencilView();
+    public ITextureView? ReadOnlyDepthStencilView => _owner.GetReadOnlyDepthStencilView();
+    public ITextureView? UnorderedAccessView => _owner.GetDefaultUnorderedAccessView();
+    public ReadOnlySpan<ITextureView> RenderSurfaces => _owner.GetRenderSurfaces();
+    public ReadOnlySpan<ITextureView> ReadOnlyRenderSurfaces => _owner.GetReadOnlyRenderSurfaces();
+    public IReadOnlyDictionary<RawTextureUAVKey, ITextureView> UnorderedAccessViews => _owner.GetUnorderedAccessViews();
+    public bool IsValid => Texture is { IsNull: false };
+}
+
 /// <summary>Common class for all GPU textures.
 /// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
 public class RawTexture : DeviceObject
@@ -21,15 +40,18 @@ public class RawTexture : DeviceObject
     private readonly List<ITextureView> _ownedUavs = [];
     private readonly Box _updateBox = new();
     private readonly TextureSubResData _updateSubresource = new();
+    private readonly RawTextureHandles _handles;
     private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
     private bool _levelsDirty;
     private bool _resolveDirty;
 
     protected RawTexture()
     {
+        _handles = new RawTextureHandles(this);
     }
 
     public RawTexture(RawTextureParams parameters)
+        : this()
     {
         Create(parameters);
     }
@@ -67,6 +89,8 @@ public class RawTexture : DeviceObject
 
     public SamplerStateDesc GetSamplerStateDesc() => _samplerStateDesc;
 
+    public RawTextureHandles GetHandles() => _handles;
+
     public Texture? GetTexture() => _texture;
 
     public ITexture? GetHandle()
@@ -88,7 +112,109 @@ public class RawTexture : DeviceObject
 
     public ReadOnlySpan<ITextureView> GetReadOnlyRenderSurfaces() => _readOnlyRenderSurfaces;
 
-    public bool IsValid() => _texture is not null && (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null || _handle is not null);
+    internal IReadOnlyDictionary<RawTextureUAVKey, ITextureView> GetUnorderedAccessViews() => _uavs;
+
+    public bool CreateFromHandle(ITexture texture, TextureFormat format = TextureFormat.Unknown, int msaaLevel = 1)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        if (texture.IsNull)
+            return false;
+
+        using var desc = texture.GetDesc();
+        var type = desc.Type switch
+        {
+            ResourceDimension.ResourceDimTex2d => TextureType.Texture2D,
+            ResourceDimension.ResourceDimTexCube => TextureType.TextureCube,
+            ResourceDimension.ResourceDimTex2dArray => TextureType.Texture2DArray,
+            ResourceDimension.ResourceDimTex3d => TextureType.Texture3D,
+            _ => (TextureType?)null
+        };
+        if (type is null)
+            return false;
+
+        var resolvedFormat = format;
+        if (resolvedFormat == TextureFormat.Unknown)
+            resolvedFormat = Graphics.UnmapTextureFormat(desc.Format, out _);
+        if (resolvedFormat == TextureFormat.Unknown)
+            return false;
+
+        var flags = TextureFlag.NoMultiSampledAutoResolve;
+        if ((desc.BindFlags & BindFlags.BindRenderTarget) != 0)
+            flags |= TextureFlag.BindRenderTarget;
+        if ((desc.BindFlags & BindFlags.BindDepthStencil) != 0)
+            flags |= TextureFlag.BindDepthStencil;
+        if ((desc.BindFlags & BindFlags.BindUnorderedAccess) != 0)
+            flags |= TextureFlag.BindUnorderedAccess;
+
+        DestroyGPU();
+        _parameters = new RawTextureParams(
+            type.Value,
+            resolvedFormat,
+            flags,
+            new Vector3i(checked((int)desc.Width), checked((int)desc.Height), checked((int)desc.Depth)),
+            desc.ArraySize,
+            desc.MipLevels,
+            Math.Max(desc.SampleCount, checked((uint)Math.Max(msaaLevel, 1))),
+            desc.MipLevels);
+        _ = texture.AddRef();
+        _handle = texture;
+        if (!InitializeDefaultViews(desc.BindFlags))
+        {
+            DestroyGPU();
+            return false;
+        }
+        OnCreateGPU();
+        return true;
+    }
+
+    public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel) => false;
+
+    public bool CreateFromD3D12Resource(nint d3d12Resource, TextureFormat format, int msaaLevel) => false;
+
+    public bool CreateFromVulkanImage(ulong vkImage, RawTextureParams parameters) => false;
+
+    public bool CreateFromGLTexture(uint handle, TextureType type, TextureFlag flags, TextureFormat format,
+        uint arraySize, int msaaLevel)
+    {
+        var renderDevice = GetRenderDevice();
+        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+        if (renderDevice?.GetBackend() != RenderBackend.OpenGL || nativeDevice is null || nativeDevice.IsNull)
+            return false;
+
+        var glDevice = IRenderDeviceGL.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+        using var nativeName = new CString("Texture from external resource");
+        using var desc = new TextureDesc
+        {
+            Name = nativeName.Pointer,
+            Type = GetResourceDimension(type),
+            Usage = Usage.UsageDefault,
+            Format = Graphics.MapTextureFormat(format),
+            ArraySize = type == TextureType.Texture2DArray ? arraySize : 1u,
+            BindFlags = BindFlags.BindShaderResource
+        };
+        if (flags.HasFlag(TextureFlag.BindRenderTarget))
+            desc.BindFlags |= BindFlags.BindRenderTarget;
+        if (flags.HasFlag(TextureFlag.BindDepthStencil))
+            desc.BindFlags |= BindFlags.BindDepthStencil;
+        if (flags.HasFlag(TextureFlag.BindUnorderedAccess))
+            desc.BindFlags |= BindFlags.BindUnorderedAccess;
+
+        glDevice.CreateTextureFromGLHandle(handle, 0u, desc, ResourceState.ResourceStateUnknown, out var texture);
+        if (texture is null || texture.IsNull)
+            return false;
+        try
+        {
+            return CreateFromHandle(texture, format, msaaLevel);
+        }
+        finally
+        {
+            Release(texture);
+        }
+    }
+
+    public bool IsValid() => GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null
+        ? _parameters.Size != default
+        : _handle is { IsNull: false };
 
     public bool GetLevelsDirty() => _levelsDirty;
 
@@ -122,6 +248,7 @@ public class RawTexture : DeviceObject
                 attributes.DstSlice = slice;
                 context.ResolveTextureSubresource(_handle, _resolvedHandle, attributes);
             }
+            MarkDirty();
         }
         _resolveDirty = false;
     }
@@ -129,10 +256,10 @@ public class RawTexture : DeviceObject
     public unsafe void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, ReadOnlySpan<byte> data,
         uint rowStride = 0u, uint sliceStride = 0u)
     {
-        if (_texture is null)
+        if (_parameters.Size == default)
             throw new InvalidOperationException("Raw texture is not initialized.");
-        if (level >= _parameters.NumLevels || arraySlice >= _parameters.ArraySize)
-            throw new ArgumentOutOfRangeException(level >= _parameters.NumLevels ? nameof(level) : nameof(arraySlice));
+        if (level >= _parameters.NumLevelsRtv || arraySlice >= _parameters.ArraySize)
+            throw new ArgumentOutOfRangeException(level >= _parameters.NumLevelsRtv ? nameof(level) : nameof(arraySlice));
         var levelSize = GetMipLevelSize(_parameters.Size, level);
         if (offset.X < 0 || offset.Y < 0 || offset.Z < 0 || size.X <= 0 || size.Y <= 0 || size.Z <= 0 ||
             offset.X + size.X > levelSize.X || offset.Y + size.Y > levelSize.Y || offset.Z + size.Z > levelSize.Z)
@@ -216,7 +343,7 @@ public class RawTexture : DeviceObject
 
     public unsafe bool Read(uint slice, uint level, Span<byte> buffer)
     {
-        if (_texture is null || level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
+        if (level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
             return false;
         var levelSize = GetMipLevelSize(_parameters.Size, level);
         var rowSize = checked((uint)levelSize.X * GetTexelSize(_parameters.Format));
@@ -317,17 +444,22 @@ public class RawTexture : DeviceObject
 
     public ulong CalculateMemoryUseGPU()
     {
-        if (_texture is null) return 0;
-        ulong total = 0;
-        for (var level = 0u; level < _parameters.NumLevels; ++level)
+        if (_handle is null)
+            return 0;
+        ulong sliceMemory = 0;
+        if (_resolvedHandle is not null)
         {
-            total += _texture.GetDataSize(
-                _texture.GetLevelWidth(level), _texture.GetLevelHeight(level),
-                _parameters.Type == TextureType.Texture3D ? _texture.GetLevelDepth(level) : 1);
+            sliceMemory += _parameters.MultiSample * GetMipLevelSizeInBytes(0u);
         }
-        total *= _parameters.Type is TextureType.TextureCube ? 6u : _parameters.ArraySize;
-        total *= Math.Max(_parameters.MultiSample, 1u);
-        return total;
+        for (var level = 0u; level < _parameters.NumLevels; ++level)
+            sliceMemory += GetMipLevelSizeInBytes(level);
+        return _parameters.ArraySize * sliceMemory;
+    }
+
+    private ulong GetMipLevelSizeInBytes(uint level)
+    {
+        var size = GetMipLevelSize(_parameters.Size, level);
+        return checked((ulong)(uint)size.X * (uint)size.Y * (uint)size.Z * GetTexelSize(_parameters.Format));
     }
 
     /// <summary>Create UAV for given array slices and mip levels.</summary>

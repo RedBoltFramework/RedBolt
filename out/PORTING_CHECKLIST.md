@@ -443,11 +443,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ShaderProgramReflection : RefCounted` — uniform buffers/parameters, resources/UAVs, hashing, Diligent reflection, and binding connection are ported
 - [x] `RawBuffer.h`
   - [x] `RawBuffer` — construction/access, shadow storage, native creation and restoration, dynamic/default/immutable updates, direct dynamic mapping, scratch mapping, resolve, and allocation-free hot paths are ported
-- [~] `RawTexture.h`
+- [x] `RawTexture.h`
   - [x] `struct RawTextureParams`
   - [x] `struct RawTextureUAVKey`
-  - [ ] `struct RawTextureHandles`
-  - [~] `RawTexture : DeviceObject`
+  - [x] `struct RawTextureHandles`
+  - [x] `RawTexture : DeviceObject` — validation, native ownership, default and slice views, UAVs, mip generation, resolve, allocation-free updates, staging readback, device recovery hooks, handle wrapping, and platform-gated external imports are ported
 - [~] `RenderTargetView.h`
   - [~] `RenderTargetView`
 - [x] `ConstantBufferCollection.h`

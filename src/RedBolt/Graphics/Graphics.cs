@@ -2638,7 +2638,7 @@ layout(std140) uniform Material
         immediateContext.SetViewports(1, viewport, 0, 0);
     }
 
-    private static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
+    internal static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
     {
         isSrgb = false;
         return format switch

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <EngineFactoryOpenGL.h>
+#include <RenderDeviceGL.h>
 
 namespace Diligent
 {

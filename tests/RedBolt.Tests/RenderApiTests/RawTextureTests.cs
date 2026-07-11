@@ -307,6 +307,29 @@ public sealed class RawTextureTests
         });
     }
 
+    [Fact]
+    public void Raw_texture_wraps_existing_native_texture_handle()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var source = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
+                new Vector3i(8, 4, 1), NumLevels: 1u));
+            var wrapped = new TestRawTexture();
+
+            Assert.True(wrapped.CreateFromHandle(source.GetHandle()!, TextureFormat.Unknown, 1));
+            Assert.Same(source.GetHandle(), wrapped.GetHandle());
+            Assert.Equal(new Vector3i(8, 4, 1), wrapped.GetParams().Size);
+            Assert.Equal(TextureFlag.BindRenderTarget | TextureFlag.NoMultiSampledAutoResolve,
+                wrapped.GetParams().Flags);
+            Assert.NotNull(wrapped.GetShaderResourceView());
+            Assert.NotNull(wrapped.GetRenderTargetView());
+
+            wrapped.Destroy();
+            Assert.False(source.GetHandle()!.IsNull);
+        });
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters
