@@ -181,6 +181,39 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Dependency_reload_scan_and_diagnostics_work()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "before");
+            File.WriteAllText(Path.Combine(tempDir, "Data", "dependency.txt"), "dependency");
+            Directory.CreateDirectory(Path.Combine(tempDir, "Data", "Nested"));
+            File.WriteAllText(Path.Combine(tempDir, "Data", "Nested", "other.txt"), "other");
+            Resources.AddResourceDir(tempDir);
+            var resource = Resources.GetResource<BinaryFile>("Data/main.txt");
+            resource.SetMemoryUse(64);
+            Resources.StoreResourceDependency(resource, "Data/dependency.txt");
+            File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "after");
+
+            Resources.ReloadResourceWithDependencies("Data/dependency.txt");
+            Assert.Equal("after", resource.GetText());
+
+            var files = new List<string>();
+            Resources.Scan(files, "Data", "*.txt", ScanFlags.ScanFiles | ScanFlags.ScanRecursive);
+            Assert.Contains("Data/main.txt", files);
+            Assert.Contains("Data/Nested/other.txt", files);
+            Assert.Contains("BinaryFile", Resources.PrintMemoryUsage(), StringComparison.Ordinal);
+            Assert.Contains("Data/main.txt", Resources.PrintResources(nameof(BinaryFile)), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ManualResource_add_and_release_work()
     {
         var manual = new BinaryFile("Data/manual.bin");

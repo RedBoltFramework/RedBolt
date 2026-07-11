@@ -8,9 +8,12 @@ public sealed class ResourceCache
     private readonly List<string> _resourceDirs = [];
     private readonly Dictionary<Type, Delegate> _loaders = new();
     private readonly List<ResourceRouter> _resourceRouters = [];
+    private readonly Dictionary<Resource, HashSet<string>> _resourceDependencies = new();
+    private readonly HashSet<string> _ignoredReloads = new(StringComparer.OrdinalIgnoreCase);
     private int _finishBackgroundResourcesMs = 5;
     private bool _returnFailedResources;
     private bool _searchPackagesFirst;
+    private bool _resourceReloadSuspended;
 
     public ResourceCache()
     {
@@ -371,6 +374,61 @@ public sealed class ResourceCache
         return resource.Reload();
     }
 
+    public bool ReloadResource(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        return resource.Reload();
+    }
+
+    public void StoreResourceDependency(Resource resource, string dependency)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentException.ThrowIfNullOrWhiteSpace(dependency);
+        if (!_resourceDependencies.TryGetValue(resource, out var dependencies))
+            _resourceDependencies[resource] = dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        dependencies.Add(SanitateResourceName(dependency));
+    }
+
+    public void ResetDependencies(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        _resourceDependencies.Remove(resource);
+    }
+
+    public void ReloadResourceWithDependencies(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        if (_resourceReloadSuspended)
+            return;
+        var dependency = SanitateResourceName(fileName);
+        if (_ignoredReloads.Remove(dependency))
+            return;
+
+        foreach (var resource in _cache.Values.ToArray())
+        {
+            var isResource = (!string.IsNullOrEmpty(resource.AbsoluteFileName)
+                    && string.Equals(SanitateResourceName(resource.AbsoluteFileName), dependency, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(resource.Name, dependency, StringComparison.OrdinalIgnoreCase);
+            var isDependency = _resourceDependencies.TryGetValue(resource, out var dependencies) && dependencies.Contains(dependency);
+            if (isResource || isDependency)
+                resource.Reload();
+        }
+    }
+
+    public void SetResourceReloadSuspended(bool suspended) => _resourceReloadSuspended = suspended;
+
+    public void IgnoreResourceReload(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        _ignoredReloads.Add(SanitateResourceName(name));
+    }
+
+    public void IgnoreResourceReload(Resource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        IgnoreResourceReload(string.IsNullOrEmpty(resource.AbsoluteFileName) ? resource.Name : resource.AbsoluteFileName);
+    }
+
     public void ReleaseResources<T>(string partialName, bool force = false)
         where T : Resource
     {
@@ -398,6 +456,58 @@ public sealed class ResourceCache
     }
 
     public void Clear() => ReleaseAllResources(force: true);
+
+    public void Scan(ICollection<string> result, string pathName, string filter, ScanFlags flags)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        pathName ??= string.Empty;
+        filter = string.IsNullOrEmpty(filter) ? "*" : filter;
+        if (!flags.HasFlag(ScanFlags.ScanAppend))
+            result.Clear();
+
+        foreach (var resourceDir in _resourceDirs)
+        {
+            var root = Path.Combine(resourceDir, pathName);
+            if (!Directory.Exists(root))
+                continue;
+            var options = flags.HasFlag(ScanFlags.ScanRecursive) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            if (flags.HasFlag(ScanFlags.ScanFiles))
+            {
+                foreach (var file in Directory.EnumerateFiles(root, filter, options))
+                {
+                    if (!flags.HasFlag(ScanFlags.ScanHidden) && (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
+                        continue;
+                    result.Add(Path.GetRelativePath(resourceDir, file).Replace('\\', '/'));
+                }
+            }
+            if (flags.HasFlag(ScanFlags.ScanDirs))
+            {
+                foreach (var directory in Directory.EnumerateDirectories(root, filter, options))
+                {
+                    if (!flags.HasFlag(ScanFlags.ScanHidden) && (File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
+                        continue;
+                    result.Add(Path.GetRelativePath(resourceDir, directory).Replace('\\', '/'));
+                }
+            }
+        }
+    }
+
+    public string PrintMemoryUsage()
+    {
+        var lines = _cache.GroupBy(static item => item.Key.Type)
+            .OrderBy(static group => group.Key.Name, StringComparer.Ordinal)
+            .Select(group => $"{group.Key.Name}: {group.Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse)} bytes ({group.Count()} resources)");
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    public string PrintResources(string typeName = "")
+    {
+        return string.Join(Environment.NewLine, _cache
+            .Where(item => string.IsNullOrEmpty(typeName) || string.Equals(item.Key.Type.Name, typeName, StringComparison.Ordinal))
+            .OrderBy(static item => item.Key.Type.Name, StringComparer.Ordinal)
+            .ThenBy(static item => item.Key.Name, StringComparer.Ordinal)
+            .Select(static item => $"{item.Key.Type.Name};{item.Key.Name};{item.Value.MemoryUse}"));
+    }
 
     internal bool CanBackgroundLoad(Type type)
     {
