@@ -144,8 +144,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct IKSettings`
   - [x] `struct IKNode` — C# reference type preserves C++ pointer identity for shared chain nodes
   - [x] `struct IKNodeSegment`
-  - [ ] `IKTrigonometricChain`
-  - [ ] `IKEyeChain`
+  - [x] `IKTrigonometricChain`
+  - [x] `IKEyeChain`
   - [ ] `IKChain`
   - [ ] `IKSpineChain : IKChain`
   - [ ] `IKFabrikChain : IKChain`
