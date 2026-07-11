@@ -125,8 +125,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Sphere.h`
   - [x] `Circle`
   - [x] `Sphere`
-- [ ] `Frustum.h`
-  - [ ] `Frustum`
+- [x] `Frustum.h`
+  - [x] `FrustumPlane`
+  - [x] `Frustum`
 - [ ] `Polyhedron.h`
   - [ ] `Polyhedron`
 - [ ] `AreaAllocator.h`
