@@ -423,8 +423,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
   - [~] `PrefabReference : Component` — reload event subscription, editor actions/logging, and exact deep prefab value-copying remain TODO because the managed APIs differ
-- [ ] `SceneResolver.h`
-  - [ ] `SceneResolver`
+- [x] `SceneResolver.h`
+  - [x] `SceneResolver` — node/component lookup registration, scalar and vector ID resolution, warning paths, and post-resolution reset; C++ WeakPtr storage maps to managed references per the allowed deviation
 - [x] `Scene.h`
   - [x] `Scene : Node` — managed ownership uses `Scene.Root` composition while preserving scene-root hierarchy, ID registries, update events, timing, and lookup behavior
 - [x] `SceneResource.h`
