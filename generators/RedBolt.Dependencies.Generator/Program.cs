@@ -636,11 +636,6 @@ internal static class Program
 
         foreach (var parameter in method.Parameters)
         {
-            if (parameter.Type.Kind == BindingTypeKind.Primitive &&
-                parameter.Type.PrimitiveKind == BindingPrimitiveKind.Unsupported &&
-                parameter.Direction != BindingParameterDirection.In)
-                return true;
-
             if (parameter.CppTypeName.Contains("&*", StringComparison.Ordinal) ||
                 parameter.CppTypeName.Contains("const void**", StringComparison.Ordinal) ||
                 parameter.CppTypeName.Contains("void**", StringComparison.Ordinal))

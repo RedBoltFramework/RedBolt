@@ -12,6 +12,17 @@ public class RawBuffer : DeviceObject
     private bool _locked;
     private bool _needsResolve;
     private FrameIndex? _lastUpdateFrameIndex;
+    private Usage _internalUsage;
+    private nint _mappedScratchBuffer;
+    private MapKind _mapKind;
+
+    private enum MapKind
+    {
+        None,
+        Shadow,
+        Dynamic,
+        Scratch
+    }
 
     protected RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
         : base(flags)
@@ -21,8 +32,7 @@ public class RawBuffer : DeviceObject
     public RawBuffer(RawBufferParams parameters, byte[]? data = null, DeviceObjectFlag flags = DeviceObjectFlag.None)
         : this(flags)
     {
-        if (!Create(parameters, data))
-            throw new InvalidOperationException("Failed to create RawBuffer.");
+        Create(parameters, data);
     }
 
     public override void Invalidate()
@@ -62,6 +72,9 @@ public class RawBuffer : DeviceObject
         _locked = false;
         _needsResolve = false;
         _lastUpdateFrameIndex = null;
+        _internalUsage = default;
+        _mappedScratchBuffer = 0;
+        _mapKind = MapKind.None;
     }
 
     /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
@@ -177,30 +190,77 @@ public class RawBuffer : DeviceObject
 
     /// <summary>Map buffer contents onto CPU-writeable memory. Old buffer data is discarded.
     /// Memory is not guaranteed to be CPU-readable — consider using GetShadowData() if you need to read the data.</summary>
-    public Memory<byte> Map()
+    public unsafe Span<byte> Map()
     {
         if (_locked)
             throw new InvalidOperationException("RawBuffer is already mapped.");
         if (_parameters.Size == 0)
-            return Memory<byte>.Empty;
-        if (_shadowData.Length == 0)
-            _shadowData = new byte[_parameters.Size];
+            return Span<byte>.Empty;
 
+        if (_shadowData.Length != 0)
+        {
+            _locked = true;
+            _mapKind = MapKind.Shadow;
+            return _shadowData;
+        }
+
+        var immediateContext = GetSubsystem<Graphics>()?.GetImmediateContext();
+        if (_internalUsage == Usage.UsageDynamic && immediateContext is { IsNull: false } && _handle is { IsNull: false })
+        {
+            var mappedData = IntPtr.Zero;
+            immediateContext.MapBuffer(_handle, MapType.MapWrite, MapFlags.MapFlagDiscard, ref mappedData);
+            if (mappedData == IntPtr.Zero)
+                return Span<byte>.Empty;
+
+            _locked = true;
+            _mapKind = MapKind.Dynamic;
+            return new Span<byte>((void*)mappedData, checked((int)_parameters.Size));
+        }
+
+        var renderPool = GetRenderDevice()?.GetRenderPool();
+        if (renderPool is null)
+            return Span<byte>.Empty;
+
+        _mappedScratchBuffer = renderPool.AllocateScratchBuffer(_parameters.Size);
         _locked = true;
-        return _shadowData;
+        _mapKind = MapKind.Scratch;
+        return new Span<byte>((void*)_mappedScratchBuffer, checked((int)_parameters.Size));
     }
 
     /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
-    public void Unmap()
+    public unsafe void Unmap()
     {
         if (!_locked)
-            return;
+            throw new InvalidOperationException("RawBuffer is not mapped.");
 
         _locked = false;
-        if ((_parameters.Flags & BufferFlag.Immutable) != 0)
-            RecreateImmutableBuffer();
-        else if (_shadowData.Length != 0)
-            UploadRange(_shadowData, 0, _parameters.Size);
+        switch (_mapKind)
+        {
+            case MapKind.Shadow:
+                Update(_shadowData);
+                break;
+            case MapKind.Dynamic:
+                GetSubsystem<Graphics>()?.GetImmediateContext()?.UnmapBuffer(_handle!, MapType.MapWrite);
+                break;
+            case MapKind.Scratch:
+            {
+                var renderPool = GetRenderDevice()?.GetRenderPool();
+                try
+                {
+                    Update(new ReadOnlySpan<byte>((void*)_mappedScratchBuffer, checked((int)_parameters.Size)));
+                }
+                finally
+                {
+                    renderPool?.ReleaseScratchBuffer(_mappedScratchBuffer);
+                    _mappedScratchBuffer = 0;
+                }
+                break;
+            }
+        }
+
+        _mapKind = MapKind.None;
+        _lastUpdateFrameIndex = GetRenderDevice()?.GetFrameIndex();
+        ClearDataLost();
     }
 
     /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.
@@ -254,6 +314,7 @@ public class RawBuffer : DeviceObject
             ElementByteStride = _parameters.Stride,
             Mode = BufferMode.BufferModeUndefined
         };
+        _internalUsage = bufferDesc.Usage;
 
         if (data is null)
         {
@@ -305,8 +366,21 @@ public class RawBuffer : DeviceObject
 
         fixed (byte* dataPointer = data)
         {
-            immediateContext.UpdateBuffer(_handle!, offset, size, (IntPtr)dataPointer,
-                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            if (_internalUsage == Usage.UsageDynamic)
+            {
+                var mappedData = IntPtr.Zero;
+                immediateContext.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref mappedData);
+                if (mappedData != IntPtr.Zero)
+                {
+                    Buffer.MemoryCopy(dataPointer, (void*)mappedData, _parameters.Size, size);
+                    immediateContext.UnmapBuffer(_handle!, MapType.MapWrite);
+                }
+            }
+            else
+            {
+                immediateContext.UpdateBuffer(_handle!, offset, size, (IntPtr)dataPointer,
+                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            }
             _needsResolve = false;
             _lastUpdateFrameIndex = GetRenderDevice()?.GetFrameIndex();
             ClearDataLost();

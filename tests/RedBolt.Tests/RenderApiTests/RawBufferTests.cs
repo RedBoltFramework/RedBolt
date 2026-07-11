@@ -81,6 +81,43 @@ public sealed class RawBufferTests
         Assert.Throws<InvalidOperationException>(() => buffer.UpdateRange(payload, 4u, 8u));
     }
 
+    [Fact]
+    public void Raw_buffer_maps_static_gpu_storage_without_managed_allocations()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 64u, 4u, BufferFlag.None));
+
+            var warmup = buffer.Map();
+            warmup.Fill(1);
+            buffer.Unmap();
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 32; ++i)
+            {
+                var mapped = buffer.Map();
+                mapped[0] = (byte)i;
+                buffer.Unmap();
+            }
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal(0, allocated);
+            Assert.False(buffer.IsLocked());
+        });
+    }
+
+    [Fact]
+    public void Raw_buffer_maps_shadow_storage_and_uploads_on_unmap()
+    {
+        var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 16u, 4u, BufferFlag.Shadowed));
+
+        var mapped = buffer.Map();
+        mapped.Fill(0x5a);
+        buffer.Unmap();
+
+        Assert.All(buffer.GetShadowData(), static value => Assert.Equal(0x5a, value));
+    }
+
     private sealed class TestRawBuffer : RawBuffer
     {
         public bool CreateForTest(RawBufferParams parameters, byte[]? data = null) => Create(parameters, data);

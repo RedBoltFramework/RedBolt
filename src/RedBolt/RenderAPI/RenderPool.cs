@@ -27,14 +27,14 @@ public class RenderPool : Object
     private readonly Dictionary<ulong, RawBuffer> _uniformBuffers = [];
     private readonly Dictionary<RawTextureParams, TextureCacheEntryGroup> _transientTextures = [];
     private readonly Dictionary<(RawTextureParams Params, nint PersistenceKey), TextureCacheEntry> _persistentTextures = [];
-    private readonly List<nint> _scratchBufferAllocations = [];
-    private readonly List<nint> _temporaryScratchBufferAllocations = [];
     private readonly List<RawTextureParams> _transientKeysToRemove = [];
     private readonly List<(RawTextureParams Params, nint PersistenceKey)> _persistentKeysToRemove = [];
     private nint _scratchBuffer;
     private uint _scratchBufferCapacity = InitialScratchBufferSize;
     private uint _scratchBufferOffset;
     private uint _temporaryScratchBufferAllocationsSize;
+    private uint _numScratchBufferAllocations;
+    private nint _temporaryScratchBufferHead;
     private uint _numAddedTextures;
     private uint _numRemovedTextures;
     private FrameIndex _lastLogFrame;
@@ -104,18 +104,20 @@ public class RenderPool : Object
         var alignedSize = AlignScratchSize(size);
         if (_scratchBufferOffset + alignedSize > _scratchBufferCapacity)
         {
-            var temporaryBuffer = Marshal.AllocHGlobal((nint)alignedSize);
-            if (temporaryBuffer == nint.Zero)
+            var temporaryAllocation = Marshal.AllocHGlobal(checked((nint)alignedSize + IntPtr.Size));
+            if (temporaryAllocation == nint.Zero)
                 throw new OutOfMemoryException("Failed to allocate temporary RenderPool scratch buffer.");
 
-            _temporaryScratchBufferAllocations.Add(temporaryBuffer);
+            Marshal.WriteIntPtr(temporaryAllocation, _temporaryScratchBufferHead);
+            _temporaryScratchBufferHead = temporaryAllocation;
             _temporaryScratchBufferAllocationsSize += alignedSize;
-            return temporaryBuffer;
+            ++_numScratchBufferAllocations;
+            return temporaryAllocation + IntPtr.Size;
         }
 
         var buffer = _scratchBuffer + (int)_scratchBufferOffset;
-        _scratchBufferAllocations.Add(buffer);
         _scratchBufferOffset += alignedSize;
+        ++_numScratchBufferAllocations;
         return buffer;
     }
 
@@ -124,15 +126,15 @@ public class RenderPool : Object
     /// </summary>
     public void ReleaseScratchBuffer(nint buffer)
     {
-        var isTemporary = _temporaryScratchBufferAllocations.Remove(buffer);
-        var isStandard = _scratchBufferAllocations.Remove(buffer);
-        if (isTemporary == isStandard)
+        if (_numScratchBufferAllocations == 0 || buffer == nint.Zero)
             throw new InvalidOperationException("Unknown scratch buffer allocation.");
 
-        if (isTemporary)
-            Marshal.FreeHGlobal(buffer);
+        var scratchBufferEnd = _scratchBuffer + (int)_scratchBufferOffset;
+        var isStandard = buffer >= _scratchBuffer && buffer < scratchBufferEnd;
+        if (!isStandard && !ReleaseTemporaryScratchBuffer(buffer))
+            throw new InvalidOperationException("Unknown scratch buffer allocation.");
 
-        if (_scratchBufferAllocations.Count == 0 && _temporaryScratchBufferAllocations.Count == 0)
+        if (--_numScratchBufferAllocations == 0)
         {
             if (_temporaryScratchBufferAllocationsSize != 0u)
                 ResizeScratchBuffer(((_scratchBufferCapacity + _temporaryScratchBufferAllocationsSize) * 3u) / 2u);
@@ -140,6 +142,30 @@ public class RenderPool : Object
             _scratchBufferOffset = 0u;
             _temporaryScratchBufferAllocationsSize = 0u;
         }
+    }
+
+    private bool ReleaseTemporaryScratchBuffer(nint buffer)
+    {
+        var allocation = buffer - IntPtr.Size;
+        var previous = nint.Zero;
+        var current = _temporaryScratchBufferHead;
+        while (current != nint.Zero)
+        {
+            var next = Marshal.ReadIntPtr(current);
+            if (current == allocation)
+            {
+                if (previous == nint.Zero)
+                    _temporaryScratchBufferHead = next;
+                else
+                    Marshal.WriteIntPtr(previous, next);
+                Marshal.FreeHGlobal(current);
+                return true;
+            }
+
+            previous = current;
+            current = next;
+        }
+        return false;
     }
 
     /// <summary>
@@ -324,8 +350,12 @@ public class RenderPool : Object
 
     ~RenderPool()
     {
-        foreach (var temporaryBuffer in _temporaryScratchBufferAllocations)
-            Marshal.FreeHGlobal(temporaryBuffer);
+        while (_temporaryScratchBufferHead != nint.Zero)
+        {
+            var allocation = _temporaryScratchBufferHead;
+            _temporaryScratchBufferHead = Marshal.ReadIntPtr(allocation);
+            Marshal.FreeHGlobal(allocation);
+        }
 
         if (_scratchBuffer != nint.Zero)
             Marshal.FreeHGlobal(_scratchBuffer);
