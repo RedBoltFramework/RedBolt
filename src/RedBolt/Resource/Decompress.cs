@@ -1,5 +1,7 @@
 namespace RedBolt;
 
+using System.Buffers.Binary;
+
 public static class Decompress
 {
     /// <summary>Decompress a DXT compressed image to RGBA.</summary>
@@ -65,8 +67,102 @@ public static class Decompress
         int height,
         CompressedFormat format)
     {
-        // TODO: port C++ PVRTC implementation:
-        // void DecompressImagePVRTC(unsigned char* rgba, const void* blocks, int width, int height, TextureFormat format)
+        var do2bitMode = format is CompressedFormat.PvrtcRgb2Bpp or CompressedFormat.PvrtcRgba2Bpp;
+        var xBlockSize = do2bitMode ? 8 : 4;
+        var blockXDim = Math.Max(2, width / xBlockSize);
+        var blockYDim = Math.Max(2, height / 4);
+
+        Span<int> modulationValues = stackalloc int[8 * 16];
+        Span<int> modulationModes = stackalloc int[8 * 16];
+        Span<uint> previousBlocks = stackalloc uint[4];
+        Span<int> colours = stackalloc int[2 * 2 * 2 * 4];
+        Span<int> aSignal = stackalloc int[4];
+        Span<int> bSignal = stackalloc int[4];
+        Span<int> result = stackalloc int[4];
+
+        for (var y = 0; y < height; ++y)
+        {
+            for (var x = 0; x < width; ++x)
+            {
+                // Map this pixel to the top left neighbourhood of blocks
+                var blockX = LimitCoordinate(x - xBlockSize / 2, width) / xBlockSize;
+                var blockY = LimitCoordinate(y - 4 / 2, height) / 4;
+
+                // Compute the positions of the other 3 blocks
+                var blockXPlusOne = LimitCoordinate(blockX + 1, blockXDim);
+                var blockYPlusOne = LimitCoordinate(blockY + 1, blockYDim);
+
+                // Map to block memory locations
+                var block00 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockY, (uint)blockX) * 8);
+                var block01 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockY, (uint)blockXPlusOne) * 8);
+                var block10 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockYPlusOne, (uint)blockX) * 8);
+                var block11 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockYPlusOne, (uint)blockXPlusOne) * 8);
+
+                // Extract the colours and the modulation information IF the previous values
+                // have changed.
+                if (previousBlocks[0] != (uint)block00 || previousBlocks[1] != (uint)block01
+                    || previousBlocks[2] != (uint)block10 || previousBlocks[3] != (uint)block11)
+                {
+                    var startY = 0;
+                    for (var i = 0; i < 2; ++i)
+                    {
+                        var startX = 0;
+                        for (var j = 0; j < 2; ++j)
+                        {
+                            var blockOffset = (i == 0 ? (j == 0 ? block00 : block01) : (j == 0 ? block10 : block11));
+                            var colourOffset = (i * 2 + j) * 8;
+                            Unpack5554Colour(blocks, blockOffset, colours.Slice(colourOffset, 8));
+                            UnpackModulations(blocks, blockOffset, do2bitMode, modulationValues, modulationModes, startX, startY);
+                            startX += xBlockSize;
+                        }
+                        startY += 4;
+                    }
+
+                    previousBlocks[0] = (uint)block00;
+                    previousBlocks[1] = (uint)block01;
+                    previousBlocks[2] = (uint)block10;
+                    previousBlocks[3] = (uint)block11;
+                }
+
+                // Decompress the pixel. First compute the interpolated A and B signals
+                InterpolateColours(
+                    colours.Slice(0, 4),
+                    colours.Slice(8, 4),
+                    colours.Slice(16, 4),
+                    colours.Slice(24, 4),
+                    do2bitMode,
+                    x,
+                    y,
+                    aSignal);
+                InterpolateColours(
+                    colours.Slice(4, 4),
+                    colours.Slice(12, 4),
+                    colours.Slice(20, 4),
+                    colours.Slice(28, 4),
+                    do2bitMode,
+                    x,
+                    y,
+                    bSignal);
+
+                GetModulationValue(x, y, do2bitMode, modulationValues, modulationModes, out var modulation, out var doPunchThrough);
+
+                // Compute the modulated colour
+                for (var i = 0; i < 4; ++i)
+                {
+                    result[i] = aSignal[i] * 8 + modulation * (bSignal[i] - aSignal[i]);
+                    result[i] >>= 3;
+                }
+                if (doPunchThrough)
+                    result[3] = 0;
+
+                // Store the result in the output image
+                var outputPosition = (x + y * width) << 2;
+                rgba[outputPosition] = (byte)result[0];
+                rgba[outputPosition + 1] = (byte)result[1];
+                rgba[outputPosition + 2] = (byte)result[2];
+                rgba[outputPosition + 3] = (byte)result[3];
+            }
+        }
     }
 
     /// <summary>Returns whether flipping is implemented for texture format.</summary>
@@ -182,6 +278,293 @@ public static class Decompress
                 }
                 break;
         }
+    }
+
+    private static int LimitCoordinate(int value, int size)
+    {
+        return value & (size - 1);
+    }
+
+    private static void Unpack5554Colour(ReadOnlySpan<byte> blocks, int blockOffset, Span<int> abColours)
+    {
+        Span<uint> rawBits = stackalloc uint[2];
+        var packedData1 = BinaryPrimitives.ReadUInt32LittleEndian(blocks.Slice(blockOffset + 4, 4));
+
+        // Extract A and B
+        rawBits[0] = packedData1 & 0xfffe;
+        rawBits[1] = packedData1 >> 16;
+
+        // Step through both colours
+        for (var i = 0; i < 2; ++i)
+        {
+            var colourOffset = i * 4;
+            // If completely opaque
+            if ((rawBits[i] & (1 << 15)) != 0)
+            {
+                // Extract R and G (both 5 bit)
+                abColours[colourOffset] = (int)((rawBits[i] >> 10) & 0x1f);
+                abColours[colourOffset + 1] = (int)((rawBits[i] >> 5) & 0x1f);
+
+                // The precision of Blue depends on A or B. If A then we need to
+                // replicate the top bit to get 5 bits in total
+                abColours[colourOffset + 2] = (int)(rawBits[i] & 0x1f);
+                if (i == 0)
+                    abColours[2] |= abColours[2] >> 4;
+
+                // Set 4bit alpha fully on...
+                abColours[colourOffset + 3] = 0xf;
+            }
+            // Else if colour has variable translucency
+            else
+            {
+                // Extract R and G (both 4 bit).
+                // (Leave a space on the end for the replication of bits
+                abColours[colourOffset] = (int)((rawBits[i] >> (8 - 1)) & 0x1e);
+                abColours[colourOffset + 1] = (int)((rawBits[i] >> (4 - 1)) & 0x1e);
+
+                // Replicate bits to truly expand to 5 bits
+                abColours[colourOffset] |= abColours[colourOffset] >> 4;
+                abColours[colourOffset + 1] |= abColours[colourOffset + 1] >> 4;
+
+                // Grab the 3(+padding) or 4 bits of blue and add an extra padding bit
+                abColours[colourOffset + 2] = (int)((rawBits[i] & 0xf) << 1);
+
+                // Expand from 3 to 5 bits if this is from colour A, or 4 to 5 bits if from
+                // colour B
+                if (i == 0)
+                    abColours[2] |= abColours[2] >> 3;
+                else
+                    abColours[2] |= abColours[2] >> 4;
+
+                // Set the alpha bits to be 3 + a zero on the end
+                abColours[colourOffset + 3] = (int)((rawBits[i] >> 11) & 0xe);
+            }
+        }
+    }
+
+    private static void UnpackModulations(
+        ReadOnlySpan<byte> blocks,
+        int blockOffset,
+        bool do2bitMode,
+        Span<int> modulationValues,
+        Span<int> modulationModes,
+        int startX,
+        int startY)
+    {
+        var blockModulationMode = (int)(BinaryPrimitives.ReadUInt32LittleEndian(blocks.Slice(blockOffset + 4, 4)) & 1);
+        var modulationBits = BinaryPrimitives.ReadUInt32LittleEndian(blocks.Slice(blockOffset, 4));
+
+        // If it's in an interpolated mode
+        if (do2bitMode && blockModulationMode != 0)
+        {
+            // Run through all the pixels in the block. Note we can now treat all the
+            // "stored" values as if they have 2bits (even when they didn't!)
+            for (var y = 0; y < 4; ++y)
+            {
+                for (var x = 0; x < 8; ++x)
+                {
+                    modulationModes[(y + startY) * 16 + x + startX] = blockModulationMode;
+
+                    // If this is a stored value...
+                    if (((x ^ y) & 1) == 0)
+                    {
+                        modulationValues[(y + startY) * 16 + x + startX] = (int)(modulationBits & 3);
+                        modulationBits >>= 2;
+                    }
+                }
+            }
+        }
+        // Else if direct encoded 2bit mode - i.e. 1 mode bit per pixel
+        else if (do2bitMode)
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                for (var x = 0; x < 8; ++x)
+                {
+                    modulationModes[(y + startY) * 16 + x + startX] = blockModulationMode;
+
+                    // Double the bits so 0=> 00, and 1=>11
+                    modulationValues[(y + startY) * 16 + x + startX] = (modulationBits & 1) != 0 ? 0x3 : 0x0;
+                    modulationBits >>= 1;
+                }
+            }
+        }
+        // Else its the 4bpp mode so each value has 2 bits
+        else
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                for (var x = 0; x < 4; ++x)
+                {
+                    modulationModes[(y + startY) * 16 + x + startX] = blockModulationMode;
+                    modulationValues[(y + startY) * 16 + x + startX] = (int)(modulationBits & 3);
+                    modulationBits >>= 2;
+                }
+            }
+        }
+    }
+
+    private static void InterpolateColours(
+        ReadOnlySpan<int> colourP,
+        ReadOnlySpan<int> colourQ,
+        ReadOnlySpan<int> colourR,
+        ReadOnlySpan<int> colourS,
+        bool do2bitMode,
+        int x,
+        int y,
+        Span<int> result)
+    {
+        Span<int> p = stackalloc int[4];
+        Span<int> q = stackalloc int[4];
+        Span<int> r = stackalloc int[4];
+        Span<int> s = stackalloc int[4];
+
+        // Copy the colours
+        for (var k = 0; k < 4; ++k)
+        {
+            p[k] = colourP[k];
+            q[k] = colourQ[k];
+            r[k] = colourR[k];
+            s[k] = colourS[k];
+        }
+
+        // Put the x and y values into the right range
+        var v = (y & 0x3) | ((~y & 0x2) << 1);
+        var u = do2bitMode ? (x & 0x7) | ((~x & 0x4) << 1) : (x & 0x3) | ((~x & 0x2) << 1);
+
+        // Get the u and v scale amounts
+        v -= 4 / 2;
+        var uScale = do2bitMode ? 8 : 4;
+        u -= do2bitMode ? 8 / 2 : 4 / 2;
+
+        for (var k = 0; k < 4; ++k)
+        {
+            var tmp1 = p[k] * uScale + u * (q[k] - p[k]);
+            var tmp2 = r[k] * uScale + u * (s[k] - r[k]);
+            tmp1 = tmp1 * 4 + v * (tmp2 - tmp1);
+            result[k] = tmp1;
+        }
+
+        // Lop off the appropriate number of bits to get us to 8 bit precision
+        if (do2bitMode)
+        {
+            // Do RGB
+            for (var k = 0; k < 3; ++k)
+                result[k] >>= 2;
+            result[3] >>= 1;
+        }
+        else
+        {
+            // Do RGB  (A is ok)
+            for (var k = 0; k < 3; ++k)
+                result[k] >>= 1;
+        }
+
+        // Convert from 5554 to 8888
+        // do RGB 5.3 => 8
+        for (var k = 0; k < 3; ++k)
+            result[k] += result[k] >> 5;
+        result[3] += result[3] >> 4;
+    }
+
+    private static void GetModulationValue(
+        int x,
+        int y,
+        bool do2bitMode,
+        ReadOnlySpan<int> modulationValues,
+        ReadOnlySpan<int> modulationModes,
+        out int modulation,
+        out bool doPunchThrough)
+    {
+        ReadOnlySpan<int> replicatedValues = stackalloc[] { 0, 3, 5, 8 };
+        ReadOnlySpan<int> replicatedValuesPunchThrough = stackalloc[] { 0, 4, 4, 8 };
+
+        // Map X and Y into the local 2x2 block
+        y = (y & 0x3) | ((~y & 0x2) << 1);
+        x = do2bitMode ? (x & 0x7) | ((~x & 0x4) << 1) : (x & 0x3) | ((~x & 0x2) << 1);
+
+        // Assume no PT for now
+        doPunchThrough = false;
+        var modulationMode = modulationModes[y * 16 + x];
+
+        // Extract the modulation value. If a simple encoding
+        if (modulationMode == 0)
+        {
+            modulation = replicatedValues[modulationValues[y * 16 + x]];
+        }
+        else if (do2bitMode)
+        {
+            // If this is a stored value
+            if (((x ^ y) & 1) == 0)
+            {
+                modulation = replicatedValues[modulationValues[y * 16 + x]];
+            }
+            // Else average from the neighbours
+            // If H&V interpolation...
+            else if (modulationMode == 1)
+            {
+                modulation = (replicatedValues[modulationValues[(y - 1) * 16 + x]]
+                    + replicatedValues[modulationValues[(y + 1) * 16 + x]]
+                    + replicatedValues[modulationValues[y * 16 + x - 1]]
+                    + replicatedValues[modulationValues[y * 16 + x + 1]] + 2) / 4;
+            }
+            // Else if H-Only
+            else if (modulationMode == 2)
+            {
+                modulation = (replicatedValues[modulationValues[y * 16 + x - 1]]
+                    + replicatedValues[modulationValues[y * 16 + x + 1]] + 1) / 2;
+            }
+            // Else it's V-Only
+            else
+            {
+                modulation = (replicatedValues[modulationValues[(y - 1) * 16 + x]]
+                    + replicatedValues[modulationValues[(y + 1) * 16 + x]] + 1) / 2;
+            }
+        }
+        // Else it's 4BPP and PT encoding
+        else
+        {
+            var value = modulationValues[y * 16 + x];
+            modulation = replicatedValuesPunchThrough[value];
+            doPunchThrough = value == 2;
+        }
+    }
+
+    private static uint TwiddleUv(uint ySize, uint xSize, uint yPosition, uint xPosition)
+    {
+        uint minDimension;
+        uint maxValue;
+        if (ySize < xSize)
+        {
+            minDimension = ySize;
+            maxValue = xPosition;
+        }
+        else
+        {
+            minDimension = xSize;
+            maxValue = yPosition;
+        }
+
+        // Step through all the bits in the "minimum" dimension
+        uint sourceBitPosition = 1;
+        uint destinationBitPosition = 1;
+        uint twiddled = 0;
+        var shiftCount = 0;
+        while (sourceBitPosition < minDimension)
+        {
+            if ((yPosition & sourceBitPosition) != 0)
+                twiddled |= destinationBitPosition;
+            if ((xPosition & sourceBitPosition) != 0)
+                twiddled |= destinationBitPosition << 1;
+            sourceBitPosition <<= 1;
+            destinationBitPosition <<= 2;
+            shiftCount += 1;
+        }
+
+        // Prepend any unused bits
+        maxValue >>= shiftCount;
+        twiddled |= maxValue << (2 * shiftCount);
+        return twiddled;
     }
 
     private static void DecodeDxtBlock(Span<byte> output, ReadOnlySpan<byte> block, CompressedFormat format)

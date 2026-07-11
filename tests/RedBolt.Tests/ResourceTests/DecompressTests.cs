@@ -38,4 +38,26 @@ public sealed class DecompressTests
 
         Assert.Equal(0b_11_10_01_00, destination[4]);
     }
+
+    [Fact]
+    public void Pvrtc4bpp_image_decompresses_to_rgba()
+    {
+        var blocks = new byte[32];
+        for (var block = 0; block < 4; ++block)
+        {
+            var offset = block * 8;
+            blocks[offset + 4] = 0x1f;
+            blocks[offset + 5] = 0xfc;
+            blocks[offset + 6] = 0x1f;
+            blocks[offset + 7] = 0xfc;
+        }
+        var rgba = new byte[8 * 8 * 4];
+
+        Decompress.DecompressImagePVRTC(rgba, blocks, 8, 8, CompressedFormat.PvrtcRgba4Bpp);
+
+        Assert.Equal(255, rgba[0]);
+        Assert.Equal(0, rgba[1]);
+        Assert.Equal(255, rgba[2]);
+        Assert.Equal(255, rgba[3]);
+    }
 }
