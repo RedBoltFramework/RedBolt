@@ -497,8 +497,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct ShaderDefineArray` — constructors, define append/parsing, size, unused-define detection, and name/value storage are ported
 - [x] `ShaderSourceLogger.h`
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
-- [ ] `ShaderOptimizer.h`
-  - [ ] shader optimizer helpers
+- [~] `ShaderOptimizer.h`
+  - [~] shader optimizer helpers — exact C++ optimizer body is preserved as a TODO; managed SPIR-V shader and optimizer/validator APIs are not yet available
 - [ ] `ShaderTranslator.h`
   - [ ] shader translation helpers
 - [ ] `ShaderCompiler.h`
