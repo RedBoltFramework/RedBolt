@@ -79,9 +79,22 @@ public sealed class Image : Resource
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        destination.Write(_data);
-        return true;
+        var tempFile = Path.Combine(Path.GetTempPath(), $"RedBolt-{Guid.NewGuid():N}.png");
+        try
+        {
+            if (!ImageSdl.SavePng(this, tempFile))
+                return false;
+            using var source = File.OpenRead(tempFile);
+            source.CopyTo(destination);
+            return true;
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
+
+    public bool SavePNG(string fileName) => ImageSdl.SavePng(this, fileName);
 
     public bool SetSize(int width, int height, uint components) => SetSize(width, height, 1, components);
 
@@ -394,6 +407,43 @@ public sealed class Image : Resource
         }
 
         return subimage;
+    }
+
+    public bool SetSubimage(Image image, IntRect rect)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        if (IsCompressed() || image.IsCompressed() || rect.Width <= 0 || rect.Height <= 0
+            || rect.Left < 0 || rect.Top < 0 || rect.Right > Width || rect.Bottom > Height)
+            return false;
+
+        for (var y = rect.Top; y < rect.Bottom; ++y)
+        {
+            var v = rect.Height == 1 ? 0.0f : (float)(y - rect.Top) / (rect.Height - 1);
+            for (var x = rect.Left; x < rect.Right; ++x)
+            {
+                var u = rect.Width == 1 ? 0.0f : (float)(x - rect.Left) / (rect.Width - 1);
+                SetPixel(x, y, image.GetPixelBilinear(u, v));
+            }
+        }
+        return true;
+    }
+
+    public void PrecalculateLevels()
+    {
+        if (IsCompressed())
+            return;
+        for (var level = this; level.Width > 1 || level.Height > 1 || level.Depth > 1; level = level.GetNextLevel())
+        {
+        }
+    }
+
+    public void CleanupLevels() => _nextLevel = null;
+
+    public void GetLevels(ICollection<Image> levels)
+    {
+        ArgumentNullException.ThrowIfNull(levels);
+        for (Image? level = this; level is not null; level = level._nextLevel)
+            levels.Add(level);
     }
 
     public bool HasAlphaChannel() => Components is 2 or 4;

@@ -57,6 +57,44 @@ internal static partial class ImageSdl
         return true;
     }
 
+    public static bool SavePng(Image image, string fileName)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        var rgba = image.Components == 4 ? image : image.ConvertToRGBA();
+        var data = rgba.GetData();
+        var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+        try
+        {
+            var surface = SdlNativeBindings.SdlCreateRGBSurfaceWithFormatFrom(
+                handle.AddrOfPinnedObject(), rgba.Width, rgba.Height, 32, rgba.Width * 4,
+                (uint)SdlPixelFormatEnum.SdlPixelformatRgba32);
+            if (surface.IsNull)
+                return false;
+            try
+            {
+                return SdlNativeBindings.ImgSavePNG(surface, System.Text.Encoding.UTF8.GetBytes(fileName + "\0")) == 0;
+            }
+            finally
+            {
+                SdlNativeBindings.SdlFreeSurface(surface);
+            }
+        }
+        catch (DllNotFoundException)
+        {
+            return false;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
     private static bool TryDecodeRgba(Stream source, out DecodedImage decoded)
     {
         decoded = default;

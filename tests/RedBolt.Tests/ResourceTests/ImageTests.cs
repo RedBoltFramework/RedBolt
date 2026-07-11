@@ -65,6 +65,32 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Png_save_subimage_and_level_management_work()
+    {
+        var source = new Image("Source");
+        Assert.True(source.SetSize(2, 2, 4));
+        source.Clear(new Color(1, 0, 0, 1));
+        var destination = new Image("Destination");
+        Assert.True(destination.SetSize(4, 4, 4));
+        destination.Clear(Color.Transparent);
+        Assert.True(destination.SetSubimage(source, new IntRect(1, 1, 3, 3)));
+        Assert.True(destination.GetPixel(1, 1).ApproximatelyEquivalent(new Color(1, 0, 0, 1), 0.001f));
+
+        destination.PrecalculateLevels();
+        var levels = new List<Image>();
+        destination.GetLevels(levels);
+        Assert.Equal(3, levels.Count);
+        destination.CleanupLevels();
+        levels.Clear();
+        destination.GetLevels(levels);
+        Assert.Single(levels);
+
+        using var encoded = new MemoryStream();
+        Assert.True(destination.Save(encoded));
+        Assert.True(encoded.ToArray().AsSpan().StartsWith(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' }));
+    }
+
+    [Fact]
     public void ImageCube_projection_and_sampling_work()
     {
         var cube = new ImageCube("Images/Cube");
