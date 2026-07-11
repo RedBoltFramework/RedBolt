@@ -353,13 +353,14 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ResourceCache.h`
   - [x] `ResourceRouter : Object` — ordered managed routers mutate FileIdentifier values before resource resolution
   - [x] `ResourceCache : Object` — managed cache covers routing, synchronous/background/temp loads, memory budgets, dependency reload, reload controls, directory scanning, diagnostics, and release APIs; package mounts and file watching remain scoped to their not-started IO items
-- [ ] `GraphPin.h`
-  - [ ] `GraphPin`
-  - [ ] `GraphDataPin : GraphPin`
-  - [ ] `GraphOutPin : GraphDataPin`
-  - [ ] `GraphInPin : GraphDataPin`
-  - [ ] `GraphEnterPin : GraphPin`
-  - [ ] `GraphExitPin : GraphPin`
+- [~] `GraphPin.h`
+  - [x] `GraphPin`
+  - [x] `GraphDataPin : GraphPin`
+  - [x] `GraphOutPin : GraphDataPin`
+  - [x] `GraphInPin : GraphDataPin`
+  - [x] `GraphEnterPin : GraphPin`
+  - [x] `GraphExitPin : GraphPin`
+  - [~] `GraphPinRef` — connection lookup awaits `GraphNode`/`Graph.h`
 - [ ] `GraphNode.h`
   - [ ] `GraphNodeProperty`
   - [ ] `GraphNode : Object`
