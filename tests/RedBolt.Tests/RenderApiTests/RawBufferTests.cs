@@ -58,13 +58,27 @@ public sealed class RawBufferTests
 
             Assert.NotNull(buffer.GetHandle());
             Assert.False(buffer.GetHandle()!.IsNull);
-            Assert.Equal(payload, buffer.GetShadowData());
+            Assert.False(buffer.IsShadowed());
+            Assert.Empty(buffer.GetShadowData());
 
             Assert.True(_fixture.RenderDevice.EmulateLossAndRestore());
             Assert.NotNull(buffer.GetHandle());
             Assert.False(buffer.GetHandle()!.IsNull);
-            Assert.Equal(payload, buffer.GetShadowData());
+            Assert.True(buffer.IsDataLost());
+            Assert.Empty(buffer.GetShadowData());
         });
+    }
+
+    [Fact]
+    public void Raw_buffer_rejects_dynamic_initial_data_and_partial_dynamic_updates()
+    {
+        var payload = new byte[32];
+        var buffer = new RawBuffer();
+
+        Assert.False(buffer.Create(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Dynamic), payload));
+
+        Assert.True(buffer.Create(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Immutable)));
+        Assert.Throws<InvalidOperationException>(() => buffer.UpdateRange(payload, 4u, 8u));
     }
 
     private void WithInitializedGraphics(Action action)

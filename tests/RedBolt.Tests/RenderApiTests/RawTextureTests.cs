@@ -84,6 +84,36 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Raw_texture_rejects_invalid_dimensions_bindings_and_multisampling()
+    {
+        var texture = new RawTexture();
+
+        Assert.False(texture.Create(new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(0, 4, 1))));
+        Assert.False(texture.Create(new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.RGBA8,
+            TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil, new Vector3i(4, 4, 1))));
+        Assert.False(texture.Create(new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), MultiSample: 4u)));
+    }
+
+    [Fact]
+    public void Raw_texture_normalizes_dimensions_and_mip_rules_like_rbfx()
+    {
+        var cube = new RawTexture(new RawTextureParams(
+            TextureType.TextureCube, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
+            new Vector3i(16, 8, 9), ArraySize: 2u));
+        var depth = new RawTexture(new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil,
+            new Vector3i(16, 8, 1), NumLevels: 5u));
+
+        Assert.Equal(new Vector3i(16, 16, 1), cube.GetParams().Size);
+        Assert.Equal(6u, cube.GetParams().ArraySize);
+        Assert.Equal(1u, depth.GetParams().NumLevels);
+        Assert.Equal(1u, depth.GetParams().NumLevelsRtv);
+    }
+
+    [Fact]
     public void Render_pool_recycles_transient_textures_by_params()
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();

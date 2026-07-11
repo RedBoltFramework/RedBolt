@@ -11,6 +11,7 @@ public class RawBuffer : DeviceObject
     private byte[] _shadowData = [];
     private bool _locked;
     private bool _needsResolve;
+    private FrameIndex? _lastUpdateFrameIndex;
 
     public RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
         : base(flags)
@@ -49,7 +50,7 @@ public class RawBuffer : DeviceObject
         if (!ShouldCreateWithInitialData() && _shadowData.Length != 0)
             UploadRange(_shadowData, 0, _parameters.Size);
 
-        ClearDataLost();
+        SetDataLost(_shadowData.Length == 0);
     }
 
     public override void Destroy()
@@ -60,6 +61,7 @@ public class RawBuffer : DeviceObject
         _shadowData = [];
         _locked = false;
         _needsResolve = false;
+        _lastUpdateFrameIndex = null;
     }
 
     /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
@@ -74,6 +76,22 @@ public class RawBuffer : DeviceObject
         if (data is not null && data.Length != parameters.Size)
             return false;
 
+        var renderDevice = GetRenderDevice();
+        if ((parameters.Flags & BufferFlag.Dynamic) != 0 && data is not null)
+            return false;
+        if (renderDevice is null)
+            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
+        else if (renderDevice.GetBackend() is not (RenderBackend.D3D11 or RenderBackend.OpenGL)
+            && (parameters.Flags & BufferFlag.Dynamic) != 0 && (parameters.Flags & BufferFlag.Discard) == 0)
+        {
+            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
+            _needsResolve = true;
+        }
+        else if ((parameters.Flags & BufferFlag.Immutable) != 0)
+            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
+        if (renderDevice?.GetBackend() == RenderBackend.OpenGL)
+            parameters = parameters with { Flags = parameters.Flags & ~BufferFlag.Dynamic };
+
         this._parameters = parameters;
         if (parameters.Size == 0)
         {
@@ -81,7 +99,7 @@ public class RawBuffer : DeviceObject
             return true;
         }
 
-        var keepShadowData = (parameters.Flags & (BufferFlag.Shadowed | BufferFlag.Dynamic | BufferFlag.Immutable)) != 0 || data is not null;
+        var keepShadowData = (parameters.Flags & BufferFlag.Shadowed) != 0;
         if (keepShadowData)
         {
             _shadowData = new byte[parameters.Size];
@@ -132,6 +150,8 @@ public class RawBuffer : DeviceObject
             throw new InvalidOperationException("Cannot update RawBuffer while it is mapped.");
         if (offset + size > _parameters.Size || size > data.Length)
             throw new ArgumentOutOfRangeException(nameof(size));
+        if (offset != 0 && (_parameters.Flags & (BufferFlag.Dynamic | BufferFlag.Immutable)) != 0)
+            throw new InvalidOperationException("Dynamic and immutable buffers cannot be partially updated.");
         if (size == 0)
             return;
 
@@ -153,6 +173,8 @@ public class RawBuffer : DeviceObject
     {
         if (_locked)
             throw new InvalidOperationException("RawBuffer is already mapped.");
+        if (_parameters.Size == 0)
+            return Memory<byte>.Empty;
         if (_shadowData.Length == 0)
             _shadowData = new byte[_parameters.Size];
 
@@ -180,6 +202,10 @@ public class RawBuffer : DeviceObject
         if (!_needsResolve || _shadowData.Length == 0)
             return;
 
+        var currentFrame = GetRenderDevice()?.GetFrameIndex();
+        if (_lastUpdateFrameIndex == currentFrame)
+            return;
+
         UploadRange(_shadowData, 0, _parameters.Size);
     }
 
@@ -193,7 +219,7 @@ public class RawBuffer : DeviceObject
 
     public bool IsLocked() => _locked;
 
-    public bool IsShadowed() => _shadowData.Length != 0;
+    public bool IsShadowed() => (_parameters.Flags & BufferFlag.Shadowed) != 0;
 
     public byte[] GetShadowData() => _shadowData;
 
@@ -274,6 +300,7 @@ public class RawBuffer : DeviceObject
             immediateContext.UpdateBuffer(_handle!, offset, size, (IntPtr)dataPointer,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
             _needsResolve = false;
+            _lastUpdateFrameIndex = GetRenderDevice()?.GetFrameIndex();
             ClearDataLost();
         }
     }

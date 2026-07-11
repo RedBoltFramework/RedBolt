@@ -248,12 +248,36 @@ public sealed class RawTexture : DeviceObject
         if (parameters.Format == TextureFormat.Unknown)
             return false;
 
-        var normalizedArraySize = Math.Max(parameters.ArraySize, 1u);
-        var normalizedMultiSample = Math.Max(parameters.MultiSample, 1u);
-        var normalizedSize = new Vector3i(
-            Math.Max(parameters.Size.X, 1),
-            Math.Max(parameters.Size.Y, 1),
-            Math.Max(parameters.Size.Z, 1));
+        var isRenderTarget = parameters.Flags.HasFlag(TextureFlag.BindRenderTarget);
+        var isDepthStencil = parameters.Flags.HasFlag(TextureFlag.BindDepthStencil);
+        if (isRenderTarget && isDepthStencil)
+            return false;
+
+        if (!ValidateDimensions(ref parameters))
+            return false;
+
+        var multiSample = Math.Clamp(parameters.MultiSample, 1u, 16u);
+        var flags = parameters.Flags;
+        if (multiSample == 1u)
+            flags |= TextureFlag.NoMultiSampledAutoResolve;
+        if (multiSample != 1u && !isRenderTarget && !isDepthStencil)
+            return false;
+
+        var maxLevels = CalculateMipLevelCount(parameters.Size);
+        var numLevels = parameters.NumLevels == 0u ? maxLevels : Math.Min(parameters.NumLevels, maxLevels);
+        if (isDepthStencil || (multiSample != 1u && flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
+            numLevels = 1u;
+        parameters = parameters with
+        {
+            Flags = flags,
+            MultiSample = multiSample,
+            NumLevels = numLevels,
+            NumLevelsRtv = multiSample != 1u ? 1u : numLevels
+        };
+
+        var normalizedArraySize = parameters.ArraySize;
+        var normalizedMultiSample = parameters.MultiSample;
+        var normalizedSize = parameters.Size;
 
         Texture textureCandidate;
         switch (parameters.Type)
@@ -273,7 +297,7 @@ public sealed class RawTexture : DeviceObject
             {
                 var textureCube = new TextureCube($"RawTextureCube.{Guid.NewGuid():N}");
                 textureCube.SetNumLevels(parameters.NumLevels);
-                var edge = Math.Max(normalizedSize.X, normalizedSize.Y);
+                var edge = normalizedSize.X;
                 if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
                     parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve)))
                     return false;
@@ -318,6 +342,39 @@ public sealed class RawTexture : DeviceObject
             (uint)textureCandidate.MultiSample,
             CalculateNumLevelsRtv(textureCandidate, parameters));
         return true;
+    }
+
+    private static bool ValidateDimensions(ref RawTextureParams parameters)
+    {
+        switch (parameters.Type)
+        {
+            case TextureType.Texture2D when parameters.Size.X > 0 && parameters.Size.Y > 0:
+                parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.Y, 1), ArraySize = 1u };
+                return true;
+            case TextureType.TextureCube when parameters.Size.X > 0:
+                parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.X, 1), ArraySize = 6u };
+                return true;
+            case TextureType.Texture3D when parameters.Size.X > 0 && parameters.Size.Y > 0 && parameters.Size.Z > 0:
+                parameters = parameters with { ArraySize = 1u };
+                return true;
+            case TextureType.Texture2DArray when parameters.Size.X > 0 && parameters.Size.Y > 0 && parameters.ArraySize != 0u:
+                parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.Y, 1) };
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static uint CalculateMipLevelCount(Vector3i size)
+    {
+        var largestDimension = Math.Max(size.X, Math.Max(size.Y, size.Z));
+        var levels = 1u;
+        while (largestDimension > 1)
+        {
+            largestDimension >>= 1;
+            ++levels;
+        }
+        return levels;
     }
 
     private static uint CalculateNumLevelsRtv(Texture texture, RawTextureParams parameters)

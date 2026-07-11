@@ -59,6 +59,11 @@ public abstract class DeviceObject : Object
         _dataLost = false;
     }
 
+    protected void SetDataLost(bool dataLost = true)
+    {
+        _dataLost = dataLost;
+    }
+
     public string GetDebugName() => _debugName;
 
     public void SetDebugName(string debugName)
