@@ -505,8 +505,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
   - [x] `FindVersionTag`
   - [~] shader translation helpers — exact C++ ParseUniversalShader, TranslateSpirVShader, and SPIR-V reflection bodies are preserved as TODOs because managed glslang/SPIR-V-Cross bindings are unavailable
-- [ ] `ShaderCompiler.h`
-  - [ ] shader compiler helpers
+- [~] `ShaderCompiler.h`
+  - [~] shader compiler helpers — exact C++ D3DCompile implementation is preserved as a TODO; managed generated bindings do not expose D3DCompile or COM shader blobs
 
 ## A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
