@@ -129,8 +129,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Transform.h`
   - [x] `struct Transform`
   - [x] `struct DoubleTransform`
-- [ ] `SphericalHarmonics.h`
-  - [ ] `SphericalHarmonics9` / SH types
+- [x] `SphericalHarmonics.h` — pulled in as a required dependency of the in-progress `ImageCube`
+  - [x] `SphericalHarmonics9` / SH types
 - [ ] `TetrahedralMesh.h`
   - [ ] `struct TetrahedralMeshSurface`
   - [ ] `TetrahedralMesh`
@@ -297,13 +297,13 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Resource : Object` — synchronous load state, naming, memory accounting, file loading/saving, and use timer behavior are ported
   - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
   - [x] `ResourceWithMetadata : Resource` — ordered Variant metadata and XML/JSON persistence are ported
-- [~] `Image.h`
-  - [~] `struct CompressedLevel`
-  - [~] `Image : Resource`
+- [x] `Image.h`
+  - [x] `struct CompressedLevel` — RGBA and BC1/BC2/BC3 decompression are ported
+  - [x] `Image : Resource` — image decoding, DDS mip access, pixels/resampling/subimages, mip chains, color LUTs, and BMP/PNG/TGA/JPG encoding are ported
 - [ ] `ImageDDS.h`
   - [ ] DDS format helpers
-- [~] `ImageCube.h`
-  - [~] `ImageCube : Resource`
+- [x] `ImageCube.h`
+  - [x] `ImageCube : Resource` — face/layout loading, projection/sampling, mip decompression, and spherical-harmonics calculation/cache are ported
 - [x] `JSONValue.h`
   - [x] `JSONValue` — scalar/object/array manipulation, recursive replacement, JSON conversion, and nested Variant containers are ported
 - [x] `JSONFile.h`

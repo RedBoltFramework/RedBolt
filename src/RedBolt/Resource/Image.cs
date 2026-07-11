@@ -96,6 +96,56 @@ public sealed class Image : Resource
 
     public bool SavePNG(string fileName) => ImageSdl.SavePng(this, fileName);
 
+    public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
+
+    public bool SaveBMP(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        var rgba = Components == 4 ? this : ConvertToRGBA();
+        using var stream = File.Create(fileName);
+        using var writer = new BinaryWriter(stream);
+        var pixelSize = checked(rgba.Width * rgba.Height * 4);
+        writer.Write((byte)'B'); writer.Write((byte)'M'); writer.Write(54 + pixelSize);
+        writer.Write(0); writer.Write(54); writer.Write(40); writer.Write(rgba.Width); writer.Write(-rgba.Height);
+        writer.Write((short)1); writer.Write((short)32); writer.Write(0); writer.Write(pixelSize);
+        writer.Write(0); writer.Write(0); writer.Write(0); writer.Write(0);
+        var data = rgba.GetData();
+        for (var i = 0; i < data.Length; i += 4)
+        {
+            writer.Write(data[i + 2]); writer.Write(data[i + 1]); writer.Write(data[i]); writer.Write(data[i + 3]);
+        }
+        return true;
+    }
+
+    public bool SaveTGA(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        var rgba = Components == 4 ? this : ConvertToRGBA();
+        using var stream = File.Create(fileName);
+        using var writer = new BinaryWriter(stream);
+        writer.Write((byte)0); writer.Write((byte)0); writer.Write((byte)2);
+        writer.Write(new byte[5]); writer.Write((short)0); writer.Write((short)0);
+        writer.Write((ushort)rgba.Width); writer.Write((ushort)rgba.Height); writer.Write((byte)32); writer.Write((byte)0x28);
+        var data = rgba.GetData();
+        for (var i = 0; i < data.Length; i += 4)
+        {
+            writer.Write(data[i + 2]); writer.Write(data[i + 1]); writer.Write(data[i]); writer.Write(data[i + 3]);
+        }
+        return true;
+    }
+
+    public override bool SaveFile(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".bmp" => SaveBMP(fileName),
+            ".tga" => SaveTGA(fileName),
+            ".jpg" or ".jpeg" => SaveJPG(fileName, 90),
+            ".png" => SavePNG(fileName),
+            _ => base.SaveFile(fileName)
+        };
+    }
+
     public bool SetSize(int width, int height, uint components) => SetSize(width, height, 1, components);
 
     public bool SetSize(int width, int height, int depth, uint components)

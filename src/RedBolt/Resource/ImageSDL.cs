@@ -58,6 +58,12 @@ internal static partial class ImageSdl
     }
 
     public static bool SavePng(Image image, string fileName)
+        => SaveEncoded(image, fileName, static (surface, path) => SdlNativeBindings.ImgSavePNG(surface, path));
+
+    public static bool SaveJpg(Image image, string fileName, int quality)
+        => SaveEncoded(image, fileName, (surface, path) => SdlNativeBindings.ImgSaveJPG(surface, path, Math.Clamp(quality, 0, 100)));
+
+    private static bool SaveEncoded(Image image, string fileName, Func<SdlSurface, byte[], int> save)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -74,7 +80,7 @@ internal static partial class ImageSdl
                 return false;
             try
             {
-                return SdlNativeBindings.ImgSavePNG(surface, System.Text.Encoding.UTF8.GetBytes(fileName + "\0")) == 0;
+                return save(surface, System.Text.Encoding.UTF8.GetBytes(fileName + "\0")) == 0;
             }
             finally
             {

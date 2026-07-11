@@ -127,6 +127,32 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Image_encoders_and_cube_spherical_harmonics_work()
+    {
+        var image = new Image("Solid");
+        Assert.True(image.SetSize(2, 2, 4));
+        image.Clear(new Color(0.5f, 0.25f, 0.125f, 1));
+        var directory = Path.Combine(Path.GetTempPath(), "RedBolt.ImageEncoders", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            Assert.True(image.SaveBMP(Path.Combine(directory, "image.bmp")));
+            Assert.True(image.SaveTGA(Path.Combine(directory, "image.tga")));
+            Assert.True(image.SavePNG(Path.Combine(directory, "image.png")));
+            Assert.True(image.SaveJPG(Path.Combine(directory, "image.jpg"), 90));
+
+            var cube = new ImageCube("Cube");
+            foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>()) cube.SetImage(face, image);
+            var evaluated = cube.GetOrCreateSphericalHarmonics().Evaluate(Vector3f.Forward);
+            Assert.True(evaluated.X > 0 && evaluated.Y > 0 && evaluated.Z > 0);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Repo_backed_rbfx_dds_image_loads_and_decompresses_through_image_resource()
     {
         var image = new Image("Textures/StoneDiffuse.dds");

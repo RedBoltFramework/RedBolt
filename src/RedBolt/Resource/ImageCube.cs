@@ -4,6 +4,7 @@ public sealed class ImageCube : Resource
 {
     private readonly Image?[] _faceImages = new Image[6];
     private XMLFile? _parametersXml;
+    private SphericalHarmonicsDot9? _cachedSphericalHarmonics;
 
     public ImageCube(string name)
         : base(name)
@@ -104,7 +105,12 @@ public sealed class ImageCube : Resource
         LinkSiblings();
     }
 
-    public uint GetSphericalHarmonicsMipLevel() => 0u;
+    public uint GetSphericalHarmonicsMipLevel()
+    {
+        var width = GetImage(CubeMapFace.PositiveX)?.Width ?? 1;
+        var maxLevel = (uint)Math.Max(0, (int)MathF.Log2(width));
+        return maxLevel - Math.Min(maxLevel, 3u);
+    }
 
     public ImageCube GetDecompressedImageLevel(uint index)
     {
@@ -134,6 +140,30 @@ public sealed class ImageCube : Resource
     }
 
     public ImageCube GetDecompressedImage() => GetDecompressedImageLevel(0u);
+
+    public SphericalHarmonicsColor9 CalculateSphericalHarmonics()
+    {
+        var result = new SphericalHarmonicsColor9(); var weightSum = 0f;
+        foreach (CubeMapFace face in Enum.GetValues<CubeMapFace>())
+        {
+            var source = GetImage(face); if (source is null) continue;
+            var level = Math.Min(source.IsCompressed() ? source.NumCompressedLevels - 1 : uint.MaxValue, GetSphericalHarmonicsMipLevel());
+            var image = source.GetDecompressedImageLevel(level); if (image is null) continue;
+            for (var y = 0; y < image.Height; ++y) for (var x = 0; x < image.Width; ++x)
+            {
+                var offset = ProjectTexelOnCubeLevel(face, x, y, level); var distance = offset.Length;
+                if (distance <= 0) continue;
+                var weight = 1f / (distance * distance * distance);
+                result.AddScaled(new SphericalHarmonicsColor9(offset / distance, image.GetPixel(x, y).GammaToLinear()), weight);
+                weightSum += weight;
+            }
+        }
+        if (weightSum > 0) result.Scale(4f * MathF.PI / weightSum);
+        return result;
+    }
+
+    public SphericalHarmonicsDot9 GetOrCreateSphericalHarmonics()
+        => _cachedSphericalHarmonics ??= new SphericalHarmonicsDot9(CalculateSphericalHarmonics());
 
     public Color SampleNearest(Vector3f direction)
     {
