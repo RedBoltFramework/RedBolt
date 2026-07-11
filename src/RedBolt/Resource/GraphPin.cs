@@ -189,21 +189,3 @@ public readonly struct GraphPinRef<TPin> where TPin : GraphPin
 }
 
 /// <summary>Partial graph node identity surface required by GraphPin references.</summary>
-public partial class GraphNode : Object
-{
-    public uint GetID() => _id;
-    public string GetName() => _name;
-
-    internal void SetID(uint id)
-    {
-        _id = id;
-    }
-
-    internal void SetName(string name)
-    {
-        _name = name;
-    }
-
-    private uint _id;
-    private string _name = string.Empty;
-}

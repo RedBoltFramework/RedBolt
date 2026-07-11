@@ -360,10 +360,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `GraphInPin : GraphDataPin`
   - [x] `GraphEnterPin : GraphPin`
   - [x] `GraphExitPin : GraphPin`
-  - [~] `GraphPinRef` — connection lookup awaits `GraphNode`/`Graph.h`
-- [ ] `GraphNode.h`
-  - [ ] `GraphNodeProperty`
-  - [ ] `GraphNode : Object`
+  - [~] `GraphPinRef` — connection lookup awaits `Graph.h`
+- [~] `GraphNode.h`
+  - [x] `GraphNodeProperty`
+  - [~] `GraphNode : Object` — graph connection lookup and optional empty-block serialization await `Graph.h`/managed optional archive support
 - [ ] `Graph.h`
   - [ ] `Graph : Object`
 - [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
