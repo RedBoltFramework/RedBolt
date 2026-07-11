@@ -375,9 +375,36 @@ public sealed class ResourceCache
 
     internal Resource? LoadBackgroundResource(Type type, string name)
     {
-        var resource = TryLoadResource(type, name);
-        if (resource is not null)
-            resource.SetAsyncLoadState(AsyncLoadState.Success);
+        ArgumentNullException.ThrowIfNull(type);
+        var fileName = GetResourceFileName(name);
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        Resource? resource;
+        try
+        {
+            resource = Activator.CreateInstance(type, name) as Resource;
+        }
+        catch (MissingMethodException)
+        {
+            return null;
+        }
+
+        if (resource is null)
+            return null;
+
+        resource.OwnerCache = this;
+        resource.SetAbsoluteFileName(fileName);
+        resource.SetAsyncLoadState(AsyncLoadState.Loading);
+        try
+        {
+            using var stream = File.OpenRead(fileName);
+            resource.SetAsyncLoadState(resource.BeginLoad(stream) ? AsyncLoadState.Success : AsyncLoadState.Fail);
+        }
+        catch
+        {
+            resource.SetAsyncLoadState(AsyncLoadState.Fail);
+        }
         return resource;
     }
 

@@ -116,7 +116,12 @@ public sealed class BackgroundLoader
                 return;
         }
 
-        if (resource is not null)
+        if (resource is null)
+            return;
+
+        var success = resource.AsyncLoadState == AsyncLoadState.Success && resource.EndLoad();
+        resource.SetAsyncLoadState(AsyncLoadState.Done);
+        if (success || _owner.GetReturnFailedResources())
             _owner.StoreBackgroundResource(key.Type, key.Name, resource);
     }
 }
