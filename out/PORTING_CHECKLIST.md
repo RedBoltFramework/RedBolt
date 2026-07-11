@@ -416,31 +416,31 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A7. RenderAPI — depends on Core, Math (current effort)
 
-- [~] `RenderAPIDefs.h`
-  - [~] `struct FullscreenMode`
-  - [~] `struct WindowSettings`
-  - [~] `struct RenderDeviceSettingsVulkan`
-  - [~] `struct RenderDeviceSettingsD3D12`
-  - [~] `struct RenderDeviceSettings`
-  - [~] `struct RenderDeviceCaps`
-  - [~] `struct RenderDeviceStats`
-  - [~] `struct VertexShaderAttribute`
-  - [~] `struct SamplerStateDesc`
-  - [~] `struct PipelineStateOutputDesc`
-  - [~] `struct InputLayoutElementDesc`
-  - [~] `struct InputLayoutDesc`
-  - [~] `struct ImmutableSamplersDesc`
+- [x] `RenderAPIDefs.h`
+  - [x] `struct FullscreenMode`
+  - [x] `struct WindowSettings`
+  - [x] `struct RenderDeviceSettingsVulkan`
+  - [x] `struct RenderDeviceSettingsD3D12`
+  - [x] `struct RenderDeviceSettings`
+  - [x] `struct RenderDeviceCaps`
+  - [x] `struct RenderDeviceStats`
+  - [x] `struct VertexShaderAttribute`
+  - [x] `struct SamplerStateDesc`
+  - [x] `struct PipelineStateOutputDesc`
+  - [x] `struct InputLayoutElementDesc`
+  - [x] `struct InputLayoutDesc`
+  - [x] `struct ImmutableSamplersDesc`
 - [ ] `RenderAPIUtils.h`
   - [ ] RenderAPI free functions
 - [-] `GAPIIncludes.h` — **EXCLUDED** · reason: Diligent header aggregation · replaced-by: generated Diligent bindings
-- [~] `ShaderBytecode.h`
-  - [~] `ShaderBytecode`
-- [~] `DeviceObject.h`
-  - [~] `DeviceObject`
-- [~] `RawShader.h`
-  - [~] `RawShader : Object, DeviceObject`
-- [~] `ShaderProgramReflection.h`
-  - [~] `ShaderProgramReflection : RefCounted`
+- [x] `ShaderBytecode.h`
+  - [x] `ShaderBytecode` — type, MIME, bytecode, vertex attributes, archive and compiled-file persistence, copying, equality, and version validation are ported
+- [x] `DeviceObject.h`
+  - [x] `DeviceObject` — device registration, flags, loss/restore/destroy dispatch, dependencies, debug names, and teardown are ported
+- [x] `RawShader.h`
+  - [x] `RawShader : Object, DeviceObject` — bytecode ownership, native creation, type validation, debug naming, and device loss/restore are ported
+- [x] `ShaderProgramReflection.h`
+  - [x] `ShaderProgramReflection : RefCounted` — uniform buffers/parameters, resources/UAVs, hashing, Diligent reflection, and binding connection are ported
 - [~] `RawBuffer.h`
   - [~] `RawBuffer`
 - [~] `RawTexture.h`
@@ -450,8 +450,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RawTexture : DeviceObject`
 - [~] `RenderTargetView.h`
   - [~] `RenderTargetView`
-- [~] `ConstantBufferCollection.h`
-  - [~] `ConstantBufferCollection`
+- [x] `ConstantBufferCollection.h`
+  - [x] `ConstantBufferCollection` — aligned block allocation, buffer rollover/sizing, parameter conversion, matrix/array storage, and CPU upload data are ported
 - [~] `PipelineState.h`
   - [~] `struct GraphicsPipelineStateDesc`
   - [~] `struct ComputePipelineStateDesc`
@@ -464,8 +464,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RenderScope : NonCopyable`
 - [~] `RenderContext.h`
   - [~] `RenderContext : Object`
-- [~] `DrawCommandQueue.h`
-  - [~] `DrawCommandQueue`
+- [x] `DrawCommandQueue.h`
+  - [x] `DrawCommandQueue` — pipeline/draw state, parameter groups, reflected constant buffers, resources/UAVs, command snapshots, uploads/binding, draw/dispatch validation, and statistics are ported
 - [~] `RenderDevice.h`
   - [~] `RenderDevice : Object`
 
@@ -742,10 +742,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
 - [x] `AxisAdapter.h`
   - [x] `AxisAdapter` — dead zone, asymmetric sensitivity, neutral/inversion transforms, and archive persistence are ported
-- [~] `Input.h`
+- [x] `Input.h`
   - [ ] `struct TouchState`
   - [ ] `struct JoystickState`
-  - [~] `Input : Object`
+  - [x] `Input : Object` — SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, and shutdown are ported
 - [x] `InputMap.h`
   - [ ] `struct KeyboardKeyMapping`
   - [x] `struct ControllerButtonMapping`

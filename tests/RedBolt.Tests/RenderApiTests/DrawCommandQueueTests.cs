@@ -114,6 +114,53 @@ public sealed class DrawCommandQueueTests
         Assert.Throws<InvalidOperationException>(() => queue.DrawIndexed(0u, 3u));
     }
 
+    [Fact]
+    public void Shader_parameter_groups_allocate_store_and_reuse_reflected_blocks()
+    {
+        var queue = _fixture.RenderDevice.GetDefaultQueue();
+        var pipelineState = CreateGraphicsPipelineState();
+        var reflection = pipelineState.GetReflection();
+        var uniformBuffers = GetPrivateField<UniformBufferReflection?[]>(reflection, "_uniformBuffers");
+        var uniformBuffer = new UniformBufferReflection();
+        SetProperty(uniformBuffer, nameof(UniformBufferReflection.Size), 16u);
+        SetProperty(uniformBuffer, nameof(UniformBufferReflection.Hash), 42u);
+        uniformBuffers[(int)ShaderParameterGroup.Material] = uniformBuffer;
+        var uniforms = GetPrivateField<Dictionary<StringHash, UniformReflection>>(reflection, "_uniforms");
+        var parameterName = new StringHash("MatValue");
+        uniforms[parameterName] = new UniformReflection(
+            "MatValue", ShaderParameterGroup.Material, 4, 4,
+            RedBolt.Bindings.Diligent.ShaderCodeVariableClass.ShaderCodeVariableClassScalar,
+            RedBolt.Bindings.Diligent.ShaderCodeBasicType.ShaderCodeBasicTypeFloat, 1, 1, 0);
+
+        queue.Reset();
+        queue.SetPipelineState(pipelineState);
+        Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
+        Assert.True(queue.AddShaderParameter(parameterName, 3.5f));
+        queue.CommitShaderParameterGroup(ShaderParameterGroup.Material);
+        Assert.False(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
+
+        var collection = queue.GetConstantBufferCollection();
+        Assert.Equal(Math.Max(16u, _fixture.RenderDevice.GetCaps().ConstantBufferOffsetAlignment), collection.GetBufferSize(0));
+        Assert.Equal(3.5f, BitConverter.ToSingle(collection.GetBufferData(0).Span.Slice(4, 4)));
+        Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material, differentFromPrevious: true));
+    }
+
+    [Fact]
+    public void Empty_resource_groups_commit_as_stable_command_ranges()
+    {
+        var queue = _fixture.RenderDevice.GetDefaultQueue();
+        queue.Reset();
+        queue.SetPipelineState(CreateGraphicsPipelineState());
+        queue.CommitShaderResources();
+        queue.CommitUnorderedAccessViews();
+        queue.SetIndexBuffer(null);
+        queue.Draw(0, 3);
+
+        var command = Assert.Single(GetPrivateField<List<DrawCommandDescription>>(queue, "_drawCommands"));
+        Assert.Equal(new ShaderResourceRange(0, 0), command.ShaderResources);
+        Assert.Equal(new ShaderResourceRange(0, 0), command.UnorderedAccessViews);
+    }
+
     private PipelineState CreateGraphicsPipelineState()
     {
         var cache = _fixture.Context.GetSubsystem<PipelineStateCache>();
@@ -150,5 +197,12 @@ public sealed class DrawCommandQueueTests
         var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
         return Assert.IsType<T>(field!.GetValue(instance));
+    }
+
+    private static void SetProperty<T>(object instance, string propertyName, T value)
+    {
+        var property = instance.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.NotNull(property);
+        property!.SetValue(instance, value);
     }
 }

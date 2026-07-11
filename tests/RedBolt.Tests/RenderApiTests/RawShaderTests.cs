@@ -34,6 +34,25 @@ public sealed class RawShaderTests
     }
 
     [Fact]
+    public void Shader_bytecode_round_trips_archive_state()
+    {
+        var original = new ShaderBytecode(ShaderType.VS)
+        {
+            Mime = "application/spirv",
+            Bytecode = [9, 8, 7, 6]
+        };
+        original.VertexAttributes.Add(new VertexShaderAttribute(VertexElementSemantic.TexCoord, 2, 1));
+        var output = new JSONOutputArchive();
+        using (output.OpenUnorderedBlock("shader")) original.SerializeInBlock(output);
+
+        var restored = new ShaderBytecode();
+        var input = new JSONInputArchive(output.ToJsonString());
+        using (input.OpenUnorderedBlock("shader")) restored.SerializeInBlock(input);
+
+        Assert.Equal(original, restored);
+    }
+
+    [Fact]
     public void Compute_pipeline_state_desc_supports_raw_shader_value_semantics()
     {
         var bytecode = new ShaderBytecode(ShaderType.CS)

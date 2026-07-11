@@ -10,6 +10,8 @@ public sealed class RawTexture : DeviceObject
     private SamplerStateDesc _samplerStateDesc = new();
     private Texture? _texture;
     private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
+    private bool _levelsDirty;
+    private bool _resolveDirty;
 
     public RawTexture()
     {
@@ -58,6 +60,100 @@ public sealed class RawTexture : DeviceObject
         return _texture is not null ? renderDevice?.GetTextureHandle(_texture) : null;
     }
 
+    public bool IsValid() => _texture is not null;
+
+    public bool GetLevelsDirty() => _levelsDirty;
+
+    public bool GetResolveDirty() => _resolveDirty;
+
+    public void GenerateLevels()
+    {
+        if (!_levelsDirty || _texture is null || _parameters.NumLevels <= 1u)
+            return;
+        var handle = GetHandle();
+        var context = GetSubsystem<Graphics>()?.GetImmediateContext();
+        var view = handle?.GetDefaultView(TextureViewType.TextureViewShaderResource);
+        if (context is not null && view is not null)
+            context.GenerateMips(view);
+        _levelsDirty = false;
+    }
+
+    public void Resolve()
+    {
+        if (!_resolveDirty) return;
+        // Managed Texture owns the auto-resolve representation used by Graphics.
+        // Explicit resolve is only required as a synchronization point here.
+        _resolveDirty = false;
+    }
+
+    public void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, ReadOnlySpan<byte> data,
+        uint rowStride = 0u, uint sliceStride = 0u)
+    {
+        if (_texture is null) throw new InvalidOperationException("Raw texture is not initialized.");
+        if (level >= _parameters.NumLevels || arraySlice >= _parameters.ArraySize)
+            throw new ArgumentOutOfRangeException(level >= _parameters.NumLevels ? nameof(level) : nameof(arraySlice));
+        if (rowStride != 0u && rowStride < _texture.GetRowDataSize(size.X))
+            throw new ArgumentOutOfRangeException(nameof(rowStride));
+        if (sliceStride != 0u && sliceStride < rowStride * (uint)Math.Max(size.Y, 1))
+            throw new ArgumentOutOfRangeException(nameof(sliceStride));
+
+        var success = _texture switch
+        {
+            Texture2D texture => texture.SetData(level, offset.X, offset.Y, size.X, size.Y, data),
+            Texture3D texture => texture.SetData(level, offset.X, offset.Y, offset.Z, size.X, size.Y, size.Z, data),
+            TextureCube texture => texture.SetData((CubeMapFace)arraySlice, level, offset.X, offset.Y, size.X, size.Y, data),
+            Texture2DArray texture => texture.SetData(arraySlice, level, offset.X, offset.Y, size.X, size.Y, data),
+            _ => false
+        };
+        if (!success) throw new InvalidOperationException("Failed to update raw texture subresource.");
+        MarkDirty();
+    }
+
+    public void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, byte[] data,
+        uint rowStride = 0u, uint sliceStride = 0u)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        Update(level, offset, size, arraySlice, data.AsSpan(), rowStride, sliceStride);
+    }
+
+    public bool Read(uint slice, uint level, Span<byte> buffer)
+    {
+        if (_texture is null || level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
+            return false;
+        var data = _texture switch
+        {
+            Texture2D texture when slice == 0 => texture.GetData(level),
+            Texture3D texture when slice == 0 => texture.GetData(level),
+            TextureCube texture => texture.GetData((CubeMapFace)slice, level),
+            Texture2DArray texture => texture.GetData(slice, level),
+            _ => null
+        };
+        if (data is null || buffer.Length < data.Length) return false;
+        data.CopyTo(buffer);
+        return true;
+    }
+
+    public bool Read(uint slice, uint level, byte[] buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        return Read(slice, level, buffer.AsSpan());
+    }
+
+    public ulong CalculateMemoryUseGPU()
+    {
+        if (_texture is null) return 0;
+        ulong total = 0;
+        for (var level = 0u; level < _parameters.NumLevels; ++level)
+        {
+            total += _texture.GetDataSize(
+                _texture.GetLevelWidth(level), _texture.GetLevelHeight(level),
+                _parameters.Type == TextureType.Texture3D ? _texture.GetLevelDepth(level) : 1);
+        }
+        total *= _parameters.Type is TextureType.TextureCube ? 6u : _parameters.ArraySize;
+        total *= Math.Max(_parameters.MultiSample, 1u);
+        return total;
+    }
+
     /// <summary>Create UAV for given array slices and mip levels.</summary>
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
@@ -100,18 +196,26 @@ public sealed class RawTexture : DeviceObject
             return;
 
         RenderTargetView.Texture(this).MarkDirty();
+        if (_parameters.MultiSample > 1u && !_parameters.Flags.HasFlag(TextureFlag.NoMultiSampledAutoResolve))
+            _resolveDirty = true;
+        else if (_parameters.NumLevels > 1u)
+            _levelsDirty = true;
     }
 
     public override void Invalidate()
     {
         base.Invalidate();
         _uavs.Clear();
+        _levelsDirty = false;
+        _resolveDirty = false;
     }
 
     public override void Restore()
     {
         base.Restore();
         _uavs.Clear();
+        _levelsDirty = false;
+        _resolveDirty = false;
     }
 
     public override void Destroy()
@@ -119,6 +223,8 @@ public sealed class RawTexture : DeviceObject
         base.Destroy();
         _uavs.Clear();
         _texture = null;
+        _levelsDirty = false;
+        _resolveDirty = false;
     }
 
     private void ApplySamplerState()
@@ -188,6 +294,15 @@ public sealed class RawTexture : DeviceObject
             }
 
             case TextureType.Texture3D:
+            {
+                var texture3D = new Texture3D($"RawTexture3D.{Guid.NewGuid():N}");
+                texture3D.SetNumLevels(parameters.NumLevels);
+                if (!texture3D.SetSize(normalizedSize.X, normalizedSize.Y, normalizedSize.Z, parameters.Format))
+                    return false;
+                textureCandidate = texture3D;
+                break;
+            }
+
             default:
                 return false;
         }

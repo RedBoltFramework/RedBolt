@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Sdl;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace RedBolt;
@@ -273,6 +274,23 @@ public sealed class Input : Object
             else if (eventType is SdlEventType.SdlFingerdown or SdlEventType.SdlFingermotion or SdlEventType.SdlFingerup)
             {
                 HandleFingerEvent(_nativeEvent, eventType);
+            }
+            else if (eventType == SdlEventType.SdlDropfile)
+            {
+                var fileNamePointer = _nativeEvent.DropFile;
+                try
+                {
+                    var dropped = new InputEvents.DropFileEvent
+                    {
+                        FileName = Marshal.PtrToStringUTF8(fileNamePointer) ?? string.Empty
+                    };
+                    SendEvent(ref dropped);
+                }
+                finally
+                {
+                    if (fileNamePointer != IntPtr.Zero)
+                        SdlNativeBindings.SdlFree(in fileNamePointer);
+                }
             }
             else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
             {

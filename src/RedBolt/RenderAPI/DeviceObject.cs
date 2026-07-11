@@ -13,12 +13,16 @@ public abstract class DeviceObject : Object
     /// Debug name of the object.
     /// </summary>
     private string _debugName = string.Empty;
+    private RenderDevice? _renderDevice;
 
     protected DeviceObject(DeviceObjectFlag flags = DeviceObjectFlag.None)
     {
         Flags = flags;
         if ((flags & DeviceObjectFlag.Headless) == 0)
-            GetRenderDevice()?.AddDeviceObject(this);
+        {
+            _renderDevice = GetSubsystem<RenderDevice>();
+            _renderDevice?.AddDeviceObject(this);
+        }
     }
 
     public DeviceObjectFlag Flags { get; }
@@ -46,7 +50,7 @@ public abstract class DeviceObject : Object
     {
     }
 
-    public RenderDevice? GetRenderDevice() => GetSubsystem<RenderDevice>();
+    public RenderDevice? GetRenderDevice() => _renderDevice;
 
     public bool IsDataLost() => _dataLost;
 
@@ -70,6 +74,7 @@ public abstract class DeviceObject : Object
         switch (deviceObjectEvent)
         {
             case DeviceObjectEvent.Invalidate:
+                _dataLost = true;
                 Invalidate();
                 break;
 
@@ -79,6 +84,8 @@ public abstract class DeviceObject : Object
 
             case DeviceObjectEvent.Destroy:
                 Destroy();
+                _renderDevice?.RemoveDeviceObject(this);
+                _renderDevice = null;
                 break;
 
             default:

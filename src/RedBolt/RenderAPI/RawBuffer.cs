@@ -105,6 +105,12 @@ public class RawBuffer : DeviceObject
     public void Update(byte[] data, uint size = 0)
     {
         ArgumentNullException.ThrowIfNull(data);
+        Update(data.AsSpan(), size);
+    }
+
+    /// <summary>Update buffer data without allocating. If size is not set, the buffer size is used.</summary>
+    public void Update(ReadOnlySpan<byte> data, uint size = 0)
+    {
         var dataSize = size != 0 ? size : _parameters.Size;
         if (dataSize > data.Length)
             throw new ArgumentOutOfRangeException(nameof(size));
@@ -116,6 +122,12 @@ public class RawBuffer : DeviceObject
     public void UpdateRange(byte[] data, uint offset, uint size)
     {
         ArgumentNullException.ThrowIfNull(data);
+        UpdateRange(data.AsSpan(), offset, size);
+    }
+
+    /// <summary>Update buffer data range without allocating.</summary>
+    public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
+    {
         if (_locked)
             throw new InvalidOperationException("Cannot update RawBuffer while it is mapped.");
         if (offset + size > _parameters.Size || size > data.Length)
@@ -124,7 +136,7 @@ public class RawBuffer : DeviceObject
             return;
 
         if (_shadowData.Length != 0)
-            Buffer.BlockCopy(data, 0, _shadowData, (int)offset, (int)size);
+            data[..(int)size].CopyTo(_shadowData.AsSpan((int)offset, (int)size));
 
         if ((_parameters.Flags & BufferFlag.Immutable) != 0)
         {
@@ -236,7 +248,7 @@ public class RawBuffer : DeviceObject
         return _handle is not null;
     }
 
-    private void UploadRange(byte[] data, uint offset, uint size)
+    private unsafe void UploadRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
         if (size == 0)
             return;
@@ -257,19 +269,12 @@ public class RawBuffer : DeviceObject
             return;
         }
 
-        var dataHandle = default(GCHandle);
-        try
+        fixed (byte* dataPointer = data)
         {
-            dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            var pointer = IntPtr.Add(dataHandle.AddrOfPinnedObject(), (int)offset);
-            immediateContext.UpdateBuffer(_handle!, offset, size, pointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            immediateContext.UpdateBuffer(_handle!, offset, size, (IntPtr)dataPointer,
+                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
             _needsResolve = false;
             ClearDataLost();
-        }
-        finally
-        {
-            if (dataHandle.IsAllocated)
-                dataHandle.Free();
         }
     }
 

@@ -21,8 +21,8 @@ on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
 
 ## 2. TOOLS YOU MUST USE
 
-- jcodemunch (jcodemunch-mcp): use this to read/search BOTH rbfx and RedBolt.
-  - ALWAYS use jcodemunch to explore code.
+- jcodemunch-mcp: use this to read/search BOTH rbfx and RedBolt.
+  - ALWAYS use jcodemunch-mcp to explore code.
     - ALWAYS update index at the session start.
   - DO NOT use plain grep, glob, find, cat, or Read for code exploration.
 - dotnet-trace: (optional) use this to check for GC allocations in the running sample.
@@ -35,7 +35,7 @@ on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
 Do these steps IN ORDER. Finish one step fully before starting the next.
 
 STEP 1 - Find the C++ class
-  - Use jcodemunch to open the C++ class outline (all methods, fields, bases).
+  - Use jcodemunch-mcp to open the C++ class outline (all methods, fields, bases).
   - Write down: base classes, interfaces, every method, every field.
 
 STEP 2 - Match the class shape
@@ -179,7 +179,7 @@ Anything not on this list must match C++.
 
 ## 12. IF YOU ARE UNSURE
 
-- Re-read the C++ source with jcodemunch. The C++ code is the source of truth.
+- Re-read the C++ source with jcodemunch-mcp. The C++ code is the source of truth.
 - Match the C++ code. When in doubt, copy the C++ structure and logic.
 - Do not guess at runtime behavior. Use debug-mcp or apitrace to confirm.
 - Prompt user to clarify deviations

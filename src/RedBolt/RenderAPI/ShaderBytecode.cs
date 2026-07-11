@@ -42,6 +42,51 @@ public sealed class ShaderBytecode : IEquatable<ShaderBytecode>
 
     public bool IsEmpty() => Bytecode.Length == 0;
 
+    public void SerializeInBlock(Archive archive)
+    {
+        ArgumentNullException.ThrowIfNull(archive);
+        var type = Type;
+        var mime = Mime;
+        ArchiveSerialization.SerializeEnum(archive, "type", ref type, Enum.GetNames<ShaderType>());
+        ArchiveSerialization.SerializeValue(archive, "mime", ref mime);
+        var bytecode = new Variant(Bytecode);
+        ArchiveSerialization.SerializeVariantAsType(archive, "bytecode", ref bytecode, VariantType.Buffer);
+
+        var count = archive.IsInput ? 0u : (uint)VertexAttributes.Count;
+        using var attributesBlock = archive.OpenArrayBlock("vertexAttributes", count);
+        if (archive.IsInput)
+        {
+            Type = type;
+            Mime = mime;
+            Bytecode = bytecode.GetBuffer();
+            VertexAttributes.Clear();
+            for (var i = 0u; i < attributesBlock.SizeHint; ++i)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("attribute");
+                VertexAttributes.Add(SerializeAttribute(archive, default));
+            }
+        }
+        else
+        {
+            foreach (var attribute in VertexAttributes)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("attribute");
+                SerializeAttribute(archive, attribute);
+            }
+        }
+    }
+
+    private static VertexShaderAttribute SerializeAttribute(Archive archive, VertexShaderAttribute value)
+    {
+        var semantic = value.Semantic;
+        var semanticIndex = value.SemanticIndex;
+        var inputIndex = value.InputIndex;
+        ArchiveSerialization.SerializeEnum(archive, "semantic", ref semantic, Enum.GetNames<VertexElementSemantic>());
+        ArchiveSerialization.SerializeValue(archive, "semanticIndex", ref semanticIndex);
+        ArchiveSerialization.SerializeValue(archive, "inputIndex", ref inputIndex);
+        return new VertexShaderAttribute(semantic, semanticIndex, inputIndex);
+    }
+
     public bool SaveToFile(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
