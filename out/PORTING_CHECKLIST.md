@@ -243,8 +243,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Log.h`
   - [x] `Logger` — represented by `Microsoft.Extensions.Logging.ILogger`
   - [x] `Log : Object`
-- [ ] `IOEvents.h`
-  - [ ] IO event definitions
+- [x] `IOEvents.h`
+  - [x] IO event definitions — `LogMessage` and `AsyncExecFinished` are represented as managed event structs
 - [x] `ArchiveBase.h`
   - [x] `ArchiveBase`
   - [x] `ArchiveBlockBase`
