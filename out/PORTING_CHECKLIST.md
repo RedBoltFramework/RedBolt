@@ -360,8 +360,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] animation enums / constants
 - [ ] `PrefabTypes.h`
   - [ ] prefab enums / constants
-- [~] `Serializable.h`
-  - [~] `Serializable : Object`
+- [x] `Serializable.h`
+  - [x] `Serializable : Object` — attribute access/defaults, binary/XML/JSON/Archive serialization, temporary state, copying, and managed reflection cloning are ported
 - [~] `ValueAnimationInfo.h`
   - [~] `ValueAnimationInfo : RefCounted`
 - [~] `ValueAnimation.h`

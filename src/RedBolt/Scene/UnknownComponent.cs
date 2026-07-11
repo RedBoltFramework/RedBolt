@@ -29,14 +29,14 @@ public sealed class UnknownComponent : Component
         return true;
     }
 
-    public bool LoadXML(XMLElement source)
+    public override bool LoadXML(XMLElement source)
     {
         ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
         return true;
     }
 
-    public bool LoadJSON(JSONValue source)
+    public override bool LoadJSON(JSONValue source)
     {
         ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
