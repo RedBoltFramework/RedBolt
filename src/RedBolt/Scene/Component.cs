@@ -1,5 +1,7 @@
 namespace RedBolt;
 
+public enum AutoRemoveMode { Disabled, Component, Node }
+
 public abstract class Component : Animatable
 {
     private bool _enabled = true;
@@ -46,6 +48,38 @@ public abstract class Component : Animatable
     {
         return _node?.GetComponentIndex(this) ?? uint.MaxValue;
     }
+
+    public AttributeScopeHint GetEffectiveScopeHint()
+        => Attributes.Select(static attribute => attribute.ScopeHint).DefaultIfEmpty(AttributeScopeHint.Attribute).Max();
+
+    public override bool Save(Stream destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var header = new VectorBuffer();
+        if (!header.WriteStringHash(new StringHash(GetTypeName())) || !header.WriteUInt(Id)) return false;
+        destination.Write(header.Buffer[..checked((int)header.Size)]);
+        return base.Save(destination);
+    }
+
+    public override bool SaveXML(XMLElement destination)
+    {
+        return destination.SetString("type", GetTypeName()) && destination.SetUInt("id", Id) && base.SaveXML(destination);
+    }
+
+    public override bool SaveJSON(JSONValue destination)
+    {
+        destination.Set("type", new JSONValue(GetTypeName()));
+        destination.Set("id", new JSONValue(Id));
+        return base.SaveJSON(destination);
+    }
+
+    public virtual void GetDependencyNodes(ICollection<Node> destination) { }
+
+    public virtual bool HasAuxiliaryData() => false;
+
+    public virtual void SerializeAuxiliaryData(Archive archive) { }
+
+    public string GetFullNameDebug() => (_node is null ? string.Empty : $"{_node.GetFullNameDebug()}/({GetIndexInParent()})") + GetTypeName();
 
     public void Remove()
     {
@@ -121,5 +155,11 @@ public abstract class Component : Animatable
 
     protected internal virtual void OnSetEnabled()
     {
+    }
+
+    protected void DoAutoRemove(AutoRemoveMode mode)
+    {
+        if (mode == AutoRemoveMode.Component) Remove();
+        else if (mode == AutoRemoveMode.Node) _node?.Remove();
     }
 }

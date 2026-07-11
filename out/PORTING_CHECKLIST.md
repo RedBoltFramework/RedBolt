@@ -371,20 +371,20 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Animatable.h`
   - [x] `AttributeAnimationInfo : ValueAnimationInfo`
   - [x] `Animatable : Serializable` — object/attribute animation assignment, nested targeting, timing, and update application are ported
-- [~] `Component.h`
-  - [~] `Component : Serializable`
+- [x] `Component.h`
+  - [x] `Component : Serializable` — attachment, enable state, IDs, type/ID persistence, scope/debug hooks, auxiliary data, and autoremove are ported
 - [~] `Node.h`
   - [ ] `struct NodeImpl`
   - [~] `Node : Serializable`
-- [~] `LogicComponent.h`
-  - [~] `LogicComponent : Component`
+- [x] `LogicComponent.h`
+  - [x] `LogicComponent : Component` — lifecycle, delayed start, update masks, and Scene update/post-update dispatch are ported; physics/world-origin callbacks remain scoped to their not-started subsystems
 - [ ] `TrackedComponent.h`
   - [ ] `TrackedComponentBase : Component`
   - [ ] `TrackedComponentRegistryBase : Component`
   - [ ] `ReferencedComponentBase : TrackedComponentBase`
   - [ ] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
-- [~] `UnknownComponent.h`
-  - [~] `UnknownComponent : Component`
+- [x] `UnknownComponent.h`
+  - [x] `UnknownComponent : Component` — unknown type preservation and temporary placeholder loading across binary/XML/JSON are ported
 - [ ] `NodePrefab.h`
   - [ ] `AttributePrefab`
   - [ ] `SerializablePrefab`

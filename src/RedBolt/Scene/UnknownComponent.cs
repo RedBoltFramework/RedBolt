@@ -22,7 +22,7 @@ public sealed class UnknownComponent : Component
 
     public string GetOriginalTypeName() => OriginalTypeName;
 
-    public new bool Load(Stream source)
+    public override bool Load(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
