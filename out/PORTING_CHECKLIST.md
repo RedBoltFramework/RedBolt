@@ -295,7 +295,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] texture decompress free functions
 - [~] `Resource.h`
   - [~] `Resource : Object`
-  - [ ] `SimpleResource : Resource`
+  - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
   - [~] `ResourceWithMetadata : Resource`
 - [~] `Image.h`
   - [~] `struct CompressedLevel`
@@ -349,8 +349,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `GraphNode : Object`
 - [ ] `Graph.h`
   - [ ] `Graph : Object`
-- [~] `SerializableResource.h` ⤴ needs `Scene/Serializable`
-  - [~] `SerializableResource : SimpleResource`
+- [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
+  - [x] `SerializableResource : SimpleResource` — delegates managed attributes through archive blocks pending the broader Scene prefab representation
 
 ## A6. Scene — depends on Resource, Core
 

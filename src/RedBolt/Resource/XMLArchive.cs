@@ -14,7 +14,15 @@ public sealed class XMLOutputArchive : ArchiveBase
     private readonly List<Frame> _stack = [];
     private XElement? _root;
 
-    public XMLOutputArchive() : base(Context.Instance) { }
+    public XMLOutputArchive()
+        : this(Context.Instance)
+    {
+    }
+
+    public XMLOutputArchive(Context context)
+        : base(context)
+    {
+    }
 
     public XElement? Root => _root;
     public string ToXmlString()
@@ -106,13 +114,25 @@ public sealed class XMLInputArchive : ArchiveBase
     private readonly XElement _root;
     private readonly List<Frame> _stack = [];
 
-    public XMLInputArchive(string xml) : base(Context.Instance)
+    public XMLInputArchive(string xml)
+        : this(Context.Instance, xml)
+    {
+    }
+
+    public XMLInputArchive(Context context, string xml)
+        : base(context)
     {
         ArgumentNullException.ThrowIfNull(xml);
         _root = XDocument.Parse(xml).Root ?? throw new InvalidOperationException("XML archive root is missing.");
     }
 
-    public XMLInputArchive(XElement root) : base(Context.Instance)
+    public XMLInputArchive(XElement root)
+        : this(Context.Instance, root)
+    {
+    }
+
+    public XMLInputArchive(Context context, XElement root)
+        : base(context)
     {
         _root = root ?? throw new ArgumentNullException(nameof(root));
     }

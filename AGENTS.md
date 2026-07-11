@@ -94,7 +94,7 @@ Run the sample and capture a screenshot:
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
 
-Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
+(Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
 The build output binaries are in:
   /home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug
@@ -129,6 +129,7 @@ The build output binaries are in:
 - NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:
   no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
 - NEVER commit unless the build is green and tests pass.
+- NEVER delegate tasks to subagents.
 
 ## 9. BINDINGS: HOW TO GET NATIVE ACCESS
 

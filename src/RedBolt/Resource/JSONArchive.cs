@@ -9,7 +9,15 @@ public sealed class JSONOutputArchive : ArchiveBase
     private readonly List<Frame> _stack = [];
     private JsonNode? _root;
 
-    public JSONOutputArchive() : base(Context.Instance) { }
+    public JSONOutputArchive()
+        : this(Context.Instance)
+    {
+    }
+
+    public JSONOutputArchive(Context context)
+        : base(context)
+    {
+    }
 
     public JsonNode? Root => _root;
     public string ToJsonString(bool indented = true)
@@ -94,7 +102,13 @@ public sealed class JSONInputArchive : ArchiveBase
     private readonly JsonNode _root;
     private readonly List<Frame> _stack = [];
 
-    public JSONInputArchive(string json) : base(Context.Instance)
+    public JSONInputArchive(string json)
+        : this(Context.Instance, json)
+    {
+    }
+
+    public JSONInputArchive(Context context, string json)
+        : base(context)
     {
         ArgumentNullException.ThrowIfNull(json);
         _root = JsonNode.Parse(json) ?? throw new JsonException("JSON archive root is null.");
