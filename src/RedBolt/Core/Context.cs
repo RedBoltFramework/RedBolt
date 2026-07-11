@@ -87,6 +87,7 @@ public sealed class Context : ObjectReflectionRegistry
         RegisterSubsystem(new RenderDevice());
         RegisterSubsystem(new PipelineStateCache());
         RegisterSubsystem(new Renderer());
+        RegisterSubsystem(new Audio());
     }
 
     public void RegisterSubsystem(object subsystem)

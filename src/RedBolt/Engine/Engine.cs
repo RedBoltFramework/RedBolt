@@ -75,6 +75,15 @@ public sealed class Engine
         renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
         input.SetTouchEmulation(Parameters.TouchEmulation);
 
+        var audio = Context.GetSubsystem<Audio>();
+        if (audio != null && audio.GetMixRate() == 0)
+        {
+            var audioBuffer = 100;
+            var mixRate = 44100;
+            var interpolation = true;
+            audio.SetMode(audioBuffer, mixRate, SpeakerMode.Auto, interpolation);
+        }
+
         IsInitialized = true;
         IsExiting = false;
         _currentTimeStep = 0.0f;
