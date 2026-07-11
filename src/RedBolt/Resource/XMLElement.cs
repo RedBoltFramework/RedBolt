@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace RedBolt;
 
@@ -126,6 +127,22 @@ public sealed class XMLElement
         return true;
     }
 
+    public XMLElement SelectSingle(string query) => Select(query).FirstResult();
+
+    public XMLElement SelectSinglePrepared(XPathQuery query) => SelectPrepared(query).FirstResult();
+
+    public XPathResultSet Select(string query)
+    {
+        if (_element is null || string.IsNullOrWhiteSpace(query)) return new XPathResultSet();
+        return new XPathResultSet(_element.XPathSelectElements(query), _file);
+    }
+
+    public XPathResultSet SelectPrepared(XPathQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return Select(query.GetExpandedQuery());
+    }
+
     public bool SetValue(string value)
     {
         if (_element is null)
@@ -195,7 +212,61 @@ public sealed class XMLElement
 
     public bool SetVariant(Variant value)
     {
-        return SetAttribute("type", value.GetTypeName()) && SetAttribute("value", value.ToString());
+        return SetAttribute("type", value.GetTypeName()) && SetVariantValue(value);
+    }
+
+    public bool SetVariantValue(Variant value)
+    {
+        return value.Type switch
+        {
+            VariantType.VariantVector => SetVariantVector(value.GetVariantVector()),
+            VariantType.StringVector => SetStringVector(value.GetStringVector()),
+            VariantType.VariantMap => SetVariantMap(value.GetVariantMap()),
+            VariantType.StringVariantMap => SetStringVariantMap(value.GetStringVariantMap()),
+            VariantType.ResourceRef => SetAttribute("value", value.GetResourceRef().ToString()),
+            VariantType.ResourceRefList => SetAttribute("value", value.GetResourceRefList().ToString()),
+            _ => SetAttribute("value", value.ToString())
+        };
+    }
+
+    public bool SetVariantVector(VariantVector values)
+    {
+        RemoveChildren("variant");
+        foreach (var value in values)
+            if (!CreateChild("variant").SetVariant(value)) return false;
+        return true;
+    }
+
+    public bool SetStringVector(StringVector values)
+    {
+        RemoveChildren("string");
+        foreach (var value in values)
+            if (!CreateChild("string").SetAttribute("value", value)) return false;
+        return true;
+    }
+
+    public bool SetVariantMap(VariantMap values)
+    {
+        RemoveChildren("variant");
+        foreach (var (key, value) in values)
+        {
+            var element = CreateChild("variant");
+            element.SetUInt("hash", key.Value);
+            if (!element.SetVariant(value)) return false;
+        }
+        return true;
+    }
+
+    public bool SetStringVariantMap(StringVariantMap values)
+    {
+        RemoveChildren("variant");
+        foreach (var (key, value) in values)
+        {
+            var element = CreateChild("variant");
+            element.SetString("name", key);
+            if (!element.SetVariant(value)) return false;
+        }
+        return true;
     }
 
     public bool HasChild(string name)
@@ -275,7 +346,51 @@ public sealed class XMLElement
 
     public Variant GetVariant()
     {
-        return Variant.FromString(Variant.GetTypeFromName(GetAttribute("type")), GetAttribute("value"));
+        return GetVariantValue(Variant.GetTypeFromName(GetAttribute("type")));
+    }
+
+    public Variant GetVariantValue(VariantType type)
+    {
+        return type switch
+        {
+            VariantType.VariantVector => new Variant(GetVariantVector()),
+            VariantType.StringVector => new Variant(GetStringVector()),
+            VariantType.VariantMap => new Variant(GetVariantMap()),
+            VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
+            _ => Variant.FromString(type, GetAttribute("value"))
+        };
+    }
+
+    public VariantVector GetVariantVector()
+    {
+        var result = new VariantVector();
+        for (var element = GetChild("variant"); element.NotNull; element = element.GetNext("variant"))
+            result.Add(element.GetVariant());
+        return result;
+    }
+
+    public StringVector GetStringVector()
+    {
+        var result = new StringVector();
+        for (var element = GetChild("string"); element.NotNull; element = element.GetNext("string"))
+            result.Add(element.GetAttribute("value"));
+        return result;
+    }
+
+    public VariantMap GetVariantMap()
+    {
+        var result = new VariantMap();
+        for (var element = GetChild("variant"); element.NotNull; element = element.GetNext("variant"))
+            result[new StringHash(element.GetUInt("hash"))] = element.GetVariant();
+        return result;
+    }
+
+    public StringVariantMap GetStringVariantMap()
+    {
+        var result = new StringVariantMap();
+        for (var element = GetChild("variant"); element.NotNull; element = element.GetNext("variant"))
+            result[element.GetAttribute("name")] = element.GetVariant();
+        return result;
     }
 
     public BoundingBox GetBoundingBox() => ParseBoundingBox(GetValue());

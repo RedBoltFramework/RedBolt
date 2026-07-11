@@ -293,10 +293,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] resource event definitions
 - [ ] `Decompress.h`
   - [ ] texture decompress free functions
-- [~] `Resource.h`
+- [x] `Resource.h`
   - [x] `Resource : Object` — synchronous load state, naming, memory accounting, file loading/saving, and use timer behavior are ported
   - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
-  - [~] `ResourceWithMetadata : Resource`
+  - [x] `ResourceWithMetadata : Resource` — ordered Variant metadata and XML/JSON persistence are ported
 - [~] `Image.h`
   - [~] `struct CompressedLevel`
   - [~] `Image : Resource`
@@ -308,12 +308,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `JSONValue` — scalar/object/array manipulation, recursive replacement, JSON conversion, and nested Variant containers are ported
 - [x] `JSONFile.h`
   - [x] `JSONFile : Resource` — permissive resource parsing, strict standalone parsing, custom indentation, root access, and JSON Archive callbacks are ported
-- [~] `XMLElement.h`
-  - [~] `XMLElement`
-  - [ ] `XPathResultSet`
-  - [ ] `XPathQuery`
-- [~] `XMLFile.h`
-  - [~] `XMLFile : Resource`
+- [x] `XMLElement.h`
+  - [x] `XMLElement` — hierarchy, typed attributes, nested Variant containers, and XPath selection are ported with LINQ to XML
+  - [x] `XPathResultSet` — managed read-only result collection replaces pugixml node-set lifetime plumbing
+  - [x] `XPathQuery` — prepared queries, variables, scalar evaluation, and result evaluation are ported
+- [x] `XMLFile.h`
+  - [x] `XMLFile : Resource` — parsing/saving, XML Archive callbacks, and XPath add/replace/remove patch operations are ported
 - [x] `JSONArchive.h`
   - [x] `JSONOutputArchiveBlock : ArchiveBlockBase`
   - [x] `JSONOutputArchive : JSONArchiveBase<...>`

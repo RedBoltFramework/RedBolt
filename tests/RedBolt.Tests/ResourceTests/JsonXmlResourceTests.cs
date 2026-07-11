@@ -213,6 +213,60 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void XMLElement_xpath_and_complex_variants_work()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
+        var query = new XPathQuery("item[@id=$id]");
+        Assert.True(query.SetVariable("id", "2"));
+        var results = xml.Root.SelectPrepared(query);
+        Assert.Equal(1u, results.Size());
+        Assert.Equal("2", results.FirstResult().GetAttribute("id"));
+
+        var holder = xml.Root.CreateChild("variant");
+        var value = new Variant(new StringVariantMap
+        {
+            ["name"] = new Variant("rbfx"),
+            ["values"] = new Variant(new VariantVector { new Variant(1), new Variant(true) })
+        });
+        Assert.True(holder.SetVariant(value));
+        Assert.Equal(value, holder.GetVariant());
+    }
+
+    [Fact]
+    public void XMLFile_patch_add_replace_remove_and_archive_callbacks_work()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item value=\"old\"/><remove/></root>"));
+        var patch = new XMLFile("patch.xml");
+        Assert.True(patch.FromString("""
+            <patch>
+              <add sel="/root"><added /></add>
+              <replace sel="/root/item"><item value="new" /></replace>
+              <remove sel="/root/remove" />
+            </patch>
+            """));
+        xml.Patch(patch);
+        Assert.Equal("new", xml.Root.GetChild("item").GetAttribute("value"));
+        Assert.True(xml.Root.HasChild("added"));
+        Assert.False(xml.Root.HasChild("remove"));
+
+        var output = 42;
+        Assert.True(xml.SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("object");
+            archive.Serialize("value", ref output);
+        }));
+        var input = 0;
+        Assert.True(xml.LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("object");
+            archive.Serialize("value", ref input);
+        }));
+        Assert.Equal(42, input);
+    }
+
+    [Fact]
     public void Localization_multi_language_works()
     {
         var tempDir = CreateTempDir();
