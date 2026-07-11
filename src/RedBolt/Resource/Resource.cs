@@ -27,22 +27,16 @@ public abstract class Resource : Object
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        AsyncLoadState = AsyncLoadState.Loading;
-        if (!BeginLoad(source))
-        {
-            AsyncLoadState = AsyncLoadState.Fail;
-            return false;
-        }
-
-        if (!EndLoad())
-        {
-            AsyncLoadState = AsyncLoadState.Fail;
-            return false;
-        }
-
+        AsyncLoadState = Environment.CurrentManagedThreadId == WorkQueue.GetMainThreadId()
+            ? AsyncLoadState.Done
+            : AsyncLoadState.Loading;
+        var success = BeginLoad(source);
+        if (success)
+            success &= EndLoad();
         AsyncLoadState = AsyncLoadState.Done;
-        ReloadFinished?.Invoke(this);
-        return true;
+        if (success)
+            ReloadFinished?.Invoke(this);
+        return success;
     }
 
     public virtual bool BeginLoad(Stream source) => false;
@@ -73,8 +67,7 @@ public abstract class Resource : Object
 
     public void SetName(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        Name = name;
+        Name = name ?? string.Empty;
     }
 
     public string GetName() => Name;
