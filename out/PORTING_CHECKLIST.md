@@ -274,7 +274,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `MountedRoot.h`
   - [x] `MountedRoot`
   - [ ] `MountedRoot : MountPoint`
-- [ ] `MountedDirectory.h`
+- [~] `MountedDirectory.h`
+  - [~] `MountedDirectory` — directory mounting, file access, timestamps, scanning, and watcher lifecycle are ported; `FileChanged` event dispatch remains TODO until `FileWatcher` and `ResourceEvents` are ported.
   - [ ] `MountedDirectory : WatchableMountPoint`
 - [ ] `MountedAliasRoot.h`
   - [ ] `MountedAliasRoot : MountPoint`
