@@ -59,7 +59,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ConstString` (compile-time string handle)
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
 - [ ] `IndexAllocator.h`
-  - [ ] `IndexAllocator`
+  - [x] `IndexAllocator`
+  - [x] `IDFamily<T>`
 - [ ] `Array2D.h`
   - [ ] `Array2D<T>`
 - [x] `MultiVector.h`
