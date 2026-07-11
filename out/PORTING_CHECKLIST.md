@@ -292,8 +292,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `FileWatcher.h`
   - [x] `FileChangeKind` and `FileChange`
   - [x] `FileWatcher : Object, Thread` — C# uses `FileSystemWatcher` event delivery and `IDisposable` instead of re-porting the C++ platform thread/inotify implementation.
-- [ ] `MultiFileWatcher.h`
-  - [ ] `MultiFileWatcher : Object`
+- [x] `MultiFileWatcher.h`
+  - [x] `MultiFileWatcher : Object` — managed disposal forwards the C++ watcher-list clear semantics.
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
 - [ ] `NamedPipe.h`
