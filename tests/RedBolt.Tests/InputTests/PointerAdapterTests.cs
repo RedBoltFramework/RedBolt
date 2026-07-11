@@ -17,7 +17,7 @@ public sealed class PointerAdapterTests
     [Fact]
     public void Mouse_input_updates_pointer_state()
     {
-        var adapter = new PointerAdapter(Input);
+        using var adapter = new PointerAdapter(Input);
         adapter.SetEnabled(true);
         adapter.SetSubscriptionMask(PointerAdapterMask.Mouse);
 
@@ -32,7 +32,7 @@ public sealed class PointerAdapterTests
     [Fact]
     public void Direction_adapter_moves_pointer()
     {
-        var adapter = new PointerAdapter();
+        using var adapter = new PointerAdapter();
         adapter.SetEnabled(true);
         adapter.SetSubscriptionMask(PointerAdapterMask.Keyboard);
         adapter.SetCursorSpeed(20.0f);
@@ -40,27 +40,26 @@ public sealed class PointerAdapterTests
         adapter.GetDirectionAggregator().SetExternalDirection(new Vector2f(1.0f, 0.0f));
         adapter.Update(0.5f);
 
-        Assert.Equal(new Vector2i(5, 0), adapter.GetPointerPosition());
+        Assert.Equal(new Vector2i(50, 0), adapter.GetPointerPosition());
     }
 
     [Fact]
     public void Joystick_button_sets_pressed()
     {
-        var adapter = new PointerAdapter(Input);
+        using var adapter = new PointerAdapter(Input);
         adapter.SetEnabled(true);
         adapter.SetSubscriptionMask(PointerAdapterMask.Joystick);
 
         Input.SetControllerButton(ControllerButton.A, true);
-        adapter.Update(0.0f);
-        Input.SetControllerButton(ControllerButton.A, false);
-
         Assert.True(adapter.IsButtonDown());
+        Input.SetControllerButton(ControllerButton.A, false);
+        Assert.False(adapter.IsButtonDown());
     }
 
     [Fact]
     public void Configuration_and_external_update_work()
     {
-        var adapter = new PointerAdapter();
+        using var adapter = new PointerAdapter();
         adapter.SetEnabled(true);
         adapter.SetSubscriptionMask(PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick);
         adapter.SetCursorSpeed(150.0f);
@@ -70,10 +69,29 @@ public sealed class PointerAdapterTests
 
         Assert.True(adapter.IsEnabled());
         Assert.Equal(PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick, adapter.GetSubscriptionMask());
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorVelocity(), 150.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorVelocity(), 100.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorAcceleration(), 2.0f));
         Assert.Equal("VirtualStick", adapter.GetUIElement());
         Assert.Equal(new Vector2i(3, 4), adapter.GetPointerPosition());
         Assert.True(adapter.IsButtonDown());
+    }
+
+    [Fact]
+    public void Touch_owns_pointer_until_matching_release()
+    {
+        using var adapter = new PointerAdapter(Input);
+        adapter.SetSubscriptionMask(PointerAdapterMask.Mouse | PointerAdapterMask.Touch);
+        adapter.SetEnabled(true);
+        var begin = new InputEvents.TouchBeginEvent { TouchID = 4, X = 20, Y = 30 };
+        Input.SendEvent(ref begin);
+        Assert.Equal(new Vector2i(20, 30), adapter.GetPointerPosition());
+        Assert.True(adapter.IsButtonDown());
+
+        Input.SetMousePosition(new Vector2i(100, 100));
+        Assert.Equal(new Vector2i(20, 30), adapter.GetPointerPosition());
+        var end = new InputEvents.TouchEndEvent { TouchID = 4, X = 25, Y = 35 };
+        Input.SendEvent(ref end);
+        Assert.Equal(new Vector2i(25, 35), adapter.GetPointerPosition());
+        Assert.False(adapter.IsButtonDown());
     }
 }
