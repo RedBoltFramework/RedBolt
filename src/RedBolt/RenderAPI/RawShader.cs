@@ -11,6 +11,8 @@ public class RawShader : DeviceObject
     private IShader? _handle;
     private ShaderBytecode _bytecode;
 
+    public event Action? Reloaded;
+
     protected RawShader(ShaderType type)
     {
         _bytecode = new ShaderBytecode(type);
@@ -56,6 +58,7 @@ public class RawShader : DeviceObject
 
         this._bytecode = new ShaderBytecode(bytecode);
         CreateGPU();
+        Reloaded?.Invoke();
     }
 
     protected virtual void CreateGPU()

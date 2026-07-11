@@ -11,6 +11,7 @@ public class PipelineState : DeviceObject
     private IPipelineState? _handle;
     private IShaderResourceBinding? _shaderResourceBinding;
     private ShaderProgramReflection? _reflection;
+    private readonly List<RawShader> _subscribedShaders = [];
 
     public PipelineState()
     {
@@ -21,6 +22,7 @@ public class PipelineState : DeviceObject
         _owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
         _desc = desc ?? throw new ArgumentNullException(nameof(desc));
         SetDebugName($"{desc.GetDebugName()} #{desc.ToHash()}");
+        SubscribeToShaders();
         CreateGPU();
     }
 
@@ -59,6 +61,7 @@ public class PipelineState : DeviceObject
     {
         base.Destroy();
         DestroyGPU();
+        UnsubscribeFromShaders();
         if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
             pipelineStateCache.ReleasePipelineState(_desc);
     }
@@ -76,6 +79,29 @@ public class PipelineState : DeviceObject
         else if (_desc.AsCompute() is { } computeDesc)
             CreateGPU(device, computeDesc);
     }
+
+    private void SubscribeToShaders()
+    {
+        var shaders = _desc.AsGraphics() is { } graphics
+            ? new RawShader?[] { graphics.VertexShader, graphics.PixelShader, graphics.DomainShader, graphics.HullShader, graphics.GeometryShader }
+            : new RawShader?[] { _desc.AsCompute()?.ComputeShader };
+        foreach (var shader in shaders)
+        {
+            if (shader is null || _subscribedShaders.Contains(shader))
+                continue;
+            shader.Reloaded += OnShaderReloaded;
+            _subscribedShaders.Add(shader);
+        }
+    }
+
+    private void UnsubscribeFromShaders()
+    {
+        foreach (var shader in _subscribedShaders)
+            shader.Reloaded -= OnShaderReloaded;
+        _subscribedShaders.Clear();
+    }
+
+    private void OnShaderReloaded() => Invalidate();
 
     private void CreateGPU(IRenderDevice device, ComputePipelineStateDesc desc)
     {

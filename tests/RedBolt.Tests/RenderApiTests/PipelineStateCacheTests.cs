@@ -151,6 +151,15 @@ public sealed class PipelineStateCacheTests
             Assert.NotNull(state.GetHandle());
             Assert.NotNull(state.GetShaderResourceBinding());
             Assert.NotNull(state.GetReflection());
+
+            var vertexBytecode = desc.VertexShader!.GetBytecode();
+            desc.VertexShader.CreateFromBinary(vertexBytecode);
+            Assert.False(state.IsValid);
+            Assert.True(state.IsDataLost());
+
+            state.Restore();
+            Assert.True(state.IsValid);
+            Assert.False(state.IsDataLost());
         });
     }
 
