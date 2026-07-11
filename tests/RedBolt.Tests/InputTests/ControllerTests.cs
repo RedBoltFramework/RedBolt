@@ -102,4 +102,20 @@ public sealed class ControllerTests
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), 25.0f));
         Assert.Equal("Input/MoveController", controller.GetInputMapAttr().Name);
     }
+
+    [Fact]
+    public void MoveAndOrbitComponent_initializes_rotation_and_distance_limits()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Orbit");
+        node.SetRotation(new Quaternion(20.0f, 35.0f, 0.0f));
+
+        var movement = node.CreateComponent<MoveAndOrbitComponent>();
+        movement.SetDistanceLimits(2.0f, 40.0f);
+
+        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetYaw(), node.Rotation.YawAngle));
+        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), node.Rotation.PitchAngle));
+        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMinDistance(), 2.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMaxDistance(), 40.0f));
+    }
 }

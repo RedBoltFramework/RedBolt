@@ -52,6 +52,16 @@ public sealed class AxisAdapter
 
     public bool IsInverted() => _inverted;
 
+    public void SerializeInBlock(Archive archive)
+    {
+        ArgumentNullException.ThrowIfNull(archive);
+        ArchiveSerialization.SerializeValue(archive, "deadZone", ref _deadZone);
+        ArchiveSerialization.SerializeValue(archive, "inverted", ref _inverted);
+        ArchiveSerialization.SerializeValue(archive, "neutral", ref _neutral);
+        ArchiveSerialization.SerializeValue(archive, "posSensitivity", ref _positiveSensitivity);
+        ArchiveSerialization.SerializeValue(archive, "negSensitivity", ref _negativeSensitivity);
+    }
+
     public float Transform(float value)
     {
         if (_inverted)

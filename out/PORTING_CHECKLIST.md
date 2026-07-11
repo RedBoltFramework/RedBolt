@@ -740,8 +740,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] key / button / scancode constants
 - [x] `InputEvents.h`
   - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
-- [~] `AxisAdapter.h`
-  - [~] `AxisAdapter`
+- [x] `AxisAdapter.h`
+  - [x] `AxisAdapter` — dead zone, asymmetric sensitivity, neutral/inversion transforms, and archive persistence are ported
 - [~] `Input.h`
   - [ ] `struct TouchState`
   - [ ] `struct JoystickState`
@@ -765,8 +765,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `DirectionalPadAdapter : Object`
 - [~] `FreeFlyController.h`
   - [~] `FreeFlyController : Component`
-- [~] `MoveAndOrbitComponent.h`
-  - [~] `MoveAndOrbitComponent : LogicComponent`
+- [x] `MoveAndOrbitComponent.h`
+  - [x] `MoveAndOrbitComponent : LogicComponent` — velocity, clamped pitch, yaw, node-rotation initialization, distance limits, and attributes are ported
 - [~] `MoveAndOrbitController.h`
   - [~] `MoveAndOrbitController : Component`
 
