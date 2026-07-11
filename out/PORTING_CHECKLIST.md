@@ -267,7 +267,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Base64Archive.h`
   - [x] `Base64OutputArchive` — composition replaces C++ multiple inheritance
   - [x] `Base64InputArchive` — composition replaces C++ multiple inheritance
-- [ ] `MountPoint.h`
+- [x] `MountPoint.h`
+  - [x] `MountPoint` and `WatchableMountPoint`
   - [ ] `MountPoint : Object`
   - [ ] `WatchableMountPoint : MountPoint`
 - [ ] `MountedRoot.h`
