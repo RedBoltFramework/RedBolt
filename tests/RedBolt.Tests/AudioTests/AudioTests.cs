@@ -54,10 +54,10 @@ public sealed class AudioTests
     public void Ogg_vorbis_stream_decodes_pcm()
     {
         var path = Path.Combine(RbfxTestData.Data, "Music", "Ninja Gods.ogg");
-        Assert.True(File.Exists(path));
+        Assert.True(System.IO.File.Exists(path));
 
         var sound = new Sound();
-        using (var source = File.OpenRead(path))
+        using (var source = System.IO.File.OpenRead(path))
             Assert.True(sound.LoadOggVorbis(source));
 
         Assert.True(sound.GetIntFrequency() > 0);

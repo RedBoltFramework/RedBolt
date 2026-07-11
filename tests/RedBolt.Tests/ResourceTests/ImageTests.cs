@@ -188,7 +188,7 @@ public sealed class ImageTests
 
         try
         {
-            File.WriteAllText(Path.Combine(textureDir, "Cube.xml"), """
+            System.IO.File.WriteAllText(Path.Combine(textureDir, "Cube.xml"), """
                 <cubemap>
                     <face name="Face0.bmp" />
                     <face name="Face1.bmp" />
@@ -236,7 +236,7 @@ public sealed class ImageTests
             pixels[i + 3] = 255;
         }
 
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
 
         const int fileHeaderSize = 14;

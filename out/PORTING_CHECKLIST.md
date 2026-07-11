@@ -237,9 +237,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `VectorBuffer.h`
   - [x] `VectorBuffer : AbstractFile` — live managed array access replaces unsafe long-lived raw pointers
 - [~] `File.h`
-  - [~] `File : Object, AbstractFile` — filesystem open/read/write/seek/flush/checksum/copy and binary/text helpers are ported; package-file, compressed-file, and Android asset paths remain TODO because their managed dependencies are not available. Static `System.IO.File` forwards preserve existing managed call sites after introducing the ported `File` type.
-- [ ] `Compression.h`
-  - [ ] compression free functions
+  - [~] `File : Object, AbstractFile` — filesystem open/read/write/seek/flush/checksum/copy and binary/text helpers are ported; package-file, compressed-file, and Android asset paths remain TODO because their managed dependencies are not available.
+- [x] `Compression.h`
+  - [x] compression free functions — LZ4 data, stream, and VectorBuffer helpers are ported through generated SharpCpp bindings
 - [x] `Log.h`
   - [x] `Logger` — represented by `Microsoft.Extensions.Logging.ILogger`
   - [x] `Log : Object`

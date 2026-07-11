@@ -364,7 +364,7 @@ public sealed class GraphicsRenderTargetViewTests
         {
             method.Invoke(_fixture.Graphics, [texture, path]);
 
-            using var stream = File.OpenRead(path);
+            using var stream = System.IO.File.OpenRead(path);
             var image = new Image("Textures/Readback");
             Assert.True(image.BeginLoad(stream));
             var level = image.GetDecompressedImageLevel(0u)
@@ -374,8 +374,8 @@ public sealed class GraphicsRenderTargetViewTests
         }
         finally
         {
-            if (File.Exists(path))
-                File.Delete(path);
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
         }
     }
 

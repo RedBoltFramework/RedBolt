@@ -29,7 +29,7 @@ public sealed class JsonXmlResourceTests
         try
         {
             var jsonPath = Path.Combine(tempDir, "Data", "config.json");
-            File.WriteAllText(jsonPath, "{\"name\":\"redbolt\",\"value\":7}");
+            System.IO.File.WriteAllText(jsonPath, "{\"name\":\"redbolt\",\"value\":7}");
             Resources.AddResourceDir(tempDir);
 
             var jsonFile = Resources.GetResource<JSONFile>("Data/config.json");
@@ -84,7 +84,7 @@ public sealed class JsonXmlResourceTests
         try
         {
             var xmlPath = Path.Combine(tempDir, "Data", "config.xml");
-            File.WriteAllText(xmlPath, "<root><child value=\"7\" /></root>");
+            System.IO.File.WriteAllText(xmlPath, "<root><child value=\"7\" /></root>");
             Resources.AddResourceDir(tempDir);
 
             var xmlFile = Resources.GetResource<XMLFile>("Data/config.xml");
@@ -272,7 +272,7 @@ public sealed class JsonXmlResourceTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
             var loc = new Localization();
@@ -294,7 +294,7 @@ public sealed class JsonXmlResourceTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
             var loc = new Localization();

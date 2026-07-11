@@ -45,7 +45,7 @@ public sealed class TextureFileTests
         Directory.CreateDirectory(Path.Combine(tempRoot, "Textures"));
         try
         {
-            File.WriteAllText(Path.Combine(tempRoot, "Textures", "Cube.xml"), """
+            System.IO.File.WriteAllText(Path.Combine(tempRoot, "Textures", "Cube.xml"), """
                 <cubemap>
                     <face name="PosX.bmp" />
                     <face name="NegX.bmp" />
@@ -87,7 +87,7 @@ public sealed class TextureFileTests
         Directory.CreateDirectory(Path.Combine(tempRoot, "Textures"));
         try
         {
-            File.WriteAllText(Path.Combine(tempRoot, "Textures", "Array.xml"), """
+            System.IO.File.WriteAllText(Path.Combine(tempRoot, "Textures", "Array.xml"), """
                 <texturearray>
                     <layer name="Layer0.bmp" />
                     <layer name="Layer1.bmp" />
@@ -126,7 +126,7 @@ public sealed class TextureFileTests
             var imagePath = Path.Combine(tempRoot, "Textures", "Lut.bmp");
             var xmlPath = Path.Combine(tempRoot, "Textures", "Lut.xml");
             WriteColorLutBmp(imagePath);
-            File.WriteAllText(xmlPath, "<texture3d><colorlut name=\"Lut.bmp\" /></texture3d>");
+            System.IO.File.WriteAllText(xmlPath, "<texture3d><colorlut name=\"Lut.bmp\" /></texture3d>");
 
             Resources.AddResourceDir(tempRoot);
             var texture = Resources.GetResource<Texture3D>("Textures/Lut.xml");
@@ -167,7 +167,7 @@ public sealed class TextureFileTests
             }
         }
 
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
         WriteBmp(writer, width, height, pixels);
     }
@@ -183,7 +183,7 @@ public sealed class TextureFileTests
             pixels[i + 3] = 255;
         }
 
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
         WriteBmp(writer, width, height, pixels);
     }

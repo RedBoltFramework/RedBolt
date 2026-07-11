@@ -320,7 +320,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui" || descriptor.Surface == "stb")
+        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui" || descriptor.Surface == "stb" || descriptor.Surface == "lz4")
             return 0;
 
         if (descriptor.Surface == "diligent")
@@ -718,7 +718,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -776,6 +776,16 @@ internal static class Program
                     "-xc",
                     "-std=c17",
                     true),
+                "lz4" => new BindingSurfaceDescriptor(
+                    "lz4",
+                    "RedBolt.Bindings.Lz4",
+                    "RedBolt.Bindings.Lz4",
+                    "Lz4NativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_lz4",
+                    "-xc++",
+                    "-std=c++20",
+                    false),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };
         }

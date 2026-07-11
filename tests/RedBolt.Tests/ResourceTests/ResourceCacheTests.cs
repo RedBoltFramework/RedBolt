@@ -27,7 +27,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
             Assert.True(Resources.AddResourceDir(tempDir));
             Assert.True(Resources.Exists<BinaryFile>("Data/hello.txt"));
         }
@@ -75,7 +75,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
             Resources.AddResourceDir(tempDir);
             var bf = Resources.GetResource<BinaryFile>("Data/hello.txt");
             Assert.Equal("hello", bf.GetText());
@@ -93,7 +93,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "cache-test.txt"), "content");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "cache-test.txt"), "content");
             Resources.AddResourceDir(tempDir);
             var first = Resources.GetResource<BinaryFile>("Data/cache-test.txt");
             Assert.Same(first, Resources.GetResource<BinaryFile>("Data/cache-test.txt"));
@@ -111,7 +111,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
             Resources.AddResourceDir(tempDir);
             var cached = Resources.GetResource<BinaryFile>("Data/hello.txt");
             Assert.NotSame(cached, Resources.GetTempResource<BinaryFile>("Data/hello.txt"));
@@ -129,7 +129,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
             Resources.AddResourceDir(tempDir);
             var cached = Resources.GetResource<BinaryFile>("Data/hello.txt");
             Assert.Same(cached, Resources.GetExistingResource<BinaryFile>("Data/hello.txt"));
@@ -148,7 +148,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "bg.txt"), "background");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "bg.txt"), "background");
             Resources.AddResourceDir(tempDir);
             Assert.True(Resources.BackgroundLoadResource<BinaryFile>("Data/bg.txt"));
             Resources.FinishBackgroundResources(1000);
@@ -186,15 +186,15 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "before");
-            File.WriteAllText(Path.Combine(tempDir, "Data", "dependency.txt"), "dependency");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "before");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "dependency.txt"), "dependency");
             Directory.CreateDirectory(Path.Combine(tempDir, "Data", "Nested"));
-            File.WriteAllText(Path.Combine(tempDir, "Data", "Nested", "other.txt"), "other");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "Nested", "other.txt"), "other");
             Resources.AddResourceDir(tempDir);
             var resource = Resources.GetResource<BinaryFile>("Data/main.txt");
             resource.SetMemoryUse(64);
             Resources.StoreResourceDependency(resource, "Data/dependency.txt");
-            File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "after");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "main.txt"), "after");
 
             Resources.ReloadResourceWithDependencies("Data/dependency.txt");
             Assert.Equal("after", resource.GetText());
@@ -266,7 +266,7 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
             Resources.AddResourceDir(tempDir);
             using var file = Resources.GetFile("Data/hello.txt");
             Assert.NotNull(file);
@@ -283,7 +283,7 @@ public sealed class ResourceCacheTests
     public void RemoveResourceDir_unregisters_resources()
     {
         var tempDir = CreateTempDir();
-        File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
+        System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "hello.txt"), "hello");
         Resources.AddResourceDir(tempDir);
         Assert.True(Resources.RemoveResourceDir(tempDir));
         Assert.False(Resources.Exists("Data/hello.txt"));

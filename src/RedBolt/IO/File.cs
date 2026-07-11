@@ -42,18 +42,6 @@ public class File : AbstractFile
 
     // TODO: port C++ SDL_RWops* assetHandle_; when managed Android asset access exists.
 
-    // These forwards preserve existing managed call sites that used System.IO.File before this class was ported.
-    public static bool Exists(string path) => System.IO.File.Exists(path);
-    public static FileStream OpenRead(string path) => System.IO.File.OpenRead(path);
-    public static FileStream Create(string path) => System.IO.File.Create(path);
-    public static void Delete(string path) => System.IO.File.Delete(path);
-    public static void AppendAllText(string path, string contents) => System.IO.File.AppendAllText(path, contents);
-    public static void WriteAllText(string path, string contents) => System.IO.File.WriteAllText(path, contents);
-    public static string ReadAllText(string path) => System.IO.File.ReadAllText(path);
-    public static IEnumerable<string> ReadLines(string path) => System.IO.File.ReadLines(path);
-    public static FileAttributes GetAttributes(string path) => System.IO.File.GetAttributes(path);
-    public static DateTime GetLastWriteTimeUtc(string path) => System.IO.File.GetLastWriteTimeUtc(path);
-
     /// <summary>Construct.</summary>
     public File()
     {

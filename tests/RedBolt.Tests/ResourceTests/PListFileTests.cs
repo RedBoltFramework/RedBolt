@@ -41,7 +41,7 @@ public sealed class PListFileTests
     {
         var tempDir = CreateTempDir();
         var path = Path.Combine(tempDir, "Data", "sample.plist");
-        File.WriteAllText(path,
+        System.IO.File.WriteAllText(path,
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><dict>" +
             "<key>Health</key><integer>42</integer>" +
             "<key>Visible</key><true/>" +

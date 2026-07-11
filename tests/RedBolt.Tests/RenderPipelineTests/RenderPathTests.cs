@@ -96,7 +96,7 @@ public sealed class RenderPathTests
 
         try
         {
-            File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.xml"), """
+            System.IO.File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.xml"), """
                 <renderpath>
                     <pass name="Opaque" enabled="true" comment="Geometry pass">
                         <parameter name="Exposure" type="Float" value="1.25" />
@@ -136,7 +136,7 @@ public sealed class RenderPathTests
 
         try
         {
-            File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.renderpath"), """
+            System.IO.File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.renderpath"), """
                 {
                   "passes": [
                     {

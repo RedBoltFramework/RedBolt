@@ -938,7 +938,7 @@ public sealed class RenderPipelineTests
         try
         {
             Context.SetInstance(_fixture.Context);
-            File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Default.renderpath"), """
+            System.IO.File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Default.renderpath"), """
                 {
                   "passes": [
                     {
@@ -1152,7 +1152,7 @@ public sealed class RenderPipelineTests
                 """
             : string.Empty;
 
-        File.WriteAllText(fileName, $$"""
+        System.IO.File.WriteAllText(fileName, $$"""
             {
               "passes": [
                 {
