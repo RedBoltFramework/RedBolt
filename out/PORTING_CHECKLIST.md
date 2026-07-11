@@ -772,25 +772,25 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A12. Engine — top-level orchestration, depends on all Part-A above
 
-- [ ] `EngineDefs.h`
-  - [ ] engine parameter-name constants
-- [ ] `EngineEvents.h`
-  - [ ] engine event definitions
-- [ ] `StateManagerEvents.h`
-  - [ ] state-manager event definitions
-- [ ] `ApplicationFlavor.h`
-  - [ ] `struct ApplicationFlavorPattern`
-  - [ ] `struct ApplicationFlavor`
-- [ ] `ConfigFile.h`
-  - [ ] `struct ConfigVariableDefinition`
-  - [ ] `ConfigFile : Object`
-- [~] `Engine.h`
-  - [~] `Engine : Object`
-- [ ] `StateManager.h`
-  - [ ] `ApplicationState : Object`
-  - [ ] `StateManager : Object`
-- [~] `Application.h`
-  - [~] `Application : Object`
+- [x] `EngineDefs.h`
+  - [x] engine parameter-name constants — ported as `EngineParameter` static class with C# string constants
+- [x] `EngineEvents.h`
+  - [x] engine event definitions — console, engine lifecycle, and plugin reload events ported as struct-based events
+- [x] `StateManagerEvents.h`
+  - [x] state-manager event definitions — transition lifecycle events ported as struct-based events
+- [x] `ApplicationFlavor.h`
+  - [x] `struct ApplicationFlavorPattern` — flavor component pattern matching with string parsing
+  - [x] `struct ApplicationFlavor` — Universal/Empty/Platform flavors, pattern matching, ToString
+- [x] `ConfigFile.h`
+  - [x] `struct ConfigVariableDefinition` — variable metadata with defaults, override, and priority flags
+  - [x] `ConfigFile : Object` — flavor-based config, variable management, and archive serialization
+- [x] `Engine.h`
+  - [x] `Engine : Object` — engine initialization, frame loop, parameter management, FPS limiting, and shutdown are ported (parameter model uses `EngineParameters` class instead of `ConfigFile` for C# idiom)
+- [x] `StateManager.h`
+  - [x] `ApplicationState : Object` — state lifecycle (activate/deactivate/update), mouse mode, viewport, and fog color management ported (UI-dependent features deferred with TODO)
+  - [x] `StateManager : Object` — state queue, caching, fade transitions, and transition event dispatch ported (UI fade overlay deferred with TODO)
+- [x] `Application.h`
+  - [x] `Application : Object` — setup/start/stop lifecycle, CLI parsing, error handling, screenshot-on-exit, and main loop are ported (uses `EngineParameters` class for parameter model)
 
 ---
 
