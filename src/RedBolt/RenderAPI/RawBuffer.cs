@@ -13,7 +13,7 @@ public class RawBuffer : DeviceObject
     private bool _needsResolve;
     private FrameIndex? _lastUpdateFrameIndex;
 
-    public RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
+    protected RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
         : base(flags)
     {
     }
@@ -65,7 +65,7 @@ public class RawBuffer : DeviceObject
     }
 
     /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
-    public bool Create(RawBufferParams parameters, byte[]? data = null)
+    protected bool Create(RawBufferParams parameters, byte[]? data = null)
     {
         Destroy();
 
@@ -77,11 +77,13 @@ public class RawBuffer : DeviceObject
             return false;
 
         var renderDevice = GetRenderDevice();
+        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+        var hasNativeDevice = nativeDevice is { IsNull: false };
         if ((parameters.Flags & BufferFlag.Dynamic) != 0 && data is not null)
             return false;
-        if (renderDevice is null)
+        if (!hasNativeDevice)
             parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
-        else if (renderDevice.GetBackend() is not (RenderBackend.D3D11 or RenderBackend.OpenGL)
+        else if (renderDevice!.GetBackend() is not (RenderBackend.D3D11 or RenderBackend.OpenGL)
             && (parameters.Flags & BufferFlag.Dynamic) != 0 && (parameters.Flags & BufferFlag.Discard) == 0)
         {
             parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
@@ -107,15 +109,21 @@ public class RawBuffer : DeviceObject
                 Buffer.BlockCopy(data, 0, _shadowData, 0, data.Length);
         }
 
-        if (CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
+        var postponeGpuCreation = (parameters.Flags & BufferFlag.Immutable) != 0 && data is null;
+        if (!hasNativeDevice || postponeGpuCreation)
+        {
+            ClearDataLost();
+        }
+        else if (CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
         {
             if (!ShouldCreateWithInitialData() && data is not null)
                 UploadRange(data, 0, parameters.Size);
             ClearDataLost();
         }
-        else if (_shadowData.Length != 0)
-            ClearDataLost();
+        else
+            return false;
 
+        ClearDataLost();
         return true;
     }
 

@@ -73,12 +73,17 @@ public sealed class RawBufferTests
     public void Raw_buffer_rejects_dynamic_initial_data_and_partial_dynamic_updates()
     {
         var payload = new byte[32];
-        var buffer = new RawBuffer();
+        var buffer = new TestRawBuffer();
 
-        Assert.False(buffer.Create(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Dynamic), payload));
+        Assert.False(buffer.CreateForTest(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Dynamic), payload));
 
-        Assert.True(buffer.Create(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Immutable)));
+        Assert.True(buffer.CreateForTest(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Immutable)));
         Assert.Throws<InvalidOperationException>(() => buffer.UpdateRange(payload, 4u, 8u));
+    }
+
+    private sealed class TestRawBuffer : RawBuffer
+    {
+        public bool CreateForTest(RawBufferParams parameters, byte[]? data = null) => Create(parameters, data);
     }
 
     private void WithInitializedGraphics(Action action)
