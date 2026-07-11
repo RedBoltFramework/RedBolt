@@ -294,7 +294,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `Decompress.h`
   - [ ] texture decompress free functions
 - [~] `Resource.h`
-  - [~] `Resource : Object`
+  - [x] `Resource : Object` — synchronous load state, naming, memory accounting, file loading/saving, and use timer behavior are ported
   - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
   - [~] `ResourceWithMetadata : Resource`
 - [~] `Image.h`

@@ -341,6 +341,43 @@ public sealed class JSONValue : IEquatable<JSONValue>
         NotifyChanged();
     }
 
+    public void SetVariant(Variant value)
+    {
+        SetType(JSONValueType.Object);
+        Set("type", new JSONValue(value.GetTypeName()));
+        Set("value", FromVariantValue(value));
+    }
+
+    public Variant GetVariant()
+    {
+        var type = Variant.GetTypeFromName(Get("type").GetString());
+        var value = Get("value");
+        return type switch
+        {
+            VariantType.Bool => new Variant(value.GetBool()),
+            VariantType.Int => new Variant(value.GetInt()),
+            VariantType.Int64 => new Variant((long)value.GetDouble()),
+            VariantType.Float => new Variant(value.GetFloat()),
+            VariantType.Double => new Variant(value.GetDouble()),
+            VariantType.String => new Variant(value.GetString()),
+            _ => Variant.FromString(type, value.GetString())
+        };
+    }
+
+    private static JSONValue FromVariantValue(Variant value)
+    {
+        return value.Type switch
+        {
+            VariantType.Bool => new JSONValue(value.GetBool()),
+            VariantType.Int => new JSONValue(value.GetInt()),
+            VariantType.Int64 => new JSONValue((double)value.GetInt64()),
+            VariantType.Float => new JSONValue(value.GetFloat()),
+            VariantType.Double => new JSONValue(value.GetDouble()),
+            VariantType.String => new JSONValue(value.GetString()),
+            _ => new JSONValue(value.ToString())
+        };
+    }
+
     public bool Equals(JSONValue? other)
     {
         if (other is null || _valueType != other._valueType || GetNumberType() != other.GetNumberType())

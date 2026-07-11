@@ -193,6 +193,11 @@ public sealed class XMLElement
 
     public bool SetBuffer(string name, ReadOnlySpan<byte> value) => SetAttribute(name, Convert.ToBase64String(value));
 
+    public bool SetVariant(Variant value)
+    {
+        return SetAttribute("type", value.GetTypeName()) && SetAttribute("value", value.ToString());
+    }
+
     public bool HasChild(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -266,6 +271,11 @@ public sealed class XMLElement
         {
             return [];
         }
+    }
+
+    public Variant GetVariant()
+    {
+        return Variant.FromString(Variant.GetTypeFromName(GetAttribute("type")), GetAttribute("value"));
     }
 
     public BoundingBox GetBoundingBox() => ParseBoundingBox(GetValue());

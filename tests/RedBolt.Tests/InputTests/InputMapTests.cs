@@ -113,7 +113,7 @@ public sealed class InputMapTests
         var map = new InputMap("Input/Smoke", Input);
         map.AddMetadata("Sensitivity", 2.0f);
         Assert.True(map.HasMetadata());
-        Assert.Equal(2.0f, map.GetMetadata("Sensitivity"));
+        Assert.Equal(new Variant(2.0f), map.GetMetadata("Sensitivity"));
     }
 
     [Fact]

@@ -127,11 +127,11 @@ public sealed class MaterialTests
         var material = Resources.Get<Material>("Materials/FirstCube");
         material.AddMetadata("Category", "Smoke");
         Assert.True(material.HasMetadata());
-        Assert.Equal("Smoke", material.GetMetadata("Category"));
+        Assert.Equal(new Variant("Smoke"), material.GetMetadata("Category"));
         Assert.Contains("Category", material.GetMetadataKeys());
 
         var clone = material.Clone("Materials/Clone");
-        Assert.Equal("Smoke", clone.GetMetadata("Category"));
+        Assert.Equal(new Variant("Smoke"), clone.GetMetadata("Category"));
 
         clone.RemoveMetadata("Category");
         Assert.False(clone.HasMetadata("Category"));

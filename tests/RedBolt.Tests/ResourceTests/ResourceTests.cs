@@ -23,6 +23,40 @@ public sealed class ResourceTests
         Assert.Equal(string.Empty, resource.Name);
     }
 
+    [Fact]
+    public void Resource_metadata_preserves_variants_order_and_xml_roundtrip()
+    {
+        var resource = new MetadataResource();
+        resource.AddMetadata("Count", new Variant(42));
+        resource.AddMetadata("Label", new Variant("Smoke"));
+        resource.AddMetadata("Count", new Variant(7));
+
+        Assert.Equal(["Count", "Label"], resource.GetMetadataKeys());
+
+        var xml = new XMLFile(string.Empty);
+        var root = xml.CreateRoot("resource");
+        resource.SaveMetadata(root);
+
+        var loaded = new MetadataResource();
+        loaded.LoadMetadata(root);
+        Assert.Equal(new Variant(7), loaded.GetMetadata("Count"));
+        Assert.Equal(new Variant("Smoke"), loaded.GetMetadata("Label"));
+    }
+
+    [Fact]
+    public void Resource_metadata_loads_json_array()
+    {
+        var entry = new JSONValue(JSONValueType.Object);
+        entry.Set("name", new JSONValue("Enabled"));
+        entry.Set("type", new JSONValue("Bool"));
+        entry.Set("value", new JSONValue(true));
+
+        var resource = new MetadataResource();
+        resource.LoadMetadata([entry]);
+
+        Assert.Equal(new Variant(true), resource.GetMetadata("Enabled"));
+    }
+
     private sealed class FailingResource : Resource
     {
         public FailingResource()
@@ -31,6 +65,20 @@ public sealed class ResourceTests
         }
 
         public override bool BeginLoad(Stream source) => false;
+    }
+
+    private sealed class MetadataResource : ResourceWithMetadata
+    {
+        public MetadataResource()
+            : base(string.Empty)
+        {
+        }
+
+        public void LoadMetadata(XMLElement source) => LoadMetadataFromXML(source);
+
+        public void LoadMetadata(IReadOnlyList<JSONValue> source) => LoadMetadataFromJSON(source);
+
+        public void SaveMetadata(XMLElement destination) => SaveMetadataToXML(destination);
     }
 }
 

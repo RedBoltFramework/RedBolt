@@ -145,8 +145,12 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
 
     private float GetSensitivity(string key, float defaultValue)
     {
-        if (_inputMap?.GetMetadata(key) is float sensitivity && !MathDefs.ApproximatelyEquivalent(sensitivity, 0.0f))
-            return sensitivity;
+        if (_inputMap is not null)
+        {
+            var value = _inputMap.GetMetadata(key);
+            if (value.Type == VariantType.Float && !MathDefs.ApproximatelyEquivalent(value.GetFloat(), 0.0f))
+                return value.GetFloat();
+        }
 
         return defaultValue;
     }
