@@ -495,8 +495,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `ShaderDefs.h`
   - [x] `struct ShaderDefineArray` — constructors, define append/parsing, size, unused-define detection, and name/value storage are ported
-- [ ] `ShaderSourceLogger.h`
-  - [ ] shader source logging helpers
+- [x] `ShaderSourceLogger.h`
+  - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
 - [ ] `ShaderOptimizer.h`
   - [ ] shader optimizer helpers
 - [ ] `ShaderTranslator.h`
