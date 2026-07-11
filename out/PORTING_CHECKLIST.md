@@ -493,8 +493,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
-- [ ] `ShaderDefs.h`
-  - [ ] `struct ShaderDefineArray`
+- [x] `ShaderDefs.h`
+  - [x] `struct ShaderDefineArray` — constructors, define append/parsing, size, unused-define detection, and name/value storage are ported
 - [ ] `ShaderSourceLogger.h`
   - [ ] shader source logging helpers
 - [ ] `ShaderOptimizer.h`
