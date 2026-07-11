@@ -1,23 +1,16 @@
 namespace RedBolt;
 
-public sealed class Localization
+public readonly record struct ChangeLanguage;
+
+public sealed class Localization : Object
 {
     private readonly List<string> _languages = [];
     private readonly Dictionary<string, Dictionary<StringHash, string>> _strings = new(StringComparer.Ordinal);
-    private ResourceCache? _resources;
     private int _languageIndex = -1;
 
-    public Localization(ResourceCache? resources = null)
+    public Localization()
     {
-        this._resources = resources;
     }
-
-    public void SetResourceCache(ResourceCache? resources)
-    {
-        this._resources = resources;
-    }
-
-    public ResourceCache? GetResourceCache() => _resources;
 
     public int GetNumLanguages() => _languages.Count;
 
@@ -25,7 +18,8 @@ public sealed class Localization
 
     public int GetLanguageIndex(string language)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        if (string.IsNullOrEmpty(language))
+            return -1;
         return _languages.FindIndex(existing => string.Equals(existing, language, StringComparison.Ordinal));
     }
 
@@ -41,16 +35,20 @@ public sealed class Localization
 
     public void SetLanguage(int index)
     {
-        if (index >= 0 && index < _languages.Count)
+        if (index >= 0 && index < _languages.Count && index != _languageIndex)
+        {
             _languageIndex = index;
+            SendEvent<ChangeLanguage>();
+        }
     }
 
     public void SetLanguage(string language)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        if (string.IsNullOrEmpty(language))
+            return;
         var index = GetLanguageIndex(language);
         if (index >= 0)
-            _languageIndex = index;
+            SetLanguage(index);
     }
 
     public string Get(string id, int index = -1)
@@ -58,6 +56,8 @@ public sealed class Localization
         if (string.IsNullOrEmpty(id))
             return string.Empty;
         if (_languages.Count == 0)
+            return id;
+        if (index >= _languages.Count)
             return id;
 
         var language = index >= 0 && index < _languages.Count ? _languages[index] : GetLanguage();
@@ -79,7 +79,10 @@ public sealed class Localization
     public void LoadJSONFile(string name, string language = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var jsonFile = _resources?.GetResource<JSONFile>(name);
+        var cache = GetSubsystem<ResourceCache>();
+        if (cache is null)
+            return;
+        var jsonFile = cache.GetResource<JSONFile>(name);
         if (jsonFile is null)
             return;
 
@@ -115,6 +118,7 @@ public sealed class Localization
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        var languageIndex = _languageIndex;
         foreach (var entry in source.GetObject())
         {
             if (string.IsNullOrEmpty(entry.Key) || !entry.Value.IsString)
@@ -124,6 +128,7 @@ public sealed class Localization
             if (!string.IsNullOrEmpty(translatedString))
                 StoreTranslation(entry.Key, language, translatedString);
         }
+        _languageIndex = languageIndex;
     }
 
     private void StoreTranslation(string id, string language, string translatedString)

@@ -329,8 +329,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `PListFile.h`
   - [x] `PListValue` — scalar/container value semantics, deep cloning, exact equality, and geometry string conversion are ported
   - [x] `PListFile : Resource` — recursive XML property-list dictionaries and arrays are ported
-- [~] `Localization.h`
-  - [~] `Localization : Object`
+- [x] `Localization.h`
+  - [x] `Localization : Object` — multi/single-language JSON loading, selection, lookup, reset, cache loading, and struct-based language-change events are ported
 - [~] `BackgroundLoader.h`
   - [~] `struct BackgroundLoadItem`
   - [~] `BackgroundLoader : RefCounted, Thread`

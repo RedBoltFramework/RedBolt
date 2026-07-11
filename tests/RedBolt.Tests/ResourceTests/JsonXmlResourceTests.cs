@@ -158,7 +158,7 @@ public sealed class JsonXmlResourceTests
             File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
-            var loc = new Localization(Resources);
+            var loc = new Localization();
             loc.LoadJSONFile("Data/loc.json");
             Assert.Equal(2, loc.GetNumLanguages());
             Assert.Equal("en", loc.GetLanguage());
@@ -180,7 +180,7 @@ public sealed class JsonXmlResourceTests
             File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
-            var loc = new Localization(Resources);
+            var loc = new Localization();
             loc.LoadJSONFile("Data/loc.json");
             loc.SetLanguage("fi");
             Assert.Equal(1, loc.GetLanguageIndex("fi"));
@@ -197,9 +197,27 @@ public sealed class JsonXmlResourceTests
     public void Localization_single_language_loading_works()
     {
         Assert.True(JSONFile.ParseJSON("{\"Bye\":\"Moi\"}", out var json));
-        var loc = new Localization(Resources);
+        var loc = new Localization();
         loc.LoadSingleLanguageJSON(json, "fi");
+        loc.SetLanguage("fi");
         Assert.Equal("Moi", loc.Get("Bye"));
+    }
+
+    [Fact]
+    public void Localization_rejects_out_of_range_lookup_and_sends_change_event()
+    {
+        Assert.True(JSONFile.ParseJSON("{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}", out var json));
+        var loc = new Localization();
+        loc.LoadMultipleLanguageJSON(json);
+        var eventCount = 0;
+        using var subscription = loc.SubscribeToEvent<ChangeLanguage>(loc,
+            (ref ChangeLanguage args) => ++eventCount);
+
+        Assert.Equal("Hello", loc.Get("Hello"));
+        Assert.Equal("Hello", loc.Get("Hello", 2));
+        loc.SetLanguage(1);
+        Assert.Equal(1, eventCount);
+        Assert.Equal("Hei", loc.Get("Hello"));
     }
 
     [Fact]
