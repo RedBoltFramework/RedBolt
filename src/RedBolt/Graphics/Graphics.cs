@@ -83,7 +83,9 @@ layout(std140) uniform Material
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
 
     private readonly float[] _clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
-    private readonly ITextureView?[] _renderTargets = new ITextureView?[1];
+    private static readonly RenderTargetView[] SwapChainColorViews = [RenderTargetView.SwapChainColor()];
+    private readonly ITextureView?[] _renderTargets = new ITextureView?[RenderApiLimits.MaxRenderTargets];
+    private readonly RenderTargetView[] _singleRenderTargetView = new RenderTargetView[1];
     private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
     private readonly Dictionary<Geometry, UploadedGeometry> _uploadedGeometries = new();
     private readonly Dictionary<VertexBuffer, IBuffer> _uploadedVertexBuffers = new();
@@ -354,33 +356,55 @@ layout(std140) uniform Material
     /// <summary>
     /// Bind an optional color target and optional depth-stencil target for subsequent scene or post-process rendering.
     /// </summary>
-    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
+    internal void SetRenderTargets(IntRect viewportRect, ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget)
     {
         if (!IsInitialized || _immediateContext is null)
             return;
 
         if (viewportRect.Width <= 0 || viewportRect.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(viewportRect), "Viewport rectangle must have positive dimensions.");
+        if (colorTargets.Length > RenderApiLimits.MaxRenderTargets)
+            throw new ArgumentOutOfRangeException(nameof(colorTargets));
 
-        _renderTargets[0] = colorTarget is { } targetView ? ResolveRenderTargetView(targetView) : null;
-        _currentRenderTargetCount = colorTarget is not null ? 1 : 0;
-        _currentColorTargetFormat = colorTarget is { } colorView ? ResolveColorTargetFormat(colorView) : 0;
+        for (var i = 0; i < colorTargets.Length; ++i)
+            _renderTargets[i] = ResolveRenderTargetView(colorTargets[i]);
+        Array.Clear(_renderTargets, colorTargets.Length, _renderTargets.Length - colorTargets.Length);
+        _currentRenderTargetCount = colorTargets.Length;
+        _currentColorTargetFormat = colorTargets.Length != 0 ? ResolveColorTargetFormat(colorTargets[0]) : 0;
         _currentDepthStencilTarget = depthStencilTarget is { } depthTarget
             ? ResolveRenderTargetView(depthTarget)
             : null;
         _currentDepthTargetFormat = depthStencilTarget is { } depthView ? ResolveDepthTargetFormat(depthView) : 0;
         _currentViewport = viewportRect;
-        _currentRenderTargetSize = ResolveRenderTargetSize(colorTarget, depthStencilTarget, viewportRect);
-        _isSwapChainRenderTarget = colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true;
-        UpdateCurrentOutputDesc(colorTarget, depthStencilTarget);
+        _currentRenderTargetSize = ResolveRenderTargetSize(colorTargets, depthStencilTarget, viewportRect);
+        _isSwapChainRenderTarget = depthStencilTarget?.IsSwapChain == true;
+        UpdateCurrentOutputDesc(colorTargets, depthStencilTarget);
 
-        MarkRenderTargetDirty(colorTarget);
+        foreach (var colorTarget in colorTargets)
+        {
+            _isSwapChainRenderTarget |= colorTarget.IsSwapChain;
+            MarkRenderTargetDirty(colorTarget);
+        }
         MarkRenderTargetDirty(depthStencilTarget);
 
         ApplyDiligentViewport(_immediateContext, viewportRect);
         _immediateContext.SetRenderTargets((uint)_currentRenderTargetCount,
-            _currentRenderTargetCount == 0 ? Array.Empty<ITextureView?>() : _renderTargets, _currentDepthStencilTarget!,
+            _renderTargets, _currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+    }
+
+    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView colorTarget, RenderTargetView? depthStencilTarget)
+    {
+        _singleRenderTargetView[0] = colorTarget;
+        SetRenderTargets(viewportRect, _singleRenderTargetView, depthStencilTarget);
+    }
+
+    internal void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
+    {
+        if (colorTarget is { } target)
+            SetRenderTargets(viewportRect, target, depthStencilTarget);
+        else
+            SetRenderTargets(viewportRect, ReadOnlySpan<RenderTargetView>.Empty, depthStencilTarget);
     }
 
     /// <summary>
@@ -388,7 +412,7 @@ layout(std140) uniform Material
     /// </summary>
     internal void SetSwapChainRenderTargets(IntRect viewportRect)
     {
-        SetRenderTargets(viewportRect, RenderTargetView.SwapChainColor(), RenderTargetView.SwapChainDepthStencil());
+        SetRenderTargets(viewportRect, SwapChainColorViews, RenderTargetView.SwapChainDepthStencil());
     }
 
     internal void SetViewport(IntRect viewportRect)
@@ -442,6 +466,19 @@ layout(std140) uniform Material
             _immediateContext.ClearDepthStencil(_currentDepthStencilTarget, flags, depth, stencil,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
+    }
+
+    internal void ClearRenderTarget(RenderTargetView renderTarget, Color color)
+    {
+        if (!IsInitialized || _immediateContext is null)
+            return;
+
+        _clearColor[0] = color.R;
+        _clearColor[1] = color.G;
+        _clearColor[2] = color.B;
+        _clearColor[3] = color.A;
+        _immediateContext.ClearRenderTarget(ResolveRenderTargetView(renderTarget), _clearColorHandle.AddrOfPinnedObject(),
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
     /// <summary>
@@ -560,7 +597,7 @@ layout(std140) uniform Material
 
         _immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
-        _renderTargets[0] = null;
+        Array.Clear(_renderTargets);
         _currentRenderTargetCount = 0;
         _currentDepthStencilTarget = null;
         _currentColorTargetFormat = 0;
@@ -2556,22 +2593,24 @@ layout(std140) uniform Material
         _ => 0
     };
 
-    private Vector2i ResolveRenderTargetSize(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget, IntRect viewportRect)
+    private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget, IntRect viewportRect)
     {
-        if (colorTarget?.IsSwapChain == true || depthStencilTarget?.IsSwapChain == true)
+        if ((colorTargets.Length != 0 && colorTargets[0].IsSwapChain) || depthStencilTarget?.IsSwapChain == true)
             return new Vector2i(Width, Height);
-        if (colorTarget?.RenderTexture is { } colorTexture)
+        if (colorTargets.Length != 0 && colorTargets[0].RenderTexture is { } colorTexture)
             return new Vector2i(colorTexture.Width, colorTexture.Height);
         if (depthStencilTarget?.RenderTexture is { } depthTexture)
             return new Vector2i(depthTexture.Width, depthTexture.Height);
         return new Vector2i(viewportRect.Width, viewportRect.Height);
     }
 
-    private void UpdateCurrentOutputDesc(RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
+    private void UpdateCurrentOutputDesc(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget)
     {
         _currentOutputDesc.ClearRenderTargetFormats();
-        if (colorTarget is { } colorView)
-            _currentOutputDesc.SetRenderTargetFormat(UnmapTextureFormat(ResolveColorTargetFormat(colorView), out _));
+        Span<TextureFormat> formats = stackalloc TextureFormat[colorTargets.Length];
+        for (var i = 0; i < colorTargets.Length; ++i)
+            formats[i] = UnmapTextureFormat(ResolveColorTargetFormat(colorTargets[i]), out _);
+        _currentOutputDesc.SetRenderTargetFormats(formats);
 
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
         if (depthStencilTarget is { } depthView)
@@ -2582,7 +2621,7 @@ layout(std140) uniform Material
         else
             _currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
         _currentOutputDesc.MultiSample = (uint)Math.Max(
-            colorTarget?.GetMultiSample()
+            (colorTargets.Length != 0 ? colorTargets[0].GetMultiSample() : (int?)null)
             ?? depthStencilTarget?.GetMultiSample()
             ?? Math.Max(_configuredMultiSample, 1), 1);
     }

@@ -72,6 +72,32 @@ public sealed class RenderContextTests
     }
 
     [Fact]
+    public void Render_context_binds_and_clears_multiple_color_targets()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var renderContext = _fixture.RenderContext;
+            var firstColor = new Texture2D("Textures/RenderContextFirstColor");
+            var secondColor = new Texture2D("Textures/RenderContextSecondColor");
+            var depth = new Texture2D("Textures/RenderContextMrtDepth");
+            Assert.True(firstColor.SetSize(32, 16, TextureFormat.RGBA8));
+            Assert.True(secondColor.SetSize(32, 16, TextureFormat.RG16F));
+            Assert.True(depth.SetSize(32, 16, TextureFormat.Depth24Stencil8));
+
+            renderContext.SetRenderTargets(RenderTargetView.Texture(depth),
+                [RenderTargetView.Texture(firstColor), RenderTargetView.Texture(secondColor)]);
+
+            var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
+            Assert.Equal<uint>(2u, outputDesc.NumRenderTargets);
+            Assert.Equal(TextureFormat.RGBA8, outputDesc.RenderTargetFormats[0]);
+            Assert.Equal(TextureFormat.RG16F, outputDesc.RenderTargetFormats[1]);
+            Assert.True(renderContext.IsBoundAsRenderTarget(firstColor));
+            Assert.True(renderContext.IsBoundAsRenderTarget(secondColor));
+            renderContext.ClearRenderTarget(1, Color.Black);
+        });
+    }
+
+    [Fact]
     public void Render_scope_submits_balanced_debug_group_when_enabled()
     {
         WithInitializedGraphics(() =>
