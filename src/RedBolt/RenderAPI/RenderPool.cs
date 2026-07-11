@@ -29,6 +29,8 @@ public class RenderPool : Object
     private readonly Dictionary<(RawTextureParams Params, nint PersistenceKey), TextureCacheEntry> _persistentTextures = [];
     private readonly List<nint> _scratchBufferAllocations = [];
     private readonly List<nint> _temporaryScratchBufferAllocations = [];
+    private readonly List<RawTextureParams> _transientKeysToRemove = [];
+    private readonly List<(RawTextureParams Params, nint PersistenceKey)> _persistentKeysToRemove = [];
     private nint _scratchBuffer;
     private uint _scratchBufferCapacity = InitialScratchBufferSize;
     private uint _scratchBufferOffset;
@@ -50,11 +52,6 @@ public class RenderPool : Object
     public void Invalidate()
     {
         _uniformBuffers.Clear();
-        _transientTextures.Clear();
-        _persistentTextures.Clear();
-        _numAddedTextures = 0u;
-        _numRemovedTextures = 0u;
-        _lastLogFrame = FrameIndex.None;
     }
 
     public void Restore()
@@ -157,7 +154,9 @@ public class RenderPool : Object
         var framesSinceLastLog = (long)currentFrame - (long)_lastLogFrame;
         if ((_numAddedTextures > 0u || _numRemovedTextures > 0u) && framesSinceLastLog >= Settings.LogPeriod)
         {
-            var totalTextures = _transientTextures.Values.Sum(static group => group.Entries.Count) + _persistentTextures.Count;
+            var totalTextures = _persistentTextures.Count;
+            foreach (var group in _transientTextures.Values)
+                totalTextures += group.Entries.Count;
             _lastLogFrame = currentFrame;
             _numAddedTextures = 0u;
             _numRemovedTextures = 0u;
@@ -220,16 +219,20 @@ public class RenderPool : Object
         foreach (var allocations in _transientTextures.Values)
         {
             allocations.NumUsed = 0u;
-            var removed = allocations.Entries.RemoveAll(entry => GetAge(entry) >= Settings.TextureCacheMaxFrames);
-            _numRemovedTextures += (uint)Math.Max(removed, 0);
+            _numRemovedTextures += RemoveOldEntries(allocations.Entries, Settings.TextureCacheMaxFrames);
         }
 
-        foreach (var emptyGroup in _transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
-            _transientTextures.Remove(emptyGroup);
+        RemoveEmptyTransientGroups();
 
-        foreach (var oldTexture in _persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMaxFrames).Select(static pair => pair.Key).ToArray())
+        _persistentKeysToRemove.Clear();
+        foreach (var pair in _persistentTextures)
         {
-            _persistentTextures.Remove(oldTexture);
+            if (GetAge(pair.Value) >= Settings.TextureCacheMaxFrames)
+                _persistentKeysToRemove.Add(pair.Key);
+        }
+        foreach (var key in _persistentKeysToRemove)
+        {
+            _persistentTextures.Remove(key);
             ++_numRemovedTextures;
         }
     }
@@ -261,19 +264,46 @@ public class RenderPool : Object
             return;
 
         foreach (var allocations in _transientTextures.Values)
+            _numRemovedTextures += RemoveOldEntries(allocations.Entries, Settings.TextureCacheMinFrames);
+
+        RemoveEmptyTransientGroups();
+
+        _persistentKeysToRemove.Clear();
+        foreach (var pair in _persistentTextures)
         {
-            var removed = allocations.Entries.RemoveAll(entry => GetAge(entry) >= Settings.TextureCacheMinFrames);
-            _numRemovedTextures += (uint)Math.Max(removed, 0);
+            if (GetAge(pair.Value) >= Settings.TextureCacheMinFrames)
+                _persistentKeysToRemove.Add(pair.Key);
         }
-
-        foreach (var emptyGroup in _transientTextures.Where(static pair => pair.Value.Entries.Count == 0).Select(static pair => pair.Key).ToArray())
-            _transientTextures.Remove(emptyGroup);
-
-        foreach (var oldTexture in _persistentTextures.Where(pair => GetAge(pair.Value) >= Settings.TextureCacheMinFrames).Select(static pair => pair.Key).ToArray())
+        foreach (var key in _persistentKeysToRemove)
         {
-            _persistentTextures.Remove(oldTexture);
+            _persistentTextures.Remove(key);
             ++_numRemovedTextures;
         }
+    }
+
+    private void RemoveEmptyTransientGroups()
+    {
+        _transientKeysToRemove.Clear();
+        foreach (var pair in _transientTextures)
+        {
+            if (pair.Value.Entries.Count == 0)
+                _transientKeysToRemove.Add(pair.Key);
+        }
+        foreach (var key in _transientKeysToRemove)
+            _transientTextures.Remove(key);
+    }
+
+    private uint RemoveOldEntries(List<TextureCacheEntry> entries, uint minimumAge)
+    {
+        var removed = 0u;
+        for (var i = entries.Count - 1; i >= 0; --i)
+        {
+            if (GetAge(entries[i]) < minimumAge)
+                continue;
+            entries.RemoveAt(i);
+            ++removed;
+        }
+        return removed;
     }
 
     private static uint AlignScratchSize(uint size)

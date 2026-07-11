@@ -458,10 +458,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `PipelineStateDesc`
   - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>`
   - [~] `PipelineStateCache : Object, DeviceObject`
-- [~] `RenderPool.h`
-  - [~] `RenderPool : Object`
-- [~] `RenderScope.h`
-  - [~] `RenderScope : NonCopyable`
+- [x] `RenderPool.h`
+  - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation are ported
+- [x] `RenderScope.h`
+  - [x] `RenderScope : NonCopyable` — conditional RAII-style Diligent debug groups are ported
 - [~] `RenderContext.h`
   - [~] `RenderContext : Object`
 - [~] `DrawCommandQueue.h`

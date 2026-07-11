@@ -184,7 +184,7 @@ public class RenderContext : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
-    public bool IsDebugScopeEnabled() => false;
+    public bool IsDebugScopeEnabled() => true;
 
     public Vector2i GetCurrentRenderTargetSize()
     {
@@ -208,15 +208,6 @@ public class RenderContext : Object
     {
         UpdateCurrentRenderTargetInfo();
         return GetGraphics()?.GetCurrentViewportRect() ?? default;
-    }
-
-    internal void BeginGroup(string name)
-    {
-        _ = name;
-    }
-
-    internal void EndGroup()
-    {
     }
 
     private void UpdateCurrentRenderTargetInfo()

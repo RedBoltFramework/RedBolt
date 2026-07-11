@@ -72,7 +72,7 @@ public sealed class RenderContextTests
     }
 
     [Fact]
-    public void Render_scope_is_no_op_when_debug_scopes_are_disabled()
+    public void Render_scope_submits_balanced_debug_group_when_enabled()
     {
         WithInitializedGraphics(() =>
         {
@@ -80,12 +80,12 @@ public sealed class RenderContextTests
             renderContext.SetSwapChainRenderTargets();
             var before = renderContext.GetCurrentViewport();
 
-            using (new RenderScope(renderContext, "DisabledScope"))
+            using (new RenderScope(renderContext, "EnabledScope"))
             {
                 renderContext.SetClipPlaneMask(7);
             }
 
-            Assert.False(renderContext.IsDebugScopeEnabled());
+            Assert.True(renderContext.IsDebugScopeEnabled());
             Assert.Equal(before, renderContext.GetCurrentViewport());
         });
     }
