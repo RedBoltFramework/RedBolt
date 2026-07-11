@@ -115,7 +115,8 @@ public sealed class PipelineStateCacheTests
         Assert.Same(firstState, secondState);
         Assert.Equal(PipelineStateType.Graphics, firstState!.GetPipelineType());
         Assert.Equal("SharedState", firstState.GetDesc().GetDebugName());
-        Assert.True(firstState.IsValid);
+        Assert.False(firstState.IsValid);
+        Assert.Null(firstState.GetHandle());
     }
 
     [Fact]
@@ -123,5 +124,54 @@ public sealed class PipelineStateCacheTests
     {
         Assert.Null(_fixture.PipelineStateCache.GetGraphicsPipelineState(new GraphicsPipelineStateDesc()));
         Assert.Null(_fixture.PipelineStateCache.GetComputePipelineState(new ComputePipelineStateDesc()));
+    }
+
+    [Fact]
+    public void Graphics_pipeline_state_creates_native_handle_binding_and_reflection()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var desc = new GraphicsPipelineStateDesc
+            {
+                DebugName = "NativePipelineState",
+                ColorWriteEnabled = true,
+                DepthCompareFunction = CompareMode.Always,
+                PrimitiveType = PrimitiveType.TriangleList,
+                VertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture"),
+                PixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture")
+            };
+            desc.InputLayout.SetElements(new InputLayoutElementDesc(
+                0u, 12u, 0u, 0u, VertexElementType.Vector3, VertexElementSemantic.Position, 0));
+            desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+
+            var state = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
+
+            Assert.NotNull(state);
+            Assert.True(state!.IsValid);
+            Assert.NotNull(state.GetHandle());
+            Assert.NotNull(state.GetShaderResourceBinding());
+            Assert.NotNull(state.GetReflection());
+        });
+    }
+
+    private void WithInitializedGraphics(Action action)
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.PipelineStateCacheTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try { action(); }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
+        }
     }
 }

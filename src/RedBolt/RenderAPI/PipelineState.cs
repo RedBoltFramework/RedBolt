@@ -1,13 +1,16 @@
+using System.Runtime.InteropServices;
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
-/// <summary>
-/// Cooked pipeline state.
-/// </summary>
+/// <summary>Cooked pipeline state.</summary>
 public class PipelineState : DeviceObject
 {
     private readonly WeakReference<PipelineStateCache>? _owner;
     private readonly PipelineStateDesc _desc = new();
-    private readonly ShaderProgramReflection _reflection = new();
+    private IPipelineState? _handle;
+    private IShaderResourceBinding? _shaderResourceBinding;
+    private ShaderProgramReflection? _reflection;
 
     public PipelineState()
     {
@@ -15,11 +18,10 @@ public class PipelineState : DeviceObject
 
     internal PipelineState(PipelineStateCache owner, PipelineStateDesc desc)
     {
-        this._owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
-        this._desc = desc ?? throw new ArgumentNullException(nameof(desc));
-        _reflection = ShaderProgramReflection.FromDesc(desc);
-        IsValid = desc.AsGraphics()?.IsInitialized() == true || desc.AsCompute()?.IsInitialized() == true;
+        _owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
+        _desc = desc ?? throw new ArgumentNullException(nameof(desc));
         SetDebugName($"{desc.GetDebugName()} #{desc.ToHash()}");
+        CreateGPU();
     }
 
     public string DebugName
@@ -28,30 +30,265 @@ public class PipelineState : DeviceObject
         set => SetDebugName(value);
     }
 
-    public bool IsValid { get; protected set; } = true;
+    public bool IsValid => _reflection is not null && _handle is { IsNull: false };
 
     public PipelineStateType GetPipelineType() => _desc.GetPipelineType();
 
     public PipelineStateDesc GetDesc() => _desc;
 
-    public ShaderProgramReflection GetReflection() => _reflection;
+    public ShaderProgramReflection? GetReflection() => _reflection;
+
+    public IPipelineState? GetHandle() => _handle;
+
+    public IShaderResourceBinding? GetShaderResourceBinding() => _shaderResourceBinding;
 
     public override void Invalidate()
     {
         base.Invalidate();
-        IsValid = false;
+        DestroyGPU();
     }
 
     public override void Restore()
     {
         base.Restore();
-        IsValid = _desc.AsGraphics()?.IsInitialized() == true || _desc.AsCompute()?.IsInitialized() == true || _owner is null;
+        CreateGPU();
+        SetDataLost(!IsValid);
     }
 
     public override void Destroy()
     {
         base.Destroy();
+        DestroyGPU();
         if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
             pipelineStateCache.ReleasePipelineState(_desc);
     }
+
+    private void CreateGPU()
+    {
+        DestroyGPU();
+        var graphics = GetSubsystem<Graphics>();
+        var device = graphics?.GetNativeRenderDevice();
+        if (device is null || device.IsNull)
+            return;
+
+        if (_desc.AsGraphics() is { } graphicsDesc)
+            CreateGPU(device, graphicsDesc);
+        else if (_desc.AsCompute() is { } computeDesc)
+            CreateGPU(device, computeDesc);
+    }
+
+    private void CreateGPU(IRenderDevice device, ComputePipelineStateDesc desc)
+    {
+        var shader = desc.ComputeShader?.GetHandle();
+        if (shader is null || shader.IsNull)
+            return;
+
+        using var name = new CString(GetDebugName());
+        using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
+        {
+            Name = name.Pointer,
+            PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
+            ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+        };
+        using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
+        device.CreateComputePipelineState(createInfo, out _handle);
+        FinishCreation([desc.ComputeShader]);
+    }
+
+    private void CreateGPU(IRenderDevice device, GraphicsPipelineStateDesc desc)
+    {
+        var vertexShader = desc.VertexShader?.GetHandle();
+        var pixelShader = desc.PixelShader?.GetHandle();
+        if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
+            return;
+
+        TemporaryLayoutArray? layout = null;
+        try
+        {
+            if (desc.InputLayout.Size != 0u)
+                layout = new TemporaryLayoutArray(desc.InputLayout.Elements);
+
+            using var name = new CString(GetDebugName());
+            using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
+            {
+                Name = name.Pointer,
+                PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeGraphics,
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+            };
+            using var createInfo = new GraphicsPipelineStateCreateInfo
+            {
+                PSODesc = nativeDesc,
+                PVS = vertexShader,
+                PPS = pixelShader,
+                PDS = desc.DomainShader?.GetHandle()!,
+                PHS = desc.HullShader?.GetHandle()!,
+                PGS = desc.GeometryShader?.GetHandle()!,
+                GraphicsPipelineNumRenderTargets = (byte)desc.Output.NumRenderTargets,
+                GraphicsPipelineNumViewports = 1,
+                GraphicsPipelinePrimitiveTopology = ToNative(desc.PrimitiveType),
+                GraphicsPipelineDSVFormat = Graphics.MapTextureFormat(desc.Output.DepthStencilFormat),
+                GraphicsPipelineSmplDescCount = (byte)Math.Max(desc.Output.MultiSample, 1u),
+                GraphicsPipelineReadOnlyDSV = desc.ReadOnlyDepth,
+                GraphicsPipelineBlendDescAlphaToCoverageEnable = desc.AlphaToCoverageEnabled,
+                GraphicsPipelineDepthStencilDescDepthEnable = true,
+                GraphicsPipelineDepthStencilDescDepthWriteEnable = desc.DepthWriteEnabled,
+                GraphicsPipelineDepthStencilDescDepthFunc = ToNative(desc.DepthCompareFunction),
+                GraphicsPipelineDepthStencilDescStencilEnable = desc.StencilTestEnabled,
+                GraphicsPipelineDepthStencilDescStencilReadMask = (byte)desc.StencilCompareMask,
+                GraphicsPipelineDepthStencilDescStencilWriteMask = (byte)desc.StencilWriteMask,
+                GraphicsPipelineRasterizerDescFillMode = ToNative(desc.FillMode),
+                GraphicsPipelineRasterizerDescCullMode = ToNative(desc.CullMode),
+                GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
+                GraphicsPipelineRasterizerDescDepthBias = (int)(desc.ConstantDepthBias * (1 << 24)),
+                GraphicsPipelineRasterizerDescSlopeScaledDepthBias = desc.SlopeScaledDepthBias,
+                GraphicsPipelineRasterizerDescDepthClipEnable = true,
+                GraphicsPipelineRasterizerDescScissorEnable = desc.ScissorTestEnabled,
+                GraphicsPipelineRasterizerDescAntialiasedLineEnable = GetRenderDevice()?.GetBackend() != RenderBackend.OpenGL && desc.LineAntiAlias
+            };
+            if (layout is not null)
+            {
+                createInfo.GraphicsPipelineInputLayoutLayoutElements = layout.First;
+                createInfo.GraphicsPipelineInputLayoutNumElements = layout.Count;
+            }
+            for (var i = 0u; i < desc.Output.NumRenderTargets; ++i)
+                createInfo.GraphicsPipelineRTVFormats[(int)i] = Graphics.MapTextureFormat(desc.Output.RenderTargetFormats[(int)i]);
+
+            ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
+            ConfigureStencilState(createInfo, desc);
+            device.CreateGraphicsPipelineState(createInfo, out _handle);
+            FinishCreation([desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader]);
+        }
+        finally
+        {
+            layout?.Dispose();
+        }
+    }
+
+    private void FinishCreation(IEnumerable<RawShader?> shaders)
+    {
+        if (_handle is null || _handle.IsNull)
+        {
+            DestroyGPU();
+            return;
+        }
+        _handle.CreateShaderResourceBinding(out _shaderResourceBinding, true);
+        if (_shaderResourceBinding is null || _shaderResourceBinding.IsNull)
+        {
+            DestroyGPU();
+            return;
+        }
+        _reflection = new ShaderProgramReflection(shaders);
+        _reflection.ConnectToShaderVariables(GetPipelineType(), _shaderResourceBinding);
+        ClearDataLost();
+    }
+
+    private void DestroyGPU()
+    {
+        ReleaseIfNotNull(_shaderResourceBinding);
+        ReleaseIfNotNull(_handle);
+        _shaderResourceBinding = null;
+        _handle = null;
+        _reflection = null;
+    }
+
+    private static void ConfigureStencilState(GraphicsPipelineStateCreateInfo ci, GraphicsPipelineStateDesc desc)
+    {
+        var fail = ToNative(desc.StencilOperationOnStencilFailed);
+        var depthFail = ToNative(desc.StencilOperationOnDepthFailed);
+        var pass = ToNative(desc.StencilOperationOnPassed);
+        var compare = ToNative(desc.StencilCompareFunction);
+        ci.GraphicsPipelineDepthStencilDescFrontFaceStencilFailOp = fail;
+        ci.GraphicsPipelineDepthStencilDescFrontFaceStencilDepthFailOp = depthFail;
+        ci.GraphicsPipelineDepthStencilDescFrontFaceStencilPassOp = pass;
+        ci.GraphicsPipelineDepthStencilDescFrontFaceStencilFunc = compare;
+        ci.GraphicsPipelineDepthStencilDescBackFaceStencilFailOp = fail;
+        ci.GraphicsPipelineDepthStencilDescBackFaceStencilDepthFailOp = depthFail;
+        ci.GraphicsPipelineDepthStencilDescBackFaceStencilPassOp = pass;
+        ci.GraphicsPipelineDepthStencilDescBackFaceStencilFunc = compare;
+    }
+
+    private static void ConfigureBlendState(GraphicsPipelineStateCreateInfo ci, BlendMode mode, bool colorWrite)
+    {
+        using var blend = new RenderTargetBlendDesc
+        {
+            BlendEnable = mode != BlendMode.Replace,
+            SrcBlend = mode switch { BlendMode.Multiply => BlendFactor.BlendFactorDestColor, BlendMode.Alpha or BlendMode.AddAlpha or BlendMode.SubtractAlpha or BlendMode.Decal => BlendFactor.BlendFactorSrcAlpha, _ => BlendFactor.BlendFactorOne },
+            DestBlend = mode switch { BlendMode.Replace or BlendMode.Multiply => BlendFactor.BlendFactorZero, BlendMode.Alpha or BlendMode.PremulAlpha or BlendMode.Decal => BlendFactor.BlendFactorInvSrcAlpha, BlendMode.InvDestAlpha => BlendFactor.BlendFactorDestAlpha, _ => BlendFactor.BlendFactorOne },
+            SrcBlendAlpha = mode switch { BlendMode.Multiply => BlendFactor.BlendFactorDestColor, BlendMode.Alpha or BlendMode.AddAlpha or BlendMode.SubtractAlpha => BlendFactor.BlendFactorSrcAlpha, BlendMode.Decal => BlendFactor.BlendFactorZero, _ => BlendFactor.BlendFactorOne },
+            DestBlendAlpha = mode switch { BlendMode.Replace or BlendMode.Multiply => BlendFactor.BlendFactorZero, BlendMode.Alpha or BlendMode.PremulAlpha => BlendFactor.BlendFactorInvSrcAlpha, BlendMode.InvDestAlpha => BlendFactor.BlendFactorDestAlpha, _ => BlendFactor.BlendFactorOne },
+            BlendOp = mode is BlendMode.Subtract or BlendMode.SubtractAlpha ? BlendOperation.BlendOperationRevSubtract : BlendOperation.BlendOperationAdd,
+            BlendOpAlpha = mode is BlendMode.Subtract or BlendMode.SubtractAlpha ? BlendOperation.BlendOperationRevSubtract : BlendOperation.BlendOperationAdd,
+            RenderTargetWriteMask = colorWrite ? ColorMask.ColorMaskAll : ColorMask.ColorMaskNone
+        };
+        using var empty = new RenderTargetBlendDesc();
+        using var targets = new global::SharpCpp.NativeArray<RenderTargetBlendDesc>([blend, empty, empty, empty, empty, empty, empty, empty]);
+        ci.GraphicsPipelineBlendDescIndependentBlendEnable = false;
+        ci.GraphicsPipelineBlendDescRenderTargets = targets;
+    }
+
+    private static PrimitiveTopology ToNative(PrimitiveType value) => value switch
+    {
+        PrimitiveType.TriangleList => PrimitiveTopology.PrimitiveTopologyTriangleList,
+        PrimitiveType.LineList => PrimitiveTopology.PrimitiveTopologyLineList,
+        PrimitiveType.PointList => PrimitiveTopology.PrimitiveTopologyPointList,
+        PrimitiveType.TriangleStrip => PrimitiveTopology.PrimitiveTopologyTriangleStrip,
+        PrimitiveType.LineStrip => PrimitiveTopology.PrimitiveTopologyLineStrip,
+        _ => PrimitiveTopology.PrimitiveTopologyUndefined
+    };
+    private static ComparisonFunction ToNative(CompareMode value) => value switch
+    {
+        CompareMode.Always => ComparisonFunction.ComparisonFuncAlways, CompareMode.Equal => ComparisonFunction.ComparisonFuncEqual,
+        CompareMode.NotEqual => ComparisonFunction.ComparisonFuncNotEqual, CompareMode.Less => ComparisonFunction.ComparisonFuncLess,
+        CompareMode.LessEqual => ComparisonFunction.ComparisonFuncLessEqual, CompareMode.Greater => ComparisonFunction.ComparisonFuncGreater,
+        CompareMode.GreaterEqual => ComparisonFunction.ComparisonFuncGreaterEqual, _ => ComparisonFunction.ComparisonFuncUnknown
+    };
+    private static RedBolt.Bindings.Diligent.StencilOp ToNative(StencilOp value) => value switch
+    {
+        StencilOp.Keep => RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep, StencilOp.Zero => RedBolt.Bindings.Diligent.StencilOp.StencilOpZero,
+        StencilOp.Ref => RedBolt.Bindings.Diligent.StencilOp.StencilOpReplace, StencilOp.Incr => RedBolt.Bindings.Diligent.StencilOp.StencilOpIncrWrap,
+        StencilOp.Decr => RedBolt.Bindings.Diligent.StencilOp.StencilOpDecrWrap, _ => RedBolt.Bindings.Diligent.StencilOp.StencilOpUndefined
+    };
+    private static RedBolt.Bindings.Diligent.FillMode ToNative(FillMode value) => value == FillMode.Solid ? RedBolt.Bindings.Diligent.FillMode.FillModeSolid : RedBolt.Bindings.Diligent.FillMode.FillModeWireframe;
+    private static RedBolt.Bindings.Diligent.CullMode ToNative(CullMode value) => value switch
+    {
+        CullMode.None => RedBolt.Bindings.Diligent.CullMode.CullModeNone, CullMode.CounterClockwise => RedBolt.Bindings.Diligent.CullMode.CullModeBack,
+        CullMode.Clockwise => RedBolt.Bindings.Diligent.CullMode.CullModeFront, _ => RedBolt.Bindings.Diligent.CullMode.CullModeUndefined
+    };
+
+    private static (uint Components, RedBolt.Bindings.Diligent.ValueType Type, bool Normalized) GetElementType(VertexElementType type) => type switch
+    {
+        VertexElementType.Int => (1, RedBolt.Bindings.Diligent.ValueType.VtInt32, false), VertexElementType.Float => (1, RedBolt.Bindings.Diligent.ValueType.VtFloat32, false),
+        VertexElementType.Vector2 => (2, RedBolt.Bindings.Diligent.ValueType.VtFloat32, false), VertexElementType.Vector3 => (3, RedBolt.Bindings.Diligent.ValueType.VtFloat32, false),
+        VertexElementType.Vector4 => (4, RedBolt.Bindings.Diligent.ValueType.VtFloat32, false), VertexElementType.UByte4 => (4, RedBolt.Bindings.Diligent.ValueType.VtUint8, false),
+        VertexElementType.UByte4Norm => (4, RedBolt.Bindings.Diligent.ValueType.VtUint8, true), _ => throw new ArgumentOutOfRangeException(nameof(type))
+    };
+
+    private sealed class TemporaryLayoutArray : IDisposable
+    {
+        private readonly nint _memory;
+        private readonly CString _semantic = new("ATTRIB");
+        public TemporaryLayoutArray(ReadOnlySpan<InputLayoutElementDesc> elements)
+        {
+            Count = (uint)elements.Length;
+            var elementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            _memory = Marshal.AllocHGlobal(elements.Length * elementSize);
+            for (var i = 0; i < elements.Length; ++i)
+            {
+                var native = LayoutElement.CreateManagedWrapper(_memory + i * elementSize, false);
+                var source = elements[i];
+                var type = GetElementType(source.ElementType);
+                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = uint.MaxValue; native.BufferSlot = source.BufferIndex;
+                native.NumComponents = type.Components; native.ValueType = type.Type; native.IsNormalized = type.Normalized;
+                native.RelativeOffset = source.ElementOffset; native.Stride = source.BufferStride;
+                native.Frequency = source.InstanceStepRate != 0 ? InputElementFrequency.InputElementFrequencyPerInstance : InputElementFrequency.InputElementFrequencyPerVertex;
+                native.InstanceDataStepRate = source.InstanceStepRate;
+            }
+            First = LayoutElement.CreateManagedWrapper(_memory, false);
+        }
+        public LayoutElement First { get; }
+        public uint Count { get; }
+        public void Dispose() { _semantic.Dispose(); Marshal.FreeHGlobal(_memory); }
+    }
+
+    private static void ReleaseIfNotNull(IObject? value) { if (value is { IsNull: false }) _ = value.Release(); }
 }

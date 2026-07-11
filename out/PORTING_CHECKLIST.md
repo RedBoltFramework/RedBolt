@@ -464,8 +464,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RenderScope : NonCopyable`
 - [~] `RenderContext.h`
   - [~] `RenderContext : Object`
-- [x] `DrawCommandQueue.h`
-  - [x] `DrawCommandQueue` — pipeline/draw state, parameter groups, reflected constant buffers, resources/UAVs, command snapshots, uploads/binding, draw/dispatch validation, and statistics are ported
+- [~] `DrawCommandQueue.h`
+  - [~] `DrawCommandQueue` — command recording, reflected data, and validation are ported; native draw/dispatch submission remains
 - [~] `RenderDevice.h`
   - [~] `RenderDevice : Object`
 

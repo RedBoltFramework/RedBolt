@@ -309,12 +309,13 @@ public class DrawCommandQueue : Object
         foreach (var command in _drawCommands)
         {
             var pipelineState = command.PipelineState;
-            if (pipelineState is null)
+            var reflection = pipelineState?.GetReflection();
+            if (pipelineState is null || !pipelineState.IsValid || reflection is null)
                 continue;
 
             BindShaderResources(renderContext, command.ShaderResources);
             BindUnorderedAccessViews(command.UnorderedAccessViews);
-            BindConstantBuffers(pipelineState.GetReflection(), command, uniformBuffers);
+            BindConstantBuffers(reflection, command, uniformBuffers);
 
             switch (pipelineState.GetPipelineType())
             {
