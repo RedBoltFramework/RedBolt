@@ -12,6 +12,11 @@ public sealed class ShakeComponent : LogicComponent
     private float _timeScale = DefaultTimeScale;
     private Vector3f _shiftRange = Vector3f.Zero;
     private Vector3f _rotationRange = Vector3f.Zero;
+    private bool _hasOriginalPosition;
+    private Vector3f _originalPosition = Vector3f.Zero;
+    private Quaternion _originalRotation = Quaternion.Identity;
+    private Vector3f _lastKnownPosition = Vector3f.Zero;
+    private Quaternion _lastKnownRotation = Quaternion.Identity;
 
     public ShakeComponent()
     {
@@ -78,13 +83,30 @@ public sealed class ShakeComponent : LogicComponent
         if (!IsAttached)
             return;
 
+        var currentPosition = Node.Position;
+        var currentRotation = Node.Rotation;
+        if (!_hasOriginalPosition)
+        {
+            _lastKnownPosition = _originalPosition = currentPosition;
+            _lastKnownRotation = _originalRotation = currentRotation;
+            _hasOriginalPosition = true;
+        }
+        else
+        {
+            if (_lastKnownPosition != currentPosition)
+                _originalPosition += currentPosition - _lastKnownPosition;
+            if (_lastKnownRotation != currentRotation)
+                _originalRotation *= _lastKnownRotation.Inverse * currentRotation;
+        }
+
         _time += timeStep * _timeScale;
         _trauma = Math.Max(0.0f, _trauma - _traumaFalloff * timeStep);
         if (MathDefs.ApproximatelyEquivalent(_trauma, 0.0f))
         {
-            Node.SetPosition(Vector3f.Zero);
-            Node.SetRotation(Quaternion.Identity);
+            Node.SetPosition(_originalPosition);
+            Node.SetRotation(_originalRotation);
             SetUpdateEventMask(UpdateEvent.UseNoEvent);
+            _hasOriginalPosition = false;
             return;
         }
 
@@ -95,7 +117,7 @@ public sealed class ShakeComponent : LogicComponent
             offset = (new Vector3f(_perlinNoise.Get(_time), _perlinNoise.Get(_time + 1.0f), _perlinNoise.Get(_time + 2.0f)) * 2.0f - Vector3f.One)
                 * _shiftRange * scale;
         }
-        Node.SetPosition(offset);
+        Node.SetPosition(_lastKnownPosition = _originalPosition + offset);
 
         var rotation = Vector3f.Zero;
         if (_rotationRange != Vector3f.Zero)
@@ -103,6 +125,6 @@ public sealed class ShakeComponent : LogicComponent
             rotation = (new Vector3f(_perlinNoise.Get(_time + 3.0f), _perlinNoise.Get(_time + 4.0f), _perlinNoise.Get(_time + 5.0f)) * 2.0f - Vector3f.One)
                 * _rotationRange * scale;
         }
-        Node.SetRotation(new Quaternion(rotation));
+        Node.SetRotation(_lastKnownRotation = _originalRotation * new Quaternion(rotation));
     }
 }

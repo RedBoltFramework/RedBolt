@@ -407,10 +407,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Scene : Node`
 - [~] `SceneResource.h`
   - [~] `SceneResource : Resource`
-- [~] `SplinePath.h`
-  - [~] `SplinePath : Component`
-- [~] `ShakeComponent.h`
-  - [~] `ShakeComponent : LogicComponent`
+- [x] `SplinePath.h`
+  - [x] `SplinePath : Component` — control points/IDs, interpolation, length, movement, dirty tracking, and attribute restoration are ported
+- [x] `ShakeComponent.h`
+  - [x] `ShakeComponent : LogicComponent` — trauma/noise displacement, original transform tracking, external transform adjustment, restoration, and update subscription are ported
 - [ ] `WorldOrigin.h`
   - [ ] `WorldOrigin : LogicComponent`
 
