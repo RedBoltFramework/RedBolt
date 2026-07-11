@@ -79,6 +79,38 @@ public enum PrefabLoadFlag
     SkipApplyAttributes = 1 << 7,
 }
 
+/// <summary>Flags that control how prefab reference is inlined.</summary>
+[Flags]
+public enum PrefabInlineFlag
+{
+    None = 0,
+
+    /// <summary>Whether to keep other components and children temporary.</summary>
+    /// <remarks>
+    /// Components and children that are part of the prefab are always converted to persistent.
+    /// This flag controls how to handle temporary components and children that may have been created after prefab instantiation.
+    /// </remarks>
+    KeepOtherTemporary = 1 << 0,
+}
+
+/// <summary>
+/// Controls which attributes of the top-level node of the prefab are copied to the scene node
+/// containing PrefabReference. By default, none are copied.
+/// </summary>
+[Flags]
+public enum PrefabInstanceFlag
+{
+    None = 0,
+    UpdateName = 1 << 0,
+    UpdateTags = 1 << 1,
+    UpdatePosition = 1 << 2,
+    UpdateRotation = 1 << 3,
+    UpdateScale = 1 << 4,
+    UpdateVariables = 1 << 5,
+
+    UpdateAll = 0x7fffffff,
+}
+
 public static class PrefabTypes
 {
     /// <summary>Return standard archive flags for node. Node doesn't need type and must have ID.</summary>

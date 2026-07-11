@@ -62,6 +62,65 @@ public sealed class SerializablePrefab
         }
     }
 
+    public void Export(Serializable? serializable, PrefabLoadFlag flags = PrefabLoadFlag.None)
+    {
+        ArgumentNullException.ThrowIfNull(serializable);
+
+        if ((flags & PrefabLoadFlag.CheckSerializableType) != 0
+            && serializable.GetTypeName() != TypeName)
+        {
+            // TODO: port reflected type mismatch logging once the managed reflection facade exposes the C++ diagnostics.
+            return;
+        }
+
+        if ((flags & PrefabLoadFlag.KeepTemporaryState) == 0)
+            serializable.SetTemporary(Temporary);
+
+        foreach (var attributePrefab in Attributes)
+        {
+            AttributeInfo? attribute = null;
+            foreach (var candidate in serializable.Attributes)
+            {
+                if (candidate.Name == attributePrefab.Name)
+                {
+                    attribute = candidate;
+                    break;
+                }
+            }
+
+            if (attribute is null)
+                continue;
+
+            // If temporary attribute was saved, we load it unconditionally.
+            // TODO: Maybe have a flag to control this behavior?
+            if (!attribute.ShouldLoad && (attribute.Mode & AttributeMode.Temporary) == 0)
+                continue;
+
+            var value = attributePrefab.Value.GetObject();
+            if (value is string enumName && attribute.EnumNames.Count != 0)
+            {
+                for (var enumIndex = 0; enumIndex < attribute.EnumNames.Count; ++enumIndex)
+                {
+                    if (attribute.EnumNames[enumIndex] == enumName)
+                    {
+                        value = enumIndex;
+                        break;
+                    }
+                }
+            }
+
+            if (value is not null && attribute.ValueType.IsEnum)
+                value = Enum.ToObject(attribute.ValueType, value);
+            else if (attribute.ValueType == typeof(uint))
+                value = attributePrefab.Value.GetUInt();
+
+            serializable.OnSetAttribute(attribute, value);
+        }
+
+        if ((flags & PrefabLoadFlag.SkipApplyAttributes) == 0)
+            serializable.ApplyAttributes();
+    }
+
     public void SerializeInBlock(Archive archive)
     {
         var type = TypeName; var id = Id; var temporary = Temporary;

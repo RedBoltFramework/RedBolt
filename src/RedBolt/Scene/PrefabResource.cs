@@ -36,12 +36,11 @@ public sealed class PrefabResource : SimpleResource
         var instanceNode = inplace ? parentNode! : parentNode!.CreateChild();
         instanceNode.SetName(System.IO.Path.GetFileName(GetName()) ?? string.Empty);
 
-        // TODO: port PrefabReference creation and assignment once the managed component exists.
-        // auto prefabReference = instanceNode->GetOrCreateComponent<PrefabReference>();
-        // prefabReference->SetPrefab(this);
+        var prefabReference = instanceNode.GetOrCreateComponent<PrefabReference>();
+        prefabReference.SetPrefab(this);
         var nodePrefab = GetNodePrefab();
         if (!nodePrefab.IsEmpty())
-            instanceNode.LoadPrefab(nodePrefab);
+            nodePrefab.Node.Export(instanceNode);
 
         return instanceNode;
     }

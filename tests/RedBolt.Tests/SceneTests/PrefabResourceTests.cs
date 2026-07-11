@@ -55,4 +55,21 @@ public sealed class PrefabResourceTests
         Assert.Single(scenePrefab.Node.Attributes);
         Assert.Equal("Name", scenePrefab.Node.Attributes[0].Name);
     }
+
+    [Fact]
+    public void Instantiate_reference_creates_prefab_reference_and_instance()
+    {
+        var scene = new Scene();
+        var resource = new PrefabResource("Tree.prefab");
+        var rootPrefab = resource.GetMutableNodePrefab();
+        rootPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Tree") });
+        rootPrefab.Children.Add(new NodePrefab());
+
+        var instance = resource.InstantiateReference(scene.Root);
+
+        Assert.NotNull(instance);
+        Assert.Equal("Tree", instance!.Name);
+        Assert.NotNull(instance.GetComponent<PrefabReference>());
+        Assert.Single(instance.Children);
+    }
 }
