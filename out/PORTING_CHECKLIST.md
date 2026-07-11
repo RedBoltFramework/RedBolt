@@ -314,16 +314,16 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `XPathQuery`
 - [~] `XMLFile.h`
   - [~] `XMLFile : Resource`
-- [ ] `JSONArchive.h`
-  - [ ] `JSONOutputArchiveBlock : ArchiveBlockBase`
-  - [ ] `JSONOutputArchive : JSONArchiveBase<...>`
-  - [ ] `JSONInputArchiveBlock : ArchiveBlockBase`
-  - [ ] `JSONInputArchive : JSONArchiveBase<...>`
-- [ ] `XMLArchive.h`
-  - [ ] `XMLOutputArchiveBlock : ArchiveBlockBase`
-  - [ ] `XMLOutputArchive : XMLArchiveBase<...>`
-  - [ ] `XMLInputArchiveBlock : ArchiveBlockBase`
-  - [ ] `XMLInputArchive : XMLArchiveBase<...>`
+- [x] `JSONArchive.h`
+  - [x] `JSONOutputArchiveBlock : ArchiveBlockBase`
+  - [x] `JSONOutputArchive : JSONArchiveBase<...>`
+  - [x] `JSONInputArchiveBlock : ArchiveBlockBase`
+  - [x] `JSONInputArchive : JSONArchiveBase<...>`
+- [x] `XMLArchive.h`
+  - [x] `XMLOutputArchiveBlock : ArchiveBlockBase`
+  - [x] `XMLOutputArchive : XMLArchiveBase<...>`
+  - [x] `XMLInputArchiveBlock : ArchiveBlockBase`
+  - [x] `XMLInputArchive : XMLArchiveBase<...>`
 - [~] `BinaryFile.h`
   - [~] `BinaryFile : Resource`
 - [~] `PListFile.h`
