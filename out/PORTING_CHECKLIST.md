@@ -130,8 +130,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Frustum`
 - [x] `Polyhedron.h`
   - [x] `Polyhedron`
-- [ ] `AreaAllocator.h`
-  - [ ] `AreaAllocator`
+- [x] `AreaAllocator.h`
+  - [x] `AreaAllocator`
 - [x] `Transform.h`
   - [x] `struct Transform`
   - [x] `struct DoubleTransform`
