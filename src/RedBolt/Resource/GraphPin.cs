@@ -101,10 +101,10 @@ public class GraphInPin : GraphDataPin
     }
 
     /// <summary>Target node.</summary>
-    private uint _targetNode;
+    internal uint _targetNode;
 
     /// <summary>Target pin name.</summary>
-    private string _targetPin = string.Empty;
+    internal string _targetPin = string.Empty;
 
     /// <summary>Target node.</summary>
     private Variant _value;
@@ -154,10 +154,10 @@ public class GraphExitPin : GraphPin
     }
 
     /// <summary>Target node.</summary>
-    private uint _targetNode;
+    internal uint _targetNode;
 
     /// <summary>Target pin name.</summary>
-    private string _targetPin = string.Empty;
+    internal string _targetPin = string.Empty;
 }
 
 /// <summary>Reference to a graph pin and its node.</summary>
@@ -178,9 +178,15 @@ public readonly struct GraphPinRef<TPin> where TPin : GraphPin
     public static implicit operator GraphNode?(GraphPinRef<TPin> value) => value._node;
     public static implicit operator TPin?(GraphPinRef<TPin> value) => value._pin;
 
-    // TODO: port GraphNode::GetGraph()->GetConnectedPin once Graph.h is ported.
     public GraphPinRef<TConnectedPin> GetConnectedPin<TConnectedPin>() where TConnectedPin : GraphPin
     {
+        if (_node?.GetGraph() is not Graph graph || _pin is null)
+            return default;
+
+        if (_pin is GraphExitPin exitPin && typeof(TConnectedPin) == typeof(GraphEnterPin))
+            return (GraphPinRef<TConnectedPin>)(object)graph.GetConnectedPin(exitPin);
+        if (_pin is GraphInPin inputPin && typeof(TConnectedPin) == typeof(GraphOutPin))
+            return (GraphPinRef<TConnectedPin>)(object)graph.GetConnectedPin(inputPin);
         return default;
     }
 

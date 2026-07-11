@@ -362,8 +362,3 @@ public partial class GraphNode : Object
     /// <summary>Output pins. Define data flow.</summary>
     private readonly List<GraphOutPin> _outputPins = [];
 }
-
-// TODO: port Graph from Graph.h. This partial declaration keeps GraphNode's C++ API expressible.
-public partial class Graph : Object
-{
-}

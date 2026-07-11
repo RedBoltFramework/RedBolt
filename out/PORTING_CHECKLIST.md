@@ -353,19 +353,19 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ResourceCache.h`
   - [x] `ResourceRouter : Object` — ordered managed routers mutate FileIdentifier values before resource resolution
   - [x] `ResourceCache : Object` — managed cache covers routing, synchronous/background/temp loads, memory budgets, dependency reload, reload controls, directory scanning, diagnostics, and release APIs; package mounts and file watching remain scoped to their not-started IO items
-- [~] `GraphPin.h`
+- [x] `GraphPin.h`
   - [x] `GraphPin`
   - [x] `GraphDataPin : GraphPin`
   - [x] `GraphOutPin : GraphDataPin`
   - [x] `GraphInPin : GraphDataPin`
   - [x] `GraphEnterPin : GraphPin`
   - [x] `GraphExitPin : GraphPin`
-  - [~] `GraphPinRef` — connection lookup awaits `Graph.h`
+  - [x] `GraphPinRef`
 - [~] `GraphNode.h`
   - [x] `GraphNodeProperty`
   - [~] `GraphNode : Object` — graph connection lookup and optional empty-block serialization await `Graph.h`/managed optional archive support
-- [ ] `Graph.h`
-  - [ ] `Graph : Object`
+- [~] `Graph.h`
+  - [~] `Graph : Object` — `LoadJSON` remains a TODO because the C++ header declares it but `Graph.cpp` has no definition
 - [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
   - [x] `SerializableResource : SimpleResource` — delegates managed attributes through archive blocks pending the broader Scene prefab representation
 
