@@ -45,6 +45,39 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void JSONFile_resource_parsing_and_indentation_match_rbfx()
+    {
+        var json = new JSONFile();
+        Assert.True(json.FromString("{/* comment */\"outer\":{\"value\":1,},}"));
+        var original = json.ToString(string.Empty);
+
+        Assert.False(json.FromString("invalid"));
+        Assert.Equal(original, json.ToString(string.Empty));
+        Assert.Contains("\n----\"value\"", json.ToString("--"), StringComparison.Ordinal);
+        Assert.False(JSONFile.ParseJSON("{\"value\":1,}", out _));
+    }
+
+    [Fact]
+    public void JSONFile_archive_callbacks_roundtrip_values()
+    {
+        var json = new JSONFile();
+        var outputValue = 42;
+        Assert.True(json.SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("object");
+            archive.Serialize("value", ref outputValue);
+        }));
+
+        var inputValue = 0;
+        Assert.True(json.LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("object");
+            archive.Serialize("value", ref inputValue);
+        }));
+        Assert.Equal(outputValue, inputValue);
+    }
+
+    [Fact]
     public void XMLFile_loads_from_file()
     {
         var tempDir = CreateTempDir();

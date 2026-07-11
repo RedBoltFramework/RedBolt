@@ -306,8 +306,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `ImageCube : Resource`
 - [~] `JSONValue.h`
   - [~] `JSONValue`
-- [~] `JSONFile.h`
-  - [~] `JSONFile : Resource`
+- [x] `JSONFile.h`
+  - [x] `JSONFile : Resource` — permissive resource parsing, strict standalone parsing, custom indentation, root access, and JSON Archive callbacks are ported
 - [~] `XMLElement.h`
   - [~] `XMLElement`
   - [ ] `XPathResultSet`

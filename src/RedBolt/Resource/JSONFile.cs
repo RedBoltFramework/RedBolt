@@ -7,37 +7,43 @@ namespace RedBolt;
 public sealed class JSONFile : Resource
 {
     private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
+    private static readonly JsonDocumentOptions ResourceParseOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    };
 
-    public JSONFile(string name)
+    public JSONFile(string name = "")
         : base(name)
     {
-        Root.SetChangeCallbackRecursive(RefreshMemoryUse);
     }
 
     public JSONValue Root { get; private set; } = new();
 
-    public JsonNode? RootNode => Root.ToJsonNode();
+    public static void RegisterObject(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+    }
 
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
         using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        return FromString(reader.ReadToEnd());
+        var text = reader.ReadToEnd();
+        if (!ParseResourceJSON(text, out var value))
+            return false;
+        Root = value;
+        SetMemoryUse((uint)Encoding.UTF8.GetByteCount(text));
+        return true;
     }
 
     public bool FromString(string source)
     {
-        if (!ParseJSON(source, out var value))
-        {
-            Root = new JSONValue();
-            Root.SetChangeCallbackRecursive(RefreshMemoryUse);
-            MemoryUse = 0;
+        if (source.Length == 0 || !ParseResourceJSON(source, out var value))
             return false;
-        }
 
         Root = value;
-        Root.SetChangeCallbackRecursive(RefreshMemoryUse);
-        RefreshMemoryUse();
+        SetMemoryUse((uint)Encoding.UTF8.GetByteCount(source));
         return true;
     }
 
@@ -59,6 +65,52 @@ public sealed class JSONFile : Resource
         return true;
     }
 
+    public bool SaveObjectCallback(Action<Archive> serializeValue)
+    {
+        ArgumentNullException.ThrowIfNull(serializeValue);
+        try
+        {
+            var archive = new JSONOutputArchive(Context.Instance);
+            serializeValue(archive);
+            archive.Flush();
+            Root = JSONValue.FromJsonNode(archive.Root);
+            return true;
+        }
+        catch
+        {
+            Root.Clear();
+            return false;
+        }
+    }
+
+    public bool LoadObjectCallback(Action<Archive> serializeValue)
+    {
+        ArgumentNullException.ThrowIfNull(serializeValue);
+        try
+        {
+            var archive = new JSONInputArchive(Context.Instance, Root.ToJsonNode()?.ToJsonString() ?? "null");
+            serializeValue(archive);
+            archive.Flush();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool SaveObject(Object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return SaveObjectCallback(value.SerializeInBlock);
+    }
+
+    public bool LoadObject(Object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return LoadObjectCallback(value.SerializeInBlock);
+    }
+
     public override string ToString() => ToString("\t");
 
     public string ToString(string indentation)
@@ -67,9 +119,20 @@ public sealed class JSONFile : Resource
         if (rootNode is null)
             return string.Empty;
 
-        return string.IsNullOrEmpty(indentation)
-            ? rootNode.ToJsonString()
-            : rootNode.ToJsonString(IndentedOptions);
+        if (string.IsNullOrEmpty(indentation))
+            return rootNode.ToJsonString();
+
+        var formatted = rootNode.ToJsonString(IndentedOptions);
+        var lines = formatted.Split('\n');
+        for (var i = 1; i < lines.Length; ++i)
+        {
+            var spaces = 0;
+            while (spaces < lines[i].Length && lines[i][spaces] == ' ')
+                ++spaces;
+            var depth = spaces / 2;
+            lines[i] = new string(indentation[0], depth * indentation.Length) + lines[i][spaces..];
+        }
+        return string.Join('\n', lines);
     }
 
     public static bool ParseJSON(string json, out JSONValue value, bool reportError = true)
@@ -86,8 +149,17 @@ public sealed class JSONFile : Resource
         }
     }
 
-    private void RefreshMemoryUse()
+    private static bool ParseResourceJSON(string json, out JSONValue value)
     {
-        MemoryUse = (uint)Encoding.UTF8.GetByteCount(ToString());
+        try
+        {
+            value = JSONValue.FromJsonNode(JsonNode.Parse(json, documentOptions: ResourceParseOptions));
+            return true;
+        }
+        catch (JsonException)
+        {
+            value = new JSONValue();
+            return false;
+        }
     }
 }
