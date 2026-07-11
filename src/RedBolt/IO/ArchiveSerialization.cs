@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public static class ArchiveSerialization
+public static partial class ArchiveSerialization
 {
     public static void SerializeValue(Archive archive, string name, ref bool value) => archive.Serialize(name, ref value);
     public static void SerializeValue(Archive archive, string name, ref sbyte value) => archive.Serialize(name, ref value);

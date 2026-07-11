@@ -147,6 +147,45 @@ public sealed class ArchiveTests
         Assert.Equal(2.0f, loadedCurve.Sample(0.5f).GetFloat());
     }
 
+    [Fact]
+    public void Binary_archive_round_trips_tetrahedral_mesh()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var mesh = new TetrahedralMesh();
+        mesh.Vertices.Add(new Vector3f(1.0f, 2.0f, 3.0f));
+        mesh.Vertices.Add(new Vector3f(4.0f, 5.0f, 6.0f));
+        mesh.HullNormals.Add(new Vector3f(0.0f, 1.0f, 0.0f));
+        var tetrahedron = new Tetrahedron
+        {
+            Indices = [0, 1, 2, 3],
+            Neighbors = [4, 5, 6, 7],
+            Matrix = new Matrix3x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+        };
+        mesh.Tetrahedrons.Add(tetrahedron);
+        mesh.NumInnerTetrahedrons = 1;
+
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(output, "mesh", ref mesh);
+        output.Flush();
+
+        buffer.Seek(0);
+        var loadedMesh = new TetrahedralMesh();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(input, "mesh", ref loadedMesh);
+        input.Flush();
+
+        Assert.Equal(mesh.Vertices, loadedMesh.Vertices);
+        Assert.Equal(mesh.HullNormals, loadedMesh.HullNormals);
+        Assert.Equal(mesh.NumInnerTetrahedrons, loadedMesh.NumInnerTetrahedrons);
+        Assert.Equal(mesh.Tetrahedrons.Count, loadedMesh.Tetrahedrons.Count);
+        Assert.Equal(mesh.Tetrahedrons[0].Indices, loadedMesh.Tetrahedrons[0].Indices);
+        Assert.Equal(mesh.Tetrahedrons[0].Neighbors, loadedMesh.Tetrahedrons[0].Neighbors);
+        Assert.Equal(mesh.Tetrahedrons[0].Matrix, loadedMesh.Tetrahedrons[0].Matrix);
+    }
+
     private sealed class TestArchive : Archive
     {
         private readonly Context _context = new();
