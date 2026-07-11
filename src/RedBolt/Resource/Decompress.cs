@@ -4,6 +4,34 @@ using System.Buffers.Binary;
 
 public static class Decompress
 {
+    private static readonly int[] _table59T = { 3, 6, 11, 16, 23, 32, 41, 64 };
+    private static readonly int[] _table58H = { 3, 6, 11, 16, 23, 32, 41, 64 };
+    private static readonly int[,] _compressParams =
+    {
+        { -8, -2, 2, 8 }, { -8, -2, 2, 8 },
+        { -17, -5, 5, 17 }, { -17, -5, 5, 17 },
+        { -29, -9, 9, 29 }, { -29, -9, 9, 29 },
+        { -42, -13, 13, 42 }, { -42, -13, 13, 42 },
+        { -60, -18, 18, 60 }, { -60, -18, 18, 60 },
+        { -80, -24, 24, 80 }, { -80, -24, 24, 80 },
+        { -106, -33, 33, 106 }, { -106, -33, 33, 106 },
+        { -183, -47, 47, 183 }, { -183, -47, 47, 183 }
+    };
+    private static readonly int[] _unscramble = { 2, 3, 1, 0 };
+    private static readonly int[] _alphaTable = new int[256 * 8];
+    private static readonly int[,] _alphaBase =
+    {
+        { -15, -9, -6, -3 }, { -13, -10, -7, -3 },
+        { -13, -8, -5, -2 }, { -13, -6, -4, -2 },
+        { -12, -8, -6, -3 }, { -11, -9, -7, -3 },
+        { -11, -8, -7, -4 }, { -11, -8, -5, -3 },
+        { -10, -8, -6, -2 }, { -10, -8, -5, -2 },
+        { -10, -8, -4, -2 }, { -10, -7, -5, -2 },
+        { -10, -7, -4, -3 }, { -10, -3, -2, -1 },
+        { -9, -8, -6, -4 }, { -9, -7, -5, -3 }
+    };
+    private static bool _alphaTableInitialized;
+
     /// <summary>Decompress a DXT compressed image to RGBA.</summary>
     public static void DecompressImageDXT(
         Span<byte> rgba,
@@ -55,8 +83,49 @@ public static class Decompress
         int height,
         bool hasAlpha)
     {
-        // TODO: port C++ ETCPACK implementation:
-        // void DecompressImageETC(unsigned char* dstImage, const void* blocks, int width, int height, bool hasAlpha)
+        SetupAlphaTable();
+
+        var channelCount = hasAlpha ? 4 : 3;
+        var sourceOffset = 0;
+
+        // ETCPACK write 4x4 blocks, so it needs padding.
+        var widthInBlocks = (width + 3) / 4;
+        var heightInBlocks = (height + 3) / 4;
+        Span<byte> buffer4x4 = stackalloc byte[4 * 4 * 4];
+
+        for (var y = 0; y < heightInBlocks; ++y)
+        {
+            for (var x = 0; x < widthInBlocks; ++x)
+            {
+                buffer4x4.Fill(0xff);
+                if (hasAlpha)
+                {
+                    DecompressBlockAlpha(blocks.Slice(sourceOffset, 8), buffer4x4.Slice(3), 4, 4, 0, 0, channelCount);
+                    sourceOffset += 8;
+                }
+
+                var blockPart1 = ReadBigEndian4ByteWord(blocks, sourceOffset);
+                sourceOffset += 4;
+                var blockPart2 = ReadBigEndian4ByteWord(blocks, sourceOffset);
+                sourceOffset += 4;
+                DecompressBlockEtc2(blockPart1, blockPart2, buffer4x4, 4, 4, 0, 0, 4);
+
+                var widthInBuffer = Math.Min(width - x * 4, 4);
+                var heightInBuffer = Math.Min(height - y * 4, 4);
+                for (var dy = 0; dy < heightInBuffer; ++dy)
+                {
+                    for (var dx = 0; dx < widthInBuffer; ++dx)
+                    {
+                        var destinationOffset = ((y * 4 + dy) * width + x * 4 + dx) * 4;
+                        var bufferOffset = (dy * 4 + dx) * 4;
+                        destination[destinationOffset] = buffer4x4[bufferOffset];
+                        destination[destinationOffset + 1] = buffer4x4[bufferOffset + 1];
+                        destination[destinationOffset + 2] = buffer4x4[bufferOffset + 2];
+                        destination[destinationOffset + 3] = buffer4x4[bufferOffset + 3];
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>Decompress a PVRTC compressed image to RGBA.</summary>
@@ -278,6 +347,489 @@ public static class Decompress
                 }
                 break;
         }
+    }
+
+    private static void SetupAlphaTable()
+    {
+        if (_alphaTableInitialized)
+            return;
+        _alphaTableInitialized = true;
+
+        // read table used for alpha compression
+        for (var i = 16; i < 32; ++i)
+        {
+            for (var j = 0; j < 8; ++j)
+            {
+                var value = _alphaBase[i - 16, 3 - j % 4];
+                _alphaTable[i * 8 + j] = j < 4 ? value : -value - 1;
+            }
+        }
+
+        // beyond the first 16 values, the rest of the table is implicit.. so calculate that!
+        for (var i = 0; i < 256; ++i)
+        {
+            // fill remaining slots in table with multiples of the first ones.
+            var multiplier = i / 16;
+            var old = 16 + i % 16;
+            for (var j = 0; j < 8; ++j)
+                _alphaTable[i * 8 + j] = _alphaTable[old * 8 + j] * multiplier;
+        }
+    }
+
+    private static uint GetBits(uint source, int size, int startPosition)
+    {
+        return (source >> (startPosition - size + 1)) & ((1u << size) - 1);
+    }
+
+    private static uint GetBitsHigh(uint source, int size, int startPosition)
+    {
+        return (source >> (startPosition - 32 - size + 1)) & ((1u << size) - 1);
+    }
+
+    private static void PutBits(ref uint destination, uint data, int size, int startPosition)
+    {
+        var shift = startPosition - size + 1;
+        var mask = ((1u << size) - 1) << shift;
+        destination = (destination & ~mask) | ((data << shift) & mask);
+    }
+
+    private static void PutBitsHigh(ref uint destination, uint data, int size, int startPosition)
+    {
+        var shift = startPosition - 32 - size + 1;
+        var mask = ((1u << size) - 1) << shift;
+        destination = (destination & ~mask) | ((data << shift) & mask);
+    }
+
+    private static void Unstuff57Bits(uint planarWord1, uint planarWord2, out uint planar57Word1, out uint planar57Word2)
+    {
+        uint redO = GetBitsHigh(planarWord1, 6, 62);
+        uint greenO1 = GetBitsHigh(planarWord1, 1, 56);
+        uint greenO2 = GetBitsHigh(planarWord1, 6, 54);
+        uint blueO1 = GetBitsHigh(planarWord1, 1, 48);
+        uint blueO2 = GetBitsHigh(planarWord1, 2, 44);
+        uint blueO3 = GetBitsHigh(planarWord1, 3, 41);
+        uint redH1 = GetBitsHigh(planarWord1, 5, 38);
+        uint redH2 = GetBitsHigh(planarWord1, 1, 32);
+        uint greenH = GetBits(planarWord2, 7, 31);
+        uint blueH = GetBits(planarWord2, 6, 24);
+        uint redV = GetBits(planarWord2, 6, 18);
+        uint greenV = GetBits(planarWord2, 7, 12);
+        uint blueV = GetBits(planarWord2, 6, 5);
+
+        planar57Word1 = 0;
+        planar57Word2 = 0;
+        PutBitsHigh(ref planar57Word1, redO, 6, 63);
+        PutBitsHigh(ref planar57Word1, greenO1, 1, 57);
+        PutBitsHigh(ref planar57Word1, greenO2, 6, 56);
+        PutBitsHigh(ref planar57Word1, blueO1, 1, 50);
+        PutBitsHigh(ref planar57Word1, blueO2, 2, 49);
+        PutBitsHigh(ref planar57Word1, blueO3, 3, 47);
+        PutBitsHigh(ref planar57Word1, redH1, 5, 44);
+        PutBitsHigh(ref planar57Word1, redH2, 1, 39);
+        PutBitsHigh(ref planar57Word1, greenH, 7, 38);
+        PutBits(ref planar57Word2, blueH, 6, 31);
+        PutBits(ref planar57Word2, redV, 6, 25);
+        PutBits(ref planar57Word2, greenV, 7, 19);
+        PutBits(ref planar57Word2, blueV, 6, 12);
+    }
+
+    private static void Unstuff58Bits(uint thumbHWord1, uint thumbHWord2, out uint thumbH58Word1, out uint thumbH58Word2)
+    {
+        var part0 = GetBitsHigh(thumbHWord1, 7, 62);
+        var part1 = GetBitsHigh(thumbHWord1, 2, 52);
+        var part2 = GetBitsHigh(thumbHWord1, 16, 49);
+        var part3 = GetBitsHigh(thumbHWord1, 1, 32);
+        thumbH58Word1 = 0;
+        PutBitsHigh(ref thumbH58Word1, part0, 7, 57);
+        PutBitsHigh(ref thumbH58Word1, part1, 2, 50);
+        PutBitsHigh(ref thumbH58Word1, part2, 16, 48);
+        PutBitsHigh(ref thumbH58Word1, part3, 1, 32);
+        thumbH58Word2 = thumbHWord2;
+    }
+
+    private static void Unstuff59Bits(uint thumbTWord1, uint thumbTWord2, out uint thumbT59Word1, out uint thumbT59Word2)
+    {
+        thumbT59Word1 = thumbTWord1 >> 1;
+        PutBitsHigh(ref thumbT59Word1, thumbTWord1, 1, 32);
+        var red0a = GetBitsHigh(thumbTWord1, 2, 60);
+        PutBitsHigh(ref thumbT59Word1, red0a, 2, 58);
+        PutBitsHigh(ref thumbT59Word1, 0, 5, 63);
+        thumbT59Word2 = thumbTWord2;
+    }
+
+    private static void DecompressColor(int redBits, int greenBits, int blueBits, ReadOnlySpan<byte> colorsRgb444, Span<byte> colors)
+    {
+        colors[0] = (byte)((colorsRgb444[0] << (8 - redBits)) | (colorsRgb444[0] >> (redBits - (8 - redBits))));
+        colors[1] = (byte)((colorsRgb444[1] << (8 - greenBits)) | (colorsRgb444[1] >> (greenBits - (8 - greenBits))));
+        colors[2] = (byte)((colorsRgb444[2] << (8 - blueBits)) | (colorsRgb444[2] >> (blueBits - (8 - blueBits))));
+        colors[3] = (byte)((colorsRgb444[3] << (8 - redBits)) | (colorsRgb444[3] >> (redBits - (8 - redBits))));
+        colors[4] = (byte)((colorsRgb444[4] << (8 - greenBits)) | (colorsRgb444[4] >> (greenBits - (8 - greenBits))));
+        colors[5] = (byte)((colorsRgb444[5] << (8 - blueBits)) | (colorsRgb444[5] >> (blueBits - (8 - blueBits))));
+    }
+
+    private static void CalculatePaintColors59T(byte distance, ReadOnlySpan<byte> colors, Span<byte> possibleColors)
+    {
+        var value = _table59T[distance];
+        possibleColors[9] = (byte)Clamp(colors[3] - value);
+        possibleColors[10] = (byte)Clamp(colors[4] - value);
+        possibleColors[11] = (byte)Clamp(colors[5] - value);
+        possibleColors[0] = colors[0];
+        possibleColors[1] = colors[1];
+        possibleColors[2] = colors[2];
+        possibleColors[3] = (byte)Clamp(colors[3] + value);
+        possibleColors[4] = (byte)Clamp(colors[4] + value);
+        possibleColors[5] = (byte)Clamp(colors[5] + value);
+        possibleColors[6] = colors[3];
+        possibleColors[7] = colors[4];
+        possibleColors[8] = colors[5];
+    }
+
+    private static void CalculatePaintColors58H(byte distance, ReadOnlySpan<byte> colors, Span<byte> possibleColors)
+    {
+        var value = _table58H[distance];
+        possibleColors[9] = (byte)Clamp(colors[3] - value);
+        possibleColors[10] = (byte)Clamp(colors[4] - value);
+        possibleColors[11] = (byte)Clamp(colors[5] - value);
+        possibleColors[0] = (byte)Clamp(colors[0] + value);
+        possibleColors[1] = (byte)Clamp(colors[1] + value);
+        possibleColors[2] = (byte)Clamp(colors[2] + value);
+        possibleColors[3] = (byte)Clamp(colors[0] - value);
+        possibleColors[4] = (byte)Clamp(colors[1] - value);
+        possibleColors[5] = (byte)Clamp(colors[2] - value);
+        possibleColors[6] = (byte)Clamp(colors[3] + value);
+        possibleColors[7] = (byte)Clamp(colors[4] + value);
+        possibleColors[8] = (byte)Clamp(colors[5] + value);
+    }
+
+    private static void DecompressBlockThumb59(uint blockPart1, uint blockPart2, Span<byte> image, int width, int startX, int startY, int channels)
+    {
+        Span<byte> colorsRgb444 = stackalloc byte[6];
+        Span<byte> colors = stackalloc byte[6];
+        Span<byte> paintColors = stackalloc byte[12];
+        colorsRgb444[0] = (byte)GetBitsHigh(blockPart1, 4, 58);
+        colorsRgb444[1] = (byte)GetBitsHigh(blockPart1, 4, 54);
+        colorsRgb444[2] = (byte)GetBitsHigh(blockPart1, 4, 50);
+        colorsRgb444[3] = (byte)GetBitsHigh(blockPart1, 4, 46);
+        colorsRgb444[4] = (byte)GetBitsHigh(blockPart1, 4, 42);
+        colorsRgb444[5] = (byte)GetBitsHigh(blockPart1, 4, 38);
+        var distance = (byte)GetBitsHigh(blockPart1, 3, 34);
+        DecompressColor(4, 4, 4, colorsRgb444, colors);
+        CalculatePaintColors59T(distance, colors, paintColors);
+
+        for (var x = 0; x < 4; ++x)
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                var mask = (int)(GetBits(blockPart2, 1, y + x * 4 + 16) << 1);
+                mask |= (int)GetBits(blockPart2, 1, y + x * 4);
+                WriteEtcRgb(image, width, startX + x, startY + y, channels, paintColors, mask * 3);
+            }
+        }
+    }
+
+    private static void DecompressBlockThumb58(uint blockPart1, uint blockPart2, Span<byte> image, int width, int startX, int startY, int channels)
+    {
+        Span<byte> colorsRgb444 = stackalloc byte[6];
+        Span<byte> colors = stackalloc byte[6];
+        Span<byte> paintColors = stackalloc byte[12];
+        colorsRgb444[0] = (byte)GetBitsHigh(blockPart1, 4, 57);
+        colorsRgb444[1] = (byte)GetBitsHigh(blockPart1, 4, 53);
+        colorsRgb444[2] = (byte)GetBitsHigh(blockPart1, 4, 49);
+        colorsRgb444[3] = (byte)GetBitsHigh(blockPart1, 4, 45);
+        colorsRgb444[4] = (byte)GetBitsHigh(blockPart1, 4, 41);
+        colorsRgb444[5] = (byte)GetBitsHigh(blockPart1, 4, 37);
+        var distance = (byte)(GetBitsHigh(blockPart1, 2, 33) << 1);
+        var color0 = GetBitsHigh(blockPart1, 12, 57);
+        var color1 = GetBitsHigh(blockPart1, 12, 45);
+        if (color0 >= color1)
+            distance |= 1;
+        DecompressColor(4, 4, 4, colorsRgb444, colors);
+        CalculatePaintColors58H(distance, colors, paintColors);
+
+        for (var x = 0; x < 4; ++x)
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                var mask = (int)(GetBits(blockPart2, 1, y + x * 4 + 16) << 1);
+                mask |= (int)GetBits(blockPart2, 1, y + x * 4);
+                WriteEtcRgb(image, width, startX + x, startY + y, channels, paintColors, mask * 3);
+            }
+        }
+    }
+
+    private static void DecompressBlockPlanar(uint compressed57Part1, uint compressed57Part2, Span<byte> image, int width, int startX, int startY, int channels)
+    {
+        Span<int> colorO = stackalloc int[3];
+        Span<int> colorH = stackalloc int[3];
+        Span<int> colorV = stackalloc int[3];
+        colorO[0] = (int)GetBitsHigh(compressed57Part1, 6, 63);
+        colorO[1] = (int)GetBitsHigh(compressed57Part1, 7, 57);
+        colorO[2] = (int)GetBitsHigh(compressed57Part1, 6, 50);
+        colorH[0] = (int)GetBitsHigh(compressed57Part1, 6, 44);
+        colorH[1] = (int)GetBitsHigh(compressed57Part1, 7, 38);
+        colorH[2] = (int)GetBits(compressed57Part2, 6, 31);
+        colorV[0] = (int)GetBits(compressed57Part2, 6, 25);
+        colorV[1] = (int)GetBits(compressed57Part2, 7, 19);
+        colorV[2] = (int)GetBits(compressed57Part2, 6, 12);
+
+        colorO[0] = (colorO[0] << 2) | (colorO[0] >> 4);
+        colorO[1] = (colorO[1] << 1) | (colorO[1] >> 6);
+        colorO[2] = (colorO[2] << 2) | (colorO[2] >> 4);
+        colorH[0] = (colorH[0] << 2) | (colorH[0] >> 4);
+        colorH[1] = (colorH[1] << 1) | (colorH[1] >> 6);
+        colorH[2] = (colorH[2] << 2) | (colorH[2] >> 4);
+        colorV[0] = (colorV[0] << 2) | (colorV[0] >> 4);
+        colorV[1] = (colorV[1] << 1) | (colorV[1] >> 6);
+        colorV[2] = (colorV[2] << 2) | (colorV[2] >> 4);
+
+        for (var x = 0; x < 4; ++x)
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                WriteEtcRgb(
+                    image,
+                    width,
+                    startX + x,
+                    startY + y,
+                    channels,
+                    colorO,
+                    colorH,
+                    colorV,
+                    x,
+                    y);
+            }
+        }
+    }
+
+    private static void WriteEtcRgb(Span<byte> image, int width, int x, int y, int channels, ReadOnlySpan<byte> paintColors, int colorOffset)
+    {
+        var offset = channels * (y * width + x);
+        image[offset] = paintColors[colorOffset];
+        image[offset + 1] = paintColors[colorOffset + 1];
+        image[offset + 2] = paintColors[colorOffset + 2];
+    }
+
+    private static void WriteEtcRgb(Span<byte> image, int width, int x, int y, int channels, ReadOnlySpan<int> colorO, ReadOnlySpan<int> colorH, ReadOnlySpan<int> colorV, int blockX, int blockY)
+    {
+        var offset = channels * (y * width + x);
+        image[offset] = (byte)Clamp((blockX * (colorH[0] - colorO[0]) + blockY * (colorV[0] - colorO[0]) + 4 * colorO[0] + 2) >> 2);
+        image[offset + 1] = (byte)Clamp((blockX * (colorH[1] - colorO[1]) + blockY * (colorV[1] - colorO[1]) + 4 * colorO[1] + 2) >> 2);
+        image[offset + 2] = (byte)Clamp((blockX * (colorH[2] - colorO[2]) + blockY * (colorV[2] - colorO[2]) + 4 * colorO[2] + 2) >> 2);
+    }
+
+    private static void DecodeEtcSubblock(
+        Span<byte> image,
+        int width,
+        int channels,
+        ReadOnlySpan<int> averageColor,
+        int table,
+        uint pixelIndicesMsb,
+        uint pixelIndicesLsb,
+        int startX,
+        int startY,
+        int blockWidth,
+        int blockHeight,
+        int shiftStart,
+        bool flip)
+    {
+        var shift = shiftStart;
+        for (var x = startX; x < startX + blockWidth; ++x)
+        {
+            for (var y = startY; y < startY + blockHeight; ++y)
+            {
+                var index = (int)(((pixelIndicesMsb >> shift) & 1) << 1);
+                index |= (int)((pixelIndicesLsb >> shift) & 1);
+                shift++;
+                index = _unscramble[index];
+                var value = _compressParams[table, index];
+                var offset = channels * (y * width + x);
+                image[offset] = (byte)Clamp(averageColor[0] + value);
+                image[offset + 1] = (byte)Clamp(averageColor[1] + value);
+                image[offset + 2] = (byte)Clamp(averageColor[2] + value);
+            }
+            if (flip)
+                shift += 2;
+        }
+    }
+
+    private static void DecompressBlockDiffFlip(uint blockPart1, uint blockPart2, Span<byte> image, int width, int startX, int startY, int channels)
+    {
+        Span<int> averageColor = stackalloc int[3];
+        Span<int> encodedColor1 = stackalloc int[3];
+        Span<int> difference = stackalloc int[3];
+        var differenceBit = (int)GetBitsHigh(blockPart1, 1, 33);
+        var flipBit = GetBitsHigh(blockPart1, 1, 32) != 0;
+
+        if (differenceBit == 0)
+        {
+            // We have diffbit = 0.
+            averageColor[0] = (int)GetBitsHigh(blockPart1, 4, 63);
+            averageColor[1] = (int)GetBitsHigh(blockPart1, 4, 55);
+            averageColor[2] = (int)GetBitsHigh(blockPart1, 4, 47);
+            averageColor[0] |= averageColor[0] << 4;
+            averageColor[1] |= averageColor[1] << 4;
+            averageColor[2] |= averageColor[2] << 4;
+            var table = (int)GetBitsHigh(blockPart1, 3, 39) << 1;
+            var pixelIndicesMsb = GetBits(blockPart2, 16, 31);
+            var pixelIndicesLsb = GetBits(blockPart2, 16, 15);
+            DecodeEtcSubblock(image, width, channels, averageColor, table, pixelIndicesMsb, pixelIndicesLsb,
+                startX, startY, flipBit ? 4 : 2, flipBit ? 2 : 4, 0, flipBit);
+
+            averageColor[0] = (int)GetBitsHigh(blockPart1, 4, 59);
+            averageColor[1] = (int)GetBitsHigh(blockPart1, 4, 51);
+            averageColor[2] = (int)GetBitsHigh(blockPart1, 4, 43);
+            averageColor[0] |= averageColor[0] << 4;
+            averageColor[1] |= averageColor[1] << 4;
+            averageColor[2] |= averageColor[2] << 4;
+            table = (int)GetBitsHigh(blockPart1, 3, 36) << 1;
+            pixelIndicesMsb = GetBits(blockPart2, 16, 31);
+            pixelIndicesLsb = GetBits(blockPart2, 16, 15);
+            DecodeEtcSubblock(image, width, channels, averageColor, table, pixelIndicesMsb, pixelIndicesLsb,
+                flipBit ? startX : startX + 2, flipBit ? startY + 2 : startY,
+                flipBit ? 4 : 2, flipBit ? 2 : 4, flipBit ? 2 : 8, flipBit);
+        }
+        else
+        {
+            // We have diffbit = 1.
+            encodedColor1[0] = (int)GetBitsHigh(blockPart1, 5, 63);
+            encodedColor1[1] = (int)GetBitsHigh(blockPart1, 5, 55);
+            encodedColor1[2] = (int)GetBitsHigh(blockPart1, 5, 47);
+            averageColor[0] = (encodedColor1[0] << 3) | (encodedColor1[0] >> 2);
+            averageColor[1] = (encodedColor1[1] << 3) | (encodedColor1[1] >> 2);
+            averageColor[2] = (encodedColor1[2] << 3) | (encodedColor1[2] >> 2);
+            var table = (int)GetBitsHigh(blockPart1, 3, 39) << 1;
+            var pixelIndicesMsb = GetBits(blockPart2, 16, 31);
+            var pixelIndicesLsb = GetBits(blockPart2, 16, 15);
+            DecodeEtcSubblock(image, width, channels, averageColor, table, pixelIndicesMsb, pixelIndicesLsb,
+                startX, startY, flipBit ? 4 : 2, flipBit ? 2 : 4, 0, flipBit);
+
+            difference[0] = (int)GetBitsHigh(blockPart1, 3, 58);
+            difference[1] = (int)GetBitsHigh(blockPart1, 3, 50);
+            difference[2] = (int)GetBitsHigh(blockPart1, 3, 42);
+            for (var i = 0; i < 3; ++i)
+                if ((difference[i] & 4) != 0)
+                    difference[i] -= 8;
+
+            Span<int> encodedColor2 = stackalloc int[3];
+            encodedColor2[0] = encodedColor1[0] + difference[0];
+            encodedColor2[1] = encodedColor1[1] + difference[1];
+            encodedColor2[2] = encodedColor1[2] + difference[2];
+            averageColor[0] = (encodedColor2[0] << 3) | (encodedColor2[0] >> 2);
+            averageColor[1] = (encodedColor2[1] << 3) | (encodedColor2[1] >> 2);
+            averageColor[2] = (encodedColor2[2] << 3) | (encodedColor2[2] >> 2);
+            table = (int)GetBitsHigh(blockPart1, 3, 36) << 1;
+            pixelIndicesMsb = GetBits(blockPart2, 16, 31);
+            pixelIndicesLsb = GetBits(blockPart2, 16, 15);
+            DecodeEtcSubblock(image, width, channels, averageColor, table, pixelIndicesMsb, pixelIndicesLsb,
+                flipBit ? startX : startX + 2, flipBit ? startY + 2 : startY,
+                flipBit ? 4 : 2, flipBit ? 2 : 4, flipBit ? 2 : 8, flipBit);
+        }
+    }
+
+    private static void DecompressBlockEtc2(uint blockPart1, uint blockPart2, Span<byte> image, int width, int height, int startX, int startY, int channels)
+    {
+        var differenceBit = GetBitsHigh(blockPart1, 1, 33) != 0;
+        if (!differenceBit)
+        {
+            // We have diffbit = 0;
+            DecompressBlockDiffFlip(blockPart1, blockPart2, image, width, startX, startY, channels);
+            return;
+        }
+
+        Span<int> color1 = stackalloc int[3];
+        Span<int> difference = stackalloc int[3];
+        color1[0] = (int)GetBitsHigh(blockPart1, 5, 63);
+        color1[1] = (int)GetBitsHigh(blockPart1, 5, 55);
+        color1[2] = (int)GetBitsHigh(blockPart1, 5, 47);
+        difference[0] = (int)GetBitsHigh(blockPart1, 3, 58);
+        difference[1] = (int)GetBitsHigh(blockPart1, 3, 50);
+        difference[2] = (int)GetBitsHigh(blockPart1, 3, 42);
+        for (var i = 0; i < 3; ++i)
+            if ((difference[i] & 4) != 0)
+                difference[i] -= 8;
+
+        var red = color1[0] + difference[0];
+        var green = color1[1] + difference[1];
+        var blue = color1[2] + difference[2];
+        if (red < 0 || red > 31)
+        {
+            Unstuff59Bits(blockPart1, blockPart2, out var block59Part1, out var block59Part2);
+            DecompressBlockThumb59(block59Part1, block59Part2, image, width, startX, startY, channels);
+        }
+        else if (green < 0 || green > 31)
+        {
+            Unstuff58Bits(blockPart1, blockPart2, out var block58Part1, out var block58Part2);
+            DecompressBlockThumb58(block58Part1, block58Part2, image, width, startX, startY, channels);
+        }
+        else if (blue < 0 || blue > 31)
+        {
+            Unstuff57Bits(blockPart1, blockPart2, out var block57Part1, out var block57Part2);
+            DecompressBlockPlanar(block57Part1, block57Part2, image, width, startX, startY, channels);
+        }
+        else
+        {
+            DecompressBlockDiffFlip(blockPart1, blockPart2, image, width, startX, startY, channels);
+        }
+    }
+
+    private static int GetAlphaBit(byte input, int fromPosition, int toPosition)
+    {
+        if (fromPosition > toPosition)
+            return ((1 << fromPosition) & input) >> (fromPosition - toPosition);
+        return ((1 << fromPosition) & input) << (toPosition - fromPosition);
+    }
+
+    private static int Clamp(int value)
+    {
+        if (value < 0)
+            value = 0;
+        if (value > 255)
+            value = 255;
+        return value;
+    }
+
+    private static void DecompressBlockAlpha(
+        ReadOnlySpan<byte> data,
+        Span<byte> image,
+        int width,
+        int height,
+        int startX,
+        int startY,
+        int channels)
+    {
+        var alpha = data[0];
+        var table = data[1];
+        var bit = 0;
+        var dataByte = 2;
+
+        // extract an alpha value for each pixel.
+        for (var x = 0; x < 4; ++x)
+        {
+            for (var y = 0; y < 4; ++y)
+            {
+                // Extract table index
+                var index = 0;
+                for (var bitPosition = 0; bitPosition < 3; ++bitPosition)
+                {
+                    index |= GetAlphaBit(data[dataByte], 7 - bit, 2 - bitPosition);
+                    bit++;
+                    if (bit > 7)
+                    {
+                        bit = 0;
+                        dataByte++;
+                    }
+                }
+                image[(startX + x + (startY + y) * width) * channels] = (byte)Clamp(alpha + _alphaTable[table * 8 + index]);
+            }
+        }
+    }
+
+    private static uint ReadBigEndian4ByteWord(ReadOnlySpan<byte> source, int offset)
+    {
+        return ((uint)source[offset] << 24)
+            | ((uint)source[offset + 1] << 16)
+            | ((uint)source[offset + 2] << 8)
+            | source[offset + 3];
     }
 
     private static int LimitCoordinate(int value, int size)

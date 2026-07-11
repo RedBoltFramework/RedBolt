@@ -60,4 +60,49 @@ public sealed class DecompressTests
         Assert.Equal(255, rgba[2]);
         Assert.Equal(255, rgba[3]);
     }
+
+    [Fact]
+    public void Etc2_rgb_image_decompresses_to_rgba()
+    {
+        var rgba = new byte[4 * 4 * 4];
+
+        Decompress.DecompressImageETC(rgba, new byte[8], 4, 4, hasAlpha: false);
+
+        Assert.Equal(2, rgba[0]);
+        Assert.Equal(2, rgba[1]);
+        Assert.Equal(2, rgba[2]);
+        Assert.Equal(255, rgba[3]);
+    }
+
+    [Fact]
+    public void Etc2_rgba_image_decompresses_eac_alpha()
+    {
+        var rgba = new byte[4 * 4 * 4];
+
+        Decompress.DecompressImageETC(rgba, new byte[16], 4, 4, hasAlpha: true);
+
+        Assert.Equal(2, rgba[0]);
+        Assert.Equal(2, rgba[1]);
+        Assert.Equal(2, rgba[2]);
+        Assert.Equal(0, rgba[3]);
+    }
+
+    [Fact]
+    public void Etc2_special_modes_decompress_to_rgba()
+    {
+        var blocks = new byte[]
+        {
+            0xf9, 0x00, 0x00, 0x03, 0, 0, 0, 0,
+            0x00, 0xf9, 0x00, 0x02, 0, 0, 0, 0,
+            0x00, 0x00, 0xf9, 0x02, 0, 0, 0, 0
+        };
+        var rgba = new byte[12 * 4 * 4];
+
+        Decompress.DecompressImageETC(rgba, blocks, 12, 4, hasAlpha: false);
+
+        Assert.Equal(192, rgba.Length);
+        Assert.Equal(255, rgba[3]);
+        Assert.Equal(255, rgba[4 * 4 * 4 + 3]);
+        Assert.Equal(255, rgba[8 * 4 * 4 + 3]);
+    }
 }
