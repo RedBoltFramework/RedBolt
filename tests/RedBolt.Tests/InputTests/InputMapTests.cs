@@ -122,4 +122,41 @@ public sealed class InputMapTests
         Assert.Contains(nameof(Scancode.A), InputMap.GetScanCodeNames());
         Assert.Contains(nameof(MouseButton.Left), InputMap.GetMouseButtonNames());
     }
+
+    [Theory]
+    [InlineData(InternalResourceFormat.Json)]
+    [InlineData(InternalResourceFormat.Xml)]
+    [InlineData(InternalResourceFormat.Binary)]
+    public void Resource_archive_roundtrips_all_mapping_types(InternalResourceFormat format)
+    {
+        var source = new InputMap("Input/Source", Input);
+        source.SetDeadZone(0.25f);
+        source.AddMetadata("Sensitivity", 1.5f);
+        source.MapKeyboardKey("Action", Scancode.A);
+        source.MapMouseButton("Action", MouseButton.Right);
+        source.MapControllerButton("Action", ControllerButton.X);
+        source.MapJoystickButton("Action", 7);
+        source.MapControllerAxis("Action", ControllerAxis.RightX, -0.25f, 0.8f);
+        source.MapJoystickAxis("Action", 3, 0.1f, -0.9f);
+        source.MapHat("Action", HatPosition.LeftUp);
+        source.MapScreenButton("Action", "ActionButton");
+
+        using var stream = new MemoryStream();
+        Assert.True(source.Save(stream, format));
+        stream.Position = 0;
+
+        var loaded = new InputMap("Input/Loaded", Input);
+        Assert.True(loaded.Load(stream));
+        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetDeadZone(), 0.25f));
+        Assert.Equal(new Variant(1.5f), loaded.GetMetadata("Sensitivity"));
+        var mapping = loaded.GetMapping("Action");
+        Assert.Equal(Scancode.A, Assert.Single(mapping.KeyboardKeys));
+        Assert.Equal(MouseButton.Right, Assert.Single(mapping.MouseButtons));
+        Assert.Contains(mapping.ControllerButtons, value => value.IsController && value.GetControllerButton() == ControllerButton.X);
+        Assert.Contains(mapping.ControllerButtons, value => !value.IsController && value.GetGenericButton() == 7);
+        Assert.Contains(mapping.ControllerAxes, value => value.IsController && value.GetControllerAxis() == ControllerAxis.RightX);
+        Assert.Contains(mapping.ControllerAxes, value => !value.IsController && value.GetGenericAxis() == 3);
+        Assert.Equal(HatPosition.LeftUp, Assert.Single(mapping.ControllerHats));
+        Assert.Equal("ActionButton", Assert.Single(mapping.ScreenButtons));
+    }
 }

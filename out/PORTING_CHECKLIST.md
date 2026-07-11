@@ -746,15 +746,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `struct TouchState`
   - [ ] `struct JoystickState`
   - [~] `Input : Object`
-- [~] `InputMap.h`
+- [x] `InputMap.h`
   - [ ] `struct KeyboardKeyMapping`
-  - [~] `struct ControllerButtonMapping`
-  - [~] `struct ControllerAxisMapping`
+  - [x] `struct ControllerButtonMapping`
+  - [x] `struct ControllerAxisMapping`
   - [ ] `struct ControllerHatMapping`
   - [ ] `struct MouseButtonMapping`
   - [ ] `struct ScreenButtonMapping`
-  - [~] `struct ActionMapping`
-  - [~] `InputMap : SimpleResource`
+  - [x] `struct ActionMapping` — evaluation and archive persistence cover all managed mapping collections
+  - [x] `InputMap : SimpleResource` — metadata, dead zone, unique remapping, evaluation, and JSON/XML/binary resource archives are ported
 - [ ] `MultitouchAdapter.h`
   - [ ] `MultitouchAdapter : Object`
 - [~] `PointerAdapter.h`

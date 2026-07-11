@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace RedBolt;
 
 public sealed class InputMap : ResourceWithMetadata
@@ -17,6 +19,109 @@ public sealed class InputMap : ResourceWithMetadata
     public Input? Input { get; private set; }
 
     public IReadOnlyDictionary<string, ActionMapping> Mappings => _actions;
+
+    public override void SerializeInBlock(Archive archive)
+    {
+        ArgumentNullException.ThrowIfNull(archive);
+        ArchiveSerialization.SerializeValue(archive, "deadZone", ref _deadZone);
+        SerializeMetadata(archive);
+
+        var count = archive.IsInput ? 0u : (uint)_actions.Count;
+        using var actionsBlock = archive.OpenArrayBlock("actions", count);
+        if (archive.IsInput)
+        {
+            _actions.Clear();
+            for (var i = 0u; i < actionsBlock.SizeHint; ++i)
+            {
+                using var actionBlock = archive.OpenUnorderedBlock("action");
+                var name = string.Empty;
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                var mapping = new ActionMapping();
+                mapping.SerializeInBlock(archive);
+                if (!string.IsNullOrEmpty(name))
+                    _actions[name] = mapping;
+            }
+        }
+        else
+        {
+            foreach (var (nameValue, mapping) in _actions)
+            {
+                using var actionBlock = archive.OpenUnorderedBlock("action");
+                var name = nameValue;
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                mapping.SerializeInBlock(archive);
+            }
+        }
+    }
+
+    public override bool BeginLoad(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        try
+        {
+            using var memory = new MemoryStream();
+            source.CopyTo(memory);
+            var data = memory.ToArray();
+            Archive archive = DetectFormat(data) switch
+            {
+                InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
+                InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
+                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, new MemoryBuffer(data.AsMemory(SimpleResource.DefaultBinaryMagic.Length))),
+                _ => throw new InvalidDataException("Unknown input map format.")
+            };
+            using (archive.OpenUnorderedBlock("resource"))
+                SerializeInBlock(archive);
+            archive.Flush();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public override bool Save(Stream destination) => Save(destination, InternalResourceFormat.Json);
+
+    public bool Save(Stream destination, InternalResourceFormat format)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        try
+        {
+            switch (format)
+            {
+                case InternalResourceFormat.Json:
+                {
+                    var archive = new JSONOutputArchive(Context.Instance);
+                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
+                    destination.Write(Encoding.UTF8.GetBytes(archive.ToJsonString()));
+                    return true;
+                }
+                case InternalResourceFormat.Xml:
+                {
+                    var archive = new XMLOutputArchive(Context.Instance);
+                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
+                    destination.Write(Encoding.UTF8.GetBytes(archive.ToXmlString()));
+                    return true;
+                }
+                case InternalResourceFormat.Binary:
+                {
+                    destination.Write(SimpleResource.DefaultBinaryMagic);
+                    var buffer = new VectorBuffer();
+                    var archive = new BinaryOutputArchive(Context.Instance, buffer);
+                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
+                    archive.Flush();
+                    destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
+                    return true;
+                }
+                default:
+                    return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public void SetInput(Input? input)
     {
@@ -159,6 +264,47 @@ public sealed class InputMap : ResourceWithMetadata
         return mapping;
     }
 
+    private void SerializeMetadata(Archive archive)
+    {
+        var count = archive.IsInput ? 0u : (uint)MetadataKeys.Count;
+        using var metadataBlock = archive.OpenArrayBlock("metadata", count);
+        if (archive.IsInput)
+        {
+            RemoveAllMetadata();
+            for (var i = 0u; i < metadataBlock.SizeHint; ++i)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("item");
+                var name = string.Empty;
+                var value = default(Variant);
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                if (!string.IsNullOrEmpty(name)) AddMetadata(name, value);
+            }
+        }
+        else
+        {
+            foreach (var keyValue in MetadataKeys)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("item");
+                var name = keyValue;
+                var value = GetMetadata(keyValue);
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+            }
+        }
+    }
+
+    private static InternalResourceFormat DetectFormat(ReadOnlySpan<byte> data)
+    {
+        if (data.StartsWith(SimpleResource.DefaultBinaryMagic)) return InternalResourceFormat.Binary;
+        foreach (var value in data)
+        {
+            if (char.IsWhiteSpace((char)value)) continue;
+            return value switch { (byte)'{' => InternalResourceFormat.Json, (byte)'<' => InternalResourceFormat.Xml, _ => InternalResourceFormat.Unknown };
+        }
+        return InternalResourceFormat.Unknown;
+    }
+
     public sealed class ActionMapping
     {
         private readonly List<Scancode> _keyboardKeys = [];
@@ -179,6 +325,53 @@ public sealed class InputMap : ResourceWithMetadata
         public IReadOnlyList<HatPosition> ControllerHats => _controllerHats;
 
         public IReadOnlyList<string> ScreenButtons => _screenButtons;
+
+        public void SerializeInBlock(Archive archive)
+        {
+            SerializeEnumList(archive, "keyboardKeys", "key", _keyboardKeys);
+            SerializeEnumList(archive, "mouseButtons", "button", _mouseButtons);
+            SerializeList(archive, "controllerButtons", "button", _controllerButtons,
+                static (Archive ar, ref ControllerButtonMapping value) => value.SerializeInBlock(ar));
+            SerializeList(archive, "controllerAxes", "axis", _controllerAxes,
+                static (Archive ar, ref ControllerAxisMapping value) => value.SerializeInBlock(ar));
+            SerializeEnumList(archive, "controllerHats", "hat", _controllerHats);
+            ArchiveSerialization.SerializeStringVector(archive, "screenButtons", _screenButtons);
+        }
+
+        private delegate void SerializeItem<T>(Archive archive, ref T value);
+
+        private static void SerializeEnumList<T>(Archive archive, string blockName, string itemName, List<T> values) where T : struct, Enum
+            => SerializeList(archive, blockName, itemName, values, SerializeEnumItem);
+
+        private static void SerializeEnumItem<T>(Archive archive, ref T value) where T : struct, Enum
+        {
+            var rawValue = Convert.ToUInt32(value);
+            ArchiveSerialization.SerializeValue(archive, "value", ref rawValue);
+            value = (T)Enum.ToObject(typeof(T), rawValue);
+        }
+
+        private static void SerializeList<T>(Archive archive, string blockName, string itemName, List<T> values, SerializeItem<T> serialize) where T : new()
+        {
+            var count = archive.IsInput ? 0u : (uint)values.Count;
+            using var arrayBlock = archive.OpenArrayBlock(blockName, count);
+            if (archive.IsInput)
+            {
+                values.Clear();
+                for (var i = 0u; i < arrayBlock.SizeHint; ++i)
+                {
+                    using var itemBlock = archive.OpenUnorderedBlock(itemName);
+                    var value = new T(); serialize(archive, ref value); values.Add(value);
+                }
+            }
+            else
+            {
+                foreach (var source in values)
+                {
+                    using var itemBlock = archive.OpenUnorderedBlock(itemName);
+                    var value = source; serialize(archive, ref value);
+                }
+            }
+        }
 
         public float Evaluate(Input input, float deadZone)
         {
@@ -296,7 +489,7 @@ public sealed class InputMap : ResourceWithMetadata
     }
 }
 
-public readonly record struct ControllerButtonMapping(bool IsController, uint Button)
+public record struct ControllerButtonMapping(bool IsController, uint Button)
 {
     public static ControllerButtonMapping ForController(ControllerButton button) => new(true, (uint)button);
 
@@ -305,9 +498,18 @@ public readonly record struct ControllerButtonMapping(bool IsController, uint Bu
     public ControllerButton GetControllerButton() => (ControllerButton)Button;
 
     public uint GetGenericButton() => Button;
+
+    public void SerializeInBlock(Archive archive)
+    {
+        var controller = IsController;
+        var button = Button;
+        ArchiveSerialization.SerializeValue(archive, "controller", ref controller);
+        ArchiveSerialization.SerializeValue(archive, "button", ref button);
+        this = new ControllerButtonMapping(controller, button);
+    }
 }
 
-public readonly record struct ControllerAxisMapping(bool IsController, uint Axis, float Neutral, float Pressed)
+public record struct ControllerAxisMapping(bool IsController, uint Axis, float Neutral, float Pressed)
 {
     public static ControllerAxisMapping ForController(ControllerAxis axis, float neutral = 0.0f, float pressed = 1.0f) => new(true, (uint)axis, neutral, pressed);
 
@@ -316,6 +518,19 @@ public readonly record struct ControllerAxisMapping(bool IsController, uint Axis
     public ControllerAxis GetControllerAxis() => (ControllerAxis)Axis;
 
     public uint GetGenericAxis() => Axis;
+
+    public void SerializeInBlock(Archive archive)
+    {
+        var controller = IsController;
+        var axis = Axis;
+        var neutral = Neutral;
+        var pressed = Pressed;
+        ArchiveSerialization.SerializeValue(archive, "controller", ref controller);
+        ArchiveSerialization.SerializeValue(archive, "axis", ref axis);
+        ArchiveSerialization.SerializeValue(archive, "neutral", ref neutral);
+        ArchiveSerialization.SerializeValue(archive, "pressed", ref pressed);
+        this = new ControllerAxisMapping(controller, axis, neutral, pressed);
+    }
 
     public bool OverlapsWith(ControllerAxisMapping mapping)
     {
