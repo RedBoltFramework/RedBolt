@@ -164,6 +164,23 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Resource_routers_apply_in_order_to_resolved_identifiers()
+    {
+        var cache = new ResourceCache();
+        var second = new PrefixRouter("Final/");
+        var first = new PrefixRouter("Intermediate/");
+        cache.AddResourceRouter(second);
+        cache.AddResourceRouter(first, addAsFirst: true);
+
+        var resolved = cache.GetResolvedIdentifier(new FileIdentifier("Data/file.txt"));
+
+        Assert.Equal("Final/Intermediate/Data/file.txt", resolved.FileName);
+        Assert.Same(first, cache.GetResourceRouter(0));
+        cache.RemoveResourceRouter(first);
+        Assert.Same(second, cache.GetResourceRouter(0));
+    }
+
+    [Fact]
     public void ManualResource_add_and_release_work()
     {
         var manual = new BinaryFile("Data/manual.bin");
@@ -238,5 +255,13 @@ public sealed class ResourceCacheTests
         Assert.True(Resources.RemoveResourceDir(tempDir));
         Assert.False(Resources.Exists("Data/hello.txt"));
         Directory.Delete(tempDir, recursive: true);
+    }
+}
+
+internal sealed class PrefixRouter(string prefix) : ResourceRouter
+{
+    public override void Route(ref FileIdentifier name)
+    {
+        name.FileName = prefix + name.FileName;
     }
 }

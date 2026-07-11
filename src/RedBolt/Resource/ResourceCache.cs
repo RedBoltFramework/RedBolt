@@ -7,6 +7,7 @@ public sealed class ResourceCache
     private readonly Dictionary<Type, ulong> _memoryBudgets = new();
     private readonly List<string> _resourceDirs = [];
     private readonly Dictionary<Type, Delegate> _loaders = new();
+    private readonly List<ResourceRouter> _resourceRouters = [];
     private int _finishBackgroundResourcesMs = 5;
     private bool _returnFailedResources;
     private bool _searchPackagesFirst;
@@ -141,6 +142,44 @@ public sealed class ResourceCache
 
     public int GetFinishBackgroundResourcesMs() => _finishBackgroundResourcesMs;
 
+    public void AddResourceRouter(ResourceRouter router, bool addAsFirst = false)
+    {
+        ArgumentNullException.ThrowIfNull(router);
+        if (_resourceRouters.Contains(router))
+            return;
+        if (addAsFirst)
+            _resourceRouters.Insert(0, router);
+        else
+            _resourceRouters.Add(router);
+    }
+
+    public void RemoveResourceRouter(ResourceRouter router)
+    {
+        ArgumentNullException.ThrowIfNull(router);
+        _resourceRouters.Remove(router);
+    }
+
+    public ResourceRouter? GetResourceRouter(uint index) => index < _resourceRouters.Count ? _resourceRouters[(int)index] : null;
+
+    public void RouteResourceName(ref FileIdentifier name)
+    {
+        foreach (var router in _resourceRouters)
+            router.Route(ref name);
+    }
+
+    public FileIdentifier GetCanonicalIdentifier(FileIdentifier name)
+    {
+        name.FileName = SanitateResourceName(name.FileName);
+        return name;
+    }
+
+    public FileIdentifier GetResolvedIdentifier(FileIdentifier name)
+    {
+        name = GetCanonicalIdentifier(name);
+        RouteResourceName(ref name);
+        return GetCanonicalIdentifier(name);
+    }
+
     public bool BackgroundLoadResource<T>(string name, bool sendEventOnFailure = true, Resource? caller = null)
         where T : Resource
     {
@@ -256,7 +295,7 @@ public sealed class ResourceCache
     public string GetResourceFileName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var resourceName = SanitateResourceName(name);
+        var resourceName = GetResolvedIdentifier(new FileIdentifier(name)).FileName;
         if (Path.IsPathFullyQualified(resourceName) && File.Exists(resourceName))
             return resourceName;
 

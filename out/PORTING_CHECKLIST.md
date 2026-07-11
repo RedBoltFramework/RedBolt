@@ -335,7 +335,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct BackgroundLoadItem` — managed queue item preserves resource dependencies, dependents, failure policy, and asynchronous load state
   - [x] `BackgroundLoader : RefCounted, Thread` — .NET tasks replace the C++ thread while preserving two-phase loading, dependency ordering, waiting, and time-budgeted completion
 - [~] `ResourceCache.h`
-  - [ ] `ResourceRouter : Object`
+  - [x] `ResourceRouter : Object` — ordered managed routers mutate FileIdentifier values before resource resolution
   - [~] `ResourceCache : Object`
 - [ ] `GraphPin.h`
   - [ ] `GraphPin`
