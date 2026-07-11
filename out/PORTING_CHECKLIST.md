@@ -326,9 +326,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `XMLInputArchive : XMLArchiveBase<...>`
 - [x] `BinaryFile.h`
   - [x] `BinaryFile : Resource` — uses `VectorBuffer` for mutable serializer/deserializer access and supports binary Archive callback round trips
-- [~] `PListFile.h`
-  - [~] `PListValue`
-  - [~] `PListFile : Resource`
+- [x] `PListFile.h`
+  - [x] `PListValue` — scalar/container value semantics, deep cloning, exact equality, and geometry string conversion are ported
+  - [x] `PListFile : Resource` — recursive XML property-list dictionaries and arrays are ported
 - [~] `Localization.h`
   - [~] `Localization : Object`
 - [~] `BackgroundLoader.h`

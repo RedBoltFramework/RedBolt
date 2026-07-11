@@ -4,9 +4,14 @@ public sealed class PListFile : Resource
 {
     private readonly Dictionary<string, PListValue> _root = new(StringComparer.Ordinal);
 
-    public PListFile(string name)
+    public PListFile(string name = "")
         : base(name)
     {
+    }
+
+    public static void RegisterObject(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
     }
 
     public IReadOnlyDictionary<string, PListValue> Root => _root;
@@ -16,6 +21,9 @@ public sealed class PListFile : Resource
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
+
+        if (Name.Length == 0 && source is FileStream fileStream)
+            SetName(fileStream.Name);
 
         var xmlFile = new XMLFile(Name);
         if (!xmlFile.Load(source))

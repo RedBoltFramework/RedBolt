@@ -14,7 +14,7 @@ public enum PListValueType
     ValueVector
 }
 
-public sealed class PListValue : IEquatable<PListValue>
+public sealed class PListValue : IEquatable<PListValue>, ICloneable
 {
     private static readonly Regex NumberPattern = new(@"-?\d+(?:\.\d+)?", RegexOptions.Compiled);
     private static readonly IReadOnlyDictionary<string, PListValue> EmptyValueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
@@ -67,6 +67,12 @@ public sealed class PListValue : IEquatable<PListValue>
         ArgumentNullException.ThrowIfNull(value);
         CopyFrom(value);
     }
+
+    public object Clone() => new PListValue(this);
+
+    public static bool operator ==(PListValue left, PListValue right) => Equals(left, right);
+
+    public static bool operator !=(PListValue left, PListValue right) => !Equals(left, right);
 
     public new PListValueType GetType() => _type;
 
@@ -191,7 +197,7 @@ public sealed class PListValue : IEquatable<PListValue>
             PListValueType.None => true,
             PListValueType.Int => _intValue == other._intValue,
             PListValueType.Bool => _boolValue == other._boolValue,
-            PListValueType.Float => MathDefs.ApproximatelyEquivalent(_floatValue, other._floatValue),
+            PListValueType.Float => _floatValue == other._floatValue,
             PListValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
             PListValueType.ValueMap => _valueMap.Count == other._valueMap.Count && _valueMap.All(item => other._valueMap.TryGetValue(item.Key, out var otherValue) && item.Value.Equals(otherValue)),
             PListValueType.ValueVector => _valueVector.SequenceEqual(other._valueVector),

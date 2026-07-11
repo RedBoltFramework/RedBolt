@@ -5,6 +5,22 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PListFileTests
 {
+    [Fact]
+    public void Value_clone_and_equality_match_value_semantics()
+    {
+        var original = new PListValue(new Dictionary<string, PListValue>
+        {
+            ["value"] = new PListValue(1.0f)
+        });
+        var clone = Assert.IsType<PListValue>(original.Clone());
+
+        Assert.Equal(original, clone);
+        Assert.True(original == clone);
+        clone.ConvertToValueMap()["value"].SetFloat(float.BitIncrement(1.0f));
+        Assert.NotEqual(original, clone);
+        Assert.True(original != clone);
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public PListFileTests(HeadlessEngineFixture fixture)
