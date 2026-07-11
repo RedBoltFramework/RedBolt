@@ -78,7 +78,7 @@ public sealed class PipelineStateCache : DeviceObject
     /// <summary>
     /// Internal. Remove pipeline state with given description from cache.
     /// </summary>
-    internal void ReleasePipelineState(PipelineStateDesc desc)
+    public void ReleasePipelineState(PipelineStateDesc desc)
     {
         ArgumentNullException.ThrowIfNull(desc);
         _states.Remove(desc);

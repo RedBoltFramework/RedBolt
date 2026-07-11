@@ -16,7 +16,7 @@ public class PipelineState : DeviceObject
     {
     }
 
-    internal PipelineState(PipelineStateCache owner, PipelineStateDesc desc)
+    public PipelineState(PipelineStateCache owner, PipelineStateDesc desc)
     {
         _owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
         _desc = desc ?? throw new ArgumentNullException(nameof(desc));
@@ -126,7 +126,7 @@ public class PipelineState : DeviceObject
                 GraphicsPipelineNumRenderTargets = (byte)desc.Output.NumRenderTargets,
                 GraphicsPipelineNumViewports = 1,
                 GraphicsPipelinePrimitiveTopology = ToNative(desc.PrimitiveType),
-                GraphicsPipelineDSVFormat = Graphics.MapTextureFormat(desc.Output.DepthStencilFormat),
+                GraphicsPipelineDSVFormat = MapTextureFormat(desc.Output.DepthStencilFormat),
                 GraphicsPipelineSmplDescCount = (byte)Math.Max(desc.Output.MultiSample, 1u),
                 GraphicsPipelineReadOnlyDSV = desc.ReadOnlyDepth,
                 GraphicsPipelineBlendDescAlphaToCoverageEnable = desc.AlphaToCoverageEnabled,
@@ -151,7 +151,7 @@ public class PipelineState : DeviceObject
                 createInfo.GraphicsPipelineInputLayoutNumElements = layout.Count;
             }
             for (var i = 0u; i < desc.Output.NumRenderTargets; ++i)
-                createInfo.GraphicsPipelineRTVFormats[(int)i] = Graphics.MapTextureFormat(desc.Output.RenderTargetFormats[(int)i]);
+                createInfo.GraphicsPipelineRTVFormats[(int)i] = MapTextureFormat(desc.Output.RenderTargetFormats[(int)i]);
 
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
@@ -253,6 +253,19 @@ public class PipelineState : DeviceObject
     {
         CullMode.None => RedBolt.Bindings.Diligent.CullMode.CullModeNone, CullMode.CounterClockwise => RedBolt.Bindings.Diligent.CullMode.CullModeBack,
         CullMode.Clockwise => RedBolt.Bindings.Diligent.CullMode.CullModeFront, _ => RedBolt.Bindings.Diligent.CullMode.CullModeUndefined
+    };
+
+    private static RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat value) => value switch
+    {
+        TextureFormat.Depth32 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
+        TextureFormat.Depth24Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
+        TextureFormat.R8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
+        TextureFormat.RG16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
+        TextureFormat.RGB8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+        TextureFormat.RGBA8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+        TextureFormat.RGBA16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
+        TextureFormat.Unknown => RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
     };
 
     private static (uint Components, RedBolt.Bindings.Diligent.ValueType Type, bool Normalized) GetElementType(VertexElementType type) => type switch
