@@ -81,18 +81,18 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `IntVector3` — as `Vector3i`; direct fields replace C++ tuple and mutable-pointer access
 - [x] `Vector4.h`
   - [x] `Vector4 : Detail::VectorTraits<float,4>` - as `Vector4i`
-- [~] `Rect.h`
-  - [~] `Rect`
-  - [~] `IntRect`
+- [x] `Rect.h`
+  - [x] `Rect`
+  - [x] `IntRect`
   - [x] `IntRectIterator`
-- [~] `Matrix2.h`
-  - [~] `Matrix2`
-- [~] `Matrix3.h`
-  - [~] `Matrix3`
-- [~] `Matrix4.h`
-  - [~] `Matrix4`
-- [~] `Matrix3x4.h`
-  - [~] `Matrix3x4`
+- [x] `Matrix2.h`
+  - [x] `Matrix2`
+- [x] `Matrix3.h`
+  - [x] `Matrix3`
+- [x] `Matrix4.h`
+  - [x] `Matrix4`
+- [x] `Matrix3x4.h`
+  - [x] `Matrix3x4`
 - [~] `Quaternion.h`
   - [~] `Quaternion`
 - [~] `Color.h`

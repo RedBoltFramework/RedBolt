@@ -48,6 +48,16 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
     {
     }
 
+    public Matrix3x4(IReadOnlyList<float> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Count < 12)
+            throw new ArgumentException("At least twelve elements are required.", nameof(data));
+        M00 = data[0]; M01 = data[1]; M02 = data[2]; M03 = data[3];
+        M10 = data[4]; M11 = data[5]; M12 = data[6]; M13 = data[7];
+        M20 = data[8]; M21 = data[9]; M22 = data[10]; M23 = data[11];
+    }
+
     public Matrix3x4(Vector3f translation, Quaternion rotation, float scale)
         : this(translation, rotation, new Vector3f(scale, scale, scale))
     {
@@ -64,7 +74,10 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         0.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f);
-    public static readonly Matrix3x4 IDENTITY = new();
+    public static readonly Matrix3x4 IDENTITY = new(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f);
 
     public static Matrix3x4 Zero => ZERO;
     public static Matrix3x4 Identity => IDENTITY;
@@ -81,6 +94,27 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
         MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
     public Vector3f Translation => new(M03, M13, M23);
+    public float[] Data => [M00, M01, M02, M03, M10, M11, M12, M13, M20, M21, M22, M23];
+    public float Determinant => Matrix3.Determinant;
+    public Matrix3x4 Inverse
+    {
+        get
+        {
+            var inverseRotationScale = Matrix3.Inverse;
+            var inverseTranslation = -(inverseRotationScale * Translation);
+            return new(
+                inverseRotationScale.M00, inverseRotationScale.M01, inverseRotationScale.M02, inverseTranslation.X,
+                inverseRotationScale.M10, inverseRotationScale.M11, inverseRotationScale.M12, inverseTranslation.Y,
+                inverseRotationScale.M20, inverseRotationScale.M21, inverseRotationScale.M22, inverseTranslation.Z);
+        }
+    }
+    public bool IsNaN => Data.Any(float.IsNaN);
+    public bool IsInf => Data.Any(float.IsInfinity);
+
+    public static Matrix3x4 FromTranslation(Vector3f translation) => new(translation, Quaternion.Identity, 1.0f);
+    public static Matrix3x4 FromRotation(Quaternion rotation) => new(Vector3f.Zero, rotation, 1.0f);
+    public static Matrix3x4 FromScale(float scale) => new(Vector3f.Zero, Quaternion.Identity, scale);
+    public static Matrix3x4 FromScale(Vector3f scale) => new(Vector3f.Zero, Quaternion.Identity, scale);
 
     public void SetRotation(Matrix3 rotation)
     {
@@ -127,6 +161,18 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         scale = Scale;
         var invScale = new Vector3f(1.0f / scale.X, 1.0f / scale.Y, 1.0f / scale.Z);
         rotation = new Quaternion(Matrix3.Scaled(invScale));
+    }
+
+    public float Element(uint row, uint column) => Data[checked((int)(row * 4 + column))];
+    public Vector4f Row(uint row) => new(Element(row, 0), Element(row, 1), Element(row, 2), Element(row, 3));
+    public Vector3f Column(uint column) => new(Element(0, column), Element(1, column), Element(2, column));
+
+    public uint ToHash()
+    {
+        var hash = 37u;
+        foreach (var value in Data)
+            hash = unchecked(37u * hash + (uint)BitConverter.SingleToInt32Bits(value));
+        return hash;
     }
 
     public bool ApproximatelyEquivalent(Matrix3x4 rhs, float epsilon = MathDefs.Epsilon) =>

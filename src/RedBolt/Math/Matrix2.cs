@@ -51,6 +51,24 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
     }
 
     public float[] Data => [M00, M01, M10, M11];
+    public bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M10) || float.IsNaN(M11);
+    public bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M10) || float.IsInfinity(M11);
+
+    public static void BulkTranspose(float[] destination, float[] source, uint count)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(source);
+        if (destination.Length < count * 4 || source.Length < count * 4)
+            throw new ArgumentException("Source and destination must contain count matrices.");
+        for (var i = 0; i < count; ++i)
+        {
+            var offset = (int)i * 4;
+            destination[offset] = source[offset];
+            destination[offset + 1] = source[offset + 2];
+            destination[offset + 2] = source[offset + 1];
+            destination[offset + 3] = source[offset + 3];
+        }
+    }
 
     public void SetScale(Vector2f scale)
     {

@@ -43,11 +43,24 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
     {
     }
 
+    public Matrix3(IReadOnlyList<float> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Count < 9)
+            throw new ArgumentException("At least nine elements are required.", nameof(data));
+        M00 = data[0]; M01 = data[1]; M02 = data[2];
+        M10 = data[3]; M11 = data[4]; M12 = data[5];
+        M20 = data[6]; M21 = data[7]; M22 = data[8];
+    }
+
     public static readonly Matrix3 ZERO = new(
         0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 0.0f);
-    public static readonly Matrix3 IDENTITY = new();
+    public static readonly Matrix3 IDENTITY = new(
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f);
 
     public static Matrix3 Zero => ZERO;
     public static Matrix3 Identity => IDENTITY;
@@ -56,6 +69,57 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
         MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
         MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
     public Matrix3 Transposed => new(M00, M10, M20, M01, M11, M21, M02, M12, M22);
+    public float[] Data => [M00, M01, M02, M10, M11, M12, M20, M21, M22];
+    public float Determinant => M00 * M11 * M22 + M10 * M21 * M02 + M20 * M01 * M12
+        - M20 * M11 * M02 - M10 * M01 * M22 - M00 * M21 * M12;
+    public Matrix3 Inverse
+    {
+        get
+        {
+            var invDet = 1.0f / Determinant;
+            return new(
+                (M11 * M22 - M21 * M12) * invDet,
+                -(M01 * M22 - M21 * M02) * invDet,
+                (M01 * M12 - M11 * M02) * invDet,
+                -(M10 * M22 - M20 * M12) * invDet,
+                (M00 * M22 - M20 * M02) * invDet,
+                -(M00 * M12 - M10 * M02) * invDet,
+                (M10 * M21 - M20 * M11) * invDet,
+                -(M00 * M21 - M20 * M01) * invDet,
+                (M00 * M11 - M10 * M01) * invDet);
+        }
+    }
+    public bool IsNaN => Data.Any(float.IsNaN);
+    public bool IsInf => Data.Any(float.IsInfinity);
+
+    public float Element(uint row, uint column) => Data[checked((int)(row * 3 + column))];
+    public Vector3f Row(uint row) => new(Element(row, 0), Element(row, 1), Element(row, 2));
+    public Vector3f Column(uint column) => new(Element(0, column), Element(1, column), Element(2, column));
+
+    public void FromAngleAxis(float angle, Vector3f axis) => this = Quaternion.FromAngleAxis(angle, axis).RotationMatrix;
+
+    public uint ToHash()
+    {
+        var hash = 37u;
+        foreach (var value in Data)
+            hash = unchecked(37u * hash + (uint)BitConverter.SingleToInt32Bits(value));
+        return hash;
+    }
+
+    public static void BulkTranspose(float[] destination, float[] source, uint count)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(source);
+        if (destination.Length < count * 9 || source.Length < count * 9)
+            throw new ArgumentException("Source and destination must contain count matrices.");
+        for (var matrix = 0; matrix < count; ++matrix)
+        {
+            var offset = (int)matrix * 9;
+            for (var row = 0; row < 3; ++row)
+                for (var column = 0; column < 3; ++column)
+                    destination[offset + row * 3 + column] = source[offset + column * 3 + row];
+        }
+    }
 
     public void SetScale(Vector3f scale)
     {

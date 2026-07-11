@@ -229,6 +229,26 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
         M20, M21, M22, M23,
         M30, M31, M32, M33
     ];
+    public float Determinant
+    {
+        get
+        {
+            var v0 = M20 * M31 - M21 * M30;
+            var v1 = M20 * M32 - M22 * M30;
+            var v2 = M20 * M33 - M23 * M30;
+            var v3 = M21 * M32 - M22 * M31;
+            var v4 = M21 * M33 - M23 * M31;
+            var v5 = M22 * M33 - M23 * M32;
+            var i00 = v5 * M11 - v4 * M12 + v3 * M13;
+            var i10 = -(v5 * M10 - v2 * M12 + v1 * M13);
+            var i20 = v4 * M10 - v2 * M11 + v0 * M13;
+            var i30 = -(v3 * M10 - v1 * M11 + v0 * M12);
+            return i00 * M00 + i10 * M01 + i20 * M02 + i30 * M03;
+        }
+    }
+    public Matrix4 Inverse => Inverted;
+    public bool IsNaN => Data.Any(float.IsNaN);
+    public bool IsInf => Data.Any(float.IsInfinity);
 
     public float this[int i, int j]
     {
@@ -284,6 +304,20 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
         M22 = scale;
     }
 
+    public void SetScale(Vector3f scale)
+    {
+        M00 = scale.X;
+        M11 = scale.Y;
+        M22 = scale.Z;
+    }
+
+    public void SetRotation(Matrix3 rotation)
+    {
+        M00 = rotation.M00; M01 = rotation.M01; M02 = rotation.M02;
+        M10 = rotation.M10; M11 = rotation.M11; M12 = rotation.M12;
+        M20 = rotation.M20; M21 = rotation.M21; M22 = rotation.M22;
+    }
+
     public Vector3f SignedScale(Matrix3 rotation) => new(
         rotation.M00 * M00 + rotation.M10 * M10 + rotation.M20 * M20,
         rotation.M01 * M01 + rotation.M11 * M11 + rotation.M21 * M21,
@@ -299,6 +333,31 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
 
     public Vector4f Row(int i) => new(this[i, 0], this[i, 1], this[i, 2], this[i, 3]);
     public Vector4f Column(int j) => new(this[0, j], this[1, j], this[2, j], this[3, j]);
+
+    public float Element(uint row, uint column) => this[checked((int)row), checked((int)column)];
+
+    public uint ToHash()
+    {
+        var hash = 37u;
+        foreach (var value in Data)
+            hash = unchecked(37u * hash + (uint)BitConverter.SingleToInt32Bits(value));
+        return hash;
+    }
+
+    public static void BulkTranspose(float[] destination, float[] source, uint count)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(source);
+        if (destination.Length < count * 16 || source.Length < count * 16)
+            throw new ArgumentException("Source and destination must contain count matrices.");
+        for (var matrix = 0; matrix < count; ++matrix)
+        {
+            var offset = (int)matrix * 16;
+            for (var row = 0; row < 4; ++row)
+                for (var column = 0; column < 4; ++column)
+                    destination[offset + row * 4 + column] = source[offset + column * 4 + row];
+        }
+    }
 
     public bool ApproximatelyEquivalent(Matrix4 rhs, float epsilon = MathDefs.Epsilon) =>
         MathDefs.ApproximatelyEquivalent(M00, rhs.M00, epsilon) &&
