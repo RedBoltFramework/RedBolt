@@ -103,10 +103,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] random free functions
 - [x] `RandomEngine.h`
   - [x] `RandomEngine`
-- [~] `PerlinNoise.h`
-  - [~] `PerlinNoise`
-- [~] `EaseMath.h`
-  - [ ] easing free functions
+- [x] `PerlinNoise.h`
+  - [x] `PerlinNoise`
+- [x] `EaseMath.h`
+  - [x] easing free functions
 - [ ] `WrappedScalar.h`
   - [ ] `WrappedScalar<T>`
 - [ ] `NumericRange.h`
