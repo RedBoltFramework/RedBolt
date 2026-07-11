@@ -25,6 +25,8 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     private InputMap? _inputMap;
     private MoveAndOrbitComponent? _component;
     private bool _connectToComponentCalled;
+    private object? _movementUIElement;
+    private object? _rotationUIElement;
 
     public MoveAndOrbitController()
     {
@@ -67,7 +69,9 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             return;
         }
 
-        _inputMap = new InputMap(value.Name, _input);
+        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        _inputMap = cache?.GetResourceOrNull<InputMap>(value.Name) ?? new InputMap(value.Name, _input);
+        _inputMap.SetInput(_input);
     }
 
     public ResourceRef GetInputMapAttr()
@@ -77,8 +81,14 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             : new ResourceRef(StringHash.Calculate(nameof(InputMap)), _inputMap.Name);
     }
 
+    public void SetMovementUIElement(object? element) => _movementUIElement = element;
+    public object? GetMovementUIElement() => _movementUIElement;
+    public void SetRotationUIElement(object? element) => _rotationUIElement = element;
+    public object? GetRotationUIElement() => _rotationUIElement;
+
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
+        base.OnNodeSet(previousNode, currentNode);
         _connectToComponentCalled = false;
         if (currentNode is null)
             _component = null;
@@ -148,8 +158,12 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
         if (_inputMap is not null)
         {
             var value = _inputMap.GetMetadata(key);
-            if (value.Type == VariantType.Float && !MathDefs.ApproximatelyEquivalent(value.GetFloat(), 0.0f))
-                return value.GetFloat();
+            if (value.Type != VariantType.None)
+            {
+                var sensitivity = value.GetFloat();
+                if (!MathDefs.ApproximatelyEquivalent(sensitivity, 0.0f))
+                    return sensitivity;
+            }
         }
 
         return defaultValue;

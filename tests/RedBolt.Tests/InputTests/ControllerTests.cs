@@ -159,4 +159,23 @@ public sealed class ControllerTests
         Context.Instance.SendEvent(ref pan);
         Assert.False(node.Position.ApproximatelyEquivalent(previousPosition));
     }
+
+    [Fact]
+    public void MoveAndOrbitController_resource_attribute_uses_cache_and_ui_filters_roundtrip()
+    {
+        var cachedMap = new InputMap("Input/CachedMoveMap", Input);
+        cachedMap.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
+        _fixture.Resources.ReleaseResource<InputMap>(cachedMap.Name);
+        Assert.True(_fixture.Resources.AddManualResource(cachedMap));
+        var scene = new Scene();
+        var controller = scene.CreateChild("Controller").CreateComponent<MoveAndOrbitController>();
+        controller.SetInput(Input);
+        controller.SetInputMapAttr(new ResourceRef(StringHash.Calculate(nameof(InputMap)), cachedMap.Name));
+        controller.SetMovementUIElement("MovementArea");
+        controller.SetRotationUIElement("RotationArea");
+
+        Assert.Same(cachedMap, controller.GetInputMap());
+        Assert.Equal("MovementArea", controller.GetMovementUIElement());
+        Assert.Equal("RotationArea", controller.GetRotationUIElement());
+    }
 }

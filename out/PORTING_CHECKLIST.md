@@ -767,8 +767,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `FreeFlyController : Component` — activation, mouse/keyboard, controller/generic axes and hats, acceleration, multitouch rotation/pan, pitch limits, and transform tracking are ported
 - [x] `MoveAndOrbitComponent.h`
   - [x] `MoveAndOrbitComponent : LogicComponent` — velocity, clamped pitch, yaw, node-rotation initialization, distance limits, and attributes are ported
-- [~] `MoveAndOrbitController.h`
-  - [~] `MoveAndOrbitController : Component`
+- [x] `MoveAndOrbitController.h`
+  - [x] `MoveAndOrbitController : Component` — cached input-map resources, action evaluation, sensitivity metadata, mouse/axis rotation, movement velocity, component connection, UI filters, and lifecycle updates are ported
 
 ## A12. Engine — top-level orchestration, depends on all Part-A above
 
