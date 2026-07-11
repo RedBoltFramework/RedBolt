@@ -331,9 +331,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PListFile : Resource` — recursive XML property-list dictionaries and arrays are ported
 - [x] `Localization.h`
   - [x] `Localization : Object` — multi/single-language JSON loading, selection, lookup, reset, cache loading, and struct-based language-change events are ported
-- [~] `BackgroundLoader.h`
-  - [~] `struct BackgroundLoadItem`
-  - [~] `BackgroundLoader : RefCounted, Thread`
+- [x] `BackgroundLoader.h`
+  - [x] `struct BackgroundLoadItem` — managed queue item preserves resource dependencies, dependents, failure policy, and asynchronous load state
+  - [x] `BackgroundLoader : RefCounted, Thread` — .NET tasks replace the C++ thread while preserving two-phase loading, dependency ordering, waiting, and time-budgeted completion
 - [~] `ResourceCache.h`
   - [ ] `ResourceRouter : Object`
   - [~] `ResourceCache : Object`

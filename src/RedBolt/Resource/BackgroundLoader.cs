@@ -8,7 +8,11 @@ internal sealed class BackgroundLoadItem
 
     public required bool SendEventOnFailure { get; init; }
 
-    public required Task<Resource?> LoadTask { get; init; }
+    public Task<Resource?> LoadTask { get; set; } = Task.FromResult<Resource?>(null);
+
+    public HashSet<(Type Type, string Name)> Dependencies { get; } = [];
+
+    public HashSet<(Type Type, string Name)> Dependents { get; } = [];
 }
 
 public sealed class BackgroundLoader
@@ -38,12 +42,34 @@ public sealed class BackgroundLoader
             if (_queue.ContainsKey(key) || _owner.HasResource(type, sanitizedName))
                 return false;
 
-            _queue.Add(key, new BackgroundLoadItem
+            var item = new BackgroundLoadItem
             {
                 Type = type,
                 Name = sanitizedName,
-                SendEventOnFailure = sendEventOnFailure,
-                LoadTask = Task.Run(() => _owner.LoadBackgroundResource(type, sanitizedName))
+                SendEventOnFailure = sendEventOnFailure
+            };
+            _queue.Add(key, item);
+
+            if (caller is not null)
+            {
+                var callerKey = (caller.GetType(), _owner.SanitateResourceName(caller.Name));
+                if (_queue.TryGetValue(callerKey, out var callerItem))
+                {
+                    item.Dependents.Add(callerKey);
+                    callerItem.Dependencies.Add(key);
+                }
+            }
+
+            item.LoadTask = Task.Run(() =>
+            {
+                try
+                {
+                    return _owner.LoadBackgroundResource(type, sanitizedName);
+                }
+                finally
+                {
+                    NotifyLoadComplete(key);
+                }
             });
         }
 
@@ -64,6 +90,11 @@ public sealed class BackgroundLoader
             return;
 
         item.LoadTask.Wait();
+        List<(Type Type, string Name)> dependencies;
+        lock (_sync)
+            dependencies = item.Dependencies.ToList();
+        foreach (var dependency in dependencies)
+            WaitForResource(dependency.Type, dependency.Name);
         FinishResource(key, item);
     }
 
@@ -76,12 +107,20 @@ public sealed class BackgroundLoader
             lock (_sync)
             {
                 completed = _queue
-                    .Where(static item => item.Value.LoadTask.IsCompleted)
+                    .Where(static item => item.Value.LoadTask.IsCompleted && item.Value.Dependencies.Count == 0)
                     .ToList();
             }
 
             if (completed.Count == 0)
-                break;
+            {
+                lock (_sync)
+                {
+                    if (_queue.Count == 0 || stopwatch.ElapsedMilliseconds >= Math.Max(maxMs, 1))
+                        break;
+                }
+                Thread.Yield();
+                continue;
+            }
 
             foreach (var item in completed)
             {
@@ -123,5 +162,20 @@ public sealed class BackgroundLoader
         resource.SetAsyncLoadState(AsyncLoadState.Done);
         if (success || _owner.GetReturnFailedResources())
             _owner.StoreBackgroundResource(key.Type, key.Name, resource);
+    }
+
+    private void NotifyLoadComplete((Type Type, string Name) key)
+    {
+        lock (_sync)
+        {
+            if (!_queue.TryGetValue(key, out var item))
+                return;
+            foreach (var dependent in item.Dependents)
+            {
+                if (_queue.TryGetValue(dependent, out var dependentItem))
+                    dependentItem.Dependencies.Remove(key);
+            }
+            item.Dependents.Clear();
+        }
     }
 }
