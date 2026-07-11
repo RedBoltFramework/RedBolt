@@ -61,8 +61,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `IndexAllocator.h`
   - [x] `IndexAllocator`
   - [x] `IDFamily<T>`
-- [ ] `Array2D.h`
-  - [ ] `Array2D<T>`
+- [x] `Array2D.h`
+  - [x] `ArrayDimensions2D`
+  - [x] `Array2D<T>`
 - [x] `MultiVector.h`
   - [x] `MultiVector<T>` — iterator APIs are represented idiomatically by `IEnumerable<T>` while preserving mutable underlying storage and rbfx collection behavior
 - [x] `KeyFrameSet.h`
