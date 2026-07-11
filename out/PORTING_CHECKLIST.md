@@ -112,8 +112,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `WrappedScalar.h`
   - [x] `WrappedScalarRange<T>`
   - [x] `WrappedScalar<T>`
-- [ ] `NumericRange.h`
-  - [ ] `NumericRange<T>`
+- [x] `NumericRange.h`
+  - [x] `NumericRange<T>`
+  - [x] `FloatRange`
+  - [x] `UintRange`
 - [x] `Plane.h`
   - [x] `Plane`
 - [x] `Ray.h`
