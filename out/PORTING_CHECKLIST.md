@@ -493,14 +493,18 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
-- [x] `ShaderDefs.h`
+- [~] `ShaderDefs.h`
+  - [x] `struct SpirVShader` — bytecode/compiler output storage and validity conversion are ported
+  - [x] `enum TargetShaderLanguage` — supported language values are ported
   - [x] `struct ShaderDefineArray` — constructors, define append/parsing, size, unused-define detection, and name/value storage are ported
 - [x] `ShaderSourceLogger.h`
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
 - [~] `ShaderOptimizer.h`
   - [~] shader optimizer helpers — exact C++ optimizer body is preserved as a TODO; managed SPIR-V shader and optimizer/validator APIs are not yet available
-- [ ] `ShaderTranslator.h`
-  - [ ] shader translation helpers
+- [~] `ShaderTranslator.h`
+  - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
+  - [x] `FindVersionTag`
+  - [~] shader translation helpers — exact C++ ParseUniversalShader, TranslateSpirVShader, and SPIR-V reflection bodies are preserved as TODOs because managed glslang/SPIR-V-Cross bindings are unavailable
 - [ ] `ShaderCompiler.h`
   - [ ] shader compiler helpers
 

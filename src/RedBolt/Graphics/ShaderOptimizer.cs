@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-// TODO: port: the managed API has no SpirVShader, TargetShaderLanguage, or SPIR-V optimizer/validator binding.
+// TODO: port: the managed API has no SPIR-V optimizer/validator binding.
 // URHO3D_API bool OptimizeSpirVShader(
 //     SpirVShader& shader, ea::string& optimizerOutput, TargetShaderLanguage targetLanguage);
 // bool OptimizeSpirVShader(SpirVShader& shader, ea::string& optimizerOutput, TargetShaderLanguage targetLanguage)

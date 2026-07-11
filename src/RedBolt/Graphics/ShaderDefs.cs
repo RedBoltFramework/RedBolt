@@ -1,6 +1,34 @@
 namespace RedBolt;
 
 /// <summary>
+/// SPIR-V shader.
+/// </summary>
+public struct SpirVShader
+{
+    public List<uint> Bytecode = new();
+    public string CompilerOutput = string.Empty;
+
+    public SpirVShader()
+    {
+    }
+
+    public bool IsValid() => Bytecode.Count != 0;
+
+    public static implicit operator bool(SpirVShader value) => value.IsValid();
+}
+
+/// <summary>
+/// List of supported target shader languages.
+/// </summary>
+public enum TargetShaderLanguage
+{
+    Glsl41,
+    GlslEs30,
+    Hlsl50,
+    Vulkan10
+}
+
+/// <summary>
 /// Array of shader defines: pairs of name and value.
 /// </summary>
 public struct ShaderDefineArray
