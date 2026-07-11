@@ -141,9 +141,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct TetrahedralMeshSurface`
   - [x] `TetrahedralMesh` — Delaunay construction and barycentric sampling
 - [ ] `InverseKinematics.h`
-  - [ ] `struct IKSettings`
-  - [ ] `struct IKNode`
-  - [ ] `struct IKNodeSegment`
+  - [x] `struct IKSettings`
+  - [x] `struct IKNode` — C# reference type preserves C++ pointer identity for shared chain nodes
+  - [x] `struct IKNodeSegment`
   - [ ] `IKTrigonometricChain`
   - [ ] `IKEyeChain`
   - [ ] `IKChain`
