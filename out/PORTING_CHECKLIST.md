@@ -55,8 +55,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `TransformedSpan.h` — **EXCLUDED** · reason: projecting span view · replaced-by: LINQ `Select` / `Span<T>`
 - [-] `RefCounted.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
-- [ ] `ConstString.h`
-  - [ ] `ConstString` (compile-time string handle)
+- [x] `ConstString.h`
+  - [x] `ConstString` (compile-time string handle)
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
 - [ ] `IndexAllocator.h`
   - [ ] `IndexAllocator`
