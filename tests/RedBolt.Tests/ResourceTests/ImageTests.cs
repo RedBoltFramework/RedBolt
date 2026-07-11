@@ -87,7 +87,7 @@ public sealed class ImageTests
         Assert.True(cube.SampleNearest(Vector3f.Right).ApproximatelyEquivalent(new Color(1, 0, 0), 0.001f));
         Assert.True(cube.SampleNearest(Vector3f.Forward).ApproximatelyEquivalent(new Color(1, 0, 1), 0.001f));
 
-        var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault;
+        var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault();
         Assert.True(projected.ApproximatelyEquivalent(Vector3f.Forward, 0.001f));
 
         var (face, uv) = ImageCube.ProjectDirectionOnFace(Vector3f.Up);

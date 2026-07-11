@@ -20,6 +20,16 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
         Z = z;
     }
 
+    public BaseIntVector3(T[] data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.Length < 3)
+            throw new ArgumentException("At least three components are required.", nameof(data));
+        X = data[0];
+        Y = data[1];
+        Z = data[2];
+    }
+
     public static readonly BaseIntVector3<T> Zero = new();
     public static readonly BaseIntVector3<T> Left = new(-T.One, T.Zero, T.Zero);
     public static readonly BaseIntVector3<T> Right = new(T.One, T.Zero, T.Zero);
@@ -38,6 +48,15 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) => !(lhs == rhs);
+
+    public static bool operator <(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) =>
+        lhs.X < rhs.X || lhs.X == rhs.X && (lhs.Y < rhs.Y || lhs.Y == rhs.Y && lhs.Z < rhs.Z);
+
+    public static bool operator >(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) => rhs < lhs;
+
+    public static bool operator <=(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) => !(rhs < lhs);
+
+    public static bool operator >=(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) => !(lhs < rhs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BaseIntVector3<T> operator +(BaseIntVector3<T> lhs, BaseIntVector3<T> rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
@@ -73,17 +92,23 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
         lhs.Y > rhs.Y ? lhs.Y : rhs.Y,
         lhs.Z > rhs.Z ? lhs.Z : rhs.Z);
 
+    public static BaseIntVector3<T> Abs(BaseIntVector3<T> vec) => new(T.Abs(vec.X), T.Abs(vec.Y), T.Abs(vec.Z));
+
     public Vector2f ToVector2() => new(float.CreateChecked(X), float.CreateChecked(Y));
 
     public BaseIntVector2<T> ToIntVector2() => new(X, Y);
 
     public Vector3f ToVector3() => new(float.CreateChecked(X), float.CreateChecked(Y), float.CreateChecked(Z));
 
+    public Vector4f ToVector4(float w = 0.0f) => new(float.CreateChecked(X), float.CreateChecked(Y), float.CreateChecked(Z), w);
+
     public bool Equals(BaseIntVector3<T> other) => this == other;
 
     public override bool Equals(object? obj) => obj is BaseIntVector3<T> other && Equals(other);
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
+
+    public uint ToHash() => unchecked((uint)((X.GetHashCode() * 37 + Y.GetHashCode()) * 37 + Z.GetHashCode()));
 
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", X, Y, Z);
 }

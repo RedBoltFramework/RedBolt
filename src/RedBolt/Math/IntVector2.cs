@@ -109,6 +109,8 @@ public struct BaseIntVector2<T> : IEquatable<BaseIntVector2<T>>
 
     public static BaseIntVector2<T> Max(BaseIntVector2<T> lhs, BaseIntVector2<T> rhs) => new(lhs.X > rhs.X ? lhs.X : rhs.X, lhs.Y > rhs.Y ? lhs.Y : rhs.Y);
 
+    public static BaseIntVector2<T> Abs(BaseIntVector2<T> vec) => new(T.Abs(vec.X), T.Abs(vec.Y));
+
     public Vector2f ToVector2() => new(float.CreateChecked(X), float.CreateChecked(Y));
 
     public Vector3f ToVector3() => new(float.CreateChecked(X), float.CreateChecked(Y), 0.0f);

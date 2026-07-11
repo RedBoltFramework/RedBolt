@@ -69,8 +69,8 @@ public sealed class RenderingRegressionDiagnosticsTests
             var p2 = modelNode.LocalToWorld(positions[(int)triangle.I2]);
 
             var centroid = (p0 + p1 + p2) / 3.0f;
-            var toCamera = (cameraNode.WorldPosition - centroid).NormalizedOrDefault;
-            var normal = (p1 - p0).CrossProduct(p2 - p0).NormalizedOrDefault;
+            var toCamera = (cameraNode.WorldPosition - centroid).NormalizedOrDefault();
+            var normal = (p1 - p0).CrossProduct(p2 - p0).NormalizedOrDefault();
             var worldFacing = normal.LengthSquared > MathDefs.Epsilon && normal.DotProduct(toCamera) > 0.0f;
             if (worldFacing)
                 ++result.FrontFacingInWorld;

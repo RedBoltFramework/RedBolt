@@ -70,9 +70,11 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
         }
     }
 
-    public BaseRealVector3<T> NormalizedOrDefault => LengthSquared < T.CreateChecked(MathDefs.LargeEpsilon * MathDefs.LargeEpsilon)
-        ? Zero
-        : this * (T.One / Length);
+    public BaseRealVector3<T> NormalizedOrDefault(BaseRealVector3<T> defaultValue = default, T? epsilon = null)
+    {
+        var eps = epsilon ?? T.CreateChecked(MathDefs.LargeEpsilon);
+        return LengthSquared < eps * eps ? defaultValue : this * (T.One / Length);
+    }
 
     public T this[int index]
     {
@@ -233,6 +235,12 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
     public static BaseRealVector3<T> Round(BaseRealVector3<T> vec) => new(T.Round(vec.X), T.Round(vec.Y), T.Round(vec.Z));
 
     public static BaseRealVector3<T> Ceil(BaseRealVector3<T> vec) => new(T.Ceiling(vec.X), T.Ceiling(vec.Y), T.Ceiling(vec.Z));
+
+    public static BaseRealVector3<T> Sqrt(BaseRealVector3<T> vec) => new(T.Sqrt(vec.X), T.Sqrt(vec.Y), T.Sqrt(vec.Z));
+
+    public static T StableRandom(BaseRealVector3<T> seed) =>
+        BaseRealVector2<T>.StableRandom(new BaseRealVector2<T>(
+            BaseRealVector2<T>.StableRandom(new BaseRealVector2<T>(seed.X, seed.Y)), seed.Z));
 
     public static Vector3i FloorToInt(BaseRealVector3<T> vec) => new(int.CreateChecked(T.Floor(vec.X)), int.CreateChecked(T.Floor(vec.Y)), int.CreateChecked(T.Floor(vec.Z)));
 

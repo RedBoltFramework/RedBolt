@@ -71,14 +71,14 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [~] `MathDefs.h`
   - [ ] math constants / free functions (enums, `Clamp`, `Lerp`, etc.), only ones not available in `System.Math`.
-- [ ] `VectorCommon.h`
-  - [~] generic sequential-layout vector base pattern is now represented by `Vector2<T>` / `Vector3<T>` constrained to unmanaged IEEE floating-point scalars; `Detail::VectorTraits<T,N>` itself still has no direct managed analogue
-- [~] `Vector2.h`
-  - [~] `Vector2<T>` — array ctor, `ToHash()`, vector-parameter static `Lerp`, and rbfx-style `ReNormalized(..., defaultValue, eps)` signature are now in-tree; `NormalizedOrDefault(...)` and remaining free-function parity still need follow-up
-  - [~] `IntVector2` — array ctor, lexicographic compare operators, and `ToHash()` are now in-tree; mutable-data/tie-style parity still has no direct managed analogue, as `Vector2i`
-- [~] `Vector3.h`
-  - [~] `Vector3<T>`
-  - [~] `IntVector3` - as `Vector3i`
+- [x] `VectorCommon.h`
+  - [x] generic sequential-layout vector traits are represented by constrained generic managed structs
+- [x] `Vector2.h`
+  - [x] `Vector2<T>`
+  - [x] `IntVector2` — as `Vector2i`; direct fields replace C++ tuple and mutable-pointer access
+- [x] `Vector3.h`
+  - [x] `Vector3<T>`
+  - [x] `IntVector3` — as `Vector3i`; direct fields replace C++ tuple and mutable-pointer access
 - [x] `Vector4.h`
   - [x] `Vector4 : Detail::VectorTraits<float,4>` - as `Vector4i`
 - [~] `Rect.h`

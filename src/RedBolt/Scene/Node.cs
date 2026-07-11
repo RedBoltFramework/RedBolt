@@ -1463,7 +1463,7 @@ public sealed class Node : Animatable
     public void SetWorldDirection(Vector3f direction)
     {
         if (direction.LengthSquared > 0.0f)
-            SetWorldRotation(Quaternion.FromRotationTo(Vector3f.Forward, direction.NormalizedOrDefault));
+            SetWorldRotation(Quaternion.FromRotationTo(Vector3f.Forward, direction.NormalizedOrDefault()));
     }
 
     public void SetWorldPosition(Vector3f position)

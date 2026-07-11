@@ -189,7 +189,7 @@ public sealed class ImageCube : Resource
 
     public static (CubeMapFace Face, Vector2f Uv) ProjectDirectionOnFace(Vector3f direction)
     {
-        var normalized = direction.NormalizedOrDefault;
+        var normalized = direction.NormalizedOrDefault();
         var absX = Math.Abs(normalized.X);
         var absY = Math.Abs(normalized.Y);
         var absZ = Math.Abs(normalized.Z);

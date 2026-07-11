@@ -66,9 +66,11 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
         }
     }
 
-    public BaseRealVector2<T> NormalizedOrDefault => LengthSquared < T.CreateChecked(MathDefs.LargeEpsilon * MathDefs.LargeEpsilon)
-        ? Zero
-        : this * (T.One / Length);
+    public BaseRealVector2<T> NormalizedOrDefault(BaseRealVector2<T> defaultValue = default, T? epsilon = null)
+    {
+        var eps = epsilon ?? T.CreateChecked(MathDefs.LargeEpsilon);
+        return LengthSquared < eps * eps ? defaultValue : this * (T.One / Length);
+    }
 
     public T this[int index]
     {
@@ -210,6 +212,16 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
     public static BaseRealVector2<T> Round(BaseRealVector2<T> vec) => new(T.Round(vec.X), T.Round(vec.Y));
 
     public static BaseRealVector2<T> Ceil(BaseRealVector2<T> vec) => new(T.Ceiling(vec.X), T.Ceiling(vec.Y));
+
+    public static BaseRealVector2<T> Sqrt(BaseRealVector2<T> vec) => new(T.Sqrt(vec.X), T.Sqrt(vec.Y));
+
+    public static T StableRandom(BaseRealVector2<T> seed)
+    {
+        var value = T.Sin(seed.DotProduct(new(T.CreateChecked(12.9898), T.CreateChecked(78.233)))) * T.CreateChecked(43758.5453);
+        return value - T.Floor(value);
+    }
+
+    public static T StableRandom(T seed) => StableRandom(new BaseRealVector2<T>(seed, seed));
 
     public static Vector2i FloorToInt(BaseRealVector2<T> vec) => new(int.CreateChecked(T.Floor(vec.X)), int.CreateChecked(T.Floor(vec.Y)));
 
