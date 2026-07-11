@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Sample.SoundEffects</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
+  </ItemGroup>
+</Project>

@@ -865,28 +865,30 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B2. Audio `OPTIONAL` — depends on Scene, Resource
 
-- [ ] `AudioDefs.h`
-  - [ ] audio enums / constants
-- [ ] `AudioEvents.h`
-  - [ ] audio event definitions
-- [ ] `Sound.h`
-  - [ ] `Sound : ResourceWithMetadata`
-- [ ] `SoundStream.h`
-  - [ ] `SoundStream : RefCounted`
-- [ ] `BufferedSoundStream.h`
-  - [ ] `BufferedSoundStream : SoundStream`
-- [ ] `OggVorbisSoundStream.h`
-  - [ ] `OggVorbisSoundStream : SoundStream`
-- [ ] `SoundSource.h`
-  - [ ] `SoundSource : Component`
-- [ ] `SoundSource3D.h`
-  - [ ] `SoundSource3D : SoundSource`
-- [ ] `SoundListener.h`
-  - [ ] `SoundListener : Component`
-- [ ] `Microphone.h`
-  - [ ] `Microphone : Object`
-- [ ] `Audio.h`
-  - [ ] `Audio : Object`
+- [x] `AudioDefs.h`
+  - [x] audio enums / constants — SoundMaster/Effect/Ambient/Voice/Music constants and SpeakerMode enum ported
+- [x] `AudioEvents.h`
+  - [x] audio event definitions — SoundFinished, RecordingUpdated/Started/Ended events ported
+- [x] `Sound.h`
+  - [x] `Sound : ResourceWithMetadata` — WAV loading, raw data, loop/size/format, decoder stream, and sample properties ported
+- [x] `SoundStream.h`
+  - [x] `SoundStream` — abstract base with Seek/GetData/SetFormat/StopAtEnd ported
+- [x] `BufferedSoundStream.h`
+  - [x] `BufferedSoundStream : SoundStream` — thread-safe buffered data with AddData/Clear ported
+- [x] `OggVorbisSoundStream.h`
+  - [x] `OggVorbisSoundStream : SoundStream` — compressed ogg stream skeleton ported (actual vorbis decoding deferred with TODO)
+- [x] `SoundSource.h`
+  - [x] `SoundSource : Component` — Play/Stop, frequency/gain/panning/attenuation, mixing, and serialization ported
+- [x] `SoundSource3D.h`
+  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters ported (3D calculation deferred with TODO)
+- [x] `SoundListener.h`
+  - [x] `SoundListener : Component` — listener component ported
+- [x] `Microphone.h`
+  - [x] `Microphone : Object` — recording buffer, linked stream, and enable state ported (SDL capture deferred with TODO)
+- [x] `Audio.h`
+  - [x] `Audio : Object` — SDL audio device init, queued output, master gain types, sound source management, and render-update driven mixing ported
+- [x] `14_SoundEffects` sample — sound effect playback, music control, volume/panning via keyboard input ported
+- [x] `29_SoundSynthesis` sample — procedural audio synthesis via BufferedSoundStream with dual-oscillator and filter ported
 
 ## B3. UI `OPTIONAL` — retained-mode UI; depends on Graphics, Resource, Input
 
