@@ -89,9 +89,66 @@ public sealed class SerializablePrefab
 
 public sealed class NodePrefab
 {
+    public static NodePrefab Empty { get; } = new();
+
     public SerializablePrefab Node { get; } = new();
     public List<SerializablePrefab> Components { get; } = [];
     public List<NodePrefab> Children { get; } = [];
+
+    public string GetNodeName()
+    {
+        foreach (var attribute in Node.Attributes)
+        {
+            if (attribute.Name == "Name")
+                return attribute.Value.GetObject() as string ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    public NodePrefab FindChild(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return this;
+
+        var separator = path.IndexOf('/');
+        var childName = separator < 0 ? path : path[..separator];
+        var pathTail = separator < 0 ? string.Empty : path[(separator + 1)..];
+        if (string.IsNullOrEmpty(childName))
+            return Empty;
+
+        if (childName[0] == '#')
+        {
+            if (!uint.TryParse(childName.AsSpan(1), out var childIndex) || childIndex >= Children.Count)
+                return Empty;
+
+            return Children[(int)childIndex].FindChild(pathTail);
+        }
+
+        foreach (var child in Children)
+        {
+            if (child.GetNodeName() == childName)
+                return child.FindChild(pathTail);
+        }
+
+        return Empty;
+    }
+
+    // void NodePrefab::NormalizeIds(Context* context)
+    // {
+    //     PrefabNormalizer normalizer{context};
+    //     normalizer.ScanNode(*this);
+    //     normalizer.RemapAndPrune(*this);
+    // }
+    // TODO: port NormalizeIds once the managed prefab normalizer exists.
+    public void NormalizeIds()
+    {
+    }
+
+    public bool IsEmpty()
+    {
+        return Node.Attributes.Count == 0 && Components.Count == 0 && Children.Count == 0;
+    }
 
     public void Clear()
     {

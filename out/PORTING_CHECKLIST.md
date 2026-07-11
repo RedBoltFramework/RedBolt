@@ -417,8 +417,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PrefabWriter : NonCopyable` — represented by an abstract managed writer; C# reference types do not expose C++ copy construction
   - [x] `PrefabWriterToMemory : PrefabWriter`
   - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, and save flags are ported; SerializablePrefab archive flag overloads, compact attribute-name hashes, and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
-- [ ] `PrefabResource.h`
-  - [ ] `PrefabResource : SimpleResource`
+- [~] `PrefabResource.h`
+  - [x] `PrefabResource : SimpleResource` — prefab storage, scene/node accessors, named/indexed slices, archive persistence, ID-attribute cleanup, and available node instantiation path
+  - [~] `PrefabResource : SimpleResource` — PrefabReference component creation/assignment, background resource loading, legacy XML conversion, and compact archive flags remain TODO because those managed APIs are not present
 - [ ] `PrefabReference.h`
   - [ ] `PrefabReference : Component`
 - [ ] `SceneResolver.h`
