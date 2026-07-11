@@ -1,8 +1,104 @@
 using RedBolt.Bindings.Sdl;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Linq;
 
 namespace RedBolt;
+
+/// <summary>Input state for a finger touch.</summary>
+public struct TouchState
+{
+    /// <summary>Return last touched UI element, used by scripting integration.</summary>
+    public readonly object? GetTouchedElement() => TouchedElement;
+
+    /// <summary>Touch (finger) ID.</summary>
+    public int TouchID;
+    /// <summary>Position in screen coordinates.</summary>
+    public Vector2i Position;
+    /// <summary>Last position in screen coordinates.</summary>
+    public Vector2i LastPosition;
+    /// <summary>Movement since last frame.</summary>
+    public Vector2i Delta;
+    /// <summary>Finger pressure.</summary>
+    public float Pressure;
+    /// <summary>Last touched UI element from screen joystick.</summary>
+    public object? TouchedElement;
+}
+
+/// <summary>Input state for a joystick.</summary>
+public struct JoystickState
+{
+    /// <summary>Initialize the number of buttons, axes and hats and set them to neutral state.</summary>
+    public void Initialize(uint numButtons, uint numAxes, uint numHats)
+    {
+        Buttons = new bool[numButtons];
+        ButtonPress = new bool[numButtons];
+        Axes = new float[numAxes];
+        ValidAxis = new bool[numAxes];
+        Hats = new int[numHats];
+    }
+
+    /// <summary>Reset button, axis and hat states to neutral.</summary>
+    public void Reset()
+    {
+        Array.Fill(Buttons, false);
+        Array.Fill(ButtonPress, false);
+        Array.Fill(Axes, 0.0f);
+        Array.Fill(ValidAxis, false);
+        for (var i = 0; i < Hats.Length; i++)
+            Hats[i] = (int)HatPosition.Center;
+    }
+
+    /// <summary>Return whether is a game controller. Game controllers will use standardized axis and button mappings.</summary>
+    public readonly bool IsController() => Controller != IntPtr.Zero;
+
+    /// <summary>Return number of buttons.</summary>
+    public readonly uint GetNumButtons() => (uint)Buttons.Length;
+
+    /// <summary>Return number of axes.</summary>
+    public readonly uint GetNumAxes() => (uint)Axes.Length;
+
+    /// <summary>Return number of hats.</summary>
+    public readonly uint GetNumHats() => (uint)Hats.Length;
+
+    /// <summary>Check if a button is held down.</summary>
+    public readonly bool GetButtonDown(uint index) => index < Buttons.Length && Buttons[index];
+
+    /// <summary>Check if a button has been pressed on this frame.</summary>
+    public readonly bool GetButtonPress(uint index) => index < ButtonPress.Length && ButtonPress[index];
+
+    /// <summary>Return axis position.</summary>
+    public readonly float GetAxisPosition(uint index) => index < Axes.Length ? Axes[index] : 0.0f;
+
+    /// <summary>Returns true if has valid axis position.</summary>
+    public readonly bool HasAxisPosition(uint index) => index < ValidAxis.Length && ValidAxis[index];
+
+    /// <summary>Return hat position.</summary>
+    public readonly int GetHatPosition(uint index) => index < Hats.Length ? Hats[index] : (int)HatPosition.Center;
+
+    /// <summary>SDL joystick.</summary>
+    public IntPtr Joystick;
+    /// <summary>Joystick device type.</summary>
+    public JoystickDeviceType DeviceType;
+    /// <summary>SDL joystick instance ID.</summary>
+    public int JoystickID;
+    /// <summary>SDL game controller.</summary>
+    public IntPtr Controller;
+    /// <summary>UI element containing the screen joystick.</summary>
+    public object? ScreenJoystick;
+    /// <summary>Joystick name.</summary>
+    public string Name;
+    /// <summary>Button up/down state.</summary>
+    public bool[] Buttons;
+    /// <summary>Button pressed on this frame.</summary>
+    public bool[] ButtonPress;
+    /// <summary>Axis position from -1 to 1.</summary>
+    public float[] Axes;
+    /// <summary>Valid axis position.</summary>
+    public bool[] ValidAxis;
+    /// <summary>POV hat bits.</summary>
+    public int[] Hats;
+}
 
 public sealed class Input : Object
 {

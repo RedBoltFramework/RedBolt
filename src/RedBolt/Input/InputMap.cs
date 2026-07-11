@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 
 namespace RedBolt;
@@ -307,50 +308,44 @@ public sealed class InputMap : ResourceWithMetadata
 
     public sealed class ActionMapping
     {
-        private readonly List<Scancode> _keyboardKeys = [];
-        private readonly List<MouseButton> _mouseButtons = [];
+        private readonly List<KeyboardKeyMapping> _keyboardKeys = [];
+        private readonly List<MouseButtonMapping> _mouseButtons = [];
         private readonly List<ControllerButtonMapping> _controllerButtons = [];
         private readonly List<ControllerAxisMapping> _controllerAxes = [];
-        private readonly List<HatPosition> _controllerHats = [];
-        private readonly List<string> _screenButtons = [];
+        private readonly List<ControllerHatMapping> _controllerHats = [];
+        private readonly List<ScreenButtonMapping> _screenButtons = [];
 
-        public IReadOnlyList<Scancode> KeyboardKeys => _keyboardKeys;
+        public IReadOnlyList<KeyboardKeyMapping> KeyboardKeys => _keyboardKeys;
 
-        public IReadOnlyList<MouseButton> MouseButtons => _mouseButtons;
+        public IReadOnlyList<MouseButtonMapping> MouseButtons => _mouseButtons;
 
         public IReadOnlyList<ControllerButtonMapping> ControllerButtons => _controllerButtons;
 
         public IReadOnlyList<ControllerAxisMapping> ControllerAxes => _controllerAxes;
 
-        public IReadOnlyList<HatPosition> ControllerHats => _controllerHats;
+        public IReadOnlyList<ControllerHatMapping> ControllerHats => _controllerHats;
 
-        public IReadOnlyList<string> ScreenButtons => _screenButtons;
+        public IReadOnlyList<ScreenButtonMapping> ScreenButtons => _screenButtons;
 
         public void SerializeInBlock(Archive archive)
         {
-            SerializeEnumList(archive, "keyboardKeys", "key", _keyboardKeys);
-            SerializeEnumList(archive, "mouseButtons", "button", _mouseButtons);
-            SerializeList(archive, "controllerButtons", "button", _controllerButtons,
-                static (Archive ar, ref ControllerButtonMapping value) => value.SerializeInBlock(ar));
-            SerializeList(archive, "controllerAxes", "axis", _controllerAxes,
-                static (Archive ar, ref ControllerAxisMapping value) => value.SerializeInBlock(ar));
-            SerializeEnumList(archive, "controllerHats", "hat", _controllerHats);
-            ArchiveSerialization.SerializeStringVector(archive, "screenButtons", _screenButtons);
+            SerializeStructList(archive, "keys", "key", _keyboardKeys,
+                static (Archive ar, ref KeyboardKeyMapping v) => v.SerializeInBlock(ar));
+            SerializeStructList(archive, "mouseButtons", "button", _mouseButtons,
+                static (Archive ar, ref MouseButtonMapping v) => v.SerializeInBlock(ar));
+            SerializeStructList(archive, "buttons", "button", _controllerButtons,
+                static (Archive ar, ref ControllerButtonMapping v) => v.SerializeInBlock(ar));
+            SerializeStructList(archive, "axes", "axis", _controllerAxes,
+                static (Archive ar, ref ControllerAxisMapping v) => v.SerializeInBlock(ar));
+            SerializeStructList(archive, "hats", "hat", _controllerHats,
+                static (Archive ar, ref ControllerHatMapping v) => v.SerializeInBlock(ar));
+            SerializeStructList(archive, "screenButtons", "element", _screenButtons,
+                static (Archive ar, ref ScreenButtonMapping v) => v.SerializeInBlock(ar));
         }
 
         private delegate void SerializeItem<T>(Archive archive, ref T value);
 
-        private static void SerializeEnumList<T>(Archive archive, string blockName, string itemName, List<T> values) where T : struct, Enum
-            => SerializeList(archive, blockName, itemName, values, SerializeEnumItem);
-
-        private static void SerializeEnumItem<T>(Archive archive, ref T value) where T : struct, Enum
-        {
-            var rawValue = Convert.ToUInt32(value);
-            ArchiveSerialization.SerializeValue(archive, "value", ref rawValue);
-            value = (T)Enum.ToObject(typeof(T), rawValue);
-        }
-
-        private static void SerializeList<T>(Archive archive, string blockName, string itemName, List<T> values, SerializeItem<T> serialize) where T : new()
+        private static void SerializeStructList<T>(Archive archive, string blockName, string itemName, List<T> values, SerializeItem<T> serialize) where T : new()
         {
             var count = archive.IsInput ? 0u : (uint)values.Count;
             using var arrayBlock = archive.OpenArrayBlock(blockName, count);
@@ -376,15 +371,16 @@ public sealed class InputMap : ResourceWithMetadata
         public float Evaluate(Input input, float deadZone)
         {
             ArgumentNullException.ThrowIfNull(input);
-            foreach (var scancode in _keyboardKeys)
+            foreach (var key in _keyboardKeys)
             {
-                if (IsScancodeDown(input, scancode))
+                var scancode = key.Scancode;
+                if (IsModifierScancode(scancode, input) || input.GetScancodeDown(scancode))
                     return 1.0f;
             }
 
             foreach (var mouseButton in _mouseButtons)
             {
-                if (input.GetMouseButtonDown(mouseButton))
+                if (input.GetMouseButtonDown(mouseButton.GetMask()))
                     return 1.0f;
             }
 
@@ -397,46 +393,52 @@ public sealed class InputMap : ResourceWithMetadata
                     return 1.0f;
             }
 
+            var sum = 0.0f;
             foreach (var controllerAxis in _controllerAxes)
             {
                 var position = controllerAxis.IsController
                     ? input.GetControllerAxisPosition(controllerAxis.GetControllerAxis())
                     : input.GetJoystickAxisPosition(controllerAxis.GetGenericAxis());
                 var translated = controllerAxis.Translate(position, deadZone);
-                if (translated > 0.0f)
-                    return translated;
+                sum += translated;
             }
 
             foreach (var controllerHat in _controllerHats)
             {
-                if (input.GetHatDown(controllerHat))
+                if (input.GetHatDown((HatPosition)controllerHat.HatPosition))
                     return 1.0f;
             }
 
             foreach (var screenButton in _screenButtons)
             {
-                if (input.GetScreenButtonDown(screenButton))
+                if (input.GetScreenButtonDown(screenButton.ElementName))
                     return 1.0f;
             }
 
-            return 0.0f;
+            return MathDefs.Clamp(sum, 0.0f, 1.0f);
         }
 
         internal void AddKeyboardKey(Scancode scancode)
         {
-            if (!_keyboardKeys.Contains(scancode))
-                _keyboardKeys.Add(scancode);
+            var mapping = new KeyboardKeyMapping(scancode);
+            if (!_keyboardKeys.Contains(mapping))
+                _keyboardKeys.Add(mapping);
         }
 
-        internal void RemoveKeyboardKey(Scancode scancode) => _keyboardKeys.Remove(scancode);
+        internal void RemoveKeyboardKey(Scancode scancode) => _keyboardKeys.RemoveAll(m => m.Scancode == scancode);
 
         internal void AddMouseButton(MouseButton mouseButton)
         {
-            if (mouseButton != MouseButton.None && !_mouseButtons.Contains(mouseButton))
-                _mouseButtons.Add(mouseButton);
+            if (mouseButton == MouseButton.None)
+                return;
+
+            var btnIndex = (uint)BitOperations.TrailingZeroCount((uint)mouseButton);
+            var mapping = new MouseButtonMapping(btnIndex);
+            if (!_mouseButtons.Contains(mapping))
+                _mouseButtons.Add(mapping);
         }
 
-        internal void RemoveMouseButton(MouseButton mouseButton) => _mouseButtons.Remove(mouseButton);
+        internal void RemoveMouseButton(MouseButton mouseButton) => _mouseButtons.RemoveAll(m => m.MouseButton == (uint)BitOperations.TrailingZeroCount((uint)mouseButton));
 
         internal void AddControllerButton(ControllerButton button)
         {
@@ -462,36 +464,127 @@ public sealed class InputMap : ResourceWithMetadata
 
         internal void AddHat(HatPosition hatPosition)
         {
-            if (!_controllerHats.Contains(hatPosition))
-                _controllerHats.Add(hatPosition);
+            var mapping = new ControllerHatMapping((uint)hatPosition);
+            if (!_controllerHats.Contains(mapping))
+                _controllerHats.Add(mapping);
         }
 
-        internal void RemoveHat(HatPosition hatPosition) => _controllerHats.Remove(hatPosition);
+        internal void RemoveHat(HatPosition hatPosition) => _controllerHats.RemoveAll(m => m.HatPosition == (uint)hatPosition);
 
         internal void AddScreenButton(string elementName)
         {
+            if (string.IsNullOrEmpty(elementName))
+                return;
+
             foreach (var screenButton in _screenButtons)
             {
-                if (string.Equals(screenButton, elementName, StringComparison.Ordinal))
+                if (string.Equals(screenButton.ElementName, elementName, StringComparison.Ordinal))
                     return;
             }
 
-            _screenButtons.Add(elementName);
+            _screenButtons.Add(new ScreenButtonMapping(elementName));
         }
 
-        internal void RemoveScreenButton(string elementName) => _screenButtons.RemoveAll(screenButton => string.Equals(screenButton, elementName, StringComparison.Ordinal));
+        internal void RemoveScreenButton(string elementName) => _screenButtons.RemoveAll(screenButton => string.Equals(screenButton.ElementName, elementName, StringComparison.Ordinal));
 
-        private static bool IsScancodeDown(Input input, Scancode scancode)
+        private static bool IsModifierScancode(Scancode scancode, Input input)
         {
             return scancode switch
             {
                 Scancode.LeftCtrl => input.GetKeyDown(Key.LeftCtrl) || input.GetKeyDown(Key.RightCtrl),
                 Scancode.LeftShift => input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift),
                 Scancode.LeftAlt => input.GetKeyDown(Key.LeftAlt) || input.GetKeyDown(Key.RightAlt),
-                _ => input.GetScancodeDown(scancode)
+                _ => false
             };
         }
     }
+}
+
+/// <summary>Helper struct to translate keyboard keys.</summary>
+public struct KeyboardKeyMapping
+{
+    /// <summary>Construct.</summary>
+    public KeyboardKeyMapping() { Scancode = default; }
+
+    /// <summary>Construct.</summary>
+    public KeyboardKeyMapping(Scancode scancode) { Scancode = scancode; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var rawValue = (uint)Scancode;
+        ArchiveSerialization.SerializeValue(archive, "scancode", ref rawValue);
+        Scancode = (Scancode)rawValue;
+    }
+
+    /// <summary>Scancode.</summary>
+    public Scancode Scancode;
+}
+
+/// <summary>Helper struct to translate mouse button.</summary>
+public struct MouseButtonMapping
+{
+    /// <summary>Construct.</summary>
+    public MouseButtonMapping() { MouseButton = 0; }
+
+    /// <summary>Construct.</summary>
+    public MouseButtonMapping(uint mouseButton) { MouseButton = mouseButton; }
+
+    /// <summary>Get mouse button mask.</summary>
+    public readonly MouseButton GetMask() => (MouseButton)(1u << (int)MouseButton);
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var rawValue = MouseButton;
+        ArchiveSerialization.SerializeValue(archive, "mouseButton", ref rawValue);
+        MouseButton = rawValue;
+    }
+
+    /// <summary>Mouse button.</summary>
+    public uint MouseButton;
+}
+
+/// <summary>Helper struct to translate controller hat position.</summary>
+public struct ControllerHatMapping
+{
+    /// <summary>Construct.</summary>
+    public ControllerHatMapping() { HatPosition = 0; }
+
+    /// <summary>Construct.</summary>
+    public ControllerHatMapping(uint hatPosition) { HatPosition = hatPosition; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var rawValue = HatPosition;
+        ArchiveSerialization.SerializeValue(archive, "hatPosition", ref rawValue);
+        HatPosition = rawValue;
+    }
+
+    /// <summary>Hat position.</summary>
+    public uint HatPosition;
+}
+
+/// <summary>Helper struct to translate UI button to input value.</summary>
+public struct ScreenButtonMapping
+{
+    /// <summary>Construct.</summary>
+    public ScreenButtonMapping() { ElementName = string.Empty; }
+
+    /// <summary>Construct.</summary>
+    public ScreenButtonMapping(string elementName) { ElementName = elementName; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var name = ElementName;
+        ArchiveSerialization.SerializeValue(archive, "elementName", ref name);
+        ElementName = name;
+    }
+
+    /// <summary>Element name.</summary>
+    public string ElementName;
 }
 
 public record struct ControllerButtonMapping(bool IsController, uint Button)

@@ -743,20 +743,20 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `AxisAdapter.h`
   - [x] `AxisAdapter` — dead zone, asymmetric sensitivity, neutral/inversion transforms, and archive persistence are ported
 - [x] `Input.h`
-  - [ ] `struct TouchState`
-  - [ ] `struct JoystickState`
+  - [x] `struct TouchState` — touch ID, position, delta, pressure, and element reference are ported as a C# struct with public fields matching C++
+  - [x] `struct JoystickState` — joystick/controller handles, button/axis/hat arrays, and accessor methods are ported as a C# struct with public fields matching C++
   - [x] `Input : Object` — SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, and shutdown are ported
 - [x] `InputMap.h`
-  - [ ] `struct KeyboardKeyMapping`
+  - [x] `struct KeyboardKeyMapping` — scancode wrapper with archive serialization ported
   - [x] `struct ControllerButtonMapping`
   - [x] `struct ControllerAxisMapping`
-  - [ ] `struct ControllerHatMapping`
-  - [ ] `struct MouseButtonMapping`
-  - [ ] `struct ScreenButtonMapping`
+  - [x] `struct ControllerHatMapping` — hat position wrapper with archive serialization ported
+  - [x] `struct MouseButtonMapping` — mouse button wrapper with mask conversion and archive serialization ported
+  - [x] `struct ScreenButtonMapping` — element name wrapper with archive serialization ported
   - [x] `struct ActionMapping` — evaluation and archive persistence cover all managed mapping collections
   - [x] `InputMap : SimpleResource` — metadata, dead zone, unique remapping, evaluation, and JSON/XML/binary resource archives are ported
-- [ ] `MultitouchAdapter.h`
-  - [ ] `MultitouchAdapter : Object`
+- [x] `MultitouchAdapter.h`
+  - [x] `MultitouchAdapter : Object` — touch event subscriptions, active touch tracking, center/size/delta calculation, and struct-based multitouch event dispatch are ported
 - [x] `PointerAdapter.h`
   - [x] `PointerAdapter : Object` — frame/input subscriptions, mouse/touch/joystick transitions, touch ownership, accelerated directional movement, pointer events, masks, and cleanup are ported
 - [x] `DirectionAggregator.h`

@@ -190,3 +190,17 @@ public enum ControllerAxis : uint
     TriggerLeft,
     TriggerRight
 }
+
+public enum JoystickDeviceType : uint
+{
+    Unknown,
+    GameController,
+    Wheel,
+    ArcadeStick,
+    FlightStick,
+    DancePad,
+    Guitar,
+    DrumKit,
+    ArcadePad,
+    Throttle
+}
