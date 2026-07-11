@@ -409,10 +409,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `AttributePrefab`
   - [x] `SerializablePrefab`
   - [x] `NodePrefab`
-- [ ] `PrefabReader.h`
-  - [ ] `PrefabReader : NonCopyable`
-  - [ ] `PrefabReaderFromMemory : PrefabReader`
-  - [ ] `PrefabReaderFromArchive : PrefabReader`
+- [~] `PrefabReader.h`
+  - [x] `PrefabReader : NonCopyable` — represented by an abstract managed reader; C# reference types do not expose C++ copy construction
+  - [x] `PrefabReaderFromMemory : PrefabReader`
+  - [~] `PrefabReaderFromArchive : PrefabReader` — archive traversal and block lifetime are ported; SerializablePrefab archive flags and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
 - [ ] `PrefabWriter.h`
   - [ ] `PrefabWriter : NonCopyable`
   - [ ] `PrefabWriterToMemory : PrefabWriter`
