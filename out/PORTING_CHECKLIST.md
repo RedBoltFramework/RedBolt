@@ -140,7 +140,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `TetrahedralMesh.h` — mesh implementation ported; C++ Archive serialization overloads remain
   - [x] `struct TetrahedralMeshSurface`
   - [x] `TetrahedralMesh` — Delaunay construction and barycentric sampling
-- [ ] `InverseKinematics.h`
+- [x] `InverseKinematics.h`
   - [x] `struct IKSettings`
   - [x] `struct IKNode` — C# reference type preserves C++ pointer identity for shared chain nodes
   - [x] `struct IKNodeSegment`
