@@ -77,11 +77,6 @@ internal static class Program
         "Release"
     };
 
-    private static readonly HashSet<string> DiligentSyntheticDefaultConstructors = new(StringComparer.Ordinal)
-    {
-        "Diligent::ShaderCreateInfo"
-    };
-
     private static int Main(string[] args)
     {
         SharpCppLog.Configure();
@@ -126,7 +121,6 @@ internal static class Program
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
-            AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
             ApplyImGuiEnumAliasSurfaceIfApplicable(compilation, descriptor);
@@ -303,38 +297,6 @@ internal static class Program
                 IsPureVirtual: true,
                 AccessModifier: BindingAccessModifier.Public
             });
-    }
-
-    private static void AddDiligentSyntheticDefaultConstructors(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
-    {
-        if (descriptor.Surface != "diligent")
-            return;
-
-        foreach (var record in compilation.Records)
-        {
-            if (!DiligentSyntheticDefaultConstructors.Contains(record.CppQualifiedName) ||
-                record.Members.OfType<FunctionBinding>().Any(static member => member.IsConstructor && member.Parameters.Count == 0))
-            {
-                continue;
-            }
-
-            var constructor = new FunctionBinding(
-                $"ctor:{record.CppQualifiedName}:synthetic-default",
-                record.NativeName,
-                record.ManagedName,
-                record.HandleType,
-                entryPointName: $"{descriptor.EntryPointPrefix}_{record.CppQualifiedName.Replace("::", "_")}_ctor",
-                cppReturnTypeName: $"{record.CppQualifiedName}*",
-                cppQualifiedName: $"{record.CppQualifiedName}::{record.NativeName}")
-            {
-                IsConstructor = true,
-                IsStatic = false,
-                OwningRecordCppTypeName = record.CppQualifiedName,
-                AccessModifier = BindingAccessModifier.Public
-            };
-            constructor.SetMetadata(MetadataKeys.DeclarationDisplayText, $"{record.NativeName}();");
-            record.Members.Add(constructor);
-        }
     }
 
     private static int IgnoreStdlibWrappers(BindingCompilation compilation)
