@@ -4,56 +4,123 @@ namespace RedBolt;
 
 public sealed class BinaryFile : Resource
 {
-    private byte[] _data = [];
+    private readonly VectorBuffer _buffer = new();
 
-    public BinaryFile(string name)
+    public BinaryFile(string name = "")
         : base(name)
     {
     }
 
-    public IReadOnlyList<byte> Data => _data;
+    public IReadOnlyList<byte> Data => _buffer.GetBuffer();
 
-    public void Clear()
+    public static void RegisterObject(Context context)
     {
-        _data = [];
-        MemoryUse = 0;
+        ArgumentNullException.ThrowIfNull(context);
     }
 
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
+        source.Seek(0, SeekOrigin.Begin);
         using var memory = new MemoryStream();
         source.CopyTo(memory);
         SetData(memory.ToArray());
         return true;
     }
 
-    public string GetText()
-    {
-        return Encoding.UTF8.GetString(_data);
-    }
-
-    public string[] ReadLines()
-    {
-        return GetText().Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-    }
-
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        destination.Write(_data);
+        destination.Write(_buffer.Buffer);
         return true;
+    }
+
+    public bool SaveObjectCallback(Action<Archive> serializeValue)
+    {
+        ArgumentNullException.ThrowIfNull(serializeValue);
+        try
+        {
+            _buffer.Clear();
+            var archive = new BinaryOutputArchive(Context.Instance, AsSerializer());
+            serializeValue(archive);
+            archive.Flush();
+            SetMemoryUse(_buffer.Size);
+            return true;
+        }
+        catch
+        {
+            _buffer.Clear();
+            return false;
+        }
+    }
+
+    public bool LoadObjectCallback(Action<Archive> serializeValue)
+    {
+        ArgumentNullException.ThrowIfNull(serializeValue);
+        try
+        {
+            var readBuffer = new MemoryBuffer(_buffer.GetBuffer());
+            var archive = new BinaryInputArchive(Context.Instance, readBuffer);
+            serializeValue(archive);
+            archive.Flush();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool SaveObject(Object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return SaveObjectCallback(value.SerializeInBlock);
+    }
+
+    public bool LoadObject(Object value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return LoadObjectCallback(value.SerializeInBlock);
+    }
+
+    public void Clear()
+    {
+        _buffer.Clear();
     }
 
     public void SetData(IEnumerable<byte> value)
     {
-        _data = value.ToArray();
-        MemoryUse = (uint)_data.Length;
+        ArgumentNullException.ThrowIfNull(value);
+        _buffer.SetData(value.ToArray());
+        SetMemoryUse(_buffer.Size);
     }
 
     public void SetText(string text)
     {
-        _data = Encoding.UTF8.GetBytes(text);
-        MemoryUse = (uint)_data.Length;
+        ArgumentNullException.ThrowIfNull(text);
+        _buffer.SetData(Encoding.UTF8.GetBytes(text));
+        SetMemoryUse(_buffer.Size);
     }
+
+    public IReadOnlyList<byte> GetData() => _buffer.GetBuffer();
+
+    public string GetText()
+    {
+        return Encoding.UTF8.GetString(_buffer.Buffer);
+    }
+
+    public string[] ReadLines()
+    {
+        var result = new List<string>();
+        var readBuffer = new MemoryBuffer(_buffer.GetBuffer());
+        while (!readBuffer.IsEof())
+            result.Add(readBuffer.ReadLine());
+        return result.ToArray();
+    }
+
+    public VectorBuffer GetMutableBuffer() => _buffer;
+
+    public Serializer AsSerializer() => _buffer;
+
+    public Deserializer AsDeserializer() => _buffer;
 }

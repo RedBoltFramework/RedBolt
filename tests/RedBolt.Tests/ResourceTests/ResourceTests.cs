@@ -33,3 +33,42 @@ public sealed class ResourceTests
         public override bool BeginLoad(Stream source) => false;
     }
 }
+
+[Collection(nameof(HeadlessEngineCollection))]
+public sealed class BinaryFileTests
+{
+    public BinaryFileTests(HeadlessEngineFixture fixture)
+    {
+        _ = fixture;
+    }
+
+    [Fact]
+    public void Archive_callbacks_roundtrip_values()
+    {
+        var file = new BinaryFile();
+        var outputValue = 42;
+
+        Assert.True(file.SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenSequentialBlock("object");
+            archive.Serialize("value", ref outputValue);
+        }));
+
+        var inputValue = 0;
+        Assert.True(file.LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenSequentialBlock("object");
+            archive.Serialize("value", ref inputValue);
+        }));
+        Assert.Equal(outputValue, inputValue);
+    }
+
+    [Fact]
+    public void ReadLines_does_not_append_line_after_terminal_newline()
+    {
+        var file = new BinaryFile();
+        file.SetText("first\nsecond\n");
+
+        Assert.Equal(["first", "second"], file.ReadLines());
+    }
+}

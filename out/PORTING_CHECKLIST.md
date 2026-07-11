@@ -324,8 +324,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `XMLOutputArchive : XMLArchiveBase<...>`
   - [x] `XMLInputArchiveBlock : ArchiveBlockBase`
   - [x] `XMLInputArchive : XMLArchiveBase<...>`
-- [~] `BinaryFile.h`
-  - [~] `BinaryFile : Resource`
+- [x] `BinaryFile.h`
+  - [x] `BinaryFile : Resource` — uses `VectorBuffer` for mutable serializer/deserializer access and supports binary Archive callback round trips
 - [~] `PListFile.h`
   - [~] `PListValue`
   - [~] `PListFile : Resource`
