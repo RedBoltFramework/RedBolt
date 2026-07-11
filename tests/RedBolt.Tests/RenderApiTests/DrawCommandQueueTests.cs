@@ -70,7 +70,7 @@ public sealed class DrawCommandQueueTests
     }
 
     [Fact]
-    public void Draw_command_queue_execute_updates_render_context_stats_for_recorded_commands()
+    public void Draw_command_queue_execute_skips_commands_with_invalid_native_pipelines()
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
         var graphicsState = CreateGraphicsPipelineState();
@@ -88,9 +88,9 @@ public sealed class DrawCommandQueueTests
         queue.ExecuteInContext(_fixture.RenderContext);
 
         var stats = _fixture.RenderContext.GetStats();
-        Assert.Equal<uint>(1u, stats.NumDraws);
-        Assert.Equal<uint>(15u, stats.NumPrimitives);
-        Assert.Equal<uint>(1u, stats.NumDispatches);
+        Assert.Equal<uint>(0u, stats.NumDraws);
+        Assert.Equal<uint>(0u, stats.NumPrimitives);
+        Assert.Equal<uint>(0u, stats.NumDispatches);
         Assert.Equal<uint>(0x5Au, GetPrivateField<uint>(_fixture.RenderContext, "_clipPlaneMask"));
     }
 
@@ -119,7 +119,8 @@ public sealed class DrawCommandQueueTests
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
         var pipelineState = CreateGraphicsPipelineState();
-        var reflection = pipelineState.GetReflection();
+        var reflection = new ShaderProgramReflection();
+        SetField(pipelineState, "_reflection", reflection);
         var uniformBuffers = GetPrivateField<UniformBufferReflection?[]>(reflection, "_uniformBuffers");
         var uniformBuffer = new UniformBufferReflection();
         SetProperty(uniformBuffer, nameof(UniformBufferReflection.Size), 16u);
@@ -204,5 +205,12 @@ public sealed class DrawCommandQueueTests
         var property = instance.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         Assert.NotNull(property);
         property!.SetValue(instance, value);
+    }
+
+    private static void SetField<T>(object instance, string fieldName, T value)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field!.SetValue(instance, value);
     }
 }
