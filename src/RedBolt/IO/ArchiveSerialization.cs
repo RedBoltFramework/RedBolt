@@ -17,6 +17,18 @@ public static class ArchiveSerialization
     public static void SerializeValue(Archive archive, string name, ref double value) => archive.Serialize(name, ref value);
     public static void SerializeValue(Archive archive, string name, ref string value) => archive.Serialize(name, ref value);
 
+    public static void SerializeValue(Archive archive, string name, ref CString value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        var managed = archive.IsInput ? string.Empty : value.ConvertToString();
+        archive.Serialize(name, ref managed);
+        if (archive.IsInput)
+        {
+            value.Dispose();
+            value = new CString(managed);
+        }
+    }
+
     public static void SerializeValue(Archive archive, string name, ref StringHash value)
     {
         var rawValue = value.Value;

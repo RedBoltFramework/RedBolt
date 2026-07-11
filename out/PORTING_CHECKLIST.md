@@ -258,9 +258,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `BinaryOutputArchive : BinaryArchiveBase<...>`
   - [x] `BinaryInputArchiveBlock : ArchiveBlockBase`
   - [x] `BinaryInputArchive : BinaryArchiveBase<...>`
-- [ ] `Base64Archive.h`
-  - [ ] `Base64OutputArchive : VectorBuffer, BinaryOutputArchive`
-  - [ ] `Base64InputArchive : VectorBuffer, BinaryInputArchive`
+- [x] `Base64Archive.h`
+  - [x] `Base64OutputArchive` — composition replaces C++ multiple inheritance
+  - [x] `Base64InputArchive` — composition replaces C++ multiple inheritance
 - [ ] `MountPoint.h`
   - [ ] `MountPoint : Object`
   - [ ] `WatchableMountPoint : MountPoint`
