@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -55,6 +56,13 @@ public class File : AbstractFile
         Open(fileName, mode);
     }
 
+    /// <summary>Construct and open from a package file.</summary>
+    public File(PackageFile? package, string fileName)
+        : this()
+    {
+        Open(package, fileName);
+    }
+
     /// <summary>Destruct. Close the file if open.</summary>
     ~File()
     {
@@ -77,7 +85,48 @@ public class File : AbstractFile
             _readSyncNeeded = false;
         }
 
-        // TODO: port compressed package and Android asset read paths from C++.
+        if (_compressed)
+        {
+            var sizeLeft = size;
+            var destinationOffset = 0;
+            Span<byte> blockHeader = stackalloc byte[4];
+            while (sizeLeft != 0)
+            {
+                if (_readBuffer is null || _readBufferOffset >= _readBufferSize)
+                {
+                    if (!ReadInternal(blockHeader))
+                        return 0;
+
+                    var unpackedSize = BinaryPrimitives.ReadUInt16LittleEndian(blockHeader);
+                    var packedSize = BinaryPrimitives.ReadUInt16LittleEndian(blockHeader[2..]);
+                    if (_readBuffer is null)
+                    {
+                        _readBuffer = new byte[unpackedSize];
+                        _inputBuffer = new byte[packedSize];
+                    }
+                    else if (_inputBuffer is null || _inputBuffer.Length < packedSize)
+                        _inputBuffer = new byte[packedSize];
+
+                    if (!ReadInternal(_inputBuffer.AsSpan(0, packedSize)))
+                        return 0;
+
+                    Compression.DecompressData(_readBuffer.AsSpan(0, unpackedSize), _inputBuffer.AsSpan(0, packedSize));
+                    _readBufferSize = unpackedSize;
+                    _readBufferOffset = 0;
+                }
+
+                var copySize = Math.Min(_readBufferSize - _readBufferOffset, sizeLeft);
+                _readBuffer.AsSpan(checked((int)_readBufferOffset), checked((int)copySize))
+                    .CopyTo(destination.Slice(destinationOffset, checked((int)copySize)));
+                sizeLeft -= copySize;
+                _readBufferOffset += copySize;
+                Position += copySize;
+                destinationOffset += checked((int)copySize);
+            }
+
+            return size;
+        }
+
         if (!ReadInternal(destination[..checked((int)size)]))
         {
             SeekInternal(Position + _offset);
@@ -97,6 +146,25 @@ public class File : AbstractFile
 
         if (_mode == FileMode.Read && position > Size)
             position = Size;
+
+        if (_compressed)
+        {
+            if (position == 0)
+            {
+                Position = 0;
+                _readBufferOffset = 0;
+                _readBufferSize = 0;
+                SeekInternal(_offset);
+            }
+            else if (position >= Position)
+            {
+                Span<byte> skipBuffer = stackalloc byte[4096];
+                while (position > Position)
+                    Read(skipBuffer[..checked((int)Math.Min(position - Position, (uint)skipBuffer.Length))]);
+            }
+
+            return Position;
+        }
 
         SeekInternal(position + _offset);
         Position = position;
@@ -163,8 +231,27 @@ public class File : AbstractFile
         return OpenInternal(fileName, mode);
     }
 
-    // TODO: port C++ bool Open(PackageFile* package, const ea::string& fileName).
-    // The managed PackageFile type and package-entry/compression API do not exist yet.
+    /// <summary>Open from within a package file. Return true if successful.</summary>
+    public bool Open(PackageFile? package, string fileName)
+    {
+        if (package is null)
+            return false;
+
+        var entry = package.GetEntry(fileName);
+        if (entry is null)
+            return false;
+
+        if (!OpenInternal(package.GetName(), FileMode.Read, true))
+            return false;
+
+        SetName(fileName);
+        _offset = entry.Value.Offset;
+        _checksum = entry.Value.Checksum;
+        Size = entry.Value.Size;
+        _compressed = package.IsCompressed();
+        SeekInternal(_offset);
+        return true;
+    }
 
     /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
     private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
@@ -188,7 +275,7 @@ public class File : AbstractFile
             };
             var access = mode == FileMode.Read ? FileAccess.Read : FileAccess.ReadWrite;
             _handle = new FileStream(fileName, systemMode, access, FileShare.Read);
-            if (_handle.Length > uint.MaxValue)
+            if (!fromPackage && _handle.Length > uint.MaxValue)
             {
                 Close();
                 return false;
@@ -196,8 +283,11 @@ public class File : AbstractFile
             _absoluteFileName = Path.GetFullPath(fileName);
             _mode = mode;
             Position = 0;
-            Size = checked((uint)_handle.Length);
-            _offset = 0;
+            if (!fromPackage)
+            {
+                Size = checked((uint)_handle.Length);
+                _offset = 0;
+            }
             _checksum = 0;
             return true;
         }

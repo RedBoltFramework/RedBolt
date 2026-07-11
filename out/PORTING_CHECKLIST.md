@@ -237,7 +237,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `VectorBuffer.h`
   - [x] `VectorBuffer : AbstractFile` — live managed array access replaces unsafe long-lived raw pointers
 - [~] `File.h`
-  - [~] `File : Object, AbstractFile` — filesystem open/read/write/seek/flush/checksum/copy and binary/text helpers are ported; package-file, compressed-file, and Android asset paths remain TODO because their managed dependencies are not available.
+  - [~] `File : Object, AbstractFile` — filesystem and package-file open/read/write/seek/flush/checksum/copy, compressed package reads, and binary/text helpers are ported; Android asset access remains TODO until managed Android asset access exists.
 - [x] `Compression.h`
   - [x] compression free functions — LZ4 data, stream, and VectorBuffer helpers are ported through generated SharpCpp bindings
 - [x] `Log.h`
@@ -283,8 +283,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `MountedExternalMemory.h`
   - [~] `MountedExternalMemory : MountPoint`
     - Memory linking, read-only opens, existence checks, and scanning are ported; `SendFileChangedEvent` remains a TODO until `ResourceEvents` and the C# event dispatch layer are ported.
-- [ ] `PackageFile.h`
-  - [ ] `PackageFile : MountPoint`
+- [x] `PackageFile.h`
+  - [x] `PackageFile : MountPoint`
 - [ ] `VirtualFileSystem.h`
   - [ ] `VirtualFileSystem : Object`
   - [ ] `MountPointGuard : MovableNonCopyable`
