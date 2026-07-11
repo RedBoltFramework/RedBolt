@@ -192,6 +192,20 @@ public sealed class Input : Object
             {
                 HandleKeyUp(_nativeEvent);
             }
+            else if (eventType == SdlEventType.SdlTextinput)
+            {
+                var text = new InputEvents.TextInputEvent { Text = DecodeNullTerminated(_nativeEvent.TextText) };
+                SendEvent(ref text);
+            }
+            else if (eventType == SdlEventType.SdlTextediting)
+            {
+                var editing = new InputEvents.TextEditingEvent
+                {
+                    Composition = DecodeNullTerminated(_nativeEvent.EditText),
+                    Cursor = _nativeEvent.EditStart, SelectionLength = _nativeEvent.EditLength
+                };
+                SendEvent(ref editing);
+            }
             else if (eventType == SdlEventType.SdlMousebuttondown)
             {
                 HandleMouseButtonDown(_nativeEvent);
@@ -207,6 +221,58 @@ public sealed class Input : Object
             else if (eventType == SdlEventType.SdlMousewheel)
             {
                 SetMouseWheel(_nativeEvent.WheelY);
+            }
+            else if (eventType == SdlEventType.SdlControlleraxismotion)
+            {
+                var axis = (ControllerAxis)(uint)_nativeEvent.CaxisAxis;
+                var position = NormalizeAxis(_nativeEvent.CaxisValue);
+                _controllerAxisPositions[axis] = position;
+                SendJoystickAxisEvent((int)axis, position, _nativeEvent.CaxisWhich);
+            }
+            else if (eventType is SdlEventType.SdlControllerbuttondown or SdlEventType.SdlControllerbuttonup)
+            {
+                var button = (ControllerButton)(uint)_nativeEvent.CbuttonButton;
+                var down = eventType == SdlEventType.SdlControllerbuttondown;
+                if (down) _controllerButtonsDown.Add(button); else _controllerButtonsDown.Remove(button);
+                SendJoystickButtonEvent((int)button, down, _nativeEvent.CbuttonWhich);
+            }
+            else if (eventType == SdlEventType.SdlJoyaxismotion)
+            {
+                var axis = (uint)_nativeEvent.JaxisAxis;
+                var position = NormalizeAxis(_nativeEvent.JaxisValue);
+                _joystickAxisPositions[axis] = position;
+                SendJoystickAxisEvent((int)axis, position, _nativeEvent.JaxisWhich);
+            }
+            else if (eventType is SdlEventType.SdlJoybuttondown or SdlEventType.SdlJoybuttonup)
+            {
+                var button = (uint)_nativeEvent.JbuttonButton;
+                var down = eventType == SdlEventType.SdlJoybuttondown;
+                if (down) _joystickButtonsDown.Add(button); else _joystickButtonsDown.Remove(button);
+                SendJoystickButtonEvent((int)button, down, _nativeEvent.JbuttonWhich);
+            }
+            else if (eventType == SdlEventType.SdlJoyhatmotion)
+            {
+                _hatPosition = (HatPosition)(uint)_nativeEvent.JhatValue;
+                var hat = new InputEvents.JoystickHatMoveEvent
+                {
+                    JoystickID = _nativeEvent.JhatWhich, Hat = _nativeEvent.JhatHat, Position = _hatPosition
+                };
+                SendEvent(ref hat);
+            }
+            else if (eventType is SdlEventType.SdlJoydeviceadded or SdlEventType.SdlControllerdeviceadded)
+            {
+                var connected = new InputEvents.JoystickConnectedEvent { JoystickID = _nativeEvent.JdeviceWhich };
+                SendEvent(ref connected);
+            }
+            else if (eventType is SdlEventType.SdlJoydeviceremoved or SdlEventType.SdlControllerdeviceremoved)
+            {
+                var joystickId = eventType == SdlEventType.SdlControllerdeviceremoved ? _nativeEvent.CdeviceWhich : _nativeEvent.JdeviceWhich;
+                var disconnected = new InputEvents.JoystickDisconnectedEvent { JoystickID = joystickId };
+                SendEvent(ref disconnected);
+            }
+            else if (eventType is SdlEventType.SdlFingerdown or SdlEventType.SdlFingermotion or SdlEventType.SdlFingerup)
+            {
+                HandleFingerEvent(_nativeEvent, eventType);
             }
             else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
             {
@@ -731,24 +797,59 @@ public sealed class Input : Object
         SendEvent(ref eventData);
     }
 
-    private void SendJoystickButtonEvent(int button, bool down)
+    private void SendJoystickButtonEvent(int button, bool down, int joystickId = 0)
     {
         if (down)
         {
-            var eventData = new InputEvents.JoystickButtonDownEvent { JoystickID = 0, Button = button };
+            var eventData = new InputEvents.JoystickButtonDownEvent { JoystickID = joystickId, Button = button };
             SendEvent(ref eventData);
         }
         else
         {
-            var eventData = new InputEvents.JoystickButtonUpEvent { JoystickID = 0, Button = button };
+            var eventData = new InputEvents.JoystickButtonUpEvent { JoystickID = joystickId, Button = button };
             SendEvent(ref eventData);
         }
     }
 
-    private void SendJoystickAxisEvent(int axis, float position)
+    private void SendJoystickAxisEvent(int axis, float position, int joystickId = 0)
     {
-        var eventData = new InputEvents.JoystickAxisMoveEvent { JoystickID = 0, Axis = axis, Position = position };
+        var eventData = new InputEvents.JoystickAxisMoveEvent { JoystickID = joystickId, Axis = axis, Position = position };
         SendEvent(ref eventData);
+    }
+
+    private void HandleFingerEvent(SdlEvent @event, SdlEventType eventType)
+    {
+        var touchId = @event.TfingerFingerId.GetHashCode();
+        var x = (int)MathF.Round(@event.TfingerX * _backbufferSize.X);
+        var y = (int)MathF.Round(@event.TfingerY * _backbufferSize.Y);
+        if (eventType == SdlEventType.SdlFingerdown)
+        {
+            var value = new InputEvents.TouchBeginEvent { TouchID = touchId, X = x, Y = y, Pressure = @event.TfingerPressure };
+            SendEvent(ref value);
+        }
+        else if (eventType == SdlEventType.SdlFingermotion)
+        {
+            var value = new InputEvents.TouchMoveEvent
+            {
+                TouchID = touchId, X = x, Y = y,
+                DX = (int)MathF.Round(@event.TfingerDx * _backbufferSize.X),
+                DY = (int)MathF.Round(@event.TfingerDy * _backbufferSize.Y), Pressure = @event.TfingerPressure
+            };
+            SendEvent(ref value);
+        }
+        else
+        {
+            var value = new InputEvents.TouchEndEvent { TouchID = touchId, X = x, Y = y };
+            SendEvent(ref value);
+        }
+    }
+
+    private static float NormalizeAxis(short value) => value >= 0 ? value / 32767.0f : value / 32768.0f;
+
+    private static string DecodeNullTerminated(IEnumerable<sbyte> source)
+    {
+        var bytes = source.TakeWhile(static value => value != 0).Select(static value => unchecked((byte)value)).ToArray();
+        return Encoding.UTF8.GetString(bytes);
     }
 
     private void UpdateQualifiers(Key key, bool isDown)

@@ -124,6 +124,7 @@ internal static class Program
 
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
+            FixSdlVoidPointerFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
             AddDiligentSyntheticDefaultConstructors(compilation, descriptor);
             prunedCount += PruneDependencySurface(compilation, descriptor);
@@ -666,6 +667,22 @@ internal static class Program
         }
 
         return prunedCount;
+    }
+
+    private static void FixSdlVoidPointerFunctions(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "sdl")
+            return;
+
+        // SDL_GLContext is a typedef of void*. Alias resolution must not turn the
+        // unrelated SDL_free(void*) parameter into an SDL_GLContext wrapper.
+        var free = compilation.Functions.FirstOrDefault(static function => function.NativeName == "SDL_free");
+        if (free is null || free.Parameters.Count != 1)
+            return;
+
+        free.Parameters[0].Type = BindingType.IntPtr;
+        free.Parameters[0].CppTypeName = "void*";
+        free.Parameters[0].AbiKind = BindingParameterAbiKind.Pointer;
     }
 
     private static int PruneMembers(IList<BindingNode> members, BindingSurfaceDescriptor descriptor)
