@@ -146,7 +146,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct IKNodeSegment`
   - [x] `IKTrigonometricChain`
   - [x] `IKEyeChain`
-  - [ ] `IKChain`
+  - [x] `IKChain`
   - [ ] `IKSpineChain : IKChain`
   - [ ] `IKFabrikChain : IKChain`
 
