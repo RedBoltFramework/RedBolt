@@ -182,42 +182,39 @@ public class MountedDirectory : WatchableMountPoint
     protected override void StartWatching()
     {
         if (_fileWatcher is null)
-        {
-            _fileWatcher = new FileSystemWatcher(_directory)
-            {
-                IncludeSubdirectories = true
-            };
-        }
+            _fileWatcher = new FileWatcher();
 
-        _fileWatcher.EnableRaisingEvents = true;
+        _fileWatcher.StartWatching(_directory, true);
 
-        // TODO: port C++ BeginFrame subscription for handling directory watcher.
+        SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent _) => ProcessUpdates());
     }
 
     protected override void StopWatching()
     {
         if (_fileWatcher is not null)
-            _fileWatcher.EnableRaisingEvents = false;
+            _fileWatcher.StopWatching();
 
-        // TODO: port C++ BeginFrame unsubscription for handling directory watcher.
+        UnsubscribeFromEvent<CoreEvents.BeginFrameEvent>();
     }
 
     private void ProcessUpdates()
     {
-        // TODO: port C++ FileChange queue and FileChanged event dispatch:
-        // FileChange change;
-        // while (fileWatcher_->GetNextChange(change))
-        // {
-        //     using namespace FileChanged;
-        //     VariantMap& eventData = GetEventDataMap();
-        //     eventData[P_FILENAME] = fileWatcher_->GetPath() + change.fileName_;
-        //     eventData[P_RESOURCENAME] = FileIdentifier{scheme_, change.fileName_}.ToUri();
-        //     SendEvent(E_FILECHANGED, eventData);
-        // }
+        if (_fileWatcher is null)
+            return;
+
+        while (_fileWatcher.GetNextChange(out var change))
+        {
+            var eventData = new ResourceEvents.FileChanged
+            {
+                FileName = _fileWatcher.GetPath() + change.FileName,
+                ResourceName = new FileIdentifier(_scheme, change.FileName).ToUri()
+            };
+            SendEvent(ref eventData);
+        }
     }
 
     private readonly string _scheme;
     private readonly string _directory;
     private readonly string _name;
-    private FileSystemWatcher? _fileWatcher;
+    private FileWatcher? _fileWatcher;
 }

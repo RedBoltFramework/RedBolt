@@ -270,17 +270,18 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Base64InputArchive` — composition replaces C++ multiple inheritance
 - [x] `MountPoint.h`
   - [x] `MountPoint` and `WatchableMountPoint`
-  - [ ] `MountPoint : Object`
-  - [ ] `WatchableMountPoint : MountPoint`
+  - [x] `MountPoint : Object`
+  - [x] `WatchableMountPoint : MountPoint`
 - [x] `MountedRoot.h`
   - [x] `MountedRoot`
-  - [ ] `MountedRoot : MountPoint`
+  - [x] `MountedRoot : MountPoint`
 - [~] `MountedDirectory.h`
   - [~] `MountedDirectory` — directory mounting, file access, timestamps, scanning, and watcher lifecycle are ported; `FileChanged` event dispatch remains TODO until `FileWatcher` and `ResourceEvents` are ported.
-  - [ ] `MountedDirectory : WatchableMountPoint`
+  - [x] `MountedDirectory : WatchableMountPoint`
 - [x] `MountedAliasRoot.h`
   - [x] `MountedAliasRoot`
-  - [ ] `MountedAliasRoot : MountPoint`
+  - [x] `MountedAliasRoot : MountPoint`
+    - [x] File watcher BeginFrame processing and struct-based `ResourceEvents.FileChanged` dispatch
 - [~] `MountedExternalMemory.h`
   - [~] `MountedExternalMemory : MountPoint`
     - Memory linking, read-only opens, existence checks, and scanning are ported; `SendFileChangedEvent` remains a TODO until `ResourceEvents` and the C# event dispatch layer are ported.

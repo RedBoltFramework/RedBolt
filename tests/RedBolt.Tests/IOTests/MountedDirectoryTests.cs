@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -15,6 +16,7 @@ public sealed class MountedDirectoryTests
 
         try
         {
+            Context.SetInstance(new Context());
             var mountPoint = new MountedDirectory(directory, "assets");
             var identifier = new FileIdentifier("assets", "Textures/Box.png");
             var absoluteName = Path.Combine(mountPoint.GetDirectory(), "Textures/Box.png");
@@ -30,6 +32,7 @@ public sealed class MountedDirectoryTests
         }
         finally
         {
+            Context.SetInstance(null);
             Directory.Delete(directory, true);
         }
     }
@@ -67,6 +70,38 @@ public sealed class MountedDirectoryTests
         }
         finally
         {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public void MountedDirectory_dispatches_file_changed_event_on_begin_frame()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"redbolt-mounted-directory-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var context = new Context();
+        Context.SetInstance(context);
+        var mountPoint = new MountedDirectory(directory, "assets");
+        ResourceEvents.FileChanged? observed = null;
+        context.SubscribeToEvent<ResourceEvents.FileChanged>((ref ResourceEvents.FileChanged eventData) => observed = eventData);
+
+        try
+        {
+            mountPoint.SetWatching(true);
+            System.IO.File.WriteAllText(Path.Combine(directory, "Changed.txt"), "changed");
+            Thread.Sleep(1100);
+
+            var beginFrame = new CoreEvents.BeginFrameEvent();
+            context.SendEvent(ref beginFrame);
+
+            Assert.NotNull(observed);
+            Assert.Equal(Path.Combine(mountPoint.GetDirectory(), "Changed.txt"), observed.Value.FileName);
+            Assert.Equal("assets://Changed.txt", observed.Value.ResourceName);
+        }
+        finally
+        {
+            mountPoint.SetWatching(false);
+            Context.SetInstance(null);
             Directory.Delete(directory, true);
         }
     }
