@@ -759,8 +759,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `MultitouchAdapter : Object`
 - [~] `PointerAdapter.h`
   - [~] `PointerAdapter : Object`
-- [~] `DirectionAggregator.h`
-  - [~] `DirectionAggregator : Object`
+- [x] `DirectionAggregator.h`
+  - [x] `DirectionAggregator : Object` — event subscriptions, per-source axis state and averaging, focus/disconnect cleanup, touch tracking, dead zones, and masks are ported
 - [~] `DirectionalPadAdapter.h`
   - [~] `DirectionalPadAdapter : Object`
 - [~] `FreeFlyController.h`
