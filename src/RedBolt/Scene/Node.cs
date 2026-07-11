@@ -98,18 +98,18 @@ public sealed class Node : Animatable
         if (archive.IsInput) LoadPrefab(prefab, clearExisting: true);
     }
 
-    public NodePrefab GeneratePrefab()
+    public NodePrefab GeneratePrefab(bool includeTemporary = false)
     {
         var prefab = new NodePrefab();
         FillSerializablePrefab(prefab.Node, this, Id);
-        foreach (var component in _components.Where(static component => !component.IsTemporary))
+        foreach (var component in _components.Where(component => includeTemporary || !component.IsTemporary))
         {
             var componentPrefab = new SerializablePrefab();
             FillSerializablePrefab(componentPrefab, component, component.Id);
             prefab.Components.Add(componentPrefab);
         }
-        foreach (var child in _children.Where(static child => !child.IsTemporary))
-            prefab.Children.Add(child.GeneratePrefab());
+        foreach (var child in _children.Where(child => includeTemporary || !child.IsTemporary))
+            prefab.Children.Add(child.GeneratePrefab(includeTemporary));
         return prefab;
     }
 
@@ -443,7 +443,6 @@ public sealed class Node : Animatable
         var componentClonedEvent = new SceneEvents.ComponentClonedEvent
         {
             Scene = Scene,
-            Node = this,
             Component = component,
             CloneComponent = clone
         };

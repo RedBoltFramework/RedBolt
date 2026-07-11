@@ -326,7 +326,6 @@ public abstract class Serializable : Object
             {
                 var eventData = new SceneEvents.TemporaryChangedEvent
                 {
-                    Scene = node.Scene,
                     Serializable = this
                 };
                 node.Scene.SendEvent(ref eventData);
@@ -336,7 +335,6 @@ public abstract class Serializable : Object
             {
                 var eventData = new SceneEvents.TemporaryChangedEvent
                 {
-                    Scene = scene,
                     Serializable = this
                 };
                 scene.SendEvent(ref eventData);

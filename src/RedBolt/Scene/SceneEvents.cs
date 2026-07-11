@@ -40,7 +40,6 @@ public static class SceneEvents
     public struct ComponentClonedEvent
     {
         public Scene Scene;
-        public Node Node;
         public Component Component;
         public Component CloneComponent;
     }
@@ -92,13 +91,13 @@ public static class SceneEvents
 
     public struct TemporaryChangedEvent
     {
-        public Scene Scene;
         public Serializable Serializable;
     }
 
     public struct SceneUpdatesChangedEvent
     {
         public Scene Scene;
+        public bool UpdateEnabled;
     }
 
     public struct SceneForcedUpdateEvent
@@ -135,5 +134,56 @@ public static class SceneEvents
     {
         public Scene Scene;
         public float TimeStep;
+    }
+
+    public struct SceneNetworkUpdateEvent
+    {
+        public Scene Scene;
+        public float TimeStepReplica;
+        public float TimeStepInput;
+    }
+
+    public struct SceneNetworkPostUpdateEvent
+    {
+        public Scene Scene;
+        public float TimeStepReplica;
+        public float TimeStepInput;
+    }
+
+    public struct SceneDrawableUpdateFinishedEvent
+    {
+        public Scene Scene;
+        public float TimeStep;
+    }
+
+    public struct AsyncLoadProgressEvent
+    {
+        public Scene Scene;
+        public float Progress;
+        public int LoadedNodes;
+        public int TotalNodes;
+        public int LoadedResources;
+        public int TotalResources;
+    }
+
+    public struct AsyncLoadFinishedEvent
+    {
+        public Scene Scene;
+    }
+
+    public struct WorldOriginUpdateEvent
+    {
+        public Scene Scene;
+        public IntVector3 OldOrigin;
+        public IntVector3 NewOrigin;
+        public IntVector3 Delta;
+    }
+
+    public struct WorldOriginPostUpdateEvent
+    {
+        public Scene Scene;
+        public IntVector3 OldOrigin;
+        public IntVector3 NewOrigin;
+        public IntVector3 Delta;
     }
 }

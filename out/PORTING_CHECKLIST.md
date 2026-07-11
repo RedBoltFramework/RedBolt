@@ -354,8 +354,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A6. Scene — depends on Resource, Core
 
-- [~] `SceneEvents.h`
-  - [ ] scene event definitions
+- [x] `SceneEvents.h`
+  - [x] scene event definitions — update, network, drawable, animation, async loading, hierarchy, temporary, cloning, and world-origin payloads are ported
 - [ ] `AnimationDefs.h`
   - [ ] animation enums / constants
 - [ ] `PrefabTypes.h`
@@ -373,9 +373,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Animatable : Serializable` — object/attribute animation assignment, nested targeting, timing, and update application are ported
 - [x] `Component.h`
   - [x] `Component : Serializable` — attachment, enable state, IDs, type/ID persistence, scope/debug hooks, auxiliary data, and autoremove are ported
-- [~] `Node.h`
-  - [ ] `struct NodeImpl`
-  - [~] `Node : Serializable`
+- [x] `Node.h`
+  - [x] `struct NodeImpl` — represented by managed Node fields and collections; the C++ PImpl storage layer has no meaningful C# equivalent
+  - [x] `Node : Serializable` — hierarchy, transforms, tags/variables, components, events, cloning, IDs, and recursive prefab archive persistence are ported
 - [x] `LogicComponent.h`
   - [x] `LogicComponent : Component` — lifecycle, delayed start, update masks, and Scene update/post-update dispatch are ported; physics/world-origin callbacks remain scoped to their not-started subsystems
 - [ ] `TrackedComponent.h`
@@ -403,10 +403,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `PrefabReference : Component`
 - [ ] `SceneResolver.h`
   - [ ] `SceneResolver`
-- [~] `Scene.h`
-  - [~] `Scene : Node`
-- [~] `SceneResource.h`
-  - [~] `SceneResource : Resource`
+- [x] `Scene.h`
+  - [x] `Scene : Node` — managed ownership uses `Scene.Root` composition while preserving scene-root hierarchy, ID registries, update events, timing, and lookup behavior
+- [x] `SceneResource.h`
+  - [x] `SceneResource : Resource` — JSON, XML, and binary archive persistence, format detection/hints, prefab mode, scene settings, and complete temporary-inclusive hierarchy round-trips are ported
 - [x] `SplinePath.h`
   - [x] `SplinePath : Component` — control points/IDs, interpolation, length, movement, dirty tracking, and attribute restoration are ported
 - [x] `ShakeComponent.h`

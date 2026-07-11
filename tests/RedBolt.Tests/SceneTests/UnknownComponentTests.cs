@@ -1,4 +1,3 @@
-using System.Text;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -21,38 +20,24 @@ public sealed class UnknownComponentTests
     [Fact]
     public void SceneResource_creates_unknown_component_placeholder()
     {
-        const string json = """
+        var source = new SceneResource("Scenes/Test.scene");
+        source.GetScene().Root.LoadPrefab(new NodePrefab
         {
-          "UpdateEnabled": true,
-          "TimeScale": 1.0,
-          "ElapsedTime": 0.0,
-          "AsyncLoadingMs": 5,
-          "FileName": "Scenes/Test.scene",
-          "Root": {
-            "Id": 1,
-            "Name": "",
-            "Enabled": true,
-            "Temporary": false,
-            "Position": { "X": 0, "Y": 0, "Z": 0 },
-            "Rotation": { "W": 1, "X": 0, "Y": 0, "Z": 0 },
-            "Scale": { "X": 1, "Y": 1, "Z": 1 },
-            "Tags": [],
-            "Variables": [],
-            "Components": [
-              {
-                "TypeName": "Missing.Component",
-                "Id": 42,
-                "Temporary": true,
-                "Attributes": []
-              }
-            ],
-            "Children": []
-          }
-        }
-        """;
+            Components =
+            {
+                new SerializablePrefab
+                {
+                    TypeName = "Missing.Component",
+                    Id = 42,
+                    Temporary = true
+                }
+            }
+        });
 
-        var resource = new SceneResource("Scenes/Test.scene");
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        using var stream = new MemoryStream();
+        Assert.True(source.Save(stream, SceneResourceFormat.Json));
+        stream.Position = 0;
+        var resource = new SceneResource("Scenes/Loaded.scene");
         Assert.True(resource.Load(stream));
 
         var unknown = Assert.IsType<UnknownComponent>(resource.GetScene().GetComponent(42));

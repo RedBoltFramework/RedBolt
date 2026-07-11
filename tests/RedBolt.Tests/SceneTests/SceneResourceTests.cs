@@ -67,6 +67,20 @@ public sealed class SceneResourceTests
     }
 
     [Fact]
+    public void Binary_roundtrip_works()
+    {
+        var resource = CreateSampleSceneResource();
+        using var buffer = new MemoryStream();
+        Assert.True(resource.Save(buffer, SceneResourceFormat.Binary));
+        buffer.Position = 0;
+
+        var loaded = new SceneResource("Scenes/Loaded.scene");
+        Assert.True(loaded.Load(buffer));
+
+        AssertSceneLoaded(loaded.GetScene());
+    }
+
+    [Fact]
     public void Resource_cache_loads_scene_resource_from_file()
     {
         var tempDir = CreateTempDir();

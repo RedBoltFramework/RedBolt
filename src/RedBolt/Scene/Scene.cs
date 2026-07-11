@@ -65,7 +65,8 @@ public sealed class Scene : Object
 
         var eventData = new SceneEvents.SceneUpdatesChangedEvent
         {
-            Scene = this
+            Scene = this,
+            UpdateEnabled = enable
         };
         SendEvent(ref eventData);
     }
