@@ -413,10 +413,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PrefabReader : NonCopyable` — represented by an abstract managed reader; C# reference types do not expose C++ copy construction
   - [x] `PrefabReaderFromMemory : PrefabReader`
   - [~] `PrefabReaderFromArchive : PrefabReader` — archive traversal and block lifetime are ported; SerializablePrefab archive flags and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
-- [ ] `PrefabWriter.h`
-  - [ ] `PrefabWriter : NonCopyable`
-  - [ ] `PrefabWriterToMemory : PrefabWriter`
-  - [ ] `PrefabWriterToArchive : PrefabWriter`
+- [~] `PrefabWriter.h`
+  - [x] `PrefabWriter : NonCopyable` — represented by an abstract managed writer; C# reference types do not expose C++ copy construction
+  - [x] `PrefabWriterToMemory : PrefabWriter`
+  - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, and save flags are ported; SerializablePrefab archive flag overloads, compact attribute-name hashes, and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
 - [ ] `PrefabResource.h`
   - [ ] `PrefabResource : SimpleResource`
 - [ ] `PrefabReference.h`

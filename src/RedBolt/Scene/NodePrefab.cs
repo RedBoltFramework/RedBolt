@@ -23,6 +23,45 @@ public sealed class SerializablePrefab
     public bool Temporary { get; set; }
     public List<AttributePrefab> Attributes { get; } = [];
 
+    public void Import(Serializable? serializable, PrefabSaveFlag flags = PrefabSaveFlag.None)
+    {
+        TypeName = serializable!.GetTypeName();
+        Temporary = serializable.IsTemporary;
+
+        Attributes.Clear();
+        for (var attributeIndex = 0u; attributeIndex < serializable.Attributes.Count; ++attributeIndex)
+        {
+            var attribute = serializable.Attributes[(int)attributeIndex];
+
+            // If temporary attribute saving is enabled, it overrides other flags.
+            var shouldSave = attribute.ShouldSave
+                || ((flags & PrefabSaveFlag.SaveTemporary) != 0 && (attribute.Mode & AttributeMode.Temporary) != 0);
+            if (!shouldSave)
+                continue;
+
+            if ((attribute.Mode & AttributeMode.Prefab) == 0 && (flags & PrefabSaveFlag.Prefab) != 0)
+                continue;
+
+            var value = Variant.FromObject(serializable.OnGetAttribute(attribute));
+
+            // Skip defaults if allowed
+            if ((flags & PrefabSaveFlag.SaveDefaultValues) == 0)
+            {
+                var defaultValue = Variant.FromObject(serializable.GetAttributeDefault(attributeIndex));
+                if (value == defaultValue)
+                    continue;
+            }
+
+            // TODO: port compact attribute names once AttributePrefab supports hash identifiers.
+            var attributePrefab = new AttributePrefab { Name = attribute.Name };
+            if ((flags & PrefabSaveFlag.EnumsAsStrings) != 0 && attribute.EnumNames.Count != 0)
+                value = new Variant(attribute.ConvertEnumToString(value.GetUInt()));
+
+            attributePrefab.Value = value;
+            Attributes.Add(attributePrefab);
+        }
+    }
+
     public void SerializeInBlock(Archive archive)
     {
         var type = TypeName; var id = Id; var temporary = Temporary;
@@ -53,6 +92,16 @@ public sealed class NodePrefab
     public SerializablePrefab Node { get; } = new();
     public List<SerializablePrefab> Components { get; } = [];
     public List<NodePrefab> Children { get; } = [];
+
+    public void Clear()
+    {
+        Node.TypeName = string.Empty;
+        Node.Id = 0;
+        Node.Temporary = false;
+        Node.Attributes.Clear();
+        Components.Clear();
+        Children.Clear();
+    }
 
     public void SerializeInBlock(Archive archive)
     {
