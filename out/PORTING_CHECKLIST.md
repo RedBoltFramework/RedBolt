@@ -761,8 +761,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PointerAdapter : Object` — frame/input subscriptions, mouse/touch/joystick transitions, touch ownership, accelerated directional movement, pointer events, masks, and cleanup are ported
 - [x] `DirectionAggregator.h`
   - [x] `DirectionAggregator : Object` — event subscriptions, per-source axis state and averaging, focus/disconnect cleanup, touch tracking, dead zones, and masks are ported
-- [~] `DirectionalPadAdapter.h`
-  - [~] `DirectionalPadAdapter : Object`
+- [x] `DirectionalPadAdapter.h`
+  - [x] `DirectionalPadAdapter : Object` — aggregated source state, keyboard/axis/hat subscriptions, hysteresis, focus/disconnect cleanup, synthesized transitions, and repeat timing are ported
 - [~] `FreeFlyController.h`
   - [~] `FreeFlyController : Component`
 - [x] `MoveAndOrbitComponent.h`
