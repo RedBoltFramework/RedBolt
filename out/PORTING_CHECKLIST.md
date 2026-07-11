@@ -375,8 +375,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] scene event definitions — update, network, drawable, animation, async loading, hierarchy, temporary, cloning, and world-origin payloads are ported
 - [x] `AnimationDefs.h`
   - [x] animation enums / constants — `WrapMode` (Loop/Once/Clamp) ported
-- [ ] `PrefabTypes.h`
-  - [ ] prefab enums / constants
+- [x] `PrefabTypes.h`
+  - [x] `AttributeId`, `SerializableId`, and prefab archive/save/load flags
+  - [x] `ToNodeFlags` and `ToComponentFlags` — preserved the source expression exactly
 - [x] `Serializable.h`
   - [x] `Serializable : Object` — attribute access/defaults, binary/XML/JSON/Archive serialization, temporary state, copying, and managed reflection cloning are ported
 - [x] `ValueAnimationInfo.h`
