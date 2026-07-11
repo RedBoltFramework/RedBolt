@@ -220,44 +220,44 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ScanFlags`
 - [x] `FileIdentifier.h`
   - [x] `struct FileIdentifier`
-- [~] `Deserializer.h`
-  - [~] `Deserializer` - packed vector/quaternion helpers and in-place buffer read helper are now ported; custom-variant/context-backed gaps remain
-- [~] `Serializer.h`
-  - [~] `Serializer` - packed vector/quaternion helpers are now ported; custom-variant/pointer serialization gaps remain
+- [x] `Deserializer.h`
+  - [x] `Deserializer` — managed references replace pointer-valued variants; all serializable managed variant categories are supported
+- [x] `Serializer.h`
+  - [x] `Serializer` — managed references replace pointer-valued variants; all serializable managed variant categories are supported
 - [x] `AbstractFile.h`
   - [x] `AbstractFile : Deserializer, Serializer`
-- [~] `MemoryBuffer.h`
-  - [~] `MemoryBuffer : AbstractFile` - managed backing storage now exposes a real data pointer like rbfx, and the extra enumerable/size constructors are gone; the remaining gap is that C# still models the upstream const-vs-non-const pointer/`VectorBuffer` overload split with `ReadOnlyMemory<byte>` and a read-only flag where const overloading is not expressible
-- [~] `VectorBuffer.h`
-  - [~] `VectorBuffer : AbstractFile` - managed `byte[]` backing, rbfx constructor surface, direct live `GetBuffer()` access, and default-name behavior are in place; the remaining gap is that raw `GetData()` / `GetModifiableData()` pointers are unavailable for managed storage so RedBolt avoids long-lived pinning there
+- [x] `MemoryBuffer.h`
+  - [x] `MemoryBuffer : AbstractFile` — constness is represented by `ReadOnlyMemory<byte>` and managed read-only state
+- [x] `VectorBuffer.h`
+  - [x] `VectorBuffer : AbstractFile` — live managed array access replaces unsafe long-lived raw pointers
 - [ ] `File.h`
   - [ ] `File : Object, AbstractFile`
 - [ ] `Compression.h`
   - [ ] compression free functions
-- [~] `Log.h`
-  - [ ] `Logger`
-  - [~] `Log : Object`
+- [x] `Log.h`
+  - [x] `Logger` — represented by `Microsoft.Extensions.Logging.ILogger`
+  - [x] `Log : Object`
 - [ ] `IOEvents.h`
   - [ ] IO event definitions
-- [~] `ArchiveBase.h`
-  - [~] `ArchiveBase` — base error, EOF, delayed-exception, and version behavior are ported; typed block-stack implementation awaits concrete archive formats
+- [x] `ArchiveBase.h`
+  - [x] `ArchiveBase`
   - [x] `ArchiveBlockBase`
-- [~] `Archive.h`
+- [x] `Archive.h`
   - [x] `ArchiveBlock : MovableNonCopyable` — `IDisposable` replaces deterministic C++ destruction
-  - [~] `Archive` — interface, block scope helpers, name validation, and primitive entry points are ported; concrete archive formats remain
-- [ ] `ArchiveSerializationBasic.h`
-  - [ ] basic archive serialization helpers
-- [ ] `ArchiveSerializationContainer.h`
-  - [ ] container archive serialization helpers
-- [ ] `ArchiveSerializationVariant.h`
-  - [ ] variant archive serialization helpers
-- [ ] `ArchiveSerialization.h`
-  - [ ] aggregate serialization entry points
-- [ ] `BinaryArchive.h`
-  - [ ] `BinaryOutputArchiveBlock : ArchiveBlockBase`
-  - [ ] `BinaryOutputArchive : BinaryArchiveBase<...>`
-  - [ ] `BinaryInputArchiveBlock : ArchiveBlockBase`
-  - [ ] `BinaryInputArchive : BinaryArchiveBase<...>`
+  - [x] `Archive`
+- [x] `ArchiveSerializationBasic.h`
+  - [x] basic archive serialization helpers
+- [x] `ArchiveSerializationContainer.h`
+  - [x] container archive serialization helpers
+- [x] `ArchiveSerializationVariant.h`
+  - [x] variant archive serialization helpers
+- [x] `ArchiveSerialization.h`
+  - [x] aggregate serialization entry points
+- [x] `BinaryArchive.h`
+  - [x] `BinaryOutputArchiveBlock : ArchiveBlockBase`
+  - [x] `BinaryOutputArchive : BinaryArchiveBase<...>`
+  - [x] `BinaryInputArchiveBlock : ArchiveBlockBase`
+  - [x] `BinaryInputArchive : BinaryArchiveBase<...>`
 - [ ] `Base64Archive.h`
   - [ ] `Base64OutputArchive : VectorBuffer, BinaryOutputArchive`
   - [ ] `Base64InputArchive : VectorBuffer, BinaryInputArchive`
