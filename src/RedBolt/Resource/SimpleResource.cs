@@ -137,7 +137,7 @@ public abstract class SimpleResource : Resource
     public bool SaveFile(string fileName, InternalResourceFormat format)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         return Save(stream, format);
     }
 

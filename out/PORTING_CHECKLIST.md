@@ -236,8 +236,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `MemoryBuffer : AbstractFile` — constness is represented by `ReadOnlyMemory<byte>` and managed read-only state
 - [x] `VectorBuffer.h`
   - [x] `VectorBuffer : AbstractFile` — live managed array access replaces unsafe long-lived raw pointers
-- [ ] `File.h`
-  - [ ] `File : Object, AbstractFile`
+- [~] `File.h`
+  - [~] `File : Object, AbstractFile` — filesystem open/read/write/seek/flush/checksum/copy and binary/text helpers are ported; package-file, compressed-file, and Android asset paths remain TODO because their managed dependencies are not available. Static `System.IO.File` forwards preserve existing managed call sites after introducing the ported `File` type.
 - [ ] `Compression.h`
   - [ ] compression free functions
 - [x] `Log.h`

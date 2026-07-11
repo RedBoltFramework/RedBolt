@@ -303,20 +303,20 @@ public sealed class ResourceCache
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var fileName = GetResourceFileName(name);
-        return string.IsNullOrEmpty(fileName) ? null : File.OpenRead(fileName);
+        return string.IsNullOrEmpty(fileName) ? null : System.IO.File.OpenRead(fileName);
     }
 
     public string GetResourceFileName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var resourceName = GetResolvedIdentifier(new FileIdentifier(name)).FileName;
-        if (Path.IsPathFullyQualified(resourceName) && File.Exists(resourceName))
+        if (Path.IsPathFullyQualified(resourceName) && System.IO.File.Exists(resourceName))
             return resourceName;
 
         foreach (var resourceDir in _resourceDirs)
         {
             var candidate = Path.Combine(resourceDir, resourceName);
-            if (File.Exists(candidate))
+            if (System.IO.File.Exists(candidate))
                 return candidate;
         }
 
@@ -486,7 +486,7 @@ public sealed class ResourceCache
             {
                 foreach (var file in Directory.EnumerateFiles(root, filter, options))
                 {
-                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (File.GetAttributes(file) & FileAttributes.Hidden) != 0)
+                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (System.IO.File.GetAttributes(file) & FileAttributes.Hidden) != 0)
                         continue;
                     result.Add(Path.GetRelativePath(resourceDir, file).Replace('\\', '/'));
                 }
@@ -495,7 +495,7 @@ public sealed class ResourceCache
             {
                 foreach (var directory in Directory.EnumerateDirectories(root, filter, options))
                 {
-                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
+                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (System.IO.File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
                         continue;
                     result.Add(Path.GetRelativePath(resourceDir, directory).Replace('\\', '/'));
                 }
@@ -558,7 +558,7 @@ public sealed class ResourceCache
         resource.SetAsyncLoadState(AsyncLoadState.Loading);
         try
         {
-            using var stream = File.OpenRead(fileName);
+            using var stream = System.IO.File.OpenRead(fileName);
             resource.SetAsyncLoadState(resource.BeginLoad(stream) ? AsyncLoadState.Success : AsyncLoadState.Fail);
         }
         catch

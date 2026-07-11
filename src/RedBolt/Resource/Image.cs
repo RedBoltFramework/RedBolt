@@ -84,13 +84,13 @@ public sealed class Image : Resource
         {
             if (!ImageSdl.SavePng(this, tempFile))
                 return false;
-            using var source = File.OpenRead(tempFile);
+            using var source = System.IO.File.OpenRead(tempFile);
             source.CopyTo(destination);
             return true;
         }
         finally
         {
-            File.Delete(tempFile);
+            System.IO.File.Delete(tempFile);
         }
     }
 
@@ -102,7 +102,7 @@ public sealed class Image : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var rgba = Components == 4 ? this : ConvertToRGBA();
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
         var pixelSize = checked(rgba.Width * rgba.Height * 4);
         writer.Write((byte)'B'); writer.Write((byte)'M'); writer.Write(54 + pixelSize);
@@ -121,7 +121,7 @@ public sealed class Image : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var rgba = Components == 4 ? this : ConvertToRGBA();
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)0); writer.Write((byte)0); writer.Write((byte)2);
         writer.Write(new byte[5]); writer.Write((short)0); writer.Write((short)0);

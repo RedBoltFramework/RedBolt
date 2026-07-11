@@ -35,7 +35,7 @@ internal static class ImageFileWriter
         var pixelDataSize = checked(width * height * 4);
         var fileSize = checked(fileHeaderSize + dibHeaderSize + pixelDataSize);
 
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
 
         writer.Write((byte)'B');
@@ -83,7 +83,7 @@ internal static class ImageFileWriter
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(fileName)) ?? ".");
 
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
 
         writer.Write(PngSignature);

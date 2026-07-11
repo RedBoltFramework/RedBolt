@@ -3668,8 +3668,8 @@ layout(std140) uniform Material
 
         try
         {
-            File.WriteAllText(vertexPath, vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
-            File.WriteAllText(pixelPath, pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            System.IO.File.WriteAllText(vertexPath, vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            System.IO.File.WriteAllText(pixelPath, pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
         }
         catch (Exception error)
         {

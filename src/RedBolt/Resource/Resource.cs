@@ -48,7 +48,7 @@ public abstract class Resource : Object
     public bool LoadFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = File.OpenRead(fileName);
+        using var stream = System.IO.File.OpenRead(fileName);
         AbsoluteFileName = fileName;
         return Load(stream);
     }
@@ -61,7 +61,7 @@ public abstract class Resource : Object
     public virtual bool SaveFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = File.Create(fileName);
+        using var stream = System.IO.File.Create(fileName);
         return Save(stream);
     }
 

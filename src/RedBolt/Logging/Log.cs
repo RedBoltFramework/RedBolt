@@ -128,8 +128,8 @@ internal static class Log
                 lock (sync)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
-                    File.AppendAllText(path, entry.ToString());
-                    File.AppendAllText(path, Environment.NewLine);
+                    System.IO.File.AppendAllText(path, entry.ToString());
+                    System.IO.File.AppendAllText(path, Environment.NewLine);
                 }
             }
         }

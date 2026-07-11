@@ -158,11 +158,11 @@ public sealed class Shader : Resource
         if (!visited.Add(visitedKey))
             return true;
 
-        LastWriteTimeUtc = DateTime.SpecifyKind(File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc) > LastWriteTimeUtc
-            ? DateTime.SpecifyKind(File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc)
+        LastWriteTimeUtc = DateTime.SpecifyKind(System.IO.File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc) > LastWriteTimeUtc
+            ? DateTime.SpecifyKind(System.IO.File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc)
             : LastWriteTimeUtc;
 
-        using var file = File.OpenRead(fileName);
+        using var file = System.IO.File.OpenRead(fileName);
         using var reader = new StreamReader(file, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
         while (!reader.EndOfStream)
         {
@@ -172,7 +172,7 @@ public sealed class Shader : Resource
                 var includedResourceName = CombineResourcePath(resourceName, includeName);
                 var includedFileName = OwnerCache?.GetResourceFileName(includedResourceName)
                     ?? Path.GetFullPath(Path.Combine(Path.GetDirectoryName(fileName) ?? string.Empty, includeName));
-                if (!File.Exists(includedFileName) || !ProcessSource(includedResourceName, includedFileName, builder, visited))
+                if (!System.IO.File.Exists(includedFileName) || !ProcessSource(includedResourceName, includedFileName, builder, visited))
                     return false;
             }
             else

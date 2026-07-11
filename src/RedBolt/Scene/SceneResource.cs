@@ -88,12 +88,12 @@ public sealed class SceneResource : Resource
 
     public bool SaveFile(string fileName, SceneResourceFormat format, bool asPrefab = false)
     {
-        using var file = File.Create(fileName); return Save(file, format, asPrefab);
+        using var file = System.IO.File.Create(fileName); return Save(file, format, asPrefab);
     }
 
     public bool SaveFile(string fileName, InternalResourceFormat format, bool asPrefab = false)
     {
-        using var file = File.Create(fileName); return Save(file, format, asPrefab);
+        using var file = System.IO.File.Create(fileName); return Save(file, format, asPrefab);
     }
 
     public static string GetXmlRootName() => "resource";

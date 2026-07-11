@@ -55,7 +55,7 @@ internal static class ResourceLoading
 
         var resourceName = ResolveRelativeResourceName(owner, name);
         var fileName = ResolveRelativeFileName(owner, name);
-        if (string.IsNullOrEmpty(fileName) || !File.Exists(fileName))
+        if (string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(fileName))
             return null;
 
         if (Activator.CreateInstance(typeof(T), resourceName) is not T resource)
@@ -71,9 +71,9 @@ internal static class ResourceLoading
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var fileName = ResolveRelativeFileName(owner, name);
-        return string.IsNullOrEmpty(fileName) || !File.Exists(fileName)
+        return string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(fileName)
             ? null
-            : File.OpenRead(fileName);
+            : System.IO.File.OpenRead(fileName);
     }
 
     private static bool HasPath(string name)

@@ -48,11 +48,11 @@ public static class ProcessUtils
             return PlatformId.Web;
         if (OperatingSystem.IsLinux())
         {
-            if (File.Exists("/sys/firmware/devicetree/base/model"))
+            if (System.IO.File.Exists("/sys/firmware/devicetree/base/model"))
             {
                 try
                 {
-                    var model = File.ReadAllText("/sys/firmware/devicetree/base/model");
+                    var model = System.IO.File.ReadAllText("/sys/firmware/devicetree/base/model");
                     if (model.Contains("Raspberry Pi", StringComparison.OrdinalIgnoreCase))
                         return PlatformId.RaspberryPi;
                 }
@@ -102,7 +102,7 @@ public static class ProcessUtils
     {
         var cpuCount = 0u;
 
-        if (OperatingSystem.IsLinux() && File.Exists("/proc/cpuinfo"))
+        if (OperatingSystem.IsLinux() && System.IO.File.Exists("/proc/cpuinfo"))
         {
             try
             {
@@ -110,7 +110,7 @@ public static class ProcessUtils
                 string physicalId = string.Empty;
                 string coreId = string.Empty;
 
-                foreach (var line in File.ReadLines("/proc/cpuinfo"))
+                foreach (var line in System.IO.File.ReadLines("/proc/cpuinfo"))
                 {
                     if (line.StartsWith("physical id", StringComparison.Ordinal))
                         physicalId = line[(line.IndexOf(':') + 1)..].Trim();
@@ -155,11 +155,11 @@ public static class ProcessUtils
 
     public static ulong GetTotalMemory()
     {
-        if (OperatingSystem.IsLinux() && File.Exists("/proc/meminfo"))
+        if (OperatingSystem.IsLinux() && System.IO.File.Exists("/proc/meminfo"))
         {
             try
             {
-                foreach (var line in File.ReadLines("/proc/meminfo"))
+                foreach (var line in System.IO.File.ReadLines("/proc/meminfo"))
                 {
                     if (!line.StartsWith("MemTotal:", StringComparison.Ordinal))
                         continue;
