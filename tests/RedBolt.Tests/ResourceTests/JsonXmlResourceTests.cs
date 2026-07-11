@@ -134,6 +134,36 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void JSONValue_complex_variants_roundtrip()
+    {
+        var map = new StringVariantMap
+        {
+            ["enabled"] = new Variant(true),
+            ["values"] = new Variant(new VariantVector { new Variant(7), new Variant("rbfx") })
+        };
+        var json = new JSONValue();
+        json.SetVariant(new Variant(map));
+
+        var loaded = json.GetVariant().GetStringVariantMap();
+        Assert.Equal(new Variant(true), loaded["enabled"]);
+        Assert.Equal(new Variant(7), loaded["values"].GetVariantVector()[0]);
+        Assert.Equal(new Variant("rbfx"), loaded["values"].GetVariantVector()[1]);
+    }
+
+    [Fact]
+    public void JSONValue_replace_recursively_merges_objects()
+    {
+        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"keep\":1,\"replace\":2}}", out var value));
+        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"replace\":3,\"add\":4}}", out var replacement));
+
+        value.ReplaceRecursively(replacement);
+
+        Assert.Equal(1, value.Get("outer").Get("keep").GetInt());
+        Assert.Equal(3, value.Get("outer").Get("replace").GetInt());
+        Assert.Equal(4, value.Get("outer").Get("add").GetInt());
+    }
+
+    [Fact]
     public void XMLElement_hierarchy_helpers_work()
     {
         var xml = new XMLFile("test.xml");

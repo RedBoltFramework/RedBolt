@@ -304,8 +304,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] DDS format helpers
 - [~] `ImageCube.h`
   - [~] `ImageCube : Resource`
-- [~] `JSONValue.h`
-  - [~] `JSONValue`
+- [x] `JSONValue.h`
+  - [x] `JSONValue` — scalar/object/array manipulation, recursive replacement, JSON conversion, and nested Variant containers are ported
 - [x] `JSONFile.h`
   - [x] `JSONFile : Resource` — permissive resource parsing, strict standalone parsing, custom indentation, root access, and JSON Archive callbacks are ported
 - [~] `XMLElement.h`

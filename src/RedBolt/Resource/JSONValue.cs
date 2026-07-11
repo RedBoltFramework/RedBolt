@@ -148,6 +148,20 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public string GetNumberTypeName() => GetNumberType().ToString();
 
+    public static string GetValueTypeName(JSONValueType type) => type.ToString();
+
+    public static string GetNumberTypeName(JSONNumberType type) => type.ToString();
+
+    public static JSONValueType GetValueTypeFromName(string? typeName)
+    {
+        return Enum.TryParse<JSONValueType>(typeName, ignoreCase: true, out var type) ? type : JSONValueType.Null;
+    }
+
+    public static JSONNumberType GetNumberTypeFromName(string? typeName)
+    {
+        return Enum.TryParse<JSONNumberType>(typeName, ignoreCase: true, out var type) ? type : JSONNumberType.NaN;
+    }
+
     public bool GetBool(bool defaultValue = false) => IsBool ? _boolValue : defaultValue;
 
     public int GetInt(int defaultValue = 0) => IsNumber ? (int)_numberValue : defaultValue;
@@ -159,6 +173,8 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public double GetDouble(double defaultValue = 0.0) => IsNumber ? _numberValue : defaultValue;
 
     public string GetString(string? defaultValue = null) => IsString ? _stringValue : defaultValue ?? string.Empty;
+
+    public CString GetCString(CString? defaultValue = null) => IsString ? new CString(_stringValue) : defaultValue ?? CString.Empty;
 
     public IReadOnlyList<JSONValue> GetArray() => IsArray ? _arrayValue : EmptyArray;
 
@@ -268,6 +284,24 @@ public sealed class JSONValue : IEquatable<JSONValue>
         NotifyChanged();
     }
 
+    public void ReplaceRecursively(JSONValue overrideValue)
+    {
+        ArgumentNullException.ThrowIfNull(overrideValue);
+        if (!IsObject || !overrideValue.IsObject)
+        {
+            Set(overrideValue);
+            return;
+        }
+
+        foreach (var (key, value) in overrideValue._objectValue)
+        {
+            if (_objectValue.TryGetValue(key, out var current) && current.IsObject && value.IsObject)
+                current.ReplaceRecursively(value);
+            else
+                Set(key, value);
+        }
+    }
+
     public void SetType(JSONValueType valueType, JSONNumberType numberType = JSONNumberType.NaN)
     {
         ResetType(valueType, numberType);
@@ -351,17 +385,74 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public Variant GetVariant()
     {
         var type = Variant.GetTypeFromName(Get("type").GetString());
-        var value = Get("value");
+        return Get("value").GetVariantValue(type);
+    }
+
+    public void SetVariantValue(Variant value) => Set(FromVariantValue(value));
+
+    public Variant GetVariantValue(VariantType type)
+    {
         return type switch
         {
-            VariantType.Bool => new Variant(value.GetBool()),
-            VariantType.Int => new Variant(value.GetInt()),
-            VariantType.Int64 => new Variant((long)value.GetDouble()),
-            VariantType.Float => new Variant(value.GetFloat()),
-            VariantType.Double => new Variant(value.GetDouble()),
-            VariantType.String => new Variant(value.GetString()),
-            _ => Variant.FromString(type, value.GetString())
+            VariantType.Bool => new Variant(GetBool()),
+            VariantType.Int => new Variant(GetInt()),
+            VariantType.Int64 => new Variant((long)GetDouble()),
+            VariantType.Float => new Variant(GetFloat()),
+            VariantType.Double => new Variant(GetDouble()),
+            VariantType.String => new Variant(GetString()),
+            VariantType.VariantVector => new Variant(GetVariantVector()),
+            VariantType.VariantMap => new Variant(GetVariantMap()),
+            VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
+            VariantType.StringVector => new Variant(new StringVector(GetArray().Select(static item => item.GetString()))),
+            _ => Variant.FromString(type, GetString())
         };
+    }
+
+    public void SetVariantVector(VariantVector values) => Set(values.Select(FromVariantObject));
+
+    public VariantVector GetVariantVector() => new(GetArray().Select(static item => item.GetVariant()));
+
+    public void SetVariantMap(VariantMap values)
+    {
+        Set(values.Select(pair =>
+        {
+            var item = FromVariantObject(pair.Value);
+            item.Set("hash", new JSONValue(pair.Key.Value));
+            return item;
+        }));
+    }
+
+    public VariantMap GetVariantMap()
+    {
+        var result = new VariantMap();
+        foreach (var item in GetArray())
+            result[new StringHash(item.Get("hash").GetUInt())] = item.GetVariant();
+        return result;
+    }
+
+    public void SetStringVariantMap(StringVariantMap values)
+    {
+        Set(values.Select(pair =>
+        {
+            var item = FromVariantObject(pair.Value);
+            item.Set("name", new JSONValue(pair.Key));
+            return item;
+        }));
+    }
+
+    public StringVariantMap GetStringVariantMap()
+    {
+        var result = new StringVariantMap();
+        foreach (var item in GetArray())
+            result[item.Get("name").GetString()] = item.GetVariant();
+        return result;
+    }
+
+    private static JSONValue FromVariantObject(Variant value)
+    {
+        var result = new JSONValue();
+        result.SetVariant(value);
+        return result;
     }
 
     private static JSONValue FromVariantValue(Variant value)
@@ -374,8 +465,26 @@ public sealed class JSONValue : IEquatable<JSONValue>
             VariantType.Float => new JSONValue(value.GetFloat()),
             VariantType.Double => new JSONValue(value.GetDouble()),
             VariantType.String => new JSONValue(value.GetString()),
+            VariantType.VariantVector => new JSONValue(value.GetVariantVector().Select(FromVariantObject)),
+            VariantType.VariantMap => FromVariantMap(value.GetVariantMap()),
+            VariantType.StringVariantMap => FromStringVariantMap(value.GetStringVariantMap()),
+            VariantType.StringVector => new JSONValue(value.GetStringVector().Select(static item => new JSONValue(item))),
             _ => new JSONValue(value.ToString())
         };
+    }
+
+    private static JSONValue FromVariantMap(VariantMap values)
+    {
+        var result = new JSONValue();
+        result.SetVariantMap(values);
+        return result;
+    }
+
+    private static JSONValue FromStringVariantMap(StringVariantMap values)
+    {
+        var result = new JSONValue();
+        result.SetStringVariantMap(values);
+        return result;
     }
 
     public bool Equals(JSONValue? other)
