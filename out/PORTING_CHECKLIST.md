@@ -396,11 +396,13 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Node : Serializable` — hierarchy, transforms, tags/variables, components, events, cloning, IDs, and recursive prefab archive persistence are ported
 - [x] `LogicComponent.h`
   - [x] `LogicComponent : Component` — lifecycle, delayed start, update masks, and Scene update/post-update dispatch are ported; physics/world-origin callbacks remain scoped to their not-started subsystems
-- [ ] `TrackedComponent.h`
-  - [ ] `TrackedComponentBase : Component`
-  - [ ] `TrackedComponentRegistryBase : Component`
-  - [ ] `ReferencedComponentBase : TrackedComponentBase`
-  - [ ] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
+- [~] `TrackedComponent.h`
+  - [x] `TrackedComponentBase : Component`
+  - [x] `TrackedComponentRegistryBase : Component`
+  - [x] `ReferencedComponentBase : TrackedComponentBase`
+  - [x] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
+  - [~] `TrackedComponent<ComponentType, RegistryComponentType>` — registry reconnect, enable-state, and scene lifecycle logic are ported; C# cannot derive from a type parameter, so the C++ `: ComponentType` inheritance remains a TODO in the managed source, and `IsOnlyEnabledTracked` is an instance virtual property instead of C++ static storage
+  - [x] `ComponentReference` helpers — packing, unpacking, and string formatting
 - [x] `UnknownComponent.h`
   - [x] `UnknownComponent : Component` — unknown type preservation and temporary placeholder loading across binary/XML/JSON are ported
 - [x] `NodePrefab.h` — pulled in as a required dependency of in-progress Node/SceneResource serialization
