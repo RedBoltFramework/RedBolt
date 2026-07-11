@@ -2581,7 +2581,7 @@ layout(std140) uniform Material
         return desc.DepthBufferFormat;
     }
 
-    private static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format) => format switch
+    internal static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format) => format switch
     {
         TextureFormat.Depth32 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
         TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
