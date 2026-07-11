@@ -289,8 +289,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `VirtualFileSystem : Object`
   - [x] `MountPointGuard : MovableNonCopyable` — C# reference ownership with `IDisposable`; C++ move assignment has no direct C# operator equivalent and remains a TODO in the port.
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
-- [ ] `FileWatcher.h`
-  - [ ] `FileWatcher : Object, Thread`
+- [x] `FileWatcher.h`
+  - [x] `FileChangeKind` and `FileChange`
+  - [x] `FileWatcher : Object, Thread` — C# uses `FileSystemWatcher` event delivery and `IDisposable` instead of re-porting the C++ platform thread/inotify implementation.
 - [ ] `MultiFileWatcher.h`
   - [ ] `MultiFileWatcher : Object`
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
