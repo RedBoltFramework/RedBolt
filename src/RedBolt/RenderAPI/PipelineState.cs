@@ -83,16 +83,21 @@ public class PipelineState : DeviceObject
         if (shader is null || shader.IsNull)
             return;
 
+        var reflection = new ShaderProgramReflection([desc.ComputeShader]);
+        using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice: GetRenderDevice(),
+            RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute);
         using var name = new CString(GetDebugName());
         using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
         {
             Name = name.Pointer,
             PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
-            ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+            ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+            ResourceLayoutImmutableSamplers = samplers.First!,
+            ResourceLayoutNumImmutableSamplers = samplers.Count
         };
         using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
         device.CreateComputePipelineState(createInfo, out _handle);
-        FinishCreation([desc.ComputeShader]);
+        FinishCreation(reflection);
     }
 
     private void CreateGPU(IRenderDevice device, GraphicsPipelineStateDesc desc)
@@ -108,12 +113,18 @@ public class PipelineState : DeviceObject
             if (desc.InputLayout.Size != 0u)
                 layout = new TemporaryLayoutArray(desc.InputLayout.Elements);
 
+            var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
+            var reflection = new ShaderProgramReflection(shaders);
+            using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, GetRenderDevice(),
+                RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var name = new CString(GetDebugName());
             using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = name.Pointer,
                 PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                ResourceLayoutImmutableSamplers = samplers.First!,
+                ResourceLayoutNumImmutableSamplers = samplers.Count
             };
             using var createInfo = new GraphicsPipelineStateCreateInfo
             {
@@ -156,7 +167,7 @@ public class PipelineState : DeviceObject
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
             device.CreateGraphicsPipelineState(createInfo, out _handle);
-            FinishCreation([desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader]);
+            FinishCreation(reflection);
         }
         finally
         {
@@ -164,7 +175,7 @@ public class PipelineState : DeviceObject
         }
     }
 
-    private void FinishCreation(IEnumerable<RawShader?> shaders)
+    private void FinishCreation(ShaderProgramReflection reflection)
     {
         if (_handle is null || _handle.IsNull)
         {
@@ -177,7 +188,7 @@ public class PipelineState : DeviceObject
             DestroyGPU();
             return;
         }
-        _reflection = new ShaderProgramReflection(shaders);
+        _reflection = reflection;
         _reflection.ConnectToShaderVariables(GetPipelineType(), _shaderResourceBinding);
         ClearDataLost();
     }
@@ -301,6 +312,119 @@ public class PipelineState : DeviceObject
         public LayoutElement First { get; }
         public uint Count { get; }
         public void Dispose() { _semantic.Dispose(); Marshal.FreeHGlobal(_memory); }
+    }
+
+    private sealed class TemporaryImmutableSamplers : IDisposable
+    {
+        private readonly CString[] _names;
+        private readonly SamplerDesc[] _descriptions;
+        private readonly ImmutableSamplerDesc[] _samplers;
+        private readonly global::SharpCpp.NativeArray<ImmutableSamplerDesc>? _array;
+
+        public TemporaryImmutableSamplers(ImmutableSamplersDesc overrides, ShaderProgramReflection reflection,
+            RenderDevice? _renderDevice, RedBolt.Bindings.Diligent.ShaderType stages)
+        {
+            var resources = reflection.GetShaderResources().ToArray();
+            Count = (uint)resources.Length;
+            _names = new CString[resources.Length];
+            _descriptions = new SamplerDesc[resources.Length];
+            _samplers = new ImmutableSamplerDesc[resources.Length];
+            if (resources.Length == 0)
+                return;
+
+            for (var i = 0; i < resources.Length; ++i)
+            {
+                var pair = resources[i];
+                var source = FindSampler(overrides, pair.Key) ?? SamplerStateDesc.Bilinear();
+                _names[i] = new CString(pair.Value.InternalName);
+                _descriptions[i] = CreateSamplerDesc(source, _renderDevice);
+                _samplers[i] = new ImmutableSamplerDesc
+                {
+                    ShaderStages = stages,
+                    SamplerOrTextureName = _names[i].Pointer,
+                    Desc = _descriptions[i]
+                };
+            }
+            _array = new global::SharpCpp.NativeArray<ImmutableSamplerDesc>(_samplers);
+            First = _array[0];
+        }
+
+        public ImmutableSamplerDesc? First { get; }
+        public uint Count { get; }
+
+        public void Dispose()
+        {
+            _array?.Dispose();
+            foreach (var sampler in _samplers) sampler?.Dispose();
+            foreach (var description in _descriptions) description?.Dispose();
+            foreach (var name in _names) name?.Dispose();
+        }
+
+        private static SamplerStateDesc? FindSampler(ImmutableSamplersDesc overrides, StringHash name)
+        {
+            for (var i = 0; i < overrides.Size; ++i)
+            {
+                if (overrides.Names[i] == name)
+                    return overrides.Descriptions[i];
+            }
+            return null;
+        }
+
+        private static SamplerDesc CreateSamplerDesc(SamplerStateDesc source, RenderDevice? renderDevice)
+        {
+            var filter = source.FilterMode == TextureFilterMode.Default
+                ? renderDevice?.GetDefaultTextureFilterMode() ?? TextureFilterMode.Trilinear
+                : source.FilterMode;
+            var compareIndex = source.ShadowCompare ? 1 : 0;
+            var minMag = filter switch
+            {
+                TextureFilterMode.Nearest or TextureFilterMode.NearestAnisotropic => FilterType.FilterTypePoint,
+                TextureFilterMode.Anisotropic => FilterType.FilterTypeAnisotropic,
+                _ => FilterType.FilterTypeLinear
+            };
+            var mip = filter switch
+            {
+                TextureFilterMode.Nearest or TextureFilterMode.Bilinear => FilterType.FilterTypePoint,
+                TextureFilterMode.Anisotropic => FilterType.FilterTypeAnisotropic,
+                _ => FilterType.FilterTypeLinear
+            };
+            if (compareIndex != 0)
+            {
+                minMag = minMag switch
+                {
+                    FilterType.FilterTypePoint => FilterType.FilterTypeComparisonPoint,
+                    FilterType.FilterTypeAnisotropic => FilterType.FilterTypeComparisonAnisotropic,
+                    _ => FilterType.FilterTypeComparisonLinear
+                };
+                mip = mip switch
+                {
+                    FilterType.FilterTypePoint => FilterType.FilterTypeComparisonPoint,
+                    FilterType.FilterTypeAnisotropic => FilterType.FilterTypeComparisonAnisotropic,
+                    _ => FilterType.FilterTypeComparisonLinear
+                };
+            }
+            return new SamplerDesc
+            {
+                MinFilter = minMag,
+                MagFilter = minMag,
+                MipFilter = mip,
+                AddressU = ToNative(source[TextureCoordinate.U]),
+                AddressV = ToNative(source[TextureCoordinate.V]),
+                AddressW = ToNative(source[TextureCoordinate.W]),
+                MaxAnisotropy = source.Anisotropy != 0 ? source.Anisotropy : (uint)(renderDevice?.GetDefaultTextureAnisotropy() ?? 1),
+                ComparisonFunc = ComparisonFunction.ComparisonFuncLessEqual,
+                MinLOD = source.MinLod,
+                MaxLOD = source.MaxLod
+            };
+        }
+
+        private static RedBolt.Bindings.Diligent.TextureAddressMode ToNative(TextureAddressMode value) => value switch
+        {
+            TextureAddressMode.Wrap => RedBolt.Bindings.Diligent.TextureAddressMode.TextureAddressWrap,
+            TextureAddressMode.Mirror => RedBolt.Bindings.Diligent.TextureAddressMode.TextureAddressMirror,
+            TextureAddressMode.Clamp => RedBolt.Bindings.Diligent.TextureAddressMode.TextureAddressClamp,
+            _ => RedBolt.Bindings.Diligent.TextureAddressMode.TextureAddressUnknown
+        };
     }
 
     private static void ReleaseIfNotNull(IObject? value) { if (value is { IsNull: false }) _ = value.Release(); }
