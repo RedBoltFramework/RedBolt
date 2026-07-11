@@ -763,8 +763,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `DirectionAggregator : Object` — event subscriptions, per-source axis state and averaging, focus/disconnect cleanup, touch tracking, dead zones, and masks are ported
 - [x] `DirectionalPadAdapter.h`
   - [x] `DirectionalPadAdapter : Object` — aggregated source state, keyboard/axis/hat subscriptions, hysteresis, focus/disconnect cleanup, synthesized transitions, and repeat timing are ported
-- [~] `FreeFlyController.h`
-  - [~] `FreeFlyController : Component`
+- [x] `FreeFlyController.h`
+  - [x] `FreeFlyController : Component` — activation, mouse/keyboard, controller/generic axes and hats, acceleration, multitouch rotation/pan, pitch limits, and transform tracking are ported
 - [x] `MoveAndOrbitComponent.h`
   - [x] `MoveAndOrbitComponent : LogicComponent` — velocity, clamped pitch, yaw, node-rotation initialization, distance limits, and attributes are ported
 - [~] `MoveAndOrbitController.h`

@@ -19,6 +19,8 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private MouseMode _oldMouseMode = MouseMode.Absolute;
     private Quaternion? _lastKnownCameraRotation;
     private Vector3f _lastKnownEulerAngles;
+    private readonly AxisAdapter _axisAdapter = new();
+    private ContextEventSubscription? _multitouchSubscription;
 
     public FreeFlyController()
     {
@@ -89,6 +91,11 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
+        base.OnNodeSet(previousNode, currentNode);
+        _multitouchSubscription?.Dispose();
+        _multitouchSubscription = null;
+        if (currentNode is not null)
+            _multitouchSubscription = SubscribeToEvent<InputEvents.MultitouchEvent>(HandleMultitouch);
         if (currentNode is null && _isActive && _input is not null)
         {
             _input.SetMouseVisible(_oldMouseVisible);
@@ -139,10 +146,16 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private void HandleKeyboardAndMouse(float timeStep)
     {
         UpdateCameraAngles();
-        var eulerAngles = _lastKnownEulerAngles + HandleMouse();
+        var controllerRotation = new Vector3f(
+            _axisAdapter.Transform(_input?.GetControllerAxisPosition(ControllerAxis.RightY) ?? 0.0f),
+            _axisAdapter.Transform(_input?.GetControllerAxisPosition(ControllerAxis.RightX) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
+        var genericRotation = new Vector3f(
+            _axisAdapter.Transform(_input?.GetJoystickAxisPosition(3) ?? 0.0f),
+            _axisAdapter.Transform(_input?.GetJoystickAxisPosition(2) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
+        var eulerAngles = _lastKnownEulerAngles + HandleMouse() + controllerRotation + genericRotation;
         SetCameraAngles(eulerAngles);
 
-        var translation = HandleKeyboard(timeStep);
+        var translation = HandleKeyboard(timeStep) + HandleController(timeStep) + HandleGenericJoystick(timeStep);
         if (translation != Vector3f.Zero)
             Node.Translate(translation, TransformSpace.Local);
     }
@@ -178,6 +191,61 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         if (_input.GetScancodeDown(Scancode.E))
             result.Y += effectiveSpeed * timeStep;
         return result;
+    }
+
+    private Vector3f HandleController(float timeStep)
+    {
+        if (_input is null) return Vector3f.Zero;
+        var acceleration = MathDefs.Clamp(_axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.TriggerLeft)), 0.0f, 1.0f);
+        var speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
+        var result = new Vector3f(
+            _axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftX)) * speed * timeStep,
+            0.0f,
+            -_axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftY)) * speed * timeStep);
+        var hat = _input.GetHatPosition();
+        if ((hat & HatPosition.Up) != 0) result.Z += speed * timeStep;
+        if ((hat & HatPosition.Down) != 0) result.Z -= speed * timeStep;
+        if ((hat & HatPosition.Left) != 0) result.X -= speed * timeStep;
+        if ((hat & HatPosition.Right) != 0) result.X += speed * timeStep;
+        return result;
+    }
+
+    private Vector3f HandleGenericJoystick(float timeStep)
+    {
+        if (_input is null) return Vector3f.Zero;
+        var speed = _speed;
+        if (_input.HasJoystickAxisPosition(4))
+        {
+            var acceleration = MathDefs.Clamp((1.0f + _axisAdapter.Transform(_input.GetJoystickAxisPosition(4))) * 0.5f, 0.0f, 1.0f);
+            speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
+        }
+        return new Vector3f(
+            _axisAdapter.Transform(_input.GetJoystickAxisPosition(0)) * speed * timeStep,
+            0.0f,
+            -_axisAdapter.Transform(_input.GetJoystickAxisPosition(1)) * speed * timeStep);
+    }
+
+    private void HandleMultitouch(ref InputEvents.MultitouchEvent value)
+    {
+        const int multitouchMove = 2;
+        if (value.EventType != multitouchMove || !IsAttached) return;
+        var sensitivity = _touchSensitivity * 90.0f / 1080.0f;
+        if (value.NumFingers == 1)
+        {
+            UpdateCameraAngles();
+            var eulerAngles = _lastKnownEulerAngles;
+            eulerAngles.Y -= sensitivity * value.DX;
+            eulerAngles.X -= sensitivity * value.DY;
+            SetCameraAngles(eulerAngles);
+        }
+        else if (value.NumFingers == 2)
+        {
+            var position = Node.Position;
+            position += -Node.Right * (sensitivity * value.DX);
+            position += Node.Up * (sensitivity * value.DY);
+            position += Node.Direction * (sensitivity * (value.DSize.X + value.DSize.Y));
+            Node.SetPosition(position);
+        }
     }
 
     private void UpdateCameraAngles()

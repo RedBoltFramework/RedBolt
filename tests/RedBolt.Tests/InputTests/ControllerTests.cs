@@ -118,4 +118,45 @@ public sealed class ControllerTests
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMinDistance(), 2.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMaxDistance(), 40.0f));
     }
+
+    [Fact]
+    public void FreeFlyController_controller_axes_move_and_rotate()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("FreeFlyControllerAxes");
+        var controller = node.CreateComponent<FreeFlyController>();
+        controller.SetInput(Input);
+        Input.SetMouseMode(MouseMode.Absolute);
+        Input.SetControllerAxis(ControllerAxis.LeftX, 0.5f);
+        Input.SetControllerAxis(ControllerAxis.LeftY, 0.0f);
+        Input.SetControllerAxis(ControllerAxis.RightX, 0.5f);
+        Input.SetControllerAxis(ControllerAxis.RightY, 0.0f);
+
+        scene.Update(0.5f);
+
+        var transformedAxis = new AxisAdapter().Transform(0.5f);
+        Assert.True(MathDefs.ApproximatelyEquivalent(node.Position.Length, transformedAxis * 10.0f, 0.01f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(node.Rotation.YawAngle, transformedAxis * 50.0f, 0.1f));
+        Input.SetControllerAxis(ControllerAxis.LeftX, 0.0f);
+        Input.SetControllerAxis(ControllerAxis.RightX, 0.0f);
+    }
+
+    [Fact]
+    public void FreeFlyController_multitouch_rotates_and_pans()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("FreeFlyTouch");
+        node.CreateComponent<FreeFlyController>();
+        var rotate = new InputEvents.MultitouchEvent { EventType = 2, NumFingers = 1, DX = 12, DY = -6 };
+        Context.Instance.SendEvent(ref rotate);
+        Assert.False(node.Rotation.Equals(Quaternion.Identity));
+
+        var previousPosition = node.Position;
+        var pan = new InputEvents.MultitouchEvent
+        {
+            EventType = 2, NumFingers = 2, DX = 10, DY = 5, DSize = new Vector2i(2, 3)
+        };
+        Context.Instance.SendEvent(ref pan);
+        Assert.False(node.Position.ApproximatelyEquivalent(previousPosition));
+    }
 }

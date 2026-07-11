@@ -336,6 +336,8 @@ public sealed class Input : Object
         return _joystickAxisPositions.GetValueOrDefault(axis);
     }
 
+    public bool HasJoystickAxisPosition(uint axis) => _joystickAxisPositions.ContainsKey(axis);
+
     public HatPosition GetHatPosition()
     {
         return _hatPosition;
