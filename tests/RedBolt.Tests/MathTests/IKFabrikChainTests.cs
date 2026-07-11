@@ -1,0 +1,25 @@
+using RedBolt;
+
+namespace RedBolt.Tests;
+
+public sealed class IKFabrikChainTests
+{
+    [Fact]
+    public void Solve_reaches_target_without_changing_segment_lengths()
+    {
+        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
+        var middle = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var last = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.Identity);
+        var chain = new IKFabrikChain();
+        chain.AddNode(first);
+        chain.AddNode(middle);
+        chain.AddNode(last);
+        chain.UpdateLengths();
+
+        chain.Solve(new Vector3f(1.0f, 1.0f, 0.0f), new IKSettings { MaxIterations = 20, Tolerance = 0.0001f });
+
+        Assert.True((last.Position - new Vector3f(1.0f, 1.0f, 0.0f)).Length < 0.001f);
+        Assert.True(MathDefs.ApproximatelyEquivalent((middle.Position - first.Position).Length, 1.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent((last.Position - middle.Position).Length, 1.0f));
+    }
+}

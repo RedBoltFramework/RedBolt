@@ -148,7 +148,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `IKEyeChain`
   - [x] `IKChain`
   - [x] `IKSpineChain : IKChain`
-  - [ ] `IKFabrikChain : IKChain`
+  - [x] `IKFabrikChain : IKChain`
 
 ## A3. Core — depends on Container, Math
 
