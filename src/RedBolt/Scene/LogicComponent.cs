@@ -42,7 +42,7 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
 
     public bool IsDelayedStartCalled() => _delayedStartCalled;
 
-    protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         if (currentNode is not null)
             Start();

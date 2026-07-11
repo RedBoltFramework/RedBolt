@@ -151,7 +151,7 @@ public abstract class Component : Animatable
     {
     }
 
-    protected internal virtual void OnNodeSet(Node? previousNode, Node? currentNode)
+    protected virtual void OnNodeSet(Node? previousNode, Node? currentNode)
     {
     }
 
@@ -163,7 +163,7 @@ public abstract class Component : Animatable
     {
     }
 
-    protected internal virtual void OnSetEnabled()
+    public virtual void OnSetEnabled()
     {
     }
 

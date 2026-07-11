@@ -42,7 +42,7 @@ public sealed class MoveAndOrbitComponent : LogicComponent
             100.0f);
     }
 
-    protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         base.OnNodeSet(previousNode, currentNode);
         if (currentNode is not null)

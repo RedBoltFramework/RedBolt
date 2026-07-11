@@ -162,6 +162,10 @@ These are the ONLY places C# is allowed to differ from C++:
   - `IntVector[234]` -> `Vector[234]i`
 - `CString` is our addition and is to be kept, as well as related customizations of other APIs
 - No URHO3D_OBJECT-related metadata code -> replaced by C# type system/reflection with `ObjectReflection` as a facade
+- C++ `friend` has no C# equivalent. A member that C++ makes `protected`/`private` but reaches
+  from a `friend` class is mapped to `internal` (or `protected internal` when it is also
+  `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility
+  violation of section 3. A member that is `public` in C++ must still be `public` in C#.
 
 Anything not on this list must match C++.
 

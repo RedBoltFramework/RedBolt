@@ -86,7 +86,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     public void SetRotationUIElement(object? element) => _rotationUIElement = element;
     public object? GetRotationUIElement() => _rotationUIElement;
 
-    protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         base.OnNodeSet(previousNode, currentNode);
         _connectToComponentCalled = false;

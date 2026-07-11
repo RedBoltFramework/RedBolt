@@ -89,7 +89,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     public float GetAxisSensitivity() => _axisSensitivity;
 
-    protected internal override void OnNodeSet(Node? previousNode, Node? currentNode)
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         base.OnNodeSet(previousNode, currentNode);
         _multitouchSubscription?.Dispose();

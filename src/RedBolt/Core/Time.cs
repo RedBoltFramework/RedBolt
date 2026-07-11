@@ -78,7 +78,7 @@ public sealed class Time : Object
         Thread.Sleep((int)remaining);
     }
 
-    internal void BeginFrame(float elapsedTimeStep)
+    public void BeginFrame(float elapsedTimeStep)
     {
         ++_frameNumber;
         if (_frameNumber == 0)
@@ -94,7 +94,7 @@ public sealed class Time : Object
         SendEvent(ref eventData);
     }
 
-    internal void EndFrame()
+    public void EndFrame()
     {
         SendEvent<CoreEvents.EndFrameEvent>();
         SendEvent<CoreEvents.EndFramePrivateEvent>();
