@@ -301,8 +301,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A5. Resource — depends on IO, Core
 
-- [ ] `ResourceEvents.h`
-  - [ ] resource event definitions
+- [x] `ResourceEvents.h`
+  - [x] resource event definitions — C++ `URHO3D_EVENT` declarations are represented by public struct-based events.
 - [ ] `Decompress.h`
   - [ ] texture decompress free functions
 - [x] `Resource.h`
