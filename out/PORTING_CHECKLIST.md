@@ -280,8 +280,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `MountedAliasRoot.h`
   - [x] `MountedAliasRoot`
   - [ ] `MountedAliasRoot : MountPoint`
-- [ ] `MountedExternalMemory.h`
-  - [ ] `MountedExternalMemory : MountPoint`
+- [~] `MountedExternalMemory.h`
+  - [~] `MountedExternalMemory : MountPoint`
+    - Memory linking, read-only opens, existence checks, and scanning are ported; `SendFileChangedEvent` remains a TODO until `ResourceEvents` and the C# event dispatch layer are ported.
 - [ ] `PackageFile.h`
   - [ ] `PackageFile : MountPoint`
 - [ ] `VirtualFileSystem.h`
