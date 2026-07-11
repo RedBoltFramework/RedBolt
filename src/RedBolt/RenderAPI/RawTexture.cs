@@ -4,7 +4,7 @@ namespace RedBolt;
 
 /// <summary>Common class for all GPU textures.
 /// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
-public sealed class RawTexture : DeviceObject
+public class RawTexture : DeviceObject
 {
     private RawTextureParams _parameters;
     private SamplerStateDesc _samplerStateDesc = new();
@@ -13,18 +13,17 @@ public sealed class RawTexture : DeviceObject
     private bool _levelsDirty;
     private bool _resolveDirty;
 
-    public RawTexture()
+    protected RawTexture()
     {
     }
 
     public RawTexture(RawTextureParams parameters)
     {
-        if (!Create(parameters))
-            throw new InvalidOperationException($"Failed to create raw texture for type '{parameters.Type}' and format '{parameters.Format}'.");
+        Create(parameters);
     }
 
     /// <summary>Validate parameters and create GPU texture.</summary>
-    public bool Create(RawTextureParams parameters)
+    protected bool Create(RawTextureParams parameters)
     {
         if (!TryCreateManagedTexture(parameters, out var createdTexture, out var finalizedParameters))
         {

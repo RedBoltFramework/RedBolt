@@ -444,8 +444,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RawBuffer.h`
   - [x] `RawBuffer` — construction/access, shadow storage, native creation and restoration, dynamic/default/immutable updates, direct dynamic mapping, scratch mapping, resolve, and allocation-free hot paths are ported
 - [~] `RawTexture.h`
-  - [~] `struct RawTextureParams`
-  - [~] `struct RawTextureUAVKey`
+  - [x] `struct RawTextureParams`
+  - [x] `struct RawTextureUAVKey`
   - [ ] `struct RawTextureHandles`
   - [~] `RawTexture : DeviceObject`
 - [~] `RenderTargetView.h`

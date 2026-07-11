@@ -86,15 +86,20 @@ public sealed class RawTextureTests
     [Fact]
     public void Raw_texture_rejects_invalid_dimensions_bindings_and_multisampling()
     {
-        var texture = new RawTexture();
+        var texture = new TestRawTexture();
 
-        Assert.False(texture.Create(new RawTextureParams(
+        Assert.False(texture.CreateForTest(new RawTextureParams(
             TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(0, 4, 1))));
-        Assert.False(texture.Create(new RawTextureParams(
+        Assert.False(texture.CreateForTest(new RawTextureParams(
             TextureType.Texture2D, TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil, new Vector3i(4, 4, 1))));
-        Assert.False(texture.Create(new RawTextureParams(
+        Assert.False(texture.CreateForTest(new RawTextureParams(
             TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), MultiSample: 4u)));
+    }
+
+    private sealed class TestRawTexture : RawTexture
+    {
+        public bool CreateForTest(RawTextureParams parameters) => Create(parameters);
     }
 
     [Fact]
