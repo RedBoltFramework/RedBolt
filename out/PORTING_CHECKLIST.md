@@ -137,9 +137,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct DoubleTransform`
 - [x] `SphericalHarmonics.h` — pulled in as a required dependency of the in-progress `ImageCube`
   - [x] `SphericalHarmonics9` / SH types
-- [ ] `TetrahedralMesh.h` — helper structs and surface adjacency ported; core triangulation remains
+- [ ] `TetrahedralMesh.h` — mesh implementation ported; C++ Archive serialization overloads remain
   - [x] `struct TetrahedralMeshSurface`
-  - [ ] `TetrahedralMesh` — Delaunay construction, barycentric sampling, and serialization remain
+  - [x] `TetrahedralMesh` — Delaunay construction and barycentric sampling
 - [ ] `InverseKinematics.h`
   - [ ] `struct IKSettings`
   - [ ] `struct IKNode`
