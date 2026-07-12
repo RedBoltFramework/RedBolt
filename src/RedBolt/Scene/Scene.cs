@@ -15,6 +15,21 @@ public enum LoadMode
 
 public sealed class Scene : Object
 {
+    private sealed class AsyncProgress
+    {
+        public AbstractFile? File;
+        public XMLFile? XmlFile;
+        public JSONFile? JsonFile;
+        public XMLElement? XmlElement;
+        public uint JsonIndex;
+        public LoadMode Mode = LoadMode.SceneAndResources;
+        public readonly HashSet<StringHash> Resources = [];
+        public uint LoadedResources;
+        public uint TotalResources;
+        public uint LoadedNodes;
+        public uint TotalNodes;
+    }
+
     private readonly Dictionary<uint, Component> _components = [];
     private readonly Dictionary<uint, Node> _nodes = [];
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
@@ -27,8 +42,9 @@ public sealed class Scene : Object
     private readonly List<Texture2D?> _lightmapTextures = [];
     private readonly StringVector _updateEvents = [];
     private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
+    private readonly AsyncProgress _asyncProgress = new();
+    private readonly SceneResolver _resolver = new();
     private int _asyncLoadingMs = 5;
-    private LoadMode _asyncLoadMode = LoadMode.SceneAndResources;
     private bool _asyncLoading;
     private float _elapsedTime;
     private string _fileName = string.Empty;
@@ -428,8 +444,13 @@ public sealed class Scene : Object
     public void StopAsyncLoading()
     {
         _asyncLoading = false;
-        // TODO: port asyncProgress_.file_.Reset(), xmlFile_.Reset(), jsonFile_.Reset(),
-        // xmlElement_ = XMLElement::EMPTY, jsonIndex_ = 0, resources_.clear(), and resolver_.Reset().
+        _asyncProgress.File = null;
+        _asyncProgress.XmlFile = null;
+        _asyncProgress.JsonFile = null;
+        _asyncProgress.XmlElement = null;
+        _asyncProgress.JsonIndex = 0;
+        _asyncProgress.Resources.Clear();
+        _resolver.Reset();
     }
 
     public void SetUpdateEvents(StringVector events)
@@ -548,9 +569,15 @@ public sealed class Scene : Object
 
     public bool IsAsyncLoading() => _asyncLoading;
 
-    public float GetAsyncProgress() => 1.0f;
+    public float GetAsyncProgress()
+    {
+        var total = _asyncProgress.TotalNodes + _asyncProgress.TotalResources;
+        return !_asyncLoading || total == 0
+            ? 1.0f
+            : (_asyncProgress.LoadedNodes + _asyncProgress.LoadedResources) / (float)total;
+    }
 
-    public LoadMode GetAsyncLoadMode() => _asyncLoadMode;
+    public LoadMode GetAsyncLoadMode() => _asyncProgress.Mode;
 
     public void SetFileName(string fileName)
     {
