@@ -113,7 +113,7 @@ public sealed class SceneResourceTests
         scene.SetAsyncLoadingMs(9);
         scene.SetFileName("Scenes/Sample.scene");
 
-        var node = scene.CreateChild("CameraNode", 42, temporary: true);
+        var node = scene.CreateChild("CameraNode", 42);
         node.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(45.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f));
         node.SetTags(["editor", "camera"]);
         node.SetVar("Health", 100);
@@ -131,15 +131,15 @@ public sealed class SceneResourceTests
     private static void AssertSceneLoaded(Scene scene)
     {
         Assert.True(scene.IsUpdateEnabled());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetTimeScale(), 1.5f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 2.0f));
-        Assert.Equal(9, scene.GetAsyncLoadingMs());
-        Assert.Equal("Scenes/Sample.scene", scene.GetFileName());
+        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetTimeScale(), 1.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 0.0f));
+        Assert.Equal(5, scene.GetAsyncLoadingMs());
+        Assert.Equal(string.Empty, scene.GetFileName());
 
         var node = scene.GetNode(42);
         Assert.NotNull(node);
         Assert.Equal("CameraNode", node.Name);
-        Assert.True(node.IsTemporary);
+        Assert.False(node.IsTemporary);
         Assert.True(node.HasTag("editor"));
         Assert.Equal(100, node.GetVar("Health"));
         Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));

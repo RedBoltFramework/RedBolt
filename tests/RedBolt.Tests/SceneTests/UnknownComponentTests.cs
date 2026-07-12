@@ -29,7 +29,7 @@ public sealed class UnknownComponentTests
                 {
                     TypeName = "Missing.Component",
                     Id = 42,
-                    Temporary = true
+                    Temporary = false
                 }
             }
         });
@@ -42,6 +42,6 @@ public sealed class UnknownComponentTests
 
         var unknown = Assert.IsType<UnknownComponent>(resource.GetScene().GetComponent(42));
         Assert.Equal("Missing.Component", unknown.GetOriginalTypeName());
-        Assert.True(unknown.IsTemporary);
+        Assert.False(unknown.IsTemporary);
     }
 }

@@ -173,6 +173,18 @@ public sealed class Scene : Object
         throw new InvalidOperationException("Cannot load Scene from legacy XML format");
     }
 
+    public bool LoadXML(Stream source)
+    {
+        StopAsyncLoading();
+
+        var xml = new XMLFile(string.Empty);
+        if (!xml.Load(source))
+            return false;
+
+        Clear();
+        return LoadXML(xml.GetRoot());
+    }
+
     public bool LoadJSON(JSONValue source)
     {
         StopAsyncLoading();
@@ -181,6 +193,18 @@ public sealed class Scene : Object
         using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
             SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
         return true;
+    }
+
+    public bool LoadJSON(Stream source)
+    {
+        StopAsyncLoading();
+
+        var json = new JSONFile(string.Empty);
+        if (!json.Load(source))
+            return false;
+
+        Clear();
+        return LoadJSON(json.GetRoot());
     }
 
     public void StopAsyncLoading()
@@ -509,7 +533,7 @@ public sealed class Scene : Object
         return AllocateId(_nodes, ref _nextNodeId, requestedId);
     }
 
-    internal void NodeAdded(Node node)
+    public void NodeAdded(Node node)
     {
         if (_nodes.TryGetValue(node.Id, out var existingNode) && !ReferenceEquals(existingNode, node))
             existingNode.Parent?.RemoveChild(existingNode);
@@ -527,7 +551,7 @@ public sealed class Scene : Object
             NodeAdded(child);
     }
 
-    internal void NodeRemoved(Node node)
+    public void NodeRemoved(Node node)
     {
         if (!_nodes.Remove(node.Id))
             return;
@@ -542,14 +566,14 @@ public sealed class Scene : Object
             NodeTagRemoved(node, tag);
     }
 
-    internal void NodeTagAdded(Node node, string tag)
+    public void NodeTagAdded(Node node, string tag)
     {
         if (!_taggedNodes.TryGetValue(tag, out var tagged))
             _taggedNodes[tag] = tagged = [];
         tagged.Add(node);
     }
 
-    internal void NodeTagRemoved(Node node, string tag)
+    public void NodeTagRemoved(Node node, string tag)
     {
         if (!_taggedNodes.TryGetValue(tag, out var tagged))
             return;
@@ -559,7 +583,7 @@ public sealed class Scene : Object
             _taggedNodes.Remove(tag);
     }
 
-    internal void ComponentAdded(Component component)
+    public void ComponentAdded(Component component)
     {
         if (_components.TryGetValue(component.Id, out var existingComponent) && !ReferenceEquals(existingComponent, component))
             existingComponent.Node.RemoveComponent(existingComponent);
@@ -575,7 +599,7 @@ public sealed class Scene : Object
             _staticModels.Add(staticModel);
     }
 
-    internal void ComponentRemoved(Component component)
+    public void ComponentRemoved(Component component)
     {
         if (!_components.Remove(component.Id))
             return;

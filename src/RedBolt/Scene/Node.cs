@@ -295,7 +295,8 @@ public sealed class Node : Animatable
             value.SetTemporary(prefab.Temporary);
         foreach (var attributePrefab in prefab.Attributes)
         {
-            if (value is Node node && attributePrefab.Name == "Variables")
+            if (value is Node node
+                && (attributePrefab.Name == "Variables" || attributePrefab.NameHash == new StringHash("Variables")))
             {
                 node.SetVariables(attributePrefab.Value.GetVariantMap().Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject())));
                 continue;
@@ -303,7 +304,7 @@ public sealed class Node : Animatable
             AttributeInfo? attribute = null;
             foreach (var candidate in value.Attributes)
             {
-                if (candidate.Name == attributePrefab.Name)
+                if (candidate.Name == attributePrefab.Name || candidate.NameHash == attributePrefab.NameHash)
                 {
                     attribute = candidate;
                     break;

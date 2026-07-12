@@ -177,10 +177,13 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
-        if (numComponents > 0)
+        if (numComponents > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
             var block = _archive.OpenArrayBlock("components", numComponents);
-            _stack.Add((block, numComponents));
+            if (numComponents > 0)
+                _stack.Add((block, numComponents));
+            else
+                block.Dispose();
         }
     }
 
@@ -203,10 +206,16 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
-        if (numChildren > 0)
+        if (numChildren > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
             var block = _archive.OpenArrayBlock("nodes", numChildren);
-            _stack.Add((block, numChildren));
+            if (numChildren > 0)
+                _stack.Add((block, numChildren));
+            else
+            {
+                block.Dispose();
+                CheckEOF();
+            }
         }
         else
             CheckEOF();

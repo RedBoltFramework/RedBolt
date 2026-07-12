@@ -157,7 +157,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
         var numComponents = 0u;
-        if (_archive.HasElementOrBlock("components"))
+        if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("components"))
         {
             var block = _archive.OpenArrayBlock("components");
             numComponents = block.SizeHint;
@@ -187,7 +187,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
         var numChildren = 0u;
-        if (_archive.HasElementOrBlock("nodes"))
+        if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("nodes"))
         {
             var block = _archive.OpenArrayBlock("nodes");
             numChildren = block.SizeHint;

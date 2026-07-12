@@ -39,7 +39,8 @@ public sealed class SceneResource : Resource
                 InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, new MemoryBuffer(_pendingData.AsMemory(4))),
                 _ => throw new InvalidOperationException("Unknown scene format.")
             };
-            using (archive.OpenUnorderedBlock(GetXmlRootName())) SerializeScene(archive, Scene);
+            using (archive.OpenUnorderedBlock(GetXmlRootName()))
+                SerializeScene(archive, Scene, asPrefab: false);
             archive.Flush();
             return true;
         }
@@ -62,20 +63,23 @@ public sealed class SceneResource : Resource
                 case InternalResourceFormat.Json:
                 {
                     var archive = new JSONOutputArchive(Context.Instance);
-                    using (archive.OpenUnorderedBlock(GetXmlRootName())) SerializeScene(archive, Scene, asPrefab);
+                    using (archive.OpenUnorderedBlock(GetXmlRootName()))
+                        SerializeScene(archive, Scene, asPrefab);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToJsonString()); destination.Write(bytes); break;
                 }
                 case InternalResourceFormat.Xml:
                 {
                     var archive = new XMLOutputArchive(Context.Instance);
-                    using (archive.OpenUnorderedBlock(GetXmlRootName())) SerializeScene(archive, Scene, asPrefab);
+                    using (archive.OpenUnorderedBlock(GetXmlRootName()))
+                        SerializeScene(archive, Scene, asPrefab);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToXmlString()); destination.Write(bytes); break;
                 }
                 case InternalResourceFormat.Binary:
                 {
                     destination.Write(SimpleResource.DefaultBinaryMagic);
                     var buffer = new VectorBuffer(); var archive = new BinaryOutputArchive(Context.Instance, buffer);
-                    using (archive.OpenUnorderedBlock(GetXmlRootName())) SerializeScene(archive, Scene, asPrefab);
+                    using (archive.OpenUnorderedBlock(GetXmlRootName()))
+                        SerializeScene(archive, Scene, asPrefab);
                     archive.Flush(); destination.Write(buffer.Buffer[..checked((int)buffer.Size)]); break;
                 }
                 default: return false;
@@ -122,28 +126,19 @@ public sealed class SceneResource : Resource
 
     private static void SerializeScene(Archive archive, Scene scene, bool asPrefab = false)
     {
-        var updateEnabled = scene.UpdateEnabled; var timeScale = scene.TimeScale; var elapsed = scene.ElapsedTime;
-        var asyncMs = scene.AsyncLoadingMs; var fileName = scene.FileName;
-        if (!asPrefab)
-        {
-            ArchiveSerialization.SerializeValue(archive, "updateEnabled", ref updateEnabled);
-            ArchiveSerialization.SerializeValue(archive, "timeScale", ref timeScale);
-            ArchiveSerialization.SerializeValue(archive, "elapsedTime", ref elapsed);
-            ArchiveSerialization.SerializeValue(archive, "asyncLoadingMs", ref asyncMs);
-            ArchiveSerialization.SerializeValue(archive, "fileName", ref fileName);
-        }
-        using (archive.OpenUnorderedBlock("root"))
+        if (asPrefab)
         {
             var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab(includeTemporary: true);
             prefab.SerializeInBlock(archive, PrefabArchiveFlag.SerializeTemporary);
             if (archive.IsInput)
                 scene.Root.LoadPrefab(prefab, clearExisting: true);
+            return;
         }
-        if (archive.IsInput && !asPrefab)
-        {
-            scene.SetUpdateEnabled(updateEnabled); scene.SetTimeScale(timeScale); scene.SetElapsedTime(elapsed);
-            scene.SetAsyncLoadingMs(asyncMs); scene.SetFileName(fileName);
-        }
+
+        var saveFlags = archive.IsHumanReadable
+            ? PrefabSaveFlag.EnumsAsStrings
+            : PrefabSaveFlag.CompactAttributeNames;
+        scene.SerializeInBlock(archive, false, saveFlags, PrefabLoadFlag.None);
     }
 
     private static InternalResourceFormat PeekFormat(ReadOnlySpan<byte> data)

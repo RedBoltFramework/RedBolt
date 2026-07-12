@@ -269,6 +269,29 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_stream_load_entrypoints_read_resource_formats()
+    {
+        var sourceResource = new SceneResource(string.Empty);
+        sourceResource.Scene.CreateChild("Loaded").CreateComponent<Camera>().SetFov(79);
+
+        using var xml = new MemoryStream();
+        Assert.True(sourceResource.Save(xml, SceneResourceFormat.Xml));
+        xml.Position = 0;
+
+        var loadedFromXml = new Scene();
+        Assert.True(loadedFromXml.LoadXML(xml));
+        Assert.True(loadedFromXml.Root.GetChild("Loaded") is not null, $"count={loadedFromXml.Root.GetNumChildren()}");
+
+        using var json = new MemoryStream();
+        Assert.True(sourceResource.Save(json, SceneResourceFormat.Json));
+        json.Position = 0;
+
+        var loadedFromJson = new Scene();
+        Assert.True(loadedFromJson.LoadJSON(json));
+        Assert.True(loadedFromJson.Root.GetChild("Loaded") is not null, $"count={loadedFromJson.Root.GetNumChildren()}");
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
