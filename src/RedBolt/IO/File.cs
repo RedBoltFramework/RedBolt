@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
+using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
@@ -41,7 +43,7 @@ public class File : AbstractFile, IDisposable
     /// <summary>Synchronization needed before write -flag.</summary>
     private bool _writeSyncNeeded;
 
-    // TODO: port C++ SDL_RWops* assetHandle_; when managed Android asset access exists.
+    private SdlRWops? _assetHandle;
 
     /// <summary>Construct.</summary>
     public File()
@@ -265,6 +267,38 @@ public class File : AbstractFile, IDisposable
         if (string.IsNullOrEmpty(fileName))
             return false;
 
+        if (OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal))
+        {
+            if (mode != FileMode.Read)
+                return false;
+
+            using var assetName = new CString(fileName[5..]);
+            using var readMode = new CString("rb");
+            _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
+            if (_assetHandle.IsNull)
+            {
+                _assetHandle = null;
+                return false;
+            }
+
+            _absoluteFileName = fileName;
+            _mode = mode;
+            Position = 0;
+            if (!fromPackage)
+            {
+                var size = SdlNativeBindings.SdlRWsize(_assetHandle);
+                if (size < 0 || size > uint.MaxValue)
+                {
+                    Close();
+                    return false;
+                }
+                Size = (uint)size;
+                _offset = 0;
+            }
+            _checksum = 0;
+            return true;
+        }
+
         try
         {
             var systemMode = mode switch
@@ -309,6 +343,11 @@ public class File : AbstractFile, IDisposable
     {
         _readBuffer = null;
         _inputBuffer = null;
+        if (_assetHandle is not null)
+        {
+            SdlNativeBindings.SdlRWclose(_assetHandle);
+            _assetHandle = null;
+        }
         _handle?.Dispose();
         _handle = null;
         Position = 0;
@@ -324,7 +363,7 @@ public class File : AbstractFile, IDisposable
     public FileMode Mode => _mode;
 
     /// <summary>Return whether is open.</summary>
-    public override bool IsOpen => _handle is not null;
+    public override bool IsOpen => _handle is not null || _assetHandle is not null && !_assetHandle.IsNull;
 
     /// <summary>Return the file handle.</summary>
     public Stream? Handle => _handle;
@@ -389,10 +428,18 @@ public class File : AbstractFile, IDisposable
     }
 
     /// <summary>Perform the file read internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful. This does not handle compressed package file reading.</summary>
-    private bool ReadInternal(Span<byte> destination)
+    private unsafe bool ReadInternal(Span<byte> destination)
     {
         try
         {
+            if (_assetHandle is not null)
+            {
+                fixed (byte* pointer = destination)
+                {
+                    return SdlNativeBindings.SdlRWread(_assetHandle, (IntPtr)pointer, 1, (nuint)destination.Length)
+                        == (nuint)destination.Length;
+                }
+            }
             return _handle!.Read(destination) == destination.Length;
         }
         catch (IOException)
@@ -404,7 +451,9 @@ public class File : AbstractFile, IDisposable
     /// <summary>Seek in file internally using either C standard IO functions or SDL RWops for Android asset files.</summary>
     private void SeekInternal(uint newPosition)
     {
-        if (_handle is not null)
+        if (_assetHandle is not null)
+            _ = SdlNativeBindings.SdlRWseek(_assetHandle, (nint)newPosition, 0);
+        else if (_handle is not null)
             _handle.Position = newPosition;
     }
 }

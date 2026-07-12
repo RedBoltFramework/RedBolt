@@ -237,8 +237,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `MemoryBuffer : AbstractFile` — constness is represented by `ReadOnlyMemory<byte>` and managed read-only state
 - [x] `VectorBuffer.h`
   - [x] `VectorBuffer : AbstractFile` — live managed array access replaces unsafe long-lived raw pointers
-- [~] `File.h`
-  - [~] `File : Object, AbstractFile` — filesystem and package-file open/read/write/seek/flush/checksum/copy, compressed package reads, and binary/text helpers are ported; Android asset access remains TODO until managed Android asset access exists.
+- [x] `File.h`
+  - [x] `File : Object, AbstractFile` — filesystem and package-file open/read/write/seek/flush/checksum/copy, compressed package reads, binary/text helpers, and Android asset reads through generated SDL RWops bindings are ported.
 - [x] `Compression.h`
   - [x] compression free functions — LZ4 data, stream, and VectorBuffer helpers are ported through generated SharpCpp bindings
 - [x] `Log.h`
@@ -288,7 +288,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PackageFile : MountPoint`
 - [x] `VirtualFileSystem.h`
   - [x] `VirtualFileSystem : Object`
-  - [x] `MountPointGuard : MovableNonCopyable` — C# reference ownership with `IDisposable`; C++ move assignment has no direct C# operator equivalent and remains a TODO in the port.
+  - [x] `MountPointGuard : MovableNonCopyable` — C# reference ownership, transfer constructor, and `IDisposable` release the mount point; C# has no move-assignment operator.
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [x] `FileWatcher.h`
   - [x] `FileChangeKind` and `FileChange`

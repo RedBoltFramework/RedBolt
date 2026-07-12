@@ -479,7 +479,5 @@ public sealed class MountPointGuard : IDisposable
         return _mountPoint;
     }
 
-    // TODO: port C++ MountPointGuard& operator=(MountPointGuard&& other) noexcept.
-    // C# reference types do not support operator= overloads.
     private MountPoint? _mountPoint;
 }
