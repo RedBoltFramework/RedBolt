@@ -164,6 +164,9 @@ public sealed class RenderDeviceTests
         {
             using var description = _fixture.RenderDevice.GetSwapChain()!.GetDesc();
 
+            Assert.NotNull(_fixture.RenderDevice.GetFactory());
+            Assert.NotNull(_fixture.RenderDevice.GetSDLWindow());
+            Assert.Equal(nint.Zero, _fixture.RenderDevice.GetMetalView());
             Assert.Equal(new Vector2i((int)description.Width, (int)description.Height),
                 _fixture.RenderDevice.GetSwapChainSize());
             Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height),

@@ -109,6 +109,7 @@ layout(std140) uniform Material
     private GlReadBufferDelegate? _glReadBuffer;
     private GlReadPixelsDelegate? _glReadPixels;
     private IDeviceContext? _immediateContext;
+    private IEngineFactory? _factory;
     private IRenderDevice? _device;
     private ISwapChain? _swapChain;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
@@ -180,7 +181,11 @@ layout(std140) uniform Material
 
     public IRenderDevice? GetNativeRenderDevice() => _device;
 
+    public IEngineFactory? GetNativeFactory() => _factory;
+
     public ISwapChain? GetNativeSwapChain() => _swapChain;
+
+    public SdlWindow? GetNativeWindow() => _window;
 
     internal ITexture? GetTextureHandle(Texture texture)
     {
@@ -309,6 +314,7 @@ layout(std140) uniform Material
             if (factory.IsNull)
                 throw new InvalidOperationException("Generated GetEngineFactoryOpenGL binding returned a null factory.");
 
+            _factory = factory;
             factory.CreateDeviceAndSwapChainGL(engineCreateInfo, out _device, out _immediateContext, swapChainDesc, out _swapChain);
             if (_device.IsNull || _immediateContext.IsNull || _swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateDeviceAndSwapChainGL binding returned a null device, context, or swap chain.");
@@ -975,6 +981,7 @@ layout(std140) uniform Material
 
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
+        _factory = null;
         ReleaseIfNotNull(_immediateContext);
         _immediateContext = null;
         ReleaseIfNotNull(_device);

@@ -279,6 +279,12 @@ public sealed class RenderDevice : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
+    public IEngineFactory? GetFactory() => GetSubsystem<Graphics>()?.GetNativeFactory();
+
+    public SdlWindow? GetSDLWindow() => GetSubsystem<Graphics>()?.GetNativeWindow();
+
+    public nint GetMetalView() => nint.Zero;
+
     public IRenderDevice? GetRenderDevice() => GetSubsystem<Graphics>()?.GetNativeRenderDevice();
 
     public IDeviceContext? GetImmediateContext() => GetSubsystem<Graphics>()?.GetImmediateContext();
