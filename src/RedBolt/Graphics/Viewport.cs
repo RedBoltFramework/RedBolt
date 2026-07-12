@@ -1,7 +1,11 @@
 namespace RedBolt;
 
-public sealed class Viewport
+public sealed class Viewport : Object
 {
+    public Viewport()
+    {
+    }
+
     public Viewport(Scene scene, Camera camera)
         : this(scene, camera, IntRect.Zero)
     {
@@ -34,7 +38,7 @@ public sealed class Viewport
 
     public Camera GetCamera() => Camera;
 
-    public Camera GetCullCamera() => CullCamera ?? Camera;
+    public Camera? GetCullCamera() => CullCamera;
 
     public bool GetDrawDebug() => DrawDebug;
 
