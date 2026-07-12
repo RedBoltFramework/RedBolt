@@ -120,6 +120,19 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Threaded_update_state_follows_work_queue()
+    {
+        var scene = new Scene();
+        var workQueue = scene.GetSubsystem<WorkQueue>()!;
+
+        scene.BeginThreadedUpdate();
+        Assert.Equal(workQueue.IsMultithreaded(), scene.IsThreadedUpdate());
+
+        scene.EndThreadedUpdate();
+        Assert.False(scene.IsThreadedUpdate());
+    }
+
+    [Fact]
     public void Node_and_component_lookup_works()
     {
         var scene = new Scene();

@@ -21,6 +21,7 @@ public sealed class Scene : Object
     private readonly List<(StringHash Type, HashSet<Component> Components)> _componentIndexes = [];
     private readonly List<PackageFile> _requiredPackageFiles = [];
     private readonly List<ISceneUpdateListener> _updateListeners = [];
+    private readonly List<Component> _delayedDirtyComponents = [];
     private readonly List<StaticModel> _staticModels = [];
     private readonly List<string> _lightmapNames = [];
     private readonly List<Texture2D?> _lightmapTextures = [];
@@ -35,6 +36,7 @@ public sealed class Scene : Object
     private uint _nextComponentId = 1;
     private uint _nextNodeId = 1;
     private bool _manualUpdate;
+    private bool _threadedUpdate;
 
     public static StringVector DefaultUpdateEvents { get; } =
     [
@@ -522,6 +524,35 @@ public sealed class Scene : Object
         };
         SendEvent(ref forcedPostUpdateEvent);
     }
+
+    public void BeginThreadedUpdate()
+    {
+        if (GetSubsystem<WorkQueue>()!.IsMultithreaded())
+            _threadedUpdate = true;
+    }
+
+    public void EndThreadedUpdate()
+    {
+        if (!_threadedUpdate)
+            return;
+
+        _threadedUpdate = false;
+
+        lock (_delayedDirtyComponents)
+        {
+            foreach (var component in _delayedDirtyComponents)
+                component.OnMarkedDirty(component.Node);
+            _delayedDirtyComponents.Clear();
+        }
+    }
+
+    public void DelayedMarkedDirty(Component component)
+    {
+        lock (_delayedDirtyComponents)
+            _delayedDirtyComponents.Add(component);
+    }
+
+    public bool IsThreadedUpdate() => _threadedUpdate;
 
     internal uint AllocateComponentId(uint requestedId)
     {
