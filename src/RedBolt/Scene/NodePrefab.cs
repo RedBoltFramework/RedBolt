@@ -1,9 +1,18 @@
 namespace RedBolt;
 
-public sealed class AttributePrefab
+public sealed class AttributePrefab : ICloneable
 {
     public string Name { get; set; } = string.Empty;
     public Variant Value { get; set; }
+
+    public object Clone()
+    {
+        return new AttributePrefab
+        {
+            Name = Name,
+            Value = Value
+        };
+    }
 
     public void SerializeInBlock(Archive archive, bool compactSave = false)
     {
@@ -17,12 +26,25 @@ public sealed class AttributePrefab
     }
 }
 
-public sealed class SerializablePrefab
+public sealed class SerializablePrefab : ICloneable
 {
     public string TypeName { get; set; } = string.Empty;
     public uint Id { get; set; }
     public bool Temporary { get; set; }
     public List<AttributePrefab> Attributes { get; } = [];
+
+    public object Clone()
+    {
+        var clone = new SerializablePrefab
+        {
+            TypeName = TypeName,
+            Id = Id,
+            Temporary = Temporary
+        };
+        foreach (var attribute in Attributes)
+            clone.Attributes.Add((AttributePrefab)attribute.Clone());
+        return clone;
+    }
 
     public void Import(Serializable? serializable, PrefabSaveFlag flags = PrefabSaveFlag.None)
     {
@@ -187,13 +209,28 @@ public sealed class SerializablePrefab
     }
 }
 
-public sealed class NodePrefab
+public sealed class NodePrefab : ICloneable
 {
     public static NodePrefab Empty { get; } = new();
 
     public SerializablePrefab Node { get; } = new();
     public List<SerializablePrefab> Components { get; } = [];
     public List<NodePrefab> Children { get; } = [];
+
+    public object Clone()
+    {
+        var clone = new NodePrefab
+        {
+            Node = { TypeName = Node.TypeName, Id = Node.Id, Temporary = Node.Temporary }
+        };
+        foreach (var attribute in Node.Attributes)
+            clone.Node.Attributes.Add((AttributePrefab)attribute.Clone());
+        foreach (var component in Components)
+            clone.Components.Add((SerializablePrefab)component.Clone());
+        foreach (var child in Children)
+            clone.Children.Add((NodePrefab)child.Clone());
+        return clone;
+    }
 
     public string GetNodeName()
     {

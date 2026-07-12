@@ -55,6 +55,29 @@ public sealed class NodeTests
         Assert.True(MathDefs.ApproximatelyEquivalent(child.GetComponent<Camera>()!.GetFov(), 73));
     }
 
+    [Fact]
+    public void Node_prefab_clone_copies_nested_values()
+    {
+        var source = new NodePrefab();
+        source.Node.TypeName = "Node";
+        source.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Source") });
+        var component = new SerializablePrefab { TypeName = "Component", Id = 7, Temporary = true };
+        component.Attributes.Add(new AttributePrefab { Name = "Value", Value = new Variant(42) });
+        source.Components.Add(component);
+        var child = new NodePrefab();
+        child.Node.TypeName = "Child";
+        source.Children.Add(child);
+
+        var clone = (NodePrefab)source.Clone();
+        clone.Node.Attributes[0].Name = "Changed";
+        clone.Components[0].Attributes[0].Value = new Variant(99);
+        clone.Children[0].Node.TypeName = "ChangedChild";
+
+        Assert.Equal("Name", source.Node.Attributes[0].Name);
+        Assert.Equal(42, source.Components[0].Attributes[0].Value.GetInt());
+        Assert.Equal("Child", source.Children[0].Node.TypeName);
+    }
+
     private sealed class ListenerProbe : Component
     {
         public int DirtyCount { get; private set; }

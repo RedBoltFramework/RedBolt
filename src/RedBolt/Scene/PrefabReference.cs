@@ -189,29 +189,27 @@ public sealed class PrefabReference : Component
         // Create and save resource.
         var newResource = new PrefabResource(_prefab.Name);
         var scenePrefab = newResource.GetMutableScenePrefab();
-        scenePrefab.Node.TypeName = _prefab.GetScenePrefab().Node.TypeName;
-        scenePrefab.Node.Id = _prefab.GetScenePrefab().Node.Id;
-        scenePrefab.Node.Temporary = _prefab.GetScenePrefab().Node.Temporary;
-        foreach (var attribute in _prefab.GetScenePrefab().Node.Attributes)
-            scenePrefab.Node.Attributes.Add(attribute);
-        foreach (var component in _prefab.GetScenePrefab().Components)
-            scenePrefab.Components.Add(component);
-        foreach (var child in _prefab.GetScenePrefab().Children)
-            scenePrefab.Children.Add(child);
+        CopyPrefab(scenePrefab, _prefab.GetScenePrefab());
 
         var nodeDestination = newResource.GetMutableNodePrefab();
-        nodeDestination.Node.TypeName = newNodePrefab.Node.TypeName;
-        nodeDestination.Node.Id = newNodePrefab.Node.Id;
-        nodeDestination.Node.Temporary = newNodePrefab.Node.Temporary;
-        foreach (var attribute in newNodePrefab.Node.Attributes)
-            nodeDestination.Node.Attributes.Add(attribute);
-        foreach (var component in newNodePrefab.Components)
-            nodeDestination.Components.Add(component);
-        foreach (var child in newNodePrefab.Children)
-            nodeDestination.Children.Add(child);
+        CopyPrefab(nodeDestination, newNodePrefab);
         newResource.NormalizeIds();
         if (!string.IsNullOrEmpty(_prefab.GetAbsoluteFileName()))
             newResource.SaveFile(_prefab.GetAbsoluteFileName());
+    }
+
+    private static void CopyPrefab(NodePrefab destination, NodePrefab source)
+    {
+        destination.Clear();
+        destination.Node.TypeName = source.Node.TypeName;
+        destination.Node.Id = source.Node.Id;
+        destination.Node.Temporary = source.Node.Temporary;
+        foreach (var attribute in source.Node.Attributes)
+            destination.Node.Attributes.Add((AttributePrefab)attribute.Clone());
+        foreach (var component in source.Components)
+            destination.Components.Add((SerializablePrefab)component.Clone());
+        foreach (var child in source.Children)
+            destination.Children.Add((NodePrefab)child.Clone());
     }
 
     public override void OnSetEnabled()
