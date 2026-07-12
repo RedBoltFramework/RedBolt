@@ -119,6 +119,7 @@ internal static class Program
 
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
+            FixDiligentBlendFactors(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
@@ -280,6 +281,25 @@ internal static class Program
             if (IsDiligentInterfaceRecord(record))
                 record.SetMetadata(MetadataKeys.NativeInterfaceWrapper, true);
         }
+    }
+
+    private static void FixDiligentBlendFactors(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return;
+
+        var deviceContext = compilation.Records.FirstOrDefault(static record =>
+            string.Equals(record.CppQualifiedName, "Diligent::IDeviceContext", StringComparison.Ordinal));
+        var setBlendFactors = deviceContext?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
+            string.Equals(method.NativeName, "SetBlendFactors", StringComparison.Ordinal));
+        var blendFactors = setBlendFactors?.Parameters.FirstOrDefault(static parameter =>
+            string.Equals(parameter.NativeName, "pBlendFactors", StringComparison.Ordinal));
+        if (blendFactors is null)
+            return;
+
+        blendFactors.Type = BindingType.CreateConfigured(
+            cppTypeName: "const float*",
+            publicTypeName: "global::RedBolt.Bindings.Diligent.BlendFactors");
     }
 
     private static bool IsDiligentInterfaceRecord(RecordBinding record)

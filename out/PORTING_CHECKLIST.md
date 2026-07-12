@@ -487,7 +487,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `RenderContext.h`
   - [~] `RenderContext : Object` — cached render-target output, dimensions, swap-chain state, viewport clamping, and target dirty marking are ported; device-lost cache reset and backend clip-plane toggles remain
 - [~] `DrawCommandQueue.h`
-  - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, and default raw-texture fallback are ported; blend-factor binding remains
+  - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, and four-float blend-factor binding are ported
 - [~] `RenderDevice.h`
   - [~] `RenderDevice : Object` — destructor disposal, post-initialize default raw textures, and device-object destruction are ported; initialization and backend-specific device management remain
 
