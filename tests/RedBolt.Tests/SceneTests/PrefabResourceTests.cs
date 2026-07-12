@@ -126,4 +126,23 @@ public sealed class PrefabResourceTests
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void Legacy_xml_prefab_is_converted_to_node_prefab()
+    {
+        const string xml = """
+            <scene id="1">
+              <attribute name="Name" value="LegacyScene" />
+              <node id="42">
+                <attribute name="Name" value="LegacyTree" />
+              </node>
+            </scene>
+            """;
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+        var resource = new PrefabResource("Legacy.scene");
+
+        Assert.True(resource.Load(stream));
+        Assert.Equal("LegacyScene", resource.GetScenePrefab().GetNodeName());
+        Assert.Equal("LegacyTree", resource.GetNodePrefab().GetNodeName());
+    }
 }

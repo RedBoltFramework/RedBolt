@@ -142,6 +142,72 @@ public sealed class Node : Animatable
         ApplyAttributes();
     }
 
+    public override bool LoadXML(XMLElement source)
+    {
+        var resolver = new SceneResolver();
+        resolver.AddNode(source.GetUInt("id"), this);
+
+        var success = LoadXML(source, resolver);
+        if (success)
+        {
+            resolver.Resolve();
+            ApplyAttributes();
+        }
+
+        return success;
+    }
+
+    public bool LoadXML(
+        XMLElement source,
+        SceneResolver resolver,
+        bool loadChildren = true,
+        bool rewriteIds = false,
+        bool removeComponents = true)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(resolver);
+
+        RemoveAllChildren();
+        if (removeComponents)
+            RemoveAllComponents();
+
+        if (!base.LoadXML(source))
+            return false;
+
+        for (var componentElement = source.GetChild("component"); componentElement.NotNull;
+             componentElement = componentElement.GetNext("component"))
+        {
+            var typeName = componentElement.GetAttribute("type");
+            var componentId = componentElement.GetUInt("id");
+            var componentType = ResolveComponentType(typeName);
+            if (componentType is null)
+                continue;
+
+            var component = CreateComponent(componentType, rewriteIds ? 0u : componentId);
+            if (component is null)
+                continue;
+
+            resolver.AddComponent(componentId, component);
+            if (!component.LoadXML(componentElement))
+                return false;
+        }
+
+        if (!loadChildren)
+            return true;
+
+        for (var childElement = source.GetChild("node"); childElement.NotNull;
+             childElement = childElement.GetNext("node"))
+        {
+            var nodeId = childElement.GetUInt("id");
+            var child = CreateChild(rewriteIds ? 0u : nodeId);
+            resolver.AddNode(nodeId, child);
+            if (!child.LoadXML(childElement, resolver, loadChildren, rewriteIds, removeComponents))
+                return false;
+        }
+
+        return true;
+    }
+
     private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
     {
         prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;

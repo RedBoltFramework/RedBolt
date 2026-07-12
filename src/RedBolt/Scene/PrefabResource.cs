@@ -1,4 +1,5 @@
 using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -132,11 +133,49 @@ public sealed class PrefabResource : SimpleResource
             return false;
 
         // This is awful, but we cannot do better because old prefab format has incomplete information.
-        // TODO: port temporary Scene loading, GeneratePrefab, and the conversion warning once the managed XML scene loader exists.
-        // auto tempScene = MakeShared<Scene>(context_);
-        // if (!tempScene->LoadXML(source))
-        //     return false;
-        // tempScene->GeneratePrefab(prefab_);
-        return false;
+        var tempScene = new Scene();
+        if (!tempScene.Root.LoadXML(source))
+            return false;
+
+        CopyPrefab(_prefab, tempScene.Root.GeneratePrefab(includeTemporary: true));
+        Log.Logger.LogWarning(
+            "Legacy prefab format is used in file '{Name}'! Rename it to *.prefab, open it in the Editor as Scene, and save it normally.",
+            Name);
+        return true;
+    }
+
+    private static void CopyPrefab(NodePrefab destination, NodePrefab source)
+    {
+        destination.Clear();
+        CopySerializable(destination.Node, source.Node);
+
+        foreach (var sourceComponent in source.Components)
+        {
+            var destinationComponent = new SerializablePrefab();
+            CopySerializable(destinationComponent, sourceComponent);
+            destination.Components.Add(destinationComponent);
+        }
+
+        foreach (var sourceChild in source.Children)
+        {
+            var destinationChild = new NodePrefab();
+            CopyPrefab(destinationChild, sourceChild);
+            destination.Children.Add(destinationChild);
+        }
+    }
+
+    private static void CopySerializable(SerializablePrefab destination, SerializablePrefab source)
+    {
+        destination.TypeName = source.TypeName;
+        destination.Id = source.Id;
+        destination.Temporary = source.Temporary;
+        foreach (var sourceAttribute in source.Attributes)
+        {
+            destination.Attributes.Add(new AttributePrefab
+            {
+                Name = sourceAttribute.Name,
+                Value = sourceAttribute.Value
+            });
+        }
     }
 }

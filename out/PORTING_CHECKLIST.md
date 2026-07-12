@@ -418,7 +418,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, and save flags are ported; SerializablePrefab archive flag overloads, compact attribute-name hashes, and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
 - [~] `PrefabResource.h`
   - [x] `PrefabResource : SimpleResource` — prefab storage, scene/node accessors, named/indexed slices, archive persistence, ID-attribute cleanup, and PrefabReference-backed node instantiation
-  - [~] `PrefabResource : SimpleResource` — background resource-reference traversal and queueing are ported; legacy XML conversion and compact archive flags remain TODO because those managed APIs are not present
+  - [~] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, and Node XML hierarchy loading are ported; compact archive flags remain TODO because the managed archive API has no equivalent overloads
 - [~] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
   - [~] `PrefabReference : Component` — reload event subscription and instance recreation are ported; editor actions/logging and exact deep prefab value-copying remain TODO because the managed APIs differ

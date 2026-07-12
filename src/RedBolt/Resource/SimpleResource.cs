@@ -49,10 +49,21 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Xml:
                 {
-                    var archive = new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(data));
-                    using (archive.OpenUnorderedBlock(GetRootBlockName()))
-                        SerializeInBlock(archive);
-                    archive.Flush();
+                    var xmlText = Encoding.UTF8.GetString(data);
+                    var xmlFile = new XMLFile(Name);
+                    if (!xmlFile.FromString(xmlText))
+                        return false;
+
+                    if (xmlFile.Root.Name == GetRootBlockName())
+                    {
+                        var archive = new XMLInputArchive(Context.Instance, xmlText);
+                        using (archive.OpenUnorderedBlock(GetRootBlockName()))
+                            SerializeInBlock(archive);
+                        archive.Flush();
+                    }
+                    else if (!LoadLegacyXML(xmlFile.Root))
+                        return false;
+
                     return true;
                 }
 
