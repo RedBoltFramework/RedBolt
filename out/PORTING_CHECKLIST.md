@@ -471,7 +471,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct RawTextureHandles`
   - [x] `RawTexture : DeviceObject` — validation, native ownership, default and slice views, UAVs, mip generation, resolve, allocation-free updates, staging readback, device recovery hooks, handle wrapping, and platform-gated external imports are ported
 - [~] `RenderTargetView.h`
-  - [~] `RenderTargetView`
+  - [~] `RenderTargetView` — swap-chain, texture, slice, read-only depth, format, multisample, and dirty-view paths are ported; managed high-level Texture bridging remains
 - [x] `ConstantBufferCollection.h`
   - [x] `ConstantBufferCollection` — aligned block allocation, buffer rollover/sizing, parameter conversion, matrix/array storage, and CPU upload data are ported
 - [~] `PipelineState.h`

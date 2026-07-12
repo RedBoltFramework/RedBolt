@@ -165,12 +165,18 @@ public sealed class RawTextureTests
             TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget,
             new Vector3i(16, 16, 1)));
+        var rawDepthTexture = new RawTexture(new RawTextureParams(
+            TextureType.Texture2D,
+            TextureFormat.Depth24Stencil8,
+            TextureFlag.BindDepthStencil,
+            new Vector3i(16, 16, 1)));
 
         var renderTargetView = RenderTargetView.Texture(rawTexture);
-        var readOnlyDepthView = RenderTargetView.ReadOnlyDepth(rawTexture);
+        var readOnlyDepthView = RenderTargetView.ReadOnlyDepth(rawDepthTexture);
 
         Assert.Same(rawTexture.GetTexture(), renderTargetView.RenderTexture);
-        Assert.Same(rawTexture.GetTexture(), readOnlyDepthView.RenderTexture);
+        Assert.Same(rawDepthTexture.GetTexture(), readOnlyDepthView.RenderTexture);
+        Assert.Throws<ArgumentException>(() => RenderTargetView.ReadOnlyDepth(rawTexture));
     }
 
     [Fact]

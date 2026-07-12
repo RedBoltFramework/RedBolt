@@ -82,6 +82,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     public static RenderTargetView ReadOnlyDepth(RawTexture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
+        if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
+            throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
         return ReadOnlyDepth(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."));
     }
 
@@ -94,6 +96,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
+        if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
+            throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
         return ReadOnlyDepthSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
     }
 
