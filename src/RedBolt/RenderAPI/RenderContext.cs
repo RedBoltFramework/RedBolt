@@ -15,6 +15,10 @@ public class RenderContext : Object
     private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
     private int _numCurrentRenderTargets;
     private OptionalRawTextureRTV _currentDepthStencil;
+    private PipelineStateOutputDesc _currentOutputDesc = new();
+    private bool _isSwapChain;
+    private Vector2i _currentDimensions;
+    private IntRect _currentViewport;
     private uint _clipPlaneMask;
 
     public RenderContext(RenderDevice renderDevice)
@@ -42,6 +46,7 @@ public class RenderContext : Object
         Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
         _numCurrentRenderTargets = 0;
         _currentDepthStencil = default;
+        _isSwapChain = false;
         UpdateCurrentRenderTargetInfo();
     }
 
@@ -50,16 +55,7 @@ public class RenderContext : Object
     /// </summary>
     public void SetSwapChainRenderTargets()
     {
-        var graphics = GetGraphics();
-        if (graphics is null)
-            return;
-
-        var size = _renderDevice.GetSwapChainSize();
-        graphics.SetSwapChainRenderTargets(new IntRect(0, 0, size.X, size.Y));
-        _currentRenderTargets[0] = SwapChainColorTarget[0];
-        _numCurrentRenderTargets = 1;
-        _currentDepthStencil = RenderTargetView.SwapChainDepthStencil();
-        UpdateCurrentRenderTargetInfo();
+        SetRenderTargets(RenderTargetView.SwapChainDepthStencil(), SwapChainColorTarget);
     }
 
     /// <summary>
@@ -80,12 +76,30 @@ public class RenderContext : Object
             throw new InvalidOperationException("Cannot mix swap chain and non-swap-chain render target views.");
 
         var viewportSize = ResolveRenderTargetSize(renderTargets, depthStencil);
-        graphics.SetRenderTargets(new IntRect(0, 0, viewportSize.X, viewportSize.Y), renderTargets, depthStencil.GetValueOrDefault());
         Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
         renderTargets.CopyTo(_currentRenderTargets);
         _numCurrentRenderTargets = renderTargets.Length;
         _currentDepthStencil = depthStencil;
+        _isSwapChain = isDepthSwapChain || isColorSwapChain;
+        if (!_isSwapChain)
+        {
+            if (depthStencil.GetValueOrDefault() is { } depthStencilView)
+                _renderDevice.MarkRenderTargetDirty(depthStencilView);
+            for (var i = 0; i < renderTargets.Length; ++i)
+                _renderDevice.MarkRenderTargetDirty(renderTargets[i]);
+        }
         UpdateCurrentRenderTargetInfo();
+
+        if (_numCurrentRenderTargets == 0 && !_currentDepthStencil.HasValue)
+        {
+            graphics.UnbindRenderTargets();
+            _currentViewport = default;
+        }
+        else
+        {
+            graphics.SetRenderTargets(new IntRect(0, 0, viewportSize.X, viewportSize.Y), renderTargets, depthStencil.GetValueOrDefault());
+            _currentViewport = new IntRect(0, 0, viewportSize.X, viewportSize.Y);
+        }
     }
 
     /// <summary>
@@ -105,7 +119,12 @@ public class RenderContext : Object
     /// </summary>
     public void SetViewport(IntRect viewport)
     {
-        GetGraphics()?.SetViewport(viewport);
+        var viewportMin = viewport.Min;
+        var viewportMax = viewport.Max;
+        _currentViewport = new IntRect(
+            new Vector2i(Math.Max(viewportMin.X, 0), Math.Max(viewportMin.Y, 0)),
+            new Vector2i(Math.Min(viewportMax.X, _currentDimensions.X), Math.Min(viewportMax.Y, _currentDimensions.Y)));
+        GetGraphics()?.SetViewport(_currentViewport);
     }
 
     /// <summary>
@@ -183,32 +202,38 @@ public class RenderContext : Object
 
     public Vector2i GetCurrentRenderTargetSize()
     {
-        UpdateCurrentRenderTargetInfo();
-        return GetGraphics()?.GetCurrentRenderTargetSize() ?? default;
+        return _currentDimensions;
     }
 
-    public PipelineStateOutputDesc GetCurrentRenderTargetsDesc()
-    {
-        UpdateCurrentRenderTargetInfo();
-        return GetGraphics()?.GetCurrentRenderTargetsDesc() ?? new PipelineStateOutputDesc();
-    }
+    public PipelineStateOutputDesc GetCurrentRenderTargetsDesc() => _currentOutputDesc;
 
-    public bool IsSwapChainRenderTarget()
-    {
-        UpdateCurrentRenderTargetInfo();
-        return GetGraphics()?.IsSwapChainRenderTarget() ?? false;
-    }
+    public bool IsSwapChainRenderTarget() => _isSwapChain;
 
-    public IntRect GetCurrentViewport()
-    {
-        UpdateCurrentRenderTargetInfo();
-        return GetGraphics()?.GetCurrentViewportRect() ?? default;
-    }
+    public IntRect GetCurrentViewport() => _currentViewport;
 
     private void UpdateCurrentRenderTargetInfo()
     {
-        if (GetGraphics() is null)
+        var graphics = GetGraphics();
+        if (graphics is null)
             return;
+
+        var depthStencilView = _currentDepthStencil.GetValueOrDefault();
+        _currentOutputDesc.DepthStencilFormat = depthStencilView is { } depthView
+            ? GetRenderTargetFormat(depthView, graphics)
+            : TextureFormat.Unknown;
+
+        Span<TextureFormat> renderTargetFormats = stackalloc TextureFormat[checked((int)RenderApiLimits.MaxRenderTargets)];
+        for (var i = 0; i < _numCurrentRenderTargets; ++i)
+            renderTargetFormats[i] = GetRenderTargetFormat(_currentRenderTargets[i], graphics);
+        _currentOutputDesc.SetRenderTargetFormats(renderTargetFormats[.._numCurrentRenderTargets]);
+
+        RenderTargetView? view = _numCurrentRenderTargets != 0
+            ? _currentRenderTargets[0]
+            : depthStencilView;
+        _currentDimensions = view is { } target ? GetRenderTargetDimensions(target) : default;
+        _currentOutputDesc.MultiSample = view is { } multisampledTarget
+            ? checked((uint)GetRenderTargetMultiSample(multisampledTarget, graphics))
+            : 1u;
     }
 
     private Graphics? GetGraphics() => GetSubsystem<Graphics>();
@@ -222,6 +247,32 @@ public class RenderContext : Object
             return new Vector2i(colorTexture.Width, colorTexture.Height);
         if (depthStencilView?.RenderTexture is { } depthTexture)
             return new Vector2i(depthTexture.Width, depthTexture.Height);
-        return _renderDevice.GetSwapChainSize();
+        return default;
+    }
+
+    private TextureFormat GetRenderTargetFormat(RenderTargetView view, Graphics graphics)
+    {
+        if (view.RenderTexture is { } texture)
+            return texture.Format;
+
+        return view.Type == RenderTargetViewType.SwapChainDepthStencil
+            ? graphics.GetSwapChainDepthTextureFormat()
+            : graphics.GetSwapChainColorTextureFormat(out _);
+    }
+
+    private int GetRenderTargetMultiSample(RenderTargetView view, Graphics graphics)
+    {
+        return view.RenderTexture is { } texture
+            ? texture.MultiSample
+            : graphics.GetSwapChainMultiSample();
+    }
+
+    private Vector2i GetRenderTargetDimensions(RenderTargetView view)
+    {
+        if (view.IsSwapChain)
+            return _renderDevice.GetSwapChainSize();
+        if (view.RenderTexture is { } texture)
+            return new Vector2i(texture.Width, texture.Height);
+        return default;
     }
 }
