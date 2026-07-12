@@ -25,7 +25,7 @@ namespace RedBolt;
 /// <summary>
 /// State and parameters of playing Animation.
 /// </summary>
-public sealed class AnimationParameters : IEquatable<AnimationParameters?>
+public sealed class AnimationParameters : IEquatable<AnimationParameters?>, ICloneable
 {
     public AnimationParameters()
     {
@@ -45,6 +45,31 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>
         _animationName = animation?.AnimationNameHash ?? StringHash.Empty;
         _time = new WrappedScalar<float>(0.0f, minTime, maxTime);
     }
+
+    public AnimationParameters(AnimationParameters rhs)
+    {
+        ArgumentNullException.ThrowIfNull(rhs);
+
+        InstanceIndex = rhs.InstanceIndex;
+        IsLooped = rhs.IsLooped;
+        RemoveOnCompletion = rhs.RemoveOnCompletion;
+        LayerIndex = rhs.LayerIndex;
+        BlendMode = rhs.BlendMode;
+        StartBoneName = rhs.StartBoneName;
+        AutoFadeOutTime = rhs.AutoFadeOutTime;
+        SpeedValue = rhs.SpeedValue;
+        RemoveOnZeroWeight = rhs.RemoveOnZeroWeight;
+        WeightValue = rhs.WeightValue;
+        TargetWeight = rhs.TargetWeight;
+        TargetWeightDelay = rhs.TargetWeightDelay;
+        Removed = rhs.Removed;
+        Merged = rhs.Merged;
+        _animation = rhs._animation;
+        _animationName = rhs._animationName;
+        _time = new WrappedScalar<float>(rhs._time.Value(), rhs._time.Min(), rhs._time.Max());
+    }
+
+    public object Clone() => new AnimationParameters(this);
 
     public AnimationParameters(string animationName)
         : this(Context.Instance.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName))
