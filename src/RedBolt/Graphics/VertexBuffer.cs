@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class VertexBuffer
+public sealed class VertexBuffer : PipelineStateTracker
 {
     private static readonly VertexElement[] LegacyVertexElements =
     [
@@ -207,5 +207,18 @@ public sealed class VertexBuffer
         }
 
         return mask;
+    }
+
+    protected override uint RecalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        foreach (var element in _elements)
+            CombineHash(ref hash, element.ToHash());
+        return Math.Max(1u, hash);
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 }

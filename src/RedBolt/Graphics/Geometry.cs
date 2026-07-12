@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum PrimitiveType
@@ -23,118 +25,422 @@ public enum GeometryType
     StaticNoInstancing
 }
 
-public sealed class Geometry
+/// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>
+public sealed class Geometry : PipelineStateTracker
 {
+    /// <summary>Vertex buffers.</summary>
     private readonly List<VertexBuffer?> _vertexBuffers = [null];
 
-    public IReadOnlyList<VertexBuffer?> VertexBuffers => _vertexBuffers;
+    /// <summary>Vertex buffers dependencies.</summary>
+    private readonly List<PipelineStateSubscription> _vertexBuffersDependencies = [new()];
 
+    /// <summary>Index buffer.</summary>
     public IndexBuffer? IndexBuffer { get; private set; }
 
+    /// <summary>Index buffer dependency.</summary>
+    private PipelineStateSubscription _indexBufferDependency = new();
+
+    /// <summary>Primitive type.</summary>
     public PrimitiveType PrimitiveType { get; private set; } = PrimitiveType.TriangleList;
 
+    /// <summary>Start index.</summary>
     public uint IndexStart { get; private set; }
 
+    /// <summary>Number of indices.</summary>
     public uint IndexCount { get; private set; }
 
+    /// <summary>First used vertex.</summary>
     public uint VertexStart { get; private set; }
 
+    /// <summary>Number of used vertices.</summary>
     public uint VertexCount { get; private set; }
-    public float LodDistance { get; set; }
-    public bool IsEmpty => IndexCount == 0 && VertexCount == 0;
-    public uint EffectiveIndexCount => IndexBuffer is not null ? IndexCount : VertexCount;
 
-    public uint GetEffectiveIndexCount() => EffectiveIndexCount;
+    /// <summary>LOD distance.</summary>
+    private float _lodDistance;
 
-    public IndexBuffer? GetIndexBuffer() => IndexBuffer;
+    /// <summary>Raw vertex data elements.</summary>
+    private List<VertexElement> _rawElements = [];
 
-    public uint GetIndexCount() => IndexCount;
+    /// <summary>Raw vertex data override.</summary>
+    private byte[]? _rawVertexData;
 
-    public uint GetIndexStart() => IndexStart;
+    /// <summary>Raw index data override.</summary>
+    private byte[]? _rawIndexData;
 
-    public float GetLodDistance() => LodDistance;
+    /// <summary>Raw vertex data override size.</summary>
+    private uint _rawVertexSize;
 
-    public uint GetNumVertexBuffers() => (uint)_vertexBuffers.Count;
+    /// <summary>Raw index data override size.</summary>
+    private uint _rawIndexSize;
 
-    public PrimitiveType GetPrimitiveType() => PrimitiveType;
+    /// <summary>Whether the geometry uses headless buffers.</summary>
+    private bool _isHeadless;
 
-    public uint GetPrimitiveCount()
+    /// <summary>Construct with one empty vertex buffer.</summary>
+    public Geometry()
     {
-        var count = EffectiveIndexCount;
-        return PrimitiveType switch
-        {
-            PrimitiveType.TriangleList => count / 3u,
-            PrimitiveType.LineList => count / 2u,
-            PrimitiveType.PointList => count,
-            PrimitiveType.TriangleStrip => count >= 3u ? count - 2u : 0u,
-            PrimitiveType.LineStrip => count >= 2u ? count - 1u : 0u,
-            PrimitiveType.TriangleFan => count >= 3u ? count - 2u : 0u,
-            _ => 0u
-        };
+        SetNumVertexBuffers(1);
     }
 
-    public uint GetVertexCount() => VertexCount;
+    /// <summary>Register object with the engine.</summary>
+    public static void RegisterObject(Context context)
+    {
+        // TODO: port: context->AddFactoryReflection<Geometry>();
+    }
 
-    public uint GetVertexStart() => VertexStart;
-
-    public IReadOnlyList<VertexBuffer?> GetVertexBuffers() => VertexBuffers;
-
-    public bool IsHeadless() => true;
-
-    public bool IsInstanced(GeometryType geometryType) =>
-        (geometryType == GeometryType.Static || geometryType == GeometryType.Instanced) && IndexBuffer is not null;
-
+    /// <summary>Set number of vertex buffers.</summary>
     public bool SetNumVertexBuffers(uint count)
     {
+        if (count >= RenderApiLimits.MaxVertexStreams)
+        {
+            Log.Logger.LogError("Too many vertex streams");
+            return false;
+        }
+
+        foreach (var dependency in _vertexBuffersDependencies)
+            dependency.Dispose();
+
+        _vertexBuffersDependencies.Clear();
         _vertexBuffers.Clear();
-        for (var index = 0; index < count; ++index)
+        for (var i = 0u; i < count; ++i)
+        {
+            _vertexBuffersDependencies.Add(new PipelineStateSubscription());
             _vertexBuffers.Add(null);
+        }
+
         return true;
     }
 
+    /// <summary>Set a vertex buffer by index.</summary>
     public bool SetVertexBuffer(uint index, VertexBuffer? buffer)
     {
         if (index >= _vertexBuffers.Count)
+        {
+            Log.Logger.LogError("Stream index out of bounds");
             return false;
+        }
 
+        var dependency = CreateDependency(buffer);
+        _vertexBuffersDependencies[(int)index].Dispose();
+        _vertexBuffersDependencies[(int)index] = dependency;
         _vertexBuffers[(int)index] = buffer;
+
+        UpdateHeadlessStatus();
         return true;
     }
 
+    /// <summary>Set all vertex buffers at once.</summary>
     public void SetVertexBuffers(IEnumerable<VertexBuffer?> buffers)
     {
         ArgumentNullException.ThrowIfNull(buffers);
+
+        var newBuffers = buffers.ToList();
+        foreach (var dependency in _vertexBuffersDependencies)
+            dependency.Dispose();
+
+        _vertexBuffersDependencies.Clear();
         _vertexBuffers.Clear();
-        _vertexBuffers.AddRange(buffers);
+        foreach (var buffer in newBuffers)
+        {
+            _vertexBuffersDependencies.Add(CreateDependency(buffer));
+            _vertexBuffers.Add(buffer);
+        }
+
+        UpdateHeadlessStatus();
     }
 
-    public VertexBuffer? GetVertexBuffer(uint index)
-    {
-        return index < _vertexBuffers.Count ? _vertexBuffers[(int)index] : null;
-    }
-
+    /// <summary>Set the index buffer.</summary>
     public void SetIndexBuffer(IndexBuffer? buffer)
     {
+        var dependency = CreateDependency(IndexBuffer);
+        _indexBufferDependency.Dispose();
+        _indexBufferDependency = dependency;
         IndexBuffer = buffer;
+
+        UpdateHeadlessStatus();
     }
 
-    public void SetLodDistance(float distance)
-    {
-        LodDistance = distance;
-    }
-
+    /// <summary>Set the draw range.</summary>
     public bool SetDrawRange(PrimitiveType type, uint indexStart, uint indexCount, bool getUsedVertexRange = true)
     {
-        return SetDrawRange(type, indexStart, indexCount, vertexStart: 0, vertexCount: indexCount);
+        if (IndexBuffer is null && _rawIndexData is null)
+        {
+            Log.Logger.LogError("Null index buffer and no raw index data, can not define indexed draw range");
+            return false;
+        }
+
+        if (IndexBuffer is not null && unchecked(indexStart + indexCount) > IndexBuffer.GetIndexCount())
+        {
+            Log.Logger.LogError(
+                "Illegal draw range {IndexStart} to {LastIndex}, index buffer has {IndexCount} indices",
+                indexStart,
+                unchecked(indexStart + indexCount - 1),
+                IndexBuffer.GetIndexCount());
+            return false;
+        }
+
+        PrimitiveType = type;
+        IndexStart = indexStart;
+        IndexCount = indexCount;
+
+        // Get min.vertex index and num of vertices from index buffer. If it fails, use full range as fallback
+        if (indexCount != 0)
+        {
+            VertexStart = 0;
+            VertexCount = _vertexBuffers.Count != 0 && _vertexBuffers[0] is not null
+                ? _vertexBuffers[0]!.GetVertexCount()
+                : 0;
+
+            if (getUsedVertexRange && IndexBuffer is not null)
+            {
+                IndexBuffer.GetUsedVertexRange(IndexStart, IndexCount, out var vertexStart, out var vertexCount);
+                VertexStart = vertexStart;
+                VertexCount = vertexCount;
+            }
+        }
+        else
+        {
+            VertexStart = 0;
+            VertexCount = 0;
+        }
+
+        MarkPipelineStateHashDirty();
+        return true;
     }
 
-    public bool SetDrawRange(PrimitiveType type, uint indexStart, uint indexCount, uint vertexStart, uint vertexCount, bool checkIllegal = true)
+    /// <summary>Set the draw range.</summary>
+    public bool SetDrawRange(PrimitiveType type, uint indexStart, uint indexCount, uint vertexStart, uint vertexCount,
+        bool checkIllegal = true)
     {
+        if (IndexBuffer is not null)
+        {
+            // We can allow setting an illegal draw range now if the caller guarantees to resize / fill the buffer later
+            if (checkIllegal && unchecked(indexStart + indexCount) > IndexBuffer.GetIndexCount())
+            {
+                Log.Logger.LogError(
+                    "Illegal draw range {IndexStart} to {LastIndex}, index buffer has {IndexCount} indices",
+                    indexStart,
+                    unchecked(indexStart + indexCount - 1),
+                    IndexBuffer.GetIndexCount());
+                return false;
+            }
+        }
+        else if (_rawIndexData is null)
+        {
+            indexStart = 0;
+            indexCount = 0;
+        }
+
         PrimitiveType = type;
         IndexStart = indexStart;
         IndexCount = indexCount;
         VertexStart = vertexStart;
         VertexCount = vertexCount;
+
+        _ = RecalculatePipelineStateHash();
         return true;
+    }
+
+    /// <summary>Set the LOD distance.</summary>
+    public void SetLodDistance(float distance)
+    {
+        if (distance < 0.0f)
+            distance = 0.0f;
+
+        _lodDistance = distance;
+    }
+
+    /// <summary>LOD distance.</summary>
+    public float LodDistance
+    {
+        get => _lodDistance;
+        set => SetLodDistance(value);
+    }
+
+    /// <summary>Override raw vertex data to be returned for CPU-side operations.</summary>
+    public void SetRawVertexData(byte[] data, IEnumerable<VertexElement> elements)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(elements);
+
+        _rawVertexData = data;
+        _rawVertexSize = VertexBuffer.GetVertexSize(elements);
+        _rawElements = elements.ToList();
+    }
+
+    /// <summary>Override raw vertex data to be returned for CPU-side operations using a legacy vertex bitmask.</summary>
+    public void SetRawVertexData(byte[] data, uint elementMask)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        _rawVertexData = data;
+        _rawVertexSize = VertexBuffer.GetVertexSize((VertexMask)elementMask);
+        _rawElements = VertexBuffer.GetElements(elementMask);
+    }
+
+    /// <summary>Override raw index data to be returned for CPU-side operations.</summary>
+    public void SetRawIndexData(byte[] data, uint indexSize)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        _rawIndexData = data;
+        _rawIndexSize = indexSize;
+    }
+
+    /// <summary>Return all vertex buffers.</summary>
+    public IReadOnlyList<VertexBuffer?> VertexBuffers => _vertexBuffers;
+
+    /// <summary>Return all vertex buffers.</summary>
+    public IReadOnlyList<VertexBuffer?> GetVertexBuffers() => _vertexBuffers;
+
+    /// <summary>Return number of vertex buffers.</summary>
+    public uint GetNumVertexBuffers() => (uint)_vertexBuffers.Count;
+
+    /// <summary>Return vertex buffer by index.</summary>
+    public VertexBuffer? GetVertexBuffer(uint index)
+    {
+        return index < _vertexBuffers.Count ? _vertexBuffers[(int)index] : null;
+    }
+
+    /// <summary>Return the index buffer.</summary>
+    public IndexBuffer? GetIndexBuffer() => IndexBuffer;
+
+    /// <summary>Return primitive type.</summary>
+    public PrimitiveType GetPrimitiveType() => PrimitiveType;
+
+    /// <summary>Return start index.</summary>
+    public uint GetIndexStart() => IndexStart;
+
+    /// <summary>Return number of indices.</summary>
+    public uint GetIndexCount() => IndexCount;
+
+    /// <summary>Return first used vertex.</summary>
+    public uint GetVertexStart() => VertexStart;
+
+    /// <summary>Return number of used vertices.</summary>
+    public uint GetVertexCount() => VertexCount;
+
+    /// <summary>Return LOD distance.</summary>
+    public float GetLodDistance() => LodDistance;
+
+    /// <summary>Return index or vertex count depending on whether the index buffer is used.</summary>
+    public uint EffectiveIndexCount => IndexBuffer is not null ? IndexCount : VertexCount;
+
+    /// <summary>Return index or vertex count depending on whether the index buffer is used.</summary>
+    public uint GetEffectiveIndexCount() => EffectiveIndexCount;
+
+    /// <summary>Return number of primitives.</summary>
+    public uint GetPrimitiveCount()
+    {
+        var indexCount = GetEffectiveIndexCount();
+        return PrimitiveType switch
+        {
+            PrimitiveType.TriangleList => indexCount / 3,
+            PrimitiveType.LineList => indexCount / 2,
+            PrimitiveType.PointList => indexCount,
+            PrimitiveType.TriangleStrip or PrimitiveType.TriangleFan => indexCount >= 2 ? indexCount - 2 : 0,
+            PrimitiveType.LineStrip => indexCount >= 1 ? indexCount - 1 : 0,
+            _ => 0
+        };
+    }
+
+    /// <summary>Return raw vertex and index data for CPU operations, or null data if not available.</summary>
+    public void GetRawData(out IReadOnlyList<byte>? vertexData, out uint vertexSize, out IReadOnlyList<byte>? indexData,
+        out uint indexSize, out IReadOnlyList<VertexElement>? elements)
+    {
+        if (_rawVertexData is not null)
+        {
+            vertexData = _rawVertexData;
+            vertexSize = _rawVertexSize;
+            elements = _rawElements;
+        }
+        else if (_vertexBuffers.Count != 0 && _vertexBuffers[0] is not null)
+        {
+            vertexData = _vertexBuffers[0]!.GetData();
+            vertexSize = _vertexBuffers[0]!.GetVertexSize();
+            elements = _vertexBuffers[0]!.GetElements();
+        }
+        else
+        {
+            vertexData = null;
+            vertexSize = 0;
+            elements = null;
+        }
+
+        if (_rawIndexData is not null)
+        {
+            indexData = _rawIndexData;
+            indexSize = _rawIndexSize;
+        }
+        else
+        {
+            // TODO: port: IndexBuffer exposes unpacked indices but not the C++ shadow byte pointer used here.
+            indexData = null;
+            indexSize = 0;
+        }
+    }
+
+    /// <summary>Return raw vertex and index data for CPU operations using managed shared arrays.</summary>
+    public void GetRawDataShared(out byte[]? vertexData, out uint vertexSize, out byte[]? indexData, out uint indexSize,
+        out IReadOnlyList<VertexElement>? elements)
+    {
+        GetRawData(out var vertexDataList, out vertexSize, out var indexDataList, out indexSize, out elements);
+        vertexData = vertexDataList as byte[];
+        indexData = indexDataList as byte[];
+    }
+
+    /// <summary>Return ray hit distance or infinity if no hit.</summary>
+    public float GetHitDistance(Ray ray, Vector3f? outNormal = null, Vector2f? outUv = null)
+    {
+        // TODO: port: The C++ implementation passes raw vertex/index pointers to Ray::HitDistance, which is not
+        // represented by the managed Ray API yet.
+        return float.PositiveInfinity;
+    }
+
+    /// <summary>Return whether or not the ray is inside geometry.</summary>
+    public bool IsInside(Ray ray)
+    {
+        // TODO: port: The C++ implementation passes raw vertex/index pointers to Ray::InsideGeometry, which is not
+        // represented by the managed Ray API yet.
+        return false;
+    }
+
+    /// <summary>Return whether has empty draw range.</summary>
+    public bool IsEmpty => IndexCount == 0 && VertexCount == 0;
+
+    /// <summary>Return whether the geometry can be rendered using instancing buffer.</summary>
+    public bool IsInstanced(GeometryType geometryType)
+    {
+        return (geometryType == GeometryType.Static || geometryType == GeometryType.Instanced)
+            && IndexBuffer is not null;
+    }
+
+    /// <summary>Return whether the geometry uses headless buffers.</summary>
+    public bool IsHeadless() => _isHeadless;
+
+    /// <summary>Recalculate hash.</summary>
+    protected override uint RecalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, (uint)_vertexBuffers.Count);
+        foreach (var vertexBuffer in _vertexBuffers)
+            CombineHash(ref hash, vertexBuffer is not null ? vertexBuffer.GetPipelineStateHash() : 0);
+        CombineHash(ref hash, IndexBuffer is not null ? IndexBuffer.GetPipelineStateHash() : 0);
+        CombineHash(ref hash, (uint)PrimitiveType);
+        return hash;
+    }
+
+    /// <summary>Update "headless" status.</summary>
+    private void UpdateHeadlessStatus()
+    {
+        // TODO: port: Managed VertexBuffer and IndexBuffer do not expose RenderDevice; all existing buffers are CPU-only.
+        _isHeadless = IndexBuffer is not null;
+        foreach (var vertexBuffer in _vertexBuffers)
+            _isHeadless = _isHeadless || vertexBuffer is not null;
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 }

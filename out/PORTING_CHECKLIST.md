@@ -528,12 +528,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Bone` — fields, defaults, cloning, and managed nullable Node reference
   - [x] `Skeleton` — serialization, hierarchy ordering, lookup, definition, and reset behavior
 - [~] `Geometry.h`
-  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>`
+  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — dependency tracking, draw-range validation, raw-data overrides, primitive metadata, and pipeline hashing are ported; managed `Ray` lacks the C++ raw-pointer geometry intersection API, and `Object`/`IDFamily` are not represented
 - [~] `IndexBuffer.h`
-  - [~] `IndexBuffer : RawBuffer, PipelineStateTracker`
+  - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — pipeline-state hashing is now available for Geometry dependencies
   - [ ] `DynamicIndexBuffer : Object`
 - [~] `VertexBuffer.h`
-  - [~] `VertexBuffer : RawBuffer, PipelineStateTracker`
+  - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — pipeline-state hashing is now available for Geometry dependencies
   - [ ] `DynamicVertexBuffer : Object`
 - [~] `Texture.h`
   - [~] `Texture : ResourceWithMetadata, RawTexture`

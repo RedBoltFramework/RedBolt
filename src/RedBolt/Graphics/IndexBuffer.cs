@@ -7,7 +7,7 @@ public enum IndexBufferType
     UInt32
 }
 
-public sealed class IndexBuffer
+public sealed class IndexBuffer : PipelineStateTracker
 {
     private uint[] _unpackedData = [];
 
@@ -92,5 +92,17 @@ public sealed class IndexBuffer
             return IndexBufferType.None;
 
         return indexBuffer.LargeIndices ? IndexBufferType.UInt32 : IndexBufferType.UInt16;
+    }
+
+    protected override uint RecalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, IndexSize);
+        return Math.Max(1u, hash);
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 }

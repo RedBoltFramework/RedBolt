@@ -99,7 +99,7 @@ public abstract class PipelineStateTracker
     }
 
     /// <summary>Create dependency onto another pipeline state.</summary>
-    protected PipelineStateSubscription CreateDependency(PipelineStateTracker dependency)
+    protected PipelineStateSubscription CreateDependency(PipelineStateTracker? dependency)
     {
         return new PipelineStateSubscription(dependency, this);
     }
