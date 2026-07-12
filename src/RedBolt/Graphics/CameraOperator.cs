@@ -95,7 +95,8 @@ public class CameraOperator : Component
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<CameraOperator>(Category_Scene);
+        ArgumentNullException.ThrowIfNull(context);
+        context.AddFactoryReflection<CameraOperator>(ObjectCategory.Category_Scene);
         // TODO: port: URHO3D_ACTION_STATIC_LABEL("Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
     }
 
