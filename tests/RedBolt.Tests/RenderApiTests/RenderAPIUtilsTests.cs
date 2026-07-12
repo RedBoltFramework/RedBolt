@@ -94,4 +94,49 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal((uint?)8, loadedSettings.QueryPoolSizes[3]);
         Assert.Null(loadedSettings.QueryPoolSizes[1]);
     }
+
+    [Fact]
+    public void Vulkan_descriptor_pool_size_round_trips_through_binary_archive()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var value = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize
+        {
+            MaxDescriptorSets = 1,
+            NumSeparateSamplerDescriptors = 2,
+            NumCombinedSamplerDescriptors = 3,
+            NumSampledImageDescriptors = 4,
+            NumStorageImageDescriptors = 5,
+            NumUniformBufferDescriptors = 6,
+            NumStorageBufferDescriptors = 7,
+            NumUniformTexelBufferDescriptors = 8,
+            NumStorageTexelBufferDescriptors = 9,
+            NumInputAttachmentDescriptors = 10,
+            NumAccelStructDescriptors = 11
+        };
+
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            RenderAPIUtils.SerializeValue(output, "pool", value);
+        output.Flush();
+
+        buffer.Seek(0);
+        var loadedValue = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            RenderAPIUtils.SerializeValue(input, "pool", loadedValue);
+        input.Flush();
+
+        Assert.Equal(value.MaxDescriptorSets, loadedValue.MaxDescriptorSets);
+        Assert.Equal(value.NumSeparateSamplerDescriptors, loadedValue.NumSeparateSamplerDescriptors);
+        Assert.Equal(value.NumCombinedSamplerDescriptors, loadedValue.NumCombinedSamplerDescriptors);
+        Assert.Equal(value.NumSampledImageDescriptors, loadedValue.NumSampledImageDescriptors);
+        Assert.Equal(value.NumStorageImageDescriptors, loadedValue.NumStorageImageDescriptors);
+        Assert.Equal(value.NumUniformBufferDescriptors, loadedValue.NumUniformBufferDescriptors);
+        Assert.Equal(value.NumStorageBufferDescriptors, loadedValue.NumStorageBufferDescriptors);
+        Assert.Equal(value.NumUniformTexelBufferDescriptors, loadedValue.NumUniformTexelBufferDescriptors);
+        Assert.Equal(value.NumStorageTexelBufferDescriptors, loadedValue.NumStorageTexelBufferDescriptors);
+        Assert.Equal(value.NumInputAttachmentDescriptors, loadedValue.NumInputAttachmentDescriptors);
+        Assert.Equal(value.NumAccelStructDescriptors, loadedValue.NumAccelStructDescriptors);
+    }
 }

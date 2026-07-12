@@ -272,6 +272,17 @@ public static class RenderAPIUtils
         sizes[4] = SerializeOptionalUInt(archive, "queryPoolSize_duration", sizes[4]);
     }
 
+    public static void SerializeValue(
+        Archive archive, string name, global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize value)
+    {
+        ArgumentNullException.ThrowIfNull(archive);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        using var block = archive.OpenUnorderedBlock(name);
+        SerializeVulkanDescriptorPoolSizeFields(archive, value);
+    }
+
     private static uint? SerializeOptionalUInt(Archive archive, string name, uint? value)
     {
         if (!archive.IsUnorderedAccessSupportedInCurrentBlock)
