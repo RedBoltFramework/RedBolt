@@ -1,9 +1,12 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
 /// <summary>Configuration parameter description.</summary>
-public struct ConfigVariableDefinition
+public sealed class ConfigVariableDefinition
 {
     public ConfigVariableDefinition SetDefault(Variant value)
     {
@@ -71,13 +74,12 @@ public sealed class ConfigFile : Object
                 for (var i = 0u; i < varArrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
-                    var name = string.Empty;
+                    var key = string.Empty;
                     var value = default(Variant);
-                    ArchiveSerialization.SerializeValue(archive, "name", ref name);
-                    using (archive.OpenUnorderedBlock("value"))
-                        ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                    if (!string.IsNullOrEmpty(name))
-                        varMap[name] = value;
+                    ArchiveSerialization.SerializeValue(archive, "key", ref key);
+                    ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                    if (!string.IsNullOrEmpty(key))
+                        varMap[key] = value;
                 }
             }
             else
@@ -85,11 +87,10 @@ public sealed class ConfigFile : Object
                 foreach (var (name, value) in varMap)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
-                    var n = name;
+                    var key = name;
                     var v = value;
-                    ArchiveSerialization.SerializeValue(archive, "name", ref n);
-                    using (archive.OpenUnorderedBlock("value"))
-                        ArchiveSerialization.SerializeVariantInBlock(archive, ref v);
+                    ArchiveSerialization.SerializeValue(archive, "key", ref key);
+                    ArchiveSerialization.SerializeVariantInBlock(archive, ref v);
                 }
             }
         }
@@ -189,6 +190,144 @@ public sealed class ConfigFile : Object
         }
     }
 
+    /// <summary>Load default variables from a file in the virtual file system.</summary>
+    public bool LoadDefaults(string fileName, ApplicationFlavor flavor)
+    {
+        var fileSystem = GetSubsystem<VirtualFileSystem>();
+        var fileIdentifier = FileIdentifier.FromUri(fileName);
+        if (fileSystem is null || !fileSystem.Exists(fileIdentifier))
+        {
+            Log.Logger.LogInformation("ConfigFile '{FileName}' is not found.", fileName);
+            return false;
+        }
+
+        var jsonFile = new JSONFile();
+        if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
+        {
+            Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
+            return false;
+        }
+
+        if (jsonFile.Root.ToJsonNode() is not JsonObject rootObject
+            || rootObject["Default"] is not JsonArray defaults)
+        {
+            Log.Logger.LogError("Failed to parse settings file '{FileName}'.", fileName);
+            return false;
+        }
+
+        _variablesPerFlavor.Clear();
+        foreach (var defaultNode in defaults)
+        {
+            if (defaultNode is not JsonObject defaultObject)
+                continue;
+
+            var configFlavor = new ConfigFlavor
+            {
+                Flavor = new ApplicationFlavorPattern(),
+                Variables = new Dictionary<string, Variant>(StringComparer.Ordinal)
+            };
+
+            if (defaultObject["Flavor"] is JsonArray flavorArray)
+            {
+                foreach (var flavorNode in flavorArray)
+                {
+                    if (flavorNode is not JsonObject flavorObject)
+                        continue;
+
+                    var key = flavorObject["key"]?.GetValue<string>() ?? string.Empty;
+                    if (string.IsNullOrEmpty(key))
+                        continue;
+
+                    IEnumerable<string> tags = flavorObject["tags"] is JsonArray tagArray
+                        ? tagArray.Select(static tag => tag?.GetValue<string>() ?? string.Empty)
+                            .Where(static tag => !string.IsNullOrEmpty(tag))
+                        : Array.Empty<string>();
+                    configFlavor.Flavor.Components[key] = new ApplicationFlavorComponent(tags);
+                }
+            }
+
+            if (defaultObject["Variables"] is JsonArray variablesArray)
+            {
+                foreach (var variableNode in variablesArray)
+                {
+                    if (variableNode is not JsonObject variableObject)
+                        continue;
+
+                    var key = variableObject["key"]?.GetValue<string>() ?? string.Empty;
+                    if (!string.IsNullOrEmpty(key))
+                        configFlavor.Variables[key] = JSONValue.FromJsonNode(variableObject).GetVariant();
+                }
+            }
+
+            _variablesPerFlavor.Add(configFlavor);
+        }
+
+        foreach (var (name, value) in GetFlavorVariables(flavor))
+            SetVariable(name, value);
+
+        Log.Logger.LogInformation("ConfigFile '{FileName}' is loaded with flavor '{Flavor}'.", fileName, flavor);
+        return true;
+    }
+
+    /// <summary>Load variable overrides from a file in the virtual file system.</summary>
+    public bool LoadOverrides(string fileName)
+    {
+        var fileSystem = GetSubsystem<VirtualFileSystem>();
+        var fileIdentifier = FileIdentifier.FromUri(fileName);
+        if (fileSystem is null || !fileSystem.Exists(fileIdentifier))
+        {
+            Log.Logger.LogInformation("ConfigFile overrides '{FileName}' are not found.", fileName);
+            return false;
+        }
+
+        var jsonFile = new JSONFile();
+        if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
+        {
+            Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
+            return false;
+        }
+
+        var rootNode = jsonFile.Root.ToJsonNode();
+        if (rootNode is JsonObject rootObject)
+        {
+            foreach (var (name, node) in rootObject)
+            {
+                if (node is not JsonObject)
+                    continue;
+
+                var value = JSONValue.FromJsonNode(node).GetVariant();
+                ApplyOverride(name, value);
+            }
+        }
+        else
+        {
+            foreach (var (name, value) in jsonFile.Root.GetStringVariantMap())
+                ApplyOverride(name, value);
+        }
+
+        Log.Logger.LogInformation("ConfigFile overrides '{FileName}' are loaded.", fileName);
+        return true;
+    }
+
+    /// <summary>Save variable overrides to a file in the virtual file system.</summary>
+    public bool SaveOverrides(string fileName, ApplicationFlavor flavor)
+    {
+        var fileSystem = GetSubsystem<VirtualFileSystem>();
+        if (fileSystem is null)
+            return false;
+
+        var root = new JsonObject();
+        foreach (var (name, value) in GetChangedVariables(flavor))
+        {
+            var jsonValue = new JSONValue();
+            jsonValue.SetVariant(value);
+            root[name] = jsonValue.ToJsonNode();
+        }
+
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        return fileSystem.WriteAllText(FileIdentifier.FromUri(fileName), root.ToJsonString(options));
+    }
+
     public Dictionary<string, Variant> GetFlavorVariables(ApplicationFlavor flavor)
     {
         var filtered = new List<(uint penalty, ConfigFlavor configFlavor)>();
@@ -227,5 +366,31 @@ public sealed class ConfigFile : Object
             if (!defVal.Equals(value)) overrides[name] = value;
         }
         return overrides;
+    }
+
+    private void ApplyOverride(string name, Variant value)
+    {
+        var definition = GetVariableDefinition(name);
+        if (definition is null)
+        {
+            Log.Logger.LogWarning("Ignoring override for unknown variable '{Name}'.", name);
+            return;
+        }
+
+        if (!definition.IsOverridable)
+        {
+            Log.Logger.LogWarning("Ignoring override for non-overridable variable '{Name}'.", name);
+            return;
+        }
+
+        if (definition.Type != value.Type)
+        {
+            Log.Logger.LogWarning(
+                "Ignoring override for variable '{Name}' with invalid type {ActualType} ({ExpectedType} was expected).",
+                name, value.Type, definition.Type);
+            return;
+        }
+
+        SetVariable(name, value);
     }
 }
