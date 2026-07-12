@@ -306,6 +306,7 @@ public class DrawCommandQueue : Object
             return;
 
         renderContext.SetClipPlaneMask(_clipPlaneMask);
+        // TODO: port C++ deviceContext->SetBlendFactors(blendFactors); when the generated binding accepts the four-float array.
         var deviceContext = renderContext.GetHandle();
         if (deviceContext is null || deviceContext.IsNull)
             return;
