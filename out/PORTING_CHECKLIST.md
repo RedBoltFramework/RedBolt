@@ -524,9 +524,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `PipelineStateTracker.h`
   - [x] `PipelineStateSubscription` — managed IDisposable subscription with Clone for C++ copy-construction
   - [x] `PipelineStateTracker` — dependency tracking and atomic cached hash invalidation
-- [ ] `Skeleton.h`
-  - [ ] `Bone`
-  - [ ] `Skeleton`
+- [x] `Skeleton.h`
+  - [x] `Bone` — fields, defaults, cloning, and managed nullable Node reference
+  - [x] `Skeleton` — serialization, hierarchy ordering, lookup, definition, and reset behavior
 - [~] `Geometry.h`
   - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>`
 - [~] `IndexBuffer.h`
