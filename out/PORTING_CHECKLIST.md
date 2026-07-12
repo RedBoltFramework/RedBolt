@@ -565,8 +565,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `AnimationTrack.h`
   - [x] `struct AnimationTrack : KeyFrameSet<AnimationKeyFrame>` — keyframe sampling, loop detection, and merged channel construction are ported; `AnimationKeyFrame` duplicates `Transform` fields because C# structs cannot inherit structs
   - [x] `struct VariantAnimationTrack : VariantCurve` — variant track weight and loop detection are ported; `VariantCurve` is made inheritable to match the C++ base relationship
-- [ ] `Animation.h`
-  - [ ] `Animation : ResourceWithMetadata, ObjectRevisionTracker`
+- [~] `Animation.h`
+  - [~] `Animation : ResourceWithMetadata, ObjectRevisionTracker` — resource state, XML loading, UANI/UAN2 serialization, tracks, variant tracks, triggers, cloning, metadata, and revision tracking are ported; C# flattens `ObjectRevisionTracker` because it cannot express C++ multiple inheritance
+  - [~] ResourceCache/VFS sibling XML dependency behavior is mapped through `VirtualFileSystem` and `FileIdentifier`; generic resource-cache dependency registration remains TODO
 - [~] `Camera.h`
   - [~] `Camera : Component`
 - [ ] `CameraOperator.h`

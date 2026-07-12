@@ -139,6 +139,7 @@ The build output binaries are in:
 - NEVER commit unless the build is green and tests pass.
 - NEVER delegate tasks to subagents.
 - NEVER insert absolute paths to code.
+- NEVER get subsystems through context in classes that have `this.GetSubsystem<>()` available.
 
 ## 9. BINDINGS: HOW TO GET NATIVE ACCESS
 
