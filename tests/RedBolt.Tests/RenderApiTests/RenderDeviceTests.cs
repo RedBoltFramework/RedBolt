@@ -164,12 +164,15 @@ public sealed class RenderDeviceTests
         {
             _fixture.RenderDevice.PostInitialize();
             var oldTexture = _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D);
+            var oldUniformBuffer = _fixture.RenderDevice.GetRenderPool().GetUniformBuffer(1u, 64u);
             _fixture.RenderContext.SetClipPlaneMask(0x5Au);
 
             Assert.True(_fixture.RenderDevice.EmulateLossAndRestore());
 
             var newTexture = _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D);
+            var newUniformBuffer = _fixture.RenderDevice.GetRenderPool().GetUniformBuffer(1u, 64u);
             Assert.NotSame(oldTexture, newTexture);
+            Assert.NotSame(oldUniformBuffer, newUniformBuffer);
             Assert.NotNull(newTexture);
             Assert.True(newTexture!.IsValid());
             var clipPlaneMask = (uint)typeof(RenderContext)

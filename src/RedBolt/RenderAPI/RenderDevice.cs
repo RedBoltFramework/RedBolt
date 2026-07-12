@@ -386,6 +386,7 @@ public sealed class RenderDevice : Object
         InitializeDefaultTexture(TextureType.TextureCube, data);
         InitializeDefaultTexture(TextureType.Texture3D, data);
         InitializeDefaultTexture(TextureType.Texture2DArray, data);
+        _renderPool.Restore();
     }
 
     private void InitializeDefaultTexture(TextureType type, ReadOnlySpan<byte> data)
@@ -408,6 +409,8 @@ public sealed class RenderDevice : Object
             _defaultTextures[i]?.Dispose();
             _defaultTextures[i] = null;
         }
+
+        _renderPool.Invalidate();
     }
 
     private static IReadOnlyList<string> ParseOrientations(string orientations)

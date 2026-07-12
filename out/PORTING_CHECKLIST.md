@@ -481,7 +481,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, and reflection-based validity are ported; native descriptor parity remains under review
   - [~] `PipelineStateCache : Object, DeviceObject`
 - [x] `RenderPool.h`
-  - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation are ported
+  - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation/restore lifecycle are ported
 - [x] `RenderScope.h`
   - [x] `RenderScope : NonCopyable` — conditional RAII-style Diligent debug groups are ported
 - [~] `RenderContext.h`
@@ -489,7 +489,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `DrawCommandQueue.h`
   - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, and four-float blend-factor binding are ported
 - [~] `RenderDevice.h`
-  - [~] `RenderDevice : Object` — native device/context/swap-chain accessors, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, queued pipeline reloads, post-initialize default raw textures, and device-object destruction are ported; initialization and backend-specific device management remain
+  - [~] `RenderDevice : Object` — native device/context/swap-chain accessors, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, queued pipeline reloads, post-initialize default raw textures, render-pool loss/restore handling, and device-object destruction are ported; initialization and backend-specific device management remain
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
