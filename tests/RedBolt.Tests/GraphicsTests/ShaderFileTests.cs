@@ -25,7 +25,7 @@ public sealed class ShaderFileTests
             Assert.Equal("LitSolid", shader.GetShaderName());
             Assert.Contains("#ifndef _MATERIAL_GLSL_", shader.SourceCode, StringComparison.Ordinal);
             Assert.Contains("GetSurfaceColor", shader.SourceCode, StringComparison.Ordinal);
-            Assert.True(shader.LastWriteTimeUtc > DateTime.MinValue);
+            Assert.True(shader.TimeStamp > DateTime.MinValue);
         }
         finally
         {
@@ -76,6 +76,37 @@ public sealed class ShaderFileTests
             Assert.Contains("#define URHO3D_SURFACE_NEED_NORMAL", prepared, StringComparison.Ordinal);
             Assert.Contains("#define URHO3D_PIXEL_NEED_TEXCOORD", prepared, StringComparison.Ordinal);
             Assert.Contains("#define ALPHAMASK", prepared, StringComparison.Ordinal);
+        }
+        finally
+        {
+            RbfxTestData.RemoveResourceDirs(Resources);
+        }
+    }
+
+    [Fact]
+    public void Shader_reload_caches_normalized_variations_and_indexes_files()
+    {
+        RbfxTestData.AddResourceDirs(Resources);
+        try
+        {
+            var shader = Resources.GetResource<Shader>("LitSolid");
+            var reloadCount = 0;
+            shader.OnReloaded += _ => ++reloadCount;
+
+            Assert.True(shader.Reload());
+            Assert.Equal(1, reloadCount);
+
+            var first = shader.GetVariation(ShaderType.VS, "A B");
+            var second = shader.GetVariation(ShaderType.VS, "B A");
+            var pixel = shader.GetVariation(ShaderType.PS, "A B");
+
+            Assert.Same(first, second);
+            Assert.NotSame(first, pixel);
+            Assert.Equal("A B", first.Defines);
+            Assert.Same(shader, first.Shader);
+            Assert.True(shader.TimeStamp > DateTime.MinValue);
+            Assert.Contains("Shaders/GLSL/v2/LitSolid.glsl", Shader.GetShaderFileList(), StringComparison.Ordinal);
+            Assert.True(shader.GetMemoryUse() > 0);
         }
         finally
         {

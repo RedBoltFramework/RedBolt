@@ -548,7 +548,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `RenderSurface.h`
   - [ ] `RenderSurface : RefCounted`
 - [~] `Shader.h`
-  - [~] `Shader : Resource`
+  - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
 - [~] `ShaderVariation.h`
   - [~] `ShaderVariation`
 - [ ] `ModelView.h`
