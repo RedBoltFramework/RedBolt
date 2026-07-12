@@ -712,8 +712,63 @@ public class AnimationController : AnimationStateSource
 
     private AnimatedAttributeReference ParseAnimatablePath(string path, Node? startNode)
     {
-        // TODO: port: ParseAnimatablePath requires the managed animatable attribute path resolver.
-        return default;
+        if (string.IsNullOrEmpty(path))
+            return default;
+
+        var animatedNode = startNode;
+        var attributePath = path;
+
+        // Resolve path to node if necessary
+        if (path[0] != '@')
+        {
+            var separator = path.IndexOf("/@", StringComparison.Ordinal);
+            if (separator < 0)
+                return default;
+
+            var nodePath = path[..separator];
+            animatedNode = startNode!.FindChild(nodePath);
+            if (animatedNode is null)
+                return default;
+
+            attributePath = path[(separator + 1)..];
+        }
+
+        var result = new AnimatedAttributeReference();
+
+        // Special cases:
+        // 1) if Node variables are referenced, individual variables are supported
+        // 2) if AnimatedModel morphs are referenced, individual morphs are supported
+        const string variablesPath = "@/Variables/";
+        const string animatedModelPath = "@AnimatedModel";
+        if (attributePath.StartsWith(variablesPath, StringComparison.Ordinal))
+        {
+            var variableNameHash = new StringHash(attributePath[variablesPath.Length..]);
+            result.AttributeType = AnimatedAttributeType.NodeVariables;
+            result.SubAttributeKey = variableNameHash.Value;
+            attributePath = attributePath[..(variablesPath.Length - 1)];
+        }
+        else if (attributePath.StartsWith(animatedModelPath, StringComparison.Ordinal))
+        {
+            var separator1 = attributePath.IndexOf('/');
+            if (separator1 >= 0)
+            {
+                var separator2 = attributePath.IndexOf('/', separator1 + 1);
+                if (separator2 >= 0)
+                {
+                    result.AttributeType = AnimatedAttributeType.AnimatedModelMorphs;
+                    uint.TryParse(attributePath[(separator2 + 1)..], out result.SubAttributeKey);
+                    attributePath = attributePath[..separator2];
+                }
+            }
+        }
+
+        var attribute = animatedNode!.FindComponentAttribute(attributePath);
+        if (attribute.Serializable is null)
+            return default;
+
+        result.Serializable = attribute.Serializable;
+        result.AttributeIndex = attribute.AttributeIndex;
+        return result;
     }
 
     private Node? GetTrackNodeByNameHash(StringHash trackNameHash, Node? startBone)
