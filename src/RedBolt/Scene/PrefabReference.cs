@@ -164,7 +164,12 @@ public sealed class PrefabReference : Component
             return;
 
         var originalNodePrefab = GetNodePrefab();
-        var newNodePrefab = Node.GeneratePrefab(includeTemporary: true);
+        var newNodePrefab = new NodePrefab();
+        var writer = new PrefabWriterToMemory(
+            newNodePrefab,
+            PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab | PrefabSaveFlag.SaveTemporary);
+        if (!Node.Save(writer))
+            return;
         newNodePrefab.Node.Attributes.Clear();
         foreach (var attribute in originalNodePrefab.Node.Attributes)
             newNodePrefab.Node.Attributes.Add(attribute);
