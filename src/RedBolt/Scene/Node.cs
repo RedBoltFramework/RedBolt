@@ -68,7 +68,9 @@ public sealed class Node : Animatable
             "Variables",
             typeof(IReadOnlyDictionary<StringHash, object?>),
             self => ((Node)self).Variables,
-            (self, value) => ((Node)self).SetVariables(value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []),
+            (self, value) => ((Node)self).SetVariables(value is VariantMap variantMap
+                ? variantMap.Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject()))
+                : value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []),
             new Dictionary<StringHash, object?>());
     }
 
@@ -159,6 +161,79 @@ public sealed class Node : Animatable
         {
             return false;
         }
+    }
+
+    public override bool Load(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var copy = new MemoryStream();
+        source.CopyTo(copy);
+        using var buffer = new MemoryBuffer(copy.ToArray());
+        return Load(buffer);
+    }
+
+    public override bool Load(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var resolver = new SceneResolver();
+        var nodeId = source.ReadUInt();
+        resolver.AddNode(nodeId, this);
+
+        var success = Load(source, resolver);
+        if (success)
+        {
+            resolver.Resolve();
+            ApplyAttributes();
+        }
+
+        return success;
+    }
+
+    public override bool Save(Stream destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var buffer = new VectorBuffer();
+        if (!Save(buffer)) return false;
+        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
+        return true;
+    }
+
+    public override bool Save(Serializer destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        if (!destination.WriteUInt(Id))
+            return false;
+
+        if (!base.Save(destination))
+            return false;
+
+        destination.WriteVLE(GetNumPersistentComponents());
+        foreach (var component in _components)
+        {
+            if (component.IsTemporary)
+                continue;
+
+            var componentBuffer = new VectorBuffer();
+            if (!component.Save(componentBuffer))
+                return false;
+
+            destination.WriteVLE(componentBuffer.Size);
+            destination.Write(componentBuffer.Buffer);
+        }
+
+        destination.WriteVLE(GetNumPersistentChildren());
+        foreach (var child in _children)
+        {
+            if (child.IsTemporary)
+                continue;
+
+            if (!child.Save(destination))
+                return false;
+        }
+
+        return true;
     }
 
     public NodePrefab GeneratePrefab(bool includeTemporary = false)
@@ -553,6 +628,59 @@ public sealed class Node : Animatable
         }
 
         return null;
+    }
+
+    private static Type? ResolveComponentType(StringHash typeHash)
+    {
+        foreach (var type in typeof(Component).Assembly.GetTypes())
+        {
+            if (!type.IsAbstract && typeof(Component).IsAssignableFrom(type)
+                && new StringHash(type.GetClassName()) == typeHash)
+                return type;
+        }
+
+        return null;
+    }
+
+    private bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)
+    {
+        RemoveAllChildren();
+        RemoveAllComponents();
+
+        if (!base.Load(source))
+            return false;
+
+        var numComponents = source.ReadVLE();
+        for (var index = 0u; index < numComponents; ++index)
+        {
+            var componentBuffer = new VectorBuffer(source, source.ReadVLE());
+            var componentType = componentBuffer.ReadStringHash();
+            var componentId = componentBuffer.ReadUInt();
+            var component = ResolveComponentType(componentType) is { } type
+                ? CreateComponent(type, rewriteIds ? 0u : componentId)
+                : CreateComponent<UnknownComponent>(rewriteIds ? 0u : componentId);
+
+            if (component is not null)
+            {
+                resolver.AddComponent(componentId, component);
+                component.Load(componentBuffer);
+            }
+        }
+
+        if (!loadChildren)
+            return true;
+
+        var numChildren = source.ReadVLE();
+        for (var index = 0u; index < numChildren; ++index)
+        {
+            var nodeId = source.ReadUInt();
+            var child = CreateChild(rewriteIds ? 0u : nodeId);
+            resolver.AddNode(nodeId, child);
+            if (!child.Load(source, resolver, loadChildren, rewriteIds))
+                return false;
+        }
+
+        return true;
     }
 
     // Remaining reader/writer overloads are represented by NodePrefab and Archive entry points above.

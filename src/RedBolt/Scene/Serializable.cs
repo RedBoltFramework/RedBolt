@@ -88,14 +88,19 @@ public abstract class Serializable : Object
         ArgumentNullException.ThrowIfNull(source);
         using var copy = new MemoryStream();
         source.CopyTo(copy);
-        var buffer = new MemoryBuffer(copy.ToArray());
+        using var buffer = new MemoryBuffer(copy.ToArray());
+        return Load(buffer);
+    }
+
+    public virtual bool Load(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
         foreach (var attribute in _attributes)
         {
             if (!attribute.ShouldLoad) continue;
-            if (buffer.IsEof()) return false;
-            OnSetAttribute(attribute, buffer.ReadVariant(attribute.DefaultValue.Type).GetObject());
+            if (source.IsEof()) return false;
+            OnSetAttribute(attribute, ConvertVariant(attribute, source.ReadVariant(attribute.DefaultValue.Type)));
         }
-        ApplyAttributes();
         return true;
     }
 
@@ -142,12 +147,19 @@ public abstract class Serializable : Object
     {
         ArgumentNullException.ThrowIfNull(destination);
         var buffer = new VectorBuffer();
+        if (!Save(buffer)) return false;
+        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
+        return true;
+    }
+
+    public virtual bool Save(Serializer destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
         foreach (var attribute in _attributes)
         {
             if (!attribute.ShouldSave) continue;
-            if (!buffer.WriteVariantData(Variant.FromObject(OnGetAttribute(attribute)))) return false;
+            if (!destination.WriteVariantData(Variant.FromObject(OnGetAttribute(attribute)))) return false;
         }
-        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
         return true;
     }
 

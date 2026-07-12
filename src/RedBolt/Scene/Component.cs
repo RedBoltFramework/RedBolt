@@ -67,7 +67,17 @@ public abstract class Component : Animatable
         ArgumentNullException.ThrowIfNull(destination);
         var header = new VectorBuffer();
         if (!header.WriteStringHash(new StringHash(GetTypeName())) || !header.WriteUInt(Id)) return false;
+        var attributes = new VectorBuffer();
+        if (!base.Save(attributes)) return false;
         destination.Write(header.Buffer[..checked((int)header.Size)]);
+        destination.Write(attributes.Buffer[..checked((int)attributes.Size)]);
+        return true;
+    }
+
+    public override bool Save(Serializer destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.WriteStringHash(new StringHash(GetTypeName())) || !destination.WriteUInt(Id)) return false;
         return base.Save(destination);
     }
 

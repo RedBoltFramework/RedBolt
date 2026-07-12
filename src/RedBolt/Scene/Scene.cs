@@ -205,6 +205,68 @@ public sealed class Scene : Object
         return LoadJSON(json.GetRoot());
     }
 
+    public bool Load(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var copy = new MemoryStream();
+        source.CopyTo(copy);
+        var data = copy.ToArray();
+        var firstIndex = 0;
+        while (firstIndex < data.Length
+            && (data[firstIndex] == (byte)' ' || data[firstIndex] == (byte)'\t'
+                || data[firstIndex] == (byte)'\r' || data[firstIndex] == (byte)'\n'))
+            ++firstIndex;
+
+        if (firstIndex < data.Length && data[firstIndex] == (byte)'<')
+            return LoadXML(new MemoryStream(data));
+        if (firstIndex < data.Length && (data[firstIndex] == (byte)'{' || data[firstIndex] == (byte)'['))
+            return LoadJSON(new MemoryStream(data));
+
+        using var buffer = new MemoryBuffer(data);
+        return Load(buffer);
+    }
+
+    public bool Load(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        StopAsyncLoading();
+        if (source.ReadFileID() != "USCN")
+            return false;
+
+        Clear();
+        if (Root.Load(source))
+        {
+            // TODO: port FinishLoading(&source).
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool Save(Stream destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var buffer = new VectorBuffer();
+        if (!Save(buffer)) return false;
+        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
+        return true;
+    }
+
+    public bool Save(Serializer destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.WriteFileID("USCN"))
+            return false;
+
+        if (Root.Save(destination))
+        {
+            // TODO: port FinishSaving(&destination).
+            return true;
+        }
+
+        return false;
+    }
+
     public void StopAsyncLoading()
     {
         _asyncLoading = false;

@@ -796,6 +796,13 @@ public readonly struct Variant : IEquatable<Variant>
     {
         if (value is not null && value.GetType().IsEnum)
             return new Variant(System.Convert.ToInt32(value, CultureInfo.InvariantCulture));
+        if (value is IEnumerable<KeyValuePair<StringHash, object?>> objectMap)
+        {
+            var variantMap = new VariantMap();
+            foreach (var pair in objectMap)
+                variantMap[pair.Key] = FromObject(pair.Value);
+            return new Variant(variantMap);
+        }
         if (value is IEnumerable<string> stringCollection)
             return new Variant(new StringVector(stringCollection));
 

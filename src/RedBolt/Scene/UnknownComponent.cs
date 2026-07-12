@@ -29,6 +29,13 @@ public sealed class UnknownComponent : Component
         return true;
     }
 
+    public override bool Load(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        SetTemporary(true);
+        return true;
+    }
+
     public override bool LoadXML(XMLElement source)
     {
         ArgumentNullException.ThrowIfNull(source);

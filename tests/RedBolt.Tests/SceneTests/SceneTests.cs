@@ -322,6 +322,27 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_binary_roundtrip_preserves_hierarchy()
+    {
+        var source = new Scene();
+        var child = source.CreateChild("Loaded");
+        child.SetPosition(new Vector3f(1, 2, 3));
+        child.CreateComponent<Camera>().SetFov(87);
+
+        using var stream = new MemoryStream();
+        Assert.True(source.Save(stream), "save");
+        stream.Position = 0;
+
+        var loaded = new Scene();
+        Assert.True(loaded.Load(stream), "load");
+
+        var loadedChild = loaded.Root.GetChild("Loaded");
+        Assert.NotNull(loadedChild);
+        Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
+        Assert.Equal(87.0f, loadedChild.GetComponent<Camera>()?.GetFov());
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
