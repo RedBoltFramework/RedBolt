@@ -321,6 +321,13 @@ public sealed class RenderDeviceTests
             Assert.True(_fixture.Graphics.SetWindowModes(currentSettings, currentSettings));
             Assert.Equal(currentSettings.Mode, _fixture.Graphics.GetWindowSettings().Mode);
             Assert.True(_fixture.Graphics.SetMode(currentSettings.Size.X, currentSettings.Size.Y));
+            Assert.True(_fixture.Graphics.BeginFrame());
+            _fixture.Graphics.ResetRenderTargets();
+            _fixture.Graphics.Clear(ClearTarget.Color);
+            _fixture.Graphics.OnWindowResized();
+            _fixture.Graphics.OnWindowMoved();
+            _fixture.Graphics.EndFrame();
+            Assert.Equal(Vector2i.Zero, _fixture.Graphics.GetRenderTargetDimensions());
         }
         finally
         {

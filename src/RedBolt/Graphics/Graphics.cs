@@ -296,6 +296,99 @@ layout(std140) uniform Material
         Shutdown();
     }
 
+    /// <summary>
+    /// Begin frame rendering.
+    /// </summary>
+    public bool BeginFrame()
+    {
+        if (!IsInitialized)
+            return false;
+
+        if (GetFullscreen() && _window is not null && !_window.IsNull)
+        {
+            var flags = SdlNativeBindings.SdlGetWindowFlags(_window);
+            if ((flags & (uint)SdlWindowFlags.SdlWindowMinimized) != 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// End frame rendering and swap buffers.
+    /// </summary>
+    public void EndFrame()
+    {
+        if (!IsInitialized)
+            return;
+
+        GetSubsystem<RenderDevice>()?.Present();
+    }
+
+    /// <summary>
+    /// Clear any or all of the render target, depth buffer, and stencil buffer.
+    /// </summary>
+    public void Clear(ClearTarget flags, Color color = default, float depth = 1.0f, uint stencil = 0)
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null)
+            return;
+
+        var renderContext = renderDevice.GetRenderContext();
+        if ((flags & ClearTarget.Color) != 0)
+            renderContext.ClearRenderTarget(0, color);
+        if ((flags & (ClearTarget.Depth | ClearTarget.Stencil)) != 0)
+            renderContext.ClearDepthStencil(flags, depth, stencil);
+    }
+
+    /// <summary>
+    /// Reset all render targets, the depth-stencil surface, and the viewport.
+    /// </summary>
+    public void ResetRenderTargets()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null)
+            return;
+
+        var renderContext = renderDevice.GetRenderContext();
+        renderContext.SetSwapChainRenderTargets();
+        renderContext.SetFullViewport();
+    }
+
+    /// <summary>
+    /// Restore GPU objects and reinitialize state.
+    /// </summary>
+    public void Restore()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is not null && !renderDevice.Restore())
+            Close();
+    }
+
+    /// <summary>
+    /// Return current render target width and height.
+    /// </summary>
+    public Vector2i GetRenderTargetDimensions() => Vector2i.Zero;
+
+    /// <summary>
+    /// Update the swap chain after the window was resized through user interaction.
+    /// </summary>
+    public void OnWindowResized()
+    {
+        GetSubsystem<RenderDevice>()?.UpdateSwapChainSize();
+    }
+
+    /// <summary>
+    /// Update the cached position after the window was moved through user interaction.
+    /// </summary>
+    public void OnWindowMoved()
+    {
+        if (GetFullscreen())
+            return;
+
+        _windowPosition = GetWindowPosition();
+    }
+
     private static WindowSettings CloneWindowSettings(WindowSettings settings)
     {
         return new WindowSettings
