@@ -451,9 +451,9 @@ public sealed class SceneTests
         var file = new VectorBuffer(saved.ToArray());
         var scene = new Scene();
 
-        Assert.True(scene.LoadAsync(file, LoadMode.Scene));
+        Assert.True(scene.LoadAsync(file, LoadMode.SceneAndResources));
         Assert.True(scene.IsAsyncLoading());
-        Assert.Equal(LoadMode.Scene, scene.GetAsyncLoadMode());
+        Assert.Equal(LoadMode.SceneAndResources, scene.GetAsyncLoadMode());
         Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
 
         scene.StopAsyncLoading();

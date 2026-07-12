@@ -409,10 +409,9 @@ public sealed class Scene : Object
         {
             if (mode != LoadMode.Scene)
             {
-                // TODO: port:
-                // unsigned currentPos = file->GetPosition();
-                // PreloadResources(file, isSceneFile);
-                // file->Seek(currentPos);
+                var currentPosition = file.GetPosition();
+                PreloadResources(file, isSceneFile);
+                file.Seek(currentPosition);
             }
 
             var nodeId = file.ReadUInt();
@@ -426,9 +425,7 @@ public sealed class Scene : Object
             _asyncProgress.TotalNodes = file.ReadVLE();
         }
         else
-        {
-            // TODO: port: PreloadResources(file, isSceneFile);
-        }
+            PreloadResources(file, isSceneFile);
 
         return true;
     }
@@ -1036,6 +1033,88 @@ public sealed class Scene : Object
         if (read != data.Length)
             Array.Resize(ref data, checked((int)read));
         return data;
+    }
+
+    private void PreloadResources(AbstractFile file, bool isSceneFile)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+
+        file.ReadUInt();
+
+        var attributes = Root.GetAttributes();
+        for (var index = 0; index < attributes.Count; ++index)
+        {
+            var attribute = attributes[index];
+            if (!attribute.ShouldLoad)
+                continue;
+
+            file.ReadVariant(attribute.DefaultValue.Type);
+        }
+
+        var numComponents = file.ReadVLE();
+        for (var index = 0u; index < numComponents; ++index)
+        {
+            var componentBuffer = new VectorBuffer(file, file.ReadVLE());
+            var componentType = componentBuffer.ReadStringHash();
+            componentBuffer.ReadUInt();
+
+            var type = ResolveComponentType(componentType);
+            if (type is null)
+                continue;
+
+            var component = Activator.CreateInstance(type, nonPublic: true) as Component;
+            if (component is null)
+                continue;
+
+            var componentAttributes = component.GetAttributes();
+            for (var attributeIndex = 0; attributeIndex < componentAttributes.Count; ++attributeIndex)
+            {
+                var attribute = componentAttributes[attributeIndex];
+                if (!attribute.ShouldLoad)
+                    continue;
+
+                var value = componentBuffer.ReadVariant(attribute.DefaultValue.Type);
+                if (value.Type == VariantType.ResourceRef)
+                {
+                    var resourceRef = value.GetResourceRef();
+                    var name = cache.SanitateResourceName(resourceRef.Name);
+                    if (cache.BackgroundLoadResource(resourceRef.Type, name))
+                    {
+                        ++_asyncProgress.TotalResources;
+                        _asyncProgress.Resources.Add(new StringHash(name));
+                    }
+                }
+                else if (value.Type == VariantType.ResourceRefList)
+                {
+                    var resourceRefList = value.GetResourceRefList();
+                    foreach (var resourceName in resourceRefList.Names)
+                    {
+                        var name = cache.SanitateResourceName(resourceName);
+                        if (cache.BackgroundLoadResource(resourceRefList.Type, name))
+                        {
+                            ++_asyncProgress.TotalResources;
+                            _asyncProgress.Resources.Add(new StringHash(name));
+                        }
+                    }
+                }
+            }
+        }
+
+        var numChildren = file.ReadVLE();
+        for (var index = 0u; index < numChildren; ++index)
+            PreloadResources(file, false);
+    }
+
+    private static Type? ResolveComponentType(StringHash typeHash)
+    {
+        foreach (var type in typeof(Component).Assembly.GetTypes())
+        {
+            if (!type.IsAbstract && typeof(Component).IsAssignableFrom(type)
+                && new StringHash(type.GetClassName()) == typeHash)
+                return type;
+        }
+
+        return null;
     }
 
     private void FinishLoading(Deserializer? source)
