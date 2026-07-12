@@ -489,7 +489,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `DrawCommandQueue.h`
   - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, and four-float blend-factor binding are ported
 - [~] `RenderDevice.h`
-  - [~] `RenderDevice : Object` — native device/context/swap-chain accessors, destructor disposal, default sampler settings, post-initialize default raw textures, and device-object destruction are ported; initialization and backend-specific device management remain
+  - [~] `RenderDevice : Object` — native device/context/swap-chain accessors, destructor disposal, default sampler settings, DPI scaling, post-initialize default raw textures, and device-object destruction are ported; initialization and backend-specific device management remain
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 

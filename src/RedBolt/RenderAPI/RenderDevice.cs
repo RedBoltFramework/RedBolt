@@ -229,7 +229,14 @@ public sealed class RenderDevice : Object
 
     public Vector2i GetWindowSize() => GetSwapChainSize();
 
-    public float GetDpiScale() => 1.0f;
+    public float GetDpiScale()
+    {
+        var swapChainSize = GetSwapChainSize();
+        var windowSize = GetWindowSize();
+        var ratioX = (float)swapChainSize.X / windowSize.X;
+        var ratioY = (float)swapChainSize.Y / windowSize.Y;
+        return MathDefs.SnapRound((ratioX + ratioY) / 2.0f, 0.05f);
+    }
 
     public FrameIndex GetFrameIndex()
     {

@@ -81,6 +81,12 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_dpi_scale_matches_equal_window_and_swap_chain_sizes()
+    {
+        Assert.Equal(1.0f, _fixture.RenderDevice.GetDpiScale());
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters
