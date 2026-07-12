@@ -176,7 +176,7 @@ public sealed class RenderDevice : Object
 
     public RenderDeviceStats GetStats()
     {
-        var currentStats = new RenderDeviceStats();
+        var currentStats = _renderContext.GetStats();
         _maxStats = Max(_maxStats, currentStats);
         return currentStats;
     }

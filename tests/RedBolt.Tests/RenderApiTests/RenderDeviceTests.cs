@@ -87,6 +87,27 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_stats_expose_render_context_counters()
+    {
+        var stats = _fixture.RenderContext.GetMutableStats();
+        try
+        {
+            stats.NumPrimitives = 12;
+            stats.NumDraws = 3;
+            stats.NumDispatches = 2;
+
+            Assert.Same(stats, _fixture.RenderDevice.GetStats());
+            Assert.Equal(12u, _fixture.RenderDevice.GetStats().NumPrimitives);
+            Assert.Equal(3u, _fixture.RenderDevice.GetStats().NumDraws);
+            Assert.Equal(2u, _fixture.RenderDevice.GetStats().NumDispatches);
+        }
+        finally
+        {
+            _fixture.RenderContext.ResetStats();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters
