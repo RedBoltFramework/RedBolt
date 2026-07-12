@@ -187,6 +187,10 @@ public sealed class RenderDevice : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
+    public IRenderDevice? GetRenderDevice() => GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+
+    public IDeviceContext? GetImmediateContext() => GetSubsystem<Graphics>()?.GetImmediateContext();
+
     public Vector2i GetSwapChainSize()
     {
         var graphics = GetSubsystem<Graphics>();
