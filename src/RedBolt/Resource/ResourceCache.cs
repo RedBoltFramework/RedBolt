@@ -312,6 +312,15 @@ public sealed class ResourceCache
         return string.IsNullOrEmpty(fileName) ? null : System.IO.File.OpenRead(fileName);
     }
 
+    public DateTime GetLastModifiedTime(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var fileName = GetResourceFileName(name);
+        return string.IsNullOrEmpty(fileName)
+            ? DateTime.MinValue
+            : DateTime.SpecifyKind(System.IO.File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc);
+    }
+
     public string GetResourceFileName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

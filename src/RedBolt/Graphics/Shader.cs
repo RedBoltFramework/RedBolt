@@ -50,16 +50,10 @@ public sealed class Shader : Resource
         ArgumentNullException.ThrowIfNull(source);
 
         var resourceName = GetResourceName(Name);
-        var fileName = !string.IsNullOrWhiteSpace(AbsoluteFileName)
-            ? AbsoluteFileName
-            : OwnerCache?.GetResourceFileName(resourceName) ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(fileName))
-            return false;
-
         var builder = new StringBuilder();
         var visited = new HashSet<string>(StringComparer.Ordinal);
         _timeStamp = DateTime.MinValue;
-        ProcessSource(resourceName, fileName, builder, visited, source);
+        ProcessSource(resourceName, builder, visited, source);
 
         _sourceCode = builder.ToString();
         if (GetSubsystem<Engine>()?.Parameters.ValidateShaders == true)
@@ -254,15 +248,13 @@ public sealed class Shader : Resource
     }
 
     private void ProcessSource(
-        string resourceName, string fileName, StringBuilder builder, HashSet<string> visited, Stream? sourceStream = null)
+        string resourceName, StringBuilder builder, HashSet<string> visited, Stream? sourceStream = null)
     {
         var visitedKey = resourceName.Replace('\\', '/');
         if (!visited.Add(visitedKey))
             return;
 
-        var sourceTimeStamp = System.IO.File.Exists(fileName)
-            ? DateTime.SpecifyKind(System.IO.File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc)
-            : DateTime.MinValue;
+        var sourceTimeStamp = OwnerCache?.GetLastModifiedTime(resourceName) ?? DateTime.MinValue;
         _timeStamp = sourceTimeStamp > _timeStamp ? sourceTimeStamp : _timeStamp;
 
         var fileIndex = FileToIndexMapping.GetValueOrDefault(resourceName);
@@ -272,26 +264,28 @@ public sealed class Shader : Resource
             FileToIndexMapping[resourceName] = fileIndex;
         }
 
-        using var file = sourceStream is null ? System.IO.File.OpenRead(fileName) : null;
-        using var reader = sourceStream is not null
-            ? new StreamReader(sourceStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true)
-            : new StreamReader(file!, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+        var sourceText = sourceStream is not null
+            ? ReadSourceStream(sourceStream)
+            : ReadSourceFile(resourceName);
+        if (sourceText is null)
+            return;
+
+        using var reader = new StringReader(sourceText);
         var currentLine = 1u;
         var numNewLines = 0u;
         builder.Append(FormatLineDirective(true, resourceName, fileIndex, currentLine));
-        while (!reader.EndOfStream)
+        string? sourceLine;
+        while ((sourceLine = reader.ReadLine()) is not null)
         {
-            var line = reader.ReadLine() ?? string.Empty;
+            var line = sourceLine;
             if (line.StartsWith("#include", StringComparison.Ordinal))
             {
                 var includeName = line[9..].Replace("\"", string.Empty, StringComparison.Ordinal).Trim();
                 var includedResourceName = CombineResourcePath(resourceName, includeName);
-                var includedFileName = OwnerCache?.GetResourceFileName(includedResourceName)
-                    ?? Path.GetFullPath(Path.Combine(Path.GetDirectoryName(fileName) ?? string.Empty, includeName));
-                if (System.IO.File.Exists(includedFileName))
+                if (OwnerCache?.Exists(includedResourceName) == true)
                 {
                     OwnerCache?.StoreResourceDependency(this, includedResourceName);
-                    ProcessSource(includedResourceName, includedFileName, builder, visited);
+                    ProcessSource(includedResourceName, builder, visited);
                 }
                 else
                     builder.Append($"#error Missing include file <{includedResourceName}>\n");
@@ -318,6 +312,29 @@ public sealed class Shader : Resource
         }
 
         builder.AppendLine();
+    }
+
+    private static string ReadSourceStream(Stream source)
+    {
+        using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+        return reader.ReadToEnd();
+    }
+
+    private string? ReadSourceFile(string resourceName)
+    {
+        var file = OwnerCache?.GetFile(resourceName);
+        if (file is null)
+            return null;
+
+        try
+        {
+            using var reader = new StreamReader(file, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+            return reader.ReadToEnd();
+        }
+        finally
+        {
+            file.Dispose();
+        }
     }
 
     private static string FormatLineDirective(bool isGLSL, string fileName, uint fileIndex, uint line)
