@@ -4163,8 +4163,13 @@ layout(std140) uniform Material
 
         try
         {
-            System.IO.File.WriteAllText(vertexPath, vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
-            System.IO.File.WriteAllText(pixelPath, pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+            virtualFileSystem.WriteAllText(
+                new FileIdentifier("file", vertexPath),
+                vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+            virtualFileSystem.WriteAllText(
+                new FileIdentifier("file", pixelPath),
+                pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
         }
         catch (Exception error)
         {
