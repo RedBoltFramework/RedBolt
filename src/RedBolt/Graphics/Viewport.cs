@@ -2,6 +2,10 @@ namespace RedBolt;
 
 public sealed class Viewport : Object
 {
+    private bool _autoRenderPipeline = true;
+    private RenderPipeline? _renderPipeline;
+    private RenderPipelineView? _renderPipelineView;
+
     public Viewport()
     {
     }
@@ -18,10 +22,24 @@ public sealed class Viewport : Object
         SetRect(rect);
     }
 
+    public Viewport(Scene scene, Camera camera, IntRect rect, RenderPipeline renderPipeline)
+        : this(scene, camera, rect)
+    {
+        _autoRenderPipeline = false;
+        _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+    }
+
     public Viewport(Scene scene, Camera leftEye, Camera rightEye)
         : this(scene, leftEye, IntRect.Zero)
     {
         SetEye(rightEye, 1);
+    }
+
+    public Viewport(Scene scene, Camera leftEye, Camera rightEye, RenderPipeline renderPipeline)
+        : this(scene, leftEye, rightEye)
+    {
+        _autoRenderPipeline = false;
+        _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
     }
 
     public Camera Camera { get; private set; } = null!;
@@ -80,6 +98,29 @@ public sealed class Viewport : Object
     }
 
     public Scene GetScene() => Scene;
+
+    public RenderPipelineView? GetRenderPipelineView()
+    {
+        if (_renderPipeline is null)
+            return null;
+        if (_autoRenderPipeline && !ReferenceEquals(_renderPipeline.Scene, Scene))
+            return null;
+        return _renderPipelineView;
+    }
+
+    public void AllocateView()
+    {
+        if (_autoRenderPipeline && _renderPipeline is not null && !ReferenceEquals(_renderPipeline.Scene, Scene))
+            _renderPipeline = null;
+
+        if (_renderPipeline is null && Scene is not null)
+        {
+            _renderPipeline = Scene.Root.GetComponent<RenderPipeline>() ?? Scene.Root.CreateComponent<RenderPipeline>();
+        }
+
+        if (_renderPipeline is not null && _renderPipelineView is null)
+            _renderPipelineView = _renderPipeline.Instantiate();
+    }
 
     public Ray GetScreenRay(int x, int y)
     {
