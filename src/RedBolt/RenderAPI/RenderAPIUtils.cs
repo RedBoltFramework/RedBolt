@@ -131,6 +131,49 @@ public static class RenderAPIUtils
     public static bool IsColorTextureFormat(TextureFormat format) => format is
         TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
 
+    public static bool IsTextureFormatSRGB(global::RedBolt.Bindings.Diligent.TextureFormat format) => format is
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb;
+
+    public static global::RedBolt.Bindings.Diligent.TextureFormat SetTextureFormatSRGB(
+        global::RedBolt.Bindings.Diligent.TextureFormat format, bool sRgb = true)
+    {
+        if (sRgb)
+        {
+            return format switch
+            {
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb,
+                _ => format
+            };
+        }
+
+        return format switch
+        {
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm,
+            _ => format
+        };
+    }
+
     public static RenderBackend SelectRenderBackend(RenderBackend? requestedBackend = null)
     {
         var platform = ProcessUtils.GetPlatform();

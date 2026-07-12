@@ -48,4 +48,16 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal(RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute,
             RenderAPIUtils.ToInternalShaderType(ShaderType.CS));
     }
+
+    [Fact]
+    public void Native_srgb_texture_format_helpers_match_cpp_mapping()
+    {
+        var linear = RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm;
+        var srgb = RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb;
+
+        Assert.False(RenderAPIUtils.IsTextureFormatSRGB(linear));
+        Assert.True(RenderAPIUtils.IsTextureFormatSRGB(srgb));
+        Assert.Equal(srgb, RenderAPIUtils.SetTextureFormatSRGB(linear));
+        Assert.Equal(linear, RenderAPIUtils.SetTextureFormatSRGB(srgb, false));
+    }
 }
