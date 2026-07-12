@@ -93,15 +93,33 @@ public sealed class Node : Animatable
 
     public override void SerializeInBlock(Archive archive)
     {
+        var compactSave = !archive.IsHumanReadable;
+        var saveFlags = compactSave ? PrefabSaveFlag.CompactAttributeNames : PrefabSaveFlag.EnumsAsStrings;
+        SerializeInBlock(archive, false, saveFlags);
+    }
+
+    public void SerializeInBlock(
+        Archive archive,
+        bool serializeTemporary,
+        PrefabSaveFlag saveFlags,
+        PrefabLoadFlag loadFlags = PrefabLoadFlag.None)
+    {
+        var compactSave = !archive.IsHumanReadable;
+        var archiveFlags = (compactSave ? PrefabArchiveFlag.CompactTypeNames : PrefabArchiveFlag.None)
+            | (serializeTemporary ? PrefabArchiveFlag.SerializeTemporary : PrefabArchiveFlag.None);
+
         if (archive.IsInput)
         {
-            using var reader = new PrefabReaderFromArchive(archive, blockName: null);
-            if (!Load(reader))
+            using var reader = new PrefabReaderFromArchive(archive, blockName: null, flags: archiveFlags);
+            if (!Load(reader, loadFlags))
                 throw new InvalidOperationException("Failed to load node hierarchy from archive.");
         }
         else
         {
-            using var writer = new PrefabWriterToArchive(archive, blockName: null);
+            if (serializeTemporary)
+                saveFlags |= PrefabSaveFlag.SaveTemporary;
+
+            using var writer = new PrefabWriterToArchive(archive, blockName: null, saveFlags: saveFlags, archiveFlags: archiveFlags);
             if (!Save(writer))
                 throw new InvalidOperationException("Failed to save node hierarchy to archive.");
         }
