@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -74,31 +76,21 @@ public sealed class WorldOrigin : LogicComponent
                 _updateZ ? (int)MathDefs.SnapRound(position.Z, _step) : 0);
             if (offset != Vector3i.Zero)
             {
-                // TODO: port: Scene has no managed world-origin storage or UpdateWorldOrigin API yet.
-                // const IntVector3 newWorldOrigin = GetScene()->GetWorldOrigin() + offset;
-                // auto workQueue = GetSubsystem<WorkQueue>();
-                // WeakPtr<Scene> weakScene{GetScene()};
-                // WeakPtr<WorldOrigin> weakSelf{this};
-                // workQueue->PostDelayedTaskForMainThread([weakScene, weakSelf, newWorldOrigin]
-                // {
-                //     if (auto scene = weakScene.Lock())
-                //     {
-                //         const Vector3 oldPosition = weakSelf ? weakSelf->GetNode()->GetWorldPosition() : Vector3::ZERO;
-                //
-                //         scene->UpdateWorldOrigin(newWorldOrigin);
-                //
-                //         if (weakSelf)
-                //         {
-                //             const Vector3 newPosition = weakSelf->GetNode()->GetWorldPosition();
-                //             if (newPosition.Equals(oldPosition))
-                //             {
-                //                 weakSelf->SetEnabled(false);
-                //                 URHO3D_LOGERROR("WorldOrigin '{}' was not moved from {} during rebase, disabling",
-                //                     weakSelf->GetFullNameDebug(), newPosition.ToString());
-                //             }
-                //         }
-                //     }
-                // });
+                var scene = Node.GetScene();
+                var currentOrigin = scene.GetWorldOrigin();
+                var newWorldOrigin = new IntVector3(
+                    currentOrigin.X + offset.X,
+                    currentOrigin.Y + offset.Y,
+                    currentOrigin.Z + offset.Z);
+                var oldPosition = Node.GetWorldPosition();
+                scene.UpdateWorldOrigin(newWorldOrigin);
+                if (Node.GetWorldPosition() == oldPosition)
+                {
+                    SetEnabled(false);
+                    Log.Logger.LogError(
+                        "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling.",
+                        GetFullNameDebug(), Node.GetWorldPosition());
+                }
             }
         }
     }

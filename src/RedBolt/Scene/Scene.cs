@@ -12,6 +12,7 @@ public sealed class Scene : Object
     private int _asyncLoadingMs = 5;
     private float _elapsedTime;
     private string _fileName = string.Empty;
+    private IntVector3 _worldOrigin;
     private uint _nextComponentId = 1;
     private uint _nextNodeId = 1;
 
@@ -109,6 +110,69 @@ public sealed class Scene : Object
     public string GetFileName() => _fileName;
 
     public uint GetChecksum() => Checksum;
+
+    /// <summary>
+    /// Rebase world origin and update scene contents accordingly.
+    /// </summary>
+    public void UpdateWorldOrigin(IntVector3 worldOrigin)
+    {
+        if (_worldOrigin == worldOrigin)
+            return;
+
+        var oldWorldOrigin = _worldOrigin;
+        var offset = new IntVector3(
+            worldOrigin.X - oldWorldOrigin.X,
+            worldOrigin.Y - oldWorldOrigin.Y,
+            worldOrigin.Z - oldWorldOrigin.Z);
+
+        var updateEvent = new SceneEvents.WorldOriginUpdateEvent
+        {
+            Scene = this,
+            OldOrigin = oldWorldOrigin,
+            NewOrigin = worldOrigin,
+            Delta = offset
+        };
+        SendEvent(ref updateEvent);
+
+        _worldOrigin = worldOrigin;
+        var relativeOffset = new Vector3f(offset.X, offset.Y, offset.Z);
+        if (Root.GetWorldOriginUpdateMode() == WorldOriginUpdateMode.Move)
+        {
+            foreach (var child in Root.GetChildren())
+                child.SetWorldPosition(child.GetWorldPosition() - relativeOffset);
+        }
+        else
+            UpdateNodeWorldOrigin(Root, relativeOffset);
+
+        var postUpdateEvent = new SceneEvents.WorldOriginPostUpdateEvent
+        {
+            OldOrigin = oldWorldOrigin,
+            NewOrigin = worldOrigin
+        };
+        SendEvent(ref postUpdateEvent);
+    }
+
+    /// <summary>
+    /// Convert world position from relative to world origin to absolute.
+    /// </summary>
+    public Vector3d ToAbsoluteWorldPosition(Vector3f position) =>
+        new(position.X + _worldOrigin.X, position.Y + _worldOrigin.Y, position.Z + _worldOrigin.Z);
+
+    /// <summary>
+    /// Convert world position from absolute to relative to world origin.
+    /// </summary>
+    public Vector3f ToRelativeWorldPosition(Vector3d position) =>
+        new((float)(position.X - _worldOrigin.X), (float)(position.Y - _worldOrigin.Y), (float)(position.Z - _worldOrigin.Z));
+
+    /// <summary>
+    /// Set world origin without any scene updates.
+    /// </summary>
+    public void SetWorldOrigin(IntVector3 worldOrigin) => _worldOrigin = worldOrigin;
+
+    /// <summary>
+    /// Return world origin.
+    /// </summary>
+    public IntVector3 GetWorldOrigin() => _worldOrigin;
 
     public bool IsEmpty(bool ignoreComponents = false)
     {
@@ -304,6 +368,22 @@ public sealed class Scene : Object
 
         component.SetId(0);
         component.OnSceneSet(this, null);
+    }
+
+    private static void UpdateNodeWorldOrigin(Node node, Vector3f offset)
+    {
+        switch (node.GetWorldOriginUpdateMode())
+        {
+            case WorldOriginUpdateMode.Ignore:
+                break;
+            case WorldOriginUpdateMode.Move:
+                node.SetPosition(node.GetPosition() - offset);
+                break;
+            case WorldOriginUpdateMode.Recurse:
+                foreach (var child in node.GetChildren())
+                    UpdateNodeWorldOrigin(child, offset);
+                break;
+        }
     }
 
     private void UpdateAttributeAnimations(float timeStep)

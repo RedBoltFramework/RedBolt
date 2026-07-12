@@ -433,7 +433,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ShakeComponent.h`
   - [x] `ShakeComponent : LogicComponent` — trauma/noise displacement, original transform tracking, external transform adjustment, restoration, and update subscription are ported
 - [~] `WorldOrigin.h`
-  - [~] `WorldOrigin : LogicComponent` — constants, update mask, attributes, accessors, and origin-distance snapping are ported; delayed Scene world-origin rebasing remains TODO because managed Scene has no world-origin API
+  - [x] `WorldOrigin : LogicComponent` — constants, update mask, attributes, accessors, origin-distance snapping, delayed Scene rebasing, and world-origin update events are ported
 
 ## A7. RenderAPI — depends on Core, Math (current effort)
 

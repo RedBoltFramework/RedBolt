@@ -37,6 +37,8 @@ public sealed class WorldOriginTests
 
         worldOrigin.Update(0.016f);
 
+        Assert.Equal(new Vector3i(0, 992, 0), scene.GetWorldOrigin());
+        Assert.Equal(8.0f, node.GetWorldPosition().Y);
         Assert.Equal(100u, worldOrigin.GetMaxDistance());
         Assert.Equal(32u, worldOrigin.GetStep());
         Assert.Equal(0u, worldOrigin.GetUpdateX());
