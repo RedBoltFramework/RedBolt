@@ -80,7 +80,7 @@ public sealed class PrefabReference : Component
         }
         else
         {
-            var cache = Context.Instance.GetSubsystem<ResourceCache>();
+            var cache = GetSubsystem<ResourceCache>();
             SetPrefab(cache?.GetResourceOrNull<PrefabResource>(prefab.Name), _path, false);
         }
 
