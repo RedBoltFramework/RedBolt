@@ -7,6 +7,7 @@ public sealed class Scene : Object
     private readonly Dictionary<uint, Component> _components = [];
     private readonly Dictionary<uint, Node> _nodes = [];
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
+    private readonly List<(StringHash Type, HashSet<Component> Components)> _componentIndexes = [];
     private readonly List<ISceneUpdateListener> _updateListeners = [];
     private readonly List<StaticModel> _staticModels = [];
     private readonly List<string> _lightmapNames = [];
@@ -71,6 +72,34 @@ public sealed class Scene : Object
     public uint GetFreeNodeID() => AllocateNodeId(0);
 
     public uint GetFreeComponentID() => AllocateComponentId(0);
+
+    public bool CreateComponentIndex(StringHash componentType)
+    {
+        if (!IsEmpty())
+            return false;
+
+        _componentIndexes.Add((componentType, []));
+        return true;
+    }
+
+    public bool CreateComponentIndex<T>()
+        where T : Component
+    {
+        return CreateComponentIndex(typeof(T).GetClassName());
+    }
+
+    public IReadOnlyCollection<Component> GetComponentIndex(StringHash componentType)
+    {
+        var index = GetMutableComponentIndex(componentType);
+        return index is not null ? index : Array.Empty<Component>();
+    }
+
+    public IReadOnlyCollection<T> GetComponentIndex<T>()
+        where T : Component
+    {
+        var index = GetComponentIndex(typeof(T).GetClassName());
+        return index.OfType<T>().ToArray();
+    }
 
     public void SetUpdateEvents(StringVector events)
     {
@@ -447,6 +476,8 @@ public sealed class Scene : Object
         _components[component.Id] = component;
         component.OnSceneSet(null, this);
 
+        GetMutableComponentIndex(component.GetTypeNameHash())?.Add(component);
+
         if (component is ISceneUpdateListener listener)
             _updateListeners.Add(listener);
         if (component is StaticModel staticModel)
@@ -457,6 +488,8 @@ public sealed class Scene : Object
     {
         if (!_components.Remove(component.Id))
             return;
+
+        GetMutableComponentIndex(component.GetTypeNameHash())?.Remove(component);
 
         if (component is ISceneUpdateListener listener)
             _updateListeners.Remove(listener);
@@ -528,6 +561,17 @@ public sealed class Scene : Object
             ++nextId;
 
         return nextId++;
+    }
+
+    private HashSet<Component>? GetMutableComponentIndex(StringHash componentType)
+    {
+        for (var i = 0; i < _componentIndexes.Count; ++i)
+        {
+            if (_componentIndexes[i].Type == componentType)
+                return _componentIndexes[i].Components;
+        }
+
+        return null;
     }
 
     private Snapshot<ISceneUpdateListener> SnapshotUpdateListeners()

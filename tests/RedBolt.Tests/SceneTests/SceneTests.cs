@@ -215,4 +215,23 @@ public sealed class SceneTests
 
         Assert.Equal(["@CustomForcedUpdate", "CustomUpdate", string.Empty], events);
     }
+
+    [Fact]
+    public void Component_indexes_track_matching_components()
+    {
+        var scene = new Scene();
+        Assert.True(scene.CreateComponentIndex<Camera>());
+
+        var node = scene.CreateChild("Indexed");
+        Assert.False(scene.CreateComponentIndex<Light>());
+        var camera = node.CreateComponent<Camera>();
+        var light = node.CreateComponent<Light>();
+
+        Assert.Contains(camera, scene.GetComponentIndex<Camera>());
+        Assert.Empty(scene.GetComponentIndex<Light>());
+
+        node.RemoveComponent(camera);
+        Assert.Empty(scene.GetComponentIndex<Camera>());
+        node.RemoveComponent(light);
+    }
 }
