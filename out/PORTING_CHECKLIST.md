@@ -175,7 +175,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `DrawableEvents.h`
   - [~] drawable event definitions — all five C++ events are represented as struct-based C# events; Animation and ParticleEffect payloads remain opaque until those classes are ported
 - [~] `GraphicsUtils.h`
-  - [~] graphics free functions — InitializeInputLayout is ported; the remaining helpers retain exact C++ TODO bodies until VertexBuffer/Texture expose DrawCommandQueue RawBuffer/RawTexture objects
+  - [~] graphics free functions — InitializeInputLayout and InitializeInputLayoutAndPrimitiveType are ported; SetBuffersFromGeometry and shader-resource helpers remain TODO until VertexBuffer/Texture expose DrawCommandQueue RawBuffer/RawTexture objects
 - [x] `Tangent.h`
   - [x] tangent generation — GenerateTangents and its index reader are ported with managed span equivalents for the C++ vertex/index pointers
 - [x] `PipelineStateTracker.h`

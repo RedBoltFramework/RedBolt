@@ -45,17 +45,23 @@ public static class GraphicsUtils
         desc.SetElements(layoutElements[..checked((int)size)]);
     }
 
-    // TODO: port: VertexBuffer does not yet expose the RawBuffer objects required by DrawCommandQueue.
-    // URHO3D_API void InitializeInputLayoutAndPrimitiveType(
-    //     GraphicsPipelineStateDesc& desc, const Geometry* geometry, VertexBuffer* instancingBuffer = nullptr);
-    //
-    // void InitializeInputLayoutAndPrimitiveType(
-    //     GraphicsPipelineStateDesc& desc, const Geometry* geometry, VertexBuffer* instancingBuffer)
-    // {
-    //     const VertexBufferArray vertexBuffers = ToVertexBufferArray(geometry, instancingBuffer);
-    //     InitializeInputLayout(desc.inputLayout_, vertexBuffers);
-    //     desc.primitiveType_ = geometry->GetPrimitiveType();
-    // }
+    public static void InitializeInputLayoutAndPrimitiveType(
+        GraphicsPipelineStateDesc desc, Geometry geometry, VertexBuffer? instancingBuffer = null)
+    {
+        var vertexBuffers = new VertexBuffer?[RenderApiLimits.MaxVertexStreams];
+        var numVertexBuffers = geometry.GetNumVertexBuffers() + (instancingBuffer is null ? 0u : 1u);
+        if (numVertexBuffers <= RenderApiLimits.MaxVertexStreams)
+        {
+            for (var index = 0u; index < geometry.GetNumVertexBuffers(); ++index)
+                vertexBuffers[checked((int)index)] = geometry.GetVertexBuffer(index);
+
+            if (instancingBuffer is not null)
+                vertexBuffers[checked((int)(numVertexBuffers - 1))] = instancingBuffer;
+        }
+
+        InitializeInputLayout(desc.InputLayout, vertexBuffers);
+        desc.PrimitiveType = geometry.GetPrimitiveType();
+    }
 
     // TODO: port: VertexBuffer does not yet expose the RawBuffer objects required by DrawCommandQueue.
     // inline void SetBuffersFromGeometry(
