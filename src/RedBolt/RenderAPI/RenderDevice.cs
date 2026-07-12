@@ -50,6 +50,48 @@ public sealed class RenderDevice : Object
         InitializeDefaultObjects();
     }
 
+    public ISwapChain? CreateSecondarySwapChain(SdlWindow sdlWindow, bool hasDepthBuffer)
+    {
+        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
+        // Diligent::RefCntAutoPtr<Diligent::ISwapChain> RenderDevice::CreateSecondarySwapChain(
+        //     SDL_Window* sdlWindow, bool hasDepthBuffer)
+        // {
+        //     const auto metalView = IsMetalBackend(deviceSettings_.backend_) ? CreateMetalView(sdlWindow) : nullptr;
+        //     Diligent::NativeWindow nativeWindow = GetNativeWindow(sdlWindow, metalView.get());
+        //     Diligent::SwapChainDesc swapChainDesc{};
+        //     swapChainDesc.IsPrimary = false;
+        //     swapChainDesc.ColorBufferFormat = swapChain_->GetDesc().ColorBufferFormat;
+        //     swapChainDesc.DepthBufferFormat = hasDepthBuffer ? swapChain_->GetDesc().DepthBufferFormat
+        //         : TextureFormat::TEX_FORMAT_UNKNOWN;
+        //     Diligent::FullScreenModeDesc fullscreenDesc{};
+        //     switch (deviceSettings_.backend_)
+        //     {
+        //     case RenderBackend::D3D11:
+        //         factoryD3D11_->CreateSwapChainD3D11(renderDevice_, deviceContext_, swapChainDesc,
+        //             fullscreenDesc, nativeWindow, &secondarySwapChain);
+        //         return secondarySwapChain;
+        //     case RenderBackend::D3D12:
+        //         factoryD3D12_->CreateSwapChainD3D12(renderDevice_, deviceContext_, swapChainDesc,
+        //             fullscreenDesc, nativeWindow, &secondarySwapChain);
+        //         return secondarySwapChain;
+        //     case RenderBackend::Vulkan:
+        //         factoryVulkan_->CreateSwapChainVk(renderDevice_, deviceContext_, swapChainDesc,
+        //             nativeWindow, &secondarySwapChain);
+        //         return secondarySwapChain;
+        //     case RenderBackend::OpenGL:
+        //         SDL_GLContext currentContext = SDL_GL_GetCurrentContext();
+        //         URHO3D_ASSERT(currentContext && currentContext != glContext_.get());
+        //         auto secondarySwapChain = NEW_RC_OBJ(defaultAllocator, "Secondary ProxySwapChainGL instance",
+        //             ProxySwapChainGL)(renderDevice_, deviceContext_, swapChainDesc, sdlWindow);
+        //         return Diligent::RefCntAutoPtr<Diligent::ISwapChain>{secondarySwapChain};
+        //     default:
+        //         URHO3D_ASSERT(false, "Unsupported render backend");
+        //         return {};
+        //     }
+        // }
+        return null;
+    }
+
     /// <summary>
     /// Update swap chain size according to current dimensions of the window.
     /// </summary>
