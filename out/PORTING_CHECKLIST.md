@@ -573,7 +573,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `CameraOperator.h`
   - [~] `CameraOperator : Component` — tracked-node attributes, scene/node listeners, camera movement, bounding-box/padding state, frustum fitting, and factory registration are ported; C# drops `WeakPtr` per the allowed deviations, while action metadata registration remains TODO
 - [~] `Viewport.h`
-  - [~] `Viewport : Object` — managed base shape, default construction, camera/culling access, and scene/rect/debug setters are ported; render-surface projection helpers and render-pipeline view allocation remain TODO
+  - [~] `Viewport : Object` — base shape, default construction, camera/culling access, scene/rect/debug setters, effective rectangles, and screen/world coordinate helpers are ported; render-pipeline view allocation remains TODO
 - [~] `Drawable.h`
   - [ ] `struct SourceBatch`
   - [~] `Drawable : Component, PipelineStateTracker`

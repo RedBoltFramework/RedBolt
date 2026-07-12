@@ -51,7 +51,82 @@ public sealed class Viewport : Object
 
     public IntRect GetRect() => Rect;
 
+    public IntRect GetEffectiveRect(RenderSurface? renderTarget, bool compensateRenderTargetFlip = true)
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        var graphics = GetSubsystem<Graphics>()!;
+        var isOpenGl = renderDevice?.GetBackend() == RenderBackend.OpenGL;
+        var renderTargetSize = RenderSurface.GetSize(graphics, renderTarget);
+
+        if (Rect == IntRect.Zero)
+            return new IntRect(Vector2i.Zero, renderTargetSize);
+
+        var rect = new IntRect(
+            Math.Clamp(Rect.Left, 0, renderTargetSize.X - 1),
+            Math.Clamp(Rect.Top, 0, renderTargetSize.Y - 1),
+            0,
+            0);
+        rect.Right = Math.Clamp(Rect.Right, rect.Left + 1, renderTargetSize.X);
+        rect.Bottom = Math.Clamp(Rect.Bottom, rect.Top + 1, renderTargetSize.Y);
+
+        if (isOpenGl && renderTarget is not null && compensateRenderTargetFlip)
+        {
+            rect.Top = renderTargetSize.Y - rect.Top;
+            rect.Bottom = renderTargetSize.Y - rect.Bottom;
+            (rect.Top, rect.Bottom) = (rect.Bottom, rect.Top);
+        }
+
+        return rect;
+    }
+
     public Scene GetScene() => Scene;
+
+    public Ray GetScreenRay(int x, int y)
+    {
+        if (Camera is null)
+            return new Ray();
+
+        var graphics = GetSubsystem<Graphics>()!;
+        var screenX = Rect == IntRect.Zero
+            ? x / (float)graphics.Width
+            : (x - Rect.Left) / (float)Rect.Width;
+        var screenY = Rect == IntRect.Zero
+            ? y / (float)graphics.Height
+            : (y - Rect.Top) / (float)Rect.Height;
+        return Camera.GetScreenRay(screenX, screenY);
+    }
+
+    public Vector2i WorldToScreenPoint(Vector3f worldPos)
+    {
+        if (Camera is null)
+            return Vector2i.Zero;
+
+        var screenPoint = Camera.WorldToScreenPoint(worldPos);
+        if (Rect == IntRect.Zero)
+        {
+            var graphics = GetSubsystem<Graphics>()!;
+            return new Vector2i((int)(screenPoint.X * graphics.Width), (int)(screenPoint.Y * graphics.Height));
+        }
+
+        return new Vector2i(
+            (int)(Rect.Left + screenPoint.X * Rect.Width),
+            (int)(Rect.Top + screenPoint.Y * Rect.Height));
+    }
+
+    public Vector3f ScreenToWorldPoint(int x, int y, float depth)
+    {
+        if (Camera is null)
+            return Vector3f.Zero;
+
+        var graphics = GetSubsystem<Graphics>()!;
+        var screenX = Rect == IntRect.Zero
+            ? x / (float)graphics.Width
+            : (x - Rect.Left) / (float)Rect.Width;
+        var screenY = Rect == IntRect.Zero
+            ? y / (float)graphics.Height
+            : (y - Rect.Top) / (float)Rect.Height;
+        return Camera.ScreenToWorldPoint(new Vector3f(screenX, screenY, depth));
+    }
 
     public bool IsStereo() => RightEye is not null;
 
