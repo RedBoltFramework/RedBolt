@@ -199,4 +199,20 @@ public sealed class SceneTests
         Assert.NotEqual(firstNodeId, secondNodeId);
         Assert.NotEqual(firstComponentId, secondComponentId);
     }
+
+    [Fact]
+    public void Update_event_configuration_preserves_forced_event_names()
+    {
+        var scene = new Scene();
+        scene.SetUpdateEvents(new StringVector
+        {
+            "@CustomForcedUpdate",
+            "CustomUpdate",
+            string.Empty
+        });
+
+        var events = scene.GetUpdateEvents();
+
+        Assert.Equal(["@CustomForcedUpdate", "CustomUpdate", string.Empty], events);
+    }
 }

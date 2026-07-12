@@ -11,6 +11,8 @@ public sealed class Scene : Object
     private readonly List<StaticModel> _staticModels = [];
     private readonly List<string> _lightmapNames = [];
     private readonly List<Texture2D?> _lightmapTextures = [];
+    private readonly StringVector _updateEvents = [];
+    private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
     private int _asyncLoadingMs = 5;
     private float _elapsedTime;
     private string _fileName = string.Empty;
@@ -19,10 +21,21 @@ public sealed class Scene : Object
     private uint _nextNodeId = 1;
     private bool _manualUpdate;
 
+    public static StringVector DefaultUpdateEvents { get; } =
+    [
+        "@SceneForcedUpdate",
+        "SceneUpdate",
+        "AttributeAnimationUpdate",
+        "SceneSubsystemUpdate",
+        "ScenePostUpdate",
+        "@SceneForcedPostUpdate"
+    ];
+
     public Scene()
     {
         Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
         NodeAdded(Root);
+        SetUpdateEvents(DefaultUpdateEvents);
     }
 
     public override void Dispose()
@@ -58,6 +71,25 @@ public sealed class Scene : Object
     public uint GetFreeNodeID() => AllocateNodeId(0);
 
     public uint GetFreeComponentID() => AllocateComponentId(0);
+
+    public void SetUpdateEvents(StringVector events)
+    {
+        _updateEvents.Clear();
+        _cookedUpdateEvents.Clear();
+
+        foreach (var @event in events)
+        {
+            _updateEvents.Add(@event);
+            if (string.IsNullOrEmpty(@event))
+                continue;
+
+            var isForced = @event[0] == '@';
+            var eventName = isForced ? @event[1..] : @event;
+            _cookedUpdateEvents.Add((new StringHash(eventName), isForced));
+        }
+    }
+
+    public StringVector GetUpdateEvents() => new(_updateEvents);
 
     public uint GetNumLightmaps() => (uint)_lightmapNames.Count;
 
