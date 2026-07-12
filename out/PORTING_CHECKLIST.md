@@ -570,8 +570,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] ResourceCache/VFS sibling XML dependency behavior is mapped through `VirtualFileSystem` and `FileIdentifier`; generic resource-cache dependency registration remains TODO
 - [~] `Camera.h`
   - [~] `Camera : Component`
-- [ ] `CameraOperator.h`
-  - [ ] `CameraOperator : Component`
+- [~] `CameraOperator.h`
+  - [~] `CameraOperator : Component` — tracked-node attributes, scene/node listeners, camera movement, bounding-box/padding state, and frustum fitting are ported; C# drops `WeakPtr` per the allowed deviations, while factory/action metadata registration remains TODO
 - [~] `Viewport.h`
   - [~] `Viewport : Object`
 - [~] `Drawable.h`

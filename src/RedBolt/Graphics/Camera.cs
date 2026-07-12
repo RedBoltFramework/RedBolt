@@ -138,6 +138,19 @@ public sealed class Camera : Component
 
     public bool GetDrawDebugGeometry() => DrawDebugGeometry;
 
+    /// <summary>
+    /// Return frustum in world space.
+    /// </summary>
+    public Frustum GetFrustum()
+    {
+        var frustum = new Frustum();
+        if (!Orthographic)
+            frustum.Define(Fov, AspectRatio, Zoom, NearClip, FarClip, GetInverseView());
+        else
+            frustum.DefineOrtho(OrthoSize, AspectRatio, Zoom, NearClip, FarClip, GetInverseView());
+        return frustum;
+    }
+
     public float GetDistance(Vector3f worldPos)
     {
         if (!Orthographic)
