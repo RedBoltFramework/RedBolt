@@ -45,6 +45,39 @@ public static class RenderAPIUtils
         return shaderTypeNames[(int)type];
     }
 
+    public static uint GetMipLevelCount(Vector3i size)
+    {
+        var largestDimension = Math.Max(size.X, Math.Max(size.Y, size.Z));
+        var levels = 1u;
+        while (largestDimension > 1)
+        {
+            largestDimension >>= 1;
+            ++levels;
+        }
+
+        return levels;
+    }
+
+    public static Vector3i GetMipLevelSize(Vector3i size, uint level) => new(
+        Math.Max(size.X >> (int)level, 1),
+        Math.Max(size.Y >> (int)level, 1),
+        Math.Max(size.Z >> (int)level, 1));
+
+    public static uint GetMipLevelSizeInBytes(TextureFormat textureFormat, Vector3i size, uint level)
+    {
+        var levelSize = GetMipLevelSize(size, level);
+        return checked((uint)levelSize.X * (uint)levelSize.Y * (uint)levelSize.Z * GetTexelSize(textureFormat));
+    }
+
+    public static bool IsDepthTextureFormat(TextureFormat format) =>
+        format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
+
+    public static bool IsDepthStencilTextureFormat(TextureFormat format) =>
+        format == TextureFormat.Depth24Stencil8;
+
+    public static bool IsColorTextureFormat(TextureFormat format) => format is
+        TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+
     public static RenderBackend SelectRenderBackend(RenderBackend? requestedBackend = null)
     {
         var platform = ProcessUtils.GetPlatform();
@@ -191,4 +224,16 @@ public static class RenderAPIUtils
                 return TextureFormat.Unknown;
         }
     }
+
+    private static uint GetTexelSize(TextureFormat format) => format switch
+    {
+        TextureFormat.R8 => 1u,
+        TextureFormat.RG16F => 4u,
+        TextureFormat.RGB8 => 4u,
+        TextureFormat.RGBA8 => 4u,
+        TextureFormat.RGBA16F => 8u,
+        TextureFormat.Depth32 => 4u,
+        TextureFormat.Depth24Stencil8 => 4u,
+        _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
+    };
 }

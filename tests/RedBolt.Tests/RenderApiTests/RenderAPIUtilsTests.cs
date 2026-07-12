@@ -25,4 +25,17 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal(TextureFormat.Depth32, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 126u));
         Assert.Equal(TextureFormat.Unknown, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0u));
     }
+
+    [Fact]
+    public void Texture_mip_helpers_and_format_categories_match_cpp_rules()
+    {
+        Assert.Equal(4u, RenderAPIUtils.GetMipLevelCount(new Vector3i(8, 4, 2)));
+        Assert.Equal(new Vector3i(2, 1, 1), RenderAPIUtils.GetMipLevelSize(new Vector3i(8, 4, 2), 2));
+        Assert.Equal(8u, RenderAPIUtils.GetMipLevelSizeInBytes(TextureFormat.RGBA8, new Vector3i(8, 4, 2), 2));
+
+        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.Depth32));
+        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.Depth24Stencil8));
+        Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.Depth24Stencil8));
+        Assert.True(RenderAPIUtils.IsColorTextureFormat(TextureFormat.RGBA16F));
+    }
 }
