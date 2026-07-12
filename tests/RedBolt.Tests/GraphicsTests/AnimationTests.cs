@@ -78,7 +78,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_binary_save_and_load_round_trips_tracks()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         Context.SetInstance(new Context());
 
         try

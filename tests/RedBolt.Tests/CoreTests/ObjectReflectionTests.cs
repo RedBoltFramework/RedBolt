@@ -103,7 +103,7 @@ public sealed class ObjectReflectionTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 

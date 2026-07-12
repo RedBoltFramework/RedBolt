@@ -38,7 +38,7 @@ public sealed class Base64ArchiveTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 }

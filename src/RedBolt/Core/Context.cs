@@ -46,7 +46,7 @@ public sealed class Context : ObjectReflectionRegistry
         public EventHandler Handler { get; }
     }
 
-    private static Context? _instance;
+    private static Context _instance = new();
     private static int _sdlInitCounter;
 
     private readonly SubsystemCache _subsystems = new();
@@ -56,19 +56,13 @@ public sealed class Context : ObjectReflectionRegistry
     private readonly VariantMap _globalVars = [];
     private ulong _nextSubscriptionId = 1;
 
-    public static Context Instance
+    public static Context Instance => _instance;
+
+    public static void SetInstance(Context context)
     {
-        get => _instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
+        ArgumentNullException.ThrowIfNull(context);
+        _instance = context;
     }
-
-    /// <summary>
-    /// Prefer using Context.Instance instead of this method, as it will throw an exception if the instance is not set.
-    /// This method is provided for cases where the context may not be set, and you want to handle that case gracefully.
-    /// This usually happens during application teardown and is is not a common case.
-    /// </summary>
-    public static Context? TryGetInstance() => _instance;
-
-    public static void SetInstance(Context? context) => _instance = context;
 
     public void Reset()
     {

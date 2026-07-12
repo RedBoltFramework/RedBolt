@@ -50,7 +50,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_delivers_named_events_and_sender_filters()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -90,7 +90,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_gives_sender_specific_handler_priority_over_general_handler()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -117,7 +117,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_unsubscribe_removes_receiver_handlers()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -142,7 +142,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_subscription_dispose_stops_future_event_delivery()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -172,7 +172,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_garbage_collected_receivers_are_automatically_dropped()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -208,7 +208,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_unsubscribe_from_specific_event_keeps_other_subscriptions()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -239,7 +239,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_unsubscribe_from_sender_keeps_other_senders()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -269,7 +269,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_unsubscribe_from_event_removes_only_requested_struct_event_type()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -301,7 +301,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_unsubscribe_from_all_events_except_keeps_requested_struct_event_types()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -325,7 +325,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_supports_unsubscribe_during_dispatch()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -359,7 +359,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_respects_block_events_for_sender_and_receiver()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -392,7 +392,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_exposes_global_vars_through_context_and_object()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -419,7 +419,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_reports_event_handler_queries()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -444,7 +444,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_exposes_active_event_sender_and_handler_during_dispatch()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -480,7 +480,7 @@ public sealed class ContextTests
     [Fact]
     public void Context_can_unsubscribe_from_all_events_except_selected_event_types_and_senders()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         Context.SetInstance(context);
 
@@ -513,7 +513,7 @@ public sealed class ContextTests
     [Fact]
     public void Engine_shutdown_clears_global_context_instance()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var engine = new Engine();
         try
         {
@@ -527,7 +527,7 @@ public sealed class ContextTests
 
             engine.Shutdown();
 
-            Assert.Same(previousContext, Context.TryGetInstance());
+            Assert.Same(previousContext, Context.Instance);
         }
         finally
         {

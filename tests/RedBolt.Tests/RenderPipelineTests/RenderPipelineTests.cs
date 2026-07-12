@@ -930,7 +930,7 @@ public sealed class RenderPipelineTests
     [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
         _fixture.Resources.AddResourceDir(tempRoot);

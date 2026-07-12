@@ -5,7 +5,7 @@ public sealed class ShaderSourceLoggerTests
     [Fact]
     public void Shader_source_logger_writes_defines_header_and_source()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         var engine = new Engine();
         Context.SetInstance(context);

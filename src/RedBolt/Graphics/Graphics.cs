@@ -2234,7 +2234,7 @@ layout(std140) uniform Material
             return uploaded;
         }
 
-        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -2291,7 +2291,7 @@ layout(std140) uniform Material
                 throw new NotSupportedException("CPU-backed TextureCube uploads are not implemented in the current managed renderer.");
         }
 
-        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;

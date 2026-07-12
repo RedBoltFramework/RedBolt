@@ -19,7 +19,7 @@ public sealed class ObjectTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 
@@ -37,7 +37,7 @@ public sealed class ObjectTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 
@@ -68,7 +68,7 @@ public sealed class ObjectTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 

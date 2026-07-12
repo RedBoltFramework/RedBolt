@@ -10,7 +10,7 @@ public sealed class SerializableResourceTests
     [InlineData(InternalResourceFormat.Binary)]
     public void Serializable_resource_roundtrips_camera(InternalResourceFormat format)
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
         context.AddFactoryReflection<Camera>();
         Context.SetInstance(context);

@@ -50,7 +50,7 @@ public sealed class VirtualFileSystemTests
     {
         var directory = CreateTempDirectory();
         System.IO.File.WriteAllText(Path.Combine(directory, "guard.txt"), "guard");
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var context = new Context();
 
         try

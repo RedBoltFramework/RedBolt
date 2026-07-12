@@ -321,7 +321,12 @@ public sealed class GraphicsRenderTargetViewTests
 
     private void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
     {
-        var method = typeof(Graphics).GetMethod("SetRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(Graphics).GetMethod(
+                "SetRenderTargets",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                types: [typeof(IntRect), typeof(RenderTargetView?), typeof(RenderTargetView?)],
+                modifiers: null)
             ?? throw new InvalidOperationException("Graphics.SetRenderTargets was not found.");
         method.Invoke(_fixture.Graphics, [viewportRect, colorTarget, depthStencilTarget]);
     }

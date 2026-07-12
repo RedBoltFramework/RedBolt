@@ -8,7 +8,7 @@ public sealed class NodeTests
     [Fact]
     public void Node_prefab_archive_roundtrips_hierarchy_components_and_variables()
     {
-        var previous = Context.TryGetInstance(); Context.SetInstance(new Context());
+        var previous = Context.Instance; Context.SetInstance(new Context());
         try
         {
             var scene = new Scene();

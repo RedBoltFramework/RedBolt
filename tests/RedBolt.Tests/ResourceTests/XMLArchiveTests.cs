@@ -45,7 +45,7 @@ public sealed class XMLArchiveTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 }

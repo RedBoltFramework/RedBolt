@@ -11,7 +11,7 @@ public sealed class Engine : Object
     private float _currentTimeStep;
     private long _timeOut;
     private bool _audioPaused;
-    private Context? _previousContext;
+    private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
 
     public EngineParameters Parameters { get; private set; } = new();
@@ -309,7 +309,7 @@ public sealed class Engine : Object
 
     private void InitializeContext()
     {
-        _previousContext = RedBolt.Context.TryGetInstance();
+        _previousContext = RedBolt.Context.Instance;
         _context.Reset();
         RedBolt.Context.SetInstance(_context);
         WorkQueue.SetMainThread();

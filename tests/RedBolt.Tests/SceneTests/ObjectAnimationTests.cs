@@ -94,7 +94,7 @@ public sealed class ObjectAnimationTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 }

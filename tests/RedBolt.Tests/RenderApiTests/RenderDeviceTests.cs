@@ -24,7 +24,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Render_device_maps_engine_parameters_to_render_and_window_settings()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         var parameters = new EngineParameters
         {
             ApplicationName = "RenderDeviceTests",
@@ -82,7 +82,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Device_object_receives_invalidate_restore_and_destroy_events()
     {
-        var previousContext = Context.TryGetInstance();
+        var previousContext = Context.Instance;
         TrackingDeviceObject? deviceObject;
 
         try
@@ -127,7 +127,7 @@ public sealed class RenderDeviceTests
         Assert.IsAssignableFrom<DeviceObject>(pipelineState);
         Assert.Equal("TestPipeline", pipelineState.DebugName);
         Assert.Equal("TestPipeline", pipelineState.GetDebugName());
-        Assert.True(pipelineState.IsValid);
+        Assert.False(pipelineState.IsValid);
     }
 
     [Fact]

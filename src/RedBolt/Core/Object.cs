@@ -6,10 +6,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
 
     public virtual void Dispose()
     {
-        var context = Context.TryGetInstance();
-        if (context is null)
-            return;
-
+        var context = Context.Instance;
         context.Unsubscribe(this);
         context.RemoveEventSender(this);
         GC.SuppressFinalize(this);
@@ -113,18 +110,12 @@ public abstract class Object : IArchiveSerializable, IDisposable
 
     public void SendEvent<T>() where T : struct
     {
-        if (Context.TryGetInstance() is null)
-            return;
-
         var args = new T();
         Context.SendEvent(this, ref args);
     }
 
     public void SendEvent<T>(ref T args) where T : struct
     {
-        if (Context.TryGetInstance() is null)
-            return;
-
         Context.SendEvent(this, ref args);
     }
 

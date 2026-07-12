@@ -29,7 +29,7 @@ public sealed class SerializableTests
         Assert.True(jsonResult.LoadJSON(json));
         AssertValues(jsonResult);
 
-        var previous = Context.TryGetInstance();
+        var previous = Context.Instance;
         Context.SetInstance(new Context());
         try
         {

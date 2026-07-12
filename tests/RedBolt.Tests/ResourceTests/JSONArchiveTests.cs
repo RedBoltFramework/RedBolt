@@ -39,7 +39,7 @@ public sealed class JSONArchiveTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 }

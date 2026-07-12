@@ -93,10 +93,10 @@ public sealed class VariantTests
     public void Resource_reference_string_conversion_requires_context()
     {
         var value = new Variant(new ResourceRef("Material", "Materials/Test"));
-        Context.SetInstance(null);
+        Context.SetInstance(new Context());
         try
         {
-            Assert.Equal(string.Empty, value.ToString());
+            Assert.Equal(";Materials/Test", value.ToString());
 
             var context = new Context();
             context.Reflect<Material>();
@@ -105,7 +105,7 @@ public sealed class VariantTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
         }
     }
 

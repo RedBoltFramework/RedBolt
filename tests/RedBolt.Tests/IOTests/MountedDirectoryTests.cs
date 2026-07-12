@@ -32,7 +32,7 @@ public sealed class MountedDirectoryTests
         }
         finally
         {
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
             Directory.Delete(directory, true);
         }
     }
@@ -101,7 +101,7 @@ public sealed class MountedDirectoryTests
         finally
         {
             mountPoint.SetWatching(false);
-            Context.SetInstance(null);
+            Context.SetInstance(new Context());
             Directory.Delete(directory, true);
         }
     }
