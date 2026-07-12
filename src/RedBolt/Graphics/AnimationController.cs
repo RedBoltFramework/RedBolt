@@ -702,7 +702,47 @@ public class AnimationController : AnimationStateSource
 
     private void UpdateAnimationStateTracks(AnimationState state)
     {
-        // TODO: port: UpdateAnimationStateTracks requires managed AnimatedModel, skeleton, and attribute reflection paths.
+        var animation = state.GetAnimation();
+        state.ClearAllTracks();
+
+        if (animation is null)
+        {
+            state.OnTracksReady();
+            return;
+        }
+
+        var startBoneName = state.GetStartBone();
+        var startNode = !string.IsNullOrEmpty(startBoneName) ? Node.GetChild(startBoneName, true) : null;
+        startNode ??= Node;
+
+        foreach (var track in animation.Tracks.Values)
+        {
+            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
+            var trackNode = GetTrackNodeByNameHash(track.NameHash, startNode);
+            if (trackNode is not null)
+            {
+                state.AddNodeTrack(new NodeAnimationStateTrack
+                {
+                    Track = track,
+                    Node = trackNode
+                });
+            }
+        }
+
+        foreach (var track in animation.VariantTracks.Values)
+        {
+            var attribute = ParseAnimatablePath(track.Name, startNode);
+            if (attribute.Serializable is not null)
+            {
+                state.AddAttributeTrack(new AttributeAnimationStateTrack
+                {
+                    Track = track,
+                    Attribute = attribute
+                });
+            }
+        }
+
+        state.OnTracksReady();
     }
 
     private void ConnectToAnimatedModel()
