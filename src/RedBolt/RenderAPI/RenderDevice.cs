@@ -191,6 +191,8 @@ public sealed class RenderDevice : Object
 
     public IDeviceContext? GetImmediateContext() => GetSubsystem<Graphics>()?.GetImmediateContext();
 
+    public ISwapChain? GetSwapChain() => GetSubsystem<Graphics>()?.GetNativeSwapChain();
+
     public Vector2i GetSwapChainSize()
     {
         var graphics = GetSubsystem<Graphics>();

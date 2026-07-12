@@ -180,6 +180,8 @@ layout(std140) uniform Material
 
     public IRenderDevice? GetNativeRenderDevice() => _device;
 
+    public ISwapChain? GetNativeSwapChain() => _swapChain;
+
     internal ITexture? GetTextureHandle(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);

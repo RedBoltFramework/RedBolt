@@ -21,6 +21,7 @@ public sealed class RenderDeviceTests
         Assert.NotNull(_fixture.RenderDevice.GetDefaultQueue());
         Assert.Same(_fixture.Graphics.GetNativeRenderDevice(), _fixture.RenderDevice.GetRenderDevice());
         Assert.Same(_fixture.Graphics.GetImmediateContext(), _fixture.RenderDevice.GetImmediateContext());
+        Assert.Same(_fixture.Graphics.GetNativeSwapChain(), _fixture.RenderDevice.GetSwapChain());
     }
 
     [Fact]
