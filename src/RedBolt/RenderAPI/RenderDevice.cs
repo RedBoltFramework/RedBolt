@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
@@ -312,6 +313,71 @@ public sealed class RenderDevice : Object
 
     public DrawCommandQueue GetDefaultQueue() => _defaultQueue;
 
+    public static IReadOnlyList<FullscreenMode> GetFullscreenModes(int monitor)
+    {
+        var result = new List<FullscreenMode>();
+        var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
+        for (var i = 0; i < numModes; ++i)
+        {
+            using var mode = new SdlDisplayMode();
+            SdlNativeBindings.SdlGetDisplayMode(monitor, i, mode);
+            result.Add(new FullscreenMode(new Vector2i(mode.W, mode.H), mode.RefreshRate));
+        }
+
+        result.Sort(static (left, right) =>
+        {
+            var comparison = left.Size.X.CompareTo(right.Size.X);
+            if (comparison != 0)
+                return comparison;
+
+            comparison = left.Size.Y.CompareTo(right.Size.Y);
+            return comparison != 0 ? comparison : left.RefreshRate.CompareTo(right.RefreshRate);
+        });
+
+        for (var i = result.Count - 1; i > 0; --i)
+        {
+            if (result[i] == result[i - 1])
+                result.RemoveAt(i);
+        }
+
+        return result;
+    }
+
+    public static uint GetClosestFullscreenModeIndex(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
+    {
+        for (var i = 0; i < modes.Count; ++i)
+        {
+            if (modes[i] == desiredMode)
+                return (uint)i;
+        }
+
+        var upperBound = 0;
+        while (upperBound < modes.Count && CompareFullscreenMode(modes[upperBound], desiredMode.Size, int.MaxValue) <= 0)
+            ++upperBound;
+
+        if (upperBound > 0 && modes[upperBound - 1].Size == desiredMode.Size)
+            return (uint)(upperBound - 1);
+
+        if (upperBound < modes.Count)
+        {
+            for (var i = upperBound; i < modes.Count; ++i)
+            {
+                if (modes[i].RefreshRate >= desiredMode.RefreshRate)
+                    return (uint)i;
+            }
+
+            return (uint)upperBound;
+        }
+
+        return (uint)(modes.Count - 1);
+    }
+
+    public static FullscreenMode GetClosestFullscreenMode(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
+    {
+        var index = GetClosestFullscreenModeIndex(modes, desiredMode);
+        return modes[(int)index];
+    }
+
     internal ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
         var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
@@ -439,6 +505,16 @@ public sealed class RenderDevice : Object
         GraphicsBackend.D3D12 => RenderBackend.D3D12,
         _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, null)
     };
+
+    private static int CompareFullscreenMode(FullscreenMode mode, Vector2i size, int refreshRate)
+    {
+        var comparison = mode.Size.X.CompareTo(size.X);
+        if (comparison != 0)
+            return comparison;
+
+        comparison = mode.Size.Y.CompareTo(size.Y);
+        return comparison != 0 ? comparison : mode.RefreshRate.CompareTo(refreshRate);
+    }
 
     private static void CopyStats(RenderDeviceStats destination, RenderDeviceStats source)
     {

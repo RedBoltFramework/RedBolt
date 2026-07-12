@@ -307,6 +307,28 @@ public sealed class RenderDeviceTests
         Assert.Equal(1000u, settings.LogPeriod);
     }
 
+    [Fact]
+    public void Render_device_selects_closest_fullscreen_mode_like_native_implementation()
+    {
+        var modes = new[]
+        {
+            new FullscreenMode(new Vector2i(1280, 720), 60),
+            new FullscreenMode(new Vector2i(1280, 720), 144),
+            new FullscreenMode(new Vector2i(1920, 1080), 60)
+        };
+
+        Assert.Equal(1u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+            new FullscreenMode(new Vector2i(1280, 720), 144)));
+        Assert.Equal(1u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+            new FullscreenMode(new Vector2i(1280, 720), 120)));
+        Assert.Equal(2u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+            new FullscreenMode(new Vector2i(1600, 900), 60)));
+        Assert.Equal(2u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+            new FullscreenMode(new Vector2i(2560, 1440), 240)));
+        Assert.Equal(modes[2], RenderDevice.GetClosestFullscreenMode(modes,
+            new FullscreenMode(new Vector2i(1600, 900), 60)));
+    }
+
     private sealed class TrackingDeviceObject : DeviceObject
     {
         public int InvalidateCalls { get; private set; }
