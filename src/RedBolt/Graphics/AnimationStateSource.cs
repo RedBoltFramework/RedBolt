@@ -25,8 +25,7 @@ namespace RedBolt;
 /// </summary>
 public abstract class AnimationStateSource : Component
 {
-    // TODO: port: AnimationState and AnimationStateVector are not available yet; preserve the C++ vector as an opaque managed list.
-    protected readonly List<object> _animationStates = [];
+    protected readonly List<AnimationState> _animationStates = [];
     protected bool _resetSkeleton;
 
     protected AnimationStateSource()
@@ -42,7 +41,7 @@ public abstract class AnimationStateSource : Component
     /// <summary>
     /// Return animations states for AnimatedModel.
     /// </summary>
-    public IReadOnlyList<object> GetAnimationStates() => _animationStates;
+    public IReadOnlyList<AnimationState> GetAnimationStates() => _animationStates;
 
     /// <summary>
     /// Return whether animation throttling is disabled.

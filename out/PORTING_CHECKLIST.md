@@ -613,11 +613,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `StaticModelGroup : StaticModel`
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
-- [~] `AnimationStateSource.h` — base component and throttling state are ported; `AnimationStateVector` remains an opaque managed list until `AnimationState` is ported
-  - [ ] `AnimationStateSource`
-- [ ] `AnimationState.h`
-  - [ ] `struct AnimatedAttributeReference`
-  - [ ] `AnimationState : RefCounted`
+- [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending
+  - [~] `AnimationStateSource`
+- [~] `AnimationState.h` — enums, track/output records, lifecycle state, and track dirty management are ported; AnimatedModel and attribute-reflection calculation paths remain TODO
+  - [~] `struct AnimatedAttributeReference`
+  - [~] `AnimationState : RefCounted`
 - [ ] `AnimationController.h`
   - [ ] `AnimationParameters`
   - [ ] `AnimationController : AnimationStateSource`

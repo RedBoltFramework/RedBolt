@@ -17,6 +17,34 @@ public sealed class AnimationStateSourceTests
         Assert.True(source.MarkedDirty);
     }
 
+    [Fact]
+    public void Animation_state_preserves_lifecycle_and_track_dirty_state()
+    {
+        var animation = new Animation();
+        var state = new AnimationState();
+        var track = new AnimationTrack();
+
+        state.Initialize(animation, "Root", AnimationBlendMode.Additive);
+        state.Update(true, 1.5f, 0.75f);
+
+        Assert.Same(animation, state.GetAnimation());
+        Assert.Equal("Root", state.GetStartBone());
+        Assert.True(state.IsLooped());
+        Assert.True(state.IsEnabled());
+        Assert.Equal(1.5f, state.GetTime());
+        Assert.Equal(0.75f, state.GetWeight());
+        Assert.Equal(AnimationBlendMode.Additive, state.GetBlendMode());
+        Assert.True(state.AreTracksDirty());
+
+        state.AddModelTrack(new ModelAnimationStateTrack { Track = track });
+        state.OnTracksReady();
+        Assert.False(state.AreTracksDirty());
+
+        state.MarkTracksDirty();
+        state.ClearAllTracks();
+        Assert.True(state.AreTracksDirty());
+    }
+
     private sealed class TestAnimationStateSource : AnimationStateSource
     {
         public bool MarkedDirty { get; private set; }
