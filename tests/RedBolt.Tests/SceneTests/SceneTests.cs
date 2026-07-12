@@ -255,7 +255,7 @@ public sealed class SceneTests
     }
 
     [Fact]
-    public void Scene_load_entrypoints_read_archive_formats()
+    public void Scene_load_entrypoints_read_xml_archive_and_json_node_formats()
     {
         var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(71);
@@ -271,10 +271,8 @@ public sealed class SceneTests
         Assert.True(loadedFromXml.LoadXML(xmlFile.Root));
         Assert.NotNull(loadedFromXml.Root.GetChild("Loaded"));
 
-        var jsonArchive = new JSONOutputArchive();
-        using (jsonArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
-            source.SerializeInBlock(jsonArchive);
-        Assert.True(JSONFile.ParseJSON(jsonArchive.ToJsonString(), out var json));
+        var json = new JSONValue();
+        Assert.True(source.Root.SaveJSON(json));
 
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
@@ -282,7 +280,7 @@ public sealed class SceneTests
     }
 
     [Fact]
-    public void Scene_stream_load_entrypoints_read_resource_formats()
+    public void Scene_stream_load_entrypoints_read_xml_resource_and_json_node_formats()
     {
         var sourceResource = new SceneResource(string.Empty);
         sourceResource.Scene.CreateChild("Loaded").CreateComponent<Camera>().SetFov(79);
@@ -295,8 +293,9 @@ public sealed class SceneTests
         Assert.True(loadedFromXml.LoadXML(xml));
         Assert.True(loadedFromXml.Root.GetChild("Loaded") is not null, $"count={loadedFromXml.Root.GetNumChildren()}");
 
-        using var json = new MemoryStream();
-        Assert.True(sourceResource.Save(json, SceneResourceFormat.Json));
+        var jsonValue = new JSONValue();
+        Assert.True(sourceResource.Scene.Root.SaveJSON(jsonValue));
+        using var json = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonValue.ToString()));
         json.Position = 0;
 
         var loadedFromJson = new Scene();

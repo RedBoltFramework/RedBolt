@@ -190,11 +190,7 @@ public sealed class Scene : Object
     public bool LoadJSON(JSONValue source)
     {
         StopAsyncLoading();
-
-        var archive = new JSONInputArchive(Context, source.ToString());
-        using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
-            SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
-        return true;
+        return Root.LoadJSON(source);
     }
 
     public bool LoadJSON(Stream source)

@@ -271,6 +271,105 @@ public sealed class Node : Animatable
         return true;
     }
 
+    public override bool LoadJSON(JSONValue source)
+    {
+        var resolver = new SceneResolver();
+        resolver.AddNode(source.Get("id").GetUInt(), this);
+
+        var success = LoadJSON(source, resolver);
+        if (success)
+        {
+            resolver.Resolve();
+            ApplyAttributes();
+        }
+
+        return success;
+    }
+
+    public bool LoadJSON(
+        JSONValue source,
+        SceneResolver resolver,
+        bool loadChildren = true,
+        bool rewriteIds = false)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(resolver);
+
+        RemoveAllChildren();
+        RemoveAllComponents();
+
+        if (!base.LoadJSON(source))
+            return false;
+
+        foreach (var componentValue in source.Get("components").GetArray())
+        {
+            var typeName = componentValue.Get("type").GetString();
+            var componentId = componentValue.Get("id").GetUInt();
+            var componentType = ResolveComponentType(typeName);
+            if (componentType is null)
+                continue;
+
+            var component = CreateComponent(componentType, rewriteIds ? 0u : componentId);
+            if (component is null)
+                continue;
+
+            resolver.AddComponent(componentId, component);
+            if (!component.LoadJSON(componentValue))
+                return false;
+        }
+
+        if (!loadChildren)
+            return true;
+
+        foreach (var childValue in source.Get("children").GetArray())
+        {
+            var nodeId = childValue.Get("id").GetUInt();
+            var child = CreateChild(rewriteIds ? 0u : nodeId);
+            resolver.AddNode(nodeId, child);
+            if (!child.LoadJSON(childValue, resolver, loadChildren, rewriteIds))
+                return false;
+        }
+
+        return true;
+    }
+
+    public override bool SaveJSON(JSONValue destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        destination.Set("id", new JSONValue(Id));
+        if (!base.SaveJSON(destination))
+            return false;
+
+        var components = new JSONValue(JSONValueType.Array);
+        foreach (var component in _components)
+        {
+            if (component.IsTemporary)
+                continue;
+
+            var componentValue = new JSONValue();
+            if (!component.SaveJSON(componentValue))
+                return false;
+            components.Push(componentValue);
+        }
+        destination.Set("components", components);
+
+        var children = new JSONValue(JSONValueType.Array);
+        foreach (var child in _children)
+        {
+            if (child.IsTemporary)
+                continue;
+
+            var childValue = new JSONValue();
+            if (!child.SaveJSON(childValue))
+                return false;
+            children.Push(childValue);
+        }
+        destination.Set("children", children);
+
+        return true;
+    }
+
     private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
     {
         prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;
