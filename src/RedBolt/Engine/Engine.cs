@@ -13,6 +13,7 @@ public sealed class Engine : Object
     private bool _audioPaused;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
+    private readonly ConfigFile _configFile = new();
 
     public EngineParameters Parameters { get; private set; } = new();
 
@@ -43,6 +44,8 @@ public sealed class Engine : Object
 
         Parameters = applicationParameters.Clone();
         InitializeContext();
+        PopulateDefaultParameters();
+        LoadConfigFiles();
         var resources = GetSubsystem<ResourceCache>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
@@ -321,6 +324,76 @@ public sealed class Engine : Object
         renderer.RenderFrame(graphics, beforePresent: null);
     }
 
+    /// <summary>Load and merge config files.</summary>
+    public void LoadConfigFiles()
+    {
+        var configName = Parameters.ConfigName;
+        if (string.IsNullOrEmpty(configName))
+            return;
+
+        _configFile.LoadDefaults(configName, ApplicationFlavor.Platform);
+        _configFile.LoadOverrides("conf://" + configName);
+        ApplyConfigVariables();
+    }
+
+    /// <summary>Save config file.</summary>
+    public void SaveConfigFile()
+    {
+        var configName = Parameters.ConfigName;
+        if (string.IsNullOrEmpty(configName))
+            return;
+
+        foreach (var property in typeof(EngineParameters).GetProperties(
+                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (property.CanRead && property.CanWrite)
+                _configFile.SetVariable(property.Name, Variant.FromObject(property.GetValue(Parameters)));
+        }
+
+        _configFile.SaveOverrides("conf://" + configName, ApplicationFlavor.Platform);
+    }
+
+    /// <summary>Populate default parameter values.</summary>
+    public void PopulateDefaultParameters()
+    {
+        foreach (var property in typeof(EngineParameters).GetProperties(
+                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (!property.CanRead || !property.CanWrite || property.Name == nameof(EngineParameters.GraphicsBackend))
+                continue;
+
+            var definition = _configFile.DefineVariable(
+                property.Name, Variant.FromObject(property.GetValue(Parameters)));
+            if (property.Name is nameof(EngineParameters.AutoloadPaths)
+                or nameof(EngineParameters.ConfigName)
+                or nameof(EngineParameters.LogLevel)
+                or nameof(EngineParameters.LogName)
+                or nameof(EngineParameters.LogQuiet)
+                or nameof(EngineParameters.ResourcePackages)
+                or nameof(EngineParameters.ResourcePaths)
+                or nameof(EngineParameters.ResourcePrefixPaths)
+                or nameof(EngineParameters.XR)
+                or nameof(EngineParameters.Profile))
+            {
+                definition.CommandLinePriority();
+            }
+
+            if (property.Name is nameof(EngineParameters.Borderless)
+                or nameof(EngineParameters.FrameLimiter)
+                or nameof(EngineParameters.FullScreen)
+                or nameof(EngineParameters.Monitor)
+                or nameof(EngineParameters.RefreshRate)
+                or nameof(EngineParameters.TextureAnisotropy)
+                or nameof(EngineParameters.TextureFilterMode)
+                or nameof(EngineParameters.TextureQuality)
+                or nameof(EngineParameters.VSync)
+                or nameof(EngineParameters.WindowMaximize))
+            {
+                definition.Overridable();
+            }
+        }
+    }
+
     private void InitializeContext()
     {
         _previousContext = RedBolt.Context.Instance;
@@ -338,6 +411,15 @@ public sealed class Engine : Object
 
         ApplyConfiguredResourcePaths();
         _timeOut = (long)Parameters.TimeOut * 1_000_000L;
+    }
+
+    private void ApplyConfigVariables()
+    {
+        foreach (var (name, value) in _configFile.Variables)
+        {
+            if (EngineParameterBinding.IsKnown(name))
+                EngineParameterBinding.TrySetValue(Parameters, name, value.GetObject());
+        }
     }
 
     private void ApplyLiveParameter(string name)

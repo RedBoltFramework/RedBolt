@@ -58,4 +58,46 @@ public sealed class ConfigFileTests
             mountPoint.Dispose();
         }
     }
+
+    [Fact]
+    public void Engine_config_lifecycle_applies_defaults_and_overrides()
+    {
+        var fileSystem = _fixture.Context.GetSubsystem<VirtualFileSystem>()!;
+        var defaultsMount = new MountedExternalMemory("");
+        var overridesMount = new MountedExternalMemory("conf");
+        fileSystem.Mount(defaultsMount);
+        fileSystem.Mount(overridesMount);
+        defaultsMount.LinkMemory("EngineConfig.json", """
+            {
+                "Default": [
+                    {
+                        "Flavor": [],
+                        "Variables": [
+                            { "key": "FullScreen", "type": "Bool", "value": true }
+                        ]
+                    }
+                ]
+            }
+            """);
+        overridesMount.LinkMemory("EngineConfig.json", """
+            {
+                "FullScreen": { "type": "Bool", "value": false }
+            }
+            """);
+
+        try
+        {
+            _fixture.Engine.SetParameter(EngineParameter.ConfigName, "EngineConfig.json");
+            _fixture.Engine.LoadConfigFiles();
+
+            Assert.False(_fixture.Engine.Parameters.FullScreen);
+        }
+        finally
+        {
+            fileSystem.Unmount(overridesMount);
+            fileSystem.Unmount(defaultsMount);
+            overridesMount.Dispose();
+            defaultsMount.Dispose();
+        }
+    }
 }
