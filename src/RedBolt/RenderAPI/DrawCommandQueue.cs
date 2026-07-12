@@ -25,6 +25,7 @@ public class DrawCommandQueue : Object
     private ShaderResourceRange _currentUnorderedAccessViewGroup;
     private readonly IBuffer?[] _nativeVertexBuffers = new IBuffer?[RenderApiLimits.MaxVertexStreams];
     private readonly nuint[] _nativeVertexBufferOffsets = new nuint[RenderApiLimits.MaxVertexStreams];
+    private readonly RawBuffer?[] _currentVertexBuffers = new RawBuffer?[RenderApiLimits.MaxVertexStreams];
 
     private readonly record struct ShaderResourceData(
         IShaderResourceVariable Variable, TextureType? Type, RawTexture? Texture, RawTexture? BackupTexture, ITextureView? View);
@@ -311,6 +312,18 @@ public class DrawCommandQueue : Object
         var stats = renderContext.GetMutableStats();
         var caps = renderContext.GetRenderDevice().GetCaps();
         var uniformBuffers = UploadConstantBuffers(renderContext.GetRenderPool());
+
+        // Cached current state
+        PipelineState? currentPipelineState = null;
+        IShaderResourceBinding? currentShaderResourceBinding = null;
+        ShaderProgramReflection? currentShaderReflection = null;
+        RawBuffer? currentIndexBuffer = null;
+        Array.Clear(_currentVertexBuffers);
+        ShaderResourceRange currentShaderResources = default;
+        ShaderResourceRange currentUnorderedAccessViews = default;
+        var currentScissorRect = uint.MaxValue;
+        uint? currentStencilRef = null;
+
         foreach (var command in _drawCommands)
         {
             var pipelineState = command.PipelineState;
@@ -320,21 +333,66 @@ public class DrawCommandQueue : Object
             if (command.BaseVertexIndex != 0u && !caps.DrawBaseVertex)
                 continue;
 
-            SetScissorAndStencil(deviceContext, command);
+            if (command.PipelineState != currentPipelineState)
+            {
+                var pipelineHandle = pipelineState.GetHandle();
+                if (pipelineHandle is null)
+                    continue;
 
-            BindShaderResources(renderContext, command.ShaderResources);
-            BindUnorderedAccessViews(command.UnorderedAccessViews);
-            BindConstantBuffers(reflection, command, uniformBuffers);
-            deviceContext.SetPipelineState(pipelineState.GetHandle()!);
-            deviceContext.CommitShaderResources(pipelineState.GetShaderResourceBinding()!,
+                deviceContext.SetPipelineState(pipelineHandle);
+                currentPipelineState = pipelineState;
+                currentShaderResourceBinding = pipelineState.GetShaderResourceBinding();
+                currentShaderReflection = reflection;
+                currentShaderResources = default;
+                currentUnorderedAccessViews = default;
+            }
+
+            if (command.ScissorRect != currentScissorRect)
+            {
+                SetScissorRect(deviceContext, command);
+                currentScissorRect = command.ScissorRect;
+            }
+
+            if (command.StencilRef != currentStencilRef)
+            {
+                deviceContext.SetStencilRef(command.StencilRef);
+                currentStencilRef = command.StencilRef;
+            }
+
+            if (command.IndexBuffer != currentIndexBuffer)
+            {
+                SetIndexBuffer(deviceContext, command.IndexBuffer);
+                currentIndexBuffer = command.IndexBuffer;
+            }
+
+            if (!VertexBuffersEqual(command.VertexBuffers, _currentVertexBuffers)
+                || (command.InstanceCount != 0 && !caps.DrawBaseInstance))
+            {
+                SetVertexBuffers(deviceContext, command, caps.DrawBaseInstance);
+                Array.Copy(command.VertexBuffers, _currentVertexBuffers, _currentVertexBuffers.Length);
+            }
+
+            if (currentShaderResources != command.ShaderResources)
+            {
+                BindShaderResources(renderContext, command.ShaderResources);
+                currentShaderResources = command.ShaderResources;
+            }
+
+            if (currentUnorderedAccessViews != command.UnorderedAccessViews)
+            {
+                BindUnorderedAccessViews(command.UnorderedAccessViews);
+                currentUnorderedAccessViews = command.UnorderedAccessViews;
+            }
+
+            BindConstantBuffers(currentShaderReflection!, command, uniformBuffers);
+            deviceContext.CommitShaderResources(currentShaderResourceBinding!,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
-            switch (pipelineState.GetPipelineType())
+            switch (currentPipelineState!.GetPipelineType())
             {
                 case PipelineStateType.Graphics:
-                    BindGeometry(deviceContext, command, caps.DrawBaseInstance);
                     var instances = Math.Max(1u, command.InstanceCount);
-                    if (command.IndexBuffer is not null)
+                    if (currentIndexBuffer is not null)
                     {
                         using var draw = new DrawIndexedAttribs
                         {
@@ -344,7 +402,7 @@ public class DrawCommandQueue : Object
                             FirstInstanceLocation = caps.DrawBaseInstance ? command.InstanceStart : 0u,
                             BaseVertex = command.BaseVertexIndex,
                             Flags = DrawFlags.DrawFlagVerifyAll,
-                            IndexType = command.IndexBuffer.GetStride() == 2u
+                            IndexType = currentIndexBuffer.GetStride() == 2u
                                 ? RedBolt.Bindings.Diligent.ValueType.VtUint16
                                 : RedBolt.Bindings.Diligent.ValueType.VtUint32
                         };
@@ -382,13 +440,15 @@ public class DrawCommandQueue : Object
         }
     }
 
-    private void BindGeometry(IDeviceContext deviceContext, DrawCommandDescription command, bool drawBaseInstance)
+    private void SetIndexBuffer(IDeviceContext deviceContext, RawBuffer? indexBuffer)
     {
-        var indexBuffer = command.IndexBuffer;
         indexBuffer?.Resolve();
         deviceContext.SetIndexBuffer(indexBuffer?.GetHandle()!, 0u,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+    }
 
+    private void SetVertexBuffers(IDeviceContext deviceContext, DrawCommandDescription command, bool drawBaseInstance)
+    {
         for (var i = 0; i < _nativeVertexBuffers.Length; ++i)
         {
             var vertexBuffer = command.VertexBuffers[i];
@@ -404,7 +464,7 @@ public class DrawCommandQueue : Object
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
     }
 
-    private void SetScissorAndStencil(IDeviceContext deviceContext, DrawCommandDescription command)
+    private void SetScissorRect(IDeviceContext deviceContext, DrawCommandDescription command)
     {
         var source = _scissorRects[(int)command.ScissorRect];
         using var rect = new RedBolt.Bindings.Diligent.Rect
@@ -415,7 +475,17 @@ public class DrawCommandQueue : Object
             Bottom = source.Bottom
         };
         deviceContext.SetScissorRects(1u, rect, 0u, 0u);
-        deviceContext.SetStencilRef(command.StencilRef);
+    }
+
+    private static bool VertexBuffersEqual(RawBuffer?[] left, RawBuffer?[] right)
+    {
+        for (var i = 0; i < left.Length; ++i)
+        {
+            if (left[i] != right[i])
+                return false;
+        }
+
+        return true;
     }
 
     private void ValidateGraphicsDraw(bool indexed, uint count)
