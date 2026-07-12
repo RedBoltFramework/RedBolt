@@ -29,7 +29,13 @@ public abstract class Texture : ResourceWithMetadata
         [TextureCoordinate.W] = TextureAddressMode.Wrap
     };
 
-    private readonly int[] _mipsToSkip = [2, 1, 0];
+    private readonly uint[] _mipsToSkip = [2u, 1u, 0u];
+    private uint _requestedLevels;
+    private bool _requestedSRGB;
+    private bool _resolveDirty;
+    private bool _levelsDirty;
+    private readonly object?[] _renderSurfaces = [];
+    private uint _mostDetailedLevel;
 
     protected Texture(string name)
         : base(name)
@@ -54,11 +60,19 @@ public abstract class Texture : ResourceWithMetadata
 
     public uint Anisotropy { get; private set; }
 
+    public float MinLod { get; private set; }
+
+    public float MaxLod { get; private set; } = float.MaxValue;
+
     public bool ShadowCompare { get; private set; }
 
     public bool Linear { get; private set; }
 
-    public bool SRGB { get; private set; }
+    public bool SRGB
+    {
+        get => _requestedSRGB;
+        private set => _requestedSRGB = value;
+    }
 
     public Texture? BackupTexture { get; private set; }
 
@@ -92,8 +106,23 @@ public abstract class Texture : ResourceWithMetadata
 
     public bool GetShadowCompare() => ShadowCompare;
 
+    public void SetMinLod(float minLod)
+    {
+        MinLod = minLod;
+    }
+
+    public float GetMinLod() => MinLod;
+
+    public void SetMaxLod(float maxLod)
+    {
+        MaxLod = maxLod;
+    }
+
+    public float GetMaxLod() => MaxLod;
+
     public void SetNumLevels(uint levels)
     {
+        _requestedLevels = levels;
         Levels = levels;
     }
 
@@ -122,30 +151,54 @@ public abstract class Texture : ResourceWithMetadata
 
     public void SetMipsToSkip(MaterialQuality quality, int toSkip)
     {
-        var index = Math.Clamp((int)quality, 0, _mipsToSkip.Length - 1);
-        _mipsToSkip[index] = Math.Max(toSkip, 0);
+        var index = (uint)quality;
+        if (index >= _mipsToSkip.Length)
+            return;
+
+        _mipsToSkip[index] = (uint)toSkip;
         for (var i = 1; i < _mipsToSkip.Length; ++i)
             _mipsToSkip[i] = Math.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
     }
 
     public int GetMipsToSkip(MaterialQuality quality)
     {
-        var index = Math.Clamp((int)quality, 0, _mipsToSkip.Length - 1);
-        return _mipsToSkip[index];
+        var index = (uint)quality;
+        return index < _mipsToSkip.Length ? (int)_mipsToSkip[index] : 0;
     }
 
-    public int GetLevelWidth(uint level) => GetLevelDimension(Width, level);
+    public int GetLevelWidth(uint level) => level > Levels ? 0 : GetLevelDimension(Width, level);
 
-    public int GetLevelHeight(uint level) => GetLevelDimension(Height, level);
+    public int GetLevelHeight(uint level) => level > Levels ? 0 : GetLevelDimension(Height, level);
 
-    public int GetLevelDepth(uint level) => GetLevelDimension(Depth, level);
+    public int GetLevelDepth(uint level) => level > Levels ? 0 : GetLevelDimension(Depth, level);
 
     public int GetMultiSample() => MultiSample;
 
     public bool GetNoMultiSampledAutoResolve() => NoMultiSampledAutoResolve;
 
+    public bool GetAutoResolve() => !NoMultiSampledAutoResolve;
+
+    public Vector2i GetSize() => new(Width, Height);
+
+    public IntRect GetRect() => new(0, 0, Width, Height);
+
+    // TODO: port: RenderSurface is not available in the managed texture resource yet.
+    public object? GetRenderSurface(uint index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
+
+    // TODO: port: RenderTexture bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
+    public bool IsRenderTarget() => false;
+
+    // TODO: port: Depth-stencil bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
+    public bool IsDepthStencil() => false;
+
+    // TODO: port: Unordered-access bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
+    public bool IsUnorderedAccess() => false;
+
     public uint GetComponents()
     {
+        if (Width == 0 || IsCompressed())
+            return 0u;
+
         return Format switch
         {
             TextureFormat.Depth32 => 0u,
@@ -159,17 +212,126 @@ public abstract class Texture : ResourceWithMetadata
         };
     }
 
-    public uint GetDataSize(int width, int height) => GetDataSize(width, height, 1);
+    public uint GetDataSize(int width, int height) => GetRowDataSize(width) * (uint)height;
 
     public uint GetDataSize(int width, int height, int depth)
     {
-        return (uint)Math.Max(width, 0) * (uint)Math.Max(height, 0) * (uint)Math.Max(depth, 0) * GetComponents();
+        return (uint)depth * GetDataSize(width, height);
     }
 
     public uint GetRowDataSize(int width)
     {
-        return (uint)Math.Max(width, 0) * GetComponents();
+        return (uint)width * GetComponents();
     }
+
+    public void SetParameters(XMLFile? file)
+    {
+        if (file is null)
+            return;
+
+        SetParameters(file.Root);
+    }
+
+    public void SetParameters(XMLElement element)
+    {
+        LoadMetadataFromXML(element);
+        for (var paramElement = element.GetChild(); paramElement.NotNull; paramElement = paramElement.GetNext())
+        {
+            var name = paramElement.Name;
+
+            if (name == "address")
+            {
+                var coordinate = paramElement.GetAttribute("coord").ToLowerInvariant();
+                if (coordinate.Length >= 1)
+                {
+                    var coordinateIndex = (TextureCoordinate)(coordinate[0] - 'u');
+                    var mode = paramElement.GetAttribute("mode").ToLowerInvariant() switch
+                    {
+                        "mirror" => TextureAddressMode.Mirror,
+                        "clamp" => TextureAddressMode.Clamp,
+                        "border" => TextureAddressMode.Border,
+                        _ => TextureAddressMode.Wrap
+                    };
+                    SetAddressMode(coordinateIndex, mode);
+                }
+            }
+
+            if (name == "filter")
+            {
+                var mode = paramElement.GetAttribute("mode").ToLowerInvariant() switch
+                {
+                    "nearest" => TextureFilterMode.Nearest,
+                    "bilinear" => TextureFilterMode.Bilinear,
+                    "trilinear" => TextureFilterMode.Trilinear,
+                    "anisotropic" => TextureFilterMode.Anisotropic,
+                    "nearest_anisotropic" => TextureFilterMode.NearestAnisotropic,
+                    _ => TextureFilterMode.Default
+                };
+                SetFilterMode(mode);
+                if (paramElement.HasAttribute("anisotropy"))
+                    SetAnisotropy(paramElement.GetUInt("anisotropy"));
+            }
+
+            if (name == "mipmap")
+            {
+                SetNumLevels(paramElement.GetBool("enable") ? 0u : 1u);
+                if (paramElement.HasAttribute("minlod"))
+                    SetMinLod(paramElement.GetFloat("minlod"));
+                if (paramElement.HasAttribute("maxlod"))
+                    SetMaxLod(paramElement.GetFloat("maxlod"));
+            }
+
+            if (name == "quality")
+            {
+                if (paramElement.HasAttribute("low"))
+                    SetMipsToSkip(MaterialQuality.Low, paramElement.GetInt("low"));
+                if (paramElement.HasAttribute("med"))
+                    SetMipsToSkip(MaterialQuality.Medium, paramElement.GetInt("med"));
+                if (paramElement.HasAttribute("medium"))
+                    SetMipsToSkip(MaterialQuality.Medium, paramElement.GetInt("medium"));
+                if (paramElement.HasAttribute("high"))
+                    SetMipsToSkip(MaterialQuality.High, paramElement.GetInt("high"));
+            }
+
+            if (name == "srgb")
+                SetSRGB(paramElement.GetBool("enable"));
+
+            if (name == "linear")
+                SetLinear(paramElement.GetBool("enable"));
+        }
+    }
+
+    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
+    private void OnCreateGPU()
+    {
+    }
+
+    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
+    private void OnDestroyGPU()
+    {
+    }
+
+    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
+    private bool TryRestore() => false;
+
+    // TODO: port: RenderSurface update handling belongs to the RenderAPI.RawTexture owner.
+    private void HandleRenderSurfaceUpdate()
+    {
+    }
+
+    // TODO: port: Texture budget checks require the ResourceCache and GPU texture ownership model.
+    protected void CheckTextureBudget(StringHash type)
+    {
+    }
+
+    // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.
+    protected bool CreateForImage(RawTextureParams baseParams, Image? image) => false;
+
+    // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
+    protected bool UpdateFromImage(uint arraySlice, Image? image) => false;
+
+    // TODO: port: Image-backed GPU reads require Texture and RawTexture to share one class hierarchy.
+    protected bool ReadToImage(uint arraySlice, uint level, Image? image) => false;
 
     protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
         bool noMultiSampledAutoResolve = false)
@@ -180,7 +342,9 @@ public abstract class Texture : ResourceWithMetadata
         MultiSample = Math.Max(multiSample, 1);
         NoMultiSampledAutoResolve = noMultiSampledAutoResolve;
         Format = format;
-        Levels = Levels == 0 ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth))) : Math.Max(Levels, 1u);
+        Levels = _requestedLevels == 0
+            ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
+            : Math.Max(_requestedLevels, 1u);
     }
 
     protected void RefreshMemoryUse(uint totalBytes)
@@ -190,13 +354,7 @@ public abstract class Texture : ResourceWithMetadata
 
     private static int GetLevelDimension(int size, uint level)
     {
-        if (size <= 0)
-            return 0;
-
-        var value = size;
-        for (var i = 0u; i < level && value > 1; ++i)
-            value = Math.Max(value / 2, 1);
-        return value;
+        return Math.Max(size >> (int)level, 1);
     }
 
     private static uint CalculateFullMipChainLength(int largestDimension)
