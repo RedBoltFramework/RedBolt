@@ -91,12 +91,16 @@ public sealed class ShaderFileTests
         {
             var shader = Resources.GetResource<Shader>("LitSolid");
             var reloadCount = 0;
-            shader.OnReloaded += _ => ++reloadCount;
+            shader.OnReloaded += () => ++reloadCount;
+
+            var first = shader.GetVariation(ShaderType.VS, "A B");
+            var variationReloadCount = 0;
+            first.Reloaded += () => ++variationReloadCount;
 
             Assert.True(shader.Reload());
             Assert.Equal(1, reloadCount);
+            Assert.True(variationReloadCount > 0);
 
-            var first = shader.GetVariation(ShaderType.VS, "A B");
             var second = shader.GetVariation(ShaderType.VS, "B A");
             var pixel = shader.GetVariation(ShaderType.PS, "A B");
 

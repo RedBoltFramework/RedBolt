@@ -24,7 +24,7 @@ public sealed class Shader : Resource
     private uint _numVariations;
 
     /// <summary>Signals that shader source code was reloaded.</summary>
-    public event Action<Shader>? OnReloaded;
+    public event Action? OnReloaded;
 
     public Shader(string name)
         : base(name)
@@ -104,7 +104,7 @@ public sealed class Shader : Resource
     /// <summary>Finish resource loading. Always called from the main thread. Return true if successful.</summary>
     public override bool EndLoad()
     {
-        OnReloaded?.Invoke(this);
+        OnReloaded?.Invoke();
         return true;
     }
 
