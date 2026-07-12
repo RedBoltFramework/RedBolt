@@ -551,15 +551,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
 - [~] `ShaderVariation.h`
   - [~] `ShaderVariation : RawShader` — variation lifecycle, reload recreation, virtual shader-cache load/save, source preprocessing, bytecode creation, and vertex attributes are ported; native SPIR-V translation/optimization/reflection remain TODO
-- [ ] `ModelView.h`
-  - [ ] `struct ModelVertexFormat`
-  - [ ] `struct ModelVertex`
-  - [ ] `struct ModelVertexMorph`
-  - [ ] `struct GeometryLODView`
-  - [ ] `struct GeometryView`
-  - [ ] `struct BoneView`
-  - [ ] `struct ModelMorphView`
-  - [ ] `ModelView : Object`
+- [~] `ModelView.h`
+  - [~] `struct ModelVertexFormat` — editable vertex format conversion, merging, hashing, and equality are ported
+  - [~] `struct ModelVertex` — editable vertex access, semantic replacement, repair, pruning, and equality are ported
+  - [~] `struct ModelVertexMorph` — morph state and normalization are ported
+  - [~] `struct GeometryLODView` — primitive queries, triangle iteration, normalization, bounds, and CPU normal recalculation are ported; tangent generation remains TODO
+  - [~] `struct GeometryView` — LOD normalization, morph counting, and equality are ported
+  - [~] `struct BoneView` — transforms, offset-matrix recalculation, bounding-volume state, and equality are ported
+  - [~] `struct ModelMorphView` — editable morph metadata is ported
+  - [~] `ModelView : Object` — CPU-side geometry transforms, bounds, normals, bone-weight repair, metadata, and material references are ported; native Model import/export and GPU buffer composition remain TODO
 - [~] `Model.h`
   - [~] `Model : ResourceWithMetadata`
 - [ ] `AnimationTrack.h`
