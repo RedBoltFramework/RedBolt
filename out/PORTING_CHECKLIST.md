@@ -613,7 +613,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `StaticModelGroup : StaticModel`
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
-- [ ] `AnimationStateSource.h`
+- [~] `AnimationStateSource.h` — base component and throttling state are ported; `AnimationStateVector` remains an opaque managed list until `AnimationState` is ported
   - [ ] `AnimationStateSource`
 - [ ] `AnimationState.h`
   - [ ] `struct AnimatedAttributeReference`
