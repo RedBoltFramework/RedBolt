@@ -493,6 +493,56 @@ public sealed class Scene : Object
         return true;
     }
 
+    public bool LoadAsyncJSON(AbstractFile? file, LoadMode mode = LoadMode.SceneAndResources)
+    {
+        if (file is null)
+        {
+            Log.Logger.LogError("Null file for async loading");
+            return false;
+        }
+
+        StopAsyncLoading();
+
+        var json = new JSONFile(string.Empty);
+        if (!json.Load(new MemoryStream(ReadRemaining(file))))
+            return false;
+
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Clear();
+        }
+
+        _asyncLoading = true;
+        _asyncProgress.JsonFile = json;
+        _asyncProgress.File = file;
+        _asyncProgress.Mode = mode;
+        _asyncProgress.JsonIndex = 0;
+        _asyncProgress.LoadedNodes = 0;
+        _asyncProgress.TotalNodes = 0;
+        _asyncProgress.LoadedResources = 0;
+        _asyncProgress.TotalResources = 0;
+        _asyncProgress.Resources.Clear();
+
+        var rootValue = json.GetRoot();
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            if (mode != LoadMode.Scene)
+                PreloadResourcesJSON(rootValue);
+
+            var nodeId = rootValue.Get("id").GetUInt();
+            _resolver.AddNode(nodeId, Root);
+            if (!Root.LoadJSON(rootValue, _resolver, loadChildren: false))
+                return false;
+
+            _asyncProgress.TotalNodes = (uint)rootValue.Get("children").GetArray().Count;
+        }
+        else
+            PreloadResourcesJSON(rootValue);
+
+        return true;
+    }
+
     public Node? Instantiate(Deserializer source, Vector3f position, Quaternion rotation)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -1145,16 +1195,21 @@ public sealed class Scene : Object
                 newNode.LoadXML(xmlElement, _resolver);
                 _asyncProgress.XmlElement = xmlElement.GetNext("node");
             }
+            else if (_asyncProgress.JsonFile is not null)
+            {
+                var childValue = _asyncProgress.JsonFile.GetRoot().Get("children").Get((int)_asyncProgress.JsonIndex);
+                var nodeId = childValue.Get("id").GetUInt();
+                var newNode = Root.CreateChild(nodeId);
+                _resolver.AddNode(nodeId, newNode);
+                newNode.LoadJSON(childValue, _resolver);
+                ++_asyncProgress.JsonIndex;
+            }
             else if (_asyncProgress.File is not null)
             {
                 var nodeId = _asyncProgress.File.ReadUInt();
                 var newNode = Root.CreateChild(nodeId);
                 _resolver.AddNode(nodeId, newNode);
                 newNode.Load(_asyncProgress.File, _resolver);
-            }
-            else
-            {
-                // TODO: port JSON child-node loading from UpdateAsyncLoading.
             }
 
             ++_asyncProgress.LoadedNodes;
@@ -1346,6 +1401,75 @@ public sealed class Scene : Object
         }
 
         return null;
+    }
+
+    private void PreloadResourcesJSON(JSONValue value)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+
+        var componentArray = value.Get("components").GetArray();
+        for (var componentIndex = 0; componentIndex < componentArray.Count; ++componentIndex)
+        {
+            var componentValue = componentArray[componentIndex];
+            var componentType = ResolveComponentType(new StringHash(componentValue.Get("type").GetString()));
+            if (componentType is not null
+                && Activator.CreateInstance(componentType, nonPublic: true) is Component component)
+            {
+                var attributes = component.GetAttributes();
+                var attributesArray = componentValue.Get("attributes").GetArray();
+                var startIndex = 0;
+
+                for (var attributeIndex = 0; attributeIndex < attributesArray.Count; ++attributeIndex)
+                {
+                    var attributeValue = attributesArray[attributeIndex];
+                    var attributeName = attributeValue.Get("name").GetString();
+                    var index = startIndex;
+                    var attempts = attributes.Count;
+
+                    while (attempts != 0)
+                    {
+                        var attribute = attributes[index];
+                        if (attribute.ShouldLoad && string.Equals(attribute.Name, attributeName, StringComparison.Ordinal))
+                        {
+                            var variant = attributeValue.Get("value").GetVariantValue(attribute.DefaultValue.Type);
+                            if (variant.Type == VariantType.ResourceRef)
+                            {
+                                var resourceRef = variant.GetResourceRef();
+                                var name = cache.SanitateResourceName(resourceRef.Name);
+                                if (cache.BackgroundLoadResource(resourceRef.Type, name))
+                                {
+                                    ++_asyncProgress.TotalResources;
+                                    _asyncProgress.Resources.Add(new StringHash(name));
+                                }
+                            }
+                            else if (variant.Type == VariantType.ResourceRefList)
+                            {
+                                var resourceRefList = variant.GetResourceRefList();
+                                foreach (var resourceName in resourceRefList.Names)
+                                {
+                                    var name = cache.SanitateResourceName(resourceName);
+                                    if (cache.BackgroundLoadResource(resourceRefList.Type, name))
+                                    {
+                                        ++_asyncProgress.TotalResources;
+                                        _asyncProgress.Resources.Add(new StringHash(name));
+                                    }
+                                }
+                            }
+
+                            startIndex = (index + 1) % attributes.Count;
+                            break;
+                        }
+
+                        index = (index + 1) % attributes.Count;
+                        --attempts;
+                    }
+                }
+            }
+        }
+
+        var childrenArray = value.Get("children").GetArray();
+        for (var childIndex = 0; childIndex < childrenArray.Count; ++childIndex)
+            PreloadResourcesJSON(childrenArray[childIndex]);
     }
 
     private void FinishLoading(Deserializer? source)

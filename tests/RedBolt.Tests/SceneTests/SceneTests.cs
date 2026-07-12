@@ -487,6 +487,26 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_json_async_load_initializes_and_finishes_progress()
+    {
+        using var saved = new MemoryStream();
+        var sourceScene = new Scene();
+        Assert.True(sourceScene.SaveJSON(saved));
+
+        var file = new VectorBuffer(saved.ToArray());
+        var scene = new Scene();
+
+        Assert.True(scene.LoadAsyncJSON(file, LoadMode.SceneAndResources));
+        Assert.True(scene.IsAsyncLoading());
+        Assert.Equal(LoadMode.SceneAndResources, scene.GetAsyncLoadMode());
+
+        scene.Update(0.0f);
+
+        Assert.False(scene.IsAsyncLoading());
+        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
