@@ -116,6 +116,32 @@ public sealed class Scene : Object
         return GetComponentIndex(typeof(T).GetClassName());
     }
 
+    /// <summary>Serialize object. May throw archive exception.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        var compactSave = !archive.IsHumanReadable;
+        var saveFlags = compactSave ? PrefabSaveFlag.CompactAttributeNames : PrefabSaveFlag.EnumsAsStrings;
+        SerializeInBlock(archive, false, saveFlags, PrefabLoadFlag.None);
+    }
+
+    public void SerializeInBlock(
+        Archive archive,
+        bool serializeTemporary,
+        PrefabSaveFlag saveFlags,
+        PrefabLoadFlag loadFlags)
+    {
+        Root.SerializeInBlock(archive, serializeTemporary, saveFlags, loadFlags | PrefabLoadFlag.SkipApplyAttributes);
+        SerializeAuxiliaryData(archive);
+
+        if (archive.IsInput)
+            Root.ApplyAttributes();
+
+        if (!string.IsNullOrEmpty(archive.Name))
+            _fileName = archive.Name;
+        if (archive.Checksum != 0)
+            Checksum = archive.Checksum;
+    }
+
     public void SetUpdateEvents(StringVector events)
     {
         _updateEvents.Clear();
@@ -587,6 +613,56 @@ public sealed class Scene : Object
         }
 
         return null;
+    }
+
+    private void SerializeAuxiliaryData(Archive archive)
+    {
+        if (archive.IsInput && archive.IsUnorderedAccessSupportedInCurrentBlock && !archive.HasElementOrBlock("auxiliary"))
+            return;
+
+        var components = new Dictionary<string, Component>(StringComparer.Ordinal);
+        foreach (var component in _components.Values)
+        {
+            if (component.HasAuxiliaryData())
+                components[component.GetTypeName()] = component;
+        }
+
+        using var block = archive.OpenArrayBlock("auxiliary", archive.IsInput ? 0u : (uint)components.Count);
+        if (archive.IsInput)
+        {
+            for (var i = 0u; i < block.SizeHint; ++i)
+            {
+                using var elementBlock = archive.OpenUnorderedBlock("component");
+                var typeName = string.Empty;
+                ArchiveSerialization.SerializeValue(archive, "key", ref typeName);
+                if (components.TryGetValue(typeName, out var component))
+                {
+                    try
+                    {
+                        component.SerializeAuxiliaryData(archive);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var (typeName, component) in components)
+            {
+                using var elementBlock = archive.OpenUnorderedBlock("component");
+                var key = typeName;
+                ArchiveSerialization.SerializeValue(archive, "key", ref key);
+                try
+                {
+                    component.SerializeAuxiliaryData(archive);
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
     }
 
     private Snapshot<ISceneUpdateListener> SnapshotUpdateListeners()

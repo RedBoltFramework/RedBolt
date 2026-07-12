@@ -217,6 +217,31 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_archive_roundtrip_preserves_hierarchy()
+    {
+        var scene = new Scene();
+        var child = scene.CreateChild("Archived");
+        child.SetPosition(new Vector3f(1, 2, 3));
+        child.SetVar("score", 42);
+        child.CreateComponent<Camera>().SetFov(73);
+
+        var json = new JSONOutputArchive();
+        using (json.OpenUnorderedBlock("scene"))
+            scene.SerializeInBlock(json);
+
+        var loadedScene = new Scene();
+        var input = new JSONInputArchive(json.ToJsonString());
+        using (input.OpenUnorderedBlock("scene"))
+            loadedScene.SerializeInBlock(input);
+
+        var loadedChild = loadedScene.Root.GetChild("Archived");
+        Assert.NotNull(loadedChild);
+        Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
+        Assert.Equal(42, loadedChild.GetVar("score"));
+        Assert.True(MathDefs.ApproximatelyEquivalent(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
