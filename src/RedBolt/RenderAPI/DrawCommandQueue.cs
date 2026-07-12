@@ -93,34 +93,34 @@ public class DrawCommandQueue : Object
         return true;
     }
 
-    public bool AddShaderParameter(StringHash name, Variant value)
+    public void AddShaderParameter(StringHash name, Variant value)
         => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
 
-    public bool AddShaderParameter<T>(StringHash name, T value) where T : unmanaged
+    public void AddShaderParameter<T>(StringHash name, T value) where T : unmanaged
         => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
 
-    public bool AddShaderParameter(StringHash name, Matrix3 value)
+    public void AddShaderParameter(StringHash name, Matrix3 value)
         => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
 
-    public bool AddShaderParameter(StringHash name, Matrix3x4 value)
+    public void AddShaderParameter(StringHash name, Matrix3x4 value)
         => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
 
-    public bool AddShaderParameter(StringHash name, ReadOnlySpan<Vector4f> values)
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Vector4f> values)
     {
-        return TryGetShaderParameterDestination(name, out var destination)
-            && ConstantBufferCollection.StoreParameter(destination, values);
+        if (TryGetShaderParameterDestination(name, out var destination))
+            ConstantBufferCollection.StoreParameter(destination, values);
     }
 
-    public bool AddShaderParameter(StringHash name, ReadOnlySpan<Matrix3x4> values)
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix3x4> values)
     {
-        return TryGetShaderParameterDestination(name, out var destination)
-            && ConstantBufferCollection.StoreParameter(destination, values);
+        if (TryGetShaderParameterDestination(name, out var destination))
+            ConstantBufferCollection.StoreParameter(destination, values);
     }
 
-    public bool AddShaderParameter(StringHash name, ReadOnlySpan<Matrix4> values)
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix4> values)
     {
-        return TryGetShaderParameterDestination(name, out var destination)
-            && ConstantBufferCollection.StoreParameter(destination, values);
+        if (TryGetShaderParameterDestination(name, out var destination))
+            ConstantBufferCollection.StoreParameter(destination, values);
     }
 
     public void CommitShaderParameterGroup(ShaderParameterGroup group)
@@ -509,11 +509,12 @@ public class DrawCommandQueue : Object
             throw new ArgumentOutOfRangeException(nameof(count));
     }
 
-    private delegate bool StoreShaderParameter(Span<byte> destination);
+    private delegate void StoreShaderParameter(Span<byte> destination);
 
-    private bool AddShaderParameterCore(StringHash name, StoreShaderParameter store)
+    private void AddShaderParameterCore(StringHash name, StoreShaderParameter store)
     {
-        return TryGetShaderParameterDestination(name, out var destination) && store(destination);
+        if (TryGetShaderParameterDestination(name, out var destination))
+            store(destination);
     }
 
     private bool TryGetShaderParameterDestination(StringHash name, out Span<byte> destination)
@@ -521,7 +522,10 @@ public class DrawCommandQueue : Object
         var parameter = _currentShaderProgramReflection?.GetUniform(name);
         if (parameter is null) { destination = default; return false; }
         if (_currentShaderParameterGroup != parameter.Value.Group)
-            throw new InvalidOperationException($"Shader parameter '{name}' belongs to group {parameter.Value.Group}, not {_currentShaderParameterGroup}.");
+        {
+            destination = default;
+            return false;
+        }
         var offset = checked((int)parameter.Value.Offset);
         var size = checked((int)parameter.Value.Size);
         if (offset + size > _currentConstantBufferData.Length)
