@@ -1,11 +1,12 @@
 namespace RedBolt;
 
-public sealed class ResourceCache
+public sealed class ResourceCache : Object
 {
     private readonly Dictionary<(Type Type, string Name), Resource> _cache = new();
     private readonly BackgroundLoader _backgroundLoader;
     private readonly Dictionary<Type, ulong> _memoryBudgets = new();
     private readonly List<string> _resourceDirs = [];
+    private VirtualFileSystem? _standaloneVirtualFileSystem;
     private readonly Dictionary<Type, Delegate> _loaders = new();
     private readonly List<ResourceRouter> _resourceRouters = [];
     private readonly Dictionary<Resource, HashSet<string>> _resourceDependencies = new();
@@ -80,13 +81,32 @@ public sealed class ResourceCache
         }
 
         _resourceDirs.Add(path);
+        GetVirtualFileSystem().MountDir(path);
         return true;
     }
 
     public bool RemoveResourceDir(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return _resourceDirs.Remove(path);
+        if (!_resourceDirs.Remove(path))
+            return false;
+
+        var virtualFileSystem = GetVirtualFileSystem();
+
+        for (var index = 0u; index < virtualFileSystem.NumMountPoints(); ++index)
+        {
+            if (virtualFileSystem.GetMountPoint(index) is MountedDirectory directory
+                && string.Equals(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory.GetDirectory())),
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)),
+                    StringComparison.Ordinal))
+            {
+                virtualFileSystem.Unmount(directory);
+                break;
+            }
+        }
+
+        return true;
     }
 
     public void SetMemoryBudget<T>(ulong budget)
@@ -308,34 +328,47 @@ public sealed class ResourceCache
     public Stream? GetFile(string name, bool sendEventOnFailure = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var fileName = GetResourceFileName(name);
-        return string.IsNullOrEmpty(fileName) ? null : System.IO.File.OpenRead(fileName);
+        var virtualFileSystem = GetVirtualFileSystem();
+        var file = virtualFileSystem.OpenFile(GetResolvedIdentifier(new FileIdentifier(name)), File.FileMode.Read);
+        if (file is null)
+            return null;
+
+        try
+        {
+            var stream = new MemoryStream();
+            var buffer = new byte[81920];
+            while (true)
+            {
+                var read = file.Read(buffer);
+                if (read == 0)
+                    break;
+                stream.Write(buffer, 0, checked((int)read));
+            }
+
+            stream.Position = 0;
+            return stream;
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     public DateTime GetLastModifiedTime(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var fileName = GetResourceFileName(name);
-        return string.IsNullOrEmpty(fileName)
+        var identifier = GetResolvedIdentifier(new FileIdentifier(name));
+        var timestamp = GetVirtualFileSystem().GetLastModifiedTime(identifier, false);
+        return timestamp == 0
             ? DateTime.MinValue
-            : DateTime.SpecifyKind(System.IO.File.GetLastWriteTimeUtc(fileName), DateTimeKind.Utc);
+            : DateTimeOffset.FromUnixTimeSeconds(timestamp).UtcDateTime;
     }
 
     public string GetResourceFileName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var resourceName = GetResolvedIdentifier(new FileIdentifier(name)).FileName;
-        if (Path.IsPathFullyQualified(resourceName) && System.IO.File.Exists(resourceName))
-            return resourceName;
-
-        foreach (var resourceDir in _resourceDirs)
-        {
-            var candidate = Path.Combine(resourceDir, resourceName);
-            if (System.IO.File.Exists(candidate))
-                return candidate;
-        }
-
-        return string.Empty;
+        var resourceName = GetResolvedIdentifier(new FileIdentifier(name));
+        return GetVirtualFileSystem().GetAbsoluteNameFromIdentifier(resourceName);
     }
 
     public string SanitateResourceName(string name)
@@ -491,30 +524,22 @@ public sealed class ResourceCache
         if ((flags & ScanFlags.ScanAppend) != ScanFlags.ScanAppend)
             result.Clear();
 
-        foreach (var resourceDir in _resourceDirs)
+        var virtualFileSystem = GetVirtualFileSystem();
+        virtualFileSystem.Scan(result, new FileIdentifier(pathName), filter, flags);
+
+        // Scan manual resources.
+        if ((flags & ScanFlags.ScanFiles) != ScanFlags.ScanFiles)
+            return;
+
+        var extension = GetExtensionFromFilter(filter);
+        foreach (var resource in _cache.Values)
         {
-            var root = Path.Combine(resourceDir, pathName);
-            if (!Directory.Exists(root))
+            var resourceName = resource.Name.Replace('\\', '/');
+            if (!MatchesResourceName(resourceName, pathName, extension, (flags & ScanFlags.ScanRecursive) != 0))
                 continue;
-            var options = (flags & ScanFlags.ScanRecursive) == ScanFlags.ScanRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            if ((flags & ScanFlags.ScanFiles) == ScanFlags.ScanFiles)
-            {
-                foreach (var file in Directory.EnumerateFiles(root, filter, options))
-                {
-                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (System.IO.File.GetAttributes(file) & FileAttributes.Hidden) != 0)
-                        continue;
-                    result.Add(Path.GetRelativePath(resourceDir, file).Replace('\\', '/'));
-                }
-            }
-            if ((flags & ScanFlags.ScanDirs) == ScanFlags.ScanDirs)
-            {
-                foreach (var directory in Directory.EnumerateDirectories(root, filter, options))
-                {
-                    if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden && (System.IO.File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
-                        continue;
-                    result.Add(Path.GetRelativePath(resourceDir, directory).Replace('\\', '/'));
-                }
-            }
+
+            if (!virtualFileSystem.Exists(new FileIdentifier(resourceName)))
+                result.Add(TrimPathPrefix(resourceName, pathName));
         }
     }
 
@@ -541,6 +566,16 @@ public sealed class ResourceCache
         return _loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
     }
 
+    private VirtualFileSystem GetVirtualFileSystem()
+    {
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        if (virtualFileSystem is not null)
+            return virtualFileSystem;
+
+        _standaloneVirtualFileSystem ??= new VirtualFileSystem();
+        return _standaloneVirtualFileSystem;
+    }
+
     private static Type? ResolveResourceType(StringHash type)
     {
         foreach (var candidate in typeof(Resource).Assembly.GetTypes())
@@ -553,6 +588,40 @@ public sealed class ResourceCache
         }
 
         return null;
+    }
+
+    private static string GetExtensionFromFilter(string filter)
+    {
+        var extension = filter.StartsWith("*.", StringComparison.Ordinal) ? filter[1..] : string.Empty;
+        return extension.Contains('*') || extension.Contains('?') ? string.Empty : extension;
+    }
+
+    private static bool MatchesResourceName(string resourceName, string pathName, string extension, bool recursive)
+    {
+        var normalizedPath = pathName.Replace('\\', '/').Trim('/');
+        var normalizedName = resourceName.Trim('/');
+        if (!string.IsNullOrEmpty(normalizedPath))
+        {
+            if (!normalizedName.StartsWith(normalizedPath + "/", StringComparison.OrdinalIgnoreCase))
+                return false;
+            normalizedName = normalizedName[(normalizedPath.Length + 1)..];
+        }
+
+        if (!recursive && normalizedName.Contains('/', StringComparison.Ordinal))
+            return false;
+        return string.IsNullOrEmpty(extension)
+            || normalizedName.EndsWith(extension, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string TrimPathPrefix(string fileName, string prefix)
+    {
+        var normalizedFileName = fileName.Replace('\\', '/');
+        var normalizedPrefix = prefix.Replace('\\', '/').Trim('/');
+        if (string.IsNullOrEmpty(normalizedPrefix))
+            return normalizedFileName;
+        return normalizedFileName.StartsWith(normalizedPrefix + "/", StringComparison.OrdinalIgnoreCase)
+            ? normalizedFileName[(normalizedPrefix.Length + 1)..]
+            : normalizedFileName;
     }
 
     internal bool HasResource(Type type, string name)
@@ -587,8 +656,10 @@ public sealed class ResourceCache
         resource.SetAsyncLoadState(AsyncLoadState.Loading);
         try
         {
-            using var stream = System.IO.File.OpenRead(fileName);
-            resource.SetAsyncLoadState(resource.BeginLoad(stream) ? AsyncLoadState.Success : AsyncLoadState.Fail);
+            using var stream = GetFile(name, sendEventOnFailure: false);
+            resource.SetAsyncLoadState(stream is not null && resource.BeginLoad(stream)
+                ? AsyncLoadState.Success
+                : AsyncLoadState.Fail);
         }
         catch
         {
@@ -640,7 +711,7 @@ public sealed class ResourceCache
             return null;
 
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
+        return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string name, Func<string, T> factory)
@@ -655,7 +726,7 @@ public sealed class ResourceCache
 
         var resource = factory(name);
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
+        return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<string, T> factory)
@@ -671,7 +742,7 @@ public sealed class ResourceCache
 
         var resource = factory(logicalName);
         resource.OwnerCache = this;
-        return resource.LoadFile(fileName) || _returnFailedResources ? resource : null;
+        return resource.LoadFile(lookupName) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<string, T> factory)

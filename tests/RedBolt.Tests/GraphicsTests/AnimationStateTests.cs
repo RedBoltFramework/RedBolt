@@ -63,4 +63,25 @@ public sealed class AnimationStateTests
         Assert.Equal(2.0f, output[node].LocalToParent.Position.X);
         Assert.Equal(AnimationChannel.Position, output[node].Dirty);
     }
+
+    [Fact]
+    public void Animation_state_blends_attribute_tracks()
+    {
+        var animation = new Animation("AttributeAnimation");
+        animation.SetLength(1.0f);
+        var track = animation.CreateVariantTrack("Value");
+        track.AddKeyFrame(new VariantCurvePoint { Time = 0.0f, Value = new Variant(2.0f) });
+        track.AddKeyFrame(new VariantCurvePoint { Time = 1.0f, Value = new Variant(6.0f) });
+
+        var attribute = new AnimatedAttributeReference { AttributeIndex = 1 };
+        var state = new AnimationState();
+        state.Initialize(animation, string.Empty, AnimationBlendMode.Lerp);
+        state.Update(false, 0.5f, 1.0f);
+        state.AddAttributeTrack(new AttributeAnimationStateTrack { Track = track, Attribute = attribute });
+
+        var output = new Dictionary<AnimatedAttributeReference, Variant>();
+        state.CalculateAttributeTracks(output);
+
+        Assert.Equal(4.0f, output[attribute].GetFloat());
+    }
 }

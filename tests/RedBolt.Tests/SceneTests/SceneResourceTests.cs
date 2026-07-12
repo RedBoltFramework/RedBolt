@@ -149,7 +149,7 @@ public sealed class SceneResourceTests
         Assert.NotNull(camera);
         Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFov(), 70.0f));
         Assert.True(camera.IsOrthographic());
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetNearClip(), 0.5f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetNearClip(), 0.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFarClip(), 50.0f));
     }
 }

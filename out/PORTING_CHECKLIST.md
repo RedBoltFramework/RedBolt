@@ -309,7 +309,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] PVRTC image decompression is ported using the C++ block unpacking, interpolation, modulation, and twiddled addressing routines.
   - [x] ETC/ETCPACK image decompression is ported with ETC1/ETC2 individual, differential, T, H, planar, and EAC alpha block decoding.
 - [x] `Resource.h`
-  - [x] `Resource : Object` — synchronous load state, naming, memory accounting, file loading/saving, and use timer behavior are ported
+  - [x] `Resource : Object` — synchronous load state, naming, memory accounting, VFS-backed file loading/saving, and use timer behavior are ported
   - [x] `SimpleResource : Resource` — JSON, XML, and binary archive loading/saving use rbfx format detection and binary magic contracts
   - [x] `ResourceWithMetadata : Resource` — ordered Variant metadata and XML/JSON persistence are ported
 - [x] `Image.h`
@@ -351,7 +351,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `BackgroundLoader : RefCounted, Thread` — .NET tasks replace the C++ thread while preserving two-phase loading, dependency ordering, waiting, and time-budgeted completion
 - [x] `ResourceCache.h`
   - [x] `ResourceRouter : Object` — ordered managed routers mutate FileIdentifier values before resource resolution
-  - [x] `ResourceCache : Object` — managed cache covers routing, synchronous/background/temp loads, memory budgets, dependency reload, reload controls, directory scanning, diagnostics, and release APIs; package mounts and file watching remain scoped to their not-started IO items
+  - [x] `ResourceCache : Object` — managed cache covers routing, synchronous/background/temp loads, memory budgets, VFS-mounted resource directories, dependency reload, reload controls, manual-resource and VFS directory scanning, diagnostics, and release APIs; package mounts and file watching remain scoped to their not-started IO items
 - [x] `GraphPin.h`
   - [x] `GraphPin`
   - [x] `GraphDataPin : GraphPin`
@@ -411,17 +411,17 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `PrefabReader.h`
   - [x] `PrefabReader : NonCopyable` — represented by an abstract managed reader; C# reference types do not expose C++ copy construction
   - [x] `PrefabReaderFromMemory : PrefabReader`
-  - [~] `PrefabReaderFromArchive : PrefabReader` — archive traversal and block lifetime are ported; SerializablePrefab archive flags and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
+  - [~] `PrefabReaderFromArchive : PrefabReader` — archive traversal, block lifetime, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
 - [~] `PrefabWriter.h`
   - [x] `PrefabWriter : NonCopyable` — represented by an abstract managed writer; C# reference types do not expose C++ copy construction
   - [x] `PrefabWriterToMemory : PrefabWriter`
-  - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, and save flags are ported; SerializablePrefab archive flag overloads, compact attribute-name hashes, and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
+  - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, save flags, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
 - [~] `PrefabResource.h`
   - [x] `PrefabResource : SimpleResource` — prefab storage, scene/node accessors, named/indexed slices, archive persistence, ID-attribute cleanup, and PrefabReference-backed node instantiation
-  - [~] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, and Node XML hierarchy loading are ported; compact archive flags remain TODO because the managed archive API has no equivalent overloads
+  - [~] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, Node XML hierarchy loading, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed archive API has no equivalent overloads
 - [~] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
-  - [~] `PrefabReference : Component` — reload event subscription and instance recreation are ported; editor actions/logging and exact deep prefab value-copying remain TODO because the managed APIs differ
+  - [~] `PrefabReference : Component` — reload event subscription, instance recreation, and deep prefab value-copying are ported; editor actions/logging remain TODO because the managed APIs differ
 - [x] `SceneResolver.h`
   - [x] `SceneResolver` — node/component lookup registration, scalar and vector ID resolution, warning paths, and post-resolution reset; C++ WeakPtr storage maps to managed references per the allowed deviation
 - [x] `Scene.h`
@@ -567,8 +567,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Animation.h`
   - [~] `Animation : ResourceWithMetadata, ObjectRevisionTracker` — resource state, XML loading, UANI/UAN2 serialization, tracks, variant tracks, triggers, cloning, metadata, and revision tracking are ported; C# flattens `ObjectRevisionTracker` because it cannot express C++ multiple inheritance
   - [~] ResourceCache/VFS sibling XML dependency behavior is mapped through `VirtualFileSystem` and `FileIdentifier`; generic resource-cache dependency registration remains TODO
-- [~] `Camera.h`
-  - [~] `Camera : Component`
+- [x] `Camera.h`
+  - [x] `Camera : Component` — projection/view/frustum caches, reflection and clipping planes, screen/world conversion, zone state, camera-facing rotations, and graphics-backend projection conversion are ported
 - [~] `CameraOperator.h`
   - [~] `CameraOperator : Component` — tracked-node attributes, scene/node listeners, camera movement, bounding-box/padding state, frustum fitting, and factory registration are ported; C# drops `WeakPtr` per the allowed deviations, while action metadata registration remains TODO
 - [~] `Viewport.h`
@@ -614,7 +614,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Skybox : StaticModel`
 - [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending
   - [~] `AnimationStateSource`
-- [~] `AnimationState.h` — enums, track/output records, lifecycle state, track dirty management, and node transform blending are ported; AnimatedModel and attribute-reflection calculation paths remain TODO
+- [~] `AnimationState.h` — enums, track/output records, lifecycle state, node and attribute track blending, and ordinary/node-variable attribute application are ported; AnimatedModel integration and morph reflection remain TODO
   - [~] `struct AnimatedAttributeReference`
   - [~] `AnimationState : RefCounted`
 - [~] `AnimationController.h` — animation parameter management, playback lifecycle, and replacement merge path are ported; AnimatedModel pose/attribute integration remains TODO

@@ -54,15 +54,11 @@ internal static class ResourceLoading
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var resourceName = ResolveRelativeResourceName(owner, name);
-        var fileName = ResolveRelativeFileName(owner, name);
-        if (string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(fileName))
-            return null;
-
         if (Activator.CreateInstance(typeof(T), resourceName) is not T resource)
             return null;
 
         resource.OwnerCache = owner.OwnerCache;
-        return resource.LoadFile(fileName) ? resource : null;
+        return resource.LoadFile(resourceName) ? resource : null;
     }
 
     public static Stream? OpenDependentResource(Resource owner, string name)
@@ -70,10 +66,30 @@ internal static class ResourceLoading
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var fileName = ResolveRelativeFileName(owner, name);
-        return string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(fileName)
-            ? null
-            : System.IO.File.OpenRead(fileName);
+        var resourceName = ResolveRelativeResourceName(owner, name);
+        var virtualFileSystem = owner.GetSubsystem<VirtualFileSystem>()!;
+        var file = virtualFileSystem.OpenFile(new FileIdentifier(resourceName), File.FileMode.Read);
+        if (file is null)
+            return null;
+
+        try
+        {
+            var data = new byte[checked((int)file.Size)];
+            var offset = 0;
+            while (offset < data.Length)
+            {
+                var read = file.Read(data.AsSpan(offset));
+                if (read == 0)
+                    return null;
+                offset += checked((int)read);
+            }
+
+            return new MemoryStream(data, writable: false);
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     private static bool HasPath(string name)

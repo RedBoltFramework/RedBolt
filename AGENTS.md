@@ -109,6 +109,7 @@ The build output binaries are in:
 - Port EVERY code comment if such exists.
 - Port EVERY doxygen documentation comment as C# xml documentation comment.
 - Port C++ code as is, no changes to the core logic.
+- PORT C++ destructors as `Dispose()`.
 - Preserve C++ code layout.
 - Keep the code building at all times. Small working slices, not big broken ones.
 - Add or update focused unit tests when you change behavior.
@@ -121,7 +122,7 @@ The build output binaries are in:
     - Set it with Context.SetInstance(ctx).
     - Read it with Context.Instance.
     - Do NOT pass Context through constructors.
-- Copy necessary depednecnies into extern/thirdparty and wire them into build system.
+- Copy necessary dependencies into extern/thirdparty and wire them into build system.
 
 ## 8. THINGS YOU MUST NEVER DO
 

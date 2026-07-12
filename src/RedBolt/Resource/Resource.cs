@@ -48,9 +48,50 @@ public abstract class Resource : Object
     public bool LoadFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = System.IO.File.OpenRead(fileName);
-        AbsoluteFileName = fileName;
-        return Load(stream);
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
+        if (temporaryFileSystem is not null)
+        {
+            temporaryFileSystem.MountRoot();
+            if (OwnerCache is not null)
+            {
+                foreach (var resourceDir in OwnerCache.ResourceDirs)
+                    temporaryFileSystem.MountDir(resourceDir);
+            }
+
+            virtualFileSystem = temporaryFileSystem;
+        }
+
+        var activeFileSystem = virtualFileSystem!;
+
+        var identifier = new FileIdentifier(fileName);
+        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
+            ? new MountPointGuard(activeFileSystem.MountRoot())
+            : null;
+        var file = activeFileSystem.OpenFile(identifier, File.FileMode.Read);
+        if (file is null)
+            return false;
+
+        try
+        {
+            var data = new byte[checked((int)file.Size)];
+            var offset = 0;
+            while (offset < data.Length)
+            {
+                var read = file.Read(data.AsSpan(offset));
+                if (read == 0)
+                    return false;
+                offset += checked((int)read);
+            }
+
+            AbsoluteFileName = file.AbsoluteName;
+            using var stream = new MemoryStream(data, writable: false);
+            return Load(stream);
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     public bool Reload()
@@ -61,8 +102,43 @@ public abstract class Resource : Object
     public virtual bool SaveFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = System.IO.File.Create(fileName);
-        return Save(stream);
+        using var stream = new MemoryStream();
+        if (!Save(stream))
+            return false;
+
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
+        if (temporaryFileSystem is not null)
+        {
+            temporaryFileSystem.MountRoot();
+            if (OwnerCache is not null)
+            {
+                foreach (var resourceDir in OwnerCache.ResourceDirs)
+                    temporaryFileSystem.MountDir(resourceDir);
+            }
+
+            virtualFileSystem = temporaryFileSystem;
+        }
+
+        var activeFileSystem = virtualFileSystem!;
+
+        var identifier = new FileIdentifier(fileName);
+        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
+            ? new MountPointGuard(activeFileSystem.MountRoot())
+            : null;
+        var file = activeFileSystem.OpenFile(identifier, File.FileMode.Write);
+        if (file is null)
+            return false;
+
+        try
+        {
+            var data = stream.ToArray();
+            return file.Write(data) == data.Length;
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     public void SetName(string name)

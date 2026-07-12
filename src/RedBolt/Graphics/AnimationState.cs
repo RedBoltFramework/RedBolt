@@ -99,7 +99,21 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
     /// </summary>
     public void SetValue(Variant value)
     {
-        // TODO: port: AnimatedAttributeReference::SetValue requires AnimatedModel and sub-attribute reflection APIs not available yet.
+        switch (AttributeType)
+        {
+            case AnimatedAttributeType.Default:
+                Serializable?.SetAttribute(AttributeIndex, value.GetObject());
+                break;
+
+            case AnimatedAttributeType.NodeVariables:
+                if (Serializable is Node node)
+                    node.SetVarByHash(new StringHash(SubAttributeKey), value.GetObject());
+                break;
+
+            case AnimatedAttributeType.AnimatedModelMorphs:
+                // TODO: port: AnimatedModel.SetMorphWeight once managed AnimatedModel is available.
+                break;
+        }
     }
 
     /// <summary>
@@ -264,7 +278,19 @@ public sealed class AnimationState
 
     public void CalculateAttributeTracks(IDictionary<AnimatedAttributeReference, Variant> output)
     {
-        // TODO: port: attribute animation target reflection is not available yet.
+        if (_animation is null || !IsEnabled())
+            return;
+
+        for (var i = 0; i < _attributeTracks.Count; ++i)
+        {
+            var stateTrack = _attributeTracks[i];
+            output.TryGetValue(stateTrack.Attribute, out var trackOutput);
+            var keyFrame = stateTrack.KeyFrame;
+            CalculateAttributeTrack(ref trackOutput, stateTrack.Track!, ref keyFrame, _weight);
+            stateTrack.KeyFrame = keyFrame;
+            _attributeTracks[i] = stateTrack;
+            output[stateTrack.Attribute] = trackOutput;
+        }
     }
 
     private void CalculateTransformTrack(
@@ -360,6 +386,50 @@ public sealed class AnimationState
     private void CalculateAttributeTrack(
         ref Variant output, VariantAnimationTrack track, ref uint frame, float baseWeight)
     {
-        // TODO: port: complete when Variant animation target reflection is available.
+        if (track.KeyFrames.Count == 0)
+            return;
+
+        var weight = baseWeight * track.Weight;
+        var isFullWeight = MathDefs.Equals(weight, 1.0f);
+        var baseValue = track.KeyFrames[0].Value;
+        var sampledValue = track.Sample(_time, _animation!.Length, _looped, ref frame);
+
+        if (_blendingMode == AnimationBlendMode.Additive)
+        {
+            if (!output.IsEmpty)
+                output = BlendAdditive(output, sampledValue, baseValue, weight);
+        }
+        else
+        {
+            if (!output.IsEmpty && !isFullWeight && track.Interpolation != KeyFrameInterpolation.None)
+                output = output.Lerp(sampledValue, weight);
+            else
+                output = sampledValue;
+        }
+    }
+
+    private static Variant BlendAdditive(Variant oldValue, Variant newValue, Variant baseValue, float weight)
+    {
+        return newValue.Type switch
+        {
+            VariantType.Float => new Variant(oldValue.GetFloat() + (newValue.GetFloat() - baseValue.GetFloat()) * weight),
+            VariantType.Double => new Variant(oldValue.GetDouble() + (newValue.GetDouble() - baseValue.GetDouble()) * weight),
+            VariantType.Int => new Variant((int)(oldValue.GetInt() + (newValue.GetInt() - baseValue.GetInt()) * weight)),
+            VariantType.Int64 => new Variant((long)(oldValue.GetInt64() + (newValue.GetInt64() - baseValue.GetInt64()) * weight)),
+            VariantType.Vector2 => new Variant(oldValue.GetVector2() + (newValue.GetVector2() - baseValue.GetVector2()) * weight),
+            VariantType.Vector3 => new Variant(oldValue.GetVector3() + (newValue.GetVector3() - baseValue.GetVector3()) * weight),
+            VariantType.Vector4 => new Variant(oldValue.GetVector4() + (newValue.GetVector4() - baseValue.GetVector4()) * weight),
+            VariantType.Quaternion => new Variant(oldValue.GetQuaternion() * Quaternion.IDENTITY.Slerp(
+                newValue.GetQuaternion() * baseValue.GetQuaternion().Inverse, weight)),
+            VariantType.Color => new Variant(oldValue.GetColor() + (newValue.GetColor() - baseValue.GetColor()) * weight),
+            VariantType.Vector2i => new Variant(oldValue.GetIntVector2() + new Vector2i(
+                (int)MathF.Round((newValue.GetIntVector2().X - baseValue.GetIntVector2().X) * weight),
+                (int)MathF.Round((newValue.GetIntVector2().Y - baseValue.GetIntVector2().Y) * weight))),
+            VariantType.Vector3i => new Variant(oldValue.GetIntVector3() + new Vector3i(
+                (int)MathF.Round((newValue.GetIntVector3().X - baseValue.GetIntVector3().X) * weight),
+                (int)MathF.Round((newValue.GetIntVector3().Y - baseValue.GetIntVector3().Y) * weight),
+                (int)MathF.Round((newValue.GetIntVector3().Z - baseValue.GetIntVector3().Z) * weight))),
+            _ => oldValue
+        };
     }
 }
