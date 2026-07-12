@@ -8,6 +8,7 @@ public sealed class Scene : Object
     private readonly Dictionary<uint, Node> _nodes = [];
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
     private readonly List<(StringHash Type, HashSet<Component> Components)> _componentIndexes = [];
+    private readonly List<PackageFile> _requiredPackageFiles = [];
     private readonly List<ISceneUpdateListener> _updateListeners = [];
     private readonly List<StaticModel> _staticModels = [];
     private readonly List<string> _lightmapNames = [];
@@ -73,6 +74,21 @@ public sealed class Scene : Object
 
     public uint GetFreeComponentID() => AllocateComponentId(0);
 
+    public void AddRequiredPackageFile(PackageFile? package)
+    {
+        if (package is null || package.GetNumFiles() == 0)
+            return;
+
+        _requiredPackageFiles.Add(package);
+    }
+
+    public void ClearRequiredPackageFiles()
+    {
+        _requiredPackageFiles.Clear();
+    }
+
+    public IReadOnlyList<PackageFile> GetRequiredPackageFiles() => _requiredPackageFiles;
+
     public bool CreateComponentIndex(StringHash componentType)
     {
         if (!IsEmpty())
@@ -82,10 +98,10 @@ public sealed class Scene : Object
         return true;
     }
 
-    public bool CreateComponentIndex<T>()
+    public void CreateComponentIndex<T>()
         where T : Component
     {
-        return CreateComponentIndex(typeof(T).GetClassName());
+        CreateComponentIndex(typeof(T).GetClassName());
     }
 
     public IReadOnlyCollection<Component> GetComponentIndex(StringHash componentType)
@@ -94,11 +110,10 @@ public sealed class Scene : Object
         return index is not null ? index : Array.Empty<Component>();
     }
 
-    public IReadOnlyCollection<T> GetComponentIndex<T>()
+    public IReadOnlyCollection<Component> GetComponentIndex<T>()
         where T : Component
     {
-        var index = GetComponentIndex(typeof(T).GetClassName());
-        return index.OfType<T>().ToArray();
+        return GetComponentIndex(typeof(T).GetClassName());
     }
 
     public void SetUpdateEvents(StringVector events)

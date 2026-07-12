@@ -220,10 +220,10 @@ public sealed class SceneTests
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
-        Assert.True(scene.CreateComponentIndex<Camera>());
+        scene.CreateComponentIndex<Camera>();
 
         var node = scene.CreateChild("Indexed");
-        Assert.False(scene.CreateComponentIndex<Light>());
+        Assert.False(scene.CreateComponentIndex(typeof(Light).GetClassName()));
         var camera = node.CreateComponent<Camera>();
         var light = node.CreateComponent<Light>();
 
@@ -233,5 +233,20 @@ public sealed class SceneTests
         node.RemoveComponent(camera);
         Assert.Empty(scene.GetComponentIndex<Camera>());
         node.RemoveComponent(light);
+    }
+
+    [Fact]
+    public void Required_package_files_ignore_empty_packages()
+    {
+        var scene = new Scene();
+        using var package = new PackageFile();
+
+        scene.AddRequiredPackageFile(null);
+        scene.AddRequiredPackageFile(package);
+
+        Assert.Empty(scene.GetRequiredPackageFiles());
+
+        scene.ClearRequiredPackageFiles();
+        Assert.Empty(scene.GetRequiredPackageFiles());
     }
 }
