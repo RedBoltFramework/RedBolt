@@ -32,7 +32,7 @@ public class PipelineState : DeviceObject
         set => SetDebugName(value);
     }
 
-    public bool IsValid => _reflection is not null && _handle is { IsNull: false };
+    public bool IsValid => _reflection is not null;
 
     public PipelineStateType GetPipelineType() => _desc.GetPipelineType();
 
