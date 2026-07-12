@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
@@ -7,6 +9,11 @@ namespace RedBolt;
 /// </summary>
 public class RenderContext : Object
 {
+    private const uint GlClipDistance0 = 0x3000;
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void OpenGlStateFunction(uint capability);
+
     private static readonly RenderTargetView[] SwapChainColorTarget = [RenderTargetView.SwapChainColor()];
 
     private readonly RenderDevice _renderDevice;
@@ -20,6 +27,8 @@ public class RenderContext : Object
     private Vector2i _currentDimensions;
     private IntRect _currentViewport;
     private uint _clipPlaneMask;
+    private OpenGlStateFunction? _glEnable;
+    private OpenGlStateFunction? _glDisable;
 
     public RenderContext(RenderDevice renderDevice)
     {
@@ -168,6 +177,24 @@ public class RenderContext : Object
             return;
 
         _clipPlaneMask = mask;
+        if (_renderDevice.GetBackend() != RenderBackend.OpenGL)
+            return;
+        if (GetGraphics() is null)
+            return;
+
+        _glEnable ??= TryLoadOpenGlProcedure<OpenGlStateFunction>("glEnable");
+        _glDisable ??= TryLoadOpenGlProcedure<OpenGlStateFunction>("glDisable");
+        if (_glEnable is null || _glDisable is null)
+            return;
+
+        for (var i = 0; i < 8; ++i)
+        {
+            var capability = GlClipDistance0 + (uint)i;
+            if ((mask & (1u << i)) != 0)
+                _glEnable(capability);
+            else
+                _glDisable(capability);
+        }
     }
 
     /// <summary>
@@ -224,6 +251,19 @@ public class RenderContext : Object
     private void ResetCachedContextState()
     {
         _clipPlaneMask = 0;
+        _glEnable = null;
+        _glDisable = null;
+    }
+
+    private static T? TryLoadOpenGlProcedure<T>(string name)
+        where T : Delegate
+    {
+        using var pinnedName = new CString(name);
+        var procedure = SdlNativeBindings.SdlGlGetProcAddress(pinnedName.Bytes);
+        if (procedure == IntPtr.Zero)
+            return null;
+
+        return Marshal.GetDelegateForFunctionPointer<T>(procedure);
     }
 
     private void UpdateCurrentRenderTargetInfo()
