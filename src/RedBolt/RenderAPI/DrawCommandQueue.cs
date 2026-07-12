@@ -20,6 +20,7 @@ public class DrawCommandQueue : Object
     private ShaderParameterGroup? _currentShaderParameterGroup;
     private ShaderProgramReflection? _currentShaderProgramReflection;
     private readonly List<ShaderResourceData> _shaderResources = [];
+    private readonly List<ITextureView?> _shaderResourceViews = [];
     private readonly List<UnorderedAccessViewData> _unorderedAccessViews = [];
     private ShaderResourceRange _currentShaderResourceGroup;
     private ShaderResourceRange _currentUnorderedAccessViewGroup;
@@ -313,6 +314,7 @@ public class DrawCommandQueue : Object
         var stats = renderContext.GetMutableStats();
         var caps = renderContext.GetRenderDevice().GetCaps();
         var uniformBuffers = UploadConstantBuffers(renderContext.GetRenderPool());
+        PrepareShaderResources(renderContext);
 
         // Cached current state
         PipelineState? currentPipelineState = null;
@@ -375,7 +377,7 @@ public class DrawCommandQueue : Object
 
             if (currentShaderResources != command.ShaderResources)
             {
-                BindShaderResources(renderContext, command.ShaderResources);
+                BindShaderResources(command.ShaderResources);
                 currentShaderResources = command.ShaderResources;
             }
 
@@ -523,16 +525,20 @@ public class DrawCommandQueue : Object
         return true;
     }
 
-    private void BindShaderResources(RenderContext renderContext, ShaderResourceRange range)
+    private void PrepareShaderResources(RenderContext renderContext)
     {
-        for (var i = range.First; i < range.Second; ++i)
+        while (_shaderResourceViews.Count < _shaderResources.Count)
+            _shaderResourceViews.Add(null);
+
+        for (var i = 0; i < _shaderResources.Count; ++i)
         {
-            var resource = _shaderResources[(int)i];
+            var resource = _shaderResources[i];
             var view = resource.View;
             if (view is null)
             {
                 var texture = resource.Texture;
-                if (texture is not null && renderContext.IsBoundAsRenderTarget(texture.GetTexture()!)) texture = null;
+                if (texture is not null && renderContext.IsBoundAsRenderTarget(texture.GetTexture()!))
+                    texture = null;
                 texture ??= resource.BackupTexture;
                 if (texture is not null)
                 {
@@ -541,6 +547,18 @@ public class DrawCommandQueue : Object
                 }
                 view = texture?.GetHandle()?.GetDefaultView(TextureViewType.TextureViewShaderResource);
             }
+
+            // TODO: port C++ GetReadableTexture fallback to RenderDevice.GetDefaultTexture when default raw textures are available.
+            _shaderResourceViews[i] = view;
+        }
+    }
+
+    private void BindShaderResources(ShaderResourceRange range)
+    {
+        for (var i = range.First; i < range.Second; ++i)
+        {
+            var resource = _shaderResources[(int)i];
+            var view = _shaderResourceViews[(int)i];
             if (view is not null) resource.Variable.Set(view);
         }
     }
