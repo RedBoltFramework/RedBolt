@@ -71,13 +71,19 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
 
     public object Clone() => new AnimationParameters(this);
 
+    private static Animation? GetAnimation(string animationName)
+    {
+        var context = Context.Instance;
+        return context.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName);
+    }
+
     public AnimationParameters(string animationName)
-        : this(Context.Instance.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName))
+        : this(GetAnimation(animationName))
     {
     }
 
     public AnimationParameters(string animationName, float minTime, float maxTime)
-        : this(Context.Instance.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName), minTime, maxTime)
+        : this(GetAnimation(animationName), minTime, maxTime)
     {
     }
 
@@ -240,7 +246,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         var index = 0;
 
         var animationName = variants[index++].GetResourceRef().Name;
-        result._animation = Context.Instance.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName);
+        result._animation = GetAnimation(animationName);
         result._animationName = result._animation?.AnimationNameHash ?? StringHash.Empty;
 
         result.IsLooped = variants[index++].GetBool();
