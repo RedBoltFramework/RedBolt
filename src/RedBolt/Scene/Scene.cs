@@ -1,4 +1,5 @@
 using System.Buffers;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -364,6 +365,71 @@ public sealed class Scene : Object
             return false;
 
         FinishSaving(destination);
+        return true;
+    }
+
+    public bool LoadAsync(AbstractFile? file, LoadMode mode = LoadMode.SceneAndResources)
+    {
+        if (file is null)
+        {
+            Log.Logger.LogError("Null file for async loading");
+            return false;
+        }
+
+        StopAsyncLoading();
+
+        var isSceneFile = file.ReadFileID() == "USCN";
+        if (!isSceneFile)
+        {
+            if (mode > LoadMode.ResourcesOnly)
+            {
+                Log.Logger.LogError("{FileName} is not a valid scene file", file.Name);
+                return false;
+            }
+
+            file.Seek(0);
+        }
+
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Clear();
+        }
+
+        _asyncLoading = true;
+        _asyncProgress.File = file;
+        _asyncProgress.Mode = mode;
+        _asyncProgress.LoadedNodes = 0;
+        _asyncProgress.TotalNodes = 0;
+        _asyncProgress.LoadedResources = 0;
+        _asyncProgress.TotalResources = 0;
+        _asyncProgress.Resources.Clear();
+
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            if (mode != LoadMode.Scene)
+            {
+                // TODO: port:
+                // unsigned currentPos = file->GetPosition();
+                // PreloadResources(file, isSceneFile);
+                // file->Seek(currentPos);
+            }
+
+            var nodeId = file.ReadUInt();
+            _resolver.AddNode(nodeId, Root);
+            if (!Root.Load(file, _resolver, loadChildren: false))
+            {
+                StopAsyncLoading();
+                return false;
+            }
+
+            _asyncProgress.TotalNodes = file.ReadVLE();
+        }
+        else
+        {
+            // TODO: port: PreloadResources(file, isSceneFile);
+        }
+
         return true;
     }
 
