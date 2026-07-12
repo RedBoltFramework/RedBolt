@@ -316,6 +316,11 @@ public sealed class RenderDeviceTests
             Assert.NotEmpty(_fixture.Graphics.GetResolutions(_fixture.Graphics.GetCurrentMonitor()));
             Assert.True(_fixture.Graphics.GetDesktopResolution(_fixture.Graphics.GetCurrentMonitor()).X > 0);
             Assert.True(_fixture.Graphics.GetDisplayDPI(_fixture.Graphics.GetCurrentMonitor()).X > 0);
+
+            var currentSettings = _fixture.Graphics.GetWindowSettings();
+            Assert.True(_fixture.Graphics.SetWindowModes(currentSettings, currentSettings));
+            Assert.Equal(currentSettings.Mode, _fixture.Graphics.GetWindowSettings().Mode);
+            Assert.True(_fixture.Graphics.SetMode(currentSettings.Size.X, currentSettings.Size.Y));
         }
         finally
         {

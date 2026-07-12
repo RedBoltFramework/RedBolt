@@ -134,6 +134,9 @@ layout(std140) uniform Material
     private SdlWindow? _window;
     private string _windowTitle = string.Empty;
     private Vector2i _windowPosition;
+    private Image? _windowIcon;
+    private WindowSettings _primaryWindowSettings = new();
+    private WindowSettings _secondaryWindowSettings = new();
 
     public bool IsInitialized { get; private set; }
 
@@ -187,6 +190,128 @@ layout(std140) uniform Material
     }
 
     public void SetWindowPosition(int x, int y) => SetWindowPosition(new Vector2i(x, y));
+
+    /// <summary>
+    /// Set window icon.
+    /// </summary>
+    public void SetWindowIcon(Image? windowIcon)
+    {
+        _windowIcon = windowIcon;
+        if (_window is not null && !_window.IsNull)
+        {
+            // TODO: port SDL_SetWindowIcon after the generated SDL surface bindings are available.
+        }
+    }
+
+    /// <summary>
+    /// Set screen mode.
+    /// </summary>
+    public bool SetScreenMode(WindowSettings windowSettings)
+    {
+        ArgumentNullException.ThrowIfNull(windowSettings);
+
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null)
+            return false;
+
+        renderDevice.UpdateWindowSettings(windowSettings);
+        SetWindowTitle(_windowTitle);
+        return true;
+    }
+
+    /// <summary>
+    /// Set window modes to be rotated by <see cref="ToggleFullscreen"/>.
+    /// </summary>
+    public bool SetWindowModes(WindowSettings primarySettings, WindowSettings secondarySettings)
+    {
+        ArgumentNullException.ThrowIfNull(primarySettings);
+        ArgumentNullException.ThrowIfNull(secondarySettings);
+
+        _primaryWindowSettings = CloneWindowSettings(primarySettings);
+        _secondaryWindowSettings = CloneWindowSettings(secondarySettings);
+        return SetScreenMode(_primaryWindowSettings);
+    }
+
+    /// <summary>
+    /// Set default window modes.
+    /// </summary>
+    public bool SetDefaultWindowModes(WindowSettings commonSettings)
+    {
+        ArgumentNullException.ThrowIfNull(commonSettings);
+
+        var primaryWindowSettings = CloneWindowSettings(commonSettings);
+        var secondaryWindowSettings = CloneWindowSettings(commonSettings);
+        secondaryWindowSettings.Size = Vector2i.Zero;
+        secondaryWindowSettings.Mode = primaryWindowSettings.Mode == WindowMode.Windowed
+            ? WindowMode.Borderless
+            : WindowMode.Windowed;
+
+        return SetWindowModes(primaryWindowSettings, secondaryWindowSettings);
+    }
+
+    /// <summary>
+    /// Set screen resolution and window mode.
+    /// </summary>
+    public bool SetMode(int width, int height, bool fullscreen, bool borderless, bool resizable,
+        bool highDPI, bool vsync, bool tripleBuffer, int multiSample, int monitor, int refreshRate)
+    {
+        var parameters = new WindowSettings
+        {
+            Size = new Vector2i(width, height),
+            Mode = fullscreen ? WindowMode.Fullscreen : borderless ? WindowMode.Borderless : WindowMode.Windowed,
+            Resizable = resizable,
+            VSync = vsync,
+            MultiSample = multiSample,
+            Monitor = monitor,
+            RefreshRate = refreshRate
+        };
+
+        return SetDefaultWindowModes(parameters);
+    }
+
+    /// <summary>
+    /// Set screen resolution only.
+    /// </summary>
+    public bool SetMode(int width, int height)
+    {
+        var parameters = GetWindowSettings();
+        parameters.Size = new Vector2i(width, height);
+        return SetDefaultWindowModes(parameters);
+    }
+
+    /// <summary>
+    /// Toggle between full screen and windowed mode.
+    /// </summary>
+    public bool ToggleFullscreen()
+    {
+        (_primaryWindowSettings, _secondaryWindowSettings) = (_secondaryWindowSettings, _primaryWindowSettings);
+        return SetScreenMode(_primaryWindowSettings);
+    }
+
+    /// <summary>
+    /// Close the window.
+    /// </summary>
+    public void Close()
+    {
+        Shutdown();
+    }
+
+    private static WindowSettings CloneWindowSettings(WindowSettings settings)
+    {
+        return new WindowSettings
+        {
+            Mode = settings.Mode,
+            Size = settings.Size,
+            Title = settings.Title,
+            Resizable = settings.Resizable,
+            Monitor = settings.Monitor,
+            VSync = settings.VSync,
+            RefreshRate = settings.RefreshRate,
+            MultiSample = settings.MultiSample,
+            SRgb = settings.SRgb,
+            Orientations = [.. settings.Orientations]
+        };
+    }
 
     public int GetMultiSample() => GetWindowSettings().MultiSample;
 
