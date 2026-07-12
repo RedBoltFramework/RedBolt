@@ -283,6 +283,8 @@ layout(std140) uniform Material
         if (IsInitialized)
             throw new InvalidOperationException("Graphics system is already initialized.");
 
+        GetSubsystem<RenderDevice>()?.ResetWindowSettings();
+
         if (parameters.GraphicsBackend is not GraphicsBackend.Auto and not GraphicsBackend.OpenGL)
             throw new NotSupportedException($"The first RedBolt graphics backend supports OpenGL only, not {parameters.GraphicsBackend}.");
 
@@ -811,6 +813,55 @@ layout(std140) uniform Material
         Width = windowWidth;
         Height = windowHeight;
         _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
+    }
+
+    internal void UpdateWindowSettings(WindowSettings oldSettings, WindowSettings newSettings)
+    {
+        if (!IsInitialized || _window is null || _window.IsNull)
+            return;
+
+        var sizeChanged = oldSettings.Size != newSettings.Size;
+        if (sizeChanged && newSettings.Mode == WindowMode.Windowed)
+            SdlNativeBindings.SdlSetWindowSize(_window, newSettings.Size.X, newSettings.Size.Y);
+
+        if (sizeChanged || oldSettings.Mode != newSettings.Mode || oldSettings.RefreshRate != newSettings.RefreshRate)
+        {
+            using var displayMode = new SdlDisplayMode();
+            if (newSettings.Mode == WindowMode.Fullscreen)
+            {
+                displayMode.W = newSettings.Size.X;
+                displayMode.H = newSettings.Size.Y;
+                displayMode.RefreshRate = newSettings.RefreshRate;
+                _ = SdlNativeBindings.SdlSetWindowDisplayMode(_window, displayMode);
+            }
+
+            _ = SdlNativeBindings.SdlSetWindowFullscreen(_window, 0u);
+            var fullscreenFlags = newSettings.Mode switch
+            {
+                WindowMode.Fullscreen => (uint)SdlWindowFlags.SdlWindowFullscreen,
+                WindowMode.Borderless => (uint)SdlWindowFlags.SdlWindowFullscreenDesktop,
+                _ => 0u
+            };
+            _ = SdlNativeBindings.SdlSetWindowFullscreen(_window, fullscreenFlags);
+        }
+
+        if (oldSettings.Monitor != newSettings.Monitor)
+        {
+            var position = unchecked((int)(0x1FFF0000u | (uint)newSettings.Monitor));
+            SdlNativeBindings.SdlSetWindowPosition(_window, position, position);
+        }
+
+        if (oldSettings.Title != newSettings.Title)
+        {
+            using var title = new CString(newSettings.Title);
+            SdlNativeBindings.SdlSetWindowTitle(_window, title.Bytes);
+        }
+
+        if (oldSettings.Resizable != newSettings.Resizable)
+            SdlNativeBindings.SdlSetWindowResizable(_window, newSettings.Resizable ? SdlBool.SdlTrue : SdlBool.SdlFalse);
+
+        if (oldSettings.VSync != newSettings.VSync)
+            _ = SdlNativeBindings.SdlGlSetSwapInterval(newSettings.VSync ? 1 : 0);
     }
 
     public void SaveScreenshot(string fileName)

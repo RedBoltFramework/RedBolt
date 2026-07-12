@@ -240,6 +240,44 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_updates_native_window_settings()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            var settings = _fixture.RenderDevice.GetWindowSettings();
+            settings.Size = new Vector2i(80, 60);
+            settings.Title = "Updated Render Device Window";
+            settings.Resizable = false;
+            settings.VSync = false;
+
+            _fixture.RenderDevice.UpdateWindowSettings(settings);
+
+            var updatedSettings = _fixture.RenderDevice.GetWindowSettings();
+            Assert.Equal(new Vector2i(80, 60), updatedSettings.Size);
+            Assert.Equal("Updated Render Device Window", updatedSettings.Title);
+            Assert.False(updatedSettings.Resizable);
+            Assert.False(updatedSettings.VSync);
+            Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height),
+                _fixture.RenderDevice.GetWindowSize());
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters

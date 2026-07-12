@@ -20,6 +20,7 @@ public sealed class RenderDevice : Object
     private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Texture2DArray + 1];
     private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
     private FrameIndex _frameIndex = FrameIndex.First;
+    private WindowSettings? _windowSettings;
     private readonly Timer _statsTimer = new();
     private RenderDeviceStats _stats = new();
     private RenderDeviceStats _maxStats = new();
@@ -67,6 +68,28 @@ public sealed class RenderDevice : Object
                 "Swap chain is resized to {SwapChainWidth}x{SwapChainHeight}px ({WindowWidth}x{WindowHeight}dp).",
                 newSwapChainSize.X, newSwapChainSize.Y, newWindowSize.X, newWindowSize.Y);
         }
+    }
+
+    /// <summary>
+    /// Change window settings.
+    /// </summary>
+    public void UpdateWindowSettings(WindowSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var oldSettings = GetWindowSettings();
+        var newSettings = CloneWindowSettings(settings);
+        ValidateWindowSettings(newSettings);
+        var graphics = GetSubsystem<Graphics>();
+        graphics?.UpdateWindowSettings(oldSettings, newSettings);
+
+        var sizeChanged = oldSettings.Size != newSettings.Size;
+        var modeChanged = oldSettings.Mode != newSettings.Mode;
+        var refreshRateChanged = oldSettings.RefreshRate != newSettings.RefreshRate;
+        _windowSettings = newSettings;
+
+        if (sizeChanged || modeChanged || refreshRateChanged)
+            UpdateSwapChainSize();
     }
 
     public void SetDefaultTextureFilterMode(TextureFilterMode filterMode)
@@ -259,8 +282,13 @@ public sealed class RenderDevice : Object
 
     public WindowSettings GetWindowSettings()
     {
-        var engine = GetSubsystem<Engine>();
         var graphics = GetSubsystem<Graphics>();
+        if (_windowSettings is not null && graphics is { IsInitialized: true })
+            return _windowSettings;
+
+        _windowSettings = null;
+
+        var engine = GetSubsystem<Engine>();
         var parameters = engine?.Parameters ?? new EngineParameters();
 
         return new WindowSettings
@@ -482,6 +510,11 @@ public sealed class RenderDevice : Object
         _renderPool.Invalidate();
     }
 
+    internal void ResetWindowSettings()
+    {
+        _windowSettings = null;
+    }
+
     private void SendDeviceObjectEvent(DeviceObjectEvent deviceObjectEvent)
     {
         DeviceObject[] snapshot;
@@ -532,6 +565,70 @@ public sealed class RenderDevice : Object
             return [];
 
         return orientations.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static WindowSettings CloneWindowSettings(WindowSettings settings)
+    {
+        return new WindowSettings
+        {
+            Mode = settings.Mode,
+            Size = settings.Size,
+            Title = settings.Title,
+            Resizable = settings.Resizable,
+            Monitor = settings.Monitor,
+            VSync = settings.VSync,
+            RefreshRate = settings.RefreshRate,
+            MultiSample = settings.MultiSample,
+            SRgb = settings.SRgb,
+            Orientations = [.. settings.Orientations]
+        };
+    }
+
+    private static void ValidateWindowSettings(WindowSettings settings)
+    {
+        var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
+        if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
+            settings.Monitor = 0;
+
+        settings.MultiSample = (int)Math.Clamp(
+            MathDefs.ClosestPowerOfTwo((uint)Math.Max(settings.MultiSample, 1)), 1u, 16u);
+
+        if (settings.Mode != WindowMode.Windowed)
+            settings.Resizable = false;
+
+        const int defaultWindowWidth = 1024;
+        const int defaultWindowHeight = 768;
+        using var desktopMode = new SdlDisplayMode();
+        if (SdlNativeBindings.SdlGetDesktopDisplayMode(settings.Monitor, desktopMode) != 0)
+        {
+            settings.Mode = WindowMode.Windowed;
+            settings.Size = new Vector2i(defaultWindowWidth, defaultWindowHeight);
+            settings.RefreshRate = 60;
+        }
+        else
+        {
+            if (settings.Size == Vector2i.Zero)
+            {
+                settings.Size = settings.Mode == WindowMode.Windowed
+                    ? new Vector2i(defaultWindowWidth, defaultWindowHeight)
+                    : new Vector2i(desktopMode.W, desktopMode.H);
+            }
+
+            if (settings.RefreshRate == 0 || settings.Mode != WindowMode.Fullscreen)
+                settings.RefreshRate = desktopMode.RefreshRate;
+        }
+
+        if (settings.Mode == WindowMode.Fullscreen)
+        {
+            var modes = GetFullscreenModes(settings.Monitor);
+            if (modes.Count > 0)
+            {
+                var closestMode = GetClosestFullscreenMode(
+                    modes, new FullscreenMode(settings.Size, settings.RefreshRate));
+                settings.Size = closestMode.Size;
+                settings.RefreshRate = closestMode.RefreshRate;
+            }
+        }
     }
 
     private static WindowMode GetWindowMode(EngineParameters parameters)
