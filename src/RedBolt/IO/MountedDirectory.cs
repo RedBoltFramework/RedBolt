@@ -132,6 +132,9 @@ public class MountedDirectory : WatchableMountPoint
         if ((flags & ScanFlags.ScanAppend) != ScanFlags.ScanAppend)
             result.Clear();
 
+        if (!Directory.Exists(root))
+            return;
+
         var options = (flags & ScanFlags.ScanRecursive) == ScanFlags.ScanRecursive
             ? SearchOption.AllDirectories
             : SearchOption.TopDirectoryOnly;

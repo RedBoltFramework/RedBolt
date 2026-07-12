@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public sealed class EngineParameters
 {
-    public string ApplicationName { get; set; } = "RedBolt";
+    public string ApplicationName { get; set; } = "Unspecified Application";
 
     public string ApplicationPreferencesDir { get; set; } = string.Empty;
 
@@ -42,7 +42,7 @@ public sealed class EngineParameters
 
     public int MultiSample { get; set; } = 1;
 
-    public string OrganizationName { get; set; } = "RedBolt";
+    public string OrganizationName { get; set; } = "Urho3D Rebel Fork";
 
     public string Orientations { get; set; } = "LandscapeLeft LandscapeRight";
 
@@ -52,7 +52,7 @@ public sealed class EngineParameters
 
     public bool Profile { get; set; }
 
-    public string PsoCache { get; set; } = "psocache.bin";
+    public string PsoCache { get; set; } = "conf://psocache.bin";
 
     public int RefreshRate { get; set; }
 
@@ -64,7 +64,7 @@ public sealed class EngineParameters
 
     public string ResourcePackages { get; set; } = string.Empty;
 
-    public string ResourcePaths { get; set; } = string.Empty;
+    public string ResourcePaths { get; set; } = "CoreData;Cache;Data";
 
     public string ResourcePrefixPaths { get; set; } = string.Empty;
 
@@ -74,7 +74,7 @@ public sealed class EngineParameters
 
     public string? ScreenshotOnExit { get; set; }
 
-    public string ShaderCacheDir { get; set; } = "ShaderCache";
+    public string ShaderCacheDir { get; set; } = "conf://ShaderCache";
 
     public bool ShaderLogSources { get; set; }
 
@@ -122,7 +122,7 @@ public sealed class EngineParameters
 
     public bool WindowResizable { get; set; }
 
-    public string WindowTitle { get; set; } = "RedBolt";
+    public string WindowTitle { get; set; } = "Urho3D";
 
     public int WindowWidth { get; set; } = 1280;
 

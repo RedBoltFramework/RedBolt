@@ -13,6 +13,24 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_parameters_match_cpp_defaults()
+    {
+        var parameters = new EngineParameters();
+
+        Assert.Equal("Unspecified Application", parameters.ApplicationName);
+        Assert.False(parameters.Borderless);
+        Assert.Equal("RedBolt.log", parameters.LogName);
+        Assert.Equal("Urho3D Rebel Fork", parameters.OrganizationName);
+        Assert.Equal("conf://psocache.bin", parameters.PsoCache);
+        Assert.Equal("CoreData;Cache;Data", parameters.ResourcePaths);
+        Assert.Equal("conf://ShaderCache", parameters.ShaderCacheDir);
+        Assert.False(parameters.WindowMaximize);
+        Assert.Equal("Urho3D", parameters.WindowTitle);
+        Assert.Equal(1280, parameters.WindowWidth);
+        Assert.Equal(720, parameters.WindowHeight);
+    }
+
+    [Fact]
     public void Fps_helpers_roundtrip()
     {
         _fixture.Engine.SetMinFps(0);
