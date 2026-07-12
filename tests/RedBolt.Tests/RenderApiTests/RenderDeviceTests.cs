@@ -180,6 +180,36 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_updates_swap_chain_size_from_native_window()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            _fixture.RenderDevice.UpdateSwapChainSize();
+
+            Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height),
+                _fixture.RenderDevice.GetWindowSize());
+            using var description = _fixture.RenderDevice.GetSwapChain()!.GetDesc();
+            Assert.Equal(new Vector2i((int)description.Width, (int)description.Height),
+                _fixture.RenderDevice.GetSwapChainSize());
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters

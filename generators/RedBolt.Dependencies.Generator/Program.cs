@@ -52,6 +52,7 @@ internal static class Program
 
     private static readonly HashSet<string> RetainedDependencyFunctions = new(StringComparer.Ordinal)
     {
+        "SDL_GL_GetDrawableSize",
         "SDL_GetVersion",
         "SDL_Init",
         "SDL_InitSubSystem",

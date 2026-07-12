@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
@@ -46,6 +47,26 @@ public sealed class RenderDevice : Object
     public void PostInitialize()
     {
         InitializeDefaultObjects();
+    }
+
+    /// <summary>
+    /// Update swap chain size according to current dimensions of the window.
+    /// </summary>
+    public void UpdateSwapChainSize()
+    {
+        var oldWindowSize = GetWindowSize();
+        var oldSwapChainSize = GetSwapChainSize();
+        var graphics = GetSubsystem<Graphics>();
+        graphics?.UpdateSwapChainSize();
+
+        var newWindowSize = GetWindowSize();
+        var newSwapChainSize = GetSwapChainSize();
+        if (oldWindowSize != newWindowSize || oldSwapChainSize != newSwapChainSize)
+        {
+            Log.Logger.LogInformation(
+                "Swap chain is resized to {SwapChainWidth}x{SwapChainHeight}px ({WindowWidth}x{WindowHeight}dp).",
+                newSwapChainSize.X, newSwapChainSize.Y, newWindowSize.X, newWindowSize.Y);
+        }
     }
 
     public void SetDefaultTextureFilterMode(TextureFilterMode filterMode)

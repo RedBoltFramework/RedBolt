@@ -783,6 +783,18 @@ layout(std140) uniform Material
         _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
     }
 
+    internal void UpdateSwapChainSize()
+    {
+        if (!IsInitialized || _window is null || _window.IsNull || _swapChain is null || _swapChain.IsNull)
+            return;
+
+        SdlNativeBindings.SdlGetWindowSize(_window, out var windowWidth, out var windowHeight);
+        SdlNativeBindings.SdlGlGetDrawableSize(_window, out var drawableWidth, out var drawableHeight);
+        Width = windowWidth;
+        Height = windowHeight;
+        _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
+    }
+
     public void SaveScreenshot(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
