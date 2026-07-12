@@ -5,8 +5,9 @@ public sealed class AttributePrefab
     public string Name { get; set; } = string.Empty;
     public Variant Value { get; set; }
 
-    public void SerializeInBlock(Archive archive)
+    public void SerializeInBlock(Archive archive, bool compactSave = false)
     {
+        _ = compactSave;
         var name = Name;
         ArchiveSerialization.SerializeValue(archive, "name", ref name);
         Name = name;
@@ -121,13 +122,41 @@ public sealed class SerializablePrefab
             serializable.ApplyAttributes();
     }
 
-    public void SerializeInBlock(Archive archive)
+    public void SerializeInBlock(Archive archive, PrefabArchiveFlag flags = PrefabArchiveFlag.None, bool compactSave = false)
     {
-        var type = TypeName; var id = Id; var temporary = Temporary;
-        ArchiveSerialization.SerializeValue(archive, "type", ref type);
-        ArchiveSerialization.SerializeValue(archive, "id", ref id);
-        ArchiveSerialization.SerializeValue(archive, "temporary", ref temporary);
-        TypeName = type; Id = id; Temporary = temporary;
+        if ((flags & PrefabArchiveFlag.IgnoreSerializableId) != 0)
+        {
+            if (archive.IsInput)
+                Id = 0;
+        }
+        else
+        {
+            var id = Id;
+            ArchiveSerialization.SerializeValue(archive, "id", ref id);
+            Id = id;
+        }
+
+        if ((flags & PrefabArchiveFlag.IgnoreSerializableType) != 0)
+        {
+            if (archive.IsInput)
+                TypeName = string.Empty;
+        }
+        else
+        {
+            var type = TypeName;
+            ArchiveSerialization.SerializeValue(archive, "type", ref type);
+            TypeName = type;
+        }
+
+        if ((flags & PrefabArchiveFlag.SerializeTemporary) != 0)
+        {
+            var temporary = Temporary;
+            ArchiveSerialization.SerializeValue(archive, "temporary", ref temporary);
+            Temporary = temporary;
+        }
+        else if (archive.IsInput)
+            Temporary = false;
+
         var count = archive.IsInput ? 0u : (uint)Attributes.Count;
         using var block = archive.OpenArrayBlock("attributes", count);
         if (archive.IsInput)
@@ -136,12 +165,15 @@ public sealed class SerializablePrefab
             for (var i = 0u; i < block.SizeHint; ++i)
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
-                var attribute = new AttributePrefab(); attribute.SerializeInBlock(archive); Attributes.Add(attribute);
+                var attribute = new AttributePrefab();
+                attribute.SerializeInBlock(archive, compactSave);
+                Attributes.Add(attribute);
             }
         }
         else foreach (var attribute in Attributes)
         {
-            using var item = archive.OpenUnorderedBlock("attribute"); attribute.SerializeInBlock(archive);
+            using var item = archive.OpenUnorderedBlock("attribute");
+            attribute.SerializeInBlock(archive, compactSave);
         }
     }
 }
@@ -219,11 +251,14 @@ public sealed class NodePrefab
         Children.Clear();
     }
 
-    public void SerializeInBlock(Archive archive)
+    public void SerializeInBlock(Archive archive, PrefabArchiveFlag flags = PrefabArchiveFlag.None, bool compactSave = false)
     {
-        using (archive.OpenUnorderedBlock("node")) Node.SerializeInBlock(archive);
-        SerializeList(archive, "components", "component", Components, static (value, ar) => value.SerializeInBlock(ar));
-        SerializeList(archive, "children", "child", Children, static (value, ar) => value.SerializeInBlock(ar));
+        using (archive.OpenUnorderedBlock("node"))
+            Node.SerializeInBlock(archive, PrefabTypes.ToNodeFlags(flags), compactSave);
+        SerializeList(archive, "components", "component", Components,
+            (value, ar) => value.SerializeInBlock(ar, PrefabTypes.ToComponentFlags(flags), compactSave));
+        SerializeList(archive, "children", "child", Children,
+            (value, ar) => value.SerializeInBlock(ar, flags, compactSave));
     }
 
     private static void SerializeList<T>(Archive archive, string name, string itemName, List<T> values, Action<T, Archive> serialize)

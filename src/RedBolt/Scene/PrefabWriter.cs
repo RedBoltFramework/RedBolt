@@ -170,8 +170,7 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
 
         _buffer.Id = id;
         _buffer.Import(node, _saveFlags);
-        // TODO: port SerializablePrefab::SerializeInBlock(archive, nodeFlags_) once archive flag overload exists.
-        _buffer.SerializeInBlock(_archive);
+        _buffer.SerializeInBlock(_archive, _nodeFlags);
     }
 
     public override void WriteNumComponents(uint numComponents)
@@ -194,8 +193,7 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
 
         using (var block = _archive.OpenUnorderedBlock("component"))
         {
-            // TODO: port SerializablePrefab::SerializeInBlock(archive, componentFlags_) once archive flag overload exists.
-            _buffer.SerializeInBlock(_archive);
+            _buffer.SerializeInBlock(_archive, _componentFlags);
         }
 
         NextSerializable();

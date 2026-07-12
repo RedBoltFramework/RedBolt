@@ -147,8 +147,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
     {
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
-        // TODO: port SerializablePrefab::SerializeInBlock(archive, nodeFlags_) once archive flag overload exists.
-        _buffer.SerializeInBlock(_archive);
+        _buffer.SerializeInBlock(_archive, _nodeFlags);
 
         return _buffer;
     }
@@ -176,8 +175,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
 
         using (var block = _archive.OpenUnorderedBlock("component"))
         {
-            // TODO: port SerializablePrefab::SerializeInBlock(archive, componentFlags_) once archive flag overload exists.
-            _buffer.SerializeInBlock(_archive);
+            _buffer.SerializeInBlock(_archive, _componentFlags);
         }
         NextSerializable();
 

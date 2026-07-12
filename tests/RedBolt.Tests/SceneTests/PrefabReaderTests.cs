@@ -73,7 +73,7 @@ public sealed class PrefabReaderTests
         using (input.OpenUnorderedBlock("root"))
         using (var reader = new PrefabReaderFromArchive(input, blockName: null))
         {
-            Assert.Equal("Root", reader.ReadNode()!.TypeName);
+            Assert.Empty(reader.ReadNode()!.TypeName);
             Assert.Equal(1u, reader.ReadNumComponents());
             Assert.Equal("Camera", reader.ReadComponent()!.TypeName);
             Assert.Equal(0u, reader.ReadNumChildren());
