@@ -343,6 +343,41 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_legacy_xml_and_json_roundtrip_preserve_hierarchy()
+    {
+        var source = new Scene();
+        source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(89);
+
+        using var xml = new MemoryStream();
+        Assert.True(source.SaveXML(xml));
+        xml.Position = 0;
+        var loadedFromXml = new Scene();
+        Assert.True(loadedFromXml.LoadXML(xml));
+        Assert.Equal(89.0f, loadedFromXml.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+
+        using var json = new MemoryStream();
+        Assert.True(source.SaveJSON(json));
+        json.Position = 0;
+        var loadedFromJson = new Scene();
+        Assert.True(loadedFromJson.LoadJSON(json));
+        Assert.Equal(89.0f, loadedFromJson.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+
+        var xmlBuffer = new VectorBuffer();
+        Assert.True(source.SaveXML(xmlBuffer));
+        xmlBuffer.Seek(0);
+        var loadedFromXmlBuffer = new Scene();
+        Assert.True(loadedFromXmlBuffer.LoadXML(xmlBuffer));
+        Assert.Equal(89.0f, loadedFromXmlBuffer.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+
+        var jsonBuffer = new VectorBuffer();
+        Assert.True(source.SaveJSON(jsonBuffer));
+        jsonBuffer.Seek(0);
+        var loadedFromJsonBuffer = new Scene();
+        Assert.True(loadedFromJsonBuffer.LoadJSON(jsonBuffer));
+        Assert.Equal(89.0f, loadedFromJsonBuffer.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();

@@ -205,6 +205,36 @@ public sealed class Scene : Object
         return LoadJSON(json.GetRoot());
     }
 
+    public bool LoadXML(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        StopAsyncLoading();
+        var xml = new XMLFile(string.Empty);
+        if (!xml.Load(new MemoryStream(ReadRemaining(source))))
+            return false;
+
+        Clear();
+        return LoadXML(xml.GetRoot());
+    }
+
+    public bool LoadJSON(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        StopAsyncLoading();
+        var json = new JSONFile(string.Empty);
+        if (!json.Load(new MemoryStream(ReadRemaining(source))))
+            return false;
+
+        Clear();
+        if (Root.LoadJSON(json.GetRoot()))
+        {
+            FinishLoading(source);
+            return true;
+        }
+
+        return false;
+    }
+
     public bool Load(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -236,7 +266,7 @@ public sealed class Scene : Object
         Clear();
         if (Root.Load(source))
         {
-            // TODO: port FinishLoading(&source).
+            FinishLoading(source);
             return true;
         }
 
@@ -260,11 +290,65 @@ public sealed class Scene : Object
 
         if (Root.Save(destination))
         {
-            // TODO: port FinishSaving(&destination).
+            FinishSaving(destination);
             return true;
         }
 
         return false;
+    }
+
+    public bool SaveXML(Stream destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var xml = new XMLFile(string.Empty);
+        if (!Root.SaveXML(xml.CreateRoot("scene")))
+            return false;
+
+        return xml.Save(destination, indentation);
+    }
+
+    public bool SaveXML(Serializer destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        using var stream = new MemoryStream();
+        if (!SaveXML(stream, indentation))
+            return false;
+
+        var data = stream.ToArray();
+        if (destination.Write(data) != data.Length)
+            return false;
+
+        FinishSaving(destination);
+        return true;
+    }
+
+    public bool SaveJSON(Stream destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var root = new JSONValue();
+        if (!Root.SaveJSON(root))
+            return false;
+
+        var json = new JSONFile(string.Empty);
+        if (!json.FromString(root.ToString()))
+            return false;
+
+        return json.Save(destination, indentation);
+    }
+
+    public bool SaveJSON(Serializer destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        using var stream = new MemoryStream();
+        if (!SaveJSON(stream, indentation))
+            return false;
+
+        var data = stream.ToArray();
+        if (destination.Write(data) != data.Length)
+            return false;
+
+        FinishSaving(destination);
+        return true;
     }
 
     public void StopAsyncLoading()
@@ -765,6 +849,34 @@ public sealed class Scene : Object
             ++nextId;
 
         return nextId++;
+    }
+
+    private static byte[] ReadRemaining(Deserializer source)
+    {
+        var remaining = source.GetSize() - source.GetPosition();
+        var data = new byte[checked((int)remaining)];
+        var read = source.Read(data);
+        if (read != data.Length)
+            Array.Resize(ref data, checked((int)read));
+        return data;
+    }
+
+    private void FinishLoading(Deserializer? source)
+    {
+        if (source is not null)
+        {
+            _fileName = source.GetName();
+            Checksum = source.GetChecksum();
+        }
+    }
+
+    private void FinishSaving(Serializer destination)
+    {
+        if (destination is Deserializer source)
+        {
+            _fileName = source.GetName();
+            Checksum = source.GetChecksum();
+        }
     }
 
     private HashSet<Component>? GetMutableComponentIndex(StringHash componentType)
