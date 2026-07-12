@@ -9,7 +9,8 @@ public class GraphPin : IArchiveSerializable
     /// <summary>Serialize content from/to archive.</summary>
     public virtual void SerializeInBlock(Archive archive)
     {
-        archive.Serialize("name", ref _name);
+        if (!archive.IsInput || archive.HasElementOrBlock("name"))
+            archive.Serialize("name", ref _name);
     }
 
     /// <summary>Set name of the pin. Executed by GraphNode.</summary>
@@ -38,7 +39,8 @@ public class GraphDataPin : GraphPin
     public override void SerializeInBlock(Archive archive)
     {
         base.SerializeInBlock(archive);
-        ArchiveSerialization.SerializeEnum(archive, "type", ref _type, Variant.GetTypeNameList());
+        if (!archive.IsInput || archive.HasElementOrBlock("type"))
+            ArchiveSerialization.SerializeEnum(archive, "type", ref _type, Variant.GetTypeNameList());
     }
 
     /// <summary>Pin type.</summary>
@@ -91,13 +93,18 @@ public class GraphInPin : GraphDataPin
     public override void SerializeInBlock(Archive archive)
     {
         base.SerializeInBlock(archive);
-        ArchiveSerialization.SerializeValue(archive, "node", ref _targetNode);
-        ArchiveSerialization.SerializeValue(archive, "pin", ref _targetPin);
+        if (!archive.IsInput || archive.HasElementOrBlock("node"))
+            ArchiveSerialization.SerializeValue(archive, "node", ref _targetNode);
+        if (!archive.IsInput || archive.HasElementOrBlock("pin"))
+            ArchiveSerialization.SerializeValue(archive, "pin", ref _targetPin);
 
-        var value = _value;
-        ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, _type);
-        if (archive.IsInput)
-            _value = value;
+        if (_type != VariantType.None && (!archive.IsInput || archive.HasElementOrBlock("value")))
+        {
+            var value = _value;
+            ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, _type);
+            if (archive.IsInput)
+                _value = value;
+        }
     }
 
     /// <summary>Target node.</summary>
@@ -146,8 +153,10 @@ public class GraphExitPin : GraphPin
     public override void SerializeInBlock(Archive archive)
     {
         base.SerializeInBlock(archive);
-        ArchiveSerialization.SerializeValue(archive, "node", ref _targetNode);
-        ArchiveSerialization.SerializeValue(archive, "pin", ref _targetPin);
+        if (!archive.IsInput || archive.HasElementOrBlock("node"))
+            ArchiveSerialization.SerializeValue(archive, "node", ref _targetNode);
+        if (!archive.IsInput || archive.HasElementOrBlock("pin"))
+            ArchiveSerialization.SerializeValue(archive, "pin", ref _targetPin);
 
         if (archive.IsInput && (_targetNode == 0 || string.IsNullOrEmpty(_targetPin)))
             Disconnect();

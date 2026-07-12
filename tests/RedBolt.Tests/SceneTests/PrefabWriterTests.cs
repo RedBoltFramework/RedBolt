@@ -57,6 +57,25 @@ public sealed class PrefabWriterTests
         Assert.True(reader.IsEOF());
     }
 
+    [Fact]
+    public void Compact_attribute_names_roundtrip_through_prefab()
+    {
+        var source = new TestSerializable { Number = 42, Label = "compact" };
+        var prefab = new SerializablePrefab();
+
+        prefab.Import(source, PrefabSaveFlag.CompactAttributeNames | PrefabSaveFlag.SaveDefaultValues);
+
+        Assert.NotEmpty(prefab.Attributes);
+        Assert.All(prefab.Attributes, attribute => Assert.True(string.IsNullOrEmpty(attribute.Name)));
+        Assert.All(prefab.Attributes, attribute => Assert.NotEqual(StringHash.Empty, attribute.NameHash));
+
+        var destination = new TestSerializable();
+        prefab.Export(destination);
+
+        Assert.Equal(42, destination.Number);
+        Assert.Equal("compact", destination.Label);
+    }
+
     private sealed class TestSerializable : Serializable
     {
         public TestSerializable()

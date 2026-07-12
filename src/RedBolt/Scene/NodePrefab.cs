@@ -1,29 +1,112 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public sealed class AttributePrefab : ICloneable
 {
-    public string Name { get; set; } = string.Empty;
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            _name = value ?? string.Empty;
+            NameHash = _name;
+        }
+    }
+
+    public StringHash NameHash { get; set; }
+
+    public uint Id { get; set; }
+
     public Variant Value { get; set; }
+
+    public StringHash GetNameHash() => NameHash;
 
     public object Clone()
     {
         return new AttributePrefab
         {
             Name = Name,
+            NameHash = NameHash,
+            Id = Id,
             Value = Value
         };
     }
 
     public void SerializeInBlock(Archive archive, bool compactSave = false)
     {
-        _ = compactSave;
-        var name = Name;
-        ArchiveSerialization.SerializeValue(archive, "name", ref name);
-        Name = name;
-        var value = Value;
-        using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-        Value = value;
+        if (archive.IsHumanReadable)
+        {
+            var name = Name;
+            if (!archive.IsInput && string.IsNullOrEmpty(name) && NameHash != StringHash.Empty)
+            {
+                var nameHash = NameHash;
+                ArchiveSerialization.SerializeValue(archive, "nameHash", ref nameHash);
+            }
+            else if (archive.IsInput && archive.HasElementOrBlock("nameHash") && !archive.HasElementOrBlock("name"))
+            {
+                var nameHash = NameHash;
+                ArchiveSerialization.SerializeValue(archive, "nameHash", ref nameHash);
+                NameHash = nameHash;
+            }
+            else
+            {
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                Name = name;
+            }
+
+            var type = Value.Type;
+            ArchiveSerialization.SerializeEnum(archive, "type", ref type, Variant.GetTypeNameList());
+            var value = Value;
+            ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
+            Value = value;
+            return;
+        }
+
+        var identifier = compactSave && !string.IsNullOrEmpty(Name)
+            ? (byte)2
+            : (byte)(string.IsNullOrEmpty(Name) ? 2 : 1);
+        const int identifierTypeOffset = 6;
+        const byte variantTypeMask = 0x3f;
+        var descriptor = archive.IsInput ? (byte)0 : (byte)((byte)Value.Type | (identifier << identifierTypeOffset));
+        ArchiveSerialization.SerializeValue(archive, "descriptor", ref descriptor);
+        var typeValue = (VariantType)(descriptor & variantTypeMask);
+        var identifierType = descriptor >> identifierTypeOffset;
+        if (archive.IsInput)
+        {
+            if (identifierType == 1)
+            {
+                var name = string.Empty;
+                ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                Name = name;
+            }
+            else
+            {
+                var nameHash = NameHash;
+                ArchiveSerialization.SerializeValue(archive, "nameHash", ref nameHash);
+                NameHash = nameHash;
+            }
+        }
+        else if (identifier == 1)
+        {
+            var name = Name;
+            ArchiveSerialization.SerializeValue(archive, "name", ref name);
+        }
+        else
+        {
+            var nameHash = NameHash;
+            ArchiveSerialization.SerializeValue(archive, "nameHash", ref nameHash);
+            NameHash = nameHash;
+        }
+
+        var serializedValue = Value;
+        ArchiveSerialization.SerializeVariantAsType(archive, "value", ref serializedValue, typeValue);
+        Value = serializedValue;
+        if (archive.IsInput && !string.IsNullOrEmpty(Name))
+            NameHash = Name;
     }
+
+    private string _name = string.Empty;
 }
 
 public sealed class SerializablePrefab : ICloneable
@@ -84,8 +167,9 @@ public sealed class SerializablePrefab : ICloneable
                     continue;
             }
 
-            // TODO: port compact attribute names once AttributePrefab supports hash identifiers.
-            var attributePrefab = new AttributePrefab { Name = attribute.Name };
+            var attributePrefab = (flags & PrefabSaveFlag.CompactAttributeNames) != 0
+                ? new AttributePrefab { NameHash = attribute.NameHash }
+                : new AttributePrefab { Name = attribute.Name };
             if ((flags & PrefabSaveFlag.EnumsAsStrings) != 0 && attribute.EnumNames.Count != 0)
                 value = new Variant(attribute.ConvertEnumToString(value.GetUInt()));
 
@@ -101,7 +185,9 @@ public sealed class SerializablePrefab : ICloneable
         if ((flags & PrefabLoadFlag.CheckSerializableType) != 0
             && serializable.GetTypeName() != TypeName)
         {
-            // TODO: port reflected type mismatch logging once the managed reflection facade exposes the C++ diagnostics.
+            Log.Logger.LogError(
+                "Serializable '{Serializable}' is not of type '{ExpectedType}'.",
+                serializable.GetTypeName(), TypeName);
             return;
         }
 
@@ -113,7 +199,8 @@ public sealed class SerializablePrefab : ICloneable
             AttributeInfo? attribute = null;
             foreach (var candidate in serializable.Attributes)
             {
-                if (candidate.Name == attributePrefab.Name)
+                if ((!string.IsNullOrEmpty(attributePrefab.Name) && candidate.Name == attributePrefab.Name)
+                    || (string.IsNullOrEmpty(attributePrefab.Name) && candidate.NameHash == attributePrefab.NameHash))
                 {
                     attribute = candidate;
                     break;
@@ -162,9 +249,12 @@ public sealed class SerializablePrefab : ICloneable
         }
         else
         {
-            var id = Id;
-            ArchiveSerialization.SerializeValue(archive, "id", ref id);
-            Id = id;
+            if (!archive.IsInput || !archive.IsUnorderedAccessSupportedInCurrentBlock || archive.HasElementOrBlock("id"))
+            {
+                var id = Id;
+                ArchiveSerialization.SerializeValue(archive, "id", ref id);
+                Id = id;
+            }
         }
 
         if ((flags & PrefabArchiveFlag.IgnoreSerializableType) != 0)
@@ -174,21 +264,34 @@ public sealed class SerializablePrefab : ICloneable
         }
         else
         {
-            var type = TypeName;
-            ArchiveSerialization.SerializeValue(archive, "type", ref type);
-            TypeName = type;
+            if (!archive.IsInput || !archive.IsUnorderedAccessSupportedInCurrentBlock || archive.HasElementOrBlock("type"))
+            {
+                var type = TypeName;
+                ArchiveSerialization.SerializeValue(archive, "type", ref type);
+                TypeName = type;
+            }
         }
 
         if ((flags & PrefabArchiveFlag.SerializeTemporary) != 0)
         {
-            var temporary = Temporary;
-            ArchiveSerialization.SerializeValue(archive, "temporary", ref temporary);
-            Temporary = temporary;
+            if (!archive.IsInput || !archive.IsUnorderedAccessSupportedInCurrentBlock || archive.HasElementOrBlock("temporary"))
+            {
+                var temporary = Temporary;
+                ArchiveSerialization.SerializeValue(archive, "temporary", ref temporary);
+                Temporary = temporary;
+            }
         }
         else if (archive.IsInput)
             Temporary = false;
 
         var count = archive.IsInput ? 0u : (uint)Attributes.Count;
+        if (archive.IsInput && archive.IsUnorderedAccessSupportedInCurrentBlock && !archive.HasElementOrBlock("attributes"))
+        {
+            Attributes.Clear();
+            return;
+        }
+        if (!archive.IsInput && count == 0 && archive.IsUnorderedAccessSupportedInCurrentBlock)
+            return;
         using var block = archive.OpenArrayBlock("attributes", count);
         if (archive.IsInput)
         {
@@ -271,15 +374,128 @@ public sealed class NodePrefab : ICloneable
         return Empty;
     }
 
-    // void NodePrefab::NormalizeIds(Context* context)
-    // {
-    //     PrefabNormalizer normalizer{context};
-    //     normalizer.ScanNode(*this);
-    //     normalizer.RemapAndPrune(*this);
-    // }
-    // TODO: port NormalizeIds once the managed prefab normalizer exists.
     public void NormalizeIds()
     {
+        var nodeReferences = new List<AttributePrefab>();
+        var componentReferences = new List<AttributePrefab>();
+        var referencedNodeIds = new HashSet<uint>();
+        var referencedComponentIds = new HashSet<uint>();
+        ScanNode(this, nodeReferences, componentReferences, referencedNodeIds, referencedComponentIds);
+
+        var nodeIdRemap = CreateRemap(referencedNodeIds);
+        var componentIdRemap = CreateRemap(referencedComponentIds);
+        PatchAttributes(nodeReferences, nodeIdRemap, vector: true);
+        PatchAttributes(componentReferences, componentIdRemap, vector: false);
+        PruneIds(this, nodeIdRemap, componentIdRemap);
+    }
+
+    private static void ScanNode(
+        NodePrefab node,
+        List<AttributePrefab> nodeReferences,
+        List<AttributePrefab> componentReferences,
+        HashSet<uint> referencedNodeIds,
+        HashSet<uint> referencedComponentIds)
+    {
+        ScanSerializable(node.Node, isNode: true, nodeReferences, componentReferences, referencedNodeIds, referencedComponentIds);
+        foreach (var component in node.Components)
+            ScanSerializable(component, isNode: false, nodeReferences, componentReferences, referencedNodeIds, referencedComponentIds);
+        foreach (var child in node.Children)
+            ScanNode(child, nodeReferences, componentReferences, referencedNodeIds, referencedComponentIds);
+    }
+
+    private static void ScanSerializable(
+        SerializablePrefab prefab,
+        bool isNode,
+        List<AttributePrefab> nodeReferences,
+        List<AttributePrefab> componentReferences,
+        HashSet<uint> referencedNodeIds,
+        HashSet<uint> referencedComponentIds)
+    {
+        var reflection = FindReflection(prefab.TypeName, isNode);
+        foreach (var attribute in prefab.Attributes)
+        {
+            var info = reflection?.GetAttribute(attribute.NameHash);
+            if (info is null)
+                continue;
+
+            if ((info.Mode & AttributeMode.NodeId) != 0 && attribute.Value.Type == VariantType.Int)
+            {
+                nodeReferences.Add(attribute);
+                referencedNodeIds.Add(attribute.Value.GetUInt());
+            }
+            else if ((info.Mode & AttributeMode.NodeIdVector) != 0 && attribute.Value.Type == VariantType.VariantVector)
+            {
+                nodeReferences.Add(attribute);
+                foreach (var value in attribute.Value.GetVariantVector())
+                    referencedNodeIds.Add(value.GetUInt());
+            }
+            else if ((info.Mode & AttributeMode.ComponentId) != 0 && attribute.Value.Type == VariantType.Int)
+            {
+                componentReferences.Add(attribute);
+                referencedComponentIds.Add(attribute.Value.GetUInt());
+            }
+        }
+    }
+
+    private static ObjectReflection? FindReflection(string typeName, bool isNode)
+    {
+        var context = Context.Instance;
+        if (!string.IsNullOrEmpty(typeName))
+        {
+            var typeHash = new StringHash(typeName);
+            return context.IsReflected(typeHash) ? context.GetReflection(typeHash) : null;
+        }
+
+        if (isNode && context.IsReflected<Node>())
+            return context.GetReflection<Node>();
+        if (!isNode && context.IsReflected<Scene>())
+            return context.GetReflection<Scene>();
+        return null;
+    }
+
+    private static Dictionary<uint, uint> CreateRemap(IEnumerable<uint> referencedIds)
+    {
+        var result = new Dictionary<uint, uint>();
+        var nextId = 1u;
+        foreach (var id in referencedIds)
+        {
+            if (id != 0)
+                result[id] = nextId++;
+        }
+        return result;
+    }
+
+    private static void PatchAttributes(List<AttributePrefab> attributes, Dictionary<uint, uint> remap, bool vector)
+    {
+        foreach (var attribute in attributes)
+        {
+            if (!vector)
+            {
+                attribute.Value = new Variant(remap.GetValueOrDefault(attribute.Value.GetUInt()));
+                continue;
+            }
+
+            if (attribute.Value.Type == VariantType.Int)
+            {
+                attribute.Value = new Variant(remap.GetValueOrDefault(attribute.Value.GetUInt()));
+            }
+            else
+            {
+                var values = new VariantVector();
+                foreach (var value in attribute.Value.GetVariantVector())
+                    values.Add(new Variant(remap.GetValueOrDefault(value.GetUInt())));
+                attribute.Value = new Variant(values);
+            }
+        }
+    }
+
+    private static void PruneIds(NodePrefab node, Dictionary<uint, uint> nodeIdRemap, Dictionary<uint, uint> componentIdRemap)
+    {
+        node.Node.Id = nodeIdRemap.GetValueOrDefault(node.Node.Id);
+        foreach (var component in node.Components)
+            component.Id = componentIdRemap.GetValueOrDefault(component.Id);
+        foreach (var child in node.Children)
+            PruneIds(child, nodeIdRemap, componentIdRemap);
     }
 
     public bool IsEmpty()
@@ -310,6 +526,14 @@ public sealed class NodePrefab : ICloneable
     private static void SerializeList<T>(Archive archive, string name, string itemName, List<T> values, Action<T, Archive> serialize)
         where T : new()
     {
+        if (archive.IsInput && archive.IsUnorderedAccessSupportedInCurrentBlock && !archive.HasElementOrBlock(name))
+        {
+            values.Clear();
+            return;
+        }
+        if (!archive.IsInput && values.Count == 0 && archive.IsUnorderedAccessSupportedInCurrentBlock)
+            return;
+
         var count = archive.IsInput ? 0u : (uint)values.Count;
         using var block = archive.OpenArrayBlock(name, count);
         if (archive.IsInput)

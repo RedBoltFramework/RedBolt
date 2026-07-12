@@ -291,9 +291,12 @@ public partial class GraphNode : Object
     /// <summary>Serialize content from/to archive.</summary>
     public override void SerializeInBlock(Archive archive)
     {
-        ArchiveSerialization.SerializeValue(archive, "name", ref _name);
-        if (archive.IsInput)
-            _nameHash = _name;
+        if (!archive.IsInput || archive.HasElementOrBlock("name"))
+        {
+            ArchiveSerialization.SerializeValue(archive, "name", ref _name);
+            if (archive.IsInput)
+                _nameHash = _name;
+        }
 
         SerializeObjectVector(archive, "properties", "property", _properties);
         SerializeObjectVector(archive, "enter", "pin", _enterPins);
@@ -312,6 +315,14 @@ public partial class GraphNode : Object
     private static void SerializeObjectVector<T>(Archive archive, string name, string itemName, List<T> values)
         where T : IArchiveSerializable, new()
     {
+        if (archive.IsInput && !archive.HasElementOrBlock(name))
+        {
+            values.Clear();
+            return;
+        }
+        if (!archive.IsInput && values.Count == 0)
+            return;
+
         var size = archive.IsInput ? 0u : checked((uint)values.Count);
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)

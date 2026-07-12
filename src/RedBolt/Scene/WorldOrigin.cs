@@ -82,15 +82,33 @@ public sealed class WorldOrigin : LogicComponent
                     currentOrigin.X + offset.X,
                     currentOrigin.Y + offset.Y,
                     currentOrigin.Z + offset.Z);
-                var oldPosition = Node.GetWorldPosition();
-                scene.UpdateWorldOrigin(newWorldOrigin);
-                if (Node.GetWorldPosition() == oldPosition)
+                var weakScene = new WeakReference<Scene>(scene);
+                var weakSelf = new WeakReference<WorldOrigin>(this);
+                void ApplyRebase()
                 {
-                    SetEnabled(false);
-                    Log.Logger.LogError(
-                        "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling.",
-                        GetFullNameDebug(), Node.GetWorldPosition());
+                    if (!weakScene.TryGetTarget(out var targetScene))
+                        return;
+
+                    var oldPosition = weakSelf.TryGetTarget(out var targetSelf)
+                        ? targetSelf.Node.GetWorldPosition()
+                        : Vector3f.Zero;
+                    targetScene.UpdateWorldOrigin(newWorldOrigin);
+
+                    if (weakSelf.TryGetTarget(out targetSelf)
+                        && targetSelf.Node.GetWorldPosition() == oldPosition)
+                    {
+                        targetSelf.SetEnabled(false);
+                        Log.Logger.LogError(
+                            "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling.",
+                            targetSelf.GetFullNameDebug(), targetSelf.Node.GetWorldPosition());
+                    }
                 }
+
+                var workQueue = GetSubsystem<WorkQueue>();
+                if (workQueue is not null)
+                    workQueue.PostDelayedTaskForMainThread(ApplyRebase);
+                else
+                    ApplyRebase();
             }
         }
     }

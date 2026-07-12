@@ -60,8 +60,7 @@ public sealed class PrefabResource : SimpleResource
         // Can always turn on "compactSave" later.
         const bool compactSave = false;
         _ = compactSave;
-        // TODO: port PrefabArchiveFlag and compactSave overloads when NodePrefab exposes them.
-        _prefab.SerializeInBlock(archive);
+        _prefab.SerializeInBlock(archive, PrefabArchiveFlag.None, compactSave);
     }
 
     public NodePrefab GetScenePrefab() => _prefab;

@@ -360,13 +360,13 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `GraphEnterPin : GraphPin`
   - [x] `GraphExitPin : GraphPin`
   - [x] `GraphPinRef`
-- [~] `GraphNode.h`
+- [x] `GraphNode.h`
   - [x] `GraphNodeProperty`
-  - [~] `GraphNode : Object` — graph connection lookup and optional empty-block serialization await `Graph.h`/managed optional archive support
+  - [x] `GraphNode : Object` — graph connection lookup and optional empty-block serialization are ported
 - [~] `Graph.h`
   - [~] `Graph : Object` — `LoadJSON` remains a TODO because the C++ header declares it but `Graph.cpp` has no definition
 - [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
-  - [x] `SerializableResource : SimpleResource` — delegates managed attributes through archive blocks pending the broader Scene prefab representation
+  - [x] `SerializableResource : SimpleResource` — delegates managed attributes through archive blocks and the completed Scene prefab representation
 
 ## A6. Scene — depends on Resource, Core
 
@@ -404,21 +404,21 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ComponentReference` helpers — packing, unpacking, and string formatting
 - [x] `UnknownComponent.h`
   - [x] `UnknownComponent : Component` — unknown type preservation and temporary placeholder loading across binary/XML/JSON are ported
-- [x] `NodePrefab.h` — pulled in as a required dependency of in-progress Node/SceneResource serialization
+- [x] `NodePrefab.h` — prefab serialization, normalization, and archive support are ported
   - [x] `AttributePrefab`
   - [x] `SerializablePrefab`
   - [x] `NodePrefab`
-- [~] `PrefabReader.h`
+- [x] `PrefabReader.h`
   - [x] `PrefabReader : NonCopyable` — represented by an abstract managed reader; C# reference types do not expose C++ copy construction
   - [x] `PrefabReaderFromMemory : PrefabReader`
-  - [~] `PrefabReaderFromArchive : PrefabReader` — archive traversal, block lifetime, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
-- [~] `PrefabWriter.h`
+  - [x] `PrefabReaderFromArchive : PrefabReader` — archive traversal, block lifetime, SerializablePrefab archive flags, compact attribute-name hashes, and optional archive fields are ported
+- [x] `PrefabWriter.h`
   - [x] `PrefabWriter : NonCopyable` — represented by an abstract managed writer; C# reference types do not expose C++ copy construction
   - [x] `PrefabWriterToMemory : PrefabWriter`
-  - [~] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, save flags, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed API has no equivalent overloads
-- [~] `PrefabResource.h`
+  - [x] `PrefabWriterToArchive : PrefabWriter` — archive traversal, block lifetime, save flags, SerializablePrefab archive flags, compact attribute-name hashes, and optional archive fields are ported
+- [x] `PrefabResource.h`
   - [x] `PrefabResource : SimpleResource` — prefab storage, scene/node accessors, named/indexed slices, archive persistence, ID-attribute cleanup, and PrefabReference-backed node instantiation
-  - [~] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, Node XML hierarchy loading, and SerializablePrefab archive flags are ported; compact attribute-name hashes and SerializeOptionalValue remain TODO because the managed archive API has no equivalent overloads
+  - [x] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, Node XML hierarchy loading, prefab normalization, archive flags, compact attribute-name hashes, and optional archive fields are ported
 - [~] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
   - [~] `PrefabReference : Component` — reload event subscription, instance recreation, and deep prefab value-copying are ported; editor actions/logging remain TODO because the managed APIs differ
@@ -432,7 +432,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `SplinePath : Component` — control points/IDs, interpolation, length, movement, dirty tracking, and attribute restoration are ported
 - [x] `ShakeComponent.h`
   - [x] `ShakeComponent : LogicComponent` — trauma/noise displacement, original transform tracking, external transform adjustment, restoration, and update subscription are ported
-- [~] `WorldOrigin.h`
+- [x] `WorldOrigin.h`
   - [x] `WorldOrigin : LogicComponent` — constants, update mask, attributes, accessors, origin-distance snapping, delayed Scene rebasing, and world-origin update events are ported
 
 ## A7. RenderAPI — depends on Core, Math (current effort)
