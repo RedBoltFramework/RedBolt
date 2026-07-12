@@ -438,6 +438,61 @@ public sealed class Scene : Object
         return true;
     }
 
+    public bool LoadAsyncXML(AbstractFile? file, LoadMode mode = LoadMode.SceneAndResources)
+    {
+        if (file is null)
+        {
+            Log.Logger.LogError("Null file for async loading");
+            return false;
+        }
+
+        StopAsyncLoading();
+
+        var xml = new XMLFile(string.Empty);
+        if (!xml.Load(new MemoryStream(ReadRemaining(file))))
+            return false;
+
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Clear();
+        }
+
+        _asyncLoading = true;
+        _asyncProgress.XmlFile = xml;
+        _asyncProgress.File = file;
+        _asyncProgress.Mode = mode;
+        _asyncProgress.LoadedNodes = 0;
+        _asyncProgress.TotalNodes = 0;
+        _asyncProgress.LoadedResources = 0;
+        _asyncProgress.TotalResources = 0;
+        _asyncProgress.Resources.Clear();
+
+        var rootElement = xml.GetRoot();
+        if (mode > LoadMode.ResourcesOnly)
+        {
+            if (mode != LoadMode.Scene)
+                PreloadResourcesXML(rootElement);
+
+            var nodeId = rootElement.GetUInt("id");
+            _resolver.AddNode(nodeId, Root);
+            if (!Root.LoadXML(rootElement, _resolver, loadChildren: false))
+                return false;
+
+            _asyncProgress.XmlElement = rootElement.GetChild("node");
+            var childNodeElement = _asyncProgress.XmlElement;
+            while (childNodeElement is { NotNull: true })
+            {
+                ++_asyncProgress.TotalNodes;
+                childNodeElement = childNodeElement.GetNext("node");
+            }
+        }
+        else
+            PreloadResourcesXML(rootElement);
+
+        return true;
+    }
+
     public Node? Instantiate(Deserializer source, Vector3f position, Quaternion rotation)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -1082,7 +1137,15 @@ public sealed class Scene : Object
                 return;
             }
 
-            if (_asyncProgress.File is not null)
+            if (_asyncProgress.XmlFile is not null && _asyncProgress.XmlElement is { NotNull: true } xmlElement)
+            {
+                var nodeId = xmlElement.GetUInt("id");
+                var newNode = Root.CreateChild(nodeId);
+                _resolver.AddNode(nodeId, newNode);
+                newNode.LoadXML(xmlElement, _resolver);
+                _asyncProgress.XmlElement = xmlElement.GetNext("node");
+            }
+            else if (_asyncProgress.File is not null)
             {
                 var nodeId = _asyncProgress.File.ReadUInt();
                 var newNode = Root.CreateChild(nodeId);
@@ -1091,7 +1154,7 @@ public sealed class Scene : Object
             }
             else
             {
-                // TODO: port XML and JSON child-node loading from UpdateAsyncLoading.
+                // TODO: port JSON child-node loading from UpdateAsyncLoading.
             }
 
             ++_asyncProgress.LoadedNodes;
@@ -1197,6 +1260,80 @@ public sealed class Scene : Object
         var numChildren = file.ReadVLE();
         for (var index = 0u; index < numChildren; ++index)
             PreloadResources(file, false);
+    }
+
+    private void PreloadResourcesXML(XMLElement element)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+
+        var componentElement = element.GetChild("component");
+        while (componentElement is { NotNull: true })
+        {
+            var componentType = ResolveComponentType(new StringHash(componentElement.GetAttribute("type")));
+            if (componentType is not null
+                && Activator.CreateInstance(componentType, nonPublic: true) is Component component)
+            {
+                var attributes = component.GetAttributes();
+                var attributeElement = componentElement.GetChild("attribute");
+                var startIndex = 0;
+
+                while (attributeElement is { NotNull: true })
+                {
+                    var attributeName = attributeElement.GetAttribute("name");
+                    var index = startIndex;
+                    var attempts = attributes.Count;
+
+                    while (attempts != 0)
+                    {
+                        var attribute = attributes[index];
+                        if (attribute.ShouldLoad && string.Equals(attribute.Name, attributeName, StringComparison.Ordinal))
+                        {
+                            var value = attributeElement.GetVariantValue(attribute.DefaultValue.Type);
+                            if (value.Type == VariantType.ResourceRef)
+                            {
+                                var resourceRef = value.GetResourceRef();
+                                var name = cache.SanitateResourceName(resourceRef.Name);
+                                if (cache.BackgroundLoadResource(resourceRef.Type, name))
+                                {
+                                    ++_asyncProgress.TotalResources;
+                                    _asyncProgress.Resources.Add(new StringHash(name));
+                                }
+                            }
+                            else if (value.Type == VariantType.ResourceRefList)
+                            {
+                                var resourceRefList = value.GetResourceRefList();
+                                foreach (var resourceName in resourceRefList.Names)
+                                {
+                                    var name = cache.SanitateResourceName(resourceName);
+                                    if (cache.BackgroundLoadResource(resourceRefList.Type, name))
+                                    {
+                                        ++_asyncProgress.TotalResources;
+                                        _asyncProgress.Resources.Add(new StringHash(name));
+                                    }
+                                }
+                            }
+
+                            startIndex = (index + 1) % attributes.Count;
+                            break;
+                        }
+
+                        index = (index + 1) % attributes.Count;
+                        --attempts;
+                    }
+
+                    attributeElement = attributeElement.GetNext("attribute");
+                }
+            }
+
+            componentElement = componentElement.GetNext("component");
+        }
+
+        var childElement = element.GetChild("node");
+        while (childElement is { NotNull: true })
+        {
+            PreloadResourcesXML(childElement);
+            childElement = childElement.GetNext("node");
+        }
     }
 
     private static Type? ResolveComponentType(StringHash typeHash)
