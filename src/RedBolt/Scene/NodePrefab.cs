@@ -43,7 +43,16 @@ public sealed class SerializablePrefab
             if ((attribute.Mode & AttributeMode.Prefab) == 0 && (flags & PrefabSaveFlag.Prefab) != 0)
                 continue;
 
-            var value = Variant.FromObject(serializable.OnGetAttribute(attribute));
+            Variant value;
+            if (serializable is Node node && attribute.Name == "Variables")
+            {
+                var variables = new VariantMap();
+                foreach (var (key, item) in node.GetVars())
+                    variables[key] = Variant.FromObject(item);
+                value = new Variant(variables);
+            }
+            else
+                value = Variant.FromObject(serializable.OnGetAttribute(attribute));
 
             // Skip defaults if allowed
             if ((flags & PrefabSaveFlag.SaveDefaultValues) == 0)

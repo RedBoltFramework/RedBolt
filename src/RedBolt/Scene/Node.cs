@@ -93,9 +93,54 @@ public sealed class Node : Animatable
 
     public override void SerializeInBlock(Archive archive)
     {
-        var prefab = archive.IsInput ? new NodePrefab() : GeneratePrefab();
-        prefab.SerializeInBlock(archive);
-        if (archive.IsInput) LoadPrefab(prefab, clearExisting: true);
+        if (archive.IsInput)
+        {
+            using var reader = new PrefabReaderFromArchive(archive, blockName: null);
+            if (!Load(reader))
+                throw new InvalidOperationException("Failed to load node hierarchy from archive.");
+        }
+        else
+        {
+            using var writer = new PrefabWriterToArchive(archive, blockName: null);
+            if (!Save(writer))
+                throw new InvalidOperationException("Failed to save node hierarchy to archive.");
+        }
+    }
+
+    public bool Load(PrefabReader reader, PrefabLoadFlag flags = PrefabLoadFlag.None)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        try
+        {
+            var nodePrefab = reader.ReadNode();
+            if (nodePrefab is null)
+                return false;
+
+            var resolver = new SceneResolver();
+            LoadInternal(nodePrefab, reader, resolver, flags);
+            resolver.Resolve();
+            if ((flags & PrefabLoadFlag.SkipApplyAttributes) == 0)
+                ApplyAttributes();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public bool Save(PrefabWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        try
+        {
+            SaveInternal(writer);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     public NodePrefab GeneratePrefab(bool includeTemporary = false)
@@ -225,9 +270,11 @@ public sealed class Node : Animatable
         }
     }
 
-    private static void ApplySerializablePrefab(Serializable value, SerializablePrefab prefab)
+    private static void ApplySerializablePrefab(
+        Serializable value, SerializablePrefab prefab, PrefabLoadFlag flags = PrefabLoadFlag.None)
     {
-        value.SetTemporary(prefab.Temporary);
+        if ((flags & PrefabLoadFlag.KeepTemporaryState) == 0)
+            value.SetTemporary(prefab.Temporary);
         foreach (var attributePrefab in prefab.Attributes)
         {
             if (value is Node node && attributePrefab.Name == "Variables")
@@ -250,7 +297,90 @@ public sealed class Node : Animatable
             if (attribute.ValueType == typeof(uint)) converted = attributePrefab.Value.GetUInt();
             value.SetAttribute(attribute.Name, converted);
         }
-        value.ApplyAttributes();
+        if ((flags & PrefabLoadFlag.SkipApplyAttributes) == 0)
+            value.ApplyAttributes();
+    }
+
+    private void LoadInternal(
+        SerializablePrefab nodePrefab, PrefabReader reader, SceneResolver resolver, PrefabLoadFlag flags)
+    {
+        var discardIds = (flags & PrefabLoadFlag.DiscardIds) != 0;
+        var loadAsTemporary = (flags & PrefabLoadFlag.LoadAsTemporary) != 0;
+
+        if ((flags & PrefabLoadFlag.KeepExistingComponents) == 0)
+            RemoveAllComponents();
+        if ((flags & PrefabLoadFlag.KeepExistingChildren) == 0)
+            RemoveAllChildren();
+
+        if ((flags & PrefabLoadFlag.IgnoreRootAttributes) == 0)
+            ApplySerializablePrefab(this, nodePrefab, flags);
+
+        resolver.AddNode(nodePrefab.Id, this);
+
+        var numComponents = reader.ReadNumComponents();
+        for (var index = 0u; index < numComponents; ++index)
+        {
+            var componentPrefab = reader.ReadComponent();
+            if (componentPrefab is null)
+                throw new InvalidOperationException("Failed to read component prefab.");
+
+            var componentId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : componentPrefab.Id;
+            var type = ResolveComponentType(componentPrefab.TypeName);
+            Component component;
+            if (type is null || CreateComponent(type, componentId) is not { } created)
+            {
+                component = CreateComponent<UnknownComponent>(componentId);
+                ((UnknownComponent)component).SetOriginalTypeName(componentPrefab.TypeName);
+            }
+            else
+                component = created;
+
+            resolver.AddComponent(componentPrefab.Id, component);
+            ApplySerializablePrefab(component, componentPrefab, flags);
+            if (loadAsTemporary)
+                component.SetTemporary(true);
+        }
+
+        var numChildren = reader.ReadNumChildren();
+        for (var index = 0u; index < numChildren; ++index)
+        {
+            reader.BeginChild();
+            var childPrefab = reader.ReadNode();
+            if (childPrefab is null)
+                throw new InvalidOperationException("Failed to read child prefab.");
+
+            var childId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : childPrefab.Id;
+            var child = CreateChild(childId);
+            var childFlags = flags & ~PrefabLoadFlag.LoadAsTemporary & ~PrefabLoadFlag.IgnoreRootAttributes;
+            child.LoadInternal(childPrefab, reader, resolver, childFlags);
+            if (loadAsTemporary)
+                child.SetTemporary(true);
+            reader.EndChild();
+        }
+    }
+
+    private void SaveInternal(PrefabWriter writer)
+    {
+        var saveTemporary = (writer.GetFlags() & PrefabSaveFlag.SaveTemporary) != 0;
+
+        writer.WriteNode(Id, this);
+        writer.WriteNumComponents(saveTemporary ? GetNumComponents() : GetNumPersistentComponents());
+        foreach (var component in _components)
+        {
+            if (saveTemporary || !component.IsTemporary)
+                writer.WriteComponent(component.Id, component);
+        }
+
+        writer.WriteNumChildren(saveTemporary ? GetNumChildren() : GetNumPersistentChildren());
+        foreach (var child in _children)
+        {
+            if (saveTemporary || !child.IsTemporary)
+            {
+                writer.BeginChild();
+                child.SaveInternal(writer);
+                writer.EndChild();
+            }
+        }
     }
 
     private static Type? ResolveComponentType(string typeName)

@@ -31,6 +31,30 @@ public sealed class NodeTests
         }
         finally { Context.SetInstance(previous); }
     }
+
+    [Fact]
+    public void Node_prefab_reader_writer_roundtrip_loads_hierarchy()
+    {
+        var sourceScene = new Scene();
+        var source = sourceScene.CreateChild("Child");
+        source.SetVar("score", 42);
+        source.CreateComponent<Camera>().SetFov(73);
+
+        var prefab = new NodePrefab();
+        var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.SaveTemporary);
+        Assert.True(sourceScene.Root.Save(writer));
+        Assert.True(writer.IsEOF());
+
+        var destinationScene = new Scene();
+        var reader = new PrefabReaderFromMemory(prefab);
+        Assert.True(destinationScene.Root.Load(reader));
+
+        var child = destinationScene.Root.GetChild("Child");
+        Assert.NotNull(child);
+        Assert.Equal(42, child!.GetVar("score"));
+        Assert.True(MathDefs.ApproximatelyEquivalent(child.GetComponent<Camera>()!.GetFov(), 73));
+    }
+
     private sealed class ListenerProbe : Component
     {
         public int DirtyCount { get; private set; }
