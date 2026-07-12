@@ -112,7 +112,7 @@ public class AnimationController : AnimationStateSource
 
             UpdateInstance(instance.Params, timeStep, true);
             if (!instance.Params.Removed)
-                UpdateState(instance.State, instance.Params);
+                UpdateState(instance.State!, instance.Params);
             else
                 _animationStatesDirty = true;
         }
@@ -122,7 +122,7 @@ public class AnimationController : AnimationStateSource
             if (!_animations[i].Params.Removed)
                 continue;
 
-            _animationStates.Remove(_animations[i].State);
+            _animationStates.Remove(_animations[i].State!);
             _animations.RemoveAt(i);
         }
 
@@ -155,7 +155,82 @@ public class AnimationController : AnimationStateSource
         ReadOnlySpan<AnimationParameters> newAnimations, float elapsedTime, float fadeTime,
         ReadOnlySpan<uint> layers = default)
     {
-        // TODO: port: ea::span-based animation replacement will be completed with the controller's full merge path.
+        // Upload new parameters and correct them according to elapsed time, some states may be removed
+        var numNewAnimations = newAnimations.Length;
+        _tempAnimations.Clear();
+        for (var i = 0; i < numNewAnimations; ++i)
+        {
+            var instance = new AnimationInstance
+            {
+                Params = new AnimationParameters(newAnimations[i]),
+                State = null
+            };
+            UpdateInstance(instance.Params, elapsedTime, false);
+            _tempAnimations.Add(instance);
+        }
+
+        // Try to match old animation states for all remaining states
+        for (var i = 0; i < numNewAnimations; ++i)
+        {
+            var newParams = _tempAnimations[i].Params;
+            if (newParams.Removed)
+                continue;
+
+            AnimationInstance? oldInstance = null;
+            for (var j = 0; j < _animations.Count; ++j)
+            {
+                var candidate = _animations[j];
+                if (!candidate.Params.Merged && candidate.Params.IsMergeableWith(newParams))
+                {
+                    oldInstance = candidate;
+                    break;
+                }
+            }
+
+            if (oldInstance is not null)
+            {
+                _tempAnimations[i].State = oldInstance.State;
+                oldInstance.Params.Merged = true;
+
+                // Keep original weight for smooth transition when merged
+                newParams.WeightValue = oldInstance.Params.WeightValue;
+                // Keep original delay if weight didn't change, extend delay up to minimum value otherwise
+                var weightChanged = !MathDefs.Equals(newParams.TargetWeight, oldInstance.Params.TargetWeight, MathDefs.LargeEpsilon);
+                newParams.TargetWeightDelay = weightChanged
+                    ? Math.Max(newParams.TargetWeightDelay, fadeTime)
+                    : oldInstance.Params.TargetWeightDelay;
+            }
+        }
+
+        // Remove all merged states from the animations, and fade out unmerged animations
+        _animations.RemoveAll(static instance => instance.Params.Merged);
+        for (var i = 0; i < _animations.Count; ++i)
+        {
+            var instance = _animations[i];
+            if (layers.IsEmpty || layers.IndexOf(instance.Params.LayerIndex) >= 0)
+                instance.Params.RemoveDelayed(fadeTime);
+        }
+
+        // Append new animations
+        for (var i = 0; i < _tempAnimations.Count; ++i)
+        {
+            var instance = _tempAnimations[i];
+            if (instance.Params.Removed)
+                continue;
+
+            if (instance.State is null)
+            {
+                PlayNew(instance.Params, fadeTime);
+            }
+            else
+            {
+                EnsureStateInitialized(instance.State, instance.Params);
+                _animations.Add(instance);
+            }
+        }
+
+        _animationStatesDirty = true;
+        _revisionDirty = true;
     }
 
     /// <summary>
@@ -177,9 +252,9 @@ public class AnimationController : AnimationStateSource
         };
         instance.Params.InstanceIndex = instanceIndex;
 
-        EnsureStateInitialized(instance.State, instance.Params);
+        EnsureStateInitialized(instance.State!, instance.Params);
         _animations.Add(instance);
-        _animationStates.Add(instance.State);
+        _animationStates.Add(instance.State!);
 
         _animationStatesDirty = true;
         _revisionDirty = true;
@@ -201,7 +276,7 @@ public class AnimationController : AnimationStateSource
             return;
         }
 
-        EnsureStateInitialized(instance.State, parameters);
+        EnsureStateInitialized(instance.State!, parameters);
         if (instance.Params.LayerIndex != parameters.LayerIndex)
             _animationStatesDirty = true;
 
@@ -220,7 +295,7 @@ public class AnimationController : AnimationStateSource
             return;
         }
 
-        _animationStates.Remove(_animations[(int)index].State);
+        _animationStates.Remove(_animations[(int)index].State!);
         _animations.RemoveAt((int)index);
         _animationStatesDirty = true;
         _revisionDirty = true;
@@ -620,7 +695,7 @@ public class AnimationController : AnimationStateSource
 
         _animationStates.Clear();
         for (var i = 0; i < _tempAnimations.Count; ++i)
-            _animationStates.Add(_tempAnimations[i].State);
+            _animationStates.Add(_tempAnimations[i].State!);
 
         _animationStatesDirty = false;
     }
@@ -751,7 +826,7 @@ public class AnimationController : AnimationStateSource
     private sealed class AnimationInstance
     {
         public required AnimationParameters Params;
-        public required AnimationState State;
+        public AnimationState? State;
     }
 
     private readonly List<AnimationInstance> _animations = [];

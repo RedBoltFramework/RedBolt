@@ -43,4 +43,35 @@ public sealed class AnimationControllerTests
         Assert.Equal(0u, controller.GetNumAnimations());
         Assert.False(controller.IsPlaying(animation));
     }
+
+    [Fact]
+    public void Animation_controller_replaces_and_merges_instances()
+    {
+        var keepAnimation = new Animation("Keep");
+        keepAnimation.SetLength(4.0f);
+        var filteredAnimation = new Animation("Filtered");
+        filteredAnimation.SetLength(4.0f);
+        var controller = new AnimationController();
+
+        controller.AddAnimation(new AnimationParameters(keepAnimation).Layer(1).Weight(0.25f));
+        controller.AddAnimation(new AnimationParameters(filteredAnimation).Layer(2).Weight(0.75f));
+        var originalState = controller.GetAnimationStates()[0];
+
+        var replacement = new AnimationParameters(keepAnimation).Layer(1).Weight(1.0f);
+        controller.ReplaceAnimations(new[] { replacement }, 0.5f, 0.25f, new uint[] { 1 });
+
+        var keepIndex = controller.FindLastAnimation(keepAnimation, 1);
+        Assert.NotEqual(uint.MaxValue, keepIndex);
+        Assert.Equal(0.5f, controller.GetAnimationParameters(keepIndex).GetTime());
+        Assert.Equal(0.25f, controller.GetAnimationParameters(keepIndex).WeightValue);
+        Assert.Equal(1.0f, controller.GetAnimationParameters(keepIndex).TargetWeight);
+        Assert.Equal(0.25f, controller.GetAnimationParameters(keepIndex).TargetWeightDelay);
+        Assert.Equal(0.75f, controller.GetAnimationParameters(0).TargetWeight);
+        Assert.Same(originalState, controller.GetAnimationStates()[0]);
+
+        controller.ReplaceAnimations(ReadOnlySpan<AnimationParameters>.Empty, 0.0f, 0.0f);
+        controller.Update(0.0f);
+
+        Assert.Equal(0u, controller.GetNumAnimations());
+    }
 }
