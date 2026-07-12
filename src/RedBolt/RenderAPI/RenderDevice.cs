@@ -16,6 +16,8 @@ public sealed class RenderDevice : Object
     private readonly RenderContext _renderContext;
     private readonly DrawCommandQueue _defaultQueue;
     private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Texture2DArray + 1];
+    private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
+    private FrameIndex _frameIndex = FrameIndex.First;
     private RenderDeviceStats _maxStats = new();
 
     public RenderDevice()
@@ -85,6 +87,53 @@ public sealed class RenderDevice : Object
         SendEvent<GraphicsEvents.DeviceResetEvent>();
         InitializeDefaultObjects();
         return true;
+    }
+
+    /// <summary>
+    /// Queue pipeline state reload at the end of the frame.
+    /// </summary>
+    public void QueuePipelineStateReload(PipelineState pipelineState)
+    {
+        _pipelineStatesToReload.Add(new WeakReference<PipelineState>(pipelineState));
+    }
+
+    /// <summary>
+    /// Present the frame. Should be called between engine frames.
+    /// </summary>
+    public void Present()
+    {
+        var swapChain = GetSwapChain();
+        if (swapChain is not null && !swapChain.IsNull)
+            swapChain.Present(GetWindowSettings().VSync ? 1u : 0u);
+
+        _renderPool.OnFrameEnd();
+
+        foreach (var weakPipelineState in _pipelineStatesToReload)
+        {
+            if (weakPipelineState.TryGetTarget(out var pipelineState))
+                pipelineState.Restore();
+        }
+        _pipelineStatesToReload.Clear();
+
+        if (_defaultTextureParametersDirty)
+        {
+            _defaultTextureParametersDirty = false;
+
+            DeviceObject[] snapshot;
+            lock (_deviceObjectsLock)
+                snapshot = [.. _deviceObjects];
+
+            foreach (var deviceObject in snapshot)
+            {
+                if (deviceObject is PipelineState pipelineState)
+                {
+                    pipelineState.Invalidate();
+                    pipelineState.Restore();
+                }
+            }
+        }
+
+        _frameIndex = (FrameIndex)((long)_frameIndex + 1);
     }
 
     /// <summary>
@@ -240,8 +289,7 @@ public sealed class RenderDevice : Object
 
     public FrameIndex GetFrameIndex()
     {
-        var frameNumber = GetSubsystem<Time>()?.GetFrameNumber() ?? 0U;
-        return (FrameIndex)Math.Max((long)frameNumber, (long)FrameIndex.None);
+        return _frameIndex;
     }
 
     public RawTexture? GetDefaultTexture(TextureType type) => _defaultTextures[(int)type];

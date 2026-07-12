@@ -48,6 +48,7 @@ public class PipelineState : DeviceObject
     {
         base.Invalidate();
         DestroyGPU();
+        GetRenderDevice()?.QueuePipelineStateReload(this);
     }
 
     public override void Restore()

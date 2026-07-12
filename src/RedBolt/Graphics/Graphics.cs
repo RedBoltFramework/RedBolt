@@ -589,7 +589,7 @@ layout(std140) uniform Material
         if (!string.IsNullOrWhiteSpace(screenshotPath))
             SavePresentedFrameScreenshot(screenshotPath);
 
-        _swapChain.Present(0);
+        GetSubsystem<RenderDevice>()?.Present();
     }
 
     internal void UnbindRenderTargets()

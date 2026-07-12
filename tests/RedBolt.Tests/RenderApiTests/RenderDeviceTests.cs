@@ -108,6 +108,34 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_present_advances_frame_index()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            var firstFrame = _fixture.RenderDevice.GetFrameIndex();
+
+            _fixture.RenderDevice.Present();
+
+            Assert.Equal((long)firstFrame + 1, (long)_fixture.RenderDevice.GetFrameIndex());
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters

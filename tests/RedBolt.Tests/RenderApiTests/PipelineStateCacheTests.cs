@@ -175,7 +175,7 @@ public sealed class PipelineStateCacheTests
             Assert.False(state.IsValid);
             Assert.True(state.IsDataLost());
 
-            state.Restore();
+            _fixture.RenderDevice.Present();
             Assert.True(state.IsValid);
             Assert.False(state.IsDataLost());
         });
