@@ -48,8 +48,12 @@ public partial class Graph : Object
     /// <summary>Load graph from json. Return true if successful.</summary>
     public bool LoadJSON(string json)
     {
-        // TODO: port Graph::LoadJSON. The rbfx Graph.cpp contains only the declaration.
-        return false;
+        using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var file = new JSONFile(string.Empty);
+        if (!file.BeginLoad(buffer))
+            return false;
+
+        return file.LoadObject(this);
     }
 
     /// <summary>Serialize content from/to archive.</summary>

@@ -41,7 +41,6 @@ public abstract class TrackedComponentBase : Component
 /// </summary>
 public class TrackedComponentRegistryBase : Component
 {
-    // TODO: port C++ static constexpr IsOnlyEnabledTracked. C# type parameters cannot access non-virtual static members.
     public virtual bool IsOnlyEnabledTracked => false;
 
     public TrackedComponentRegistryBase(StringHash componentType)
@@ -389,8 +388,6 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
 /// <summary>
 /// Template base of any TrackedComponent that automatically registers itself in registry.
 /// </summary>
-// TODO: port the C++ template inheritance from ComponentType. C# cannot derive from a type parameter.
-// TODO: port the C++ static_assert that pairs ReferencedComponentBase with ReferencedComponentRegistryBase.
 public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedComponentBase
     where ComponentType : Component
     where RegistryComponentType : TrackedComponentRegistryBase

@@ -29,7 +29,6 @@ public sealed class PrefabReference : Component
         // URHO3D_ACTION_STATIC_LABEL("Inline", InlineConservative, "Convert prefab reference to nodes and components");
         // URHO3D_ACTION_STATIC_LABEL("Inline+", InlineAggressive, "Same as Inline. Also converts all temporary objects to persistent");
         // URHO3D_ACTION_STATIC_LABEL("Commit", CommitChanges, "Commit changes in this instance to the prefab resource");
-        // TODO: port editor actions when the managed action registry exists.
     }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>

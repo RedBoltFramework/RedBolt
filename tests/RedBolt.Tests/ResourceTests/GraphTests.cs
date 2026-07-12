@@ -59,4 +59,18 @@ public sealed class GraphTests
         Assert.Equal(0u, graph.GetNumNodes());
         Assert.Null(node.GetGraph());
     }
+
+    [Fact]
+    public void Graph_loads_json_archive()
+    {
+        var graph = new Graph();
+        graph.Create("Existing");
+
+        var output = new JSONOutputArchive();
+        graph.SerializeInBlock(output);
+        output.Flush();
+        Assert.True(graph.LoadJSON(output.ToJsonString()), output.ToJsonString());
+        Assert.Equal(1u, graph.GetNumNodes());
+        Assert.Equal("Existing", graph.GetNode(1u)?.GetName());
+    }
 }

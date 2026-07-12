@@ -363,8 +363,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `GraphNode.h`
   - [x] `GraphNodeProperty`
   - [x] `GraphNode : Object` — graph connection lookup and optional empty-block serialization are ported
-- [~] `Graph.h`
-  - [~] `Graph : Object` — `LoadJSON` remains a TODO because the C++ header declares it but `Graph.cpp` has no definition
+- [x] `Graph.h`
+  - [x] `Graph : Object` — graph node management, XML/JSON loading, archive persistence, and pin connection lookup are ported
 - [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
   - [x] `SerializableResource : SimpleResource` — delegates managed attributes through archive blocks and the completed Scene prefab representation
 
@@ -395,12 +395,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Node : Serializable` — hierarchy, transforms, tags/variables, components, events, cloning, IDs, and recursive prefab archive persistence are ported
 - [x] `LogicComponent.h`
   - [x] `LogicComponent : Component` — lifecycle, delayed start, update masks, and Scene update/post-update dispatch are ported; physics/world-origin callbacks remain scoped to their not-started subsystems
-- [~] `TrackedComponent.h`
+- [x] `TrackedComponent.h`
   - [x] `TrackedComponentBase : Component`
   - [x] `TrackedComponentRegistryBase : Component`
   - [x] `ReferencedComponentBase : TrackedComponentBase`
   - [x] `ReferencedComponentRegistryBase : TrackedComponentRegistryBase`
-  - [~] `TrackedComponent<ComponentType, RegistryComponentType>` — registry reconnect, enable-state, and scene lifecycle logic are ported; C# cannot derive from a type parameter, so the C++ `: ComponentType` inheritance remains a TODO in the managed source, and `IsOnlyEnabledTracked` is an instance virtual property instead of C++ static storage
+  - [x] `TrackedComponent<ComponentType, RegistryComponentType>` — registry reconnect, enable-state, and scene lifecycle logic are ported; C# represents the C++ type-parameter inheritance and static storage through generic constraints and virtual managed members
   - [x] `ComponentReference` helpers — packing, unpacking, and string formatting
 - [x] `UnknownComponent.h`
   - [x] `UnknownComponent : Component` — unknown type preservation and temporary placeholder loading across binary/XML/JSON are ported
@@ -419,9 +419,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `PrefabResource.h`
   - [x] `PrefabResource : SimpleResource` — prefab storage, scene/node accessors, named/indexed slices, archive persistence, ID-attribute cleanup, and PrefabReference-backed node instantiation
   - [x] `PrefabResource : SimpleResource` — background resource-reference traversal, legacy XML conversion, Node XML hierarchy loading, prefab normalization, archive flags, compact attribute-name hashes, and optional archive fields are ported
-- [~] `PrefabReference.h`
+- [x] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
-  - [~] `PrefabReference : Component` — reload event subscription, instance recreation, and deep prefab value-copying are ported; editor actions/logging remain TODO because the managed APIs differ
+  - [x] `PrefabReference : Component` — reload event subscription, instance recreation, deep prefab value-copying, and the Inline/Inline+/Commit action methods are ported; C# exposes these methods directly because the C++ editor action macro registry has no managed equivalent
 - [x] `SceneResolver.h`
   - [x] `SceneResolver` — node/component lookup registration, scalar and vector ID resolution, warning paths, and post-resolution reset; C++ WeakPtr storage maps to managed references per the allowed deviation
 - [x] `Scene.h`
