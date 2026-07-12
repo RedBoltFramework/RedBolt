@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -45,6 +46,8 @@ public sealed class Scene : Object
     private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
     private readonly AsyncProgress _asyncProgress = new();
     private readonly SceneResolver _resolver = new();
+    private ContextEventSubscription? _updateSubscription;
+    private ContextEventSubscription? _resourceBackgroundLoadedSubscription;
     private int _asyncLoadingMs = 5;
     private bool _asyncLoading;
     private float _elapsedTime;
@@ -70,10 +73,15 @@ public sealed class Scene : Object
         Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
         NodeAdded(Root);
         SetUpdateEvents(DefaultUpdateEvents);
+        _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+        _resourceBackgroundLoadedSubscription =
+            SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
     }
 
     public override void Dispose()
     {
+        _updateSubscription?.Dispose();
+        _resourceBackgroundLoadedSubscription?.Dispose();
         Root.RemoveAllComponents();
         Root.RemoveAllChildren();
         base.Dispose();
@@ -778,6 +786,13 @@ public sealed class Scene : Object
 
     public void Update(float timeStep)
     {
+        if (UpdateEnabled && _asyncLoading)
+        {
+            UpdateAsyncLoading();
+            if (_asyncProgress.Mode > LoadMode.ResourcesOnly)
+                return;
+        }
+
         var effectiveTimeStep = timeStep * TimeScale;
 
         var forcedUpdateEvent = new SceneEvents.SceneForcedUpdateEvent
@@ -1033,6 +1048,85 @@ public sealed class Scene : Object
         if (read != data.Length)
             Array.Resize(ref data, checked((int)read));
         return data;
+    }
+
+    private void HandleUpdate(ref CoreEvents.UpdateEvent eventData)
+    {
+        if (_manualUpdate)
+            return;
+
+        Update(eventData.TimeStep);
+    }
+
+    private void HandleResourceBackgroundLoaded(ref ResourceEvents.ResourceBackgroundLoaded eventData)
+    {
+        if (!_asyncLoading || eventData.Resource is null)
+            return;
+
+        var resourceNameHash = new StringHash(eventData.Resource.Name);
+        if (_asyncProgress.Resources.Remove(resourceNameHash))
+            ++_asyncProgress.LoadedResources;
+    }
+
+    private void UpdateAsyncLoading()
+    {
+        if (_asyncProgress.LoadedResources < _asyncProgress.TotalResources)
+            return;
+
+        var startTimestamp = Stopwatch.GetTimestamp();
+        for (;;)
+        {
+            if (_asyncProgress.LoadedNodes >= _asyncProgress.TotalNodes)
+            {
+                FinishAsyncLoading();
+                return;
+            }
+
+            if (_asyncProgress.File is not null)
+            {
+                var nodeId = _asyncProgress.File.ReadUInt();
+                var newNode = Root.CreateChild(nodeId);
+                _resolver.AddNode(nodeId, newNode);
+                newNode.Load(_asyncProgress.File, _resolver);
+            }
+            else
+            {
+                // TODO: port XML and JSON child-node loading from UpdateAsyncLoading.
+            }
+
+            ++_asyncProgress.LoadedNodes;
+
+            var elapsedMicroseconds = (Stopwatch.GetTimestamp() - startTimestamp) * 1_000_000L
+                / Stopwatch.Frequency;
+            if (elapsedMicroseconds >= _asyncLoadingMs * 1000L)
+                break;
+        }
+
+        var progressEvent = new SceneEvents.AsyncLoadProgressEvent
+        {
+            Scene = this,
+            Progress = GetAsyncProgress(),
+            LoadedNodes = checked((int)_asyncProgress.LoadedNodes),
+            TotalNodes = checked((int)_asyncProgress.TotalNodes),
+            LoadedResources = checked((int)_asyncProgress.LoadedResources),
+            TotalResources = checked((int)_asyncProgress.TotalResources)
+        };
+        SendEvent(ref progressEvent);
+    }
+
+    private void FinishAsyncLoading()
+    {
+        if (_asyncProgress.Mode > LoadMode.ResourcesOnly)
+        {
+            _resolver.Resolve();
+            Root.ApplyAttributes();
+            FinishLoading(_asyncProgress.File);
+        }
+
+        StopAsyncLoading();
+
+        var finishedEvent = new SceneEvents.AsyncLoadFinishedEvent { Scene = this };
+        SendEvent(ref finishedEvent);
     }
 
     private void PreloadResources(AbstractFile file, bool isSceneFile)

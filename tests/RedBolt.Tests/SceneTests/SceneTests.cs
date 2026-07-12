@@ -456,6 +456,10 @@ public sealed class SceneTests
         Assert.Equal(LoadMode.SceneAndResources, scene.GetAsyncLoadMode());
         Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
 
+        scene.Update(0.0f);
+
+        Assert.False(scene.IsAsyncLoading());
+
         scene.StopAsyncLoading();
 
         Assert.False(scene.IsAsyncLoading());
