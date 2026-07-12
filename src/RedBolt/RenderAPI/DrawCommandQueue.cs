@@ -536,10 +536,7 @@ public class DrawCommandQueue : Object
             var view = resource.View;
             if (view is null)
             {
-                var texture = resource.Texture;
-                if (texture is not null && renderContext.IsBoundAsRenderTarget(texture.GetTexture()!))
-                    texture = null;
-                texture ??= resource.BackupTexture;
+                var texture = GetReadableTexture(renderContext, resource.Type!.Value, resource.Texture, resource.BackupTexture);
                 if (texture is not null)
                 {
                     if (texture.GetResolveDirty()) texture.Resolve();
@@ -551,6 +548,16 @@ public class DrawCommandQueue : Object
             // TODO: port C++ GetReadableTexture fallback to RenderDevice.GetDefaultTexture when default raw textures are available.
             _shaderResourceViews[i] = view;
         }
+    }
+
+    private static RawTexture? GetReadableTexture(
+        RenderContext renderContext, TextureType type, RawTexture? texture, RawTexture? backupTexture)
+    {
+        if (texture is not null && !renderContext.IsBoundAsRenderTarget(texture.GetTexture()!))
+            return texture;
+        if (backupTexture is not null && !renderContext.IsBoundAsRenderTarget(backupTexture.GetTexture()!))
+            return backupTexture;
+        return renderContext.GetRenderDevice().GetDefaultTexture(type);
     }
 
     private void BindShaderResources(ShaderResourceRange range)

@@ -22,6 +22,38 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_post_initialize_creates_default_raw_textures()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            _fixture.RenderDevice.PostInitialize();
+
+            foreach (var type in Enum.GetValues<TextureType>())
+            {
+                var texture = _fixture.RenderDevice.GetDefaultTexture(type);
+                Assert.NotNull(texture);
+                Assert.True(texture!.IsValid());
+                Assert.NotNull(texture.GetHandles().ShaderResourceView);
+            }
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_maps_engine_parameters_to_render_and_window_settings()
     {
         var previousContext = Context.Instance;

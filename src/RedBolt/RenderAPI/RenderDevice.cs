@@ -12,6 +12,7 @@ public sealed class RenderDevice : Object
     private readonly RenderPool _renderPool;
     private readonly RenderContext _renderContext;
     private readonly DrawCommandQueue _defaultQueue;
+    private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Texture2DArray + 1];
     private RenderDeviceStats _maxStats = new();
 
     public RenderDevice()
@@ -25,7 +26,13 @@ public sealed class RenderDevice : Object
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
         GetSubsystem<Graphics>()?.GetImmediateContext()?.WaitForIdle();
+        ReleaseDefaultObjects();
         base.Dispose();
+    }
+
+    public void PostInitialize()
+    {
+        InitializeDefaultObjects();
     }
 
     /// <summary>
@@ -191,6 +198,8 @@ public sealed class RenderDevice : Object
         return (FrameIndex)Math.Max((long)frameNumber, (long)FrameIndex.None);
     }
 
+    public RawTexture? GetDefaultTexture(TextureType type) => _defaultTextures[(int)type];
+
     public DrawCommandQueue GetDefaultQueue() => _defaultQueue;
 
     internal ITextureView ResolveRenderTargetView(RenderTargetView view)
@@ -258,6 +267,37 @@ public sealed class RenderDevice : Object
 
         foreach (var deviceObject in snapshot)
             deviceObject.ProcessDeviceObjectEvent(deviceObjectEvent);
+    }
+
+    private void InitializeDefaultObjects()
+    {
+        var data = new byte[4];
+        InitializeDefaultTexture(TextureType.Texture2D, data);
+        InitializeDefaultTexture(TextureType.TextureCube, data);
+        InitializeDefaultTexture(TextureType.Texture3D, data);
+        InitializeDefaultTexture(TextureType.Texture2DArray, data);
+    }
+
+    private void InitializeDefaultTexture(TextureType type, ReadOnlySpan<byte> data)
+    {
+        var texture = new RawTexture(new RawTextureParams(type, TextureFormat.RGBA8, TextureFlag.None, Vector3i.One));
+        if (!texture.IsValid())
+        {
+            texture.Dispose();
+            return;
+        }
+
+        texture.Update(0u, Vector3i.Zero, Vector3i.One, 0u, data);
+        _defaultTextures[(int)type] = texture;
+    }
+
+    private void ReleaseDefaultObjects()
+    {
+        for (var i = 0; i < _defaultTextures.Length; ++i)
+        {
+            _defaultTextures[i]?.Dispose();
+            _defaultTextures[i] = null;
+        }
     }
 
     private static IReadOnlyList<string> ParseOrientations(string orientations)
