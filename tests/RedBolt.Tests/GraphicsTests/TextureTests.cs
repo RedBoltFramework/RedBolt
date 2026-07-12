@@ -73,4 +73,28 @@ public sealed class TextureTests
         Assert.Equal(1, texture.GetMipsToSkip(MaterialQuality.Medium));
         Assert.Equal(0, texture.GetMipsToSkip(MaterialQuality.High));
     }
+
+    [Fact]
+    public void Texture2D_image_upload_and_readback_work()
+    {
+        var image = new Image("Textures/SmokeImage");
+        var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
+        Assert.True(image.SetSize(2, 2, 4u));
+        image.SetData(imageData);
+
+        var texture = new Texture2D("Textures/Smoke2D");
+        texture.SetNumLevels(1u);
+        Assert.True(texture.SetData(image));
+
+        var readback = new byte[16];
+        Assert.True(texture.GetData(0u, readback));
+        Assert.Equal(imageData, readback);
+        Assert.False(texture.GetData(0u, new byte[15]));
+
+        var output = texture.GetImage();
+        Assert.NotNull(output);
+        Assert.Equal(2, output.Width);
+        Assert.Equal(2, output.Height);
+        Assert.Equal(imageData, output.GetData());
+    }
 }

@@ -30,12 +30,12 @@ public abstract class Texture : ResourceWithMetadata
     };
 
     private readonly uint[] _mipsToSkip = [2u, 1u, 0u];
-    private uint _requestedLevels;
-    private bool _requestedSRGB;
-    private bool _resolveDirty;
-    private bool _levelsDirty;
-    private readonly object?[] _renderSurfaces = [];
-    private uint _mostDetailedLevel;
+    protected uint _requestedLevels;
+    protected bool _requestedSRGB;
+    protected bool _resolveDirty;
+    protected bool _levelsDirty;
+    protected readonly object?[] _renderSurfaces = [];
+    protected uint _mostDetailedLevel;
 
     protected Texture(string name)
         : base(name)

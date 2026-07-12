@@ -538,7 +538,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Texture.h`
   - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata and XML parameter parsing are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, render-surface, bind-flag, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
-  - [~] `Texture2D : Texture`
+  - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture3D.h`
   - [~] `Texture3D : Texture`
 - [~] `TextureCube.h`
