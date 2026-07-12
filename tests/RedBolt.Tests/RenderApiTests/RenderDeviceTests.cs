@@ -89,21 +89,33 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Render_device_stats_expose_render_context_counters()
     {
-        var stats = _fixture.RenderContext.GetMutableStats();
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
+            var stats = _fixture.RenderContext.GetMutableStats();
             stats.NumPrimitives = 12;
             stats.NumDraws = 3;
             stats.NumDispatches = 2;
 
-            Assert.Same(stats, _fixture.RenderDevice.GetStats());
+            _fixture.RenderDevice.Present();
+
             Assert.Equal(12u, _fixture.RenderDevice.GetStats().NumPrimitives);
             Assert.Equal(3u, _fixture.RenderDevice.GetStats().NumDraws);
             Assert.Equal(2u, _fixture.RenderDevice.GetStats().NumDispatches);
         }
         finally
         {
-            _fixture.RenderContext.ResetStats();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
         }
     }
 

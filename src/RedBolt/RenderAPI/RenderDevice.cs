@@ -18,7 +18,11 @@ public sealed class RenderDevice : Object
     private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Texture2DArray + 1];
     private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
     private FrameIndex _frameIndex = FrameIndex.First;
+    private readonly Timer _statsTimer = new();
+    private RenderDeviceStats _stats = new();
     private RenderDeviceStats _maxStats = new();
+    private RenderDeviceStats _previousMaxStats = new();
+    private const uint StatsPeriodMs = 333;
 
     public RenderDevice()
     {
@@ -133,6 +137,25 @@ public sealed class RenderDevice : Object
             }
         }
 
+        var contextStats = _renderContext.GetStats();
+        _stats.NumPrimitives = contextStats.NumPrimitives;
+        _stats.NumDraws = contextStats.NumDraws;
+        _stats.NumDispatches = contextStats.NumDispatches;
+        _renderContext.ResetStats();
+
+        if (_statsTimer.GetMSec() >= StatsPeriodMs)
+        {
+            _statsTimer.Reset();
+            CopyStats(_previousMaxStats, _maxStats);
+            CopyStats(_maxStats, _stats);
+        }
+        else
+        {
+            _maxStats.NumPrimitives = Math.Max(_maxStats.NumPrimitives, _stats.NumPrimitives);
+            _maxStats.NumDraws = Math.Max(_maxStats.NumDraws, _stats.NumDraws);
+            _maxStats.NumDispatches = Math.Max(_maxStats.NumDispatches, _stats.NumDispatches);
+        }
+
         _frameIndex = (FrameIndex)((long)_frameIndex + 1);
     }
 
@@ -225,17 +248,10 @@ public sealed class RenderDevice : Object
 
     public RenderDeviceStats GetStats()
     {
-        var currentStats = _renderContext.GetStats();
-        _maxStats = Max(_maxStats, currentStats);
-        return currentStats;
+        return _stats;
     }
 
-    public RenderDeviceStats GetMaxStats() => new()
-    {
-        NumPrimitives = _maxStats.NumPrimitives,
-        NumDraws = _maxStats.NumDraws,
-        NumDispatches = _maxStats.NumDispatches
-    };
+    public RenderDeviceStats GetMaxStats() => _previousMaxStats;
 
     public TextureFilterMode GetDefaultTextureFilterMode()
     {
@@ -421,10 +437,10 @@ public sealed class RenderDevice : Object
         _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, null)
     };
 
-    private static RenderDeviceStats Max(RenderDeviceStats left, RenderDeviceStats right) => new()
+    private static void CopyStats(RenderDeviceStats destination, RenderDeviceStats source)
     {
-        NumPrimitives = Math.Max(left.NumPrimitives, right.NumPrimitives),
-        NumDraws = Math.Max(left.NumDraws, right.NumDraws),
-        NumDispatches = Math.Max(left.NumDispatches, right.NumDispatches)
-    };
+        destination.NumPrimitives = source.NumPrimitives;
+        destination.NumDraws = source.NumDraws;
+        destination.NumDispatches = source.NumDispatches;
+    }
 }
