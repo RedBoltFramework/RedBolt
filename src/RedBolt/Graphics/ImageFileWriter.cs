@@ -7,35 +7,44 @@ internal static class ImageFileWriter
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
     private static readonly uint[] CrcTable = BuildCrcTable();
 
-    public static void Save(string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
+    public static void Save(VirtualFileSystem virtualFileSystem, string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
     {
+        ArgumentNullException.ThrowIfNull(virtualFileSystem);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
+        using var stream = new MemoryStream();
         var extension = Path.GetExtension(fileName);
         if (extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase))
-        {
-            SaveBmp(fileName, width, height, rgbaPixels);
-            return;
-        }
+            SaveBmp(stream, width, height, rgbaPixels);
+        else
+            SavePng(stream, width, height, rgbaPixels);
 
-        SavePng(fileName, width, height, rgbaPixels);
+        var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), File.FileMode.Write)
+            ?? throw new IOException($"Failed to open screenshot file '{fileName}'.");
+        try
+        {
+            var data = stream.ToArray();
+            if (file.Write(data) != data.Length)
+                throw new IOException($"Failed to write screenshot file '{fileName}'.");
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
-    private static void SaveBmp(string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
+    private static void SaveBmp(Stream stream, int width, int height, ReadOnlySpan<byte> rgbaPixels)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         if (rgbaPixels.Length != checked(width * height * 4))
             throw new ArgumentException("Pixel data size does not match the requested image dimensions.", nameof(rgbaPixels));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(fileName)) ?? ".");
-
         const int fileHeaderSize = 14;
         const int dibHeaderSize = 40;
         var pixelDataSize = checked(width * height * 4);
         var fileSize = checked(fileHeaderSize + dibHeaderSize + pixelDataSize);
 
-        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
 
         writer.Write((byte)'B');
@@ -74,16 +83,13 @@ internal static class ImageFileWriter
         }
     }
 
-    private static void SavePng(string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
+    private static void SavePng(Stream stream, int width, int height, ReadOnlySpan<byte> rgbaPixels)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         if (rgbaPixels.Length != checked(width * height * 4))
             throw new ArgumentException("Pixel data size does not match the requested image dimensions.", nameof(rgbaPixels));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(fileName)) ?? ".");
-
-        using var stream = System.IO.File.Create(fileName);
         using var writer = new BinaryWriter(stream);
 
         writer.Write(PngSignature);

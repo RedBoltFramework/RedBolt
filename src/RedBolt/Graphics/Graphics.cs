@@ -1320,7 +1320,7 @@ layout(std140) uniform Material
             {
                 var rgbaPixels = new byte[checked(width * height * 4)];
                 CopyMappedTexture(sourceDescription.Format, width, height, mappedSubresource, rgbaPixels);
-                ImageFileWriter.Save(fileName, width, height, rgbaPixels);
+                SaveImageFile(fileName, width, height, rgbaPixels);
             }
             finally
             {
@@ -1367,8 +1367,22 @@ layout(std140) uniform Material
         if (!TryCaptureScreenShot(readBuffer, out var size, out var rgbaPixels))
             return false;
 
-        ImageFileWriter.Save(fileName, size.X, size.Y, rgbaPixels);
+        SaveImageFile(fileName, size.X, size.Y, rgbaPixels);
         return true;
+    }
+
+    private void SaveImageFile(string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
+    {
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        var mountPoint = virtualFileSystem.MountRoot();
+        try
+        {
+            ImageFileWriter.Save(virtualFileSystem, fileName, width, height, rgbaPixels);
+        }
+        finally
+        {
+            virtualFileSystem.Unmount(mountPoint);
+        }
     }
 
     internal bool TryCaptureScreenShot(out Vector2i size, out byte[] data)
