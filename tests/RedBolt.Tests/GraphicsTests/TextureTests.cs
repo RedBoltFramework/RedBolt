@@ -97,4 +97,25 @@ public sealed class TextureTests
         Assert.Equal(2, output.Height);
         Assert.Equal(imageData, output.GetData());
     }
+
+    [Fact]
+    public void Texture3D_image_upload_and_readback_work()
+    {
+        var image = new Image("Textures/SmokeVolumeImage");
+        var imageData = Enumerable.Range(0, 4 * 4 * 4 * 4).Select(value => (byte)value).ToArray();
+        Assert.True(image.SetSize(4, 4, 4, 4u));
+        image.SetData(imageData);
+
+        var texture = new Texture3D("Textures/Smoke3D");
+        texture.SetNumLevels(1u);
+        texture.SetMipsToSkip(MaterialQuality.High, 1);
+        Assert.True(texture.SetData(image));
+        Assert.Equal(2, texture.Width);
+        Assert.Equal(2, texture.Height);
+        Assert.Equal(2, texture.Depth);
+
+        var readback = new byte[2 * 2 * 2 * 4];
+        Assert.True(texture.GetData(0u, readback));
+        Assert.Equal(readback.Length, texture.GetData(0u)?.Length);
+    }
 }

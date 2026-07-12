@@ -540,7 +540,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Texture2D.h`
   - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture3D.h`
-  - [~] `Texture3D : Texture`
+  - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading, mip selection, CPU volume upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `TextureCube.h`
   - [~] `TextureCube : Texture`
 - [~] `Texture2DArray.h`
