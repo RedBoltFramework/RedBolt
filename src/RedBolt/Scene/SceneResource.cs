@@ -88,12 +88,34 @@ public sealed class SceneResource : Resource
 
     public bool SaveFile(string fileName, SceneResourceFormat format, bool asPrefab = false)
     {
-        using var file = System.IO.File.Create(fileName); return Save(file, format, asPrefab);
+        return SaveFile(fileName, format switch
+        {
+            SceneResourceFormat.Json => InternalResourceFormat.Json,
+            SceneResourceFormat.Xml => InternalResourceFormat.Xml,
+            _ => InternalResourceFormat.Binary
+        }, asPrefab);
     }
 
     public bool SaveFile(string fileName, InternalResourceFormat format, bool asPrefab = false)
     {
-        using var file = System.IO.File.Create(fileName); return Save(file, format, asPrefab);
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), File.FileMode.Write);
+        if (file is null)
+            return false;
+
+        try
+        {
+            using var buffer = new MemoryStream();
+            if (!Save(buffer, format, asPrefab))
+                return false;
+
+            var data = buffer.ToArray();
+            return file.Write(data) == data.Length;
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     public static string GetXmlRootName() => "resource";

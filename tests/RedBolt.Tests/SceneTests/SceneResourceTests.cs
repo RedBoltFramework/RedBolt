@@ -84,6 +84,8 @@ public sealed class SceneResourceTests
     public void Resource_cache_loads_scene_resource_from_file()
     {
         var tempDir = CreateTempDir();
+        var fileSystem = _fixture.Engine.GetSubsystem<VirtualFileSystem>()!;
+        using var mount = new MountPointGuard(fileSystem.MountRoot());
         try
         {
             var path = Path.Combine(tempDir, "Data", "sample.scene.json");
