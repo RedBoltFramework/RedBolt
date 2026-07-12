@@ -60,4 +60,38 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal(srgb, RenderAPIUtils.SetTextureFormatSRGB(linear));
         Assert.Equal(linear, RenderAPIUtils.SetTextureFormatSRGB(srgb, false));
     }
+
+    [Fact]
+    public void Render_device_settings_optional_values_round_trip_through_binary_archive()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var settings = new RenderDeviceSettingsD3D12();
+        settings.CpuDescriptorHeapAllocationSize[0] = 128;
+        settings.CpuDescriptorHeapAllocationSize[1] = null;
+        settings.GpuDescriptorHeapSize[1] = 256;
+        settings.DynamicHeapPageSize = 4096;
+        settings.QueryPoolSizes[0] = 4;
+        settings.QueryPoolSizes[3] = 8;
+
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            RenderAPIUtils.SerializeValue(output, "settings", settings);
+        output.Flush();
+
+        buffer.Seek(0);
+        var loadedSettings = new RenderDeviceSettingsD3D12();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            RenderAPIUtils.SerializeValue(input, "settings", loadedSettings);
+        input.Flush();
+
+        Assert.Equal((uint?)128, loadedSettings.CpuDescriptorHeapAllocationSize[0]);
+        Assert.Null(loadedSettings.CpuDescriptorHeapAllocationSize[1]);
+        Assert.Equal((uint?)256, loadedSettings.GpuDescriptorHeapSize[1]);
+        Assert.Equal((uint?)4096, loadedSettings.DynamicHeapPageSize);
+        Assert.Equal((uint?)4, loadedSettings.QueryPoolSizes[0]);
+        Assert.Equal((uint?)8, loadedSettings.QueryPoolSizes[3]);
+        Assert.Null(loadedSettings.QueryPoolSizes[1]);
+    }
 }

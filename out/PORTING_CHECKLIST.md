@@ -110,7 +110,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct InputLayoutDesc`
   - [x] `struct ImmutableSamplersDesc`
 - [~] `RenderAPIUtils.h`
-  - [~] RenderAPI free functions — backend/platform predicates, enum tables, shader-input parsing/name conversion, native shader-stage mapping, backend/policy selection, mip sizing, depth/stencil/color classification, managed texture mappings, and native sRGB mappings are ported; optional render-setting serialization, native compile-time backend filtering, exact Depth16/D32S8 mappings, managed TextureFormat/Texture.SRGB state integration, and translator/optimizer support remain TODO because the managed APIs differ
+  - [~] RenderAPI free functions — backend/platform predicates, enum tables, shader-input parsing/name conversion, native shader-stage mapping, backend/policy selection, mip sizing, depth/stencil/color classification, managed texture mappings, native sRGB mappings, and optional Vulkan/D3D12 render-setting serialization are ported; native compile-time backend filtering, exact Depth16/D32S8 mappings, managed TextureFormat/Texture.SRGB state integration, and translator/optimizer support remain TODO because the managed APIs differ
 - [-] `GAPIIncludes.h` — **EXCLUDED** · reason: Diligent header aggregation · replaced-by: generated Diligent bindings
 - [x] `ShaderBytecode.h`
   - [x] `ShaderBytecode` — type, MIME, bytecode, vertex attributes, archive and compiled-file persistence, copying, equality, and version validation are ported
