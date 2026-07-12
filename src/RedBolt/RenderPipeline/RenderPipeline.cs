@@ -337,7 +337,7 @@ public class RenderPipeline : Component
 
             _sharedState.Graphics = graphics;
             Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
-            _renderBufferManager.OnRenderBegin(_frameInfo);
+            _renderBufferManager.OnRenderBegin(_frameInfo, graphics);
             _renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(_viewport, materialQuality, _frameInfo.ViewportRect);

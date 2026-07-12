@@ -14,11 +14,10 @@ public class RenderContext : Object
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void OpenGlStateFunction(uint capability);
 
-    private static readonly RenderTargetView[] SwapChainColorTarget = [RenderTargetView.SwapChainColor()];
-
     private readonly RenderDevice _renderDevice;
     private readonly RenderPool _renderPool;
     private readonly RenderDeviceStats _stats = new();
+    private readonly RenderTargetView[] _swapChainColorTarget;
     private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
     private int _numCurrentRenderTargets;
     private OptionalRawTextureRTV _currentDepthStencil;
@@ -34,6 +33,7 @@ public class RenderContext : Object
     {
         this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
         _renderPool = renderDevice.GetRenderPool();
+        _swapChainColorTarget = [RenderTargetView.SwapChainColor(renderDevice)];
         SubscribeToEvent<GraphicsEvents.DeviceLostEvent>(renderDevice,
             (ref GraphicsEvents.DeviceLostEvent _) => ResetCachedContextState());
     }
@@ -71,7 +71,7 @@ public class RenderContext : Object
     /// </summary>
     public void SetSwapChainRenderTargets()
     {
-        SetRenderTargets(RenderTargetView.SwapChainDepthStencil(), SwapChainColorTarget);
+        SetRenderTargets(RenderTargetView.SwapChainDepthStencil(_renderDevice), _swapChainColorTarget);
     }
 
     /// <summary>

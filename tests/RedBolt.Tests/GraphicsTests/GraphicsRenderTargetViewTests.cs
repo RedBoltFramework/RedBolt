@@ -78,10 +78,10 @@ public sealed class GraphicsRenderTargetViewTests
         {
             var outputTarget = GetSwapChainOutputTarget();
 
-            Assert.Equal(outputTarget.ColorFormat, RenderTargetView.SwapChainColor().GetFormat());
-            Assert.Equal(outputTarget.DepthStencilFormat, RenderTargetView.SwapChainDepthStencil().GetFormat());
-            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainColor().GetMultiSample());
-            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainDepthStencil().GetMultiSample());
+            Assert.Equal(outputTarget.ColorFormat, RenderTargetView.SwapChainColor(_fixture.RenderDevice).GetFormat());
+            Assert.Equal(outputTarget.DepthStencilFormat, RenderTargetView.SwapChainDepthStencil(_fixture.RenderDevice).GetFormat());
+            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainColor(_fixture.RenderDevice).GetMultiSample());
+            Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainDepthStencil(_fixture.RenderDevice).GetMultiSample());
         }, multiSample: 4);
     }
 

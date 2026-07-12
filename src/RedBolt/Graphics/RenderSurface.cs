@@ -188,14 +188,18 @@ public sealed class RenderSurface : IDisposable
     /// <summary>Return color format for the surface or main viewport.</summary>
     public static TextureFormat GetColorFormat(Graphics graphics, RenderSurface? renderSurface)
     {
-        var view = renderSurface is not null ? renderSurface.GetView() : RenderTargetView.SwapChainColor();
+        var view = renderSurface is not null
+            ? renderSurface.GetView()
+            : RenderTargetView.SwapChainColor(graphics.GetSubsystem<RenderDevice>()!);
         return view.GetFormat();
     }
 
     /// <summary>Return depth format for the surface or main viewport.</summary>
     public static TextureFormat GetDepthFormat(Graphics graphics, RenderSurface? renderSurface)
     {
-        var view = renderSurface is not null ? renderSurface.GetView() : RenderTargetView.SwapChainDepthStencil();
+        var view = renderSurface is not null
+            ? renderSurface.GetView()
+            : RenderTargetView.SwapChainDepthStencil(graphics.GetSubsystem<RenderDevice>()!);
         return view.GetFormat();
     }
 

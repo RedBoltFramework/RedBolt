@@ -45,38 +45,59 @@ public enum RenderTargetViewType
 /// </summary>
 public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTargetViewType Type, uint Slice = 0u)
 {
-    public static RenderTargetView SwapChainColor() => new(null, RenderTargetViewType.SwapChainColor);
+    private readonly RenderDevice? _renderDevice;
 
-    public static RenderTargetView SwapChainDepthStencil() => new(null, RenderTargetViewType.SwapChainDepthStencil);
+    private RenderTargetView(Texture? renderTexture, RenderTargetViewType type, uint slice, RenderDevice? renderDevice)
+        : this(renderTexture, type, slice)
+    {
+        _renderDevice = renderDevice;
+    }
+
+    public bool Equals(RenderTargetView other) =>
+        ReferenceEquals(RenderTexture, other.RenderTexture) && Type == other.Type && Slice == other.Slice;
+
+    public override int GetHashCode() => HashCode.Combine(RenderTexture, Type, Slice);
+
+    public static RenderTargetView SwapChainColor(RenderDevice? renderDevice)
+    {
+        return new RenderTargetView(null, RenderTargetViewType.SwapChainColor, 0, renderDevice);
+    }
+
+    public static RenderTargetView SwapChainDepthStencil(RenderDevice? renderDevice)
+    {
+        return new RenderTargetView(null, RenderTargetViewType.SwapChainDepthStencil, 0, renderDevice);
+    }
 
     public static RenderTargetView Texture(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.Resource);
+        return new RenderTargetView(texture, RenderTargetViewType.Resource, 0, texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView Texture(RawTexture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return Texture(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."));
+        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
+            RenderTargetViewType.Resource, 0, texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView TextureSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ResourceSlice, slice);
+        return new RenderTargetView(texture, RenderTargetViewType.ResourceSlice, slice, texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView TextureSlice(RawTexture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return TextureSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
+        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
+            RenderTargetViewType.ResourceSlice, slice, texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView ReadOnlyDepth(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResource);
+        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResource, 0, texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView ReadOnlyDepth(RawTexture texture)
@@ -84,13 +105,14 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return ReadOnlyDepth(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."));
+        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
+            RenderTargetViewType.ReadOnlyResource, 0, texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView ReadOnlyDepthSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResourceSlice, slice);
+        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResourceSlice, slice, texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, uint slice)
@@ -98,7 +120,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return ReadOnlyDepthSlice(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."), slice);
+        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
+            RenderTargetViewType.ReadOnlyResourceSlice, slice, texture.GetRenderDevice()!);
     }
 
     /// <summary>
@@ -147,15 +170,10 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         return ResolveGraphics().GetSwapChainMultiSample();
     }
 
-    private static Graphics ResolveGraphics()
+    private Graphics ResolveGraphics()
     {
-        var context = Context.Instance;
-        return context.GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        return _renderDevice!.GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
     }
 
-    private static RenderDevice ResolveRenderDevice()
-    {
-        var context = Context.Instance;
-        return context.GetSubsystem<RenderDevice>() ?? throw new InvalidOperationException("RenderDevice subsystem is not available.");
-    }
+    private RenderDevice ResolveRenderDevice() => _renderDevice!;
 }

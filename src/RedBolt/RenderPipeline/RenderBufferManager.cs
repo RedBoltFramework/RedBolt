@@ -24,7 +24,7 @@ public sealed class RenderBufferManager
         private Texture? _texture;
         private IntRect _viewportRect;
 
-        public ViewportOutputRenderBuffer(RenderTargetView targetView)
+        public ViewportOutputRenderBuffer(RenderTargetView? targetView = null)
         {
             this._targetView = targetView;
         }
@@ -55,8 +55,8 @@ public sealed class RenderBufferManager
         public override IntRect GetViewportRect() => _viewportRect;
     }
 
-    private readonly ViewportOutputRenderBuffer _viewportColorBuffer = new(RenderTargetView.SwapChainColor());
-    private readonly ViewportOutputRenderBuffer _viewportDepthBuffer = new(RenderTargetView.SwapChainDepthStencil());
+    private readonly ViewportOutputRenderBuffer _viewportColorBuffer = new();
+    private readonly ViewportOutputRenderBuffer _viewportDepthBuffer = new();
     private TextureRenderBuffer? _primaryColorBuffer;
     private TextureRenderBuffer? _secondaryColorBuffer;
     private TextureRenderBuffer? _depthBuffer;
@@ -95,13 +95,16 @@ public sealed class RenderBufferManager
 
     public void OnViewportDefined(RenderOutputTargetInfo? renderTarget, IntRect viewportRect)
     {
+        var renderDevice = _lastGraphics?.GetSubsystem<RenderDevice>();
+        var colorTarget = renderTarget?.ColorTarget
+            ?? RenderTargetView.SwapChainColor(renderDevice!);
+        var depthTarget = renderTarget?.DepthStencilTarget
+            ?? RenderTargetView.SwapChainDepthStencil(renderDevice!);
         this._viewportRect = viewportRect;
         _viewportColorBuffer.SetViewportRect(viewportRect);
         _viewportDepthBuffer.SetViewportRect(viewportRect);
-        _viewportColorBuffer.SetOutput(renderTarget?.ColorTarget ?? RenderTargetView.SwapChainColor(), renderTarget?.ColorTexture);
-        _viewportDepthBuffer.SetOutput(
-            renderTarget is null ? RenderTargetView.SwapChainDepthStencil() : renderTarget.DepthStencilTarget,
-            renderTarget?.DepthStencilTexture);
+        _viewportColorBuffer.SetOutput(colorTarget, renderTarget?.ColorTexture);
+        _viewportDepthBuffer.SetOutput(depthTarget, renderTarget?.DepthStencilTexture);
         _viewportTargetLinearColorSpace = renderTarget?.LinearColorSpace ?? false;
 
         ResolveOutputParams(renderTarget);
@@ -145,9 +148,11 @@ public sealed class RenderBufferManager
         }
     }
 
-    public void OnRenderBegin(CommonFrameInfo frameInfo)
+    public void OnRenderBegin(CommonFrameInfo frameInfo, Graphics graphics)
     {
         ArgumentNullException.ThrowIfNull(frameInfo);
+        ArgumentNullException.ThrowIfNull(graphics);
+        _lastGraphics = graphics;
         OnViewportDefined(frameInfo.RenderTarget, frameInfo.ViewportRect);
     }
 

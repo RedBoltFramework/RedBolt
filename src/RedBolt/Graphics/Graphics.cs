@@ -84,7 +84,6 @@ layout(std140) uniform Material
     private static readonly bool ShaderReflectionDiagnosticsEnabled = IsShaderReflectionDiagnosticsEnabled();
 
     private readonly float[] _clearColor = [0.0f, 0.0f, 0.0f, 1.0f];
-    private static readonly RenderTargetView[] SwapChainColorViews = [RenderTargetView.SwapChainColor()];
     private readonly ITextureView?[] _renderTargets = new ITextureView?[RenderApiLimits.MaxRenderTargets];
     private readonly RenderTargetView[] _singleRenderTargetView = new RenderTargetView[1];
     private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
@@ -639,11 +638,12 @@ layout(std140) uniform Material
             return _swapChainOutputTarget;
         }
 
+        var renderDevice = GetSubsystem<RenderDevice>()!;
         _swapChainOutputTarget = new RenderOutputTargetInfo(
-            RenderTargetView.SwapChainColor(),
+            RenderTargetView.SwapChainColor(renderDevice),
             fullRect,
             colorFormat,
-            RenderTargetView.SwapChainDepthStencil(),
+            RenderTargetView.SwapChainDepthStencil(renderDevice),
             depthFormat,
             multiSample,
             bilinearFiltered: false,
@@ -810,7 +810,9 @@ layout(std140) uniform Material
     /// </summary>
     internal void SetSwapChainRenderTargets(IntRect viewportRect)
     {
-        SetRenderTargets(viewportRect, SwapChainColorViews, RenderTargetView.SwapChainDepthStencil());
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        _singleRenderTargetView[0] = RenderTargetView.SwapChainColor(renderDevice);
+        SetRenderTargets(viewportRect, _singleRenderTargetView, RenderTargetView.SwapChainDepthStencil(renderDevice));
     }
 
     internal void SetViewport(IntRect viewportRect)
