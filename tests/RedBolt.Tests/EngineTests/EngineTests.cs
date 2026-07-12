@@ -39,6 +39,22 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Exit_performs_exit_housekeeping()
+    {
+        using var engine = new EngineScope(new Engine(), new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.Exit",
+            ConfigName = string.Empty,
+            Headless = true
+        });
+
+        engine.Value.Exit();
+
+        Assert.True(engine.Value.IsExiting);
+        Assert.False(engine.Value.Context.GetSubsystem<Graphics>()!.IsInitialized);
+    }
+
+    [Fact]
     public void Time_step_helpers_work()
     {
         _fixture.Engine.SetNextTimeStep(0.125f);

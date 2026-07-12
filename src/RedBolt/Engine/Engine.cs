@@ -11,6 +11,7 @@ public sealed class Engine : Object
     private float _currentTimeStep;
     private long _timeOut;
     private bool _audioPaused;
+    private bool _exitRequired;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
     private readonly ConfigFile _configFile = new();
@@ -96,6 +97,7 @@ public sealed class Engine : Object
 
         IsInitialized = true;
         IsExiting = false;
+        _exitRequired = false;
         _currentTimeStep = 0.0f;
         _nextTimeStep = null;
         _lastTimeSteps.Clear();
@@ -152,7 +154,7 @@ public sealed class Engine : Object
             input.BeginFrame();
             input.PollEvents();
             if (input.ExitRequested && AutoExit)
-                Exit();
+                HandleExitRequested();
         }
 
         if (!IsExiting)
@@ -170,6 +172,7 @@ public sealed class Engine : Object
 
         ApplyFrameLimit();
         time.EndFrame();
+        HandleEndFrame();
     }
 
     /// <summary>
@@ -187,7 +190,7 @@ public sealed class Engine : Object
 
     public void Exit()
     {
-        IsExiting = true;
+        DoExit();
     }
 
     public void SetMinFps(int fps)
@@ -304,6 +307,7 @@ public sealed class Engine : Object
         _lastTimeSteps.Clear();
         _timeOut = 0;
         _audioPaused = false;
+        _exitRequired = false;
         _frameTimer.Reset();
     }
 
@@ -565,6 +569,32 @@ public sealed class Engine : Object
             TimeStep = timeStep
         };
         _context.SendEvent(ref postRenderUpdateEventData);
+    }
+
+    private void HandleExitRequested()
+    {
+        if (AutoExit)
+            _exitRequired = true;
+    }
+
+    private void HandleEndFrame()
+    {
+        if (_exitRequired)
+            DoExit();
+    }
+
+    private void DoExit()
+    {
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is not null)
+        {
+            // TODO: port graphics->SavePipelineStateCache(FileIdentifier::FromUri(GetParameter(EP_PSO_CACHE).GetString()));
+            graphics.Close();
+        }
+
+        SaveConfigFile();
+
+        IsExiting = true;
     }
 
     private static IReadOnlyList<string> SplitPathList(string value)
