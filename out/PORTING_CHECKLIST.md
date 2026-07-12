@@ -521,9 +521,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] graphics free functions — InitializeInputLayout is ported; the remaining helpers retain exact C++ TODO bodies until VertexBuffer/Texture expose DrawCommandQueue RawBuffer/RawTexture objects
 - [x] `Tangent.h`
   - [x] tangent generation — GenerateTangents and its index reader are ported with managed span equivalents for the C++ vertex/index pointers
-- [ ] `PipelineStateTracker.h`
-  - [ ] `PipelineStateSubscription`
-  - [ ] `PipelineStateTracker`
+- [x] `PipelineStateTracker.h`
+  - [x] `PipelineStateSubscription` — managed IDisposable subscription with Clone for C++ copy-construction
+  - [x] `PipelineStateTracker` — dependency tracking and atomic cached hash invalidation
 - [ ] `Skeleton.h`
   - [ ] `Bone`
   - [ ] `Skeleton`
