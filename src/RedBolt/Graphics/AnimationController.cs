@@ -773,8 +773,15 @@ public class AnimationController : AnimationStateSource
 
     private Node? GetTrackNodeByNameHash(StringHash trackNameHash, Node? startBone)
     {
-        // TODO: port: track-node lookup requires the managed AnimatedModel bone hierarchy.
-        return null;
+        // Empty track name means that we animate the node itself
+        if (trackNameHash == StringHash.Empty)
+            return Node;
+
+        // If track name hash matches start bone name hash then we animate the start bone
+        if (trackNameHash == startBone!.GetNameHash())
+            return startBone;
+
+        return startBone.GetChild(trackNameHash, true);
     }
 
     private Animation? GetAnimationByName(string name)

@@ -277,7 +277,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `AnimationState : RefCounted`
 - [~] `AnimationController.h` — animation parameter management, playback lifecycle, and replacement merge path are ported; AnimatedModel pose/attribute integration remains TODO
   - [~] `AnimationParameters` — global resource lookups use a local context variable because this C++ value-style class has no Object.GetSubsystem() instance
-  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath node/component and special sub-attribute resolution is ported; AnimatedModel pose/attribute integration remains TODO
+  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath node/component and special sub-attribute resolution plus track-node lookup are ported; AnimatedModel pose/attribute integration remains TODO
 - [ ] `SoftwareModelAnimator.h`
   - [ ] `SoftwareModelAnimator : Object`
 - [ ] `BillboardSet.h`
