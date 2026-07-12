@@ -303,6 +303,14 @@ public sealed class RenderDeviceTests
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().MultiSample, _fixture.Graphics.GetMultiSample());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().Mode == WindowMode.Fullscreen, _fixture.Graphics.GetFullscreen());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().VSync, _fixture.Graphics.GetVSync());
+            Assert.Equal(RenderBackend.OpenGL, _fixture.Graphics.GetRenderBackend());
+            Assert.Equal("OpenGL", _fixture.Graphics.GetApiName());
+            Assert.Equal(nint.Zero, _fixture.Graphics.GetExternalWindow());
+            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetDummyColorFormat());
+            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetShadowMapFormat());
+            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetHiresShadowMapFormat());
+            Assert.True(_fixture.Graphics.GetInstancingSupport());
+            Assert.True(_fixture.Graphics.GetHardwareShadowSupport());
             Assert.True(_fixture.Graphics.GetMonitorCount() > 0);
             Assert.True(_fixture.Graphics.GetCurrentMonitor() >= 0);
             Assert.NotEmpty(_fixture.Graphics.GetResolutions(_fixture.Graphics.GetCurrentMonitor()));

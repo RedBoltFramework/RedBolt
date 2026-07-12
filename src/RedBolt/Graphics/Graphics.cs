@@ -309,6 +309,54 @@ layout(std140) uniform Material
 
     public SdlWindow? GetNativeWindow() => _window;
 
+    /// <summary>
+    /// Return OS-specific external window handle.
+    /// </summary>
+    public nint GetExternalWindow()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        return renderDevice?.GetDeviceSettings().ExternalWindowHandle ?? nint.Zero;
+    }
+
+    /// <summary>
+    /// Return graphics API name.
+    /// </summary>
+    public string GetApiName() => GetRenderBackend().ToString();
+
+    /// <summary>
+    /// Return render backend.
+    /// </summary>
+    public RenderBackend GetRenderBackend()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        return renderDevice?.GetBackend() ?? RenderBackend.OpenGL;
+    }
+
+    /// <summary>
+    /// Return dummy color texture format for shadow maps.
+    /// </summary>
+    public TextureFormat GetDummyColorFormat() => TextureFormat.Unknown;
+
+    /// <summary>
+    /// Return shadow map depth texture format.
+    /// </summary>
+    public TextureFormat GetShadowMapFormat() => TextureFormat.Unknown;
+
+    /// <summary>
+    /// Return 24-bit shadow map depth texture format.
+    /// </summary>
+    public TextureFormat GetHiresShadowMapFormat() => TextureFormat.Unknown;
+
+    /// <summary>
+    /// Return whether hardware instancing is supported.
+    /// </summary>
+    public bool GetInstancingSupport() => true;
+
+    /// <summary>
+    /// Return whether shadow map depth compare is done in hardware.
+    /// </summary>
+    public bool GetHardwareShadowSupport() => true;
+
     internal ITexture? GetTextureHandle(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
