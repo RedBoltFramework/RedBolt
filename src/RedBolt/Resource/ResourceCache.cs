@@ -81,7 +81,9 @@ public sealed class ResourceCache : Object
         }
 
         _resourceDirs.Add(path);
-        GetVirtualFileSystem().MountDir(path);
+        var virtualFileSystem = GetVirtualFileSystem();
+        if (!HasMountForResourcePath(virtualFileSystem, path))
+            virtualFileSystem.MountDir(path);
         return true;
     }
 
@@ -574,6 +576,32 @@ public sealed class ResourceCache : Object
 
         _standaloneVirtualFileSystem ??= new VirtualFileSystem();
         return _standaloneVirtualFileSystem;
+    }
+
+    private static bool HasMountForResourcePath(VirtualFileSystem virtualFileSystem, string path)
+    {
+        var normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        for (var index = 0u; index < virtualFileSystem.NumMountPoints(); ++index)
+        {
+            var mountPoint = virtualFileSystem.GetMountPoint(index);
+            if (mountPoint is MountedDirectory directory
+                && string.Equals(
+                    Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory.GetDirectory())),
+                    normalizedPath,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (mountPoint is PackageFile package)
+            {
+                var packagePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(package.GetName()));
+                if (string.Equals(Path.ChangeExtension(packagePath, null), normalizedPath, StringComparison.Ordinal))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static Type? ResolveResourceType(StringHash type)

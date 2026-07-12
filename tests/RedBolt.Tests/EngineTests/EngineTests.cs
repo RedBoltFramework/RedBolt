@@ -100,6 +100,18 @@ public sealed class EngineTests
             Assert.NotNull(resources);
             Assert.Contains(coreData, resources!.GetResourceDirs());
             Assert.Contains(data, resources.GetResourceDirs());
+
+            var virtualFileSystem = engine.Value.Context.GetSubsystem<VirtualFileSystem>();
+            Assert.NotNull(virtualFileSystem);
+            var hasAliasRoot = false;
+            var hasRoot = false;
+            for (var index = 0u; index < virtualFileSystem!.NumMountPoints(); ++index)
+            {
+                hasAliasRoot |= virtualFileSystem.GetMountPoint(index) is MountedAliasRoot;
+                hasRoot |= virtualFileSystem.GetMountPoint(index) is MountedRoot;
+            }
+            Assert.True(hasAliasRoot);
+            Assert.True(hasRoot);
         }
         finally
         {
@@ -127,7 +139,7 @@ public sealed class EngineTests
 
         public void Dispose()
         {
-            Value.Shutdown();
+            Value.Dispose();
         }
     }
 

@@ -35,6 +35,12 @@ public sealed class Engine : Object
 
     public int TimeStepSmoothing { get; private set; } = 2;
 
+    public override void Dispose()
+    {
+        Shutdown();
+        base.Dispose();
+    }
+
     public bool Initialize(EngineParameters applicationParameters)
     {
         ArgumentNullException.ThrowIfNull(applicationParameters);
@@ -303,6 +309,45 @@ public sealed class Engine : Object
 
     public void InitializeVirtualFileSystem(bool enableResourceRootFile)
     {
+        _ = enableResourceRootFile;
+
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        virtualFileSystem.UnmountAll();
+        virtualFileSystem.MountAliasRoot();
+        virtualFileSystem.MountRoot();
+
+        var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
+        var resourcePaths = new StringVector(SplitPathList(Parameters.ResourcePaths));
+        var resourcePackages = new StringVector(SplitPathList(Parameters.ResourcePackages));
+        var autoLoadPaths = SplitPathList(Parameters.AutoloadPaths);
+        var absolutePrefixPaths = new StringVector();
+
+        foreach (var prefixPath in prefixPaths)
+            absolutePrefixPaths.Add(NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar);
+
+        var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory) + Path.DirectorySeparatorChar;
+        if (!absolutePrefixPaths.Contains(programDirectory, StringComparer.Ordinal))
+            absolutePrefixPaths.Add(programDirectory);
+
+        virtualFileSystem.MountExistingDirectoriesOrPackages(absolutePrefixPaths, resourcePaths);
+        virtualFileSystem.MountExistingPackages(absolutePrefixPaths, resourcePackages);
+
+        foreach (var autoLoadPath in autoLoadPaths)
+        {
+            if (Path.IsPathRooted(autoLoadPath))
+            {
+                virtualFileSystem.AutomountDir(autoLoadPath);
+            }
+            else
+            {
+                foreach (var prefixPath in absolutePrefixPaths)
+                    virtualFileSystem.AutomountDir(prefixPath + autoLoadPath);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
+            virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
+
         ApplyConfiguredResourcePaths();
     }
 
@@ -409,7 +454,16 @@ public sealed class Engine : Object
         if (!Parameters.FrameLimiter)
             MaxFps = 0;
 
-        ApplyConfiguredResourcePaths();
+        if (string.IsNullOrEmpty(Parameters.ApplicationPreferencesDir))
+        {
+            var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrEmpty(localApplicationData))
+                localApplicationData = AppContext.BaseDirectory;
+            Parameters.ApplicationPreferencesDir = Path.Combine(
+                localApplicationData, Parameters.OrganizationName, Parameters.ApplicationName);
+        }
+
+        InitializeVirtualFileSystem(enableResourceRootFile: true);
         _timeOut = (long)Parameters.TimeOut * 1_000_000L;
     }
 
