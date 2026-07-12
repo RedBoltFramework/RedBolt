@@ -31,7 +31,7 @@ public struct VariantCurvePoint : IEquatable<VariantCurvePoint>
     public static bool operator !=(VariantCurvePoint lhs, VariantCurvePoint rhs) => !lhs.Equals(rhs);
 }
 
-public sealed class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>
+public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>
 {
     public static readonly VariantCurve Empty = new();
 

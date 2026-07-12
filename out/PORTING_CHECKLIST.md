@@ -562,9 +562,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `ModelView : Object` — CPU-side geometry transforms, bounds, normals, bone-weight repair, metadata, and material references are ported; native Model import/export and GPU buffer composition remain TODO
 - [~] `Model.h`
   - [~] `Model : ResourceWithMetadata`
-- [ ] `AnimationTrack.h`
-  - [ ] `struct AnimationTrack : KeyFrameSet<AnimationKeyFrame>`
-  - [ ] `struct VariantAnimationTrack : VariantCurve`
+- [x] `AnimationTrack.h`
+  - [x] `struct AnimationTrack : KeyFrameSet<AnimationKeyFrame>` — keyframe sampling, loop detection, and merged channel construction are ported; `AnimationKeyFrame` duplicates `Transform` fields because C# structs cannot inherit structs
+  - [x] `struct VariantAnimationTrack : VariantCurve` — variant track weight and loop detection are ported; `VariantCurve` is made inheritable to match the C++ base relationship
 - [ ] `Animation.h`
   - [ ] `Animation : ResourceWithMetadata, ObjectRevisionTracker`
 - [~] `Camera.h`
