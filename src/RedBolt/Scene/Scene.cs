@@ -165,6 +165,24 @@ public sealed class Scene : Object
         new((float)(position.X - _worldOrigin.X), (float)(position.Y - _worldOrigin.Y), (float)(position.Z - _worldOrigin.Z));
 
     /// <summary>
+    /// Convert world transform from relative to world origin to absolute.
+    /// </summary>
+    public DoubleTransform ToAbsoluteWorldTransform(Transform transform) => new()
+    {
+        Position = ToAbsoluteWorldPosition(transform.Position),
+        Rotation = transform.Rotation,
+        Scale = transform.Scale
+    };
+
+    /// <summary>
+    /// Convert world transform from absolute to relative to world origin.
+    /// </summary>
+    public Transform ToRelativeWorldTransform(DoubleTransform transform) => new(
+        ToRelativeWorldPosition(transform.Position),
+        transform.Rotation,
+        transform.Scale);
+
+    /// <summary>
     /// Set world origin without any scene updates.
     /// </summary>
     public void SetWorldOrigin(IntVector3 worldOrigin) => _worldOrigin = worldOrigin;

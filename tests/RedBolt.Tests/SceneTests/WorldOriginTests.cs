@@ -45,4 +45,23 @@ public sealed class WorldOriginTests
         Assert.Equal(1u, worldOrigin.GetUpdateY());
         Assert.Equal(0u, worldOrigin.GetUpdateZ());
     }
+
+    [Fact]
+    public void World_origin_transform_conversions_match_cpp_contract()
+    {
+        var scene = new Scene();
+        scene.SetWorldOrigin(new Vector3i(100, -20, 300));
+        var transform = new Transform(
+            new Vector3f(1.5f, 2.5f, 3.5f),
+            Quaternion.FromEulerAngles(10.0f, 20.0f, 30.0f),
+            new Vector3f(2.0f, 3.0f, 4.0f));
+
+        var absolute = scene.ToAbsoluteWorldTransform(transform);
+        Assert.Equal(new Vector3d(101.5, -17.5, 303.5), absolute.Position);
+        Assert.Equal(transform.Rotation, absolute.Rotation);
+        Assert.Equal(transform.Scale, absolute.Scale);
+
+        var relative = scene.ToRelativeWorldTransform(absolute);
+        Assert.Equal(transform, relative);
+    }
 }
