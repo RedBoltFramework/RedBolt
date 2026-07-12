@@ -874,7 +874,40 @@ public class AnimationController : AnimationStateSource
 
     private void CommitNodeAndAttributeAnimations()
     {
-        // TODO: port: node and attribute animation commits require managed animatable targets.
+        foreach (var node in _animatedNodes.Keys)
+        {
+            var value = _animatedNodes[node];
+            value.Dirty = AnimationChannel.None;
+            _animatedNodes[node] = value;
+        }
+
+        foreach (var attribute in _animatedAttributes.Keys)
+            _animatedAttributes[attribute] = default;
+
+        for (var i = 0; i < _animationStates.Count; ++i)
+        {
+            _animationStates[i].CalculateNodeTracks(_animatedNodes);
+            _animationStates[i].CalculateAttributeTracks(_animatedAttributes);
+        }
+
+        foreach (var pair in _animatedNodes)
+        {
+            var node = pair.Key;
+            var value = pair.Value;
+            if ((value.Dirty & AnimationChannel.Position) != 0)
+                node.SetPosition(value.LocalToParent.Position);
+            if ((value.Dirty & AnimationChannel.Rotation) != 0)
+                node.SetRotation(value.LocalToParent.Rotation);
+            if ((value.Dirty & AnimationChannel.Scale) != 0)
+                node.SetScale(value.LocalToParent.Scale);
+        }
+
+        foreach (var pair in _animatedAttributes)
+        {
+            if (pair.Value.IsEmpty)
+                continue;
+            pair.Key.SetValue(pair.Value);
+        }
     }
 
     private void SendTriggerEvents()
