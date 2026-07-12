@@ -90,7 +90,9 @@ Make a note of any accepted deviations.
 Build:
   cmake --preset dev
   cmake --build --preset Debug --target restore
-  cmake --build --preset Debug --target RedBolt
+  cmake --build --preset Debug --target RedBolt -- -j16
+
+Use `-j16` for parallel builds.
 
 Run the sample and capture a screenshot:
   out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png

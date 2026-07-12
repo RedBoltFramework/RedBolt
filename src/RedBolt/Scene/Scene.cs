@@ -17,11 +17,19 @@ public sealed class Scene : Object
     private IntVector3 _worldOrigin;
     private uint _nextComponentId = 1;
     private uint _nextNodeId = 1;
+    private bool _manualUpdate;
 
     public Scene()
     {
         Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
         NodeAdded(Root);
+    }
+
+    public override void Dispose()
+    {
+        Root.RemoveAllComponents();
+        Root.RemoveAllChildren();
+        base.Dispose();
     }
 
     public Node Root { get; }
@@ -41,6 +49,15 @@ public sealed class Scene : Object
     public string FileName => _fileName;
 
     public uint Checksum { get; private set; }
+
+    public void SetManualUpdate(bool enabled)
+    {
+        _manualUpdate = enabled;
+    }
+
+    public uint GetFreeNodeID() => AllocateNodeId(0);
+
+    public uint GetFreeComponentID() => AllocateComponentId(0);
 
     public uint GetNumLightmaps() => (uint)_lightmapNames.Count;
 

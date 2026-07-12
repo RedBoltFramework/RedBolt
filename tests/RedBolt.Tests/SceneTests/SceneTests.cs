@@ -172,4 +172,31 @@ public sealed class SceneTests
             cache.ReleaseResource(resourceName, force: true);
         }
     }
+
+    [Fact]
+    public void Dispose_clears_scene_nodes_and_components()
+    {
+        var scene = new Scene();
+        scene.CreateChild("Temporary").CreateComponent<Camera>();
+
+        scene.Dispose();
+
+        Assert.Single(scene.GetAllNodes());
+        Assert.Same(scene.Root, scene.GetNode(scene.Root.Id));
+        Assert.Empty(scene.GetAllComponents());
+    }
+
+    [Fact]
+    public void Free_node_and_component_ids_advance_independently()
+    {
+        var scene = new Scene();
+
+        var firstNodeId = scene.GetFreeNodeID();
+        var secondNodeId = scene.GetFreeNodeID();
+        var firstComponentId = scene.GetFreeComponentID();
+        var secondComponentId = scene.GetFreeComponentID();
+
+        Assert.NotEqual(firstNodeId, secondNodeId);
+        Assert.NotEqual(firstComponentId, secondComponentId);
+    }
 }
