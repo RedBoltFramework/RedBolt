@@ -55,45 +55,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `TransformedSpan.h` — **EXCLUDED** · reason: projecting span view · replaced-by: LINQ `Select` / `Span<T>`
 - [-] `RefCounted.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
-- [x] `ConstString.h`
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
-- [x] `IndexAllocator.h`
-- [x] `Array2D.h`
-- [x] `MultiVector.h`
-- [x] `KeyFrameSet.h`
 
 ## [x] A2. Math — depends on Container
 
-- [x] `MathDefs.h`
-- [x] `VectorCommon.h`
-- [x] `Vector2.h`
-- [x] `Vector3.h`
-- [x] `Vector4.h`
-- [x] `Rect.h`
-- [x] `Matrix2.h`
-- [x] `Matrix3.h`
-- [x] `Matrix4.h`
-- [x] `Matrix3x4.h`
-- [x] `Quaternion.h`
-- [x] `Color.h`
-- [x] `StringHash.h`
-- [x] `Random.h`
-- [x] `RandomEngine.h`
-- [x] `PerlinNoise.h`
-- [x] `EaseMath.h`
-- [x] `WrappedScalar.h`
-- [x] `NumericRange.h`
-- [x] `Plane.h`
-- [x] `Ray.h`
-- [x] `BoundingBox.h`
-- [x] `Sphere.h`
-- [x] `Frustum.h`
-- [x] `Polyhedron.h`
-- [x] `AreaAllocator.h`
-- [x] `Transform.h`
-- [x] `SphericalHarmonics.h` — pulled in as a required dependency of the in-progress `ImageCube`
-- [x] `TetrahedralMesh.h` — mesh implementation and Archive serialization overloads are ported
-- [x] `InverseKinematics.h`
 
 ## [x] A3. Core — depends on Container, Math
 
@@ -112,116 +77,21 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `PE.h` — **EXCLUDED** · reason: Win32 PE parsing · replaced-by: n/a (platform-specific)
 - [-] `TypeInfo.h` - **EXCLUDED** · reason: use C# type system
 - [-] `Exception.h` - **EXCLUDED** · reason: use C# `RuntimeException` / `ArgumentException` or similar.
-- [x] `Timer.h`
 - [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
-- [x] `StringHashRegister.h`
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
-- [x] `Variant.h`
-- [x] `Variant` — C# union storage includes rbfx default construction, type names, zero/string/getter conversion, scalar conversion, supported interpolation, `VectorBuffer` copying, custom values, typed nullable retrieval, all archive value categories, and the RedBolt `CString` extension; RefCounted-pointer variants are replaced by managed references
-- [x] `VariantCurve.h`
-- [x] `Attribute.h`
-- [x] `ObjectReflection.h`
-- [x] `Object.h`
-- [x] `Context.h`
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
-- [x] `ObjectCategory.h`
-- [x] `CoreEvents.h`
-- [x] `SubsystemCache.h`
-- [x] `ObjectRevisionTracker.h`
-- [x] `Spline.h`
-- [x] `WorkQueue.h`
-- [x] `ProcessUtils.h`
-- [x] `CommandLine.h`
-- [x] `Profiler.h`
-- [x] `ThreadSafeCache.h`
-- [x] `StopToken.h`
 
 ## [x] A4. IO — depends on Container, Core
 
-- [x] `IODefs.h`
-- [x] `ScanFlags.h`
-- [x] `FileIdentifier.h`
-- [x] `Deserializer.h`
-- [x] `Serializer.h`
-- [x] `AbstractFile.h`
-- [x] `MemoryBuffer.h`
-- [x] `VectorBuffer.h`
-- [x] `File.h`
-- [x] `Compression.h`
-- [x] `Log.h`
-- [x] `IOEvents.h`
-- [x] `ArchiveBase.h`
-- [x] `Archive.h`
-- [x] `ArchiveSerializationBasic.h`
-- [x] `ArchiveSerializationContainer.h`
-- [x] `ArchiveSerializationVariant.h`
-- [x] `ArchiveSerialization.h`
-- [x] `BinaryArchive.h`
-- [x] `Base64Archive.h`
-- [x] `MountPoint.h`
-- [x] `MountedRoot.h`
-- [x] `MountedDirectory.h`
-- [x] `MountedAliasRoot.h`
-- [x] `MountedExternalMemory.h`
-- [x] `PackageFile.h`
-- [x] `VirtualFileSystem.h`
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
-- [x] `FileWatcher.h`
-- [x] `MultiFileWatcher.h`
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
-- [x] `NamedPipe.h`
 
 ## [x] A5. Resource — depends on IO, Core
 
-- [x] `ResourceEvents.h`
-- [x] `Decompress.h`
-- [x] `Resource.h`
-- [x] `Image.h`
-- [x] `ImageDDS.h`
-- [x] `ImageCube.h`
-- [x] `JSONValue.h`
-- [x] `JSONFile.h`
-- [x] `XMLElement.h`
-- [x] `XMLFile.h`
-- [x] `JSONArchive.h`
-- [x] `XMLArchive.h`
-- [x] `BinaryFile.h`
-- [x] `PListFile.h`
-- [x] `Localization.h`
-- [x] `BackgroundLoader.h`
-- [x] `ResourceCache.h`
-- [x] `GraphPin.h`
-- [x] `GraphNode.h`
-- [x] `Graph.h`
-- [x] `SerializableResource.h` ⤴ needs `Scene/Serializable`
 
 ## [x] A6. Scene — depends on Resource, Core
 
-- [x] `SceneEvents.h`
-- [x] `AnimationDefs.h`
-- [x] `PrefabTypes.h`
-- [x] `Serializable.h`
-- [x] `ValueAnimationInfo.h`
-- [x] `ValueAnimation.h`
-- [x] `ObjectAnimation.h`
-- [x] `Animatable.h`
-- [x] `Component.h`
-- [x] `Node.h`
-- [x] `LogicComponent.h`
-- [x] `TrackedComponent.h`
-- [x] `UnknownComponent.h`
-- [x] `NodePrefab.h` — prefab serialization, normalization, and archive support are ported
-- [x] `PrefabReader.h`
-- [x] `PrefabWriter.h`
-- [x] `PrefabResource.h`
-- [x] `PrefabReference.h`
-- [x] `SceneResolver.h`
-- [x] `Scene.h`
-- [x] `SceneResource.h`
-- [x] `SplinePath.h`
-- [x] `ShakeComponent.h`
-- [x] `WorldOrigin.h`
 
 ## A7. RenderAPI — depends on Core, Math (current effort)
 
