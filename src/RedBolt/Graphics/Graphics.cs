@@ -1550,6 +1550,7 @@ layout(std140) uniform Material
 
         var indexBuffer = new IndexBuffer();
         indexBuffer.SetSize(6, largeIndices: false);
+        indexBuffer.SetShadowed(true);
         indexBuffer.SetUnpackedData([0u, 1u, 2u, 0u, 2u, 3u]);
 
         var geometry = new Geometry();
