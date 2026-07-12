@@ -492,8 +492,18 @@ public sealed class Scene : Object
 
     public void Clear()
     {
-        Root.RemoveAllChildren();
-        Root.RemoveAllComponents();
+        StopAsyncLoading();
+
+        Root.RemoveChildren(recursive: true);
+        Root.RemoveComponents();
+
+        Root.SetName(string.Empty);
+        SetUpdateEvents(DefaultUpdateEvents);
+        _fileName = string.Empty;
+        Checksum = 0;
+
+        _nextNodeId = 1;
+        _nextComponentId = 1;
     }
 
     public void SetUpdateEnabled(bool enable)

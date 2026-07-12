@@ -422,6 +422,26 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_clear_resets_state_and_id_generators()
+    {
+        var scene = new Scene();
+        scene.CreateChild("Before", 100).CreateComponent<Camera>(200);
+        scene.SetFileName("Scenes/Before.scene");
+        scene.SetUpdateEvents(new StringVector { "CustomUpdate" });
+
+        scene.Clear();
+
+        Assert.True(scene.IsEmpty());
+        Assert.Equal(string.Empty, scene.Root.Name);
+        Assert.Equal(string.Empty, scene.FileName);
+        Assert.Equal(0u, scene.Checksum);
+        Assert.Equal(Scene.DefaultUpdateEvents, scene.GetUpdateEvents());
+
+        Assert.Equal(2u, scene.CreateChild("After").Id);
+        Assert.Equal(1u, scene.CreateComponent<Camera>().Id);
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
