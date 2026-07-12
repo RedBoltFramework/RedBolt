@@ -142,4 +142,34 @@ public sealed class SceneTests
         Assert.True(scene.GetAllNodes().ContainsKey(node.Id));
         Assert.True(scene.GetAllComponents().ContainsKey(camera.Id));
     }
+
+    [Fact]
+    public void Lightmap_resources_can_be_added_reloaded_and_reset()
+    {
+        var resourceName = $"Lightmaps/Test-{Guid.NewGuid():N}.png";
+        var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
+        var texture = new Texture2D(resourceName);
+        Assert.True(cache.AddManualResource(texture));
+
+        try
+        {
+            var scene = new Scene();
+            scene.AddLightmap(resourceName);
+
+            Assert.Equal(1u, scene.GetNumLightmaps());
+            Assert.Same(texture, scene.GetLightmapTexture(0));
+            Assert.Null(scene.GetLightmapTexture(1));
+
+            scene.ReloadLightmaps();
+            Assert.Same(texture, scene.GetLightmapTexture(0));
+
+            scene.ResetLightmaps();
+            Assert.Equal(0u, scene.GetNumLightmaps());
+            Assert.Null(scene.GetLightmapTexture(0));
+        }
+        finally
+        {
+            cache.ReleaseResource(resourceName, force: true);
+        }
+    }
 }

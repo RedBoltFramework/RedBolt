@@ -9,6 +9,8 @@ public sealed class Scene : Object
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
     private readonly List<ISceneUpdateListener> _updateListeners = [];
     private readonly List<StaticModel> _staticModels = [];
+    private readonly List<string> _lightmapNames = [];
+    private readonly List<Texture2D?> _lightmapTextures = [];
     private int _asyncLoadingMs = 5;
     private float _elapsedTime;
     private string _fileName = string.Empty;
@@ -39,6 +41,34 @@ public sealed class Scene : Object
     public string FileName => _fileName;
 
     public uint Checksum { get; private set; }
+
+    public uint GetNumLightmaps() => (uint)_lightmapNames.Count;
+
+    public void ResetLightmaps()
+    {
+        _lightmapNames.Clear();
+        _lightmapTextures.Clear();
+    }
+
+    public void AddLightmap(string lightmapTextureName)
+    {
+        _lightmapNames.Add(lightmapTextureName);
+        var cache = GetSubsystem<ResourceCache>()!;
+        _lightmapTextures.Add(cache.GetResourceOrNull<Texture2D>(lightmapTextureName));
+    }
+
+    public void ReloadLightmaps()
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+        _lightmapTextures.Clear();
+        foreach (var lightmapTextureName in _lightmapNames)
+            _lightmapTextures.Add(cache.GetResourceOrNull<Texture2D>(lightmapTextureName));
+    }
+
+    public Texture2D? GetLightmapTexture(uint index)
+    {
+        return index < (uint)_lightmapTextures.Count ? _lightmapTextures[(int)index] : null;
+    }
 
     public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
