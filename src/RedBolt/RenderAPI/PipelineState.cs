@@ -52,9 +52,24 @@ public class PipelineState : DeviceObject
 
     public override void Restore()
     {
-        base.Restore();
+        if (_handle is { IsNull: false })
+            return;
+
+        RestoreDependency(GetSubsystem<PipelineStateCache>());
+
+        if (_desc.AsGraphics() is { } graphicsDesc)
+        {
+            RestoreDependency(graphicsDesc.VertexShader);
+            RestoreDependency(graphicsDesc.PixelShader);
+            RestoreDependency(graphicsDesc.GeometryShader);
+            RestoreDependency(graphicsDesc.HullShader);
+            RestoreDependency(graphicsDesc.DomainShader);
+        }
+
+        if (_desc.AsCompute() is { } computeDesc)
+            RestoreDependency(computeDesc.ComputeShader);
+
         CreateGPU();
-        SetDataLost(!IsValid);
     }
 
     public override void Destroy()

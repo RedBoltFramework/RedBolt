@@ -478,7 +478,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct GraphicsPipelineStateDesc`
   - [~] `struct ComputePipelineStateDesc`
   - [~] `PipelineStateDesc`
-  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, device lifecycle, shader subscriptions, cache ownership, and reflection-based validity are ported; native descriptor parity remains under review
+  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, and reflection-based validity are ported; native descriptor parity remains under review
   - [~] `PipelineStateCache : Object, DeviceObject`
 - [x] `RenderPool.h`
   - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation are ported

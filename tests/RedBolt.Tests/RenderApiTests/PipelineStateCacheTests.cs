@@ -127,6 +127,24 @@ public sealed class PipelineStateCacheTests
     }
 
     [Fact]
+    public void Pipeline_state_cache_restore_does_not_reenter_pipeline_states()
+    {
+        var desc = new GraphicsPipelineStateDesc
+        {
+            DebugName = "RestoreState",
+            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.VS),
+            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.PS)
+        };
+        desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+
+        var state = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
+
+        Assert.NotNull(state);
+        _fixture.PipelineStateCache.Restore();
+        Assert.NotNull(state);
+    }
+
+    [Fact]
     public void Graphics_pipeline_state_creates_native_handle_binding_and_reflection()
     {
         WithInitializedGraphics(() =>

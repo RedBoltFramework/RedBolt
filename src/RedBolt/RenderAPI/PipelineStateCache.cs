@@ -65,8 +65,6 @@ public sealed class PipelineStateCache : DeviceObject
     public override void Restore()
     {
         base.Restore();
-        foreach (var pipelineState in GetLiveStates())
-            pipelineState.Restore();
     }
 
     public override void Destroy()
