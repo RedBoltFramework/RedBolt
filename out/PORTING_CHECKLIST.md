@@ -515,8 +515,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] graphics enums / constants
 - [~] `GraphicsEvents.h`
   - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events; RenderSurface payloads remain opaque until RenderSurface is ported
-- [ ] `DrawableEvents.h`
-  - [ ] drawable event definitions
+- [~] `DrawableEvents.h`
+  - [~] drawable event definitions — all five C++ events are represented as struct-based C# events; Animation and ParticleEffect payloads remain opaque until those classes are ported
 - [ ] `GraphicsUtils.h`
   - [ ] graphics free functions
 - [ ] `Tangent.h`
