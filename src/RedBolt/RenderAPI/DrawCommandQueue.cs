@@ -306,10 +306,12 @@ public class DrawCommandQueue : Object
         if (_drawCommands.Count == 0)
             return;
 
-        renderContext.SetClipPlaneMask(_clipPlaneMask);
         var deviceContext = renderContext.GetHandle();
         if (deviceContext is null || deviceContext.IsNull)
+        {
+            renderContext.SetClipPlaneMask(_clipPlaneMask);
             return;
+        }
         var stats = renderContext.GetMutableStats();
         var caps = renderContext.GetRenderDevice().GetCaps();
         var uniformBuffers = UploadConstantBuffers(renderContext.GetRenderPool());
@@ -317,6 +319,7 @@ public class DrawCommandQueue : Object
 
         var blendFactors = BlendFactors.One;
         deviceContext.SetBlendFactors(in blendFactors);
+        renderContext.SetClipPlaneMask(_clipPlaneMask);
 
         // Cached current state
         PipelineState? currentPipelineState = null;
@@ -466,7 +469,7 @@ public class DrawCommandQueue : Object
         }
         deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _nativeVertexBuffers,
             in _nativeVertexBufferOffsets[0], ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-            SetVertexBuffersFlags.SetVertexBuffersFlagReset);
+            (SetVertexBuffersFlags)0);
     }
 
     private void SetScissorRect(IDeviceContext deviceContext, DrawCommandDescription command)
