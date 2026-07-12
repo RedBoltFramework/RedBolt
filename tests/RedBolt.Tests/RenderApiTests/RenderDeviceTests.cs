@@ -278,6 +278,47 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Graphics_exposes_native_window_and_display_queries()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        var originalTitle = _fixture.Graphics.GetWindowTitle();
+        var originalPosition = _fixture.Graphics.GetWindowPosition();
+        try
+        {
+            _fixture.Graphics.SetWindowTitle("Graphics Window API");
+            _fixture.Graphics.SetWindowPosition(originalPosition);
+
+            Assert.Equal("Graphics Window API", _fixture.Graphics.GetWindowTitle());
+            Assert.Equal(originalPosition, _fixture.Graphics.GetWindowPosition());
+            Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height), _fixture.Graphics.GetSize());
+            Assert.Equal(_fixture.RenderDevice.GetWindowSettings().MultiSample, _fixture.Graphics.GetMultiSample());
+            Assert.Equal(_fixture.RenderDevice.GetWindowSettings().Mode == WindowMode.Fullscreen, _fixture.Graphics.GetFullscreen());
+            Assert.Equal(_fixture.RenderDevice.GetWindowSettings().VSync, _fixture.Graphics.GetVSync());
+            Assert.True(_fixture.Graphics.GetMonitorCount() > 0);
+            Assert.True(_fixture.Graphics.GetCurrentMonitor() >= 0);
+            Assert.NotEmpty(_fixture.Graphics.GetResolutions(_fixture.Graphics.GetCurrentMonitor()));
+            Assert.True(_fixture.Graphics.GetDesktopResolution(_fixture.Graphics.GetCurrentMonitor()).X > 0);
+            Assert.True(_fixture.Graphics.GetDisplayDPI(_fixture.Graphics.GetCurrentMonitor()).X > 0);
+        }
+        finally
+        {
+            _fixture.Graphics.SetWindowTitle(originalTitle);
+            _fixture.Graphics.SetWindowPosition(originalPosition);
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters

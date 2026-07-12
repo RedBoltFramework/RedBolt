@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
@@ -131,12 +132,133 @@ layout(std140) uniform Material
     private IntPtr _glContext;
     private bool _shaderReflectionDiagnosticsDumped;
     private SdlWindow? _window;
+    private string _windowTitle = string.Empty;
+    private Vector2i _windowPosition;
 
     public bool IsInitialized { get; private set; }
 
     public int Width { get; private set; }
 
     public int Height { get; private set; }
+
+    public WindowSettings GetWindowSettings()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        return renderDevice?.GetWindowSettings() ?? new WindowSettings();
+    }
+
+    public string GetWindowTitle()
+    {
+        if (_window is null || _window.IsNull)
+            return _windowTitle;
+
+        var title = SdlNativeBindings.SdlGetWindowTitle(_window);
+        var length = title.IndexOf((byte)0);
+        return Encoding.UTF8.GetString(length < 0 ? title : title[..length]);
+    }
+
+    public void SetWindowTitle(string windowTitle)
+    {
+        _windowTitle = windowTitle;
+        if (_window is not null && !_window.IsNull)
+        {
+            using var title = new CString(windowTitle);
+            SdlNativeBindings.SdlSetWindowTitle(_window, title.Bytes);
+        }
+    }
+
+    public Vector2i GetWindowPosition()
+    {
+        if (_window is not null && !_window.IsNull)
+        {
+            SdlNativeBindings.SdlGetWindowPosition(_window, out var x, out var y);
+            return new Vector2i(x, y);
+        }
+
+        return _windowPosition;
+    }
+
+    public void SetWindowPosition(Vector2i position)
+    {
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlSetWindowPosition(_window, position.X, position.Y);
+        else
+            _windowPosition = position;
+    }
+
+    public void SetWindowPosition(int x, int y) => SetWindowPosition(new Vector2i(x, y));
+
+    public int GetMultiSample() => GetWindowSettings().MultiSample;
+
+    public bool GetFullscreen() => GetWindowSettings().Mode == WindowMode.Fullscreen;
+
+    public bool GetBorderless() => GetWindowSettings().Mode == WindowMode.Borderless;
+
+    public bool GetResizable() => GetWindowSettings().Resizable;
+
+    public bool GetVSync() => GetWindowSettings().VSync;
+
+    public int GetRefreshRate() => GetWindowSettings().RefreshRate;
+
+    public int GetMonitor() => GetWindowSettings().Monitor;
+
+    public bool GetSRGB() => GetWindowSettings().SRgb;
+
+    public Vector2i GetSize() => new(Width, Height);
+
+    public IReadOnlyList<Vector3i> GetResolutions(int monitor)
+    {
+        var result = new List<Vector3i>();
+        var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
+        for (var i = 0; i < numModes; ++i)
+        {
+            using var mode = new SdlDisplayMode();
+            SdlNativeBindings.SdlGetDisplayMode(monitor, i, mode);
+            var resolution = new Vector3i(mode.W, mode.H, mode.RefreshRate);
+            var unique = true;
+            for (var j = 0; j < result.Count; ++j)
+            {
+                if (result[j] == resolution)
+                {
+                    unique = false;
+                    break;
+                }
+            }
+
+            if (unique)
+                result.Add(resolution);
+        }
+
+        return result;
+    }
+
+    public Vector2i GetDesktopResolution(int monitor)
+    {
+        using var mode = new SdlDisplayMode();
+        SdlNativeBindings.SdlGetDesktopDisplayMode(monitor, mode);
+        return new Vector2i(mode.W, mode.H);
+    }
+
+    public int GetMonitorCount() => SdlNativeBindings.SdlGetNumVideoDisplays();
+
+    public int GetCurrentMonitor()
+    {
+        return _window is not null && !_window.IsNull
+            ? SdlNativeBindings.SdlGetWindowDisplayIndex(_window)
+            : 0;
+    }
+
+    public bool GetMaximized()
+    {
+        return _window is not null && !_window.IsNull
+            && (SdlNativeBindings.SdlGetWindowFlags(_window) & (uint)SdlWindowFlags.SdlWindowMaximized) != 0;
+    }
+
+    public Vector3f GetDisplayDPI(int monitor = 0)
+    {
+        SdlNativeBindings.SdlGetDisplayDPI(monitor, out var ddpi, out var hdpi, out var vdpi);
+        return new Vector3f(hdpi, vdpi, ddpi);
+    }
 
     public RenderDeviceCaps GetRenderDeviceCaps()
     {

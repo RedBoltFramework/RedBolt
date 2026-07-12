@@ -663,7 +663,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Renderer.h`
   - [~] `Renderer : Object`
 - [~] `Graphics.h`
-  - [~] `Graphics : Object`
+  - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position operations, screen-mode queries, monitor/display resolution enumeration, DPI reporting, and screenshot capture are ported; remaining screen-mode lifecycle and backend-specific paths remain
 - [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
   - [ ] `LightBakingSettings`
 - [ ] `LightBaker.h` ⤴ pairs with `Glow`
