@@ -514,7 +514,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct VertexElement` — fields, constructors, equality, inequality, and ToHash are ported
   - [x] graphics enums / constants
 - [~] `GraphicsEvents.h`
-  - [ ] graphics event definitions
+  - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events; RenderSurface payloads remain opaque until RenderSurface is ported
 - [ ] `DrawableEvents.h`
   - [ ] drawable event definitions
 - [ ] `GraphicsUtils.h`
