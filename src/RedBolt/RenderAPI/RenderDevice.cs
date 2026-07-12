@@ -126,6 +126,22 @@ public sealed class RenderDevice : Object
     }
 
     /// <summary>
+    /// Take the screenshot from current back buffer.
+    /// </summary>
+    public bool TakeScreenShot(out Vector2i size, out byte[] data)
+    {
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is null)
+        {
+            size = Vector2i.Zero;
+            data = [];
+            return false;
+        }
+
+        return graphics.TryCaptureScreenShot(out size, out data);
+    }
+
+    /// <summary>
     /// Present the frame. Should be called between engine frames.
     /// </summary>
     public void Present()

@@ -783,6 +783,24 @@ layout(std140) uniform Material
         _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
     }
 
+    /// <summary>
+    /// Take a screenshot.
+    /// </summary>
+    public bool TakeScreenShot(Image destImage)
+    {
+        ArgumentNullException.ThrowIfNull(destImage);
+        if (!IsInitialized)
+            return false;
+
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null || !renderDevice.TakeScreenShot(out var size, out var data))
+            return false;
+
+        destImage.SetSize(size.X, size.Y, 4);
+        destImage.SetData(data);
+        return true;
+    }
+
     internal void UpdateSwapChainSize()
     {
         if (!IsInitialized || _window is null || _window.IsNull || _swapChain is null || _swapChain.IsNull)
@@ -907,19 +925,35 @@ layout(std140) uniform Material
 
     private bool TrySaveCurrentFramebufferScreenshot(string fileName, uint readBuffer)
     {
+        if (!TryCaptureScreenShot(readBuffer, out var size, out var rgbaPixels))
+            return false;
+
+        ImageFileWriter.Save(fileName, size.X, size.Y, rgbaPixels);
+        return true;
+    }
+
+    internal bool TryCaptureScreenShot(out Vector2i size, out byte[] data)
+    {
+        return TryCaptureScreenShot(GlBack, out size, out data);
+    }
+
+    private bool TryCaptureScreenShot(uint readBuffer, out Vector2i size, out byte[] data)
+    {
+        size = Vector2i.Zero;
+        data = [];
         if (_glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
             return false;
 
         EnsureOpenGlReadbackFunctions();
 
-        var rgbaPixels = new byte[checked(Width * Height * 4)];
-        using var pinnedPixels = new PinnedBuffer(rgbaPixels);
+        size = new Vector2i(Width, Height);
+        data = new byte[checked(Width * Height * 4)];
+        using var pinnedPixels = new PinnedBuffer(data);
 
         _glFinish!.Invoke();
         _glReadBuffer!.Invoke(readBuffer);
         _glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
-        FlipImageRows(rgbaPixels, Width, Height);
-        ImageFileWriter.Save(fileName, Width, Height, rgbaPixels);
+        FlipImageRows(data, Width, Height);
         return true;
     }
 

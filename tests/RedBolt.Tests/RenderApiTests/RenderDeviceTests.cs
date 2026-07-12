@@ -210,6 +210,36 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Graphics_takes_screenshot_into_image()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            var image = new Image("RenderDeviceTests.Screenshot");
+
+            Assert.True(_fixture.Graphics.TakeScreenShot(image));
+            Assert.Equal(_fixture.Graphics.Width, image.Width);
+            Assert.Equal(_fixture.Graphics.Height, image.Height);
+            Assert.Equal(4u, image.Components);
+            Assert.Equal(image.Width * image.Height * 4, image.GetData().Length);
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters
