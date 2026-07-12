@@ -210,6 +210,12 @@ public sealed class ResourceCache
         return _backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
     }
 
+    internal bool BackgroundLoadResource(StringHash type, string name, bool sendEventOnFailure = true, Resource? caller = null)
+    {
+        var resourceType = ResolveResourceType(type);
+        return resourceType is not null && BackgroundLoadResource(resourceType, name, sendEventOnFailure, caller);
+    }
+
     public uint GetNumBackgroundLoadResources() => (uint)_backgroundLoader.GetNumQueuedResources();
 
     public void FinishBackgroundResources(int? maxMs = null)
@@ -524,6 +530,20 @@ public sealed class ResourceCache
     {
         ArgumentNullException.ThrowIfNull(type);
         return _loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
+    }
+
+    private static Type? ResolveResourceType(StringHash type)
+    {
+        foreach (var candidate in typeof(Resource).Assembly.GetTypes())
+        {
+            if (!candidate.IsAbstract && typeof(Resource).IsAssignableFrom(candidate)
+                && StringHash.Calculate(candidate.GetClassName()) == type)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     internal bool HasResource(Type type, string name)

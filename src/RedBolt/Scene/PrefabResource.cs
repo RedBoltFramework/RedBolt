@@ -98,9 +98,30 @@ public sealed class PrefabResource : SimpleResource
 
     private void BackgroundLoadResources(NodePrefab prefab)
     {
-        // TODO: port BackgroundLoadResources once ResourceCache exposes BackgroundLoadResource.
-        // C++ traverses resource-reference attributes and calls:
-        // GetSubsystem<ResourceCache>()->BackgroundLoadResource(resourceType, resourceName, true, this);
+        var resourceCache = GetSubsystem<ResourceCache>()!;
+        foreach (var component in prefab.Components)
+        {
+            foreach (var attribute in component.Attributes)
+            {
+                switch (attribute.Value.Type)
+                {
+                    case VariantType.ResourceRef:
+                    {
+                        var resourceRef = attribute.Value.GetResourceRef();
+                        resourceCache.BackgroundLoadResource(resourceRef.Type, resourceRef.Name, true, this);
+                        break;
+                    }
+                    case VariantType.ResourceRefList:
+                    {
+                        var resourceRefList = attribute.Value.GetResourceRefList();
+                        foreach (var name in resourceRefList.Names)
+                            resourceCache.BackgroundLoadResource(resourceRefList.Type, name, true, this);
+                        break;
+                    }
+                }
+            }
+        }
+
         foreach (var child in prefab.Children)
             BackgroundLoadResources(child);
     }

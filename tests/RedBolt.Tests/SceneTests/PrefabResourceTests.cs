@@ -3,6 +3,13 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PrefabResourceTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
+    public PrefabResourceTests(HeadlessEngineFixture fixture)
+    {
+        this._fixture = fixture;
+    }
+
     [Fact]
     public void Mutable_node_prefab_and_slices_follow_scene_layout()
     {
@@ -71,5 +78,52 @@ public sealed class PrefabResourceTests
         Assert.Equal("Tree", instance!.Name);
         Assert.NotNull(instance.GetComponent<PrefabReference>());
         Assert.Single(instance.Children);
+    }
+
+    [Fact]
+    public void Background_loads_prefab_resource_references()
+    {
+        var resources = _fixture.Resources;
+        var tempDir = Path.Combine(Path.GetTempPath(), $"redbolt-prefab-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(tempDir, "Data"));
+        var dependencyPath = Path.Combine(tempDir, "Data", "dependency.bin");
+        System.IO.File.WriteAllText(dependencyPath, "dependency");
+
+        try
+        {
+            resources.AddResourceDir(tempDir);
+            var sourceResource = new PrefabResource("Tree.prefab");
+            sourceResource.GetMutableNodePrefab().Components.Add(new SerializablePrefab
+            {
+                TypeName = "Node",
+                Attributes =
+                {
+                    new AttributePrefab
+                    {
+                        Name = "Dependency",
+                        Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
+                    }
+                }
+            });
+
+            using var stream = new MemoryStream();
+            Assert.True(sourceResource.Save(stream));
+            stream.Position = 0;
+
+            var loadedResource = new PrefabResource("Tree.prefab");
+            loadedResource.SetAsyncLoadState(AsyncLoadState.Loading);
+            Assert.True(loadedResource.BeginLoad(stream));
+            resources.FinishBackgroundResources(1000);
+
+            var dependency = resources.GetExistingResource<BinaryFile>("Data/dependency.bin");
+            Assert.NotNull(dependency);
+            Assert.Equal("dependency", dependency!.GetText());
+        }
+        finally
+        {
+            resources.ReleaseResource<BinaryFile>("Data/dependency.bin");
+            resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
     }
 }
