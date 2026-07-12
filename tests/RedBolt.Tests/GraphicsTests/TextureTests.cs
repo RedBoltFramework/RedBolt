@@ -118,4 +118,25 @@ public sealed class TextureTests
         Assert.True(texture.GetData(0u, readback));
         Assert.Equal(readback.Length, texture.GetData(0u)?.Length);
     }
+
+    [Fact]
+    public void TextureCube_image_upload_and_readback_work()
+    {
+        var image = new Image("Textures/SmokeCubeImage");
+        var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
+        Assert.True(image.SetSize(2, 2, 4u));
+        image.SetData(imageData);
+
+        var texture = new TextureCube("Textures/SmokeCube");
+        texture.SetNumLevels(1u);
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
+            Assert.True(texture.SetData(face, image));
+
+        Assert.Equal(TextureFilterMode.Bilinear, texture.GetFilterMode());
+        Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.U));
+        Assert.True(texture.GetAutoResolve());
+        Assert.True(texture.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
+        Assert.Equal(imageData, texture.GetImage(CubeMapFace.PositiveX)?.GetData());
+        Assert.Null(texture.GetRenderSurface(CubeMapFace.MaxCubeMapFaces));
+    }
 }
