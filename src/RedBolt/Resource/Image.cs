@@ -79,50 +79,27 @@ public sealed class Image : Resource
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        var tempFile = Path.Combine(Path.GetTempPath(), $"RedBolt-{Guid.NewGuid():N}.png");
-        try
-        {
-            if (!ImageSdl.SavePng(this, tempFile))
-                return false;
-            using var source = System.IO.File.OpenRead(tempFile);
-            source.CopyTo(destination);
-            return true;
-        }
-        finally
-        {
-            System.IO.File.Delete(tempFile);
-        }
+        var rgba = Components == 4 ? this : ConvertToRGBA();
+        ImageFileWriter.Save(destination, ".png", rgba.Width, rgba.Height, rgba.GetData());
+        return true;
     }
 
-    public bool SavePNG(string fileName) => ImageSdl.SavePng(this, fileName);
+    public bool SavePNG(string fileName) => SaveEncodedFile(fileName, ".png");
 
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
     public bool SaveBMP(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        var rgba = Components == 4 ? this : ConvertToRGBA();
-        using var stream = System.IO.File.Create(fileName);
-        using var writer = new BinaryWriter(stream);
-        var pixelSize = checked(rgba.Width * rgba.Height * 4);
-        writer.Write((byte)'B'); writer.Write((byte)'M'); writer.Write(54 + pixelSize);
-        writer.Write(0); writer.Write(54); writer.Write(40); writer.Write(rgba.Width); writer.Write(-rgba.Height);
-        writer.Write((short)1); writer.Write((short)32); writer.Write(0); writer.Write(pixelSize);
-        writer.Write(0); writer.Write(0); writer.Write(0); writer.Write(0);
-        var data = rgba.GetData();
-        for (var i = 0; i < data.Length; i += 4)
-        {
-            writer.Write(data[i + 2]); writer.Write(data[i + 1]); writer.Write(data[i]); writer.Write(data[i + 3]);
-        }
-        return true;
+        return SaveEncodedFile(fileName, ".bmp");
     }
 
     public bool SaveTGA(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var rgba = Components == 4 ? this : ConvertToRGBA();
-        using var stream = System.IO.File.Create(fileName);
-        using var writer = new BinaryWriter(stream);
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write((byte)0); writer.Write((byte)0); writer.Write((byte)2);
         writer.Write(new byte[5]); writer.Write((short)0); writer.Write((short)0);
         writer.Write((ushort)rgba.Width); writer.Write((ushort)rgba.Height); writer.Write((byte)32); writer.Write((byte)0x28);
@@ -131,7 +108,45 @@ public sealed class Image : Resource
         {
             writer.Write(data[i + 2]); writer.Write(data[i + 1]); writer.Write(data[i]); writer.Write(data[i + 3]);
         }
-        return true;
+        writer.Flush();
+        return WriteFile(fileName, stream.ToArray());
+    }
+
+    private bool SaveEncodedFile(string fileName, string extension)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        var rgba = Components == 4 ? this : ConvertToRGBA();
+        using var stream = new MemoryStream();
+        ImageFileWriter.Save(stream, extension, rgba.Width, rgba.Height, rgba.GetData());
+        return WriteFile(fileName, stream.ToArray());
+    }
+
+    private bool WriteFile(string fileName, ReadOnlySpan<byte> data)
+    {
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
+        if (temporaryFileSystem is not null)
+        {
+            temporaryFileSystem.MountRoot();
+            virtualFileSystem = temporaryFileSystem;
+        }
+
+        var identifier = new FileIdentifier(fileName);
+        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
+            ? new MountPointGuard(virtualFileSystem.MountRoot())
+            : null;
+        var file = virtualFileSystem.OpenFile(identifier, File.FileMode.Write);
+        if (file is null)
+            return false;
+
+        try
+        {
+            return file.Write(data) == data.Length;
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     public override bool SaveFile(string fileName)

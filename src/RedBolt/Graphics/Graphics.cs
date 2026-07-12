@@ -4178,6 +4178,7 @@ layout(std140) uniform Material
         try
         {
             var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+            using var rootMount = new MountPointGuard(virtualFileSystem.MountRoot());
             virtualFileSystem.WriteAllText(
                 new FileIdentifier("file", vertexPath),
                 vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));

@@ -13,11 +13,7 @@ internal static class ImageFileWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
         using var stream = new MemoryStream();
-        var extension = Path.GetExtension(fileName);
-        if (extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase))
-            SaveBmp(stream, width, height, rgbaPixels);
-        else
-            SavePng(stream, width, height, rgbaPixels);
+        Save(stream, Path.GetExtension(fileName), width, height, rgbaPixels);
 
         var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), File.FileMode.Write)
             ?? throw new IOException($"Failed to open screenshot file '{fileName}'.");
@@ -31,6 +27,15 @@ internal static class ImageFileWriter
         {
             file.Close();
         }
+    }
+
+    public static void Save(Stream stream, string extension, int width, int height, ReadOnlySpan<byte> rgbaPixels)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase))
+            SaveBmp(stream, width, height, rgbaPixels);
+        else
+            SavePng(stream, width, height, rgbaPixels);
     }
 
     private static void SaveBmp(Stream stream, int width, int height, ReadOnlySpan<byte> rgbaPixels)

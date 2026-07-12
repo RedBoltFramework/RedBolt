@@ -148,8 +148,28 @@ public abstract class SimpleResource : Resource
     public bool SaveFile(string fileName, InternalResourceFormat format)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = System.IO.File.Create(fileName);
-        return Save(stream, format);
+        using var stream = new MemoryStream();
+        if (!Save(stream, format))
+            return false;
+
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        var identifier = new FileIdentifier(fileName);
+        using var rootMount = identifier.Scheme == "file"
+            ? new MountPointGuard(virtualFileSystem.MountRoot())
+            : null;
+        var file = virtualFileSystem.OpenFile(identifier, File.FileMode.Write);
+        if (file is null)
+            return false;
+
+        try
+        {
+            var data = stream.ToArray();
+            return file.Write(data) == data.Length;
+        }
+        finally
+        {
+            file.Close();
+        }
     }
 
     protected virtual byte[] GetBinaryMagic() => DefaultBinaryMagic;
