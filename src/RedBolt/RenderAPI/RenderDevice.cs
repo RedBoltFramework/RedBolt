@@ -38,6 +38,8 @@ public sealed class RenderDevice : Object
         GetSubsystem<Graphics>()?.GetImmediateContext()?.WaitForIdle();
         ReleaseDefaultObjects();
         _renderContext.Dispose();
+        _renderPool.Dispose();
+        _defaultQueue.Dispose();
         base.Dispose();
     }
 
@@ -279,11 +281,11 @@ public sealed class RenderDevice : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
-    public IEngineFactory? GetFactory() => GetSubsystem<Graphics>()?.GetNativeFactory();
-
     public SdlWindow? GetSDLWindow() => GetSubsystem<Graphics>()?.GetNativeWindow();
 
     public nint GetMetalView() => nint.Zero;
+
+    public IEngineFactory? GetFactory() => GetSubsystem<Graphics>()?.GetNativeFactory();
 
     public IRenderDevice? GetRenderDevice() => GetSubsystem<Graphics>()?.GetNativeRenderDevice();
 
