@@ -30,12 +30,12 @@ public class MountedExternalMemory : MountPoint
 
     public void SendFileChangedEvent(string fileName)
     {
-        // TODO: port C++ FileChanged event dispatch:
-        // using namespace FileChanged;
-        // VariantMap& eventData = GetEventDataMap();
-        // eventData[P_FILENAME] = EMPTY_STRING;
-        // eventData[P_RESOURCENAME] = FileIdentifier{scheme_, fileName}.ToUri();
-        // SendEvent(E_FILECHANGED, eventData);
+        var eventData = new ResourceEvents.FileChanged
+        {
+            FileName = string.Empty,
+            ResourceName = new FileIdentifier(_scheme, fileName).ToUri()
+        };
+        SendEvent(ref eventData);
     }
 
     /// <summary>Implement MountPoint.</summary>

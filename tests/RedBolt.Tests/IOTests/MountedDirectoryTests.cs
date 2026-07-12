@@ -105,4 +105,27 @@ public sealed class MountedDirectoryTests
             Directory.Delete(directory, true);
         }
     }
+
+    [Fact]
+    public void MountedExternalMemory_dispatches_file_changed_event()
+    {
+        var context = new Context();
+        Context.SetInstance(context);
+        var mountPoint = new MountedExternalMemory("assets");
+        ResourceEvents.FileChanged? observed = null;
+        context.SubscribeToEvent<ResourceEvents.FileChanged>((ref ResourceEvents.FileChanged eventData) => observed = eventData);
+
+        try
+        {
+            mountPoint.SendFileChangedEvent("Changed.txt");
+
+            Assert.NotNull(observed);
+            Assert.Equal(string.Empty, observed.Value.FileName);
+            Assert.Equal("assets://Changed.txt", observed.Value.ResourceName);
+        }
+        finally
+        {
+            Context.SetInstance(new Context());
+        }
+    }
 }

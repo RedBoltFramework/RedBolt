@@ -283,8 +283,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `MountedAliasRoot : MountPoint`
     - [x] File watcher BeginFrame processing and struct-based `ResourceEvents.FileChanged` dispatch
 - [~] `MountedExternalMemory.h`
-  - [~] `MountedExternalMemory : MountPoint`
-    - Memory linking, read-only opens, existence checks, and scanning are ported; `SendFileChangedEvent` remains a TODO until `ResourceEvents` and the C# event dispatch layer are ported.
+  - [x] `MountedExternalMemory : MountPoint` — memory linking, read-only opens, existence checks, scanning, and `ResourceEvents.FileChanged` dispatch are ported.
 - [x] `PackageFile.h`
   - [x] `PackageFile : MountPoint`
 - [x] `VirtualFileSystem.h`
