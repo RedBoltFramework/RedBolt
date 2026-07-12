@@ -123,8 +123,6 @@ public class DrawCommandQueue : Object
 
     public void CommitShaderParameterGroup(ShaderParameterGroup group)
     {
-        if (_currentShaderParameterGroup != group)
-            throw new InvalidOperationException("Shader parameter group is not active.");
         _currentShaderParameterGroup = null;
         _currentConstantBufferData = default;
     }
@@ -164,8 +162,9 @@ public class DrawCommandQueue : Object
         ArgumentNullException.ThrowIfNull(texture);
         var reflection = _currentShaderProgramReflection?.GetUnorderedAccessView(name);
         if (reflection?.Variable is null) return;
-        var view = texture.GetUAV(key) ?? texture.CreateUAV(key)
-            ?? throw new InvalidOperationException("Requested UAV for texture does not exist.");
+        var view = texture.GetUAV(key);
+        if (view is null)
+            return;
         _unorderedAccessViews.Add(new(reflection.Variable, texture, view));
         _currentUnorderedAccessViewGroup = _currentUnorderedAccessViewGroup with { Second = checked((uint)_unorderedAccessViews.Count) };
     }

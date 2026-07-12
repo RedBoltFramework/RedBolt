@@ -137,7 +137,7 @@ public sealed class DrawCommandQueueTests
         queue.SetPipelineState(pipelineState);
         Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
         Assert.True(queue.AddShaderParameter(parameterName, 3.5f));
-        queue.CommitShaderParameterGroup(ShaderParameterGroup.Material);
+        queue.CommitShaderParameterGroup(ShaderParameterGroup.Frame);
         Assert.False(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
 
         var collection = queue.GetConstantBufferCollection();
