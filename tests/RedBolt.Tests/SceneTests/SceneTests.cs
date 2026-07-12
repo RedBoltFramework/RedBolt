@@ -378,6 +378,50 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_instantiation_rewrites_ids_and_applies_transform()
+    {
+        var source = new Scene();
+        var sourceChild = source.CreateChild("Source");
+        sourceChild.CreateComponent<Camera>(17).SetFov(91);
+
+        var position = new Vector3f(4, 5, 6);
+        var rotation = Quaternion.FromEulerAngles(10, 20, 30);
+
+        var json = new JSONValue();
+        Assert.True(source.Root.SaveJSON(json));
+        var instantiatedFromJson = new Scene().InstantiateJSON(json, position, rotation);
+        Assert.NotNull(instantiatedFromJson);
+        Assert.NotEqual(source.Root.Id, instantiatedFromJson!.Id);
+        Assert.True(instantiatedFromJson.Position.ApproximatelyEquivalent(position));
+        Assert.Equal(91.0f, instantiatedFromJson.GetChild("Source")?.GetComponent<Camera>()?.GetFov());
+
+        var xmlFile = new XMLFile(string.Empty);
+        Assert.True(source.Root.SaveXML(xmlFile.CreateRoot("node")));
+        var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.Root, position, rotation);
+        Assert.NotNull(instantiatedFromXml);
+        Assert.True(instantiatedFromXml!.Position.ApproximatelyEquivalent(position));
+
+        var xmlBuffer = new VectorBuffer();
+        Assert.True(source.SaveXML(xmlBuffer));
+        xmlBuffer.Seek(0);
+        var instantiatedFromXmlBuffer = new Scene().InstantiateXML(xmlBuffer, position, rotation);
+        Assert.NotNull(instantiatedFromXmlBuffer);
+
+        var binary = new VectorBuffer();
+        Assert.True(source.Root.Save(binary));
+        binary.Seek(0);
+        var instantiatedFromBinary = new Scene().Instantiate(binary, position, rotation);
+        Assert.NotNull(instantiatedFromBinary);
+        Assert.True(instantiatedFromBinary!.Position.ApproximatelyEquivalent(position));
+
+        var jsonBuffer = new VectorBuffer();
+        Assert.True(source.SaveJSON(jsonBuffer));
+        jsonBuffer.Seek(0);
+        var instantiatedFromJsonBuffer = new Scene().InstantiateJSON(jsonBuffer, position, rotation);
+        Assert.NotNull(instantiatedFromJsonBuffer);
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();

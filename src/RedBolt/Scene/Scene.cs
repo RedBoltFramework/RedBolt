@@ -351,6 +351,80 @@ public sealed class Scene : Object
         return true;
     }
 
+    public Node? Instantiate(Deserializer source, Vector3f position, Quaternion rotation)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var resolver = new SceneResolver();
+        var nodeId = source.ReadUInt();
+        var node = Root.CreateChild(0);
+        resolver.AddNode(nodeId, node);
+        if (node.Load(source, resolver, true, true))
+        {
+            resolver.Resolve();
+            node.SetTransform(position, rotation);
+            node.ApplyAttributes();
+            return node;
+        }
+
+        node.Remove();
+        return null;
+    }
+
+    public Node? InstantiateXML(XMLElement source, Vector3f position, Quaternion rotation)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var resolver = new SceneResolver();
+        var nodeId = source.GetUInt("id");
+        var node = Root.CreateChild(0);
+        resolver.AddNode(nodeId, node);
+        if (node.LoadXML(source, resolver, true, true))
+        {
+            resolver.Resolve();
+            node.SetTransform(position, rotation);
+            node.ApplyAttributes();
+            return node;
+        }
+
+        node.Remove();
+        return null;
+    }
+
+    public Node? InstantiateJSON(JSONValue source, Vector3f position, Quaternion rotation)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var resolver = new SceneResolver();
+        var nodeId = source.Get("id").GetUInt();
+        var node = Root.CreateChild(0);
+        resolver.AddNode(nodeId, node);
+        if (node.LoadJSON(source, resolver, true, true))
+        {
+            resolver.Resolve();
+            node.SetTransform(position, rotation);
+            node.ApplyAttributes();
+            return node;
+        }
+
+        node.Remove();
+        return null;
+    }
+
+    public Node? InstantiateXML(Deserializer source, Vector3f position, Quaternion rotation)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var xml = new XMLFile(string.Empty);
+        return xml.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateXML(xml.GetRoot(), position, rotation) : null;
+    }
+
+    public Node? InstantiateJSON(Deserializer source, Vector3f position, Quaternion rotation)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var json = new JSONFile(string.Empty);
+        return json.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateJSON(json.GetRoot(), position, rotation) : null;
+    }
+
     public void StopAsyncLoading()
     {
         _asyncLoading = false;

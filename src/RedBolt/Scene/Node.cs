@@ -642,7 +642,7 @@ public sealed class Node : Animatable
         return null;
     }
 
-    private bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)
+    internal bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)
     {
         RemoveAllChildren();
         RemoveAllComponents();
