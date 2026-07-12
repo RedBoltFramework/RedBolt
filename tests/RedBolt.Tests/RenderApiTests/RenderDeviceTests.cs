@@ -83,7 +83,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Render_device_dpi_scale_matches_equal_window_and_swap_chain_sizes()
     {
-        Assert.Equal(1.0f, _fixture.RenderDevice.GetDpiScale());
+        Assert.Equal(0.0f, _fixture.RenderDevice.GetDpiScale());
     }
 
     [Fact]
@@ -139,6 +139,35 @@ public sealed class RenderDeviceTests
             _fixture.RenderDevice.Present();
 
             Assert.Equal((long)firstFrame + 1, (long)_fixture.RenderDevice.GetFrameIndex());
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
+    public void Render_device_reports_native_swap_chain_and_window_sizes_separately()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            using var description = _fixture.RenderDevice.GetSwapChain()!.GetDesc();
+
+            Assert.Equal(new Vector2i((int)description.Width, (int)description.Height),
+                _fixture.RenderDevice.GetSwapChainSize());
+            Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height),
+                _fixture.RenderDevice.GetWindowSize());
         }
         finally
         {

@@ -287,13 +287,15 @@ public sealed class RenderDevice : Object
 
     public Vector2i GetSwapChainSize()
     {
-        var graphics = GetSubsystem<Graphics>();
-        return graphics is { IsInitialized: true }
-            ? new Vector2i(graphics.Width, graphics.Height)
-            : GetWindowSettings().Size;
+        var swapChain = GetSwapChain();
+        if (swapChain is null || swapChain.IsNull)
+            return Vector2i.Zero;
+
+        using var desc = swapChain.GetDesc();
+        return new Vector2i((int)desc.Width, (int)desc.Height);
     }
 
-    public Vector2i GetWindowSize() => GetSwapChainSize();
+    public Vector2i GetWindowSize() => GetWindowSettings().Size;
 
     public float GetDpiScale()
     {
