@@ -12,8 +12,7 @@ public static class DrawableEvents
     public struct AnimationTriggerEvent
     {
         public Node? Node; // Node pointer
-        // TODO: port: Animation is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Animation; // Animation pointer
+        public Animation? Animation; // Animation pointer
         public string Name; // String
         public float Time; // Float
         public Variant Data; // User-defined data type

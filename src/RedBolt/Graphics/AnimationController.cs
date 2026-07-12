@@ -879,7 +879,18 @@ public class AnimationController : AnimationStateSource
 
     private void SendTriggerEvents()
     {
-        // TODO: port: trigger event dispatch will be completed with the managed DrawableEvents integration.
+        foreach (var pendingTrigger in _pendingTriggers)
+        {
+            var eventData = new DrawableEvents.AnimationTriggerEvent
+            {
+                Node = Node,
+                Animation = pendingTrigger.Animation,
+                Name = pendingTrigger.Animation.AnimationName,
+                Time = pendingTrigger.Trigger.Time,
+                Data = pendingTrigger.Trigger.Data
+            };
+            Node.SendEvent(ref eventData);
+        }
     }
 
     /// <summary>
