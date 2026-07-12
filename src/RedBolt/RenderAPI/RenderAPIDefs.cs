@@ -580,15 +580,20 @@ public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
         Size = 0;
     }
 
-    public void SetElements(params InputLayoutElementDesc[] value)
+    public void SetElements(ReadOnlySpan<InputLayoutElementDesc> value)
     {
-        ArgumentNullException.ThrowIfNull(value);
         if (value.Length > RenderApiLimits.MaxNumVertexElements)
             throw new ArgumentOutOfRangeException(nameof(value));
 
         Array.Clear(_elements, 0, _elements.Length);
-        Array.Copy(value, _elements, value.Length);
+        value.CopyTo(_elements);
         Size = (uint)value.Length;
+    }
+
+    public void SetElements(params InputLayoutElementDesc[] value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        SetElements(value.AsSpan());
     }
 
     public bool Equals(InputLayoutDesc? other)
