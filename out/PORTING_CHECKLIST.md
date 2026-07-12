@@ -618,8 +618,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `AnimationState.h` — enums, track/output records, lifecycle state, and track dirty management are ported; AnimatedModel and attribute-reflection calculation paths remain TODO
   - [~] `struct AnimatedAttributeReference`
   - [~] `AnimationState : RefCounted`
-- [ ] `AnimationController.h`
-  - [ ] `AnimationParameters`
+- [~] `AnimationController.h` — standalone animation parameters are ported; AnimationController integration remains pending
+  - [~] `AnimationParameters`
   - [ ] `AnimationController : AnimationStateSource`
 - [ ] `SoftwareModelAnimator.h`
   - [ ] `SoftwareModelAnimator : Object`
