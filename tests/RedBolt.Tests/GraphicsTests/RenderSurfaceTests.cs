@@ -1,0 +1,60 @@
+using RedBolt;
+
+namespace RedBolt.Tests;
+
+public sealed class RenderSurfaceTests
+{
+    [Fact]
+    public void Render_surface_tracks_texture_views_viewports_links_and_update_state()
+    {
+        var texture = new Texture2D("Textures/RenderSurface");
+        Assert.True(texture.SetSize(64, 32, TextureFormat.RGBA8, multiSample: 4, noMultiSampledAutoResolve: true));
+
+        var surface = new RenderSurface(texture, 2);
+        var linkedSurface = new RenderSurface(texture, 3);
+        var viewport = (Viewport?)null;
+
+        Assert.Equal(64, surface.GetWidth());
+        Assert.Equal(32, surface.GetHeight());
+        Assert.Equal(new Vector2i(64, 32), surface.GetSize());
+        Assert.Equal(4, surface.GetMultiSample());
+        Assert.False(surface.GetAutoResolve());
+        Assert.Same(texture, surface.GetParentTexture());
+        Assert.Equal(2u, surface.GetSlice());
+        Assert.Equal(RenderTargetViewType.ResourceSlice, surface.GetView().Type);
+        Assert.Equal(RenderTargetViewType.ReadOnlyResourceSlice, surface.GetReadOnlyDepthView().Type);
+
+        surface.SetNumViewports(2);
+        Assert.Equal(2u, surface.GetNumViewports());
+        Assert.Null(surface.GetViewport(1));
+        surface.SetViewport(3, viewport);
+        Assert.Equal(4u, surface.GetNumViewports());
+        Assert.Null(surface.GetViewport(3));
+
+        surface.SetLinkedRenderTarget(surface);
+        surface.SetLinkedDepthStencil(surface);
+        Assert.Null(surface.GetLinkedRenderTarget());
+        Assert.Null(surface.GetLinkedDepthStencil());
+
+        surface.SetLinkedRenderTarget(linkedSurface);
+        surface.SetLinkedDepthStencil(linkedSurface);
+        Assert.Same(linkedSurface, surface.GetLinkedRenderTarget());
+        Assert.Same(linkedSurface, surface.GetLinkedDepthStencil());
+
+        Assert.False(surface.IsUpdateQueued());
+        surface.QueueUpdate();
+        Assert.True(surface.IsUpdateQueued());
+        surface.ResetUpdateQueued();
+        Assert.False(surface.IsUpdateQueued());
+
+        surface.SetUpdateMode(RenderSurfaceUpdateMode.ManualUpdate);
+        Assert.Equal(RenderSurfaceUpdateMode.ManualUpdate, surface.GetUpdateMode());
+        Assert.False(surface.IsResolveDirty());
+        surface.SetResolveDirty(true);
+        Assert.True(surface.IsResolveDirty());
+
+        var graphics = new Graphics();
+        Assert.Equal(new Vector2i(64, 32), RenderSurface.GetSize(graphics, surface));
+        Assert.Equal(new IntRect(0, 0, 64, 32), RenderSurface.GetRect(graphics, surface));
+    }
+}
