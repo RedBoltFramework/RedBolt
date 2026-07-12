@@ -370,6 +370,48 @@ public sealed class Node : Animatable
         return true;
     }
 
+    public override bool SaveXML(XMLElement destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        if (!destination.SetUInt("id", Id) || !base.SaveXML(destination))
+            return false;
+
+        foreach (var component in _components)
+        {
+            if (component.IsTemporary)
+                continue;
+
+            var componentElement = destination.CreateChild("component");
+            if (!component.SaveXML(componentElement))
+                return false;
+        }
+
+        foreach (var child in _children)
+        {
+            if (child.IsTemporary)
+                continue;
+
+            var childElement = destination.CreateChild("node");
+            if (!child.SaveXML(childElement))
+                return false;
+        }
+
+        return true;
+    }
+
+    public bool SaveXML(Stream destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        var xml = new XMLFile(string.Empty);
+        var root = xml.CreateRoot("node");
+        if (!SaveXML(root))
+            return false;
+
+        return xml.Save(destination, indentation);
+    }
+
     private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
     {
         prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;

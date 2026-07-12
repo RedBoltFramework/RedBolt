@@ -304,6 +304,24 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Node_xml_roundtrip_preserves_hierarchy()
+    {
+        var source = new Scene();
+        source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(83);
+
+        using var stream = new MemoryStream();
+        Assert.True(source.Root.SaveXML(stream));
+        stream.Position = 0;
+
+        var xml = new XMLFile(string.Empty);
+        Assert.True(xml.Load(stream));
+
+        var loaded = new Scene();
+        Assert.True(loaded.LoadXML(xml.Root));
+        Assert.Equal(83.0f, loaded.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();
