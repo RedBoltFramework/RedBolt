@@ -21,6 +21,13 @@ public sealed class RenderDevice : Object
         _defaultQueue = new DrawCommandQueue(this);
     }
 
+    public override void Dispose()
+    {
+        SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
+        GetSubsystem<Graphics>()?.GetImmediateContext()?.WaitForIdle();
+        base.Dispose();
+    }
+
     /// <summary>
     /// Restore device if is was lost. Only applicable for Android.
     /// </summary>

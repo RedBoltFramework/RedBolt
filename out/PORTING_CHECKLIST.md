@@ -489,7 +489,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `DrawCommandQueue.h`
   - [~] `DrawCommandQueue` — command recording, reflected data, and validation are ported; native draw/dispatch submission remains
 - [~] `RenderDevice.h`
-  - [~] `RenderDevice : Object`
+  - [~] `RenderDevice : Object` — destructor disposal now sends device-object destruction and waits for the immediate context to idle; initialization and backend-specific device management remain
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
