@@ -27,6 +27,7 @@ public sealed class RenderDevice : Object
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
         GetSubsystem<Graphics>()?.GetImmediateContext()?.WaitForIdle();
         ReleaseDefaultObjects();
+        _renderContext.Dispose();
         base.Dispose();
     }
 
@@ -41,6 +42,8 @@ public sealed class RenderDevice : Object
     public bool Restore()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Restore);
+        SendEvent<GraphicsEvents.DeviceResetEvent>();
+        InitializeDefaultObjects();
         return true;
     }
 
@@ -49,8 +52,12 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool EmulateLossAndRestore()
     {
+        ReleaseDefaultObjects();
         SendDeviceObjectEvent(DeviceObjectEvent.Invalidate);
+        SendEvent<GraphicsEvents.DeviceLostEvent>();
         SendDeviceObjectEvent(DeviceObjectEvent.Restore);
+        SendEvent<GraphicsEvents.DeviceResetEvent>();
+        InitializeDefaultObjects();
         return true;
     }
 

@@ -25,6 +25,13 @@ public class RenderContext : Object
     {
         this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
         _renderPool = renderDevice.GetRenderPool();
+        SubscribeToEvent<GraphicsEvents.DeviceLostEvent>(renderDevice,
+            (ref GraphicsEvents.DeviceLostEvent _) => ResetCachedContextState());
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
     }
 
     /// <summary>
@@ -157,6 +164,9 @@ public class RenderContext : Object
     /// </summary>
     public void SetClipPlaneMask(uint mask)
     {
+        if (_clipPlaneMask == mask || !_renderDevice.GetCaps().ClipDistance)
+            return;
+
         _clipPlaneMask = mask;
     }
 
@@ -210,6 +220,11 @@ public class RenderContext : Object
     public bool IsSwapChainRenderTarget() => _isSwapChain;
 
     public IntRect GetCurrentViewport() => _currentViewport;
+
+    private void ResetCachedContextState()
+    {
+        _clipPlaneMask = 0;
+    }
 
     private void UpdateCurrentRenderTargetInfo()
     {

@@ -485,7 +485,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RenderScope.h`
   - [x] `RenderScope : NonCopyable` — conditional RAII-style Diligent debug groups are ported
 - [~] `RenderContext.h`
-  - [~] `RenderContext : Object` — cached render-target output, dimensions, swap-chain state, viewport clamping, and target dirty marking are ported; device-lost cache reset and backend clip-plane toggles remain
+  - [~] `RenderContext : Object` — cached render-target output, dimensions, swap-chain state, viewport clamping, target dirty marking, disposal, and device-lost clip-state reset are ported; backend clip-plane toggles remain
 - [~] `DrawCommandQueue.h`
   - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, and four-float blend-factor binding are ported
 - [~] `RenderDevice.h`

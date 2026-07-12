@@ -54,6 +54,43 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            _fixture.RenderDevice.PostInitialize();
+            var oldTexture = _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D);
+            _fixture.RenderContext.SetClipPlaneMask(0x5Au);
+
+            Assert.True(_fixture.RenderDevice.EmulateLossAndRestore());
+
+            var newTexture = _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D);
+            Assert.NotSame(oldTexture, newTexture);
+            Assert.NotNull(newTexture);
+            Assert.True(newTexture!.IsValid());
+            var clipPlaneMask = (uint)typeof(RenderContext)
+                .GetField("_clipPlaneMask", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(_fixture.RenderContext)!;
+            Assert.Equal(0u, clipPlaneMask);
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_maps_engine_parameters_to_render_and_window_settings()
     {
         var previousContext = Context.Instance;
