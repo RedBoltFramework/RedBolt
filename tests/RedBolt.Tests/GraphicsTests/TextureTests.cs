@@ -139,4 +139,22 @@ public sealed class TextureTests
         Assert.Equal(imageData, texture.GetImage(CubeMapFace.PositiveX)?.GetData());
         Assert.Null(texture.GetRenderSurface(CubeMapFace.MaxCubeMapFaces));
     }
+
+    [Fact]
+    public void Texture2DArray_image_upload_and_readback_work()
+    {
+        var image = new Image("Textures/SmokeArrayImage");
+        var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
+        Assert.True(image.SetSize(2, 2, 4u));
+        image.SetData(imageData);
+
+        var texture = new Texture2DArray("Textures/SmokeArray");
+        texture.SetLayers(2u);
+        texture.SetNumLevels(1u);
+        Assert.True(texture.SetData(0u, image));
+        Assert.True(texture.SetData(1u, image));
+        Assert.Equal(2u, texture.Layers);
+        Assert.True(texture.GetData(1u, 0u, new byte[16]));
+        Assert.Equal(imageData, texture.GetData(0u, 0u));
+    }
 }

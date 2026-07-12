@@ -544,7 +544,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `TextureCube.h`
   - [~] `TextureCube : Texture` — two-phase ImageCube loading, sampler defaults, face/mip upload, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture2DArray.h`
-  - [~] `Texture2DArray : Texture`
+  - [~] `Texture2DArray : Texture` — two-phase layer loading, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [ ] `RenderSurface.h`
   - [ ] `RenderSurface : RefCounted`
 - [~] `Shader.h`

@@ -1,66 +1,115 @@
 namespace RedBolt;
 
+/// <summary>
+/// 2D texture array resource.
+/// </summary>
 public sealed class Texture2DArray : Texture
 {
     private readonly Dictionary<(uint Slice, uint Level), byte[]> _sliceData = new();
+    private uint _layers;
+    private readonly List<Image?> _loadImages = new();
+    private XMLFile? _loadParameters;
 
     public Texture2DArray(string name)
         : base(name)
     {
     }
 
-    public uint Layers => (uint)Depth;
+    /// <summary>
+    /// Register object factory.
+    /// </summary>
+    public static void RegisterObject(Context context)
+    {
+        // TODO: port: context->AddFactoryReflection<Texture2DArray>();
+    }
 
+    /// <summary>
+    /// Return number of layers in the texture.
+    /// </summary>
+    public uint Layers => _layers;
+
+    /// <summary>
+    /// Load resource from stream. May be called from a worker thread. Return true if successful.
+    /// </summary>
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var parameters = new XMLFile(Name + "#params");
-        if (!parameters.Load(source))
+        _loadImages.Clear();
+        _loadParameters = new XMLFile(Name + "#params")
+        {
+            OwnerCache = OwnerCache
+        };
+        if (!_loadParameters.Load(source))
+        {
+            _loadParameters = null;
             return false;
+        }
 
-        var images = new List<Image>();
-        for (var layerElement = parameters.Root.GetChild("layer"); layerElement.NotNull; layerElement = layerElement.GetNext("layer"))
+        for (var layerElement = _loadParameters.Root.GetChild("layer"); layerElement.NotNull; layerElement = layerElement.GetNext("layer"))
         {
             var imageName = layerElement.GetAttribute("name");
             var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
-            if (image is null)
-                return false;
-
-            images.Add(image);
-        }
-
-        if (images.Count == 0)
-            return false;
-
-        var baseLevel = images[0].GetDecompressedImageLevel(0u);
-        if (baseLevel is null)
-            return false;
-
-        Levels = images[0].IsCompressed() ? Math.Max(images[0].NumCompressedLevels, 1u) : 1u;
-        if (!SetLayers((uint)images.Count, baseLevel.Width, baseLevel.Height, TextureFormat.RGBA8))
-            return false;
-
-        for (var i = 0; i < images.Count; ++i)
-        {
-            if (!SetData((uint)i, images[i]))
-                return false;
+            _loadImages.Add(image);
+            if (image is not null && AsyncLoadState == AsyncLoadState.Loading)
+                image.PrecalculateLevels();
         }
 
         return true;
     }
 
-    public bool SetLayers(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    /// <summary>
+    /// Finish resource loading. Always called from the main thread. Return true if successful.
+    /// </summary>
+    public override bool EndLoad()
     {
-        if (layers == 0 || width <= 0 || height <= 0)
+        if (_loadParameters is null)
             return false;
 
-        SetDimensions(width, height, (int)layers, format, multiSample, noMultiSampledAutoResolve);
+        SetParameters(_loadParameters);
+        SetLayers((uint)_loadImages.Count);
+        for (var i = 0; i < _loadImages.Count; ++i)
+            SetData((uint)i, _loadImages[i]);
+
+        _loadImages.Clear();
+        _loadParameters = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Set the number of layers in the texture. To be used before SetData.
+    /// </summary>
+    public void SetLayers(uint layers)
+    {
+        _layers = layers;
+    }
+
+    /// <summary>
+    /// Set layers, size, format and usage. Set layers to zero to leave them unchanged. Return true if successful.
+    /// </summary>
+    public bool SetSize(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    {
+        _layers = layers == 0 ? _layers : layers;
+        if (_layers == 0 || width <= 0 || height <= 0)
+            return false;
+
+        SetDimensions(width, height, (int)_layers, format, multiSample, noMultiSampledAutoResolve);
+        Levels = _requestedLevels == 0
+            ? CalculateFullMipChainLength(Math.Max(width, height))
+            : Math.Max(_requestedLevels, 1u);
         _sliceData.Clear();
         RefreshTotalMemoryUse();
         return true;
     }
 
+    public bool SetLayers(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    {
+        return SetSize(layers, width, height, format, multiSample, noMultiSampledAutoResolve);
+    }
+
+    /// <summary>
+    /// Set data either partially or fully on a layer's mip level. Return true if successful.
+    /// </summary>
     public bool SetData(uint slice, uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
         if (slice >= Layers || level >= Levels || x < 0 || y < 0 || width <= 0 || height <= 0)
@@ -99,6 +148,9 @@ public sealed class Texture2DArray : Texture
 
     public bool SetData(uint slice, uint level, int x, int y, int width, int height, byte[] data) => SetData(slice, level, x, y, width, height, data.AsSpan());
 
+    /// <summary>
+    /// Set data of one layer from a stream. Return true if successful.
+    /// </summary>
     public bool SetData(uint slice, Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -110,17 +162,34 @@ public sealed class Texture2DArray : Texture
         return image.Load(source) && SetData(slice, image);
     }
 
-    public bool SetData(uint slice, Image image)
+    /// <summary>
+    /// Set data of one layer from an image. Return true if successful. Optionally make a single channel image alpha-only.
+    /// </summary>
+    public bool SetData(uint slice, Image? image)
     {
-        ArgumentNullException.ThrowIfNull(image);
-
-        var levels = image.IsCompressed() ? Math.Max(image.NumCompressedLevels, 1u) : 1u;
-        if (levels != Levels)
+        if (slice >= Layers || image is null)
             return false;
 
-        for (var level = 0u; level < levels; ++level)
+        if (slice == 0)
         {
-            var mipImage = image.GetDecompressedImageLevel(level);
+            var maxLevels = image.IsCompressed()
+                ? Math.Max(image.NumCompressedLevels, 1u)
+                : CalculateFullMipChainLength(Math.Max(image.Width, image.Height));
+            _mostDetailedLevel = Math.Min((uint)GetMipsToSkip(MaterialQuality.High), maxLevels - 1u);
+            var levels = _requestedLevels == 0
+                ? maxLevels - _mostDetailedLevel
+                : Math.Min(_requestedLevels, maxLevels - _mostDetailedLevel);
+            var baseLevel = image.GetDecompressedImageLevel(_mostDetailedLevel);
+            if (baseLevel is null || !SetSize(0, baseLevel.Width, baseLevel.Height, TextureFormat.RGBA8))
+                return false;
+            Levels = levels;
+        }
+        else if (Width == 0)
+            return false;
+
+        for (var level = 0u; level < Levels; ++level)
+        {
+            var mipImage = image.GetDecompressedImageLevel(_mostDetailedLevel + level);
             if (mipImage is null)
                 return false;
 
@@ -131,9 +200,27 @@ public sealed class Texture2DArray : Texture
         return true;
     }
 
+    /// <summary>
+    /// Get data from a mip level. The destination buffer must be big enough. Return true if successful.
+    /// </summary>
     public byte[]? GetData(uint slice, uint level)
     {
         return _sliceData.TryGetValue((slice, level), out var bytes) ? bytes.ToArray() : null;
+    }
+
+    public bool GetData(uint slice, uint level, Span<byte> destination)
+    {
+        if (!_sliceData.TryGetValue((slice, level), out var bytes) || destination.Length < bytes.Length)
+            return false;
+
+        bytes.AsSpan().CopyTo(destination);
+        return true;
+    }
+
+    public bool GetData(uint slice, uint level, byte[] destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        return GetData(slice, level, destination.AsSpan());
     }
 
     private void RefreshTotalMemoryUse()
@@ -142,5 +229,20 @@ public sealed class Texture2DArray : Texture
         foreach (var item in _sliceData)
             total += item.Value.Length;
         RefreshMemoryUse((uint)total);
+    }
+
+    private static uint CalculateFullMipChainLength(int largestDimension)
+    {
+        if (largestDimension <= 0)
+            return 1u;
+
+        var levels = 1u;
+        while (largestDimension > 1)
+        {
+            largestDimension = Math.Max(largestDimension / 2, 1);
+            ++levels;
+        }
+
+        return levels;
     }
 }
