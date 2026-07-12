@@ -163,6 +163,19 @@ public sealed class Engine : Object
         time.EndFrame();
     }
 
+    /// <summary>
+    /// Update the web canvas size and preserve the current input/display state.
+    /// </summary>
+    public void OnCanvasResize(int width, int height, bool isFullScreen, float dpiScale)
+    {
+        Log.Logger.LogInformation(
+            "Web canvas resized to {Width}x{Height}{Fullscreen} with DPI scale={DpiScale}.",
+            width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
+
+        // TODO: port UI and RmlUI scale state updates when the managed UI APIs exist.
+        GetSubsystem<Graphics>()?.SetMode(width, height);
+    }
+
     public void Exit()
     {
         IsExiting = true;
@@ -489,5 +502,20 @@ public sealed class Engine : Object
             _currentTimeStep = _lastTimeSteps[^1];
 
         _nextTimeStep = _currentTimeStep;
+    }
+
+    /// <summary>
+    /// Return log file name in the operating system file system.
+    /// </summary>
+    public string GetLogFileName(string uri)
+    {
+        var fileIdentifier = FileIdentifier.FromUri(uri);
+        return fileIdentifier.Scheme switch
+        {
+            "file" => fileIdentifier.FileName,
+            "conf" => Path.Combine(GetAppPreferencesDir(), fileIdentifier.FileName),
+            "" => Path.Combine(AppContext.BaseDirectory, fileIdentifier.FileName),
+            _ => string.Empty
+        };
     }
 }

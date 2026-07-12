@@ -107,6 +107,14 @@ public sealed class EngineTests
         }
     }
 
+    [Fact]
+    public void Engine_maps_log_file_identifiers_to_system_names()
+    {
+        Assert.EndsWith("logs/engine.log", _fixture.Engine.GetLogFileName("file://logs/engine.log"), StringComparison.Ordinal);
+        Assert.EndsWith("engine.log", _fixture.Engine.GetLogFileName("conf://engine.log"), StringComparison.Ordinal);
+        Assert.Equal(string.Empty, _fixture.Engine.GetLogFileName("pkg://engine.log"));
+    }
+
     private sealed class EngineScope : IDisposable
     {
         public EngineScope(Engine engine, EngineParameters parameters)
