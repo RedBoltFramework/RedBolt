@@ -46,12 +46,6 @@ public sealed class FileWatcher : Object, IDisposable
         _watchSubDirs = false;
     }
 
-    /// <summary>Destruct.</summary>
-    ~FileWatcher()
-    {
-        StopWatching();
-    }
-
     /// <summary>Directory watching loop.</summary>
     public void ThreadFunction()
     {
@@ -178,9 +172,10 @@ public sealed class FileWatcher : Object, IDisposable
         return _delay;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         StopWatching();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

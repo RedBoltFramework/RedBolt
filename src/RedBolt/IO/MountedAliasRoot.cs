@@ -12,8 +12,9 @@ public class MountedAliasRoot : MountPoint
     }
 
     /// <summary>Destruct.</summary>
-    ~MountedAliasRoot()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Add alias to another mount point.</summary>

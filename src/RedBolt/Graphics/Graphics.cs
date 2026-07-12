@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class Graphics
+public sealed class Graphics : Object
 {
     private const uint GlFront = 0x0404;
     private const uint GlBack = 0x0405;
@@ -173,7 +173,7 @@ layout(std140) uniform Material
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var cache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var cache = GetSubsystem<ResourceCache>();
         var shader = cache?.GetResourceOrNull<Shader>(Shader.GetResourceName(name));
         return shader is null ? null : new ShaderVariation(shader, type, defines);
     }
@@ -342,13 +342,13 @@ layout(std140) uniform Material
         if (!IsInitialized || viewport is null || _immediateContext is null || _swapChain is null || _renderTargetView is null || _depthStencilView is null)
             return;
 
-        Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
+        SendEvent<GraphicsEvents.BeginRenderingEvent>();
 
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
         ClearCurrentRenderTargets();
         RenderScene(viewport, materialQuality, viewportRect);
-        Context.Instance.SendEvent<GraphicsEvents.EndRenderingEvent>();
+        SendEvent<GraphicsEvents.EndRenderingEvent>();
         PresentFrame(screenshotPath, beforePresent);
         UnbindRenderTargets();
     }
@@ -1344,7 +1344,7 @@ layout(std140) uniform Material
         if (_fullscreenPipelines.TryGetValue(key, out var cached))
             return cached;
 
-        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var resourceCache = GetSubsystem<ResourceCache>();
         var shaderResource = resourceCache?.GetResourceOrNull<Shader>(shaderName);
         if (shaderResource is null)
             return null;
@@ -1437,7 +1437,7 @@ layout(std140) uniform Material
 
         const string shaderName = "X_ClearFramebuffer";
         const string shaderDefines = "URHO3D_GEOMETRY_STATIC";
-        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+        var resourceCache = GetSubsystem<ResourceCache>();
         var shaderResource = resourceCache?.GetResourceOrNull<Shader>(shaderName);
         if (shaderResource is null)
             return null;
@@ -1563,7 +1563,7 @@ layout(std140) uniform Material
 
     private void UpdateFullscreenFrameBuffer(IBuffer buffer)
     {
-        var time = Context.TryGetInstance()?.GetSubsystem<Time>();
+        var time = GetSubsystem<Time>();
         Span<byte> data = stackalloc byte[FrameBufferSize];
         data.Clear();
         WriteFloat(data, 0, time?.TimeStep ?? 0.0f);

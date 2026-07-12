@@ -11,8 +11,9 @@ public abstract class MountPoint : Object
     }
 
     /// <summary>Destruct.</summary>
-    ~MountPoint()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Checks if mount point accepts scheme.</summary>
@@ -84,8 +85,9 @@ public abstract class WatchableMountPoint : MountPoint
     }
 
     /// <summary>Destruct.</summary>
-    ~WatchableMountPoint()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Implement MountPoint.</summary>

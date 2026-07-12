@@ -6,7 +6,7 @@ namespace RedBolt;
 
 /// <summary>File opened through the filesystem.</summary>
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
-public class File : AbstractFile
+public class File : AbstractFile, IDisposable
 {
     /// <summary>File open mode.</summary>
     public enum FileMode
@@ -64,9 +64,10 @@ public class File : AbstractFile
     }
 
     /// <summary>Destruct. Close the file if open.</summary>
-    ~File()
+    public void Dispose()
     {
         Close();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>Read bytes from the file. Return number of bytes actually read.</summary>

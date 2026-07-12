@@ -21,9 +21,11 @@ public sealed class Microphone : Object
     {
     }
 
-    ~Microphone()
+    public override void Dispose()
     {
         CloseNative();
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public short[] GetData()

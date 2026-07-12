@@ -279,7 +279,7 @@ public class RenderPipeline : Component
                 ? viewport.Rect
                 : new IntRect(0, 0, graphics.Width, graphics.Height);
 
-            var engineTime = Context.TryGetInstance()?.GetSubsystem<Time>();
+            var engineTime = _renderPipeline.GetSubsystem<Time>();
             _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
             _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
             _frameInfo.Viewport = viewport;

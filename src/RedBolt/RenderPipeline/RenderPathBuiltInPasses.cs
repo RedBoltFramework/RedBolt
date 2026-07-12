@@ -1047,7 +1047,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (_textures is not null || sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
-        var resourceCache = Context.TryGetInstance()?.GetSubsystem<ResourceCache>();
+            var resourceCache = GetSubsystem<ResourceCache>();
         var sizeMultiplier = Vector2f.One / (1u << (int)_currentParameters.Downscale);
         var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
         _textures = new TextureCache

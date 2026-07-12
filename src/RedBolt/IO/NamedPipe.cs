@@ -23,12 +23,6 @@ public sealed class NamedPipe : AbstractFile, IDisposable
         Open(name, isServer);
     }
 
-    /// <summary>Destruct and close.</summary>
-    ~NamedPipe()
-    {
-        Close();
-    }
-
     /// <summary>Read bytes from the pipe without blocking if there is less data available.</summary>
     public override uint Read(Span<byte> destination)
     {

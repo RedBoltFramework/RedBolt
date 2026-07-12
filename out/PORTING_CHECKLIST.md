@@ -191,7 +191,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ObjectReflection` — `System.Type` and the global managed `Context` replace rbfx `TypeInfo` and constructor-injected context, as allowed by the port rules
   - [x] `ObjectReflectionRegistry` — custom `TypeInfo` reflection is replaced by the C# type system, as allowed by the port rules
 - [x] `Object.h`
-  - [x] `Object` — managed Context forwarding, the allowed struct-event replacement, C# type assignability, and default Archive serialization behavior are ported
+  - [x] `Object` — managed Context forwarding, the allowed struct-event replacement, C# type assignability, default Archive serialization behavior, and IDisposable event cleanup are ported
   - [x] `EventHandler`
 - [x] `Context.h`
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
@@ -615,7 +615,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Skybox : StaticModel`
 - [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending
   - [~] `AnimationStateSource`
-- [~] `AnimationState.h` — enums, track/output records, lifecycle state, and track dirty management are ported; AnimatedModel and attribute-reflection calculation paths remain TODO
+- [~] `AnimationState.h` — enums, track/output records, lifecycle state, track dirty management, and node transform blending are ported; AnimatedModel and attribute-reflection calculation paths remain TODO
   - [~] `struct AnimatedAttributeReference`
   - [~] `AnimationState : RefCounted`
 - [~] `AnimationController.h` — animation parameter management, playback lifecycle, and replacement merge path are ported; AnimatedModel pose/attribute integration remains TODO

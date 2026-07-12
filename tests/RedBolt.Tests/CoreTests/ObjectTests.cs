@@ -41,11 +41,46 @@ public sealed class ObjectTests
         }
     }
 
+    [Fact]
+    public void Object_dispose_removes_receiver_and_sender_event_links()
+    {
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var sender = new TestObject();
+            var receiver = new TestObject();
+            var calls = 0;
+
+            using var subscription = receiver.SubscribeToEvent<DisposeEvent>(sender, (ref DisposeEvent _) => ++calls);
+
+            var args = new DisposeEvent();
+            sender.SendEvent(ref args);
+            Assert.Equal(1, calls);
+
+            sender.Dispose();
+            sender.SendEvent(ref args);
+            Assert.Equal(1, calls);
+
+            receiver.Dispose();
+            Assert.False(context.HasSubscribedToEvent(receiver));
+        }
+        finally
+        {
+            Context.SetInstance(null);
+        }
+    }
+
     private sealed class TestObject : RedBolt.Object
     {
     }
 
     private sealed class TestSubsystem
+    {
+    }
+
+    private struct DisposeEvent
     {
     }
 

@@ -244,7 +244,22 @@ public sealed class AnimationState
 
     public void CalculateNodeTracks(IDictionary<Node, NodeAnimationOutput> output)
     {
-        // TODO: port: node animation output blending will be completed with AnimatedModel animation support.
+        if (_animation is null || !IsEnabled())
+            return;
+
+        for (var i = 0; i < _nodeTracks.Count; ++i)
+        {
+            var stateTrack = _nodeTracks[i];
+            var node = stateTrack.Node!;
+            if (!output.TryGetValue(node, out var trackOutput))
+                trackOutput = new NodeAnimationOutput { LocalToParent = Transform.Identity };
+
+            var keyFrame = stateTrack.KeyFrame;
+            CalculateTransformTrack(ref trackOutput, stateTrack.Track!, ref keyFrame, _weight);
+            stateTrack.KeyFrame = keyFrame;
+            _nodeTracks[i] = stateTrack;
+            output[node] = trackOutput;
+        }
     }
 
     public void CalculateAttributeTracks(IDictionary<AnimatedAttributeReference, Variant> output)
@@ -255,7 +270,91 @@ public sealed class AnimationState
     private void CalculateTransformTrack(
         ref NodeAnimationOutput output, AnimationTrack track, ref uint frame, float baseWeight)
     {
-        // TODO: port: complete when animation output blending is available.
+        if (track.KeyFrames.Count == 0)
+            return;
+
+        var positionWeight = baseWeight * track.PositionWeight;
+        var rotationWeight = baseWeight * track.RotationWeight;
+        var scaleWeight = baseWeight * track.ScaleWeight;
+
+        var isFullPositionWeight = MathDefs.Equals(positionWeight, 1.0f);
+        var isFullRotationWeight = MathDefs.Equals(rotationWeight, 1.0f);
+        var isFullScaleWeight = MathDefs.Equals(scaleWeight, 1.0f);
+
+        var baseValue = track.KeyFrames[0];
+
+        var sampledValue = Transform.Identity;
+        track.Sample(_time, _animation!.Length, _looped, ref frame, ref sampledValue);
+
+        if (_blendingMode == AnimationBlendMode.Additive)
+        {
+            // In additive mode, check for output being already initialzed
+            if ((track.ChannelMask & output.Dirty & AnimationChannel.Position) != 0)
+            {
+                var delta = sampledValue.Position - baseValue.Position;
+                output.LocalToParent.Position += delta * positionWeight;
+            }
+
+            if ((track.ChannelMask & output.Dirty & AnimationChannel.Rotation) != 0)
+            {
+                var delta = sampledValue.Rotation * baseValue.Rotation.Inverse;
+                if (isFullRotationWeight)
+                    output.LocalToParent.Rotation = delta * output.LocalToParent.Rotation;
+                else
+                {
+                    output.LocalToParent.Rotation =
+                        Quaternion.Identity.Slerp(delta, rotationWeight) * output.LocalToParent.Rotation;
+                }
+            }
+
+            if ((track.ChannelMask & output.Dirty & AnimationChannel.Scale) != 0)
+            {
+                var delta = sampledValue.Scale - baseValue.Scale;
+                output.LocalToParent.Scale += delta * scaleWeight;
+            }
+        }
+        else
+        {
+            // In interpolation mode, disable interpolation if output is not initialzed yet
+            if ((track.ChannelMask & AnimationChannel.Position) != 0)
+            {
+                if (!isFullPositionWeight && (output.Dirty & AnimationChannel.Position) != 0)
+                {
+                    output.LocalToParent.Position =
+                        output.LocalToParent.Position.Lerp(sampledValue.Position, positionWeight);
+                }
+                else
+                {
+                    output.Dirty |= AnimationChannel.Position;
+                    output.LocalToParent.Position = sampledValue.Position;
+                }
+            }
+
+            if ((track.ChannelMask & AnimationChannel.Rotation) != 0)
+            {
+                if (!isFullRotationWeight && (output.Dirty & AnimationChannel.Rotation) != 0)
+                {
+                    output.LocalToParent.Rotation =
+                        output.LocalToParent.Rotation.Slerp(sampledValue.Rotation, rotationWeight);
+                }
+                else
+                {
+                    output.Dirty |= AnimationChannel.Rotation;
+                    output.LocalToParent.Rotation = sampledValue.Rotation;
+                }
+            }
+
+            if ((track.ChannelMask & AnimationChannel.Scale) != 0)
+            {
+                if (!isFullScaleWeight && (output.Dirty & AnimationChannel.Scale) != 0)
+                    output.LocalToParent.Scale = output.LocalToParent.Scale.Lerp(sampledValue.Scale, scaleWeight);
+                else
+                {
+                    output.Dirty |= AnimationChannel.Scale;
+                    output.LocalToParent.Scale = sampledValue.Scale;
+                }
+            }
+        }
     }
 
     private void CalculateAttributeTrack(

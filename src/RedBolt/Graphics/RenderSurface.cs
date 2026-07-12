@@ -4,7 +4,7 @@ using RedBolt.Bindings.Diligent;
 namespace RedBolt;
 
 /// <summary>Color or depth-stencil surface that can be rendered into.</summary>
-public sealed class RenderSurface
+public sealed class RenderSurface : IDisposable
 {
     /// <summary>Parent texture.</summary>
     private readonly Texture? _parentTexture;
@@ -39,8 +39,9 @@ public sealed class RenderSurface
         _slice = slice;
     }
 
-    ~RenderSurface()
+    public void Dispose()
     {
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>Internal. Restore GPU resource.</summary>

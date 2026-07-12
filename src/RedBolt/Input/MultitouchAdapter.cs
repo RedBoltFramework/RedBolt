@@ -31,9 +31,10 @@ public sealed class MultitouchAdapter : Object, IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose()
+    public override void Dispose()
     {
         UnsubscribeFromEvents();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

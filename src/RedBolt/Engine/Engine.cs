@@ -271,7 +271,7 @@ public sealed class Engine : Object
         GetSubsystem<Renderer>()!.ClearViewports();
         GetSubsystem<Input>()!.Shutdown();
         _context.Reset();
-        if (ReferenceEquals(RedBolt.Context.TryGetInstance(), _context))
+        if (ReferenceEquals(RedBolt.Context.Instance, _context))
             RedBolt.Context.SetInstance(_previousContext);
         IsInitialized = false;
         IsExiting = false;

@@ -61,6 +61,11 @@ public sealed class Context : ObjectReflectionRegistry
         get => _instance ?? throw new InvalidOperationException("Context.Instance has not been set.");
     }
 
+    /// <summary>
+    /// Prefer using Context.Instance instead of this method, as it will throw an exception if the instance is not set.
+    /// This method is provided for cases where the context may not be set, and you want to handle that case gracefully.
+    /// This usually happens during application teardown and is is not a common case.
+    /// </summary>
     public static Context? TryGetInstance() => _instance;
 
     public static void SetInstance(Context? context) => _instance = context;
@@ -318,6 +323,19 @@ public sealed class Context : ObjectReflectionRegistry
     public void UnsubscribeFromEvents(object receiver, Object sender)
     {
         Unsubscribe(receiver, sender);
+    }
+
+    /// <summary>
+    /// Remove an event sender from all receivers.
+    /// </summary>
+    public void RemoveEventSender(Object sender)
+    {
+        ArgumentNullException.ThrowIfNull(sender);
+
+        foreach (var bucket in _structEventSubscriptions.Values)
+            RemoveMatchingSubscriptions(bucket, subscription => ReferenceEquals(subscription.Sender, sender));
+
+        RemoveEmptyEventBuckets();
     }
 
     public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<Object> senders)

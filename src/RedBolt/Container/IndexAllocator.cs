@@ -105,7 +105,7 @@ public class IndexAllocator
 /// <summary>
 /// Family of unique indices for template type.
 /// </summary>
-public class IDFamily<T>
+public class IDFamily<T> : IDisposable
 {
     /// <summary>
     /// Construct.
@@ -118,9 +118,10 @@ public class IDFamily<T>
     /// <summary>
     /// Destruct.
     /// </summary>
-    ~IDFamily()
+    public void Dispose()
     {
         ReleaseObjectID();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

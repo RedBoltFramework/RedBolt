@@ -81,10 +81,11 @@ public sealed class StateManager : Object, IDisposable
     private TransitionState _transitionState = TransitionState.Sustain;
     private ContextEventSubscription? _updateSubscription;
 
-    public void Dispose()
+    public override void Dispose()
     {
         _updateSubscription?.Dispose();
         Reset();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

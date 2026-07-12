@@ -145,13 +145,13 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
 
     private static Graphics ResolveGraphics()
     {
-        var context = Context.TryGetInstance() ?? throw new InvalidOperationException("No active Context instance is available.");
+        var context = Context.Instance;
         return context.GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
     }
 
     private static RenderDevice ResolveRenderDevice()
     {
-        var context = Context.TryGetInstance() ?? throw new InvalidOperationException("No active Context instance is available.");
+        var context = Context.Instance;
         return context.GetSubsystem<RenderDevice>() ?? throw new InvalidOperationException("RenderDevice subsystem is not available.");
     }
 }

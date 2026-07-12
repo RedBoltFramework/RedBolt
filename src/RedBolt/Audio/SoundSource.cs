@@ -40,9 +40,11 @@ public class SoundSource : Component
         UpdateMasterGain();
     }
 
-    ~SoundSource()
+    public override void Dispose()
     {
         Audio.RemoveSoundSource(this);
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>Play a sound.</summary>

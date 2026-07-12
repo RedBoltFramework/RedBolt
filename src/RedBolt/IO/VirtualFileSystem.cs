@@ -14,8 +14,9 @@ public class VirtualFileSystem : Object
     }
 
     /// <summary>Destruct.</summary>
-    ~VirtualFileSystem()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Mount alias root as alias:// scheme. Alias root will be mounted automatically if alias is created.</summary>
@@ -449,11 +450,6 @@ public sealed class MountPointGuard : IDisposable
             var vfs = _mountPoint.Context.GetSubsystem<VirtualFileSystem>();
             vfs!.Mount(_mountPoint);
         }
-    }
-
-    ~MountPointGuard()
-    {
-        Release();
     }
 
     public MountPointGuard(MountPointGuard other)

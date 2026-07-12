@@ -4,7 +4,7 @@ using RedBolt.Bindings.Stb;
 namespace RedBolt;
 
 /// <summary>Ogg Vorbis sound stream for compressed playback.</summary>
-public sealed class OggVorbisSoundStream : SoundStream
+public sealed class OggVorbisSoundStream : SoundStream, IDisposable
 {
     private readonly sbyte[] _data;
     private readonly uint _dataSize;
@@ -31,10 +31,15 @@ public sealed class OggVorbisSoundStream : SoundStream
         }
     }
 
-    ~OggVorbisSoundStream()
+    public void Dispose()
     {
         if (_decoder is { IsNull: false })
+        {
             StbVorbisNativeBindings.StbVorbisClose(_decoder);
+            _decoder = null;
+        }
+
+        GC.SuppressFinalize(this);
     }
 
     public override bool Seek(uint sampleNumber)

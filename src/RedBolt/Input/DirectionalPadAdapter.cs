@@ -38,9 +38,10 @@ public sealed class DirectionalPadAdapter : Object, IDisposable
 
     public DirectionalPadAdapter(Input? input = null) => _input = input;
 
-    public void Dispose()
+    public override void Dispose()
     {
         ClearSubscriptions();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -102,7 +103,7 @@ public sealed class DirectionalPadAdapter : Object, IDisposable
     {
         ClearSubscriptions();
         ClearAllSources(sendEvents: true);
-        if (!_enabled || _input is null || Context.TryGetInstance() is null) return;
+        if (!_enabled || _input is null) return;
         _subscriptions.Add(SubscribeToEvent<InputEvents.InputFocusEvent>(_input, HandleInputFocus));
         if ((_subscriptionMask & DirectionalPadAdapterMask.KeyRepeat) != 0)
             _subscriptions.Add(SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate));

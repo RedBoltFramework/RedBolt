@@ -33,10 +33,11 @@ public sealed class PointerAdapter : Object, IDisposable
         SetSubscriptionMask(_subscriptionMask);
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         ClearSubscriptions();
         _directionAdapter.Dispose();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -143,7 +144,7 @@ public sealed class PointerAdapter : Object, IDisposable
     {
         ClearSubscriptions();
         _activeTouchId = null;
-        if (!_enabled || _input is null || Context.TryGetInstance() is null) return;
+        if (!_enabled || _input is null) return;
         _subscriptions.Add(SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate));
         if ((_subscriptionMask & PointerAdapterMask.Mouse) != 0)
         {

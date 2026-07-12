@@ -16,9 +16,11 @@ public class MountedDirectory : WatchableMountPoint
     }
 
     /// <summary>Destruct.</summary>
-    ~MountedDirectory()
+    public override void Dispose()
     {
         _fileWatcher?.Dispose();
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>Implement MountPoint.</summary>

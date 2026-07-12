@@ -62,9 +62,10 @@ public sealed class MultiFileWatcher : Object, IDisposable
         return _delay;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         StopWatching();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

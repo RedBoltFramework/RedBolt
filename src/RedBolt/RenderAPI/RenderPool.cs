@@ -348,7 +348,7 @@ public class RenderPool : Object
         _scratchBufferCapacity = newCapacity;
     }
 
-    ~RenderPool()
+    public override void Dispose()
     {
         while (_temporaryScratchBufferHead != nint.Zero)
         {
@@ -359,5 +359,8 @@ public class RenderPool : Object
 
         if (_scratchBuffer != nint.Zero)
             Marshal.FreeHGlobal(_scratchBuffer);
+
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

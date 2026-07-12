@@ -31,9 +31,10 @@ public sealed class DirectionAggregator : Object, IDisposable
 
     public DirectionAggregator(Input? input = null) => _input = input;
 
-    public void Dispose()
+    public override void Dispose()
     {
         ClearSubscriptions();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -85,7 +86,7 @@ public sealed class DirectionAggregator : Object, IDisposable
         _horizontalAxis.Clear();
         _verticalAxis.Clear();
         _activeTouchId = null;
-        if (!_enabled || _input is null || Context.TryGetInstance() is null) return;
+        if (!_enabled || _input is null) return;
 
         _subscriptions.Add(SubscribeToEvent<InputEvents.InputFocusEvent>(HandleInputFocus));
         if ((_subscriptionMask & DirectionAggregatorMask.Keyboard) != 0)

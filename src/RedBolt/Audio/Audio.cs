@@ -51,10 +51,12 @@ public sealed class Audio : Object
         _renderUpdateSubscription = SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
     }
 
-    ~Audio()
+    public override void Dispose()
     {
         Release();
         _audioContext.ReleaseSdl();
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private static void RegisterAudioLibrary() { }

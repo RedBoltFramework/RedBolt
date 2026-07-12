@@ -1,8 +1,19 @@
 namespace RedBolt;
 
-public abstract class Object : IArchiveSerializable
+public abstract class Object : IArchiveSerializable, IDisposable
 {
     public Context Context => Context.Instance;
+
+    public virtual void Dispose()
+    {
+        var context = Context.TryGetInstance();
+        if (context is null)
+            return;
+
+        context.Unsubscribe(this);
+        context.RemoveEventSender(this);
+        GC.SuppressFinalize(this);
+    }
 
     public virtual void SerializeInBlock(Archive archive)
     {

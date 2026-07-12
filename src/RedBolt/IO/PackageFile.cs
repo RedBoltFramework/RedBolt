@@ -31,8 +31,9 @@ public class PackageFile : MountPoint
     }
 
     /// <summary>Destruct. Close the file if open.</summary>
-    ~PackageFile()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Open the package file. Return true if successful.</summary>
