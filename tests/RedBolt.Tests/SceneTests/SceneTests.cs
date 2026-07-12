@@ -242,6 +242,33 @@ public sealed class SceneTests
     }
 
     [Fact]
+    public void Scene_load_entrypoints_read_archive_formats()
+    {
+        var source = new Scene();
+        source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(71);
+
+        var xmlArchive = new XMLOutputArchive();
+        using (xmlArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
+            source.SerializeInBlock(xmlArchive);
+        var xmlFile = new XMLFile(string.Empty);
+        using var xmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlArchive.ToXmlString()));
+        Assert.True(xmlFile.Load(xmlStream));
+
+        var loadedFromXml = new Scene();
+        Assert.True(loadedFromXml.LoadXML(xmlFile.Root));
+        Assert.NotNull(loadedFromXml.Root.GetChild("Loaded"));
+
+        var jsonArchive = new JSONOutputArchive();
+        using (jsonArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
+            source.SerializeInBlock(jsonArchive);
+        Assert.True(JSONFile.ParseJSON(jsonArchive.ToJsonString(), out var json));
+
+        var loadedFromJson = new Scene();
+        Assert.True(loadedFromJson.LoadJSON(json));
+        Assert.NotNull(loadedFromJson.Root.GetChild("Loaded"));
+    }
+
+    [Fact]
     public void Component_indexes_track_matching_components()
     {
         var scene = new Scene();

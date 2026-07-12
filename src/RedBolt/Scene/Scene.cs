@@ -2,6 +2,17 @@ using System.Buffers;
 
 namespace RedBolt;
 
+/// <summary>Asynchronous scene loading mode.</summary>
+public enum LoadMode
+{
+    /// <summary>Preload resources without loading scene content.</summary>
+    ResourcesOnly,
+    /// <summary>Load scene content without preloading resources.</summary>
+    Scene,
+    /// <summary>Preload resources, then load scene content.</summary>
+    SceneAndResources
+}
+
 public sealed class Scene : Object
 {
     private readonly Dictionary<uint, Component> _components = [];
@@ -16,6 +27,8 @@ public sealed class Scene : Object
     private readonly StringVector _updateEvents = [];
     private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
     private int _asyncLoadingMs = 5;
+    private LoadMode _asyncLoadMode = LoadMode.SceneAndResources;
+    private bool _asyncLoading;
     private float _elapsedTime;
     private string _fileName = string.Empty;
     private IntVector3 _worldOrigin;
@@ -142,6 +155,41 @@ public sealed class Scene : Object
             Checksum = archive.Checksum;
     }
 
+    public bool LoadXML(XMLElement source)
+    {
+        StopAsyncLoading();
+
+        if (source.Name == SceneResource.GetXmlRootName())
+        {
+            var archive = new XMLInputArchive(Context, source.Element!);
+            using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
+                SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
+            return true;
+        }
+
+        if (Root.LoadXML(source))
+            return true;
+
+        throw new InvalidOperationException("Cannot load Scene from legacy XML format");
+    }
+
+    public bool LoadJSON(JSONValue source)
+    {
+        StopAsyncLoading();
+
+        var archive = new JSONInputArchive(Context, source.ToString());
+        using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
+            SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
+        return true;
+    }
+
+    public void StopAsyncLoading()
+    {
+        _asyncLoading = false;
+        // TODO: port asyncProgress_.file_.Reset(), xmlFile_.Reset(), jsonFile_.Reset(),
+        // xmlElement_ = XMLElement::EMPTY, jsonIndex_ = 0, resources_.clear(), and resolver_.Reset().
+    }
+
     public void SetUpdateEvents(StringVector events)
     {
         _updateEvents.Clear();
@@ -246,9 +294,11 @@ public sealed class Scene : Object
 
     public int GetAsyncLoadingMs() => _asyncLoadingMs;
 
-    public bool IsAsyncLoading() => false;
+    public bool IsAsyncLoading() => _asyncLoading;
 
     public float GetAsyncProgress() => 1.0f;
+
+    public LoadMode GetAsyncLoadMode() => _asyncLoadMode;
 
     public void SetFileName(string fileName)
     {
