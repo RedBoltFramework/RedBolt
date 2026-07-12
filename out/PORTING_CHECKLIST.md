@@ -421,7 +421,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `PrefabResource : SimpleResource` — background resource loading, legacy XML conversion, and compact archive flags remain TODO because those managed APIs are not present
 - [~] `PrefabReference.h`
   - [x] `PrefabReference : Component` — matching, temporary instance lifecycle, attribute-controlled instantiation, inline, commit, and prefab export are ported
-  - [~] `PrefabReference : Component` — reload event subscription, editor actions/logging, and exact deep prefab value-copying remain TODO because the managed APIs differ
+  - [~] `PrefabReference : Component` — reload event subscription and instance recreation are ported; editor actions/logging and exact deep prefab value-copying remain TODO because the managed APIs differ
 - [x] `SceneResolver.h`
   - [x] `SceneResolver` — node/component lookup registration, scalar and vector ID resolution, warning paths, and post-resolution reset; C++ WeakPtr storage maps to managed references per the allowed deviation
 - [x] `Scene.h`

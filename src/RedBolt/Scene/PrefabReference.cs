@@ -49,6 +49,9 @@ public sealed class PrefabReference : Component
         if (ReferenceEquals(prefab, _prefab) && path == _path)
             return;
 
+        if (_prefab is not null)
+            _prefab.ReloadFinished -= OnPrefabReloadFinished;
+
         _prefab = prefab;
         _path = path;
 
@@ -57,7 +60,8 @@ public sealed class PrefabReference : Component
         else
             _prefabRef = ResourceRef.Empty;
 
-        // TODO: port prefab reload subscription once the managed resource event lifetime API matches C++.
+        if (_prefab is not null)
+            _prefab.ReloadFinished += OnPrefabReloadFinished;
         if (createInstance)
             CreateInstance(false, instanceFlags);
     }
@@ -418,6 +422,10 @@ public sealed class PrefabReference : Component
         _prefabDirty = true;
     }
 
+    private void OnPrefabReloadFinished(Resource resource)
+    {
+        CreateInstance();
+    }
 
     private PrefabResource? _prefab;
     private ResourceRef _prefabRef = ResourceRef.Empty;
