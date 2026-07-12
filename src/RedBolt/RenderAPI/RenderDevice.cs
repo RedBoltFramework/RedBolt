@@ -7,6 +7,9 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderDevice : Object
 {
+    private bool _defaultTextureParametersDirty;
+    private TextureFilterMode _defaultTextureFilterMode = TextureFilterMode.Trilinear;
+    private int _defaultTextureAnisotropy = 4;
     private readonly object _deviceObjectsLock = new();
     private readonly List<DeviceObject> _deviceObjects = [];
     private readonly RenderPool _renderPool;
@@ -34,6 +37,29 @@ public sealed class RenderDevice : Object
     public void PostInitialize()
     {
         InitializeDefaultObjects();
+    }
+
+    public void SetDefaultTextureFilterMode(TextureFilterMode filterMode)
+    {
+        if (filterMode == TextureFilterMode.Default)
+            throw new ArgumentException("Invalid texture filter mode.", nameof(filterMode));
+
+        if (_defaultTextureFilterMode == filterMode)
+            return;
+
+        _defaultTextureFilterMode = filterMode;
+        _defaultTextureParametersDirty = true;
+    }
+
+    public void SetDefaultTextureAnisotropy(int anisotropy)
+    {
+        anisotropy = Math.Max(1, anisotropy);
+
+        if (_defaultTextureAnisotropy == anisotropy)
+            return;
+
+        _defaultTextureAnisotropy = anisotropy;
+        _defaultTextureParametersDirty = true;
     }
 
     /// <summary>
@@ -164,12 +190,12 @@ public sealed class RenderDevice : Object
 
     public TextureFilterMode GetDefaultTextureFilterMode()
     {
-        return GetSubsystem<Renderer>()?.GetTextureFilterMode() ?? TextureFilterMode.Trilinear;
+        return _defaultTextureFilterMode;
     }
 
     public int GetDefaultTextureAnisotropy()
     {
-        return GetSubsystem<Renderer>()?.GetTextureAnisotropy() ?? 1;
+        return _defaultTextureAnisotropy;
     }
 
     public TextureFormat GetDefaultDepthStencilFormat()

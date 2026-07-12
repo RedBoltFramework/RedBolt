@@ -57,6 +57,30 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_default_texture_settings_match_native_behavior()
+    {
+        var filterMode = _fixture.RenderDevice.GetDefaultTextureFilterMode();
+        var anisotropy = _fixture.RenderDevice.GetDefaultTextureAnisotropy();
+        try
+        {
+            Assert.Equal(TextureFilterMode.Trilinear, filterMode);
+            Assert.Equal(4, anisotropy);
+
+            _fixture.RenderDevice.SetDefaultTextureFilterMode(TextureFilterMode.Bilinear);
+            _fixture.RenderDevice.SetDefaultTextureAnisotropy(0);
+
+            Assert.Equal(TextureFilterMode.Bilinear, _fixture.RenderDevice.GetDefaultTextureFilterMode());
+            Assert.Equal(1, _fixture.RenderDevice.GetDefaultTextureAnisotropy());
+            Assert.Throws<ArgumentException>(() => _fixture.RenderDevice.SetDefaultTextureFilterMode(TextureFilterMode.Default));
+        }
+        finally
+        {
+            _fixture.RenderDevice.SetDefaultTextureFilterMode(filterMode);
+            _fixture.RenderDevice.SetDefaultTextureAnisotropy(anisotropy);
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters
