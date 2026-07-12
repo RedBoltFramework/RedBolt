@@ -5,6 +5,19 @@ namespace RedBolt;
 /// </summary>
 public static class RenderAPIUtils
 {
+    private static readonly string[] ShaderInputNames =
+    [
+        "iPos",
+        "iNormal",
+        "iBinormal",
+        "iTangent",
+        "iTexCoord",
+        "iColor",
+        "iBlendWeights",
+        "iBlendIndices",
+        ""
+    ];
+
     public static bool IsOpenGLESBackend(RenderBackend backend)
     {
         var platform = ProcessUtils.GetPlatform();
@@ -44,6 +57,46 @@ public static class RenderAPIUtils
         };
         return shaderTypeNames[(int)type];
     }
+
+    public static VertexShaderAttribute? ParseVertexAttribute(string name)
+    {
+        for (var index = 0; index < ShaderInputNames.Length; ++index)
+        {
+            var semanticName = ShaderInputNames[index];
+            var semanticPosition = name.IndexOf(semanticName, StringComparison.Ordinal);
+            if (semanticPosition < 0)
+                continue;
+
+            var semanticIndexPosition = semanticPosition + semanticName.Length;
+            var semanticIndex = 0u;
+            while (semanticIndexPosition < name.Length)
+            {
+                var digit = name[semanticIndexPosition] - '0';
+                if (digit is < 0 or > 9)
+                    break;
+
+                semanticIndex = semanticIndex * 10u + (uint)digit;
+                ++semanticIndexPosition;
+            }
+
+            return new VertexShaderAttribute((VertexElementSemantic)index, semanticIndex, 0);
+        }
+
+        return null;
+    }
+
+    public static string ToShaderInputName(VertexElementSemantic semantic) => ShaderInputNames[(int)semantic];
+
+    public static global::RedBolt.Bindings.Diligent.ShaderType ToInternalShaderType(ShaderType type) => type switch
+    {
+        ShaderType.VS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+        ShaderType.PS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+        ShaderType.GS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeGeometry,
+        ShaderType.HS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeHull,
+        ShaderType.DS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeDomain,
+        ShaderType.CS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+    };
 
     public static uint GetMipLevelCount(Vector3i size)
     {
@@ -236,4 +289,5 @@ public static class RenderAPIUtils
         TextureFormat.Depth24Stencil8 => 4u,
         _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
     };
+
 }

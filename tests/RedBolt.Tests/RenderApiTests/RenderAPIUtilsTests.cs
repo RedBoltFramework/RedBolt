@@ -38,4 +38,14 @@ public sealed class RenderAPIUtilsTests
         Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.Depth24Stencil8));
         Assert.True(RenderAPIUtils.IsColorTextureFormat(TextureFormat.RGBA16F));
     }
+
+    [Fact]
+    public void Shader_input_helpers_match_cpp_tables()
+    {
+        Assert.Equal("iTexCoord", RenderAPIUtils.ToShaderInputName(VertexElementSemantic.TexCoord));
+        Assert.Equal(new VertexShaderAttribute(VertexElementSemantic.TexCoord, 3, 0),
+            RenderAPIUtils.ParseVertexAttribute("input_iTexCoord3"));
+        Assert.Equal(RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute,
+            RenderAPIUtils.ToInternalShaderType(ShaderType.CS));
+    }
 }
