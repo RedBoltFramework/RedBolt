@@ -476,6 +476,18 @@ public sealed class Octree : Component
             _rootOctant.InsertDrawable(drawable);
         }
         _drawableUpdates.Clear();
+
+        if (Scene is { } scene)
+        {
+            var eventData = new SceneEvents.SceneDrawableUpdateFinishedEvent
+            {
+                Scene = scene,
+                TimeStep = timeStep
+            };
+            Context.Instance.SendEvent(ref eventData);
+        }
+
+        _zones.Commit();
     }
 
     public void RemoveDrawable(Drawable drawable, Octant octant)

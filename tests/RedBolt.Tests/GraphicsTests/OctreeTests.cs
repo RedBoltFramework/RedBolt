@@ -128,4 +128,19 @@ public sealed class OctreeTests
         Assert.Null(manual.GetOctant());
         Assert.Equal(0u, root.GetNumDrawables());
     }
+
+    [Fact]
+    public void Update_sends_drawable_update_finished_event()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        SceneEvents.SceneDrawableUpdateFinishedEvent? received = null;
+        scene.SubscribeToEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>((ref SceneEvents.SceneDrawableUpdateFinishedEvent eventData) => received = eventData);
+
+        octree.Update(0.25f);
+
+        Assert.True(received.HasValue);
+        Assert.Same(scene, received.Value.Scene);
+        Assert.Equal(0.25f, received.Value.TimeStep);
+    }
 }
