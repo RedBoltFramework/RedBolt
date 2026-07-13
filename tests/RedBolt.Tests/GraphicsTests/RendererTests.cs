@@ -153,4 +153,16 @@ public sealed class RendererTests
         Assert.Equal(3u, Renderer.GetFrameStats().Animations);
         Assert.Equal(2u, Renderer.GetFrameStats().ChangedAnimations);
     }
+
+    [Fact]
+    public void Frame_info_exposes_mutable_renderer_frame_state()
+    {
+        var frameInfo = Renderer.GetFrameInfo();
+        frameInfo.FrameNumber = 7;
+        frameInfo.TimeStep = 0.25f;
+
+        Assert.Same(frameInfo, Renderer.GetFrameInfo());
+        Assert.Equal(7u, Renderer.GetFrameInfo().FrameNumber);
+        Assert.Equal(0.25f, Renderer.GetFrameInfo().TimeStep);
+    }
 }

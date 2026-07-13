@@ -982,6 +982,14 @@ public sealed class CommonFrameInfo
 
     public Viewport? Viewport { get; set; }
 
+    public Scene? Scene { get; set; }
+
+    public Node? ViewReferenceNode { get; set; }
+
+    public Camera? Camera { get; set; }
+
+    public Octree? Octree { get; set; }
+
     public RenderOutputTargetInfo? RenderTarget { get; set; }
 
     public Camera?[] Cameras { get; } = new Camera?[2];

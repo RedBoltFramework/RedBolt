@@ -28,6 +28,7 @@ public sealed class Renderer : Object
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
+    private readonly CommonFrameInfo _frameInfo = new();
     private readonly FrameStatistics _frameStats = new();
 
     public int TextureAnisotropy { get; private set; } = 4;
@@ -45,6 +46,8 @@ public sealed class Renderer : Object
     public FrameStatistics GetFrameStats() => _frameStats;
 
     public FrameStatistics GetMutableFrameStats() => _frameStats;
+
+    public CommonFrameInfo GetFrameInfo() => _frameInfo;
 
     public Zone GetDefaultZone() => _defaultZone;
 
