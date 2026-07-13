@@ -358,7 +358,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `RenderPass.h`
   - [~] `RenderPass` — pass-name and render-buffer connection semantics match C++; initial managed enable behavior, cloning, and render-path serialization remain managed-runtime adaptations
 - [~] `RenderPath.h`
-  - [~] `RenderPath : SimpleResource`
+  - [~] `RenderPath : SimpleResource` — pass iteration, enabled-pass repair, pass ordering, and render-target lifecycle dispatch now follow C++; managed XML/JSON resource serialization and extended depth trait remain adaptations
 - [ ] `ScenePass.h`
   - [ ] `UnorderedScenePass : ScenePass`
   - [ ] `BackToFrontScenePass : ScenePass`

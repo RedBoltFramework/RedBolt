@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
+using System.Diagnostics;
+
 namespace RedBolt;
 
 /// <summary>
@@ -26,8 +28,6 @@ public sealed class RenderPath : Resource
     /// </summary>
     public void CollectParameters(IDictionary<string, object?> parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
-
         foreach (var pass in _passes)
             pass.CollectParameters(parameters);
     }
@@ -37,8 +37,6 @@ public sealed class RenderPath : Resource
     /// </summary>
     public void InitializeView(RenderPipelineView view)
     {
-        ArgumentNullException.ThrowIfNull(view);
-
         foreach (var pass in _passes)
             pass.InitializeView(view);
     }
@@ -48,12 +46,11 @@ public sealed class RenderPath : Resource
     /// </summary>
     public void UpdateParameters(RenderPipelineSettings settings, IReadOnlyList<RenderPassToggle> enabledPasses, IReadOnlyDictionary<string, object?> parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(enabledPasses);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         if (enabledPasses.Count != _passes.Count)
-            throw new ArgumentException("Enabled passes count must match render path pass count.", nameof(enabledPasses));
+        {
+            Debug.Assert(false, $"Number of passes in render path ({_passes.Count}) does not match with enabled passes array size ({enabledPasses.Count})");
+            return;
+        }
 
         for (var i = 0; i < _passes.Count; ++i)
         {
@@ -78,8 +75,6 @@ public sealed class RenderPath : Resource
     /// </summary>
     public void Update(SharedRenderPassState sharedState)
     {
-        ArgumentNullException.ThrowIfNull(sharedState);
-
         foreach (var pass in _passes)
         {
             if (pass.IsEnabledEffectively())
@@ -92,8 +87,6 @@ public sealed class RenderPath : Resource
     /// </summary>
     public void Render(SharedRenderPassState sharedState)
     {
-        ArgumentNullException.ThrowIfNull(sharedState);
-
         foreach (var pass in _passes)
         {
             if (pass.IsEnabledEffectively())
@@ -117,7 +110,6 @@ public sealed class RenderPath : Resource
     /// </summary>
     public IReadOnlyList<RenderPassToggle> RepairEnabledRenderPasses(IEnumerable<RenderPassToggle> sourcePasses)
     {
-        ArgumentNullException.ThrowIfNull(sourcePasses);
         var sourceList = sourcePasses as IReadOnlyList<RenderPassToggle> ?? sourcePasses.ToArray();
 
         if (sourceList.Count == _passes.Count)
@@ -158,30 +150,25 @@ public sealed class RenderPath : Resource
 
     public void AddPass(RenderPass pass)
     {
-        ArgumentNullException.ThrowIfNull(pass);
         _passes.Add(pass);
     }
 
-    public bool RemovePass(RenderPass pass)
+    public void RemovePass(RenderPass pass)
     {
-        ArgumentNullException.ThrowIfNull(pass);
-        return _passes.Remove(pass);
+        _passes.Remove(pass);
     }
 
-    public bool ReorderPass(RenderPass pass, uint index)
+    public void ReorderPass(RenderPass pass, uint index)
     {
-        ArgumentNullException.ThrowIfNull(pass);
-
         if (index >= _passes.Count)
-            return false;
+            return;
 
         var oldIndex = _passes.IndexOf(pass);
         if (oldIndex < 0)
-            return false;
+            return;
 
         _passes.RemoveAt(oldIndex);
         _passes.Insert((int)index, pass);
-        return true;
     }
 
     public override bool BeginLoad(Stream source)
