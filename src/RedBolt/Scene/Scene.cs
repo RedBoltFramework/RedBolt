@@ -1075,6 +1075,10 @@ public sealed class Scene : Serializable
 
     public bool IsThreadedUpdate() => _threadedUpdate;
 
+    public uint GetFreeNodeId() => AllocateNodeId(0);
+
+    public uint GetFreeComponentId() => AllocateComponentId(0);
+
     internal uint AllocateComponentId(uint requestedId)
     {
         return AllocateId(_components, ref _nextComponentId, requestedId);
