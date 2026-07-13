@@ -317,6 +317,12 @@ public sealed class AutoExposurePass : RenderPass
         DeclareParameter(AdaptRateName, defaults.AdaptRate, parameters);
     }
 
+    public override void InitializeView(RenderPipelineView view)
+    {
+        _isAdaptedLuminanceInitialized = false;
+        // TODO: port AutoExposurePass::InitializeView device-restored subscription when the managed RenderDevice event exists.
+    }
+
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);

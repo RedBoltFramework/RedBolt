@@ -377,7 +377,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Passes/AmbientOcclusionPass.h`
   - [~] `AmbientOcclusionPass : RenderPass` — parameter processing, view initialization, cache/update flow, AO rendering, and cloning are ported; managed readable-depth trait integration and native shader-cache details remain adapted
 - [~] `Passes/AutoExposurePass.h`
-  - [~] `AutoExposurePass : RenderPass`
+  - [~] `AutoExposurePass : RenderPass` — parameter processing, HDR gating, view initialization, luminance-buffer updates, exposure rendering, and cloning are ported; managed device-restored subscription remains a TODO
 - [~] `Passes/BloomPass.h`
   - [~] `BloomPass : RenderPass`
 - [~] `Passes/ToneMappingPass.h`
