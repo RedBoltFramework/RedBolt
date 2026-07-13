@@ -252,6 +252,15 @@ layout(std140) uniform Material
         renderDevice.Present();
 
         var currentSettings = renderDevice.GetWindowSettings();
+        Log.Logger.LogInformation(
+            "Set screen mode: {Width}x{Height} pixels at {RefreshRate} Hz at monitor {Monitor} [{Mode}]{Resizable}{MultiSample}",
+            Width,
+            Height,
+            currentSettings.RefreshRate,
+            currentSettings.Monitor,
+            currentSettings.Mode,
+            currentSettings.Resizable ? " [Resizable]" : "",
+            GetMultiSample() > 1 ? $" [{GetMultiSample()}x MSAA]" : "");
         var screenModeEvent = new GraphicsEvents.ScreenModeEvent
         {
             Width = currentSettings.Size.X,
