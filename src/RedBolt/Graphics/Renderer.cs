@@ -130,20 +130,23 @@ public sealed class Renderer : Object
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
-        if (_viewports.Count > 0 && _viewports[0] is { } viewport)
+        foreach (var viewport in _viewports)
         {
+            if (viewport is null)
+                continue;
+
             var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
             if (renderPipeline is null)
             {
                 graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
-                return;
+                continue;
             }
 
             var renderPipelineView = GetOrCreateRenderPipelineView(viewport, renderPipeline);
             if (!renderPipelineView.Define(viewport, graphics))
             {
                 graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
-                return;
+                continue;
             }
 
             renderPipelineView.Update(graphics);

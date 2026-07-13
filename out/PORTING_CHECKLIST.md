@@ -6,6 +6,7 @@
 - [x] `02_HelloGUI` — control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
+- [~] `09_MultipleViewports` — scene, rear camera, and dual viewport sample ported; bloom/FXAA render-path toggles remain pending managed render-path controls
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
