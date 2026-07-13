@@ -39,8 +39,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
@@ -50,8 +49,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
@@ -61,8 +59,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
@@ -72,8 +69,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
@@ -83,8 +79,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
@@ -94,8 +89,7 @@ public static class GraphicsEvents
     {
         public RenderPipelineView? RenderPipelineView;
         public Texture? Texture;
-        // TODO: port: RenderSurface is not available yet; preserve the C++ pointer slot as an opaque reference.
-        public object? Surface;
+        public RenderSurface? Surface;
         public Scene? Scene;
         public Camera? Camera;
     }
