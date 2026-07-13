@@ -57,6 +57,28 @@ public sealed class ResourceTests
         Assert.Equal(new Variant(true), resource.GetMetadata("Enabled"));
     }
 
+    [Fact]
+    public void Resource_reference_helpers_preserve_names_and_types()
+    {
+        var resource = new FailingResource();
+        resource.SetName("Textures/Test.png");
+        var defaultType = new StringHash("DefaultResource");
+
+        Assert.Equal("Textures/Test.png", Resource.GetResourceName(resource));
+        Assert.Equal(resource.GetTypeNameHash(), Resource.GetResourceType(resource, defaultType));
+        Assert.Equal(new ResourceRef(resource.GetTypeNameHash(), "Textures/Test.png"),
+            Resource.GetResourceRef(resource, defaultType));
+        Assert.Equal(string.Empty, Resource.GetResourceName(null));
+        Assert.Equal(defaultType, Resource.GetResourceType(null, defaultType));
+
+        var names = Resource.GetResourceNames<FailingResource>([resource, null]);
+        Assert.Equal(["Textures/Test.png", string.Empty], names);
+
+        var references = Resource.GetResourceRefList<FailingResource>([resource, null]);
+        Assert.Equal(typeof(FailingResource).GetTypeId().Value, references.Type);
+        Assert.Equal(["Textures/Test.png", string.Empty], references.Names);
+    }
+
     private sealed class FailingResource : Resource
     {
         public FailingResource()

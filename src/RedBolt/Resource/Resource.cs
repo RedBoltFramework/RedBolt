@@ -180,4 +180,35 @@ public abstract class Resource : Object
     }
 
     public string GetAbsoluteFileName() => AbsoluteFileName;
+
+    public static string GetResourceName(Resource? resource)
+    {
+        return resource?.GetName() ?? string.Empty;
+    }
+
+    public static StringHash GetResourceType(Resource? resource, StringHash defaultType)
+    {
+        return resource?.GetTypeNameHash() ?? defaultType;
+    }
+
+    public static ResourceRef GetResourceRef(Resource? resource, StringHash defaultType)
+    {
+        return new ResourceRef(GetResourceType(resource, defaultType), GetResourceName(resource));
+    }
+
+    public static IReadOnlyList<string> GetResourceNames<T>(IReadOnlyList<T?> resources)
+        where T : Resource
+    {
+        var result = new string[resources.Count];
+        for (var i = 0; i < resources.Count; ++i)
+            result[i] = GetResourceName(resources[i]);
+
+        return result;
+    }
+
+    public static ResourceRefList GetResourceRefList<T>(IReadOnlyList<T?> resources)
+        where T : Resource
+    {
+        return new ResourceRefList(typeof(T).GetTypeId(), GetResourceNames(resources));
+    }
 }
