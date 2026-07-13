@@ -180,6 +180,8 @@ public abstract class Drawable : Component
     private Octant? _octant;
     private uint _drawableIndex = uint.MaxValue;
     private CachedDrawableReflection _cachedReflection = new();
+    private uint _lightProbeTetrahedronHint = uint.MaxValue;
+    private readonly System.Collections.Generic.List<SourceBatch> _batches = [];
     private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;
@@ -269,6 +271,11 @@ public abstract class Drawable : Component
     public ref CachedDrawableReflection GetMutableCachedReflection() => ref _cachedReflection;
 
     /// <summary>
+    /// Return mutable light probe tetrahedron hint.
+    /// </summary>
+    public ref uint GetMutableLightProbeTetrahedronHint() => ref _lightProbeTetrahedronHint;
+
+    /// <summary>
     /// Return combined light masks of Drawable and its currently cached Zone.
     /// </summary>
     public uint GetLightMaskInZone()
@@ -295,6 +302,11 @@ public abstract class Drawable : Component
     public GlobalIlluminationType GetGlobalIlluminationType() => GlobalIlluminationType;
 
     public ReflectionMode GetReflectionMode() => ReflectionMode;
+
+    /// <summary>
+    /// Return draw call source data.
+    /// </summary>
+    public IReadOnlyList<SourceBatch> GetBatches() => _batches;
 
     public BoundingBox GetWorldBoundingBox()
     {
