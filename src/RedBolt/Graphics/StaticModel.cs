@@ -2,6 +2,7 @@ namespace RedBolt;
 
 public class StaticModel : Drawable
 {
+    private static readonly uint ModelType = StringHash.Calculate("Model");
     private readonly List<Material?> _materials = [];
 
     public StaticModel()
@@ -31,9 +32,31 @@ public class StaticModel : Drawable
 
     public void SetModel(Model? model)
     {
+        if (ReferenceEquals(Model, model))
+            return;
+
+        if (!IsAttached)
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                Log.Logger, "Can not set model while model component is not attached to a scene node.");
+            return;
+        }
+
+        if (Model is not null)
+            Model.ReloadFinished -= HandleModelReloadFinished;
+
         Model = model;
-        SetBoundingBox(model?.GetBoundingBox() ?? default);
-        ResizeMaterials(model?.NumGeometries ?? 0u);
+        if (Model is not null)
+        {
+            Model.ReloadFinished += HandleModelReloadFinished;
+            SetBoundingBox(Model.GetBoundingBox());
+            ResizeMaterials(Model.NumGeometries);
+        }
+        else
+        {
+            ResizeMaterials(0u);
+            SetBoundingBox(default);
+        }
     }
 
     public void SetBoundingBox(BoundingBox box)
@@ -109,12 +132,42 @@ public class StaticModel : Drawable
 
     public Vector4f GetLightmapScaleOffset() => LightmapScaleOffset;
 
+    public void SetModelAttr(ResourceRef value)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+        SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name));
+    }
+
+    public ResourceRef GetModelAttr() => Resource.GetResourceRef(Model, new StringHash(ModelType));
+
+    public void SetMaterialsAttr(ResourceRefList value)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+        var count = Math.Min(value.Names.Count, _materials.Count);
+        for (var i = 0; i < count; ++i)
+        {
+            var name = value.Names[i];
+            _materials[i] = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
+        }
+
+        for (var i = count; i < _materials.Count; ++i)
+            _materials[i] = null;
+    }
+
+    public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
+
     public Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
         return Model?.GetGeometry(batchIndex, level);
     }
 
-    public bool IsInside(Vector3f point) => IsInsideLocal(Node.WorldToLocal(point));
+    public bool IsInside(Vector3f point)
+    {
+        if (!IsAttached)
+            return false;
+
+        return IsInsideLocal(Node.WorldToLocal(point));
+    }
 
     public bool IsInsideLocal(Vector3f point) => GetBoundingBox().IsInside(point) != Intersection.Outside;
 
@@ -125,5 +178,12 @@ public class StaticModel : Drawable
 
         while (_materials.Count > count)
             _materials.RemoveAt(_materials.Count - 1);
+    }
+
+    private void HandleModelReloadFinished(Resource resource)
+    {
+        var currentModel = Model;
+        Model = null;
+        SetModel(currentModel);
     }
 }

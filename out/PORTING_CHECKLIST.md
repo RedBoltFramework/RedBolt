@@ -240,7 +240,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `ShaderParameterAnimationInfo : ValueAnimationInfo`
   - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>`
 - [~] `StaticModel.h`
-  - [~] `StaticModel : Drawable`
+  - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, LOD geometry access, and bounding-box containment are ported; material-list file loading, batch LOD/occlusion processing, and triangle-based containment remain incomplete
 - [ ] `AnimatedModel.h`
   - [ ] `AnimatedModel : StaticModel`
 - [~] `StaticModelGroup.h`

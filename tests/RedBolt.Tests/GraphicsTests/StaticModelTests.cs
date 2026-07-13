@@ -28,6 +28,27 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Resource_attributes_roundtrip()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+        cube.SetMaterial(material);
+
+        var modelAttribute = cube.GetModelAttr();
+        var materialsAttribute = cube.GetMaterialsAttr();
+        Assert.Equal(StringHash.Calculate("Model"), modelAttribute.Type);
+        Assert.Equal(model.Name, modelAttribute.Name);
+        Assert.Equal(material.Name, materialsAttribute.Names[0]);
+
+        cube.SetModelAttr(modelAttribute);
+        cube.SetMaterialsAttr(materialsAttribute);
+        Assert.Same(model, cube.GetModel());
+        Assert.Same(material, cube.GetMaterial());
+    }
+
+    [Fact]
     public void Drawable_distance_and_masks_work()
     {
         var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
