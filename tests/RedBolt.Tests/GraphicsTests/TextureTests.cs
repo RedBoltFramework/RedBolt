@@ -65,6 +65,13 @@ public sealed class TextureTests
         Assert.False(texture.IsDepthStencil());
         Assert.False(texture.IsUnorderedAccess());
         Assert.Null(texture.GetRenderSurface());
+
+        var renderTexture = new Texture2D("Textures/RenderTarget");
+        Assert.True(renderTexture.SetSize(8, 4, TextureFormat.RGBA8,
+            TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess));
+        Assert.True(renderTexture.IsRenderTarget());
+        Assert.False(renderTexture.IsDepthStencil());
+        Assert.True(renderTexture.IsUnorderedAccess());
     }
 
     [Fact]

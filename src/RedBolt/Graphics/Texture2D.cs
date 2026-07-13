@@ -50,11 +50,15 @@ public sealed class Texture2D : Texture
     }
 
     public bool SetSize(int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+        => SetSize(width, height, format, TextureFlag.None, multiSample, noMultiSampledAutoResolve);
+
+    public bool SetSize(int width, int height, TextureFormat format, TextureFlag flags, int multiSample = 1,
+        bool noMultiSampledAutoResolve = false)
     {
         if (width <= 0 || height <= 0)
             return false;
 
-        SetDimensions(width, height, 1, format, multiSample, noMultiSampledAutoResolve);
+        SetDimensions(width, height, 1, format, multiSample, noMultiSampledAutoResolve, flags);
         _levelData.Clear();
         RefreshTotalMemoryUse();
         return true;

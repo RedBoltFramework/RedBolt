@@ -193,9 +193,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, pipeline-state hashing, RawBuffer creation, range updates, full-data uploads, and debug-name forwarding are ported; C# composes the RawBuffer because it cannot represent the C++ multiple-inheritance shape
   - [~] `DynamicVertexBuffer : Object` — managed allocation, growth, discard, commit, RawBuffer upload, and debug-name forwarding are ported
 - [~] `Texture.h`
-  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, bind-flag, budget, and image transfer hooks remain TODO
+  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
-  - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
+  - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `Texture3D.h`
   - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading, mip selection, CPU volume upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `TextureCube.h`

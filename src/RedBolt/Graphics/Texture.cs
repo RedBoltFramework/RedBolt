@@ -34,6 +34,7 @@ public abstract class Texture : ResourceWithMetadata
     protected bool _requestedSRGB;
     protected bool _resolveDirty;
     protected bool _levelsDirty;
+    protected TextureFlag _textureFlags;
     protected readonly RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
 
@@ -184,14 +185,11 @@ public abstract class Texture : ResourceWithMetadata
 
     public RenderSurface? GetRenderSurface(uint index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
 
-    // TODO: port: RenderTexture bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
-    public bool IsRenderTarget() => false;
+    public bool IsRenderTarget() => (_textureFlags & TextureFlag.BindRenderTarget) != 0;
 
-    // TODO: port: Depth-stencil bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
-    public bool IsDepthStencil() => false;
+    public bool IsDepthStencil() => (_textureFlags & TextureFlag.BindDepthStencil) != 0;
 
-    // TODO: port: Unordered-access bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
-    public bool IsUnorderedAccess() => false;
+    public bool IsUnorderedAccess() => (_textureFlags & TextureFlag.BindUnorderedAccess) != 0;
 
     public uint GetComponents()
     {
@@ -333,13 +331,14 @@ public abstract class Texture : ResourceWithMetadata
     protected bool ReadToImage(uint arraySlice, uint level, Image? image) => false;
 
     protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
-        bool noMultiSampledAutoResolve = false)
+        bool noMultiSampledAutoResolve = false, TextureFlag flags = TextureFlag.None)
     {
         Width = Math.Max(width, 0);
         Height = Math.Max(height, 0);
         Depth = Math.Max(depth, 1);
         MultiSample = Math.Max(multiSample, 1);
         NoMultiSampledAutoResolve = noMultiSampledAutoResolve;
+        _textureFlags = flags | (noMultiSampledAutoResolve ? TextureFlag.NoMultiSampledAutoResolve : TextureFlag.None);
         Format = format;
         Levels = _requestedLevels == 0
             ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
