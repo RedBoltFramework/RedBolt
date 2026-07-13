@@ -35,7 +35,8 @@ public sealed class Shader : Resource
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Shader>();
+        var reflection = context.AddReflection<Shader>();
+        reflection.SetObjectFactory(static () => new Shader(string.Empty));
     }
 
     /// <summary>Return either vertex or pixel shader source code.</summary>

@@ -15,6 +15,16 @@ public sealed class ShaderFileTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Shader_registers_empty_named_factory()
+    {
+        var context = new Context();
+        Shader.RegisterObject(context);
+
+        using var shader = Assert.IsType<Shader>(context.CreateObject(ObjectReflection<Shader>.TypeId));
+        Assert.Equal(string.Empty, shader.Name);
+    }
+
+    [Fact]
     public void Repo_backed_rbfx_shader_loads_with_recursive_includes()
     {
         RbfxTestData.AddResourceDirs(Resources);
