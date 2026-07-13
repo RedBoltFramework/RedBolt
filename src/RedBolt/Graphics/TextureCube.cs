@@ -87,12 +87,23 @@ public sealed class TextureCube : Texture
     /// <summary>
     /// Set size, format, usage and multisampling parameter for rendertargets. Note that cube textures always use autoresolve when multisampled due to lacking support (on all APIs) to multisample them in a shader. Return true if successful.
     /// </summary>
-    public bool SetSize(int size, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    public bool SetSize(int size, TextureFormat format, int multiSample = 1)
+    {
+        return SetSize(size, format, TextureFlag.None, multiSample);
+    }
+
+    public bool SetSize(int size, TextureFormat format, int multiSample, bool noMultiSampledAutoResolve)
+    {
+        _ = noMultiSampledAutoResolve;
+        return SetSize(size, format, TextureFlag.None, multiSample);
+    }
+
+    public bool SetSize(int size, TextureFormat format, TextureFlag flags, int multiSample = 1)
     {
         if (size <= 0)
             return false;
 
-        SetDimensions(size, size, 1, format, multiSample, noMultiSampledAutoResolve);
+        SetDimensions(size, size, 1, format, multiSample, false, flags);
         _faceData.Clear();
         RefreshTotalMemoryUse();
         return true;

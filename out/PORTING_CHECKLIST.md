@@ -201,7 +201,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Texture3D.h`
   - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading including headless short-circuiting, mip selection, CPU volume upload/readback, usage-flag propagation, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `TextureCube.h`
-  - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, multisample auto-resolve state, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
+  - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, usage-flag propagation, multisample autoresolve semantics, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `Texture2DArray.h`
   - [~] `Texture2DArray : Texture` — two-phase layer loading including headless short-circuiting, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, texture-surface access, and renderer queue integration are ported; native GPU surface lifecycle remains managed/CPU-backed

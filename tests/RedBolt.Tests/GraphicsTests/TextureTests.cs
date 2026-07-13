@@ -74,9 +74,10 @@ public sealed class TextureTests
         Assert.True(renderTexture.IsUnorderedAccess());
         Assert.NotNull(renderTexture.GetRenderSurface());
 
-        var noResolveCube = new TextureCube("Textures/NoResolveCube");
-        Assert.True(noResolveCube.SetSize(8, TextureFormat.RGBA8, noMultiSampledAutoResolve: true));
-        Assert.False(noResolveCube.GetAutoResolve());
+        var renderCube = new TextureCube("Textures/RenderCube");
+        Assert.True(renderCube.SetSize(8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(renderCube.IsRenderTarget());
+        Assert.True(renderCube.GetAutoResolve());
 
         var renderTextureArray = new Texture2DArray("Textures/RenderTargetArray");
         Assert.True(renderTextureArray.SetSize(2u, 8, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
