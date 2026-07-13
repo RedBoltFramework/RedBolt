@@ -388,7 +388,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RenderPipelineView`
   - [~] `RenderPipeline : Component` — hash-keyed render-path and frame-shader parameter updates now match C++; ResourceRef/VariantVector attribute accessors remain managed serialization adaptations
 - [~] `DefaultRenderPipeline.h`
-  - [~] `DefaultRenderPipelineView`
+  - [~] `DefaultRenderPipelineView` — managed embedded view covers Define/Update/Render and frame/stat access; native debugger, scene-pass graph, output-flag calculation, and debug-draw members remain unported adaptations
 - [ ] `StereoRenderPipeline.h`
   - [ ] `StereoRenderPipelineView : RenderPipelineView`
   - [ ] `StereoRenderPipeline : RenderPipeline`
