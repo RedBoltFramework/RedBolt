@@ -8,7 +8,7 @@
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
 - [x] `09_MultipleViewports` — scene, rear camera, dual viewport sample, and Dear ImGui instructions ported; bloom/FXAA text matches rbfx (the C++ sample does not implement those key handlers)
 - [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
-- [~] `54_WindowSettingsDemo` — window-settings scene and apply controls ported with Dear ImGui; runtime validation remains dependent on host SDL video-device availability
+- [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; runtime validation remains dependent on host SDL video-device availability
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity

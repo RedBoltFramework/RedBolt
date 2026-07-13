@@ -24,10 +24,7 @@ sealed class WindowSettingsApplication : Application
     private Camera? _camera;
     private int _monitor;
     private int _mode;
-    private int _width;
-    private int _height;
-    private int _refreshRate;
-    private int _multiSample = 1;
+    private int _multiSample;
     private bool _resizable;
     private bool _vSync;
     private bool _borderless;
@@ -97,11 +94,15 @@ sealed class WindowSettingsApplication : Application
         _vSync = settings.VSync;
         _multiSample = settings.MultiSample;
         var modes = RenderDevice.GetFullscreenModes(_monitor);
-        var current = RenderDevice.GetClosestFullscreenMode(modes, new FullscreenMode(GetSubsystem<RenderDevice>()!.GetWindowSize(), settings.RefreshRate));
-        _width = current.Size.X;
-        _height = current.Size.Y;
-        _refreshRate = current.RefreshRate;
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        var current = new FullscreenMode(renderDevice.GetSwapChainSize(), settings.RefreshRate);
         _mode = (int)RenderDevice.GetClosestFullscreenModeIndex(modes, current);
+        _multiSample = 0;
+        for (var i = 0; i <= 4; ++i)
+        {
+            if (settings.MultiSample == (1 << i))
+                _multiSample = i;
+        }
     }
 
     private void ApplySettings()
@@ -117,10 +118,14 @@ sealed class WindowSettingsApplication : Application
             Monitor = _monitor,
             Resizable = _resizable,
             VSync = _vSync,
-            MultiSample = _multiSample,
-            RefreshRate = _refreshRate,
-            Size = new Vector2i(_width > 0 ? _width : mode.Size.X, _height > 0 ? _height : mode.Size.Y)
+            MultiSample = 1 << _multiSample,
+            RefreshRate = mode.RefreshRate,
+            Size = new Vector2i(mode.Size.X, mode.Size.Y)
         };
+        var dpiScale = settings.Mode == WindowMode.Fullscreen ? 1.0f : GetSubsystem<RenderDevice>()!.GetDpiScale();
+        settings.Size = new Vector2i(
+            MathDefs.RoundToInt(mode.Size.X / dpiScale),
+            MathDefs.RoundToInt(mode.Size.Y / dpiScale));
         Graphics.SetDefaultWindowModes(settings);
     }
 
@@ -135,10 +140,7 @@ sealed class WindowSettingsApplication : Application
         ImGui.TextUnformatted("WindowSettingsDemo uses Dear ImGui instead of rbfx UI.\0"u8);
         ImGui.InputInt("Monitor\0"u8, out _monitor);
         ImGui.InputInt("Mode index\0"u8, out _mode);
-        ImGui.InputInt("Width\0"u8, out _width);
-        ImGui.InputInt("Height\0"u8, out _height);
-        ImGui.InputInt("Refresh rate\0"u8, out _refreshRate);
-        ImGui.InputInt("MSAA\0"u8, out _multiSample);
+        ImGui.InputInt("MSAA index\0"u8, out _multiSample);
         ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen);
         ImGui.Checkbox("Borderless\0"u8, out _borderless);
         ImGui.Checkbox("Resizable\0"u8, out _resizable);
