@@ -315,6 +315,25 @@ public abstract class Drawable : Component
     public ReflectionMode GetReflectionMode() => ReflectionMode;
 
     /// <summary>
+    /// Return whether is in view this frame from any viewport camera. Excludes shadow map cameras.
+    /// </summary>
+    public bool IsInView()
+    {
+        var renderer = GetSubsystem<Renderer>();
+        return renderer is not null && _viewFrameNumber == renderer.GetFrameInfo().FrameNumber && _viewCameras.Count > 0;
+    }
+
+    /// <summary>
+    /// Return whether is in view of a specific camera this frame. Pass in a null camera to allow any camera, including shadow map cameras.
+    /// </summary>
+    public bool IsInView(Camera? camera)
+    {
+        var renderer = GetSubsystem<Renderer>();
+        return renderer is not null && _viewFrameNumber == renderer.GetFrameInfo().FrameNumber &&
+            (camera is null || _viewCameras.Contains(camera));
+    }
+
+    /// <summary>
     /// Return draw call source data.
     /// </summary>
     public IReadOnlyList<SourceBatch> GetBatches() => _batches;
