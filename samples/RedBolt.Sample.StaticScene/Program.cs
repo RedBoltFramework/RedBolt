@@ -28,6 +28,7 @@ sealed class StaticSceneApplication : Application
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();
+        parameters.WindowMaximize = false;
         parameters.WindowHeight = 720;
         parameters.WindowTitle = "RedBolt Static Scene";
         parameters.WindowWidth = 1280;

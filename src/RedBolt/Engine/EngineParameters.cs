@@ -8,7 +8,7 @@ public sealed class EngineParameters
 
     public string AutoloadPaths { get; set; } = "Autoload";
 
-    public bool Borderless { get; set; }
+    public bool Borderless { get; set; } = true;
 
     public string ConfigName { get; set; } = "EngineParameters.json";
 
@@ -32,7 +32,7 @@ public sealed class EngineParameters
 
     public string LogLevel { get; set; } = "trace";
 
-    public string LogName { get; set; } = "RedBolt.log";
+    public string LogName { get; set; } = "conf://Urho3D.log";
 
     public bool LogQuiet { get; set; }
 
@@ -102,29 +102,29 @@ public sealed class EngineParameters
 
     public bool TouchEmulation { get; set; }
 
-    public string TweakD3D12 { get; set; } = string.Empty;
+    public string TweakD3D12 { get; set; } = "{\"gpuDescriptorHeapSize_cvb_srv_uav\":32768,\"gpuDescriptorHeapDynamicSize_cvb_srv_uav\":24576}";
 
-    public string TweakVulkan { get; set; } = string.Empty;
+    public string TweakVulkan { get; set; } = "{\"dynamicHeapSize\":33554432}";
 
     public bool ValidateShaders { get; set; }
 
     public bool VSync { get; set; }
 
-    public int WindowHeight { get; set; } = 720;
+    public int WindowHeight { get; set; }
 
     public string WindowIcon { get; set; } = string.Empty;
 
-    public bool WindowMaximize { get; set; }
+    public bool WindowMaximize { get; set; } = true;
 
-    public int? WindowPositionX { get; set; }
+    public int? WindowPositionX { get; set; } = 0;
 
-    public int? WindowPositionY { get; set; }
+    public int? WindowPositionY { get; set; } = 0;
 
     public bool WindowResizable { get; set; }
 
     public string WindowTitle { get; set; } = "Urho3D";
 
-    public int WindowWidth { get; set; } = 1280;
+    public int WindowWidth { get; set; }
 
     public bool WorkerThreads { get; set; } = true;
 

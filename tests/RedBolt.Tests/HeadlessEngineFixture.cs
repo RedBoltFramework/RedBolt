@@ -14,7 +14,10 @@ public sealed class HeadlessEngineFixture : IDisposable
         var parameters = new EngineParameters
         {
             ApplicationName = "RedBolt.Tests",
-            Headless = true
+            Headless = true,
+            WindowMaximize = false,
+            WindowWidth = 1280,
+            WindowHeight = 720
         };
         Engine.Initialize(parameters);
     }

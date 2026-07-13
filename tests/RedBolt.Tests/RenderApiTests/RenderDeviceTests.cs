@@ -31,6 +31,7 @@ public sealed class RenderDeviceTests
         {
             ApplicationName = "RenderDeviceTests",
             Headless = false,
+            WindowMaximize = false,
             WindowWidth = 64,
             WindowHeight = 64
         };
@@ -246,6 +247,7 @@ public sealed class RenderDeviceTests
         {
             ApplicationName = "RenderDeviceTests",
             Headless = false,
+            WindowMaximize = false,
             WindowWidth = 64,
             WindowHeight = 48
         };
@@ -267,8 +269,7 @@ public sealed class RenderDeviceTests
             Assert.Equal("Updated Render Device Window", updatedSettings.Title);
             Assert.False(updatedSettings.Resizable);
             Assert.False(updatedSettings.VSync);
-            Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height),
-                _fixture.RenderDevice.GetWindowSize());
+            Assert.Equal(new Vector2i(80, 60), _fixture.RenderDevice.GetWindowSize());
         }
         finally
         {

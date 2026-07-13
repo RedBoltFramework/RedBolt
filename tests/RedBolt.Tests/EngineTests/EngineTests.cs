@@ -18,16 +18,20 @@ public sealed class EngineTests
         var parameters = new EngineParameters();
 
         Assert.Equal("Unspecified Application", parameters.ApplicationName);
-        Assert.False(parameters.Borderless);
-        Assert.Equal("RedBolt.log", parameters.LogName);
+        Assert.True(parameters.Borderless);
+        Assert.Equal("conf://Urho3D.log", parameters.LogName);
         Assert.Equal("Urho3D Rebel Fork", parameters.OrganizationName);
         Assert.Equal("conf://psocache.bin", parameters.PsoCache);
         Assert.Equal("CoreData;Cache;Data", parameters.ResourcePaths);
         Assert.Equal("conf://ShaderCache", parameters.ShaderCacheDir);
-        Assert.False(parameters.WindowMaximize);
+        Assert.Equal("{\"gpuDescriptorHeapSize_cvb_srv_uav\":32768,\"gpuDescriptorHeapDynamicSize_cvb_srv_uav\":24576}", parameters.TweakD3D12);
+        Assert.Equal("{\"dynamicHeapSize\":33554432}", parameters.TweakVulkan);
+        Assert.True(parameters.WindowMaximize);
+        Assert.Equal(0, parameters.WindowPositionX);
+        Assert.Equal(0, parameters.WindowPositionY);
         Assert.Equal("Urho3D", parameters.WindowTitle);
-        Assert.Equal(1280, parameters.WindowWidth);
-        Assert.Equal(720, parameters.WindowHeight);
+        Assert.Equal(0, parameters.WindowWidth);
+        Assert.Equal(0, parameters.WindowHeight);
     }
 
     [Fact]

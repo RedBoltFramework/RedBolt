@@ -122,6 +122,7 @@ public sealed class RenderContextTests
         {
             ApplicationName = "RedBolt.Tests.RenderContextTests",
             Headless = false,
+            WindowMaximize = false,
             WindowWidth = 64,
             WindowHeight = 64
         };
