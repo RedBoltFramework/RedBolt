@@ -144,6 +144,9 @@ sealed class MultipleViewportsApplication : Application
 
     private void MoveCamera(float timeStep)
     {
+        if (Context.GetSubsystem<DearImGui>()?.WantCaptureKeyboard == true)
+            return;
+
         if (Input.GetKeyPress(Key.Space))
             _drawDebug = !_drawDebug;
     }
