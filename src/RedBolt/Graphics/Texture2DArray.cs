@@ -20,7 +20,8 @@ public sealed class Texture2DArray : Texture
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Texture2DArray>();
+        var reflection = context.AddReflection<Texture2DArray>();
+        reflection.SetObjectFactory(static () => new Texture2DArray(string.Empty));
     }
 
     /// <summary>
