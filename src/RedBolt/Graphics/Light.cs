@@ -343,6 +343,31 @@ public sealed class Light : Drawable
 
     public Texture? GetShapeTexture() => _shapeTexture;
 
+    public void SetRampTextureAttr(ResourceRef value)
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        _rampTexture = string.IsNullOrEmpty(value.Name) ? null : cache?.GetResourceOrNull<Texture>(value.Name);
+    }
+
+    public ResourceRef GetRampTextureAttr() => Resource.GetResourceRef(_rampTexture, new StringHash("Texture2D"));
+
+    public void SetShapeTextureAttr(ResourceRef value)
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        _shapeTexture = string.IsNullOrEmpty(value.Name) ? null : cache?.GetResourceOrNull<Texture>(value.Name);
+    }
+
+    public ResourceRef GetShapeTextureAttr()
+    {
+        if (_shapeTexture is not null)
+        {
+            var textureType = _lightType == LightType.Point ? "TextureCube" : "Texture2D";
+            return Resource.GetResourceRef(_shapeTexture, new StringHash(textureType));
+        }
+
+        return new ResourceRef(new StringHash("Texture"), string.Empty);
+    }
+
     public float GetDistanceTo(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);

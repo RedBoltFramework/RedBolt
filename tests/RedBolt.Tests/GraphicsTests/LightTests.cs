@@ -111,4 +111,18 @@ public sealed class LightTests
         light.SetIntensitySortValue(10.0f);
         Assert.True(light.GetSortValue() < 0.0f);
     }
+
+    [Fact]
+    public void Texture_attributes_roundtrip_empty_resources()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+
+        light.SetRampTextureAttr(ResourceRef.Empty);
+        light.SetShapeTextureAttr(ResourceRef.Empty);
+
+        Assert.Null(light.GetRampTexture());
+        Assert.Null(light.GetShapeTexture());
+        Assert.Equal(StringHash.Calculate("Texture2D"), light.GetRampTextureAttr().Type);
+        Assert.Equal(StringHash.Calculate("Texture"), light.GetShapeTextureAttr().Type);
+    }
 }
