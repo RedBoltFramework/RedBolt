@@ -332,7 +332,7 @@ public class Animation : ResourceWithMetadata
             }
             else
             {
-                // TODO: port: Can not save animation trigger data when not saving into a virtual file.
+                Log.Logger.LogWarning("Can not save animation trigger data when not saving into a file");
             }
         }
 
