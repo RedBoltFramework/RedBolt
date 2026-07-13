@@ -98,4 +98,17 @@ public sealed class LightTests
         // The default bounding box for directional light contains the origin.
         Assert.NotEqual(Intersection.Outside, light.GetWorldBoundingBox().IsInside(Vector3f.Zero));
     }
+
+    [Fact]
+    public void Intensity_sort_value_matches_light_polarity()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+
+        light.SetIntensitySortValue(10.0f);
+        Assert.True(light.GetSortValue() > 0.0f);
+
+        light.SetColor(new Color(-1.0f, -1.0f, -1.0f));
+        light.SetIntensitySortValue(10.0f);
+        Assert.True(light.GetSortValue() < 0.0f);
+    }
 }

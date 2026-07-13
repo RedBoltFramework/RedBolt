@@ -366,6 +366,31 @@ public sealed class Light : Drawable
 
     public bool IsNegative() => GetEffectiveColor().SumRGB() < 0.0f;
 
+    /// <summary>Set sort value based on intensity and view distance.</summary>
+    public void SetIntensitySortValue(float distance)
+    {
+        if (!IsNegative())
+        {
+            if (_lightType != LightType.Directional)
+                SetSortValue(Math.Max(distance, MathDefs.MinNearClip) / GetIntensityDivisor());
+            else
+                SetSortValue(MathDefs.Epsilon / GetIntensityDivisor());
+        }
+        else
+        {
+            if (_lightType != LightType.Directional)
+                SetSortValue(-Math.Max(distance, MathDefs.MinNearClip) * GetIntensityDivisor());
+            else
+                SetSortValue(-MathDefs.LargeValue * GetIntensityDivisor());
+        }
+    }
+
+    /// <summary>Return a divisor value based on intensity for calculating the sort value.</summary>
+    public float GetIntensityDivisor(float attenuation = 1.0f)
+    {
+        return Math.Max(GetEffectiveColor().SumRGB(), 0.0f) * attenuation + MathDefs.Epsilon;
+    }
+
     public (float Cutoff, float InverseCutoff) GetCutoffParams()
     {
         if (_lightType != LightType.Spot)
