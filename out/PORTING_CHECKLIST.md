@@ -306,7 +306,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
 - [~] `RenderPipelineDefs.h`
-  - [~] `RenderPipelineInterface`
+  - [~] `RenderPipelineInterface` — global context accessor now matches C++; debugger accessor remains a TODO until `RenderPipelineDebugger` is ported
   - [ ] pipeline enums / settings structs
 - [ ] `ShaderConsts.h`
   - [ ] shader constant name definitions

@@ -992,6 +992,10 @@ public sealed class CommonFrameInfo
 /// </summary>
 public interface IRenderPipelineInterface
 {
+    Context? GetContext();
+
+    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
+
     bool IsLinearColorSpace { get; }
 
     event Action<CommonFrameInfo>? UpdateBegin;
@@ -1020,6 +1024,8 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
     }
 
     public RenderPipeline GetRenderPipeline() => _renderPipeline;
+
+    public Context? GetContext() => Context.Instance;
 
     public abstract bool IsLinearColorSpace { get; }
 
