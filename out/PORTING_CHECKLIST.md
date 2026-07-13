@@ -148,10 +148,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
-- [~] `ShaderDefs.h`
-  - [x] `struct SpirVShader` — bytecode/compiler output storage and validity conversion are ported
-  - [x] `enum TargetShaderLanguage` — supported language values are ported
-  - [x] `struct ShaderDefineArray` — constructors, define append/parsing, size, unused-define detection, and name/value storage are ported
+- [x] `ShaderDefs.h` — `SpirVShader`, `TargetShaderLanguage`, and `ShaderDefineArray` are ported, including bytecode/compiler-output storage, validity conversion, define parsing/appending, size, unused-define detection, and name/value storage
 - [x] `ShaderSourceLogger.h`
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
 - [~] `ShaderOptimizer.h`
