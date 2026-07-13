@@ -7,23 +7,28 @@ namespace RedBolt;
 public class PipelineState : DeviceObject
 {
     private readonly WeakReference<PipelineStateCache>? _owner;
-    private readonly PipelineStateDesc _desc = new();
+    private readonly PipelineStateDesc _desc;
     private IPipelineState? _handle;
     private IShaderResourceBinding? _shaderResourceBinding;
     private ShaderProgramReflection? _reflection;
     private readonly List<RawShader> _subscribedShaders = [];
-
-    public PipelineState()
-    {
-    }
 
     public PipelineState(PipelineStateCache owner, PipelineStateDesc desc)
     {
         _owner = new WeakReference<PipelineStateCache>(owner ?? throw new ArgumentNullException(nameof(owner)));
         _desc = desc ?? throw new ArgumentNullException(nameof(desc));
         SetDebugName($"{desc.GetDebugName()} #{desc.ToHash()}");
-        SubscribeToShaders();
         CreateGPU();
+    }
+
+    public override void Dispose()
+    {
+        // TODO: port Thread::IsMainThread() warning and early return.
+        DestroyGPU();
+        UnsubscribeFromShaders();
+        if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
+            pipelineStateCache.ReleasePipelineState(_desc);
+        base.Dispose();
     }
 
     public string DebugName
@@ -77,9 +82,6 @@ public class PipelineState : DeviceObject
     {
         base.Destroy();
         DestroyGPU();
-        UnsubscribeFromShaders();
-        if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
-            pipelineStateCache.ReleasePipelineState(_desc);
     }
 
     private void CreateGPU()
@@ -125,6 +127,7 @@ public class PipelineState : DeviceObject
         if (shader is null || shader.IsNull)
             return;
 
+        SubscribeToShaders();
         var reflection = new ShaderProgramReflection([desc.ComputeShader]);
         using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice: GetRenderDevice(),
             RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute);
@@ -149,6 +152,7 @@ public class PipelineState : DeviceObject
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
             return;
 
+        SubscribeToShaders();
         TemporaryLayoutArray? layout = null;
         try
         {

@@ -145,6 +145,27 @@ public sealed class PipelineStateCacheTests
     }
 
     [Fact]
+    public void Pipeline_state_dispose_releases_cache_entry()
+    {
+        var desc = new GraphicsPipelineStateDesc
+        {
+            DebugName = "DisposableState",
+            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.VS),
+            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.PS)
+        };
+        desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+
+        var firstState = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
+        Assert.NotNull(firstState);
+
+        firstState!.Dispose();
+
+        var secondState = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
+        Assert.NotNull(secondState);
+        Assert.NotSame(firstState, secondState);
+    }
+
+    [Fact]
     public void Pipeline_state_cache_matches_unavailable_native_cache_lifecycle()
     {
         _fixture.PipelineStateCache.Initialize([1, 2, 3]);

@@ -477,7 +477,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Pipeline_state_uses_device_object_debug_name_surface()
     {
-        var pipelineState = new PipelineState
+        var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc())
         {
             DebugName = "TestPipeline"
         };
