@@ -75,10 +75,42 @@ public sealed class ModelViewTests
         Assert.Equal(Matrix3x4.IDENTITY, bone.OffsetMatrix);
     }
 
+    [Fact]
+    public void Model_view_recalculates_tangents_from_triangle_data()
+    {
+        var lod = new GeometryLODView
+        {
+            VertexFormat = new ModelVertexFormat
+            {
+                Position = VertexElementType.Vector3,
+                Normal = VertexElementType.Vector3,
+                Tangent = VertexElementType.Vector4,
+                Uv = [VertexElementType.Vector2, ModelVertexFormat.Undefined, ModelVertexFormat.Undefined,
+                    ModelVertexFormat.Undefined]
+            }
+        };
+        lod.Vertices.Add(CreateTangentVertex(0, 0, 0, 0, 0));
+        lod.Vertices.Add(CreateTangentVertex(1, 0, 0, 1, 0));
+        lod.Vertices.Add(CreateTangentVertex(0, 1, 0, 0, 1));
+        lod.Indices.AddRange([0, 1, 2]);
+
+        lod.RecalculateTangents();
+
+        Assert.Equal(new Vector3f(1, 0, 0), lod.Vertices[0].GetTangent());
+    }
+
     private static ModelVertex CreateVertex(float x, float y, float z)
     {
         var vertex = new ModelVertex();
         vertex.SetPosition(new Vector3f(x, y, z));
+        return vertex;
+    }
+
+    private static ModelVertex CreateTangentVertex(float x, float y, float z, float u, float v)
+    {
+        var vertex = CreateVertex(x, y, z);
+        vertex.SetNormal(new Vector3f(0, 0, 1));
+        vertex.Uv[0] = new Vector4f(u, v, 0, 0);
         return vertex;
     }
 }

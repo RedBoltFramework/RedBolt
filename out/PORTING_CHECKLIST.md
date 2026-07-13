@@ -212,7 +212,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct ModelVertexFormat` — editable vertex format conversion, merging, hashing, and equality are ported
   - [~] `struct ModelVertex` — editable vertex access, semantic replacement, repair, pruning, and equality are ported
   - [~] `struct ModelVertexMorph` — morph state and normalization are ported
-  - [~] `struct GeometryLODView` — primitive queries, triangle iteration, normalization, bounds, and CPU normal recalculation are ported; tangent generation remains TODO
+  - [~] `struct GeometryLODView` — primitive queries, triangle iteration, normalization, bounds, CPU normal recalculation, and C++-equivalent tangent generation are ported
   - [~] `struct GeometryView` — LOD normalization, morph counting, and equality are ported
   - [~] `struct BoneView` — transforms, offset-matrix recalculation, bounding-volume state, and equality are ported
   - [~] `struct ModelMorphView` — editable morph metadata is ported

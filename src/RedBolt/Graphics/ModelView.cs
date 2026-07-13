@@ -515,7 +515,46 @@ public struct GeometryLODView : IEquatable<GeometryLODView>
 
     public void RecalculateTangents()
     {
-        // TODO: port: Tangent::CalculateTangents requires the native tangent helper and managed vertex-buffer packing.
+        if (!IsTriangleGeometry())
+        {
+            System.Diagnostics.Debug.Assert(false);
+            return;
+        }
+
+        var vertexElements = ModelVertex.VertexElements;
+        var elementCount = vertexElements.Length;
+        var unpackedData = new Vector4f[checked(Vertices.Count * elementCount)];
+        for (var i = 0; i < Vertices.Count; ++i)
+            Vertices[i].Data().CopyTo(unpackedData, i * elementCount);
+
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetShadowed(true);
+        vertexBuffer.SetSize((uint)Vertices.Count, vertexElements);
+        vertexBuffer.SetUnpackedData(unpackedData);
+
+        var vertexData = vertexBuffer.GetData() as byte[];
+        if (vertexData is null)
+            return;
+
+        var indexData = new byte[checked(Indices.Count * sizeof(uint))];
+        Buffer.BlockCopy(Indices.ToArray(), 0, indexData, 0, indexData.Length);
+        var actualVertexElements = vertexBuffer.GetElements();
+        var normalOffset = VertexBuffer.GetElementOffset(actualVertexElements, VertexElementType.Vector4,
+            VertexElementSemantic.Normal);
+        var texCoordOffset = VertexBuffer.GetElementOffset(actualVertexElements, VertexElementType.Vector4,
+            VertexElementSemantic.TexCoord);
+        var tangentOffset = VertexBuffer.GetElementOffset(actualVertexElements, VertexElementType.Vector4,
+            VertexElementSemantic.Tangent);
+        Tangent.GenerateTangents(vertexData, vertexBuffer.GetVertexSize(), indexData, sizeof(uint), 0,
+            (uint)Indices.Count, normalOffset, texCoordOffset, tangentOffset);
+
+        var updatedData = vertexBuffer.GetUnpackedData();
+        for (var i = 0; i < Vertices.Count; ++i)
+        {
+            var vertex = Vertices[i];
+            vertex.Tangent = updatedData[i * elementCount + 2];
+            Vertices[i] = vertex;
+        }
     }
 
     /// <summary>Iterate all triangles in primitive.</summary>
