@@ -231,7 +231,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct BiasParameters`
   - [~] `struct CascadeParameters`
   - [~] `struct FocusParameters`
-  - [~] `Light : Drawable` — intensity divisor and distance-based sort-value calculation, ramp/shape texture attributes, spotlight frustum, and directional/spot/point world bounds are ported; light-batch queue, volume transforms, and texture resource integration remain incomplete
+  - [~] `Light : Drawable` — intensity divisor and distance-based sort-value calculation, ramp/shape texture attributes, world-space/view-space spotlight frustums, and directional/spot/point world bounds are ported; light-batch queue, volume transforms, and texture resource integration remain incomplete
 - [~] `Technique.h`
   - [~] `Pass : RefCounted, PipelineStateTracker`
   - [~] `Technique : Resource`

@@ -112,6 +112,21 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void View_space_frustum_applies_view_transform()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetLightType(LightType.Spot);
+        light.SetRange(20.0f);
+        light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
+
+        var worldFrustum = light.GetFrustum();
+        var view = new Matrix3x4(new Vector3f(-2.0f, 0.0f, 0.0f), Quaternion.Identity, 1.0f);
+        var viewFrustum = light.GetViewSpaceFrustum(view);
+
+        Assert.True((view * worldFrustum.Vertices[0]).ApproximatelyEquivalent(viewFrustum.Vertices[0]));
+    }
+
+    [Fact]
     public void Intensity_sort_value_matches_light_polarity()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();

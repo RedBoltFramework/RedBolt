@@ -354,6 +354,17 @@ public sealed class Light : Drawable
         return frustum;
     }
 
+    /// <summary>Return spotlight frustum in the specified view space.</summary>
+    public Frustum GetViewSpaceFrustum(Matrix3x4 view)
+    {
+        var transform = IsAttached
+            ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
+            : Matrix3x4.Identity;
+        var frustum = new Frustum();
+        frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, view * transform);
+        return frustum;
+    }
+
     public void SetRampTextureAttr(ResourceRef value)
     {
         var cache = GetSubsystem<ResourceCache>();
