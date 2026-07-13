@@ -735,21 +735,30 @@ public sealed class Input : Object
     public bool SaveGestures(Serializer dest)
     {
         ArgumentNullException.ThrowIfNull(dest);
-        // TODO: port SDL_SaveAllDollarTemplates through the managed serializer binding.
+        // TODO: port: the managed SDL binding exposes SDL_SaveAllDollarTemplates, but the
+        // Serializer-to-SDL_RWops adapter is not available yet.
+        // RWOpsWrapper<Serializer> wrapper(dest);
+        // return SDL_SaveAllDollarTemplates(wrapper.GetRWOps()) != 0;
         return false;
     }
 
     public bool SaveGesture(Serializer dest, uint gestureId)
     {
         ArgumentNullException.ThrowIfNull(dest);
-        // TODO: port SDL_SaveDollarTemplate through the managed serializer binding.
+        // TODO: port: the managed SDL binding exposes SDL_SaveDollarTemplate, but the
+        // Serializer-to-SDL_RWops adapter is not available yet.
+        // RWOpsWrapper<Serializer> wrapper(dest);
+        // return SDL_SaveDollarTemplate(gestureId, wrapper.GetRWOps()) != 0;
         return false;
     }
 
     public uint LoadGestures(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        // TODO: port SDL_LoadDollarTemplates through the managed deserializer binding.
+        // TODO: port: the managed SDL binding exposes SDL_LoadDollarTemplates, but the
+        // Deserializer-to-SDL_RWops adapter is not available yet.
+        // RWOpsWrapper<Deserializer> wrapper(source);
+        // return (uint)SDL_LoadDollarTemplates(-1, wrapper.GetRWOps());
         if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
         {
             Log.Logger.LogError("Can not load gestures: no touch devices");
