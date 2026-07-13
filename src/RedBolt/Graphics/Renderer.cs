@@ -288,6 +288,18 @@ public sealed class Renderer : Object
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
+        if (_backbufferSurfaceViewportsDirty)
+        {
+            _backbufferSurfaceViewportsDirty = false;
+            if (_backbufferSurface is not null)
+            {
+                var numViewports = (uint)_viewports.Count;
+                _backbufferSurface.SetNumViewports(numViewports);
+                for (var i = 0u; i < numViewports; ++i)
+                    _backbufferSurface.SetViewport(i, _viewports[(int)i]);
+            }
+        }
+
         Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
 
         foreach (var (renderSurface, viewport) in _queuedViewports)

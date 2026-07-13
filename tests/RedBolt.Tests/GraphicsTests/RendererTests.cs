@@ -66,6 +66,30 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Backbuffer_render_surface_receives_registered_viewports_on_render()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+        var texture = new Texture2D("Textures/BackbufferViewports");
+        Assert.True(texture.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        var renderSurface = new RenderSurface(texture, 0);
+
+        Renderer.SetNumViewports(1u);
+        Renderer.SetViewport(0u, viewport);
+        Renderer.SetBackbufferRenderSurface(renderSurface);
+
+        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(renderFrame);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+
+        Assert.Same(viewport, renderSurface.GetViewport(0));
+        renderSurface.SetNumViewports(0);
+        Renderer.SetBackbufferRenderSurface(null);
+        Renderer.ClearViewports();
+    }
+
+    [Fact]
     public void Render_target_texture_queues_surface_on_render_surface_update_event()
     {
         var scene = new Scene();
