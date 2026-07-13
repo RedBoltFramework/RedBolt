@@ -15,7 +15,7 @@ internal sealed class BackgroundLoadItem
     public HashSet<(Type Type, string Name)> Dependents { get; } = [];
 }
 
-public sealed class BackgroundLoader
+public sealed class BackgroundLoader : IDisposable
 {
     private readonly ResourceCache _owner;
     private readonly object _sync = new();
@@ -24,6 +24,27 @@ public sealed class BackgroundLoader
     internal BackgroundLoader(ResourceCache owner)
     {
         this._owner = owner;
+    }
+
+    public void Dispose()
+    {
+        BackgroundLoadItem[] items;
+        lock (_sync)
+            items = _queue.Values.ToArray();
+
+        foreach (var item in items)
+        {
+            try
+            {
+                item.LoadTask.GetAwaiter().GetResult();
+            }
+            catch
+            {
+            }
+        }
+
+        lock (_sync)
+            _queue.Clear();
     }
 
     public bool QueueResource(Type type, string name, bool sendEventOnFailure = true, Resource? caller = null)

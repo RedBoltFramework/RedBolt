@@ -11,6 +11,7 @@ public sealed class ResourceCache : Object
     private readonly List<ResourceRouter> _resourceRouters = [];
     private readonly Dictionary<Resource, HashSet<string>> _resourceDependencies = new();
     private readonly HashSet<string> _ignoredReloads = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _pendingResourceReloads = new(StringComparer.OrdinalIgnoreCase);
     private int _finishBackgroundResourcesMs = 5;
     private bool _returnFailedResources;
     private bool _searchPackagesFirst;
@@ -19,6 +20,14 @@ public sealed class ResourceCache : Object
     public ResourceCache()
     {
         _backgroundLoader = new BackgroundLoader(this);
+        SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent _) => HandleBeginFrame());
+        SubscribeToEvent<ResourceEvents.FileChanged>(HandleFileChanged);
+    }
+
+    public override void Dispose()
+    {
+        _backgroundLoader.Dispose();
+        base.Dispose();
     }
 
     public void RegisterDefaultResources()
@@ -481,7 +490,16 @@ public sealed class ResourceCache : Object
         }
     }
 
-    public void SetResourceReloadSuspended(bool suspended) => _resourceReloadSuspended = suspended;
+    public void SetResourceReloadSuspended(bool suspended)
+    {
+        _resourceReloadSuspended = suspended;
+        if (suspended)
+            return;
+
+        foreach (var fileName in _pendingResourceReloads)
+            ReloadResourceWithDependencies(fileName);
+        _pendingResourceReloads.Clear();
+    }
 
     public void IgnoreResourceReload(string name)
     {
@@ -837,5 +855,25 @@ public sealed class ResourceCache : Object
             ResourceName = resolvedName.IsEmpty() ? requestedName : resolvedName.ToUri()
         };
         SendEvent(ref eventData);
+    }
+
+    private void HandleBeginFrame()
+    {
+        _backgroundLoader.FinishResources(_finishBackgroundResourcesMs);
+    }
+
+    private void HandleFileChanged(ref ResourceEvents.FileChanged eventData)
+    {
+        var resourceName = eventData.ResourceName;
+        if (string.IsNullOrWhiteSpace(resourceName))
+            return;
+
+        if (_ignoredReloads.Remove(SanitateResourceName(resourceName)))
+            return;
+
+        if (_resourceReloadSuspended)
+            _pendingResourceReloads.Add(resourceName);
+        else
+            ReloadResourceWithDependencies(resourceName);
     }
 }

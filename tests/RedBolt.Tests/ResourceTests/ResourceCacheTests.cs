@@ -201,6 +201,37 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void File_changed_reloads_resource_after_reload_suspension_is_lifted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var fileName = Path.Combine(tempDir, "Data", "reload.dat");
+            System.IO.File.WriteAllText(fileName, "first");
+            Resources.AddResourceDir(tempDir);
+            var resource = Resources.GetResource<ReloadableResource>("Data/reload.dat");
+            Assert.Equal(1, resource.ReloadCount);
+
+            Resources.SetResourceReloadSuspended(true);
+            var fileChangedEventData = new ResourceEvents.FileChanged
+            {
+                FileName = fileName,
+                ResourceName = "Data/reload.dat"
+            };
+            Resources.SendEvent(ref fileChangedEventData);
+            Assert.Equal(1, resource.ReloadCount);
+
+            Resources.SetResourceReloadSuspended(false);
+            Assert.Equal(2, resource.ReloadCount);
+        }
+        finally
+        {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Resource_routers_apply_in_order_to_resolved_identifiers()
     {
         var cache = new ResourceCache();
@@ -374,4 +405,15 @@ internal sealed class PrefixRouter(string prefix) : ResourceRouter
 public sealed class FailedResource(string name) : Resource(name)
 {
     public override bool BeginLoad(Stream source) => false;
+}
+
+public sealed class ReloadableResource(string name) : Resource(name)
+{
+    public int ReloadCount { get; private set; }
+
+    public override bool BeginLoad(Stream source)
+    {
+        ReloadCount++;
+        return true;
+    }
 }

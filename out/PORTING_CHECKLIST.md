@@ -89,7 +89,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A5. Resource — depends on IO, Core
 
-- [~] `ResourceCache` — resource lookup, VFS-backed file access, caching, reload dependencies, background loading, and failure events are ported; package-resource grouping and remaining background failure/event lifecycle parity remain
+- [~] `ResourceCache` — resource lookup, VFS-backed file access, caching, reload dependencies, background loading/failure/completion events, file-change reload handling, suspended-reload queues, and disposal are ported; package-resource grouping remains
 
 ## [x] A6. Scene — depends on Resource, Core
 
