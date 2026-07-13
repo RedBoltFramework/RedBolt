@@ -73,6 +73,26 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Exit_keeps_graphics_available_for_screenshot_on_exit()
+    {
+        using var engine = new EngineScope(new Engine(), new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.ScreenshotExit",
+            ConfigName = string.Empty,
+            GraphicsBackend = GraphicsBackend.OpenGL,
+            ScreenshotOnExit = Path.Combine(Path.GetTempPath(), "redbolt-test-screenshot.png"),
+            Headless = false
+        });
+
+        var graphics = engine.Value.Context.GetSubsystem<Graphics>()!;
+        Assert.True(graphics.IsInitialized);
+
+        engine.Value.Exit();
+
+        Assert.True(graphics.IsInitialized);
+    }
+
+    [Fact]
     public void Engine_exit_saves_pipeline_state_cache_through_virtual_file_system()
     {
         var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-pso-{Guid.NewGuid():N}");

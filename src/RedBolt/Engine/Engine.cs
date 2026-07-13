@@ -674,7 +674,8 @@ public sealed class Engine : Object
         if (graphics is not null)
         {
             graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
-            graphics.Close();
+            if (string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
+                graphics.Close();
         }
 
         SaveConfigFile();
