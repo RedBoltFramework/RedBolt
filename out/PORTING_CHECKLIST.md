@@ -379,7 +379,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Passes/AutoExposurePass.h`
   - [~] `AutoExposurePass : RenderPass` — parameter processing, HDR gating, view initialization, luminance-buffer updates, exposure rendering, and cloning are ported; managed device-restored subscription remains a TODO
 - [~] `Passes/BloomPass.h`
-  - [~] `BloomPass : RenderPass`
+  - [~] `BloomPass : RenderPass` — parameter processing, view initialization, HDR-aware texture cache, bloom rendering, and cloning are ported; native pipeline-state/cache details remain adapted
 - [~] `Passes/ToneMappingPass.h`
   - [~] `ToneMappingPass : RenderPass`
 - [~] `Passes/OutlineRenderPass.h`

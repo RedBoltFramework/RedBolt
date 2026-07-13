@@ -577,6 +577,10 @@ public sealed class BloomPass : RenderPass
         DeclareParameter(IterationFactorName, defaults.IterationFactor, parameters);
     }
 
+    public override void InitializeView(RenderPipelineView view)
+    {
+    }
+
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);
