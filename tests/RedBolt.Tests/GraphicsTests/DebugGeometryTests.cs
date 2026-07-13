@@ -66,4 +66,17 @@ public sealed class DebugGeometryTests
 
         Assert.True(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void DebugRenderer_frame_and_bounding_box_helpers_accumulate_geometry()
+    {
+        var debugRenderer = new DebugRenderer();
+        var box = new BoundingBox(-1.0f, 1.0f);
+
+        debugRenderer.AddFrame(Matrix3x4.Identity);
+        debugRenderer.AddBoundingBox(box, Color.White);
+        debugRenderer.AddBoundingBox(box, Color.White, solid: true);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }

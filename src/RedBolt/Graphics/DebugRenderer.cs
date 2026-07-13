@@ -111,6 +111,73 @@ public sealed class DebugRenderer : Component
     }
 
     /// <summary>
+    /// Add an XYZ frame at the given worldTransform with optional uniform scale.
+    /// </summary>
+    public void AddFrame(Matrix3x4 worldTransform, float scale = 1.0f,
+        Color? colorX = null, Color? colorY = null, Color? colorZ = null, bool depthTest = true)
+    {
+        var origin = worldTransform * Vector3f.Zero;
+        var x = worldTransform * (Vector3f.Right * scale);
+        var y = worldTransform * (Vector3f.Up * scale);
+        var z = worldTransform * (Vector3f.Forward * scale);
+
+        AddLine(origin, x, colorX ?? new Color(1.0f, 0.0f, 0.0f), depthTest);
+        AddLine(origin, y, colorY ?? new Color(0.0f, 1.0f, 0.0f), depthTest);
+        AddLine(origin, z, colorZ ?? new Color(0.0f, 0.0f, 1.0f), depthTest);
+    }
+
+    /// <summary>
+    /// Add a bounding box.
+    /// </summary>
+    public void AddBoundingBox(BoundingBox box, Color color, bool depthTest = true, bool solid = false)
+    {
+        AddBoundingBox(box, Matrix3x4.Identity, color, depthTest, solid);
+    }
+
+    /// <summary>
+    /// Add a bounding box with transform.
+    /// </summary>
+    public void AddBoundingBox(BoundingBox box, Matrix3x4 transform, Color color, bool depthTest = true, bool solid = false)
+    {
+        var min = box.Min;
+        var max = box.Max;
+        var vertex0 = transform * min;
+        var vertex1 = transform * new Vector3f(max.X, min.Y, min.Z);
+        var vertex2 = transform * new Vector3f(max.X, max.Y, min.Z);
+        var vertex3 = transform * new Vector3f(min.X, max.Y, min.Z);
+        var vertex4 = transform * new Vector3f(min.X, min.Y, max.Z);
+        var vertex5 = transform * new Vector3f(max.X, min.Y, max.Z);
+        var vertex6 = transform * new Vector3f(min.X, max.Y, max.Z);
+        var vertex7 = transform * max;
+        var uintColor = color.ToUInt();
+
+        if (!solid)
+        {
+            AddLine(vertex0, vertex1, uintColor, depthTest);
+            AddLine(vertex1, vertex2, uintColor, depthTest);
+            AddLine(vertex2, vertex3, uintColor, depthTest);
+            AddLine(vertex3, vertex0, uintColor, depthTest);
+            AddLine(vertex4, vertex5, uintColor, depthTest);
+            AddLine(vertex5, vertex7, uintColor, depthTest);
+            AddLine(vertex7, vertex6, uintColor, depthTest);
+            AddLine(vertex6, vertex4, uintColor, depthTest);
+            AddLine(vertex0, vertex4, uintColor, depthTest);
+            AddLine(vertex1, vertex5, uintColor, depthTest);
+            AddLine(vertex2, vertex7, uintColor, depthTest);
+            AddLine(vertex3, vertex6, uintColor, depthTest);
+        }
+        else
+        {
+            AddPolygon(vertex0, vertex1, vertex2, vertex3, uintColor, depthTest);
+            AddPolygon(vertex4, vertex5, vertex7, vertex6, uintColor, depthTest);
+            AddPolygon(vertex0, vertex4, vertex6, vertex3, uintColor, depthTest);
+            AddPolygon(vertex1, vertex5, vertex7, vertex2, uintColor, depthTest);
+            AddPolygon(vertex3, vertex2, vertex7, vertex6, uintColor, depthTest);
+            AddPolygon(vertex0, vertex1, vertex5, vertex4, uintColor, depthTest);
+        }
+    }
+
+    /// <summary>
     /// Add a circle.
     /// </summary>
     public void AddCircle(Vector3f center, Vector3f normal, float radius, Color color, int steps = 64, bool depthTest = true, bool drawNormal = true)
