@@ -180,7 +180,8 @@ These are the ONLY places C# is allowed to differ from C++:
   from a `friend` class is mapped to `internal` (or `protected internal` when it is also
   `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility
   violation of section 3. A member that is `public` in C++ must still be `public` in C#.
-- Use Dear ImGui instead of rbfx own UI/ subsystem in samples.
+- Built-in rbfx UI (`UI`, `Window`, `Text`, `Sprite`, and related controls/subsystems) is not ported.
+- In samples, replace every use of the built-in rbfx UI with Dear ImGui equivalents.
 
 Anything not on this list must match C++.
 

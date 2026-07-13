@@ -11,6 +11,7 @@
     <Project Path="src/RedBolt.DearImGui/RedBolt.DearImGui.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/RedBolt.Sample.HelloWorld/RedBolt.Sample.HelloWorld.csproj" />
     <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />
     <Project Path="samples/RedBolt.Sample.AnimatingScene/RedBolt.Sample.AnimatingScene.csproj" />
     <Project Path="samples/RedBolt.Sample.StaticScene/RedBolt.Sample.StaticScene.csproj" />

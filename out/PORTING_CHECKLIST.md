@@ -2,9 +2,11 @@
 
 ## Samples
 
+- [x] `01_HelloWorld` — Hello World sample ported with Dear ImGui replacing the rbfx Text control
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
-- [ ] `01_HelloWorld`, `02_HelloGUI`, `03_Sprites` — require the native UI surface replaced by Dear ImGui
+- [ ] `02_HelloGUI` — requires mapping the native control demo to Dear ImGui widgets
+- [ ] `03_Sprites` — requires mapping the native Sprite UI demo to Dear ImGui draw/image calls
 - [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
 
