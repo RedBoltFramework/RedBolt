@@ -26,6 +26,64 @@ public enum ReflectionMode
     BlendProbesAndZone
 }
 
+/// <summary>Source data for a 3D geometry draw call.</summary>
+public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
+{
+    private static readonly Matrix3x4[] _identityWorldTransform = [Matrix3x4.Identity];
+
+    /// <summary>Distance from camera.</summary>
+    public float Distance;
+    /// <summary>Geometry.</summary>
+    public Geometry? Geometry;
+    /// <summary>Material.</summary>
+    public Material? Material;
+    /// <summary>World transform(s). For a skinned model, these are the bone transforms.</summary>
+    public Matrix3x4[] WorldTransform = _identityWorldTransform;
+    /// <summary>Number of world transforms.</summary>
+    public uint NumWorldTransforms = 1;
+    /// <summary>Per-instance data. If not null, must contain enough data to fill instancing buffer.</summary>
+    public object? InstancingData;
+    /// <summary>Geometry type.</summary>
+    public GeometryType GeometryType = GeometryType.Static;
+    /// <summary>Lightmap UV scale and offset.</summary>
+    public Vector4f? LightmapScaleOffset;
+    /// <summary>Lightmap texture index.</summary>
+    public uint LightmapIndex;
+
+    /// <summary>Construct with defaults.</summary>
+    public SourceBatch()
+    {
+    }
+
+    /// <summary>Copy-construct.</summary>
+    public object Clone() => this;
+
+    /// <summary>Destruct.</summary>
+    public void Dispose()
+    {
+    }
+
+    /// <summary>Equality comparison operator.</summary>
+    public bool Equals(SourceBatch other)
+    {
+        return Distance == other.Distance && ReferenceEquals(Geometry, other.Geometry) &&
+            ReferenceEquals(Material, other.Material) && ReferenceEquals(WorldTransform, other.WorldTransform) &&
+            NumWorldTransforms == other.NumWorldTransforms && ReferenceEquals(InstancingData, other.InstancingData) &&
+            GeometryType == other.GeometryType;
+    }
+
+    /// <summary>Inequality comparison operator.</summary>
+    public static bool operator !=(SourceBatch left, SourceBatch right) => !left.Equals(right);
+
+    /// <summary>Equality comparison operator.</summary>
+    public static bool operator ==(SourceBatch left, SourceBatch right) => left.Equals(right);
+
+    public override bool Equals(object? obj) => obj is SourceBatch other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(Distance, Geometry, Material, WorldTransform,
+        NumWorldTransforms, InstancingData, GeometryType);
+}
+
 public abstract class Drawable : Component
 {
     public const uint DefaultViewMask = uint.MaxValue;

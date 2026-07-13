@@ -232,7 +232,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Viewport.h`
   - [~] `Viewport : Object` — base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation are ported; precise view-owner invalidation remains TODO
 - [~] `Drawable.h`
-  - [ ] `struct SourceBatch`
+  - [x] `struct SourceBatch`
   - [~] `Drawable : Component, PipelineStateTracker`
 - [~] `OctreeQuery.h`
   - [ ] `OctreeQuery : NonCopyable`
