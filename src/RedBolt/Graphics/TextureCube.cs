@@ -92,7 +92,7 @@ public sealed class TextureCube : Texture
         if (size <= 0)
             return false;
 
-        SetDimensions(size, size, 1, format, multiSample, false);
+        SetDimensions(size, size, 1, format, multiSample, noMultiSampledAutoResolve);
         _faceData.Clear();
         RefreshTotalMemoryUse();
         return true;
