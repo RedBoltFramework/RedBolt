@@ -1012,6 +1012,15 @@ public interface IRenderPipelineInterface
 /// </summary>
 public abstract class RenderPipelineView : IRenderPipelineInterface
 {
+    private readonly RenderPipeline _renderPipeline;
+
+    protected RenderPipelineView(RenderPipeline renderPipeline)
+    {
+        _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+    }
+
+    public RenderPipeline GetRenderPipeline() => _renderPipeline;
+
     public abstract bool IsLinearColorSpace { get; }
 
     /// <summary>

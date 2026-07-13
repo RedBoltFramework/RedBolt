@@ -89,6 +89,8 @@ public sealed class Viewport : Object
 
         if (isOpenGl && renderTarget is not null && compensateRenderTargetFlip)
         {
+            // On OpenGL the render to texture is flipped vertically.
+            // Flip the viewport rectangle to compensate.
             rect.Top = renderTargetSize.Y - rect.Top;
             rect.Bottom = renderTargetSize.Y - rect.Bottom;
             (rect.Top, rect.Bottom) = (rect.Bottom, rect.Top);
@@ -105,6 +107,8 @@ public sealed class Viewport : Object
             return null;
         if (_autoRenderPipeline && !ReferenceEquals(_renderPipeline.Scene, Scene))
             return null;
+        if (_renderPipelineView is null || !ReferenceEquals(_renderPipelineView.GetRenderPipeline(), _renderPipeline))
+            return null;
         return _renderPipelineView;
     }
 
@@ -118,7 +122,7 @@ public sealed class Viewport : Object
             _renderPipeline = Scene.Root.GetComponent<RenderPipeline>() ?? Scene.Root.CreateComponent<RenderPipeline>();
         }
 
-        if (_renderPipeline is not null && _renderPipelineView is null)
+        if (_renderPipeline is not null && (_renderPipelineView is null || !ReferenceEquals(_renderPipelineView.GetRenderPipeline(), _renderPipeline)))
             _renderPipelineView = _renderPipeline.Instantiate();
     }
 

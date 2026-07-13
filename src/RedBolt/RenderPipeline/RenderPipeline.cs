@@ -258,6 +258,7 @@ public class RenderPipeline : Component
         private uint _syncedRevision;
 
         public DefaultRenderPipelineView(RenderPipeline renderPipeline)
+            : base(renderPipeline)
         {
             this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         }

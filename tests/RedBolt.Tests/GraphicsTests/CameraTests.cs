@@ -196,4 +196,27 @@ public sealed class CameraTests
         Assert.True(viewport.IsStereo());
         Assert.Same(childCamera, viewport.GetEye(1));
     }
+
+    [Fact]
+    public void Viewport_recreates_view_when_automatic_pipeline_changes()
+    {
+        var firstScene = new Scene();
+        var firstCamera = firstScene.CreateChild("Camera").CreateComponent<Camera>();
+        firstScene.CreateComponent<RenderPipeline>();
+        var secondScene = new Scene();
+        secondScene.CreateComponent<RenderPipeline>();
+
+        var viewport = new Viewport(firstScene, firstCamera);
+        viewport.AllocateView();
+        var firstView = viewport.GetRenderPipelineView();
+        Assert.NotNull(firstView);
+
+        viewport.SetScene(secondScene);
+        viewport.AllocateView();
+        var secondView = viewport.GetRenderPipelineView();
+
+        Assert.NotNull(secondView);
+        Assert.NotSame(firstView, secondView);
+        Assert.Same(secondScene.Root.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
+    }
 }

@@ -226,8 +226,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Camera.h`
   - [x] `Camera : Component` — projection/view/frustum caches, reflection and clipping planes, screen/world conversion, zone state, camera-facing rotations, and graphics-backend projection conversion are ported
 - [x] `CameraOperator.h` — tracked-node attributes, scene/node listeners, camera movement, bounding-box/padding state, frustum fitting, factory registration, and action label/description metadata are ported; C# drops `WeakPtr` per the allowed deviations
-- [~] `Viewport.h`
-  - [~] `Viewport : Object` — base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation are ported; precise view-owner invalidation remains TODO
+- [x] `Viewport.h` — `Viewport : Object` base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation including owner invalidation are ported; C# drops `WeakPtr`/`SharedPtr` per the allowed deviations
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
   - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, combined zone light/shadow masks, and octree membership/index state are ported; reflection cache and pipeline-state tracking remain incomplete
