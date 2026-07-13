@@ -38,4 +38,11 @@ public struct ReflectionProbeReference
     public float Volume { get; set; }
 
     public void Reset() => Data = null;
+
+    public bool IsValid => Data is not null;
+
+    public bool IsMoreImportantThan(ReflectionProbeReference other)
+    {
+        return other.Priority < Priority || other.Volume < Volume;
+    }
 }

@@ -32,4 +32,27 @@ public sealed class ReflectionProbeDataTests
         Assert.Equal(2, cache.Probes.Length);
         Assert.Equal(-1.0f, cache.CacheInvalidationDistanceSquared);
     }
+
+    [Fact]
+    public void Reflection_probe_reference_orders_by_priority_or_volume()
+    {
+        var data = new ReflectionProbeData();
+        var important = new ReflectionProbeReference
+        {
+            Data = data,
+            Priority = 2,
+            Volume = 10.0f
+        };
+        var other = new ReflectionProbeReference
+        {
+            Data = data,
+            Priority = 1,
+            Volume = 20.0f
+        };
+
+        Assert.True(important.IsValid);
+        Assert.False(new ReflectionProbeReference().IsValid);
+        Assert.True(important.IsMoreImportantThan(other));
+        Assert.True(other.IsMoreImportantThan(important));
+    }
 }
