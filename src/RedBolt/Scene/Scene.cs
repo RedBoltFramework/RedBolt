@@ -15,7 +15,7 @@ public enum LoadMode
     SceneAndResources
 }
 
-public sealed class Scene : Object
+public sealed class Scene : Serializable
 {
     private sealed class AsyncProgress
     {
@@ -76,6 +76,84 @@ public sealed class Scene : Object
         _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
         _resourceBackgroundLoadedSubscription =
             SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
+
+        RegisterAttribute(
+            "Name",
+            typeof(string),
+            self => ((Scene)self).Root.Name,
+            (self, value) => ((Scene)self).Root.SetName(value as string ?? string.Empty),
+            string.Empty);
+        RegisterAttribute(
+            "Time Scale",
+            typeof(float),
+            self => ((Scene)self).GetTimeScale(),
+            (self, value) => ((Scene)self).SetTimeScale(value is float timeScale ? timeScale : 1.0f),
+            1.0f);
+        RegisterAttribute(
+            "Elapsed Time",
+            typeof(float),
+            self => ((Scene)self).GetElapsedTime(),
+            (self, value) => ((Scene)self).SetElapsedTime(value is float elapsedTime ? elapsedTime : 0.0f),
+            0.0f);
+        RegisterAttribute(
+            "Next Node ID",
+            typeof(uint),
+            self => ((Scene)self)._nextNodeId,
+            (self, value) => ((Scene)self)._nextNodeId = value is uint nextNodeId ? nextNodeId : 1u,
+            1u,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute(
+            "Next Component ID",
+            typeof(uint),
+            self => ((Scene)self)._nextComponentId,
+            (self, value) => ((Scene)self)._nextComponentId = value is uint nextComponentId ? nextComponentId : 1u,
+            1u,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute(
+            "Variables",
+            typeof(StringVariantMap),
+            self =>
+            {
+                var result = new StringVariantMap();
+                foreach (var (key, value) in ((Scene)self).Root.Variables)
+                    result[key.Reverse()] = Variant.FromObject(value);
+                return result;
+            },
+            (self, value) =>
+            {
+                if (value is not StringVariantMap variables)
+                    return;
+
+                ((Scene)self).Root.SetVariables(variables.Select(static pair =>
+                    new KeyValuePair<StringHash, object?>(new StringHash(pair.Key), pair.Value.GetObject())));
+            },
+            new StringVariantMap());
+        RegisterAttribute(
+            "Update Events",
+            typeof(StringVector),
+            self => ((Scene)self).GetUpdateEvents(),
+            (self, value) => ((Scene)self).SetUpdateEvents(value as StringVector ?? new StringVector()),
+            new StringVector(DefaultUpdateEvents));
+        RegisterAttribute(
+            "World Origin",
+            typeof(IntVector3),
+            self => ((Scene)self).GetWorldOrigin(),
+            (self, value) => ((Scene)self).SetWorldOrigin(value is IntVector3 worldOrigin ? worldOrigin : IntVector3.Zero),
+            IntVector3.Zero);
+        RegisterAttribute(
+            "Lightmaps",
+            typeof(ResourceRefList),
+            self => new ResourceRefList(ObjectReflection<Texture2D>.TypeId, ((Scene)self)._lightmapNames),
+            (self, value) =>
+            {
+                if (value is not ResourceRefList lightmaps)
+                    return;
+
+                ((Scene)self)._lightmapNames.Clear();
+                ((Scene)self)._lightmapNames.AddRange(lightmaps.Names);
+                ((Scene)self).ReloadLightmaps();
+            },
+            new ResourceRefList(ObjectReflection<Texture2D>.TypeId));
     }
 
     public static void RegisterObject(Context context)
@@ -83,15 +161,6 @@ public sealed class Scene : Object
         ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<Scene>();
 
-        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Name", GetName, SetName, ea::string, EMPTY_STRING, AM_DEFAULT).
-        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Time Scale", GetTimeScale, SetTimeScale, float, 1.0f, AM_DEFAULT).
-        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Elapsed Time", GetElapsedTime, SetElapsedTime, float, 0.0f, AM_DEFAULT).
-        // TODO: port URHO3D_ATTRIBUTE("Next Node ID", unsigned, replicatedNodeID_, FIRST_REPLICATED_ID, AM_DEFAULT | AM_NOEDIT).
-        // TODO: port URHO3D_ATTRIBUTE("Next Component ID", unsigned, replicatedComponentID_, FIRST_REPLICATED_ID, AM_DEFAULT | AM_NOEDIT).
-        // TODO: port URHO3D_ATTRIBUTE("Variables", StringVariantMap, vars_, Variant::emptyStringVariantMap, AM_DEFAULT).
-        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Update Events", GetUpdateEvents, SetUpdateEvents, StringVector, DefaultUpdateEvents, AM_DEFAULT).
-        // TODO: port URHO3D_ATTRIBUTE("World Origin", IntVector3, worldOrigin_, IntVector3::ZERO, AM_DEFAULT).
-        // TODO: port URHO3D_ATTRIBUTE_EX("Lightmaps", ResourceRefList, lightmaps_, ReloadLightmaps, ResourceRefList(Texture2D::GetTypeStatic()), AM_DEFAULT).
     }
 
     public override void Dispose()
@@ -198,7 +267,7 @@ public sealed class Scene : Object
             Checksum = archive.Checksum;
     }
 
-    public bool LoadXML(XMLElement source)
+    public override bool LoadXML(XMLElement source)
     {
         StopAsyncLoading();
 
@@ -228,7 +297,7 @@ public sealed class Scene : Object
         return LoadXML(xml.GetRoot());
     }
 
-    public bool LoadJSON(JSONValue source)
+    public override bool LoadJSON(JSONValue source)
     {
         StopAsyncLoading();
         return Root.LoadJSON(source);
@@ -276,7 +345,7 @@ public sealed class Scene : Object
         return false;
     }
 
-    public bool Load(Stream source)
+    public override bool Load(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
         using var copy = new MemoryStream();
@@ -297,7 +366,7 @@ public sealed class Scene : Object
         return Load(buffer);
     }
 
-    public bool Load(Deserializer source)
+    public override bool Load(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
@@ -314,7 +383,7 @@ public sealed class Scene : Object
         return false;
     }
 
-    public bool Save(Stream destination)
+    public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var buffer = new VectorBuffer();
@@ -323,7 +392,7 @@ public sealed class Scene : Object
         return true;
     }
 
-    public bool Save(Serializer destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.WriteFileID("USCN"))

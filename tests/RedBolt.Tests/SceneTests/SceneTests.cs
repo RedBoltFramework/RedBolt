@@ -549,5 +549,15 @@ public sealed class SceneTests
 
         Assert.True(context.IsReflected<Scene>());
         using var created = Assert.IsType<Scene>(context.CreateObject(ObjectReflection<Scene>.TypeId));
+        Assert.Equal(9u, created.NumAttributes);
+        Assert.Equal(string.Empty, created.GetAttribute("Name"));
+        Assert.Equal(1.0f, created.GetAttribute("Time Scale"));
+        Assert.Equal(0.0f, created.GetAttribute("Elapsed Time"));
+        Assert.Equal(2u, created.GetAttribute("Next Node ID"));
+        Assert.Equal(1u, created.GetAttribute("Next Component ID"));
+        Assert.IsType<StringVariantMap>(created.GetAttribute("Variables"));
+        Assert.Equal(Scene.DefaultUpdateEvents, created.GetAttribute("Update Events"));
+        Assert.Equal(IntVector3.Zero, created.GetAttribute("World Origin"));
+        Assert.Equal(ObjectReflection<Texture2D>.TypeId.Value, ((ResourceRefList)created.GetAttribute("Lightmaps")!).Type);
     }
 }
