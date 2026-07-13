@@ -111,7 +111,7 @@ public sealed class RenderContextTests
                 renderContext.SetClipPlaneMask(7);
             }
 
-            Assert.True(renderContext.IsDebugScopeEnabled());
+            Assert.Equal(ProcessUtils.GetPlatform() != PlatformId.Web, renderContext.IsDebugScopeEnabled());
             Assert.Equal(before, renderContext.GetCurrentViewport());
         });
     }

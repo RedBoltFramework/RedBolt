@@ -140,7 +140,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RenderScope.h`
   - [x] `RenderScope : NonCopyable` — conditional RAII-style Diligent debug groups are ported
 - [~] `RenderContext.h`
-  - [x] `RenderContext : Object` — cached render-target output, dimensions, swap-chain state, viewport clamping, target dirty marking, disposal, device-lost clip-state reset, and SDL-resolved OpenGL clip-plane toggles are ported
+  - [x] `RenderContext : Object` — cached render-target output, dimensions, swap-chain state, viewport clamping, target dirty marking, disposal, platform-specific debug-scope enablement, device-lost clip-state reset, and SDL-resolved OpenGL clip-plane toggles are ported
 - [~] `DrawCommandQueue.h`
   - [~] `DrawCommandQueue` — command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, four-float blend-factor binding, and the C++ void shader-parameter API/group-mismatch behavior are ported
 - [~] `RenderDevice.h`

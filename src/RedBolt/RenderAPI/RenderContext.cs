@@ -16,6 +16,7 @@ public class RenderContext : Object
 
     private readonly RenderDevice _renderDevice;
     private readonly RenderPool _renderPool;
+    private readonly bool _debugScopeEnabled;
     private readonly RenderDeviceStats _stats = new();
     private readonly RenderTargetView[] _swapChainColorTarget;
     private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
@@ -33,6 +34,7 @@ public class RenderContext : Object
     {
         this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
         _renderPool = renderDevice.GetRenderPool();
+        _debugScopeEnabled = ProcessUtils.GetPlatform() != PlatformId.Web;
         _swapChainColorTarget = [RenderTargetView.SwapChainColor(renderDevice)];
         SubscribeToEvent<GraphicsEvents.DeviceLostEvent>(renderDevice,
             (ref GraphicsEvents.DeviceLostEvent _) => ResetCachedContextState());
@@ -235,7 +237,7 @@ public class RenderContext : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
-    public bool IsDebugScopeEnabled() => true;
+    public bool IsDebugScopeEnabled() => _debugScopeEnabled;
 
     public Vector2i GetCurrentRenderTargetSize()
     {
