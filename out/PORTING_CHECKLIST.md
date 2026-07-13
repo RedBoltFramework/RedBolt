@@ -7,6 +7,7 @@
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
 - [~] `09_MultipleViewports` — scene, rear camera, and dual viewport sample ported; bloom/FXAA render-path toggles remain pending managed render-path controls
+- [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
@@ -201,7 +202,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture2DArray.h`
   - [~] `Texture2DArray : Texture` — two-phase layer loading including headless short-circuiting, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
-- [~] `RenderSurface.h`
+- [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, and texture-surface access are ported; renderer queue integration remains managed and incomplete
   - [~] `RenderSurface : RefCounted` — viewport/update state, linked render/depth surfaces, parent texture dimensions/views, resolve state, and main-viewport helpers are ported; native GPU view restoration remains managed-resource dependent
 - [~] `Shader.h`
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO

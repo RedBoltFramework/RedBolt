@@ -837,6 +837,32 @@ layout(std140) uniform Material
     }
 
     /// <summary>
+    /// Render viewport into a render surface without presenting the swap chain.
+    /// </summary>
+    internal void RenderViewport(RenderSurface renderSurface, Viewport viewport, MaterialQuality materialQuality)
+    {
+        ArgumentNullException.ThrowIfNull(renderSurface);
+        ArgumentNullException.ThrowIfNull(viewport);
+
+        if (!IsInitialized || _immediateContext is null)
+            return;
+
+        SendEvent<GraphicsEvents.BeginRenderingEvent>();
+
+        var viewportRect = viewport.GetEffectiveRect(renderSurface);
+        var colorTarget = renderSurface.GetView();
+        var depthStencil = renderSurface.GetLinkedDepthStencil()?.GetView();
+        SetRenderTargets(viewportRect, colorTarget, depthStencil);
+        ClearCurrentRenderTargets();
+        RenderScene(viewport, materialQuality, viewportRect);
+        SendEvent<GraphicsEvents.EndRenderingEvent>();
+
+        if (renderSurface.GetMultiSample() > 1)
+            renderSurface.SetResolveDirty(true);
+        UnbindRenderTargets();
+    }
+
+    /// <summary>
     /// Bind an optional color target and optional depth-stencil target for subsequent scene or post-process rendering.
     /// </summary>
     internal void SetRenderTargets(IntRect viewportRect, ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget)
