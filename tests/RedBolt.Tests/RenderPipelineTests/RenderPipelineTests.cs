@@ -81,6 +81,29 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_updates_existing_parameters_by_hash()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
+        renderPipeline.SetRenderPath(renderPath);
+
+        var parameterEvents = 0;
+        renderPipeline.ParametersChanged += _ => ++parameterEvents;
+
+        renderPipeline.UpdateRenderPathParameters(new Dictionary<StringHash, object?>
+        {
+            [new StringHash("Exposure")] = 2.0f,
+            [new StringHash("Missing")] = 3.0f
+        });
+
+        Assert.Equal(1, parameterEvents);
+        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+        Assert.DoesNotContain("Missing", renderPipeline.GetRenderPathParameters().Keys);
+    }
+
+    [Fact]
     public void Render_pipeline_frame_shader_parameters_do_not_bump_revision()
     {
         var scene = new Scene();
@@ -95,6 +118,23 @@ public sealed class RenderPipelineTests
 
         Assert.Equal(initialRevision, renderPipeline.Revision);
         Assert.Equal(4, Assert.IsType<int>(renderPipeline.GetFrameShaderParameters()["FrameIndex"]));
+    }
+
+    [Fact]
+    public void Render_pipeline_updates_existing_frame_parameters_by_hash()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
+
+        renderPipeline.UpdateFrameShaderParameters(new Dictionary<StringHash, object?>
+        {
+            [new StringHash("Time")] = 2.0f,
+            [new StringHash("Missing")] = 3.0f
+        });
+
+        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetFrameShaderParameters()["Time"]));
+        Assert.DoesNotContain("Missing", renderPipeline.GetFrameShaderParameters().Keys);
     }
 
     [Fact]

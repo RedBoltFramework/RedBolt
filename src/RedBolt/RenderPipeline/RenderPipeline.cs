@@ -123,6 +123,31 @@ public class RenderPipeline : Component
         RaiseParametersChanged();
     }
 
+    public void UpdateRenderPathParameters(IReadOnlyDictionary<StringHash, object?> parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        var modified = false;
+        foreach (var (nameHash, newValue) in parameters)
+        {
+            foreach (var (name, currentValue) in _renderPathParameters)
+            {
+                if (StringHash.Calculate(name) != nameHash.Value)
+                    continue;
+
+                if (!EqualityComparer<object?>.Default.Equals(currentValue, newValue))
+                {
+                    _renderPathParameters[name] = newValue;
+                    modified = true;
+                }
+                break;
+            }
+        }
+
+        if (modified)
+            RaiseParametersChanged();
+    }
+
     /// <summary>
     /// Update existing render path parameter.
     /// </summary>
@@ -146,6 +171,23 @@ public class RenderPipeline : Component
         _frameShaderParameters.Clear();
         foreach (var (name, value) in parameters)
             _frameShaderParameters[name] = value;
+    }
+
+    public void UpdateFrameShaderParameters(IReadOnlyDictionary<StringHash, object?> parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        foreach (var (nameHash, newValue) in parameters)
+        {
+            foreach (var name in _frameShaderParameters.Keys)
+            {
+                if (StringHash.Calculate(name) != nameHash.Value)
+                    continue;
+
+                _frameShaderParameters[name] = newValue;
+                break;
+            }
+        }
     }
 
     /// <summary>
