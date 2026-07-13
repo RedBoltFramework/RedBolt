@@ -208,6 +208,4 @@ public partial class TetrahedralMesh
     /// <summary>Debug array of edges related to errors in generation.</summary>
     public List<(uint First, uint Second)> DebugHighlightEdges = [];
 
-    // TODO: port C++ SerializeValue(Archive& archive, const char* name, Tetrahedron& value);
-    // TODO: port C++ SerializeValue(Archive& archive, const char* name, TetrahedralMesh& value);
 }
