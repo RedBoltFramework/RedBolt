@@ -1098,12 +1098,13 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
 
 public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
 {
-    private readonly GraphicsPipelineStateDesc? _graphicsDesc = new();
+    private readonly GraphicsPipelineStateDesc? _graphicsDesc;
     private readonly ComputePipelineStateDesc? _computeDesc;
     private readonly uint _hash;
 
     public PipelineStateDesc()
     {
+        _graphicsDesc = new GraphicsPipelineStateDesc();
     }
 
     public PipelineStateDesc(GraphicsPipelineStateDesc desc)
