@@ -5,6 +5,16 @@ namespace RedBolt.Tests;
 public sealed class TextureTests
 {
     [Fact]
+    public void Texture2D_registers_empty_named_factory()
+    {
+        var context = new Context();
+        Texture2D.RegisterObject(context);
+
+        using var texture = Assert.IsType<Texture2D>(context.CreateObject(ObjectReflection<Texture2D>.TypeId));
+        Assert.Equal(string.Empty, texture.Name);
+    }
+
+    [Fact]
     public void Texture_sampler_dimensions_and_flags_match_cpp_api()
     {
         var texture = new Texture2D("Textures/Smoke2D");

@@ -13,7 +13,8 @@ public sealed class Texture2D : Texture
 
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Texture2D>();
+        var reflection = context.AddReflection<Texture2D>();
+        reflection.SetObjectFactory(static () => new Texture2D(string.Empty));
     }
 
     public override bool BeginLoad(Stream source)
