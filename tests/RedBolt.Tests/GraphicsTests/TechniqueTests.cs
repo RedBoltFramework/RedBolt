@@ -19,6 +19,10 @@ public sealed class TechniqueTests
         Assert.True(pass.IsAlphaMask);
         Assert.NotEqual(0u, pass.GetPipelineStateHash());
         Assert.Equal("ALPHAMASK DIFFMAP", pass.GetEffectivePixelShaderDefines());
+
+        var previousHash = pass.GetPipelineStateHash();
+        pass.SetDepthWrite(false);
+        Assert.NotEqual(previousHash, pass.GetPipelineStateHash());
     }
 
     [Fact]

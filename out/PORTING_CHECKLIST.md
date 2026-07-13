@@ -233,7 +233,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct FocusParameters`
   - [~] `Light : Drawable` — intensity divisor and distance-based sort-value calculation, validated cascade split counting, ramp/shape texture attributes, world-space/view-space spotlight frustums, directional/spot/point world bounds, and point/spot/directional volume transforms are ported; light-batch queue and texture resource integration remain incomplete
 - [~] `Technique.h`
-  - [~] `Pass : RefCounted, PipelineStateTracker`
+  - [~] `Pass : RefCounted, PipelineStateTracker` — managed Pass now derives from PipelineStateTracker with tracker-backed hash invalidation; native shader-variation collections remain incomplete
   - [~] `Technique : Resource`
 - [~] `Material.h`
   - [~] `struct TechniqueEntry`

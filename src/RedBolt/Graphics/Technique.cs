@@ -34,7 +34,7 @@ public enum LightingMode
     PerPixel
 }
 
-public sealed class Pass
+public sealed class Pass : PipelineStateTracker
 {
     private static readonly IReadOnlyList<string> DefaultPixelTextureDefines =
     [
@@ -46,7 +46,6 @@ public sealed class Pass
 
     private readonly List<string> _vertexTextureDefines = [];
     private readonly List<string> _pixelTextureDefines = [];
-    private uint _pipelineStateHash;
 
     public Pass(string name)
     {
@@ -91,8 +90,6 @@ public sealed class Pass
     public IReadOnlyList<string> VertexTextureDefines => _vertexTextureDefines;
 
     public IReadOnlyList<string> PixelTextureDefines => _pixelTextureDefines;
-
-    public uint GetPipelineStateHash() => _pipelineStateHash;
 
     public void SetBlendMode(BlendMode mode)
     {
@@ -256,6 +253,11 @@ public sealed class Pass
 
     private void RefreshPipelineStateHash()
     {
+        MarkPipelineStateHashDirty();
+    }
+
+    protected override uint RecalculatePipelineStateHash()
+    {
         var hash = new HashCode();
         hash.Add(BlendMode);
         hash.Add(CullMode);
@@ -273,7 +275,7 @@ public sealed class Pass
             hash.Add(define, StringComparer.Ordinal);
         foreach (var define in _pixelTextureDefines)
             hash.Add(define, StringComparer.Ordinal);
-        _pipelineStateHash = unchecked((uint)hash.ToHashCode());
+        return unchecked((uint)hash.ToHashCode());
     }
 }
 
