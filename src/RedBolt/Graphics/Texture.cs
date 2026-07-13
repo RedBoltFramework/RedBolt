@@ -48,7 +48,7 @@ public abstract class Texture : ResourceWithMetadata
 
     public TextureFormat Format { get; protected set; } = TextureFormat.Unknown;
 
-    public uint Levels { get; protected set; } = 1u;
+    public uint Levels { get; protected set; }
 
     public int Width { get; protected set; }
 
@@ -127,7 +127,6 @@ public abstract class Texture : ResourceWithMetadata
     public void SetNumLevels(uint levels)
     {
         _requestedLevels = levels;
-        Levels = levels;
     }
 
     public uint GetLevels() => Levels;

@@ -125,6 +125,7 @@ public sealed class Texture2D : Texture
 
         _mostDetailedLevel = mostDetailedLevel;
         SetNumLevels(numLevels);
+        Levels = numLevels;
 
         var baseLevel = image.GetDecompressedImageLevel(mostDetailedLevel);
         if (baseLevel is null || !SetSize(baseLevel.Width, baseLevel.Height, TextureFormat.RGBA8))
