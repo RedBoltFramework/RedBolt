@@ -66,6 +66,38 @@ public sealed class Renderer : Object
         return count;
     }
 
+    public uint GetNumGeometries()
+    {
+        var count = 0u;
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+            count += renderPipelineView.View.GetStats().NumGeometries;
+        return count;
+    }
+
+    public uint GetNumLights()
+    {
+        var count = 0u;
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+            count += renderPipelineView.View.GetStats().NumLights;
+        return count;
+    }
+
+    public uint GetNumShadowMaps()
+    {
+        var count = 0u;
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+            count += renderPipelineView.View.GetStats().NumShadowedLights;
+        return count;
+    }
+
+    public uint GetNumOccluders()
+    {
+        var count = 0u;
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+            count += renderPipelineView.View.GetStats().NumOccluders;
+        return count;
+    }
+
     public Viewport? GetViewportForScene(Scene scene, uint index = 0)
     {
         ArgumentNullException.ThrowIfNull(scene);
