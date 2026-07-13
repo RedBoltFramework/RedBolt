@@ -5,6 +5,27 @@ namespace RedBolt;
 
 public static class GraphicsUtils
 {
+    private static VertexBuffer?[] ToVertexBufferArray(Geometry geometry, VertexBuffer? instancingBuffer)
+    {
+        var vertexBuffers = new VertexBuffer?[RenderApiLimits.MaxVertexStreams];
+        var numVertexBuffers = geometry.GetNumVertexBuffers() + (instancingBuffer is null ? 0u : 1u);
+        if (numVertexBuffers > RenderApiLimits.MaxVertexStreams)
+        {
+            Log.Logger.LogError(
+                "Too many vertex buffers: PipelineState cannot handle more than {MaxVertexStreams}",
+                RenderApiLimits.MaxVertexStreams);
+            return vertexBuffers;
+        }
+
+        for (var index = 0u; index < geometry.GetNumVertexBuffers(); ++index)
+            vertexBuffers[checked((int)index)] = geometry.GetVertexBuffer(index);
+
+        if (instancingBuffer is not null)
+            vertexBuffers[checked((int)(numVertexBuffers - 1))] = instancingBuffer;
+
+        return vertexBuffers;
+    }
+
     public static void InitializeInputLayout(InputLayoutDesc desc, IReadOnlyList<VertexBuffer?> vertexBuffers)
     {
         Span<InputLayoutElementDesc> layoutElements = stackalloc InputLayoutElementDesc[(int)RenderApiLimits.MaxNumVertexElements];
@@ -49,16 +70,7 @@ public static class GraphicsUtils
     public static void InitializeInputLayoutAndPrimitiveType(
         GraphicsPipelineStateDesc desc, Geometry geometry, VertexBuffer? instancingBuffer = null)
     {
-        var vertexBuffers = new VertexBuffer?[RenderApiLimits.MaxVertexStreams];
-        var numVertexBuffers = geometry.GetNumVertexBuffers() + (instancingBuffer is null ? 0u : 1u);
-        if (numVertexBuffers <= RenderApiLimits.MaxVertexStreams)
-        {
-            for (var index = 0u; index < geometry.GetNumVertexBuffers(); ++index)
-                vertexBuffers[checked((int)index)] = geometry.GetVertexBuffer(index);
-
-            if (instancingBuffer is not null)
-                vertexBuffers[checked((int)(numVertexBuffers - 1))] = instancingBuffer;
-        }
+        var vertexBuffers = ToVertexBufferArray(geometry, instancingBuffer);
 
         InitializeInputLayout(desc.InputLayout, vertexBuffers);
         desc.PrimitiveType = geometry.GetPrimitiveType();
