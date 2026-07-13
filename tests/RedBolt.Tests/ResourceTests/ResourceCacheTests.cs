@@ -106,6 +106,25 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void LoadFromCache_returns_resource_from_context_cache()
+    {
+        var resourceName = $"Data/load-from-cache-{Guid.NewGuid():N}.bin";
+        var resource = new BinaryFile(resourceName);
+        var type = new StringHash(typeof(BinaryFile).GetClassName());
+
+        try
+        {
+            Assert.True(Resources.AddManualResource(resource));
+            Assert.Same(resource, Resource.LoadFromCache(_fixture.Context, type, resourceName));
+            Assert.Null(Resource.LoadFromCache(_fixture.Context, type, string.Empty));
+        }
+        finally
+        {
+            Resources.ReleaseResource(type, resourceName, force: true);
+        }
+    }
+
+    [Fact]
     public void TempResource_does_not_reuse_cached()
     {
         var tempDir = CreateTempDir();

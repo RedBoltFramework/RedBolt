@@ -174,6 +174,15 @@ public abstract class Resource : Object
 
     public AsyncLoadState GetAsyncLoadState() => AsyncLoadState;
 
+    public static Resource? LoadFromCache(Context context, StringHash type, string name)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (string.IsNullOrEmpty(name))
+            return null;
+
+        return context.GetSubsystem<ResourceCache>()?.GetResource(type, name);
+    }
+
     public void SetAbsoluteFileName(string fileName)
     {
         AbsoluteFileName = fileName ?? string.Empty;
