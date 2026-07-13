@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+using System.Diagnostics;
+
 namespace RedBolt;
 
 /// <summary>
@@ -264,7 +266,7 @@ public class AnimationController : AnimationStateSource
     {
         if (index >= _animations.Count)
         {
-            // TODO: port: URHO3D_ASSERTLOG(0, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
+            Debug.Assert(false, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
             return;
         }
 
@@ -272,7 +274,7 @@ public class AnimationController : AnimationStateSource
         if (!ReferenceEquals(instance.Params.GetAnimation(), parameters.GetAnimation())
             || instance.Params.InstanceIndex != parameters.InstanceIndex)
         {
-            // TODO: port: URHO3D_ASSERTLOG(0, "Animation and instance index cannot be changed by AnimationController::UpdateAnimation");
+            Debug.Assert(false, "Animation and instance index cannot be changed by AnimationController::UpdateAnimation");
             return;
         }
 
@@ -291,7 +293,7 @@ public class AnimationController : AnimationStateSource
     {
         if (index >= _animations.Count)
         {
-            // TODO: port: URHO3D_ASSERTLOG(0, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
+            Debug.Assert(false, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
             return;
         }
 
