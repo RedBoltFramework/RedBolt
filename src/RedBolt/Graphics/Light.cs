@@ -441,16 +441,19 @@ public sealed class Light : Drawable
     public int GetNumShadowSplits()
     {
         var splits = ShadowCascade.Splits;
-        var count = 0;
-        if (splits.X > 0.0f)
+        var count = 1;
+        if (splits.Y > splits.X)
+        {
             ++count;
-        if (splits.Y > 0.0f)
-            ++count;
-        if (splits.Z > 0.0f)
-            ++count;
-        if (splits.W > 0.0f)
-            ++count;
-        return count;
+            if (splits.Z > splits.Y)
+            {
+                ++count;
+                if (splits.W > splits.Z)
+                    ++count;
+            }
+        }
+
+        return Math.Min(count, (int)MaxCascadeSplits);
     }
 
     public bool IsNegative() => GetEffectiveColor().SumRGB() < 0.0f;

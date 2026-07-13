@@ -62,6 +62,15 @@ public sealed class LightTests
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowCascade(new CascadeParameters(-1.0f, 5.0f, 10.0f, 0.0f, -1.0f, 2.0f));
+        Assert.Equal(3, light.GetNumShadowSplits());
+    }
+
+    [Fact]
+    public void Shadow_cascade_splits_stop_at_first_non_increasing_boundary()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetShadowCascade(new CascadeParameters(1.0f, 2.0f, 1.0f, 4.0f, 0.5f));
+
         Assert.Equal(2, light.GetNumShadowSplits());
     }
 
