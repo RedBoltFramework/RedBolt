@@ -5,6 +5,17 @@ namespace RedBolt.Tests;
 public sealed class AnimationControllerTests
 {
     [Fact]
+    public void Animation_controller_registers_logic_factory()
+    {
+        var context = new Context();
+        AnimationController.RegisterObject(context);
+
+        using var controller = Assert.IsType<AnimationController>(
+            context.CreateObject(ObjectReflection<AnimationController>.TypeId));
+        Assert.Equal(ObjectCategory.Category_Logic, context.GetReflection<AnimationController>().Category);
+    }
+
+    [Fact]
     public void Animation_controller_manages_instances_and_high_level_operations()
     {
         var animation = new Animation("Walk");

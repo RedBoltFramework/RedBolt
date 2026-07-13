@@ -55,7 +55,7 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<AnimationController>(Category_Logic);
+        context.AddFactoryReflection<AnimationController>(ObjectCategory.Category_Logic);
         // TODO: port: URHO3D_ACTION_STATIC_LABEL("Update Pose", UpdatePose, "");
     }
 
