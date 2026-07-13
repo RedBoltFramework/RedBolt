@@ -197,8 +197,37 @@ layout(std140) uniform Material
     {
         _windowIcon = windowIcon;
         if (_window is not null && !_window.IsNull)
+            CreateWindowIcon();
+    }
+
+    private void CreateWindowIcon()
+    {
+        if (_windowIcon is null)
+            return;
+
+        var rgba = _windowIcon.Components == 4 ? _windowIcon : _windowIcon.ConvertToRGBA();
+        var data = rgba.GetData();
+        var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+        try
         {
-            // TODO: port SDL_SetWindowIcon after the generated SDL surface bindings are available.
+            var surface = SdlNativeBindings.SdlCreateRGBSurfaceWithFormatFrom(
+                handle.AddrOfPinnedObject(), rgba.Width, rgba.Height, 32, rgba.Width * 4,
+                (uint)SdlPixelFormatEnum.SdlPixelformatRgba32);
+            if (surface.IsNull)
+                return;
+
+            try
+            {
+                SdlNativeBindings.SdlSetWindowIcon(_window!, surface);
+            }
+            finally
+            {
+                SdlNativeBindings.SdlFreeSurface(surface);
+            }
+        }
+        finally
+        {
+            handle.Free();
         }
     }
 
