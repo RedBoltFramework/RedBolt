@@ -1,8 +1,21 @@
 namespace RedBolt;
 
+public sealed class ResourceGroup
+{
+    /// <summary>Memory budget.</summary>
+    public ulong MemoryBudget;
+
+    /// <summary>Current memory use.</summary>
+    public ulong MemoryUse;
+
+    /// <summary>Resources.</summary>
+    public readonly Dictionary<StringHash, Resource> Resources = new();
+}
+
 public sealed class ResourceCache : Object
 {
     private readonly Dictionary<(Type Type, string Name), Resource> _cache = new();
+    private readonly Dictionary<Type, ResourceGroup> _resourceGroups = new();
     private readonly BackgroundLoader _backgroundLoader;
     private readonly Dictionary<Type, ulong> _memoryBudgets = new();
     private readonly List<string> _resourceDirs = [];
@@ -69,6 +82,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache.Add(key, resource);
+        AddResourceToGroup(resource.GetType(), resource);
         UpdateResourceGroup(resource.GetType());
         return true;
     }
@@ -77,7 +91,7 @@ public sealed class ResourceCache : Object
 
     public IReadOnlyList<string> ResourceDirs => _resourceDirs;
 
-    public IReadOnlyDictionary<(Type Type, string Name), Resource> GetAllResources() => AllResources;
+    public IReadOnlyDictionary<Type, ResourceGroup> GetAllResources() => _resourceGroups;
 
     public IReadOnlyList<string> GetResourceDirs() => ResourceDirs;
 
@@ -134,6 +148,7 @@ public sealed class ResourceCache : Object
             throw new ArgumentException("Type must derive from Resource.", nameof(type));
 
         _memoryBudgets[type] = budget;
+        GetResourceGroup(type).MemoryBudget = budget;
         UpdateResourceGroup(type);
     }
 
@@ -278,6 +293,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache.Add(key, resource);
+        AddResourceToGroup(typeof(T), resource);
         UpdateResourceGroup(typeof(T));
         return resource;
     }
@@ -299,6 +315,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache[key] = resource;
+        AddResourceToGroup(typeof(T), resource);
         UpdateResourceGroup(typeof(T));
         return resource;
     }
@@ -419,7 +436,8 @@ public sealed class ResourceCache : Object
     public void ReleaseResource<T>(string name)
         where T : Resource
     {
-        _cache.Remove((typeof(T), name));
+        RemoveCachedResource((typeof(T), name));
+        UpdateResourceGroup(typeof(T));
     }
 
     public void ReleaseResource(string resourceName, bool force = false)
@@ -428,8 +446,14 @@ public sealed class ResourceCache : Object
         var keys = _cache.Keys
             .Where(key => string.Equals(key.Name, resourceName, StringComparison.Ordinal))
             .ToArray();
+        var affectedTypes = new HashSet<Type>();
         foreach (var key in keys)
-            _cache.Remove(key);
+        {
+            RemoveCachedResource(key);
+            affectedTypes.Add(key.Type);
+        }
+        foreach (var type in affectedTypes)
+            UpdateResourceGroup(type);
     }
 
     public void ReleaseResources<T>(bool force = false)
@@ -439,7 +463,8 @@ public sealed class ResourceCache : Object
             .Where(static key => key.Type == typeof(T))
             .ToArray();
         foreach (var key in keys)
-            _cache.Remove(key);
+            RemoveCachedResource(key);
+        UpdateResourceGroup(typeof(T));
     }
 
     public bool ReloadResource<T>(string name)
@@ -521,7 +546,8 @@ public sealed class ResourceCache : Object
             .Where(key => key.Type == typeof(T) && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         foreach (var key in keys)
-            _cache.Remove(key);
+            RemoveCachedResource(key);
+        UpdateResourceGroup(typeof(T));
     }
 
     public void ReleaseResources(string partialName, bool force = false)
@@ -530,13 +556,24 @@ public sealed class ResourceCache : Object
         var keys = _cache.Keys
             .Where(key => key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
+        var affectedTypes = new HashSet<Type>();
         foreach (var key in keys)
-            _cache.Remove(key);
+        {
+            RemoveCachedResource(key);
+            affectedTypes.Add(key.Type);
+        }
+        foreach (var type in affectedTypes)
+            UpdateResourceGroup(type);
     }
 
     public void ReleaseAllResources(bool force = false)
     {
         _cache.Clear();
+        foreach (var group in _resourceGroups.Values)
+        {
+            group.Resources.Clear();
+            group.MemoryUse = 0;
+        }
     }
 
     public void ReleasePackageResources(PackageFile package, bool force = false)
@@ -549,8 +586,14 @@ public sealed class ResourceCache : Object
             .Where(entry => packageNameHashes.Contains(entry.Value.NameHash))
             .Select(entry => entry.Key)
             .ToArray();
+        var affectedTypes = new HashSet<Type>();
         foreach (var key in keys)
-            _cache.Remove(key);
+        {
+            RemoveCachedResource(key);
+            affectedTypes.Add(key.Type);
+        }
+        foreach (var type in affectedTypes)
+            UpdateResourceGroup(type);
     }
 
     public void Clear() => ReleaseAllResources(force: true);
@@ -696,10 +739,37 @@ public sealed class ResourceCache : Object
         return _cache.ContainsKey((type, name));
     }
 
+    private ResourceGroup GetResourceGroup(Type type)
+    {
+        if (!_resourceGroups.TryGetValue(type, out var group))
+        {
+            group = new ResourceGroup();
+            _resourceGroups.Add(type, group);
+        }
+
+        return group;
+    }
+
+    private void AddResourceToGroup(Type type, Resource resource)
+    {
+        GetResourceGroup(type).Resources[resource.GetNameHash()] = resource;
+    }
+
+    private void RemoveCachedResource((Type Type, string Name) key)
+    {
+        if (!_cache.Remove(key, out var resource))
+            return;
+
+        if (_resourceGroups.TryGetValue(key.Type, out var group))
+            group.Resources.Remove(resource.GetNameHash());
+    }
+
     private void UpdateResourceGroup(Type type)
     {
-        if (!_memoryBudgets.TryGetValue(type, out var memoryBudget) || memoryBudget == 0)
+        if (!_resourceGroups.TryGetValue(type, out var group))
             return;
+
+        var memoryBudget = group.MemoryBudget;
 
         for (;;)
         {
@@ -708,25 +778,23 @@ public sealed class ResourceCache : Object
             Resource? oldestResource = null;
             (Type Type, string Name) oldestKey = default;
 
-            foreach (var entry in _cache)
+            foreach (var resource in group.Resources.Values)
             {
-                if (entry.Key.Type != type)
-                    continue;
-
-                memoryUse += entry.Value.MemoryUse;
-                var useTimer = entry.Value.GetUseTimer();
+                memoryUse += resource.MemoryUse;
+                var useTimer = resource.GetUseTimer();
                 if (useTimer > oldestTimer)
                 {
                     oldestTimer = useTimer;
-                    oldestResource = entry.Value;
-                    oldestKey = entry.Key;
+                    oldestResource = resource;
+                    oldestKey = (type, resource.Name);
                 }
             }
 
-            if (memoryUse <= memoryBudget || oldestResource is null)
+            group.MemoryUse = memoryUse;
+            if (memoryBudget == 0 || memoryUse <= memoryBudget || oldestResource is null)
                 return;
 
-            _cache.Remove(oldestKey);
+            RemoveCachedResource(oldestKey);
         }
     }
 
@@ -772,7 +840,9 @@ public sealed class ResourceCache : Object
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(resource);
         resource.OwnerCache = this;
+        RemoveCachedResource((type, name));
         _cache[(type, name)] = resource;
+        AddResourceToGroup(type, resource);
         UpdateResourceGroup(type);
     }
 

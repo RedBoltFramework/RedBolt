@@ -133,7 +133,8 @@ public sealed class ResourceCacheTests
             Resources.AddResourceDir(tempDir);
             var cached = Resources.GetResource<BinaryFile>("Data/hello.txt");
             Assert.Same(cached, Resources.GetExistingResource<BinaryFile>("Data/hello.txt"));
-            Assert.True(Resources.GetAllResources().ContainsKey((typeof(BinaryFile), "Data/hello.txt")));
+            Assert.True(Resources.GetAllResources().TryGetValue(typeof(BinaryFile), out var group));
+            Assert.Same(cached, group!.Resources[cached.GetNameHash()]);
         }
         finally
         {
@@ -311,6 +312,29 @@ public sealed class ResourceCacheTests
 
             Assert.Null(Resources.GetExistingResource<ReloadableResource>(oldestName));
             Assert.NotNull(Resources.GetExistingResource<ReloadableResource>(newestName));
+        }
+        finally
+        {
+            Resources.SetMemoryBudget<ReloadableResource>(0);
+            Resources.ReleaseResources<ReloadableResource>(force: true);
+        }
+    }
+
+    [Fact]
+    public void Resource_groups_expose_cached_resources_and_budget()
+    {
+        var resource = new ReloadableResource($"Data/group-{Guid.NewGuid():N}.bin");
+        resource.SetMemoryUse(3);
+        Resources.SetMemoryBudget<ReloadableResource>(8);
+        try
+        {
+            Assert.True(Resources.AddManualResource(resource));
+
+            var groups = Resources.GetAllResources();
+            Assert.True(groups.TryGetValue(typeof(ReloadableResource), out var group));
+            Assert.Equal(8ul, group!.MemoryBudget);
+            Assert.Equal(3ul, group.MemoryUse);
+            Assert.Same(resource, group.Resources[resource.GetNameHash()]);
         }
         finally
         {
