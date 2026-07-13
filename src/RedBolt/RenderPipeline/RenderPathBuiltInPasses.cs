@@ -887,11 +887,12 @@ public sealed class AmbientOcclusionPass : RenderPass
         DeclareParameter(BlurNormalThresholdName, defaults.BlurNormalThreshold, parameters);
     }
 
+    public override void InitializeView(RenderPipelineView view)
+    {
+    }
+
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         var updated = new Parameters();
         if (RenderPathParameterHelpers.TryGetUInt(DownscaleName, parameters, out var downscale))
             updated.Downscale = downscale;

@@ -375,7 +375,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Passes/FullScreenShaderPass.h`
   - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, fullscreen rendering, and cloning are ported; managed shader-resource/cache state remains adapted
 - [~] `Passes/AmbientOcclusionPass.h`
-  - [~] `AmbientOcclusionPass : RenderPass`
+  - [~] `AmbientOcclusionPass : RenderPass` — parameter processing, view initialization, cache/update flow, AO rendering, and cloning are ported; managed readable-depth trait integration and native shader-cache details remain adapted
 - [~] `Passes/AutoExposurePass.h`
   - [~] `AutoExposurePass : RenderPass`
 - [~] `Passes/BloomPass.h`
