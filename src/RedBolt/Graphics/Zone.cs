@@ -163,7 +163,11 @@ public sealed class Zone : Drawable
 
     public void SetZoneTexture(Texture? texture)
     {
+        if (_zoneTexture is not null)
+            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
+
         _zoneTexture = texture;
+        UpdateZoneTextureSubscription();
         MarkCachedTextureDirty();
     }
 
@@ -172,6 +176,9 @@ public sealed class Zone : Drawable
     public void SetZoneTextureAttr(ResourceRef value)
     {
         _zoneTextureAttribute = value;
+        if (_zoneTexture is not null)
+            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
+
         var cache = GetSubsystem<ResourceCache>();
         _zoneTexture = null;
         if (cache is not null)
@@ -186,6 +193,7 @@ public sealed class Zone : Drawable
                 }
             }
         }
+        UpdateZoneTextureSubscription();
         MarkCachedTextureDirty();
         MarkCachedAmbientDirty();
     }
@@ -374,6 +382,17 @@ public sealed class Zone : Drawable
         _cachedAmbientAndBackgroundLighting.Invalidate();
     }
 
+    private void UpdateZoneTextureSubscription()
+    {
+        if (_zoneTexture is not null)
+            _zoneTexture.ReloadFinished += HandleZoneTextureReloadFinished;
+    }
+
+    private void HandleZoneTextureReloadFinished(Resource resource)
+    {
+        MarkCachedTextureDirty();
+    }
+
     internal void ClearDrawablesZone()
     {
         var currentWorldBoundingBox = GetWorldBoundingBox();
@@ -405,6 +424,9 @@ public sealed class Zone : Drawable
 
     public override void Dispose()
     {
+        if (_zoneTexture is not null)
+            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
+
         base.Dispose();
     }
 
