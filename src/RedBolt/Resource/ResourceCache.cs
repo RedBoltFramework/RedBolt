@@ -473,11 +473,7 @@ public sealed class ResourceCache : Object
     public void ReloadResourceWithDependencies(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        if (_resourceReloadSuspended)
-            return;
         var dependency = SanitateResourceName(fileName);
-        if (_ignoredReloads.Remove(dependency))
-            return;
 
         foreach (var resource in _cache.Values.ToArray())
         {
