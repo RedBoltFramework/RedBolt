@@ -233,12 +233,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Viewport : Object` — base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation are ported; precise view-owner invalidation remains TODO
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
-  - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, and combined zone light/shadow masks are ported; octree membership, reflection cache, and pipeline-state tracking remain incomplete
+  - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, combined zone light/shadow masks, and octree membership/index state are ported; reflection cache and pipeline-state tracking remain incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
-  - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, and removal are ported; full scene octree reinsertion and debug traversal remain incomplete
+  - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, removal, and moving existing drawables between octants are ported; full scene octree reinsertion and debug traversal remain incomplete
   - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, background-zone lookup, and zone cached-lighting refresh are ported; full octant lifecycle integration remains incomplete
-  - [~] `Octree : Component` — managed zone-index ownership and `QueryZone`/`GetBackgroundZone` wiring are ported; full octant reinsertion and zone lifecycle parity remain incomplete
+  - [~] `Octree : Component` — managed zone-index ownership, drawable add/remove/index lifecycle, octant insertion/reinsertion, and `QueryZone`/`GetBackgroundZone` wiring are ported; full scene drawable registration and zone lifecycle parity remain incomplete
 - [~] `Zone.h`
   - [~] `Zone : Drawable` — cached lighting/reflection data, drawable-zone cleanup, and ambient-gradient neighbor selection are ported; texture reload subscription, complete octant lifecycle hooks, and debug drawing remain incomplete
 - [~] `Light.h`

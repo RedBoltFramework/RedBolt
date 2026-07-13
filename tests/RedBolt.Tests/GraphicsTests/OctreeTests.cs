@@ -84,9 +84,13 @@ public sealed class OctreeTests
             new Vector3f(20.0f, 20.0f, 20.0f), new Vector3f(21.0f, 21.0f, 21.0f)));
         octree.AddManualDrawable(manual);
         Assert.Contains(manual, octree.GetAllDrawables());
+        Assert.NotNull(manual.GetOctant());
+        Assert.NotEqual(uint.MaxValue, manual.GetDrawableIndex());
 
         octree.RemoveManualDrawable(manual);
         Assert.DoesNotContain(manual, octree.GetAllDrawables());
+        Assert.Null(manual.GetOctant());
+        Assert.Equal(uint.MaxValue, manual.GetDrawableIndex());
     }
 
     [Fact]

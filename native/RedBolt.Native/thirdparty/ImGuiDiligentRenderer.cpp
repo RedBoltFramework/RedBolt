@@ -334,6 +334,8 @@ void ImGuiDiligentRenderer::NewFrame(Uint32            RenderSurfaceWidth,
 {
     if (!m_pPSO)
         CreateDeviceObjects();
+    if (m_pFontSRV)
+        ImGui::GetIO().Fonts->TexID = reinterpret_cast<ImTextureID>(m_pFontSRV.RawPtr());
     m_RenderSurfaceWidth  = RenderSurfaceWidth;
     m_RenderSurfaceHeight = RenderSurfaceHeight;
     m_SurfacePreTransform = SurfacePreTransform;

@@ -125,6 +125,7 @@ public abstract class Drawable : Component
     private CachedDrawableZone _cachedZone;
     private bool _zoneDirty;
     private Octant? _octant;
+    private uint _drawableIndex = uint.MaxValue;
 
     public BoundingBox BoundingBox => _boundingBox;
 
@@ -190,6 +191,13 @@ public abstract class Drawable : Component
     public Octant? GetOctant() => _octant;
 
     internal void SetOctant(Octant? octant) => _octant = octant;
+
+    /// <summary>
+    /// Return index in octree.
+    /// </summary>
+    public uint GetDrawableIndex() => _drawableIndex;
+
+    internal void SetDrawableIndex(uint drawableIndex) => _drawableIndex = drawableIndex;
 
     /// <summary>
     /// Return mutable cached zone data.

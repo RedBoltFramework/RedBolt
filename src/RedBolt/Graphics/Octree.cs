@@ -165,7 +165,12 @@ public sealed class Octant
 
         if (insertHere)
         {
-            AddDrawable(drawable);
+            var oldOctant = drawable.GetOctant();
+            if (!ReferenceEquals(oldOctant, this))
+            {
+                AddDrawable(drawable);
+                oldOctant?.RemoveDrawable(drawable, resetOctant: false);
+            }
             return;
         }
 
@@ -330,6 +335,7 @@ public sealed class Octree : Component
     public const uint DefaultOctreeLevels = 8;
 
     private readonly HashSet<Drawable> _manualDrawables = [];
+    private readonly List<Drawable> _drawables = [];
     private readonly HashSet<Drawable> _drawableUpdates = [];
     private readonly ZoneLookupIndex _zones;
     private BoundingBox _worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
@@ -394,28 +400,51 @@ public sealed class Octree : Component
 
     public void AddManualDrawable(Drawable? drawable)
     {
-        if (drawable is null || _locked)
+        if (drawable is null)
             return;
 
-        _manualDrawables.Add(drawable);
-        if (drawable is Zone zone)
-            _zones.AddZone(zone);
+        AddDrawable(drawable);
     }
 
     public void RemoveManualDrawable(Drawable? drawable)
     {
-        if (drawable is null || _locked)
+        if (drawable is null)
             return;
 
-        _manualDrawables.Remove(drawable);
         CancelUpdate(drawable);
-        if (drawable is Zone zone)
-            _zones.RemoveZone(zone);
+        var octant = drawable.GetOctant();
+        if (octant is not null && ReferenceEquals(octant.Octree, this))
+            RemoveDrawable(drawable, octant);
     }
 
-    public void AddDrawable(Drawable? drawable) => AddManualDrawable(drawable);
+    public void AddDrawable(Drawable? drawable)
+    {
+        if (drawable is null || _locked || drawable.GetDrawableIndex() != uint.MaxValue)
+            return;
 
-    public void RemoveDrawable(Drawable? drawable) => RemoveManualDrawable(drawable);
+        var index = (uint)_drawables.Count;
+        _drawables.Add(drawable);
+        _manualDrawables.Add(drawable);
+        drawable.SetDrawableIndex(index);
+        _rootOctant.InsertDrawable(drawable);
+
+        if (drawable is Zone zone)
+        {
+            _zones.AddZone(zone);
+            zone.ClearDrawablesZone();
+        }
+    }
+
+    public void RemoveDrawable(Drawable? drawable)
+    {
+        if (drawable is null)
+            return;
+
+        CancelUpdate(drawable);
+        var octant = drawable.GetOctant();
+        if (octant is not null && ReferenceEquals(octant.GetOctree(), this))
+            RemoveDrawable(drawable, octant);
+    }
 
     public void QueueUpdate(Drawable? drawable)
     {
@@ -432,8 +461,47 @@ public sealed class Octree : Component
     public void Update(float timeStep = 0.0f)
     {
         foreach (var drawable in _drawableUpdates)
+        {
             drawable.MarkForUpdate();
+            var octant = drawable.GetOctant();
+            if (octant is null || !ReferenceEquals(octant.GetOctree(), this))
+                continue;
+
+            var box = drawable.GetWorldBoundingBox();
+            if (drawable.IsOccludee()
+                && octant.GetCullingBox().IsInside(box) == Intersection.Inside
+                && octant.CheckDrawableFit(box))
+                continue;
+
+            _rootOctant.InsertDrawable(drawable);
+        }
         _drawableUpdates.Clear();
+    }
+
+    public void RemoveDrawable(Drawable drawable, Octant octant)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        ArgumentNullException.ThrowIfNull(octant);
+        octant.RemoveDrawable(drawable);
+        if (drawable is Zone zone)
+            _zones.RemoveZone(zone);
+
+        var index = drawable.GetDrawableIndex();
+        if (index < _drawables.Count && ReferenceEquals(_drawables[(int)index], drawable))
+        {
+            var lastIndex = _drawables.Count - 1;
+            var lastDrawable = _drawables[lastIndex];
+            _drawables.RemoveAt(lastIndex);
+            if (index < lastIndex)
+            {
+                _drawables[(int)index] = lastDrawable;
+                lastDrawable.SetDrawableIndex(index);
+            }
+        }
+
+        _manualDrawables.Remove(drawable);
+        drawable.SetDrawableIndex(uint.MaxValue);
+        drawable.GetMutableCachedZone() = new CachedDrawableZone();
     }
 
     public IReadOnlyList<Drawable> GetDrawables(DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)

@@ -369,7 +369,7 @@ public sealed class Zone : Drawable
         _cachedAmbientAndBackgroundLighting.Invalidate();
     }
 
-    private void ClearDrawablesZone()
+    internal void ClearDrawablesZone()
     {
         var currentWorldBoundingBox = GetWorldBoundingBox();
         var dirtyWorldBoundingBox = currentWorldBoundingBox.Merged(_lastWorldBoundingBox);

@@ -203,7 +203,12 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
     private void OnEndRendering()
     {
         SetCurrentContext();
-        if (!_isInitialized || !_isFrameActive)
+        if (!_isInitialized)
+            return;
+
+        if (!_isFrameActive)
+            BeginFrame();
+        if (!_isFrameActive)
             return;
 
         _context.SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
