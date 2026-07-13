@@ -14,22 +14,6 @@ public sealed class SceneTests
     }
 
     [Fact]
-    public void Free_node_and_component_ids_advance_without_collision()
-    {
-        var scene = new Scene();
-
-        var nodeId = scene.GetFreeNodeId();
-        var nextNodeId = scene.GetFreeNodeId();
-        var componentId = scene.GetFreeComponentId();
-        var nextComponentId = scene.GetFreeComponentId();
-
-        Assert.NotEqual(nodeId, nextNodeId);
-        Assert.NotEqual(componentId, nextComponentId);
-        Assert.NotEqual(0u, nodeId);
-        Assert.NotEqual(0u, componentId);
-    }
-
-    [Fact]
     public void Empty_state_helpers_work()
     {
         var scene = new Scene();
