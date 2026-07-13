@@ -244,6 +244,7 @@ layout(std140) uniform Material
 
         renderDevice.UpdateWindowSettings(windowSettings);
         SetWindowTitle(_windowTitle);
+        SetWindowIcon(_windowIcon);
         return true;
     }
 
