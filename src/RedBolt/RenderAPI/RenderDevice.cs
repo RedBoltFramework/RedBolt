@@ -359,7 +359,29 @@ public sealed class RenderDevice : Object
     public RenderDeviceCaps GetCaps()
     {
         var graphics = GetSubsystem<Graphics>();
-        return graphics?.GetRenderDeviceCaps() ?? new RenderDeviceCaps();
+        if (graphics is not { IsInitialized: true })
+            return graphics?.GetRenderDeviceCaps() ?? new RenderDeviceCaps();
+
+        var renderDevice = GetRenderDevice();
+        if (renderDevice is null || renderDevice.IsNull)
+            return new RenderDeviceCaps();
+
+        using var adapterInfo = renderDevice.GetAdapterInfo();
+        var caps = new RenderDeviceCaps
+        {
+            ComputeShaders = adapterInfo.FeaturesComputeShaders == DeviceFeatureState.DeviceFeatureStateEnabled,
+            DrawBaseVertex = (adapterInfo.DrawCommandCapFlags & DrawCommandCapFlags.DrawCommandCapFlagBaseVertex) != 0,
+            DrawBaseInstance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend()) && !OperatingSystem.IsMacOS(),
+            ReadOnlyDepth = !OperatingSystem.IsBrowser(),
+            SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.RGBA8),
+            HdrOutput = IsRenderTargetFormatSupported(TextureFormat.RGBA16F),
+            ConstantBufferOffsetAlignment = adapterInfo.BufferConstantBufferOffsetAlignment,
+            MaxTextureSize = adapterInfo.TextureMaxTexture2DDimension,
+            MaxRenderTargetSize = adapterInfo.TextureMaxTexture2DDimension
+        };
+
+        caps.ClipDistance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend());
+        return caps;
     }
 
     public RenderDeviceStats GetStats()
