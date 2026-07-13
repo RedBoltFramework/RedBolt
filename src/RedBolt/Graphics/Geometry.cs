@@ -193,9 +193,11 @@ public sealed class Geometry : PipelineStateTracker
 
             if (getUsedVertexRange && IndexBuffer is not null)
             {
-                IndexBuffer.GetUsedVertexRange(IndexStart, IndexCount, out var vertexStart, out var vertexCount);
-                VertexStart = vertexStart;
-                VertexCount = vertexCount;
+                if (IndexBuffer.GetUsedVertexRange(IndexStart, IndexCount, out var vertexStart, out var vertexCount))
+                {
+                    VertexStart = vertexStart;
+                    VertexCount = vertexCount;
+                }
             }
         }
         else

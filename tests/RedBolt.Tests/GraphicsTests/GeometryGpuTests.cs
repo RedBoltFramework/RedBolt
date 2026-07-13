@@ -54,6 +54,23 @@ public sealed class GeometryGpuTests
     }
 
     [Fact]
+    public void Geometry_draw_range_preserves_vertex_fallback_without_index_shadow_data()
+    {
+        var vb = new VertexBuffer();
+        vb.SetSize(4, 12, dynamic: true);
+        var ib = new IndexBuffer();
+        ib.SetSize(6, largeIndices: false, dynamic: true);
+
+        var geometry = new Geometry();
+        geometry.SetVertexBuffer(0, vb);
+        geometry.SetIndexBuffer(ib);
+
+        Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6));
+        Assert.Equal(0u, geometry.GetVertexStart());
+        Assert.Equal(4u, geometry.GetVertexCount());
+    }
+
+    [Fact]
     public void Texture2D_size_and_sampler_work()
     {
         var tex = new Texture2D("Textures/Smoke2D");
