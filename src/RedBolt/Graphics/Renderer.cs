@@ -17,13 +17,13 @@ public sealed class Renderer : Object
 
     public int TextureAnisotropy { get; private set; } = 4;
 
-    public TextureFilterMode TextureFilterMode { get; private set; } = TextureFilterMode.Default;
+    public TextureFilterMode TextureFilterMode { get; private set; } = TextureFilterMode.Trilinear;
 
     public MaterialQuality TextureQuality { get; private set; } = MaterialQuality.High;
 
     public SkinningMode SkinningMode { get; private set; } = SkinningMode.Auto;
 
-    public uint NumSoftwareSkinningBones { get; private set; } = 64;
+    public uint NumSoftwareSkinningBones { get; private set; } = 4;
 
     public uint NumViews => GetNumViews();
 
