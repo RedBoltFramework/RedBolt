@@ -178,6 +178,16 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture3D_set_size_preserves_usage_flags()
+    {
+        var texture = new Texture3D("Textures/RenderVolume");
+
+        Assert.True(texture.SetSize(4, 4, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(texture.IsRenderTarget());
+        Assert.NotNull(texture.GetRenderSurface());
+    }
+
+    [Fact]
     public void TextureCube_image_upload_and_readback_work()
     {
         var image = new Image("Textures/SmokeCubeImage");

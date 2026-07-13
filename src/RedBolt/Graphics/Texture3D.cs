@@ -104,12 +104,12 @@ public sealed class Texture3D : Texture
     /// <summary>
     /// Set size, format and usage. Zero size will follow application window size. Return true if successful.
     /// </summary>
-    public bool SetSize(int width, int height, int depth, TextureFormat format)
+    public bool SetSize(int width, int height, int depth, TextureFormat format, TextureFlag flags = TextureFlag.None)
     {
         if (width <= 0 || height <= 0 || depth <= 0)
             return false;
 
-        SetDimensions(width, height, depth, format, 1, false);
+        SetDimensions(width, height, depth, format, 1, false, flags);
         _levelData.Clear();
         RefreshTotalMemoryUse();
         return true;
