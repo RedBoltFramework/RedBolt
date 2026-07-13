@@ -3,6 +3,17 @@ namespace RedBolt.Tests.GraphicsTests;
 public sealed class DebugGeometryTests
 {
     [Fact]
+    public void DebugRenderer_registers_factory_reflection()
+    {
+        var context = new Context();
+        DebugRenderer.RegisterObject(context);
+
+        using var debugRenderer = Assert.IsType<DebugRenderer>(
+            context.CreateObject(ObjectReflection<DebugRenderer>.TypeId));
+        Assert.Equal(typeof(DebugRenderer).GetClassName(), debugRenderer.GetTypeName());
+    }
+
+    [Fact]
     public void DebugLine_constructor_preserves_values()
     {
         var line = new DebugLine(new Vector3f(1.0f, 2.0f, 3.0f), new Vector3f(4.0f, 5.0f, 6.0f), 0x12345678);

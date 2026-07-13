@@ -19,6 +19,14 @@ public sealed class DebugRenderer : Component
     private Camera? _camera;
     private bool _lineAntiAlias;
 
+    /// <summary>
+    /// Register object factory.
+    /// </summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<DebugRenderer>("Subsystem");
+    }
+
     public DebugRenderer()
     {
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => HandleEndFrame());
