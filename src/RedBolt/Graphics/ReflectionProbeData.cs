@@ -25,3 +25,17 @@ public struct ReflectionProbeData
     /// </summary>
     public BoundingBox ProjectionBox { get; set; }
 }
+
+/// <summary>
+/// Reference to reflection probe affecting geometry.
+/// </summary>
+public struct ReflectionProbeReference
+{
+    public ReflectionProbeData? Data { get; set; }
+
+    public int Priority { get; set; }
+
+    public float Volume { get; set; }
+
+    public void Reset() => Data = null;
+}

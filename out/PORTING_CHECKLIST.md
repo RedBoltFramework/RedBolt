@@ -282,7 +282,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `GlobalIllumination.h`
   - [ ] `GlobalIllumination : Component`
 - [~] `ReflectionProbeData.h`
-  - [~] reflection probe data struct
+  - [~] reflection probe data struct — cubemap center, projection box, and `ReflectionProbeReference.Reset()` now match C++; manager/probe integration remains unported
 - [ ] `ReflectionProbe.h`
   - [ ] `ReflectionProbeManager : TrackedComponentRegistryBase`
   - [ ] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>`
