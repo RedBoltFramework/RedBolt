@@ -49,7 +49,7 @@ public sealed class FileWatcher : Object, IDisposable
     /// <summary>Directory watching loop.</summary>
     public void ThreadFunction()
     {
-        // TODO: port C++ platform thread loop. FileSystemWatcher delivers the same changes asynchronously.
+        // FileSystemWatcher dispatches changes asynchronously; no dedicated platform loop is required.
     }
 
     /// <summary>Start watching a directory. Return true if successful.</summary>
