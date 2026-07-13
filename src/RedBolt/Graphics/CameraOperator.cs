@@ -29,6 +29,12 @@ namespace RedBolt;
 /// </summary>
 public class CameraOperator : Component
 {
+    private static readonly StringVector InstanceNodesStructureElementNames = new()
+    {
+        "Instance Count",
+        "   NodeID"
+    };
+
     private readonly List<Node> _trackedNodes = [];
     private readonly VariantVector _nodeIdsAttr = [];
     private readonly List<Vector3f> _points = [];
@@ -87,7 +93,20 @@ public class CameraOperator : Component
             self => ((CameraOperator)self).GetNodeIDsAttr(),
             (self, value) => ((CameraOperator)self).SetNodeIDsAttr((VariantVector)value!),
             new VariantVector(),
-            AttributeMode.Default | AttributeMode.NodeIdVector);
+            AttributeMode.Default | AttributeMode.NodeIdVector)
+            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(InstanceNodesStructureElementNames));
+        RegisterAttribute(
+            "Update Camera",
+            typeof(bool),
+            _ => false,
+            (self, value) =>
+            {
+                if (value is true)
+                    ((CameraOperator)self).MoveCamera();
+            },
+            false,
+            AttributeMode.Edit)
+            .SetMetadata(AttributeMetadata.IsAction, true);
     }
 
     /// <summary>
@@ -97,7 +116,7 @@ public class CameraOperator : Component
     {
         ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<CameraOperator>(ObjectCategory.Category_Scene);
-        // TODO: port: URHO3D_ACTION_STATIC_LABEL("Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
+        // TODO: port action label and description metadata: URHO3D_ACTION_STATIC_LABEL("Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
     }
 
     /// <summary>

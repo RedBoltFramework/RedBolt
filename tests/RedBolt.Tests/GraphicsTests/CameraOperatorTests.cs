@@ -58,4 +58,28 @@ public sealed class CameraOperatorTests
         Assert.Equal(boundingBox, cameraOperator.GetBoundingBox());
         Assert.True(cameraOperator.IsBoundingBoxTrackingEnabled());
     }
+
+    [Fact]
+    public void Camera_operator_registers_scene_factory_and_action_metadata()
+    {
+        var context = new Context();
+        CameraOperator.RegisterObject(context);
+
+        using var cameraOperator = Assert.IsType<CameraOperator>(
+            context.CreateObject(ObjectReflection<CameraOperator>.TypeId));
+        Assert.Equal(ObjectCategory.Category_Scene, context.GetReflection<CameraOperator>().Category);
+
+        var trackedNodes = cameraOperator.Attributes.Single(attribute => attribute.Name == "Tracked Nodes");
+        Assert.Equal(
+            new StringVector
+            {
+                "Instance Count",
+                "   NodeID"
+            },
+            trackedNodes.GetMetadata<StringVector>(AttributeMetadata.VectorStructElements));
+
+        var updateCamera = cameraOperator.Attributes.Single(attribute => attribute.Name == "Update Camera");
+        Assert.True(updateCamera.GetMetadata<bool>(AttributeMetadata.IsAction));
+        updateCamera.Accessor!.SetObject(cameraOperator, true);
+    }
 }
