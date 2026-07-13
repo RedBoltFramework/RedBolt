@@ -349,6 +349,11 @@ public sealed class Zone : Drawable
         MarkZoneDirty();
     }
 
+    protected override void OnWorldBoundingBoxUpdate()
+    {
+        SetWorldBoundingBox(BoundingBox.Transformed(Node.GetWorldTransform()));
+    }
+
     private void MarkZoneDirty()
     {
         _inverseWorldDirty = true;
@@ -391,6 +396,11 @@ public sealed class Zone : Drawable
         _lastWorldBoundingBox = currentWorldBoundingBox;
         _lastAmbientStartZone = null;
         _lastAmbientEndZone = null;
+    }
+
+    protected override void OnRemoveFromOctree()
+    {
+        ClearDrawablesZone();
     }
 
     public override void Dispose()

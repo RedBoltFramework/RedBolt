@@ -91,6 +91,16 @@ public sealed class ZoneTests
     }
 
     [Fact]
+    public void World_bounding_box_updates_from_node_transform()
+    {
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
+        zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
+        zone.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
+
+        Assert.Equal(new BoundingBox(new Vector3f(4.0f, -2.0f, -3.0f), new Vector3f(6.0f, 2.0f, 3.0f)), zone.GetWorldBoundingBox());
+    }
+
+    [Fact]
     public void Inverse_world_transform_works()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
