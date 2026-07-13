@@ -95,6 +95,7 @@ Build:
 Use `-j16` for parallel builds.
 
 Run the sample and capture a screenshot:
+  rm -f /tmp/screenshot.png
   out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
