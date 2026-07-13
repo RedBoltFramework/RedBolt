@@ -72,6 +72,13 @@ public sealed class TextureTests
         Assert.True(renderTexture.IsRenderTarget());
         Assert.False(renderTexture.IsDepthStencil());
         Assert.True(renderTexture.IsUnorderedAccess());
+        Assert.NotNull(renderTexture.GetRenderSurface());
+
+        var renderTextureArray = new Texture2DArray("Textures/RenderTargetArray");
+        Assert.True(renderTextureArray.SetSize(2u, 8, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.NotNull(renderTextureArray.GetRenderSurface(0));
+        Assert.NotNull(renderTextureArray.GetRenderSurface(1));
+        Assert.Null(renderTextureArray.GetRenderSurface(2));
     }
 
     [Fact]

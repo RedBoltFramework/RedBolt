@@ -97,13 +97,14 @@ public sealed class Texture2DArray : Texture
     /// <summary>
     /// Set layers, size, format and usage. Set layers to zero to leave them unchanged. Return true if successful.
     /// </summary>
-    public bool SetSize(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    public bool SetSize(uint layers, int width, int height, TextureFormat format, TextureFlag flags = TextureFlag.None,
+        int multiSample = 1, bool noMultiSampledAutoResolve = false)
     {
         _layers = layers == 0 ? _layers : layers;
         if (_layers == 0 || width <= 0 || height <= 0)
             return false;
 
-        SetDimensions(width, height, (int)_layers, format, multiSample, noMultiSampledAutoResolve);
+        SetDimensions(width, height, (int)_layers, format, multiSample, noMultiSampledAutoResolve, flags);
         Levels = _requestedLevels == 0
             ? CalculateFullMipChainLength(Math.Max(width, height))
             : Math.Max(_requestedLevels, 1u);
@@ -112,9 +113,10 @@ public sealed class Texture2DArray : Texture
         return true;
     }
 
-    public bool SetLayers(uint layers, int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
+    public bool SetLayers(uint layers, int width, int height, TextureFormat format, TextureFlag flags = TextureFlag.None,
+        int multiSample = 1, bool noMultiSampledAutoResolve = false)
     {
-        return SetSize(layers, width, height, format, multiSample, noMultiSampledAutoResolve);
+        return SetSize(layers, width, height, format, flags, multiSample, noMultiSampledAutoResolve);
     }
 
     /// <summary>

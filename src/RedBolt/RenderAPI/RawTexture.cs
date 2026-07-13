@@ -858,7 +858,8 @@ public class RawTexture : DeviceObject
             {
                 var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
                 textureArray.SetNumLevels(parameters.NumLevels);
-                if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
+                if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
+                    (int)normalizedMultiSample,
                     (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
                     return false;
                 textureCandidate = textureArray;

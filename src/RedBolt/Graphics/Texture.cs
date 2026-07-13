@@ -37,7 +37,7 @@ public abstract class Texture : ResourceWithMetadata
     protected bool _resolveDirty;
     protected bool _levelsDirty;
     protected TextureFlag _textureFlags;
-    protected readonly RenderSurface?[] _renderSurfaces = [];
+    protected RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
 
     protected Texture(string name)
@@ -345,6 +345,17 @@ public abstract class Texture : ResourceWithMetadata
         Levels = _requestedLevels == 0
             ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
             : Math.Max(_requestedLevels, 1u);
+
+        SetRenderSurfaceCount((flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0
+            ? (uint)Math.Max(Depth, 1)
+            : 0u);
+    }
+
+    protected void SetRenderSurfaceCount(uint count)
+    {
+        _renderSurfaces = new RenderSurface?[count];
+        for (var i = 0u; i < count; ++i)
+            _renderSurfaces[i] = new RenderSurface(this, i);
     }
 
     protected void RefreshMemoryUse(uint totalBytes)

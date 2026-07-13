@@ -194,7 +194,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `IndexBuffer.h` — `IndexBuffer : RawBuffer, PipelineStateTracker` and `DynamicIndexBuffer : Object` are ported, including CPU shadow/range behavior, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation and direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [x] `VertexBuffer.h` — `VertexBuffer : RawBuffer, PipelineStateTracker` and `DynamicVertexBuffer : Object` are ported, including element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, pipeline-state hashing, RawBuffer creation, direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [~] `Texture.h`
-  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
+  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, and render-target/depth-stencil `RenderSurface` slice materialization are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
   - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `Texture3D.h`
@@ -203,7 +203,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture2DArray.h`
   - [~] `Texture2DArray : Texture` — two-phase layer loading including headless short-circuiting, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
-- [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, and texture-surface access are ported; renderer queue integration remains managed and incomplete
+- [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, texture-surface access, and renderer queue integration are ported; native GPU surface lifecycle remains managed/CPU-backed
   - [~] `RenderSurface : RefCounted` — viewport/update state, linked render/depth surfaces, parent texture dimensions/views, resolve state, and main-viewport helpers are ported; native GPU view restoration remains managed-resource dependent
 - [~] `Shader.h`
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
