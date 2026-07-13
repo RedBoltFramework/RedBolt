@@ -12,6 +12,8 @@ public sealed class Renderer : Object
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
 
     private readonly Zone _defaultZone = new();
+    private RenderSurface? _backbufferSurface;
+    private bool _backbufferSurfaceViewportsDirty;
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
@@ -158,6 +160,17 @@ public sealed class Renderer : Object
     }
 
     public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
+
+    /// <summary>Set backbuffer render surface. Null corresponds to the application backbuffer.</summary>
+    public void SetBackbufferRenderSurface(RenderSurface? renderSurface)
+    {
+        if (!ReferenceEquals(_backbufferSurface, renderSurface))
+        {
+            _backbufferSurface?.SetNumViewports(0);
+            _backbufferSurface = renderSurface;
+            _backbufferSurfaceViewportsDirty = true;
+        }
+    }
 
     public void QueueRenderSurface(RenderSurface? renderTarget)
     {

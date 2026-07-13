@@ -53,6 +53,19 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Backbuffer_render_surface_replacement_clears_previous_viewports()
+    {
+        var firstTexture = new Texture2D("Textures/FirstBackbuffer");
+        var firstSurface = new RenderSurface(firstTexture, 0);
+        firstSurface.SetNumViewports(1);
+
+        Renderer.SetBackbufferRenderSurface(firstSurface);
+        Renderer.SetBackbufferRenderSurface(null);
+
+        Assert.Equal(0u, firstSurface.GetNumViewports());
+    }
+
+    [Fact]
     public void Texture_quality_settings_roundtrip()
     {
         Renderer.SetTextureAnisotropy(0);
