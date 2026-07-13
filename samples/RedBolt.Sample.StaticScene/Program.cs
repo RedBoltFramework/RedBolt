@@ -18,6 +18,8 @@ catch (Exception ex)
 
 sealed class StaticSceneApplication : Application
 {
+    private Scene? _scene;
+    private Node? _cameraNode;
     private readonly Random _random = new();
     private readonly CString _instructionLine = new();
     private ContextEventSubscription? _dearImGuiSubscription;
@@ -39,43 +41,87 @@ sealed class StaticSceneApplication : Application
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
-        var scene = new Scene();
-        scene.CreateComponent<RenderPipeline>();
-        scene.CreateComponent<Octree>();
+        // Execute base class startup
+        // Create the scene content
+        CreateScene();
 
-        var planeNode = scene.CreateChild("Plane");
+        // Create the UI content
+        CreateInstructions();
+
+        // Setup the viewport for displaying the scene
+        SetupViewport();
+
+        // Set the mouse mode to use in the sample
+        Input.SetMouseMode(MouseMode.Relative);
+        Input.SetMouseVisible(false);
+    }
+
+    private void CreateScene()
+    {
+        // Create the Octree component to the scene. This is required before adding any drawable components, or else nothing will
+        // show up. The default octree volume will be from (-1000, -1000, -1000) to (1000, 1000, 1000) in world coordinates; it
+        // is also legal to place objects outside the volume but their visibility can then not be checked in a hierarchically
+        // optimizing manner
+        _scene = new Scene();
+        _scene.CreateComponent<Octree>();
+
+        // Create a child scene node (at world origin) and a StaticModel component into it. Set the StaticModel to show a simple
+        // plane mesh with a "stone" material. Note that naming the scene nodes is optional. Scale the scene node larger
+        // (100 x 100 world units)
+        var planeNode = _scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
-        var plane = planeNode.CreateComponent<StaticModel>();
-        plane.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
-        plane.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
+        var planeObject = planeNode.CreateComponent<StaticModel>();
+        planeObject.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
+        planeObject.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
 
-        var lightNode = scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f));
+        // Create a directional light to the world so that we can see something. The light scene node's orientation controls the
+        // light direction; we will use the SetDirection() function which calculates the orientation from a forward direction vector.
+        // The light will use default settings (white light, no shadows)
+        var lightNode = _scene.CreateChild("DirectionalLight");
+        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f)); // The direction vector does not need to be normalized
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
 
-        for (var i = 0; i < 200; ++i)
+        // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
+        // quaternion from Euler angles where the Y angle (rotation about the Y axis) is randomized. The mushroom model contains
+        // LOD levels, so the StaticModel component will automatically select the LOD level according to the view distance (you'll
+        // see the model get simpler as it moves further away). Finally, rendering a large number of the same object with the
+        // same material allows instancing to be used, if the GPU supports it. This reduces the amount of CPU work in rendering the
+        // scene.
+        const int numObjects = 200;
+        for (var i = 0; i < numObjects; ++i)
         {
-            var mushroomNode = scene.CreateChild("Mushroom");
-            var position = new Vector3f(RandomRange(-45.0f, 45.0f), 0.0f, RandomRange(-45.0f, 45.0f));
-            mushroomNode.SetPosition(position);
-            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, RandomRange(0.0f, 360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + RandomRange(0.0f, 2.0f));
-            var mushroom = mushroomNode.CreateComponent<StaticModel>();
-            mushroom.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
-            mushroom.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
-
+            var mushroomNode = _scene.CreateChild("Mushroom");
+            mushroomNode.SetPosition(new Vector3f(Random(90.0f) - 45.0f, 0.0f, Random(90.0f) - 45.0f));
+            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, Random(360.0f), 0.0f));
+            mushroomNode.SetScale(0.5f + Random(2.0f));
+            var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
+            mushroomObject.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
+            mushroomObject.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
         }
 
-        var cameraNode = scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
-        var camera = cameraNode.CreateComponent<Camera>();
-        var controller = cameraNode.CreateComponent<FreeFlyController>();
+        // Create a scene node for the camera, which we will move around
+        // The camera will use default settings (1000 far clip distance, 45 degrees FOV, set aspect ratio automatically)
+        _cameraNode = _scene.CreateChild("Camera");
+        _cameraNode.CreateComponent<Camera>();
+        var controller = _cameraNode.CreateComponent<FreeFlyController>();
         controller.SetInput(Input);
 
-        Renderer.SetViewport(0, new Viewport(scene, camera));
-        Input.SetMouseMode(MouseMode.Relative);
-        Input.SetMouseVisible(false);
+        // Set an initial position for the camera scene node above the plane
+        _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+    }
+
+    private void CreateInstructions()
+    {
+        // The rbfx Text control is replaced by the allowed Dear ImGui sample UI surface.
+    }
+
+    private void SetupViewport()
+    {
+        // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen. We need to define the scene and the camera
+        // at minimum. Additionally we could configure the viewport screen size and the rendering path (eg. forward / deferred) to
+        // use, but now we just use full screen and default render path configured in the engine command line options
+        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
     }
 
     protected override void Update(float timeStep)
@@ -145,8 +191,8 @@ sealed class StaticSceneApplication : Application
         return true;
     }
 
-    private float RandomRange(float min, float max)
+    private float Random(float max)
     {
-        return min + (float)_random.NextDouble() * (max - min);
+        return (float)_random.NextDouble() * max;
     }
 }

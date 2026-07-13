@@ -2,6 +2,7 @@
 
 ## Samples
 
+- [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
 - [ ] `01_HelloWorld`, `02_HelloGUI`, `03_Sprites` — require the native UI surface replaced by Dear ImGui
 - [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
