@@ -125,6 +125,27 @@ public sealed class ZoneTests
     }
 
     [Fact]
+    public void Ambient_gradient_uses_highest_priority_neighbor_at_each_end()
+    {
+        var scene = new Scene();
+        scene.CreateComponent<Octree>();
+        var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
+        zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -10.0f), new Vector3f(1.0f, 1.0f, 10.0f)));
+        var zoneColor = new Color(0.0f, 0.0f, 1.0f);
+        var neighborColor = new Color(1.0f, 0.0f, 0.0f);
+        zone.SetAmbientColor(zoneColor);
+        zone.SetAmbientGradient(true);
+
+        var neighbor = scene.CreateChild("Neighbor").CreateComponent<Zone>();
+        neighbor.SetBoundingBox(new BoundingBox(new Vector3f(-10.0f, -10.0f, -20.0f), new Vector3f(10.0f, 10.0f, -1.0f)));
+        neighbor.SetAmbientColor(neighborColor);
+        neighbor.SetPriority(1);
+
+        Assert.Equal(neighborColor, zone.GetAmbientStartColor());
+        Assert.Equal(zoneColor, zone.GetAmbientEndColor());
+    }
+
+    [Fact]
     public void Zone_lookup_selects_priority_and_background_zones()
     {
         var index = new ZoneLookupIndex();

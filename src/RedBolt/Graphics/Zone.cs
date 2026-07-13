@@ -18,6 +18,9 @@ public sealed class Zone : Drawable
     private bool _inverseWorldDirty = true;
     private Color _ambientStartColor = DefaultAmbientColor;
     private Color _ambientEndColor = DefaultAmbientColor;
+    private BoundingBox _lastWorldBoundingBox;
+    private Zone? _lastAmbientStartZone;
+    private Zone? _lastAmbientEndZone;
     private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedTextureLighting = new();
     private readonly ThreadSafeCache<Vector3f> _cachedAmbientLighting = new();
     private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedAmbientAndBackgroundLighting = new();
@@ -204,12 +207,88 @@ public sealed class Zone : Drawable
 
     public Color GetAmbientStartColor()
     {
-        return AmbientGradient ? _ambientStartColor : AmbientColor;
+        if (!AmbientGradient)
+            return AmbientColor;
+
+        if (_lastAmbientStartZone is null)
+            UpdateAmbientGradient();
+
+        return _ambientStartColor;
     }
 
     public Color GetAmbientEndColor()
     {
-        return AmbientGradient ? _ambientEndColor : AmbientColor;
+        if (!AmbientGradient)
+            return AmbientColor;
+
+        if (_lastAmbientEndZone is null)
+            UpdateAmbientGradient();
+
+        return _ambientEndColor;
+    }
+
+    /// <summary>
+    /// Recalculate the ambient gradient colors from neighbor zones.
+    /// </summary>
+    public void UpdateAmbientGradient()
+    {
+        // In case no neighbor zones are found, reset ambient start/end with own ambient color
+        _ambientStartColor = AmbientColor;
+        _ambientEndColor = AmbientColor;
+        _lastAmbientStartZone = this;
+        _lastAmbientEndZone = this;
+
+        if (!IsAttached || Scene?.Root.GetComponent<Octree>() is not { } octree)
+            return;
+
+        var worldTransform = Node.GetWorldTransform();
+        var center = BoundingBox.Center;
+        var minZPosition = worldTransform * new Vector3f(center.X, center.Y, BoundingBox.Min.Z);
+        var maxZPosition = worldTransform * new Vector3f(center.X, center.Y, BoundingBox.Max.Z);
+
+        var result = octree.GetDrawables(minZPosition, DrawableFlags.Zone);
+
+        // Gradient start position: get the highest priority zone that is not this zone
+        var bestPriority = int.MinValue;
+        Zone? bestZone = null;
+        foreach (var drawable in result)
+        {
+            var zone = (Zone)drawable;
+            var priority = zone.GetPriority();
+            if (priority > bestPriority && !ReferenceEquals(zone, this) && zone.IsInside(minZPosition))
+            {
+                bestZone = zone;
+                bestPriority = priority;
+            }
+        }
+
+        if (bestZone is not null)
+        {
+            _ambientStartColor = bestZone.GetAmbientColor();
+            _lastAmbientStartZone = bestZone;
+        }
+
+        // Do the same for gradient end position
+        result = octree.GetDrawables(maxZPosition, DrawableFlags.Zone);
+        bestPriority = int.MinValue;
+        bestZone = null;
+
+        foreach (var drawable in result)
+        {
+            var zone = (Zone)drawable;
+            var priority = zone.GetPriority();
+            if (priority > bestPriority && !ReferenceEquals(zone, this) && zone.IsInside(maxZPosition))
+            {
+                bestZone = zone;
+                bestPriority = priority;
+            }
+        }
+
+        if (bestZone is not null)
+        {
+            _ambientEndColor = bestZone.GetAmbientColor();
+            _lastAmbientEndZone = bestZone;
+        }
     }
 
     public Vector3f GetAmbientLighting() => _cachedAmbientLighting.Get();
@@ -266,6 +345,7 @@ public sealed class Zone : Drawable
     protected internal override void OnMarkedDirty(Node node)
     {
         base.OnMarkedDirty(node);
+        ClearDrawablesZone();
         MarkZoneDirty();
     }
 
@@ -287,6 +367,30 @@ public sealed class Zone : Drawable
         _cachedTextureLighting.Invalidate();
         _reflectionProbeData.Invalidate();
         _cachedAmbientAndBackgroundLighting.Invalidate();
+    }
+
+    private void ClearDrawablesZone()
+    {
+        var currentWorldBoundingBox = GetWorldBoundingBox();
+        var dirtyWorldBoundingBox = currentWorldBoundingBox.Merged(_lastWorldBoundingBox);
+        if (Scene?.Root.GetComponent<Octree>() is { } octree)
+        {
+            foreach (var drawable in octree.GetDrawables(dirtyWorldBoundingBox, DrawableFlags.Geometry | DrawableFlags.Zone))
+            {
+                var drawableFlags = drawable.GetDrawableFlags();
+                if ((drawableFlags & DrawableFlags.Geometry) != 0)
+                    drawable.SetZone(null);
+                else if ((drawableFlags & DrawableFlags.Zone) != 0 && drawable is Zone zone)
+                {
+                    zone._lastAmbientStartZone = null;
+                    zone._lastAmbientEndZone = null;
+                }
+            }
+        }
+
+        _lastWorldBoundingBox = currentWorldBoundingBox;
+        _lastAmbientStartZone = null;
+        _lastAmbientEndZone = null;
     }
 
     public override void Dispose()

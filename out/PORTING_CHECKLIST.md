@@ -240,7 +240,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, background-zone lookup, and zone cached-lighting refresh are ported; full octant lifecycle integration remains incomplete
   - [~] `Octree : Component` — managed zone-index ownership and `QueryZone`/`GetBackgroundZone` wiring are ported; full octant reinsertion and zone lifecycle parity remain incomplete
 - [~] `Zone.h`
-  - [~] `Zone : Drawable`
+  - [~] `Zone : Drawable` — cached lighting/reflection data, drawable-zone cleanup, and ambient-gradient neighbor selection are ported; texture reload subscription, complete octant lifecycle hooks, and debug drawing remain incomplete
 - [~] `Light.h`
   - [~] `struct BiasParameters`
   - [~] `struct CascadeParameters`
