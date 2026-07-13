@@ -11,6 +11,8 @@ public sealed class OutlineGroup : Component
     private Color _color = Color.White;
     private byte _renderOrder = 128;
     private bool _isDebug;
+    private readonly List<uint> _drawablesAttr = [];
+    private bool _drawablesDirty;
 
     public OutlineGroup()
     {
@@ -101,6 +103,37 @@ public sealed class OutlineGroup : Component
     }
 
     public bool IsDebug() => _isDebug;
+
+    public override void ApplyAttributes()
+    {
+        if (!_drawablesDirty || Scene is not { } scene)
+            return;
+
+        _drawablesDirty = false;
+        _drawables.Clear();
+        foreach (var drawableId in _drawablesAttr)
+        {
+            if (scene.GetComponent(drawableId) is Drawable drawable)
+                AddDrawable(drawable);
+        }
+    }
+
+    public void SetDrawablesAttr(IEnumerable<uint>? drawables)
+    {
+        _drawables.Clear();
+        _drawablesAttr.Clear();
+        if (drawables is not null)
+            _drawablesAttr.AddRange(drawables);
+        _drawablesDirty = _drawablesAttr.Count != 0;
+    }
+
+    public IReadOnlyList<uint> GetDrawablesAttr()
+    {
+        _drawablesAttr.Clear();
+        foreach (var drawable in _drawables)
+            _drawablesAttr.Add(drawable.Id);
+        return _drawablesAttr.ToArray();
+    }
 
     public Material GetOutlineMaterial(Material referenceMaterial)
     {

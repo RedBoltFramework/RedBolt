@@ -70,4 +70,21 @@ public sealed class OutlineGroupTests
         Assert.True(outlineGroup.RemoveDrawable(drawable));
         Assert.False(outlineGroup.HasDrawables());
     }
+
+    [Fact]
+    public void Outline_group_resolves_drawable_attributes()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Drawable");
+        var drawable = node.CreateComponent<StaticModel>();
+        var outlineGroup = scene.CreateChild("Outline").CreateComponent<OutlineGroup>();
+
+        outlineGroup.SetDrawablesAttr([drawable.Id]);
+        Assert.False(outlineGroup.HasDrawables());
+
+        outlineGroup.ApplyAttributes();
+
+        Assert.True(outlineGroup.HasDrawable(drawable));
+        Assert.Equal(new[] { drawable.Id }, outlineGroup.GetDrawablesAttr());
+    }
 }
