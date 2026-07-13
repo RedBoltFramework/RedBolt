@@ -14,11 +14,45 @@ public class RenderPipeline : Component
     private RenderPipelineSettings _settings = new();
     private uint _revision = 1;
 
+    [ThreadStatic]
+    private static VariantVector? _renderPassesAttributeResult;
+
     public RenderPipelineSettings Settings => _settings;
 
     public RenderPath? GetRenderPath() => _renderPath;
 
+    public ResourceRef GetRenderPathAttr() => Resource.GetResourceRef(_renderPath, new StringHash(nameof(RenderPath)));
+
+    public void SetRenderPathAttr(ResourceRef value)
+    {
+        if (GetSubsystem<ResourceCache>() is { } cache)
+            SetRenderPath(cache.GetResource<RenderPath>(value.Name));
+    }
+
     public IReadOnlyList<RenderPassToggle> GetRenderPasses() => _renderPasses;
+
+    public VariantVector GetRenderPassesAttr()
+    {
+        var result = _renderPassesAttributeResult ??= new VariantVector();
+        result.Clear();
+        foreach (var pass in _renderPasses)
+        {
+            result.Add(new Variant(pass.Name));
+            result.Add(new Variant(pass.Enabled));
+        }
+        return result;
+    }
+
+    public void SetRenderPassesAttr(VariantVector value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        var numPasses = value.Count / 2;
+        var renderPasses = new RenderPassToggle[numPasses];
+        for (var i = 0; i < numPasses; ++i)
+            renderPasses[i] = new RenderPassToggle(value[i * 2].GetString(), value[i * 2 + 1].GetBool());
+        SetRenderPasses(renderPasses);
+    }
 
     public IReadOnlyDictionary<string, object?> GetRenderPathParameters() => _renderPathParameters;
 

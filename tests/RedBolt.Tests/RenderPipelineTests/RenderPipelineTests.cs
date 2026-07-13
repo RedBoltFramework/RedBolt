@@ -30,6 +30,39 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_serializes_render_path_and_pass_attributes()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        renderPath.AddPass(new TrackingRenderPass("First"));
+        renderPath.AddPass(new TrackingRenderPass("Second"));
+        renderPipeline.SetRenderPath(renderPath);
+
+        var renderPathAttribute = renderPipeline.GetRenderPathAttr();
+        Assert.Equal(renderPath.Name, renderPathAttribute.Name);
+
+        var passAttributes = renderPipeline.GetRenderPassesAttr();
+        Assert.Equal(4, passAttributes.Count);
+        Assert.Equal("First", passAttributes[0].GetString());
+        Assert.True(passAttributes[1].GetBool());
+        Assert.Equal("Second", passAttributes[2].GetString());
+        Assert.True(passAttributes[3].GetBool());
+
+        renderPipeline.SetRenderPassesAttr(new VariantVector
+        {
+            new("First"),
+            new(false),
+            new("Second"),
+            new(true)
+        });
+
+        Assert.Equal(
+            [new RenderPassToggle("First", false), new RenderPassToggle("Second", true)],
+            renderPipeline.GetRenderPasses());
+    }
+
+    [Fact]
     public void Render_pipeline_raises_events_for_settings_parameters_and_renderpath_changes()
     {
         var scene = new Scene();

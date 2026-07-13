@@ -397,7 +397,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `OutlineRenderPass : RenderPass` — empty parameter/view lifecycle overrides, outline rendering, and cloning now match the C++ class shape; native pipeline-state details remain adapted
 - [~] `RenderPipeline.h`
   - [~] `RenderPipelineView`
-  - [~] `RenderPipeline : Component` — hash-keyed render-path and frame-shader parameter updates now match C++; ResourceRef/VariantVector attribute accessors remain managed serialization adaptations
+  - [~] `RenderPipeline : Component` — hash-keyed parameter updates and ResourceRef/VariantVector attribute accessors now match C++; remaining lifecycle and native pipeline integrations are incomplete
 - [~] `DefaultRenderPipeline.h`
   - [~] `DefaultRenderPipelineView` — managed embedded view covers Define/Update/Render and frame/stat access; native debugger, scene-pass graph, output-flag calculation, and debug-draw members remain unported adaptations
 - [ ] `StereoRenderPipeline.h`
