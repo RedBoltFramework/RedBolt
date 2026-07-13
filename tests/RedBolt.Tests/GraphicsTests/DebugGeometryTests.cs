@@ -54,4 +54,16 @@ public sealed class DebugGeometryTests
         Assert.Equal(camera.GetProjection(), debugRenderer.GetProjection());
         Assert.Equal(camera.GetFrustum(), debugRenderer.GetFrustum());
     }
+
+    [Fact]
+    public void DebugRenderer_shape_helpers_accumulate_geometry()
+    {
+        var debugRenderer = new DebugRenderer();
+
+        debugRenderer.AddCross(Vector3f.Zero, 2.0f, Color.White);
+        debugRenderer.AddQuad(Vector3f.Zero, 2.0f, 2.0f, Color.White);
+        debugRenderer.AddCircle(Vector3f.Zero, Vector3f.Up, 1.0f, Color.White, steps: 8);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }
