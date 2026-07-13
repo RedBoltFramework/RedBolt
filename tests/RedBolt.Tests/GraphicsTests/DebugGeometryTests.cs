@@ -79,4 +79,21 @@ public sealed class DebugGeometryTests
 
         Assert.True(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void DebugRenderer_volume_helpers_accumulate_geometry()
+    {
+        var debugRenderer = new DebugRenderer();
+        var frustum = new Frustum();
+        var polyhedron = new Polyhedron(new BoundingBox(-1.0f, 1.0f));
+        var sphere = new Sphere(Vector3f.Zero, 1.0f);
+
+        debugRenderer.AddFrustum(frustum, Color.White);
+        debugRenderer.AddPolyhedron(polyhedron, Color.White);
+        debugRenderer.AddSphere(sphere, Color.White);
+        debugRenderer.AddSphereSector(sphere, Quaternion.Identity, 90.0f, true, Color.White);
+        debugRenderer.AddCylinder(Vector3f.Zero, 1.0f, 2.0f, Color.White);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }

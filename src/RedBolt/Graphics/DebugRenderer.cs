@@ -178,6 +178,145 @@ public sealed class DebugRenderer : Component
     }
 
     /// <summary>
+    /// Add a frustum.
+    /// </summary>
+    public void AddFrustum(Frustum frustum, Color color, bool depthTest = true)
+    {
+        var vertices = frustum.Vertices;
+        var uintColor = color.ToUInt();
+
+        AddLine(vertices[0], vertices[1], uintColor, depthTest);
+        AddLine(vertices[1], vertices[2], uintColor, depthTest);
+        AddLine(vertices[2], vertices[3], uintColor, depthTest);
+        AddLine(vertices[3], vertices[0], uintColor, depthTest);
+        AddLine(vertices[4], vertices[5], uintColor, depthTest);
+        AddLine(vertices[5], vertices[6], uintColor, depthTest);
+        AddLine(vertices[6], vertices[7], uintColor, depthTest);
+        AddLine(vertices[7], vertices[4], uintColor, depthTest);
+        AddLine(vertices[0], vertices[4], uintColor, depthTest);
+        AddLine(vertices[1], vertices[5], uintColor, depthTest);
+        AddLine(vertices[2], vertices[6], uintColor, depthTest);
+        AddLine(vertices[3], vertices[7], uintColor, depthTest);
+    }
+
+    /// <summary>
+    /// Add a polyhedron.
+    /// </summary>
+    public void AddPolyhedron(Polyhedron poly, Color color, bool depthTest = true)
+    {
+        var uintColor = color.ToUInt();
+
+        foreach (var face in poly.Faces)
+        {
+            if (face.Count >= 3)
+            {
+                for (var i = 0; i < face.Count; ++i)
+                    AddLine(face[i], face[(i + 1) % face.Count], uintColor, depthTest);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add a sphere.
+    /// </summary>
+    public void AddSphere(Sphere sphere, Color color, bool depthTest = true)
+    {
+        var uintColor = color.ToUInt();
+
+        for (var j = 0; j < 180; j += 45)
+        {
+            for (var i = 0; i < 360; i += 45)
+            {
+                var p1 = sphere.GetPoint(i, j);
+                var p2 = sphere.GetPoint(i + 45, j);
+                var p3 = sphere.GetPoint(i, j + 45);
+                var p4 = sphere.GetPoint(i + 45, j + 45);
+
+                AddLine(p1, p2, uintColor, depthTest);
+                AddLine(p3, p4, uintColor, depthTest);
+                AddLine(p1, p3, uintColor, depthTest);
+                AddLine(p2, p4, uintColor, depthTest);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add a sphere sector.
+    /// </summary>
+    public void AddSphereSector(Sphere sphere, Quaternion rotation, float angle,
+        bool drawLines, Color color, bool depthTest = true)
+    {
+        if (angle <= 0.0f)
+            return;
+        else if (angle >= 360.0f)
+        {
+            AddSphere(sphere, color, depthTest);
+            return;
+        }
+
+        const uint numCircleSegments = 8;
+        const uint numLines = 4;
+        const float arcStep = 45.0f;
+
+        var uintColor = color.ToUInt();
+        var halfAngle = 0.5f * angle;
+        var numArcSegments = (uint)MathF.Ceiling(halfAngle / arcStep) + 1;
+
+        for (uint j = 0; j < numCircleSegments; ++j)
+        {
+            AddLine(
+                sphere.Center + rotation * sphere.GetLocalPoint(j * 360.0f / numCircleSegments, halfAngle),
+                sphere.Center + rotation * sphere.GetLocalPoint((j + 1) * 360.0f / numCircleSegments, halfAngle),
+                uintColor, depthTest);
+        }
+
+        var step = numCircleSegments / numLines;
+        for (uint i = 0; i < numArcSegments - 1; ++i)
+        {
+            for (uint j = 0; j < numCircleSegments; j += step)
+            {
+                var nextPhi = i + 1 == numArcSegments - 1 ? halfAngle : (i + 1) * arcStep;
+                AddLine(
+                    sphere.Center + rotation * sphere.GetLocalPoint(j * 360.0f / numCircleSegments, i * arcStep),
+                    sphere.Center + rotation * sphere.GetLocalPoint(j * 360.0f / numCircleSegments, nextPhi),
+                    uintColor, depthTest);
+            }
+        }
+
+        if (drawLines)
+        {
+            for (uint j = 0; j < numCircleSegments; j += step)
+            {
+                AddLine(sphere.Center,
+                    sphere.Center + rotation * sphere.GetLocalPoint(j * 360.0f / numCircleSegments, halfAngle),
+                    uintColor, depthTest);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add a cylinder.
+    /// </summary>
+    public void AddCylinder(Vector3f position, float radius, float height, Color color, bool depthTest = true)
+    {
+        var sphere = new Sphere(position, radius);
+        var heightVector = new Vector3f(0.0f, height, 0.0f);
+        var offsetX = new Vector3f(radius, 0.0f, 0.0f);
+        var offsetZ = new Vector3f(0.0f, 0.0f, radius);
+        for (var i = 0; i < 360; i += 45)
+        {
+            var p1 = sphere.GetPoint(i, 90);
+            var p2 = sphere.GetPoint(i + 45, 90);
+            AddLine(p1, p2, color, depthTest);
+            AddLine(p1 + heightVector, p2 + heightVector, color, depthTest);
+        }
+        AddLine(position + offsetX, position + heightVector + offsetX, color, depthTest);
+        AddLine(position - offsetX, position + heightVector - offsetX, color, depthTest);
+        AddLine(position + offsetZ, position + heightVector + offsetZ, color, depthTest);
+        AddLine(position - offsetZ, position + heightVector - offsetZ, color, depthTest);
+    }
+
+    /// <summary>
     /// Add a circle.
     /// </summary>
     public void AddCircle(Vector3f center, Vector3f normal, float radius, Color color, int steps = 64, bool depthTest = true, bool drawNormal = true)
