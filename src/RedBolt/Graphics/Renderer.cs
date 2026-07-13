@@ -13,7 +13,7 @@ public sealed class Renderer : Object
 
     private readonly Zone _defaultZone = new();
     private readonly List<Viewport?> _viewports = [];
-    private readonly List<(RenderSurface Surface, Viewport Viewport)> _queuedViewports = [];
+    private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
 
     public int TextureAnisotropy { get; private set; } = 4;
@@ -159,9 +159,10 @@ public sealed class Renderer : Object
 
     public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
 
-    public void QueueRenderSurface(RenderSurface renderTarget)
+    public void QueueRenderSurface(RenderSurface? renderTarget)
     {
-        ArgumentNullException.ThrowIfNull(renderTarget);
+        if (renderTarget is null)
+            return;
 
         for (var i = 0u; i < renderTarget.GetNumViewports(); ++i)
         {
@@ -170,11 +171,14 @@ public sealed class Renderer : Object
         }
     }
 
-    public void QueueViewport(RenderSurface renderTarget, Viewport viewport)
+    public void QueueViewport(RenderSurface? renderTarget, Viewport? viewport)
     {
-        ArgumentNullException.ThrowIfNull(renderTarget);
-        ArgumentNullException.ThrowIfNull(viewport);
-        _queuedViewports.Add((renderTarget, viewport));
+        if (viewport is null)
+            return;
+
+        var queuedViewport = (renderTarget, viewport);
+        if (!_queuedViewports.Contains(queuedViewport))
+            _queuedViewports.Add(queuedViewport);
     }
 
     internal void RenderFrame(Graphics graphics, Action? beforePresent = null, string? screenshotPath = null)
@@ -183,8 +187,13 @@ public sealed class Renderer : Object
 
         foreach (var (renderSurface, viewport) in _queuedViewports)
         {
-            graphics.RenderViewport(renderSurface, viewport, TextureQuality);
-            renderSurface.ResetUpdateQueued();
+            if (renderSurface is not null)
+            {
+                graphics.RenderViewport(renderSurface, viewport, TextureQuality);
+                renderSurface.ResetUpdateQueued();
+            }
+            else
+                graphics.RenderViewport(viewport, TextureQuality);
         }
         _queuedViewports.Clear();
 
