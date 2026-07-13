@@ -7,10 +7,11 @@ public enum SkinningMode
     Software
 }
 
-public sealed class Renderer
+public sealed class Renderer : Object
 {
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
 
+    private readonly Zone _defaultZone = new();
     private readonly List<Viewport?> _viewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
 
@@ -25,6 +26,8 @@ public sealed class Renderer
     public uint NumSoftwareSkinningBones { get; private set; } = 64;
 
     public uint NumViews => GetNumViews();
+
+    public Zone GetDefaultZone() => _defaultZone;
 
     public Viewport? GetViewport(uint index = 0)
     {

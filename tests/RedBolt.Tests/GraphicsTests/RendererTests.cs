@@ -52,4 +52,13 @@ public sealed class RendererTests
         Assert.Equal(SkinningMode.Hardware, Renderer.GetSkinningMode());
         Assert.Equal(24u, Renderer.GetNumSoftwareSkinningBones());
     }
+
+    [Fact]
+    public void Default_zone_is_available()
+    {
+        var defaultZone = Renderer.GetDefaultZone();
+
+        Assert.NotNull(defaultZone);
+        Assert.Same(defaultZone, Renderer.GetDefaultZone());
+    }
 }

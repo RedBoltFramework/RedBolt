@@ -309,7 +309,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
 - [~] `Renderer.h`
-  - [~] `Renderer : Object`
+  - [~] `Renderer : Object` — C++ base class and default-zone ownership/access are ported; remaining renderer members and lifecycle are incomplete
 - [~] `Graphics.h`
   - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position/icon operations, screen-mode queries and lifecycle, monitor/display resolution enumeration, DPI reporting, screenshot capture, screen-mode diagnostics/events, and VFS-backed pipeline-state-cache save are ported; backend-specific paths remain
 - [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
