@@ -244,7 +244,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `AnimatedModel.h`
   - [ ] `AnimatedModel : StaticModel`
 - [~] `StaticModelGroup.h`
-  - [~] `StaticModelGroup : StaticModel`
+- [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle and node enable dirty propagation are ported; batch update, occlusion, and ray-query parity remain incomplete
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
 - [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending

@@ -34,6 +34,8 @@ public sealed class StaticModelGroupTests
 
         Assert.Equal(2u, group.GetNumInstanceNodes());
         Assert.Same(b, group.GetInstanceNode(1u));
+        Assert.Contains(group, a.GetListeners());
+        Assert.Contains(group, b.GetListeners());
     }
 
     [Fact]
@@ -69,5 +71,6 @@ public sealed class StaticModelGroupTests
         group.RemoveInstanceNode(b);
         Assert.Equal(1u, group.GetNumInstanceNodes());
         Assert.True(group.GetNodeIDsAttr().SequenceEqual([1u, a.Id]));
+        Assert.DoesNotContain(group, b.GetListeners());
     }
 }

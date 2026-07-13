@@ -14,6 +14,7 @@ public sealed class StaticModelGroup : StaticModel
         if (node is null || _instanceNodes.Contains(node))
             return;
 
+        node.AddListener(this);
         _instanceNodes.Add(node);
         UpdateNumTransforms();
     }
@@ -23,14 +24,14 @@ public sealed class StaticModelGroup : StaticModel
         if (node is null || !_instanceNodes.Remove(node))
             return;
 
+        node.RemoveListener(this);
         UpdateNumTransforms();
     }
 
     public void RemoveAllInstanceNodes()
     {
-        if (_instanceNodes.Count == 0)
-            return;
-
+        foreach (var node in _instanceNodes)
+            node.RemoveListener(this);
         _instanceNodes.Clear();
         UpdateNumTransforms();
     }
@@ -110,7 +111,7 @@ public sealed class StaticModelGroup : StaticModel
 
     protected internal override void OnNodeSetEnabled(Node node)
     {
-        MarkForUpdate();
+        base.OnMarkedDirty(node);
     }
 
     protected override void OnWorldBoundingBoxUpdate()
