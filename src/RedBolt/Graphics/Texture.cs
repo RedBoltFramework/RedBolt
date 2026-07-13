@@ -311,8 +311,13 @@ public abstract class Texture : ResourceWithMetadata
     {
     }
 
-    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
-    private bool TryRestore() => false;
+    private bool TryRestore()
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+        if (cache.Exists(Name))
+            return cache.ReloadResource(this);
+        return false;
+    }
 
     private void HandleRenderSurfaceUpdate()
     {
@@ -330,9 +335,16 @@ public abstract class Texture : ResourceWithMetadata
         }
     }
 
-    // TODO: port: Texture budget checks require the ResourceCache and GPU texture ownership model.
     protected void CheckTextureBudget(StringHash type)
     {
+        var cache = GetSubsystem<ResourceCache>()!;
+        var textureBudget = cache.GetMemoryBudget(type);
+        var textureUse = cache.GetMemoryUse(type);
+        if (textureBudget == 0)
+            return;
+
+        if (textureUse > textureBudget)
+            cache.ReleaseResources<Material>();
     }
 
     // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.

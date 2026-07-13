@@ -50,6 +50,7 @@ public sealed class Texture2D : Texture
         if (_loadImage is null)
             return false;
 
+        CheckTextureBudget(typeof(Texture2D).GetTypeId());
         SetParameters(_loadParameters);
         var success = SetData(_loadImage);
 
