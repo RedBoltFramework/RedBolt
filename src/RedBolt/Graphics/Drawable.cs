@@ -46,6 +46,31 @@ public struct CachedDrawableZone
     }
 }
 
+/// <summary>Cached info about current static reflection probe.</summary>
+public struct CachedDrawableReflection
+{
+    /// <summary>Most important reflection probes affecting Drawable.</summary>
+    public ReflectionProbeReference[] StaticProbes { get; set; }
+
+    public ReflectionProbeReference[] Probes { get; set; }
+
+    /// <summary>Information for cache invalidation.</summary>
+    public uint CacheRevision { get; set; }
+
+    public Vector3f CachePosition { get; set; }
+
+    public float CacheInvalidationDistanceSquared { get; set; }
+
+    public CachedDrawableReflection()
+    {
+        StaticProbes = new ReflectionProbeReference[2];
+        Probes = new ReflectionProbeReference[2];
+        CacheRevision = 0;
+        CachePosition = default;
+        CacheInvalidationDistanceSquared = -1.0f;
+    }
+}
+
 /// <summary>Source data for a 3D geometry draw call.</summary>
 public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 {
@@ -154,6 +179,7 @@ public abstract class Drawable : Component
     private bool _zoneDirty;
     private Octant? _octant;
     private uint _drawableIndex = uint.MaxValue;
+    private CachedDrawableReflection _cachedReflection = new();
     private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;
@@ -236,6 +262,11 @@ public abstract class Drawable : Component
     /// Return mutable cached zone data.
     /// </summary>
     public ref CachedDrawableZone GetMutableCachedZone() => ref _cachedZone;
+
+    /// <summary>
+    /// Return mutable cached reflection data.
+    /// </summary>
+    public ref CachedDrawableReflection GetMutableCachedReflection() => ref _cachedReflection;
 
     /// <summary>
     /// Return combined light masks of Drawable and its currently cached Zone.

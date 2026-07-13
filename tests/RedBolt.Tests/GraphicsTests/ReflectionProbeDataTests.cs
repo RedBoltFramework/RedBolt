@@ -22,4 +22,14 @@ public sealed class ReflectionProbeDataTests
         Assert.Equal(7, reference.Priority);
         Assert.Equal(12.5f, reference.Volume);
     }
+
+    [Fact]
+    public void Cached_drawable_reflection_has_two_probe_slots()
+    {
+        var cache = new CachedDrawableReflection();
+
+        Assert.Equal(2, cache.StaticProbes.Length);
+        Assert.Equal(2, cache.Probes.Length);
+        Assert.Equal(-1.0f, cache.CacheInvalidationDistanceSquared);
+    }
 }
