@@ -376,9 +376,28 @@ public sealed class Geometry : PipelineStateTracker
         }
         else
         {
-            // TODO: port: IndexBuffer exposes unpacked indices but not the C++ shadow byte pointer used here.
-            indexData = null;
-            indexSize = 0;
+            if (IndexBuffer is { Shadowed: true } indexBuffer)
+            {
+                var unpackedData = indexBuffer.GetUnpackedData();
+                indexSize = indexBuffer.GetIndexSize();
+                var packedIndexData = new byte[checked(unpackedData.Count * (int)indexSize)];
+                for (var i = 0; i < unpackedData.Count; ++i)
+                {
+                    var offset = checked(i * (int)indexSize);
+                    if (indexSize == sizeof(ushort))
+                        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
+                            packedIndexData.AsSpan(offset, sizeof(ushort)), checked((ushort)unpackedData[i]));
+                    else
+                        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
+                            packedIndexData.AsSpan(offset, sizeof(uint)), unpackedData[i]);
+                }
+                indexData = packedIndexData;
+            }
+            else
+            {
+                indexData = null;
+                indexSize = 0;
+            }
         }
     }
 

@@ -72,4 +72,21 @@ public sealed class GeometryTests
         Assert.True(geometry.IsInside(new Ray(new Vector3f(0.25f, 0.25f, -1.0f),
             new Vector3f(0.0f, 0.0f, 1.0f))));
     }
+
+    [Fact]
+    public void Geometry_raw_data_exposes_shadowed_index_buffer_bytes()
+    {
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetShadowed(true);
+        Assert.True(indexBuffer.SetSize(3));
+        indexBuffer.SetUnpackedData([0, 1, 2]);
+
+        var geometry = new Geometry();
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.GetRawData(out _, out _, out var indexData, out var indexSize, out _);
+
+        Assert.NotNull(indexData);
+        Assert.Equal(2u, indexSize);
+        Assert.Equal(new byte[] { 0, 0, 1, 0, 2, 0 }, indexData);
+    }
 }
