@@ -100,6 +100,18 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Point_bounds_follow_world_position_and_range()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetRange(4.0f);
+        light.Node.SetPosition(new Vector3f(5.0f, 6.0f, 7.0f));
+
+        Assert.Equal(
+            new BoundingBox(new Vector3f(1.0f, 2.0f, 3.0f), new Vector3f(9.0f, 10.0f, 11.0f)),
+            light.GetWorldBoundingBox());
+    }
+
+    [Fact]
     public void Intensity_sort_value_matches_light_polarity()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();

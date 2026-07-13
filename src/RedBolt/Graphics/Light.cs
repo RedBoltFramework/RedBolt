@@ -343,6 +343,17 @@ public sealed class Light : Drawable
 
     public Texture? GetShapeTexture() => _shapeTexture;
 
+    /// <summary>Return spotlight frustum.</summary>
+    public Frustum GetFrustum()
+    {
+        var transform = IsAttached
+            ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
+            : Matrix3x4.Identity;
+        var frustum = new Frustum();
+        frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, transform);
+        return frustum;
+    }
+
     public void SetRampTextureAttr(ResourceRef value)
     {
         var cache = GetSubsystem<ResourceCache>();
@@ -429,5 +440,25 @@ public sealed class Light : Drawable
     {
         var size = _lightType == LightType.Directional ? MathDefs.LargeValue : _range;
         SetLocalBoundingBox(new BoundingBox(-size, size));
+    }
+
+    protected override void OnWorldBoundingBoxUpdate()
+    {
+        switch (_lightType)
+        {
+            case LightType.Directional:
+                SetWorldBoundingBox(new BoundingBox(-MathDefs.LargeValue, MathDefs.LargeValue));
+                break;
+
+            case LightType.Spot:
+                SetWorldBoundingBox(new BoundingBox(GetFrustum().Vertices));
+                break;
+
+            case LightType.Point:
+                var center = Node.WorldPosition;
+                var edge = new Vector3f(_range, _range, _range);
+                SetWorldBoundingBox(new BoundingBox(center - edge, center + edge));
+                break;
+        }
     }
 }
