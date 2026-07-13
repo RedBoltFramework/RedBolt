@@ -134,7 +134,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct ComputePipelineStateDesc`
   - [~] `PipelineStateDesc`
   - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, and reflection-based validity are ported; native descriptor parity remains under review
-  - [~] `PipelineStateCache : Object, DeviceObject`
+  - [~] `PipelineStateCache : Object, DeviceObject` — descriptor cache lookup, weak-state ownership, release diagnostics, and cached-data lifecycle match C++; native Diligent pipeline-cache creation/handle access remains TODO because the generated managed surface does not expose `IPipelineStateCache`
 - [x] `RenderPool.h`
   - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation/restore lifecycle are ported
 - [x] `RenderScope.h`

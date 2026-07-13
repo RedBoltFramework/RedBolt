@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -11,15 +13,28 @@ public sealed class PipelineStateCache : DeviceObject
     /// <summary>
     /// Initialize pipeline state cache. Optionally loads cached pipeline states from memory blob.
     /// </summary>
-    public void Initialize(byte[]? data = null)
+    public void Initialize(byte[] data)
     {
-        _cachedData = data is null || data.Length == 0 ? [] : [.. data];
+        _cachedData = [.. data];
+
+        // TODO: port the backend-specific Diligent pipeline state cache creation:
+        // const RenderBackend renderBackend = renderDevice_->GetBackend();
+        // const bool isSupported = renderBackend == RenderBackend::D3D12 || renderBackend == RenderBackend::Vulkan;
+        // Diligent::PipelineStateCacheCreateInfo ci;
+        // ci.Desc.Name = "PipelineStateCache";
+        // ci.CacheDataSize = cachedData_.size();
+        // ci.pCacheData = cachedData_.data();
+        // renderDevice_->GetRenderDevice()->CreatePipelineStateCache(ci, &handle_);
     }
 
     /// <summary>
     /// Stores cached pipeline states to memory blob.
     /// </summary>
-    public byte[] GetCachedData() => [.. _cachedData];
+    public byte[] GetCachedData()
+    {
+        UpdateCachedData();
+        return [.. _cachedData];
+    }
 
     /// <summary>
     /// Create new or return existing pipeline state. Returned state may be invalid.
@@ -27,8 +42,6 @@ public sealed class PipelineStateCache : DeviceObject
     /// </summary>
     public PipelineState? GetPipelineState(PipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
-
         if (_states.TryGetValue(desc, out var weakPipelineState) && weakPipelineState.TryGetTarget(out var pipelineState))
             return pipelineState;
 
@@ -42,7 +55,6 @@ public sealed class PipelineStateCache : DeviceObject
     /// </summary>
     public PipelineState? GetGraphicsPipelineState(GraphicsPipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
         return desc.IsInitialized() ? GetPipelineState(new PipelineStateDesc(desc)) : null;
     }
 
@@ -51,43 +63,22 @@ public sealed class PipelineStateCache : DeviceObject
     /// </summary>
     public PipelineState? GetComputePipelineState(ComputePipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
         return desc.IsInitialized() ? GetPipelineState(new PipelineStateDesc(desc)) : null;
     }
 
-    public override void Invalidate()
-    {
-        base.Invalidate();
-        foreach (var pipelineState in GetLiveStates())
-            pipelineState.Invalidate();
-    }
-
-    public override void Restore()
-    {
-        base.Restore();
-    }
-
-    public override void Destroy()
-    {
-        base.Destroy();
-        _states.Clear();
-    }
+    // TODO: port: Diligent::IPipelineStateCache* GetHandle() { return handle_; }
 
     /// <summary>
     /// Internal. Remove pipeline state with given description from cache.
     /// </summary>
     public void ReleasePipelineState(PipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
-        _states.Remove(desc);
+        if (!_states.Remove(desc))
+            Log.Logger.LogError("Unexpected call of PipelineStateCache::ReleasePipelineState");
     }
 
-    private IEnumerable<PipelineState> GetLiveStates()
+    private void UpdateCachedData()
     {
-        foreach (var weakPipelineState in _states.Values)
-        {
-            if (weakPipelineState.TryGetTarget(out var pipelineState))
-                yield return pipelineState;
-        }
+        _cachedData = [];
     }
 }

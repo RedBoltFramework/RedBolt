@@ -145,6 +145,14 @@ public sealed class PipelineStateCacheTests
     }
 
     [Fact]
+    public void Pipeline_state_cache_matches_unavailable_native_cache_lifecycle()
+    {
+        _fixture.PipelineStateCache.Initialize([1, 2, 3]);
+
+        Assert.Empty(_fixture.PipelineStateCache.GetCachedData());
+    }
+
+    [Fact]
     public void Graphics_pipeline_state_creates_native_handle_binding_and_reflection()
     {
         WithInitializedGraphics(() =>
