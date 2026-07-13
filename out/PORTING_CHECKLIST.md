@@ -373,7 +373,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `struct DebugFrameSnapshot`
   - [ ] `RenderPipelineDebugger`
 - [~] `Passes/FullScreenShaderPass.h`
-  - [~] `FullScreenShaderPass : RenderPass`
+  - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, fullscreen rendering, and cloning are ported; managed shader-resource/cache state remains adapted
 - [~] `Passes/AmbientOcclusionPass.h`
   - [~] `AmbientOcclusionPass : RenderPass`
 - [~] `Passes/AutoExposurePass.h`

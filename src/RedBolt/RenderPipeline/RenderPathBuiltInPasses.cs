@@ -73,17 +73,18 @@ public sealed class FullScreenShaderPass : RenderPass
 
     public override void CollectParameters(IDictionary<string, object?> target)
     {
-        ArgumentNullException.ThrowIfNull(target);
-
         foreach (var binding in _parameterBindings)
             DeclareParameter(binding.ExternalName, binding.DefaultValue, target);
     }
 
+    public override void InitializeView(RenderPipelineView view)
+    {
+        _currentParameters.Clear();
+        RefreshParameterBindings();
+    }
+
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> externalParameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(externalParameters);
-
         _currentParameters.Clear();
         var shouldBeDisabled = _disableOnDefaultParameters;
         foreach (var binding in _parameterBindings)
@@ -106,7 +107,7 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         base.Render(sharedState);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrWhiteSpace(_shaderName))
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrEmpty(_shaderName))
             return;
 
         if (_needReadWriteColorOutput)
