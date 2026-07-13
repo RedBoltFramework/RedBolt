@@ -212,6 +212,13 @@ public sealed class IndexBuffer : PipelineStateTracker
     /// <summary>Return the underlying raw buffer.</summary>
     public RawBuffer? GetRawBuffer() => _rawBuffer;
 
+    /// <summary>Update buffer data range without allocating.</summary>
+    public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
+    {
+        data[..checked((int)size)].CopyTo(_data.AsSpan(checked((int)offset), checked((int)size)));
+        _rawBuffer?.UpdateRange(data, offset, size);
+    }
+
     protected override uint RecalculatePipelineStateHash()
     {
         var hash = 0u;
@@ -295,9 +302,8 @@ public sealed class DynamicIndexBuffer
             _indexBuffer.SetShadowed(true);
         }
 
-        var unpackedData = new uint[checked((int)_numIndices)];
-        IndexBuffer.UnpackIndexData(_shadowData, _largeIndices, 0, _numIndices, unpackedData);
-        _indexBuffer.SetUnpackedData(unpackedData, 0, _numIndices);
+        _indexBuffer.UpdateRange(_shadowData.AsSpan(0, checked((int)(_numIndices * _indexSize))), 0,
+            _numIndices * _indexSize);
     }
 
     /// <summary>Allocate indices. Returns index of first index and writeable buffer of sufficient size.</summary>
