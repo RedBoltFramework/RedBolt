@@ -39,6 +39,7 @@ public abstract class Texture : ResourceWithMetadata
     protected TextureFlag _textureFlags;
     protected RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
+    private ContextEventSubscription? _renderSurfaceUpdateSubscription;
 
     protected Texture(string name)
         : base(name)
@@ -313,9 +314,20 @@ public abstract class Texture : ResourceWithMetadata
     // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
     private bool TryRestore() => false;
 
-    // TODO: port: RenderSurface update handling belongs to the RenderAPI.RawTexture owner.
     private void HandleRenderSurfaceUpdate()
     {
+        var renderer = GetSubsystem<Renderer>();
+        foreach (var renderSurface in _renderSurfaces)
+        {
+            if (renderSurface is null)
+                continue;
+
+            if (renderSurface.GetUpdateMode() == RenderSurfaceUpdateMode.UpdateAlways || renderSurface.IsUpdateQueued())
+            {
+                renderer?.QueueRenderSurface(renderSurface);
+                renderSurface.ResetUpdateQueued();
+            }
+        }
     }
 
     // TODO: port: Texture budget checks require the ResourceCache and GPU texture ownership model.
@@ -345,6 +357,17 @@ public abstract class Texture : ResourceWithMetadata
         Levels = _requestedLevels == 0
             ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
             : Math.Max(_requestedLevels, 1u);
+
+        if ((flags & TextureFlag.BindRenderTarget) != 0)
+        {
+            _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
+                (ref GraphicsEvents.RenderSurfaceUpdateEvent _) => HandleRenderSurfaceUpdate());
+        }
+        else
+        {
+            _renderSurfaceUpdateSubscription?.Dispose();
+            _renderSurfaceUpdateSubscription = null;
+        }
 
         SetRenderSurfaceCount((flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0
             ? (uint)Math.Max(Depth, 1)

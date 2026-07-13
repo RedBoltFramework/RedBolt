@@ -177,7 +177,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct VertexElement` — fields, constructors, equality, inequality, and ToHash are ported
   - [x] graphics enums / constants
 - [~] `GraphicsEvents.h`
-  - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events, and render-pipeline per-view update/render/buffer events are now dispatched; managed output targets still lack native RenderSurface sender integration
+  - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events, render-pipeline per-view update/render/buffer events are dispatched, and render-surface update dispatch now queues managed texture surfaces; managed output targets still lack native RenderSurface sender integration
 - [~] `DrawableEvents.h`
   - [~] drawable event definitions — all five C++ events are represented as struct-based C# events; Animation trigger and finished payloads are strongly typed and trigger dispatch is ported, while ParticleEffect remains opaque
 - [~] `GraphicsUtils.h`
@@ -194,7 +194,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `IndexBuffer.h` — `IndexBuffer : RawBuffer, PipelineStateTracker` and `DynamicIndexBuffer : Object` are ported, including CPU shadow/range behavior, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation and direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [x] `VertexBuffer.h` — `VertexBuffer : RawBuffer, PipelineStateTracker` and `DynamicVertexBuffer : Object` are ported, including element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, pipeline-state hashing, RawBuffer creation, direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [~] `Texture.h`
-  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, and render-target/depth-stencil `RenderSurface` slice materialization are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
+  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, render-target/depth-stencil `RenderSurface` slice materialization, and render-surface update subscription/queue handling are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
   - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `Texture3D.h`

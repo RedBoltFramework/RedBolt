@@ -66,6 +66,28 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Render_target_texture_queues_surface_on_render_surface_update_event()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+        var texture = new Texture2D("Textures/EventTarget");
+        Assert.True(texture.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        var renderSurface = texture.GetRenderSurface()!;
+        renderSurface.SetViewport(0, viewport);
+        renderSurface.QueueUpdate();
+
+        _fixture.Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
+
+        var field = typeof(Renderer).GetField("_queuedViewports", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        var queuedViewports = Assert.IsAssignableFrom<System.Collections.ICollection>(field!.GetValue(Renderer));
+        Assert.Equal(1, queuedViewports.Count);
+
+        Assert.IsAssignableFrom<System.Collections.IList>(queuedViewports).Clear();
+    }
+
+    [Fact]
     public void Texture_quality_settings_roundtrip()
     {
         Renderer.SetTextureAnisotropy(0);

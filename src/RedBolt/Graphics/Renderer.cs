@@ -198,6 +198,8 @@ public sealed class Renderer : Object
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
+        Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
+
         foreach (var (renderSurface, viewport) in _queuedViewports)
         {
             if (renderSurface is not null)
