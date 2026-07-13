@@ -535,6 +535,20 @@ public sealed class ResourceCache : Object
         _cache.Clear();
     }
 
+    public void ReleasePackageResources(PackageFile package, bool force = false)
+    {
+        ArgumentNullException.ThrowIfNull(package);
+        var packageNameHashes = package.GetEntries().Keys
+            .Select(StringHash.Calculate)
+            .ToHashSet();
+        var keys = _cache
+            .Where(entry => packageNameHashes.Contains(entry.Value.NameHash))
+            .Select(entry => entry.Key)
+            .ToArray();
+        foreach (var key in keys)
+            _cache.Remove(key);
+    }
+
     public void Clear() => ReleaseAllResources(force: true);
 
     public void Scan(ICollection<string> result, string pathName, string filter, ScanFlags flags)

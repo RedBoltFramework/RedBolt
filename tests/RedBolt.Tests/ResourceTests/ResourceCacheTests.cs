@@ -292,6 +292,42 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void ReleasePackageResources_removes_resources_named_by_package_entries()
+    {
+        var packageBytes = new VectorBuffer();
+        var resourceName = $"Data/package-{Guid.NewGuid():N}.bin";
+        var content = System.Text.Encoding.UTF8.GetBytes("package-data");
+        packageBytes.WriteFileID("UPAK");
+        packageBytes.WriteUInt(1);
+        packageBytes.WriteUInt(0x1234);
+        packageBytes.WriteString(resourceName);
+        packageBytes.WriteUInt(packageBytes.Size + 12);
+        packageBytes.WriteUInt((uint)content.Length);
+        packageBytes.WriteUInt(0x55);
+        packageBytes.Write(content);
+
+        var packagePath = Path.Combine(Path.GetTempPath(), $"redbolt-package-{Guid.NewGuid():N}.pak");
+        try
+        {
+            System.IO.File.WriteAllBytes(packagePath, packageBytes.GetBuffer());
+            using var packageFile = new PackageFile(packagePath);
+
+            var resource = new BinaryFile(resourceName);
+            resource.SetText("manual");
+            Assert.True(Resources.AddManualResource(resource));
+            Assert.NotNull(Resources.GetExistingResource<BinaryFile>(resourceName));
+
+            Resources.ReleasePackageResources(packageFile);
+
+            Assert.Null(Resources.GetExistingResource<BinaryFile>(resourceName));
+        }
+        finally
+        {
+            System.IO.File.Delete(packagePath);
+        }
+    }
+
+    [Fact]
     public void LoadFile_SaveFile_roundtrip()
     {
         var tempDir = CreateTempDir();
