@@ -245,7 +245,7 @@ public sealed class TextureCube : Texture
     /// <summary>
     /// Return render surface for one face.
     /// </summary>
-    public object? GetRenderSurface(CubeMapFace face) => GetRenderSurface((uint)face);
+    public RenderSurface? GetRenderSurface(CubeMapFace face) => GetRenderSurface((uint)face);
 
     private void RefreshTotalMemoryUse()
     {

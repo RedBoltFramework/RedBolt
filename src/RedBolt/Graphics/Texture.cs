@@ -34,7 +34,7 @@ public abstract class Texture : ResourceWithMetadata
     protected bool _requestedSRGB;
     protected bool _resolveDirty;
     protected bool _levelsDirty;
-    protected readonly object?[] _renderSurfaces = [];
+    protected readonly RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
 
     protected Texture(string name)
@@ -182,8 +182,7 @@ public abstract class Texture : ResourceWithMetadata
 
     public IntRect GetRect() => new(0, 0, Width, Height);
 
-    // TODO: port: RenderSurface is not available in the managed texture resource yet.
-    public object? GetRenderSurface(uint index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
+    public RenderSurface? GetRenderSurface(uint index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
 
     // TODO: port: RenderTexture bind flags are owned by RenderAPI.RawTexture, not this CPU-backed resource.
     public bool IsRenderTarget() => false;

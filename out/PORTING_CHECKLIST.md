@@ -193,7 +193,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, and pipeline-state hashing are ported; RawBuffer GPU Create/UpdateRange remains TODO
   - [~] `DynamicVertexBuffer : Object` — managed allocation, growth, discard, and commit behavior are ported; RawBuffer upload/debug-name remains TODO
 - [~] `Texture.h`
-  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata and XML parameter parsing are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, render-surface, bind-flag, budget, and image transfer hooks remain TODO
+  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, bind-flag, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
   - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture3D.h`
