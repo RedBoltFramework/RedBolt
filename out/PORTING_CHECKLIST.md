@@ -320,7 +320,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Renderer.h`
   - [~] `Renderer : Object`
 - [~] `Graphics.h`
-  - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position operations, screen-mode queries, monitor/display resolution enumeration, DPI reporting, and screenshot capture are ported; remaining screen-mode lifecycle and backend-specific paths remain
+  - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position operations, screen-mode queries, monitor/display resolution enumeration, DPI reporting, screenshot capture, and VFS-backed pipeline-state-cache save are ported; remaining screen-mode lifecycle and backend-specific paths remain
 - [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
   - [ ] `LightBakingSettings`
 - [ ] `LightBaker.h` ⤴ pairs with `Glow`
@@ -469,7 +469,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct ConfigVariableDefinition` — variable metadata with defaults, override, and priority flags
   - [x] `ConfigFile : Object` — flavor-based config, variable management, and archive serialization
 - [ ] `Engine.h`
-  - [~] `Engine : Object` — engine initialization, frame loop, C++ application/resource/cache parameter defaults, FPS limiting, VFS resource-root/alias/root/package/autoload/conf mounting, exit handling, disposal, shutdown, log URI mapping, and canvas-resize entry point are ported (parameter model uses `EngineParameters` class instead of `ConfigFile` for C# idiom); managed direct-API log/window defaults remain distinct from the C++ startup configuration; PSO-cache save, UI/RmlUI resize state, C++ diagnostics, console/debug HUD, and config-file lifecycle APIs remain incomplete
+  - [~] `Engine : Object` — engine initialization, frame loop, C++ application/resource/cache parameter defaults, FPS limiting, VFS resource-root/alias/root/package/autoload/conf mounting, PSO-cache save, exit handling, disposal, shutdown, log URI mapping, and canvas-resize entry point are ported (parameter model uses `EngineParameters` class instead of `ConfigFile` for C# idiom); managed direct-API log/window defaults remain distinct from the C++ startup configuration; UI/RmlUI resize state, C++ diagnostics, console/debug HUD, and config-file lifecycle APIs remain incomplete
 - [x] `StateManager.h`
   - [x] `ApplicationState : Object` — state lifecycle (activate/deactivate/update), mouse mode, viewport, and fog color management ported (UI-dependent features deferred with TODO)
   - [x] `StateManager : Object` — state queue, caching, fade transitions, and transition event dispatch ported (UI fade overlay deferred with TODO)

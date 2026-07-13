@@ -279,6 +279,34 @@ layout(std140) uniform Material
     }
 
     /// <summary>
+    /// Save pipeline state cache.
+    /// </summary>
+    public void SavePipelineStateCache(FileIdentifier fileName)
+    {
+        if (fileName.IsEmpty())
+            return;
+
+        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
+        if (pipelineStateCache is null)
+            return;
+
+        var cachedData = pipelineStateCache.GetCachedData();
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        var file = virtualFileSystem.OpenFile(fileName, File.FileMode.Write);
+        if (file is null)
+            return;
+
+        try
+        {
+            file.Write(cachedData);
+        }
+        finally
+        {
+            file.Close();
+        }
+    }
+
+    /// <summary>
     /// Toggle between full screen and windowed mode.
     /// </summary>
     public bool ToggleFullscreen()

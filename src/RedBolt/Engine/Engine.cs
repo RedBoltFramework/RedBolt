@@ -673,7 +673,7 @@ public sealed class Engine : Object
         var graphics = GetSubsystem<Graphics>();
         if (graphics is not null)
         {
-            // TODO: port graphics->SavePipelineStateCache(FileIdentifier::FromUri(GetParameter(EP_PSO_CACHE).GetString()));
+            graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
             graphics.Close();
         }
 

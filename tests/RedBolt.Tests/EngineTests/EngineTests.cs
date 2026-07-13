@@ -73,6 +73,34 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_exit_saves_pipeline_state_cache_through_virtual_file_system()
+    {
+        var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-pso-{Guid.NewGuid():N}");
+        try
+        {
+            using var engine = new EngineScope(new Engine(), new EngineParameters
+            {
+                ApplicationName = "RedBolt.Tests.PsoCache",
+                ApplicationPreferencesDir = preferencesDirectory,
+                ConfigName = string.Empty,
+                Headless = true,
+                PsoCache = "conf://psocache.bin"
+            });
+
+            engine.Value.Exit();
+
+            var virtualFileSystem = engine.Value.Context.GetSubsystem<VirtualFileSystem>();
+            Assert.NotNull(virtualFileSystem);
+            Assert.True(virtualFileSystem!.Exists(FileIdentifier.FromUri("conf://psocache.bin")));
+        }
+        finally
+        {
+            if (Directory.Exists(preferencesDirectory))
+                Directory.Delete(preferencesDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Time_step_helpers_work()
     {
         _fixture.Engine.SetNextTimeStep(0.125f);
