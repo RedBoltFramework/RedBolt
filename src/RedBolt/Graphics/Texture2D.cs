@@ -21,6 +21,11 @@ public sealed class Texture2D : Texture
     {
         ArgumentNullException.ThrowIfNull(source);
 
+        var graphics = GetSubsystem<Graphics>();
+        // In headless mode, do not actually load the texture, just return success.
+        if (graphics?.GetNativeRenderDevice() is null)
+            return true;
+
         _loadImage = new Image($"{Name}#source");
         if (!_loadImage.BeginLoad(source))
         {
@@ -38,6 +43,10 @@ public sealed class Texture2D : Texture
 
     public override bool EndLoad()
     {
+        // In headless mode, do not actually load the texture, just return success.
+        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
+            return true;
+
         if (_loadImage is null)
             return false;
 

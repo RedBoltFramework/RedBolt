@@ -36,6 +36,11 @@ public sealed class Texture2DArray : Texture
     {
         ArgumentNullException.ThrowIfNull(source);
 
+        var graphics = GetSubsystem<Graphics>();
+        // In headless mode, do not actually load the texture, just return success.
+        if (graphics?.GetNativeRenderDevice() is null)
+            return true;
+
         _loadImages.Clear();
         _loadParameters = new XMLFile(Name + "#params")
         {
@@ -64,6 +69,10 @@ public sealed class Texture2DArray : Texture
     /// </summary>
     public override bool EndLoad()
     {
+        // In headless mode, do not actually load the texture, just return success.
+        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
+            return true;
+
         if (_loadParameters is null)
             return false;
 

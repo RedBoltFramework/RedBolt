@@ -195,13 +195,13 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Texture.h`
   - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, bind-flag queries, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
-  - [~] `Texture2D : Texture` — two-phase image loading, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
+  - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `Texture3D.h`
-  - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading, mip selection, CPU volume upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
+  - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading including headless short-circuiting, mip selection, CPU volume upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `TextureCube.h`
-  - [~] `TextureCube : Texture` — two-phase ImageCube loading, sampler defaults, face/mip upload, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
+  - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, CPU readback, image conversion, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `Texture2DArray.h`
-  - [~] `Texture2DArray : Texture` — two-phase layer loading, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
+  - [~] `Texture2DArray : Texture` — two-phase layer loading including headless short-circuiting, separate layer state, mip selection, CPU layer upload/readback, and object registration are ported; GPU RawTexture creation and flag-based allocation remain TODO
 - [~] `RenderSurface.h`
   - [~] `RenderSurface : RefCounted` — viewport/update state, linked render/depth surfaces, parent texture dimensions/views, resolve state, and main-viewport helpers are ported; native GPU view restoration remains managed-resource dependent
 - [~] `Shader.h`

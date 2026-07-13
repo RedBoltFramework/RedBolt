@@ -44,6 +44,11 @@ public sealed class TextureCube : Texture
     {
         ArgumentNullException.ThrowIfNull(source);
 
+        var graphics = GetSubsystem<Graphics>();
+        // In headless mode, do not actually load the texture, just return success.
+        if (graphics?.GetNativeRenderDevice() is null)
+            return true;
+
         _loadImageCube = new ImageCube(Name)
         {
             OwnerCache = OwnerCache
@@ -63,6 +68,10 @@ public sealed class TextureCube : Texture
     /// </summary>
     public override bool EndLoad()
     {
+        // In headless mode, do not actually load the texture, just return success.
+        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
+            return true;
+
         if (_loadImageCube is null)
             return false;
 

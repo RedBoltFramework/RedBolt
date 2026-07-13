@@ -30,6 +30,11 @@ public sealed class Texture3D : Texture
     {
         ArgumentNullException.ThrowIfNull(source);
 
+        var graphics = GetSubsystem<Graphics>();
+        // In headless mode, do not actually load the texture, just return success.
+        if (graphics?.GetNativeRenderDevice() is null)
+            return true;
+
         _loadImage = null;
         _loadParameters = null;
 
@@ -80,6 +85,10 @@ public sealed class Texture3D : Texture
     /// </summary>
     public override bool EndLoad()
     {
+        // In headless mode, do not actually load the texture, just return success.
+        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
+            return true;
+
         if (_loadParameters is null)
             return false;
 
