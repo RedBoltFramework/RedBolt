@@ -1,5 +1,12 @@
 # RedBolt Port Checklist — `Source/Urho3D`
 
+## Samples
+
+- [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
+- [ ] `01_HelloWorld`, `02_HelloGUI`, `03_Sprites` — require the native UI surface replaced by Dear ImGui
+- [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
+- [ ] `07_Billboards` — requires complete `BillboardSet` parity
+
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
 
 ## How this list is ordered
