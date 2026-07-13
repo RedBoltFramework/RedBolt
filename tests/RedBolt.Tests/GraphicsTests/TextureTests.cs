@@ -15,6 +15,16 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture3D_registers_empty_named_factory()
+    {
+        var context = new Context();
+        Texture3D.RegisterObject(context);
+
+        using var texture = Assert.IsType<Texture3D>(context.CreateObject(ObjectReflection<Texture3D>.TypeId));
+        Assert.Equal(string.Empty, texture.Name);
+    }
+
+    [Fact]
     public void Texture_sampler_dimensions_and_flags_match_cpp_api()
     {
         var texture = new Texture2D("Textures/Smoke2D");

@@ -19,7 +19,8 @@ public sealed class Texture3D : Texture
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Texture3D>();
+        var reflection = context.AddReflection<Texture3D>();
+        reflection.SetObjectFactory(static () => new Texture3D(string.Empty));
     }
 
     /// <summary>
