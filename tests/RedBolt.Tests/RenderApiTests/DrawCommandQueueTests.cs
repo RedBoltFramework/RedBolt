@@ -140,7 +140,7 @@ public sealed class DrawCommandQueueTests
         queue.CommitShaderParameterGroup(ShaderParameterGroup.Frame);
         Assert.False(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
 
-        var collection = queue.GetConstantBufferCollection();
+        var collection = GetPrivateField<ConstantBufferCollection>(queue, "_constantBufferCollection");
         Assert.Equal(Math.Max(16u, _fixture.RenderDevice.GetCaps().ConstantBufferOffsetAlignment), collection.GetBufferSize(0));
         Assert.Equal(3.5f, BitConverter.ToSingle(collection.GetBufferData(0).Span.Slice(4, 4)));
         Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material, differentFromPrevious: true));

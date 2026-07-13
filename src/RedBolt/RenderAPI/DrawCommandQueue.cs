@@ -293,12 +293,6 @@ public class DrawCommandQueue : Object
         EnqueueCurrentCommand();
     }
 
-    public uint GetClipPlaneMask() => _clipPlaneMask;
-
-    public RenderDevice GetRenderDevice() => _renderDevice;
-
-    public ConstantBufferCollection GetConstantBufferCollection() => _constantBufferCollection;
-
     /// <summary>Execute commands in the queue.</summary>
     public virtual void ExecuteInContext(RenderContext renderContext)
     {
