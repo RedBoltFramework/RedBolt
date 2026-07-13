@@ -42,6 +42,12 @@ public sealed class RayQueryResult
 
 public sealed class Octant
 {
+    private readonly Octant?[] _children = new Octant?[8];
+    private readonly List<Drawable> _drawables = [];
+    private Vector3f _center;
+    private Vector3f _halfSize;
+    private uint _numDrawables;
+
     internal Octant(BoundingBox box, uint level, Octant? parent, Octree octree)
     {
         WorldBoundingBox = box;
@@ -49,6 +55,7 @@ public sealed class Octant
         Level = level;
         Parent = parent;
         Octree = octree;
+        Initialize(box);
     }
 
     public BoundingBox WorldBoundingBox { get; private set; }
@@ -61,7 +68,7 @@ public sealed class Octant
 
     public Octree Octree { get; }
 
-    public uint NumDrawables => Octree.GetNumDrawables();
+    public uint NumDrawables => _numDrawables;
 
     public bool IsEmpty() => NumDrawables == 0;
 
@@ -77,10 +84,133 @@ public sealed class Octant
 
     public uint GetNumDrawables() => NumDrawables;
 
+    public Octant GetOrCreateChild(uint index)
+    {
+        if (index >= _children.Length)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        if (_children[index] is not null)
+            return _children[index]!;
+
+        var newMin = WorldBoundingBox.Min;
+        var newMax = WorldBoundingBox.Max;
+        var oldCenter = WorldBoundingBox.Center;
+
+        if ((index & 1u) != 0)
+            newMin.X = oldCenter.X;
+        else
+            newMax.X = oldCenter.X;
+        if ((index & 2u) != 0)
+            newMin.Y = oldCenter.Y;
+        else
+            newMax.Y = oldCenter.Y;
+        if ((index & 4u) != 0)
+            newMin.Z = oldCenter.Z;
+        else
+            newMax.Z = oldCenter.Z;
+
+        return _children[index] = new Octant(new BoundingBox(newMin, newMax), Level + 1, this, Octree);
+    }
+
+    public void DeleteChild(uint index)
+    {
+        if (index >= _children.Length)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        _children[index] = null;
+    }
+
+    public void AddDrawable(Drawable drawable)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        if (_drawables.Contains(drawable))
+            return;
+        drawable.SetOctant(this);
+        _drawables.Add(drawable);
+        IncDrawableCount();
+    }
+
+    public void RemoveDrawable(Drawable drawable, bool resetOctant = true)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        if (!_drawables.Remove(drawable))
+            return;
+        if (resetOctant)
+            drawable.SetOctant(null);
+        DecDrawableCount();
+    }
+
+    public bool CheckDrawableFit(BoundingBox box)
+    {
+        var boxSize = box.Size;
+        if (Level >= Octree.GetNumLevels() || boxSize.X >= _halfSize.X || boxSize.Y >= _halfSize.Y || boxSize.Z >= _halfSize.Z)
+            return true;
+
+        if (box.Min.X <= WorldBoundingBox.Min.X - 0.5f * _halfSize.X
+            || box.Max.X >= WorldBoundingBox.Max.X + 0.5f * _halfSize.X
+            || box.Min.Y <= WorldBoundingBox.Min.Y - 0.5f * _halfSize.Y
+            || box.Max.Y >= WorldBoundingBox.Max.Y + 0.5f * _halfSize.Y
+            || box.Min.Z <= WorldBoundingBox.Min.Z - 0.5f * _halfSize.Z
+            || box.Max.Z >= WorldBoundingBox.Max.Z + 0.5f * _halfSize.Z)
+            return true;
+
+        return false;
+    }
+
+    public void InsertDrawable(Drawable drawable)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        var box = drawable.GetWorldBoundingBox();
+        var insertHere = ReferenceEquals(this, Octree.GetRootOctant())
+            ? (!drawable.IsOccludee() || CullingBox.IsInside(box) != Intersection.Inside || CheckDrawableFit(box))
+            : CheckDrawableFit(box);
+
+        if (insertHere)
+        {
+            AddDrawable(drawable);
+            return;
+        }
+
+        var boxCenter = box.Center;
+        var x = boxCenter.X < _center.X ? 0u : 1u;
+        var y = boxCenter.Y < _center.Y ? 0u : 2u;
+        var z = boxCenter.Z < _center.Z ? 0u : 4u;
+        GetOrCreateChild(x + y + z).InsertDrawable(drawable);
+    }
+
     internal void SetRootSize(BoundingBox box)
     {
+        for (uint i = 0; i < _children.Length; ++i)
+            DeleteChild(i);
         WorldBoundingBox = box;
-        CullingBox = box;
+        Initialize(box);
+        _numDrawables = (uint)_drawables.Count;
+    }
+
+    private void Initialize(BoundingBox box)
+    {
+        WorldBoundingBox = box;
+        _center = box.Center;
+        _halfSize = box.Size * 0.5f;
+        CullingBox = new BoundingBox(WorldBoundingBox.Min - _halfSize, WorldBoundingBox.Max + _halfSize);
+    }
+
+    private void IncDrawableCount()
+    {
+        ++_numDrawables;
+        Parent?.IncDrawableCount();
+    }
+
+    private void DecDrawableCount()
+    {
+        var parent = Parent;
+        --_numDrawables;
+        if (_numDrawables == 0 && parent is not null)
+        {
+            var index = (uint)((_center.X >= parent._center.X ? 1 : 0)
+                | (_center.Y >= parent._center.Y ? 2 : 0)
+                | (_center.Z >= parent._center.Z ? 4 : 0));
+            parent.DeleteChild(index);
+        }
+        parent?.DecDrawableCount();
     }
 }
 

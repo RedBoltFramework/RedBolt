@@ -101,4 +101,27 @@ public sealed class OctreeTests
         Assert.True(octree.GetLocked());
         octree.SetLocked(false);
     }
+
+    [Fact]
+    public void Octant_children_and_recursive_insertion_work()
+    {
+        var octree = new Scene().CreateComponent<Octree>();
+        octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
+        var root = octree.GetRootOctant();
+        var child = root.GetOrCreateChild(7u);
+
+        Assert.Same(root, child.GetParent());
+        Assert.Equal(1u, child.GetLevel());
+        Assert.Equal(new BoundingBox(Vector3f.Zero, new Vector3f(100.0f, 100.0f, 100.0f)), child.GetWorldBoundingBox());
+
+        var manual = new StaticModel();
+        manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
+        root.InsertDrawable(manual);
+
+        Assert.Same(root, manual.GetOctant()?.GetParent()?.GetParent()?.GetParent()?.GetParent());
+        Assert.Equal(1u, root.GetNumDrawables());
+        manual.GetOctant()!.RemoveDrawable(manual);
+        Assert.Null(manual.GetOctant());
+        Assert.Equal(0u, root.GetNumDrawables());
+    }
 }

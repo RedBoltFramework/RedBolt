@@ -236,7 +236,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, and combined zone light/shadow masks are ported; octree membership, reflection cache, and pipeline-state tracking remain incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
-  - [~] `Octant`
+  - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, and removal are ported; full scene octree reinsertion and debug traversal remain incomplete
   - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, background-zone lookup, and zone cached-lighting refresh are ported; full octant lifecycle integration remains incomplete
   - [~] `Octree : Component` — managed zone-index ownership and `QueryZone`/`GetBackgroundZone` wiring are ported; full octant reinsertion and zone lifecycle parity remain incomplete
 - [~] `Zone.h`

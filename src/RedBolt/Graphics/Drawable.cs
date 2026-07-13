@@ -124,6 +124,7 @@ public abstract class Drawable : Component
     private bool _worldBoundingBoxDirty = true;
     private CachedDrawableZone _cachedZone;
     private bool _zoneDirty;
+    private Octant? _octant;
 
     public BoundingBox BoundingBox => _boundingBox;
 
@@ -182,6 +183,13 @@ public abstract class Drawable : Component
     /// Return whether current zone is inconclusive or dirty due to the drawable moving.
     /// </summary>
     public bool IsZoneDirty() => _zoneDirty;
+
+    /// <summary>
+    /// Return octree octant.
+    /// </summary>
+    public Octant? GetOctant() => _octant;
+
+    internal void SetOctant(Octant? octant) => _octant = octant;
 
     /// <summary>
     /// Return mutable cached zone data.
