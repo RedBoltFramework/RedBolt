@@ -164,6 +164,43 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void BackgroundLoad_failure_sends_failure_and_completion_events()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "background-failure.dat"), "failure");
+            Resources.AddResourceDir(tempDir);
+            Resources.SetReturnFailedResources(false);
+
+            string? failedName = null;
+            string? completedName = null;
+            var completedSuccessfully = true;
+            using var failedSubscription = Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
+                (ref ResourceEvents.LoadFailed eventData) => failedName = eventData.ResourceName);
+            using var completedSubscription = Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
+                (ref ResourceEvents.ResourceBackgroundLoaded eventData) =>
+                {
+                    completedName = eventData.ResourceName;
+                    completedSuccessfully = eventData.Success;
+                });
+
+            Assert.True(Resources.BackgroundLoadResource<FailedResource>("Data/background-failure.dat"));
+            Resources.FinishBackgroundResources(1000);
+
+            Assert.Equal("Data/background-failure.dat", failedName);
+            Assert.Equal("Data/background-failure.dat", completedName);
+            Assert.False(completedSuccessfully);
+            Assert.Null(Resources.GetExistingResource<FailedResource>("Data/background-failure.dat"));
+        }
+        finally
+        {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Resource_routers_apply_in_order_to_resolved_identifiers()
     {
         var cache = new ResourceCache();

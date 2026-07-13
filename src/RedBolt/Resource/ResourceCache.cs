@@ -664,7 +664,7 @@ public sealed class ResourceCache : Object
         return _cache.ContainsKey((type, name));
     }
 
-    internal Resource? LoadBackgroundResource(Type type, string name)
+    internal Resource? LoadBackgroundResource(Type type, string name, bool sendEventOnFailure)
     {
         ArgumentNullException.ThrowIfNull(type);
         var fileName = GetResourceFileName(name);
@@ -689,7 +689,7 @@ public sealed class ResourceCache : Object
         resource.SetAsyncLoadState(AsyncLoadState.Loading);
         try
         {
-            using var stream = GetFile(name, sendEventOnFailure: false);
+            using var stream = GetFile(name, sendEventOnFailure);
             resource.SetAsyncLoadState(stream is not null && resource.BeginLoad(stream)
                 ? AsyncLoadState.Success
                 : AsyncLoadState.Fail);

@@ -64,7 +64,7 @@ public sealed class BackgroundLoader
             {
                 try
                 {
-                    return _owner.LoadBackgroundResource(type, sanitizedName);
+                    return _owner.LoadBackgroundResource(type, sanitizedName, item.SendEventOnFailure);
                 }
                 finally
                 {
@@ -160,8 +160,23 @@ public sealed class BackgroundLoader
 
         var success = resource.AsyncLoadState == AsyncLoadState.Success && resource.EndLoad();
         resource.SetAsyncLoadState(AsyncLoadState.Done);
+
+        if (!success && item.SendEventOnFailure)
+        {
+            var loadFailedEventData = new ResourceEvents.LoadFailed { ResourceName = resource.Name };
+            _owner.SendEvent(ref loadFailedEventData);
+        }
+
         if (success || _owner.GetReturnFailedResources())
             _owner.StoreBackgroundResource(key.Type, key.Name, resource);
+
+        var backgroundLoadedEventData = new ResourceEvents.ResourceBackgroundLoaded
+        {
+            ResourceName = resource.Name,
+            Success = success,
+            Resource = resource
+        };
+        _owner.SendEvent(ref backgroundLoadedEventData);
     }
 
     private void NotifyLoadComplete((Type Type, string Name) key)
