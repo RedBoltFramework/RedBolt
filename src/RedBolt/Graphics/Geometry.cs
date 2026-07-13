@@ -488,8 +488,70 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Return whether or not the ray is inside geometry.</summary>
     public bool IsInside(Ray ray)
     {
-        // TODO: port: The C++ implementation passes raw vertex/index pointers to Ray::InsideGeometry, which is not
-        // represented by the managed Ray API yet.
+        GetRawData(out var vertexDataList, out var vertexSize, out var rawIndexDataList, out var indexSize,
+            out var elements);
+
+        if (vertexDataList is not byte[] vertexData || elements is null)
+            return false;
+
+        var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
+            VertexElementSemantic.Position);
+        if (positionElement is null || positionElement.Value.Offset != 0)
+            return false;
+
+        var indexData = rawIndexDataList as byte[];
+        var unpackedIndices = indexData is null && IndexBuffer is { Shadowed: true }
+            ? IndexBuffer.GetUnpackedData(IndexStart, IndexCount).ToArray()
+            : null;
+        var hasIndexData = indexData is not null || unpackedIndices is not null;
+        if (IndexBuffer is not null && !hasIndexData)
+            return false;
+
+        static float ReadFloat(byte[] data, int offset) =>
+            System.Buffers.Binary.BinaryPrimitives.ReadSingleLittleEndian(data.AsSpan(offset, sizeof(float)));
+
+        static Vector3f ReadVector3(byte[] data, int offset) =>
+            new(ReadFloat(data, offset), ReadFloat(data, offset + sizeof(float)),
+                ReadFloat(data, offset + 2 * sizeof(float)));
+
+        Vector3f ReadPosition(uint vertex) => ReadVector3(vertexData,
+            checked((int)(vertex * vertexSize + positionElement.Value.Offset)));
+
+        uint ReadIndex(uint index)
+        {
+            if (unpackedIndices is not null)
+                return unpackedIndices[checked((int)index)];
+
+            return indexSize == sizeof(ushort)
+                ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                    indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(ushort)))
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                    indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(uint)));
+        }
+
+        var currentFrontFace = float.PositiveInfinity;
+        var currentBackFace = float.PositiveInfinity;
+        var triangleCount = hasIndexData ? IndexCount / 3 : VertexCount / 3;
+        for (var triangle = 0u; triangle < triangleCount; ++triangle)
+        {
+            var index = triangle * 3;
+            var vertex0 = hasIndexData ? ReadIndex(IndexStart + index) : VertexStart + index;
+            var vertex1 = hasIndexData ? ReadIndex(IndexStart + index + 1) : VertexStart + index + 1;
+            var vertex2 = hasIndexData ? ReadIndex(IndexStart + index + 2) : VertexStart + index + 2;
+            var position0 = ReadPosition(vertex0);
+            var position1 = ReadPosition(vertex1);
+            var position2 = ReadPosition(vertex2);
+            var frontFaceDistance = ray.HitDistance(position0, position1, position2, out _, out _);
+            var backFaceDistance = ray.HitDistance(position2, position1, position0, out _, out _);
+            currentFrontFace = MathF.Min(frontFaceDistance > 0.0f ? frontFaceDistance : float.PositiveInfinity,
+                currentFrontFace);
+            currentBackFace = MathF.Min(backFaceDistance > 0.0f ? backFaceDistance : float.PositiveInfinity,
+                currentBackFace);
+        }
+
+        if (currentFrontFace != float.PositiveInfinity || currentBackFace != float.PositiveInfinity)
+            return currentBackFace < currentFrontFace;
+
         return false;
     }
 
