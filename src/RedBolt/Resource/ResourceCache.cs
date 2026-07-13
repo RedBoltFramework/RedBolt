@@ -35,10 +35,12 @@ public sealed class ResourceCache : Object
         _backgroundLoader = new BackgroundLoader(this);
         SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent _) => HandleBeginFrame());
         SubscribeToEvent<ResourceEvents.FileChanged>(HandleFileChanged);
+        Context.Instance.ReflectionRemoved += HandleReflectionRemoved;
     }
 
     public override void Dispose()
     {
+        Context.Instance.ReflectionRemoved -= HandleReflectionRemoved;
         _backgroundLoader.Dispose();
         base.Dispose();
     }
@@ -828,6 +830,16 @@ public sealed class ResourceCache : Object
 
             RemoveCachedResource(oldestKey);
         }
+    }
+
+    private void HandleReflectionRemoved(ObjectReflection reflection)
+    {
+        var keys = _cache.Keys
+            .Where(key => key.Type == reflection.ManagedType)
+            .ToArray();
+        foreach (var key in keys)
+            RemoveCachedResource(key);
+        UpdateResourceGroup(reflection.ManagedType);
     }
 
     internal Resource? LoadBackgroundResource(Type type, string name, bool sendEventOnFailure)

@@ -346,6 +346,19 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Removing_resource_reflection_releases_cached_resources()
+    {
+        var resource = new ReloadableResource($"Data/reflection-{Guid.NewGuid():N}.bin");
+        Assert.True(Resources.AddManualResource(resource));
+        Assert.Same(resource, Resources.GetExistingResource<ReloadableResource>(resource.Name));
+
+        _fixture.Context.AddReflection<ReloadableResource>();
+        _fixture.Context.RemoveReflection<ReloadableResource>();
+
+        Assert.Null(Resources.GetExistingResource<ReloadableResource>(resource.Name));
+    }
+
+    [Fact]
     public void ReleasePackageResources_removes_resources_named_by_package_entries()
     {
         var packageBytes = new VectorBuffer();
