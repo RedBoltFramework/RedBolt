@@ -767,6 +767,13 @@ public sealed class Engine : Object
         _nextTimeStep = _currentTimeStep;
     }
 
+    public static void DefineParameters(CommandLineParser commandLine, EngineParameters engineParameters)
+    {
+        ArgumentNullException.ThrowIfNull(commandLine);
+        ArgumentNullException.ThrowIfNull(engineParameters);
+        EngineCommandLine.Register(commandLine, engineParameters);
+    }
+
     /// <summary>
     /// Return log file name in the operating system file system.
     /// </summary>

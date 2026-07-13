@@ -61,6 +61,21 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void DefineParameters_registers_engine_command_line_options()
+    {
+        var parameters = new EngineParameters();
+        var parser = new CommandLineParser("RedBolt.Tests");
+
+        Engine.DefineParameters(parser, parameters);
+        var result = parser.Parse(["--headless", "--width=640", "--height=480"]);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(parameters.Headless);
+        Assert.Equal(640, parameters.WindowWidth);
+        Assert.Equal(480, parameters.WindowHeight);
+    }
+
+    [Fact]
     public void Exit_performs_exit_housekeeping()
     {
         using var engine = new EngineScope(new Engine(), new EngineParameters
