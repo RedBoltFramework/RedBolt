@@ -313,7 +313,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `PipelineBatchSortKey.h`
   - [ ] batch sort-key structs
 - [~] `SharedRenderPassState.h`
-  - [~] `struct SharedRenderPassState : NonCopyable`
+  - [~] `struct SharedRenderPassState : NonCopyable` — fixed 128-entry render-buffer capacity and shared identifiers are ported; managed Graphics convenience state remains for current render-pass integration
 - [~] `RenderBuffer.h`
   - [~] `RenderBuffer : Object`
   - [~] `TextureRenderBuffer : RenderBuffer`

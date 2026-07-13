@@ -5,6 +5,8 @@ namespace RedBolt;
 /// </summary>
 public sealed class SharedRenderPassState
 {
+    public const uint MaxRenderBuffers = 128;
+
     public static readonly StringHash AlbedoBufferId = "GeometryBuffer.Albedo";
     public static readonly StringHash SpecularBufferId = "GeometryBuffer.Specular";
     public static readonly StringHash NormalBufferId = "GeometryBuffer.Normal";
@@ -17,5 +19,5 @@ public sealed class SharedRenderPassState
 
     public Graphics? Graphics { get; set; }
 
-    public IDictionary<StringHash, RenderBuffer> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer>();
+    public IDictionary<StringHash, RenderBuffer> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer>((int)MaxRenderBuffers);
 }
