@@ -37,4 +37,37 @@ public sealed class GeometryTests
         Assert.Equal(2u, indexSize);
         Assert.Equal(elements, actualElements);
     }
+
+    [Fact]
+    public void Geometry_ray_hit_distance_uses_raw_triangle_data()
+    {
+        var elements = new[] { new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position) };
+        var vertexData = new byte[3 * 3 * sizeof(float)];
+        var positions = new[]
+        {
+            new Vector3f(0.0f, 0.0f, 0.0f),
+            new Vector3f(1.0f, 0.0f, 0.0f),
+            new Vector3f(0.0f, 1.0f, 0.0f)
+        };
+        for (var i = 0; i < positions.Length; ++i)
+        {
+            Buffer.BlockCopy(BitConverter.GetBytes(positions[i].X), 0, vertexData, i * 12, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(positions[i].Y), 0, vertexData, i * 12 + 4, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(positions[i].Z), 0, vertexData, i * 12 + 8, 4);
+        }
+
+        var indexData = new byte[3 * sizeof(ushort)];
+        for (var i = 0; i < 3; ++i)
+            Buffer.BlockCopy(BitConverter.GetBytes((ushort)i), 0, indexData, i * sizeof(ushort), sizeof(ushort));
+
+        var geometry = new Geometry();
+        geometry.SetRawVertexData(vertexData, elements);
+        geometry.SetRawIndexData(indexData, sizeof(ushort));
+        Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
+
+        var distance = geometry.GetHitDistance(new Ray(new Vector3f(0.25f, 0.25f, 1.0f),
+            new Vector3f(0.0f, 0.0f, -1.0f)));
+
+        Assert.Equal(1.0f, distance);
+    }
 }

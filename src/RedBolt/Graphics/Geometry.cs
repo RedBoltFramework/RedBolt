@@ -394,9 +394,95 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Return ray hit distance or infinity if no hit.</summary>
     public float GetHitDistance(Ray ray, Vector3f? outNormal = null, Vector2f? outUv = null)
     {
-        // TODO: port: The C++ implementation passes raw vertex/index pointers to Ray::HitDistance, which is not
-        // represented by the managed Ray API yet.
-        return float.PositiveInfinity;
+        GetRawData(out var vertexDataList, out var vertexSize, out var rawIndexDataList, out var indexSize,
+            out var elements);
+
+        if (vertexDataList is not byte[] vertexData || elements is null)
+            return float.PositiveInfinity;
+
+        var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
+            VertexElementSemantic.Position);
+        if (positionElement is null || positionElement.Value.Offset != 0)
+            return float.PositiveInfinity;
+
+        var uvElement = VertexBuffer.GetElement(elements, VertexElementType.Vector2, VertexElementSemantic.TexCoord);
+        if (outUv is not null && uvElement is null)
+        {
+            Log.Logger.LogWarning("Illegal GetHitDistance call: UV return requested on vertex buffer without UV coords");
+            outUv = Vector2f.Zero;
+        }
+
+        var indexData = rawIndexDataList as byte[];
+        var unpackedIndices = indexData is null && IndexBuffer is { Shadowed: true }
+            ? IndexBuffer.GetUnpackedData(IndexStart, IndexCount).ToArray()
+            : null;
+        var hasIndexData = indexData is not null || unpackedIndices is not null;
+        if (IndexBuffer is not null && !hasIndexData)
+            return float.PositiveInfinity;
+
+        var nearest = float.PositiveInfinity;
+        var nearestBary = Vector3f.Zero;
+        var nearestIndices = Vector3i.Zero;
+
+        static float ReadFloat(byte[] data, int offset) =>
+            System.Buffers.Binary.BinaryPrimitives.ReadSingleLittleEndian(data.AsSpan(offset, sizeof(float)));
+
+        static Vector3f ReadVector3(byte[] data, int offset) =>
+            new(ReadFloat(data, offset), ReadFloat(data, offset + sizeof(float)),
+                ReadFloat(data, offset + 2 * sizeof(float)));
+
+        static Vector2f ReadVector2(byte[] data, int offset) =>
+            new(ReadFloat(data, offset), ReadFloat(data, offset + sizeof(float)));
+
+        Vector3f ReadPosition(uint vertex) => ReadVector3(vertexData,
+            checked((int)(vertex * vertexSize + positionElement.Value.Offset)));
+
+        Vector2f ReadUv(uint vertex) => ReadVector2(vertexData,
+            checked((int)(vertex * vertexSize + uvElement!.Value.Offset)));
+
+        uint ReadIndex(uint index)
+        {
+            if (unpackedIndices is not null)
+                return unpackedIndices[checked((int)index)];
+
+            return indexSize == sizeof(ushort)
+                ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                    indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(ushort)))
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                    indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(uint)));
+        }
+
+        var triangleCount = hasIndexData ? IndexCount / 3 : VertexCount / 3;
+        for (var triangle = 0u; triangle < triangleCount; ++triangle)
+        {
+            var index = triangle * 3;
+            var vertex0 = hasIndexData ? ReadIndex(IndexStart + index) : VertexStart + index;
+            var vertex1 = hasIndexData ? ReadIndex(IndexStart + index + 1) : VertexStart + index + 1;
+            var vertex2 = hasIndexData ? ReadIndex(IndexStart + index + 2) : VertexStart + index + 2;
+            var distance = ray.HitDistance(ReadPosition(vertex0), ReadPosition(vertex1), ReadPosition(vertex2),
+                out _, out var barycentric);
+            if (distance < nearest)
+            {
+                nearest = distance;
+                nearestBary = barycentric;
+                nearestIndices = new Vector3i(checked((int)vertex0), checked((int)vertex1), checked((int)vertex2));
+            }
+        }
+
+        if (outUv is not null)
+        {
+            if (nearest == float.PositiveInfinity)
+                outUv = Vector2f.Zero;
+            else
+            {
+                var uv0 = ReadUv(checked((uint)nearestIndices.X));
+                var uv1 = ReadUv(checked((uint)nearestIndices.Y));
+                var uv2 = ReadUv(checked((uint)nearestIndices.Z));
+                outUv = uv0 * nearestBary.X + uv1 * nearestBary.Y + uv2 * nearestBary.Z;
+            }
+        }
+
+        return nearest;
     }
 
     /// <summary>Return whether or not the ray is inside geometry.</summary>
