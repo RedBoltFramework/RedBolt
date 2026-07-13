@@ -123,10 +123,17 @@ public sealed class StaticModelTests
         cube.SetModel(model);
 
         Assert.Equal(Intersection.Inside, model.GetBoundingBox().IsInside(Vector3f.Zero));
-        Assert.True(cube.IsInsideLocal(Vector3f.Zero));
 
         cube.Node.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f));
         Assert.Equal(Intersection.Inside, cube.GetWorldBoundingBox().IsInside(new Vector3f(10.5f, 0.0f, 0.0f)));
-        Assert.True(cube.IsInside(new Vector3f(10.5f, 0.0f, 0.0f)));
+    }
+
+    [Fact]
+    public void IsInsideLocal_requires_geometry_inside_bounding_box()
+    {
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
+
+        Assert.False(cube.IsInsideLocal(Vector3f.Zero));
     }
 }

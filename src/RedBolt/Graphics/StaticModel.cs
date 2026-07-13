@@ -169,7 +169,22 @@ public class StaticModel : Drawable
         return IsInsideLocal(Node.WorldToLocal(point));
     }
 
-    public bool IsInsideLocal(Vector3f point) => GetBoundingBox().IsInside(point) != Intersection.Outside;
+    public bool IsInsideLocal(Vector3f point)
+    {
+        // Early-out if point is not inside bounding box
+        if (GetBoundingBox().IsInside(point) == Intersection.Outside)
+            return false;
+
+        var localRay = new Ray(point, new Vector3f(1.0f, -1.0f, 1.0f));
+        for (var index = 0u; index < NumGeometries; ++index)
+        {
+            var geometry = GetLodGeometry(index, 0);
+            if (geometry is not null && geometry.IsInside(localRay))
+                return true;
+        }
+
+        return false;
+    }
 
     private void ResizeMaterials(uint count)
     {
