@@ -335,6 +335,13 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Return the underlying raw buffer.</summary>
     public RawBuffer? GetRawBuffer() => _rawBuffer;
 
+    /// <summary>Update buffer data range without allocating.</summary>
+    public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
+    {
+        data[..checked((int)size)].CopyTo(_data.AsSpan(checked((int)offset), checked((int)size)));
+        _rawBuffer?.UpdateRange(data, offset, size);
+    }
+
     /// <summary>Set raw buffer data.</summary>
     public void SetData(IEnumerable<byte> data)
     {
@@ -578,7 +585,8 @@ public sealed class DynamicVertexBuffer
             }
         }
 
-        _vertexBuffer.SetData(_shadowData);
+        _vertexBuffer.UpdateRange(_shadowData.AsSpan(0, checked((int)(_numVertices * _vertexSize))), 0,
+            _numVertices * _vertexSize);
     }
 
     /// <summary>Allocate vertices. Returns index of first vertex and writable buffer of sufficient size.</summary>
