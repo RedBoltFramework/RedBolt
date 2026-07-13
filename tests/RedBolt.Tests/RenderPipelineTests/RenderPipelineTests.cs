@@ -170,6 +170,23 @@ public sealed class RenderPipelineTests
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var view = renderPipeline.Instantiate();
 
+        var beginUpdateCalls = 0;
+        var endUpdateCalls = 0;
+        var beginRenderCalls = 0;
+        var buffersReadyCalls = 0;
+        var endRenderCalls = 0;
+        using var beginUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewUpdateEvent>((ref GraphicsEvents.BeginViewUpdateEvent eventData) =>
+        {
+            ++beginUpdateCalls;
+            Assert.Same(view, eventData.RenderPipelineView);
+            Assert.Same(scene, eventData.Scene);
+            Assert.Same(camera, eventData.Camera);
+        });
+        using var endUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewUpdateEvent>((ref GraphicsEvents.EndViewUpdateEvent _) => ++endUpdateCalls);
+        using var beginRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewRenderEvent>((ref GraphicsEvents.BeginViewRenderEvent _) => ++beginRenderCalls);
+        using var buffersReadySubscription = scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) => ++buffersReadyCalls);
+        using var endRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) => ++endRenderCalls);
+
         Assert.True(view.Define(viewport, _fixture.Graphics));
 
         view.Update(_fixture.Graphics);
@@ -179,6 +196,11 @@ public sealed class RenderPipelineTests
         Assert.Equal(1, trackingPass.RenderCalls);
         Assert.Equal(new Vector2i(320, 200), view.GetFrameInfo().ViewportSize);
         Assert.Equal(0u, view.GetStats().NumGeometries);
+        Assert.Equal(1, beginUpdateCalls);
+        Assert.Equal(1, endUpdateCalls);
+        Assert.Equal(1, beginRenderCalls);
+        Assert.Equal(1, buffersReadyCalls);
+        Assert.Equal(1, endRenderCalls);
     }
 
     [Fact]

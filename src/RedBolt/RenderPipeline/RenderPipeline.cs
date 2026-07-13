@@ -345,6 +345,7 @@ public class RenderPipeline : Component
 
             SyncFromPipeline();
             RaiseUpdateBegin(_frameInfo);
+            SendBeginViewUpdateEvent();
 
             _sharedState.RenderPipelineInterface = this;
             _sharedState.RenderCamera = _viewport.Camera;
@@ -367,6 +368,7 @@ public class RenderPipeline : Component
             }
 
             _stats.NumGeometries = (uint)_viewport.Scene.StaticModels.Count;
+            SendEndViewUpdateEvent();
             RaiseUpdateEnd(_frameInfo);
         }
 
@@ -377,11 +379,13 @@ public class RenderPipeline : Component
                 return;
 
             RaiseRenderBegin(_frameInfo);
+            SendBeginViewRenderEvent();
 
             _sharedState.Graphics = graphics;
             Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
             _renderBufferManager.OnRenderBegin(_frameInfo, graphics);
             _renderBufferManager.SetOutputRenderTargets(graphics);
+            SendViewBuffersReadyEvent();
             graphics.ClearCurrentRenderTargets();
             graphics.RenderScene(_viewport, materialQuality, _frameInfo.ViewportRect);
             RenderNormalBuffer(graphics, materialQuality);
@@ -393,6 +397,7 @@ public class RenderPipeline : Component
             graphics.PresentFrame(screenshotPath, beforePresent);
             graphics.UnbindRenderTargets();
             RaiseCollectStatistics(_stats);
+            SendEndViewRenderEvent();
             RaiseRenderEnd(_frameInfo);
         }
 
@@ -413,6 +418,71 @@ public class RenderPipeline : Component
             foreach (var (name, value) in _renderPipeline.GetRenderPathParameters())
                 _effectiveRenderPathParameters[name] = value;
             _renderPath?.InitializeView(this);
+        }
+
+        private void SendBeginViewUpdateEvent()
+        {
+            var eventData = new GraphicsEvents.BeginViewUpdateEvent
+            {
+                RenderPipelineView = this,
+                Texture = _frameInfo.RenderTarget?.ColorTexture,
+                Surface = null,
+                Scene = _frameInfo.Viewport?.Scene,
+                Camera = _frameInfo.Cameras[0]
+            };
+            Context.Instance.SendEvent(ref eventData);
+        }
+
+        private void SendEndViewUpdateEvent()
+        {
+            var eventData = new GraphicsEvents.EndViewUpdateEvent
+            {
+                RenderPipelineView = this,
+                Texture = _frameInfo.RenderTarget?.ColorTexture,
+                Surface = null,
+                Scene = _frameInfo.Viewport?.Scene,
+                Camera = _frameInfo.Cameras[0]
+            };
+            Context.Instance.SendEvent(ref eventData);
+        }
+
+        private void SendBeginViewRenderEvent()
+        {
+            var eventData = new GraphicsEvents.BeginViewRenderEvent
+            {
+                RenderPipelineView = this,
+                Texture = _frameInfo.RenderTarget?.ColorTexture,
+                Surface = null,
+                Scene = _frameInfo.Viewport?.Scene,
+                Camera = _frameInfo.Cameras[0]
+            };
+            Context.Instance.SendEvent(ref eventData);
+        }
+
+        private void SendViewBuffersReadyEvent()
+        {
+            var eventData = new GraphicsEvents.ViewBuffersReadyEvent
+            {
+                RenderPipelineView = this,
+                Texture = _frameInfo.RenderTarget?.ColorTexture,
+                Surface = null,
+                Scene = _frameInfo.Viewport?.Scene,
+                Camera = _frameInfo.Cameras[0]
+            };
+            Context.Instance.SendEvent(ref eventData);
+        }
+
+        private void SendEndViewRenderEvent()
+        {
+            var eventData = new GraphicsEvents.EndViewRenderEvent
+            {
+                RenderPipelineView = this,
+                Texture = _frameInfo.RenderTarget?.ColorTexture,
+                Surface = null,
+                Scene = _frameInfo.Viewport?.Scene,
+                Camera = _frameInfo.Cameras[0]
+            };
+            Context.Instance.SendEvent(ref eventData);
         }
 
         private void RenderOutlines(Graphics graphics, MaterialQuality materialQuality)
