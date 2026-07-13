@@ -23,6 +23,12 @@ public enum AttributeScopeHint
     Scene
 }
 
+public static class AttributeMetadata
+{
+    public static readonly StringHash VectorStructElements = "VectorStructElements";
+    public static readonly StringHash IsAction = "IsAction";
+}
+
 /// <summary>
 /// Abstract base class for invoking attribute accessors.
 /// </summary>

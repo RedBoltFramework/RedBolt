@@ -13,6 +13,33 @@ public sealed class AnimationControllerTests
         using var controller = Assert.IsType<AnimationController>(
             context.CreateObject(ObjectReflection<AnimationController>.TypeId));
         Assert.Equal(ObjectCategory.Category_Logic, context.GetReflection<AnimationController>().Category);
+
+        var animations = controller.Attributes.Single(attribute => attribute.Name == "Animations");
+        Assert.Equal(
+            new StringVector
+            {
+                "Animation Count",
+                "   Animation",
+                "   Is Looped",
+                "   Remove On Completion",
+                "   Layer",
+                "   Blend Mode",
+                "   Start Bone",
+                "   Auto Fade Out Time",
+                "   Time",
+                "   Min Time",
+                "   Max Time",
+                "   Speed",
+                "   Remove On Zero Weight",
+                "   Weight",
+                "   Target Weight",
+                "   Target Weight Delay"
+            },
+            animations.GetMetadata<StringVector>(AttributeMetadata.VectorStructElements));
+
+        var updatePose = controller.Attributes.Single(attribute => attribute.Name == "Update Pose");
+        Assert.True(updatePose.GetMetadata<bool>(AttributeMetadata.IsAction));
+        updatePose.Accessor!.SetObject(controller, true);
     }
 
     [Fact]

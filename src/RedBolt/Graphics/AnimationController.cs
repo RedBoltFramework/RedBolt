@@ -30,6 +30,25 @@ namespace RedBolt;
 public class AnimationController : AnimationStateSource
 {
     private const uint InvalidAnimationIndex = uint.MaxValue;
+    private static readonly StringVector AnimationParametersNames = new()
+    {
+        "Animation Count",
+        "   Animation",
+        "   Is Looped",
+        "   Remove On Completion",
+        "   Layer",
+        "   Blend Mode",
+        "   Start Bone",
+        "   Auto Fade Out Time",
+        "   Time",
+        "   Min Time",
+        "   Max Time",
+        "   Speed",
+        "   Remove On Zero Weight",
+        "   Weight",
+        "   Target Weight",
+        "   Target Weight Delay"
+    };
 
     /// <summary>
     /// Construct.
@@ -47,7 +66,20 @@ public class AnimationController : AnimationStateSource
             typeof(VariantVector),
             self => ((AnimationController)self).GetAnimationsAttr(),
             (self, value) => ((AnimationController)self).SetAnimationsAttr(value as VariantVector ?? new VariantVector()),
-            new VariantVector());
+            new VariantVector())
+            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(AnimationParametersNames));
+        RegisterAttribute(
+            "Update Pose",
+            typeof(bool),
+            _ => false,
+            (self, value) =>
+            {
+                if (value is true)
+                    ((AnimationController)self).UpdatePose();
+            },
+            false,
+            AttributeMode.Edit)
+            .SetMetadata(AttributeMetadata.IsAction, true);
     }
 
     /// <summary>
