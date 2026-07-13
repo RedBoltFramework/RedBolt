@@ -23,6 +23,9 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal(TextureFormat.RGBA8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x8058u));
         Assert.Equal(TextureFormat.Depth24Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x88F0u));
         Assert.Equal(TextureFormat.Depth32, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 126u));
+        Assert.Equal(TextureFormat.Depth16, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 124u));
+        Assert.Equal(TextureFormat.Depth32Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 130u));
+        Assert.Equal(TextureFormat.Depth32Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.D3D11, 20u));
         Assert.Equal(TextureFormat.Unknown, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0u));
     }
 
@@ -35,6 +38,8 @@ public sealed class RenderAPIUtilsTests
 
         Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.Depth32));
         Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.Depth24Stencil8));
+        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.Depth16));
+        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.Depth32Stencil8));
         Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.Depth24Stencil8));
         Assert.True(RenderAPIUtils.IsColorTextureFormat(TextureFormat.RGBA16F));
     }

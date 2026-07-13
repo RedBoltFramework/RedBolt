@@ -123,10 +123,10 @@ public static class RenderAPIUtils
     }
 
     public static bool IsDepthTextureFormat(TextureFormat format) =>
-        format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
+        format is TextureFormat.Depth16 or TextureFormat.Depth32 or TextureFormat.Depth24Stencil8 or TextureFormat.Depth32Stencil8;
 
     public static bool IsDepthStencilTextureFormat(TextureFormat format) =>
-        format == TextureFormat.Depth24Stencil8;
+        format is TextureFormat.Depth24Stencil8 or TextureFormat.Depth32Stencil8;
 
     public static bool IsColorTextureFormat(TextureFormat format) => format is
         TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
@@ -139,7 +139,9 @@ public static class RenderAPIUtils
         or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb
         or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb
         or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb
-        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb;
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8a1UnormSrgb
+        or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb;
 
     public static global::RedBolt.Bindings.Diligent.TextureFormat SetTextureFormatSRGB(
         global::RedBolt.Bindings.Diligent.TextureFormat format, bool sRgb = true)
@@ -156,6 +158,8 @@ public static class RenderAPIUtils
                 global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb,
                 global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb,
                 global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8a1Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8a1UnormSrgb,
+                global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb,
                 _ => format
             };
         }
@@ -170,6 +174,8 @@ public static class RenderAPIUtils
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc7Unorm,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8a1UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8a1Unorm,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm,
             _ => format
         };
     }
@@ -406,10 +412,10 @@ public static class RenderAPIUtils
                 {
                     28u => TextureFormat.RGBA8,
                     29u => TextureFormat.RGBA8,
-                    55u => TextureFormat.Unknown,
+                    55u => TextureFormat.Depth16,
                     45u => TextureFormat.Depth24Stencil8,
                     40u => TextureFormat.Depth32,
-                    20u => TextureFormat.Unknown,
+                    20u => TextureFormat.Depth32Stencil8,
                     _ => TextureFormat.Unknown
                 };
             case RenderBackend.Vulkan:
@@ -417,10 +423,10 @@ public static class RenderAPIUtils
                 {
                     37u => TextureFormat.RGBA8,
                     43u => TextureFormat.RGBA8,
-                    124u => TextureFormat.Unknown,
+                    124u => TextureFormat.Depth16,
                     129u => TextureFormat.Depth24Stencil8,
                     126u => TextureFormat.Depth32,
-                    130u => TextureFormat.Unknown,
+                    130u => TextureFormat.Depth32Stencil8,
                     _ => TextureFormat.Unknown
                 };
             case RenderBackend.OpenGL:
@@ -428,10 +434,10 @@ public static class RenderAPIUtils
                 {
                     0x8051u or 0x8058u => TextureFormat.RGBA8,
                     0x8C41u or 0x8C43u => TextureFormat.RGBA8,
-                    0x81A5u => TextureFormat.Unknown,
+                    0x81A5u => TextureFormat.Depth16,
                     0x81A6u or 0x88F0u => TextureFormat.Depth24Stencil8,
                     0x8CACu => TextureFormat.Depth32,
-                    0x8CADu => TextureFormat.Unknown,
+                    0x8CADu => TextureFormat.Depth32Stencil8,
                     _ => TextureFormat.Unknown
                 };
             default:
@@ -446,8 +452,10 @@ public static class RenderAPIUtils
         TextureFormat.RGB8 => 4u,
         TextureFormat.RGBA8 => 4u,
         TextureFormat.RGBA16F => 8u,
+        TextureFormat.Depth16 => 2u,
         TextureFormat.Depth32 => 4u,
         TextureFormat.Depth24Stencil8 => 4u,
+        TextureFormat.Depth32Stencil8 => 8u,
         _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
     };
 

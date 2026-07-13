@@ -2796,7 +2796,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = 1;
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture.Format);
+        textureDesc.Format = MapTextureFormat(texture);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -2841,9 +2841,9 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
-        var targetView = IsDepthTextureFormat(texture.Format) ? null : GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewRenderTarget, texture.Format);
-        var depthView = IsDepthTextureFormat(texture.Format) ? GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewDepthStencil, texture.Format) : null;
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
+        var targetView = IsDepthTextureFormat(texture.Format) ? null : GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewRenderTarget, texture.Format, texture.SRGB);
+        var depthView = IsDepthTextureFormat(texture.Format) ? GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewDepthStencil, texture.Format, texture.SRGB) : null;
         var readOnlyDepthView = IsDepthTextureFormat(texture.Format) && depthView is not null
             ? GetReadOnlyDepthTextureView(gpuTexture, depthView)
             : null;
@@ -2876,7 +2876,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = 6;
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture.Format);
+        textureDesc.Format = MapTextureFormat(texture);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -2898,7 +2898,7 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         _uploadedTextures[texture] = uploaded;
@@ -2928,7 +2928,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = texture.Layers;
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture.Format);
+        textureDesc.Format = MapTextureFormat(texture);
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -2950,7 +2950,7 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         _uploadedTextures[texture] = uploaded;
@@ -2980,16 +2980,16 @@ layout(std140) uniform Material
         if (resolvedTexture.IsNull)
             throw new InvalidOperationException($"Failed to create resolved GPU texture for {texture.Name}.");
 
-        var shaderView = GetDefaultTextureView(resolvedTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        var shaderView = GetDefaultTextureView(resolvedTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
         return (resolvedTexture, shaderView);
     }
 
-    private ITextureView GetDefaultTextureView(ITexture texture, TextureViewType viewType, TextureFormat format)
+    private ITextureView GetDefaultTextureView(ITexture texture, TextureViewType viewType, TextureFormat format, bool sRgb = false)
     {
         using var textureViewDescOwner = CreateTextureViewDesc();
         var textureViewDesc = textureViewDescOwner.Desc;
         textureViewDesc.ViewType = viewType;
-        textureViewDesc.Format = MapTextureFormat(format);
+        textureViewDesc.Format = MapTextureFormat(format, sRgb);
         if (viewType == TextureViewType.TextureViewShaderResource)
         {
             using var textureDesc = texture.GetDesc();
@@ -3036,7 +3036,7 @@ layout(std140) uniform Material
 
         using var resolveAttribsOwner = CreateResolveTextureSubresourceAttribs();
         var resolveAttribs = resolveAttribsOwner.Attribs;
-        resolveAttribs.Format = MapTextureFormat(texture.Format);
+        resolveAttribs.Format = MapTextureFormat(texture);
         resolveAttribs.SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
         resolveAttribs.DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
         for (var slice = 0u; slice < GetArraySizeOrDepth(texture); ++slice)
@@ -3120,7 +3120,7 @@ layout(std140) uniform Material
         var textureViewDesc = textureViewDescOwner.Desc;
         textureViewDesc.ViewType = viewType;
         textureViewDesc.TextureDim = ResourceDimension.ResourceDimTex2d;
-        textureViewDesc.Format = MapTextureFormat(texture.Format);
+        textureViewDesc.Format = MapTextureFormat(texture.Format, texture.SRGB);
         textureViewDesc.MostDetailedMip = 0;
         textureViewDesc.NumMipLevels = 1;
         textureViewDesc.FirstArraySlice = slice;
@@ -3200,17 +3200,26 @@ layout(std140) uniform Material
         return desc.DepthBufferFormat;
     }
 
-    internal static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format) => format switch
+    internal static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format, bool sRgb = false)
     {
-        TextureFormat.Depth32 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
-        TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
-        TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
-        TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
-        TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-        TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-        TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
-        _ => 0
-    };
+        var nativeFormat = format switch
+        {
+            TextureFormat.Depth16 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm,
+            TextureFormat.Depth32 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
+            TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
+            TextureFormat.Depth32Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
+            TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
+            TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
+            TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+            TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+            TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
+            _ => default
+        };
+        return sRgb ? RenderAPIUtils.SetTextureFormatSRGB(nativeFormat) : nativeFormat;
+    }
+
+    private static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(Texture texture)
+        => MapTextureFormat(texture.Format, texture.SRGB);
 
     private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget, IntRect viewportRect)
     {
@@ -3262,8 +3271,10 @@ layout(std140) uniform Material
         isSrgb = false;
         return format switch
         {
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm => TextureFormat.Depth16,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm => TextureFormat.R8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float => TextureFormat.RG16F,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.RGBA8,
@@ -3282,7 +3293,7 @@ layout(std140) uniform Material
     }
 
     private static bool IsDepthTextureFormat(TextureFormat format)
-        => format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
+        => RenderAPIUtils.IsDepthTextureFormat(format);
 
     private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded, bool requireUnorderedAccess = false)
     {

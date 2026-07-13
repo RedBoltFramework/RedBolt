@@ -109,7 +109,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct InputLayoutDesc`
   - [x] `struct ImmutableSamplersDesc`
 - [~] `RenderAPIUtils.h`
-  - [~] RenderAPI free functions — backend/platform predicates, enum tables, shader-input parsing/name conversion, native shader-stage mapping, backend/policy selection, mip sizing, depth/stencil/color classification, managed texture mappings, native sRGB mappings, direct VulkanDescriptorPoolSize serialization, and optional Vulkan/D3D12 render-setting serialization are ported; native compile-time backend filtering, exact Depth16/D32S8 mappings, managed TextureFormat/Texture.SRGB state integration, and translator/optimizer support remain TODO because the managed APIs differ
+  - [~] RenderAPI free functions — backend/platform predicates, enum tables, shader-input parsing/name conversion, native shader-stage mapping, backend/policy selection, mip sizing, depth/stencil/color classification, managed texture mappings including Depth16/D32S8, managed Texture.SRGB integration, native sRGB mappings, direct VulkanDescriptorPoolSize serialization, and optional Vulkan/D3D12 render-setting serialization are ported; native compile-time backend filtering and translator/optimizer support remain TODO because the managed APIs differ
 - [-] `GAPIIncludes.h` — **EXCLUDED** · reason: Diligent header aggregation · replaced-by: generated Diligent bindings
 - [x] `ShaderBytecode.h`
   - [x] `ShaderBytecode` — type, MIME, bytecode, vertex attributes, archive and compiled-file persistence, copying, equality, and version validation are ported
@@ -126,8 +126,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct RawTextureUAVKey`
   - [x] `struct RawTextureHandles`
   - [x] `RawTexture : DeviceObject` — validation, native ownership, default and slice views, UAVs, mip generation, resolve, allocation-free updates, staging readback, device recovery hooks, handle wrapping, and platform-gated external imports are ported
-- [~] `RenderTargetView.h`
-  - [~] `RenderTargetView` — owning RenderDevice, swap-chain, texture, slice, read-only depth, format, multisample, and dirty-view paths are ported; managed high-level Texture bridging remains
+- [x] `RenderTargetView.h`
 - [x] `ConstantBufferCollection.h`
   - [x] `ConstantBufferCollection` — aligned block allocation, buffer rollover/sizing, parameter conversion, matrix/array storage, and CPU upload data are ported
 - [~] `PipelineState.h`

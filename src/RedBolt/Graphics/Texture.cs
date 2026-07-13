@@ -3,8 +3,10 @@ namespace RedBolt;
 public enum TextureFormat
 {
     Unknown,
+    Depth16,
     Depth32,
     Depth24Stencil8,
+    Depth32Stencil8,
     R8,
     RG16F,
     RGB8,
