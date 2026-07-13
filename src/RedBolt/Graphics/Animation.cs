@@ -125,7 +125,7 @@ public class Animation : ResourceWithMetadata
         var fileId = input.ReadFileID();
         if (fileId != "UANI" && fileId != "UAN2")
         {
-            // TODO: port: URHO3D_LOGERROR(source.GetName() + " is not a valid animation file");
+            Log.Logger.LogError("{AnimationName} is not a valid animation file", Name);
             return false;
         }
 
