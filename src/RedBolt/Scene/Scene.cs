@@ -78,6 +78,22 @@ public sealed class Scene : Object
             SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
     }
 
+    public static void RegisterObject(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.AddFactoryReflection<Scene>();
+
+        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Name", GetName, SetName, ea::string, EMPTY_STRING, AM_DEFAULT).
+        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Time Scale", GetTimeScale, SetTimeScale, float, 1.0f, AM_DEFAULT).
+        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Elapsed Time", GetElapsedTime, SetElapsedTime, float, 0.0f, AM_DEFAULT).
+        // TODO: port URHO3D_ATTRIBUTE("Next Node ID", unsigned, replicatedNodeID_, FIRST_REPLICATED_ID, AM_DEFAULT | AM_NOEDIT).
+        // TODO: port URHO3D_ATTRIBUTE("Next Component ID", unsigned, replicatedComponentID_, FIRST_REPLICATED_ID, AM_DEFAULT | AM_NOEDIT).
+        // TODO: port URHO3D_ATTRIBUTE("Variables", StringVariantMap, vars_, Variant::emptyStringVariantMap, AM_DEFAULT).
+        // TODO: port URHO3D_ACCESSOR_ATTRIBUTE("Update Events", GetUpdateEvents, SetUpdateEvents, StringVector, DefaultUpdateEvents, AM_DEFAULT).
+        // TODO: port URHO3D_ATTRIBUTE("World Origin", IntVector3, worldOrigin_, IntVector3::ZERO, AM_DEFAULT).
+        // TODO: port URHO3D_ATTRIBUTE_EX("Lightmaps", ResourceRefList, lightmaps_, ReloadLightmaps, ResourceRefList(Texture2D::GetTypeStatic()), AM_DEFAULT).
+    }
+
     public override void Dispose()
     {
         _updateSubscription?.Dispose();

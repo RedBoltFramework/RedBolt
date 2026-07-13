@@ -539,4 +539,15 @@ public sealed class SceneTests
         scene.ClearRequiredPackageFiles();
         Assert.Empty(scene.GetRequiredPackageFiles());
     }
+
+    [Fact]
+    public void RegisterObject_adds_scene_factory_reflection()
+    {
+        var context = new Context();
+
+        Scene.RegisterObject(context);
+
+        Assert.True(context.IsReflected<Scene>());
+        using var created = Assert.IsType<Scene>(context.CreateObject(ObjectReflection<Scene>.TypeId));
+    }
 }
