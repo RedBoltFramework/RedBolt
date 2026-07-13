@@ -245,6 +245,24 @@ layout(std140) uniform Material
         renderDevice.UpdateWindowSettings(windowSettings);
         SetWindowTitle(_windowTitle);
         SetWindowIcon(_windowIcon);
+
+        var renderContext = renderDevice.GetRenderContext();
+        renderContext.SetSwapChainRenderTargets();
+        renderContext.ClearRenderTarget(0, Color.Black);
+        renderDevice.Present();
+
+        var currentSettings = renderDevice.GetWindowSettings();
+        var screenModeEvent = new GraphicsEvents.ScreenModeEvent
+        {
+            Width = currentSettings.Size.X,
+            Height = currentSettings.Size.Y,
+            Fullscreen = currentSettings.Mode == WindowMode.Fullscreen,
+            Borderless = currentSettings.Mode == WindowMode.Borderless,
+            Resizable = currentSettings.Resizable,
+            Monitor = currentSettings.Monitor,
+            RefreshRate = currentSettings.RefreshRate
+        };
+        SendEvent(ref screenModeEvent);
         return true;
     }
 
