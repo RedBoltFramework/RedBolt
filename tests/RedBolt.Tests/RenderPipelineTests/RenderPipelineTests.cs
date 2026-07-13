@@ -171,6 +171,20 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_updates_single_existing_frame_parameter_by_hash()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
+
+        renderPipeline.UpdateFrameShaderParameter(new StringHash("Time"), 2.0f);
+        renderPipeline.UpdateFrameShaderParameter(new StringHash("Missing"), 3.0f);
+
+        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetFrameShaderParameters()["Time"]));
+        Assert.DoesNotContain("Missing", renderPipeline.GetFrameShaderParameters().Keys);
+    }
+
+    [Fact]
     public void Render_pipeline_set_render_pass_enabled_only_notifies_on_change()
     {
         var scene = new Scene();

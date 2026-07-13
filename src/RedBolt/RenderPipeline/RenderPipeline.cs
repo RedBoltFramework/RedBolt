@@ -225,6 +225,21 @@ public class RenderPipeline : Component
     }
 
     /// <summary>
+    /// Update existing render path parameter.
+    /// </summary>
+    public void UpdateFrameShaderParameter(StringHash nameHash, object? value)
+    {
+        foreach (var name in _frameShaderParameters.Keys)
+        {
+            if (StringHash.Calculate(name) != nameHash.Value)
+                continue;
+
+            _frameShaderParameters[name] = value;
+            return;
+        }
+    }
+
+    /// <summary>
     /// Add or update render path parameter.
     /// </summary>
     public void SetFrameShaderParameter(string name, object? value)
