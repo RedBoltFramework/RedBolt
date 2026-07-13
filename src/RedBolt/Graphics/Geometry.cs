@@ -602,10 +602,9 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Update "headless" status.</summary>
     private void UpdateHeadlessStatus()
     {
-        // TODO: port: Managed VertexBuffer and IndexBuffer do not expose RenderDevice; all existing buffers are CPU-only.
-        _isHeadless = IndexBuffer is not null;
+        _isHeadless = IndexBuffer?.GetRawBuffer()?.GetRenderDevice() is null && IndexBuffer is not null;
         foreach (var vertexBuffer in _vertexBuffers)
-            _isHeadless = _isHeadless || vertexBuffer is not null;
+            _isHeadless = _isHeadless || (vertexBuffer is not null && vertexBuffer.GetRawBuffer()?.GetRenderDevice() is null);
     }
 
     private static void CombineHash(ref uint result, uint hash)

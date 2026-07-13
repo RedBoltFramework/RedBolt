@@ -185,7 +185,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Bone` — fields, defaults, cloning, and managed nullable Node reference
   - [x] `Skeleton` — serialization, hierarchy ordering, lookup, definition, and reset behavior
 - [~] `Geometry.h`
-  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — factory registration, dependency tracking, draw-range validation including the failed shadow-range fallback, raw-data overrides including shadowed index extraction, primitive metadata, pipeline hashing, and C++-equivalent raw triangle hit-distance and inside-geometry traversal are ported; `IDFamily<Geometry>` is not represented because managed type identity replaces it
+  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — factory registration, dependency tracking, draw-range validation including the failed shadow-range fallback, raw-data overrides including shadowed index extraction, primitive metadata, pipeline hashing, headless-buffer tracking, and C++-equivalent raw triangle hit-distance and inside-geometry traversal are ported; `IDFamily<Geometry>` is not represented because managed type identity replaces it
 - [~] `IndexBuffer.h`
   - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — CPU shadow data, range queries, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation, range updates, and debug-name forwarding are ported; C# composes the RawBuffer because it cannot represent the C++ multiple-inheritance shape
   - [~] `DynamicIndexBuffer : Object` — managed allocation, growth, discard, commit, RawBuffer upload, and debug-name forwarding are ported
