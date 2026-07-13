@@ -269,7 +269,8 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsTextureFormatSupported(TextureFormat format)
     {
-        return format != TextureFormat.Unknown;
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        return formatInfo.BindFlags != BindFlags.BindNone;
     }
 
     /// <summary>
@@ -277,8 +278,8 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
-        var graphics = GetSubsystem<Graphics>();
-        return graphics?.IsRenderTargetFormatSupported(format) ?? false;
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        return (formatInfo.BindFlags & (BindFlags.BindRenderTarget | BindFlags.BindDepthStencil)) != BindFlags.BindNone;
     }
 
     /// <summary>
@@ -286,7 +287,8 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsUnorderedAccessFormatSupported(TextureFormat format)
     {
-        return format is TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        return (formatInfo.BindFlags & BindFlags.BindUnorderedAccess) != BindFlags.BindNone;
     }
 
     /// <summary>
@@ -294,7 +296,8 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsMultiSampleSupported(TextureFormat format, int multiSample)
     {
-        return GetSupportedMultiSample(format, multiSample) == multiSample;
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        return ((int)formatInfo.SampleCounts & multiSample) != 0;
     }
 
     /// <summary>
@@ -302,8 +305,11 @@ public sealed class RenderDevice : Object
     /// </summary>
     public int GetSupportedMultiSample(TextureFormat format, int multiSample)
     {
-        var graphics = GetSubsystem<Graphics>();
-        return graphics?.GetSupportedMultiSample(format, multiSample) ?? 1;
+        multiSample = (int)MathDefs.NextPowerOfTwo((uint)Math.Clamp(multiSample, 1, 16));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
+            multiSample >>= 1;
+        return Math.Max(1, multiSample);
     }
 
     public RenderBackend GetBackend() => GetDeviceSettings().Backend;
