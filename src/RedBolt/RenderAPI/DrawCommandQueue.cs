@@ -554,7 +554,6 @@ public class DrawCommandQueue : Object
                 view = texture?.GetHandle()?.GetDefaultView(TextureViewType.TextureViewShaderResource);
             }
 
-            // TODO: port C++ GetReadableTexture fallback to RenderDevice.GetDefaultTexture when default raw textures are available.
             _shaderResourceViews[i] = view;
         }
     }
