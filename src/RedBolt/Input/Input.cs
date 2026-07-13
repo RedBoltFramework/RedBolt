@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Sdl;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Linq;
@@ -724,7 +725,10 @@ public sealed class Input : Object
     public bool RecordGesture()
     {
         if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
+        {
+            Log.Logger.LogError("Can not record gesture: no touch devices");
             return false;
+        }
         return SdlNativeBindings.SdlRecordGesture(-1) != 0;
     }
 
@@ -746,6 +750,11 @@ public sealed class Input : Object
     {
         ArgumentNullException.ThrowIfNull(source);
         // TODO: port SDL_LoadDollarTemplates through the managed deserializer binding.
+        if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
+        {
+            Log.Logger.LogError("Can not load gestures: no touch devices");
+            return 0;
+        }
         return 0;
     }
 
