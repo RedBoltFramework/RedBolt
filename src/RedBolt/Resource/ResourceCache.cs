@@ -327,6 +327,13 @@ public sealed class ResourceCache : Object
         return _cache.TryGetValue((typeof(T), name), out var resource) ? (T)resource : null;
     }
 
+    public Resource? GetExistingResource(Type type, string name)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return FindSpecificResource(type, StringHash.Calculate(name));
+    }
+
     public IReadOnlyList<T> GetResources<T>()
         where T : Resource
     {
@@ -334,6 +341,14 @@ public sealed class ResourceCache : Object
             .Where(static item => item.Key.Type == typeof(T))
             .Select(static item => (T)item.Value)
             .ToArray();
+    }
+
+    public IReadOnlyList<Resource> GetResources(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return _resourceGroups.TryGetValue(type, out var group)
+            ? group.Resources.Values.ToArray()
+            : Array.Empty<Resource>();
     }
 
     public T GetTempResource<T>(string name, bool sendEventOnFailure = true)
@@ -762,6 +777,23 @@ public sealed class ResourceCache : Object
 
         if (_resourceGroups.TryGetValue(key.Type, out var group))
             group.Resources.Remove(resource.GetNameHash());
+    }
+
+    private Resource? FindSpecificResource(Type type, StringHash nameHash)
+    {
+        return _resourceGroups.TryGetValue(type, out var group)
+            && group.Resources.TryGetValue(nameHash, out var resource)
+            ? resource
+            : null;
+    }
+
+    private void FindMatchingResources(StringHash nameHash, ICollection<Resource> resources)
+    {
+        foreach (var group in _resourceGroups.Values)
+        {
+            if (group.Resources.TryGetValue(nameHash, out var resource))
+                resources.Add(resource);
+        }
     }
 
     private void UpdateResourceGroup(Type type)

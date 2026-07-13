@@ -133,6 +133,8 @@ public sealed class ResourceCacheTests
             Resources.AddResourceDir(tempDir);
             var cached = Resources.GetResource<BinaryFile>("Data/hello.txt");
             Assert.Same(cached, Resources.GetExistingResource<BinaryFile>("Data/hello.txt"));
+            Assert.Same(cached, Resources.GetExistingResource(typeof(BinaryFile), "Data/hello.txt"));
+            Assert.Contains(cached, Resources.GetResources(typeof(BinaryFile)));
             Assert.True(Resources.GetAllResources().TryGetValue(typeof(BinaryFile), out var group));
             Assert.Same(cached, group!.Resources[cached.GetNameHash()]);
         }
