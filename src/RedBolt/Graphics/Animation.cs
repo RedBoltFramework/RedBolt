@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -80,7 +82,7 @@ public class Animation : ResourceWithMetadata
 
         if (!source.HasAttribute("length"))
         {
-            // TODO: port: URHO3D_LOGERROR("Animation length is missing");
+            Log.Logger.LogError("Animation length is missing");
             return false;
         }
 
@@ -688,7 +690,7 @@ public class Animation : ResourceWithMetadata
         {
             if (!trackElement.HasAttribute("name"))
             {
-                // TODO: port: URHO3D_LOGERROR("Animation track name is missing");
+                Log.Logger.LogError("Animation track name is missing");
                 continue;
             }
 
@@ -738,7 +740,7 @@ public class Animation : ResourceWithMetadata
         {
             if (!trackElement.HasAttribute("name"))
             {
-                // TODO: port: URHO3D_LOGERROR("Animation track name is missing");
+                Log.Logger.LogError("Animation track name is missing");
                 continue;
             }
 
