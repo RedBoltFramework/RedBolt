@@ -6,6 +6,17 @@ namespace RedBolt.Tests;
 public sealed class GeometryGpuTests
 {
     [Fact]
+    public void Geometry_registers_factory_reflection()
+    {
+        var context = new Context();
+        Geometry.RegisterObject(context);
+
+        using var geometry = Assert.IsType<Geometry>(
+            context.CreateObject(ObjectReflection<Geometry>.TypeId));
+        Assert.Equal(typeof(Geometry).GetClassName(), geometry.GetTypeName());
+    }
+
+    [Fact]
     public void VertexBuffer_cpu_metadata_works()
     {
         var vb = new VertexBuffer();

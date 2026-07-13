@@ -55,7 +55,7 @@ public sealed class PipelineStateSubscription : IDisposable, ICloneable
 }
 
 /// <summary>Helper class to track pipeline state changes caused by derived class.</summary>
-public abstract class PipelineStateTracker
+public abstract class PipelineStateTracker : Object
 {
     private sealed class SubscriberReference
     {

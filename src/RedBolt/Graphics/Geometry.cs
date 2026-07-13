@@ -85,7 +85,7 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Register object with the engine.</summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Geometry>();
+        context.AddFactoryReflection<Geometry>();
     }
 
     /// <summary>Set number of vertex buffers.</summary>

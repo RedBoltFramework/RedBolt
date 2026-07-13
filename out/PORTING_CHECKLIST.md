@@ -185,7 +185,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `Bone` — fields, defaults, cloning, and managed nullable Node reference
   - [x] `Skeleton` — serialization, hierarchy ordering, lookup, definition, and reset behavior
 - [~] `Geometry.h`
-  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — dependency tracking, draw-range validation including the failed shadow-range fallback, raw-data overrides including shadowed index extraction, primitive metadata, pipeline hashing, and C++-equivalent raw triangle hit-distance and inside-geometry traversal are ported; `Object`/`IDFamily` are not represented
+  - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — factory registration, dependency tracking, draw-range validation including the failed shadow-range fallback, raw-data overrides including shadowed index extraction, primitive metadata, pipeline hashing, and C++-equivalent raw triangle hit-distance and inside-geometry traversal are ported; `IDFamily<Geometry>` is not represented because managed type identity replaces it
 - [~] `IndexBuffer.h`
   - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — CPU shadow data, range queries, pack/unpack helpers, size metadata, and pipeline-state hashing are ported; RawBuffer GPU Create/UpdateRange remains TODO
   - [~] `DynamicIndexBuffer : Object` — managed allocation, growth, discard, and commit behavior are ported; RawBuffer upload/debug-name remains TODO
