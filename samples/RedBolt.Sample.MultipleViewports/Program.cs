@@ -58,6 +58,7 @@ sealed class MultipleViewportsApplication : Application
         var cache = Resources;
         _scene = new Scene();
         _scene.CreateComponent<Octree>();
+        _scene.CreateComponent<DebugRenderer>();
 
         var planeNode = _scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
