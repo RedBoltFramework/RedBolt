@@ -41,4 +41,17 @@ public sealed class DebugGeometryTests
 
         Assert.False(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void DebugRenderer_set_view_preserves_camera_transforms()
+    {
+        var camera = new Camera();
+        var debugRenderer = new DebugRenderer();
+
+        debugRenderer.SetView(camera);
+
+        Assert.Equal(camera.GetView(), debugRenderer.GetView());
+        Assert.Equal(camera.GetProjection(), debugRenderer.GetProjection());
+        Assert.Equal(camera.GetFrustum(), debugRenderer.GetFrustum());
+    }
 }

@@ -12,6 +12,11 @@ public sealed class DebugRenderer : Component
     private readonly List<DebugLine> _noDepthLines = [];
     private readonly List<DebugTriangle> _triangles = [];
     private readonly List<DebugTriangle> _noDepthTriangles = [];
+    private Matrix3x4 _view;
+    private Matrix4 _projection;
+    private Matrix4 _gpuProjection;
+    private Frustum _frustum;
+    private Camera? _camera;
     private bool _lineAntiAlias;
 
     /// <summary>
@@ -21,6 +26,21 @@ public sealed class DebugRenderer : Component
     {
         if (enable != _lineAntiAlias)
             _lineAntiAlias = enable;
+    }
+
+    /// <summary>
+    /// Set the camera viewpoint. Call before rendering, or before adding geometry if you want to use culling.
+    /// </summary>
+    public void SetView(Camera? camera)
+    {
+        if (camera is null)
+            return;
+
+        _view = camera.GetView();
+        _projection = camera.GetProjection();
+        _gpuProjection = camera.GetGPUProjection();
+        _frustum = camera.GetFrustum();
+        _camera = camera;
     }
 
     /// <summary>
@@ -89,6 +109,26 @@ public sealed class DebugRenderer : Component
     /// Return whether line antialiasing is enabled.
     /// </summary>
     public bool GetLineAntiAlias() => _lineAntiAlias;
+
+    /// <summary>
+    /// Return the view transform.
+    /// </summary>
+    public Matrix3x4 GetView() => _view;
+
+    /// <summary>
+    /// Return the projection transform.
+    /// </summary>
+    public Matrix4 GetProjection() => _projection;
+
+    /// <summary>
+    /// Return the view frustum.
+    /// </summary>
+    public Frustum GetFrustum() => _frustum;
+
+    /// <summary>
+    /// Check whether a bounding box is inside the view frustum.
+    /// </summary>
+    public bool IsInside(BoundingBox box) => _frustum.IsInsideFast(box) == Intersection.Inside;
 
     /// <summary>
     /// Return whether has something to render.
