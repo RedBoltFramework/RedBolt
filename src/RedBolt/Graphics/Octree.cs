@@ -84,6 +84,117 @@ public sealed class Octant
     }
 }
 
+/// <summary>Acceleration structure for zone search.</summary>
+public sealed class ZoneLookupIndex
+{
+    private sealed class ZoneData
+    {
+        public BoundingBox BoundingBox;
+        public Matrix3x4 InverseWorldTransform;
+        public uint ZoneMask;
+    }
+
+    private readonly Zone? _defaultZone;
+    private readonly List<Zone> _zones = [];
+    private readonly List<ZoneData> _zonesData = [];
+    private bool _zonesDirty;
+
+    public ZoneLookupIndex()
+    {
+        var context = Context.Instance;
+        var renderer = context.GetSubsystem<Renderer>();
+        _defaultZone = renderer?.GetDefaultZone();
+    }
+
+    public void AddZone(Zone zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        System.Diagnostics.Debug.Assert(!_zones.Contains(zone));
+        _zones.Add(zone);
+        _zonesDirty = true;
+    }
+
+    public void UpdateZone(Zone zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        System.Diagnostics.Debug.Assert(_zones.Contains(zone));
+        _zonesDirty = true;
+    }
+
+    public void RemoveZone(Zone zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        var index = _zones.IndexOf(zone);
+        System.Diagnostics.Debug.Assert(index >= 0);
+        _zones.RemoveAt(index);
+    }
+
+    public void Commit()
+    {
+        if (_zonesDirty)
+        {
+            _zonesDirty = false;
+
+            // Sort zones by priority from high to low
+            _zones.Sort(static (lhs, rhs) => rhs.GetPriority().CompareTo(lhs.GetPriority()));
+
+            // Update cached data
+            _zonesData.Clear();
+            foreach (var zone in _zones)
+            {
+                _zonesData.Add(new ZoneData
+                {
+                    ZoneMask = zone.GetZoneMask(),
+                    BoundingBox = zone.GetBoundingBox(),
+                    InverseWorldTransform = zone.GetInverseWorldTransform()
+                });
+            }
+        }
+
+        // TODO: port: for (Zone* zone : zones_)
+        // TODO: port:     zone->UpdateCachedData();
+        // TODO: port: if (defaultZone_)
+        // TODO: port:     defaultZone_->UpdateCachedData();
+    }
+
+    public CachedDrawableZone QueryZone(Vector3f position, uint zoneMask)
+    {
+        var minDistanceToOtherZone = MathDefs.LargeValue;
+        var distanceToBestZoneBorder = MathDefs.LargeValue;
+        Zone? bestZone = null;
+
+        for (var i = 0; i < _zonesData.Count; ++i)
+        {
+            var data = _zonesData[i];
+            if ((data.ZoneMask & zoneMask) == 0)
+                continue;
+
+            var localPosition = data.InverseWorldTransform * position;
+            var signedDistance = data.BoundingBox.SignedDistanceToPoint(localPosition);
+
+            if (signedDistance > 0.0f)
+            {
+                // Zone cannot affect point, keep distance for cache
+                minDistanceToOtherZone = MathF.Min(minDistanceToOtherZone, signedDistance);
+            }
+            else if (bestZone is null)
+            {
+                // Zone may affect point
+                bestZone = _zones[i];
+                distanceToBestZoneBorder = -signedDistance;
+            }
+        }
+
+        var cacheInvalidationDistance = MathF.Min(minDistanceToOtherZone, distanceToBestZoneBorder);
+        return new CachedDrawableZone(bestZone ?? _defaultZone, position, cacheInvalidationDistance * cacheInvalidationDistance);
+    }
+
+    public Zone? GetBackgroundZone()
+    {
+        return _zones.Count > 0 && _zones[^1].GetPriority() <= 0 ? _zones[^1] : _defaultZone;
+    }
+}
+
 public sealed class Octree : Component
 {
     public const float DefaultOctreeSize = 1000.0f;
@@ -91,6 +202,7 @@ public sealed class Octree : Component
 
     private readonly HashSet<Drawable> _manualDrawables = [];
     private readonly HashSet<Drawable> _drawableUpdates = [];
+    private readonly ZoneLookupIndex _zones;
     private BoundingBox _worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
     private readonly Octant _rootOctant;
     private uint _numLevels = DefaultOctreeLevels;
@@ -99,6 +211,7 @@ public sealed class Octree : Component
     public Octree()
     {
         _rootOctant = new Octant(_worldBoundingBox, 0, parent: null, this);
+        _zones = new ZoneLookupIndex();
 
         RegisterAttribute(
             "Bounding Box Min",
@@ -156,6 +269,8 @@ public sealed class Octree : Component
             return;
 
         _manualDrawables.Add(drawable);
+        if (drawable is Zone zone)
+            _zones.AddZone(zone);
     }
 
     public void RemoveManualDrawable(Drawable? drawable)
@@ -165,6 +280,8 @@ public sealed class Octree : Component
 
         _manualDrawables.Remove(drawable);
         CancelUpdate(drawable);
+        if (drawable is Zone zone)
+            _zones.RemoveZone(zone);
     }
 
     public void AddDrawable(Drawable? drawable) => AddManualDrawable(drawable);
@@ -261,11 +378,18 @@ public sealed class Octree : Component
             query.Result.RemoveAt(query.Result.Count - 1);
     }
 
-    public object? QueryZone(Drawable drawable) => null;
+    public CachedDrawableZone QueryZone(Drawable drawable)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        return QueryZone(drawable.GetWorldBoundingBox().Center, drawable.GetZoneMask());
+    }
 
-    public object? QueryZone(Vector3f drawablePosition, uint zoneMask) => null;
+    public CachedDrawableZone QueryZone(Vector3f drawablePosition, uint zoneMask)
+    {
+        return _zones.QueryZone(drawablePosition, zoneMask);
+    }
 
-    public object? GetBackgroundZone() => null;
+    public Zone? GetBackgroundZone() => _zones.GetBackgroundZone();
 
     public void DrawDebugGeometry(bool depthTest)
     {

@@ -5,6 +5,15 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ZoneTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
+    public ZoneTests(HeadlessEngineFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    private Renderer Renderer => _fixture.Renderer;
+
     [Fact]
     public void Default_render_state_works()
     {
@@ -86,5 +95,41 @@ public sealed class ZoneTests
         zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 1.0f, 1.0f));
         var result = zone.GetInverseWorldTransform() * new Vector3f(6.0f, 0.0f, 0.0f);
         Assert.True(result.ApproximatelyEquivalent(new Vector3f(0.5f, 0.0f, 0.0f)));
+    }
+
+    [Fact]
+    public void Zone_lookup_selects_priority_and_background_zones()
+    {
+        var index = new ZoneLookupIndex();
+        var lowPriorityZone = new Zone();
+        lowPriorityZone.SetBoundingBox(new BoundingBox(new Vector3f(-10.0f, -10.0f, -10.0f), new Vector3f(10.0f, 10.0f, 10.0f)));
+        lowPriorityZone.SetPriority(0);
+        var highPriorityZone = new Zone();
+        highPriorityZone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
+        highPriorityZone.SetPriority(5);
+
+        index.AddZone(lowPriorityZone);
+        index.AddZone(highPriorityZone);
+        index.Commit();
+
+        var cachedZone = index.QueryZone(Vector3f.Zero, Drawable.DefaultZoneMask);
+
+        Assert.Same(highPriorityZone, cachedZone.Zone);
+        Assert.Same(lowPriorityZone, index.GetBackgroundZone());
+    }
+
+    [Fact]
+    public void Zone_lookup_returns_default_zone_outside_matching_zones()
+    {
+        var index = new ZoneLookupIndex();
+        var zone = new Zone();
+        zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
+        index.AddZone(zone);
+        index.Commit();
+
+        var cachedZone = index.QueryZone(new Vector3f(4.0f, 0.0f, 0.0f), Drawable.DefaultZoneMask);
+
+        Assert.Same(Renderer.GetDefaultZone(), cachedZone.Zone);
+        Assert.True(cachedZone.CacheInvalidationDistanceSquared > 0.0f);
     }
 }

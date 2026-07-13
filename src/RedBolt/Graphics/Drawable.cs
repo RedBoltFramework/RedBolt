@@ -26,6 +26,26 @@ public enum ReflectionMode
     BlendProbesAndZone
 }
 
+/// <summary>Cached info about current zone.</summary>
+public struct CachedDrawableZone
+{
+    /// <summary>Pointer to Zone.</summary>
+    public Zone? Zone;
+
+    /// <summary>Node position at the moment of last caching.</summary>
+    public Vector3f CachePosition;
+
+    /// <summary>Cache invalidation distance (squared).</summary>
+    public float CacheInvalidationDistanceSquared = -1.0f;
+
+    public CachedDrawableZone(Zone? zone, Vector3f cachePosition, float cacheInvalidationDistanceSquared)
+    {
+        Zone = zone;
+        CachePosition = cachePosition;
+        CacheInvalidationDistanceSquared = cacheInvalidationDistanceSquared;
+    }
+}
+
 /// <summary>Source data for a 3D geometry draw call.</summary>
 public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 {

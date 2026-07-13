@@ -237,8 +237,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant`
-  - [ ] `ZoneLookupIndex`
-  - [~] `Octree : Component`
+  - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, and background-zone lookup are ported; `Zone::UpdateCachedData()` integration remains TODO
+  - [~] `Octree : Component` — managed zone-index ownership and `QueryZone`/`GetBackgroundZone` wiring are ported; full octant reinsertion and zone lifecycle parity remain incomplete
 - [~] `Zone.h`
   - [~] `Zone : Drawable`
 - [~] `Light.h`
