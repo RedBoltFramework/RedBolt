@@ -60,6 +60,32 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         return distance >= 0.0f ? distance : float.PositiveInfinity;
     }
 
+    /// <summary>Return hit distance to a frustum.</summary>
+    public float HitDistance(Frustum frustum, bool solidInside = false)
+    {
+        var maxOutside = 0.0f;
+        var minInside = float.PositiveInfinity;
+        var allInside = true;
+
+        foreach (var plane in frustum.Planes)
+        {
+            var distance = HitDistance(plane);
+            if (plane.Distance(Origin) < 0.0f)
+            {
+                maxOutside = Math.Max(maxOutside, distance);
+                allInside = false;
+            }
+            else
+                minInside = Math.Min(minInside, distance);
+        }
+
+        if (allInside)
+            return solidInside ? 0.0f : minInside;
+        if (maxOutside <= minInside)
+            return maxOutside;
+        return float.PositiveInfinity;
+    }
+
     public float HitDistance(BoundingBox box)
     {
         if (!box.Defined)

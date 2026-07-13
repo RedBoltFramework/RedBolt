@@ -178,4 +178,20 @@ public sealed class LightTests
         Assert.Equal(StringHash.Calculate("Texture2D"), light.GetRampTextureAttr().Type);
         Assert.Equal(StringHash.Calculate("Texture"), light.GetShapeTextureAttr().Type);
     }
+
+    [Fact]
+    public void Point_light_processes_triangle_ray_queries()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetRange(10.0f);
+        var results = new List<RayQueryResult>();
+        var query = new RayOctreeQuery(results, new Ray(new Vector3f(0, 0, -20), new Vector3f(0, 0, 1)),
+            RayQueryLevel.RayTriangle, 100.0f);
+
+        light.ProcessRayQuery(query);
+
+        Assert.Single(results);
+        Assert.Same(light, results[0].Drawable);
+        Assert.Equal(uint.MaxValue, results[0].SubObject);
+    }
 }

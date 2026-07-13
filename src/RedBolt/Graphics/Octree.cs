@@ -635,6 +635,15 @@ public sealed class Octree : Component
         if (drawable is Skybox)
             yield break;
 
+        if (drawable is Light light)
+        {
+            var results = new List<RayQueryResult>();
+            light.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance));
+            foreach (var result in results)
+                yield return result;
+            yield break;
+        }
+
         if (drawable is CustomGeometry customGeometry)
         {
             foreach (var result in customGeometry.CreateRayQueryResults(ray, level, maxDistance))

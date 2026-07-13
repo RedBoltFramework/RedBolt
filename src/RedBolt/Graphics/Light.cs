@@ -492,10 +492,68 @@ public sealed class Light : Drawable
         return (cutoff, 1.0f / (1.0f - cutoff));
     }
 
+    /// <summary>Process octree raycast.</summary>
+    public void ProcessRayQuery(RayOctreeQuery query)
+    {
+        if (_lightType == LightType.Directional)
+            return;
+
+        var distance = query.MaxDistance;
+        switch (query.Level)
+        {
+            case RayQueryLevel.RayAabb:
+                distance = query.Ray.HitDistance(GetWorldBoundingBox());
+                break;
+            case RayQueryLevel.RayObb:
+                distance = HitDistanceObb(query.Ray);
+                break;
+            case RayQueryLevel.RayTriangle:
+                distance = _lightType == LightType.Spot
+                    ? query.Ray.HitDistance(GetFrustum())
+                    : query.Ray.HitDistance(new Sphere(Node.WorldPosition, _range));
+                break;
+            case RayQueryLevel.RayTriangleUv:
+                return;
+        }
+
+        if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
+            return;
+
+        query.Result.Add(new RayQueryResult
+        {
+            Position = query.Ray.Origin + query.Ray.Direction * distance,
+            Normal = -query.Ray.Direction,
+            Distance = distance,
+            Drawable = this,
+            Node = IsAttached ? Node : null,
+            SubObject = uint.MaxValue
+        });
+    }
+
     private void RefreshBoundingBox()
     {
         var size = _lightType == LightType.Directional ? MathDefs.LargeValue : _range;
         SetLocalBoundingBox(new BoundingBox(-size, size));
+    }
+
+    private float HitDistanceObb(Ray ray)
+    {
+        if (!IsAttached)
+            return ray.HitDistance(BoundingBox);
+
+        var localOrigin = Node.WorldToLocal(ray.Origin);
+        var localEnd = Node.WorldToLocal(ray.Origin + ray.Direction);
+        var localDirection = localEnd - localOrigin;
+        if (localDirection.LengthSquared <= MathDefs.Epsilon * MathDefs.Epsilon)
+            return float.PositiveInfinity;
+
+        var localRay = new Ray(localOrigin, localDirection);
+        var localDistance = localRay.HitDistance(BoundingBox);
+        if (float.IsPositiveInfinity(localDistance))
+            return localDistance;
+
+        var localHit = localRay.Origin + localRay.Direction * localDistance;
+        return (Node.LocalToWorld(localHit) - ray.Origin).Length;
     }
 
     protected override void OnWorldBoundingBoxUpdate()
