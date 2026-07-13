@@ -100,6 +100,31 @@ public sealed class ZoneTests
     }
 
     [Fact]
+    public void Drawable_zone_cache_and_masks_work()
+    {
+        var drawable = new Zone();
+        var zone = new Zone();
+        drawable.SetLightMask(0x0f);
+        drawable.SetShadowMask(0x07);
+        zone.SetLightMask(0x03);
+        zone.SetShadowMask(0x05);
+
+        drawable.SetZone(zone);
+        Assert.Same(zone, drawable.GetZone());
+        Assert.False(drawable.IsZoneDirty());
+        Assert.Equal(0x03u, drawable.GetLightMaskInZone());
+        Assert.Equal(0x05u, drawable.GetShadowMaskInZone());
+
+        drawable.SetZone(zone, temporary: true);
+        Assert.True(drawable.IsZoneDirty());
+        drawable.SetZone(null);
+        Assert.Null(drawable.GetZone());
+        Assert.False(drawable.IsZoneDirty());
+        Assert.Equal(0x0fu, drawable.GetLightMaskInZone());
+        Assert.Equal(0x07u, drawable.GetShadowMaskInZone());
+    }
+
+    [Fact]
     public void Zone_lookup_selects_priority_and_background_zones()
     {
         var index = new ZoneLookupIndex();

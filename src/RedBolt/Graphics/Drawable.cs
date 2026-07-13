@@ -122,6 +122,8 @@ public abstract class Drawable : Component
     private BoundingBox _boundingBox;
     private BoundingBox _worldBoundingBox;
     private bool _worldBoundingBoxDirty = true;
+    private CachedDrawableZone _cachedZone;
+    private bool _zoneDirty;
 
     public BoundingBox BoundingBox => _boundingBox;
 
@@ -170,6 +172,39 @@ public abstract class Drawable : Component
     public uint GetShadowMask() => ShadowMask;
 
     public uint GetZoneMask() => ZoneMask;
+
+    /// <summary>
+    /// Return current zone.
+    /// </summary>
+    public Zone? GetZone() => _cachedZone.Zone;
+
+    /// <summary>
+    /// Return whether current zone is inconclusive or dirty due to the drawable moving.
+    /// </summary>
+    public bool IsZoneDirty() => _zoneDirty;
+
+    /// <summary>
+    /// Return mutable cached zone data.
+    /// </summary>
+    public ref CachedDrawableZone GetMutableCachedZone() => ref _cachedZone;
+
+    /// <summary>
+    /// Return combined light masks of Drawable and its currently cached Zone.
+    /// </summary>
+    public uint GetLightMaskInZone()
+    {
+        var zoneLightMask = _cachedZone.Zone?.GetLightMask() ?? uint.MaxValue;
+        return zoneLightMask & LightMask;
+    }
+
+    /// <summary>
+    /// Return combined shadow masks of Drawable and its currently cached Zone.
+    /// </summary>
+    public uint GetShadowMaskInZone()
+    {
+        var zoneShadowMask = _cachedZone.Zone?.GetShadowMask() ?? uint.MaxValue;
+        return zoneShadowMask & ShadowMask;
+    }
 
     public bool GetCastShadows() => CastShadows;
 
@@ -225,6 +260,9 @@ public abstract class Drawable : Component
     public void SetZoneMask(uint mask)
     {
         ZoneMask = mask;
+        _cachedZone.CacheInvalidationDistanceSquared = -1.0f;
+        if (IsAttached)
+            OnMarkedDirty(Node);
     }
 
     public void SetCastShadows(bool enable)
@@ -250,6 +288,20 @@ public abstract class Drawable : Component
     public void SetReflectionMode(ReflectionMode mode)
     {
         ReflectionMode = mode;
+    }
+
+    /// <summary>
+    /// Set new zone.
+    /// </summary>
+    public void SetZone(Zone? zone, bool temporary = false)
+    {
+        if (zone is not null)
+            _cachedZone.Zone = zone;
+        else
+            _cachedZone = new CachedDrawableZone();
+
+        // If the zone assignment was temporary (inconclusive) set the dirty flag so that it will be re-evaluated on the next frame.
+        _zoneDirty = temporary;
     }
 
     public void MarkForUpdate()

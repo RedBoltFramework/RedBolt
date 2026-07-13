@@ -233,7 +233,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Viewport : Object` — base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation are ported; precise view-owner invalidation remains TODO
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
-  - [~] `Drawable : Component, PipelineStateTracker`
+  - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, and combined zone light/shadow masks are ported; octree membership, reflection cache, and pipeline-state tracking remain incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant`
