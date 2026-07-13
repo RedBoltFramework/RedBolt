@@ -6,6 +6,11 @@ namespace RedBolt;
 /// <summary>Hardware vertex buffer.</summary>
 public sealed class VertexBuffer : PipelineStateTracker
 {
+    private sealed class VertexRawBuffer : RawBuffer
+    {
+        public bool CreateBuffer(RawBufferParams parameters) => Create(parameters);
+    }
+
     private static readonly uint[] TypeSizes =
     [
         sizeof(int),
@@ -18,9 +23,11 @@ public sealed class VertexBuffer : PipelineStateTracker
     ];
 
     private byte[] _data = [];
+    private VertexRawBuffer? _rawBuffer;
     private List<VertexElement> _elements = [];
     private uint _elementMask;
     private string? _layoutSignature;
+    private bool _shadowedPending;
 
     /// <summary>Whether is dynamic.</summary>
     public bool IsDynamic { get; private set; }
@@ -135,7 +142,7 @@ public sealed class VertexBuffer : PipelineStateTracker
             PackVertexData(data[i..], sourceStride, buffer, VertexSize, _elements[i], 0, count);
 
         buffer.AsSpan().CopyTo(_data.AsSpan(checked((int)(start * VertexSize)), checked((int)(count * VertexSize))));
-        // TODO: port: RawBuffer::UpdateRange is not represented by the managed buffer API.
+        _rawBuffer?.UpdateRange(buffer, start * VertexSize, count * VertexSize);
     }
 
     /// <summary>Set data in the buffer from unpacked data.</summary>
@@ -279,6 +286,7 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Enable shadowing in CPU memory.</summary>
     public void SetShadowed(bool enable)
     {
+        _shadowedPending = enable;
         Shadowed = enable;
     }
 
@@ -299,7 +307,18 @@ public sealed class VertexBuffer : PipelineStateTracker
         if (_data.Length != size)
             _data = new byte[size];
         MarkPipelineStateHashDirty();
-        return true;
+
+        _rawBuffer?.Destroy();
+        _rawBuffer = new VertexRawBuffer();
+        var flags = (_shadowedPending ? BufferFlag.Shadowed : BufferFlag.None)
+            | (dynamic ? BufferFlag.Dynamic : BufferFlag.None);
+        if (elementList.Count != 0 && elementList[0].StepRate != 0)
+            flags |= BufferFlag.PerInstanceData;
+        return _rawBuffer.CreateBuffer(new RawBufferParams(
+            BufferType.Vertex,
+            checked((uint)size),
+            VertexSize,
+            flags));
     }
 
     /// <summary>Set size and vertex elements and dynamic mode using a legacy element bitmask.</summary>
@@ -324,13 +343,14 @@ public sealed class VertexBuffer : PipelineStateTracker
     public void SetData(ReadOnlySpan<byte> data)
     {
         _data = data.ToArray();
+        _rawBuffer?.Update(_data);
     }
 
     /// <summary>Set raw buffer data.</summary>
     public void SetData(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        _data = data.ToArray();
+        SetData(data.AsSpan());
     }
 
     /// <summary>Return the managed input-layout signature.</summary>
@@ -489,6 +509,12 @@ public sealed class VertexBuffer : PipelineStateTracker
         return Math.Max(1u, hash);
     }
 
+    /// <summary>Set the debug name.</summary>
+    public void SetDebugName(string debugName)
+    {
+        _rawBuffer?.SetDebugName(debugName);
+    }
+
     private static void CombineHash(ref uint result, uint hash)
     {
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
@@ -550,7 +576,6 @@ public sealed class DynamicVertexBuffer
         }
 
         _vertexBuffer.SetData(_shadowData);
-        // TODO: port: RawBuffer::UpdateRange is not represented by the managed buffer API.
     }
 
     /// <summary>Allocate vertices. Returns index of first vertex and writable buffer of sufficient size.</summary>
@@ -584,8 +609,7 @@ public sealed class DynamicVertexBuffer
     /// <summary>Set the debug name.</summary>
     public void SetDebugName(string debugName)
     {
-        // TODO: port: VertexBuffer::SetDebugName is provided by the unavailable RawBuffer API.
-        _ = debugName;
+        _vertexBuffer.SetDebugName(debugName);
     }
 
     private void GrowBuffer(uint newMaxNumVertices)

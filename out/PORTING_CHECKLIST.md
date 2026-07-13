@@ -190,8 +190,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — CPU shadow data, range queries, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation, range updates, and debug-name forwarding are ported; C# composes the RawBuffer because it cannot represent the C++ multiple-inheritance shape
   - [~] `DynamicIndexBuffer : Object` — managed allocation, growth, discard, commit, RawBuffer upload, and debug-name forwarding are ported
 - [~] `VertexBuffer.h`
-  - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, and pipeline-state hashing are ported; RawBuffer GPU Create/UpdateRange remains TODO
-  - [~] `DynamicVertexBuffer : Object` — managed allocation, growth, discard, and commit behavior are ported; RawBuffer upload/debug-name remains TODO
+  - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, pipeline-state hashing, RawBuffer creation, range updates, full-data uploads, and debug-name forwarding are ported; C# composes the RawBuffer because it cannot represent the C++ multiple-inheritance shape
+  - [~] `DynamicVertexBuffer : Object` — managed allocation, growth, discard, commit, RawBuffer upload, and debug-name forwarding are ported
 - [~] `Texture.h`
   - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, XML parameter parsing, and the managed `RenderSurface` getter surface are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle, bind-flag, budget, and image transfer hooks remain TODO
 - [~] `Texture2D.h`
