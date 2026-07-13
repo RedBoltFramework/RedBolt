@@ -13,6 +13,10 @@ public sealed class Renderer : Object
 
     private readonly Zone _defaultZone = new();
     private Technique? _defaultTechnique;
+    private Material? _defaultMaterial;
+    private Texture2D? _defaultLightRamp;
+    private Texture2D? _defaultLightSpot;
+    private TextureCube? _blackCubeMap;
     private RenderSurface? _backbufferSurface;
     private bool _backbufferSurfaceViewportsDirty;
     private readonly List<Viewport?> _viewports = [];
@@ -129,6 +133,43 @@ public sealed class Renderer : Object
             _defaultTechnique = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>("Techniques/NoTexture.xml");
 
         return _defaultTechnique;
+    }
+
+    public Material GetDefaultMaterial()
+    {
+        return _defaultMaterial ??= new Material(string.Empty);
+    }
+
+    public Texture2D? GetDefaultLightRamp()
+    {
+        if (_defaultLightRamp is null)
+            _defaultLightRamp = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Texture2D>("Textures/Ramp.png");
+
+        return _defaultLightRamp;
+    }
+
+    public Texture2D? GetDefaultLightSpot()
+    {
+        if (_defaultLightSpot is null)
+            _defaultLightSpot = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Texture2D>("Textures/Spot.png");
+
+        return _defaultLightSpot;
+    }
+
+    public TextureCube GetBlackCubeMap()
+    {
+        if (_blackCubeMap is not null)
+            return _blackCubeMap;
+
+        _blackCubeMap = new TextureCube("BlackCubeMap");
+        _blackCubeMap.SetNumLevels(1);
+        _blackCubeMap.SetSize(1, TextureFormat.RGBA8);
+        _blackCubeMap.SetFilterMode(TextureFilterMode.Nearest);
+        var data = new byte[] { 0, 0, 0, 255 };
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; ++face)
+            _blackCubeMap.SetData(face, 0, 0, 0, 1, 1, data);
+
+        return _blackCubeMap;
     }
 
     public void SetNumViewports(uint count)
