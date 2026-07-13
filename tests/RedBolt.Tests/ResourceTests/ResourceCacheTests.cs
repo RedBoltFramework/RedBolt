@@ -280,6 +280,41 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Missing_resource_file_sends_not_found_event()
+    {
+        string? observedName = null;
+        using var subscription = Resources.SubscribeToEvent<ResourceEvents.ResourceNotFound>(
+            (ref ResourceEvents.ResourceNotFound eventData) => observedName = eventData.ResourceName);
+
+        Assert.Null(Resources.GetFile("Data/does-not-exist.txt"));
+        Assert.Equal("Data/does-not-exist.txt", observedName);
+    }
+
+    [Fact]
+    public void Failed_resource_load_sends_load_failed_event()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "failure.dat"), "failure");
+            Resources.AddResourceDir(tempDir);
+            Resources.SetReturnFailedResources(false);
+
+            string? observedName = null;
+            using var subscription = Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
+                (ref ResourceEvents.LoadFailed eventData) => observedName = eventData.ResourceName);
+
+            Assert.Throws<InvalidOperationException>(() => Resources.GetResource<FailedResource>("Data/failure.dat"));
+            Assert.Equal("Data/failure.dat", observedName);
+        }
+        finally
+        {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RemoveResourceDir_unregisters_resources()
     {
         var tempDir = CreateTempDir();
@@ -297,4 +332,9 @@ internal sealed class PrefixRouter(string prefix) : ResourceRouter
     {
         name.FileName = prefix + name.FileName;
     }
+}
+
+public sealed class FailedResource(string name) : Resource(name)
+{
+    public override bool BeginLoad(Stream source) => false;
 }

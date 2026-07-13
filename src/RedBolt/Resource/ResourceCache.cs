@@ -263,7 +263,7 @@ public sealed class ResourceCache : Object
             return (T)cached;
 
         var resource = TryLoadResource<T>(name)
-            ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
+            ?? LoadFailure<T>(name, sendEventOnFailure);
 
         resource.OwnerCache = this;
         _cache.Add(key, resource);
@@ -312,7 +312,7 @@ public sealed class ResourceCache : Object
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         return TryLoadResource<T>(name)
-            ?? throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
+            ?? LoadFailure<T>(name, sendEventOnFailure);
     }
 
     public bool Exists<T>(string name)
@@ -331,9 +331,14 @@ public sealed class ResourceCache : Object
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var virtualFileSystem = GetVirtualFileSystem();
-        var file = virtualFileSystem.OpenFile(GetResolvedIdentifier(new FileIdentifier(name)), File.FileMode.Read);
+        var resolvedName = GetResolvedIdentifier(new FileIdentifier(name));
+        var file = virtualFileSystem.OpenFile(resolvedName, File.FileMode.Read);
         if (file is null)
+        {
+            if (sendEventOnFailure)
+                SendResourceNotFound(name, resolvedName);
             return null;
+        }
 
         try
         {
@@ -806,5 +811,31 @@ public sealed class ResourceCache : Object
         return Path.HasExtension(name)
             ? [name]
             : [name + ".renderpath", name + ".xml"];
+    }
+
+    private T LoadFailure<T>(string name, bool sendEventOnFailure)
+        where T : Resource
+    {
+        if (sendEventOnFailure)
+        {
+            if (string.IsNullOrEmpty(GetResourceFileName(name)))
+                SendResourceNotFound(name, FileIdentifier.Empty);
+            else
+            {
+                var eventData = new ResourceEvents.LoadFailed { ResourceName = name };
+                SendEvent(ref eventData);
+            }
+        }
+
+        throw new InvalidOperationException($"Resource '{name}' of type {typeof(T).Name} was not found.");
+    }
+
+    private void SendResourceNotFound(string requestedName, FileIdentifier resolvedName)
+    {
+        var eventData = new ResourceEvents.ResourceNotFound
+        {
+            ResourceName = resolvedName.IsEmpty() ? requestedName : resolvedName.ToUri()
+        };
+        SendEvent(ref eventData);
     }
 }

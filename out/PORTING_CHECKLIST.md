@@ -87,8 +87,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
 
-## [x] A5. Resource — depends on IO, Core
+## [~] A5. Resource — depends on IO, Core
 
+- [~] `ResourceCache` — resource lookup, VFS-backed file access, caching, reload dependencies, background loading, and failure events are ported; package-resource grouping and remaining background failure/event lifecycle parity remain
 
 ## [x] A6. Scene — depends on Resource, Core
 
@@ -409,18 +410,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `LightmapRenderPipeline.h` ⤴ pairs with `Glow`
   - [ ] `LightmapRenderPipelineView`
 
-## A11. Input — depends on Core, Graphics (window)
+## [~] A11. Input — depends on Core, Graphics (window)
 
-- [x] `InputConstants.h`
-  - [x] key / button / scancode constants — represented as C# enums (`Key`, `Scancode`, `MouseButton`, `Qualifier`, `MouseMode`, `HatPosition`, `ControllerButton`, `ControllerAxis`)
-- [x] `InputEvents.h`
-  - [x] input event definitions — mouse, keyboard, text, joystick, touch, gesture, focus, raw SDL, lifecycle, and multitouch payloads are ported
-- [x] `AxisAdapter.h`
-  - [x] `AxisAdapter` — dead zone, asymmetric sensitivity, neutral/inversion transforms, and archive persistence are ported
-- [ ] `Input.h`
-  - [x] `struct TouchState` — touch ID, position, delta, pressure, and element reference are ported as a C# struct with public fields matching C++
-  - [x] `struct JoystickState` — joystick/controller handles, button/axis/hat arrays, and accessor methods are ported as a C# struct with public fields matching C++
-  - [ ] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, and window helpers are ported; screen joystick and SDL gesture save/load archive APIs remain deferred
+- [~] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, and window helpers are ported; screen joystick creation/visibility and SDL gesture save/load archive APIs remain deferred
 - [x] `InputMap.h`
   - [x] `struct KeyboardKeyMapping` — scancode wrapper with archive serialization ported
   - [x] `struct ControllerButtonMapping`
