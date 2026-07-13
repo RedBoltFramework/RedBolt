@@ -33,7 +33,8 @@ public sealed class TextureCube : Texture
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<TextureCube>();
+        var reflection = context.AddReflection<TextureCube>();
+        reflection.SetObjectFactory(static () => new TextureCube(string.Empty));
     }
 
     /// <summary>
