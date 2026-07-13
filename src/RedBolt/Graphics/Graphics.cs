@@ -470,7 +470,18 @@ layout(std140) uniform Material
         if (GetFullscreen())
             return;
 
-        _windowPosition = GetWindowPosition();
+        var newPosition = GetWindowPosition();
+        if (newPosition == _windowPosition)
+            return;
+
+        _windowPosition = newPosition;
+
+        var windowPosEvent = new GraphicsEvents.WindowPosEvent
+        {
+            X = _windowPosition.X,
+            Y = _windowPosition.Y
+        };
+        SendEvent(ref windowPosEvent);
     }
 
     private static WindowSettings CloneWindowSettings(WindowSettings settings)

@@ -178,7 +178,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct VertexElement` — fields, constructors, equality, inequality, and ToHash are ported
   - [x] graphics enums / constants
 - [~] `GraphicsEvents.h`
-  - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events, render-pipeline per-view update/render/buffer events are dispatched, and render-surface update dispatch now queues managed texture surfaces; managed output targets still lack native RenderSurface sender integration
+  - [~] graphics event definitions — all 16 C++ events are represented as struct-based C# events, window-position and render-pipeline per-view update/render/buffer events are dispatched, and render-surface update dispatch now queues managed texture surfaces; managed output targets still lack native RenderSurface sender integration
 - [~] `DrawableEvents.h`
   - [~] drawable event definitions — all five C++ events are represented as struct-based C# events; Animation trigger and finished payloads are strongly typed and trigger dispatch is ported, while ParticleEffect remains opaque
 - [~] `GraphicsUtils.h`

@@ -295,11 +295,23 @@ public sealed class RenderDeviceTests
         var originalPosition = _fixture.Graphics.GetWindowPosition();
         try
         {
+            var windowPosEventCount = 0;
+            var reportedWindowPosition = Vector2i.Zero;
+            using var windowPosSubscription = _fixture.Graphics.SubscribeToEvent<GraphicsEvents.WindowPosEvent>((ref GraphicsEvents.WindowPosEvent eventData) =>
+            {
+                ++windowPosEventCount;
+                reportedWindowPosition = new Vector2i(eventData.X, eventData.Y);
+            });
+
             _fixture.Graphics.SetWindowTitle("Graphics Window API");
-            _fixture.Graphics.SetWindowPosition(originalPosition);
+            var movedPosition = originalPosition + new Vector2i(1, 1);
+            _fixture.Graphics.SetWindowPosition(movedPosition);
+            _fixture.Graphics.OnWindowMoved();
 
             Assert.Equal("Graphics Window API", _fixture.Graphics.GetWindowTitle());
-            Assert.Equal(originalPosition, _fixture.Graphics.GetWindowPosition());
+            Assert.Equal(movedPosition, _fixture.Graphics.GetWindowPosition());
+            Assert.Equal(1, windowPosEventCount);
+            Assert.Equal(movedPosition, reportedWindowPosition);
             Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height), _fixture.Graphics.GetSize());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().MultiSample, _fixture.Graphics.GetMultiSample());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().Mode == WindowMode.Fullscreen, _fixture.Graphics.GetFullscreen());
