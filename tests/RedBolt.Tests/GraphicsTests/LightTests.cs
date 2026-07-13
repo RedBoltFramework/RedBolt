@@ -112,6 +112,23 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Point_volume_transform_uses_world_position_and_range()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetRange(4.0f);
+        light.Node.SetPosition(new Vector3f(5.0f, 6.0f, 7.0f));
+
+        var transform = light.GetVolumeTransform(null);
+
+        Assert.Equal(5.0f, transform.M03);
+        Assert.Equal(6.0f, transform.M13);
+        Assert.Equal(7.0f, transform.M23);
+        Assert.Equal(4.0f, transform.M00);
+        Assert.Equal(4.0f, transform.M11);
+        Assert.Equal(4.0f, transform.M22);
+    }
+
+    [Fact]
     public void View_space_frustum_applies_view_transform()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();

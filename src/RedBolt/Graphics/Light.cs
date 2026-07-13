@@ -73,6 +73,7 @@ public sealed class Light : Drawable
     private float _aspectRatio = 1.0f;
     private Texture? _rampTexture;
     private Texture? _shapeTexture;
+    private Matrix3x4 _volumeTransform = Matrix3x4.Identity;
 
     public Light()
         : base(DrawableFlags.Light)
@@ -363,6 +364,47 @@ public sealed class Light : Drawable
         var frustum = new Frustum();
         frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, view * transform);
         return frustum;
+    }
+
+    public Matrix3x4 GetVolumeTransform(Camera? camera)
+    {
+        if (!IsAttached)
+            return Matrix3x4.Identity;
+
+        switch (_lightType)
+        {
+            case LightType.Directional:
+                ArgumentNullException.ThrowIfNull(camera);
+                _volumeTransform = GetFullscreenQuadTransform(camera);
+                break;
+
+            case LightType.Spot:
+            {
+                var yScale = MathF.Tan(_fov * MathDefs.DegToRad * 0.5f) * _range;
+                var xScale = _aspectRatio * yScale;
+                _volumeTransform = new Matrix3x4(
+                    Node.WorldPosition,
+                    Node.WorldRotation,
+                    new Vector3f(xScale, yScale, _range));
+                break;
+            }
+
+            case LightType.Point:
+                _volumeTransform = new Matrix3x4(Node.WorldPosition, Quaternion.Identity, _range);
+                break;
+        }
+
+        return _volumeTransform;
+    }
+
+    public static Matrix3x4 GetFullscreenQuadTransform(Camera camera)
+    {
+        ArgumentNullException.ThrowIfNull(camera);
+        camera.GetFrustumSize(out _, out var farSize);
+        var quadTransform = Matrix3x4.Identity;
+        quadTransform.SetTranslation(new Vector3f(0.0f, 0.0f, (camera.GetNearClip() + camera.GetFarClip()) * 0.5f));
+        quadTransform.SetScale(new Vector3f(farSize.X, farSize.Y, 1.0f));
+        return camera.GetEffectiveWorldTransform() * quadTransform;
     }
 
     public void SetRampTextureAttr(ResourceRef value)
