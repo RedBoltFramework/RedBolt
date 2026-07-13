@@ -43,7 +43,7 @@ public sealed class StaticModelTests
         cube.SetOccludee(false);
 
         Assert.Equal(DrawableFlags.Geometry, cube.GetDrawableFlags());
-        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetDrawDistance(), 0.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetDrawDistance(), -1.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetShadowDistance(), 50.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetLodBias(), MathDefs.Epsilon));
         Assert.Equal(0x11u, cube.GetViewMask());
@@ -53,6 +53,10 @@ public sealed class StaticModelTests
         Assert.True(cube.GetCastShadows());
         Assert.False(cube.IsOccluder());
         Assert.False(cube.IsOccludee());
+
+        var pipelineStateHash = cube.GetPipelineStateHash();
+        cube.SetGlobalIlluminationType(GlobalIlluminationType.BlendLightProbes);
+        Assert.NotEqual(pipelineStateHash, cube.GetPipelineStateHash());
     }
 
     [Fact]

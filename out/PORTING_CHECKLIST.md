@@ -219,7 +219,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Viewport.h` — `Viewport : Object` base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation including owner invalidation are ported; C# drops `WeakPtr`/`SharedPtr` per the allowed deviations
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
-  - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, combined zone light/shadow masks, and octree membership/index state are ported; reflection cache and pipeline-state tracking remain incomplete
+  - [~] `Drawable : Component, PipelineStateTracker` — zone assignment/cache state, zone dirtiness, mutable cached-zone access, combined zone light/shadow masks, pipeline-state tracking/hash invalidation, and octree attach/detach/disposal are ported; the reflection-probe cache remains incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, removal, and moving existing drawables between octants are ported; full scene octree reinsertion and debug traversal remain incomplete

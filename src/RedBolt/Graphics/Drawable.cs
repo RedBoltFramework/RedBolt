@@ -106,6 +106,26 @@ public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 
 public abstract class Drawable : Component
 {
+    private sealed class DrawablePipelineStateTracker : PipelineStateTracker
+    {
+        private readonly Drawable _owner;
+
+        public DrawablePipelineStateTracker(Drawable owner)
+        {
+            _owner = owner;
+        }
+
+        public PipelineStateSubscription CreateDependencyFor(PipelineStateTracker? dependency)
+        {
+            return CreateDependency(dependency);
+        }
+
+        protected override uint RecalculatePipelineStateHash()
+        {
+            return _owner.RecalculatePipelineStateHash();
+        }
+    }
+
     public const uint DefaultViewMask = uint.MaxValue;
     public const uint DefaultLightMask = uint.MaxValue;
     public const uint DefaultShadowMask = uint.MaxValue;
@@ -117,6 +137,14 @@ public abstract class Drawable : Component
     protected Drawable(DrawableFlags drawableFlags = DrawableFlags.Undefined)
     {
         DrawableFlags = drawableFlags;
+        _pipelineStateTracker = new DrawablePipelineStateTracker(this);
+    }
+
+    public override void Dispose()
+    {
+        RemoveFromOctree();
+        _pipelineStateTracker.Dispose();
+        base.Dispose();
     }
 
     private BoundingBox _boundingBox;
@@ -126,6 +154,7 @@ public abstract class Drawable : Component
     private bool _zoneDirty;
     private Octant? _octant;
     private uint _drawableIndex = uint.MaxValue;
+    private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;
 
@@ -149,13 +178,13 @@ public abstract class Drawable : Component
 
     public bool CastShadows { get; set; }
 
-    public bool Occluder { get; set; } = true;
+    public bool Occluder { get; set; }
 
     public bool Occludee { get; set; } = true;
 
     public GlobalIlluminationType GlobalIlluminationType { get; set; }
 
-    public ReflectionMode ReflectionMode { get; set; }
+    public ReflectionMode ReflectionMode { get; set; } = ReflectionMode.BlendProbesAndZone;
 
     public BoundingBox GetBoundingBox() => _boundingBox;
 
@@ -174,6 +203,10 @@ public abstract class Drawable : Component
     public uint GetShadowMask() => ShadowMask;
 
     public uint GetZoneMask() => ZoneMask;
+
+    public uint GetPipelineStateHash() => _pipelineStateTracker.GetPipelineStateHash();
+
+    public void MarkPipelineStateHashDirty() => _pipelineStateTracker.MarkPipelineStateHashDirty();
 
     /// <summary>
     /// Return current zone.
@@ -245,12 +278,12 @@ public abstract class Drawable : Component
 
     public void SetDrawDistance(float distance)
     {
-        DrawDistance = Math.Max(distance, 0.0f);
+        DrawDistance = distance;
     }
 
     public void SetShadowDistance(float distance)
     {
-        ShadowDistance = Math.Max(distance, 0.0f);
+        ShadowDistance = distance;
     }
 
     public void SetLodBias(float bias)
@@ -266,6 +299,7 @@ public abstract class Drawable : Component
     public void SetLightMask(uint mask)
     {
         LightMask = mask;
+        MarkPipelineStateHashDirty();
     }
 
     public void SetShadowMask(uint mask)
@@ -299,11 +333,13 @@ public abstract class Drawable : Component
     public void SetGlobalIlluminationType(GlobalIlluminationType type)
     {
         GlobalIlluminationType = type;
+        MarkPipelineStateHashDirty();
     }
 
     public void SetReflectionMode(ReflectionMode mode)
     {
         ReflectionMode = mode;
+        MarkPipelineStateHashDirty();
     }
 
     /// <summary>
@@ -325,6 +361,28 @@ public abstract class Drawable : Component
         _worldBoundingBoxDirty = true;
     }
 
+    public override void OnSetEnabled()
+    {
+        var enabled = IsEnabledEffective;
+        if (enabled && _octant is null)
+            AddToOctree();
+        else if (!enabled && _octant is not null)
+            RemoveFromOctree();
+    }
+
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
+    {
+        currentNode?.AddListener(this);
+    }
+
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    {
+        if (scene is not null)
+            AddToOctree();
+        else
+            RemoveFromOctree();
+    }
+
     protected void SetLocalBoundingBox(BoundingBox box)
     {
         _boundingBox = box;
@@ -344,5 +402,56 @@ public abstract class Drawable : Component
     protected internal override void OnMarkedDirty(Node node)
     {
         MarkForUpdate();
+    }
+
+    protected virtual void OnRemoveFromOctree()
+    {
+    }
+
+    protected void AddToOctree()
+    {
+        if (!IsEnabledEffective)
+            return;
+
+        var scene = Scene;
+        if (scene is not null)
+        {
+            var octrees = new System.Collections.Generic.List<Octree>(1);
+            scene.GetComponents(octrees);
+            var octree = octrees.Count > 0 ? octrees[0] : null;
+            if (octree is not null)
+                octree.AddDrawable(this);
+            else
+                Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                    Log.Logger, "No Octree component in scene, drawable will not render.");
+        }
+    }
+
+    protected void RemoveFromOctree()
+    {
+        if (_octant is null)
+            return;
+
+        var octree = _octant.GetOctree();
+        OnRemoveFromOctree();
+        octree.RemoveDrawable(this, _octant);
+    }
+
+    protected PipelineStateSubscription CreateDependency(PipelineStateTracker? dependency)
+    {
+        return _pipelineStateTracker.CreateDependencyFor(dependency);
+    }
+
+    private uint RecalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, (uint)GlobalIlluminationType);
+        CombineHash(ref hash, ReflectionMode >= ReflectionMode.BlendProbes ? 1u : 0u);
+        return hash;
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 }
