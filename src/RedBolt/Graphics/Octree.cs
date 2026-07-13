@@ -602,6 +602,9 @@ public sealed class Octree : Component
 
     public void DrawDebugGeometry(bool depthTest)
     {
+        // TODO: port DebugRenderer integration.
+        // auto* debug = GetComponent<DebugRenderer>();
+        // DrawDebugGeometry(debug, depthTest);
     }
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
