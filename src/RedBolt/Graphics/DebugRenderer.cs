@@ -19,6 +19,11 @@ public sealed class DebugRenderer : Component
     private Camera? _camera;
     private bool _lineAntiAlias;
 
+    public DebugRenderer()
+    {
+        SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => HandleEndFrame());
+    }
+
     /// <summary>
     /// Set line antialiasing on/off. Default false.
     /// </summary>
