@@ -146,6 +146,35 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void StringHash_resource_overloads_find_release_and_report_groups()
+    {
+        using var cache = new ResourceCache();
+        var resourceName = $"Data/hash-{Guid.NewGuid():N}.bin";
+        var resource = new BinaryFile(resourceName);
+        resource.SetMemoryUse(3);
+        var type = new StringHash(typeof(BinaryFile).GetClassName());
+        cache.SetMemoryBudget(type, 8);
+        try
+        {
+            Assert.True(cache.AddManualResource(resource));
+            Assert.Same(resource, cache.GetExistingResource(type, resourceName));
+            Assert.Contains(resource, cache.GetResources(type));
+            Assert.Equal(8ul, cache.GetMemoryBudget(type));
+            Assert.Equal(3ul, cache.GetMemoryUse(type));
+            Assert.Same(resource, cache.GetResource(type, resourceName));
+
+            cache.ReleaseResource(type, resourceName);
+
+            Assert.Null(cache.GetExistingResource(type, resourceName));
+        }
+        finally
+        {
+            cache.SetMemoryBudget(type, 0);
+            cache.ReleaseResources(type, force: true);
+        }
+    }
+
+    [Fact]
     public void BackgroundLoad_finishes_successfully()
     {
         var tempDir = CreateTempDir();

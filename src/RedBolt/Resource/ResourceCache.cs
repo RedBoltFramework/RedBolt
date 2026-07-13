@@ -154,6 +154,12 @@ public sealed class ResourceCache : Object
         UpdateResourceGroup(type);
     }
 
+    public void SetMemoryBudget(StringHash type, ulong budget)
+    {
+        if (ResolveResourceType(type) is { } resourceType)
+            SetMemoryBudget(resourceType, budget);
+    }
+
     public ulong GetMemoryBudget<T>()
         where T : Resource
     {
@@ -164,6 +170,13 @@ public sealed class ResourceCache : Object
     {
         ArgumentNullException.ThrowIfNull(type);
         return _memoryBudgets.GetValueOrDefault(type);
+    }
+
+    public ulong GetMemoryBudget(StringHash type)
+    {
+        return ResolveResourceType(type) is { } resourceType
+            ? GetMemoryBudget(resourceType)
+            : 0;
     }
 
     public ulong GetMemoryUse<T>()
@@ -178,6 +191,13 @@ public sealed class ResourceCache : Object
         return _cache
             .Where(item => item.Key.Type == type)
             .Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse);
+    }
+
+    public ulong GetMemoryUse(StringHash type)
+    {
+        return ResolveResourceType(type) is { } resourceType
+            ? GetMemoryUse(resourceType)
+            : 0;
     }
 
     public ulong GetTotalMemoryUse()
@@ -244,6 +264,32 @@ public sealed class ResourceCache : Object
         return GetCanonicalIdentifier(name);
     }
 
+    public Resource? GetResource(StringHash type, string name, bool sendEventOnFailure = true)
+    {
+        var resourceType = ResolveResourceType(type);
+        if (resourceType is null)
+        {
+            if (sendEventOnFailure)
+            {
+                var eventData = new ResourceEvents.UnknownResourceType { ResourceType = type };
+                SendEvent(ref eventData);
+            }
+
+            return null;
+        }
+
+        return GetResourceByType(resourceType, name, sendEventOnFailure);
+    }
+
+    public Resource? GetTempResource(StringHash type, string name, bool sendEventOnFailure = true)
+    {
+        var resourceType = ResolveResourceType(type);
+        if (resourceType is null)
+            return null;
+
+        return TryLoadResource(resourceType, SanitateResourceName(name));
+    }
+
     public bool BackgroundLoadResource<T>(string name, bool sendEventOnFailure = true, Resource? caller = null)
         where T : Resource
     {
@@ -260,7 +306,7 @@ public sealed class ResourceCache : Object
         return _backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
     }
 
-    internal bool BackgroundLoadResource(StringHash type, string name, bool sendEventOnFailure = true, Resource? caller = null)
+    public bool BackgroundLoadResource(StringHash type, string name, bool sendEventOnFailure = true, Resource? caller = null)
     {
         var resourceType = ResolveResourceType(type);
         return resourceType is not null && BackgroundLoadResource(resourceType, name, sendEventOnFailure, caller);
@@ -277,6 +323,22 @@ public sealed class ResourceCache : Object
         where T : Resource
     {
         return GetResource<T>(name);
+    }
+
+    public Resource? GetExistingResource(StringHash type, string name)
+    {
+        var resourceType = ResolveResourceType(type);
+        return resourceType is null
+            ? null
+            : GetExistingResource(resourceType, name);
+    }
+
+    public IReadOnlyList<Resource> GetResources(StringHash type)
+    {
+        var resourceType = ResolveResourceType(type);
+        return resourceType is null
+            ? Array.Empty<Resource>()
+            : GetResources(resourceType);
     }
 
     public T GetResource<T>(string name, bool sendEventOnFailure = true)
@@ -457,6 +519,16 @@ public sealed class ResourceCache : Object
         UpdateResourceGroup(typeof(T));
     }
 
+    public void ReleaseResource(StringHash type, string name, bool force = false)
+    {
+        var resourceType = ResolveResourceType(type);
+        if (resourceType is null)
+            return;
+
+        RemoveCachedResource((resourceType, SanitateResourceName(name)));
+        UpdateResourceGroup(resourceType);
+    }
+
     public void ReleaseResource(string resourceName, bool force = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
@@ -482,6 +554,35 @@ public sealed class ResourceCache : Object
         foreach (var key in keys)
             RemoveCachedResource(key);
         UpdateResourceGroup(typeof(T));
+    }
+
+    public void ReleaseResources(StringHash type, bool force = false)
+    {
+        var resourceType = ResolveResourceType(type);
+        if (resourceType is null)
+            return;
+
+        var keys = _cache.Keys
+            .Where(key => key.Type == resourceType)
+            .ToArray();
+        foreach (var key in keys)
+            RemoveCachedResource(key);
+        UpdateResourceGroup(resourceType);
+    }
+
+    public void ReleaseResources(StringHash type, string partialName, bool force = false)
+    {
+        var resourceType = ResolveResourceType(type);
+        if (resourceType is null)
+            return;
+
+        ArgumentNullException.ThrowIfNull(partialName);
+        var keys = _cache.Keys
+            .Where(key => key.Type == resourceType && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var key in keys)
+            RemoveCachedResource(key);
+        UpdateResourceGroup(resourceType);
     }
 
     public bool ReloadResource<T>(string name)
@@ -876,6 +977,43 @@ public sealed class ResourceCache : Object
         {
             resource.SetAsyncLoadState(AsyncLoadState.Fail);
         }
+        return resource;
+    }
+
+    private Resource? GetResourceByType(Type type, string name, bool sendEventOnFailure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var sanitizedName = SanitateResourceName(name);
+        if (string.IsNullOrEmpty(sanitizedName))
+            return null;
+
+        _backgroundLoader.WaitForResource(type, sanitizedName);
+        var key = (type, sanitizedName);
+        if (_cache.TryGetValue(key, out var cached))
+            return cached;
+
+        var resource = TryLoadResource(type, sanitizedName);
+        if (resource is null)
+        {
+            if (sendEventOnFailure)
+            {
+                if (string.IsNullOrEmpty(GetResourceFileName(sanitizedName)))
+                    SendResourceNotFound(sanitizedName, FileIdentifier.Empty);
+                else
+                {
+                    var eventData = new ResourceEvents.LoadFailed { ResourceName = sanitizedName };
+                    SendEvent(ref eventData);
+                }
+            }
+
+            return null;
+        }
+
+        resource.OwnerCache = this;
+        resource.SetName(sanitizedName);
+        _cache[key] = resource;
+        AddResourceToGroup(type, resource);
+        UpdateResourceGroup(type);
         return resource;
     }
 
