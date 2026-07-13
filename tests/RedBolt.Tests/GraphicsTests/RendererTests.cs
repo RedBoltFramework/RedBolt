@@ -165,4 +165,20 @@ public sealed class RendererTests
         Assert.Equal(7u, Renderer.GetFrameInfo().FrameNumber);
         Assert.Equal(0.25f, Renderer.GetFrameInfo().TimeStep);
     }
+
+    [Fact]
+    public void Light_and_quad_geometry_match_renderer_geometry_contract()
+    {
+        var directionalLight = new Light();
+        directionalLight.SetLightType(LightType.Directional);
+        var spotLight = new Light();
+        spotLight.SetLightType(LightType.Spot);
+        var pointLight = new Light();
+        pointLight.SetLightType(LightType.Point);
+
+        Assert.Same(Renderer.GetQuadGeometry(), Renderer.GetLightGeometry(directionalLight));
+        Assert.Equal(6u, Renderer.GetLightGeometry(directionalLight)!.GetIndexCount());
+        Assert.Equal(36u, Renderer.GetLightGeometry(spotLight)!.GetIndexCount());
+        Assert.Equal(132u, Renderer.GetLightGeometry(pointLight)!.GetIndexCount());
+    }
 }

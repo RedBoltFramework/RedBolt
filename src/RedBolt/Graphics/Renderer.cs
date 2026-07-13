@@ -18,6 +18,9 @@ public sealed class Renderer : Object
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
 
     private readonly Zone _defaultZone = new();
+    private Geometry? _dirLightGeometry;
+    private Geometry? _spotLightGeometry;
+    private Geometry? _pointLightGeometry;
     private Technique? _defaultTechnique;
     private Material? _defaultMaterial;
     private Texture2D? _defaultLightRamp;
@@ -30,6 +33,11 @@ public sealed class Renderer : Object
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
     private readonly CommonFrameInfo _frameInfo = new();
     private readonly FrameStatistics _frameStats = new();
+
+    public Renderer()
+    {
+        CreateGeometries();
+    }
 
     public int TextureAnisotropy { get; private set; } = 4;
 
@@ -230,6 +238,19 @@ public sealed class Renderer : Object
 
     public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
 
+    public Geometry? GetLightGeometry(Light light)
+    {
+        return light.GetLightType() switch
+        {
+            LightType.Directional => _dirLightGeometry,
+            LightType.Spot => _spotLightGeometry,
+            LightType.Point => _pointLightGeometry,
+            _ => null
+        };
+    }
+
+    public Geometry? GetQuadGeometry() => _dirLightGeometry;
+
     /// <summary>Set backbuffer render surface. Null corresponds to the application backbuffer.</summary>
     public void SetBackbufferRenderSurface(RenderSurface? renderSurface)
     {
@@ -322,5 +343,94 @@ public sealed class Renderer : Object
     {
         while (_viewports.Count < count)
             _viewports.Add(null);
+    }
+
+    private void CreateGeometries()
+    {
+        _dirLightGeometry = CreateGeometry(
+            "DirectionalLight",
+            [
+                -1, 1, 0,
+                1, 1, 0,
+                1, -1, 0,
+                -1, -1, 0
+            ],
+            [0, 1, 2, 2, 3, 0]);
+
+        _spotLightGeometry = CreateGeometry(
+            "SpotLight",
+            [
+                0.00001f, 0.00001f, 0.00001f,
+                0.00001f, -0.00001f, 0.00001f,
+                -0.00001f, -0.00001f, 0.00001f,
+                -0.00001f, 0.00001f, 0.00001f,
+                1.00000f, 1.00000f, 0.99999f,
+                1.00000f, -1.00000f, 0.99999f,
+                -1.00000f, -1.00000f, 0.99999f,
+                -1.00000f, 1.00000f, 0.99999f
+            ],
+            [
+                3, 0, 1, 3, 1, 2, 0, 4, 5, 0, 5, 1,
+                3, 7, 4, 3, 4, 0, 7, 3, 2, 7, 2, 6,
+                6, 2, 1, 6, 1, 5, 7, 5, 4, 7, 6, 5
+            ]);
+
+        _pointLightGeometry = CreateGeometry(
+            "PointLight",
+            [
+                -0.423169f, -1.000000f, 0.423169f, -0.423169f, -1.000000f, -0.423169f,
+                0.423169f, -1.000000f, -0.423169f, 0.423169f, -1.000000f, 0.423169f,
+                0.423169f, 1.000000f, -0.423169f, -0.423169f, 1.000000f, -0.423169f,
+                -0.423169f, 1.000000f, 0.423169f, 0.423169f, 1.000000f, 0.423169f,
+                -1.000000f, 0.423169f, -0.423169f, -1.000000f, -0.423169f, -0.423169f,
+                -1.000000f, -0.423169f, 0.423169f, -1.000000f, 0.423169f, 0.423169f,
+                0.423169f, 0.423169f, -1.000000f, 0.423169f, -0.423169f, -1.000000f,
+                -0.423169f, -0.423169f, -1.000000f, -0.423169f, 0.423169f, -1.000000f,
+                1.000000f, 0.423169f, 0.423169f, 1.000000f, -0.423169f, 0.423169f,
+                1.000000f, -0.423169f, -0.423169f, 1.000000f, 0.423169f, -0.423169f,
+                0.423169f, -0.423169f, 1.000000f, 0.423169f, 0.423169f, 1.000000f,
+                -0.423169f, 0.423169f, 1.000000f, -0.423169f, -0.423169f, 1.000000f
+            ],
+            [
+                0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11,
+                12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22,
+                20, 22, 23, 0, 10, 9, 0, 9, 1, 13, 2, 1, 13, 1, 14, 23, 0, 3,
+                23, 3, 20, 17, 3, 2, 17, 2, 18, 21, 7, 6, 21, 6, 22, 7, 16, 19,
+                7, 19, 4, 5, 8, 11, 5, 11, 6, 4, 12, 15, 4, 15, 5, 22, 11, 10,
+                22, 10, 23, 8, 15, 14, 8, 14, 9, 12, 19, 18, 12, 18, 13, 16, 21,
+                20, 16, 20, 17, 0, 23, 10, 1, 9, 14, 2, 13, 18, 3, 17, 20, 6, 11,
+                22, 5, 15, 8, 4, 19, 12, 7, 21, 16
+            ]);
+    }
+
+    private static Geometry CreateGeometry(string name, float[] vertexData, uint[] indexData)
+    {
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetDebugName(name);
+        vertexBuffer.SetShadowed(true);
+        vertexBuffer.SetSize((uint)(vertexData.Length / 3),
+            [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
+        vertexBuffer.SetData(ToBytes(vertexData));
+
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetDebugName(name);
+        indexBuffer.SetShadowed(true);
+        indexBuffer.SetSize((uint)indexData.Length);
+        indexBuffer.SetUnpackedData(indexData);
+
+        var geometry = new Geometry();
+        geometry.SetVertexBuffer(0, vertexBuffer);
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, (uint)indexData.Length);
+        return geometry;
+    }
+
+    private static byte[] ToBytes(float[] data)
+    {
+        var result = new byte[checked(data.Length * sizeof(float))];
+        for (var i = 0; i < data.Length; ++i)
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+                result.AsSpan(i * sizeof(float), sizeof(float)), BitConverter.SingleToInt32Bits(data[i]));
+        return result;
     }
 }
