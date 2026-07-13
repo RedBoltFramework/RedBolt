@@ -59,7 +59,8 @@ public class Animation : ResourceWithMetadata
     /// </summary>
     public static void RegisterObject(Context context)
     {
-        // TODO: port: context->AddFactoryReflection<Animation>();
+        var reflection = context.AddReflection<Animation>();
+        reflection.SetObjectFactory(static () => new Animation(string.Empty));
     }
 
     /// <summary>

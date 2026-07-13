@@ -5,6 +5,16 @@ namespace RedBolt.Tests;
 public sealed class AnimationTests
 {
     [Fact]
+    public void Animation_registers_empty_named_factory()
+    {
+        var context = new Context();
+        Animation.RegisterObject(context);
+
+        using var animation = Assert.IsType<Animation>(context.CreateObject(ObjectReflection<Animation>.TypeId));
+        Assert.Equal(string.Empty, animation.Name);
+    }
+
+    [Fact]
     public void Animation_tracks_and_triggers_follow_resource_state_rules()
     {
         var animation = new Animation("animation");
