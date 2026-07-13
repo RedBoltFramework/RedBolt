@@ -1098,7 +1098,7 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
 
 public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
 {
-    private readonly GraphicsPipelineStateDesc? _graphicsDesc;
+    private readonly GraphicsPipelineStateDesc? _graphicsDesc = new();
     private readonly ComputePipelineStateDesc? _computeDesc;
     private readonly uint _hash;
 
