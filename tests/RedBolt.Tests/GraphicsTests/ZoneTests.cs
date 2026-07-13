@@ -73,9 +73,11 @@ public sealed class ZoneTests
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetAmbientColor(new Color(0.2f, 0.3f, 0.4f));
         zone.SetAmbientBrightness(2.0f);
+        zone.UpdateCachedData();
         Assert.True(zone.GetAmbientStartColor().ApproximatelyEquivalent(zone.GetAmbientColor()));
         Assert.True(zone.GetAmbientEndColor().ApproximatelyEquivalent(zone.GetAmbientColor()));
-        Assert.True(zone.GetAmbientLighting().ApproximatelyEquivalent(new Vector3f(0.4f, 0.6f, 0.8f)));
+        Assert.True(zone.GetAmbientLighting().ApproximatelyEquivalent(
+            (zone.GetAmbientColor() * zone.GetAmbientBrightness()).GammaToLinear().ToVector3()));
     }
 
     [Fact]

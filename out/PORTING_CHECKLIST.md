@@ -237,7 +237,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant`
-  - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, and background-zone lookup are ported; `Zone::UpdateCachedData()` integration remains TODO
+  - [~] `ZoneLookupIndex` — zone registration, priority ordering, cached bounds/transforms, signed-distance selection, mask filtering, default-zone fallback, background-zone lookup, and zone cached-lighting refresh are ported; full octant lifecycle integration remains incomplete
   - [~] `Octree : Component` — managed zone-index ownership and `QueryZone`/`GetBackgroundZone` wiring are ported; full octant reinsertion and zone lifecycle parity remain incomplete
 - [~] `Zone.h`
   - [~] `Zone : Drawable`
@@ -295,8 +295,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `LightProbeGroup : Component`
 - [ ] `GlobalIllumination.h`
   - [ ] `GlobalIllumination : Component`
-- [ ] `ReflectionProbeData.h`
-  - [ ] reflection probe data structs
+- [~] `ReflectionProbeData.h`
+  - [~] reflection probe data struct
 - [ ] `ReflectionProbe.h`
   - [ ] `ReflectionProbeManager : TrackedComponentRegistryBase`
   - [ ] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>`

@@ -33,7 +33,54 @@ public sealed class SphericalHarmonicsColor9
     public void Scale(float scale) { for (var i = 0; i < 9; ++i) Values[i] *= scale; }
 }
 
-public sealed class SphericalHarmonicsDot9(SphericalHarmonicsColor9 harmonics)
+public sealed class SphericalHarmonicsDot9
 {
-    public Vector3f Evaluate(Vector3f direction) => harmonics.Evaluate(direction);
+    private readonly SphericalHarmonicsColor9 _harmonics;
+    private Vector3f _constantOffset;
+
+    public SphericalHarmonicsDot9(SphericalHarmonicsColor9 harmonics)
+    {
+        _harmonics = harmonics;
+    }
+
+    public SphericalHarmonicsDot9()
+        : this(new SphericalHarmonicsColor9())
+    {
+    }
+
+    public SphericalHarmonicsDot9(Color color)
+        : this(color.ToVector3())
+    {
+    }
+
+    public SphericalHarmonicsDot9(Vector3f color)
+        : this(new SphericalHarmonicsColor9())
+    {
+        _constantOffset = color;
+    }
+
+    public Vector3f Evaluate(Vector3f direction) => _harmonics.Evaluate(direction) + _constantOffset;
+
+    public SphericalHarmonicsDot9 Clone()
+    {
+        var result = new SphericalHarmonicsDot9();
+        for (var i = 0; i < _harmonics.Values.Length; ++i)
+            result._harmonics.Values[i] = _harmonics.Values[i];
+        result._constantOffset = _constantOffset;
+        return result;
+    }
+
+    public void Add(SphericalHarmonicsDot9 value)
+    {
+        _harmonics.AddScaled(value._harmonics, 1.0f);
+        _constantOffset += value._constantOffset;
+    }
+
+    public void Add(Vector3f value) => _constantOffset += value;
+
+    public void Scale(float scale)
+    {
+        _harmonics.Scale(scale);
+        _constantOffset *= scale;
+    }
 }

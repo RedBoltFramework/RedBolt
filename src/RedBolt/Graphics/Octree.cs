@@ -151,10 +151,9 @@ public sealed class ZoneLookupIndex
             }
         }
 
-        // TODO: port: for (Zone* zone : zones_)
-        // TODO: port:     zone->UpdateCachedData();
-        // TODO: port: if (defaultZone_)
-        // TODO: port:     defaultZone_->UpdateCachedData();
+        foreach (var zone in _zones)
+            zone.UpdateCachedData();
+        _defaultZone?.UpdateCachedData();
     }
 
     public CachedDrawableZone QueryZone(Vector3f position, uint zoneMask)

@@ -18,6 +18,10 @@ public sealed class Zone : Drawable
     private bool _inverseWorldDirty = true;
     private Color _ambientStartColor = DefaultAmbientColor;
     private Color _ambientEndColor = DefaultAmbientColor;
+    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedTextureLighting = new();
+    private readonly ThreadSafeCache<Vector3f> _cachedAmbientLighting = new();
+    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedAmbientAndBackgroundLighting = new();
+    private readonly ThreadSafeCache<ReflectionProbeData> _reflectionProbeData = new();
 
     public Zone()
         : base(DrawableFlags.Zone)
@@ -62,6 +66,7 @@ public sealed class Zone : Drawable
         AmbientColor = color;
         _ambientStartColor = color;
         _ambientEndColor = color;
+        MarkCachedAmbientDirty();
     }
 
     public Color GetAmbientColor() => AmbientColor;
@@ -69,6 +74,7 @@ public sealed class Zone : Drawable
     public void SetAmbientBrightness(float brightness)
     {
         AmbientBrightness = brightness;
+        MarkCachedAmbientDirty();
     }
 
     public float GetAmbientBrightness() => AmbientBrightness;
@@ -76,6 +82,7 @@ public sealed class Zone : Drawable
     public void SetBackgroundBrightness(float brightness)
     {
         BackgroundBrightness = brightness;
+        MarkCachedAmbientDirty();
     }
 
     public float GetBackgroundBrightness() => BackgroundBrightness;
@@ -90,6 +97,7 @@ public sealed class Zone : Drawable
     public void SetFogColor(Color color)
     {
         FogColor = color;
+        MarkCachedAmbientDirty();
     }
 
     public Color GetFogColor() => FogColor;
@@ -125,7 +133,6 @@ public sealed class Zone : Drawable
     public void SetPriority(int priority)
     {
         Priority = priority;
-        MarkZoneDirty();
     }
 
     public int GetPriority() => Priority;
@@ -154,6 +161,7 @@ public sealed class Zone : Drawable
     public void SetZoneTexture(Texture? texture)
     {
         _zoneTexture = texture;
+        MarkCachedTextureDirty();
     }
 
     public Texture? GetZoneTexture() => _zoneTexture;
@@ -161,9 +169,27 @@ public sealed class Zone : Drawable
     public void SetZoneTextureAttr(ResourceRef value)
     {
         _zoneTextureAttribute = value;
+        var cache = GetSubsystem<ResourceCache>();
+        _zoneTexture = null;
+        if (cache is not null)
+        {
+            foreach (var item in cache.AllResources)
+            {
+                if (string.Equals(item.Key.Name, value.Name, StringComparison.Ordinal)
+                    && item.Value is Texture texture)
+                {
+                    _zoneTexture = texture;
+                    break;
+                }
+            }
+        }
+        MarkCachedTextureDirty();
+        MarkCachedAmbientDirty();
     }
 
     public ResourceRef GetZoneTextureAttr() => _zoneTextureAttribute;
+
+    public ReflectionProbeData GetReflectionProbe() => _reflectionProbeData.Get();
 
     public Matrix3x4 GetInverseWorldTransform()
     {
@@ -186,7 +212,50 @@ public sealed class Zone : Drawable
         return AmbientGradient ? _ambientEndColor : AmbientColor;
     }
 
-    public Vector3f GetAmbientLighting() => (AmbientColor * AmbientBrightness).ToVector3();
+    public Vector3f GetAmbientLighting() => _cachedAmbientLighting.Get();
+
+    public SphericalHarmonicsDot9 GetAmbientAndBackgroundLighting() => _cachedAmbientAndBackgroundLighting.Get().Clone();
+
+    public void UpdateCachedData()
+    {
+        if (_cachedTextureLighting.IsInvalidated())
+        {
+            var sh = new SphericalHarmonicsDot9();
+            if (_zoneTexture is not null)
+            {
+                var zoneImage = GetSubsystem<ResourceCache>()?.GetTempResource<ImageCube>(_zoneTexture.Name, false);
+                if (zoneImage is not null)
+                    sh = zoneImage.GetOrCreateSphericalHarmonics();
+            }
+
+            _cachedTextureLighting.Restore(sh);
+        }
+
+        if (_cachedAmbientLighting.IsInvalidated())
+            _cachedAmbientLighting.Restore((AmbientColor * AmbientBrightness).GammaToLinear().ToVector3());
+
+        if (_cachedAmbientAndBackgroundLighting.IsInvalidated())
+        {
+            var sh = _zoneTexture is not null
+                ? _cachedTextureLighting.Get().Clone()
+                : new SphericalHarmonicsDot9(FogColor.GammaToLinear());
+            sh.Scale(BackgroundBrightness);
+            sh.Add(GetAmbientLighting());
+            _cachedAmbientAndBackgroundLighting.Restore(sh);
+        }
+
+        if (_reflectionProbeData.IsInvalidated())
+        {
+            var data = new ReflectionProbeData
+            {
+                ReflectionMap = _zoneTexture as TextureCube,
+                RoughnessToLodFactor = _zoneTexture is TextureCube textureCube
+                    ? MathF.Log2(textureCube.Width)
+                    : 1.0f
+            };
+            _reflectionProbeData.Restore(data);
+        }
+    }
 
     public bool IsInside(Vector3f point)
     {
@@ -205,6 +274,24 @@ public sealed class Zone : Drawable
         _inverseWorldDirty = true;
         _ambientStartColor = AmbientColor;
         _ambientEndColor = AmbientColor;
+    }
+
+    private void MarkCachedAmbientDirty()
+    {
+        _cachedAmbientLighting.Invalidate();
+        _cachedAmbientAndBackgroundLighting.Invalidate();
+    }
+
+    private void MarkCachedTextureDirty()
+    {
+        _cachedTextureLighting.Invalidate();
+        _reflectionProbeData.Invalidate();
+        _cachedAmbientAndBackgroundLighting.Invalidate();
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
     }
 
     private Matrix3x4 BuildInverseWorldTransform()
