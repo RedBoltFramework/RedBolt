@@ -234,16 +234,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
   - [~] `Drawable : Component, PipelineStateTracker`
-- [~] `OctreeQuery.h`
-  - [ ] `OctreeQuery : NonCopyable`
-  - [ ] `PointOctreeQuery : OctreeQuery`
-  - [ ] `SphereOctreeQuery : OctreeQuery`
-  - [ ] `BoxOctreeQuery : OctreeQuery`
-  - [ ] `FrustumOctreeQuery : OctreeQuery`
-  - [ ] `struct OctreeQueryResult`
-  - [~] `struct RayQueryResult`
-  - [ ] `RayOctreeQuery : NonCopyable`
-  - [ ] `AllContentOctreeQuery : OctreeQuery`
+- [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant`
   - [ ] `ZoneLookupIndex`

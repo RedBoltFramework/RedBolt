@@ -10,19 +10,34 @@ public enum RayQueryLevel
 
 public sealed class RayQueryResult
 {
-    public Vector3f Position { get; init; }
+    public Vector3f Position { get; set; }
 
-    public Vector3f Normal { get; init; }
+    public Vector3f Normal { get; set; }
 
-    public Vector2f TextureUV { get; init; }
+    public Vector2f TextureUV { get; set; }
 
-    public float Distance { get; init; }
+    public float Distance { get; set; }
 
-    public Drawable? Drawable { get; init; }
+    public Drawable? Drawable { get; set; }
 
-    public Node? Node { get; init; }
+    public Node? Node { get; set; }
 
-    public uint SubObject { get; init; }
+    public uint SubObject { get; set; }
+
+    public bool Equals(RayQueryResult? other)
+    {
+        return other is not null && Position == other.Position && Normal == other.Normal && TextureUV == other.TextureUV &&
+            Distance == other.Distance && ReferenceEquals(Drawable, other.Drawable) && ReferenceEquals(Node, other.Node) &&
+            SubObject == other.SubObject;
+    }
+
+    public override bool Equals(object? obj) => obj is RayQueryResult other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(Position, Normal, TextureUV, Distance, Drawable, Node, SubObject);
+
+    public static bool operator !=(RayQueryResult? left, RayQueryResult? right) => !(left?.Equals(right) ?? right is null);
+
+    public static bool operator ==(RayQueryResult? left, RayQueryResult? right) => left?.Equals(right) ?? right is null;
 }
 
 public sealed class Octant
@@ -182,6 +197,15 @@ public sealed class Octree : Component
             .ToArray();
     }
 
+    public void GetDrawables(OctreeQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Result.Clear();
+        var intersection = query.TestOctant(_worldBoundingBox, inside: false);
+        if (intersection != Intersection.Outside)
+            query.TestDrawables(GetAllDrawables(), intersection == Intersection.Inside);
+    }
+
     public IReadOnlyList<Drawable> GetDrawables(Vector3f point, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
         return GetDrawables(drawableFlags, viewMask)
@@ -211,10 +235,30 @@ public sealed class Octree : Component
             .ToArray();
     }
 
+    public void Raycast(RayOctreeQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Result.Clear();
+        foreach (var drawable in GetDrawables(query.DrawableFlags, query.ViewMask))
+        {
+            foreach (var result in CreateRayQueryResults(query.Ray, query.Level, drawable, query.MaxDistance))
+                query.Result.Add(result);
+        }
+
+        query.Result.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
+    }
+
     public RayQueryResult? RaycastSingle(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
         var results = Raycast(ray, level, maxDistance, drawableFlags, viewMask);
         return results.Count > 0 ? results[0] : null;
+    }
+
+    public void RaycastSingle(RayOctreeQuery query)
+    {
+        Raycast(query);
+        while (query.Result.Count > 1)
+            query.Result.RemoveAt(query.Result.Count - 1);
     }
 
     public object? QueryZone(Drawable drawable) => null;
