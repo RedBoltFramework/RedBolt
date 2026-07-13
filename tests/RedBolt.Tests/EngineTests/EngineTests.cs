@@ -154,6 +154,37 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_initialization_uses_resource_root_file_when_enabled()
+    {
+        var suffix = Guid.NewGuid().ToString("N");
+        var resourceRootFile = Path.Combine(AppContext.BaseDirectory, $"resource-root-{suffix}.ini");
+        var resourceDirectory = Path.Combine(AppContext.BaseDirectory, $"resource-root-{suffix}");
+        Directory.CreateDirectory(resourceDirectory);
+        System.IO.File.WriteAllText(Path.Combine(resourceDirectory, "marker.txt"), "resource root");
+        System.IO.File.WriteAllText(resourceRootFile, $"# Comment{Environment.NewLine}Core = {Path.GetFileName(resourceDirectory)}{Environment.NewLine}");
+
+        try
+        {
+            using var engine = new EngineScope(new Engine(), new EngineParameters
+            {
+                ApplicationName = "RedBolt.Tests.ResourceRoot",
+                Headless = true,
+                ResourceRootFile = Path.GetFileName(resourceRootFile),
+                ResourcePrefixPaths = string.Empty
+            });
+
+            var virtualFileSystem = engine.Value.Context.GetSubsystem<VirtualFileSystem>();
+            Assert.NotNull(virtualFileSystem);
+            Assert.True(virtualFileSystem!.Exists(new FileIdentifier("alias", "res:Core:/marker.txt")));
+        }
+        finally
+        {
+            System.IO.File.Delete(resourceRootFile);
+            Directory.Delete(resourceDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Engine_maps_log_file_identifiers_to_system_names()
     {
         Assert.EndsWith("logs/engine.log", _fixture.Engine.GetLogFileName("file://logs/engine.log"), StringComparison.Ordinal);

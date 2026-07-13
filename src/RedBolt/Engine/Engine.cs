@@ -4,6 +4,8 @@ namespace RedBolt;
 
 public sealed class Engine : Object
 {
+    private readonly record struct ResourceRootEntry(string FullName, string ShortName);
+
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private readonly HiresTimer _frameTimer = new();
     private float? _nextTimeStep;
@@ -313,12 +315,23 @@ public sealed class Engine : Object
 
     public void InitializeVirtualFileSystem(bool enableResourceRootFile)
     {
-        _ = enableResourceRootFile;
-
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
         virtualFileSystem.UnmountAll();
         virtualFileSystem.MountAliasRoot();
         virtualFileSystem.MountRoot();
+
+        var resourceRootFileName = Parameters.ResourceRootFile;
+        var resourceRootFile = OpenResourceRootFile(virtualFileSystem, resourceRootFileName);
+        var resourceRootEntries = ReadResourceRootFile(resourceRootFile);
+
+        if (string.IsNullOrEmpty(resourceRootFileName))
+            Log.Logger.LogInformation("Resource root file lookup is disabled by the application.");
+        else if (resourceRootEntries.Count == 0)
+            Log.Logger.LogInformation("Resource root file is not found or invalid.");
+        else if (!enableResourceRootFile)
+            Log.Logger.LogInformation("Resource root file is found but ignored due to explicitly specified prefix paths.");
+        else
+            Log.Logger.LogInformation("Resource root file is found and used: {ResourceRootFile}.", resourceRootFile!.Value.FullName);
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
         var resourcePaths = new StringVector(SplitPathList(Parameters.ResourcePaths));
@@ -326,33 +339,50 @@ public sealed class Engine : Object
         var autoLoadPaths = SplitPathList(Parameters.AutoloadPaths);
         var absolutePrefixPaths = new StringVector();
 
-        foreach (var prefixPath in prefixPaths)
-            absolutePrefixPaths.Add(NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar);
-
-        var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory) + Path.DirectorySeparatorChar;
-        if (!absolutePrefixPaths.Contains(programDirectory, StringComparer.Ordinal))
-            absolutePrefixPaths.Add(programDirectory);
-
-        virtualFileSystem.MountExistingDirectoriesOrPackages(absolutePrefixPaths, resourcePaths);
-        virtualFileSystem.MountExistingPackages(absolutePrefixPaths, resourcePackages);
-
-        foreach (var autoLoadPath in autoLoadPaths)
+        if (resourceRootEntries.Count > 0 && enableResourceRootFile)
         {
-            if (Path.IsPathRooted(autoLoadPath))
+            foreach (var entry in resourceRootEntries)
             {
-                virtualFileSystem.AutomountDir(autoLoadPath);
+                if (!virtualFileSystem.Exists(new FileIdentifier("file", entry.FullName)))
+                {
+                    Log.Logger.LogError("Resource directory is not found: {ResourceDirectory}.", entry.FullName);
+                    continue;
+                }
+
+                var mountPoint = virtualFileSystem.MountDir(entry.FullName);
+                virtualFileSystem.MountAlias($"res:{entry.ShortName}", mountPoint);
             }
-            else
+        }
+        else
+        {
+            foreach (var prefixPath in prefixPaths)
+                absolutePrefixPaths.Add(NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar);
+
+            var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory) + Path.DirectorySeparatorChar;
+            if (!absolutePrefixPaths.Contains(programDirectory, StringComparer.Ordinal))
+                absolutePrefixPaths.Add(programDirectory);
+
+            virtualFileSystem.MountExistingDirectoriesOrPackages(absolutePrefixPaths, resourcePaths);
+            virtualFileSystem.MountExistingPackages(absolutePrefixPaths, resourcePackages);
+
+            foreach (var autoLoadPath in autoLoadPaths)
             {
-                foreach (var prefixPath in absolutePrefixPaths)
-                    virtualFileSystem.AutomountDir(prefixPath + autoLoadPath);
+                if (Path.IsPathRooted(autoLoadPath))
+                {
+                    virtualFileSystem.AutomountDir(autoLoadPath);
+                }
+                else
+                {
+                    foreach (var prefixPath in absolutePrefixPaths)
+                        virtualFileSystem.AutomountDir(prefixPath + autoLoadPath);
+                }
             }
+
+            ApplyConfiguredResourcePaths();
         }
 
         if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
             virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
-
-        ApplyConfiguredResourcePaths();
     }
 
     public string GetAppPreferencesDir() => Parameters.ApplicationPreferencesDir;
@@ -536,6 +566,61 @@ public sealed class Engine : Object
                 resources.AddResourceDir(combinedPath);
             }
         }
+    }
+
+    private static (string FullName, string Text)? OpenResourceRootFile(VirtualFileSystem virtualFileSystem, string fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory);
+        while (!string.IsNullOrEmpty(programDirectory))
+        {
+            var fullFileName = Path.Combine(programDirectory, fileName);
+            var fileIdentifier = new FileIdentifier("file", fullFileName);
+            if (virtualFileSystem.Exists(fileIdentifier))
+                return (fullFileName, virtualFileSystem.ReadAllText(fileIdentifier));
+
+            var parentDirectory = Directory.GetParent(programDirectory);
+            if (parentDirectory is null || string.Equals(parentDirectory.FullName, programDirectory, StringComparison.Ordinal))
+                break;
+            programDirectory = parentDirectory.FullName;
+        }
+
+        return null;
+    }
+
+    private static List<ResourceRootEntry> ReadResourceRootFile((string FullName, string Text)? file)
+    {
+        if (file is null)
+            return [];
+
+        var path = Path.GetDirectoryName(file.Value.FullName) ?? string.Empty;
+        var lines = file.Value.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var result = new List<ResourceRootEntry>();
+        var lineIndex = 0;
+        foreach (var sourceLine in lines)
+        {
+            ++lineIndex;
+            var line = sourceLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#') || line.StartsWith(';'))
+                continue;
+
+            var parts = line.Split('=');
+            if (parts.Length != 2)
+            {
+                Log.Logger.LogError("Invalid line #{LineIndex} in {ResourceRootFile}.", lineIndex, file.Value.FullName);
+                continue;
+            }
+
+            var shortName = parts[0].Trim();
+            var fullDirectoryName = Path.Combine(path, parts[1].Trim());
+            if (!fullDirectoryName.EndsWith(Path.DirectorySeparatorChar))
+                fullDirectoryName += Path.DirectorySeparatorChar;
+            result.Add(new ResourceRootEntry(fullDirectoryName, shortName));
+        }
+
+        return result;
     }
 
     private void SendCoreEvents(float timeStep)
