@@ -17,6 +17,7 @@
     <Project Path="samples/RedBolt.Sample.FirstCube/RedBolt.Sample.FirstCube.csproj" />
     <Project Path="samples/RedBolt.Sample.AnimatingScene/RedBolt.Sample.AnimatingScene.csproj" />
     <Project Path="samples/RedBolt.Sample.RenderToTexture/RedBolt.Sample.RenderToTexture.csproj" />
+    <Project Path="samples/RedBolt.Sample.WindowSettings/RedBolt.Sample.WindowSettings.csproj" />
     <Project Path="samples/RedBolt.Sample.StaticScene/RedBolt.Sample.StaticScene.csproj" />
   </Folder>
   <Folder Name="/tests/">
