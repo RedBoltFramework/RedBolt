@@ -141,4 +141,16 @@ public sealed class RendererTests
         Assert.Equal(TextureFilterMode.Nearest, blackCubeMap.GetFilterMode());
         Assert.Equal(new byte[] { 0, 0, 0, 255 }, blackCubeMap.GetData(CubeMapFace.PositiveX, 0));
     }
+
+    [Fact]
+    public void Frame_statistics_expose_mutable_renderer_counters()
+    {
+        var stats = Renderer.GetMutableFrameStats();
+        stats.Animations = 3;
+        stats.ChangedAnimations = 2;
+
+        Assert.Same(stats, Renderer.GetFrameStats());
+        Assert.Equal(3u, Renderer.GetFrameStats().Animations);
+        Assert.Equal(2u, Renderer.GetFrameStats().ChangedAnimations);
+    }
 }

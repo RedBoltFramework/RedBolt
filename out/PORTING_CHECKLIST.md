@@ -309,7 +309,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
 - [~] `Renderer.h`
-  - [~] `Renderer : Object` — C++ base class, default-zone/default-technique/default-material/default-light-texture access, black cubemap initialization, multi-viewport rendering, frame-stat aggregation, and backbuffer render-surface replacement are ported; queued render-surface lifecycle and remaining renderer members are incomplete
+  - [~] `Renderer : Object` — C++ base class, default-zone/default-technique/default-material/default-light-texture access, black cubemap initialization, mutable frame statistics, multi-viewport rendering, frame-stat aggregation, and backbuffer render-surface replacement are ported; queued render-surface lifecycle and remaining renderer members are incomplete
 - [~] `Graphics.h`
   - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position/icon operations, screen-mode queries and lifecycle, monitor/display resolution enumeration, DPI reporting, screenshot capture, screen-mode diagnostics/events, and VFS-backed pipeline-state-cache save are ported; backend-specific paths remain
 - [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`

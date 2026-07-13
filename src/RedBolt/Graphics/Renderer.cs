@@ -7,6 +7,12 @@ public enum SkinningMode
     Software
 }
 
+public sealed class FrameStatistics
+{
+    public uint Animations;
+    public uint ChangedAnimations;
+}
+
 public sealed class Renderer : Object
 {
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
@@ -22,6 +28,7 @@ public sealed class Renderer : Object
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
+    private readonly FrameStatistics _frameStats = new();
 
     public int TextureAnisotropy { get; private set; } = 4;
 
@@ -34,6 +41,10 @@ public sealed class Renderer : Object
     public uint NumSoftwareSkinningBones { get; private set; } = 4;
 
     public uint NumViews => GetNumViews();
+
+    public FrameStatistics GetFrameStats() => _frameStats;
+
+    public FrameStatistics GetMutableFrameStats() => _frameStats;
 
     public Zone GetDefaultZone() => _defaultZone;
 
