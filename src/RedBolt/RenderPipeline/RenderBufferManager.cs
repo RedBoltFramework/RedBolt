@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -20,6 +22,7 @@ public sealed class RenderBufferManager
 
     private readonly ViewportColorRenderBuffer _viewportColorBuffer = new();
     private readonly ViewportDepthStencilRenderBuffer _viewportDepthBuffer = new();
+    private readonly RenderTargetView[] _renderTargetViews = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
     private TextureRenderBuffer? _primaryColorBuffer;
     private TextureRenderBuffer? _secondaryColorBuffer;
     private TextureRenderBuffer? _depthBuffer;
@@ -185,6 +188,17 @@ public sealed class RenderBufferManager
         graphics.SetRenderTargets(_viewportRect, _writeableColorBuffer.GetView(), depthView);
     }
 
+    public void SetOutputRenderTargetsRect(Graphics graphics, IntRect viewportRect, bool readOnlyDepth = false)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        _lastGraphics = graphics;
+
+        var depthView = readOnlyDepth ? _depthStencilBuffer.GetReadOnlyDepthView() : _depthStencilBuffer.GetView();
+        graphics.SetRenderTargets(
+            viewportRect == IntRect.Zero ? _viewportRect : viewportRect,
+            _writeableColorBuffer.GetView(), depthView);
+    }
+
     /// <summary>
     /// Render a fullscreen quad into the currently bound output.
     /// </summary>
@@ -346,6 +360,48 @@ public sealed class RenderBufferManager
                 ? depthStencilBuffer.GetReadOnlyDepthView()
                 : depthStencilBuffer.GetView();
         graphics.SetRenderTargets(viewport, colorBuffer.GetView(), depthView);
+    }
+
+    public void SetRenderTargetsRect(Graphics graphics, IntRect viewportRect, RenderBuffer? depthStencilBuffer,
+        IReadOnlyList<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(colorBuffers);
+        _lastGraphics = graphics;
+
+        IntRect? defaultViewportRect = null;
+        RenderTargetView? depthStencilView = null;
+        if (depthStencilBuffer is not null)
+        {
+            depthStencilView = readOnlyDepth
+                ? depthStencilBuffer.GetReadOnlyDepthView((uint)face)
+                : depthStencilBuffer.GetView((uint)face);
+            defaultViewportRect = depthStencilBuffer.GetViewportRect();
+        }
+
+        for (var i = 0; i < colorBuffers.Count; ++i)
+        {
+            var colorBuffer = colorBuffers[i];
+            _renderTargetViews[i] = colorBuffer.GetView((uint)face);
+            if (defaultViewportRect is null)
+                defaultViewportRect = colorBuffer.GetViewportRect();
+        }
+
+        if (defaultViewportRect is null || defaultViewportRect.Value == IntRect.Zero)
+        {
+            Log.Logger.LogError("Cannot set null render targets");
+            return;
+        }
+
+        graphics.SetRenderTargets(
+            viewportRect == IntRect.Zero ? defaultViewportRect.Value : viewportRect,
+            _renderTargetViews.AsSpan(0, colorBuffers.Count), depthStencilView);
+    }
+
+    public void SetRenderTargets(Graphics graphics, RenderBuffer? depthStencilBuffer,
+        IReadOnlyList<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
+    {
+        SetRenderTargetsRect(graphics, IntRect.Zero, depthStencilBuffer, colorBuffers, readOnlyDepth, face);
     }
 
     /// <summary>

@@ -320,7 +320,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ViewportColorRenderBuffer : RenderBuffer`
   - [x] `ViewportDepthStencilRenderBuffer : RenderBuffer`
 - [~] `RenderBufferManager.h`
-  - [~] `RenderBufferManager : Object`
+  - [~] `RenderBufferManager : Object` — viewport/output management, buffer swapping, clears, fullscreen helpers, and depth-first multi-color target binding are ported; native pipeline-state/cache integration remains incomplete
 - [ ] `ShadowMapAllocator.h`
   - [ ] `ShadowMapAllocator : Object`
 - [ ] `InstancingBuffer.h`
