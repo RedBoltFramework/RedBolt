@@ -111,6 +111,22 @@ public sealed class DebugRenderer : Component
     }
 
     /// <summary>
+    /// Add a scene node represented as its coordinate axes.
+    /// </summary>
+    public void AddNode(Node? node, float scale = 1.0f, bool depthTest = true)
+    {
+        if (node is null)
+            return;
+
+        var start = node.GetWorldPosition();
+        var rotation = node.GetWorldRotation();
+
+        AddLine(start, start + rotation * (scale * Vector3f.Right), new Color(1.0f, 0.0f, 0.0f).ToUInt(), depthTest);
+        AddLine(start, start + rotation * (scale * Vector3f.Up), new Color(0.0f, 1.0f, 0.0f).ToUInt(), depthTest);
+        AddLine(start, start + rotation * (scale * Vector3f.Forward), new Color(0.0f, 0.0f, 1.0f).ToUInt(), depthTest);
+    }
+
+    /// <summary>
     /// Add an XYZ frame at the given worldTransform with optional uniform scale.
     /// </summary>
     public void AddFrame(Matrix3x4 worldTransform, float scale = 1.0f,
@@ -314,6 +330,42 @@ public sealed class DebugRenderer : Component
         AddLine(position - offsetX, position + heightVector - offsetX, color, depthTest);
         AddLine(position + offsetZ, position + heightVector + offsetZ, color, depthTest);
         AddLine(position - offsetZ, position + heightVector - offsetZ, color, depthTest);
+    }
+
+    /// <summary>
+    /// Add a skeleton.
+    /// </summary>
+    public void AddSkeleton(Skeleton skeleton, Color color, bool depthTest = true)
+    {
+        var bones = skeleton.GetBones();
+        if (bones.Count == 0)
+            return;
+
+        var uintColor = color.ToUInt();
+        for (var i = 0; i < bones.Count; ++i)
+        {
+            // Skip if bone contains no skinned geometry
+            if (bones[i].Radius < MathDefs.Epsilon && bones[i].BoundingBox.Size.LengthSquared < MathDefs.Epsilon)
+                continue;
+
+            var boneNode = bones[i].Node;
+            if (boneNode is null)
+                continue;
+
+            var start = boneNode.GetWorldPosition();
+            Vector3f end;
+
+            var parentIndex = bones[i].ParentIndex;
+            var parentNode = boneNode.GetParent();
+            // If bone has a parent defined, and it also skins geometry, draw a line to it. Else draw the bone as a point
+            if (parentNode is not null && (bones[(int)parentIndex].Radius >= MathDefs.Epsilon ||
+                bones[(int)parentIndex].BoundingBox.Size.LengthSquared >= MathDefs.Epsilon))
+                end = parentNode.GetWorldPosition();
+            else
+                end = start;
+
+            AddLine(start, end, uintColor, depthTest);
+        }
     }
 
     /// <summary>

@@ -96,4 +96,16 @@ public sealed class DebugGeometryTests
 
         Assert.True(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void DebugRenderer_node_and_empty_skeleton_helpers_match_empty_cases()
+    {
+        var debugRenderer = new DebugRenderer();
+        var skeleton = new Skeleton();
+
+        debugRenderer.AddNode(null);
+        debugRenderer.AddSkeleton(skeleton, Color.White);
+
+        Assert.False(debugRenderer.HasContent());
+    }
 }
