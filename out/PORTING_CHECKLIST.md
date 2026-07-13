@@ -317,8 +317,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `RenderBuffer.h`
   - [~] `RenderBuffer : Object`
   - [~] `TextureRenderBuffer : RenderBuffer`
-  - [~] `ViewportColorRenderBuffer : RenderBuffer`
-  - [ ] `ViewportDepthStencilRenderBuffer : RenderBuffer`
+  - [x] `ViewportColorRenderBuffer : RenderBuffer`
+  - [x] `ViewportDepthStencilRenderBuffer : RenderBuffer`
 - [~] `RenderBufferManager.h`
   - [~] `RenderBufferManager : Object`
 - [ ] `ShadowMapAllocator.h`

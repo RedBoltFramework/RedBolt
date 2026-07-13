@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace RedBolt;
 /// </summary>
 public abstract class RenderBuffer
 {
+    protected bool _bufferIsReady;
+
     public bool IsEnabled { get; private set; } = true;
 
     /// <summary>
@@ -13,6 +17,17 @@ public abstract class RenderBuffer
     public void SetEnabled(bool enabled)
     {
         IsEnabled = enabled;
+    }
+
+    protected bool CheckIfBufferIsReady()
+    {
+        if (!_bufferIsReady)
+        {
+            Log.Logger.LogError("RenderBuffer is not available");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
