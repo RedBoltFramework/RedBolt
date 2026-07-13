@@ -136,4 +136,14 @@ public sealed class StaticModelTests
 
         Assert.False(cube.IsInsideLocal(Vector3f.Zero));
     }
+
+    [Fact]
+    public void ApplyMaterialList_ignores_missing_resource()
+    {
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+
+        cube.ApplyMaterialList("MissingMaterials.txt");
+
+        Assert.Empty(cube.GetMaterialsAttr().Names);
+    }
 }

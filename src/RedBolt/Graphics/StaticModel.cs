@@ -87,6 +87,32 @@ public class StaticModel : Drawable
         OcclusionLodLevel = level;
     }
 
+    public void ApplyMaterialList(string fileName = "")
+    {
+        var useFileName = fileName.Trim();
+        if (string.IsNullOrEmpty(useFileName) && Model is not null)
+            useFileName = Path.ChangeExtension(Model.Name, ".txt");
+
+        if (string.IsNullOrEmpty(useFileName))
+            return;
+
+        var cache = GetSubsystem<ResourceCache>()!;
+        BinaryFile? file;
+        try
+        {
+            file = cache.GetTempResource<BinaryFile>(useFileName, false);
+        }
+        catch (InvalidOperationException)
+        {
+            file = null;
+        }
+
+        if (file is null)
+            return;
+
+        SetMaterialsAttr(file.AsDeserializer().ReadResourceRefList());
+    }
+
     public void ResetLodLevels()
     {
     }
