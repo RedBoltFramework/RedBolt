@@ -186,8 +186,19 @@ public sealed class Engine : Object
             "Web canvas resized to {Width}x{Height}{Fullscreen} with DPI scale={DpiScale}.",
             width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
 
+        var input = GetSubsystem<Input>();
+        var graphics = GetSubsystem<Graphics>();
+        var mouseVisible = input?.MouseVisible ?? false;
+        var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
+
         // TODO: port UI and RmlUI scale state updates when the managed UI APIs exist.
-        GetSubsystem<Graphics>()?.SetMode(width, height);
+        graphics?.SetMode(width, height);
+
+        if (input is not null)
+        {
+            input.SetMouseVisible(mouseVisible);
+            input.SetMouseMode(mouseMode);
+        }
     }
 
     public void Exit()

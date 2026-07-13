@@ -233,6 +233,26 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Canvas_resize_preserves_input_pointer_state()
+    {
+        using var engine = new EngineScope(new Engine(), new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.CanvasResize",
+            Headless = true
+        });
+
+        var input = engine.Value.GetSubsystem<Input>();
+        Assert.NotNull(input);
+        input!.SetMouseVisible(true);
+        input.SetMouseMode(MouseMode.Wrap);
+
+        engine.Value.OnCanvasResize(640, 480, false, 1.0f);
+
+        Assert.True(input.MouseVisible);
+        Assert.Equal(MouseMode.Wrap, input.GetMouseMode());
+    }
+
+    [Fact]
     public void Engine_maps_log_file_identifiers_to_system_names()
     {
         Assert.EndsWith("logs/engine.log", _fixture.Engine.GetLogFileName("file://logs/engine.log"), StringComparison.Ordinal);
