@@ -69,6 +69,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache.Add(key, resource);
+        UpdateResourceGroup(resource.GetType());
         return true;
     }
 
@@ -133,6 +134,7 @@ public sealed class ResourceCache : Object
             throw new ArgumentException("Type must derive from Resource.", nameof(type));
 
         _memoryBudgets[type] = budget;
+        UpdateResourceGroup(type);
     }
 
     public ulong GetMemoryBudget<T>()
@@ -276,6 +278,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache.Add(key, resource);
+        UpdateResourceGroup(typeof(T));
         return resource;
     }
 
@@ -296,6 +299,7 @@ public sealed class ResourceCache : Object
 
         resource.OwnerCache = this;
         _cache[key] = resource;
+        UpdateResourceGroup(typeof(T));
         return resource;
     }
 
@@ -692,6 +696,40 @@ public sealed class ResourceCache : Object
         return _cache.ContainsKey((type, name));
     }
 
+    private void UpdateResourceGroup(Type type)
+    {
+        if (!_memoryBudgets.TryGetValue(type, out var memoryBudget) || memoryBudget == 0)
+            return;
+
+        for (;;)
+        {
+            ulong memoryUse = 0;
+            uint oldestTimer = 0;
+            Resource? oldestResource = null;
+            (Type Type, string Name) oldestKey = default;
+
+            foreach (var entry in _cache)
+            {
+                if (entry.Key.Type != type)
+                    continue;
+
+                memoryUse += entry.Value.MemoryUse;
+                var useTimer = entry.Value.GetUseTimer();
+                if (useTimer > oldestTimer)
+                {
+                    oldestTimer = useTimer;
+                    oldestResource = entry.Value;
+                    oldestKey = entry.Key;
+                }
+            }
+
+            if (memoryUse <= memoryBudget || oldestResource is null)
+                return;
+
+            _cache.Remove(oldestKey);
+        }
+    }
+
     internal Resource? LoadBackgroundResource(Type type, string name, bool sendEventOnFailure)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -735,6 +773,7 @@ public sealed class ResourceCache : Object
         ArgumentNullException.ThrowIfNull(resource);
         resource.OwnerCache = this;
         _cache[(type, name)] = resource;
+        UpdateResourceGroup(type);
     }
 
     private T? TryLoadResource<T>(string name)

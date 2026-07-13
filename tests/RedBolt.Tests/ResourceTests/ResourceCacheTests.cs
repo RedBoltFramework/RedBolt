@@ -292,6 +292,34 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Memory_budget_releases_oldest_resource()
+    {
+        Resources.SetMemoryBudget<ReloadableResource>(4);
+        var oldestName = $"Data/old-{Guid.NewGuid():N}.bin";
+        var newestName = $"Data/new-{Guid.NewGuid():N}.bin";
+        try
+        {
+            var oldest = new ReloadableResource(oldestName);
+            oldest.SetMemoryUse(3);
+            Assert.True(Resources.AddManualResource(oldest));
+            oldest.ResetUseTimer();
+            System.Threading.Thread.Sleep(20);
+
+            var newest = new ReloadableResource(newestName);
+            newest.SetMemoryUse(3);
+            Assert.True(Resources.AddManualResource(newest));
+
+            Assert.Null(Resources.GetExistingResource<ReloadableResource>(oldestName));
+            Assert.NotNull(Resources.GetExistingResource<ReloadableResource>(newestName));
+        }
+        finally
+        {
+            Resources.SetMemoryBudget<ReloadableResource>(0);
+            Resources.ReleaseResources<ReloadableResource>(force: true);
+        }
+    }
+
+    [Fact]
     public void ReleasePackageResources_removes_resources_named_by_package_entries()
     {
         var packageBytes = new VectorBuffer();
