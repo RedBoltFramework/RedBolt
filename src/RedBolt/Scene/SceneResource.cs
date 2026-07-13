@@ -10,6 +10,12 @@ public sealed class SceneResource : Resource
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;
 
+    public delegate void ReloadBeginHandler(SceneResource resource, ref bool cancelReload);
+    public delegate void ReloadEndHandler(SceneResource resource, bool success);
+
+    public event ReloadBeginHandler? OnReloadBegin;
+    public event ReloadEndHandler? OnReloadEnd;
+
     public SceneResource(string name) : base(name) => Scene = new Scene();
 
     public Scene Scene { get; }
@@ -32,6 +38,14 @@ public sealed class SceneResource : Resource
         if (_pendingData is null || _loadFormat is null) return false;
         try
         {
+            var cancelReload = false;
+            OnReloadBegin?.Invoke(this, ref cancelReload);
+            if (cancelReload)
+            {
+                OnReloadEnd?.Invoke(this, success: false);
+                return true;
+            }
+
             Archive archive = _loadFormat switch
             {
                 InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
@@ -42,6 +56,7 @@ public sealed class SceneResource : Resource
             using (archive.OpenUnorderedBlock(GetXmlRootName()))
                 SerializeScene(archive, Scene, asPrefab: false);
             archive.Flush();
+            OnReloadEnd?.Invoke(this, success: true);
             return true;
         }
         catch { return false; }

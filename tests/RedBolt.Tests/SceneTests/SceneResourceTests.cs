@@ -81,6 +81,40 @@ public sealed class SceneResourceTests
     }
 
     [Fact]
+    public void Reload_signals_can_cancel_scene_reload()
+    {
+        var resource = CreateSampleSceneResource();
+        using var buffer = new MemoryStream();
+        Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
+        buffer.Position = 0;
+
+        var beginCalled = false;
+        var endSuccess = true;
+
+        void OnReloadBegin(SceneResource _, ref bool cancelReload)
+        {
+            beginCalled = true;
+            cancelReload = true;
+        }
+
+        void OnReloadEnd(SceneResource _, bool success) => endSuccess = success;
+
+        resource.OnReloadBegin += OnReloadBegin;
+        resource.OnReloadEnd += OnReloadEnd;
+        try
+        {
+            Assert.True(resource.Load(buffer));
+            Assert.True(beginCalled);
+            Assert.False(endSuccess);
+        }
+        finally
+        {
+            resource.OnReloadBegin -= OnReloadBegin;
+            resource.OnReloadEnd -= OnReloadEnd;
+        }
+    }
+
+    [Fact]
     public void Resource_cache_loads_scene_resource_from_file()
     {
         var tempDir = CreateTempDir();
