@@ -98,7 +98,7 @@ public class CameraOperator : Component
         RegisterAttribute(
             "Update Camera",
             typeof(bool),
-            _ => false,
+            _ => "Move camera to keep tracked nodes and/or bounding box in frustum",
             (self, value) =>
             {
                 if (value is true)
@@ -116,7 +116,6 @@ public class CameraOperator : Component
     {
         ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<CameraOperator>(ObjectCategory.Category_Scene);
-        // TODO: port action label and description metadata: URHO3D_ACTION_STATIC_LABEL("Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
     }
 
     /// <summary>

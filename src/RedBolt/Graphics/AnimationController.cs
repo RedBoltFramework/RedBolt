@@ -71,7 +71,7 @@ public class AnimationController : AnimationStateSource
         RegisterAttribute(
             "Update Pose",
             typeof(bool),
-            _ => false,
+            _ => string.Empty,
             (self, value) =>
             {
                 if (value is true)
@@ -88,7 +88,6 @@ public class AnimationController : AnimationStateSource
     public static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<AnimationController>(ObjectCategory.Category_Logic);
-        // TODO: port action label and description metadata: URHO3D_ACTION_STATIC_LABEL("Update Pose", UpdatePose, "");
     }
 
     /// <summary>

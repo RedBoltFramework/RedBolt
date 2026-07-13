@@ -80,6 +80,9 @@ public sealed class CameraOperatorTests
 
         var updateCamera = cameraOperator.Attributes.Single(attribute => attribute.Name == "Update Camera");
         Assert.True(updateCamera.GetMetadata<bool>(AttributeMetadata.IsAction));
+        Assert.Equal(
+            "Move camera to keep tracked nodes and/or bounding box in frustum",
+            updateCamera.Accessor!.GetObject(cameraOperator));
         updateCamera.Accessor!.SetObject(cameraOperator, true);
     }
 }

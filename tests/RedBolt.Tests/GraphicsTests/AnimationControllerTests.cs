@@ -39,6 +39,7 @@ public sealed class AnimationControllerTests
 
         var updatePose = controller.Attributes.Single(attribute => attribute.Name == "Update Pose");
         Assert.True(updatePose.GetMetadata<bool>(AttributeMetadata.IsAction));
+        Assert.Equal(string.Empty, updatePose.Accessor!.GetObject(controller));
         updatePose.Accessor!.SetObject(controller, true);
     }
 
