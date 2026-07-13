@@ -412,10 +412,13 @@ public sealed class ResourceCacheTests
             resource.SetText("manual");
             Assert.True(Resources.AddManualResource(resource));
             Assert.NotNull(Resources.GetExistingResource<BinaryFile>(resourceName));
+            Assert.True(Resources.GetAllResources().TryGetValue(typeof(BinaryFile), out var group));
+            Assert.Contains(resource.GetNameHash(), group!.Resources.Keys);
 
             Resources.ReleasePackageResources(packageFile);
 
             Assert.Null(Resources.GetExistingResource<BinaryFile>(resourceName));
+            Assert.DoesNotContain(resource.GetNameHash(), group.Resources.Keys);
         }
         finally
         {

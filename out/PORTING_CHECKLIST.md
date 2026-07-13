@@ -87,9 +87,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
 
-## [~] A5. Resource — depends on IO, Core
-
-- [~] `ResourceCache` — typed, `StringHash`, and non-generic resource lookup, reflection-removal cleanup, VFS-backed file access, caching, reload dependencies, background loading/failure/completion events, file-change reload handling, suspended-reload queues, package-entry resource release, per-type memory-budget eviction, `ResourceGroup` exposure, and disposal are ported; package-to-group ownership remains
+## [x] A5. Resource — depends on IO, Core
 
 ## [x] A6. Scene — depends on Resource, Core
 
