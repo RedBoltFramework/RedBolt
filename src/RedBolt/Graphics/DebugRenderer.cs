@@ -369,6 +369,57 @@ public sealed class DebugRenderer : Component
     }
 
     /// <summary>
+    /// Add a triangle mesh from a node.
+    /// </summary>
+    public void AddTriangleMesh(ReadOnlySpan<byte> vertexData, uint vertexSize, ReadOnlySpan<byte> indexData,
+        uint indexSize, uint indexStart, uint indexCount, Matrix3x4 transform, Color color, bool depthTest = true)
+    {
+        AddTriangleMesh(vertexData, vertexSize, 0, indexData, indexSize, indexStart, indexCount, transform, color, depthTest);
+    }
+
+    /// <summary>
+    /// Add a triangle mesh from a node.
+    /// </summary>
+    public void AddTriangleMesh(ReadOnlySpan<byte> vertexData, uint vertexSize, uint vertexStart, ReadOnlySpan<byte> indexData,
+        uint indexSize, uint indexStart, uint indexCount, Matrix3x4 transform, Color color, bool depthTest = true)
+    {
+        var uintColor = color.ToUInt();
+        var sourceData = vertexData.Slice(checked((int)vertexStart));
+
+        for (uint i = 0; i < indexCount; i += 3)
+        {
+            var index0 = ReadIndex(indexData, indexSize, indexStart + i);
+            var index1 = ReadIndex(indexData, indexSize, indexStart + i + 1);
+            var index2 = ReadIndex(indexData, indexSize, indexStart + i + 2);
+
+            var vertex0 = ReadVertex(sourceData, vertexSize, index0, transform);
+            var vertex1 = ReadVertex(sourceData, vertexSize, index1, transform);
+            var vertex2 = ReadVertex(sourceData, vertexSize, index2, transform);
+
+            AddLine(vertex0, vertex1, uintColor, depthTest);
+            AddLine(vertex1, vertex2, uintColor, depthTest);
+            AddLine(vertex2, vertex0, uintColor, depthTest);
+        }
+
+        static uint ReadIndex(ReadOnlySpan<byte> data, uint size, uint index)
+        {
+            var offset = checked((int)(index * size));
+            return size == sizeof(ushort)
+                ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(offset, sizeof(ushort)))
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset, sizeof(uint)));
+        }
+
+        static Vector3f ReadVertex(ReadOnlySpan<byte> data, uint stride, uint index, Matrix3x4 transform)
+        {
+            var offset = checked((int)(index * stride));
+            var x = BitConverter.ToSingle(data.Slice(offset, sizeof(float)));
+            var y = BitConverter.ToSingle(data.Slice(offset + sizeof(float), sizeof(float)));
+            var z = BitConverter.ToSingle(data.Slice(offset + sizeof(float) * 2, sizeof(float)));
+            return transform * new Vector3f(x, y, z);
+        }
+    }
+
+    /// <summary>
     /// Add a circle.
     /// </summary>
     public void AddCircle(Vector3f center, Vector3f normal, float radius, Color color, int steps = 64, bool depthTest = true, bool drawNormal = true)

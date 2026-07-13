@@ -108,4 +108,36 @@ public sealed class DebugGeometryTests
 
         Assert.False(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void DebugRenderer_triangle_mesh_helper_reads_16_and_32_bit_indices()
+    {
+        var vertexData = new byte[3 * 3 * sizeof(float)];
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, 0, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float), sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float) * 2, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(1.0f), 0, vertexData, sizeof(float) * 3, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float) * 4, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float) * 5, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float) * 6, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(1.0f), 0, vertexData, sizeof(float) * 7, sizeof(float));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.0f), 0, vertexData, sizeof(float) * 8, sizeof(float));
+
+        var smallIndices = new byte[3 * sizeof(ushort)];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(smallIndices.AsSpan(0, 2), 0);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(smallIndices.AsSpan(2, 2), 1);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(smallIndices.AsSpan(4, 2), 2);
+        var largeIndices = new byte[3 * sizeof(uint)];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(largeIndices.AsSpan(0, 4), 0);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(largeIndices.AsSpan(4, 4), 1);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(largeIndices.AsSpan(8, 4), 2);
+
+        var debugRenderer = new DebugRenderer();
+        debugRenderer.AddTriangleMesh(vertexData, 3 * sizeof(float), smallIndices, sizeof(ushort), 0, 3,
+            Matrix3x4.Identity, Color.White);
+        debugRenderer.AddTriangleMesh(vertexData, 3 * sizeof(float), 0, largeIndices, sizeof(uint), 0, 3,
+            Matrix3x4.Identity, Color.White);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }
