@@ -12,6 +12,7 @@ public sealed class Renderer : Object
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
 
     private readonly Zone _defaultZone = new();
+    private Technique? _defaultTechnique;
     private RenderSurface? _backbufferSurface;
     private bool _backbufferSurfaceViewportsDirty;
     private readonly List<Viewport?> _viewports = [];
@@ -47,6 +48,11 @@ public sealed class Renderer : Object
     public void SetViewport(Viewport viewport)
     {
         SetViewport(0, viewport);
+    }
+
+    public void SetDefaultTechnique(Technique? technique)
+    {
+        _defaultTechnique = technique;
     }
 
     public void ClearViewports()
@@ -115,6 +121,14 @@ public sealed class Renderer : Object
         }
 
         return null;
+    }
+
+    public Technique? GetDefaultTechnique()
+    {
+        if (_defaultTechnique is null)
+            _defaultTechnique = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>("Techniques/NoTexture.xml");
+
+        return _defaultTechnique;
     }
 
     public void SetNumViewports(uint count)

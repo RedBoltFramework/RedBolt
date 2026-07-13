@@ -118,4 +118,14 @@ public sealed class RendererTests
         Assert.NotNull(defaultZone);
         Assert.Same(defaultZone, Renderer.GetDefaultZone());
     }
+
+    [Fact]
+    public void Default_technique_can_be_overridden()
+    {
+        var technique = new Technique("Techniques/RendererDefault");
+
+        Renderer.SetDefaultTechnique(technique);
+
+        Assert.Same(technique, Renderer.GetDefaultTechnique());
+    }
 }
