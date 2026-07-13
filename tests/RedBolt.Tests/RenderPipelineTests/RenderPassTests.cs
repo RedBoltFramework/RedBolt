@@ -3,7 +3,7 @@ namespace RedBolt.Tests;
 public sealed class RenderPassTests
 {
     [Fact]
-    public void Connect_to_render_buffer_rebinds_replaced_buffer_and_clears_missing_optional_buffer()
+    public void Connect_to_render_buffer_keeps_existing_buffer_when_shared_state_changes()
     {
         var pass = new TrackingRenderPass();
         var firstBuffer = new StubRenderBuffer();
@@ -16,11 +16,11 @@ public sealed class RenderPassTests
 
         sharedState.RenderBuffers["Test"] = secondBuffer;
         Assert.True(pass.Connect(sharedState, required: false));
-        Assert.Same(secondBuffer, pass.Buffer);
+        Assert.Same(firstBuffer, pass.Buffer);
 
         sharedState.RenderBuffers.Clear();
-        Assert.False(pass.Connect(sharedState, required: false));
-        Assert.Null(pass.Buffer);
+        Assert.True(pass.Connect(sharedState, required: false));
+        Assert.Same(firstBuffer, pass.Buffer);
     }
 
     private sealed class TrackingRenderPass : RenderPass

@@ -356,7 +356,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `BatchRenderer.h`
   - [ ] `BatchRenderer : Object`
 - [~] `RenderPass.h`
-  - [~] `RenderPass`
+  - [~] `RenderPass` — pass-name and render-buffer connection semantics match C++; initial managed enable behavior, cloning, and render-path serialization remain managed-runtime adaptations
 - [~] `RenderPath.h`
   - [~] `RenderPath : SimpleResource`
 - [ ] `ScenePass.h`

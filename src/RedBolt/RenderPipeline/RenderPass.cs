@@ -52,14 +52,13 @@ public abstract class RenderPass : Serializable
     /// <summary>
     /// Return unique pass name.
     /// </summary>
-    public virtual string GetPassName() => string.IsNullOrWhiteSpace(_passName) ? GetType().Name : _passName;
+    public virtual string GetPassName() => string.IsNullOrEmpty(_passName) ? GetType().Name : _passName;
 
     /// <summary>
     /// Create missing parameters in the global map with default values.
     /// </summary>
     public virtual void CollectParameters(IDictionary<string, object?> parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
     }
 
     /// <summary>
@@ -67,7 +66,6 @@ public abstract class RenderPass : Serializable
     /// </summary>
     public virtual void InitializeView(RenderPipelineView view)
     {
-        ArgumentNullException.ThrowIfNull(view);
     }
 
     /// <summary>
@@ -76,8 +74,6 @@ public abstract class RenderPass : Serializable
     /// </summary>
     public virtual void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(parameters);
     }
 
     /// <summary>
@@ -85,7 +81,6 @@ public abstract class RenderPass : Serializable
     /// </summary>
     public virtual void Update(SharedRenderPassState sharedState)
     {
-        ArgumentNullException.ThrowIfNull(sharedState);
     }
 
     /// <summary>
@@ -93,7 +88,6 @@ public abstract class RenderPass : Serializable
     /// </summary>
     public virtual void Render(SharedRenderPassState sharedState)
     {
-        ArgumentNullException.ThrowIfNull(sharedState);
     }
 
     public abstract RenderPass Clone();
@@ -134,37 +128,31 @@ public abstract class RenderPass : Serializable
 
     protected void DeclareParameter(string name, object? value, IDictionary<string, object?> parameters)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         if (!parameters.ContainsKey(name))
             parameters[name] = value;
     }
 
     protected object? LoadParameter(string name, IReadOnlyDictionary<string, object?> parameters)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         return parameters.TryGetValue(name, out var value) ? value : null;
     }
 
     protected bool ConnectToRenderBuffer(ref RenderBuffer? renderBuffer, StringHash name, SharedRenderPassState sharedState, bool required = true)
     {
-        ArgumentNullException.ThrowIfNull(sharedState);
-
-        if (sharedState.RenderBuffers.TryGetValue(name, out var value))
+        if (renderBuffer is null)
         {
-            if (!ReferenceEquals(renderBuffer, value))
-                renderBuffer = value;
-            return true;
+            if (!sharedState.RenderBuffers.TryGetValue(name, out var value))
+            {
+                if (required)
+                {
+                    Log.Logger.LogError("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
+                }
+                return false;
+            }
+
+            renderBuffer = value;
         }
 
-        renderBuffer = null;
-
-        if (required)
-            Log.Logger.LogWarning("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
-
-        return false;
+        return true;
     }
 }
