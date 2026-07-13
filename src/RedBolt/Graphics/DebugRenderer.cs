@@ -420,6 +420,29 @@ public sealed class DebugRenderer : Component
     }
 
     /// <summary>
+    /// Add a triangle mesh from a node.
+    /// </summary>
+    public void AddTriangleMesh(Node node, Color color, bool depthTest)
+    {
+        if (node.GetComponent<StaticModel>() is { } staticModel)
+        {
+            for (uint index = 0; index < staticModel.GetNumGeometries(); ++index)
+            {
+                var geometry = staticModel.GetLodGeometry(index, uint.MaxValue)!;
+                var indexBuffer = geometry.GetIndexBuffer()!;
+                var indexData = indexBuffer.GetRawBuffer()!.GetShadowData();
+                foreach (var vertexBuffer in geometry.GetVertexBuffers())
+                {
+                    var vertexData = vertexBuffer!.GetRawBuffer()!.GetShadowData();
+                    AddTriangleMesh(vertexData, vertexBuffer.GetVertexSize(), geometry.VertexStart,
+                        indexData, indexBuffer.GetIndexSize(), geometry.IndexStart, geometry.IndexCount,
+                        node.GetWorldTransform(), color, depthTest);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Add a circle.
     /// </summary>
     public void AddCircle(Vector3f center, Vector3f normal, float radius, Color color, int steps = 64, bool depthTest = true, bool drawNormal = true)
