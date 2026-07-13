@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -83,7 +84,7 @@ public partial class TetrahedralMesh
 
         if (Math.Abs(radiusDen) < MathDefs.Epsilon * MathDefs.Epsilon)
         {
-            // TODO: port URHO3D_LOGWARNING("Degenerate tetrahedron in tetrahedral mesh due to error in tetrahedral mesh generation");
+            Log.Logger.LogWarning("Degenerate tetrahedron in tetrahedral mesh due to error in tetrahedral mesh generation");
             return new HighPrecisionSphere { Center = default, Radius = MathDefs.LargeValue * MathDefs.LargeValue };
         }
 

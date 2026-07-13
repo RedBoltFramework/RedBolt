@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -252,7 +253,9 @@ public partial class TetrahedralMesh
             // If all the vertices are postponed again, ignore them
             if (postponedVertices.Count == verticesQueue.Count)
             {
-                // TODO: port URHO3D_LOGWARNING("{} vertices are excluded from triangulation due to mathematical fluctuations", postponedVertices.size());
+                Log.Logger.LogWarning(
+                    "{Count} vertices are excluded from triangulation due to mathematical fluctuations",
+                    postponedVertices.Count);
                 break;
             }
         }
@@ -273,7 +276,9 @@ public partial class TetrahedralMesh
         NumInnerTetrahedrons = (uint)Tetrahedrons.Count;
         Debug.Assert(IsAdjacencyValid(false));
 
-        // TODO: port URHO3D_LOGWARNING("Triangulation is incomplete because vertices are too sparse, {} vertices are ignored", verticesQueue.size());
+        Log.Logger.LogWarning(
+            "Triangulation is incomplete because vertices are too sparse, {Count} vertices are ignored",
+            verticesQueue.Count);
 
         // Build the outer space and precompute matrices
         var hullSurface = new TetrahedralMeshSurface();
@@ -357,7 +362,7 @@ public partial class TetrahedralMesh
         var firstTetIndex = FindTetrahedron(position, ctx.Removed);
         if (firstTetIndex == uint.MaxValue || !ctx.IsInsideCircumsphere(firstTetIndex, position))
         {
-            // TODO: port URHO3D_LOGERROR("Cannot find tetrahedron to insert vertex at {}", position.ToString());
+            Log.Logger.LogError("Cannot find tetrahedron to insert vertex at {Position}", position);
             return false;
         }
 
@@ -482,7 +487,9 @@ public partial class TetrahedralMesh
 
         if (!holeSurface.IsClosedSurface())
         {
-            // TODO: port URHO3D_LOGERROR("Surface of the carved hole in tetrahedral mesh is incomplete for vertex at {}", position.ToString());
+            Log.Logger.LogError(
+                "Surface of the carved hole in tetrahedral mesh is incomplete for vertex at {Position}",
+                position);
             holeSurface.Clear();
             return false;
         }
