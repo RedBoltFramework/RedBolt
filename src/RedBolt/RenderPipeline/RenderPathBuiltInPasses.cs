@@ -1204,6 +1204,18 @@ public sealed class OutlineRenderPass : RenderPass
         SetComment(DefaultComment);
     }
 
+    public override void CollectParameters(IDictionary<string, object?> parameters)
+    {
+    }
+
+    public override void InitializeView(RenderPipelineView view)
+    {
+    }
+
+    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    {
+    }
+
     public override void Render(SharedRenderPassState sharedState)
     {
         base.Render(sharedState);

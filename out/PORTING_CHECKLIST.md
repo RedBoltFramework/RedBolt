@@ -383,7 +383,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Passes/ToneMappingPass.h`
   - [~] `ToneMappingPass : RenderPass` — HDR gating, mode metadata/clamping, view initialization, tone-mapping rendering, and cloning are ported; native pipeline-state/cache details remain adapted
 - [~] `Passes/OutlineRenderPass.h`
-  - [~] `OutlineRenderPass : RenderPass`
+  - [~] `OutlineRenderPass : RenderPass` — empty parameter/view lifecycle overrides, outline rendering, and cloning now match the C++ class shape; native pipeline-state details remain adapted
 - [~] `RenderPipeline.h`
   - [~] `RenderPipelineView`
   - [~] `RenderPipeline : Component`
