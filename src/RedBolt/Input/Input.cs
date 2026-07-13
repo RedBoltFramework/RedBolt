@@ -735,36 +735,88 @@ public sealed class Input : Object
     public bool SaveGestures(Serializer dest)
     {
         ArgumentNullException.ThrowIfNull(dest);
-        // TODO: port: the managed SDL binding exposes SDL_SaveAllDollarTemplates, but the
-        // Serializer-to-SDL_RWops adapter is not available yet.
-        // RWOpsWrapper<Serializer> wrapper(dest);
-        // return SDL_SaveAllDollarTemplates(wrapper.GetRWOps()) != 0;
-        return false;
+        var buffer = Marshal.AllocHGlobal(1024 * 1024);
+        var rwops = SdlNativeBindings.SdlRWFromMem(buffer, 1024 * 1024);
+        try
+        {
+            if (rwops.IsNull || SdlNativeBindings.SdlSaveAllDollarTemplates(rwops) == 0)
+                return false;
+
+            var size = (int)(rwops.HiddenMemHere - rwops.HiddenMemBase);
+            var data = new byte[size];
+            Marshal.Copy(buffer, data, 0, size);
+            return dest.Write(data) == size;
+        }
+        finally
+        {
+            if (!rwops.IsNull)
+                SdlNativeBindings.SdlRWclose(rwops);
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 
     public bool SaveGesture(Serializer dest, uint gestureId)
     {
         ArgumentNullException.ThrowIfNull(dest);
-        // TODO: port: the managed SDL binding exposes SDL_SaveDollarTemplate, but the
-        // Serializer-to-SDL_RWops adapter is not available yet.
-        // RWOpsWrapper<Serializer> wrapper(dest);
-        // return SDL_SaveDollarTemplate(gestureId, wrapper.GetRWOps()) != 0;
-        return false;
+        var buffer = Marshal.AllocHGlobal(1024 * 1024);
+        var rwops = SdlNativeBindings.SdlRWFromMem(buffer, 1024 * 1024);
+        try
+        {
+            if (rwops.IsNull || SdlNativeBindings.SdlSaveDollarTemplate((nint)gestureId, rwops) == 0)
+                return false;
+
+            var size = (int)(rwops.HiddenMemHere - rwops.HiddenMemBase);
+            var data = new byte[size];
+            Marshal.Copy(buffer, data, 0, size);
+            return dest.Write(data) == size;
+        }
+        finally
+        {
+            if (!rwops.IsNull)
+                SdlNativeBindings.SdlRWclose(rwops);
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 
     public uint LoadGestures(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        // TODO: port: the managed SDL binding exposes SDL_LoadDollarTemplates, but the
-        // Deserializer-to-SDL_RWops adapter is not available yet.
-        // RWOpsWrapper<Deserializer> wrapper(source);
-        // return (uint)SDL_LoadDollarTemplates(-1, wrapper.GetRWOps());
         if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
         {
             Log.Logger.LogError("Can not load gestures: no touch devices");
             return 0;
         }
-        return 0;
+
+        using var stream = new System.IO.MemoryStream();
+        var chunk = new byte[4096];
+        while (!source.Eof)
+        {
+            var read = source.Read(chunk);
+            if (read == 0)
+                break;
+            stream.Write(chunk, 0, (int)read);
+        }
+
+        var data = stream.ToArray();
+        var buffer = Marshal.AllocHGlobal(data.Length);
+        try
+        {
+            Marshal.Copy(data, 0, buffer, data.Length);
+            var rwops = SdlNativeBindings.SdlRWFromMem(buffer, data.Length);
+            try
+            {
+                return rwops.IsNull ? 0u : (uint)Math.Max(0, SdlNativeBindings.SdlLoadDollarTemplates(-1, rwops));
+            }
+            finally
+            {
+                if (!rwops.IsNull)
+                    SdlNativeBindings.SdlRWclose(rwops);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 
     public bool RemoveGesture(uint gestureId)

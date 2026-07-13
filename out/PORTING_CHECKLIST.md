@@ -411,7 +411,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A11. Input — depends on Core, Graphics (window)
 
-- [~] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, and window helpers are ported; screen joystick creation/visibility remains excluded with the built-in UI, while SDL gesture save/load archive APIs retain the exact native bodies as TODOs until a Serializer/Deserializer-to-SDL_RWops adapter exists
+- [~] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, gesture archive save/load, and window helpers are ported; screen joystick creation/visibility remains excluded with the built-in UI
 - [x] `InputMap.h`
   - [x] `struct KeyboardKeyMapping` — scancode wrapper with archive serialization ported
   - [x] `struct ControllerButtonMapping`
