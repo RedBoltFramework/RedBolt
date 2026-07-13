@@ -182,6 +182,11 @@ public abstract class Drawable : Component
     private CachedDrawableReflection _cachedReflection = new();
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
     private readonly System.Collections.Generic.List<SourceBatch> _batches = [];
+    private uint _viewFrameNumber;
+    private float _distance;
+    private float _lodDistance;
+    private float _sortValue;
+    private readonly System.Collections.Generic.List<Camera?> _viewCameras = [];
     private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;
@@ -221,6 +226,12 @@ public abstract class Drawable : Component
     public float GetDrawDistance() => DrawDistance;
 
     public float GetShadowDistance() => ShadowDistance;
+
+    public float GetDistance() => _distance;
+
+    public float GetLodDistance() => _lodDistance;
+
+    public float GetSortValue() => _sortValue;
 
     public float GetLodBias() => LodBias;
 
@@ -308,6 +319,12 @@ public abstract class Drawable : Component
     /// </summary>
     public IReadOnlyList<SourceBatch> GetBatches() => _batches;
 
+    public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
+    {
+        return _viewFrameNumber == frame.FrameNumber &&
+            (anyCamera || _viewCameras.Contains(frame.Cameras[0]));
+    }
+
     public BoundingBox GetWorldBoundingBox()
     {
         if (_worldBoundingBoxDirty)
@@ -327,6 +344,31 @@ public abstract class Drawable : Component
     public void SetShadowDistance(float distance)
     {
         ShadowDistance = distance;
+    }
+
+    public void SetSortValue(float value)
+    {
+        _sortValue = value;
+    }
+
+    public void MarkInView(CommonFrameInfo frame)
+    {
+        if (frame.FrameNumber != _viewFrameNumber)
+        {
+            _viewFrameNumber = frame.FrameNumber;
+            _viewCameras.Clear();
+        }
+
+        _viewCameras.Add(frame.Cameras[0]);
+    }
+
+    public void MarkInView(uint frameNumber)
+    {
+        if (frameNumber != _viewFrameNumber)
+        {
+            _viewFrameNumber = frameNumber;
+            _viewCameras.Clear();
+        }
     }
 
     public void SetLodBias(float bias)
