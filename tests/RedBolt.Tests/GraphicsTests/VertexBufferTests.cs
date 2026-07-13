@@ -13,6 +13,7 @@ public sealed class VertexBufferTests
         };
         var vertexBuffer = new VertexBuffer();
         vertexBuffer.SetSize(2, elements);
+        Assert.NotNull(vertexBuffer.GetRawBuffer());
         vertexBuffer.SetShadowed(true);
 
         vertexBuffer.SetUnpackedData(new[]

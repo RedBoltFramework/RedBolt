@@ -209,6 +209,9 @@ public sealed class IndexBuffer : PipelineStateTracker
         return indexBuffer.GetIndexSize() == 4 ? IndexBufferType.UInt32 : IndexBufferType.UInt16;
     }
 
+    /// <summary>Return the underlying raw buffer.</summary>
+    public RawBuffer? GetRawBuffer() => _rawBuffer;
+
     protected override uint RecalculatePipelineStateHash()
     {
         var hash = 0u;

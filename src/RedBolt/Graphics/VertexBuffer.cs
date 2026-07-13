@@ -332,6 +332,9 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Return whether is dynamic.</summary>
     public bool IsDynamicBuffer() => IsDynamic;
 
+    /// <summary>Return the underlying raw buffer.</summary>
+    public RawBuffer? GetRawBuffer() => _rawBuffer;
+
     /// <summary>Set raw buffer data.</summary>
     public void SetData(IEnumerable<byte> data)
     {

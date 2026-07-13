@@ -1,3 +1,4 @@
+using System.Buffers;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -63,28 +64,34 @@ public static class GraphicsUtils
         desc.PrimitiveType = geometry.GetPrimitiveType();
     }
 
-    // TODO: port: VertexBuffer does not yet expose the RawBuffer objects required by DrawCommandQueue.
-    // inline void SetBuffersFromGeometry(
-    //     DrawCommandQueue& drawQueue, const Geometry* geometry, VertexBuffer* instancingBuffer = nullptr)
-    // {
-    //     const auto& vertexBuffers = geometry->GetVertexBuffers();
-    //     IndexBuffer* indexBuffer = geometry->GetIndexBuffer();
-    //
-    //     if (vertexBuffers.size() + (instancingBuffer ? 1 : 0) > MaxVertexStreams)
-    //     {
-    //         URHO3D_ASSERT(false, "Too many vertex buffers");
-    //         return;
-    //     }
-    //
-    //     RawVertexBufferArray mergedVertexBuffers{};
-    //     for (unsigned i = 0; i < vertexBuffers.size(); ++i)
-    //         mergedVertexBuffers[i] = vertexBuffers[i];
-    //     if (instancingBuffer)
-    //         mergedVertexBuffers[vertexBuffers.size()] = instancingBuffer;
-    //
-    //     drawQueue.SetVertexBuffers(mergedVertexBuffers);
-    //     drawQueue.SetIndexBuffer(indexBuffer);
-    // }
+    public static void SetBuffersFromGeometry(
+        DrawCommandQueue drawQueue, Geometry geometry, VertexBuffer? instancingBuffer = null)
+    {
+        var vertexBuffers = geometry.GetVertexBuffers();
+        if (vertexBuffers.Count + (instancingBuffer is null ? 0 : 1) > RenderApiLimits.MaxVertexStreams)
+        {
+            Log.Logger.LogError("Too many vertex buffers");
+            return;
+        }
+
+        var mergedVertexBuffers = ArrayPool<RawBuffer?>.Shared.Rent((int)RenderApiLimits.MaxVertexStreams);
+        try
+        {
+            Array.Clear(mergedVertexBuffers, 0, (int)RenderApiLimits.MaxVertexStreams);
+            for (var i = 0; i < vertexBuffers.Count; ++i)
+                mergedVertexBuffers[i] = vertexBuffers[i]?.GetRawBuffer();
+            if (instancingBuffer is not null)
+                mergedVertexBuffers[vertexBuffers.Count] = instancingBuffer.GetRawBuffer();
+
+            drawQueue.SetVertexBuffers(mergedVertexBuffers.AsSpan(0, (int)RenderApiLimits.MaxVertexStreams));
+            drawQueue.SetIndexBuffer(geometry.GetIndexBuffer()?.GetRawBuffer());
+        }
+        finally
+        {
+            Array.Clear(mergedVertexBuffers, 0, (int)RenderApiLimits.MaxVertexStreams);
+            ArrayPool<RawBuffer?>.Shared.Return(mergedVertexBuffers);
+        }
+    }
 
     // TODO: port: Texture does not yet expose the RawTexture objects required by DrawCommandQueue.
     // inline void AddShaderResource(DrawCommandQueue& drawQueue, StringHash name, Texture* texture)

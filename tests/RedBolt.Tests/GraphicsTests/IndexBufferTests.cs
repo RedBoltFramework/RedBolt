@@ -38,6 +38,7 @@ public sealed class IndexBufferTests
     {
         var indexBuffer = new IndexBuffer();
         indexBuffer.SetSize(5, largeIndices: false);
+        Assert.NotNull(indexBuffer.GetRawBuffer());
         indexBuffer.SetShadowed(true);
         indexBuffer.SetUnpackedData(new uint[] { 4, 7 }, start: 1, count: 2);
 
