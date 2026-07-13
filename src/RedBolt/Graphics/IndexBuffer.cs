@@ -13,7 +13,13 @@ public enum IndexBufferType
 /// <summary>Hardware index buffer.</summary>
 public sealed class IndexBuffer : PipelineStateTracker
 {
+    private sealed class IndexRawBuffer : RawBuffer
+    {
+        public bool CreateBuffer(RawBufferParams parameters) => Create(parameters);
+    }
+
     private byte[] _data = [];
+    private IndexRawBuffer? _rawBuffer;
     private bool _shadowedPending;
 
     /// <summary>Number of indices.</summary>
@@ -51,9 +57,14 @@ public sealed class IndexBuffer : PipelineStateTracker
         if (_data.Length != size)
             _data = new byte[size];
 
-        // TODO: port: RawBufferParams and RawBuffer::Create are not represented by the managed buffer API.
-        _ = _shadowedPending;
-        return true;
+        _rawBuffer?.Destroy();
+        _rawBuffer = new IndexRawBuffer();
+        return _rawBuffer.CreateBuffer(new RawBufferParams(
+            BufferType.Index,
+            checked((uint)size),
+            indexSize,
+            (_shadowedPending ? BufferFlag.Shadowed : BufferFlag.None)
+                | (dynamic ? BufferFlag.Dynamic : BufferFlag.None)));
     }
 
     /// <summary>Return whether is dynamic.</summary>
@@ -146,7 +157,8 @@ public sealed class IndexBuffer : PipelineStateTracker
             count = IndexCount - start;
 
         PackIndexData(data, _data, LargeIndices, start, count);
-        // TODO: port: RawBuffer::UpdateRange is not represented by the managed buffer API.
+        _rawBuffer?.UpdateRange(_data.AsSpan(checked((int)(start * IndexSize)), checked((int)(count * IndexSize))),
+            start * IndexSize, count * IndexSize);
     }
 
     /// <summary>Unpack index data from index buffer into unsigned int array.</summary>
@@ -204,6 +216,12 @@ public sealed class IndexBuffer : PipelineStateTracker
         return Math.Max(1u, hash);
     }
 
+    /// <summary>Set the debug name.</summary>
+    public void SetDebugName(string debugName)
+    {
+        _rawBuffer?.SetDebugName(debugName);
+    }
+
     private static void CombineHash(ref uint result, uint hash)
     {
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
@@ -244,8 +262,7 @@ public sealed class DynamicIndexBuffer
     /// <summary>Set the debug name.</summary>
     public void SetDebugName(string debugName)
     {
-        // TODO: port: IndexBuffer::SetDebugName is provided by the unavailable RawBuffer API.
-        _ = debugName;
+        _indexBuffer.SetDebugName(debugName);
     }
 
     /// <summary>Discard existing content of the buffer.</summary>
@@ -278,7 +295,6 @@ public sealed class DynamicIndexBuffer
         var unpackedData = new uint[checked((int)_numIndices)];
         IndexBuffer.UnpackIndexData(_shadowData, _largeIndices, 0, _numIndices, unpackedData);
         _indexBuffer.SetUnpackedData(unpackedData, 0, _numIndices);
-        // TODO: port: RawBuffer::UpdateRange is not represented by the managed buffer API.
     }
 
     /// <summary>Allocate indices. Returns index of first index and writeable buffer of sufficient size.</summary>

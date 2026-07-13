@@ -187,8 +187,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Geometry.h`
   - [~] `Geometry : Object, PipelineStateTracker, IDFamily<Geometry>` — factory registration, dependency tracking, draw-range validation including the failed shadow-range fallback, raw-data overrides including shadowed index extraction, primitive metadata, pipeline hashing, and C++-equivalent raw triangle hit-distance and inside-geometry traversal are ported; `IDFamily<Geometry>` is not represented because managed type identity replaces it
 - [~] `IndexBuffer.h`
-  - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — CPU shadow data, range queries, pack/unpack helpers, size metadata, and pipeline-state hashing are ported; RawBuffer GPU Create/UpdateRange remains TODO
-  - [~] `DynamicIndexBuffer : Object` — managed allocation, growth, discard, and commit behavior are ported; RawBuffer upload/debug-name remains TODO
+  - [~] `IndexBuffer : RawBuffer, PipelineStateTracker` — CPU shadow data, range queries, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation, range updates, and debug-name forwarding are ported; C# composes the RawBuffer because it cannot represent the C++ multiple-inheritance shape
+  - [~] `DynamicIndexBuffer : Object` — managed allocation, growth, discard, commit, RawBuffer upload, and debug-name forwarding are ported
 - [~] `VertexBuffer.h`
   - [~] `VertexBuffer : RawBuffer, PipelineStateTracker` — element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, and pipeline-state hashing are ported; RawBuffer GPU Create/UpdateRange remains TODO
   - [~] `DynamicVertexBuffer : Object` — managed allocation, growth, discard, and commit behavior are ported; RawBuffer upload/debug-name remains TODO
