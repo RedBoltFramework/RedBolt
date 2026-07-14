@@ -365,8 +365,17 @@ public abstract class Texture : ResourceWithMetadata
     // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
     protected bool UpdateFromImage(uint arraySlice, Image? image) => false;
 
-    // TODO: port: Image-backed GPU reads require Texture and RawTexture to share one class hierarchy.
-    protected bool ReadToImage(uint arraySlice, uint level, Image? image) => false;
+    protected bool ReadToImage(uint arraySlice, uint level, Image? image)
+    {
+        if (image is null || _rawTexture is null || Format != TextureFormat.RGBA8)
+            return false;
+
+        var size = new Vector3i(GetLevelWidth(level), GetLevelHeight(level), GetLevelDepth(level));
+        if (!image.SetSize(size.X, size.Y, size.Z, 4u))
+            return false;
+
+        return _rawTexture.Read(arraySlice, level, image.GetData());
+    }
 
     protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
         bool noMultiSampledAutoResolve = false, TextureFlag flags = TextureFlag.None)

@@ -172,7 +172,10 @@ public sealed class Texture2D : Texture
         if (Format is not (TextureFormat.RGB8 or TextureFormat.RGBA8))
             return false;
 
-        if (!_levelData.TryGetValue(0u, out var levelBytes) || !image.SetSize(Width, Height, 4u))
+        if (!_levelData.TryGetValue(0u, out var levelBytes))
+            return ReadToImage(0u, 0u, image);
+
+        if (!image.SetSize(Width, Height, 4u))
             return false;
 
         image.SetData(levelBytes);
