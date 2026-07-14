@@ -64,9 +64,8 @@ public sealed class Renderer : Object
         return index < _viewports.Count ? _viewports[(int)index] : null;
     }
 
-    public void SetViewport(uint index, Viewport viewport)
+    public void SetViewport(uint index, Viewport? viewport)
     {
-        ArgumentNullException.ThrowIfNull(viewport);
         EnsureViewportCount(index + 1);
         _viewports[(int)index] = viewport;
     }

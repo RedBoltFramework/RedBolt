@@ -205,4 +205,13 @@ public sealed class RendererTests
         Assert.Equal(36u, Renderer.GetLightGeometry(spotLight)!.GetIndexCount());
         Assert.Equal(132u, Renderer.GetLightGeometry(pointLight)!.GetIndexCount());
     }
+
+    [Fact]
+    public void Set_viewport_accepts_null_and_preserves_viewport_slot()
+    {
+        Renderer.SetViewport(2u, null);
+
+        Assert.Equal(3u, Renderer.GetNumViewports());
+        Assert.Null(Renderer.GetViewport(2));
+    }
 }
