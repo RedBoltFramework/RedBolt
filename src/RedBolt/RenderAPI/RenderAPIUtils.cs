@@ -5,6 +5,32 @@ namespace RedBolt;
 /// </summary>
 public static class RenderAPIUtils
 {
+    private static readonly string[] BackendNames =
+    [
+        "D3D11",
+        "D3D12",
+        "OpenGL",
+        "Vulkan"
+    ];
+
+    private static readonly string[] ShaderTypeNames =
+    [
+        "Vertex",
+        "Pixel",
+        "Geometry",
+        "Hull",
+        "Domain",
+        "Compute"
+    ];
+
+    private static readonly RenderBackend[] SupportedBackends =
+    [
+        RenderBackend.D3D11,
+        RenderBackend.D3D12,
+        RenderBackend.OpenGL,
+        RenderBackend.Vulkan
+    ];
+
     private static readonly string[] ShaderInputNames =
     [
         "iPos",
@@ -33,30 +59,10 @@ public static class RenderAPIUtils
     }
 
     public static string ToString(RenderBackend backend)
-    {
-        var backendNames = new[]
-        {
-            "D3D11",
-            "D3D12",
-            "OpenGL",
-            "Vulkan"
-        };
-        return backendNames[(int)backend];
-    }
+        => BackendNames[(int)backend];
 
     public static string ToString(ShaderType type)
-    {
-        var shaderTypeNames = new[]
-        {
-            "Vertex",
-            "Pixel",
-            "Geometry",
-            "Hull",
-            "Domain",
-            "Compute"
-        };
-        return shaderTypeNames[(int)type];
-    }
+        => ShaderTypeNames[(int)type];
 
     public static VertexShaderAttribute? ParseVertexAttribute(string name)
     {
@@ -191,22 +197,14 @@ public static class RenderAPIUtils
 
         // Native compile-time backend feature flags are not represented by the managed API.
         // Keep the complete managed backend enum as the supported set.
-        var supportedBackends = new[]
-        {
-            RenderBackend.D3D11,
-            RenderBackend.D3D12,
-            RenderBackend.OpenGL,
-            RenderBackend.Vulkan
-        };
-
         var backend = requestedBackend ?? defaultBackend;
-        foreach (var supportedBackend in supportedBackends)
+        foreach (var supportedBackend in SupportedBackends)
         {
             if (supportedBackend == backend)
                 return backend;
         }
 
-        return supportedBackends[0];
+        return SupportedBackends[0];
     }
 
     public static ShaderTranslationPolicy SelectShaderTranslationPolicy(
