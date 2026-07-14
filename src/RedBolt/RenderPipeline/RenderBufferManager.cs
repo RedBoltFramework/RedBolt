@@ -49,7 +49,6 @@ public sealed class RenderBufferManager
 
     public void SetSettings(RenderBufferManagerSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         this._settings = settings;
     }
 
