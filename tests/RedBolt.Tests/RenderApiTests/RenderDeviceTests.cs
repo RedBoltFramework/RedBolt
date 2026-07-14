@@ -490,6 +490,43 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Render_device_exposes_separate_device_state_lifecycle()
+    {
+        var previousContext = Context.Instance;
+        TrackingDeviceObject? deviceObject;
+
+        try
+        {
+            using var engine = new EngineHandle();
+            engine.Engine.Initialize(new EngineParameters
+            {
+                ApplicationName = "RenderDeviceTests",
+                Headless = true,
+                RenderBackend = GraphicsBackend.OpenGL
+            });
+
+            var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();
+            Assert.NotNull(renderDevice);
+
+            deviceObject = new TrackingDeviceObject();
+            renderDevice!.InvalidateDeviceState();
+            Assert.Equal(1, deviceObject.InvalidateCalls);
+            Assert.True(deviceObject.IsDataLost());
+
+            renderDevice.RestoreDeviceState();
+            Assert.Equal(1, deviceObject.RestoreCalls);
+            Assert.False(deviceObject.IsDataLost());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+
+        Assert.NotNull(deviceObject);
+        Assert.Equal(1, deviceObject!.DestroyCalls);
+    }
+
+    [Fact]
     public void Pipeline_state_uses_device_object_debug_name_surface()
     {
         var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc())

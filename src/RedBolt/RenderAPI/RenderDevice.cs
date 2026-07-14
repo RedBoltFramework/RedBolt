@@ -168,17 +168,27 @@ public sealed class RenderDevice : Object
         return true;
     }
 
+    public void InvalidateDeviceState()
+    {
+        ReleaseDefaultObjects();
+        SendDeviceObjectEvent(DeviceObjectEvent.Invalidate);
+        SendEvent<GraphicsEvents.DeviceLostEvent>();
+    }
+
+    public void RestoreDeviceState()
+    {
+        SendDeviceObjectEvent(DeviceObjectEvent.Restore);
+        SendEvent<GraphicsEvents.DeviceResetEvent>();
+        InitializeDefaultObjects();
+    }
+
     /// <summary>
     /// Emulate device loss and restore. Only applicable for Android.
     /// </summary>
     public bool EmulateLossAndRestore()
     {
-        ReleaseDefaultObjects();
-        SendDeviceObjectEvent(DeviceObjectEvent.Invalidate);
-        SendEvent<GraphicsEvents.DeviceLostEvent>();
-        SendDeviceObjectEvent(DeviceObjectEvent.Restore);
-        SendEvent<GraphicsEvents.DeviceResetEvent>();
-        InitializeDefaultObjects();
+        InvalidateDeviceState();
+        RestoreDeviceState();
         return true;
     }
 
