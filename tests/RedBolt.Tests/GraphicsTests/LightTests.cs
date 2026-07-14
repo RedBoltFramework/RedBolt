@@ -166,6 +166,25 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Update_batches_matches_light_distance_rules()
+    {
+        var scene = new Scene();
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
+        light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
+        var camera = new Camera();
+        var frame = new CommonFrameInfo { Camera = camera };
+
+        light.UpdateBatches(frame);
+
+        Assert.Equal(camera.GetDistance(light.Node.WorldPosition), light.GetDistance());
+
+        light.SetLightType(LightType.Directional);
+        light.UpdateBatches(frame);
+
+        Assert.Equal(0.0f, light.GetDistance());
+    }
+
+    [Fact]
     public void Texture_attributes_roundtrip_empty_resources()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();

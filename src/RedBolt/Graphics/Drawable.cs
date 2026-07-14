@@ -338,6 +338,11 @@ public abstract class Drawable : Component
     /// </summary>
     public IReadOnlyList<SourceBatch> GetBatches() => _batches;
 
+    public virtual void UpdateBatches(CommonFrameInfo frame)
+    {
+        _distance = frame.Camera!.GetDistance(GetWorldBoundingBox().Center);
+    }
+
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
     {
         return _viewFrameNumber == frame.FrameNumber &&
@@ -368,6 +373,11 @@ public abstract class Drawable : Component
     public void SetSortValue(float value)
     {
         _sortValue = value;
+    }
+
+    protected void SetDistance(float distance)
+    {
+        _distance = distance;
     }
 
     public void MarkInView(CommonFrameInfo frame)

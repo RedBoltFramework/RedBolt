@@ -233,7 +233,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Viewport.h` — `Viewport : Object` base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation including owner invalidation are ported; C# drops `WeakPtr`/`SharedPtr` per the allowed deviations
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
-  - [~] `Drawable : Component, PipelineStateTracker` — zone/reflection cache state, mutable cached-zone/reflection/light-probe-hint access, source-batch access, view-camera tracking, renderer-wide and explicit-frame view queries, distance/sort accessors, combined zone light/shadow masks, common debug bounding-box drawing, pipeline-state tracking/hash invalidation, and octree attach/detach/disposal are ported; reflection-probe manager selection remains incomplete
+  - [~] `Drawable : Component, PipelineStateTracker` — zone/reflection cache state, mutable cached-zone/reflection/light-probe-hint access, source-batch access, view-camera tracking, renderer-wide and explicit-frame view queries, batch distance update, distance/sort accessors, combined zone light/shadow masks, common debug bounding-box drawing, pipeline-state tracking/hash invalidation, and octree attach/detach/disposal are ported; batch world-transform/LOD propagation and reflection-probe manager selection remain incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, removal, and moving existing drawables between octants are ported; full scene octree reinsertion and debug traversal remain incomplete
@@ -246,7 +246,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct BiasParameters`
   - [~] `struct CascadeParameters`
   - [~] `struct FocusParameters`
-  - [~] `Light : Drawable` — intensity divisor and distance-based sort-value calculation, validated cascade split counting, ramp/shape texture attributes, world-space/view-space spotlight frustums, directional/spot/point world bounds, point/spot/directional volume transforms, directional/spot/point debug geometry, and AABB/OBB/triangle ray queries are ported; legacy `UpdateBatches(FrameInfo)` camera contract, light-batch queue, and texture resource integration remain incomplete
+  - [~] `Light : Drawable` — intensity divisor and distance-based sort-value calculation, validated cascade split counting, ramp/shape texture attributes and resource-cache loading, camera-distance `UpdateBatches` dispatch, world-space/view-space spotlight frustums, directional/spot/point world bounds, point/spot/directional volume transforms, directional/spot/point debug geometry, and AABB/OBB/triangle ray queries are ported; light-batch queue integration remains incomplete
 - [~] `Technique.h`
   - [~] `Pass : RefCounted, PipelineStateTracker` — managed Pass now derives from PipelineStateTracker with tracker-backed hash invalidation; native shader-variation collections remain incomplete
   - [~] `Technique : Resource`

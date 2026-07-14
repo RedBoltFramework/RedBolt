@@ -116,8 +116,20 @@ public sealed class Light : Drawable
         }
     }
 
-    // TODO: port: void UpdateBatches(const FrameInfo& frame) override;
-    // The managed render pipeline does not expose the legacy FrameInfo camera contract yet.
+    public override void UpdateBatches(CommonFrameInfo frame)
+    {
+        switch (_lightType)
+        {
+            case LightType.Directional:
+                // Directional light affects the whole scene, so it is always "closest"
+                SetDistance(0.0f);
+                break;
+
+            default:
+                SetDistance(frame.Camera!.GetDistance(Node.WorldPosition));
+                break;
+        }
+    }
 
     public LightType LightType => _lightType;
 
