@@ -25,6 +25,7 @@ sealed class HelloWorldApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.HelloWorld";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

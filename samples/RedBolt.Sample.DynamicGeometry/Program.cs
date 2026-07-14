@@ -32,6 +32,7 @@ sealed class DynamicGeometryApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.DynamicGeometry";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

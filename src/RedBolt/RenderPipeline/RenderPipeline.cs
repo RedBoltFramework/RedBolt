@@ -433,13 +433,25 @@ public class RenderPipeline : Component
             _sharedState.Graphics = graphics;
             Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
             _renderBufferManager.OnRenderBegin(_frameInfo, graphics);
-            _renderBufferManager.SetOutputRenderTargets(graphics);
             SendViewBuffersReadyEvent();
-            graphics.ClearCurrentRenderTargets();
+            var fogColor = _viewport.Camera.GetEffectiveFogColor();
+            var effectiveFogColor = IsLinearColorSpace ? fogColor.GammaToLinear() : fogColor;
+            _renderBufferManager.ClearOutput(graphics, effectiveFogColor);
+            _renderBufferManager.SetOutputRenderTargets(graphics);
             graphics.RenderScene(_viewport, materialQuality, _frameInfo.ViewportRect);
             RenderNormalBuffer(graphics, materialQuality);
             RenderOutlines(graphics, materialQuality);
             _renderPath?.Render(_sharedState);
+
+            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
+            var debug = _viewport.Scene.Root.GetComponent<DebugRenderer>();
+            if (drawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
+            {
+                _renderBufferManager.SetOutputRenderTargets(graphics);
+                debug.SetView(_viewport.Camera);
+                debug.Render();
+            }
+
             _renderBufferManager.OnRenderEnd(_frameInfo);
             Context.Instance.SendEvent<GraphicsEvents.EndRenderingEvent>();
 

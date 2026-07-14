@@ -31,6 +31,7 @@ sealed class HelloGuiApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.HelloGUI";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

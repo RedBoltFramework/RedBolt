@@ -23,7 +23,7 @@ public sealed class ControllerTests
         freeFly.SetInput(Input);
 
         Input.BeginFrame();
-        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseMode(MouseMode.Relative);
         Input.SetKey(Key.W, Scancode.W, true);
         scene.Update(0.5f);
         Input.SetKey(Key.W, Scancode.W, false);
@@ -32,20 +32,20 @@ public sealed class ControllerTests
     }
 
     [Fact]
-    public void FreeFlyController_activation_keeps_mouse_free()
+    public void FreeFlyController_activation_hides_and_locks_mouse()
     {
         var scene = new Scene();
         var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
         freeFly.SetInput(Input);
 
         Input.BeginFrame();
-        Input.SetMouseVisible(true);
         Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
         Input.SetMouseButton(MouseButton.Right, true);
         scene.Update(0.1f);
 
-        Assert.True(Input.IsMouseVisible());
-        Assert.Equal(MouseMode.Free, Input.MouseMode);
+        Assert.False(Input.IsMouseVisible());
+        Assert.Equal(MouseMode.Relative, Input.MouseMode);
     }
 
     [Fact]
@@ -56,8 +56,8 @@ public sealed class ControllerTests
         freeFly.SetInput(Input);
 
         Input.BeginFrame();
-        Input.SetMouseVisible(true);
         Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
         Input.SetMouseButton(MouseButton.Right, true);
         scene.Update(0.1f);
 

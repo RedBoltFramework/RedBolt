@@ -28,6 +28,7 @@ sealed class StaticSceneApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.StaticScene";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

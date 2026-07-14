@@ -1106,6 +1106,10 @@ public sealed class Input : Object
         else
         {
             MouseMode = mode;
+            if (previousMode == MouseMode.Relative)
+                SetMouseVisible(_lastMouseVisible, suppressEvent: true);
+            else if (mode == MouseMode.Relative)
+                SetMouseVisible(false, suppressEvent: true);
         }
 
         if (!suppressEvent)

@@ -28,6 +28,7 @@ sealed class RenderToTextureApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.RenderToTexture";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

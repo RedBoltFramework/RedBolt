@@ -25,6 +25,7 @@ sealed class AnimatingSceneApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.AnimatingScene";
         parameters.Borderless = false;
+        parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();
