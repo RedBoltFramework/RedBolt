@@ -285,6 +285,13 @@ public class AnimationController : AnimationStateSource
         };
         instance.Params.InstanceIndex = instanceIndex;
 
+        var model = GetComponent<AnimatedModel>();
+        if (model is not null)
+        {
+            model.ConnectToAnimationStateSource(this);
+            instance.State.ConnectToAnimatedModel(model);
+        }
+
         EnsureStateInitialized(instance.State!, instance.Params);
         _animations.Add(instance);
         _animationStates.Add(instance.State!);
@@ -781,6 +788,7 @@ public class AnimationController : AnimationStateSource
     private void ConnectToAnimatedModel()
     {
         var model = Node?.GetComponent<AnimatedModel>();
+        model?.ConnectToAnimationStateSource(this);
         foreach (var animation in _animations)
             animation.State?.ConnectToAnimatedModel(model);
     }

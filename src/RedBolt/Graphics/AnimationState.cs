@@ -150,8 +150,7 @@ public struct AttributeAnimationStateTrack
 /// </summary>
 public sealed class AnimationState
 {
-    // TODO: port: AnimationController and AnimatedModel are not available yet; preserve the C++ weak references as opaque managed references.
-    private readonly object? _controller;
+    private readonly AnimationController? _controller;
     private object? _model;
     private Animation? _animation;
     private bool _tracksDirty = true;
@@ -165,7 +164,7 @@ public sealed class AnimationState
     private readonly List<NodeAnimationStateTrack> _nodeTracks = [];
     private readonly List<AttributeAnimationStateTrack> _attributeTracks = [];
 
-    public AnimationState(object? controller = null)
+    public AnimationState(AnimationController? controller = null)
     {
         _controller = controller;
     }

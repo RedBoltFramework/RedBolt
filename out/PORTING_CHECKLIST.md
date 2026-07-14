@@ -263,14 +263,14 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, and batch distance/world-transform/LOD updates are ported; occlusion drawing remains incomplete because managed OcclusionBuffer APIs are not yet available
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
-- [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending
+- [~] `AnimationStateSource.h` — base component, managed animation-state list, throttling state, and controller-to-model source connection are ported; model pose consumption remains incomplete
   - [~] `AnimationStateSource`
 - [~] `AnimationState.h` — enums, track/output records, lifecycle state, node, model, and attribute track blending, and ordinary/node-variable attribute application are ported; AnimatedModel pose application and morph reflection remain TODO
   - [~] `struct AnimatedAttributeReference`
   - [~] `AnimationState : RefCounted`
 - [~] `AnimationController.h` — animation parameter management, playback lifecycle, replacement merge path, UpdateAnimation assertions, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel pose/attribute integration remains TODO
   - [~] `AnimationParameters` — global resource lookups use a local context variable because this C++ value-style class has no Object.GetSubsystem() instance
-  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath, track-node lookup, trigger dispatch, node/attribute output aggregation, managed node/variant track setup, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel skeleton/pose integration remains TODO
+  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath, track-node lookup, trigger dispatch, node/attribute output aggregation, managed node/variant track setup, controller-to-model state connection, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel skeleton/pose integration remains TODO
 - [ ] `SoftwareModelAnimator.h`
   - [ ] `SoftwareModelAnimator : Object`
 - [ ] `BillboardSet.h`

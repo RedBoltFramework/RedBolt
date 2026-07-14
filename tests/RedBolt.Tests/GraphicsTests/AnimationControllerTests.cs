@@ -113,4 +113,17 @@ public sealed class AnimationControllerTests
 
         Assert.Equal(0u, controller.GetNumAnimations());
     }
+
+    [Fact]
+    public void Animation_controller_connects_states_to_attached_animated_model()
+    {
+        var node = new Scene().CreateChild("AnimatedModel");
+        node.CreateComponent<AnimatedModel>();
+        var controller = node.CreateComponent<AnimationController>();
+        var animation = new Animation("Walk");
+
+        controller.AddAnimation(new AnimationParameters(animation));
+
+        Assert.Same(node.GetComponent<AnimatedModel>(), controller.GetAnimationStates()[0].GetModel());
+    }
 }

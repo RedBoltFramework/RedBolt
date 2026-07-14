@@ -6,6 +6,7 @@ namespace RedBolt;
 public class AnimatedModel : StaticModel
 {
     private readonly Skeleton _skeleton = new();
+    private AnimationStateSource? _animationStateSource;
     private readonly List<ModelMorph> _morphs = [];
     private float _animationLodBias = 1.0f;
     private bool _updateInvisible;
@@ -122,6 +123,12 @@ public class AnimatedModel : StaticModel
     public void ResetBones()
     {
         _skeleton.Reset();
+    }
+
+    /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
+    public void ConnectToAnimationStateSource(AnimationStateSource? source)
+    {
+        _animationStateSource = source;
     }
 
     /// <summary>Return the skeleton.</summary>
