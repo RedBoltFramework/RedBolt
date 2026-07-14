@@ -27,6 +27,7 @@ sealed class RenderToTextureApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.RenderToTexture";
+        parameters.Borderless = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

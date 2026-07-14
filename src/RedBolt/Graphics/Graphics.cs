@@ -1325,8 +1325,8 @@ layout(std140) uniform Material
 
         SdlNativeBindings.SdlGetWindowSize(_window, out var windowWidth, out var windowHeight);
         SdlNativeBindings.SdlGlGetDrawableSize(_window, out var drawableWidth, out var drawableHeight);
-        Width = windowWidth;
-        Height = windowHeight;
+        Width = drawableWidth;
+        Height = drawableHeight;
         _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
     }
 

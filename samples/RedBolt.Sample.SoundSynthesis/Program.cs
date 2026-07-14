@@ -31,6 +31,7 @@ sealed class SoundSynthesisApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.SoundSynthesis";
+        parameters.Borderless = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();

@@ -28,6 +28,7 @@ sealed class MultipleViewportsApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.MultipleViewports";
+        parameters.Borderless = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();
@@ -162,7 +163,8 @@ sealed class MultipleViewportsApplication : Application
         if (ImGui.Begin("Multiple Viewports\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nB to toggle bloom, F to toggle FXAA\nSpace to toggle debug geometry\0"u8);
-            ImGui.Checkbox("Debug geometry\0"u8, out _drawDebug);
+            if (ImGui.Button(_drawDebug ? "Debug geometry: On\0"u8 : "Debug geometry: Off\0"u8))
+                _drawDebug = !_drawDebug;
         }
         ImGui.End();
     }

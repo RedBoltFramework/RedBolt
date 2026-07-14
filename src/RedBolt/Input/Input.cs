@@ -333,6 +333,12 @@ public sealed class Input : Object
                     HandleKeyDown(_nativeEvent);
                 else if (eventType == SdlEventType.SdlKeyup)
                     HandleKeyUp(_nativeEvent);
+                else if (eventType == SdlEventType.SdlMousebuttondown)
+                    HandleMouseButtonDown(_nativeEvent);
+                else if (eventType == SdlEventType.SdlMousebuttonup)
+                    HandleMouseButtonUp(_nativeEvent);
+                else if (eventType == SdlEventType.SdlMousemotion)
+                    HandleMouseMotion(_nativeEvent);
                 continue;
             }
 
