@@ -34,6 +34,7 @@ sealed class WindowSettingsApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.WindowSettings";
         parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
@@ -45,6 +46,9 @@ sealed class WindowSettingsApplication : Application
 
     protected override void Start()
     {
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
+
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 

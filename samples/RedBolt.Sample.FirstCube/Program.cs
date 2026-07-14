@@ -21,6 +21,7 @@ sealed class FirstCubeApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.FirstCube";
         parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
@@ -32,6 +33,9 @@ sealed class FirstCubeApplication : Application
 
     protected override void Start()
     {
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
+
         var scene = new Scene();
         scene.CreateComponent<Octree>();
 

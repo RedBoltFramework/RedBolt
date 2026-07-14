@@ -32,6 +32,7 @@ sealed class SoundSynthesisApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.SoundSynthesis";
         parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.WindowMaximize = false;
         parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
