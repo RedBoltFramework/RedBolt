@@ -185,20 +185,8 @@ public sealed class Zone : Drawable
         if (_zoneTexture is not null)
             _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
 
-        var cache = GetSubsystem<ResourceCache>();
-        _zoneTexture = null;
-        if (cache is not null)
-        {
-            foreach (var item in cache.AllResources)
-            {
-                if (string.Equals(item.Key.Name, value.Name, StringComparison.Ordinal)
-                    && item.Value is Texture texture)
-                {
-                    _zoneTexture = texture;
-                    break;
-                }
-            }
-        }
+        var cache = GetSubsystem<ResourceCache>()!;
+        _zoneTexture = cache.GetResourceOrNull<Texture>(value.Name);
         UpdateZoneTextureSubscription();
         MarkCachedTextureDirty();
         MarkCachedAmbientDirty();
