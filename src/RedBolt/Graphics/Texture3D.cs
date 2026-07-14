@@ -155,6 +155,8 @@ public sealed class Texture3D : Texture
             }
         }
 
+        GetRawTexture()?.Update(level, new Vector3i(x, y, z), new Vector3i(width, height, depth), 0u, data);
+
         RefreshTotalMemoryUse();
         return true;
     }

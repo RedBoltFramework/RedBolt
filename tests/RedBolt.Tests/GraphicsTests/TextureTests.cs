@@ -226,6 +226,25 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture_array_uploads_forward_to_raw_texture()
+    {
+        var volume = new Texture3D("Textures/Volume");
+        Assert.True(volume.SetSize(2, 2, 2, TextureFormat.RGBA8));
+        Assert.True(volume.SetData(0u, 0, 0, 0, 2, 2, 2, new byte[2 * 2 * 2 * 4]));
+        Assert.Equal(TextureType.Texture3D, volume.GetRawTexture()!.GetParams().Type);
+
+        var cube = new TextureCube("Textures/Cube");
+        Assert.True(cube.SetSize(2, TextureFormat.RGBA8));
+        Assert.True(cube.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2, new byte[2 * 2 * 4]));
+        Assert.Equal(TextureType.TextureCube, cube.GetRawTexture()!.GetParams().Type);
+
+        var array = new Texture2DArray("Textures/Array");
+        Assert.True(array.SetSize(2u, 2, 2, TextureFormat.RGBA8));
+        Assert.True(array.SetData(1u, 0u, 0, 0, 2, 2, new byte[2 * 2 * 4]));
+        Assert.Equal(TextureType.Texture2DArray, array.GetRawTexture()!.GetParams().Type);
+    }
+
+    [Fact]
     public void Texture3D_set_size_preserves_usage_flags()
     {
         var texture = new Texture3D("Textures/RenderVolume");

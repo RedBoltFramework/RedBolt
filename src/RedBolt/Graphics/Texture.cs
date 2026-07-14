@@ -81,7 +81,7 @@ public abstract class Texture : ResourceWithMetadata
 
     public Texture? BackupTexture { get; private set; }
 
-    internal RawTexture? GetRawTexture() => _rawTexture;
+    public RawTexture? GetRawTexture() => _rawTexture;
 
     public bool IsCompressed() => false;
 
