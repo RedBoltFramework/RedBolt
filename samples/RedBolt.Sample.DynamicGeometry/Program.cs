@@ -48,7 +48,6 @@ sealed class DynamicGeometryApplication : Application
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         var scene = new Scene();
-        scene.CreateComponent<RenderPipeline>();
         scene.CreateComponent<Octree>();
 
         var zoneNode = scene.CreateChild("Zone");
@@ -99,12 +98,11 @@ sealed class DynamicGeometryApplication : Application
                 var model = originalModel.Clone();
                 var staticModel = node.CreateComponent<StaticModel>();
                 staticModel.SetModel(model);
-                staticModel.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
                 _animatingBuffers.Add(model.GetGeometry(0, 0)!.GetVertexBuffer(0)!);
             }
         }
 
-        CreatePyramid(scene, Resources.Get<Material>("Materials/Stone.xml"));
+        CreatePyramid(scene);
 
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
@@ -157,7 +155,7 @@ sealed class DynamicGeometryApplication : Application
         }
     }
 
-    private static void CreatePyramid(Scene scene, Material material)
+    private static void CreatePyramid(Scene scene)
     {
         const uint numVertices = 18;
         var vertexData = new float[]
@@ -217,7 +215,6 @@ sealed class DynamicGeometryApplication : Application
         node.SetPosition(new Vector3f(0.0f, 3.0f, 0.0f));
         var staticModel = node.CreateComponent<StaticModel>();
         staticModel.SetModel(model);
-        staticModel.SetMaterial(material);
     }
 
     private static Vector3f ReadPosition(float[] vertexData, uint vertexIndex)

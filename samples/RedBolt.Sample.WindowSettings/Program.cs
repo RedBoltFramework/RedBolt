@@ -74,7 +74,6 @@ sealed class WindowSettingsApplication : Application
     private void CreateScene()
     {
         _scene = new Scene();
-        _scene.CreateComponent<RenderPipeline>();
         _scene.CreateComponent<Octree>();
         var zone = _scene.CreateComponent<Zone>();
         zone.SetAmbientColor(Color.White);
@@ -93,7 +92,7 @@ sealed class WindowSettingsApplication : Application
 
     private void SynchronizeSettings()
     {
-        var settings = Graphics.GetWindowSettings();
+        var settings = GetSubsystem<RenderDevice>()!.GetWindowSettings();
         _monitor = settings.Monitor;
         _fullscreen = settings.Mode == WindowMode.Fullscreen;
         _borderless = settings.Mode == WindowMode.Borderless;
