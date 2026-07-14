@@ -34,6 +34,47 @@ public sealed class AnimationStateTests
     }
 
     [Fact]
+    public void Animation_state_calculates_model_tracks_by_bone_index()
+    {
+        var animation = new Animation();
+        animation.SetLength(1.0f);
+        var track = new AnimationTrack();
+        track.ChannelMask = AnimationChannel.Position;
+        track.AddKeyFrame(new AnimationKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f)));
+        track.AddKeyFrame(new AnimationKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f)));
+
+        var animatedBone = new Bone { Animated = true };
+        var disabledBone = new Bone { Animated = false };
+        var state = new AnimationState();
+        state.Initialize(animation, string.Empty, AnimationBlendMode.Lerp);
+        state.Update(false, 1.0f, 1.0f);
+        state.AddModelTrack(new ModelAnimationStateTrack
+        {
+            Track = track,
+            Bone = animatedBone,
+            BoneIndex = 1
+        });
+        state.AddModelTrack(new ModelAnimationStateTrack
+        {
+            Track = track,
+            Bone = disabledBone,
+            BoneIndex = 0
+        });
+
+        var output = new List<ModelAnimationOutput>
+        {
+            new() { LocalToParent = Transform.Identity },
+            new() { LocalToParent = Transform.Identity }
+        };
+
+        state.CalculateModelTracks(output);
+
+        Assert.Equal(0.0f, output[0].LocalToParent.Position.X);
+        Assert.Equal(10.0f, output[1].LocalToParent.Position.X);
+        Assert.Equal(AnimationChannel.Position, output[1].Dirty);
+    }
+
+    [Fact]
     public void Animation_state_applies_additive_node_track_delta()
     {
         var animation = new Animation("AdditiveAnimation");

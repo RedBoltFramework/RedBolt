@@ -253,7 +253,24 @@ public sealed class AnimationState
 
     public void CalculateModelTracks(IList<ModelAnimationOutput> output)
     {
-        // TODO: port: AnimatedModel skeleton access and animation output blending are not available yet.
+        if (_animation is null || !IsEnabled())
+            return;
+
+        for (var i = 0; i < _modelTracks.Count; ++i)
+        {
+            var stateTrack = _modelTracks[i];
+
+            // Do not apply if the bone has animation disabled
+            if (!stateTrack.Bone!.Animated)
+                continue;
+
+            var trackOutput = output[(int)stateTrack.BoneIndex];
+            var keyFrame = stateTrack.KeyFrame;
+            CalculateTransformTrack(ref trackOutput, stateTrack.Track!, ref keyFrame, _weight);
+            stateTrack.KeyFrame = keyFrame;
+            _modelTracks[i] = stateTrack;
+            output[(int)stateTrack.BoneIndex] = trackOutput;
+        }
     }
 
     public void CalculateNodeTracks(IDictionary<Node, NodeAnimationOutput> output)
@@ -381,6 +398,19 @@ public sealed class AnimationState
                 }
             }
         }
+    }
+
+    private void CalculateTransformTrack(
+        ref ModelAnimationOutput output, AnimationTrack track, ref uint frame, float baseWeight)
+    {
+        var nodeOutput = new NodeAnimationOutput
+        {
+            Dirty = output.Dirty,
+            LocalToParent = output.LocalToParent
+        };
+        CalculateTransformTrack(ref nodeOutput, track, ref frame, baseWeight);
+        output.Dirty = nodeOutput.Dirty;
+        output.LocalToParent = nodeOutput.LocalToParent;
     }
 
     private void CalculateAttributeTrack(
