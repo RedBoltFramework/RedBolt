@@ -695,7 +695,9 @@ public sealed class Octree : Component
 
         if (drawable is StaticModelGroup group)
         {
-            foreach (var result in group.CreateRayQueryResults(ray, maxDistance))
+            var results = new List<RayQueryResult>();
+            group.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance));
+            foreach (var result in results)
                 yield return result;
             yield break;
         }

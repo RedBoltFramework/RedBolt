@@ -92,4 +92,26 @@ public sealed class StaticModelGroupTests
         Assert.True(group.GetNodeIDsAttr().SequenceEqual([1u, a.Id]));
         Assert.DoesNotContain(group, b.GetListeners());
     }
+
+    [Fact]
+    public void Ray_query_uses_requested_geometry_detail()
+    {
+        var scene = new Scene();
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+        group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
+        group.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
+        var instance = scene.CreateChild("Instance");
+        group.AddInstanceNode(instance);
+        Assert.Equal(1u, group.GetNumWorldTransforms());
+
+        var ray = new Ray(group.GetBoundingBox().Center - Vector3f.Forward * 10.0f, Vector3f.Forward);
+        var results = new List<RayQueryResult>();
+        group.ProcessRayQuery(new RayOctreeQuery(results, ray, RayQueryLevel.RayObb, 100.0f));
+        var result = results.Single();
+
+        Assert.Same(group, result.Drawable);
+        Assert.Equal(0u, result.SubObject);
+        Assert.True(result.Distance < 100.0f);
+    }
 }

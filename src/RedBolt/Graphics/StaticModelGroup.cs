@@ -147,13 +147,40 @@ public sealed class StaticModelGroup : StaticModel
         SetWorldBoundingBox(worldBox);
     }
 
-    internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, float maxDistance)
+    public void ProcessRayQuery(RayOctreeQuery query)
+    {
+        foreach (var result in CreateRayQueryResults(query.Ray, query.Level, query.MaxDistance))
+            query.Result.Add(result);
+    }
+
+    internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
     {
         _ = GetWorldBoundingBox();
         for (var i = 0; i < _numWorldTransforms; ++i)
         {
             var distance = ray.HitDistance(GetBoundingBox().Transformed(_worldTransforms[i]));
-            if (float.IsPositiveInfinity(distance) || distance > maxDistance)
+            if (level >= RayQueryLevel.RayObb && distance < maxDistance)
+            {
+                var localRay = ray.Transformed(_worldTransforms[i].Inverse);
+                distance = localRay.HitDistance(GetBoundingBox());
+
+                if (level == RayQueryLevel.RayTriangle && distance < maxDistance)
+                {
+                    distance = float.PositiveInfinity;
+                    for (var j = 0u; j < NumGeometries; ++j)
+                    {
+                        var geometry = GetLodGeometry(j, 0);
+                        if (geometry is null)
+                            continue;
+
+                        var geometryDistance = geometry.GetHitDistance(localRay);
+                        if (geometryDistance < maxDistance && geometryDistance < distance)
+                            distance = geometryDistance;
+                    }
+                }
+            }
+
+            if (float.IsPositiveInfinity(distance) || distance >= maxDistance)
                 continue;
 
             yield return new RayQueryResult
