@@ -70,6 +70,7 @@ sealed class WindowSettingsApplication : Application
     private void CreateScene()
     {
         _scene = new Scene();
+        _scene.CreateComponent<RenderPipeline>();
         _scene.CreateComponent<Octree>();
         var zone = _scene.CreateComponent<Zone>();
         zone.SetAmbientColor(Color.White);

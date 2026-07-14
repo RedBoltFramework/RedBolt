@@ -96,12 +96,14 @@ sealed class DynamicGeometryApplication : Application
                 var node = scene.CreateChild("Object");
                 node.SetPosition(new Vector3f(x * 2.0f, 0.0f, y * 2.0f));
                 var model = originalModel.Clone();
-                node.CreateComponent<StaticModel>().SetModel(model);
+                var staticModel = node.CreateComponent<StaticModel>();
+                staticModel.SetModel(model);
+                staticModel.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
                 _animatingBuffers.Add(model.GetGeometry(0, 0)!.GetVertexBuffer(0)!);
             }
         }
 
-        CreatePyramid(scene);
+        CreatePyramid(scene, Resources.Get<Material>("Materials/Stone.xml"));
 
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
@@ -154,7 +156,7 @@ sealed class DynamicGeometryApplication : Application
         }
     }
 
-    private static void CreatePyramid(Scene scene)
+    private static void CreatePyramid(Scene scene, Material material)
     {
         const uint numVertices = 18;
         var vertexData = new float[]
@@ -212,7 +214,9 @@ sealed class DynamicGeometryApplication : Application
         model.SetIndexBuffers([indexBuffer]);
         var node = scene.CreateChild("FromScratchObject");
         node.SetPosition(new Vector3f(0.0f, 3.0f, 0.0f));
-        node.CreateComponent<StaticModel>().SetModel(model);
+        var staticModel = node.CreateComponent<StaticModel>();
+        staticModel.SetModel(model);
+        staticModel.SetMaterial(material);
     }
 
     private static Vector3f ReadPosition(float[] vertexData, uint vertexIndex)

@@ -44,6 +44,14 @@ sealed class HelloWorldApplication : Application
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
 
         // Execute base class startup
+        var scene = new Scene();
+        scene.CreateComponent<RenderPipeline>();
+        scene.CreateComponent<Octree>();
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        Renderer.SetViewport(0, new Viewport(scene, camera));
+
         // Create "Hello World" Text
         CreateText();
 
