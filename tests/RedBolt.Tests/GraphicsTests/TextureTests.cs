@@ -72,7 +72,11 @@ public sealed class TextureTests
         Assert.True(renderTexture.IsRenderTarget());
         Assert.False(renderTexture.IsDepthStencil());
         Assert.True(renderTexture.IsUnorderedAccess());
-        Assert.NotNull(renderTexture.GetRenderSurface());
+        var renderSurface = renderTexture.GetRenderSurface();
+        Assert.NotNull(renderSurface);
+        Assert.True(renderTexture.SetSize(8, 4, TextureFormat.RGBA8,
+            TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess));
+        Assert.Same(renderSurface, renderTexture.GetRenderSurface());
 
         var renderCube = new TextureCube("Textures/RenderCube");
         Assert.True(renderCube.SetSize(8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));

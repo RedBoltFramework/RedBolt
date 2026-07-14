@@ -389,6 +389,9 @@ public abstract class Texture : ResourceWithMetadata
 
     protected void SetRenderSurfaceCount(uint count)
     {
+        if (_renderSurfaces.Length == count)
+            return;
+
         _renderSurfaces = new RenderSurface?[count];
         for (var i = 0u; i < count; ++i)
             _renderSurfaces[i] = new RenderSurface(this, i);
