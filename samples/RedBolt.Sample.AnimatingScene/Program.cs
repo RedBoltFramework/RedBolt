@@ -89,8 +89,8 @@ sealed class AnimatingSceneApplication : Application
 
         // Create the UI content
         Renderer.SetViewport(0, new Viewport(scene, camera));
-        Input.SetMouseMode(MouseMode.Relative);
-        Input.SetMouseVisible(false);
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
     }
 
     protected override void Update(float timeStep)

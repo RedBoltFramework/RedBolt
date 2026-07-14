@@ -26,6 +26,7 @@ sealed class SoundSynthesisApplication : Application
     private float _osc2 = 180.0f;
     private readonly CString _instructionLine = new();
     private ContextEventSubscription? _dearImGuiSubscription;
+    private Scene? _scene;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -57,7 +58,15 @@ sealed class SoundSynthesisApplication : Application
         _soundStream = new BufferedSoundStream();
         _soundStream.SetFormat(44100, true, false);
 
-        var node = new Scene().CreateChild();
+        _scene = new Scene();
+        _scene.CreateComponent<RenderPipeline>();
+        _scene.CreateComponent<Octree>();
+        var cameraNode = _scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        Renderer.SetViewport(0, new Viewport(_scene, camera));
+
+        var node = _scene.CreateChild();
         _soundSource = node.CreateComponent<SoundSource>();
         _soundSource.Play(_soundStream);
 

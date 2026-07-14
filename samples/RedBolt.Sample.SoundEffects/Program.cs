@@ -59,6 +59,12 @@ sealed class SoundEffectsApplication : Application
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 
         _scene = new Scene();
+        _scene.CreateComponent<RenderPipeline>();
+        _scene.CreateComponent<Octree>();
+        var cameraNode = _scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        Renderer.SetViewport(0, new Viewport(_scene, camera));
         _musicSource = _scene.CreateChild().CreateComponent<SoundSource>();
         _musicSource.SetSoundType(AudioDefs.SoundMusic);
         PlaySound("Sounds/PlayerFistHit.wav");

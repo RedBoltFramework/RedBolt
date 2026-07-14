@@ -141,11 +141,13 @@ sealed class WindowSettingsApplication : Application
         ImGui.InputInt("Monitor\0"u8, out _monitor);
         ImGui.InputInt("Mode index\0"u8, out _mode);
         ImGui.InputInt("MSAA index\0"u8, out _multiSample);
-        ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen);
-        ImGui.Checkbox("Borderless\0"u8, out _borderless);
-        ImGui.Checkbox("Resizable\0"u8, out _resizable);
-        ImGui.Checkbox("V-Sync\0"u8, out _vSync);
-        if (ImGui.Button("Apply\0"u8))
+        if (ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen))
+            ApplySettings();
+        if (ImGui.Checkbox("Borderless\0"u8, out _borderless))
+            ApplySettings();
+        if (ImGui.Checkbox("Resizable\0"u8, out _resizable))
+            ApplySettings();
+        if (ImGui.Checkbox("V-Sync\0"u8, out _vSync))
             ApplySettings();
         ImGui.End();
     }

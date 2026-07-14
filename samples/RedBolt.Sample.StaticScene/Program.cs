@@ -52,8 +52,8 @@ sealed class StaticSceneApplication : Application
         SetupViewport();
 
         // Set the mouse mode to use in the sample
-        Input.SetMouseMode(MouseMode.Relative);
-        Input.SetMouseVisible(false);
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
     }
 
     private void CreateScene()

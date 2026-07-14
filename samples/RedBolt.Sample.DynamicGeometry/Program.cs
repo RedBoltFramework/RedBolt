@@ -79,8 +79,8 @@ sealed class DynamicGeometryApplication : Application
         camera.SetFarClip(300.0f);
 
         Renderer.SetViewport(0, new Viewport(scene, camera));
-        Input.SetMouseMode(MouseMode.Relative);
-        Input.SetMouseVisible(false);
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
     }
 
     protected override void Update(float timeStep)

@@ -48,14 +48,15 @@ sealed class MultipleViewportsApplication : Application
         SetupViewports();
         SubscribeToEvents();
 
-        Input.SetMouseMode(MouseMode.Relative);
-        Input.SetMouseVisible(false);
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
     }
 
     private void CreateScene()
     {
         var cache = Resources;
         _scene = new Scene();
+        _scene.CreateComponent<RenderPipeline>();
         _scene.CreateComponent<Octree>();
         _scene.CreateComponent<DebugRenderer>();
 
