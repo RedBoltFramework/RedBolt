@@ -154,7 +154,7 @@ sealed class MultipleViewportsApplication : Application
     private void HandlePostRenderUpdate()
     {
         if (_drawDebug)
-            _scene?.Root.GetComponent<Octree>()?.DrawDebugGeometry(false);
+            Renderer.DrawDebugGeometry(false);
     }
 
     private void DrawInstructions()

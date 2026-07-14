@@ -233,7 +233,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Viewport.h` — `Viewport : Object` base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation including owner invalidation are ported; C# drops `WeakPtr`/`SharedPtr` per the allowed deviations
 - [~] `Drawable.h`
   - [x] `struct SourceBatch`
-  - [~] `Drawable : Component, PipelineStateTracker` — zone/reflection cache state, mutable cached-zone/reflection/light-probe-hint access, source-batch access, view-camera tracking, renderer-wide and explicit-frame view queries, distance/sort accessors, combined zone light/shadow masks, pipeline-state tracking/hash invalidation, and octree attach/detach/disposal are ported; reflection-probe manager selection remains incomplete
+  - [~] `Drawable : Component, PipelineStateTracker` — zone/reflection cache state, mutable cached-zone/reflection/light-probe-hint access, source-batch access, view-camera tracking, renderer-wide and explicit-frame view queries, distance/sort accessors, combined zone light/shadow masks, common debug bounding-box drawing, pipeline-state tracking/hash invalidation, and octree attach/detach/disposal are ported; reflection-probe manager selection remains incomplete
 - [x] `OctreeQuery.h`
 - [~] `Octree.h`
   - [~] `Octant` — child subdivision, bounds/culling initialization, drawable fit checks, recursive insertion/counting, removal, and moving existing drawables between octants are ported; full scene octree reinsertion and debug traversal remain incomplete
@@ -310,7 +310,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
 - [~] `Renderer.h`
-  - [~] `Renderer : Object` — C++ base class, default-zone/default-technique/default-material/default-light-texture access, black cubemap initialization, light-volume/quad geometry, mutable frame information/statistics, multi-viewport rendering, frame-stat aggregation, and backbuffer render-surface replacement/viewport synchronization are ported; queued render-surface lifecycle and remaining renderer members are incomplete
+  - [~] `Renderer : Object` — C++ base class, default-zone/default-technique/default-material/default-light-texture access, black cubemap initialization, light-volume/quad geometry, mutable frame information/statistics, multi-viewport rendering, debug-geometry/light dispatch, frame-stat aggregation, and backbuffer render-surface replacement/viewport synchronization are ported; queued render-surface lifecycle and remaining renderer members are incomplete
 - [~] `Graphics.h`
   - [~] `Graphics : Object` — OpenGL rendering, SDL window title/position/icon operations, screen-mode queries and lifecycle, monitor/display resolution enumeration, DPI reporting, screenshot capture, screen-mode diagnostics/events, and VFS-backed pipeline-state-cache save are ported; backend-specific paths remain
 - [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
@@ -321,7 +321,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
 - [~] `RenderPipelineDefs.h`
-  - [~] `RenderPipelineInterface` — global context accessor now matches C++; debugger accessor remains a TODO until `RenderPipelineDebugger` is ported
+  - [~] `RenderPipelineInterface` — global context accessor and debug geometry/light dispatch now match C++; debugger accessor remains a TODO until `RenderPipelineDebugger` is ported
   - [~] pipeline enums / settings structs — flags, frame statistics, default settings, validation, implied-setting propagation, and render-path adjustment are ported; native RG32F support is unavailable in the managed TextureFormat surface
 - [ ] `ShaderConsts.h`
   - [ ] shader constant name definitions

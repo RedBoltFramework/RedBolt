@@ -454,6 +454,31 @@ public class RenderPipeline : Component
 
         public override RenderPipelineStats GetStats() => _stats;
 
+        public override void DrawDebugGeometries(bool depthTest)
+        {
+            var scene = _frameInfo.Scene;
+            var debug = scene?.Root.GetComponent<DebugRenderer>();
+            if (scene is null || debug is null)
+                return;
+
+            foreach (var drawable in scene.GetAllComponents().Values.OfType<Drawable>())
+            {
+                if ((drawable.GetDrawableFlags() & DrawableFlags.Light) == 0)
+                    drawable.DrawDebugGeometry(debug, depthTest);
+            }
+        }
+
+        public override void DrawDebugLights(bool depthTest)
+        {
+            var scene = _frameInfo.Scene;
+            var debug = scene?.Root.GetComponent<DebugRenderer>();
+            if (scene is null || debug is null)
+                return;
+
+            foreach (var drawable in scene.GetAllComponents().Values.OfType<Light>())
+                drawable.DrawDebugGeometry(debug, depthTest);
+        }
+
         private void SyncFromPipeline()
         {
             if (_syncedRevision == _renderPipeline.Revision)

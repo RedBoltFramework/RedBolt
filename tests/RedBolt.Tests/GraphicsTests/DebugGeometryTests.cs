@@ -92,6 +92,19 @@ public sealed class DebugGeometryTests
     }
 
     [Fact]
+    public void Drawable_debug_geometry_uses_world_bounds()
+    {
+        var scene = new Scene();
+        var drawable = scene.CreateChild("Drawable").CreateComponent<StaticModel>();
+        drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
+        var debugRenderer = new DebugRenderer();
+
+        drawable.DrawDebugGeometry(debugRenderer, depthTest: false);
+
+        Assert.True(debugRenderer.HasContent());
+    }
+
+    [Fact]
     public void DebugRenderer_volume_helpers_accumulate_geometry()
     {
         var debugRenderer = new DebugRenderer();

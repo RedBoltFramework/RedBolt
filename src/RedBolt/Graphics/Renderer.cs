@@ -338,6 +338,18 @@ public sealed class Renderer : Object
         }
     }
 
+    public void DrawDebugGeometry(bool depthTest)
+    {
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+        {
+            if (!renderPipelineView.Pipeline.Settings.DrawDebugGeometry)
+                continue;
+
+            renderPipelineView.View.DrawDebugGeometries(depthTest);
+            renderPipelineView.View.DrawDebugLights(depthTest);
+        }
+    }
+
     private RenderPipelineView GetOrCreateRenderPipelineView(Viewport viewport, RenderPipeline renderPipeline)
     {
         if (_renderPipelineViews.TryGetValue(viewport, out var existing)

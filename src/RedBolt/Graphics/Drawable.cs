@@ -522,6 +522,12 @@ public abstract class Drawable : Component
     {
     }
 
+    public virtual void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is not null && IsEnabledEffective)
+            debug.AddBoundingBox(GetWorldBoundingBox(), new Color(0.0f, 1.0f, 0.0f, 0.46666667f), depthTest);
+    }
+
     protected virtual void OnRemoveFromOctree()
     {
     }

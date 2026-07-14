@@ -1062,6 +1062,12 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
     /// </summary>
     public abstract RenderPipelineStats GetStats();
 
+    /// <summary>Draw debug geometries, if applicable.</summary>
+    public abstract void DrawDebugGeometries(bool depthTest);
+
+    /// <summary>Draw debug lights, if applicable.</summary>
+    public abstract void DrawDebugLights(bool depthTest);
+
     public event Action<CommonFrameInfo>? UpdateBegin;
 
     public event Action<CommonFrameInfo>? UpdateEnd;

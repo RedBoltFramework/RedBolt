@@ -81,7 +81,7 @@ public sealed class Light : Drawable
         RefreshBoundingBox();
     }
 
-    public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
         var color = GetEffectiveColor();
 
