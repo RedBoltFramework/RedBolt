@@ -121,7 +121,7 @@ public class StaticModel : Drawable
 
     public uint GetNumGeometries() => NumGeometries;
 
-    public uint GetNumOccluderTriangles()
+    public virtual uint GetNumOccluderTriangles()
     {
         var triangles = 0u;
         for (var i = 0u; i < NumGeometries; ++i)

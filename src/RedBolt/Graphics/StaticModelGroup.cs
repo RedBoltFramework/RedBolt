@@ -153,6 +153,26 @@ public sealed class StaticModelGroup : StaticModel
             query.Result.Add(result);
     }
 
+    public override uint GetNumOccluderTriangles()
+    {
+        _ = GetWorldBoundingBox();
+        var triangles = 0u;
+        for (var i = 0u; i < NumGeometries; ++i)
+        {
+            var geometry = GetLodGeometry(i, OcclusionLodLevel);
+            if (geometry is null)
+                continue;
+
+            var material = GetMaterial(i);
+            if (material is not null && !material.GetOcclusion())
+                continue;
+
+            triangles += _numWorldTransforms * geometry.GetIndexCount() / 3u;
+        }
+
+        return triangles;
+    }
+
     internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
     {
         _ = GetWorldBoundingBox();

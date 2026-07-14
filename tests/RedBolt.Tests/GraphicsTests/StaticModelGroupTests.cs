@@ -114,4 +114,24 @@ public sealed class StaticModelGroupTests
         Assert.Equal(0u, result.SubObject);
         Assert.True(result.Distance < 100.0f);
     }
+
+    [Fact]
+    public void Occluder_triangle_count_scales_with_enabled_instances_and_material()
+    {
+        var scene = new Scene();
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        group.SetModel(model);
+        group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
+        group.AddInstanceNode(scene.CreateChild("A"));
+        group.AddInstanceNode(scene.CreateChild("B"));
+
+        var geometry = group.GetLodGeometry(0u, uint.MaxValue)!;
+        Assert.Equal(2u * geometry.GetIndexCount() / 3u, group.GetNumOccluderTriangles());
+
+        var material = Resources.Get<Material>("Materials/FirstCube").Clone("GroupOccluder");
+        material.SetOcclusion(false);
+        group.SetMaterial(material);
+        Assert.Equal(0u, group.GetNumOccluderTriangles());
+    }
 }

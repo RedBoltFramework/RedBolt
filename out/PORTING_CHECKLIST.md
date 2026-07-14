@@ -259,7 +259,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `AnimatedModel.h`
   - [ ] `AnimatedModel : StaticModel`
 - [~] `StaticModelGroup.h`
-- [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, and AABB/OBB/triangle ray-query distance tests are ported; batch update and occlusion parity remain incomplete
+- [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, and material-aware instance-scaled occluder triangle counts are ported; batch update and occlusion drawing remain incomplete because managed OcclusionBuffer/batch-center APIs are not yet available
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
 - [~] `AnimationStateSource.h` — base component, managed animation-state list, and throttling state are ported; controller integration remains pending
