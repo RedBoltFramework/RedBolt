@@ -19,6 +19,7 @@ catch (Exception ex)
 sealed class HelloGuiApplication : Application
 {
     private readonly CString _windowTitle = new("Hello GUI!");
+    private readonly Scene _scene = new();
     private float _fishPositionX;
     private float _fishPositionY;
     private ContextEventSubscription? _dearImGuiSubscription;
@@ -55,6 +56,10 @@ sealed class HelloGuiApplication : Application
 
         // Create a draggable Fish
         CreateDraggableFish();
+
+        var cameraNode = _scene.CreateChild("Camera");
+        var camera = cameraNode.CreateComponent<Camera>();
+        Renderer.SetViewport(0, new Viewport(_scene, camera));
 
         // Set the mouse mode to use in the sample
         Input.SetMouseMode(MouseMode.Free);

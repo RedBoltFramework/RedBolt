@@ -725,8 +725,12 @@ public class RawTexture : DeviceObject
             ViewType = viewType,
             Format = Graphics.MapTextureFormat(_parameters.Format)
         };
-        if (viewType == TextureViewType.TextureViewShaderResource && _parameters.NumLevels > 1u)
-            viewDesc.Flags |= TextureViewFlags.TextureViewFlagAllowMipMapGeneration;
+        if (viewType == TextureViewType.TextureViewShaderResource)
+        {
+            using var textureDesc = texture.GetDesc();
+            if ((textureDesc.MiscFlags & MiscTextureFlags.MiscTextureFlagGenerateMips) != 0)
+                viewDesc.Flags |= TextureViewFlags.TextureViewFlagAllowMipMapGeneration;
+        }
         if (viewType == TextureViewType.TextureViewUnorderedAccess)
             viewDesc.AccessFlags = UavAccessFlag.UavAccessFlagReadWrite;
         if (numSlices != 0u)

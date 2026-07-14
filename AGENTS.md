@@ -183,6 +183,8 @@ These are the ONLY places C# is allowed to differ from C++:
   violation of section 3. A member that is `public` in C++ must still be `public` in C#.
 - Built-in rbfx UI (`UI`, `Window`, `Text`, `Sprite`, and related controls/subsystems) is not ported.
 - In samples, replace every use of the built-in rbfx UI with Dear ImGui equivalents.
+- All ported samples are windowed; do not preserve fullscreen defaults from the C++ sample when configuring the managed sample.
+- All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
 
 Anything not on this list must match C++.
 
