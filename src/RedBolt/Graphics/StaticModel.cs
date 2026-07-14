@@ -184,7 +184,12 @@ public class StaticModel : Drawable
 
     public Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
-        return Model?.GetGeometry(batchIndex, level);
+        var model = Model;
+        if (model is null || batchIndex >= model.NumGeometries)
+            return null;
+
+        var geometries = model.GetGeometries()[(int)batchIndex];
+        return level < geometries.Count ? geometries[(int)level] : model.GetGeometry(batchIndex);
     }
 
     public bool IsInside(Vector3f point)

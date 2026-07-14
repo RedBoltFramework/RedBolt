@@ -116,6 +116,17 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Lod_geometry_falls_back_to_visible_geometry_when_level_is_out_of_range()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+
+        Assert.Same(cube.GetLodGeometry(0u, uint.MaxValue), cube.GetLodGeometry(0u, 0u));
+        Assert.Null(cube.GetLodGeometry(1u, 0u));
+    }
+
+    [Fact]
     public void Bounding_boxes_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
