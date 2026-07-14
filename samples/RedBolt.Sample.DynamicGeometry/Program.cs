@@ -66,8 +66,8 @@ sealed class DynamicGeometryApplication : Application
 
         var originalModel = Resources.Get<Model>("Models/Box.mdl");
         var originalBuffer = originalModel.GetGeometry(0, 0)!.GetVertexBuffer(0)!;
-        var originalData = originalBuffer.Map();
-        var originalFloats = MemoryMarshal.Cast<byte, float>(originalData);
+        var originalData = originalBuffer.GetRawBuffer()!.GetShadowData();
+        var originalFloats = MemoryMarshal.Cast<byte, float>(originalData.AsSpan());
         var originalVertexSize = (int)(originalBuffer.GetVertexSize() / sizeof(float));
         for (var i = 0; i < originalBuffer.GetVertexCount(); ++i)
         {
@@ -147,9 +147,9 @@ sealed class DynamicGeometryApplication : Application
                 var phase = startPhase + _vertexDuplicates[(int)j] * 10.0f;
                 var source = _originalVertices[(int)j];
                 var offset = (int)j * vertexSize;
-                vertexFloats[offset] = source.X * (1.0f + 0.1f * MathF.Sin(phase));
-                vertexFloats[offset + 1] = source.Y * (1.0f + 0.1f * MathF.Sin(phase + 60.0f));
-                vertexFloats[offset + 2] = source.Z * (1.0f + 0.1f * MathF.Sin(phase + 120.0f));
+                vertexFloats[offset] = source.X * (1.0f + 0.1f * MathDefs.Sin(phase));
+                vertexFloats[offset + 1] = source.Y * (1.0f + 0.1f * MathDefs.Sin(phase + 60.0f));
+                vertexFloats[offset + 2] = source.Z * (1.0f + 0.1f * MathDefs.Sin(phase + 120.0f));
             }
             buffer.Unmap();
         }
