@@ -16,8 +16,6 @@ public sealed class CustomGeometry : Drawable
     private const uint MaskColor = 1u << 2;
     private const uint MaskTexCoord = 1u << 3;
     private const uint MaskTangent = 1u << 4;
-    private static readonly uint MaterialType = StringHash.Calculate("Material");
-
     private readonly List<PrimitiveType> _primitiveTypes = [];
     private readonly List<List<CustomGeometryVertex>> _vertices = [];
     private readonly List<Geometry> _geometries = [];
@@ -25,8 +23,6 @@ public sealed class CustomGeometry : Drawable
     private readonly VertexBuffer _vertexBuffer = new();
     private uint _elementMask = MaskPosition;
     private uint _geometryIndex;
-    private ResourceRefList _materialsAttr = new(MaterialType);
-    private bool _materialsAttrExplicit;
 
     public CustomGeometry()
         : base(DrawableFlags.Geometry)
@@ -48,8 +44,6 @@ public sealed class CustomGeometry : Drawable
         _vertices.Clear();
         _geometries.Clear();
         _materials.Clear();
-        _materialsAttr = new ResourceRefList(MaterialType);
-        _materialsAttrExplicit = false;
         SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
 
@@ -81,17 +75,16 @@ public sealed class CustomGeometry : Drawable
         Dynamic = enable;
     }
 
-    public bool BeginGeometry(uint index, PrimitiveType type)
+    public void BeginGeometry(uint index, PrimitiveType type)
     {
         if (index >= _geometries.Count)
-            return false;
+            return;
 
         _geometryIndex = index;
         _primitiveTypes[(int)index] = type;
         _vertices[(int)index].Clear();
         if (index == 0u)
             _elementMask = MaskPosition;
-        return true;
     }
 
     public void DefineVertex(Vector3f position)
@@ -143,10 +136,10 @@ public sealed class CustomGeometry : Drawable
         _elementMask |= MaskTangent;
     }
 
-    public bool DefineGeometry(uint index, PrimitiveType type, uint numVertices, bool hasNormals, bool hasColors, bool hasTexCoords, bool hasTangents)
+    public void DefineGeometry(uint index, PrimitiveType type, uint numVertices, bool hasNormals, bool hasColors, bool hasTexCoords, bool hasTangents)
     {
         if (index >= _geometries.Count)
-            return false;
+            return;
 
         _geometryIndex = index;
         _primitiveTypes[(int)index] = type;
@@ -164,7 +157,6 @@ public sealed class CustomGeometry : Drawable
             _elementMask |= MaskTexCoord;
         if (hasTangents)
             _elementMask |= MaskTangent;
-        return true;
     }
 
     public void Commit()
@@ -198,7 +190,6 @@ public sealed class CustomGeometry : Drawable
     {
         for (var i = 0; i < _materials.Count; ++i)
             _materials[i] = material;
-        _materialsAttrExplicit = false;
     }
 
     public bool SetMaterial(uint index, Material? material)
@@ -207,7 +198,6 @@ public sealed class CustomGeometry : Drawable
             return false;
 
         _materials[(int)index] = material;
-        _materialsAttrExplicit = false;
         return true;
     }
 
@@ -237,7 +227,7 @@ public sealed class CustomGeometry : Drawable
         {
             if (_materials[i] is { Occlusion: false })
                 continue;
-            triangles += _geometries[i].GetPrimitiveCount();
+            triangles += _geometries[i].GetVertexCount() / 3u;
         }
 
         return triangles;
@@ -280,19 +270,21 @@ public sealed class CustomGeometry : Drawable
         Commit();
     }
 
-    public void SetMaterialsAttr(ResourceRefList? value)
+    public void SetMaterialsAttr(ResourceRefList value)
     {
-        _materialsAttr = value is null ? new ResourceRefList(MaterialType) : new ResourceRefList(value.Type, value.Names);
-        _materialsAttrExplicit = true;
+        var cache = GetSubsystem<ResourceCache>()!;
+        var count = Math.Min(value.Names.Count, _materials.Count);
+        for (var i = 0; i < count; ++i)
+        {
+            var name = value.Names[i];
+            _materials[i] = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
+        }
+
+        for (var i = count; i < _materials.Count; ++i)
+            _materials[i] = null;
     }
 
-    public ResourceRefList GetMaterialsAttr()
-    {
-        if (_materialsAttrExplicit)
-            return new ResourceRefList(_materialsAttr.Type, _materialsAttr.Names);
-
-        return new ResourceRefList(MaterialType, _materials.Select(static material => material?.Name ?? string.Empty));
-    }
+    public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
 
     public VertexBuffer GetVertexBuffer() => _vertexBuffer;
 

@@ -31,7 +31,7 @@ public sealed class CustomGeometryTests
         custom.SetDynamic(true);
         custom.SetNumGeometries(2u);
 
-        Assert.True(custom.BeginGeometry(0u, PrimitiveType.TriangleList));
+        custom.BeginGeometry(0u, PrimitiveType.TriangleList);
         custom.DefineVertex(new Vector3f(-1.0f, -1.0f, 0.0f));
         custom.DefineNormal(Vector3f.Forward);
         custom.DefineColor(new Color(1.0f, 0.0f, 0.0f));
@@ -40,8 +40,7 @@ public sealed class CustomGeometryTests
         custom.DefineVertex(new Vector3f(1.0f, -1.0f, 0.0f));
         custom.DefineVertex(new Vector3f(0.0f, 1.0f, 0.0f));
 
-        Assert.True(custom.DefineGeometry(1u, PrimitiveType.LineList, 2u,
-            true, true, true, true));
+        custom.DefineGeometry(1u, PrimitiveType.LineList, 2u, true, true, true, true);
 
         var editable = custom.GetVertex(1u, 1u);
         Assert.NotNull(editable);
@@ -94,6 +93,18 @@ public sealed class CustomGeometryTests
         Assert.Same(material, custom.GetMaterial());
         Assert.Equal(Intersection.Inside,
             custom.GetBoundingBox().IsInside(new Vector3f(1.0f, 0.5f, 0.0f)));
+    }
+
+    [Fact]
+    public void Material_attribute_resolves_resource_names()
+    {
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var material = Resources.Get<Material>("Materials/FirstCube");
+
+        custom.SetMaterialsAttr(Resource.GetResourceRefList(new Material?[] { material }));
+
+        Assert.Same(material, custom.GetMaterial());
+        Assert.Equal(material.Name, custom.GetMaterialsAttr().Names[0]);
     }
 
     [Fact]
