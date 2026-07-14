@@ -133,7 +133,7 @@ sealed class RenderToTextureApplication : Application
         screen.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
 
         var renderTexture = new Texture2D("Textures/RenderTexture");
-        renderTexture.SetSize(1024, 768, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 1);
+        renderTexture.SetSize(1024, 768, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 4);
         renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
         var renderMaterial = Resources.Get<Material>("Materials/Stone.xml").Clone("Materials/RenderMaterial");
         renderMaterial.SetTechnique(0, Resources.Get<Technique>("Techniques/DiffUnlit.xml"));

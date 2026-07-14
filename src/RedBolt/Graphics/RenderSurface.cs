@@ -215,7 +215,6 @@ public sealed class RenderSurface : IDisposable
         if (renderSurface is not null)
             return renderSurface.GetParentTexture()!.GetSRGB();
 
-        graphics.GetSwapChainColorTextureFormat(out var isSrgb);
-        return isSrgb;
+        return graphics.GetSRGB();
     }
 }
