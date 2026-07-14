@@ -32,6 +32,12 @@ public sealed class Zone : Drawable
         SetLocalBoundingBox(new BoundingBox(DefaultBoundingBoxMin, DefaultBoundingBoxMax));
     }
 
+    public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is not null && IsEnabledEffective)
+            debug.AddBoundingBox(BoundingBox, Node.GetWorldTransform(), new Color(0.0f, 1.0f, 0.0f), depthTest);
+    }
+
     public Color AmbientColor { get; private set; } = DefaultAmbientColor;
 
     public float AmbientBrightness { get; private set; } = 1.0f;

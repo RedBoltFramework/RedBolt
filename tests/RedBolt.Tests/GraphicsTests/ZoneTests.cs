@@ -190,4 +190,18 @@ public sealed class ZoneTests
         Assert.Same(Renderer.GetDefaultZone(), cachedZone.Zone);
         Assert.True(cachedZone.CacheInvalidationDistanceSquared > 0.0f);
     }
+
+    [Fact]
+    public void Draw_debug_geometry_uses_zone_bounds()
+    {
+        var scene = new Scene();
+        scene.CreateComponent<Octree>();
+        var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
+        var debugRenderer = scene.CreateComponent<DebugRenderer>();
+        debugRenderer.SetView(new Camera());
+
+        zone.DrawDebugGeometry(debugRenderer, depthTest: false);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }

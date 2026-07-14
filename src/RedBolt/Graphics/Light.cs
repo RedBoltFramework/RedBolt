@@ -81,6 +81,44 @@ public sealed class Light : Drawable
         RefreshBoundingBox();
     }
 
+    public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        var color = GetEffectiveColor();
+
+        if (debug is not null && IsEnabledEffective)
+        {
+            switch (_lightType)
+            {
+                case LightType.Directional:
+                {
+                    var start = Node.GetWorldPosition();
+                    var end = start + Node.GetWorldDirection() * 10.0f;
+                    for (var i = -1; i < 2; ++i)
+                    {
+                        for (var j = -1; j < 2; ++j)
+                        {
+                            var offset = Vector3f.Up * (5.0f * i) + Vector3f.Right * (5.0f * j);
+                            debug.AddSphere(new Sphere(start + offset, 0.1f), color, depthTest);
+                            debug.AddLine(start + offset, end + offset, color, depthTest);
+                        }
+                    }
+                    break;
+                }
+
+                case LightType.Spot:
+                    debug.AddFrustum(GetFrustum(), color, depthTest);
+                    break;
+
+                case LightType.Point:
+                    debug.AddSphere(new Sphere(Node.GetWorldPosition(), _range), color, depthTest);
+                    break;
+            }
+        }
+    }
+
+    // TODO: port: void UpdateBatches(const FrameInfo& frame) override;
+    // The managed render pipeline does not expose the legacy FrameInfo camera contract yet.
+
     public LightType LightType => _lightType;
 
     public LightImportance LightImportance { get; private set; } = LightImportance.Auto;

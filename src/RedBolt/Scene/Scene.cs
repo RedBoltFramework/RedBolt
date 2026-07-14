@@ -73,6 +73,7 @@ public sealed class Scene : Serializable
         Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
         NodeAdded(Root);
         SetUpdateEvents(DefaultUpdateEvents);
+        Root.SetWorldOriginUpdateMode(WorldOriginUpdateMode.Recurse);
         _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
         _resourceBackgroundLoadedSubscription =
             SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
@@ -875,18 +876,14 @@ public sealed class Scene : Serializable
 
         _worldOrigin = worldOrigin;
         var relativeOffset = new Vector3f(offset.X, offset.Y, offset.Z);
-        if (Root.GetWorldOriginUpdateMode() == WorldOriginUpdateMode.Move)
-        {
-            foreach (var child in Root.GetChildren())
-                child.SetWorldPosition(child.GetWorldPosition() - relativeOffset);
-        }
-        else
-            UpdateNodeWorldOrigin(Root, relativeOffset);
+        UpdateNodeWorldOrigin(Root, relativeOffset);
 
         var postUpdateEvent = new SceneEvents.WorldOriginPostUpdateEvent
         {
+            Scene = this,
             OldOrigin = oldWorldOrigin,
-            NewOrigin = worldOrigin
+            NewOrigin = worldOrigin,
+            Delta = offset
         };
         SendEvent(ref postUpdateEvent);
     }

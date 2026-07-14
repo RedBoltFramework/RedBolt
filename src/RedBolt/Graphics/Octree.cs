@@ -359,6 +359,11 @@ public sealed class Octree : Component
         _rootOctant = new Octant(_worldBoundingBox, 0, parent: null, this);
         _zones = new ZoneLookupIndex();
 
+        // If the engine is running headless, subscribe to RenderUpdate events for manually updating the octree
+        // to allow raycasts and animation update.
+        if (Context.Instance.GetSubsystem<Graphics>() is null)
+            SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
+
         RegisterAttribute(
             "Bounding Box Min",
             typeof(Vector3f),
@@ -619,11 +624,46 @@ public sealed class Octree : Component
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
+        base.OnSceneSet(previousScene, scene);
+
+        if (previousScene is not null)
+        {
+            UnsubscribeFromEvent<SceneEvents.WorldOriginUpdateEvent>(previousScene);
+            UnsubscribeFromEvent<SceneEvents.WorldOriginPostUpdateEvent>(previousScene);
+        }
+
+        if (scene is not null)
+        {
+            SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>(scene, HandleWorldOriginUpdate);
+            SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene, HandleWorldOriginPostUpdate);
+        }
+
         if (scene is null)
         {
             _manualDrawables.Clear();
             _drawableUpdates.Clear();
         }
+    }
+
+    private void HandleWorldOriginUpdate(ref SceneEvents.WorldOriginUpdateEvent eventData)
+    {
+        foreach (var drawable in _drawables)
+            drawable.UpdateWorldOrigin(eventData.OldOrigin, eventData.NewOrigin, eventData.Delta);
+    }
+
+    private void HandleWorldOriginPostUpdate(ref SceneEvents.WorldOriginPostUpdateEvent eventData)
+    {
+        foreach (var drawable in _drawables)
+            drawable.PostUpdateWorldOrigin(eventData.OldOrigin, eventData.NewOrigin, eventData.Delta);
+    }
+
+    private void HandleRenderUpdate(ref CoreEvents.RenderUpdateEvent eventData)
+    {
+        var scene = Scene;
+        if (scene is null || !scene.IsUpdateEnabled())
+            return;
+
+        Update(eventData.TimeStep);
     }
 
     private IEnumerable<Drawable> EnumerateDrawables()

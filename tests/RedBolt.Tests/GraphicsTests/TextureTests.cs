@@ -87,6 +87,26 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture_depth_components_match_cpp_format_sizes()
+    {
+        var texture = new Texture2D("Textures/Depth");
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.Depth16));
+        Assert.Equal(2u, texture.GetComponents());
+        Assert.Equal(16u, texture.GetRowDataSize(8));
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.Depth32));
+        Assert.Equal(4u, texture.GetComponents());
+        Assert.Equal(32u, texture.GetRowDataSize(8));
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.Depth24Stencil8));
+        Assert.Equal(4u, texture.GetComponents());
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.Depth32Stencil8));
+        Assert.Equal(8u, texture.GetComponents());
+    }
+
+    [Fact]
     public void Texture_xml_parameters_match_cpp_parser()
     {
         var file = new XMLFile("Textures/SmokeParameters.xml");

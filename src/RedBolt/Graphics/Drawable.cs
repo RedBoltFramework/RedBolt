@@ -508,6 +508,20 @@ public abstract class Drawable : Component
         MarkForUpdate();
     }
 
+    /// <summary>
+    /// Called on world origin update.
+    /// </summary>
+    public virtual void UpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+    {
+    }
+
+    /// <summary>
+    /// Called on world origin post-update.
+    /// </summary>
+    public virtual void PostUpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+    {
+    }
+
     protected virtual void OnRemoveFromOctree()
     {
     }

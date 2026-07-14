@@ -200,8 +200,10 @@ public abstract class Texture : ResourceWithMetadata
 
         return Format switch
         {
-            TextureFormat.Depth32 => 0u,
-            TextureFormat.Depth24Stencil8 => 0u,
+            TextureFormat.Depth16 => 2u,
+            TextureFormat.Depth32 => 4u,
+            TextureFormat.Depth24Stencil8 => 4u,
+            TextureFormat.Depth32Stencil8 => 8u,
             TextureFormat.R8 => 1u,
             TextureFormat.RG16F => 4u,
             TextureFormat.RGB8 => 3u,

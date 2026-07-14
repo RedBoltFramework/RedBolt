@@ -5,6 +5,30 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class OctreeTests
 {
+    private sealed class WorldOriginProbeDrawable : Drawable
+    {
+        public IntVector3? UpdatedOldOrigin { get; private set; }
+        public IntVector3? UpdatedNewOrigin { get; private set; }
+        public IntVector3? UpdatedDelta { get; private set; }
+        public IntVector3? PostUpdatedOldOrigin { get; private set; }
+        public IntVector3? PostUpdatedNewOrigin { get; private set; }
+        public IntVector3? PostUpdatedDelta { get; private set; }
+
+        public override void UpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+        {
+            UpdatedOldOrigin = oldOrigin;
+            UpdatedNewOrigin = newOrigin;
+            UpdatedDelta = delta;
+        }
+
+        public override void PostUpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+        {
+            PostUpdatedOldOrigin = oldOrigin;
+            PostUpdatedNewOrigin = newOrigin;
+            PostUpdatedDelta = delta;
+        }
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public OctreeTests(HeadlessEngineFixture fixture)
@@ -156,5 +180,26 @@ public sealed class OctreeTests
         octree.DrawDebugGeometry(depthTest: false);
 
         Assert.True(debugRenderer.HasContent());
+    }
+
+    [Fact]
+    public void World_origin_update_forwards_to_drawables()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        var drawable = new WorldOriginProbeDrawable();
+        octree.AddManualDrawable(drawable);
+
+        var oldOrigin = IntVector3.Zero;
+        var newOrigin = new IntVector3(11, 22, 33);
+        var delta = newOrigin;
+        scene.UpdateWorldOrigin(newOrigin);
+
+        Assert.Equal(oldOrigin, drawable.UpdatedOldOrigin);
+        Assert.Equal(newOrigin, drawable.UpdatedNewOrigin);
+        Assert.Equal(delta, drawable.UpdatedDelta);
+        Assert.Equal(oldOrigin, drawable.PostUpdatedOldOrigin);
+        Assert.Equal(newOrigin, drawable.PostUpdatedNewOrigin);
+        Assert.Equal(delta, drawable.PostUpdatedDelta);
     }
 }

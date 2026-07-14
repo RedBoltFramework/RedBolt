@@ -47,6 +47,19 @@ public sealed class WorldOriginTests
     }
 
     [Fact]
+    public void World_origin_move_updates_root_transform_like_cpp()
+    {
+        var scene = new Scene();
+        var child = scene.CreateChild("Child");
+        child.SetPosition(new Vector3f(10.0f, 20.0f, 30.0f));
+
+        scene.UpdateWorldOrigin(new Vector3i(1, 2, 3));
+
+        Assert.Equal(Vector3f.Zero, scene.Root.GetPosition());
+        Assert.Equal(new Vector3f(9.0f, 18.0f, 27.0f), child.GetWorldPosition());
+    }
+
+    [Fact]
     public void World_origin_transform_conversions_match_cpp_contract()
     {
         var scene = new Scene();
@@ -63,5 +76,26 @@ public sealed class WorldOriginTests
 
         var relative = scene.ToRelativeWorldTransform(absolute);
         Assert.Equal(transform, relative);
+    }
+
+    [Fact]
+    public void World_origin_events_carry_the_same_payload_in_both_phases()
+    {
+        var scene = new Scene();
+        SceneEvents.WorldOriginUpdateEvent? update = null;
+        SceneEvents.WorldOriginPostUpdateEvent? postUpdate = null;
+        scene.SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>((ref SceneEvents.WorldOriginUpdateEvent eventData) => update = eventData);
+        scene.SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>((ref SceneEvents.WorldOriginPostUpdateEvent eventData) => postUpdate = eventData);
+
+        var newOrigin = new Vector3i(10, 20, 30);
+        scene.UpdateWorldOrigin(newOrigin);
+
+        Assert.True(update.HasValue);
+        Assert.True(postUpdate.HasValue);
+        Assert.Same(scene, update.Value.Scene);
+        Assert.Same(scene, postUpdate.Value.Scene);
+        Assert.Equal(update.Value.OldOrigin, postUpdate.Value.OldOrigin);
+        Assert.Equal(update.Value.NewOrigin, postUpdate.Value.NewOrigin);
+        Assert.Equal(update.Value.Delta, postUpdate.Value.Delta);
     }
 }

@@ -194,4 +194,18 @@ public sealed class LightTests
         Assert.Same(light, results[0].Drawable);
         Assert.Equal(uint.MaxValue, results[0].SubObject);
     }
+
+    [Fact]
+    public void Draw_debug_geometry_uses_light_type()
+    {
+        var scene = new Scene();
+        scene.CreateComponent<Octree>();
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
+        var debugRenderer = scene.CreateComponent<DebugRenderer>();
+        debugRenderer.SetView(new Camera());
+
+        light.DrawDebugGeometry(debugRenderer, depthTest: false);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }
