@@ -833,7 +833,7 @@ layout(std140) uniform Material
     }
 
     /// <summary>
-    /// Render viewport through the legacy direct path that binds the backbuffer, draws the scene and presents it.
+    /// Render viewport through the legacy direct path that binds the backbuffer and draws the scene.
     /// </summary>
     internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
     {
@@ -847,7 +847,6 @@ layout(std140) uniform Material
         ClearCurrentRenderTargets();
         RenderScene(viewport, materialQuality, viewportRect);
         SendEvent<GraphicsEvents.EndRenderingEvent>();
-        PresentFrame(screenshotPath, beforePresent);
         UnbindRenderTargets();
     }
 

@@ -336,20 +336,22 @@ public sealed class Renderer : Object
             var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
             if (renderPipeline is null)
             {
-                graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
+                graphics.RenderViewport(viewport, TextureQuality);
                 continue;
             }
 
             var renderPipelineView = GetOrCreateRenderPipelineView(viewport, renderPipeline);
             if (!renderPipelineView.Define(viewport, graphics))
             {
-                graphics.RenderViewport(viewport, TextureQuality, beforePresent, screenshotPath);
+                graphics.RenderViewport(viewport, TextureQuality);
                 continue;
             }
 
             renderPipelineView.Update(graphics);
-            renderPipelineView.Render(graphics, TextureQuality, beforePresent, screenshotPath);
+            renderPipelineView.Render(graphics, TextureQuality);
         }
+
+        graphics.PresentFrame(screenshotPath, beforePresent);
 
         Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }

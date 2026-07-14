@@ -443,7 +443,6 @@ public class RenderPipeline : Component
             _renderBufferManager.OnRenderEnd(_frameInfo);
             Context.Instance.SendEvent<GraphicsEvents.EndRenderingEvent>();
 
-            graphics.PresentFrame(screenshotPath, beforePresent);
             graphics.UnbindRenderTargets();
             RaiseCollectStatistics(_stats);
             SendEndViewRenderEvent();
