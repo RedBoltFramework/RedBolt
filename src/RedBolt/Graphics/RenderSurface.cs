@@ -41,6 +41,10 @@ public sealed class RenderSurface : IDisposable
 
     public void Dispose()
     {
+        _renderTargetView = null;
+        _viewports.Clear();
+        _linkedRenderTarget = null;
+        _linkedDepthStencil = null;
         GC.SuppressFinalize(this);
     }
 

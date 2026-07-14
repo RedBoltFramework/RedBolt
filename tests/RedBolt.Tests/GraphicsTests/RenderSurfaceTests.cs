@@ -56,5 +56,10 @@ public sealed class RenderSurfaceTests
         var graphics = new Graphics();
         Assert.Equal(new Vector2i(64, 32), RenderSurface.GetSize(graphics, surface));
         Assert.Equal(new IntRect(0, 0, 64, 32), RenderSurface.GetRect(graphics, surface));
+
+        surface.Dispose();
+        Assert.Equal(0u, surface.GetNumViewports());
+        Assert.Null(surface.GetLinkedRenderTarget());
+        Assert.Null(surface.GetLinkedDepthStencil());
     }
 }

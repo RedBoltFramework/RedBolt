@@ -205,7 +205,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `TextureCube : Texture` — two-phase ImageCube loading including headless short-circuiting, sampler defaults, face/mip upload, usage-flag propagation, multisample autoresolve semantics, CPU readback, image conversion, object registration, and RawTexture face updates are ported; image-backed GPU transfer remains TODO
 - [~] `Texture2DArray.h`
   - [~] `Texture2DArray : Texture` — two-phase layer loading including headless short-circuiting, separate layer state, mip selection, CPU layer upload/readback, object registration, and RawTexture layer updates are ported; image-backed GPU transfer and flag-based allocation remain TODO
-- [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, texture-surface access, and renderer queue integration are ported; native GPU surface lifecycle remains managed/CPU-backed
+- [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, texture-surface access, renderer queue integration, and destructor cleanup are ported; native GPU surface lifecycle remains managed/CPU-backed
   - [~] `RenderSurface : RefCounted` — viewport/update state, linked render/depth surfaces, parent texture dimensions/views, resolve state, and main-viewport helpers are ported; native GPU view restoration remains managed-resource dependent
 - [~] `Shader.h`
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
