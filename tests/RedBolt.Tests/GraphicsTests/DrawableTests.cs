@@ -39,6 +39,25 @@ public sealed class DrawableTests
     }
 
     [Fact]
+    public void Drawable_update_batches_calculates_distance_and_lod_distance()
+    {
+        var scene = new Scene();
+        var drawable = scene.CreateChild("Drawable").CreateComponent<CustomGeometry>();
+        drawable.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
+        var camera = new Camera();
+        var frame = new CommonFrameInfo { Camera = camera };
+
+        drawable.UpdateBatches(frame);
+
+        Assert.Equal(camera.GetDistance(drawable.GetWorldBoundingBox().Center), drawable.GetDistance());
+        Assert.Equal(
+            camera.GetLodDistance(drawable.GetDistance(), drawable.GetWorldBoundingBox().Size.X / 3.0f +
+                drawable.GetWorldBoundingBox().Size.Y / 3.0f + drawable.GetWorldBoundingBox().Size.Z / 3.0f,
+                drawable.GetLodBias()),
+            drawable.GetLodDistance());
+    }
+
+    [Fact]
     public void Drawable_renderer_wide_view_queries_use_renderer_frame_number()
     {
         var previousContext = Context.Instance;

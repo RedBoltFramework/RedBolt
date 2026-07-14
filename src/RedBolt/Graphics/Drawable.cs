@@ -182,6 +182,7 @@ public abstract class Drawable : Component
     private CachedDrawableReflection _cachedReflection = new();
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
     private readonly System.Collections.Generic.List<SourceBatch> _batches = [];
+    private readonly Matrix3x4[] _worldTransform = [Matrix3x4.Identity];
     private uint _viewFrameNumber;
     private float _distance;
     private float _lodDistance;
@@ -340,7 +341,22 @@ public abstract class Drawable : Component
 
     public virtual void UpdateBatches(CommonFrameInfo frame)
     {
-        _distance = frame.Camera!.GetDistance(GetWorldBoundingBox().Center);
+        var worldBoundingBox = GetWorldBoundingBox();
+        _worldTransform[0] = Node.GetWorldTransform();
+        _distance = frame.Camera!.GetDistance(worldBoundingBox.Center);
+
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var batch = _batches[i];
+            batch.Distance = _distance;
+            batch.WorldTransform = _worldTransform;
+            _batches[i] = batch;
+        }
+
+        var scale = (worldBoundingBox.Size.X + worldBoundingBox.Size.Y + worldBoundingBox.Size.Z) / 3.0f;
+        var newLodDistance = frame.Camera.GetLodDistance(_distance, scale, LodBias);
+        if (newLodDistance != _lodDistance)
+            _lodDistance = newLodDistance;
     }
 
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
