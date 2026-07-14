@@ -69,7 +69,7 @@ sealed class WindowSettingsApplication : Application
     {
         _scene = new Scene();
         _scene.CreateComponent<Octree>();
-        var zone = _scene.CreateChild("Zone").CreateComponent<Zone>();
+        var zone = _scene.CreateComponent<Zone>();
         zone.SetAmbientColor(Color.White);
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
 
@@ -80,8 +80,8 @@ sealed class WindowSettingsApplication : Application
         model.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
 
         var cameraNode = _scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
         _camera = cameraNode.CreateComponent<Camera>();
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
     }
 
     private void SynchronizeSettings()
