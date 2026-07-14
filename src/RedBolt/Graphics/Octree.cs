@@ -84,6 +84,17 @@ public sealed class Octant
 
     public uint GetNumDrawables() => NumDrawables;
 
+    internal void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is null || !debug.IsInside(WorldBoundingBox))
+            return;
+
+        debug.AddBoundingBox(WorldBoundingBox, new Color(0.25f, 0.25f, 0.25f), depthTest);
+
+        foreach (var child in _children)
+            child?.DrawDebugGeometry(debug, depthTest);
+    }
+
     public Octant GetOrCreateChild(uint index)
     {
         if (index >= _children.Length)
@@ -602,9 +613,8 @@ public sealed class Octree : Component
 
     public void DrawDebugGeometry(bool depthTest)
     {
-        // TODO: port DebugRenderer integration.
-        // auto* debug = GetComponent<DebugRenderer>();
-        // DrawDebugGeometry(debug, depthTest);
+        var debug = GetComponent<DebugRenderer>();
+        _rootOctant.DrawDebugGeometry(debug, depthTest);
     }
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)

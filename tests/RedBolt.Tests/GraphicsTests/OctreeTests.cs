@@ -143,4 +143,18 @@ public sealed class OctreeTests
         Assert.Same(scene, received.Value.Scene);
         Assert.Equal(0.25f, received.Value.TimeStep);
     }
+
+    [Fact]
+    public void Draw_debug_geometry_uses_scene_debug_renderer()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        var debugRenderer = scene.CreateComponent<DebugRenderer>();
+        debugRenderer.SetView(new Camera());
+
+        octree.SetSize(new BoundingBox(-1.0f, 1.0f), 1u);
+        octree.DrawDebugGeometry(depthTest: false);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }
