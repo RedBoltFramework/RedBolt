@@ -59,4 +59,22 @@ public sealed class ModelFileTests
         Assert.Equal("Root", modelBone!.Name);
         Assert.Equal(1u, model.GetSkeleton().GetNumBones());
     }
+
+    [Fact]
+    public void Model_preserves_geometry_bone_mappings()
+    {
+        var model = new Model("BoneMappingsModel");
+        IReadOnlyList<IReadOnlyList<uint>> mappings =
+        [
+            new uint[] { 3u, 7u },
+            new uint[] { 1u }
+        ];
+
+        model.SetGeometryBoneMappings(mappings);
+
+        var result = model.GetGeometryBoneMappings();
+        Assert.Equal(2, result.Count);
+        Assert.Equal(new uint[] { 3u, 7u }, result[0]);
+        Assert.Equal(new uint[] { 1u }, result[1]);
+    }
 }

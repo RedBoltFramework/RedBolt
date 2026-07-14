@@ -8,6 +8,7 @@ public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> _geometries = [];
     private readonly List<Vector3f> _geometryCenters = [];
+    private readonly List<List<uint>> _geometryBoneMappings = [];
     private readonly Skeleton _skeleton = new();
     private BoundingBox _boundingBox = new(-0.5f, 0.5f);
 
@@ -118,6 +119,7 @@ public sealed class Model : ResourceWithMetadata
     {
         _geometries.Clear();
         _geometryCenters.Clear();
+        _geometryBoneMappings.Clear();
         _skeleton.ClearBones();
         _boundingBox = new BoundingBox();
 
@@ -176,8 +178,10 @@ public sealed class Model : ResourceWithMetadata
         for (var geometryIndex = 0u; geometryIndex < numGeometries; ++geometryIndex)
         {
             var boneMappingCount = source.ReadUInt();
+            var boneMapping = new List<uint>(checked((int)boneMappingCount));
             for (var mappingIndex = 0u; mappingIndex < boneMappingCount; ++mappingIndex)
-                _ = source.ReadUInt();
+                boneMapping.Add(source.ReadUInt());
+            _geometryBoneMappings.Add(boneMapping);
 
             var numLodLevels = source.ReadUInt();
             if (!SetNumGeometryLodLevels(geometryIndex, numLodLevels))
@@ -289,6 +293,15 @@ public sealed class Model : ResourceWithMetadata
     }
 
     public Skeleton GetSkeleton() => _skeleton;
+
+    public void SetGeometryBoneMappings(IReadOnlyList<IReadOnlyList<uint>> geometryBoneMappings)
+    {
+        _geometryBoneMappings.Clear();
+        foreach (var geometryBoneMapping in geometryBoneMappings)
+            _geometryBoneMappings.Add([.. geometryBoneMapping]);
+    }
+
+    public IReadOnlyList<IReadOnlyList<uint>> GetGeometryBoneMappings() => _geometryBoneMappings;
 
     public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
 
