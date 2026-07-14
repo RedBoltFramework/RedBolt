@@ -11,7 +11,7 @@
 - [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; runtime validation remains dependent on host SDL video-device availability
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
-- [ ] `06_SkeletalAnimation` — requires complete `AnimatedModel` parity
+- [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership is now available; pose/skinning integration remains required
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
@@ -257,8 +257,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>`
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; batch LOD/occlusion drawing remains incomplete
-- [ ] `AnimatedModel.h`
-  - [ ] `AnimatedModel : StaticModel`
+- [~] `AnimatedModel.h`
+  - [~] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, bone-node creation, morph weights, animation LOD bias, and invisible-update state are ported; animation-state integration, skinning, morph-buffer updates, ray queries, threaded updates, and serialization attributes remain incomplete
 - [~] `StaticModelGroup.h`
 - [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, and batch distance/world-transform/LOD updates are ported; occlusion drawing remains incomplete because managed OcclusionBuffer APIs are not yet available
 - [~] `Skybox.h`
