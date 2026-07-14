@@ -328,7 +328,13 @@ public sealed class Input : Object
             var eventHandledByDearImGui = dearImGui?.ProcessEvent(_nativeEvent.Handle) == true;
 
             if (eventHandledByDearImGui || ShouldConsumeEventByDearImGui(dearImGui, eventType))
+            {
+                if (eventType == SdlEventType.SdlKeydown)
+                    HandleKeyDown(_nativeEvent);
+                else if (eventType == SdlEventType.SdlKeyup)
+                    HandleKeyUp(_nativeEvent);
                 continue;
+            }
 
             if (eventType == SdlEventType.SdlQuit)
             {

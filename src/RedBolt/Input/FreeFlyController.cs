@@ -109,29 +109,14 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         if (!IsEnabledEffective || !IsAttached || _input is null)
             return;
 
-        var dearImGui = GetSubsystem<IDearImGuiInputSink>();
-        if (dearImGui?.WantCaptureMouse == true || dearImGui?.WantCaptureKeyboard == true)
-            return;
-
-        if (_isActive || _input.MouseMode == MouseMode.Free)
+        if (_input.MouseMode == MouseMode.Free)
         {
             if (!_isActive && _input.GetMouseButtonPress(MouseButton.Right))
-            {
                 _isActive = true;
-                _oldMouseVisible = _input.IsMouseVisible();
-                _oldMouseMode = _input.MouseMode;
-                _input.SetMouseVisible(false);
-                _input.SetMouseMode(MouseMode.Relative);
-            }
             else if (_isActive && !_input.GetMouseButtonDown(MouseButton.Right))
-            {
                 _isActive = false;
-                _input.SetMouseVisible(_oldMouseVisible);
-                _input.SetMouseMode(_oldMouseMode);
-            }
 
-            if (_isActive)
-                HandleKeyboardAndMouse(timeStep);
+            HandleKeyboardAndMouse(timeStep, _isActive);
         }
         else
         {
@@ -143,7 +128,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     {
     }
 
-    private void HandleKeyboardAndMouse(float timeStep)
+    private void HandleKeyboardAndMouse(float timeStep, bool handleMouse = true)
     {
         UpdateCameraAngles();
         var controllerRotation = new Vector3f(
@@ -152,7 +137,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         var genericRotation = new Vector3f(
             _axisAdapter.Transform(_input?.GetJoystickAxisPosition(3) ?? 0.0f),
             _axisAdapter.Transform(_input?.GetJoystickAxisPosition(2) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
-        var eulerAngles = _lastKnownEulerAngles + HandleMouse() + controllerRotation + genericRotation;
+        var eulerAngles = _lastKnownEulerAngles + (handleMouse ? HandleMouse() : Vector3f.Zero) + controllerRotation + genericRotation;
         SetCameraAngles(eulerAngles);
 
         var translation = HandleKeyboard(timeStep) + HandleController(timeStep) + HandleGenericJoystick(timeStep);

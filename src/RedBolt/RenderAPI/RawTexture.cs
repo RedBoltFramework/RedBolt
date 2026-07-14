@@ -134,9 +134,10 @@ public class RawTexture : DeviceObject
         if (type is null)
             return false;
 
+        var nativeFormat = Graphics.UnmapTextureFormat(desc.Format, out var isSrgb);
         var resolvedFormat = format;
         if (resolvedFormat == TextureFormat.Unknown)
-            resolvedFormat = Graphics.UnmapTextureFormat(desc.Format, out _);
+            resolvedFormat = nativeFormat;
         if (resolvedFormat == TextureFormat.Unknown)
             return false;
 
@@ -157,7 +158,8 @@ public class RawTexture : DeviceObject
             desc.ArraySize,
             desc.MipLevels,
             Math.Max(desc.SampleCount, checked((uint)Math.Max(msaaLevel, 1))),
-            desc.MipLevels);
+            desc.MipLevels,
+            isSrgb);
         _ = texture.AddRef();
         _handle = texture;
         if (!InitializeDefaultViews(desc.BindFlags))
@@ -190,7 +192,7 @@ public class RawTexture : DeviceObject
             Name = nativeName.Pointer,
             Type = GetResourceDimension(type),
             Usage = Usage.UsageDefault,
-            Format = Graphics.MapTextureFormat(format),
+            Format = Graphics.MapTextureFormat(format, _parameters.SRGB),
             ArraySize = type == TextureType.Texture2DArray ? arraySize : 1u,
             BindFlags = BindFlags.BindShaderResource
         };
@@ -374,7 +376,7 @@ public class RawTexture : DeviceObject
                 : ResourceDimension.ResourceDimTex2d,
             Usage = Usage.UsageStaging,
             CPUAccessFlags = CpuAccessFlags.CpuAccessRead,
-            Format = Graphics.MapTextureFormat(_parameters.Format),
+            Format = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB),
             Width = checked((uint)levelSize.X),
             Height = checked((uint)levelSize.Y),
             MipLevels = 1u,
@@ -503,7 +505,7 @@ public class RawTexture : DeviceObject
         {
             ViewType = TextureViewType.TextureViewUnorderedAccess,
             TextureDim = GetViewResourceDimension(_parameters.Type),
-            Format = Graphics.MapTextureFormat(_parameters.Format),
+            Format = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB),
             MostDetailedMip = key.FirstLevel,
             NumMipLevels = key.NumLevels,
             AccessFlags = (key.CanRead ? UavAccessFlag.UavAccessFlagRead : UavAccessFlag.UavAccessUnspecified) |
@@ -600,7 +602,7 @@ public class RawTexture : DeviceObject
             Name = nativeName.Pointer,
             Type = GetResourceDimension(_parameters.Type),
             Usage = Usage.UsageDefault,
-            Format = Graphics.MapTextureFormat(_parameters.Format),
+            Format = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB),
             Width = checked((uint)_parameters.Size.X),
             Height = checked((uint)_parameters.Size.Y),
             MipLevels = _parameters.NumLevelsRtv,
@@ -723,7 +725,7 @@ public class RawTexture : DeviceObject
         using var viewDesc = new TextureViewDesc
         {
             ViewType = viewType,
-            Format = Graphics.MapTextureFormat(_parameters.Format)
+            Format = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB)
         };
         if (viewType == TextureViewType.TextureViewShaderResource)
         {
@@ -842,6 +844,7 @@ public class RawTexture : DeviceObject
                 case TextureType.Texture2D:
                 {
                     var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
+                    texture2D.SetSRGB(parameters.SRGB);
                     texture2D.SetNumLevels(parameters.NumLevels);
                     if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
                         (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
@@ -853,6 +856,7 @@ public class RawTexture : DeviceObject
                 case TextureType.TextureCube:
                 {
                     var textureCube = new TextureCube($"RawTextureCube.{Guid.NewGuid():N}");
+                    textureCube.SetSRGB(parameters.SRGB);
                     textureCube.SetNumLevels(parameters.NumLevels);
                     var edge = normalizedSize.X;
                     if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
@@ -866,6 +870,7 @@ public class RawTexture : DeviceObject
                 case TextureType.Texture2DArray:
                 {
                     var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
+                    textureArray.SetSRGB(parameters.SRGB);
                     textureArray.SetNumLevels(parameters.NumLevels);
                     if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
                         (int)normalizedMultiSample,
@@ -878,6 +883,7 @@ public class RawTexture : DeviceObject
                 case TextureType.Texture3D:
                 {
                     var texture3D = new Texture3D($"RawTexture3D.{Guid.NewGuid():N}");
+                    texture3D.SetSRGB(parameters.SRGB);
                     texture3D.SetNumLevels(parameters.NumLevels);
                     if (!texture3D.SetSize(normalizedSize.X, normalizedSize.Y, normalizedSize.Z, parameters.Format))
                         return false;
@@ -903,7 +909,8 @@ public class RawTexture : DeviceObject
             parameters.Type == TextureType.Texture2DArray ? (uint)textureCandidate.Depth : normalizedArraySize,
             textureCandidate.Levels,
             (uint)textureCandidate.MultiSample,
-            CalculateNumLevelsRtv(textureCandidate, parameters));
+            CalculateNumLevelsRtv(textureCandidate, parameters),
+            parameters.SRGB);
         return true;
     }
 

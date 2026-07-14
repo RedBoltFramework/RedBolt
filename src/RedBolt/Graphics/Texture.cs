@@ -411,7 +411,7 @@ public abstract class Texture : ResourceWithMetadata
         {
             _rawTexture = new RawTexture(new RawTextureParams(
                 GetRawTextureType(), Format, _textureFlags,
-                new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample));
+                new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample, SRGB: _requestedSRGB));
             ApplyRawSamplerState();
         }
     }

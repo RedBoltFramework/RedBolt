@@ -59,6 +59,22 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Raw_texture_preserves_srgb_color_space()
+    {
+        var rawTexture = new RawTexture(new RawTextureParams(
+            TextureType.Texture2D,
+            TextureFormat.RGBA8,
+            TextureFlag.None,
+            new Vector3i(4, 4, 1),
+            SRGB: true));
+
+        var texture = Assert.IsType<Texture2D>(rawTexture.GetTexture());
+
+        Assert.True(texture.GetSRGB());
+        Assert.True(rawTexture.GetParams().SRGB);
+    }
+
+    [Fact]
     public void Raw_texture_creates_cube_and_array_wrappers_from_params()
     {
         var cubeTexture = new RawTexture(new RawTextureParams(

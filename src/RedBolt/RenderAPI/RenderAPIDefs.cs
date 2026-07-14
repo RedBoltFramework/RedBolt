@@ -251,6 +251,7 @@ public readonly record struct RawBufferParams(BufferType Type, uint Size, uint S
 /// multi-sampled texture with single mip level (aka NumLevelsRtv) used as RTV,
 /// and resolved texture with multiple mip levels (aka NumLevels) used as SRV.
 /// Otherwise, NumLevelsRtv is equal to NumLevels.</param>
+/// <param name="SRGB">Whether the texture uses sRGB color space.</param>
 public readonly record struct RawTextureParams(
     TextureType Type,
     TextureFormat Format,
@@ -259,7 +260,8 @@ public readonly record struct RawTextureParams(
     uint ArraySize = 1u,
     uint NumLevels = 0u,
     uint MultiSample = 1u,
-    uint NumLevelsRtv = 0u);
+    uint NumLevelsRtv = 0u,
+    bool SRGB = false);
 
 /// <param name="FirstSlice">The first array slice or cube face to be viewed.</param>
 /// <param name="FirstLevel">The first mip level to be viewed.</param>
