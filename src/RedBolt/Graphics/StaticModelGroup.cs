@@ -2,8 +2,10 @@ namespace RedBolt;
 
 public sealed class StaticModelGroup : StaticModel
 {
+    private static readonly Matrix3x4[] _identityWorldTransform = [Matrix3x4.Identity];
     private readonly List<Node> _instanceNodes = [];
     private readonly List<Matrix3x4> _worldTransforms = [];
+    private Matrix3x4[] _worldTransformsArray = [];
     private readonly List<uint> _nodeIdsAttribute = [0u];
     private uint _numWorldTransforms;
     private bool _nodesDirty;
@@ -144,6 +146,8 @@ public sealed class StaticModelGroup : StaticModel
         }
 
         _numWorldTransforms = index;
+        for (var i = 0u; i < index; ++i)
+            _worldTransformsArray[(int)i] = _worldTransforms[(int)i];
         SetWorldBoundingBox(worldBox);
     }
 
@@ -171,6 +175,41 @@ public sealed class StaticModelGroup : StaticModel
         }
 
         return triangles;
+    }
+
+    public override void UpdateBatches(CommonFrameInfo frame)
+    {
+        var worldBoundingBox = GetWorldBoundingBox();
+        var worldTransform = Node.GetWorldTransform();
+        SetDistance(frame.Camera!.GetDistance(worldBoundingBox.Center));
+
+        if (_batches.Count > 1)
+        {
+            var model = Model;
+            for (var i = 0; i < _batches.Count; ++i)
+            {
+                var batch = _batches[i];
+                var center = model?.GetGeometryCenter((uint)i) ?? Vector3f.Zero;
+                batch.Distance = frame.Camera.GetDistance(worldTransform * center);
+                batch.WorldTransform = _numWorldTransforms > 0 ? _worldTransformsArray : _identityWorldTransform;
+                batch.NumWorldTransforms = _numWorldTransforms;
+                _batches[i] = batch;
+            }
+        }
+        else if (_batches.Count == 1)
+        {
+            var batch = _batches[0];
+            batch.Distance = GetDistance();
+            batch.WorldTransform = _numWorldTransforms > 0 ? _worldTransformsArray : _identityWorldTransform;
+            batch.NumWorldTransforms = _numWorldTransforms;
+            _batches[0] = batch;
+        }
+
+        var size = worldBoundingBox.Size;
+        var scale = (size.X + size.Y + size.Z) / 3.0f;
+        var newLodDistance = frame.Camera.GetLodDistance(GetDistance(), scale, LodBias);
+        if (newLodDistance != GetLodDistance())
+            SetLodDistance(newLodDistance);
     }
 
     internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
@@ -222,6 +261,9 @@ public sealed class StaticModelGroup : StaticModel
             _worldTransforms.Add(Matrix3x4.Identity);
         while (_worldTransforms.Count > _instanceNodes.Count)
             _worldTransforms.RemoveAt(_worldTransforms.Count - 1);
+
+        if (_worldTransformsArray.Length != _worldTransforms.Count)
+            _worldTransformsArray = new Matrix3x4[_worldTransforms.Count];
 
         _numWorldTransforms = 0;
         _nodeIdsDirty = markNodeIdsDirty;

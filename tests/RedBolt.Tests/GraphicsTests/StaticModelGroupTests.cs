@@ -134,4 +134,21 @@ public sealed class StaticModelGroupTests
         group.SetMaterial(material);
         Assert.Equal(0u, group.GetNumOccluderTriangles());
     }
+
+    [Fact]
+    public void Batch_update_refreshes_group_distance_and_lod_distance()
+    {
+        var scene = new Scene();
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -10.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+        group.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
+        group.AddInstanceNode(scene.CreateChild("Instance"));
+
+        group.UpdateBatches(new CommonFrameInfo { Camera = camera });
+
+        Assert.True(group.GetDistance() > 0.0f);
+        Assert.True(group.GetLodDistance() > 0.0f);
+    }
 }

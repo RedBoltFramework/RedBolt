@@ -181,7 +181,7 @@ public abstract class Drawable : Component
     private uint _drawableIndex = uint.MaxValue;
     private CachedDrawableReflection _cachedReflection = new();
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
-    private readonly System.Collections.Generic.List<SourceBatch> _batches = [];
+    protected readonly System.Collections.Generic.List<SourceBatch> _batches = [];
     private readonly Matrix3x4[] _worldTransform = [Matrix3x4.Identity];
     private uint _viewFrameNumber;
     private float _distance;
@@ -394,6 +394,11 @@ public abstract class Drawable : Component
     protected void SetDistance(float distance)
     {
         _distance = distance;
+    }
+
+    protected void SetLodDistance(float distance)
+    {
+        _lodDistance = distance;
     }
 
     public void MarkInView(CommonFrameInfo frame)
