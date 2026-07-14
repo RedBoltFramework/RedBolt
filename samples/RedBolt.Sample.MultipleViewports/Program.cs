@@ -56,7 +56,6 @@ sealed class MultipleViewportsApplication : Application
     {
         var cache = Resources;
         _scene = new Scene();
-        _scene.CreateComponent<RenderPipeline>();
         _scene.CreateComponent<Octree>();
         _scene.CreateComponent<DebugRenderer>();
 
