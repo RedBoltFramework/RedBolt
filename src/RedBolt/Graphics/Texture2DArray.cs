@@ -15,6 +15,10 @@ public sealed class Texture2DArray : Texture
     {
     }
 
+    protected override TextureType GetRawTextureType() => TextureType.Texture2DArray;
+
+    protected override uint GetRawTextureArraySize() => _layers;
+
     /// <summary>
     /// Register object factory.
     /// </summary>

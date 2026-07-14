@@ -40,6 +40,7 @@ public abstract class Texture : ResourceWithMetadata
     protected RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
     private ContextEventSubscription? _renderSurfaceUpdateSubscription;
+    private RawTexture? _rawTexture;
 
     protected Texture(string name)
         : base(name)
@@ -79,6 +80,8 @@ public abstract class Texture : ResourceWithMetadata
     }
 
     public Texture? BackupTexture { get; private set; }
+
+    internal RawTexture? GetRawTexture() => _rawTexture;
 
     public bool IsCompressed() => false;
 
@@ -302,14 +305,14 @@ public abstract class Texture : ResourceWithMetadata
         }
     }
 
-    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
     private void OnCreateGPU()
     {
     }
 
-    // TODO: port: Texture is currently a CPU-backed resource and does not inherit RenderAPI.RawTexture.
     private void OnDestroyGPU()
     {
+        _rawTexture?.Dispose();
+        _rawTexture = null;
     }
 
     private bool TryRestore()
@@ -385,7 +388,19 @@ public abstract class Texture : ResourceWithMetadata
         SetRenderSurfaceCount((flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0
             ? (uint)Math.Max(Depth, 1)
             : 0u);
+
+        OnDestroyGPU();
+        if (!RawTexture.IsCreatingManagedTexture && GetSubsystem<Graphics>()?.GetNativeRenderDevice() is not null)
+        {
+            _rawTexture = new RawTexture(new RawTextureParams(
+                GetRawTextureType(), Format, _textureFlags,
+                new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample));
+        }
     }
+
+    protected virtual TextureType GetRawTextureType() => TextureType.Texture2D;
+
+    protected virtual uint GetRawTextureArraySize() => 1u;
 
     protected void SetRenderSurfaceCount(uint count)
     {

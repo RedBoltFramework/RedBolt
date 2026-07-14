@@ -14,6 +14,8 @@ public sealed class Texture3D : Texture
     {
     }
 
+    protected override TextureType GetRawTextureType() => TextureType.Texture3D;
+
     /// <summary>
     /// Register object factory.
     /// </summary>

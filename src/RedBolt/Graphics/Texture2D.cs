@@ -105,6 +105,8 @@ public sealed class Texture2D : Texture
             data.Slice(sourceOffset, width * bytesPerPixel).CopyTo(levelBytes.AsSpan(destinationOffset, width * bytesPerPixel));
         }
 
+        GetRawTexture()?.Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), 0u, data);
+
         RefreshTotalMemoryUse();
         return true;
     }

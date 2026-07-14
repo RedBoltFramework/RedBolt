@@ -25,6 +25,8 @@ public sealed class RawTextureHandles
 /// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
 public class RawTexture : DeviceObject
 {
+    internal static bool IsCreatingManagedTexture { get; private set; }
+
     private RawTextureParams _parameters;
     private SamplerStateDesc _samplerStateDesc = new();
     private Texture? _texture;
@@ -828,56 +830,64 @@ public class RawTexture : DeviceObject
         var normalizedSize = parameters.Size;
 
         Texture textureCandidate;
-        switch (parameters.Type)
+        IsCreatingManagedTexture = true;
+        try
         {
-            case TextureType.Texture2D:
+            switch (parameters.Type)
             {
-                var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
-                texture2D.SetNumLevels(parameters.NumLevels);
-                if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
-                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
-                    return false;
-                textureCandidate = texture2D;
-                break;
-            }
+                case TextureType.Texture2D:
+                {
+                    var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
+                    texture2D.SetNumLevels(parameters.NumLevels);
+                    if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
+                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                        return false;
+                    textureCandidate = texture2D;
+                    break;
+                }
 
-            case TextureType.TextureCube:
-            {
-                var textureCube = new TextureCube($"RawTextureCube.{Guid.NewGuid():N}");
-                textureCube.SetNumLevels(parameters.NumLevels);
-                var edge = normalizedSize.X;
-                if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
-                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
-                    return false;
-                normalizedSize = new Vector3i(edge, edge, 1);
-                textureCandidate = textureCube;
-                break;
-            }
+                case TextureType.TextureCube:
+                {
+                    var textureCube = new TextureCube($"RawTextureCube.{Guid.NewGuid():N}");
+                    textureCube.SetNumLevels(parameters.NumLevels);
+                    var edge = normalizedSize.X;
+                    if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
+                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                        return false;
+                    normalizedSize = new Vector3i(edge, edge, 1);
+                    textureCandidate = textureCube;
+                    break;
+                }
 
-            case TextureType.Texture2DArray:
-            {
-                var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
-                textureArray.SetNumLevels(parameters.NumLevels);
-                if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
-                    (int)normalizedMultiSample,
-                    (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
-                    return false;
-                textureCandidate = textureArray;
-                break;
-            }
+                case TextureType.Texture2DArray:
+                {
+                    var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
+                    textureArray.SetNumLevels(parameters.NumLevels);
+                    if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
+                        (int)normalizedMultiSample,
+                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                        return false;
+                    textureCandidate = textureArray;
+                    break;
+                }
 
-            case TextureType.Texture3D:
-            {
-                var texture3D = new Texture3D($"RawTexture3D.{Guid.NewGuid():N}");
-                texture3D.SetNumLevels(parameters.NumLevels);
-                if (!texture3D.SetSize(normalizedSize.X, normalizedSize.Y, normalizedSize.Z, parameters.Format))
-                    return false;
-                textureCandidate = texture3D;
-                break;
-            }
+                case TextureType.Texture3D:
+                {
+                    var texture3D = new Texture3D($"RawTexture3D.{Guid.NewGuid():N}");
+                    texture3D.SetNumLevels(parameters.NumLevels);
+                    if (!texture3D.SetSize(normalizedSize.X, normalizedSize.Y, normalizedSize.Z, parameters.Format))
+                        return false;
+                    textureCandidate = texture3D;
+                    break;
+                }
 
-            default:
-                return false;
+                default:
+                    return false;
+            }
+        }
+        finally
+        {
+            IsCreatingManagedTexture = false;
         }
 
         createdTexture = textureCandidate;

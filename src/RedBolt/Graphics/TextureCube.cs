@@ -28,6 +28,8 @@ public sealed class TextureCube : Texture
         SetAddressMode(TextureCoordinate.W, TextureAddressMode.Clamp);
     }
 
+    protected override TextureType GetRawTextureType() => TextureType.TextureCube;
+
     /// <summary>
     /// Register object factory.
     /// </summary>

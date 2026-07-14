@@ -183,7 +183,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `DrawableEvents.h`
   - [~] drawable event definitions — all five C++ events are represented as struct-based C# events; Animation trigger and finished payloads are strongly typed and trigger dispatch is ported, while ParticleEffect remains opaque
 - [~] `GraphicsUtils.h`
-  - [~] graphics free functions — the C++ vertex-buffer-array helper, InitializeInputLayout, InitializeInputLayoutAndPrimitiveType, and SetBuffersFromGeometry are ported; shader-resource helpers remain TODO until the high-level Texture/RawTexture bridge is available
+  - [~] graphics free functions — the C++ vertex-buffer-array helper, InitializeInputLayout, InitializeInputLayoutAndPrimitiveType, and SetBuffersFromGeometry are ported; shader-resource helper overloads remain TODO while the managed Texture/RawTexture composition bridge is completed
 - [x] `Tangent.h`
   - [x] tangent generation — GenerateTangents and its index reader are ported with managed span equivalents for the C++ vertex/index pointers
 - [x] `PipelineStateTracker.h`
@@ -196,9 +196,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `IndexBuffer.h` — `IndexBuffer : RawBuffer, PipelineStateTracker` and `DynamicIndexBuffer : Object` are ported, including CPU shadow/range behavior, pack/unpack helpers, size metadata, pipeline-state hashing, RawBuffer creation and direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [x] `VertexBuffer.h` — `VertexBuffer : RawBuffer, PipelineStateTracker` and `DynamicVertexBuffer : Object` are ported, including element layout, legacy masks, shadow-data conversion, pack/unpack/shuffle helpers, pipeline-state hashing, RawBuffer creation, direct range uploads, dynamic allocation/growth/discard/commit, and debug-name forwarding; C# composes `RawBuffer` because managed C# cannot represent C++ multiple inheritance
 - [~] `Texture.h`
-  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, requested-versus-realized mip-level semantics, XML parameter parsing, format component/data-size calculations including depth formats, bind-flag queries, C++-matching render-target/depth-stencil `RenderSurface` slice preservation/materialization, render-surface update subscription/queue handling, resource restore, and texture-budget material release are ported; the managed asset `Texture` remains separate from `RenderAPI.RawTexture`, so GPU lifecycle and image transfer hooks remain TODO
+  - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, requested-versus-realized mip-level semantics, XML parameter parsing, format component/data-size calculations including depth formats, bind-flag queries, C++-matching render-target/depth-stencil `RenderSurface` slice preservation/materialization, render-surface update subscription/queue handling, resource restore, texture-budget material release, and managed `RawTexture` GPU composition/update for ordinary texture resources are ported; full C++ inheritance parity and image transfer hooks remain TODO
 - [~] `Texture2D.h`
-  - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, texture-budget checks, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, and object registration are ported; GPU RawTexture creation remains TODO
+  - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, texture-budget checks, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, object registration, and managed RawTexture creation/data updates are ported; image-backed GPU transfer remains TODO
 - [~] `Texture3D.h`
   - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading including headless short-circuiting, mip selection, CPU volume upload/readback, usage-flag propagation, and object registration are ported; GPU RawTexture creation remains TODO
 - [~] `TextureCube.h`
