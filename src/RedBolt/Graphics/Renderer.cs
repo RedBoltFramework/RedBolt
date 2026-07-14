@@ -312,6 +312,22 @@ public sealed class Renderer : Object
         }
         _queuedViewports.Clear();
 
+        var hasBackbufferViews = false;
+        foreach (var renderPipelineView in _renderPipelineViews.Values)
+        {
+            if (renderPipelineView.View.GetFrameInfo().RenderTarget is null)
+            {
+                hasBackbufferViews = true;
+                break;
+            }
+        }
+
+        if (!hasBackbufferViews && _renderPipelineViews.Count != 0)
+        {
+            graphics.ResetRenderTargets();
+            graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
+        }
+
         foreach (var viewport in _viewports)
         {
             if (viewport is null)
