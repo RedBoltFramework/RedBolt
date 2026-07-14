@@ -190,6 +190,7 @@ public sealed class PipelineStateCacheTests
             desc.InputLayout.SetElements(new InputLayoutElementDesc(
                 0u, 12u, 0u, 0u, VertexElementType.Vector3, VertexElementSemantic.Position, 0));
             desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+            desc.Samplers.Add(new StringHash("Albedo"), SamplerStateDesc.Trilinear());
 
             var state = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
 

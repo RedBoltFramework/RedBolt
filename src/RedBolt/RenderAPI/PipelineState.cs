@@ -365,7 +365,7 @@ public class PipelineState : DeviceObject
         private readonly CString[] _names;
         private readonly SamplerDesc[] _descriptions;
         private readonly ImmutableSamplerDesc[] _samplers;
-        private readonly global::SharpCpp.NativeArray<ImmutableSamplerDesc>? _array;
+        private readonly IntPtr _memory;
 
         public TemporaryImmutableSamplers(ImmutableSamplersDesc overrides, ShaderProgramReflection reflection,
             RenderDevice? _renderDevice, RedBolt.Bindings.Diligent.ShaderType stages)
@@ -378,21 +378,21 @@ public class PipelineState : DeviceObject
             if (resources.Length == 0)
                 return;
 
+            var immutableSamplerDescSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {
                 var pair = resources[i];
                 var source = FindSampler(overrides, pair.Key) ?? SamplerStateDesc.Bilinear();
                 _names[i] = new CString(pair.Value.InternalName);
                 _descriptions[i] = CreateSamplerDesc(source, _renderDevice);
-                _samplers[i] = new ImmutableSamplerDesc
-                {
-                    ShaderStages = stages,
-                    SamplerOrTextureName = _names[i].Pointer,
-                    Desc = _descriptions[i]
-                };
+                _samplers[i] = ImmutableSamplerDesc.CreateManagedWrapper(
+                    IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
+                _samplers[i].ShaderStages = stages;
+                _samplers[i].SamplerOrTextureName = _names[i].Pointer;
+                _samplers[i].Desc = _descriptions[i];
             }
-            _array = new global::SharpCpp.NativeArray<ImmutableSamplerDesc>(_samplers);
-            First = _array[0];
+            First = _samplers[0];
         }
 
         public ImmutableSamplerDesc? First { get; }
@@ -400,10 +400,11 @@ public class PipelineState : DeviceObject
 
         public void Dispose()
         {
-            _array?.Dispose();
             foreach (var sampler in _samplers) sampler?.Dispose();
             foreach (var description in _descriptions) description?.Dispose();
             foreach (var name in _names) name?.Dispose();
+            if (_memory != IntPtr.Zero)
+                Marshal.FreeHGlobal(_memory);
         }
 
         private static SamplerStateDesc? FindSampler(ImmutableSamplersDesc overrides, StringHash name)
