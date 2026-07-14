@@ -40,6 +40,9 @@ public sealed class RenderDeviceTests
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
+            Assert.Equal(_fixture.RenderDevice.GetCaps().MaxTextureSize,
+                _fixture.Graphics.GetRenderDeviceCaps().MaxTextureSize);
+
             _fixture.RenderDevice.PostInitialize();
 
             foreach (var type in Enum.GetValues<TextureType>())

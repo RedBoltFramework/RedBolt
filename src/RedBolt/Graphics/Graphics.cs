@@ -575,6 +575,10 @@ layout(std140) uniform Material
 
     public RenderDeviceCaps GetRenderDeviceCaps()
     {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (IsInitialized && renderDevice is not null)
+            return renderDevice.GetCaps();
+
         return new RenderDeviceCaps
         {
             ComputeShaders = false,
