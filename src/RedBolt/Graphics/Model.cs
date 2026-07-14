@@ -8,6 +8,7 @@ public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> _geometries = [];
     private readonly List<Vector3f> _geometryCenters = [];
+    private readonly Skeleton _skeleton = new();
     private BoundingBox _boundingBox = new(-0.5f, 0.5f);
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -117,6 +118,7 @@ public sealed class Model : ResourceWithMetadata
     {
         _geometries.Clear();
         _geometryCenters.Clear();
+        _skeleton.ClearBones();
         _boundingBox = new BoundingBox();
 
         var fileId = source.ReadFileID();
@@ -240,7 +242,7 @@ public sealed class Model : ResourceWithMetadata
             }
         }
 
-        if (!SkipSkeleton(source))
+        if (!_skeleton.Load(source))
             return false;
 
         _boundingBox = source.ReadBoundingBox();
@@ -274,39 +276,19 @@ public sealed class Model : ResourceWithMetadata
         return result;
     }
 
-    private static bool SkipSkeleton(Deserializer source)
-    {
-        if (source.IsEof())
-            return false;
-
-        var numBones = source.ReadUInt();
-        for (var boneIndex = 0u; boneIndex < numBones; ++boneIndex)
-        {
-            _ = source.ReadString();
-            _ = source.ReadUInt();
-            _ = source.ReadVector3();
-            _ = source.ReadQuaternion();
-            _ = source.ReadVector3();
-
-            var offsetMatrix = new byte[sizeof(float) * 12];
-            _ = source.Read(offsetMatrix);
-
-            var collisionMask = source.ReadUByte();
-            if ((collisionMask & 0x1) != 0)
-                _ = source.ReadFloat();
-            if ((collisionMask & 0x2) != 0)
-                _ = source.ReadBoundingBox();
-        }
-
-        return true;
-    }
-
     public void SetBoundingBox(BoundingBox box)
     {
         _boundingBox = box;
     }
 
     public BoundingBox GetBoundingBox() => _boundingBox;
+
+    public void SetSkeleton(Skeleton skeleton)
+    {
+        _skeleton.Define(skeleton);
+    }
+
+    public Skeleton GetSkeleton() => _skeleton;
 
     public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
 

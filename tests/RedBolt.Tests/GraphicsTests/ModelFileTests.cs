@@ -39,4 +39,24 @@ public sealed class ModelFileTests
             RbfxTestData.RemoveResourceDirs(Resources);
         }
     }
+
+    [Fact]
+    public void Model_preserves_a_defined_skeleton()
+    {
+        var model = new Model("SkeletonModel");
+        var skeleton = new Skeleton();
+        skeleton.SetNumBones(1);
+        var sourceBone = skeleton.GetModifiableBones()[0];
+        sourceBone.Name = "Root";
+        sourceBone.NameHash = new StringHash("Root");
+        sourceBone.ParentIndex = 0;
+
+        model.SetSkeleton(skeleton);
+
+        var modelBone = model.GetSkeleton().GetBone(0u);
+        Assert.NotNull(modelBone);
+        Assert.NotSame(sourceBone, modelBone);
+        Assert.Equal("Root", modelBone!.Name);
+        Assert.Equal(1u, model.GetSkeleton().GetNumBones());
+    }
 }
