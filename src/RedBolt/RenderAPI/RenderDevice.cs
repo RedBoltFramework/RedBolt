@@ -13,7 +13,7 @@ public sealed class RenderDevice : Object
     private TextureFilterMode _defaultTextureFilterMode = TextureFilterMode.Trilinear;
     private int _defaultTextureAnisotropy = 4;
     private readonly object _deviceObjectsLock = new();
-    private readonly List<DeviceObject> _deviceObjects = [];
+    private readonly HashSet<DeviceObject> _deviceObjects = [];
     private readonly RenderPool _renderPool;
     private readonly RenderContext _renderContext;
     private readonly DrawCommandQueue _defaultQueue;
@@ -561,8 +561,7 @@ public sealed class RenderDevice : Object
 
         lock (_deviceObjectsLock)
         {
-            if (!_deviceObjects.Contains(deviceObject))
-                _deviceObjects.Add(deviceObject);
+            _deviceObjects.Add(deviceObject);
         }
     }
 
