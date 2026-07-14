@@ -135,7 +135,7 @@ sealed class RenderToTextureApplication : Application
         var renderTexture = new Texture2D("Textures/RenderTexture");
         renderTexture.SetSize(1024, 768, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 4);
         renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
-        var renderMaterial = Resources.Get<Material>("Materials/Stone.xml").Clone("Materials/RenderMaterial");
+        var renderMaterial = new Material("Materials/RenderMaterial");
         renderMaterial.SetTechnique(0, Resources.Get<Technique>("Techniques/DiffUnlit.xml"));
         renderMaterial.SetTexture("Albedo", renderTexture);
         renderMaterial.SetDepthBias(new BiasParameters(-0.001f, 0.0f));
