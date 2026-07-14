@@ -111,6 +111,29 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture_sampler_mutators_update_raw_texture_sampler_state()
+    {
+        var texture = new Texture2D("Textures/SamplerState");
+        Assert.True(texture.SetSize(8, 4, TextureFormat.RGBA8));
+
+        texture.SetFilterMode(TextureFilterMode.Bilinear);
+        texture.SetAddressMode(TextureCoordinate.U, TextureAddressMode.Clamp);
+        texture.SetAnisotropy(8u);
+        texture.SetShadowCompare(true);
+        texture.SetMinLod(1.5f);
+        texture.SetMaxLod(6.0f);
+
+        var sampler = texture.GetSamplerStateDesc();
+        Assert.Equal(TextureFilterMode.Bilinear, sampler.FilterMode);
+        Assert.Equal(TextureAddressMode.Clamp, sampler[TextureCoordinate.U]);
+        Assert.Equal(TextureAddressMode.Wrap, sampler[TextureCoordinate.V]);
+        Assert.Equal((byte)8, sampler.Anisotropy);
+        Assert.True(sampler.ShadowCompare);
+        Assert.Equal(1.5f, sampler.MinLod);
+        Assert.Equal(6.0f, sampler.MaxLod);
+    }
+
+    [Fact]
     public void Texture_xml_parameters_match_cpp_parser()
     {
         var file = new XMLFile("Textures/SmokeParameters.xml");
