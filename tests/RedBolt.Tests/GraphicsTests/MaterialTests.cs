@@ -54,6 +54,29 @@ public sealed class MaterialTests
     }
 
     [Fact]
+    public void Shader_parameter_animation_helpers_work()
+    {
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        var animation = new ValueAnimation("Animations/MaterialParameter");
+        animation.SetValueType(VariantType.Float);
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 1.0f);
+
+        material.SetShaderParameterAnimation("Roughness", animation, WrapMode.Once, 2.0f);
+
+        Assert.Same(animation, material.GetShaderParameterAnimation("Roughness"));
+        Assert.Equal(WrapMode.Once, material.GetShaderParameterAnimationWrapMode("Roughness"));
+        Assert.Equal(2.0f, material.GetShaderParameterAnimationSpeed("Roughness"));
+
+        var update = new CoreEvents.UpdateEvent { TimeStep = 0.25f };
+        Context.Instance.SendEvent(ref update);
+        Assert.Equal(0.5f, material.GetShaderParameter("Roughness"));
+
+        material.SetShaderParameterAnimation("Roughness", null);
+        Assert.Null(material.GetShaderParameterAnimation("Roughness"));
+    }
+
+    [Fact]
     public void Uv_transform_metadata_works()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");

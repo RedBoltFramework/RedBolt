@@ -32,6 +32,29 @@ public readonly record struct MaterialShaderParameter(object? Value, bool IsCust
 
 public readonly record struct MaterialTexture(string Name, Texture Texture);
 
+/// <summary>
+/// Material's shader parameter animation instance.
+/// </summary>
+public sealed class ShaderParameterAnimationInfo : ValueAnimationInfo
+{
+    private readonly Material _material;
+    private readonly string _name;
+
+    public ShaderParameterAnimationInfo(Material material, string name, ValueAnimation attributeAnimation, WrapMode wrapMode, float speed)
+        : base(material, attributeAnimation, wrapMode, speed)
+    {
+        _material = material;
+        _name = name;
+    }
+
+    public string GetName() => _name;
+
+    protected override void ApplyValue(object? newValue)
+    {
+        _material.SetShaderParameter(_name, newValue);
+    }
+}
+
 public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<TechniqueEntry>
 {
     public TechniqueEntry(Technique? technique, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
@@ -78,6 +101,7 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 public sealed class Material : ResourceWithMetadata
 {
     private readonly Dictionary<string, MaterialShaderParameter> _shaderParameters = new(StringComparer.Ordinal);
+    private readonly Dictionary<StringHash, ShaderParameterAnimationInfo> _shaderParameterAnimationInfos = new();
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
     private uint _shaderParameterHash;
@@ -191,6 +215,30 @@ public sealed class Material : ResourceWithMetadata
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return _shaderParameters.TryGetValue(name, out var parameter) ? parameter.Value : null;
+    }
+
+    public ValueAnimation? GetShaderParameterAnimation(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return GetShaderParameterAnimationInfo(name)?.GetAnimation();
+    }
+
+    public WrapMode GetShaderParameterAnimationWrapMode(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return GetShaderParameterAnimationInfo(name)?.GetWrapMode() ?? WrapMode.Loop;
+    }
+
+    public float GetShaderParameterAnimationSpeed(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return GetShaderParameterAnimationInfo(name)?.GetSpeed() ?? 0.0f;
+    }
+
+    public ShaderParameterAnimationInfo? GetShaderParameterAnimationInfo(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return _shaderParameterAnimationInfos.GetValueOrDefault(new StringHash(name));
     }
 
     public IReadOnlyDictionary<string, MaterialShaderParameter> GetShaderParameters() => _shaderParameters;
@@ -337,6 +385,46 @@ public sealed class Material : ResourceWithMetadata
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
         RefreshShaderParameterHash();
+    }
+
+    public void SetShaderParameterAnimation(string name, ValueAnimation? animation, WrapMode wrapMode = WrapMode.Loop, float speed = 1.0f)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var info = GetShaderParameterAnimationInfo(name);
+
+        if (animation is not null)
+        {
+            if (info is not null && ReferenceEquals(info.GetAnimation(), animation))
+            {
+                info.SetWrapMode(wrapMode);
+                info.SetSpeed(speed);
+                return;
+            }
+
+            if (!_shaderParameters.ContainsKey(name))
+                return;
+
+            _shaderParameterAnimationInfos[new StringHash(name)] =
+                new ShaderParameterAnimationInfo(this, name, animation, wrapMode, speed);
+            UpdateEventSubscription();
+        }
+        else if (info is not null)
+        {
+            _shaderParameterAnimationInfos.Remove(new StringHash(name));
+            UpdateEventSubscription();
+        }
+    }
+
+    public void SetShaderParameterAnimationWrapMode(string name, WrapMode wrapMode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        GetShaderParameterAnimationInfo(name)?.SetWrapMode(wrapMode);
+    }
+
+    public void SetShaderParameterAnimationSpeed(string name, float speed)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        GetShaderParameterAnimationInfo(name)?.SetSpeed(speed);
     }
 
     public void SetUVTransform(Vector2f offset, float rotation, float repeat)
@@ -644,6 +732,8 @@ public sealed class Material : ResourceWithMetadata
 
     private void ResetToDefaults()
     {
+        _shaderParameterAnimationInfos.Clear();
+        UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
         AlphaToCoverage = false;
         DepthBias = default;
         FillMode = FillMode.Solid;
@@ -673,6 +763,27 @@ public sealed class Material : ResourceWithMetadata
         SetShaderParameter("NormalScale", 1.0f);
         SetShaderParameter("AlphaCutoff", 0.5f);
         RefreshShaderParameterHash();
+    }
+
+    private void UpdateEventSubscription()
+    {
+        if (_shaderParameterAnimationInfos.Count != 0 && !HasSubscribedToEvent<CoreEvents.UpdateEvent>())
+            SubscribeToEvent<CoreEvents.UpdateEvent>(HandleAttributeAnimationUpdate);
+        else if (_shaderParameterAnimationInfos.Count == 0 && HasSubscribedToEvent<CoreEvents.UpdateEvent>())
+            UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
+    }
+
+    private void HandleAttributeAnimationUpdate(ref CoreEvents.UpdateEvent eventData)
+    {
+        var finishedNames = new List<string>();
+        foreach (var info in _shaderParameterAnimationInfos.Values)
+        {
+            if (info.Update(eventData.TimeStep))
+                finishedNames.Add(info.GetName());
+        }
+
+        foreach (var name in finishedNames)
+            SetShaderParameterAnimation(name, null);
     }
 
     private static CullMode ParseCullMode(string value, CullMode defaultValue)

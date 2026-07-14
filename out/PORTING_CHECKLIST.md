@@ -253,7 +253,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Technique : Resource`
 - [~] `Material.h`
   - [~] `struct TechniqueEntry`
-  - [ ] `ShaderParameterAnimationInfo : ValueAnimationInfo`
+  - [x] `ShaderParameterAnimationInfo : ValueAnimationInfo`
   - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>`
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; batch LOD/occlusion drawing remains incomplete
