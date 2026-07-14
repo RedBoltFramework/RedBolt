@@ -4,11 +4,46 @@ using System.Text.Json.Serialization;
 
 namespace RedBolt;
 
+/// <summary>Vertex buffer morph data.</summary>
+public sealed class VertexBufferMorph
+{
+    /// <summary>Vertex elements present in the packed data.</summary>
+    public VertexMask ElementMask;
+
+    /// <summary>Number of morphed vertices.</summary>
+    public uint VertexCount;
+
+    /// <summary>Morphed vertices data size in bytes.</summary>
+    public uint DataSize;
+
+    /// <summary>Packed index and vertex-element data.</summary>
+    public byte[] MorphData = [];
+}
+
+/// <summary>Definition of a model vertex morph.</summary>
+public sealed class ModelMorph
+{
+    /// <summary>Morph name.</summary>
+    public string Name = string.Empty;
+
+    /// <summary>Morph name hash.</summary>
+    public StringHash NameHash;
+
+    /// <summary>Current morph weight.</summary>
+    public float Weight;
+
+    /// <summary>Morph data per vertex buffer.</summary>
+    public Dictionary<uint, VertexBufferMorph> Buffers = [];
+}
+
 public sealed class Model : ResourceWithMetadata
 {
     private readonly List<List<Geometry>> _geometries = [];
     private readonly List<Vector3f> _geometryCenters = [];
     private readonly List<List<uint>> _geometryBoneMappings = [];
+    private readonly List<ModelMorph> _morphs = [];
+    private readonly List<uint> _morphRangeStarts = [];
+    private readonly List<uint> _morphRangeCounts = [];
     private readonly Skeleton _skeleton = new();
     private BoundingBox _boundingBox = new(-0.5f, 0.5f);
 
@@ -120,6 +155,9 @@ public sealed class Model : ResourceWithMetadata
         _geometries.Clear();
         _geometryCenters.Clear();
         _geometryBoneMappings.Clear();
+        _morphs.Clear();
+        _morphRangeStarts.Clear();
+        _morphRangeCounts.Clear();
         _skeleton.ClearBones();
         _boundingBox = new BoundingBox();
 
@@ -139,8 +177,8 @@ public sealed class Model : ResourceWithMetadata
                 ? ReadVertexElements(source)
                 : VertexBuffer.GetElements(source.ReadUInt());
 
-            _ = source.ReadUInt();
-            _ = source.ReadUInt();
+            _morphRangeStarts.Add(source.ReadUInt());
+            _morphRangeCounts.Add(source.ReadUInt());
 
             var vertexBuffer = new VertexBuffer();
             vertexBuffer.SetShadowed(true);
@@ -222,28 +260,38 @@ public sealed class Model : ResourceWithMetadata
         var numMorphs = source.ReadUInt();
         for (var morphIndex = 0u; morphIndex < numMorphs; ++morphIndex)
         {
-            _ = source.ReadString();
+            var morph = new ModelMorph
+            {
+                Name = source.ReadString()
+            };
+            morph.NameHash = new StringHash(morph.Name);
             if (version >= MorphWeightVersion)
-                _ = source.ReadFloat();
+                morph.Weight = source.ReadFloat();
 
             var numBuffers = source.ReadUInt();
             for (var bufferIndex = 0u; bufferIndex < numBuffers; ++bufferIndex)
             {
-                _ = source.ReadUInt();
-                var elementMask = (VertexMask)source.ReadUInt();
-                var vertexCount = source.ReadUInt();
+                var vertexBufferIndex = source.ReadUInt();
+                var morphBuffer = new VertexBufferMorph
+                {
+                    ElementMask = (VertexMask)source.ReadUInt(),
+                    VertexCount = source.ReadUInt()
+                };
                 var vertexSize = sizeof(uint);
-                if ((elementMask & VertexMask.Position) == VertexMask.Position)
+                if ((morphBuffer.ElementMask & VertexMask.Position) == VertexMask.Position)
                     vertexSize += 3 * sizeof(float);
-                if ((elementMask & VertexMask.Normal) == VertexMask.Normal)
+                if ((morphBuffer.ElementMask & VertexMask.Normal) == VertexMask.Normal)
                     vertexSize += 3 * sizeof(float);
-                if ((elementMask & VertexMask.Tangent) == VertexMask.Tangent)
+                if ((morphBuffer.ElementMask & VertexMask.Tangent) == VertexMask.Tangent)
                     vertexSize += 3 * sizeof(float);
 
-                var bytesToSkip = checked((int)vertexCount * vertexSize);
-                var scratch = new byte[bytesToSkip];
-                _ = source.Read(scratch);
+                morphBuffer.DataSize = checked(morphBuffer.VertexCount * (uint)vertexSize);
+                morphBuffer.MorphData = new byte[checked((int)morphBuffer.DataSize)];
+                _ = source.Read(morphBuffer.MorphData);
+                morph.Buffers[vertexBufferIndex] = morphBuffer;
             }
+
+            _morphs.Add(morph);
         }
 
         if (!_skeleton.Load(source))
@@ -302,6 +350,35 @@ public sealed class Model : ResourceWithMetadata
     }
 
     public IReadOnlyList<IReadOnlyList<uint>> GetGeometryBoneMappings() => _geometryBoneMappings;
+
+    public void SetMorphs(IReadOnlyList<ModelMorph> morphs)
+    {
+        _morphs.Clear();
+        _morphs.AddRange(morphs);
+    }
+
+    public IReadOnlyList<ModelMorph> GetMorphs() => _morphs;
+
+    public uint GetNumMorphs() => (uint)_morphs.Count;
+
+    public ModelMorph? GetMorph(uint index) => index < _morphs.Count ? _morphs[(int)index] : null;
+
+    public ModelMorph? GetMorph(string name) => GetMorph(new StringHash(name));
+
+    public ModelMorph? GetMorph(StringHash nameHash)
+    {
+        foreach (var morph in _morphs)
+        {
+            if (morph.NameHash == nameHash)
+                return morph;
+        }
+
+        return null;
+    }
+
+    public uint GetMorphRangeStart(uint bufferIndex) => bufferIndex < _morphRangeStarts.Count ? _morphRangeStarts[(int)bufferIndex] : 0u;
+
+    public uint GetMorphRangeCount(uint bufferIndex) => bufferIndex < _morphRangeCounts.Count ? _morphRangeCounts[(int)bufferIndex] : 0u;
 
     public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
 

@@ -221,7 +221,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct ModelMorphView` — editable morph metadata is ported
   - [~] `ModelView : Object` — CPU-side geometry transforms, bounds, normals, bone-weight repair, metadata, and material references are ported; native Model import/export and GPU buffer composition remain TODO
 - [~] `Model.h`
-  - [~] `Model : ResourceWithMetadata` — geometry loading and resource storage are ported; serialized skeleton retention, geometry bone mappings, and their setters/getters are now ported, while morph data, native vertex/index buffer ownership, and clone/save parity remain incomplete
+  - [~] `Model : ResourceWithMetadata` — geometry loading and resource storage are ported; serialized skeleton retention, geometry bone mappings, morph metadata/packed data, and their accessors are now ported, while native vertex/index buffer ownership and clone/save parity remain incomplete
 - [x] `AnimationTrack.h`
   - [x] `struct AnimationTrack : KeyFrameSet<AnimationKeyFrame>` — keyframe sampling, loop detection, and merged channel construction are ported; `AnimationKeyFrame` duplicates `Transform` fields because C# structs cannot inherit structs
   - [x] `struct VariantAnimationTrack : VariantCurve` — variant track weight and loop detection are ported; `VariantCurve` is made inheritable to match the C++ base relationship

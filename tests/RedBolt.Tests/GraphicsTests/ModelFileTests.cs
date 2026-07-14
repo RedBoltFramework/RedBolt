@@ -77,4 +77,34 @@ public sealed class ModelFileTests
         Assert.Equal(new uint[] { 3u, 7u }, result[0]);
         Assert.Equal(new uint[] { 1u }, result[1]);
     }
+
+    [Fact]
+    public void Model_preserves_morph_metadata_and_packed_data()
+    {
+        var model = new Model("MorphModel");
+        var morphBuffer = new VertexBufferMorph
+        {
+            ElementMask = VertexMask.Position | VertexMask.Normal,
+            VertexCount = 2,
+            DataSize = 56,
+            MorphData = new byte[56]
+        };
+        var morph = new ModelMorph
+        {
+            Name = "Smile",
+            NameHash = new StringHash("Smile"),
+            Weight = 0.25f,
+            Buffers = new Dictionary<uint, VertexBufferMorph> { [1u] = morphBuffer }
+        };
+
+        model.SetMorphs([morph]);
+
+        Assert.Equal(1u, model.GetNumMorphs());
+        Assert.Same(morph, model.GetMorph(0u));
+        Assert.Same(morph, model.GetMorph("Smile"));
+        Assert.Same(morphBuffer, model.GetMorph(new StringHash("Smile"))!.Buffers[1u]);
+        Assert.Null(model.GetMorph(1u));
+        Assert.Equal(0u, model.GetMorphRangeStart(0u));
+        Assert.Equal(0u, model.GetMorphRangeCount(0u));
+    }
 }
