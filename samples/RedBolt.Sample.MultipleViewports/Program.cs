@@ -18,7 +18,6 @@ catch (Exception ex)
 
 sealed class MultipleViewportsApplication : Application
 {
-    private readonly Random _random = new();
     private Scene? _scene;
     private Node? _cameraNode;
     private Node? _rearCameraNode;
@@ -85,9 +84,9 @@ sealed class MultipleViewportsApplication : Application
         for (var i = 0; i < 240; ++i)
         {
             var mushroomNode = _scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3f(Random(90.0f) - 45.0f, 0.0f, Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, Random(360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + Random(2.0f));
+            mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
+            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f));
+            mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
             var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
             mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
             mushroomObject.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
@@ -96,9 +95,9 @@ sealed class MultipleViewportsApplication : Application
 
         for (var i = 0; i < 20; ++i)
         {
-            var size = 1.0f + Random(10.0f);
+            var size = 1.0f + MathDefs.Random(10.0f);
             var boxNode = _scene.CreateChild("Box");
-            boxNode.SetPosition(new Vector3f(Random(80.0f) - 40.0f, size * 0.5f, Random(80.0f) - 40.0f));
+            boxNode.SetPosition(new Vector3f(MathDefs.Random(80.0f) - 40.0f, size * 0.5f, MathDefs.Random(80.0f) - 40.0f));
             boxNode.SetScale(size);
             var boxObject = boxNode.CreateComponent<StaticModel>();
             boxObject.SetModel(cache.Get<Model>("Models/Box.mdl"));
@@ -185,8 +184,6 @@ sealed class MultipleViewportsApplication : Application
         _dearImGuiSubscription?.Dispose();
         _dearImGuiSubscription = null;
     }
-
-    private float Random(float max) => (float)_random.NextDouble() * max;
 
     private static string FindResourcePrefixPath()
     {
