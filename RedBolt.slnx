@@ -19,6 +19,7 @@
     <Project Path="samples/RedBolt.Sample.RenderToTexture/RedBolt.Sample.RenderToTexture.csproj" />
     <Project Path="samples/RedBolt.Sample.WindowSettings/RedBolt.Sample.WindowSettings.csproj" />
     <Project Path="samples/RedBolt.Sample.StaticScene/RedBolt.Sample.StaticScene.csproj" />
+    <Project Path="samples/RedBolt.Sample.DynamicGeometry/RedBolt.Sample.DynamicGeometry.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
