@@ -107,6 +107,22 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Occluder_triangle_count_respects_geometry_and_material()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+        var geometry = cube.GetLodGeometry(0u, uint.MaxValue)!;
+
+        Assert.Equal(geometry.GetIndexCount() / 3u, cube.GetNumOccluderTriangles());
+
+        var material = Resources.Get<Material>("Materials/FirstCube").Clone("Occluder");
+        material.SetOcclusion(false);
+        cube.SetMaterial(material);
+        Assert.Equal(0u, cube.GetNumOccluderTriangles());
+    }
+
+    [Fact]
     public void Model_geometry_collections_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");

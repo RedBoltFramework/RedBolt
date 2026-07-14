@@ -121,6 +121,25 @@ public class StaticModel : Drawable
 
     public uint GetNumGeometries() => NumGeometries;
 
+    public uint GetNumOccluderTriangles()
+    {
+        var triangles = 0u;
+        for (var i = 0u; i < NumGeometries; ++i)
+        {
+            var geometry = GetLodGeometry(i, OcclusionLodLevel);
+            if (geometry is null)
+                continue;
+
+            var material = GetMaterial(i);
+            if (material is not null && !material.GetOcclusion())
+                continue;
+
+            triangles += geometry.GetIndexCount() / 3u;
+        }
+
+        return triangles;
+    }
+
     public Material? GetMaterial(uint index = 0)
     {
         return index < _materials.Count ? _materials[(int)index] : null;
