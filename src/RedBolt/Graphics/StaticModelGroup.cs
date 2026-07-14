@@ -88,6 +88,8 @@ public sealed class StaticModelGroup : StaticModel
         if (!_nodesDirty)
             return;
 
+        foreach (var node in _instanceNodes)
+            node.RemoveListener(this);
         _instanceNodes.Clear();
         if (Scene is { } scene)
         {
@@ -95,7 +97,10 @@ public sealed class StaticModelGroup : StaticModel
             {
                 var node = scene.GetNode(_nodeIdsAttribute[i]);
                 if (node is not null)
+                {
+                    node.AddListener(this);
                     _instanceNodes.Add(node);
+                }
             }
         }
 

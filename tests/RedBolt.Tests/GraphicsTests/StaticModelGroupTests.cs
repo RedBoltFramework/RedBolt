@@ -57,6 +57,25 @@ public sealed class StaticModelGroupTests
     }
 
     [Fact]
+    public void Apply_attributes_removes_listeners_from_previous_instance_nodes()
+    {
+        var scene = new Scene();
+        var first = scene.CreateChild("First");
+        var second = scene.CreateChild("Second");
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+
+        group.SetNodeIDsAttr([1u, first.Id]);
+        group.ApplyAttributes();
+        Assert.Contains(group, first.GetListeners());
+
+        group.SetNodeIDsAttr([1u, second.Id]);
+        group.ApplyAttributes();
+
+        Assert.DoesNotContain(group, first.GetListeners());
+        Assert.Contains(group, second.GetListeners());
+    }
+
+    [Fact]
     public void Remove_instance_node_works()
     {
         var scene = new Scene();
