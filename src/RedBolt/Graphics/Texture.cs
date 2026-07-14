@@ -390,7 +390,7 @@ public abstract class Texture : ResourceWithMetadata
             : 0u);
 
         OnDestroyGPU();
-        if (!RawTexture.IsCreatingManagedTexture && GetSubsystem<Graphics>()?.GetNativeRenderDevice() is not null)
+        if (!RawTexture.IsCreatingManagedTexture)
         {
             _rawTexture = new RawTexture(new RawTextureParams(
                 GetRawTextureType(), Format, _textureFlags,

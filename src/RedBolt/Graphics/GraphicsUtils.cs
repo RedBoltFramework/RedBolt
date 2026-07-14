@@ -105,22 +105,26 @@ public static class GraphicsUtils
         }
     }
 
-    // TODO: port: Texture does not yet expose the RawTexture objects required by DrawCommandQueue.
-    // inline void AddShaderResource(DrawCommandQueue& drawQueue, StringHash name, Texture* texture)
-    // {
-    //     if (!texture)
-    //     {
-    //         URHO3D_ASSERTLOG(false, "Trying to add null texture to DrawCommandQueue");
-    //         return;
-    //     }
-    //
-    //     drawQueue.AddShaderResource(name, texture, texture->GetBackupTexture());
-    // }
+    public static void AddShaderResource(DrawCommandQueue drawQueue, StringHash name, Texture texture)
+    {
+        ArgumentNullException.ThrowIfNull(drawQueue);
+        ArgumentNullException.ThrowIfNull(texture);
 
-    // TODO: port: Texture does not yet expose the RawTexture objects required by DrawCommandQueue.
-    // inline void AddNullableShaderResource(
-    //     DrawCommandQueue& drawQueue, StringHash name, TextureType type, Texture* texture)
-    // {
-    //     drawQueue.AddNullableShaderResource(name, type, texture, texture ? texture->GetBackupTexture() : nullptr);
-    // }
+        drawQueue.AddShaderResource(
+            name,
+            texture.GetRawTexture()!,
+            texture.GetBackupTexture()?.GetRawTexture());
+    }
+
+    public static void AddNullableShaderResource(
+        DrawCommandQueue drawQueue, StringHash name, TextureType type, Texture? texture)
+    {
+        ArgumentNullException.ThrowIfNull(drawQueue);
+
+        drawQueue.AddNullableShaderResource(
+            name,
+            type,
+            texture?.GetRawTexture(),
+            texture?.GetBackupTexture()?.GetRawTexture());
+    }
 }
