@@ -460,6 +460,9 @@ public sealed class RenderDevice : Object
 
     public static IReadOnlyList<FullscreenMode> GetFullscreenModes(int monitor)
     {
+        if (OperatingSystem.IsBrowser())
+            return [];
+
         var result = new List<FullscreenMode>();
         var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
         for (var i = 0; i < numModes; ++i)
