@@ -214,4 +214,10 @@ public sealed class RendererTests
         Assert.Equal(3u, Renderer.GetNumViewports());
         Assert.Null(Renderer.GetViewport(2));
     }
+
+    [Fact]
+    public void Get_viewport_for_null_scene_returns_null()
+    {
+        Assert.Null(Renderer.GetViewportForScene(null));
+    }
 }

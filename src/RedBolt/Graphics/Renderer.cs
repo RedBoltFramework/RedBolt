@@ -132,9 +132,8 @@ public sealed class Renderer : Object
         return count;
     }
 
-    public Viewport? GetViewportForScene(Scene scene, uint index = 0)
+    public Viewport? GetViewportForScene(Scene? scene, uint index = 0)
     {
-        ArgumentNullException.ThrowIfNull(scene);
         var matchIndex = 0u;
         foreach (var viewport in _viewports)
         {
