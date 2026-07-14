@@ -21,6 +21,7 @@ public sealed class IndexBuffer : PipelineStateTracker
     private byte[] _data = [];
     private IndexRawBuffer? _rawBuffer;
     private bool _shadowedPending;
+    private string _debugName = string.Empty;
 
     /// <summary>Number of indices.</summary>
     public uint IndexCount { get; private set; }
@@ -229,8 +230,11 @@ public sealed class IndexBuffer : PipelineStateTracker
     /// <summary>Set the debug name.</summary>
     public void SetDebugName(string debugName)
     {
+        _debugName = debugName;
         _rawBuffer?.SetDebugName(debugName);
     }
+
+    public string GetDebugName() => _debugName;
 
     private static void CombineHash(ref uint result, uint hash)
     {

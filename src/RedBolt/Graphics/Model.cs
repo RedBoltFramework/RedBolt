@@ -37,7 +37,7 @@ public sealed class ModelMorph
     public Dictionary<uint, VertexBufferMorph> Buffers = [];
 }
 
-public sealed class Model : ResourceWithMetadata
+public sealed class Model : ResourceWithMetadata, ICloneable
 {
     private readonly List<VertexBuffer> _vertexBuffers = [];
     private readonly List<IndexBuffer> _indexBuffers = [];
@@ -425,6 +425,100 @@ public sealed class Model : ResourceWithMetadata
         _morphs.Clear();
         _morphs.AddRange(morphs);
     }
+
+    public Model Clone(string cloneName = "")
+    {
+        var clone = new Model(cloneName)
+        {
+            _boundingBox = _boundingBox
+        };
+        clone._skeleton.Define(_skeleton);
+        foreach (var mapping in _geometryBoneMappings)
+            clone._geometryBoneMappings.Add([.. mapping]);
+        clone._geometryCenters.AddRange(_geometryCenters);
+        clone._morphRangeStarts.AddRange(_morphRangeStarts);
+        clone._morphRangeCounts.AddRange(_morphRangeCounts);
+
+        foreach (var morph in _morphs)
+        {
+            var cloneMorph = new ModelMorph
+            {
+                Name = morph.Name,
+                NameHash = morph.NameHash,
+                Weight = morph.Weight
+            };
+            foreach (var (bufferIndex, bufferMorph) in morph.Buffers)
+            {
+                cloneMorph.Buffers[bufferIndex] = new VertexBufferMorph
+                {
+                    ElementMask = bufferMorph.ElementMask,
+                    VertexCount = bufferMorph.VertexCount,
+                    DataSize = bufferMorph.DataSize,
+                    MorphData = [.. bufferMorph.MorphData]
+                };
+            }
+            clone._morphs.Add(cloneMorph);
+        }
+
+        var vertexBufferMapping = new Dictionary<VertexBuffer, VertexBuffer>();
+        foreach (var originalBuffer in _vertexBuffers)
+        {
+            var cloneBuffer = new VertexBuffer();
+            cloneBuffer.SetDebugName(originalBuffer.GetDebugName());
+            cloneBuffer.SetShadowed(originalBuffer.Shadowed);
+            cloneBuffer.SetSize(originalBuffer.VertexCount, originalBuffer.Elements, originalBuffer.IsDynamic);
+            if (originalBuffer.Shadowed)
+                cloneBuffer.SetData(originalBuffer.GetRawBuffer()!.GetShadowData());
+            else
+                Log.Logger.LogError("Failed to read original vertex buffer");
+            vertexBufferMapping[originalBuffer] = cloneBuffer;
+            clone._vertexBuffers.Add(cloneBuffer);
+        }
+
+        var indexBufferMapping = new Dictionary<IndexBuffer, IndexBuffer>();
+        foreach (var originalBuffer in _indexBuffers)
+        {
+            var cloneBuffer = new IndexBuffer();
+            cloneBuffer.SetDebugName(originalBuffer.GetDebugName());
+            cloneBuffer.SetShadowed(originalBuffer.Shadowed);
+            cloneBuffer.SetSize(originalBuffer.IndexCount, originalBuffer.IndexSize == sizeof(uint), originalBuffer.IsDynamic);
+            if (originalBuffer.Shadowed)
+            {
+                var shadowData = originalBuffer.GetRawBuffer()!.GetShadowData();
+                cloneBuffer.UpdateRange(shadowData, 0u, (uint)shadowData.Length);
+            }
+            else
+                Log.Logger.LogError("Failed to read original index buffer");
+            indexBufferMapping[originalBuffer] = cloneBuffer;
+            clone._indexBuffers.Add(cloneBuffer);
+        }
+
+        foreach (var lodLevels in _geometries)
+        {
+            var cloneLodLevels = new List<Geometry>(lodLevels.Count);
+            foreach (var originalGeometry in lodLevels)
+            {
+                var cloneGeometry = new Geometry();
+                if (originalGeometry.GetIndexBuffer() is { } originalIndexBuffer)
+                    cloneGeometry.SetIndexBuffer(indexBufferMapping[originalIndexBuffer]);
+                for (var i = 0u; i < originalGeometry.GetNumVertexBuffers(); ++i)
+                {
+                    if (originalGeometry.GetVertexBuffer(i) is { } originalVertexBuffer)
+                        cloneGeometry.SetVertexBuffer(i, vertexBufferMapping[originalVertexBuffer]);
+                }
+                cloneGeometry.SetDrawRange(originalGeometry.GetPrimitiveType(), originalGeometry.GetIndexStart(),
+                    originalGeometry.GetIndexCount(), originalGeometry.GetVertexStart(), originalGeometry.GetVertexCount(), false);
+                cloneGeometry.SetLodDistance(originalGeometry.GetLodDistance());
+                cloneLodLevels.Add(cloneGeometry);
+            }
+            clone._geometries.Add(cloneLodLevels);
+        }
+
+        clone.MemoryUse = MemoryUse;
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
 
     public IReadOnlyList<ModelMorph> GetMorphs() => _morphs;
 

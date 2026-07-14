@@ -28,6 +28,7 @@ public sealed class VertexBuffer : PipelineStateTracker
     private uint _elementMask;
     private string? _layoutSignature;
     private bool _shadowedPending;
+    private string _debugName = string.Empty;
 
     /// <summary>Whether is dynamic.</summary>
     public bool IsDynamic { get; private set; }
@@ -335,6 +336,12 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Return the underlying raw buffer.</summary>
     public RawBuffer? GetRawBuffer() => _rawBuffer;
 
+    /// <summary>Map the buffer into CPU memory.</summary>
+    public Span<byte> Map() => Shadowed ? _data : Span<byte>.Empty;
+
+    /// <summary>Unmap the buffer and upload modified data.</summary>
+    public void Unmap() => _rawBuffer?.Update(_data);
+
     /// <summary>Update buffer data range without allocating.</summary>
     public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
@@ -522,8 +529,11 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Set the debug name.</summary>
     public void SetDebugName(string debugName)
     {
+        _debugName = debugName;
         _rawBuffer?.SetDebugName(debugName);
     }
+
+    public string GetDebugName() => _debugName;
 
     private static void CombineHash(ref uint result, uint hash)
     {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -20,7 +21,9 @@ catch (Exception ex)
 sealed class DynamicGeometryApplication : Application
 {
     private readonly CString _instructionLine = new();
-    private readonly List<(CustomGeometry Geometry, List<Vector3f> OriginalVertices, List<uint> Duplicates)> _objects = [];
+    private readonly List<Vector3f> _originalVertices = [];
+    private readonly List<uint> _vertexDuplicates = [];
+    private readonly List<VertexBuffer> _animatingBuffers = [];
     private ContextEventSubscription? _dearImGuiSubscription;
     private bool _animate = true;
     private float _time;
@@ -59,18 +62,44 @@ sealed class DynamicGeometryApplication : Application
         light.SetColor(new Color(0.4f, 1.0f, 0.4f));
         light.SetSpecularIntensity(1.5f);
 
+        var originalModel = Resources.Get<Model>("Models/Box.mdl");
+        var originalBuffer = originalModel.GetGeometry(0, 0)!.GetVertexBuffer(0)!;
+        var originalData = originalBuffer.Map();
+        var originalFloats = MemoryMarshal.Cast<byte, float>(originalData);
+        var originalVertexSize = (int)(originalBuffer.GetVertexSize() / sizeof(float));
+        for (var i = 0; i < originalBuffer.GetVertexCount(); ++i)
+        {
+            var offset = (int)i * originalVertexSize;
+            _originalVertices.Add(new Vector3f(originalFloats[offset], originalFloats[offset + 1], originalFloats[offset + 2]));
+        }
+
+        for (var i = 0; i < _originalVertices.Count; ++i)
+        {
+            var duplicate = (uint)i;
+            for (var j = 0; j < i; ++j)
+            {
+                if (_originalVertices[i].Equals(_originalVertices[j]))
+                {
+                    duplicate = (uint)j;
+                    break;
+                }
+            }
+            _vertexDuplicates.Add(duplicate);
+        }
+
         for (var y = -1; y <= 1; ++y)
         {
             for (var x = -1; x <= 1; ++x)
             {
                 var node = scene.CreateChild("Object");
                 node.SetPosition(new Vector3f(x * 2.0f, 0.0f, y * 2.0f));
-                var geometry = node.CreateComponent<CustomGeometry>();
-                CreateCube(geometry);
-                geometry.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
-                _objects.Add((geometry, geometry.GetVertices()[0].ConvertAll(static vertex => vertex.Position), CreateDuplicates(geometry.GetVertices()[0])));
+                var model = originalModel.Clone();
+                node.CreateComponent<StaticModel>().SetModel(model);
+                _animatingBuffers.Add(model.GetGeometry(0, 0)!.GetVertexBuffer(0)!);
             }
         }
+
+        CreatePyramid(scene);
 
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
@@ -103,62 +132,91 @@ sealed class DynamicGeometryApplication : Application
     private void AnimateObjects(float timeStep)
     {
         _time += timeStep * 100.0f;
-        foreach (var item in _objects)
+        for (var i = 0; i < _animatingBuffers.Count; ++i)
         {
-            var vertices = item.Geometry.GetVertices()[0];
-            for (var i = 0; i < vertices.Count; ++i)
+            var startPhase = _time + i * 30.0f;
+            var buffer = _animatingBuffers[i];
+            var vertexData = buffer.Map();
+            var vertexFloats = MemoryMarshal.Cast<byte, float>(vertexData);
+            var vertexSize = (int)(buffer.GetVertexSize() / sizeof(float));
+            for (var j = 0; j < buffer.GetVertexCount(); ++j)
             {
-                var phase = _time + item.Duplicates[i] * 10.0f;
-                var source = item.OriginalVertices[i];
-                vertices[i].Position = new Vector3f(
-                    source.X * (1.0f + 0.1f * MathF.Sin(phase)),
-                    source.Y * (1.0f + 0.1f * MathF.Sin(phase + 60.0f)),
-                    source.Z * (1.0f + 0.1f * MathF.Sin(phase + 120.0f)));
+                var phase = startPhase + _vertexDuplicates[(int)j] * 10.0f;
+                var source = _originalVertices[(int)j];
+                var offset = (int)j * vertexSize;
+                vertexFloats[offset] = source.X * (1.0f + 0.1f * MathF.Sin(phase));
+                vertexFloats[offset + 1] = source.Y * (1.0f + 0.1f * MathF.Sin(phase + 60.0f));
+                vertexFloats[offset + 2] = source.Z * (1.0f + 0.1f * MathF.Sin(phase + 120.0f));
             }
-            item.Geometry.Commit();
+            buffer.Unmap();
         }
     }
 
-    private static void CreateCube(CustomGeometry geometry)
+    private static void CreatePyramid(Scene scene)
     {
-        geometry.SetDynamic(true);
-        geometry.BeginGeometry(0, PrimitiveType.TriangleList);
-        var positions = new[]
+        const uint numVertices = 18;
+        var vertexData = new float[]
         {
-            new Vector3f(-0.5f, -0.5f, 0.5f), new Vector3f(0.5f, -0.5f, 0.5f), new Vector3f(0.5f, 0.5f, 0.5f),
-            new Vector3f(-0.5f, -0.5f, 0.5f), new Vector3f(0.5f, 0.5f, 0.5f), new Vector3f(-0.5f, 0.5f, 0.5f),
-            new Vector3f(0.5f, -0.5f, -0.5f), new Vector3f(-0.5f, -0.5f, -0.5f), new Vector3f(-0.5f, 0.5f, -0.5f),
-            new Vector3f(0.5f, -0.5f, -0.5f), new Vector3f(-0.5f, 0.5f, -0.5f), new Vector3f(0.5f, 0.5f, -0.5f),
-            new Vector3f(-0.5f, 0.5f, 0.5f), new Vector3f(0.5f, 0.5f, 0.5f), new Vector3f(0.5f, 0.5f, -0.5f),
-            new Vector3f(-0.5f, 0.5f, 0.5f), new Vector3f(0.5f, 0.5f, -0.5f), new Vector3f(-0.5f, 0.5f, -0.5f),
-            new Vector3f(-0.5f, -0.5f, -0.5f), new Vector3f(0.5f, -0.5f, -0.5f), new Vector3f(0.5f, -0.5f, 0.5f),
-            new Vector3f(-0.5f, -0.5f, -0.5f), new Vector3f(0.5f, -0.5f, 0.5f), new Vector3f(-0.5f, -0.5f, 0.5f)
+             0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 0.0f,  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,  0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
+             0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,  0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f,  0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f
         };
-        foreach (var position in positions)
+
+        for (var i = 0u; i < numVertices; i += 3)
         {
-            geometry.DefineVertex(position);
-            geometry.DefineNormal(position.Normalized);
+            var v1 = ReadPosition(vertexData, i);
+            var v2 = ReadPosition(vertexData, i + 1);
+            var v3 = ReadPosition(vertexData, i + 2);
+            var normal = (v1 - v2).CrossProduct(v1 - v3).Normalized;
+            for (var j = 0u; j < 3; ++j)
+            {
+                var offset = checked((int)(6 * (i + j) + 3));
+                vertexData[offset] = normal.X;
+                vertexData[offset + 1] = normal.Y;
+                vertexData[offset + 2] = normal.Z;
+            }
         }
-        geometry.Commit();
+
+        var vertexBuffer = new VertexBuffer();
+        var indexBuffer = new IndexBuffer();
+        var geometry = new Geometry();
+        vertexBuffer.SetDebugName("DynamicGeometry");
+        indexBuffer.SetDebugName("DynamicGeometry");
+        vertexBuffer.SetShadowed(true);
+        vertexBuffer.SetSize(numVertices,
+        [
+            new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position),
+            new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Normal)
+        ]);
+        vertexBuffer.SetData(MemoryMarshal.AsBytes(vertexData.AsSpan()));
+        indexBuffer.SetShadowed(true);
+        indexBuffer.SetSize(numVertices, false);
+        indexBuffer.SetUnpackedData(new uint[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 });
+        geometry.SetVertexBuffer(0, vertexBuffer);
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, numVertices);
+
+        var model = new Model(string.Empty);
+        model.SetNumGeometries(1);
+        model.SetGeometry(0, 0, geometry);
+        model.SetBoundingBox(new BoundingBox(new Vector3f(-0.5f, -0.5f, -0.5f), new Vector3f(0.5f, 0.5f, 0.5f)));
+        model.SetVertexBuffers([vertexBuffer], [0], [0]);
+        model.SetIndexBuffers([indexBuffer]);
+        var node = scene.CreateChild("FromScratchObject");
+        node.SetPosition(new Vector3f(0.0f, 3.0f, 0.0f));
+        node.CreateComponent<StaticModel>().SetModel(model);
     }
 
-    private static List<uint> CreateDuplicates(IReadOnlyList<CustomGeometryVertex> vertices)
+    private static Vector3f ReadPosition(float[] vertexData, uint vertexIndex)
     {
-        var duplicates = new List<uint>(vertices.Count);
-        for (var i = 0; i < vertices.Count; ++i)
-        {
-            var duplicate = (uint)i;
-            for (var j = 0; j < i; ++j)
-            {
-                if (vertices[i].Position.Equals(vertices[j].Position))
-                {
-                    duplicate = (uint)j;
-                    break;
-                }
-            }
-            duplicates.Add(duplicate);
-        }
-        return duplicates;
+        var offset = checked((int)(6 * vertexIndex));
+        return new Vector3f(vertexData[offset], vertexData[offset + 1], vertexData[offset + 2]);
     }
 
     private void DrawInstructions()
