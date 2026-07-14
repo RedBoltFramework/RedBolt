@@ -131,6 +131,19 @@ public sealed class OctreeTests
     }
 
     [Fact]
+    public void Scene_drawable_is_registered_without_being_manual()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        var node = scene.CreateChild("Drawable");
+        var drawable = node.CreateComponent<StaticModel>();
+
+        Assert.Contains(drawable, octree.GetAllDrawables());
+        octree.RemoveDrawable(drawable);
+        Assert.DoesNotContain(drawable, octree.GetAllDrawables());
+    }
+
+    [Fact]
     public void Octant_children_and_recursive_insertion_work()
     {
         var octree = new Scene().CreateComponent<Octree>();

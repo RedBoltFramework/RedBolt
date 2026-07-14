@@ -396,7 +396,7 @@ public sealed class Octree : Component
 
     public BoundingBox GetWorldBoundingBox() => _worldBoundingBox;
 
-    public IReadOnlyList<Drawable> GetAllDrawables() => EnumerateDrawables().ToArray();
+    public IReadOnlyList<Drawable> GetAllDrawables() => _drawables.ToArray();
 
     public uint GetNumDrawables() => (uint)GetAllDrawables().Count;
 
@@ -416,10 +416,12 @@ public sealed class Octree : Component
 
     public void AddManualDrawable(Drawable? drawable)
     {
-        if (drawable is null)
+        if (drawable is null || drawable.GetOctant() is not null)
             return;
 
         AddDrawable(drawable);
+        if (drawable.GetOctant() is { } octant && ReferenceEquals(octant.GetOctree(), this))
+            _manualDrawables.Add(drawable);
     }
 
     public void RemoveManualDrawable(Drawable? drawable)
@@ -440,7 +442,6 @@ public sealed class Octree : Component
 
         var index = (uint)_drawables.Count;
         _drawables.Add(drawable);
-        _manualDrawables.Add(drawable);
         drawable.SetDrawableIndex(index);
         _rootOctant.InsertDrawable(drawable);
 
@@ -534,7 +535,7 @@ public sealed class Octree : Component
 
     public IReadOnlyList<Drawable> GetDrawables(DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
     {
-        return EnumerateDrawables()
+        return _drawables
             .Where(drawable => Matches(drawable, drawableFlags, viewMask))
             .ToArray();
     }
@@ -664,18 +665,6 @@ public sealed class Octree : Component
             return;
 
         Update(eventData.TimeStep);
-    }
-
-    private IEnumerable<Drawable> EnumerateDrawables()
-    {
-        var result = new HashSet<Drawable>(_manualDrawables);
-        if (Scene is { } scene)
-        {
-            foreach (var drawable in scene.GetAllComponents().Values.OfType<Drawable>())
-                result.Add(drawable);
-        }
-
-        return result;
     }
 
     private static bool Matches(Drawable drawable, DrawableFlags drawableFlags, uint viewMask)
