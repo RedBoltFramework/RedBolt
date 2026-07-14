@@ -60,9 +60,9 @@ sealed class AnimatingSceneApplication : Application
         for (var i = 0; i < 2000; ++i)
         {
             var boxNode = scene.CreateChild("Box");
-            boxNode.SetPosition(new Vector3f(RandomRange(-100.0f, 100.0f), RandomRange(-100.0f, 100.0f), RandomRange(-100.0f, 100.0f)));
+            boxNode.SetPosition(new Vector3f(MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(200.0f) - 100.0f));
             // Orient using random pitch, yaw and roll Euler angles
-            boxNode.SetRotation(Quaternion.FromEulerAngles(RandomRange(0.0f, 360.0f), RandomRange(0.0f, 360.0f), RandomRange(0.0f, 360.0f)));
+            boxNode.SetRotation(Quaternion.FromEulerAngles(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
             var boxObject = boxNode.CreateComponent<StaticModel>();
             boxObject.SetModel(Resources.Get<Model>("Models/Box.mdl"));
             boxObject.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
@@ -155,10 +155,4 @@ sealed class AnimatingSceneApplication : Application
         return true;
     }
 
-    private static readonly Random _random = new();
-
-    private static float RandomRange(float min, float max)
-    {
-        return min + (float)_random.NextDouble() * (max - min);
-    }
 }
