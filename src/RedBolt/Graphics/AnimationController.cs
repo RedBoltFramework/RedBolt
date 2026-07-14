@@ -780,7 +780,9 @@ public class AnimationController : AnimationStateSource
 
     private void ConnectToAnimatedModel()
     {
-        // TODO: port: AnimatedModel.ConnectToAnimationStateSource and model state connection are not available yet.
+        var model = Node?.GetComponent<AnimatedModel>();
+        foreach (var animation in _animations)
+            animation.State?.ConnectToAnimatedModel(model);
     }
 
     private AnimatedAttributeReference ParseAnimatablePath(string path, Node? startNode)

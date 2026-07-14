@@ -173,7 +173,7 @@ public sealed class AnimationState
     /// <summary>
     /// Connect to an AnimatedModel.
     /// </summary>
-    public void ConnectToAnimatedModel(object? model)
+    public void ConnectToAnimatedModel(AnimatedModel? model)
     {
         _model = model;
     }
