@@ -90,6 +90,20 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Render_dispatches_end_all_views_event()
+    {
+        var eventCount = 0;
+        using var subscription = Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
+            (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
+
+        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(renderFrame);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+
+        Assert.Equal(1, eventCount);
+    }
+
+    [Fact]
     public void Render_target_texture_queues_surface_on_render_surface_update_event()
     {
         var scene = new Scene();

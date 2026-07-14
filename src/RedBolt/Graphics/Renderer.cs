@@ -334,6 +334,8 @@ public sealed class Renderer : Object
             renderPipelineView.Update(graphics);
             renderPipelineView.Render(graphics, TextureQuality, beforePresent, screenshotPath);
         }
+
+        Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }
 
     public void DrawDebugGeometry(bool depthTest)
