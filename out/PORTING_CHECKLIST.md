@@ -258,7 +258,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; batch LOD/occlusion drawing remains incomplete
 - [~] `AnimatedModel.h`
-  - [~] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, bone-node creation, morph weights, animation LOD bias, and invisible-update state are ported; animation-state integration, skinning, morph-buffer updates, ray queries, threaded updates, and serialization attributes remain incomplete
+  - [~] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, bone-node creation, morph weights, animation LOD bias, invisible-update state, and controller-to-model state connection are ported; pose application, skinning, morph-buffer updates, ray queries, threaded updates, and serialization attributes remain incomplete
 - [~] `StaticModelGroup.h`
 - [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, and batch distance/world-transform/LOD updates are ported; occlusion drawing remains incomplete because managed OcclusionBuffer APIs are not yet available
 - [~] `Skybox.h`
