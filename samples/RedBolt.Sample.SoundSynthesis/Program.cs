@@ -121,7 +121,7 @@ sealed class SoundSynthesisApplication : Application
     private void DrawInstructions()
     {
         _instructionLine.FormatInPlace($"Use cursor up and down to control sound filtering\nCoefficient: {_filter}");
-        if (ImGui.Begin("Sound Synthesis\\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Sound Synthesis\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
             ImGui.TextUnformatted(_instructionLine.Bytes);
         ImGui.End();
     }

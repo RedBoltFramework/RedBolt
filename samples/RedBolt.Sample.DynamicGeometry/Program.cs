@@ -163,11 +163,11 @@ sealed class DynamicGeometryApplication : Application
 
     private void DrawInstructions()
     {
-        _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move\\0");
-        if (ImGui.Begin("Dynamic Geometry\\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
+        if (ImGui.Begin("Dynamic Geometry\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted(_instructionLine.Bytes);
-            ImGui.TextUnformatted("Space to toggle animation\\0"u8);
+            ImGui.TextUnformatted("Space to toggle animation\0"u8);
         }
         ImGui.End();
     }

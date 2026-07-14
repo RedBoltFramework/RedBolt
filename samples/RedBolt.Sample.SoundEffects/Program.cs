@@ -105,48 +105,48 @@ sealed class SoundEffectsApplication : Application
 
     private void DrawUI()
     {
-        if (ImGui.Begin("Sound Effects\\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Sound Effects\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            if (ImGui.Button("Fist\\0"u8))
+            if (ImGui.Button("Fist\0"u8))
                 PlaySound("Sounds/PlayerFistHit.wav");
-            if (ImGui.Button("Explosion\\0"u8))
+            if (ImGui.Button("Explosion\0"u8))
                 PlaySound("Sounds/BigExplosion.wav");
-            if (ImGui.Button("Power-up\\0"u8))
+            if (ImGui.Button("Power-up\0"u8))
                 PlaySound("Sounds/Powerup.wav");
 
-            if (ImGui.Button("Play Music\\0"u8))
+            if (ImGui.Button("Play Music\0"u8))
                 PlayMusic();
-            if (ImGui.Button("Stop Music\\0"u8))
+            if (ImGui.Button("Stop Music\0"u8))
                 _musicSource!.Stop();
 
-            if (ImGui.Button("Pause Scene\\0"u8))
+            if (ImGui.Button("Pause Scene\0"u8))
                 _scene!.SetUpdateEnabled(false);
-            if (ImGui.Button("Resume Scene\\0"u8))
+            if (ImGui.Button("Resume Scene\0"u8))
                 _scene!.SetUpdateEnabled(true);
 
             var sceneTimeScale = _scene!.GetTimeScale();
-            if (ImGui.SliderFloat("Scene Time Scale\\0"u8, out sceneTimeScale, 0.0f, 2.0f))
+            if (ImGui.SliderFloat("Scene Time Scale\0"u8, out sceneTimeScale, 0.0f, 2.0f))
                 _scene.SetTimeScale(sceneTimeScale);
 
-            if (ImGui.SliderFloat("Sound Volume\\0"u8, out _soundVolume, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Volume\0"u8, out _soundVolume, 0.0f, 1.0f))
                 GetSubsystem<Audio>()!.SetMasterGain(AudioDefs.SoundEffect, _soundVolume);
-            if (ImGui.SliderFloat("Music Volume\\0"u8, out _musicVolume, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Music Volume\0"u8, out _musicVolume, 0.0f, 1.0f))
                 GetSubsystem<Audio>()!.SetMasterGain(AudioDefs.SoundMusic, _musicVolume);
 
             var pan = (_pan + 1.0f) * 0.5f;
-            if (ImGui.SliderFloat("Sound Panning\\0"u8, out pan, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Panning\0"u8, out pan, 0.0f, 1.0f))
                 _pan = pan * 2.0f - 1.0f;
 
             var reach = (_reach + 1.0f) * 0.5f;
-            if (ImGui.SliderFloat("Sound Reach\\0"u8, out reach, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Reach\0"u8, out reach, 0.0f, 1.0f))
                 _reach = reach * 2.0f - 1.0f;
 
-            if (ImGui.Checkbox("Output to LFE\\0"u8, out var lfe))
+            if (ImGui.Checkbox("Output to LFE\0"u8, out var lfe))
                 _lfe = lfe;
 
-            if (ImGui.Button("Start Record\\0"u8))
+            if (ImGui.Button("Start Record\0"u8))
                 StartMicRecord();
-            if (ImGui.Button("Stop Record\\0"u8))
+            if (ImGui.Button("Stop Record\0"u8))
                 StopMicRecord();
         }
         ImGui.End();
