@@ -2806,6 +2806,12 @@ layout(std140) uniform Material
             _uploadedTextures.Remove(texture);
         }
 
+        if (TryGetRawTexture(texture, bindUnorderedAccess, out uploaded))
+        {
+            _uploadedTextures[texture] = uploaded;
+            return uploaded;
+        }
+
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
@@ -2886,6 +2892,12 @@ layout(std140) uniform Material
             _uploadedTextures.Remove(texture);
         }
 
+        if (TryGetRawTexture(texture, bindUnorderedAccess, out uploaded))
+        {
+            _uploadedTextures[texture] = uploaded;
+            return uploaded;
+        }
+
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
@@ -2938,6 +2950,12 @@ layout(std140) uniform Material
             _uploadedTextures.Remove(texture);
         }
 
+        if (TryGetRawTexture(texture, bindUnorderedAccess, out uploaded))
+        {
+            _uploadedTextures[texture] = uploaded;
+            return uploaded;
+        }
+
         if (_device is null)
             throw new InvalidOperationException("Graphics device is not initialized.");
 
@@ -2977,6 +2995,61 @@ layout(std140) uniform Material
             supportsUnorderedAccess: bindUnorderedAccess);
         _uploadedTextures[texture] = uploaded;
         return uploaded;
+    }
+
+    private static bool TryGetRawTexture(Texture texture, bool bindUnorderedAccess, out UploadedTexture uploaded)
+    {
+        uploaded = null!;
+        var rawTexture = texture.GetRawTexture();
+        if (rawTexture is null || !rawTexture.IsValid())
+            return false;
+        if (!HasCpuTextureData(texture))
+            return false;
+        var parameters = rawTexture.GetParams();
+        if (bindUnorderedAccess && (parameters.Flags & TextureFlag.BindUnorderedAccess) == 0)
+            return false;
+        if ((parameters.Flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0)
+            return false;
+
+        rawTexture.Resolve();
+        rawTexture.GenerateLevels();
+        var textureHandle = rawTexture.GetHandle();
+        var shaderResourceView = rawTexture.GetShaderResourceView();
+        if (textureHandle is null || shaderResourceView is null)
+            return false;
+
+        uploaded = new UploadedTexture(texture, textureHandle, shaderResourceView,
+            null, null, null,
+            rawTexture.GetResolvedHandle(), bindUnorderedAccess, ownsResources: false);
+        return true;
+    }
+
+    private static bool HasCpuTextureData(Texture texture)
+    {
+        switch (texture)
+        {
+            case Texture2D texture2D:
+                return texture2D.GetDataNoCopy(0) is { Length: > 0 };
+
+            case TextureCube textureCube:
+                for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; ++face)
+                {
+                    if (textureCube.GetData(face, 0u) is { Length: > 0 })
+                        return true;
+                }
+                return false;
+
+            case Texture2DArray texture2DArray:
+                for (var slice = 0u; slice < texture2DArray.Layers; ++slice)
+                {
+                    if (texture2DArray.GetData(slice, 0u) is { Length: > 0 })
+                        return true;
+                }
+                return false;
+
+            default:
+                return false;
+        }
     }
 
     private (ITexture? Texture, ITextureView? ShaderView) CreateResolvedTextureAndShaderView(Texture texture, TextureDesc sourceDesc)
@@ -3053,6 +3126,14 @@ layout(std140) uniform Material
 
     private void EnsureUploadedTextureResolved(Texture texture, UploadedTexture uploaded)
     {
+        var rawTexture = texture.GetRawTexture();
+        if (rawTexture is not null && ReferenceEquals(rawTexture.GetHandle(), uploaded.Texture))
+        {
+            rawTexture.Resolve();
+            rawTexture.GenerateLevels();
+            return;
+        }
+
         if (!uploaded.ResolveDirty || uploaded.ResolvedTexture is null || _immediateContext is null)
             return;
 
@@ -4844,7 +4925,7 @@ layout(std140) uniform Material
 
         public UploadedTexture(Texture sourceTexture, ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
             ITextureView? depthStencilView, ITextureView? readOnlyDepthView, ITexture? resolvedTexture = null,
-            bool supportsUnorderedAccess = false)
+            bool supportsUnorderedAccess = false, bool ownsResources = true)
         {
             Texture = texture;
             ShaderView = shaderView;
@@ -4860,6 +4941,7 @@ layout(std140) uniform Material
             Format = MapTextureFormat(sourceTexture.Format);
             MipLevels = GetUploadedMipLevels(sourceTexture);
             SupportsUnorderedAccess = supportsUnorderedAccess;
+            _ownsResources = ownsResources;
         }
 
         public ITexture Texture { get; }
@@ -4927,9 +5009,14 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
-            ReleaseIfNotNull(ResolvedTexture);
-            ReleaseIfNotNull(Texture);
+            if (_ownsResources)
+            {
+                ReleaseIfNotNull(ResolvedTexture);
+                ReleaseIfNotNull(Texture);
+            }
         }
+
+        private readonly bool _ownsResources;
     }
 
     private sealed class PinnedBuffer : IDisposable

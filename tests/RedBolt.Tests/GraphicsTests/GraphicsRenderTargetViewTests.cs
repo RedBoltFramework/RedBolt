@@ -133,6 +133,25 @@ public sealed class GraphicsRenderTargetViewTests
     }
 
     [Fact]
+    public void Graphics_reuses_raw_texture_with_full_mip_chain_for_cpu_backed_texture()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var texture = new Texture2D("Textures/CpuBackedMipChain");
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
+            Assert.True(texture.SetData(0, 0, 0, 16, 16, new byte[16 * 16 * 4]));
+
+            var rawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+            var uploadedTexture = GetUploadedTexture(texture);
+            var nativeTexture = GetNativeTexture(uploadedTexture);
+
+            Assert.Same(rawTexture.GetHandle(), nativeTexture);
+            Assert.Equal(texture.Levels, nativeTexture.GetDesc().MipLevels);
+            Assert.True(nativeTexture.GetDesc().MipLevels > 1u);
+        });
+    }
+
+    [Fact]
     public void Graphics_uploads_managed_texture_multisample_count_into_native_descriptor()
     {
         WithInitializedGraphics(() =>
