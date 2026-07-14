@@ -107,4 +107,26 @@ public sealed class ModelFileTests
         Assert.Equal(0u, model.GetMorphRangeStart(0u));
         Assert.Equal(0u, model.GetMorphRangeCount(0u));
     }
+
+    [Fact]
+    public void Model_accepts_only_shadowed_vertex_and_index_buffers()
+    {
+        var model = new Model("BufferModel");
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetSize(3u, VertexMask.Position);
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetSize(3u);
+
+        Assert.False(model.SetVertexBuffers([vertexBuffer]));
+        Assert.False(model.SetIndexBuffers([indexBuffer]));
+
+        vertexBuffer.SetShadowed(true);
+        indexBuffer.SetShadowed(true);
+        Assert.True(model.SetVertexBuffers([vertexBuffer], [4u], [8u]));
+        Assert.True(model.SetIndexBuffers([indexBuffer]));
+        Assert.Same(vertexBuffer, model.GetVertexBuffers()[0]);
+        Assert.Same(indexBuffer, model.GetIndexBuffers()[0]);
+        Assert.Equal(4u, model.GetMorphRangeStart(0u));
+        Assert.Equal(8u, model.GetMorphRangeCount(0u));
+    }
 }

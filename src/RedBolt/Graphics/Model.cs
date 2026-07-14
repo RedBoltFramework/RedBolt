@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -38,6 +39,8 @@ public sealed class ModelMorph
 
 public sealed class Model : ResourceWithMetadata
 {
+    private readonly List<VertexBuffer> _vertexBuffers = [];
+    private readonly List<IndexBuffer> _indexBuffers = [];
     private readonly List<List<Geometry>> _geometries = [];
     private readonly List<Vector3f> _geometryCenters = [];
     private readonly List<List<uint>> _geometryBoneMappings = [];
@@ -125,11 +128,13 @@ public sealed class Model : ResourceWithMetadata
             vertexBuffer.SetSize((uint)geometryData.Positions.Count, 12u);
             vertexBuffer.SetShadowed(true);
             vertexBuffer.SetData(ToVertexBytes(geometryData.Positions));
+            _vertexBuffers.Add(vertexBuffer);
 
             var indexBuffer = new IndexBuffer();
             indexBuffer.SetSize((uint)geometryData.Indices.Count, geometryData.Positions.Count > ushort.MaxValue, dynamic: false);
             indexBuffer.SetShadowed(true);
             indexBuffer.SetUnpackedData(geometryData.Indices);
+            _indexBuffers.Add(indexBuffer);
 
             var geometry = new Geometry();
             geometry.SetVertexBuffers([vertexBuffer]);
@@ -155,6 +160,8 @@ public sealed class Model : ResourceWithMetadata
         _geometries.Clear();
         _geometryCenters.Clear();
         _geometryBoneMappings.Clear();
+        _vertexBuffers.Clear();
+        _indexBuffers.Clear();
         _morphs.Clear();
         _morphRangeStarts.Clear();
         _morphRangeCounts.Clear();
@@ -308,6 +315,8 @@ public sealed class Model : ResourceWithMetadata
             totalBytes += buffer.GetData().Count;
         foreach (var buffer in indexBuffers)
             totalBytes += buffer.GetIndexCount() * buffer.GetIndexSize();
+        _vertexBuffers.AddRange(vertexBuffers);
+        _indexBuffers.AddRange(indexBuffers);
         MemoryUse = (uint)totalBytes;
         return true;
     }
@@ -334,6 +343,66 @@ public sealed class Model : ResourceWithMetadata
     }
 
     public BoundingBox GetBoundingBox() => _boundingBox;
+
+    public bool SetVertexBuffers(IReadOnlyList<VertexBuffer?> buffers, IReadOnlyList<uint>? morphRangeStarts = null,
+        IReadOnlyList<uint>? morphRangeCounts = null)
+    {
+        for (var i = 0; i < buffers.Count; ++i)
+        {
+            var buffer = buffers[i];
+            if (buffer is null)
+            {
+                Log.Logger.LogError("Null model vertex buffers specified");
+                return false;
+            }
+            if (!buffer.Shadowed)
+            {
+                Log.Logger.LogError("Model vertex buffers must be shadowed");
+                return false;
+            }
+        }
+
+        _vertexBuffers.Clear();
+        foreach (var buffer in buffers)
+            _vertexBuffers.Add(buffer!);
+
+        _morphRangeStarts.Clear();
+        _morphRangeCounts.Clear();
+        for (var i = 0; i < buffers.Count; ++i)
+        {
+            _morphRangeStarts.Add(morphRangeStarts is not null && i < morphRangeStarts.Count ? morphRangeStarts[i] : 0u);
+            _morphRangeCounts.Add(morphRangeCounts is not null && i < morphRangeCounts.Count ? morphRangeCounts[i] : 0u);
+        }
+
+        return true;
+    }
+
+    public bool SetIndexBuffers(IReadOnlyList<IndexBuffer?> buffers)
+    {
+        for (var i = 0; i < buffers.Count; ++i)
+        {
+            var buffer = buffers[i];
+            if (buffer is null)
+            {
+                Log.Logger.LogError("Null model index buffers specified");
+                return false;
+            }
+            if (!buffer.Shadowed)
+            {
+                Log.Logger.LogError("Model index buffers must be shadowed");
+                return false;
+            }
+        }
+
+        _indexBuffers.Clear();
+        foreach (var buffer in buffers)
+            _indexBuffers.Add(buffer!);
+        return true;
+    }
+
+    public IReadOnlyList<VertexBuffer> GetVertexBuffers() => _vertexBuffers;
+
+    public IReadOnlyList<IndexBuffer> GetIndexBuffers() => _indexBuffers;
 
     public void SetSkeleton(Skeleton skeleton)
     {
