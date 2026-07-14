@@ -41,7 +41,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 {
     private readonly List<VertexBuffer> _vertexBuffers = [];
     private readonly List<IndexBuffer> _indexBuffers = [];
-    private readonly List<List<Geometry>> _geometries = [];
+    private readonly List<List<Geometry?>> _geometries = [];
     private readonly List<Vector3f> _geometryCenters = [];
     private readonly List<List<uint>> _geometryBoneMappings = [];
     private readonly List<ModelMorph> _morphs = [];
@@ -79,7 +79,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         SetGeometry(0, 0, geometry);
     }
 
-    public IReadOnlyList<IReadOnlyList<Geometry>> Geometries => _geometries;
+    public IReadOnlyList<IReadOnlyList<Geometry?>> Geometries => _geometries;
 
     public IReadOnlyList<Vector3f> GeometryCenters => _geometryCenters;
 
@@ -87,7 +87,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
     public uint NumGeometries => (uint)_geometries.Count;
 
-    public uint VertexCount => _geometries.Count == 0 || _geometries[0].Count == 0 ? 0u : _geometries[0][0].VertexCount;
+    public uint VertexCount => _geometries.Count == 0 || _geometries[0].Count == 0 ? 0u : _geometries[0][0]?.VertexCount ?? 0u;
 
     public override bool BeginLoad(Stream source)
     {
@@ -495,9 +495,14 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
         foreach (var lodLevels in _geometries)
         {
-            var cloneLodLevels = new List<Geometry>(lodLevels.Count);
+            var cloneLodLevels = new List<Geometry?>(lodLevels.Count);
             foreach (var originalGeometry in lodLevels)
             {
+                if (originalGeometry is null)
+                {
+                    cloneLodLevels.Add(null);
+                    continue;
+                }
                 var cloneGeometry = new Geometry();
                 if (originalGeometry.GetIndexBuffer() is { } originalIndexBuffer)
                     cloneGeometry.SetIndexBuffer(indexBufferMapping[originalIndexBuffer]);
@@ -543,7 +548,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
     public uint GetMorphRangeCount(uint bufferIndex) => bufferIndex < _morphRangeCounts.Count ? _morphRangeCounts[(int)bufferIndex] : 0u;
 
-    public IReadOnlyList<IReadOnlyList<Geometry>> GetGeometries() => Geometries;
+    public IReadOnlyList<IReadOnlyList<Geometry?>> GetGeometries() => Geometries;
 
     public IReadOnlyList<Vector3f> GetGeometryCenters() => GeometryCenters;
 
@@ -553,7 +558,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
         while (_geometries.Count < num)
         {
-            _geometries.Add([]);
+            _geometries.Add([null]);
             _geometryCenters.Add(Vector3f.Zero);
         }
 
@@ -571,7 +576,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
         var lodLevels = _geometries[(int)index];
         while (lodLevels.Count < num)
-            lodLevels.Add(new Geometry());
+            lodLevels.Add(null);
 
         while (lodLevels.Count > num)
             lodLevels.RemoveAt(lodLevels.Count - 1);

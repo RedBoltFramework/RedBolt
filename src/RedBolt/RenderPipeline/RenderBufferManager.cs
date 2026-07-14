@@ -184,7 +184,10 @@ public sealed class RenderBufferManager
         _lastGraphics = graphics;
 
         var depthView = readOnlyDepth ? _depthStencilBuffer.GetReadOnlyDepthView() : _depthStencilBuffer.GetView();
-        graphics.SetRenderTargets(_viewportRect, _writeableColorBuffer.GetView(), depthView);
+        var viewportRect = _depthStencilBuffer.GetViewportRect();
+        if (viewportRect == IntRect.Zero)
+            viewportRect = _writeableColorBuffer.GetViewportRect();
+        graphics.SetRenderTargets(viewportRect, _writeableColorBuffer.GetView(), depthView);
     }
 
     public void SetOutputRenderTargetsRect(Graphics graphics, IntRect viewportRect, bool readOnlyDepth = false)

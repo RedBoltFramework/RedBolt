@@ -90,6 +90,24 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Render_allocates_automatic_render_pipeline_for_viewport()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+
+        Renderer.SetViewport(0u, viewport);
+
+        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(renderFrame);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+
+        Assert.NotNull(scene.Root.GetComponent<RenderPipeline>());
+        Assert.NotNull(viewport.GetRenderPipelineView());
+        Renderer.ClearViewports();
+    }
+
+    [Fact]
     public void Render_dispatches_end_all_views_event()
     {
         var eventCount = 0;

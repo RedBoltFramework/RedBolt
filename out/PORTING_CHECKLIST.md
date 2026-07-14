@@ -6,8 +6,8 @@
 - [x] `02_HelloGUI` — control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
-- [~] `09_MultipleViewports` — scene, rear camera, dual viewport sample, and Dear ImGui instructions ported; upstream comparison removed the extra C# `RenderPipeline` component, but both viewports remain black at runtime and need engine-level investigation
-- [~] `34_DynamicGeometry` — dynamic custom geometry scene, animated vertex positions, camera, lighting, viewport, and Dear ImGui instructions ported; upstream comparison removed extra C# `RenderPipeline` and material assignments, but the runtime screenshot still omits the expected cloned-box grid and needs engine-level investigation
+- [x] `09_MultipleViewports` — scene, rear camera, dual viewport sample, automatic render pipeline allocation, render-target viewport handling, and Dear ImGui instructions reconciled to rbfx
+- [x] `34_DynamicGeometry` — cloned dynamic vertex buffers, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
 - [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; upstream comparison removed the extra C# `RenderPipeline` component and aligned settings reads with `RenderDevice`; runtime now starts successfully, but the 3D box remains absent in the screenshot and requires further engine-level investigation
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule

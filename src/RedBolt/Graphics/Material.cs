@@ -752,6 +752,11 @@ public sealed class Material : ResourceWithMetadata
         _textures.Clear();
         _techniques.Clear();
 
+        SetNumTechniques(1);
+        var renderer = GetSubsystem<Renderer>();
+        SetTechnique(0, renderer?.GetDefaultTechnique()
+            ?? GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>("Techniques/NoTexture.xml"));
+
         SetUVTransform(Vector2f.Zero, 0.0f, Vector2f.One);
         SetShaderParameter("MatDiffColor", Vector4f.One);
         SetShaderParameter("MatEmissiveColor", Vector3f.Zero);

@@ -31,6 +31,7 @@ public sealed class Renderer : Object
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
+    private readonly HashSet<Octree> _updatedOctrees = [];
     private readonly CommonFrameInfo _frameInfo = new();
     private readonly FrameStatistics _frameStats = new();
 
@@ -157,7 +158,13 @@ public sealed class Renderer : Object
 
     public Material GetDefaultMaterial()
     {
-        return _defaultMaterial ??= new Material(string.Empty);
+        _defaultMaterial ??= new Material(string.Empty);
+        if (_defaultMaterial.GetNumTechniques() == 0 || _defaultMaterial.GetTechniqueEntry(0).Technique is null)
+        {
+            _defaultMaterial.SetNumTechniques(1);
+            _defaultMaterial.SetTechnique(0, GetDefaultTechnique());
+        }
+        return _defaultMaterial;
     }
 
     public Texture2D? GetDefaultLightRamp()
@@ -328,28 +335,39 @@ public sealed class Renderer : Object
             graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
         }
 
+        _updatedOctrees.Clear();
         foreach (var viewport in _viewports)
         {
             if (viewport is null)
                 continue;
 
-            var renderPipeline = viewport.Scene.Root.GetComponent<RenderPipeline>();
-            if (renderPipeline is null)
+            var renderPipelineView = viewport.GetRenderPipelineView();
+            if (renderPipelineView is null)
             {
-                graphics.RenderViewport(viewport, TextureQuality);
+                viewport.AllocateView();
+                renderPipelineView = viewport.GetRenderPipelineView();
+            }
+            if (renderPipelineView is null)
                 continue;
+
+            var octree = viewport.Scene?.Root.GetComponent<Octree>();
+            if (octree is not null && _updatedOctrees.Add(octree))
+            {
+                octree.Update(Context.GetSubsystem<Time>()?.TimeStep ?? 0.0f);
+                octree.SetLocked(true);
             }
 
-            var renderPipelineView = GetOrCreateRenderPipelineView(viewport, renderPipeline);
+            _renderPipelineViews[viewport] = new ActiveRenderPipelineView(
+                renderPipelineView.GetRenderPipeline(), renderPipelineView);
             if (!renderPipelineView.Define(viewport, graphics))
-            {
-                graphics.RenderViewport(viewport, TextureQuality);
                 continue;
-            }
 
             renderPipelineView.Update(graphics);
             renderPipelineView.Render(graphics, TextureQuality);
         }
+
+        foreach (var octree in _updatedOctrees)
+            octree.SetLocked(false);
 
         graphics.PresentFrame(screenshotPath, beforePresent);
 

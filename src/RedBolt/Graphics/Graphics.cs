@@ -88,8 +88,6 @@ layout(std140) uniform Material
     private readonly RenderTargetView[] _singleRenderTargetView = new RenderTargetView[1];
     private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
     private readonly Dictionary<Geometry, UploadedGeometry> _uploadedGeometries = new();
-    private readonly Dictionary<VertexBuffer, IBuffer> _uploadedVertexBuffers = new();
-    private readonly Dictionary<IndexBuffer, IBuffer> _uploadedIndexBuffers = new();
     private readonly Dictionary<Texture, UploadedTexture> _uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> _pipelines = new();
     private readonly Dictionary<FullscreenPipelineKey, FullscreenPipelineResources> _fullscreenPipelines = new();
@@ -844,7 +842,8 @@ layout(std140) uniform Material
 
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
-        ClearCurrentRenderTargets();
+        var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
+        ClearCurrentRenderTargets(FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black);
         RenderScene(viewport, materialQuality, viewportRect);
         SendEvent<GraphicsEvents.EndRenderingEvent>();
         UnbindRenderTargets();
@@ -867,7 +866,8 @@ layout(std140) uniform Material
         var colorTarget = renderSurface.GetView();
         var depthStencil = renderSurface.GetLinkedDepthStencil()?.GetView();
         SetRenderTargets(viewportRect, colorTarget, depthStencil);
-        ClearCurrentRenderTargets();
+        var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
+        ClearCurrentRenderTargets(FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black);
         RenderScene(viewport, materialQuality, viewportRect);
         SendEvent<GraphicsEvents.EndRenderingEvent>();
 
@@ -910,10 +910,10 @@ layout(std140) uniform Material
         }
         MarkRenderTargetDirty(depthStencilTarget);
 
-        ApplyDiligentViewport(_immediateContext, viewportRect);
         _immediateContext.SetRenderTargets((uint)_currentRenderTargetCount,
             _renderTargets, _currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        ApplyDiligentViewport(_immediateContext, viewportRect);
     }
 
     internal void SetRenderTargets(IntRect viewportRect, RenderTargetView colorTarget, RenderTargetView? depthStencilTarget)
@@ -1574,14 +1574,6 @@ layout(std140) uniform Material
             uploaded.Dispose();
         _uploadedGeometries.Clear();
 
-        foreach (var uploaded in _uploadedVertexBuffers.Values)
-            ReleaseIfNotNull(uploaded);
-        _uploadedVertexBuffers.Clear();
-
-        foreach (var uploaded in _uploadedIndexBuffers.Values)
-            ReleaseIfNotNull(uploaded);
-        _uploadedIndexBuffers.Clear();
-
         foreach (var uploaded in _uploadedTextures.Values)
             uploaded.Dispose();
         _uploadedTextures.Clear();
@@ -1643,11 +1635,12 @@ layout(std140) uniform Material
             var geometry = model.GetGeometry(geometryIndex, 0);
             var vertexBuffer = geometry?.GetVertexBuffer(0);
             var indexBuffer = geometry?.GetIndexBuffer();
-            var material = staticModel.GetMaterial(geometryIndex);
+            var material = staticModel.GetMaterial(geometryIndex)
+                ?? GetSubsystem<Renderer>()?.GetDefaultMaterial();
             if (geometry is null || vertexBuffer is null || indexBuffer is null || material is null)
                 continue;
 
-            var resourceCache = material.OwnerCache;
+            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 
@@ -1724,11 +1717,12 @@ layout(std140) uniform Material
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
             var vertexBuffer = geometry?.GetVertexBuffer(0);
-            var material = staticModel.GetMaterial(geometryIndex);
+            var material = staticModel.GetMaterial(geometryIndex)
+                ?? GetSubsystem<Renderer>()?.GetDefaultMaterial();
             if (geometry is null || vertexBuffer is null || material is null)
                 continue;
 
-            var resourceCache = material.OwnerCache;
+            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 
@@ -1773,14 +1767,15 @@ layout(std140) uniform Material
         {
             var geometry = model.GetGeometry(geometryIndex, 0);
             var vertexBuffer = geometry?.GetVertexBuffer(0);
-            var material = staticModel.GetMaterial(geometryIndex);
+            var material = staticModel.GetMaterial(geometryIndex)
+                ?? GetSubsystem<Renderer>()?.GetDefaultMaterial();
             if (geometry is null || vertexBuffer is null || material is null)
                 continue;
 
             if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) == 0)
                 continue;
 
-            var resourceCache = material.OwnerCache;
+            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 
@@ -1813,13 +1808,17 @@ layout(std140) uniform Material
         Pass pass, Geometry geometry, VertexBuffer vertexBuffer, StaticModel staticModel, Zone? cameraZone, Zone? drawableZone,
         Vector4f drawableAmbient, Light? light)
     {
-        var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, light);
+        var linearColorSpace = viewport.GetRenderPipelineView()?.IsLinearColorSpace ?? false;
+        var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, light, linearColorSpace);
         var uploadedGeometry = GetOrCreateUploadedGeometry(geometry);
         if (pipeline is null || uploadedGeometry is null || _immediateContext is null)
             return default;
 
         UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone);
-        UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4, drawableAmbient);
+        var effectiveAmbient = linearColorSpace
+            ? drawableAmbient
+            : new Color(drawableAmbient.X, drawableAmbient.Y, drawableAmbient.Z, drawableAmbient.W).LinearToGamma().ToVector4();
+        UpdateObjectBuffer(pipeline.ObjectBuffer, staticModel.Node.GetWorldTransform().Matrix4, effectiveAmbient);
         UpdateMaterialBuffer(pipeline.MaterialBuffer, material);
         if (pipeline.CustomBuffer is not null && pipeline.CustomLayout.Size > 0)
             UpdateMaterialCustomBuffer(pipeline.CustomBuffer, pipeline.CustomLayout, pipeline.CustomParameterScratch, material);
@@ -1868,10 +1867,10 @@ layout(std140) uniform Material
     }
 
     private PipelineResources? GetOrCreatePipeline(ResourceCache resourceCache, Camera camera, Material material, Pass pass,
-        VertexBuffer vertexBuffer, Light? light)
+        VertexBuffer vertexBuffer, Light? light, bool linearColorSpace)
     {
-        var vertexDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, ShaderStage.Vertex);
-        var pixelDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, ShaderStage.Pixel);
+        var vertexDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, linearColorSpace, ShaderStage.Vertex);
+        var pixelDefines = ComposeShaderDefines(pass, vertexBuffer, material, light, linearColorSpace, ShaderStage.Pixel);
         var effectiveCullMode = pass.CullMode != CullMode.Max ? pass.CullMode : material.CullMode;
         var effectiveFillMode = GetEffectiveFillMode(camera, material);
         var reverseCulling = camera.GetReverseCulling();
@@ -2673,8 +2672,8 @@ layout(std140) uniform Material
         if (vertexBuffer is null || indexBuffer is null)
             return null;
 
-        var gpuVertexBuffer = GetOrCreateUploadedVertexBuffer(vertexBuffer);
-        var gpuIndexBuffer = GetOrCreateUploadedIndexBuffer(indexBuffer);
+        var gpuVertexBuffer = GetVertexBufferHandle(vertexBuffer);
+        var gpuIndexBuffer = GetIndexBufferHandle(indexBuffer);
         var drawIndexedAttribs = new DrawIndexedAttribs(geometry.GetIndexCount(),
             indexBuffer.LargeIndices ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32 : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
             DrawFlags.DrawFlagVerifyAll,
@@ -2719,39 +2718,22 @@ layout(std140) uniform Material
         return uploaded.ResolvedTexture ?? uploaded.Texture;
     }
 
-    private IBuffer GetOrCreateUploadedVertexBuffer(VertexBuffer vertexBuffer)
+    private static IBuffer GetVertexBufferHandle(VertexBuffer vertexBuffer)
     {
-        if (_uploadedVertexBuffers.TryGetValue(vertexBuffer, out var uploaded))
-            return uploaded;
-
-        if (_device is null || _immediateContext is null)
-            throw new InvalidOperationException("Graphics device is not initialized.");
-
-        var vertexSource = vertexBuffer.GetData();
-        var vertexData = new byte[vertexSource.Count];
-        for (var i = 0; i < vertexData.Length; ++i)
-            vertexData[i] = vertexSource[i];
-        uploaded = CreateBuffer(_device, _immediateContext, "RedBoltModelVB", vertexData,
-            (ulong)vertexData.Length, BindFlags.BindVertexBuffer, vertexBuffer.GetVertexSize());
-        _uploadedVertexBuffers[vertexBuffer] = uploaded;
-        return uploaded;
+        var rawBuffer = vertexBuffer.GetRawBuffer()
+            ?? throw new InvalidOperationException("Vertex buffer is not initialized.");
+        rawBuffer.Resolve();
+        return rawBuffer.GetHandle()
+            ?? throw new InvalidOperationException("Vertex buffer has no GPU handle.");
     }
 
-    private IBuffer GetOrCreateUploadedIndexBuffer(IndexBuffer indexBuffer)
+    private static IBuffer GetIndexBufferHandle(IndexBuffer indexBuffer)
     {
-        if (_uploadedIndexBuffers.TryGetValue(indexBuffer, out var uploaded))
-            return uploaded;
-
-        if (_device is null || _immediateContext is null)
-            throw new InvalidOperationException("Graphics device is not initialized.");
-
-        var indexSource = indexBuffer.GetUnpackedData();
-        var indices = new uint[indexSource.Count];
-        for (var i = 0; i < indices.Length; ++i)
-            indices[i] = indexSource[i];
-        uploaded = CreateIndexBuffer(_device, _immediateContext, indexBuffer, indices);
-        _uploadedIndexBuffers[indexBuffer] = uploaded;
-        return uploaded;
+        var rawBuffer = indexBuffer.GetRawBuffer()
+            ?? throw new InvalidOperationException("Index buffer is not initialized.");
+        rawBuffer.Resolve();
+        return rawBuffer.GetHandle()
+            ?? throw new InvalidOperationException("Index buffer has no GPU handle.");
     }
 
     private Texture2D GetDefaultAlbedoTexture()
@@ -3531,7 +3513,7 @@ layout(std140) uniform Material
     }
 
     private string ComposeShaderDefines(Pass pass, VertexBuffer vertexBuffer, Material material,
-        Light? light, ShaderStage stage)
+        Light? light, bool linearColorSpace, ShaderStage stage)
     {
         var usesAmbient = PassUsesAmbient(pass);
         var usesLighting = PassUsesLighting(pass);
@@ -3542,6 +3524,7 @@ layout(std140) uniform Material
             passDefines,
             usesAmbient,
             usesLighting,
+            linearColorSpace,
             light is not null,
             light?.GetLightType() ?? LightType.Directional);
         if (_shaderDefinesCache.TryGetValue(key, out var cachedDefines))
@@ -3554,6 +3537,9 @@ layout(std140) uniform Material
             defines.Add("URHO3D_AMBIENT_PASS");
             defines.Add("URHO3D_AMBIENT_FLAT");
         }
+
+        if (linearColorSpace)
+            defines.Add("URHO3D_GAMMA_CORRECTION");
 
         if (usesLighting && light is not null)
             AddLightDefines(defines, light);
@@ -3978,7 +3964,7 @@ layout(std140) uniform Material
             : 1.0f;
     }
 
-    private Zone? FindZone(Scene scene, Vector3f worldPosition)
+    internal Zone? FindZone(Scene scene, Vector3f worldPosition)
     {
         scene.GetComponents(_zonesScratch);
 
@@ -4532,6 +4518,7 @@ layout(std140) uniform Material
         string PassDefines,
         bool UsesAmbient,
         bool UsesLighting,
+        bool LinearColorSpace,
         bool HasLight,
         LightType LightType);
 

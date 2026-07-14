@@ -132,6 +132,19 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void New_model_geometry_has_initial_lod_level()
+    {
+        var model = new Model(string.Empty);
+        var geometry = new Geometry();
+
+        model.SetNumGeometries(1);
+
+        Assert.Equal(1u, model.GetNumGeometryLodLevels(0));
+        Assert.True(model.SetGeometry(0, 0, geometry));
+        Assert.Same(geometry, model.GetGeometry(0));
+    }
+
+    [Fact]
     public void Lod_geometry_falls_back_to_visible_geometry_when_level_is_out_of_range()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");

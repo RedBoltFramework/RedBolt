@@ -393,6 +393,10 @@ public class RenderPipeline : Component
                 return;
 
             SyncFromPipeline();
+            var cameraPosition = _viewport.Camera.IsAttached
+                ? _viewport.Camera.Node.WorldPosition
+                : Vector3f.Zero;
+            _viewport.Camera.SetZone(graphics.FindZone(_viewport.Scene, cameraPosition));
             RaiseUpdateBegin(_frameInfo);
             SendBeginViewUpdateEvent();
 
