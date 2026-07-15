@@ -1,7 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
 - [ ] ./src/RedBolt/Graphics/AnimationTrack.cs:11:/// <remarks>TODO: port: C# structs cannot inherit another struct, so Transform fields are duplicated here.</remarks>
 - [ ] ./src/RedBolt/Graphics/AnimationState.cs:91:    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:62:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)

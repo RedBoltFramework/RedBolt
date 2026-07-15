@@ -761,10 +761,6 @@ public sealed class Camera : Component
         _frustumDirty = true;
     }
 
-    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
-    // cachedViewProj_, cachedFrustum_) using ThreadSafeCache<CachedInverse<Matrix3x4>> etc.
-    // The C# version uses simple bool dirty flags instead.
-
     public Matrix3x4 GetEffectiveWorldTransform()
     {
         var worldTransform = IsAttached
