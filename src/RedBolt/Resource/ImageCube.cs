@@ -2,10 +2,10 @@ namespace RedBolt;
 
 public sealed class ImageCube : Resource
 {
-    // C++: has int width_ field for tracking face width independently
     private readonly Image?[] _faceImages = new Image[6];
     private XMLFile? _parametersXml;
     private SphericalHarmonicsDot9? _cachedSphericalHarmonics;
+    private int _width;
 
     public ImageCube(string name)
         : base(name)
@@ -90,6 +90,7 @@ public sealed class ImageCube : Resource
         }
 
         MemoryUse = memoryUse;
+        _width = expectedSize;
         LinkSiblings();
         return true;
     }
@@ -100,12 +101,12 @@ public sealed class ImageCube : Resource
 
     public Image? GetImage(CubeMapFace face) => _faceImages[(int)face];
 
-    // C++: SetImage is not a public method; faceImages_ assigned directly in BeginLoad without Cubemap=true
     public void SetImage(CubeMapFace face, Image image)
     {
         ArgumentNullException.ThrowIfNull(image);
-        image.Cubemap = true;
         _faceImages[(int)face] = image;
+        if (_width == 0)
+            _width = image.Width;
         LinkSiblings();
     }
 
@@ -116,31 +117,25 @@ public sealed class ImageCube : Resource
         return maxLevel - Math.Min(maxLevel, 3u);
     }
 
-    // C++: deep-copies parametersXml_ and faceImages_, sets width_ = max(1, width_ >> index);
-    // C++: returns SharedPtr<ImageCube> (MakeShared)
     public ImageCube GetDecompressedImageLevel(uint index)
     {
         var cube = new ImageCube(Name + "#level");
+        cube._parametersXml = _parametersXml;
+        cube._width = Math.Max(1, _width >> checked((int)index));
         for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
         {
             var image = GetImage(face);
             if (image is null)
                 continue;
 
-            var mip = image.IsCompressed()
-                ? image.GetDecompressedImageLevel(index)
-                : image;
+            var mip = image.GetDecompressedImageLevel(index);
             if (mip is null)
                 continue;
 
-            if (!image.IsCompressed())
-            {
-                for (var i = 0u; i < index; ++i)
-                    mip = mip.GetNextLevel();
-            }
-
-            cube.SetImage(face, mip);
+            cube._faceImages[(int)face] = mip;
         }
+
+        cube.LinkSiblings();
 
         return cube;
     }
@@ -185,11 +180,10 @@ public sealed class ImageCube : Resource
 
     public Vector3f ProjectTexelOnCubeLevel(CubeMapFace face, int x, int y, uint level)
     {
-        var image = GetImage(face);
-        if (image is null)
+        if (GetImage(face) is null || _width <= 0)
             return Vector3f.Zero;
 
-        var width = Math.Max(image.GetWidth() >> (int)level, 1);
+        var width = Math.Max(_width >> checked((int)level), 1);
         var uv = new Vector2f((x + 0.5f) / width, (y + 0.5f) / width);
         return ProjectUVOnCube(face, uv);
     }
@@ -197,14 +191,11 @@ public sealed class ImageCube : Resource
     public (CubeMapFace Face, Vector2i Texel) ProjectDirectionOnFaceTexel(Vector3f direction)
     {
         var (face, uv) = ProjectDirectionOnFace(direction);
-        var image = GetImage(face);
-        if (image is null || image.GetWidth() <= 0)
+        if (GetImage(face) is null || _width <= 0)
             return (face, Vector2i.Zero);
 
-        var width = image.GetWidth();
-        // C++: clamps to FloorToInt * width_ with max = width_ (not width_-1)
-        var x = Math.Clamp((int)(uv.X * width), 0, width - 1);
-        var y = Math.Clamp((int)(uv.Y * width), 0, width - 1);
+        var x = Math.Clamp((int)MathF.Floor(uv.X * _width), 0, _width);
+        var y = Math.Clamp((int)MathF.Floor(uv.Y * _width), 0, _width);
         return (face, new Vector2i(x, y));
     }
 
