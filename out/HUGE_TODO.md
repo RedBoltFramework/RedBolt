@@ -42,7 +42,6 @@
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:33:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:35:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:43:    // C++: static const char* DYN_LIB_SUFFIX (compile-time platform constant)
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:3:// C++: BackgroundLoadItem is a struct in BackgroundLoader.h with URHO3D_API.
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:4:// C++: stores SharedPtr<Resource> resource_ (the actual resource object, not a Task).
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:5:// C++: stores dependencies as ea::hash_set<ea::pair<StringHash, StringHash>>

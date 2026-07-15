@@ -40,7 +40,6 @@ public static class ProcessUtils
     private static string _miniDumpDir = string.Empty;
     private static readonly List<string> _arguments = [];
 
-    // C++: static const char* DYN_LIB_SUFFIX (compile-time platform constant)
     public static string DynLibSuffix =>
         OperatingSystem.IsWindows() ? ".dll" :
         OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? ".dylib" :
