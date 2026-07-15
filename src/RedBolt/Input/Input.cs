@@ -948,12 +948,14 @@ public sealed class Input : Object
 
     public void SetMousePosition(Vector2i position)
     {
-        // C++: converts position via BackbufferToSystem() before SDL_WarpMouseInWindow,
         // C++: uses SDL_WarpMouseGlobal for explicit window rect
         var delta = position - MousePosition;
         MousePosition = position;
         if (IsInitialized && _window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlWarpMouseInWindow(_window, position.X, position.Y);
+        {
+            var systemPosition = BackbufferToSystem(position);
+            SdlNativeBindings.SdlWarpMouseInWindow(_window, systemPosition.X, systemPosition.Y);
+        }
         if (delta != Vector2i.Zero)
         {
             var eventData = new InputEvents.MouseMoveEvent
