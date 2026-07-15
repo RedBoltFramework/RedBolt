@@ -59,13 +59,9 @@ public sealed class Texture2D : Texture
         return success;
     }
 
-    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
-    // C++ uses Create(params) with RawTextureParams; also handles requestedSRGB_ format.
     public bool SetSize(int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
         => SetSize(width, height, format, TextureFlag.None, multiSample, noMultiSampledAutoResolve);
 
-    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
-    // C++ uses Create(params) with sRGB check; has no noMultiSampledAutoResolve param.
     public bool SetSize(int width, int height, TextureFormat format, TextureFlag flags, int multiSample = 1,
         bool noMultiSampledAutoResolve = false)
     {

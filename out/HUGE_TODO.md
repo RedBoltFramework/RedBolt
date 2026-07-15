@@ -1,8 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Texture2D.cs:62:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
-- [ ] ./src/RedBolt/Graphics/Texture2D.cs:67:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
 - [ ] ./src/RedBolt/Graphics/Texture.cs:27:// C++: Texture inherits from ResourceWithMetadata and RawTexture (multiple inheritance). C# inherits from ResourceWithMetadata only and has a _rawTexture field.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:28:// C++: RawTexture is the base providing GPU resource management (Create, Destroy, Restore). C# wraps these via method calls on the RawTexture field.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:29:// C++: Has direct Diligent API includes for ITexture, ITextureView, ISampler in header. C# accesses these from the Bindings namespace.
