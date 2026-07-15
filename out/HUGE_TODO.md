@@ -148,8 +148,6 @@
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:19:    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:20:    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:21:    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:22:    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
 - [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:142:// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.

@@ -16,8 +16,6 @@ namespace RedBolt;
     // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
     // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
     // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
-    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
-    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
     // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
     /// </remarks>
     public sealed class Graphics : Object
@@ -665,6 +663,10 @@ layout(std140) uniform Material
     public ISwapChain? GetNativeSwapChain() => _swapChain;
 
     public SdlWindow? GetNativeWindow() => _window;
+
+    public static bool GetGL3Support() => true;
+
+    public SdlWindow? GetSDLWindow() => GetNativeWindow();
 
     /// <summary>
     /// Return OS-specific external window handle.
