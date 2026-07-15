@@ -117,14 +117,19 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
         FromHcm(h, chroma, l - chroma * 0.5f, a);
     }
 
-    // C++: else if (value < 1.0f) return Pow((value + 0.055f) / 1.055f, 2.4f);
-    // C++: else return Pow(value, 2.2f);
-    public static float ConvertGammaToLinear(float value) => value <= 0.04045f ? value / 12.92f : MathF.Pow((value + 0.055f) / 1.055f, 2.4f);
-    // C++: if (value <= 0.0f) return 0.0f;
-    // C++: else if (value <= 0.0031308f) return 12.92f * value;
-    // C++: else if (value < 1.0f) return 1.055f * Pow(value, 0.4166667f) - 0.055f;
-    // C++: else return Pow(value, 0.45454545f);
-    public static float ConvertLinearToGamma(float value) => value <= 0.0031308f ? value * 12.92f : 1.055f * MathF.Pow(value, 1.0f / 2.4f) - 0.055f;
+    public static float ConvertGammaToLinear(float value) => value <= 0.04045f
+        ? value / 12.92f
+        : value < 1.0f
+            ? MathF.Pow((value + 0.055f) / 1.055f, 2.4f)
+            : MathF.Pow(value, 2.2f);
+
+    public static float ConvertLinearToGamma(float value) => value <= 0.0f
+        ? 0.0f
+        : value <= 0.0031308f
+            ? 12.92f * value
+            : value < 1.0f
+                ? 1.055f * MathF.Pow(value, 0.4166667f) - 0.055f
+                : MathF.Pow(value, 0.45454545f);
     public Color GammaToLinear() => new(ConvertGammaToLinear(R), ConvertGammaToLinear(G), ConvertGammaToLinear(B), A);
     public Color LinearToGamma() => new(ConvertLinearToGamma(R), ConvertLinearToGamma(G), ConvertLinearToGamma(B), A);
     public Color Abs() => new(MathF.Abs(R), MathF.Abs(G), MathF.Abs(B), MathF.Abs(A));
