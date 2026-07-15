@@ -121,48 +121,45 @@ public struct SphericalHarmonicsColor9
     public void Scale(float scale) { Multiply(scale); }
 }
 
-// C++ SphericalHarmonicsDot9 is a struct with precomputed dot-product fields:
-// struct SphericalHarmonicsDot9
-// {
-//     Vector4 Ar_; // Dot product with (Nx, Ny, Nz, 1), red channel
-//     Vector4 Ag_; // Dot product with (Nx, Ny, Nz, 1), green channel
-//     Vector4 Ab_; // Dot product with (Nx, Ny, Nz, 1), blue channel
-//     Vector4 Br_; // Dot product with (Nx*Ny, Ny*Nz, Nz*Nz, Nz*Nx), red channel
-//     Vector4 Bg_; // Dot product with (Nx*Ny, Ny*Nz, Nz*Nz, Nz*Nx), green channel
-//     Vector4 Bb_; // Dot product with (Nx*Ny, Ny*Nz, Nz*Nz, Nz*Nx), blue channel
-//     Vector4 C_;  // Color, multiplied by (Nx*Nx - Ny*Ny). W is always 1.0f
-// };
-// TODO: port - SphericalHarmonicsDot9 deviates from C++. The C++ version
-// uses precomputed Vector4 dot-product fields for optimized evaluation.
-// The C# version wraps SphericalHarmonicsColor9 which is not equivalent.
-// Missing: GetDebugColor(), SerializeValue.
-public sealed class SphericalHarmonicsDot9
+public struct SphericalHarmonicsDot9
 {
-    // C++: Precomputed Vector4 fields (see above)
-    // C# deviation: wraps harmonics + constant offset instead
-    private SphericalHarmonicsColor9 _harmonics;
-    private Vector3f _constantOffset;
+    public Vector4f Ar;
+    public Vector4f Ag;
+    public Vector4f Ab;
+    public Vector4f Br;
+    public Vector4f Bg;
+    public Vector4f Bb;
+    public Vector4f C;
 
     public SphericalHarmonicsDot9(SphericalHarmonicsColor9 harmonics)
     {
-        _harmonics = harmonics;
+        var sh = harmonics.Clone();
+        for (var i = 0; i < 9; ++i)
+            sh.Values[i] *= SphericalHarmonics9.Cosines[i] * SphericalHarmonics9.Factors[i];
+
+        sh.Values[0] -= sh.Values[6];
+        sh.Values[6] *= 3.0f;
+
+        Ar = new Vector4f(sh.Values[3].X, sh.Values[1].X, sh.Values[2].X, sh.Values[0].X);
+        Ag = new Vector4f(sh.Values[3].Y, sh.Values[1].Y, sh.Values[2].Y, sh.Values[0].Y);
+        Ab = new Vector4f(sh.Values[3].Z, sh.Values[1].Z, sh.Values[2].Z, sh.Values[0].Z);
+
+        Br = new Vector4f(sh.Values[4].X, sh.Values[5].X, sh.Values[6].X, sh.Values[7].X);
+        Bg = new Vector4f(sh.Values[4].Y, sh.Values[5].Y, sh.Values[6].Y, sh.Values[7].Y);
+        Bb = new Vector4f(sh.Values[4].Z, sh.Values[5].Z, sh.Values[6].Z, sh.Values[7].Z);
+
+        C = new Vector4f(sh.Values[8], 1.0f);
     }
 
-    public SphericalHarmonicsDot9()
-        : this(new SphericalHarmonicsColor9())
-    {
-    }
-
-    // C++: explicit SphericalHarmonicsDot9(const Vector3& color)
-    // {
-    //     Ar_.w_ = color.x_;
-    //     Ag_.w_ = color.y_;
-    //     Ab_.w_ = color.z_;
-    // }
     public SphericalHarmonicsDot9(Vector3f color)
-        : this(new SphericalHarmonicsColor9())
     {
-        _constantOffset = color;
+        Ar = new Vector4f(0.0f, 0.0f, 0.0f, color.X);
+        Ag = new Vector4f(0.0f, 0.0f, 0.0f, color.Y);
+        Ab = new Vector4f(0.0f, 0.0f, 0.0f, color.Z);
+        Br = default;
+        Bg = default;
+        Bb = default;
+        C = default;
     }
 
     public SphericalHarmonicsDot9(Color color)
@@ -170,43 +167,60 @@ public sealed class SphericalHarmonicsDot9
     {
     }
 
-    // C++: Vector3 Evaluate(const Vector3& dir) const - uses dot-product optimization with precomputed fields
-    public Vector3f Evaluate(Vector3f direction) => _harmonics.Evaluate(direction) + _constantOffset;
-
-    // C++: Vector3 EvaluateAverage() const { return { Ar_.w_, Ag_.w_, Ab_.w_ }; }
-    // C# deviation: EvaluateAverage not directly supported; would return _constantOffset
-
-    public SphericalHarmonicsDot9 Clone()
+    public Vector3f Evaluate(Vector3f direction)
     {
-        var result = new SphericalHarmonicsDot9();
-        for (var i = 0; i < _harmonics.Values.Length; ++i)
-            result._harmonics.Values[i] = _harmonics.Values[i];
-        result._constantOffset = _constantOffset;
+        var a = new Vector4f(direction, 1.0f);
+        var b = new Vector4f(direction.X * direction.Y, direction.Y * direction.Z, direction.Z * direction.Z, direction.Z * direction.X);
+        var c = direction.X * direction.X - direction.Y * direction.Y;
+
+        var result = new Vector3f(Ar.DotProduct(a), Ag.DotProduct(a), Ab.DotProduct(a));
+        result.X += Br.DotProduct(b);
+        result.Y += Bg.DotProduct(b);
+        result.Z += Bb.DotProduct(b);
+        result += C.ToVector3() * c;
         return result;
     }
 
-    // C++: operator+=(const SphericalHarmonicsDot9& rhs) - adds all 7 Vector4 fields
+    public Vector3f EvaluateAverage() => new(Ar.W, Ag.W, Ab.W);
+
+    public SphericalHarmonicsDot9 Clone()
+        => this;
+
     public void Add(SphericalHarmonicsDot9 value)
     {
-        _harmonics.AddScaled(value._harmonics, 1.0f);
-        _constantOffset += value._constantOffset;
+        Ar += value.Ar;
+        Ag += value.Ag;
+        Ab += value.Ab;
+        Br += value.Br;
+        Bg += value.Bg;
+        Bb += value.Bb;
+        C += value.C;
     }
 
-    // C++: operator+=(const Vector3& rhs) - adds to Ar_.w_, Ag_.w_, Ab_.w_
-    public void Add(Vector3f value) => _constantOffset += value;
+    public void Add(Vector3f value)
+    {
+        Ar.W += value.X;
+        Ag.W += value.Y;
+        Ab.W += value.Z;
+    }
 
-    // C++: operator*=(float rhs) - scales all 7 Vector4 fields
     public void Scale(float scale)
     {
-        _harmonics.Scale(scale);
-        _constantOffset *= scale;
+        Ar *= scale;
+        Ag *= scale;
+        Ab *= scale;
+        Br *= scale;
+        Bg *= scale;
+        Bb *= scale;
+        C *= scale;
     }
 
-    // C++: Color GetDebugColor() const { ... return static_cast<Color>(average).LinearToGamma(); }
-    // TODO: port - C++ code:
-    // Color GetDebugColor() const
-    // {
-    //     const Vector3 average = EvaluateAverage();
-    //     return static_cast<Color>(average).LinearToGamma();
-    // }
+    public SphericalHarmonicsDot9 Scaled(float scale)
+    {
+        var result = this;
+        result.Scale(scale);
+        return result;
+    }
+
+    public Color GetDebugColor() => new Color(EvaluateAverage()).LinearToGamma();
 }

@@ -9,6 +9,23 @@ public static partial class ArchiveSerialization
         SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Vector3, text).GetVector3());
     }
 
+    public static void SerializeValue(Archive archive, string name, ref Vector4f value)
+    {
+        SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Vector4, text).GetVector4());
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref SphericalHarmonicsDot9 value)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        SerializeValue(archive, "Ar", ref value.Ar);
+        SerializeValue(archive, "Ag", ref value.Ag);
+        SerializeValue(archive, "Ab", ref value.Ab);
+        SerializeValue(archive, "Br", ref value.Br);
+        SerializeValue(archive, "Bg", ref value.Bg);
+        SerializeValue(archive, "Bb", ref value.Bb);
+        SerializeValue(archive, "C", ref value.C);
+    }
+
     public static void SerializeValue(Archive archive, string name, ref Matrix3x4 value)
     {
         SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Matrix3x4, text).GetMatrix3x4());
