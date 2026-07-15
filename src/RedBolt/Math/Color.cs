@@ -50,16 +50,16 @@ public struct Color : IEquatable<Color>, IApproximateEquatable<Color>
     public Color(Vector4f color) : this(color.X, color.Y, color.Z, color.W) { }
 
     public static readonly Color White = new(1.0f, 1.0f, 1.0f, 1.0f);
-    // C++: static const Color GRAY;
-    // C++: static const Color RED;
-    // C++: static const Color GREEN;
-    // C++: static const Color BLUE;
-    // C++: static const Color CYAN;
-    // C++: static const Color MAGENTA;
-    // C++: static const Color YELLOW;
-    // C++: static const Color TRANSPARENT_BLACK;
-    // C++: static const Color LUMINOSITY_GAMMA;
-    // C++: static const Color LUMINOSITY_LINEAR;
+    public static readonly Color Gray = new(0.5f, 0.5f, 0.5f);
+    public static readonly Color Red = new(1.0f, 0.0f, 0.0f);
+    public static readonly Color Green = new(0.0f, 1.0f, 0.0f);
+    public static readonly Color Blue = new(0.0f, 0.0f, 1.0f);
+    public static readonly Color Cyan = new(0.0f, 1.0f, 1.0f);
+    public static readonly Color Magenta = new(1.0f, 0.0f, 1.0f);
+    public static readonly Color Yellow = new(1.0f, 1.0f, 0.0f);
+    public static readonly Color TransparentBlack = new(0.0f, 0.0f, 0.0f, 0.0f);
+    public static readonly Color LuminosityGamma = new(0.299f, 0.587f, 0.114f, 0.0f);
+    public static readonly Color LuminosityLinear = new(0.2126f, 0.7152f, 0.0722f, 0.0f);
     public static readonly Color Black = new(0.0f, 0.0f, 0.0f, 1.0f);
     public static readonly Color Transparent = new(0.0f, 0.0f, 0.0f, 0.0f);
 

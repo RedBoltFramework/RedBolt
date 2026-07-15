@@ -61,8 +61,7 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
     }
 
     /// <summary>Return hit distance to a frustum.</summary>
-    // C++: solidInside defaults to true
-    public float HitDistance(Frustum frustum, bool solidInside = false)
+    public float HitDistance(Frustum frustum, bool solidInside = true)
     {
         var maxOutside = 0.0f;
         var minInside = float.PositiveInfinity;
