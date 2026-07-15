@@ -101,11 +101,13 @@ public abstract class Application : Object
             if (!Engine.Initialize(parameters))
             {
                 ErrorExit();
+                SendEvent<EngineEvents.ApplicationStoppedEvent>();
                 return ExitCode;
             }
 
             Start();
             started = true;
+            SendEvent<EngineEvents.ApplicationStartedEvent>();
 
             if (!ShouldStopAfterStart())
             {
@@ -124,9 +126,6 @@ public abstract class Application : Object
                 }
             }
 
-            // C++: SendEvent(E_APPLICATIONSTARTED); after Start()
-            // C++: SendEvent(E_APPLICATIONSTOPPED); in all exit paths and in finally block
-            // TODO: port - C++ sends E_APPLICATIONSTARTED / E_APPLICATIONSTOPPED events.
         }
         catch (Exception exception)
         {
@@ -139,6 +138,7 @@ public abstract class Application : Object
             {
                 CaptureScreenshotOnExit();
                 Stop();
+                SendEvent<EngineEvents.ApplicationStoppedEvent>();
             }
 
             if (Engine.IsInitialized)

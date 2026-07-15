@@ -468,7 +468,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ApplicationState : Object` — state lifecycle (activate/deactivate/update), mouse mode, viewport, and fog color management ported (UI-dependent features deferred with TODO)
   - [x] `StateManager : Object` — state queue, caching, fade transitions, and transition event dispatch ported (UI fade overlay deferred with TODO)
 - [x] `Application.h`
-  - [x] `Application : Object` — setup/start/stop lifecycle, CLI parsing, error handling, screenshot-on-exit, and main loop are ported (uses `EngineParameters` class for parameter model)
+  - [x] `Application : Object` — setup/start/stop lifecycle, application started/stopped events, CLI parsing, error handling, screenshot-on-exit, and main loop are ported (uses `EngineParameters` class for parameter model)
 
 ---
 
