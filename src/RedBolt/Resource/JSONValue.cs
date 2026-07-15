@@ -1,5 +1,8 @@
 using System.Text.Json.Nodes;
 
+using System.Globalization;
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum JSONValueType
@@ -378,6 +381,8 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public void SetVariant(Variant value)
     {
+        if (GetValueType() != JSONValueType.Null)
+            Log.Logger.LogWarning("JsonValue is not null");
         SetType(JSONValueType.Object);
         Set("type", new JSONValue(value.GetTypeName()));
         Set("value", FromVariantValue(value));
@@ -411,6 +416,8 @@ public sealed class JSONValue : IEquatable<JSONValue>
             VariantType.VariantMap => new Variant(GetVariantMap()),
             VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
             VariantType.StringVector => new Variant(new StringVector(GetArray().Select(static item => item.GetString()))),
+            VariantType.ResourceRef => new Variant(ResourceRef.Parse(GetString())),
+            VariantType.ResourceRefList => new Variant(ResourceRefList.Parse(GetString())),
             _ => default
         };
 
@@ -426,21 +433,22 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public void SetVariantMap(VariantMap values)
     {
-        // C++: stores as JSON object where keys are hex hash strings, not as JSON array with "hash" fields
-        Set(values.Select(pair =>
+        var result = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+        foreach (var pair in values)
         {
-            var item = FromVariantObject(pair.Value);
-            item.Set("hash", new JSONValue(pair.Key.Value));
-            return item;
-        }));
+            result[pair.Key.ToString()] = FromVariantObject(pair.Value);
+        }
+        Set(result);
     }
 
     public VariantMap GetVariantMap()
     {
-        // C++: iterates JSON object keys (hex hash strings → StringHash), not a JSON array with "hash" fields
         var result = new VariantMap();
-        foreach (var item in GetArray())
-            result[new StringHash(item.Get("hash").GetUInt())] = item.GetVariant();
+        foreach (var item in GetObject())
+        {
+            if (uint.TryParse(item.Key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hash))
+                result[new StringHash(hash)] = item.Value.GetVariant();
+        }
         return result;
     }
 

@@ -2,12 +2,7 @@
 
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:191:        // C++: only supports arrays (JSON_ARRAY), returns EMPTY when not array
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:394:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:395:        // C++: logs warning "JsonValue is not null" when overwriting existing value
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:401:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:429:        // C++: stores as JSON object where keys are hex hash strings, not as JSON array with "hash" fields
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:440:        // C++: iterates JSON object keys (hex hash strings → StringHash), not a JSON array with "hash" fields
 - [ ] ./src/RedBolt/Container/ConstString.cs:3:// C++: ConstString inherits from ea::string, so it IS a string with an embedded StringHash.
 - [ ] ./src/RedBolt/Container/ConstString.cs:5:// C++: URHO3D_GLOBAL_CONSTANT macro enables static inline const for header-defined constants.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:5:// C++: No direct C++ equivalent. C++ SimpleResource handles JSON/XML/Binary via Archive serialization.
