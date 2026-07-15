@@ -177,14 +177,133 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
         return new Ray(transform * Origin, transform.RotationMatrix * Direction);
     }
 
-    // TODO: port - C++ code:
-    // float HitDistance(const void* vertexData, unsigned vertexStride, unsigned vertexStart, unsigned vertexCount, Vector3* outNormal = nullptr, Vector2* outUV = nullptr, unsigned uvOffset = 0) const;
-    // TODO: port - C++ code:
-    // float HitDistance(const void* vertexData, unsigned vertexStride, const void* indexData, unsigned indexSize, unsigned indexStart, unsigned indexCount, Vector3* outNormal = nullptr, Vector2* outUV = nullptr, unsigned uvOffset = 0) const;
-    // TODO: port - C++ code:
-    // bool InsideGeometry(const void* vertexData, unsigned vertexSize, unsigned vertexStart, unsigned vertexCount) const;
-    // TODO: port - C++ code:
-    // bool InsideGeometry(const void* vertexData, unsigned vertexSize, const void* indexData, unsigned indexSize, unsigned indexStart, unsigned indexCount) const;
+    public float HitDistance(ReadOnlySpan<byte> vertexData, int vertexStride, int vertexStart, int vertexCount,
+        out Vector3f outNormal, out Vector2f outUv, int uvOffset = 0)
+    {
+        var nearest = float.PositiveInfinity;
+        var nearestIndex = -1;
+        outNormal = Vector3f.Zero;
+        outUv = Vector2f.Zero;
+        var nearestBarycentric = Vector3f.Zero;
+
+        for (var index = 0; index + 2 < vertexCount; index += 3)
+        {
+            var v0 = ReadVector3(vertexData, (vertexStart + index) * vertexStride);
+            var v1 = ReadVector3(vertexData, (vertexStart + index + 1) * vertexStride);
+            var v2 = ReadVector3(vertexData, (vertexStart + index + 2) * vertexStride);
+            var distance = HitDistance(v0, v1, v2, out var normal, out var barycentric);
+            if (distance < nearest)
+            {
+                nearest = distance;
+                nearestIndex = index;
+                outNormal = normal;
+                nearestBarycentric = barycentric;
+            }
+        }
+
+        if (nearestIndex >= 0)
+        {
+            var uv0 = ReadVector2(vertexData, (vertexStart + nearestIndex) * vertexStride + uvOffset);
+            var uv1 = ReadVector2(vertexData, (vertexStart + nearestIndex + 1) * vertexStride + uvOffset);
+            var uv2 = ReadVector2(vertexData, (vertexStart + nearestIndex + 2) * vertexStride + uvOffset);
+            outUv = uv0 * nearestBarycentric.X + uv1 * nearestBarycentric.Y + uv2 * nearestBarycentric.Z;
+        }
+        else
+            outUv = Vector2f.Zero;
+
+        return nearest;
+    }
+
+    public float HitDistance(ReadOnlySpan<byte> vertexData, int vertexStride, ReadOnlySpan<byte> indexData, int indexSize,
+        int indexStart, int indexCount, out Vector3f outNormal, out Vector2f outUv, int uvOffset = 0)
+    {
+        var nearest = float.PositiveInfinity;
+        var nearestIndex0 = 0;
+        var nearestIndex1 = 0;
+        var nearestIndex2 = 0;
+        var hasNearest = false;
+        outNormal = Vector3f.Zero;
+        outUv = Vector2f.Zero;
+        var nearestBarycentric = Vector3f.Zero;
+
+        for (var index = indexStart; index + 2 < indexStart + indexCount; index += 3)
+        {
+            var i0 = ReadIndex(indexData, index, indexSize);
+            var i1 = ReadIndex(indexData, index + 1, indexSize);
+            var i2 = ReadIndex(indexData, index + 2, indexSize);
+            var distance = HitDistance(ReadVector3(vertexData, i0 * vertexStride), ReadVector3(vertexData, i1 * vertexStride),
+                ReadVector3(vertexData, i2 * vertexStride), out var normal, out var barycentric);
+            if (distance < nearest)
+            {
+                nearest = distance;
+                nearestIndex0 = i0;
+                nearestIndex1 = i1;
+                nearestIndex2 = i2;
+                hasNearest = true;
+                outNormal = normal;
+                nearestBarycentric = barycentric;
+            }
+        }
+
+        if (hasNearest)
+        {
+            var uv0 = ReadVector2(vertexData, nearestIndex0 * vertexStride + uvOffset);
+            var uv1 = ReadVector2(vertexData, nearestIndex1 * vertexStride + uvOffset);
+            var uv2 = ReadVector2(vertexData, nearestIndex2 * vertexStride + uvOffset);
+            outUv = uv0 * nearestBarycentric.X + uv1 * nearestBarycentric.Y + uv2 * nearestBarycentric.Z;
+        }
+        else
+            outUv = Vector2f.Zero;
+
+        return nearest;
+    }
+
+    public bool InsideGeometry(ReadOnlySpan<byte> vertexData, int vertexStride, int vertexStart, int vertexCount)
+    {
+        var front = float.PositiveInfinity;
+        var back = float.PositiveInfinity;
+        for (var index = 0; index + 2 < vertexCount; index += 3)
+        {
+            var v0 = ReadVector3(vertexData, (vertexStart + index) * vertexStride);
+            var v1 = ReadVector3(vertexData, (vertexStart + index + 1) * vertexStride);
+            var v2 = ReadVector3(vertexData, (vertexStart + index + 2) * vertexStride);
+            UpdateInsideDistances(v0, v1, v2, ref front, ref back);
+        }
+        return back < front;
+    }
+
+    public bool InsideGeometry(ReadOnlySpan<byte> vertexData, int vertexStride, ReadOnlySpan<byte> indexData, int indexSize,
+        int indexStart, int indexCount)
+    {
+        var front = float.PositiveInfinity;
+        var back = float.PositiveInfinity;
+        for (var index = indexStart; index + 2 < indexStart + indexCount; index += 3)
+        {
+            var v0 = ReadVector3(vertexData, ReadIndex(indexData, index, indexSize) * vertexStride);
+            var v1 = ReadVector3(vertexData, ReadIndex(indexData, index + 1, indexSize) * vertexStride);
+            var v2 = ReadVector3(vertexData, ReadIndex(indexData, index + 2, indexSize) * vertexStride);
+            UpdateInsideDistances(v0, v1, v2, ref front, ref back);
+        }
+        return back < front;
+    }
+
+    private static Vector3f ReadVector3(ReadOnlySpan<byte> data, int offset) => MemoryMarshal.Read<Vector3f>(data[offset..]);
+
+    private static Vector2f ReadVector2(ReadOnlySpan<byte> data, int offset) => MemoryMarshal.Read<Vector2f>(data[offset..]);
+
+    private static int ReadIndex(ReadOnlySpan<byte> data, int index, int indexSize) => indexSize == sizeof(ushort)
+        ? MemoryMarshal.Read<ushort>(data[(index * sizeof(ushort))..])
+        : checked((int)MemoryMarshal.Read<uint>(data[(index * sizeof(uint))..]));
+
+    private void UpdateInsideDistances(Vector3f v0, Vector3f v1, Vector3f v2, ref float front, ref float back)
+    {
+        var frontDistance = HitDistance(v0, v1, v2, out _, out _);
+        var backDistance = HitDistance(v2, v1, v0, out _, out _);
+        if (frontDistance > 0.0f)
+            front = MathF.Min(frontDistance, front);
+        if (backDistance > 0.0f)
+            back = MathF.Min(backDistance, back);
+    }
 
     public bool ApproximatelyEquivalent(Ray rhs, float epsilon = MathDefs.Epsilon) =>
         Origin.ApproximatelyEquivalent(rhs.Origin, epsilon) && Direction.ApproximatelyEquivalent(rhs.Direction, epsilon);
