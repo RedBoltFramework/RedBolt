@@ -235,8 +235,5 @@
 - [ ] ./src/RedBolt/Logging/Log.cs:6:// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... }
 - [ ] ./src/RedBolt/Logging/Log.cs:7:// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation).
 - [ ] ./src/RedBolt/Logging/Log.cs:10:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:5:// C++: Viewport inherits from Object. C# matches.
 - [ ] ./src/RedBolt/Graphics/Viewport.cs:6:// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:7:// C++: Has autoRenderPipeline_ flag. C# matches.
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:8:// C++: GetRenderPipelineView returns RenderPipelineView*. C# matches.
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:403:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
