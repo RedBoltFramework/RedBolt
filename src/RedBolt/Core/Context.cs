@@ -64,12 +64,10 @@ public sealed class Context : ObjectReflectionRegistry
         _instance = context;
     }
 
-    // TODO: port - C++ code:
-    // const ea::vector<AttributeInfo>* Context::GetAttributes(StringHash type) const
-    // {
-    //     auto reflection = GetReflection(type);
-    //     return reflection ? &reflection->GetAttributes() : nullptr;
-    // }
+    public IReadOnlyList<AttributeInfo>? GetAttributes(StringHash type)
+    {
+        return GetReflection(type)?.Attributes;
+    }
 
     public void Reset()
     {

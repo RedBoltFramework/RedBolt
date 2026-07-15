@@ -13,4 +13,19 @@ public sealed class TimeTests
         Assert.True(RedBolt.Time.GetTimeSinceEpoch() > 1_700_000_000u);
         Assert.False(string.IsNullOrWhiteSpace(RedBolt.Time.GetTimeStamp()));
     }
+
+    [Fact]
+    public void Frame_progress_matches_begin_and_end_lifecycle()
+    {
+        var context = new Context();
+        Context.SetInstance(context);
+        var time = new RedBolt.Time();
+
+        Assert.False(time.IsFrameInProgress);
+        time.BeginFrame(1.0f / 60.0f);
+        Assert.True(time.IsFrameInProgress);
+        time.EndFrame();
+        Assert.False(time.IsFrameInProgress);
+        time.Dispose();
+    }
 }

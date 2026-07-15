@@ -116,6 +116,7 @@ public sealed class ObjectReflectionTests
 
         Assert.Equal(typeof(FactoryObject).GetClassName(), context.GetTypeName(ObjectReflection<FactoryObject>.TypeId));
         Assert.Equal(42, context.GetAttribute<FactoryObject>("Value").DefaultValue);
+        Assert.Equal("Value", Assert.Single(context.GetAttributes(ObjectReflection<FactoryObject>.TypeId)!).Name);
         Assert.Null(context.GetAttribute<FactoryObject>("Missing"));
         Assert.Equal(string.Empty, context.GetTypeName("Missing"));
     }

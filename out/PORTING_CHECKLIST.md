@@ -96,6 +96,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Exception.h` - **EXCLUDED** · reason: use C# `RuntimeException` / `ArgumentException` or similar.
 - [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
+- [x] `Timer.h` — `Time` frame-progress state, lifecycle disposal, and context reflection attribute access ported
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
 
 ## [x] A4. IO — depends on Container, Core

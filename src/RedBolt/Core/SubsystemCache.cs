@@ -2,12 +2,6 @@ using Container = System.Collections.Generic.Dictionary<RedBolt.StringHash, obje
 
 namespace RedBolt;
 
-// TODO: port - C++ code:
-// using CachedSubsystemList = ea::tuple<
-//     Engine, Time, WorkQueue, FileSystem, VirtualFileSystem,
-//     Log, ResourceCache, Localization, Network, Input, Audio, UI, SystemUI,
-//     Graphics, Renderer, RenderDevice, ParticleGraphSystem, PluginManager, StateManager>;
-
 /// <summary>
 /// List of cached subsystems that don't require hash map lookup.
 /// </summary>
