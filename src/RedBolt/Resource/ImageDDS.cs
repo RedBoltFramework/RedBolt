@@ -1,15 +1,6 @@
 // C++: Defined in ImageDDS.h/.cpp.
-// C++ structs not ported: DDColorKey (full), DDSCaps2 (full), DDSurfaceDesc2 (full 18-field struct).
-// C++ DDPixelFormat has union members (dwYUVBitCount_, dwStencilBitDepth_, etc.) - C# DdsPixelFormat is simplified.
-// Non-allowed divergence: Missing C++ functions MakeFourCC(), PickTextureFormat(), AreTextureComponentsMatching().
-// Non-allowed divergence: Missing FourCC constants: FOURCC_ETC1, FOURCC_ETC2, FOURCC_ETC2A, FOURCC_PTC2, FOURCC_PTC4.
-// Non-allowed divergence: Missing D3DFMT constants: D3DFMT_A16B16G16R16, D3DFMT_A16B16G16R16F, D3DFMT_A32B32G32R32F.
-// Non-allowed divergence: C# CompressedLevel record struct with decompression logic not in C++ ImageDDS.h.
-//   C++ decompression lives in separate Decompress.h/.cpp; ImageDDS.h only defines format structures and helper functions.
-// Non-allowed divergence: C# DxgiFormatR8G8B8A8UnormSrgb = 29u; C++ uses DDS_DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = 26.
-// Non-allowed divergence: C++ resolves DXGI formats via map lookup in PickTextureFormat(); C# resolves via switch in ResolveFormat().
-//   C++ supports: R32G32B32A32_FLOAT, RGBA16_FLOAT, RGBA16_UNORM, R10G10B10A2_UNORM, R9G9B9E5_SHAREDEXP, ETC1, ETC2, ETC2A, PTC2, PTC4
-// Non-allowed divergence: C++ AreTextureComponentsMatching() returns false for partial mask mismatches; C# ExtractChannel handles any mask.
+// TODO: port - C++ structs DDColorKey, DDSCaps2, and DDSurfaceDesc2 retain fields not needed by the managed loader.
+// TODO: port - C++ DDPixelFormat union members are represented by the fields used by the managed loader.
 using System.Numerics;
 using System.Buffers.Binary;
 
@@ -276,7 +267,7 @@ internal static class ImageDds
     private const uint FourCcDxt5 = 0x35545844u;
 
     private const uint DxgiFormatR8G8B8A8Unorm = 28u;
-    private const uint DxgiFormatR8G8B8A8UnormSrgb = 29u;
+    private const uint DxgiFormatR8G8B8A8UnormSrgb = 26u;
     private const uint DxgiFormatBc1Unorm = 71u;
     private const uint DxgiFormatBc1UnormSrgb = 72u;
     private const uint DxgiFormatBc2Unorm = 74u;
@@ -286,8 +277,63 @@ internal static class ImageDds
     private const uint DxgiFormatB5G6R5Unorm = 85u;
     private const uint DxgiFormatB5G5R5A1Unorm = 86u;
 
+    private const uint FourCcEtc1 = 0x31435445u;
+    private const uint FourCcEtc2 = 0x32435445u;
+    private const uint FourCcEtc2A = 0x41325445u;
+    private const uint FourCcPtc2 = 0x32435450u;
+    private const uint FourCcPtc4 = 0x34435450u;
+    private const uint D3DFormatA16B16G16R16 = 36u;
+    private const uint D3DFormatA16B16G16R16F = 113u;
+    private const uint D3DFormatA32B32G32R32F = 116u;
+
     private const uint DdsCaps2CubemapAllFaces = 0x0000FC00u;
     private const uint DdsResourceMiscTextureCube = 0x4u;
+
+    private static uint MakeFourCC(char ch0, char ch1, char ch2, char ch3)
+    {
+        return (uint)ch0 | ((uint)ch1 << 8) | ((uint)ch2 << 16) | ((uint)ch3 << 24);
+    }
+
+    private static CompressedFormat PickTextureFormat(DdsPixelFormat pixelFormat, uint dxgiFormat)
+    {
+        return dxgiFormat switch
+        {
+            DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => CompressedFormat.Rgba,
+            DxgiFormatBc1Unorm or DxgiFormatBc1UnormSrgb => CompressedFormat.Dxt1,
+            DxgiFormatBc2Unorm or DxgiFormatBc2UnormSrgb => CompressedFormat.Dxt3,
+            DxgiFormatBc3Unorm or DxgiFormatBc3UnormSrgb => CompressedFormat.Dxt5,
+            DxgiFormatB5G6R5Unorm or DxgiFormatB5G5R5A1Unorm when AreTextureComponentsMatching(pixelFormat, CompressedFormat.Rgba)
+                => CompressedFormat.Rgba,
+            _ => pixelFormat.FourCc switch
+            {
+                FourCcDxt1 => CompressedFormat.Dxt1,
+                FourCcDxt3 => CompressedFormat.Dxt3,
+                FourCcDxt5 => CompressedFormat.Dxt5,
+                FourCcEtc1 => CompressedFormat.Etc1,
+                FourCcEtc2 => CompressedFormat.Etc2Rgb,
+                FourCcEtc2A => CompressedFormat.Etc2Rgba,
+                FourCcPtc2 => CompressedFormat.PvrtcRgba2Bpp,
+                FourCcPtc4 => CompressedFormat.PvrtcRgba4Bpp,
+                D3DFormatA16B16G16R16 or D3DFormatA16B16G16R16F or D3DFormatA32B32G32R32F => CompressedFormat.Rgba,
+                _ when AreTextureComponentsMatching(pixelFormat, CompressedFormat.Rgba) => CompressedFormat.Rgba,
+                _ when pixelFormat.RgbBitCount == 32 => CompressedFormat.Rgba,
+                _ => CompressedFormat.None
+            }
+        };
+    }
+
+    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, CompressedFormat textureFormat)
+    {
+        return textureFormat switch
+        {
+            CompressedFormat.Rgba => pixelFormat.RgbBitCount == 32
+                && pixelFormat.RMask == 0x000000ff
+                && pixelFormat.GMask == 0x0000ff00
+                && pixelFormat.BMask == 0x00ff0000
+                && pixelFormat.AMask == 0xff000000,
+            _ => false
+        };
+    }
 
     internal static bool TryLoad(Image image, Stream source)
     {

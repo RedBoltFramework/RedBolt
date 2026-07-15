@@ -1,4 +1,3 @@
-// C++: Present. Decompress.h/.cpp. No non-allowed divergences found.
 // C# uses Span<T>/ReadOnlySpan<T> instead of raw pointers (allowed).
 // C# uses CompressedFormat instead of C++ TextureFormat (allowed - Diligent binding difference).
 namespace RedBolt;

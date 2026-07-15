@@ -1,8 +1,7 @@
 namespace RedBolt;
 
-// C++: class Node : public Serializable
-// Non-allowed divergence: C# inherits from Animatable instead of Serializable.
-// Animatable adds ObjectAnimation support that changes the base class hierarchy.
+// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
+// the managed object-animation surface while retaining Serializable behavior.
 public sealed class Node : Animatable
 {
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;

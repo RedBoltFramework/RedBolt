@@ -96,7 +96,7 @@ Use `-j16` for parallel builds.
 
 Run the sample and capture a screenshot:
   rm -f /tmp/screenshot.png
-  out/build/dev/bin/RedBolt.Sample.StaticScene --timeout 2 --screenshot-on-exit /tmp/screenshot.png
+  out/build/dev/bin/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
@@ -114,9 +114,9 @@ The build output binaries are in:
 - Port C++ code as is, no changes to the core logic.
 - PORT C++ destructors as `Dispose()`.
 - Preserve C++ code layout.
-- Keep the code building at all times. Small working slices, not big broken ones.
+- Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.
-- After ANY change: build, run tests, and run the StaticScene sample.
+- After ANY change: build, run tests, and run the MultipleViewports sample.
 - After finishing a slice: commit a coherent checkpoint.
 - If the current API cannot express a piece of C++ yet:
     - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
@@ -195,8 +195,8 @@ Anything not on this list must match C++.
 - [ ] All tests pass.
 - [ ] The C# class outline matches the C++ class outline as closely as possible.
 - [ ] The C# method bodies match the C++ method bodies as closely as possible.
-- [ ] The RedBolt.Sample.StaticScene sample runs and shows a correct scene.
-- [ ] Optional: The StaticScene sample does not allocate GC memory continuously
+- [ ] The RedBolt.Sample.MultipleViewports sample runs and shows a correct scene.
+- [ ] Optional: The MultipleViewports sample does not allocate GC memory continuously
       (verify with dotnet-trace: steady-state allocations should be flat).
 - [ ] All tasks from the goal section are completed.
 
