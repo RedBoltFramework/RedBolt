@@ -78,7 +78,6 @@ public sealed class Texture2D : Texture
         return true;
     }
 
-    // C++: bool SetData(unsigned level, int x, int y, int width, int height, const void* data)
     // C++ simply calls Update(level, {x,y,0}, {width,height,1}, 0, data). _levelData management is C#-added.
     public bool SetData(uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
@@ -119,7 +118,6 @@ public sealed class Texture2D : Texture
 
     public bool SetData(uint level, int x, int y, int width, int height, byte[] data) => SetData(level, x, y, width, height, data.AsSpan());
 
-    // C++: bool SetData(Image* image)
     // C++ uses CreateForImage(params, image) + UpdateFromImage(). C# manually computes mips.
     public bool SetData(Image? image)
     {
@@ -159,7 +157,6 @@ public sealed class Texture2D : Texture
         return GetDataNoCopy(level)?.ToArray();
     }
 
-    // C++: bool GetData(unsigned level, void* dest)
     // C++ calls Read(0, level, dest, M_MAX_UNSIGNED). C# reads from _levelData cache.
     public bool GetData(uint level, Span<byte> destination)
     {
@@ -176,7 +173,6 @@ public sealed class Texture2D : Texture
         return GetData(level, destination.AsSpan());
     }
 
-    // C++: bool GetImage(Image& image)
     // C++ calls ReadToImage(0, 0, &image). C# falls back to _levelData when ReadToImage returns empty.
     // C++: SharedPtr<Image> GetImage() -- returns pointer, no OwnerCache set.
     public bool GetImage(Image image)
