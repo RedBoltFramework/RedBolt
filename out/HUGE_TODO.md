@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:401:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:5:// C++: No direct C++ equivalent. C++ SimpleResource handles JSON/XML/Binary via Archive serialization.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:6:// C++: BeginLoad in SimpleResource uses JSONFile/XMLFile intermediaries; C# reads raw bytes and checks for XML.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:7:// C++: SimpleResource does NOT have DeserializeJson/SerializeJson/LoadLegacyXML — serialization uses SerializeInBlock(Archive).
@@ -426,9 +425,7 @@
 - [ ] ./src/RedBolt/Resource/Decompress.cs:241:    // C++: bool IsFlipBlockImplemented(TextureFormat format);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:251:    // C++: void FlipBlockVertical(unsigned char* dest, const unsigned char* src, TextureFormat format);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:305:    // C++: void FlipBlockHorizontal(unsigned char* dest, const unsigned char* src, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:194:        // C++: only supports arrays (JSON_ARRAY), returns EMPTY when not array
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:399:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-- [ ] ./src/RedBolt/Resource/JSONValue.cs:400:        // C++: logs warning "JsonValue is not null" when overwriting existing value
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:3:// C++: class URHO3D_API Base64OutputArchive : private VectorBuffer, public BinaryOutputArchive
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:13:    // C++: n/a — C# convenience to access raw buffer bytes.
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:15:    // C++: ea::string GetBase64() const; — const in C++, C# flushes first.

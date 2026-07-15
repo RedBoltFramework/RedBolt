@@ -191,11 +191,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public JSONValue Get(int index)
     {
-        // C++: only supports arrays (JSON_ARRAY), returns EMPTY when not array
-        if (IsObject && index >= 0 && index < _objectValue.Count)
-            return _objectValue.ElementAt(index).Value;
-
-        return this[index];
+        return IsArray && index >= 0 && index < _arrayValue.Count ? _arrayValue[index] : new JSONValue();
     }
 
     public uint Size()
@@ -397,7 +393,8 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public void SetVariantValue(Variant value)
     {
         // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-        // C++: logs warning "JsonValue is not null" when overwriting existing value
+        if (!IsNull)
+            Log.Logger.LogWarning("JsonValue is not null");
         Set(FromVariantValue(value));
     }
 
