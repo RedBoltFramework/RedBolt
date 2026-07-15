@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Input/Input.cs:737:        // TODO: port SDL screen joystick creation and UI layout/style integration.
 - [ ] ./src/RedBolt/Input/Input.cs:882:        // C++: converts position via BackbufferToSystem() before SDL_WarpMouseInWindow,
 - [ ] ./src/RedBolt/Input/Input.cs:883:        // C++: uses SDL_WarpMouseGlobal for explicit window rect
 - [ ] ./src/RedBolt/Input/Input.cs:906:        // C++: additionally handles Alt+Enter fullscreen toggle:

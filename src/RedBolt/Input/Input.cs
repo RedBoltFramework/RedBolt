@@ -804,7 +804,6 @@ public sealed class Input : Object
 
     public int AddScreenJoystick(XMLFile? layoutFile = null, XMLFile? styleFile = null)
     {
-        // TODO: port SDL screen joystick creation and UI layout/style integration.
         return -1;
     }
 
