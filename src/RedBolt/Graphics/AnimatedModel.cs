@@ -178,17 +178,39 @@ public class AnimatedModel : StaticModel
     }
 
     /// <summary>Apply all animation states to nodes.</summary>
-    // TODO: port - C++ helper methods used by ApplyAnimation are not available in the managed animation/skinning API yet.
     public void ApplyAnimation()
     {
-        // TODO: port - C++ code:
-        // if (isMaster_)
-        // {
-        //     InitializeLocalBoneTransforms(false);
-        //     CalculateAnimations();
-        //     CalculateLocalBoundingBox();
-        //     ApplyBoneTransformsToNodes();
-        // }
+        if (!_isMaster)
+            return;
+
+        _skeleton.ResetSilent();
+        var outputs = new List<ModelAnimationOutput>(checked((int)_skeleton.GetNumBones()));
+        foreach (var bone in _skeleton.GetBones())
+        {
+            outputs.Add(new ModelAnimationOutput
+            {
+                LocalToParent = new Transform(bone.InitialPosition, bone.InitialRotation, bone.InitialScale)
+            });
+        }
+
+        if (_animationStateSource is not null)
+        {
+            foreach (var state in _animationStateSource.GetAnimationStates())
+                state.CalculateModelTracks(outputs);
+        }
+
+        var bones = _skeleton.GetBones();
+        for (var i = 0; i < bones.Count; ++i)
+        {
+            var boneNode = bones[i].Node;
+            if (boneNode is null)
+                continue;
+
+            var transform = outputs[i].LocalToParent;
+            boneNode.SetTransformSilent(transform.Position, transform.Rotation, transform.Scale);
+        }
+
+        Node?.MarkDirty();
     }
 
     /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
