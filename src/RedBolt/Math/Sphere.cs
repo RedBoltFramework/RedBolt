@@ -52,13 +52,19 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
         Define(box);
     }
 
-    // C++: Sphere(const Frustum& frustum);
-    // C++: Sphere(const Polyhedron& poly);
+    public Sphere(Frustum frustum)
+    {
+        Center = Vector3f.Zero;
+        Radius = 0.0f;
+        Define(frustum);
+    }
 
-    // C++: void Define(const Frustum& frustum);
-    // C++: void Define(const Polyhedron& poly);
-    // C++: void Merge(const Frustum& frustum);
-    // C++: void Merge(const Polyhedron& poly);
+    public Sphere(Polyhedron polyhedron)
+    {
+        Center = Vector3f.Zero;
+        Radius = 0.0f;
+        Define(polyhedron);
+    }
 
     public bool Defined => Radius >= 0.0f;
 
@@ -85,6 +91,18 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
     {
         Clear();
         Merge(box);
+    }
+
+    public void Define(Frustum frustum)
+    {
+        Clear();
+        Merge(frustum);
+    }
+
+    public void Define(Polyhedron polyhedron)
+    {
+        Clear();
+        Merge(polyhedron);
     }
 
     public Intersection IsInside(Vector3f point) => (point - Center).LengthSquared < Radius * Radius ? Intersection.Inside : Intersection.Outside;
@@ -189,6 +207,17 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
     {
         foreach (var corner in GetCorners(box))
             Merge(corner);
+    }
+
+    public void Merge(Frustum frustum)
+    {
+        Merge(frustum.Vertices);
+    }
+
+    public void Merge(Polyhedron polyhedron)
+    {
+        foreach (var face in polyhedron.Faces)
+            Merge(face);
     }
 
     public void Merge(Sphere sphere)
