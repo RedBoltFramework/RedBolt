@@ -9,10 +9,7 @@ namespace RedBolt;
 /// <summary>
 /// Base class for serializable resource that uses Archive serialization.
 /// </summary>
-// TODO: port - C++ code:
-// C++ inherits from SimpleResource (not Resource) and serializes via SerializeInBlock(Archive& archive)
-// instead of BeginLoad/Save with XML/JSON parsing.
-public sealed class RenderPath : Resource
+public sealed class RenderPath : SimpleResource
 {
     private readonly List<RenderPass> _passes = [];
     private RenderPassTraits _traits;
@@ -20,6 +17,38 @@ public sealed class RenderPath : Resource
     public RenderPath(string name)
         : base(name)
     {
+    }
+
+    public override void SerializeInBlock(Archive archive)
+    {
+        if (archive.IsInput)
+            _passes.Clear();
+
+        var count = archive.IsInput ? 0u : checked((uint)_passes.Count);
+        using var passesBlock = archive.OpenArrayBlock("passes", count);
+        if (archive.IsInput)
+        {
+            for (var i = 0u; i < passesBlock.SizeHint; ++i)
+            {
+                using var passBlock = archive.OpenUnorderedBlock("pass");
+                var typeName = string.Empty;
+                ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
+                var pass = RenderPathBuiltInPassFactory.Create(typeName)
+                    ?? throw new InvalidOperationException($"Failed to create render pass of type '{typeName}'.");
+                pass.SerializeInBlock(archive);
+                _passes.Add(pass);
+            }
+        }
+        else
+        {
+            foreach (var pass in _passes)
+            {
+                using var passBlock = archive.OpenUnorderedBlock("pass");
+                var typeName = pass.GetTypeName();
+                ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
+                pass.SerializeInBlock(archive);
+            }
+        }
     }
 
     public IReadOnlyList<RenderPass> GetPasses() => _passes;
