@@ -18,7 +18,6 @@
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
-- [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:9:    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.

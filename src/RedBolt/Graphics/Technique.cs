@@ -36,17 +36,6 @@ public enum LightingMode
 
 public sealed class Pass : PipelineStateTracker
 {
-    // TODO: port - C++ code:
-    // ea::vector<SharedPtr<ShaderVariation>>& GetVertexShaders() { return vertexShaders_; }
-    // ea::vector<SharedPtr<ShaderVariation>>& GetPixelShaders() { return pixelShaders_; }
-    // ea::vector<SharedPtr<ShaderVariation>>& GetVertexShaders(const StringHash& extraDefinesHash);
-    // ea::vector<SharedPtr<ShaderVariation>>& GetPixelShaders(const StringHash& extraDefinesHash);
-    // TODO: port - C++ fields:
-    // ea::vector<SharedPtr<ShaderVariation>> vertexShaders_;
-    // ea::vector<SharedPtr<ShaderVariation>> pixelShaders_;
-    // ea::unordered_map<StringHash, ea::vector<SharedPtr<ShaderVariation>>> extraVertexShaders_;
-    // ea::unordered_map<StringHash, ea::vector<SharedPtr<ShaderVariation>>> extraPixelShaders_;
-
     private static readonly IReadOnlyList<string> DefaultPixelTextureDefines =
     [
         "Albedo",
@@ -57,6 +46,10 @@ public sealed class Pass : PipelineStateTracker
 
     private readonly List<string> _vertexTextureDefines = [];
     private readonly List<string> _pixelTextureDefines = [];
+    private readonly List<ShaderVariation?> _vertexShaders = [];
+    private readonly List<ShaderVariation?> _pixelShaders = [];
+    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraVertexShaders = [];
+    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraPixelShaders = [];
 
     public Pass(string name)
     {
@@ -101,6 +94,32 @@ public sealed class Pass : PipelineStateTracker
     public IReadOnlyList<string> VertexTextureDefines => _vertexTextureDefines;
 
     public IReadOnlyList<string> PixelTextureDefines => _pixelTextureDefines;
+
+    public List<ShaderVariation?> GetVertexShaders() => _vertexShaders;
+
+    public List<ShaderVariation?> GetPixelShaders() => _pixelShaders;
+
+    public List<ShaderVariation?> GetVertexShaders(StringHash extraDefinesHash)
+    {
+        if (!_extraVertexShaders.TryGetValue(extraDefinesHash, out var shaders))
+        {
+            shaders = [];
+            _extraVertexShaders.Add(extraDefinesHash, shaders);
+        }
+
+        return shaders;
+    }
+
+    public List<ShaderVariation?> GetPixelShaders(StringHash extraDefinesHash)
+    {
+        if (!_extraPixelShaders.TryGetValue(extraDefinesHash, out var shaders))
+        {
+            shaders = [];
+            _extraPixelShaders.Add(extraDefinesHash, shaders);
+        }
+
+        return shaders;
+    }
 
     public void SetBlendMode(BlendMode mode)
     {
@@ -212,6 +231,10 @@ public sealed class Pass : PipelineStateTracker
 
     public void ReleaseShaders()
     {
+        _vertexShaders.Clear();
+        _pixelShaders.Clear();
+        _extraVertexShaders.Clear();
+        _extraPixelShaders.Clear();
     }
 
     public void MarkShadersLoaded(uint frameNumber)
