@@ -21,8 +21,6 @@ public enum LoadMode
     SceneAndResources
 }
 
-// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
-// In C++ the scene root is `this`; in C# it's accessed via the `Root` property.
 public sealed class Scene : Serializable
 {
     private sealed class AsyncProgress

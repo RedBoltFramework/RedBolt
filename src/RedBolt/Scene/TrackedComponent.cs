@@ -388,8 +388,6 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
 /// <summary>
 /// Template base of any TrackedComponent that automatically registers itself in registry.
 /// </summary>
-// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-// class TrackedComponent : public ComponentType). C# cannot inherit from a generic type parameter.
 public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedComponentBase
     where ComponentType : Component
     where RegistryComponentType : TrackedComponentRegistryBase

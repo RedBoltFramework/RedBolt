@@ -1,10 +1,7 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-- [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:8:// TODO: port - C++ custom variant traits expose pointer access, relocation, and inline storage size semantics not represented by the managed object model.
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:88:// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
-- [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
