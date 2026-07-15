@@ -14,7 +14,6 @@ public enum IndexBufferType
 /// <remarks>
 // C++: IndexBuffer inherits from RawBuffer and PipelineStateTracker. C# inherits from PipelineStateTracker only and uses inner RawBuffer.
 // C++: RawBuffer has Create method natively. C# uses an inner helper class IndexRawBuffer for Create access.
-// C++: SetSize takes (unsigned indexCount, bool largeIndices, bool dynamic = false). C# matches.
 // C++: GetUnpackedData returns ea::vector&lt;unsigned&gt;. C# returns IReadOnlyList&lt;uint&gt; (allowed collection deviation).
 /// </remarks>
 public sealed class IndexBuffer : PipelineStateTracker
