@@ -110,7 +110,7 @@ sealed class MultipleViewportsApplication : Application
         }
 
         _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
+        _cameraNode.CreateComponent<FreeFlyController>();
         var camera = _cameraNode.CreateComponent<Camera>();
         camera.SetFarClip(300.0f);
 

@@ -81,7 +81,7 @@ sealed class AnimatingSceneApplication : Application
         // Create the camera. Let the starting position be at the world origin. As the fog limits maximum visible distance, we can
         // bring the far clip plane closer for more effective culling of distant objects
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
+        cameraNode.CreateComponent<FreeFlyController>();
         var camera = cameraNode.CreateComponent<Camera>();
         camera.SetFarClip(100.0f);
 

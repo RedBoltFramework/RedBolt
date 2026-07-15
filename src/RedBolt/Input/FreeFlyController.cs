@@ -13,8 +13,6 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private float _axisSensitivity = DefaultAxisRotationSensitivity;
     private float _minPitch = -90.0f;
     private float _maxPitch = 90.0f;
-    // C++: gets Input via GetSubsystem<Input>() each frame, doesn't store it as a field
-    private Input? _input;
     private bool _isActive;
     private bool _oldMouseVisible = true;
     private MouseMode _oldMouseMode = MouseMode.Absolute;
@@ -33,13 +31,6 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         RegisterAttribute("Touch Sensitivity", typeof(float), self => ((FreeFlyController)self).GetTouchSensitivity(), (self, value) => ((FreeFlyController)self).SetTouchSensitivity(value is float typed ? typed : DefaultTouchRotationSensitivity), DefaultTouchRotationSensitivity);
         RegisterAttribute("Axis Sensitivity", typeof(float), self => ((FreeFlyController)self).GetAxisSensitivity(), (self, value) => ((FreeFlyController)self).SetAxisSensitivity(value is float typed ? typed : DefaultAxisRotationSensitivity), DefaultAxisRotationSensitivity);
     }
-
-    public void SetInput(Input? input)
-    {
-        this._input = input;
-    }
-
-    public Input? GetInput() => _input;
 
     public void SetSpeed(float value)
     {
@@ -97,34 +88,36 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         _multitouchSubscription = null;
         if (currentNode is not null)
             _multitouchSubscription = SubscribeToEvent<InputEvents.MultitouchEvent>(HandleMultitouch);
-        if (currentNode is null && _isActive && _input is not null)
+        var input = GetSubsystem<Input>();
+        if (currentNode is null && _isActive && input is not null)
         {
-            _input.SetMouseVisible(_oldMouseVisible);
-            _input.SetMouseMode(_oldMouseMode);
+            input.SetMouseVisible(_oldMouseVisible);
+            input.SetMouseMode(_oldMouseMode);
             _isActive = false;
         }
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {
-        if (!IsEnabledEffective || !IsAttached || _input is null)
+        var input = GetSubsystem<Input>();
+        if (!IsEnabledEffective || !IsAttached || input is null)
             return;
 
-        if (_isActive || _input.MouseMode == MouseMode.Free)
+        if (_isActive || input.MouseMode == MouseMode.Free)
         {
-            if (!_isActive && _input.GetMouseButtonPress(MouseButton.Right))
+            if (!_isActive && input.GetMouseButtonPress(MouseButton.Right))
             {
                 _isActive = true;
-                _oldMouseVisible = _input.MouseVisible;
-                _oldMouseMode = _input.MouseMode;
-                _input.SetMouseVisible(false);
-                _input.SetMouseMode(MouseMode.Relative);
+                _oldMouseVisible = input.MouseVisible;
+                _oldMouseMode = input.MouseMode;
+                input.SetMouseVisible(false);
+                input.SetMouseMode(MouseMode.Relative);
             }
-            else if (_isActive && !_input.GetMouseButtonDown(MouseButton.Right))
+            else if (_isActive && !input.GetMouseButtonDown(MouseButton.Right))
             {
                 _isActive = false;
-                _input.SetMouseVisible(_oldMouseVisible);
-                _input.SetMouseMode(_oldMouseMode);
+                input.SetMouseVisible(_oldMouseVisible);
+                input.SetMouseMode(_oldMouseMode);
             }
 
             if (_isActive)
@@ -150,12 +143,13 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         // void SetCameraRotation(Quaternion quaternion);
         // void OnSetEnabled() override; void UpdateEventSubscription();
         UpdateCameraAngles();
+        var input = GetSubsystem<Input>();
         var controllerRotation = new Vector3f(
-            _axisAdapter.Transform(_input?.GetControllerAxisPosition(ControllerAxis.RightY) ?? 0.0f),
-            _axisAdapter.Transform(_input?.GetControllerAxisPosition(ControllerAxis.RightX) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
+            _axisAdapter.Transform(input?.GetControllerAxisPosition(ControllerAxis.RightY) ?? 0.0f),
+            _axisAdapter.Transform(input?.GetControllerAxisPosition(ControllerAxis.RightX) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
         var genericRotation = new Vector3f(
-            _axisAdapter.Transform(_input?.GetJoystickAxisPosition(3) ?? 0.0f),
-            _axisAdapter.Transform(_input?.GetJoystickAxisPosition(2) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
+            _axisAdapter.Transform(input?.GetJoystickAxisPosition(3) ?? 0.0f),
+            _axisAdapter.Transform(input?.GetJoystickAxisPosition(2) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
         var eulerAngles = _lastKnownEulerAngles + HandleMouse() + controllerRotation + genericRotation;
         SetCameraAngles(eulerAngles);
 
@@ -166,47 +160,50 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     private Vector3f HandleMouse()
     {
-        if (_input is null)
+        var input = GetSubsystem<Input>();
+        if (input is null)
             return Vector3f.Zero;
 
-        var mouseMove = _input.GetMouseMove();
+        var mouseMove = input.GetMouseMove();
         return new Vector3f(_mouseSensitivity * mouseMove.Y, _mouseSensitivity * mouseMove.X, 0.0f);
     }
 
     private Vector3f HandleKeyboard(float timeStep)
     {
-        if (_input is null)
+        var input = GetSubsystem<Input>();
+        if (input is null)
             return Vector3f.Zero;
 
-        var effectiveSpeed = _input.GetKeyDown(Key.LeftShift) || _input.GetKeyDown(Key.RightShift)
+        var effectiveSpeed = input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift)
             ? _acceleratedSpeed
             : _speed;
         var result = Vector3f.Zero;
-        if (_input.GetScancodeDown(Scancode.W))
+        if (input.GetScancodeDown(Scancode.W))
             result.Z += effectiveSpeed * timeStep;
-        if (_input.GetScancodeDown(Scancode.S))
+        if (input.GetScancodeDown(Scancode.S))
             result.Z -= effectiveSpeed * timeStep;
-        if (_input.GetScancodeDown(Scancode.A))
+        if (input.GetScancodeDown(Scancode.A))
             result.X -= effectiveSpeed * timeStep;
-        if (_input.GetScancodeDown(Scancode.D))
+        if (input.GetScancodeDown(Scancode.D))
             result.X += effectiveSpeed * timeStep;
-        if (_input.GetScancodeDown(Scancode.Q))
+        if (input.GetScancodeDown(Scancode.Q))
             result.Y -= effectiveSpeed * timeStep;
-        if (_input.GetScancodeDown(Scancode.E))
+        if (input.GetScancodeDown(Scancode.E))
             result.Y += effectiveSpeed * timeStep;
         return result;
     }
 
     private Vector3f HandleController(float timeStep)
     {
-        if (_input is null) return Vector3f.Zero;
-        var acceleration = MathDefs.Clamp(_axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.TriggerLeft)), 0.0f, 1.0f);
+        var input = GetSubsystem<Input>();
+        if (input is null) return Vector3f.Zero;
+        var acceleration = MathDefs.Clamp(_axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.TriggerLeft)), 0.0f, 1.0f);
         var speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
         var result = new Vector3f(
-            _axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftX)) * speed * timeStep,
+            _axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.LeftX)) * speed * timeStep,
             0.0f,
-            -_axisAdapter.Transform(_input.GetControllerAxisPosition(ControllerAxis.LeftY)) * speed * timeStep);
-        var hat = _input.GetHatPosition();
+            -_axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.LeftY)) * speed * timeStep);
+        var hat = input.GetHatPosition();
         if ((hat & HatPosition.Up) != 0) result.Z += speed * timeStep;
         if ((hat & HatPosition.Down) != 0) result.Z -= speed * timeStep;
         if ((hat & HatPosition.Left) != 0) result.X -= speed * timeStep;
@@ -216,17 +213,18 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     private Vector3f HandleGenericJoystick(float timeStep)
     {
-        if (_input is null) return Vector3f.Zero;
+        var input = GetSubsystem<Input>();
+        if (input is null) return Vector3f.Zero;
         var speed = _speed;
-        if (_input.HasJoystickAxisPosition(4))
+        if (input.HasJoystickAxisPosition(4))
         {
-            var acceleration = MathDefs.Clamp((1.0f + _axisAdapter.Transform(_input.GetJoystickAxisPosition(4))) * 0.5f, 0.0f, 1.0f);
+            var acceleration = MathDefs.Clamp((1.0f + _axisAdapter.Transform(input.GetJoystickAxisPosition(4))) * 0.5f, 0.0f, 1.0f);
             speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
         }
         return new Vector3f(
-            _axisAdapter.Transform(_input.GetJoystickAxisPosition(0)) * speed * timeStep,
+            _axisAdapter.Transform(input.GetJoystickAxisPosition(0)) * speed * timeStep,
             0.0f,
-            -_axisAdapter.Transform(_input.GetJoystickAxisPosition(1)) * speed * timeStep);
+            -_axisAdapter.Transform(input.GetJoystickAxisPosition(1)) * speed * timeStep);
     }
 
     private void HandleMultitouch(ref InputEvents.MultitouchEvent value)

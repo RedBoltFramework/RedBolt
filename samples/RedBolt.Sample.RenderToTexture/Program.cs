@@ -149,7 +149,7 @@ sealed class RenderToTextureApplication : Application
         _renderSurface?.SetViewport(0, _renderToTextureViewport);
 
         _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
+        _cameraNode.CreateComponent<FreeFlyController>();
         var camera = _cameraNode.CreateComponent<Camera>();
         camera.SetFarClip(300.0f);
         _cameraNode.SetPosition(new Vector3f(0.0f, 7.0f, -30.0f));

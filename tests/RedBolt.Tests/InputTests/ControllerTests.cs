@@ -20,7 +20,6 @@ public sealed class ControllerTests
         var scene = new Scene();
         var node = scene.CreateChild("FreeFly");
         var freeFly = node.CreateComponent<FreeFlyController>();
-        freeFly.SetInput(Input);
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Relative);
@@ -36,7 +35,6 @@ public sealed class ControllerTests
     {
         var scene = new Scene();
         var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
-        freeFly.SetInput(Input);
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Free);
@@ -53,7 +51,6 @@ public sealed class ControllerTests
     {
         var scene = new Scene();
         var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
-        freeFly.SetInput(Input);
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Free);
@@ -76,7 +73,6 @@ public sealed class ControllerTests
         var node = scene.CreateChild("Controller");
         var movement = node.CreateComponent<MoveAndOrbitComponent>();
         var controller = node.CreateComponent<MoveAndOrbitController>();
-        controller.SetInput(Input);
 
         var map = new InputMap("Input/MoveController", Input);
         map.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
@@ -125,7 +121,6 @@ public sealed class ControllerTests
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyControllerAxes");
         var controller = node.CreateComponent<FreeFlyController>();
-        controller.SetInput(Input);
         Input.SetMouseMode(MouseMode.Absolute);
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.5f);
         Input.SetControllerAxis(ControllerAxis.LeftY, 0.0f);

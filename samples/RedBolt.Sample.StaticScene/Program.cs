@@ -108,7 +108,6 @@ sealed class StaticSceneApplication : Application
         _cameraNode = _scene.CreateChild("Camera");
         _cameraNode.CreateComponent<Camera>();
         var controller = _cameraNode.CreateComponent<FreeFlyController>();
-        controller.SetInput(Input);
 
         // Set an initial position for the camera scene node above the plane
         _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));

@@ -105,7 +105,7 @@ sealed class DynamicGeometryApplication : Application
         CreatePyramid(scene);
 
         var cameraNode = scene.CreateChild("Camera");
-        cameraNode.CreateComponent<FreeFlyController>().SetInput(Input);
+        cameraNode.CreateComponent<FreeFlyController>();
         cameraNode.SetPosition(new Vector3f(0.0f, 2.0f, -20.0f));
         var camera = cameraNode.CreateComponent<Camera>();
         camera.SetFarClip(300.0f);
