@@ -199,27 +199,27 @@ public sealed class SplinePath : Component
 
     public uint GetControlledIdAttr() => _controlledIdAttr;
 
-    // TODO: port - C++ code:
-    // void SplinePath::DrawDebugGeometry(DebugRenderer* debug, bool /*depthTest*/)
-    // {
-    //     if (debug && node_ && IsEnabledEffective())
-    //     {
-    //         if (spline_.GetKnots().size() > 1)
-    //         {
-    //             Vector3 a = spline_.GetPoint(0.f).GetVector3();
-    //             for (auto i = 1; i <= 100; ++i)
-    //             {
-    //                 Vector3 b = spline_.GetPoint(i / 100.f).GetVector3();
-    //                 debug->AddLine(a, b, Color::GREEN);
-    //                 a = b;
-    //             }
-    //         }
-    //         for (auto i = controlPoints_.begin(); i != controlPoints_.end(); ++i)
-    //             debug->AddNode(i->Get());
-    //         if (controlledNode_)
-    //             debug->AddNode(controlledNode_.Get());
-    //     }
-    // }
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is null || !IsEnabledEffective)
+            return;
+
+        if (_spline.GetKnots().Count > 1)
+        {
+            var a = _spline.GetPoint(0.0f).GetVector3();
+            for (var i = 1; i <= 100; ++i)
+            {
+                var b = _spline.GetPoint(i / 100.0f).GetVector3();
+                debug.AddLine(a, b, new Color(0.0f, 1.0f, 0.0f), depthTest);
+                a = b;
+            }
+        }
+
+        foreach (var controlPoint in _controlPoints)
+            debug.AddNode(controlPoint, depthTest: depthTest);
+        if (_controlledNode is not null)
+            debug.AddNode(_controlledNode, depthTest: depthTest);
+    }
 
     protected internal override void OnMarkedDirty(Node node)
     {

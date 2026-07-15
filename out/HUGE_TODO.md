@@ -7,7 +7,6 @@
 - [ ] ./src/RedBolt/Scene/UnknownComponent.cs:7:    // C++: UnknownComponent has no custom attributes — it is purely a placeholder.
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-- [ ] ./src/RedBolt/Scene/SplinePath.cs:202:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
