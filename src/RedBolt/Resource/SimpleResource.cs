@@ -194,23 +194,62 @@ public abstract class SimpleResource : Resource
         return copy.ToArray();
     }
 
-    // C++: PeekResourceFormat is a free function in Resource.cpp, not a member of SimpleResource.
-    // C++: operates on Deserializer, not byte spans.
     private static InternalResourceFormat PeekResourceFormat(ReadOnlySpan<byte> data, ReadOnlySpan<byte> binaryMagic)
     {
         if (data.StartsWith(binaryMagic))
             return InternalResourceFormat.Binary;
 
-        foreach (var value in data)
+        static bool IsBlank(byte value) => char.IsWhiteSpace((char)value);
+        static bool IsAllBlank(ReadOnlySpan<byte> values)
         {
-            if (char.IsWhiteSpace((char)value))
-                continue;
-            return value switch
+            foreach (var value in values)
             {
-                (byte)'{' or (byte)'[' => InternalResourceFormat.Json,
-                (byte)'<' => InternalResourceFormat.Xml,
-                _ => InternalResourceFormat.Unknown
-            };
+                if (!IsBlank(value))
+                    return false;
+            }
+            return true;
+        }
+
+        var peekCount = Math.Min(4, data.Length);
+        if (peekCount == 4)
+        {
+            for (var i = 0; i < peekCount; ++i)
+            {
+                if (data[i] == (byte)'<' && IsAllBlank(data[..i]))
+                    return InternalResourceFormat.Xml;
+            }
+        }
+
+        if (peekCount >= 2)
+        {
+            for (var i = 0; i < peekCount; ++i)
+            {
+                if (data[i] == (byte)'{' && IsAllBlank(data[..i]))
+                    return InternalResourceFormat.Json;
+            }
+        }
+
+        var allBlank = true;
+        for (var i = 0; i < peekCount; ++i)
+        {
+            if (!IsBlank(data[i]))
+            {
+                allBlank = false;
+                break;
+            }
+        }
+
+        if (!allBlank)
+            return InternalResourceFormat.Unknown;
+
+        for (var i = peekCount; i < data.Length; ++i)
+        {
+            if (data[i] == (byte)'<')
+                return InternalResourceFormat.Xml;
+            if (data[i] == (byte)'{')
+                return InternalResourceFormat.Json;
+            if (!IsBlank(data[i]))
+                return InternalResourceFormat.Unknown;
         }
 
         return InternalResourceFormat.Unknown;

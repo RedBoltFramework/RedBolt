@@ -1,7 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/SimpleResource.cs:198:    // C++: PeekResourceFormat is a free function in Resource.cpp, not a member of SimpleResource.
-- [ ] ./src/RedBolt/Resource/SimpleResource.cs:199:    // C++: operates on Deserializer, not byte spans.
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:22:        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:23:        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:24:        // C++: throws ArchiveException on creation failure
