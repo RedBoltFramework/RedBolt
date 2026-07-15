@@ -102,6 +102,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Variant.h` — mutable reset, buffer/custom assignment, mutating string conversion, and hash API ported
 - [x] `Serializable.h` — reflection access and binary/XML/JSON/auto-detected resource loading ported; prefab temporary-serialization overload remains pending
 - [x] `ThreadSafeCache.h` — `Restore` is the managed equivalent of C++ assignment; no separate assignment operator is needed
+- [x] `Object.h` event handler — old VariantMap handler TODOs removed; managed struct-based events are the accepted event-system deviation
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
 
 ## [x] A4. IO — depends on Container, Core
