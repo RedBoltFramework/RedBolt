@@ -18,8 +18,8 @@ public sealed class XMLFile : Resource
 
     public override bool BeginLoad(Stream source)
     {
-        // C++: checks for "inherit" attribute in root, loads inherited XML, patches, stores dependencies
-        // C++: error logging via URHO3D_LOGERROR
+
+
         ArgumentNullException.ThrowIfNull(source);
         using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
         return FromString(reader.ReadToEnd());
@@ -150,21 +150,65 @@ public sealed class XMLFile : Resource
     {
         if (original is not XElement element) return;
         var type = patch.Attribute("type")?.Value;
-        if (type?.StartsWith('@') == true)
+        if (string.IsNullOrEmpty(type))
         {
-            // C++: AddAttribute validates child is text, strips '@' prefix, uses SetAttributeValue
-            element.SetAttributeValue(type[1..], patch.Value);
+            AddNode(patch, element);
             return;
         }
-        // C++: AddNode handles append/prepend/before/after with CombineText merging
-        var copies = patch.Nodes().Select(CloneNode).ToArray();
+
+        if (type.StartsWith('@'))
+        {
+            element.SetAttributeValue(type[1..], patch.Value);
+        }
+    }
+
+    private static void AddNode(XElement patch, XElement original)
+    {
+        var nodes = patch.Nodes().ToArray();
         switch (patch.Attribute("pos")?.Value)
         {
-            case "prepend": element.AddFirst(copies); break;
-            case "before": element.AddBeforeSelf(copies); break;
-            case "after": element.AddAfterSelf(copies); break;
-            default: element.Add(copies); break;
+            case "prepend":
+                if (nodes.Length > 0 && CombineText(nodes[^1], original.FirstNode, true))
+                    nodes = nodes[..^1];
+                original.AddFirst(nodes.Select(CloneNode));
+                break;
+            case "before":
+                if (nodes.Length > 0 && CombineText(nodes[0], original.PreviousNode, false))
+                    nodes = nodes[1..];
+                if (nodes.Length > 0 && CombineText(nodes[^1], original, true))
+                    nodes = nodes[..^1];
+                original.AddBeforeSelf(nodes.Select(CloneNode));
+                break;
+            case "after":
+                if (nodes.Length > 0 && CombineText(nodes[0], original, false))
+                    nodes = nodes[1..];
+                if (nodes.Length > 0 && CombineText(nodes[^1], original.NextNode, true))
+                    nodes = nodes[..^1];
+                original.AddAfterSelf(nodes.Select(CloneNode));
+                break;
+            default:
+                if (nodes.Length > 0 && CombineText(nodes[0], original.LastNode, false))
+                    nodes = nodes[1..];
+                original.Add(nodes.Select(CloneNode));
+                break;
         }
+    }
+
+    private static bool CombineText(XNode? patch, XNode? original, bool prepend)
+    {
+        if (patch is XText patchText && original is XText originalText)
+        {
+            originalText.Value = prepend ? patchText.Value + originalText.Value : originalText.Value + patchText.Value;
+            return true;
+        }
+
+        if (patch is XCData patchCdata && original is XCData originalCdata)
+        {
+            originalCdata.Value = prepend ? patchCdata.Value + originalCdata.Value : originalCdata.Value + patchCdata.Value;
+            return true;
+        }
+
+        return false;
     }
 
     private static void PatchReplace(XElement patch, object? original)
