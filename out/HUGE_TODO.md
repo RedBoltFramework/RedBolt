@@ -71,18 +71,18 @@
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1276:   // @TODO: move stbi__convert_format to here — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1302:   // @TODO: move stbi__convert_format16 to here — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1303:   // @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:3:// C++: enum FileMode { FILE_READ = 0, FILE_WRITE, FILE_READWRITE }; — defined in AbstractFile.h, C# moves it to File.cs
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:4:// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:6:// C++: using AbstractFilePtr = SharedPtr<AbstractFile, RefCounted>;
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:9:    // C++: AbstractFile() : Deserializer() { }
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:14:    // C++: explicit AbstractFile(unsigned int size) : Deserializer(size) { }
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:20:    // C++: ~AbstractFile() override = default;
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:23:    // C++: const ea::string& GetName() const override { return name_; } — SWIG workaround
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:26:    // C++: virtual const ea::string& GetAbsoluteName() const { return name_; }
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:29:    // C++: virtual bool IsOpen() const { return true; }
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:32:    // C++: ea::string name_;
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:35:    // C++: virtual void SetName(const ea::string& name) { name_ = name; }
-- [ ] ./src/RedBolt/IO/AbstractFile.cs:41:    // C++: virtual void Close() {}
+- [x] ./src/RedBolt/IO/AbstractFile.cs:3:// C++: enum FileMode { FILE_READ = 0, FILE_WRITE, FILE_READWRITE }; — defined in AbstractFile.h, C# moves it to File.cs — reviewed; the managed enum remains public on File as the existing API mapping.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:4:// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer — reviewed; C# cannot use multiple class inheritance and the managed serializer API is provided by the file subclasses.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:6:// C++: using AbstractFilePtr = SharedPtr<AbstractFile, RefCounted>; — reviewed; RefCounted/SharedPtr are explicitly dropped in the managed port.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:9:    // C++: AbstractFile() : Deserializer() { } — reviewed; the managed protected constructor delegates to Deserializer.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:14:    // C++: explicit AbstractFile(unsigned int size) : Deserializer(size) { } — reviewed; the managed sized constructor delegates to Deserializer(size).
+- [x] ./src/RedBolt/IO/AbstractFile.cs:20:    // C++: ~AbstractFile() override = default; — reviewed; the managed base has no owned resources and concrete file classes expose Dispose.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:23:    // C++: const ea::string& GetName() const override { return name_; } — SWIG workaround — reviewed; managed Name returns the same backing field.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:26:    // C++: virtual const ea::string& GetAbsoluteName() const { return name_; } — reviewed; managed AbsoluteName returns the backing name by default.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:29:    // C++: virtual bool IsOpen() const { return true; } — reviewed; managed IsOpen defaults to true and concrete files override it.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:32:    // C++: ea::string name_; — reviewed; managed _name is the corresponding mutable field.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:35:    // C++: virtual void SetName(const ea::string& name) { name_ = name; } — reviewed; managed SetName assigns the corresponding field.
+- [x] ./src/RedBolt/IO/AbstractFile.cs:41:    // C++: virtual void Close() {} — reviewed; managed Close is the corresponding virtual no-op.
 - [ ] ./src/RedBolt/Container/KeyFrameSet.cs:3:// C++: KeyFrameSet is a struct template with keyFrames_ as public field:
 - [ ] ./src/RedBolt/Container/IndexAllocator.cs:3:// C++: IndexAllocator is templated on MutexType (default DummyMutex):
 - [ ] ./src/RedBolt/Container/ConstString.cs:3:// C++: ConstString inherits from ea::string, so it IS a string with an embedded StringHash.
@@ -759,4 +759,3 @@
 - [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:678:	// receiving an input report is the final indicator that the user accepted a pairing
 - [x] ./extern/thirdparty/imgui/backends/imgui_impl_metal.h:53:// More info about using Metal from C++: https://developer.apple.com/metal/cpp/
 - [x] ./extern/thirdparty/SDL/src/video/haiku/SDL_bmessagebox.cc:196:		// TODO: Not Implemented.
-
