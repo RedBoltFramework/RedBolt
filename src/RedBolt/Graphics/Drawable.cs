@@ -139,7 +139,6 @@ public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 
 /// <summary>Base class for visible components.</summary>
 /// <remarks>
-// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
 /// </remarks>
 public abstract class Drawable : Component
 {
