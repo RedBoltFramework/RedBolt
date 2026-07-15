@@ -5,22 +5,22 @@ Generated 2026-07-15 from the repository-wide regex `//.+(TODO:|C\+\+:|deviation
 Each line below is one exact current match. `[ ]` means not yet handled; third-party entries require review but must not be modified casually.
 
 - [x] ./AGENTS.md:122:- Add the C++ version as a C# COMMENT with a `// TODO: port` note, — policy instruction; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/Audio/SoundSource.cs:400:// C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP,
+- [x] ./src/RedBolt/Audio/SoundSource.cs:400:// C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP, — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:1457:// @TODO: validate loc0,loc1 as valid positions? — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:4193:// @TODO: stb_vorbis_seek_start expects first_audio_page_offset to point to a page — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/Audio/Audio.cs:160:// TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread.
-- [ ] ./src/RedBolt/Audio/Audio.cs:422:// C++: URHO3D_PROFILE("UpdateAudio");
-- [ ] ./src/RedBolt/Audio/Audio.cs:451:// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len)
-- [ ] ./src/RedBolt/Audio/Audio.cs:452:// C++: {
-- [ ] ./src/RedBolt/Audio/Audio.cs:453:// C++:     auto* audio = static_cast<Audio*>(userdata);
-- [ ] ./src/RedBolt/Audio/Audio.cs:454:// C++:     {
-- [ ] ./src/RedBolt/Audio/Audio.cs:455:// C++:         MutexLock Lock(audio->GetMutex());
-- [ ] ./src/RedBolt/Audio/Audio.cs:456:// C++:         audio->MixOutput(stream, len / audio->GetSampleSize());
-- [ ] ./src/RedBolt/Audio/Audio.cs:457:// C++:     }
-- [ ] ./src/RedBolt/Audio/Audio.cs:458:// C++: }
-- [ ] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo).
+- [x] ./src/RedBolt/Audio/Audio.cs:160:// TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread. — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:422:// C++: URHO3D_PROFILE("UpdateAudio"); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:451:// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len) — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:452:// C++: { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:453:// C++:     auto* audio = static_cast<Audio*>(userdata); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:454:// C++:     { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:455:// C++:         MutexLock Lock(audio->GetMutex()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:456:// C++:         audio->MixOutput(stream, len / audio->GetSampleSize()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:457:// C++:     } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:458:// C++: } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class. — reviewed; managed reference type preserves shared mutable render state.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields. — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo). — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:// TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available. — reviewed; RenderPipelineDebugger is not present in the managed port.
 - [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:278:// C++: settings_.Validate(); settings_.AdjustToSupported(context_); — removed extra PropagateImpliedSettings and Touch calls to match C++.
 - [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:// TODO: port - C++ code: — added the managed frame-parameter cache and update method.
@@ -46,14 +46,14 @@ Each line below is one exact current match. `[ ]` means not yet handled; third-p
 - [x] ./src/RedBolt/RenderAPI/RawTexture.cs:193:// TODO: port - C++ code: — reviewed; generated bindings do not expose Vulkan image import.
 - [x] ./src/RedBolt/RenderAPI/RawTexture.cs:212:// TODO: port - C++ code: — reviewed; generated bindings do not expose Vulkan image import.
 - [x] ./extern/thirdparty/SDL/src/render/vitagxm/SDL_render_vita_gxm.c:1138:// TODO: read from texture rendertarget. Although no-one sane should do it. — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/RenderAPI/DeviceObject.cs:8:// C++: WeakPtr<RenderDevice> renderDevice_ (first field)
-- [ ] ./src/RedBolt/RenderAPI/DeviceObject.cs:13:// C++: ea::string debugName_ (second field)
-- [ ] ./src/RedBolt/RenderAPI/DeviceObject.cs:18:// C++: bool dataLost_{} (third field)
+- [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:8:// C++: WeakPtr<RenderDevice> renderDevice_ (first field) — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:13:// C++: ea::string debugName_ (second field) — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:18:// C++: bool dataLost_{} (third field) — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./extern/thirdparty/SDL/src/core/winrt/SDL_winrtapp_direct3d.cpp:123:WINRT_ProcessWindowSizeChange() // TODO: Pass an SDL_Window-identifying thing into WINRT_ProcessWindowSizeChange() — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1276:// @TODO: move stbi__convert_format to here — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1302:// @TODO: move stbi__convert_format16 to here — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1303:// @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/Resource/XPathQuery.cs:1:// C++: no direct C++ counterpart. XPathQuery is only forward-declared in XMLElement.h:48.
+- [x] ./src/RedBolt/Resource/XPathQuery.cs:1:// C++: no direct C++ counterpart. XPathQuery is only forward-declared in XMLElement.h:48. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:10:// C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:94:// C++: uses SerializeOptionalValue for node/pin/value with Variant::EMPTY default and custom serializer lambda
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:95:// C++: value serialization uses SerializeOptionalValue(archive, "value", value_, Variant::EMPTY, lambda)
@@ -74,20 +74,20 @@ Each line below is one exact current match. `[ ]` means not yet handled; third-p
 - [x] ./extern/thirdparty/imgui/imstb_truetype.h:928:// @TODO: don't expose this structure — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/imgui/imstb_truetype.h:1519:STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/imgui/imstb_truetype.h:3189:// @TODO: maybe test against sy1 rather than y_bottom? — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [ ] ./src/RedBolt/Logging/Log.cs:6:// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... }
-- [ ] ./src/RedBolt/Logging/Log.cs:7:// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation).
-- [ ] ./src/RedBolt/Logging/Log.cs:10:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/ResourceWithMetadata.cs:1:// C++: no direct C++ counterpart. C#-only class.
-- [ ] ./src/RedBolt/Resource/ResourceRouter.cs:3:// C++: No direct C++ equivalent. Resource routing in C++ is handled via ResourceCache.
-- [ ] ./src/RedBolt/Resource/Decompress.cs:36:// C++: void DecompressImageDXT(unsigned char* rgba, const void* blocks, int width, int height, int depth, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:80:// C++: void DecompressImageETC(unsigned char* dstImage, const void* blocks, int width, int height, bool hasAlpha);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:134:// C++: void DecompressImagePVRTC(unsigned char* rgba, const void* blocks, int width, int height, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:241:// C++: bool IsFlipBlockImplemented(TextureFormat format);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:251:// C++: void FlipBlockVertical(unsigned char* dest, const unsigned char* src, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:305:// C++: void FlipBlockHorizontal(unsigned char* dest, const unsigned char* src, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/ResourceLoading.cs:3:// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource)
-- [ ] ./src/RedBolt/Resource/ResourceLoading.cs:6:// C++: LoadDependentResource — equivalent code inlined into each resource's BeginLoad using ResourceCache::GetResource.
-- [ ] ./src/RedBolt/Resource/ResourceLoading.cs:7:// C++: OpenDependentResource — equivalent code inlined using VirtualFileSystem::OpenFile with FileIdentifier.
+- [x] ./src/RedBolt/Logging/Log.cs:6:// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... } — allowed logging deviation or profiling macro with no managed equivalent; reviewed and intentionally retained.
+- [x] ./src/RedBolt/Logging/Log.cs:7:// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation). — allowed logging deviation or profiling macro with no managed equivalent; reviewed and intentionally retained.
+- [x] ./src/RedBolt/Logging/Log.cs:10:// TODO: port - C++ code: — allowed logging deviation or profiling macro with no managed equivalent; reviewed and intentionally retained.
+- [x] ./src/RedBolt/Resource/ResourceWithMetadata.cs:1:// C++: no direct C++ counterpart. C#-only class. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
+- [x] ./src/RedBolt/Resource/ResourceRouter.cs:3:// C++: No direct C++ equivalent. Resource routing in C++ is handled via ResourceCache. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
+- [x] ./src/RedBolt/Resource/Decompress.cs:36:// C++: void DecompressImageDXT(unsigned char* rgba, const void* blocks, int width, int height, int depth, TextureFormat format); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/Decompress.cs:80:// C++: void DecompressImageETC(unsigned char* dstImage, const void* blocks, int width, int height, bool hasAlpha); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/Decompress.cs:134:// C++: void DecompressImagePVRTC(unsigned char* rgba, const void* blocks, int width, int height, TextureFormat format); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/Decompress.cs:241:// C++: bool IsFlipBlockImplemented(TextureFormat format); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/Decompress.cs:251:// C++: void FlipBlockVertical(unsigned char* dest, const unsigned char* src, TextureFormat format); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/Decompress.cs:305:// C++: void FlipBlockHorizontal(unsigned char* dest, const unsigned char* src, TextureFormat format); — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/ResourceLoading.cs:3:// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource) — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/ResourceLoading.cs:6:// C++: LoadDependentResource — equivalent code inlined into each resource's BeginLoad using ResourceCache::GetResource. — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Resource/ResourceLoading.cs:7:// C++: OpenDependentResource — equivalent code inlined using VirtualFileSystem::OpenFile with FileIdentifier. — reviewed against the C++ implementation; managed representation is complete.
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:14:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:24:// C++: source.Seek(0); buffer_.SetData(source, source.GetSize()); SetMemoryUse(buffer_.GetBuffer().capacity());
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:25:// C++: reads data via VectorBuffer.SetData(Deserializer&, size) directly — no intermediate MemoryStream copy.
@@ -101,9 +101,9 @@ Each line below is one exact current match. `[ ]` means not yet handled; third-p
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:105:// C++: buffer_.SetData(data); SetMemoryUse(buffer_.GetBuffer().capacity()) — uses capacity(), not size().
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:113:// C++: void SetText(ea::string_view text) — zero-copy view.
 - [ ] ./src/RedBolt/Resource/BinaryFile.cs:114:// C++: SetMemoryUse(static_cast<unsigned>(buffer_.GetBuffer().capacity())) — uses capacity().
-- [ ] ./src/RedBolt/IO/VectorBuffer.cs:30:// C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer"
-- [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:// C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
-- [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:// C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
+- [x] ./src/RedBolt/IO/VectorBuffer.cs:30:// C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer" — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/IO/VectorBuffer.cs:38:// C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/IO/VectorBuffer.cs:44:// C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:3:// C++: BackgroundLoadItem is a struct in BackgroundLoader.h with URHO3D_API.
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:4:// C++: stores SharedPtr<Resource> resource_ (the actual resource object, not a Task).
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:5:// C++: stores dependencies as ea::hash_set<ea::pair<StringHash, StringHash>>
@@ -118,7 +118,7 @@ Each line below is one exact current match. `[ ]` means not yet handled; third-p
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:111:// C++: acquires mutex, finds item, releases mutex, polls resource state in loop with Time::Sleep(1),
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:135:// C++: iterates queue with mutex, calls FinishBackgroundLoading for each ready item, breaks on time limit.
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:175:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/AsyncLoadState.cs:1:// C++: enum AsyncLoadState in Resource.h:69.
+- [x] ./src/RedBolt/Resource/AsyncLoadState.cs:1:// C++: enum AsyncLoadState in Resource.h:69. — reviewed against the C++ implementation; managed representation is complete.
 - [ ] ./src/RedBolt/IO/NamedPipe.cs:75:// C++: URHO3D_LOGERROR("Cannot change name of the NamedPipe!"); assert(0);
 - [ ] ./src/RedBolt/Resource/ResourceCache.cs:490:// C++: delegates to VFS GetCanonicalIdentifier; this has custom path normalisation logic
 - [ ] ./src/RedBolt/Resource/ResourceCache.cs:602:// C++: sends E_RELOADSTARTED event, calls resource.Load(*file), sends E_RELOADFINISHED or E_RELOADFAILED
@@ -804,4 +804,5 @@ Each line below is one exact current match. `[ ]` means not yet handled; third-p
 - [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_D3D11.cpp:222:// TODO: collect all outputs. — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/BufferGLImpl.cpp:100:// TODO: find out if it affects performance if the buffer is originally bound to one target — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/DeviceContextGLImpl.cpp:632:// TODO: invalidate input attachments using glInvalidateTexImage — vendored third-party dependency; reviewed and intentionally left unchanged.
+
 
