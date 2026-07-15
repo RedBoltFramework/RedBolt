@@ -32,6 +32,25 @@ public class Animatable : Serializable
     private bool _animationEnabled = true;
     private ObjectAnimation? _objectAnimation;
 
+    public Animatable()
+    {
+        RegisterAttribute(
+            "Object Animation",
+            typeof(ResourceRef),
+            self => Resource.GetResourceRef(
+                ((Animatable)self)._objectAnimation,
+                ObjectReflection<ObjectAnimation>.TypeId),
+            (self, value) =>
+            {
+                if (value is not ResourceRef resourceRef || string.IsNullOrEmpty(resourceRef.Name))
+                    return;
+
+                var cache = ((Animatable)self).GetSubsystem<ResourceCache>();
+                ((Animatable)self).SetObjectAnimation(cache?.GetResourceOrNull<ObjectAnimation>(resourceRef.Name));
+            },
+            new ResourceRef(ObjectReflection<ObjectAnimation>.TypeId));
+    }
+
     // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
     // animation data (object animation and attribute animations) as children of the node/component.
     // C++ Animatable::LoadXML loads <objectanimation> and <attributeanimation> elements.
@@ -149,12 +168,8 @@ public class Animatable : Serializable
     }
 
     // TODO: port - C++ code:
-    // void OnObjectAnimationAdded(ObjectAnimation* objectAnimation);
-    // void OnObjectAnimationRemoved(ObjectAnimation* objectAnimation);
     // void HandleAttributeAnimationAdded(StringHash eventType, VariantMap& eventData);
     // void HandleAttributeAnimationRemoved(StringHash eventType, VariantMap& eventData);
-    // void SetObjectAnimationAttr(const ResourceRef& value);
-    // ResourceRef GetObjectAnimationAttr() const;
 
     protected virtual Animatable? FindAttributeAnimationTarget(string name, out string outName)
     {

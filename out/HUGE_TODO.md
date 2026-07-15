@@ -118,7 +118,7 @@
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:38:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
 - [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
-- [ ] ./src/RedBolt/Scene/Animatable.cs:151:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/PointerAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
 - [ ] ./src/RedBolt/Input/MultitouchAdapter.cs:1:// C++: no direct C++ counterpart - adapter class

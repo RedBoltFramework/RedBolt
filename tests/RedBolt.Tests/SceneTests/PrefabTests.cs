@@ -24,4 +24,15 @@ public sealed class PrefabTests
         Assert.Equal(AttributeScopeHint.Attribute, new SerializablePrefab().GetEffectiveScopeHint());
         Assert.Equal(AttributeScopeHint.Attribute, new NodePrefab().GetEffectiveScopeHint());
     }
+
+    [Fact]
+    public void Animatable_registers_object_animation_resource_attribute()
+    {
+        var animatable = new Animatable();
+
+        var value = Assert.IsType<ResourceRef>(animatable.GetAttribute("Object Animation"));
+
+        Assert.Equal(ObjectReflection<ObjectAnimation>.TypeId, value.Type);
+        Assert.Empty(value.Name);
+    }
 }
