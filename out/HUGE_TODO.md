@@ -1,8 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
-- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
 - [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
 - [ ] ./src/RedBolt/Graphics/AnimationTrack.cs:11:/// <remarks>TODO: port: C# structs cannot inherit another struct, so Transform fields are duplicated here.</remarks>
 - [ ] ./src/RedBolt/Graphics/AnimationState.cs:91:    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.

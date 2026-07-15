@@ -333,7 +333,6 @@ public class CameraOperator : Component
             ApplyAttributes();
 
         for (var i = 0; i < _trackedNodes.Count; ++i)
-            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
             _points.Add(_trackedNodes[i].WorldPosition);
 
         if (_points.Count != 0)
@@ -343,7 +342,6 @@ public class CameraOperator : Component
     /// <summary>
     /// Update node IDs attribute from the actual nodes.
     /// </summary>
-    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
     protected void UpdateNodeIDs()
     {
         var numInstances = checked((uint)_trackedNodes.Count);
