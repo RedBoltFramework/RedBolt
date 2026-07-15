@@ -240,19 +240,7 @@ internal static class ImageDds
     private const uint HeaderSize = 124u;
     private const uint PixelFormatSize = 32u;
 
-    // TODO: port - C++ code:
-    // constexpr unsigned MakeFourCC(char ch0, char ch1, char ch2, char ch3)
-    // {
-    //     return static_cast<unsigned>(ch0) | (static_cast<unsigned>(ch1) << 8)
-    //         | (static_cast<unsigned>(ch2) << 16) | (static_cast<unsigned>(ch3) << 24);
-    // }
-
-    // TODO: port - C++ code:
-    // /// Deduce texture format from DDS file format.
-    // URHO3D_API TextureFormat PickTextureFormat(const DDPixelFormat& pixelFormat, unsigned dxgiFormat);
-    //
-    // /// Return whether the RGBA components in pixel format match texture format.
-    // URHO3D_API bool AreTextureComponentsMatching(const DDPixelFormat& pixelFormat, TextureFormat textureFormat);
+    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 
     // C++ struct DDColorKey { unsigned dwColorSpaceLowValue_; unsigned dwColorSpaceHighValue_; };
     // C++ struct DDSCaps2 { unsigned dwCaps_; unsigned dwCaps2_; unsigned dwCaps3_; /* union with dwCaps4_/dwVolumeDepth_ */ };

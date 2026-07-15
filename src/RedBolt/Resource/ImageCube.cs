@@ -12,12 +12,12 @@ public sealed class ImageCube : Resource
     {
     }
 
-    // C++: SplitPath(GetName()) for path resolution; ResetDependencies(this); loads cachedSphericalHarmonics_
-    // C++: from XML <sh> element; async loading PrecalculateLevels; error logging via URHO3D_LOGERROR
+    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
+        OwnerCache?.ResetDependencies(this);
         _parametersXml = new XMLFile(Name + "#params");
         if (!_parametersXml.Load(source))
         {
@@ -72,6 +72,28 @@ public sealed class ImageCube : Resource
 
             if (faceIndex != _faceImages.Length)
                 return false;
+        }
+
+        _cachedSphericalHarmonics = null;
+        var shElement = root.GetChild("sh");
+        if (shElement.NotNull)
+        {
+            _cachedSphericalHarmonics = new SphericalHarmonicsDot9
+            {
+                Ar = shElement.GetVector4("ar"),
+                Ag = shElement.GetVector4("ag"),
+                Ab = shElement.GetVector4("ab"),
+                Br = shElement.GetVector4("br"),
+                Bg = shElement.GetVector4("bg"),
+                Bb = shElement.GetVector4("bb"),
+                C = shElement.GetVector4("c")
+            };
+        }
+
+        if (AsyncLoadState == AsyncLoadState.Loading)
+        {
+            foreach (var image in _faceImages)
+                image?.PrecalculateLevels();
         }
 
         var expectedSize = 0;

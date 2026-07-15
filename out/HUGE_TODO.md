@@ -1,10 +1,8 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
-- [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/ImageDDS.cs:253:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // C++: SplitPath(GetName()) for path resolution; ResetDependencies(this); loads cachedSphericalHarmonics_
-- [ ] ./src/RedBolt/Resource/ImageCube.cs:16:    // C++: from XML <sh> element; async loading PrecalculateLevels; error logging via URHO3D_LOGERROR
+- [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
+- [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/Image.cs:95:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:10:    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
