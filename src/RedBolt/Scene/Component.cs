@@ -185,8 +185,4 @@ public abstract class Component : Animatable
         else if (mode == AutoRemoveMode.Node) _node?.Remove();
     }
 
-    // TODO: port - C++ code:
-    // Component* GetFixedUpdateSource();
-    // Return a component from the scene root that sends out fixed update events
-    // (either PhysicsWorld or PhysicsWorld2D). Return null if neither exists.
 }

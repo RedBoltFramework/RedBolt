@@ -1,9 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
-- [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
-- [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:20:    // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
 - [ ] ./src/RedBolt/Engine/Engine.cs:23:    // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)

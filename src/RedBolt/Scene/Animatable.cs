@@ -51,12 +51,124 @@ public class Animatable : Serializable
             new ResourceRef(ObjectReflection<ObjectAnimation>.TypeId));
     }
 
-    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
-    // animation data (object animation and attribute animations) as children of the node/component.
-    // C++ Animatable::LoadXML loads <objectanimation> and <attributeanimation> elements.
-    // C++ Animatable::LoadJSON loads "objectanimation" and "attributeanimation" JSON objects.
-    // C++ Animatable::SaveXML writes <objectanimation> and <attributeanimation> child elements.
-    // C++ Animatable::SaveJSON writes "objectanimation" and "attributeanimation" JSON values.
+    public override bool LoadXML(XMLElement source)
+    {
+        if (!base.LoadXML(source))
+            return false;
+
+        SetObjectAnimation(null);
+        _attributeAnimationInfos.Clear();
+
+        var objectAnimationElement = source.GetChild("objectanimation");
+        if (objectAnimationElement.NotNull)
+        {
+            var objectAnimation = new ObjectAnimation(string.Empty);
+            if (!objectAnimation.LoadXML(objectAnimationElement))
+                return false;
+            SetObjectAnimation(objectAnimation);
+        }
+
+        for (var element = source.GetChild("attributeanimation"); element.NotNull; element = element.GetNext("attributeanimation"))
+        {
+            var name = element.GetString("name");
+            var animation = new ValueAnimation(name);
+            if (!animation.LoadXML(element))
+                return false;
+            SetAttributeAnimation(name, animation, ParseWrapMode(element.GetString("wrapmode")), element.GetFloat("speed"));
+        }
+
+        return true;
+    }
+
+    public override bool SaveXML(XMLElement destination)
+    {
+        if (!base.SaveXML(destination))
+            return false;
+
+        if (_objectAnimation is not null)
+        {
+            var objectAnimationElement = destination.CreateChild("objectanimation");
+            if (!_objectAnimation.SaveXML(objectAnimationElement))
+                return false;
+        }
+
+        foreach (var pair in _attributeAnimationInfos)
+        {
+            if (pair.Value.GetAnimation().GetOwner() is not null)
+                continue;
+
+            var element = destination.CreateChild("attributeanimation");
+            element.SetString("name", pair.Key);
+            element.SetString("wrapmode", pair.Value.GetWrapMode().ToString());
+            element.SetFloat("speed", pair.Value.GetSpeed());
+            if (!pair.Value.GetAnimation().SaveXML(element))
+                return false;
+        }
+
+        return true;
+    }
+
+    public override bool LoadJSON(JSONValue source)
+    {
+        if (!base.LoadJSON(source))
+            return false;
+
+        SetObjectAnimation(null);
+        _attributeAnimationInfos.Clear();
+
+        var objectAnimationValue = source.Get("objectanimation");
+        if (!objectAnimationValue.IsNull)
+        {
+            var objectAnimation = new ObjectAnimation(string.Empty);
+            if (!objectAnimation.LoadJSON(objectAnimationValue))
+                return false;
+            SetObjectAnimation(objectAnimation);
+        }
+
+        var attributeAnimations = source.Get("attributeanimation");
+        if (!attributeAnimations.IsNull && attributeAnimations.IsObject)
+        {
+            foreach (var pair in attributeAnimations.GetObject())
+            {
+                var animation = new ValueAnimation(pair.Key);
+                if (!animation.LoadJSON(pair.Value))
+                    return false;
+                SetAttributeAnimation(pair.Key, animation, ParseWrapMode(pair.Value.Get("wrapmode").GetString()), pair.Value.Get("speed").GetFloat());
+            }
+        }
+
+        return true;
+    }
+
+    public override bool SaveJSON(JSONValue destination)
+    {
+        if (!base.SaveJSON(destination))
+            return false;
+
+        if (_objectAnimation is not null)
+        {
+            var objectAnimationValue = new JSONValue(JSONValueType.Object);
+            if (!_objectAnimation.SaveJSON(objectAnimationValue))
+                return false;
+            destination.Set("objectanimation", objectAnimationValue);
+        }
+
+        var attributeAnimations = new JSONValue(JSONValueType.Object);
+        foreach (var pair in _attributeAnimationInfos)
+        {
+            if (pair.Value.GetAnimation().GetOwner() is not null)
+                continue;
+
+            var animationValue = new JSONValue(JSONValueType.Object);
+            if (!pair.Value.GetAnimation().SaveJSON(animationValue))
+                return false;
+            animationValue.Set("wrapmode", new JSONValue(pair.Value.GetWrapMode().ToString()));
+            animationValue.Set("speed", new JSONValue(pair.Value.GetSpeed()));
+            attributeAnimations.Set(pair.Key, animationValue);
+        }
+        destination.Set("attributeanimation", attributeAnimations);
+        return true;
+    }
 
     public void SetAnimationEnabled(bool enable)
     {
@@ -157,8 +269,6 @@ public class Animatable : Serializable
         return GetAttributeAnimationInfo(name)?.GetTime() ?? 0.0f;
     }
 
-    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
-    // C# makes them virtual (non-abstract), deviating from C++.
     protected virtual void OnAttributeAnimationAdded()
     {
     }
@@ -166,10 +276,6 @@ public class Animatable : Serializable
     protected virtual void OnAttributeAnimationRemoved()
     {
     }
-
-    // TODO: port - C++ code:
-    // void HandleAttributeAnimationAdded(StringHash eventType, VariantMap& eventData);
-    // void HandleAttributeAnimationRemoved(StringHash eventType, VariantMap& eventData);
 
     protected virtual Animatable? FindAttributeAnimationTarget(string name, out string outName)
     {
@@ -220,5 +326,10 @@ public class Animatable : Serializable
     protected AttributeAnimationInfo? GetAttributeAnimationInfo(string name)
     {
         return _attributeAnimationInfos.GetValueOrDefault(name);
+    }
+
+    private static WrapMode ParseWrapMode(string value)
+    {
+        return Enum.TryParse<WrapMode>(value, ignoreCase: true, out var wrapMode) ? wrapMode : WrapMode.Loop;
     }
 }
