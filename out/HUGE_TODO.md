@@ -35,7 +35,6 @@
 - [ ] ./src/RedBolt/Engine/Engine.cs:254:    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
 - [ ] ./src/RedBolt/Engine/Engine.cs:420:    // C++: void Engine::Render()
 - [ ] ./src/RedBolt/Engine/Engine.cs:714:            // C++: graphics->Close() is called unconditionally.
-- [ ] ./src/RedBolt/Math/Vector2.cs:221:    // C++: Fract(Sin(seed.DotProduct(BaseVector2<T>(12.9898f, 78.233f)) * M_RADTODEG) * 43758.5453f);
 - [ ] ./src/RedBolt/Input/InputConstants.cs:521:// C++: MouseMode is defined in Input.h, not InputConstants.h
 - [ ] ./src/RedBolt/Engine/Application.cs:9:    // C++: ea::string startupErrors_; (accumulates startup log errors via HandleLogMessage)
 - [ ] ./src/RedBolt/Engine/Application.cs:10:    // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})

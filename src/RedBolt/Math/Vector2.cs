@@ -209,7 +209,6 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
 
     public static BaseRealVector2<T> Sqrt(BaseRealVector2<T> vec) => new(T.Sqrt(vec.X), T.Sqrt(vec.Y));
 
-    // C++: Fract(Sin(seed.DotProduct(BaseVector2<T>(12.9898f, 78.233f)) * M_RADTODEG) * 43758.5453f);
     public static T StableRandom(BaseRealVector2<T> seed)
     {
         var value = T.Sin(seed.DotProduct(new(T.CreateChecked(12.9898), T.CreateChecked(78.233))) * T.CreateChecked(MathDefs.RadToDeg)) * T.CreateChecked(43758.5453);
