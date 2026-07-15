@@ -7,19 +7,16 @@ public interface IArchiveSerializable
 
 // C++: class CustomVariantValue {
 // C++:   friend class CustomVariantValueImpl<T>;
-// C++:   explicit CustomVariantValue(const std::type_info& typeInfo) : typeInfo_(typeInfo) {}
 // C++:   CustomVariantValue() = default;
 // C++:   virtual ~CustomVariantValue() = default;
-// C++:   const std::type_info& GetTypeInfo() const { return typeInfo_; }
 // C++:   virtual bool CopyTo(CustomVariantValue& dest) const { return false; }
 // C++:   virtual bool MoveTo(CustomVariantValue& dest) { return false; }
-// C++:   virtual void CloneTo(void* dest) const { }
 // C++:   virtual void RelocateTo(void* dest) { }
 // C++:   virtual unsigned GetSize() const { return sizeof(CustomVariantValue); }
 // C++:   virtual bool Compare(const CustomVariantValue& rhs) const { return false; }
 // C++:   virtual void Serialize(Archive& archive, const char* name) { URHO3D_ASSERT(0); }
 
-public class CustomVariantValue : IEquatable<CustomVariantValue>
+public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
 {
     public static readonly CustomVariantValue Empty = new();
 
@@ -37,23 +34,25 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>
         Type = value.GetType();
     }
 
-    // C++: protected single-arg constructor taking std::type_info&, used by CustomVariantValueImpl
     protected CustomVariantValue(Type type)
     {
         Type = type;
     }
 
-    // C++: const std::type_info& GetTypeInfo() const
     public Type Type { get; }
 
     // C++: virtual T* GetValuePtr() / const T* GetValuePtr() const — missing
     // C++: virtual bool CopyTo(CustomVariantValue& dest) const — missing
     // C++: virtual bool MoveTo(CustomVariantValue& dest) — missing
-    // C++: virtual void CloneTo(void* dest) const — missing
     // C++: virtual void RelocateTo(void* dest) — missing
     // C++: virtual unsigned GetSize() const — missing
 
     public virtual object Value => _value;
+
+    public virtual object Clone()
+    {
+        return Type == typeof(void) ? new CustomVariantValue() : new CustomVariantValue(Value);
+    }
 
     public bool IsType<T>() => Type == typeof(T);
 
@@ -85,7 +84,6 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>
 
     public override string ToString() => Value?.ToString() ?? string.Empty;
 
-    // C++: virtual void Serialize(Archive& archive, const char* name) — uses const char* and Archive&
     public virtual void Serialize(Archive archive, string name)
     {
         ArgumentNullException.ThrowIfNull(archive);
@@ -118,27 +116,24 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>
 // C++: class CustomVariantValueImpl<T> : CustomVariantValue {
 // C++:   using ClassName = CustomVariantValueImpl<T>;
 // C++:   using Traits = CustomVariantValueTraits<T>;
-// C++:   CustomVariantValueImpl(const T& value);  // copy constructor
 // C++:   CustomVariantValueImpl(T&& value);       // move constructor
-// C++:   T& GetValue() / const T& GetValue() const;
 // C++:   bool CopyTo(...) override; bool MoveTo(...) override;
-// C++:   void CloneTo(...) override; void RelocateTo(...) override;
 // C++:   unsigned GetSize() const override;
 // C++:   bool Compare(...) override; bool IsZero() override;
 // C++:   ea::string ToString() override; void Serialize(...) override;
 public sealed class CustomVariantValueImpl<T> : CustomVariantValue
 {
-    // C++: CustomVariantValueImpl(const T& value) - copy constructor
     public CustomVariantValueImpl(T value)
         : base(typeof(T))
     {
         TypedValue = value;
     }
 
-    // C++: T& GetValue() / const T& GetValue() const
     public T TypedValue { get; }
 
     public override object Value => TypedValue!;
+
+    public override object Clone() => new CustomVariantValueImpl<T>(TypedValue);
 
     public override bool IsZero() => EqualityComparer<T>.Default.Equals(TypedValue, default!);
 

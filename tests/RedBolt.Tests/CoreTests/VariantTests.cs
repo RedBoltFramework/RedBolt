@@ -207,6 +207,17 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Custom_values_clone_as_their_concrete_managed_type()
+    {
+        var original = new CustomVariantValueImpl<CustomValue>(new CustomValue { Value = 7 });
+
+        var clone = Assert.IsType<CustomVariantValueImpl<CustomValue>>(((ICloneable)original).Clone());
+
+        Assert.Equal(original, clone);
+        Assert.NotSame(original, clone);
+    }
+
+    [Fact]
     public void Optional_retrieval_matches_empty_and_value_contracts()
     {
         var empty = default(Variant).GetOptional<int>();
