@@ -275,7 +275,6 @@ public class RenderPipeline : Component
         }
     }
 
-    // C++: settings_.Validate(); settings_.AdjustToSupported(context_);
     // OnSettingsChanged(this, settings_);
     // No PropagateImpliedSettings() call, no revision increment.
     private void MarkSettingsDirty()

@@ -166,7 +166,6 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields.
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo).
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:278:    // C++: settings_.Validate(); settings_.AdjustToSupported(context_);
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }

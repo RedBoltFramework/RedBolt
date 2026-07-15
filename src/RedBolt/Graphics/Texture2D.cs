@@ -174,7 +174,6 @@ public sealed class Texture2D : Texture
     }
 
     // C++ calls ReadToImage(0, 0, &image). C# falls back to _levelData when ReadToImage returns empty.
-    // C++: SharedPtr<Image> GetImage() -- returns pointer, no OwnerCache set.
     public bool GetImage(Image image)
     {
         ArgumentNullException.ThrowIfNull(image);
