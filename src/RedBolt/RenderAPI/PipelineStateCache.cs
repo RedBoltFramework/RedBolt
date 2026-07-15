@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using RedBolt.Bindings.Diligent;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -9,6 +11,15 @@ public sealed class PipelineStateCache : DeviceObject
 {
     private byte[] _cachedData = [];
     private readonly Dictionary<PipelineStateDesc, WeakReference<PipelineState>> _states = [];
+    private IPipelineStateCache? _handle;
+
+    public override void Dispose()
+    {
+        if (_handle is { IsNull: false })
+            _ = _handle.Release();
+        _handle = null;
+        base.Dispose();
+    }
 
     /// <summary>
     /// Initialize pipeline state cache. Optionally loads cached pipeline states from memory blob.
@@ -16,15 +27,36 @@ public sealed class PipelineStateCache : DeviceObject
     public void Initialize(byte[] data)
     {
         _cachedData = [.. data];
+        if (_handle is { IsNull: false })
+            _ = _handle.Release();
+        _handle = null;
 
-        // TODO: port the backend-specific Diligent pipeline state cache creation:
-        // const RenderBackend renderBackend = renderDevice_->GetBackend();
-        // const bool isSupported = renderBackend == RenderBackend::D3D12 || renderBackend == RenderBackend::Vulkan;
-        // Diligent::PipelineStateCacheCreateInfo ci;
-        // ci.Desc.Name = "PipelineStateCache";
-        // ci.CacheDataSize = cachedData_.size();
-        // ci.pCacheData = cachedData_.data();
-        // renderDevice_->GetRenderDevice()->CreatePipelineStateCache(ci, &handle_);
+        var renderDevice = GetRenderDevice();
+        if (renderDevice is null || renderDevice.GetBackend() is not (RenderBackend.D3D12 or RenderBackend.Vulkan))
+            return;
+
+        using var name = new CString("PipelineStateCache");
+        using var cacheDesc = new PipelineStateCacheDesc { Name = name.Pointer, Mode = PsoCacheMode.PsoCacheModeLoadStore };
+        using var createInfo = new PipelineStateCacheCreateInfo
+        {
+            Desc = cacheDesc,
+            CacheDataSize = checked((uint)_cachedData.Length)
+        };
+        if (_cachedData.Length != 0)
+        {
+            var pinnedData = GCHandle.Alloc(_cachedData, GCHandleType.Pinned);
+            try
+            {
+                createInfo.PCacheData = pinnedData.AddrOfPinnedObject();
+                renderDevice.GetRenderDevice()?.CreatePipelineStateCache(createInfo, out _handle!);
+            }
+            finally
+            {
+                pinnedData.Free();
+            }
+        }
+        else
+            renderDevice.GetRenderDevice()?.CreatePipelineStateCache(createInfo, out _handle!);
     }
 
     /// <summary>
@@ -66,7 +98,7 @@ public sealed class PipelineStateCache : DeviceObject
         return desc.IsInitialized() ? GetPipelineState(new PipelineStateDesc(desc)) : null;
     }
 
-    // TODO: port: Diligent::IPipelineStateCache* GetHandle() { return handle_; }
+    public IPipelineStateCache? GetHandle() => _handle;
 
     /// <summary>
     /// Internal. Remove pipeline state with given description from cache.
@@ -79,6 +111,19 @@ public sealed class PipelineStateCache : DeviceObject
 
     private void UpdateCachedData()
     {
-        _cachedData = [];
+        if (_handle is null || _handle.IsNull)
+        {
+            _cachedData = [];
+            return;
+        }
+
+        _handle.GetData(out var blob);
+        using (blob)
+        {
+            var size = checked((int)blob.GetSize());
+            _cachedData = new byte[size];
+            if (size != 0)
+                System.Runtime.InteropServices.Marshal.Copy(blob.GetDataPtr(), _cachedData, 0, size);
+        }
     }
 }
