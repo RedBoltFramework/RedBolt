@@ -1,4 +1,3 @@
-// C++: non-allowed divergence - SphericalHarmonicsColor9 is class in C# but struct in C++. See inline C++ comments.
 namespace RedBolt;
 
 public readonly struct SphericalHarmonics9
@@ -15,11 +14,9 @@ public readonly struct SphericalHarmonics9
     }
 }
 
-public sealed class SphericalHarmonicsColor9
+public struct SphericalHarmonicsColor9
 {
-    // C++: struct SphericalHarmonicsColor9 - struct, not class
-    // Vector3 values_[9]{};
-    public Vector3f[] Values { get; } = new Vector3f[9];
+    public Vector3f[] Values = new Vector3f[9];
 
     public SphericalHarmonicsColor9() { }
 
@@ -143,7 +140,7 @@ public sealed class SphericalHarmonicsDot9
 {
     // C++: Precomputed Vector4 fields (see above)
     // C# deviation: wraps harmonics + constant offset instead
-    private readonly SphericalHarmonicsColor9 _harmonics;
+    private SphericalHarmonicsColor9 _harmonics;
     private Vector3f _constantOffset;
 
     public SphericalHarmonicsDot9(SphericalHarmonicsColor9 harmonics)
