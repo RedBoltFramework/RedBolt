@@ -13,7 +13,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:33:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:35:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:33:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:48:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
