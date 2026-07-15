@@ -67,7 +67,6 @@ public struct JoystickState
     /// <summary>Reset button, axis and hat states to neutral.</summary>
     public void Reset()
     {
-        // C++: for joysticks (non-controllers), calls SDL_JoystickGetAxisInitialState to read initial axis values
         Buttons ??= [];
         ButtonPress ??= [];
         Axes ??= [];
@@ -75,8 +74,20 @@ public struct JoystickState
         Hats ??= [];
         Array.Fill(Buttons, false);
         Array.Fill(ButtonPress, false);
-        Array.Fill(Axes, 0.0f);
-        Array.Fill(ValidAxis, false);
+        var joystick = Joystick != IntPtr.Zero && Controller == IntPtr.Zero
+            ? SdlJoystick.CreateManagedWrapper(Joystick, ownsHandle: false)
+            : null;
+        for (var i = 0; i < Axes.Length; i++)
+        {
+            Axes[i] = 0.0f;
+            ValidAxis[i] = false;
+            if (joystick is not null && !joystick.IsNull
+                && SdlNativeBindings.SdlJoystickGetAxisInitialState(joystick, i, out short state) == SdlBool.SdlTrue)
+            {
+                Axes[i] = MathDefs.Clamp(state / 32767.0f, -1.0f, 1.0f);
+                ValidAxis[i] = true;
+            }
+        }
         for (var i = 0; i < Hats.Length; i++)
             Hats[i] = (int)HatPosition.Center;
     }
@@ -154,9 +165,7 @@ public sealed class Input : Object
     private readonly Dictionary<int, SdlJoystick> _nativeJoysticks = [];
     private readonly Dictionary<int, SdlGameController> _nativeControllers = [];
     private readonly Timer _mousePressTimer = new();
-    // C++: IntVector2 lastMousePosition_; IntVector2 lastVisibleMousePosition_;
     private IntRect? _explicitWindowRect;
-    // C++: ea::string textInput_;
     private SdlEvent? _nativeEvent;
     private SdlWindow? _window;
     private MouseButton _mouseButtonClick;
