@@ -40,4 +40,3 @@
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:174:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:193:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:212:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Logging/Log.cs:10:// TODO: port - C++ code:
