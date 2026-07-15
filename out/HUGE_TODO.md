@@ -1,16 +1,16 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Graphics/Zone.cs:5:// C++: Zone inherits from Drawable which inherits from Component. C# matches.
-- [ ] ./src/RedBolt/Graphics/Zone.cs:6:// C++: Zone has ThreadSafeCache members for reflectionProbeData_, cachedAmbientLighting_,
-- [ ] ./src/RedBolt/Graphics/Zone.cs:8:// C++: Zone methods OnWorldBoundingBoxUpdate, OnRemoveFromOctree are protected. C# has the same.
-- [ ] ./src/RedBolt/Graphics/Zone.cs:9:// C++: Has UpdateAmbientGradient, MarkNodeDirty, MarkCachedAmbientDirty, MarkCachedTextureDirty. C# has these.
-- [ ] ./src/RedBolt/Graphics/Zone.cs:10:// C++: Has UpdateZoneTextureSubscription private method for texture reload handling. C# has inline equivalent.
+- [x] ./src/RedBolt/Graphics/Zone.cs:5:// C++: Zone inherits from Drawable which inherits from Component. C# matches. — reviewed against the current managed inheritance.
+- [x] ./src/RedBolt/Graphics/Zone.cs:6:// C++: Zone has ThreadSafeCache members for reflectionProbeData_, cachedAmbientLighting_, — reviewed; the managed Zone contains the corresponding cache fields.
+- [x] ./src/RedBolt/Graphics/Zone.cs:8:// C++: Zone methods OnWorldBoundingBoxUpdate, OnRemoveFromOctree are protected. C# has the same. — reviewed against the current managed access modifiers.
+- [x] ./src/RedBolt/Graphics/Zone.cs:9:// C++: Has UpdateAmbientGradient, MarkNodeDirty, MarkCachedAmbientDirty, MarkCachedTextureDirty. C# has these. — reviewed against the current managed methods.
+- [x] ./src/RedBolt/Graphics/Zone.cs:10:// C++: Has UpdateZoneTextureSubscription private method for texture reload handling. C# has inline equivalent. — reviewed; the managed texture subscription logic is inline.
 - [ ] ./src/RedBolt/Graphics/Zone.cs:11:// C++: Has ClearDrawablesZone public method. May not be fully ported yet.
 - [ ] ./src/RedBolt/Graphics/Zone.cs:12:// TODO: port - C++ code: void Zone::ClearDrawablesZone()
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:5:// C++: Viewport inherits from Object. C# matches.
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:6:// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:7:// C++: Has autoRenderPipeline_ flag. C# matches.
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:8:// C++: GetRenderPipelineView returns RenderPipelineView*. C# matches.
+- [x] ./src/RedBolt/Graphics/Viewport.cs:5:// C++: Viewport inherits from Object. C# matches. — reviewed against the current managed inheritance.
+- [x] ./src/RedBolt/Graphics/Viewport.cs:6:// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection). — reviewed; C# reflection replaces the C++ factory registration.
+- [x] ./src/RedBolt/Graphics/Viewport.cs:7:// C++: Has autoRenderPipeline_ flag. C# matches. — reviewed against the current managed field.
+- [x] ./src/RedBolt/Graphics/Viewport.cs:8:// C++: GetRenderPipelineView returns RenderPipelineView*. C# matches. — reviewed against the current managed property.
 - [x] ./AGENTS.md:122:    - Add the C++ version as a C# COMMENT with a `// TODO: port` note, — policy instruction; reviewed and intentionally left unchanged.
 - [ ] ./src/RedBolt/Graphics/VertexBuffer.cs:8:// C++: VertexBuffer inherits from RawBuffer and PipelineStateTracker. C# inherits from PipelineStateTracker only and uses inner RawBuffer.
 - [ ] ./src/RedBolt/Graphics/VertexBuffer.cs:9:// C++: RawBuffer has Create method natively. C# uses an inner helper class VertexRawBuffer for Create access.
