@@ -240,7 +240,6 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
     /// </summary>
     public const uint NumVariants = 15;
 
-    // C++: static AnimationParameters FromVariantSpan(Context* context, ea::span<const Variant> variants)
     // C# omits the Context* parameter.
     public static AnimationParameters FromVariantSpan(ReadOnlySpan<Variant> variants)
     {
