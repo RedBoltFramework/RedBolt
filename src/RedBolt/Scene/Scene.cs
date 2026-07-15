@@ -5,7 +5,12 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Asynchronous scene loading mode.</summary>
-// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
+public static class SceneConstants
+{
+    public const uint FirstReplicatedId = 0x1;
+    public const uint LastReplicatedId = 0xffffff;
+}
+
 public enum LoadMode
 {
     /// <summary>Preload resources without loading scene content.</summary>
