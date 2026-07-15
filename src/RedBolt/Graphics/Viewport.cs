@@ -2,7 +2,6 @@ namespace RedBolt;
 
 /// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
 /// <remarks>
-// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
 /// </remarks>
 public sealed class Viewport : Object
 {

@@ -3,9 +3,6 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... }
-// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation).
-// The C++ class shape (Log inheriting Object) differs from this static wrapper.
 //
 // TODO: port - C++ code:
 //   enum LogLevel { LOG_TRACE = 0, LOG_DEBUG = 1, LOG_INFO = 2, LOG_WARNING = 3, LOG_ERROR = 4, LOG_NONE = 5, MAX_LOGLEVELS };

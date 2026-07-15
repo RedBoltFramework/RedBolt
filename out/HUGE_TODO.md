@@ -50,14 +50,12 @@
 - [ ] ./src/RedBolt/IO/File.cs:92:        // C++: Android asset handles that are not compressed use a read buffer for performance.
 - [ ] ./src/RedBolt/IO/File.cs:93:        // TODO: port - C++ code:
 - [ ] ./src/RedBolt/IO/File.cs:287:        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName))
+- [ ] ./src/RedBolt/IO/AbstractFile.cs:2:// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:399:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:174:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:193:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:212:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Logging/Log.cs:6:// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... }
-- [ ] ./src/RedBolt/Logging/Log.cs:7:// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation).
 - [ ] ./src/RedBolt/Logging/Log.cs:10:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Viewport.cs:6:// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:403:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
