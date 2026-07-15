@@ -100,7 +100,6 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 
 /// <summary>Describes how to render 3D geometries.</summary>
 /// <remarks>
-// C++: Has _batchedParameterUpdate_ flag to suppress hash/memory recalculation during bulk parameter updates.
 /// </remarks>
 public sealed class Material : ResourceWithMetadata
 {
@@ -109,6 +108,7 @@ public sealed class Material : ResourceWithMetadata
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
     private uint _shaderParameterHash;
+    private bool _batchedParameterUpdate;
     private uint _auxViewFrameNumber;
     private bool _specular;
     private Scene? _scene;
@@ -409,7 +409,8 @@ public sealed class Material : ResourceWithMetadata
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
         UpdateSpecularState(name, value);
-        RefreshShaderParameterHash();
+        if (!_batchedParameterUpdate)
+            RefreshShaderParameterHash();
     }
 
     public void SetShaderParameterAnimation(string name, ValueAnimation? animation, WrapMode wrapMode = WrapMode.Loop, float speed = 1.0f)
@@ -568,6 +569,10 @@ public sealed class Material : ResourceWithMetadata
         if (source.IsNull)
             return false;
 
+        var previousBatchedParameterUpdate = _batchedParameterUpdate;
+        _batchedParameterUpdate = true;
+        try
+        {
         ResetToDefaults();
 
         var cache = OwnerCache;
@@ -664,8 +669,14 @@ public sealed class Material : ResourceWithMetadata
         if (occlusionElement.NotNull)
             SetOcclusion(occlusionElement.GetBool("enable"));
 
-        RefreshShaderParameterHash();
         return true;
+        }
+        finally
+        {
+            _batchedParameterUpdate = previousBatchedParameterUpdate;
+            if (!previousBatchedParameterUpdate)
+                RefreshShaderParameterHash();
+        }
     }
 
     public bool SaveXML(XMLElement dest)

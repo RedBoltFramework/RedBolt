@@ -31,7 +31,6 @@
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:745:        // TODO: port: ModelView::ImportModel requires native Model vertex-buffer, index-buffer, morph, and skeleton access.
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:752:        // TODO: port: ModelView::ExportModel requires native Model buffer composition and morph/skeleton APIs.
 - [ ] ./src/RedBolt/Graphics/Model.cs:44:// C++: Has loadVBData_, loadIBData_, loadGeometries_ for async loading. C# doesn't use these.
-- [ ] ./src/RedBolt/Graphics/Material.cs:106:// C++: Has _batchedParameterUpdate_ flag to suppress hash/memory recalculation during bulk parameter updates.
 - [ ] ./src/RedBolt/Graphics/Light.cs:50:// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
 - [ ] ./src/RedBolt/Graphics/Light.cs:51:// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
 - [ ] ./src/RedBolt/Graphics/Light.cs:52:// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
