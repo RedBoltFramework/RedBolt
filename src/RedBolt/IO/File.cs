@@ -147,8 +147,8 @@ public class File : AbstractFile, IDisposable
 
         if (!ReadInternal(destination[..checked((int)size)]))
         {
-            // C++: logs URHO3D_LOGERROR("Error while reading from file " + GetName())
             SeekInternal(Position + _offset);
+            Log.Logger.LogError("Error while reading from file {Name}", Name);
             return 0;
         }
 
@@ -160,7 +160,6 @@ public class File : AbstractFile, IDisposable
     /// <summary>Set position from the beginning of the file.</summary>
     public override uint Seek(uint position)
     {
-        // C++: logs URHO3D_LOGERROR("Seeking backward in a compressed file is not supported") if seeking backward in compressed file
         if (!IsOpen)
             return 0;
 
@@ -182,6 +181,8 @@ public class File : AbstractFile, IDisposable
                 while (position > Position)
                     Read(skipBuffer[..checked((int)Math.Min(position - Position, (uint)skipBuffer.Length))]);
             }
+            else
+                Log.Logger.LogError("Seeking backward in a compressed file is not supported");
 
             return Position;
         }
@@ -196,9 +197,14 @@ public class File : AbstractFile, IDisposable
     /// <summary>Write bytes to the file. Return number of bytes actually written.</summary>
     public override uint Write(ReadOnlySpan<byte> data)
     {
-        // C++: logs URHO3D_LOGERROR("File not opened for writing") when mode is FILE_READ
-        if (!IsOpen || _mode == FileMode.Read || data.IsEmpty)
+        if (!IsOpen || data.IsEmpty)
             return 0;
+
+        if (_mode == FileMode.Read)
+        {
+            Log.Logger.LogError("File not opened for writing");
+            return 0;
+        }
 
         if (_writeSyncNeeded)
         {
@@ -212,8 +218,8 @@ public class File : AbstractFile, IDisposable
         }
         catch (IOException)
         {
-            // C++: logs URHO3D_LOGERROR("Error while writing to file " + GetName())
             SeekInternal(Position + _offset);
+            Log.Logger.LogError("Error while writing to file {Name}", Name);
             return 0;
         }
 
