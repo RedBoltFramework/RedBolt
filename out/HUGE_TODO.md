@@ -77,15 +77,13 @@
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:8:    // C++: ea::vector<WeakPtr<Node>> instanceNodes_;
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:9:    // C++: mutable VariantVector nodeIDsAttr_;
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:7:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:9:// C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:10:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:11:// TODO: port - C++ code: bool StaticModel::IsInside(const Vector3& point) const
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:12:// TODO: port - C++ code: bool StaticModel::IsInsideLocal(const Vector3& point) const
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:14:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:15:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:16:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:5:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:6:// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:7:// C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:9:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:10:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
+- [ ] ./src/RedBolt/Graphics/StaticModel.cs:11:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
@@ -148,7 +146,6 @@
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:18:// C++: GetUnpackedData returns ea::vector&lt;unsigned&gt;. C# returns IReadOnlyList&lt;uint&gt; (allowed collection deviation).
 - [ ] ./src/RedBolt/Graphics/GraphicsUtils.cs:110:        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:17:    // TODO: port - C++ code: void Graphics::InitializePipelineStateCache(const FileIdentifier& fileName)
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:19:    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:20:    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true

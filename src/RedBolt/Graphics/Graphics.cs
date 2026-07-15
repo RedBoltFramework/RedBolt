@@ -14,7 +14,6 @@ namespace RedBolt;
     /// </summary>
     /// <remarks>
     // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
-    // TODO: port - C++ code: void Graphics::InitializePipelineStateCache(const FileIdentifier& fileName)
     // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
     // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
     // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
@@ -371,6 +370,37 @@ layout(std140) uniform Material
         {
             file.Close();
         }
+    }
+
+    /// <summary>
+    /// Initialize pipeline state cache.
+    /// </summary>
+    public void InitializePipelineStateCache(FileIdentifier fileName)
+    {
+        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
+        if (pipelineStateCache is null)
+            return;
+
+        var cachedData = Array.Empty<byte>();
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        if (!fileName.IsEmpty() && virtualFileSystem?.Exists(fileName) == true)
+        {
+            var file = virtualFileSystem.OpenFile(fileName, File.FileMode.Read);
+            if (file is not null)
+            {
+                try
+                {
+                    cachedData = new byte[checked((int)file.Size)];
+                    _ = file.Read(cachedData);
+                }
+                finally
+                {
+                    file.Close();
+                }
+            }
+        }
+
+        pipelineStateCache.Initialize(cachedData);
     }
 
     /// <summary>
