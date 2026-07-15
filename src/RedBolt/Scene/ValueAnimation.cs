@@ -24,6 +24,8 @@ public sealed class ValueAnimation : Resource
 {
     private readonly List<VAnimKeyFrame> _keyFrames = [];
     private readonly List<VAnimEventFrame> _eventFrames = [];
+    private readonly List<object?> _splineTangents = [];
+    private bool _splineTangentsDirty;
     private object? _owner;
     private bool _interpolatable;
     private VariantType _valueType = VariantType.None;
@@ -213,11 +215,13 @@ public sealed class ValueAnimation : Resource
             method = InterpMethod.Linear;
 
         InterpolationMethod = method;
+        _splineTangentsDirty = true;
     }
 
     public void SetSplineTension(float tension)
     {
         SplineTension = tension;
+        _splineTangentsDirty = true;
     }
 
     public void SetValueType(VariantType valueType)
@@ -256,6 +260,7 @@ public sealed class ValueAnimation : Resource
         _keyFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
         BeginTime = Math.Min(BeginTime, time);
         EndTime = Math.Max(EndTime, time);
+        _splineTangentsDirty = true;
         return true;
     }
 
@@ -304,14 +309,6 @@ public sealed class ValueAnimation : Resource
             : LinearInterpolation(index - 1, index, scaledTime);
     }
 
-    // TODO: port - C++ code:
-    // mutable VariantVector splineTangents_;
-    // mutable bool splineTangentsDirty_;
-    // void UpdateSplineTangents() const  // precomputes cached tangents called from SplineInterpolation
-    //
-    // C++ caches spline tangents in splineTangents_ and only recomputes when dirty.
-    // C# computes tangents inline in SplineInterpolation, losing the caching optimization.
-
     public IReadOnlyList<VAnimKeyFrame> GetKeyFrames() => _keyFrames;
 
     public bool HasEventFrames() => _eventFrames.Count != 0;
@@ -341,17 +338,41 @@ public sealed class ValueAnimation : Resource
     {
         var denominator = _keyFrames[index2].Time - _keyFrames[index1].Time;
         var t = denominator == 0.0f ? 0.0f : (scaledTime - _keyFrames[index1].Time) / denominator;
-        var tangent1 = index1 == 0
-            ? Equals(_keyFrames[0].Value, _keyFrames[^1].Value)
-                ? SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension)
-                : SubtractAndMultiply(_keyFrames[0].Value, _keyFrames[0].Value, SplineTension)
-            : SubtractAndMultiply(_keyFrames[index1 + 1].Value, _keyFrames[index1 - 1].Value, SplineTension);
-        var tangent2 = index2 == _keyFrames.Count - 1
-            ? Equals(_keyFrames[0].Value, _keyFrames[^1].Value)
-                ? SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension)
-                : SubtractAndMultiply(_keyFrames[^1].Value, _keyFrames[^1].Value, SplineTension)
-            : SubtractAndMultiply(_keyFrames[index2 + 1].Value, _keyFrames[index2 - 1].Value, SplineTension);
-        return Hermite(_keyFrames[index1].Value, tangent1, _keyFrames[index2].Value, tangent2, t);
+        UpdateSplineTangents();
+        return Hermite(_keyFrames[index1].Value, _splineTangents[index1], _keyFrames[index2].Value, _splineTangents[index2], t);
+    }
+
+    private void UpdateSplineTangents()
+    {
+        if (!_splineTangentsDirty)
+            return;
+
+        _splineTangents.Clear();
+
+        if (!IsValid())
+            return;
+
+        var size = _keyFrames.Count;
+        for (var i = 0; i < size; ++i)
+            _splineTangents.Add(null);
+
+        for (var i = 1; i < size - 1; ++i)
+            _splineTangents[i] = SubtractAndMultiply(_keyFrames[i + 1].Value, _keyFrames[i - 1].Value, SplineTension);
+
+        if (!Equals(_keyFrames[0].Value, _keyFrames[^1].Value))
+        {
+            var tangent = SubtractAndMultiply(_keyFrames[0].Value, _keyFrames[0].Value, SplineTension);
+            _splineTangents[0] = tangent;
+            _splineTangents[^1] = tangent;
+        }
+        else
+        {
+            var tangent = SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension);
+            _splineTangents[0] = tangent;
+            _splineTangents[^1] = tangent;
+        }
+
+        _splineTangentsDirty = false;
     }
 
     private static object? Interpolate(object? lhs, object? rhs, float t)

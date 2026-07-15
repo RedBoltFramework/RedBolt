@@ -20,7 +20,6 @@
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:10:    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:94:    // C++: uses SerializeOptionalValue for node/pin/value with Variant::EMPTY default and custom serializer lambda
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:95:    // C++: value serialization uses SerializeOptionalValue(archive, "value", value_, Variant::EMPTY, lambda)
-- [ ] ./src/RedBolt/Scene/ValueAnimation.cs:307:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/GraphNode.cs:294:        // C++: always serializes "name"; uses SerializeOptionalValue for pin vectors (empty pin vectors are skipped on output)
 - [ ] ./src/RedBolt/Resource/GraphNode.cs:302:        // C++: uses SerializeOptionalValue with EmptyObject{} sentinel; each pin vector is conditionally serialized
 - [ ] ./src/RedBolt/Core/Timer.cs:72:        // C++:     data_.resize(intervalCount);
