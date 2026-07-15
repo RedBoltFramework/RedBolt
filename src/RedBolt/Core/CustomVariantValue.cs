@@ -5,16 +5,7 @@ public interface IArchiveSerializable
     void SerializeInBlock(Archive archive);
 }
 
-// C++: class CustomVariantValue {
-// C++:   friend class CustomVariantValueImpl<T>;
-// C++:   CustomVariantValue() = default;
-// C++:   virtual ~CustomVariantValue() = default;
-// C++:   virtual bool CopyTo(CustomVariantValue& dest) const { return false; }
-// C++:   virtual bool MoveTo(CustomVariantValue& dest) { return false; }
-// C++:   virtual void RelocateTo(void* dest) { }
-// C++:   virtual unsigned GetSize() const { return sizeof(CustomVariantValue); }
-// C++:   virtual bool Compare(const CustomVariantValue& rhs) const { return false; }
-// C++:   virtual void Serialize(Archive& archive, const char* name) { URHO3D_ASSERT(0); }
+// TODO: port - C++ custom variant traits expose pointer access, relocation, and inline storage size semantics not represented by the managed object model.
 
 public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
 {
@@ -40,12 +31,6 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
     }
 
     public Type Type { get; }
-
-    // C++: virtual T* GetValuePtr() / const T* GetValuePtr() const — missing
-    // C++: virtual bool CopyTo(CustomVariantValue& dest) const — missing
-    // C++: virtual bool MoveTo(CustomVariantValue& dest) — missing
-    // C++: virtual void RelocateTo(void* dest) — missing
-    // C++: virtual unsigned GetSize() const — missing
 
     public virtual object Value => _value;
 
@@ -100,27 +85,7 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
     }
 }
 
-// TODO: port - C++ code:
-// template <class T> struct CustomVariantValueTraits {
-//     static void Copy(T& dest, const T& src) { dest = src; }
-//     static void Move(T& dest, T& src) { dest = std::move(src); }
-//     static bool Compare(const T& lhs, const T& rhs) { ... }
-//     static bool IsZero(const T& value) { ... }
-//     static ea::string ToString(const T& value) { ... }
-//     static void Serialize(Archive& archive, const char* name, T& value) { ... }
-// };
-// template <class T> struct CustomVariantValueTraits<ea::unique_ptr<T>> { ... };
-// TODO: port - C++ code:
-// constexpr bool IsCustomTypeOnStack() { return sizeof(CustomVariantValueImpl<T>) <= VARIANT_VALUE_SIZE; }
-
-// C++: class CustomVariantValueImpl<T> : CustomVariantValue {
-// C++:   using ClassName = CustomVariantValueImpl<T>;
-// C++:   using Traits = CustomVariantValueTraits<T>;
-// C++:   CustomVariantValueImpl(T&& value);       // move constructor
-// C++:   bool CopyTo(...) override; bool MoveTo(...) override;
-// C++:   unsigned GetSize() const override;
-// C++:   bool Compare(...) override; bool IsZero() override;
-// C++:   ea::string ToString() override; void Serialize(...) override;
+// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
 public sealed class CustomVariantValueImpl<T> : CustomVariantValue
 {
     public CustomVariantValueImpl(T value)
