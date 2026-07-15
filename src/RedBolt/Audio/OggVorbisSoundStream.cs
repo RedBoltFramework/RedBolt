@@ -1,23 +1,20 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using RedBolt.Bindings.Stb;
 
 namespace RedBolt;
 
 /// <summary>Ogg Vorbis sound stream for compressed playback.</summary>
-public sealed class OggVorbisSoundStream : SoundStream, IDisposable
+public class OggVorbisSoundStream : SoundStream, IDisposable
 {
-    // C++: these fields are protected, not private:
-    //     void* decoder_;
-    //     ea::shared_array<signed char> data_;
-    //     unsigned dataSize_;
-    private readonly sbyte[] _data;
-    private readonly uint _dataSize;
-    private StbVorbis? _decoder;
+    protected readonly sbyte[] _data;
+    protected readonly uint _dataSize;
+    protected StbVorbis? _decoder;
 
-    // C++: assert(sound && sound->IsCompressed()) — asserts sound is compressed.
     public OggVorbisSoundStream(Sound sound)
     {
         ArgumentNullException.ThrowIfNull(sound);
+        Debug.Assert(sound.IsCompressed());
         SetFormat(sound.GetIntFrequency(), sound.IsSixteenBit(), sound.IsStereo());
         SetStopAtEnd(!sound.IsLooped());
 
