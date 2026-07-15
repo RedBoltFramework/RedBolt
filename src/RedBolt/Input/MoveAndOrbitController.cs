@@ -94,14 +94,6 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             _component = null;
     }
 
-    // TODO: port - C++ code:
-    // void HandleInputEnd(StringHash eventName, VariantMap& eventData); -- subscribes to E_INPUTEND
-    // void EvaluateTouchRects(IntRect& movementRect, IntRect& rotationRect) const;
-    // void FindTouchStates(const IntRect& movementRect, const IntRect& rotationRect, TouchState*& movementTouch, TouchState*& rotationTouch);
-    // int movementTouchId_{-1}; int rotationTouchId_{-1}; IntVector2 movementTouchOrigin_{};
-    // void OnSceneSet(Scene* previousScene, Scene* scene) override; void ApplyAttributes() override;
-    // TouchState integration for movement/rotation touch gestures in HandleInputEnd
-
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {
         if (!IsEnabledEffective || _input is null)
