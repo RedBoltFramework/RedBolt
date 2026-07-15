@@ -56,8 +56,6 @@
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:111:    // C++: acquires mutex, finds item, releases mutex, polls resource state in loop with Time::Sleep(1),
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:135:    // C++: iterates queue with mutex, calls FinishBackgroundLoading for each ready item, breaks on time limit.
 - [ ] ./src/RedBolt/Resource/BackgroundLoader.cs:175:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/IO/Compression.cs:7:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
-- [ ] ./src/RedBolt/IO/Compression.cs:9:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:37:    // C++: AttributeHandle ObjectReflection::AddAttribute(const AttributeInfo& attr)
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:38:    // C++: {
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:39:    // C++:     // None or pointer types can not be supported

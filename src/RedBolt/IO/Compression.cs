@@ -4,10 +4,6 @@ using RedBolt.Bindings.Lz4;
 
 namespace RedBolt;
 
-// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
-// C# groups them into a static class.
-// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
-// C# groups them into a static class.
 /// <summary>LZ4 compression helpers.</summary>
 public static class Compression
 {
