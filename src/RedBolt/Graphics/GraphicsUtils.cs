@@ -105,11 +105,11 @@ public static class GraphicsUtils
         }
     }
 
-    public static void AddShaderResource(DrawCommandQueue drawQueue, StringHash name, Texture texture)
+    public static void AddShaderResource(DrawCommandQueue drawQueue, StringHash name, Texture? texture)
     {
-        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
         ArgumentNullException.ThrowIfNull(drawQueue);
-        ArgumentNullException.ThrowIfNull(texture);
+        if (texture is null)
+            return;
 
         drawQueue.AddShaderResource(
             name,

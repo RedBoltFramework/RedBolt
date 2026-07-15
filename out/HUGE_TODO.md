@@ -55,7 +55,6 @@
 - [ ] ./src/RedBolt/Graphics/Light.cs:50:// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
 - [ ] ./src/RedBolt/Graphics/Light.cs:51:// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
 - [ ] ./src/RedBolt/Graphics/Light.cs:52:// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
-- [ ] ./src/RedBolt/Graphics/GraphicsUtils.cs:110:        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
 - [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
