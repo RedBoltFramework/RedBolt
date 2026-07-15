@@ -156,15 +156,13 @@ public sealed class Audio : Object
 
     public void Update(float timeStep)
     {
-        // C++: Audio uses SDL's pull callback (SDLAudioCallback → MixOutput) from the audio thread.
-        // C# uses manual polling with SDL_QueueAudio in Update() due to C#/native callback limitations.
+        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread.
+        // C# uses manual polling with SDL_QueueAudio in Update() because the generated SDL binding has no audio callback surface.
         if (!_playing) return;
 
         lock (_audioMutex)
         {
             UpdateInternal(timeStep);
-            // C++: iterates microphones calling CheckDirtiness() and erases expired WeakPtrs.
-            // C# does not clean up expired microphones.
             foreach (var microphone in _microphones)
             {
                 microphone.UpdateNative();
@@ -305,31 +303,25 @@ public sealed class Audio : Object
         lock (_audioMutex)
         {
             var destinationOffset = 0;
-            while (samples != 0 && destinationOffset < dest.Length)
+            while (samples != 0)
             {
                 var workSamples = Math.Min(samples, _fragmentSize);
-                // C++: clipSamples = workSamples; if (speakerMode_ != SPK_MONO) clipSamples = AUDIO_NUM_CHANNELS[speakerMode_] * fragmentSize_;
-                // C++ uses a fixed full fragment size for non-mono clip buffer; C# computes dynamically from workSamples.
-                var clipSamples = checked((int)(workSamples * (uint)channels));
-                clipSamples = Math.Min(clipSamples, dest.Length - destinationOffset);
-                workSamples = (uint)(clipSamples / channels);
-                clipSamples = checked((int)(workSamples * (uint)channels));
-                if (workSamples == 0)
-                    break;
+                var clipSamples = checked((int)workSamples);
+                if (_speakerMode != SpeakerMode.Mono)
+                    clipSamples = checked(channels * (int)_fragmentSize);
 
                 Array.Clear(_clipBuffer, 0, clipSamples);
                 foreach (var source in _soundSources)
                 {
                     if (_pausedSoundTypes.Contains(source.SoundTypeHash))
                         continue;
-                    source.UpdateMasterGain();
                     source.Mix(_clipBuffer, workSamples, _mixRate, _speakerMode, _interpolation);
                 }
 
                 for (var i = 0; i < clipSamples; i++)
                     dest[destinationOffset + i] = (short)Math.Clamp(_clipBuffer[i], short.MinValue, short.MaxValue);
 
-                destinationOffset += clipSamples;
+                destinationOffset += checked((int)(_sampleSize * workSamples / sizeof(short)));
                 samples -= workSamples;
             }
         }
