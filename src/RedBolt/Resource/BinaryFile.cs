@@ -11,9 +11,6 @@ public sealed class BinaryFile : Resource
     {
     }
 
-    // TODO: port - C++ code:
-    // ~BinaryFile() override;
-
     public IReadOnlyList<byte> Data => _buffer.GetBuffer();
 
     public static void RegisterObject(Context context)
@@ -21,15 +18,14 @@ public sealed class BinaryFile : Resource
         ArgumentNullException.ThrowIfNull(context);
     }
 
-    // C++: source.Seek(0); buffer_.SetData(source, source.GetSize()); SetMemoryUse(buffer_.GetBuffer().capacity());
-    // C++: reads data via VectorBuffer.SetData(Deserializer&, size) directly — no intermediate MemoryStream copy.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
         source.Seek(0, SeekOrigin.Begin);
         using var memory = new MemoryStream();
         source.CopyTo(memory);
-        SetData(memory.ToArray());
+        _buffer.SetData(memory.ToArray());
+        SetMemoryUse((uint)_buffer.Buffer.Length);
         return true;
     }
 
@@ -41,8 +37,6 @@ public sealed class BinaryFile : Resource
         return true;
     }
 
-    // C++: does NOT call archive.Flush() or SetMemoryUse after serialization.
-    // C++: BinaryOutputArchive archive{GetContext(), AsSerializer()}; serializeValue(archive);
     public bool SaveObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -51,8 +45,6 @@ public sealed class BinaryFile : Resource
             _buffer.Clear();
             var archive = new BinaryOutputArchive(Context.Instance, AsSerializer());
             serializeValue(archive);
-            archive.Flush();
-            SetMemoryUse(_buffer.Size);
             return true;
         }
         catch
@@ -62,8 +54,6 @@ public sealed class BinaryFile : Resource
         }
     }
 
-    // C++: does NOT call archive.Flush().
-    // C++: MemoryBuffer readBuffer{buffer_.GetBuffer()}; BinaryInputArchive archive{GetContext(), readBuffer};
     public bool LoadObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -72,7 +62,6 @@ public sealed class BinaryFile : Resource
             var readBuffer = new MemoryBuffer(_buffer.GetBuffer());
             var archive = new BinaryInputArchive(Context.Instance, readBuffer);
             serializeValue(archive);
-            archive.Flush();
             return true;
         }
         catch
@@ -81,9 +70,6 @@ public sealed class BinaryFile : Resource
         }
     }
 
-    // TODO: port - C++ code:
-    // template <class T, class ... Args> bool SaveObject(const char* name, const T& object, Args &&... args);
-    // template <class T, class ... Args> bool LoadObject(const char* name, T& object, Args &&... args) const;
     public bool SaveObject(Object value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -101,22 +87,18 @@ public sealed class BinaryFile : Resource
         _buffer.Clear();
     }
 
-    // C++: void SetData(const ByteVector& data) — takes const reference.
-    // C++: buffer_.SetData(data); SetMemoryUse(buffer_.GetBuffer().capacity()) — uses capacity(), not size().
     public void SetData(IEnumerable<byte> value)
     {
         ArgumentNullException.ThrowIfNull(value);
         _buffer.SetData(value.ToArray());
-        SetMemoryUse(_buffer.Size);
+        SetMemoryUse((uint)_buffer.Buffer.Length);
     }
 
-    // C++: void SetText(ea::string_view text) — zero-copy view.
-    // C++: SetMemoryUse(static_cast<unsigned>(buffer_.GetBuffer().capacity())) — uses capacity().
     public void SetText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         _buffer.SetData(Encoding.UTF8.GetBytes(text));
-        SetMemoryUse(_buffer.Size);
+        SetMemoryUse((uint)_buffer.Buffer.Length);
     }
 
     public IReadOnlyList<byte> GetData() => _buffer.GetBuffer();
