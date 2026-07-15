@@ -4,7 +4,6 @@
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:11:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
-- [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:11:    // TODO: port - C++ code:

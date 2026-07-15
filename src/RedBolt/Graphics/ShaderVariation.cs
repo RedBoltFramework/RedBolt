@@ -141,7 +141,6 @@ public sealed partial class ShaderVariation : RawShader
 
     private void SaveByteCode(FileIdentifier binaryShaderName)
     {
-        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         if (virtualFileSystem is null || binaryShaderName.IsEmpty())
             return;
