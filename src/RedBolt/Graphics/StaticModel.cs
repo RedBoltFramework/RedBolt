@@ -2,15 +2,12 @@ namespace RedBolt;
 
 /// <summary>Static model component.</summary>
 /// <remarks>
-// C++: StaticModel inherits from Drawable. C# matches.
-// C++: StaticModel has virtual methods SetModel, SetMaterial(index), SetMaterial(material). C# matches virtual.
 // C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
 // C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
 // C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 // TODO: port - C++ code: bool StaticModel::IsInside(const Vector3& point) const
 // TODO: port - C++ code: bool StaticModel::IsInsideLocal(const Vector3& point) const
-// C++: Has private HandleModelReloadFinished. C# has HandleModelReloadFinished as event handler.
 // C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
 // C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
 // C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
