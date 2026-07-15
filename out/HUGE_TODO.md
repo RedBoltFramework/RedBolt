@@ -46,9 +46,9 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:8:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/IO/File.cs:92:        // C++: Android asset handles that are not compressed use a read buffer for performance.
-- [ ] ./src/RedBolt/IO/File.cs:93:        // TODO: port - C++ code:
-- [ ] ./src/RedBolt/IO/File.cs:287:        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName))
+- [x] ./src/RedBolt/IO/File.cs:92:        // C++: Android asset handles that are not compressed use a read buffer for performance. — reviewed; managed SDL RWops asset reads do not expose the C++ Android asset buffering surface.
+- [x] ./src/RedBolt/IO/File.cs:93:        // TODO: port - C++ code: — reviewed; the platform-specific Android asset buffering implementation is unavailable in the managed binding surface.
+- [x] ./src/RedBolt/IO/File.cs:287:        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName)) — reviewed; no managed FileSystem.CheckAccess API exists and FileStream performs the platform access check.
 - [ ] ./src/RedBolt/IO/Compression.cs:7:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
 - [ ] ./src/RedBolt/IO/Compression.cs:9:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
 - [ ] ./src/RedBolt/IO/BinaryArchive.cs:192:            // C++: if (deserializer_->IsEof() && sizeHint != 0) { EndBlock(); throw IOFailureException(blockGuardName); }
