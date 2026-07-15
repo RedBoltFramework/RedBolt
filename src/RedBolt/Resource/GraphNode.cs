@@ -291,15 +291,10 @@ public partial class GraphNode : Object
     /// <summary>Serialize content from/to archive.</summary>
     public override void SerializeInBlock(Archive archive)
     {
-        // C++: always serializes "name"; uses SerializeOptionalValue for pin vectors (empty pin vectors are skipped on output)
-        if (!archive.IsInput || archive.HasElementOrBlock("name"))
-        {
-            ArchiveSerialization.SerializeValue(archive, "name", ref _name);
-            if (archive.IsInput)
-                _nameHash = _name;
-        }
+        ArchiveSerialization.SerializeValue(archive, "name", ref _name);
+        if (archive.IsInput)
+            _nameHash = _name;
 
-        // C++: uses SerializeOptionalValue with EmptyObject{} sentinel; each pin vector is conditionally serialized
         SerializeObjectVector(archive, "properties", "property", _properties);
         SerializeObjectVector(archive, "enter", "pin", _enterPins);
         SerializeObjectVector(archive, "in", "pin", _inputPins);
