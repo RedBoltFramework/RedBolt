@@ -60,11 +60,6 @@ public abstract class RenderBuffer
 /// <summary>
 /// Writable and readable render buffer texture (2D or cubemap).
 /// </summary>
-// TODO: port - C++ code:
-// C++ TextureRenderBuffer constructor takes RenderPipelineInterface* + RenderBufferParams + Vector2.
-// C++ OnRenderBegin allocates textures via RenderPool::GetTexture (transient/persistent).
-// C++ OnRenderEnd sets currentTexture_ = nullptr and bufferIsReady_ = false.
-// Texture lifetime is frame-only in C++.
 public sealed class TextureRenderBuffer : RenderBuffer
 {
     private readonly RenderBufferParams _bufferParams;
