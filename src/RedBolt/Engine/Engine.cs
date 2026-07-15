@@ -189,7 +189,6 @@ public sealed class Engine : Object
         var mouseVisible = input?.MouseVisible ?? false;
         var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
 
-        // TODO: port UI and RmlUI scale state updates when the managed UI APIs exist.
         graphics?.SetMode(width, height);
 
         if (input is not null)
@@ -199,8 +198,6 @@ public sealed class Engine : Object
         }
     }
 
-    // C++: #if defined(IOS) || defined(TVOS) – on iOS/tvOS DoExit() is NOT called
-    //       because iOS/tvOS apps cannot legally exit on their own.
     public void Exit()
     {
         DoExit();
