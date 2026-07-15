@@ -2,18 +2,34 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class AttributePrefab : ICloneable
+public sealed class AttributePrefab : ICloneable, IEquatable<AttributePrefab>
 {
-    // TODO: port - C++ code:
-    // enum class IdentifierType : unsigned char { Id, Name, NameHash, Unused };
-    // IdentifierType GetIdentifierType() const;
-    // explicit AttributePrefab(AttributeId id);
-    // explicit AttributePrefab(const ea::string& name);
-    // explicit AttributePrefab(const char* name);
-    // explicit AttributePrefab(StringHash nameHash);
-    // AttributeId id_{};  // separate Id field (different from uint Id?)
-    // bool operator==(const AttributePrefab& rhs) const;
-    // bool operator!=(const AttributePrefab& rhs) const { return !(*this == rhs); }
+    public enum IdentifierType : byte
+    {
+        Id,
+        Name,
+        NameHash,
+        Unused
+    }
+
+    public AttributePrefab()
+    {
+    }
+
+    public AttributePrefab(uint id)
+    {
+        Id = id;
+    }
+
+    public AttributePrefab(string name)
+    {
+        Name = name;
+    }
+
+    public AttributePrefab(StringHash nameHash)
+    {
+        NameHash = nameHash;
+    }
 
     public string Name
     {
@@ -32,6 +48,30 @@ public sealed class AttributePrefab : ICloneable
     public Variant Value { get; set; }
 
     public StringHash GetNameHash() => NameHash;
+
+    public IdentifierType GetIdentifierType()
+    {
+        if (Id != 0)
+            return IdentifierType.Id;
+        return !string.IsNullOrEmpty(Name) ? IdentifierType.Name : IdentifierType.NameHash;
+    }
+
+    public bool Equals(AttributePrefab? other)
+    {
+        return other is not null
+            && Name == other.Name
+            && NameHash == other.NameHash
+            && Id == other.Id
+            && Value == other.Value;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as AttributePrefab);
+
+    public override int GetHashCode() => HashCode.Combine(Name, NameHash, Id, Value);
+
+    public static bool operator ==(AttributePrefab? left, AttributePrefab? right) => Equals(left, right);
+
+    public static bool operator !=(AttributePrefab? left, AttributePrefab? right) => !Equals(left, right);
 
     public object Clone()
     {
@@ -120,21 +160,56 @@ public sealed class AttributePrefab : ICloneable
     private string _name = string.Empty;
 }
 
-public sealed class SerializablePrefab : ICloneable
+public sealed class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>
 {
-    // TODO: port - C++ code:
-    // void SetType(const ea::string& typeName);
-    // void SetType(const char* typeName);
-    // void SetType(StringHash typeNameHash);
-    // StringHash typeNameHash_;  // private field set by SetType(StringHash)
-    // AttributeScopeHint GetEffectiveScopeHint(Context* context) const;
-    // bool operator==(const SerializablePrefab& rhs) const;
-    // bool operator!=(const SerializablePrefab& rhs) const { return !(*this == rhs); }
+    public string TypeName
+    {
+        get => _typeName;
+        set
+        {
+            _typeName = value ?? string.Empty;
+            _typeNameHash = _typeName;
+        }
+    }
 
-    public string TypeName { get; set; } = string.Empty;
+    public StringHash TypeNameHash => _typeNameHash;
     public uint Id { get; set; }
     public bool Temporary { get; set; }
     public List<AttributePrefab> Attributes { get; } = [];
+
+    public void SetType(string typeName) => TypeName = typeName;
+
+    public void SetType(StringHash typeNameHash)
+    {
+        _typeNameHash = typeNameHash;
+        _typeName = typeNameHash.Reverse();
+    }
+
+    public AttributeScopeHint GetEffectiveScopeHint()
+    {
+        if (_typeNameHash == StringHash.Empty)
+            return AttributeScopeHint.Attribute;
+
+        return Context.Instance.GetReflection(_typeNameHash)?.GetEffectiveScopeHint()
+            ?? AttributeScopeHint.Attribute;
+    }
+
+    public bool Equals(SerializablePrefab? other)
+    {
+        return other is not null
+            && TypeName == other.TypeName
+            && Id == other.Id
+            && Temporary == other.Temporary
+            && Attributes.SequenceEqual(other.Attributes);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as SerializablePrefab);
+
+    public override int GetHashCode() => HashCode.Combine(TypeName, Id, Temporary, Attributes.Count);
+
+    public static bool operator ==(SerializablePrefab? left, SerializablePrefab? right) => Equals(left, right);
+
+    public static bool operator !=(SerializablePrefab? left, SerializablePrefab? right) => !Equals(left, right);
 
     public object Clone()
     {
@@ -330,24 +405,45 @@ public sealed class SerializablePrefab : ICloneable
             attribute.SerializeInBlock(archive, compactSave);
         }
     }
+
+    private string _typeName = string.Empty;
+    private StringHash _typeNameHash;
 }
 
-public sealed class NodePrefab : ICloneable
+public sealed class NodePrefab : ICloneable, IEquatable<NodePrefab>
 {
-    // TODO: port - C++ code:
-    // class PrefabNormalizer { ... };  // separate utility class for ID normalization
-    // AttributeScopeHint GetEffectiveScopeHint(Context* context) const;
-    // bool operator==(const NodePrefab& rhs) const;
-    // bool operator!=(const NodePrefab& rhs) const { return !(*this == rhs); }
-    //
-    // C++ NormalizeIds takes Context* context and delegates to PrefabNormalizer:
-    //   void PrefabNormalizer::ScanNode(NodePrefab& node);
-    //   void PrefabNormalizer::RemapAndPrune(NodePrefab& node);
-    //
-    // Free functions (entry points for archive serialization):
-    //   void SerializeValue(Archive&, const char* name, AttributePrefab&, bool compactSave = false);
-    //   void SerializeValue(Archive&, const char* name, SerializablePrefab&, PrefabArchiveFlags, bool compactSave = false);
-    //   void SerializeValue(Archive&, const char* name, NodePrefab&, PrefabArchiveFlags, bool compactSave = false);
+    public AttributeScopeHint GetEffectiveScopeHint()
+    {
+        var result = AttributeScopeHint.Attribute;
+        foreach (var component in Components)
+            result = (AttributeScopeHint)Math.Max((int)result, (int)component.GetEffectiveScopeHint());
+        foreach (var child in Children)
+            result = (AttributeScopeHint)Math.Max((int)result, (int)child.GetEffectiveScopeHint());
+        return result;
+    }
+
+    public bool Equals(NodePrefab? other)
+    {
+        return other is not null
+            && Node == other.Node
+            && Components.SequenceEqual(other.Components)
+            && Children.SequenceEqual(other.Children);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as NodePrefab);
+
+    public override int GetHashCode() => HashCode.Combine(Node, Components.Count, Children.Count);
+
+    public static bool operator ==(NodePrefab? left, NodePrefab? right) => Equals(left, right);
+
+    public static bool operator !=(NodePrefab? left, NodePrefab? right) => !Equals(left, right);
+
+    public static void SerializeValue(Archive archive, string name, NodePrefab value,
+        PrefabArchiveFlag flags = PrefabArchiveFlag.None, bool compactSave = false)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        value.SerializeInBlock(archive, flags, compactSave);
+    }
 
     public static NodePrefab Empty { get; } = new();
 
