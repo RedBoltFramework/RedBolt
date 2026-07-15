@@ -25,8 +25,6 @@ public enum PlatformId
 }
 
 // TODO: port - C++ code:
-// void InitFPU();
-// TODO: port - C++ code:
 // void ErrorDialog(const ea::string& title, const ea::string& message);
 // TODO: port - C++ code:
 // void ErrorExit(const ea::string& message = EMPTY_STRING, int exitCode = EXIT_FAILURE);
