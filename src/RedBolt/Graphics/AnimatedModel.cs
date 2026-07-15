@@ -17,8 +17,6 @@ public class AnimatedModel : StaticModel
     // TODO: port - C++ code:
     // void ProcessRayQuery(const RayOctreeQuery& query, ea::vector<RayQueryResult>& results) override;
     // TODO: port - C++ code:
-    // void Update(const FrameInfo& frame) override;
-    // TODO: port - C++ code:
     // void UpdateBatches(const FrameInfo& frame) override;
     // TODO: port - C++ code:
     // void UpdateGeometry(const FrameInfo& frame) override;
@@ -211,6 +209,13 @@ public class AnimatedModel : StaticModel
         }
 
         Node?.MarkDirty();
+    }
+
+    /// <summary>Update animation before octree reinsertion.</summary>
+    public override void Update(CommonFrameInfo frame)
+    {
+        base.Update(frame);
+        ApplyAnimation();
     }
 
     /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
