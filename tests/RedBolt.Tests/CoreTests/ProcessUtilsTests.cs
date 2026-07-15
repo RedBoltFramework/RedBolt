@@ -47,4 +47,21 @@ public class ProcessUtilsTests
         var uuid = ProcessUtils.GenerateUUID();
         Assert.True(Guid.TryParse(uuid, out _));
     }
+
+    [Fact]
+    public void ParseArgumentsPreservesQuotedArguments()
+    {
+        var arguments = ProcessUtils.ParseArguments("program \"two words\" plain", skipFirstArgument: true);
+
+        Assert.Equal(["two words", "plain"], arguments);
+        Assert.Same(arguments, ProcessUtils.GetArguments());
+    }
+
+    [Fact]
+    public void ParseArgumentListSkipsExecutableName()
+    {
+        var arguments = ProcessUtils.ParseArguments(new[] { "program", "--scene", "StaticScene" });
+
+        Assert.Equal(["--scene", "StaticScene"], arguments);
+    }
 }

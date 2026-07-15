@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace RedBolt;
 
@@ -24,11 +25,6 @@ public enum PlatformId
 }
 
 // TODO: port - C++ code:
-// static const char* DYN_LIB_SUFFIX = ".dll"; // on Windows
-// static const char* DYN_LIB_SUFFIX = ".dylib"; // on Apple
-// static const char* DYN_LIB_SUFFIX = ".so"; // on other platforms
-
-// TODO: port - C++ code:
 // void InitFPU();
 // TODO: port - C++ code:
 // void ErrorDialog(const ea::string& title, const ea::string& message);
@@ -37,37 +33,89 @@ public enum PlatformId
 // TODO: port - C++ code:
 // void OpenConsoleWindow();
 // TODO: port - C++ code:
-// void PrintUnicode(const ea::string& str, bool error = false);
-// TODO: port - C++ code:
-// void PrintUnicodeLine(const ea::string& str, bool error = false);
-// TODO: port - C++ code:
-// void PrintLine(const ea::string& str, bool error = false);
-// TODO: port - C++ code:
-// void PrintLine(const char* str, bool error = false);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& ParseArguments(const ea::string& cmdLine, bool skipFirstArgument = true);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& ParseArguments(const char* cmdLine);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& ParseArguments(const ea::wstring& cmdLine);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& ParseArguments(const wchar_t* cmdLine);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& ParseArguments(int argc, char** argv);
-// TODO: port - C++ code:
-// const ea::vector<ea::string>& GetArguments();
-// TODO: port - C++ code:
 // ea::string GetConsoleInput();
 
 public static class ProcessUtils
 {
     private static string _miniDumpDir = string.Empty;
+    private static readonly List<string> _arguments = [];
 
     // C++: static const char* DYN_LIB_SUFFIX (compile-time platform constant)
     public static string DynLibSuffix =>
         OperatingSystem.IsWindows() ? ".dll" :
         OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? ".dylib" :
         ".so";
+
+    /// <summary>Print Unicode text to the console.</summary>
+    public static void PrintUnicode(string value, bool error = false)
+    {
+        (error ? Console.Error : Console.Out).Write(value);
+    }
+
+    /// <summary>Print Unicode text to the console with a newline appended.</summary>
+    public static void PrintUnicodeLine(string value, bool error = false)
+    {
+        (error ? Console.Error : Console.Out).WriteLine(value);
+    }
+
+    /// <summary>Print text to the console with a newline appended.</summary>
+    public static void PrintLine(string value, bool error = false)
+    {
+        (error ? Console.Error : Console.Out).WriteLine(value);
+    }
+
+    /// <summary>Parse arguments from a command line.</summary>
+    public static IReadOnlyList<string> ParseArguments(string commandLine, bool skipFirstArgument = true)
+    {
+        ArgumentNullException.ThrowIfNull(commandLine);
+        _arguments.Clear();
+
+        var current = new StringBuilder();
+        var inQuote = false;
+        foreach (var character in commandLine)
+        {
+            if (character == '"')
+            {
+                inQuote = !inQuote;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(character) && !inQuote)
+            {
+                if (current.Length > 0)
+                {
+                    _arguments.Add(current.ToString());
+                    current.Clear();
+                }
+            }
+            else
+                current.Append(character);
+        }
+
+        if (current.Length > 0)
+            _arguments.Add(current.ToString());
+
+        if (skipFirstArgument && _arguments.Count > 0)
+            _arguments.RemoveAt(0);
+
+        if (OperatingSystem.IsWindows())
+            _arguments.Remove("--win32-console");
+
+        return _arguments;
+    }
+
+    /// <summary>Parse arguments from an argument array.</summary>
+    public static IReadOnlyList<string> ParseArguments(IReadOnlyList<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        _arguments.Clear();
+        for (var index = 1; index < arguments.Count; ++index)
+            _arguments.Add(arguments[index]);
+        return _arguments;
+    }
+
+    /// <summary>Return previously parsed arguments.</summary>
+    public static IReadOnlyList<string> GetArguments() => _arguments;
 
     public static PlatformId GetPlatform()
     {
