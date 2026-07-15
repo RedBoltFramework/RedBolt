@@ -20,18 +20,12 @@ public struct SphericalHarmonicsColor9
 
     public SphericalHarmonicsColor9() { }
 
-    // C++: explicit SphericalHarmonicsColor9(const Vector3& color)
-    // {
-    //     static const float factor = 1.0f / (SphericalHarmonics9::cosines[0] * SphericalHarmonics9::factors[0]);
-    //     values_[0] = color * factor;
-    // }
     public SphericalHarmonicsColor9(Vector3f color)
     {
         var factor = 1.0f / (SphericalHarmonics9.Cosines[0] * SphericalHarmonics9.Factors[0]);
         Values[0] = color * factor;
     }
 
-    // C++: explicit SphericalHarmonicsColor9(const Color& color) : SphericalHarmonicsColor9(color.ToVector3()) {}
     public SphericalHarmonicsColor9(Color color) : this(new Vector3f(color.R, color.G, color.B)) { }
 
     public SphericalHarmonicsColor9(Vector3f direction, Color color)
@@ -40,27 +34,12 @@ public struct SphericalHarmonicsColor9
         for (var i = 0; i < 9; ++i) Values[i] = rgb * basis.Values[i];
     }
 
-    // C++: SphericalHarmonicsColor9(const Vector3& dir, const Vector3& color)
-    // {
-    //     const SphericalHarmonics9 sh9{ dir };
-    //     for (unsigned i = 0; i < 9; ++i)
-    //         values_[i] = color * sh9.values_[i];
-    // }
     public SphericalHarmonicsColor9(Vector3f direction, Vector3f color)
     {
         var basis = new SphericalHarmonics9(direction);
         for (var i = 0; i < 9; ++i) Values[i] = color * basis.Values[i];
     }
 
-    // C++: Vector3 Evaluate(const Vector3& dir) const
-    // {
-    //     const SphericalHarmonics9 sh{ dir.Normalized() };
-    //     Vector3 result;
-    //     for (unsigned i = 0; i < 9; ++i)
-    //         result += SphericalHarmonics9::cosines[i] * sh.values_[i] * values_[i];
-    //     return result;
-    // }
-    // C++ passes dir.Normalized(); C# passes direction directly - SphericalHarmonics9 constructor expects normalized direction
     public Vector3f Evaluate(Vector3f direction)
     {
         var basis = new SphericalHarmonics9(direction.NormalizedOrDefault()); var result = Vector3f.ZERO;
@@ -68,13 +47,6 @@ public struct SphericalHarmonicsColor9
         return result;
     }
 
-    // C++: Vector3 EvaluateAverage() const
-    // {
-    //     Vector3 result;
-    //     result += SphericalHarmonics9::cosines[0] * SphericalHarmonics9::factors[0] * values_[0];
-    //     result -= SphericalHarmonics9::cosines[6] * SphericalHarmonics9::factors[6] * values_[6];
-    //     return result;
-    // }
     public Vector3f EvaluateAverage()
     {
         var result = Vector3f.ZERO;
@@ -83,28 +55,10 @@ public struct SphericalHarmonicsColor9
         return result;
     }
 
-    // C++: SphericalHarmonicsColor9& operator +=(const SphericalHarmonicsColor9& rhs)
-    // {
-    //     for (unsigned i = 0; i < 9; ++i)
-    //         values_[i] += rhs.values_[i];
-    //     return *this;
-    // }
     public void Add(SphericalHarmonicsColor9 rhs) { for (var i = 0; i < 9; ++i) Values[i] += rhs.Values[i]; }
 
-    // C++: SphericalHarmonicsColor9& operator *=(float rhs)
-    // {
-    //     for (unsigned i = 0; i < 9; ++i)
-    //         values_[i] *= rhs;
-    //     return *this;
-    // }
     public void Multiply(float scale) { for (var i = 0; i < 9; ++i) Values[i] *= scale; }
 
-    // C++: SphericalHarmonicsColor9 operator *(float rhs) const
-    // {
-    //     SphericalHarmonicsColor9 result = *this;
-    //     result *= rhs;
-    //     return result;
-    // }
     public SphericalHarmonicsColor9 Scaled(float scale) { var result = Clone(); result.Multiply(scale); return result; }
 
     public SphericalHarmonicsColor9 Clone()
