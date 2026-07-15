@@ -181,6 +181,39 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Dds_dxgi_rgba16_unorm_is_converted_to_rgba_image_data()
+    {
+        var dds = new byte[148 + 8];
+        WriteUInt32(dds, 0, 0x20534444u);
+        WriteUInt32(dds, 4, 124u);
+        WriteUInt32(dds, 12, 1u);
+        WriteUInt32(dds, 16, 1u);
+        WriteUInt32(dds, 24, 1u);
+        WriteUInt32(dds, 28, 1u);
+        WriteUInt32(dds, 76, 32u);
+        WriteUInt32(dds, 84, 0x30315844u);
+        WriteUInt32(dds, 128, 11u);
+        dds[148..156].AsSpan().Clear();
+        dds[148] = 0xff;
+        dds[149] = 0xff;
+        dds[150] = 0x00;
+        dds[151] = 0x80;
+        dds[154] = 0xff;
+        dds[155] = 0xff;
+
+        var image = new Image("Rgba16");
+        Assert.True(image.BeginLoad(new MemoryStream(dds)));
+        Assert.Equal(CompressedFormat.Rgba, image.CompressedFormat);
+
+        var rgba = image.GetDecompressedImage();
+        Assert.NotNull(rgba);
+        Assert.Equal(new byte[] { 255, 128, 0, 255 }, rgba!.GetData());
+    }
+
+    private static void WriteUInt32(byte[] data, int offset, uint value)
+        => System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(offset, 4), value);
+
+    [Fact]
     public void Image_cube_xml_loads_through_image_cube_resource()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.ImageCubeTests", Guid.NewGuid().ToString("N"));
