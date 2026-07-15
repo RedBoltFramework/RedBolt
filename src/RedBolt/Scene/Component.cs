@@ -95,9 +95,7 @@ public abstract class Component : Animatable
 
     public virtual void GetDependencyNodes(ICollection<Node> destination) { }
 
-    // TODO: port - C++ code:
-    // virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
-    // public virtual void DrawDebugGeometry(DebugRenderer debug, bool depthTest) { }
+    public virtual void DrawDebugGeometry(DebugRenderer? debug, bool depthTest) { }
 
     public virtual bool HasAuxiliaryData() => false;
 

@@ -229,7 +229,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Animation : ResourceWithMetadata, ObjectRevisionTracker` — resource state, XML and binary validation diagnostics, UANI/UAN2 serialization, trigger-save diagnostics, tracks, variant tracks, triggers, cloning, metadata, and revision tracking are ported; C# flattens `ObjectRevisionTracker` because it cannot express C++ multiple inheritance
   - [~] ResourceCache/VFS sibling XML dependency behavior is mapped through `VirtualFileSystem` and `FileIdentifier`; generic resource-cache dependency registration remains TODO
 - [x] `Camera.h`
-  - [x] `Camera : Component` — projection/view/frustum caches, reflection and clipping planes, screen/world conversion, zone state, camera-facing rotations, and graphics-backend projection conversion are ported
+  - [x] `Camera : Component` — projection/view/frustum caches, camera frustum debug geometry, vector orthographic-size configuration, reflection and clipping planes, screen/world conversion, zone state, camera-facing rotations, and graphics-backend projection conversion are ported
 - [x] `CameraOperator.h` — tracked-node attributes, scene/node listeners, camera movement, bounding-box/padding state, frustum fitting, factory registration, and action label/description metadata are ported; C# drops `WeakPtr` per the allowed deviations
 - [x] `Viewport.h` — `Viewport : Object` base shape, constructors, camera/culling access, scene/rect/debug setters, effective rectangles, screen/world coordinate helpers, and render-pipeline view allocation including owner invalidation are ported; C# drops `WeakPtr`/`SharedPtr` per the allowed deviations
 - [~] `Drawable.h`

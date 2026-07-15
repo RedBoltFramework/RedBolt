@@ -52,27 +52,6 @@ public sealed class Camera : Component
     private readonly RenderDevice? _renderDevice;
     private Zone? _zone;
 
-    // TODO: port - C++ code:
-    // void Camera::DrawDebugGeometry(DebugRenderer* debug, bool depthTest)
-    // The C++ Camera overrides DrawDebugGeometry to render the camera frustum as debug geometry.
-    // It also overrides OnNodeSet and OnMarkedDirty as protected (not public).
-
-    // TODO: port - C++ code:
-    // static void Camera::RegisterObject(Context* context)
-    // Registers object factory and attributes in the C++ reflection system.
-
-    // TODO: port - C++ code (SetOrthoSize overload):
-    // void Camera::SetOrthoSize(const Vector2& orthoSize)
-    // {
-    //     orthographic_ = true;
-    //     autoAspectRatio_ = false;
-    //     orthoSize_ = orthoSize.y_;
-    //     aspectRatio_ = orthoSize.x_ / orthoSize.y_;
-    //     viewProjDirty_ = true;
-    //     cachedFrustum_.Invalidate();
-    // }
-    // C++: The SetOrthoSize(Vector2) overload also sets orthographic_ = true before changing aspect ratio.
-
     public Camera()
     {
         _renderDevice = GetSubsystem<RenderDevice>();
@@ -107,7 +86,7 @@ public sealed class Camera : Component
 
     public bool AutoAspectRatio { get; set; } = true;
 
-    public bool DrawDebugGeometry { get; set; } = true;
+    public bool DrawDebugGeometryEnabled { get; set; } = true;
 
     public Plane ClipPlane => _clipPlane;
 
@@ -195,7 +174,12 @@ public sealed class Camera : Component
 
     public bool GetAutoAspectRatio() => AutoAspectRatio;
 
-    public bool GetDrawDebugGeometry() => DrawDebugGeometry;
+    public bool GetDrawDebugGeometry() => DrawDebugGeometryEnabled;
+
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        debug?.AddFrustum(GetFrustum(), Color.White, depthTest);
+    }
 
     /// <summary>
     /// Return frustum in world space.
@@ -602,7 +586,7 @@ public sealed class Camera : Component
 
     public void SetDrawDebugGeometry(bool enable)
     {
-        DrawDebugGeometry = enable;
+        DrawDebugGeometryEnabled = enable;
     }
 
     public void SetFarClip(float value)
@@ -671,7 +655,7 @@ public sealed class Camera : Component
 
     public void SetOrthoSize(Vector2f value)
     {
-        // C++: void Camera::SetOrthoSize(const Vector2& orthoSize) also sets orthographic_ = true
+        Orthographic = true;
         AutoAspectRatio = false;
         _orthoSize = value.Y;
         _aspectRatio = value.X / value.Y;

@@ -38,6 +38,7 @@ public sealed class CameraTests
         camera.SetOrthoSize(new Vector2f(40.0f, 20.0f));
 
         Assert.False(camera.GetAutoAspectRatio());
+        Assert.True(camera.IsOrthographic());
         Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetAspectRatio(), 2.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetOrthoSize(), 20.0f));
     }
