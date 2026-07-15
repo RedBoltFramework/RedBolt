@@ -39,7 +39,7 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
     public static readonly BaseIntVector3<T> Back = new(T.Zero, T.Zero, -T.One);
     public static readonly BaseIntVector3<T> One = new(T.One, T.One, T.One);
 
-    public T[] Data => [X, Y, Z];
+    public ReadOnlySpan<T> Data => MemoryMarshal.CreateReadOnlySpan(ref X, 3);
 
     public float Length => MathF.Sqrt(float.CreateChecked(X * X + Y * Y + Z * Z));
 
@@ -94,10 +94,9 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
 
     public static BaseIntVector3<T> Abs(BaseIntVector3<T> vec) => new(T.Abs(vec.X), T.Abs(vec.Y), T.Abs(vec.Z));
 
-    // TODO: port - C++ code:
-    // constexpr const T* Data() const { return &x_; }
-    // constexpr T* MutableData() { return &x_; }
-    // TODO: port - C++ code:
+    public Span<T> MutableData() => MemoryMarshal.CreateSpan(ref X, 3);
+
+    // C# has no equivalent of the C++ associated ScalarType template parameter.
     // template <class OtherVectorType> constexpr OtherVectorType Cast(typename OtherVectorType::ScalarType w = {}) const
     // template <class OtherVectorType> constexpr OtherVectorType CastXZ(typename OtherVectorType::ScalarType w = {}) const
 
