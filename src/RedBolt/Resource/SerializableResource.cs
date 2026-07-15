@@ -19,9 +19,6 @@ public class SerializableResource : SimpleResource
 
     public override void SerializeInBlock(Archive archive)
     {
-        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
-        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
-        // C++: throws ArchiveException on creation failure
         if (archive.IsInput)
         {
             var typeName = string.Empty;
@@ -35,8 +32,7 @@ public class SerializableResource : SimpleResource
 
             var serializable = CreateSerializable(typeName);
             using (archive.OpenUnorderedBlock("value"))
-                SerializeAttributes(archive, serializable);
-            serializable.ApplyAttributes();
+                serializable.SerializeInBlock(archive);
             Value = serializable;
         }
         else if (Value is not null)
@@ -44,7 +40,7 @@ public class SerializableResource : SimpleResource
             var typeName = Value.GetTypeName();
             ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
             using (archive.OpenUnorderedBlock("value"))
-                SerializeAttributes(archive, Value);
+                Value.SerializeInBlock(archive);
         }
     }
 
@@ -58,57 +54,6 @@ public class SerializableResource : SimpleResource
             throw new InvalidOperationException($"Failed to create object of type '{typeName}'.");
 
         return serializable;
-    }
-
-    private static void SerializeAttributes(Archive archive, Serializable serializable)
-    {
-        if (archive.IsInput)
-        {
-            if (archive.IsUnorderedAccessSupportedInCurrentBlock && !archive.HasElementOrBlock("attributes"))
-                return;
-
-            uint numAttributes = 0;
-            using var attributesBlock = archive.OpenArrayBlock("attributes", numAttributes);
-            for (var index = 0u; index < attributesBlock.SizeHint; ++index)
-            {
-                using var attributeBlock = archive.OpenUnorderedBlock("attribute");
-                var name = string.Empty;
-                ArchiveSerialization.SerializeValue(archive, "name", ref name);
-                var attribute = FindAttribute(serializable, name);
-                if (attribute is null || !attribute.ShouldLoad)
-                    continue;
-
-                var value = new Variant(attribute.DefaultValue.Type);
-                using (archive.OpenUnorderedBlock("value"))
-                    ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                serializable.SetAttribute(attribute.Name, value.GetObject());
-            }
-            return;
-        }
-
-        var savedAttributes = serializable.Attributes.Where(static attribute => attribute.ShouldSave).ToArray();
-        var numSavedAttributes = checked((uint)savedAttributes.Length);
-        using var savedAttributesBlock = archive.OpenArrayBlock("attributes", numSavedAttributes);
-        foreach (var attribute in savedAttributes)
-        {
-            using var attributeBlock = archive.OpenUnorderedBlock("attribute");
-            var name = attribute.Name;
-            ArchiveSerialization.SerializeValue(archive, "name", ref name);
-            using var valueBlock = archive.OpenUnorderedBlock("value");
-            var value = Variant.FromObject(serializable.GetAttribute(attribute.Name));
-            ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-        }
-    }
-
-    private static AttributeInfo? FindAttribute(Serializable serializable, string name)
-    {
-        foreach (var attribute in serializable.Attributes)
-        {
-            if (string.Equals(attribute.Name, name, StringComparison.Ordinal))
-                return attribute;
-        }
-
-        return null;
     }
 
 }

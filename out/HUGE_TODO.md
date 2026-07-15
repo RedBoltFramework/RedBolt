@@ -1,8 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/SerializableResource.cs:22:        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
-- [ ] ./src/RedBolt/Resource/SerializableResource.cs:23:        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
-- [ ] ./src/RedBolt/Resource/SerializableResource.cs:24:        // C++: throws ArchiveException on creation failure
 - [ ] ./src/RedBolt/RenderPipeline/RenderPath.cs:12:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/ResourceLoading.cs:6:// C++: LoadDependentResource — equivalent code inlined into each resource's BeginLoad using ResourceCache::GetResource.
 - [ ] ./src/RedBolt/Resource/ResourceLoading.cs:7:// C++: OpenDependentResource — equivalent code inlined using VirtualFileSystem::OpenFile with FileIdentifier.
