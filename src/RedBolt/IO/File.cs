@@ -311,7 +311,6 @@ public class File : AbstractFile, IDisposable
     /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
     private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
     {
-        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName))
         Close();
         _compressed = false;
         _readSyncNeeded = false;

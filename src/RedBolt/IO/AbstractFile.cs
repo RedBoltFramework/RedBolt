@@ -1,7 +1,5 @@
 namespace RedBolt;
 
-// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer
-// C# cannot express multiple class inheritance; Serializer is not in the base list.
 public abstract class AbstractFile : Deserializer
 {
     protected AbstractFile()
