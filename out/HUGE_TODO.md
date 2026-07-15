@@ -18,7 +18,6 @@
 - [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
 - [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Engine/StateManager.cs:164:        // C++: if (!gameScreen) { URHO3D_LOGERROR("No target state provided"); return; }
 - [ ] ./src/RedBolt/Engine/StateManager.cs:165:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Engine/StateManager.cs:174:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Input/MoveAndOrbitController.cs:97:    // TODO: port - C++ code:

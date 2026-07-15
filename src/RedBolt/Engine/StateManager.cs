@@ -140,7 +140,6 @@ public sealed class StateManager : Object, IDisposable
 
     public void EnqueueState(ApplicationState gameScreen, Dictionary<string, Variant>? bundle = null)
     {
-        // C++: if (!gameScreen) { URHO3D_LOGERROR("No target state provided"); return; }
         // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
         ArgumentNullException.ThrowIfNull(gameScreen);
         bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
