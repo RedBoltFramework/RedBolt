@@ -7,7 +7,6 @@ public class GraphPin : IArchiveSerializable
     public string GetName() => _name;
 
     /// <summary>Serialize content from/to archive.</summary>
-    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
     public virtual void SerializeInBlock(Archive archive)
     {
         if (!archive.IsInput || archive.HasElementOrBlock("name"))
@@ -91,8 +90,6 @@ public class GraphInPin : GraphDataPin
     }
 
     /// <summary>Serialize content from/to archive.</summary>
-    // C++: uses SerializeOptionalValue for node/pin/value with Variant::EMPTY default and custom serializer lambda
-    // C++: value serialization uses SerializeOptionalValue(archive, "value", value_, Variant::EMPTY, lambda)
     public override void SerializeInBlock(Archive archive)
     {
         base.SerializeInBlock(archive);
