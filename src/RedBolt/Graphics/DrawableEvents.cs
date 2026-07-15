@@ -31,7 +31,6 @@ public static class DrawableEvents
     public struct ParticleEffectFinishedEvent
     {
         public Node? Node; // Node pointer
-        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
         public object? Effect; // ParticleEffect pointer
     }
 
