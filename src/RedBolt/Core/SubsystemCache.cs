@@ -7,20 +7,23 @@ namespace RedBolt;
 /// </summary>
 public sealed class SubsystemCache
 {
-    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
-    // Network (if URHO3D_NETWORK), Audio, UI, SystemUI (if URHO3D_SYSTEMUI),
-    // ParticleGraphSystem (if URHO3D_PARTICLE_GRAPH), PluginManager, StateManager
+    // TODO: port - C++ also caches FileSystem, Network, UI, SystemUI, ParticleGraphSystem, and PluginManager;
+    // those subsystem classes are not present in the managed port.
     private static readonly Type[] CachedSubsystemTypes =
     [
         typeof(Engine),
         typeof(Time),
         typeof(WorkQueue),
+        typeof(VirtualFileSystem),
+        typeof(Log),
         typeof(ResourceCache),
         typeof(Localization),
         typeof(Input),
+        typeof(Audio),
         typeof(Graphics),
         typeof(Renderer),
-        typeof(RenderDevice)
+        typeof(RenderDevice),
+        typeof(StateManager)
     ];
 
     private static readonly int NumCachedSubsystems = CachedSubsystemTypes.Length;
