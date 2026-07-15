@@ -64,6 +64,65 @@ internal static partial class ImageSdl
     public static bool SaveJpg(Image image, string fileName, int quality)
         => SaveEncoded(image, fileName, (surface, path) => SdlNativeBindings.ImgSaveJPG(surface, path, Math.Clamp(quality, 0, 100)));
 
+    public static SdlSurface? GetSdlSurface(Image image, IntRect rect)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        if (image.Depth > 1 || image.IsCompressed() || image.Components < 3)
+            return null;
+
+        var imageRect = rect;
+        if (imageRect.Left < 0 || imageRect.Top < 0 || imageRect.Right > image.Width || imageRect.Bottom > image.Height
+            || imageRect.Left >= imageRect.Right || imageRect.Top >= imageRect.Bottom)
+        {
+            imageRect = new IntRect(0, 0, image.Width, image.Height);
+        }
+
+        var width = imageRect.Width;
+        var height = imageRect.Height;
+        var surface = SdlNativeBindings.SdlCreateRGBSurface(0, width, height, (int)image.Components,
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+        if (surface.IsNull)
+            return null;
+
+        try
+        {
+            if (SdlNativeBindings.SdlLockSurface(surface) != 0)
+            {
+                SdlNativeBindings.SdlFreeSurface(surface);
+                return null;
+            }
+
+            try
+            {
+                var source = image.GetData();
+                var sourceOffset = (int)image.Components * (image.Width * imageRect.Top + imageRect.Left);
+                var rowSize = checked((int)image.Components * width);
+                for (var y = 0; y < height; ++y)
+                {
+                    Marshal.Copy(source, sourceOffset + y * (int)(image.Components * image.Width),
+                        IntPtr.Add(surface.Pixels, y * surface.Pitch), rowSize);
+                }
+            }
+            finally
+            {
+                SdlNativeBindings.SdlUnlockSurface(surface);
+            }
+
+            return surface;
+        }
+        catch (DllNotFoundException)
+        {
+            SdlNativeBindings.SdlFreeSurface(surface);
+            return null;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            SdlNativeBindings.SdlFreeSurface(surface);
+            return null;
+        }
+    }
+
     private static bool SaveEncoded(Image image, string fileName, Func<SdlSurface, byte[], int> save)
     {
         ArgumentNullException.ThrowIfNull(image);

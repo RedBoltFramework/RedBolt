@@ -91,7 +91,9 @@ public sealed class Image : Resource
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
     // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
-    // TODO: port - C++ exposes GetSDLSurface; managed code currently has no public SDL-surface return API.
+
+    /// <summary>Return an SDL surface from the image, or null if failed. Only RGB images are supported. Specify rect to only return partial image. You must free the surface yourself.</summary>
+    public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default) => ImageSdl.GetSdlSurface(this, rect);
 
     public bool SaveDDS(string fileName)
     {
