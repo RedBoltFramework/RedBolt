@@ -7,8 +7,6 @@ namespace RedBolt;
 /// </summary>
 public sealed class SubsystemCache
 {
-    // TODO: port - C++ also caches FileSystem, Network, UI, SystemUI, ParticleGraphSystem, and PluginManager;
-    // those subsystem classes are not present in the managed port.
     private static readonly Type[] CachedSubsystemTypes =
     [
         typeof(Engine),
