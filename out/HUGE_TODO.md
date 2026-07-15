@@ -29,9 +29,6 @@
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:25:// C++: Renderer is the central hub for rendering with many more methods (the C++ header is ~390 lines).
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:745:        // TODO: port: ModelView::ImportModel requires native Model vertex-buffer, index-buffer, morph, and skeleton access.
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:752:        // TODO: port: ModelView::ExportModel requires native Model buffer composition and morph/skeleton APIs.
-- [ ] ./src/RedBolt/Graphics/Light.cs:50:// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
-- [ ] ./src/RedBolt/Graphics/Light.cs:51:// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
-- [ ] ./src/RedBolt/Graphics/Light.cs:52:// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()

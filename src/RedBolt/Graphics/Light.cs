@@ -46,11 +46,6 @@ public readonly record struct FocusParameters(bool Focus, bool NonUniform, bool 
 }
 
 /// <summary>Light component.</summary>
-/// <remarks>
-// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
-// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
-// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
-/// </remarks>
 public sealed class Light : Drawable
 {
     public const float ShadowMinQuantize = 0.1f;
