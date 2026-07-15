@@ -281,9 +281,7 @@ public class RenderPipeline : Component
     private void MarkSettingsDirty()
     {
         _settings.Validate();
-        _settings.PropagateImpliedSettings();
         _settings.AdjustToSupported(GetSubsystem<Graphics>());
-        Touch();
         SettingsChanged?.Invoke(this, _settings);
     }
 
