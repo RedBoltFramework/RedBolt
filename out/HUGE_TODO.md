@@ -1,7 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Input/Input.cs:324:        // C++: Update() handles MM_WRAP mouse wrapping, REQUIRE_CLICK_TO_FOCUS, and GetBackgroundSize-based manual mouse move calculation
-- [ ] ./src/RedBolt/Input/Input.cs:325:        // C++: also sends E_MOUSEMOVE event manually for mouse delta accumulation
 - [ ] ./src/RedBolt/Input/Input.cs:737:        // TODO: port SDL screen joystick creation and UI layout/style integration.
 - [ ] ./src/RedBolt/Input/Input.cs:882:        // C++: converts position via BackbufferToSystem() before SDL_WarpMouseInWindow,
 - [ ] ./src/RedBolt/Input/Input.cs:883:        // C++: uses SDL_WarpMouseGlobal for explicit window rect
