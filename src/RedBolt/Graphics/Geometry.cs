@@ -27,8 +27,6 @@ public enum GeometryType
 
 /// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>
 /// <remarks>
-// TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
-// TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
 /// </remarks>
 public sealed class Geometry : PipelineStateTracker
 {

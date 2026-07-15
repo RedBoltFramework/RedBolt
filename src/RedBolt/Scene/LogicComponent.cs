@@ -6,6 +6,8 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
     // TODO: port - C++ code:
     // UpdateEventFlags currentEventMask_; // Current event subscription mask.
     private bool _delayedStartCalled;
+    private ContextEventSubscription? _worldOriginUpdateSubscription;
+    private ContextEventSubscription? _worldOriginPostUpdateSubscription;
 
     public virtual void Start()
     {
@@ -60,6 +62,7 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
     public void SetUpdateEventMask(UpdateEvent mask)
     {
         _updateEventMask = mask;
+        UpdateWorldOriginSubscriptions(Scene);
     }
 
     public UpdateEvent GetUpdateEventMask() => _updateEventMask;
@@ -72,6 +75,37 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
             Start();
         else if (previousNode is not null)
             Stop();
+    }
+
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    {
+        UpdateWorldOriginSubscriptions(scene);
+    }
+
+    private void UpdateWorldOriginSubscriptions(Scene? scene)
+    {
+        _worldOriginUpdateSubscription?.Dispose();
+        _worldOriginUpdateSubscription = null;
+        _worldOriginPostUpdateSubscription?.Dispose();
+        _worldOriginPostUpdateSubscription = null;
+
+        if (scene is null || !IsEnabledEffective)
+            return;
+
+        if ((_updateEventMask & UpdateEvent.UseWorldOriginUpdate) != 0)
+            _worldOriginUpdateSubscription = SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>(scene, HandleWorldOriginUpdate);
+        if ((_updateEventMask & UpdateEvent.UseWorldOriginPostUpdate) != 0)
+            _worldOriginPostUpdateSubscription = SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene, HandleWorldOriginPostUpdate);
+    }
+
+    private void HandleWorldOriginUpdate(ref SceneEvents.WorldOriginUpdateEvent eventData)
+    {
+        UpdateWorldOrigin(eventData.OldOrigin, eventData.NewOrigin, eventData.Delta);
+    }
+
+    private void HandleWorldOriginPostUpdate(ref SceneEvents.WorldOriginPostUpdateEvent eventData)
+    {
+        PostUpdateWorldOrigin(eventData.OldOrigin, eventData.NewOrigin, eventData.Delta);
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)

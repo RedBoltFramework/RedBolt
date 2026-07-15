@@ -51,6 +51,19 @@ public sealed class LogicComponentTests
         Assert.Equal(1, logic.DelayedStartCount);
     }
 
+    [Fact]
+    public void World_origin_updates_follow_event_mask()
+    {
+        var scene = new Scene();
+        var logic = scene.CreateChild("LogicNode").CreateComponent<CountingLogic>();
+        logic.SetUpdateEventMask(UpdateEvent.UseWorldOriginUpdate | UpdateEvent.UseWorldOriginPostUpdate);
+
+        scene.UpdateWorldOrigin(new Vector3i(100, -20, 300));
+
+        Assert.Equal(1, logic.WorldOriginUpdateCount);
+        Assert.Equal(1, logic.WorldOriginPostUpdateCount);
+    }
+
     private sealed class CountingLogic : LogicComponent
     {
         public int StartCount { get; private set; }
@@ -60,6 +73,8 @@ public sealed class LogicComponentTests
         public int PostUpdateCount { get; private set; }
         public float LastUpdateTimeStep { get; private set; }
         public float LastPostUpdateTimeStep { get; private set; }
+        public int WorldOriginUpdateCount { get; private set; }
+        public int WorldOriginPostUpdateCount { get; private set; }
 
         public override void Start() => ++StartCount;
         public override void DelayedStart() => ++DelayedStartCount;
@@ -76,5 +91,8 @@ public sealed class LogicComponentTests
             ++PostUpdateCount;
             LastPostUpdateTimeStep = timeStep;
         }
+
+        public override void UpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta) => ++WorldOriginUpdateCount;
+        public override void PostUpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta) => ++WorldOriginPostUpdateCount;
     }
 }

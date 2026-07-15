@@ -154,8 +154,6 @@
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:20:    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:21:    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:22:    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
-- [ ] ./src/RedBolt/Graphics/Geometry.cs:30:// TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
-- [ ] ./src/RedBolt/Graphics/Geometry.cs:31:// TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
 - [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:142:// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:143:// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
