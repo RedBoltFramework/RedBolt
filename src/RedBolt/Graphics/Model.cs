@@ -38,9 +38,6 @@ public sealed class ModelMorph
 }
 
 /// <summary>3D model resource.</summary>
-/// <remarks>
-// C++: Has loadVBData_, loadIBData_, loadGeometries_ for async loading. C# doesn't use these.
-/// </remarks>
 public sealed class Model : ResourceWithMetadata, ICloneable
 {
     private readonly List<VertexBuffer> _vertexBuffers = [];

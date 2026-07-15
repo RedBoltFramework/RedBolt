@@ -392,15 +392,70 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public void SetVariantValue(Variant value)
     {
-        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
         if (!IsNull)
             Log.Logger.LogWarning("JsonValue is not null");
+        if (value.Type == VariantType.Custom)
+        {
+            if (value.GetCustomVariantValue().TryGetValue<Serializable>(out var serializable))
+            {
+                var serialized = new JSONValue();
+                if (serializable.SaveJSON(serialized))
+                {
+                    Set("type", new JSONValue(serializable.GetTypeName()));
+                    Set("value", serialized);
+                }
+                else
+                    SetType(JSONValueType.Null);
+            }
+            else
+                SetType(JSONValueType.Null);
+            return;
+        }
+
         Set(FromVariantValue(value));
     }
 
-    public Variant GetVariantValue(VariantType type)
+    public Variant GetVariantValue(VariantType type, Context? context = null)
     {
-        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
+        if (type == VariantType.Custom)
+        {
+            if (context is null)
+            {
+                Log.Logger.LogError("Context must not be null for Serializable");
+                return default;
+            }
+
+            if (IsNull)
+                return default;
+            if (!IsObject)
+            {
+                Log.Logger.LogError("Serializable custom variant expects a JSON object");
+                return default;
+            }
+
+            var typeName = Get("type").GetString();
+            if (string.IsNullOrEmpty(typeName))
+            {
+                Log.Logger.LogError("Malformed JSON input: 'type' is required when deserializing an object");
+                return default;
+            }
+
+            var serializable = context.CreateObject(new StringHash(typeName)) as Serializable;
+            if (serializable is null)
+            {
+                Log.Logger.LogError("Creation of type {TypeName} failed because it has no factory registered", typeName);
+                return default;
+            }
+
+            if (!serializable.LoadJSON(Get("value")))
+            {
+                Log.Logger.LogError("Deserialization of {TypeName} failed", typeName);
+                return default;
+            }
+
+            return Variant.MakeCustomValue(serializable);
+        }
+
         var result = type switch
         {
             VariantType.Bool => new Variant(GetBool()),
@@ -418,7 +473,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
             _ => default
         };
 
-        if (type is not (VariantType.Bool or VariantType.Int or VariantType.Int64 or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.StringVector))
+        if (type is not (VariantType.Bool or VariantType.Int or VariantType.Int64 or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.StringVector or VariantType.Custom))
             result.FromString(type, GetString());
 
         return result;
