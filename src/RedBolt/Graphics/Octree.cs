@@ -41,9 +41,6 @@ public sealed class RayQueryResult
 }
 
 /// <summary>Octree component. Should be added only to the root scene node.</summary>
-/// <remarks>
-// C++: Octree has mutex-locked threaded drawable update support (drawableUpdates_, threadedDrawableUpdates_, pendingNodeTransforms_).
-/// </remarks>
 public sealed class Octant
 {
     private readonly Octant?[] _children = new Octant?[8];
