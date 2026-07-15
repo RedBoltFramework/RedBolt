@@ -1,8 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Input/Input.cs:1335:        // C++: positions are scaled to backbuffer coordinates (systemToBackbufferScale_),
-- [ ] ./src/RedBolt/Input/Input.cs:1336:        // C++: checks (sdlMouseRelative_ || mouseVisible_ || mouseMode_ == MM_FREE) before processing,
-- [ ] ./src/RedBolt/Input/Input.cs:1337:        // C++: has touch emulation path that converts mouse motion to SDL_FINGERMOTION
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.

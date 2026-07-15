@@ -1406,18 +1406,51 @@ public sealed class Input : Object
 
     private void HandleMouseMotion(SdlEvent @event)
     {
-        // C++: positions are scaled to backbuffer coordinates (systemToBackbufferScale_),
-        // C++: checks (sdlMouseRelative_ || mouseVisible_ || mouseMode_ == MM_FREE) before processing,
-        // C++: has touch emulation path that converts mouse motion to SDL_FINGERMOTION
-        MousePosition = new Vector2i(@event.MotionX, @event.MotionY);
-        MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
-        _mouseMoveScaled = false;
-        var eventData = new InputEvents.MouseMoveEvent
+        if ((MouseMode == MouseMode.Relative || MouseVisible || MouseMode == MouseMode.Free) && !TouchEmulation)
         {
-            X = MousePosition.X, Y = MousePosition.Y, DX = @event.MotionXrel, DY = @event.MotionYrel,
-            Buttons = _mouseButtonDown, Qualifiers = Qualifiers
-        };
-        SendEvent(ref eventData);
+            var windowPosition = GetGlobalWindowPosition();
+            var globalWindowPosition = _explicitWindowRect is { } rect
+                ? new Vector2i(rect.Left, rect.Top)
+                : windowPosition;
+            var localPosition = new Vector2i(
+                windowPosition.X + @event.MotionX - globalWindowPosition.X,
+                windowPosition.Y + @event.MotionY - globalWindowPosition.Y);
+            var position = SystemToBackbuffer(localPosition);
+            var delta = new Vector2i(
+                (int)MathF.Round(@event.MotionXrel * _systemToBackbufferScale.X),
+                (int)MathF.Round(@event.MotionYrel * _systemToBackbufferScale.Y));
+            MousePosition = position;
+            MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
+            _mouseMoveScaled = false;
+            if (!_suppressNextMouseMove)
+            {
+                var eventData = new InputEvents.MouseMoveEvent
+                {
+                    X = position.X, Y = position.Y, DX = delta.X, DY = delta.Y,
+                    Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+                };
+                SendEvent(ref eventData);
+            }
+        }
+        else if (TouchEmulation && _touches.ContainsKey(0))
+        {
+            var backbufferSize = GetBackbufferSize();
+            var relativePosition = GetRelativeMousePosition();
+            using var touchEvent = new SdlEvent();
+            touchEvent.Type = (uint)SdlEventType.SdlFingermotion;
+            touchEvent.TfingerTouchId = 0;
+            touchEvent.TfingerFingerId = 0;
+            touchEvent.TfingerPressure = 1.0f;
+            touchEvent.TfingerX = relativePosition.X;
+            touchEvent.TfingerY = relativePosition.Y;
+            touchEvent.TfingerDx = backbufferSize.X != 0
+                ? @event.MotionXrel * _systemToBackbufferScale.X / backbufferSize.X
+                : 0.0f;
+            touchEvent.TfingerDy = backbufferSize.Y != 0
+                ? @event.MotionYrel * _systemToBackbufferScale.Y / backbufferSize.Y
+                : 0.0f;
+            SdlNativeBindings.SdlPushEvent(touchEvent);
+        }
     }
 
     private void HandleWindowEvent(SdlEvent @event)
