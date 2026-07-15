@@ -102,12 +102,6 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 /// <remarks>
 // C++: Material inherits from Resource, PipelineStateTracker, and IDFamily&lt;Material&gt;.
 // C# inherits from ResourceWithMetadata and lacks PipelineStateTracker and IDFamily.
-// TODO: port - C++ code: void Material::MarkForAuxView(unsigned frameNumber)
-// TODO: port - C++ code: unsigned Material::GetAuxViewFrameNumber() const
-// TODO: port - C++ code: void Material::SetScene(Scene* scene) / Scene* Material::GetScene() const
-// TODO: port - C++ code: void Material::ReleaseShaders()
-// TODO: port - C++ code: bool Material::GetSpecular() const
-// C++: Material has _specular_ field for specular lighting (default true, currently missing in C#).
 // C++: ResetToDefaults is called from the C++ constructor. C# uses ResetToDefaults in a separate constructor path.
 // C++: Has _batchedParameterUpdate_ flag to suppress hash/memory recalculation during bulk parameter updates.
 /// </remarks>
@@ -118,6 +112,10 @@ public sealed class Material : ResourceWithMetadata
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
     private uint _shaderParameterHash;
+    private uint _auxViewFrameNumber;
+    private bool _specular;
+    private Scene? _scene;
+    private ContextEventSubscription? _sceneAttributeAnimationSubscription;
 
     internal Material(string name)
         : base(name)
@@ -126,8 +124,6 @@ public sealed class Material : ResourceWithMetadata
     }
 
     public bool AlphaToCoverage { get; set; }
-
-    // TODO: port - C++: bool specular_{}; // Specular lighting flag, default false. Used for specular rendering pass selection.
 
     public BiasParameters DepthBias { get; set; }
 
@@ -191,6 +187,7 @@ public sealed class Material : ResourceWithMetadata
         UVRotation = material.UVRotation;
         UVRepeat = material.UVRepeat;
         VertexShaderDefines = material.VertexShaderDefines;
+        _specular = material._specular;
 
         _techniques.Clear();
         foreach (var technique in material._techniques)
@@ -219,6 +216,12 @@ public sealed class Material : ResourceWithMetadata
     public bool GetLineAntiAlias() => LineAntiAlias;
 
     public bool GetOcclusion() => Occlusion;
+
+    public uint GetAuxViewFrameNumber() => _auxViewFrameNumber;
+
+    public bool GetSpecular() => _specular;
+
+    public Scene? GetScene() => _scene;
 
     public string GetPixelShaderDefines() => PixelShaderDefines;
 
@@ -338,6 +341,15 @@ public sealed class Material : ResourceWithMetadata
         Occlusion = enable;
     }
 
+    public void SetScene(Scene? scene)
+    {
+        UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
+        _sceneAttributeAnimationSubscription?.Dispose();
+        _sceneAttributeAnimationSubscription = null;
+        _scene = scene;
+        UpdateEventSubscription();
+    }
+
     public void SetPixelShaderDefines(string defines)
     {
         PixelShaderDefines = defines ?? string.Empty;
@@ -399,6 +411,7 @@ public sealed class Material : ResourceWithMetadata
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
+        UpdateSpecularState(name, value);
         RefreshShaderParameterHash();
     }
 
@@ -476,8 +489,23 @@ public sealed class Material : ResourceWithMetadata
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var removed = _shaderParameters.Remove(name);
         if (removed)
+        {
+            if (name == "MatSpecColor")
+                _specular = false;
             RefreshShaderParameterHash();
+        }
         return removed;
+    }
+
+    public void ReleaseShaders()
+    {
+        for (var i = 0; i < _techniques.Count; ++i)
+            _techniques[i].Technique?.ReleaseShaders();
+    }
+
+    public void MarkForAuxView(uint frameNumber)
+    {
+        _auxViewFrameNumber = frameNumber;
     }
 
     public static object ParseShaderParameterValue(string value)
@@ -749,6 +777,8 @@ public sealed class Material : ResourceWithMetadata
     {
         _shaderParameterAnimationInfos.Clear();
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
+        _sceneAttributeAnimationSubscription?.Dispose();
+        _sceneAttributeAnimationSubscription = null;
         AlphaToCoverage = false;
         DepthBias = default;
         FillMode = FillMode.Solid;
@@ -787,23 +817,55 @@ public sealed class Material : ResourceWithMetadata
 
     private void UpdateEventSubscription()
     {
-        if (_shaderParameterAnimationInfos.Count != 0 && !HasSubscribedToEvent<CoreEvents.UpdateEvent>())
-            SubscribeToEvent<CoreEvents.UpdateEvent>(HandleAttributeAnimationUpdate);
-        else if (_shaderParameterAnimationInfos.Count == 0 && HasSubscribedToEvent<CoreEvents.UpdateEvent>())
+        if (_shaderParameterAnimationInfos.Count != 0)
+        {
+            if (_scene is not null)
+                _sceneAttributeAnimationSubscription ??= SubscribeToEvent<SceneEvents.AttributeAnimationUpdateEvent>(_scene, HandleAttributeAnimationUpdate);
+            else if (!HasSubscribedToEvent<CoreEvents.UpdateEvent>())
+                SubscribeToEvent<CoreEvents.UpdateEvent>(HandleAttributeAnimationUpdate);
+        }
+        else
+        {
             UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
+            _sceneAttributeAnimationSubscription?.Dispose();
+            _sceneAttributeAnimationSubscription = null;
+        }
     }
 
     private void HandleAttributeAnimationUpdate(ref CoreEvents.UpdateEvent eventData)
     {
+        UpdateShaderParameterAnimations(eventData.TimeStep);
+    }
+
+    private void HandleAttributeAnimationUpdate(ref SceneEvents.AttributeAnimationUpdateEvent eventData)
+    {
+        UpdateShaderParameterAnimations(eventData.TimeStep);
+    }
+
+    private void UpdateShaderParameterAnimations(float timeStep)
+    {
         var finishedNames = new List<string>();
         foreach (var info in _shaderParameterAnimationInfos.Values)
         {
-            if (info.Update(eventData.TimeStep))
+            if (info.Update(timeStep))
                 finishedNames.Add(info.GetName());
         }
 
         foreach (var name in finishedNames)
             SetShaderParameterAnimation(name, null);
+    }
+
+    private void UpdateSpecularState(string name, object? value)
+    {
+        if (name != "MatSpecColor")
+            return;
+
+        _specular = value switch
+        {
+            Vector3f vector => vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f,
+            Vector4f vector => vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f,
+            _ => _specular
+        };
     }
 
     private static CullMode ParseCullMode(string value, CullMode defaultValue)

@@ -254,7 +254,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Material.h`
   - [~] `struct TechniqueEntry`
   - [x] `ShaderParameterAnimationInfo : ValueAnimationInfo`
-  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>`
+  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state/ID-family inheritance and batched parameter-update optimization remain managed deviations
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; batch LOD/occlusion drawing remains incomplete
 - [~] `AnimatedModel.h`

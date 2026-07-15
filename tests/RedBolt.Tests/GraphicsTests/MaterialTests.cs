@@ -42,6 +42,28 @@ public sealed class MaterialTests
     }
 
     [Fact]
+    public void Material_auxiliary_scene_specular_and_shader_helpers_work()
+    {
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        material.SetShaderParameter("MatSpecColor", new Vector4f(1.0f, 0.0f, 0.0f, 1.0f));
+        Assert.True(material.GetSpecular());
+
+        material.SetShaderParameter("MatSpecColor", Vector4f.Zero);
+        Assert.False(material.GetSpecular());
+
+        material.MarkForAuxView(17u);
+        Assert.Equal(17u, material.GetAuxViewFrameNumber());
+
+        var scene = new Scene();
+        material.SetScene(scene);
+        Assert.Same(scene, material.GetScene());
+        material.SetScene(null);
+        Assert.Null(material.GetScene());
+
+        material.ReleaseShaders();
+    }
+
+    [Fact]
     public void Shader_parameter_helpers_work()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
