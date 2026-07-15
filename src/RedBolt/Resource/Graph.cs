@@ -59,7 +59,6 @@ public partial class Graph : Object
     /// <summary>Serialize content from/to archive.</summary>
     public override void SerializeInBlock(Archive archive)
     {
-        // C++: uses SerializeMap helper; on input creates GraphNode via MakeShared<GraphNode>(context_) and calls SetGraph
         var size = archive.IsInput ? 0u : checked((uint)_nodes.Count);
         using var block = archive.OpenArrayBlock("nodes", size);
         if (archive.IsInput)
