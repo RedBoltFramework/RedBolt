@@ -161,6 +161,7 @@ set(REDBOLT_DILIGENT_INTERFACE_DIRS
 file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
 #pragma once
 #include <EngineFactoryOpenGL.h>
+#include <GraphicsAccessories.hpp>
 #include <RedBolt/DiligentSupport.hpp>
 ]=])
 

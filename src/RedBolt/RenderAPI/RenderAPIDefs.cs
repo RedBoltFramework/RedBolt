@@ -373,8 +373,6 @@ public static class EmulatedTextureFormat
     public static readonly TextureFormat PvrtcRgba4Bpp = (TextureFormat)(NativeTextureFormatCount + 4);
 }
 
-// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
-
 /// <summary>Vertex declaration element semantics.</summary>
 public enum VertexElementSemantic : byte
 {

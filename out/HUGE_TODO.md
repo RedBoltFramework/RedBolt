@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 - [ ] ./src/RedBolt/Resource/Image.cs:93:    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
 - [ ] ./src/RedBolt/Resource/Image.cs:94:    // TODO: port - C++ exposes GetSDLSurface; managed code currently has no public SDL-surface return API.

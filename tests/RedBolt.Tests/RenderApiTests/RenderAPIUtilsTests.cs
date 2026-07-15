@@ -67,6 +67,25 @@ public sealed class RenderAPIUtilsTests
     }
 
     [Fact]
+    public void Texture_format_info_matches_native_and_emulated_attributes()
+    {
+        var native = RenderAPIUtils.GetTextureFormatInfo(
+            RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm);
+        Assert.Equal((byte)1, native.ComponentSize);
+        Assert.Equal((byte)4, native.NumComponents);
+        Assert.Equal((byte)1, native.BlockWidth);
+        Assert.Equal((byte)1, native.BlockHeight);
+
+        var emulated = RenderAPIUtils.GetTextureFormatInfo(
+            (RedBolt.Bindings.Diligent.TextureFormat)(int)EmulatedTextureFormat.PvrtcRgba2Bpp);
+        Assert.Equal((byte)8, emulated.ComponentSize);
+        Assert.Equal((byte)4, emulated.NumComponents);
+        Assert.Equal((byte)8, emulated.BlockWidth);
+        Assert.Equal((byte)4, emulated.BlockHeight);
+        Assert.Equal(RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed, emulated.ComponentType);
+    }
+
+    [Fact]
     public void Render_device_settings_optional_values_round_trip_through_binary_archive()
     {
         var context = new Context();

@@ -69,7 +69,8 @@ internal static class Program
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
-        "GetShaderCodeBufferVariableAt"
+        "GetShaderCodeBufferVariableAt",
+        "GetTextureFormatAttribs"
     };
 
     private static readonly HashSet<string> RetainedDiligentBaseInterfaceMethods = new(StringComparer.Ordinal)
@@ -121,12 +122,14 @@ internal static class Program
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
             FixDiligentBlendFactors(compilation, descriptor);
+            FixDiligentTextureFormatFunction(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
             ApplyImGuiEnumAliasSurfaceIfApplicable(compilation, descriptor);
+            prunedCount += PruneDiligentAccessoryRecords(compilation, descriptor);
             prunedCount += PruneInvalidTypeAliases(compilation);
 
             var renderedBindings = BindingOutputRenderer.Render(
@@ -301,6 +304,65 @@ internal static class Program
         blendFactors.Type = BindingType.CreateConfigured(
             cppTypeName: "const float*",
             publicTypeName: "global::RedBolt.Bindings.Diligent.BlendFactors");
+    }
+
+    private static void FixDiligentTextureFormatFunction(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return;
+
+        var function = compilation.Functions.FirstOrDefault(static item =>
+            string.Equals(item.NativeName, "GetTextureFormatAttribs", StringComparison.Ordinal) ||
+            item.CppQualifiedName.EndsWith("::GetTextureFormatAttribs", StringComparison.Ordinal));
+        if (function is null)
+            return;
+
+        function.ReturnType = BindingType.IntPtr;
+    }
+
+    private static int PruneDiligentAccessoryRecords(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return 0;
+
+        var accessoryRecordNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "HashMapStringKey",
+            "RefCountersImpl",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4",
+            "Quaternion",
+            "Vector2",
+            "Vector3",
+            "Vector4"
+        };
+        var prunedCount = 0;
+        for (var index = compilation.Members.Count - 1; index >= 0; --index)
+        {
+            if (compilation.Members[index] is not RecordBinding record ||
+                !accessoryRecordNames.Contains(record.NativeName))
+            {
+                continue;
+            }
+
+            compilation.Members.RemoveAt(index);
+            prunedCount++;
+        }
+
+        var remainingRecordIds = compilation.Records.Select(static record => record.SymbolId).ToHashSet(StringComparer.Ordinal);
+        for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
+        {
+            var alias = compilation.TypeAliases[index];
+            if (alias.ManagedName == "String" ||
+                alias.TargetType.RecordId is not null && !remainingRecordIds.Contains(alias.TargetType.RecordId))
+            {
+                compilation.TypeAliases.RemoveAt(index);
+                prunedCount++;
+            }
+        }
+
+        return prunedCount;
     }
 
     private static bool IsDiligentInterfaceRecord(RecordBinding record)

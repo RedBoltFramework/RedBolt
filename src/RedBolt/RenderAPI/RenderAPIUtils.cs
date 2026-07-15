@@ -137,6 +137,60 @@ public static class RenderAPIUtils
     public static bool IsColorTextureFormat(TextureFormat format) => format is
         TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
 
+    public static global::RedBolt.Bindings.Diligent.TextureFormatAttribs GetTextureFormatInfo(
+        global::RedBolt.Bindings.Diligent.TextureFormat textureFormat)
+    {
+        var nativeFormatCount = (int)global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatNumFormats;
+        var formatValue = (int)textureFormat;
+        if (formatValue < nativeFormatCount)
+        {
+            var nativeInfoHandle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(textureFormat);
+            return global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(nativeInfoHandle, false);
+        }
+
+        var info = new global::RedBolt.Bindings.Diligent.TextureFormatAttribs
+        {
+            Format = textureFormat,
+            ComponentType = global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed,
+            IsTypeless = false
+        };
+
+        switch (formatValue - nativeFormatCount)
+        {
+            case 1:
+                info.ComponentSize = 8;
+                info.NumComponents = 3;
+                info.BlockWidth = 8;
+                info.BlockHeight = 4;
+                break;
+            case 2:
+                info.ComponentSize = 8;
+                info.NumComponents = 4;
+                info.BlockWidth = 8;
+                info.BlockHeight = 4;
+                break;
+            case 3:
+                info.ComponentSize = 8;
+                info.NumComponents = 3;
+                info.BlockWidth = 4;
+                info.BlockHeight = 4;
+                break;
+            case 4:
+                info.ComponentSize = 8;
+                info.NumComponents = 4;
+                info.BlockWidth = 4;
+                info.BlockHeight = 4;
+                break;
+            default:
+                info.Dispose();
+                var nativeInfoHandle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(
+                    global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown);
+                return global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(nativeInfoHandle, false);
+        }
+
+        return info;
+    }
+
     public static bool IsTextureFormatSRGB(global::RedBolt.Bindings.Diligent.TextureFormat format) => format is
         global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
         or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb
