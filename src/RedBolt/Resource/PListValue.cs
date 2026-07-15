@@ -150,20 +150,17 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable, IDisposable
 
     public string GetString() => _type == PListValueType.String ? _stringValue : string.Empty;
 
-    // C++: uses sscanf(string_->c_str(), "{{%d,%d},{%d,%d}}", &x, &y, &w, &h)
     public IntRect GetIntRect()
     {
         if (_type != PListValueType.String)
             return IntRect.Zero;
 
-        // C++: specific format "{{%d,%d},{%d,%d}}" parsing via sscanf
         var numbers = ParseNumbers();
         return numbers.Length >= 4
             ? new IntRect(numbers[0], numbers[1], numbers[0] + numbers[2], numbers[1] + numbers[3])
             : IntRect.Zero;
     }
 
-    // C++: uses sscanf(string_->c_str(), "{%d,%d}", &x, &y) for specific format parsing
     public Vector2i GetIntVector2()
     {
         if (_type != PListValueType.String)
@@ -173,7 +170,6 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable, IDisposable
         return numbers.Length >= 2 ? new Vector2i(numbers[0], numbers[1]) : Vector2i.Zero;
     }
 
-    // C++: uses sscanf(string_->c_str(), "{%d,%d,%d}", &x, &y, &z) for specific format parsing
     public Vector3i GetIntVector3()
     {
         if (_type != PListValueType.String)

@@ -2,10 +2,6 @@
 
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/PListValue.cs:153:    // C++: uses sscanf(string_->c_str(), "{{%d,%d},{%d,%d}}", &x, &y, &w, &h)
-- [ ] ./src/RedBolt/Resource/PListValue.cs:159:        // C++: specific format "{{%d,%d},{%d,%d}}" parsing via sscanf
-- [ ] ./src/RedBolt/Resource/PListValue.cs:166:    // C++: uses sscanf(string_->c_str(), "{%d,%d}", &x, &y) for specific format parsing
-- [ ] ./src/RedBolt/Resource/PListValue.cs:176:    // C++: uses sscanf(string_->c_str(), "{%d,%d,%d}", &x, &y, &z) for specific format parsing
 - [ ] ./src/RedBolt/Resource/Localization.cs:15:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/Localization.cs:23:    // C++: if (language.empty()) { URHO3D_LOGWARNING("...language name is empty"); return -1; }
 - [ ] ./src/RedBolt/Resource/Localization.cs:24:    // C++: if (GetNumLanguages() == 0) { URHO3D_LOGWARNING("...no loaded languages"); return -1; }
