@@ -459,6 +459,7 @@ public sealed class XMLElement
         var parsed = ParseFloats(GetAttribute(name));
         return parsed.Length switch
         {
+            1 => new Vector4f(parsed[0], 0.0f, 0.0f, 0.0f),
             2 => new Vector4f(parsed[0], parsed[1], 0.0f, 0.0f),
             3 => new Vector4f(parsed[0], parsed[1], parsed[2], 0.0f),
             >= 4 => new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3]),
@@ -471,6 +472,7 @@ public sealed class XMLElement
         var parsed = ParseFloats(GetAttribute(name));
         return parsed.Length switch
         {
+            1 => new Variant(parsed[0]),
             2 => new Variant(new Vector2f(parsed[0], parsed[1])),
             3 => new Variant(new Vector3f(parsed[0], parsed[1], parsed[2])),
             >= 4 => new Variant(new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3])),
