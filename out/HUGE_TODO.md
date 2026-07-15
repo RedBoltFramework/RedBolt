@@ -2,7 +2,8 @@
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
-- [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
+- [ ] ./src/RedBolt/Resource/Image.cs:93:    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
+- [ ] ./src/RedBolt/Resource/Image.cs:94:    // TODO: port - C++ exposes GetSDLSurface; managed code currently has no public SDL-surface return API.
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // TODO: port - C++ also caches FileSystem, Network, UI, SystemUI, ParticleGraphSystem, and PluginManager;
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
@@ -11,10 +12,9 @@
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:88:// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
-- [ ] ./src/RedBolt/Scene/Node.cs:747:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Node.cs:748:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Node.cs:752:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Node.cs:755:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Scene/Node.cs:762:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Scene/Node.cs:763:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Scene/Node.cs:782:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize

@@ -140,6 +140,9 @@ public sealed class ImageTests
             Assert.True(image.SaveTGA(Path.Combine(directory, "image.tga")));
             Assert.True(image.SavePNG(Path.Combine(directory, "image.png")));
             Assert.True(image.SaveJPG(Path.Combine(directory, "image.jpg"), 90));
+            var ddsFileName = Path.Combine(directory, "image.dds");
+            Assert.True(image.SaveDDS(ddsFileName));
+            Assert.Equal("DDS ", System.Text.Encoding.ASCII.GetString(System.IO.File.ReadAllBytes(ddsFileName), 0, 4));
 
             var cube = new ImageCube("Cube");
             for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1)) cube.SetImage(face, image);

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum CompressedFormat
@@ -88,7 +90,56 @@ public sealed class Image : Resource
 
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
-    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
+    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
+    // TODO: port - C++ exposes GetSDLSurface; managed code currently has no public SDL-surface return API.
+
+    public bool SaveDDS(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        if (IsCompressed())
+        {
+            Log.Logger.Log(LogLevel.Error, default, "Can not save compressed image to DDS", null, static (state, _) => state);
+            return false;
+        }
+
+        if (Components != 4)
+        {
+            Log.Logger.Log(LogLevel.Error, default, $"Can not save image with {Components} components to DDS", null, static (state, _) => state);
+            return false;
+        }
+
+        var levels = new List<Image>();
+        GetLevels(levels);
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
+            writer.Write(124u);
+            writer.Write(0x00000001u | 0x00000002u | 0x00000004u | 0x00020000u | 0x00001000u);
+            writer.Write((uint)Height);
+            writer.Write((uint)Width);
+            writer.Write(0u);
+            writer.Write(0u);
+            writer.Write((uint)levels.Count);
+            writer.Write(new byte[44]);
+            writer.Write(32u);
+            writer.Write(0x00000040u | 0x00000001u);
+            writer.Write(32u);
+            writer.Write(0x000000ffu);
+            writer.Write(0x0000ff00u);
+            writer.Write(0x00ff0000u);
+            writer.Write(0xff000000u);
+            writer.Write(new byte[16]);
+            writer.Flush();
+        }
+
+        foreach (var level in levels)
+            stream.Write(level.GetData(), 0, checked(level.Width * level.Height * 4));
+
+        return WriteFile(fileName, stream.ToArray());
+    }
 
     public bool SaveBMP(string fileName)
     {
@@ -159,6 +210,7 @@ public sealed class Image : Resource
             ".tga" => SaveTGA(fileName),
             ".jpg" or ".jpeg" => SaveJPG(fileName, 90),
             ".png" => SavePNG(fileName),
+            ".dds" => SaveDDS(fileName),
             _ => base.SaveFile(fileName)
         };
     }

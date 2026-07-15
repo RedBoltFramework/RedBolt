@@ -764,8 +764,20 @@ public sealed class Node : Animatable
     // bool Node::GetChildLazy(WeakPtr<Node>& childNode, StringHash nameHash, SceneLookupFlags flags = SceneLookupFlag::None) const;
     // template <class T> bool Node::GetNthComponentLazy(WeakPtr<T>& childComponent, unsigned index = 0) const;
     //
-    // TODO: port - C++ code:
-    // template <class T, class U> void Node::TraverseDepthFirst(const T& nodeCallback, const U& componentCallback);
+    public void TraverseDepthFirst(Func<Node, bool> nodeCallback, Action<Component> componentCallback)
+    {
+        ArgumentNullException.ThrowIfNull(nodeCallback);
+        ArgumentNullException.ThrowIfNull(componentCallback);
+
+        foreach (var component in _components)
+            componentCallback(component);
+
+        foreach (var child in _children)
+        {
+            if (nodeCallback(child))
+                child.TraverseDepthFirst(nodeCallback, componentCallback);
+        }
+    }
     //
     // TODO: port - C++ code:
     // Variant* Node::GetMutableVar(const ea::string& key);
