@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:20:    // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
 - [ ] ./src/RedBolt/Engine/Engine.cs:23:    // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)
 - [ ] ./src/RedBolt/Engine/Engine.cs:145:        // C++: if (pauseMinimized_ && input->IsMinimized())

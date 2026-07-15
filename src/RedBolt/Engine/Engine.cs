@@ -8,10 +8,8 @@ public sealed class Engine : Object
 
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private readonly HiresTimer _frameTimer = new();
-    private float? _nextTimeStep;
-    // C++: float timeStep_; (single field, not nullable + separate tracking)
-    private readonly List<float> _lastTimeSteps = [];
     private float _currentTimeStep;
+    private readonly List<float> _lastTimeSteps = [];
     private long _timeOut;
     private bool _audioPaused;
     private bool _exitRequired;
@@ -104,7 +102,6 @@ public sealed class Engine : Object
         IsExiting = false;
         _exitRequired = false;
         _currentTimeStep = 0.0f;
-        _nextTimeStep = null;
         _lastTimeSteps.Clear();
         _frameTimer.Reset();
         Log.Logger.LogDebug("Engine initialized.");
@@ -132,8 +129,7 @@ public sealed class Engine : Object
             return;
         }
 
-        var timeStep = _nextTimeStep ?? _currentTimeStep;
-        _nextTimeStep = null;
+        var timeStep = _currentTimeStep;
         if (timeStep < 0.0f)
             timeStep = 0.0f;
 
@@ -260,10 +256,10 @@ public sealed class Engine : Object
 
     public void SetNextTimeStep(float seconds)
     {
-        _nextTimeStep = Math.Max(seconds, 0.0f);
+        _currentTimeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => _nextTimeStep ?? _currentTimeStep;
+    public float GetNextTimeStep() => _currentTimeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -325,7 +321,6 @@ public sealed class Engine : Object
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
-        _nextTimeStep = null;
         _currentTimeStep = 0.0f;
         _lastTimeSteps.Clear();
         _timeOut = 0;
@@ -789,7 +784,6 @@ public sealed class Engine : Object
         else
             _currentTimeStep = _lastTimeSteps[^1];
 
-        _nextTimeStep = _currentTimeStep;
     }
 
     public static void DefineParameters(CommandLineParser commandLine, EngineParameters engineParameters)
