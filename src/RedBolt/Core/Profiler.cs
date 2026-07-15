@@ -10,12 +10,6 @@ public static class Profiler
     /// <summary>
     /// Set profiler-visible name for the current thread.
     /// </summary>
-    // C++: void SetProfilerThreadName(const char* name)
-    // C++: {
-    // C++: #if URHO3D_PROFILING
-    // C++:     tracy::SetThreadName(name);
-    // C++: #endif
-    // C++: }
     public static void SetProfilerThreadName(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
