@@ -113,7 +113,6 @@
 - [ ] ./src/RedBolt/Scene/Node.cs:748:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:752:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:755:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Node.cs:759:    // TODO: port - C++ missing enum:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize

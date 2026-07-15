@@ -771,10 +771,6 @@ public sealed class Node : Animatable
     // Variant* Node::GetMutableVar(const ea::string& key);
     // Variant* Node::GetMutableVarByHash(StringHash key);
     //
-    // TODO: port - C++ missing enum:
-    // enum class SceneLookupFlag { None, Recursive, ValidateName, ValidateRelation };
-    // URHO3D_FLAGSET(SceneLookupFlag, SceneLookupFlags);
-    //
     // C++ Node constructor takes Context* only; C# takes scene/parent/name/id/temporary.
     // C++ uses PIMPL via NodeImpl (name_, tags_, nameHash_, dependencyNodes_, attrBuffer_);
     // C# inlines those fields directly.
