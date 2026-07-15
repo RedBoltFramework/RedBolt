@@ -54,10 +54,6 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     public static Vector4f Zero => ZERO;
     public static Vector4f One => ONE;
 
-    // C++: not present in C++ Vector4
-    public readonly Vector2f Xy => new(X, Y);
-    // C++: not present in C++ Vector4
-    public readonly Vector2f Zw => new(Z, W);
     public readonly float[] Data => [X, Y, Z, W];
     public readonly bool IsNaN => float.IsNaN(X) || float.IsNaN(Y) || float.IsNaN(Z) || float.IsNaN(W);
     public readonly bool IsInf => float.IsInfinity(X) || float.IsInfinity(Y) || float.IsInfinity(Z) || float.IsInfinity(W);
@@ -163,8 +159,4 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4f operator /(Vector4f lhs, Vector4f rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z, lhs.W / rhs.W);
 
-    // C++: not present in C++ Vector4 — C++ only has vector * scalar, not vector + scalar or vector - scalar
-    public static Vector4f operator +(Vector4f lhs, float rhs) => new(lhs.X + rhs, lhs.Y + rhs, lhs.Z + rhs, lhs.W + rhs);
-    // C++: not present in C++ Vector4
-    public static Vector4f operator -(Vector4f lhs, float rhs) => new(lhs.X - rhs, lhs.Y - rhs, lhs.Z - rhs, lhs.W - rhs);
 }

@@ -33,8 +33,8 @@ public struct Rect : IEquatable<Rect>, IApproximateEquatable<Rect>
 
     public Rect(Vector4f vector)
     {
-        Min = vector.Xy;
-        Max = vector.Zw;
+        Min = new Vector2f(vector.X, vector.Y);
+        Max = new Vector2f(vector.Z, vector.W);
     }
 
     public static readonly Rect Full = new(-1.0f, -1.0f, 1.0f, 1.0f);
