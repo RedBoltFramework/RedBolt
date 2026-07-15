@@ -118,6 +118,20 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
     public override IntRect GetViewportRect() => ViewportRect;
 
+    public override void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+        if (!IsEnabled)
+            return;
+
+        RefreshForViewport(frameInfo.ViewportRect);
+        _bufferIsReady = true;
+    }
+
+    public override void OnRenderEnd(CommonFrameInfo frameInfo)
+    {
+        _bufferIsReady = false;
+    }
+
     public void SetViewportRect(IntRect viewportRect)
     {
         ViewportRect = viewportRect;
