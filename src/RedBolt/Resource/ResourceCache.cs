@@ -253,8 +253,7 @@ public sealed class ResourceCache : Object
 
     public FileIdentifier GetCanonicalIdentifier(FileIdentifier name)
     {
-        name.FileName = SanitateResourceName(name.FileName);
-        return name;
+        return GetVirtualFileSystem().GetCanonicalIdentifier(name);
     }
 
     public FileIdentifier GetResolvedIdentifier(FileIdentifier name)
@@ -487,7 +486,6 @@ public sealed class ResourceCache : Object
         return GetVirtualFileSystem().GetAbsoluteNameFromIdentifier(resourceName);
     }
 
-    // C++: delegates to VFS GetCanonicalIdentifier; this has custom path normalisation logic
     public string SanitateResourceName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
