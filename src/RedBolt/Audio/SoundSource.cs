@@ -397,10 +397,6 @@ public class SoundSource : Component
         return scene.GetEffectiveTimeScale();
     }
 
-    // C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP,
-    // MixMonoToStereoIP, MixStereoToMono, MixStereoToStereo, MixStereoToMonoIP, MixStereoToStereoIP,
-    // MixMonoToSurround, MixMonoToSurroundIP, MixStereoToMulti, MixStereoToMultiIP, MixZeroVolume)
-    // The C# version combines them into a single MixSound method.
     private void MixSound(Sound sound, int[] dest, uint samples, int mixRate, float effectiveFrequency, SpeakerMode mode, bool interpolation)
     {
         var data = sound.GetData();

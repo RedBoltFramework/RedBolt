@@ -226,7 +226,6 @@
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:143:// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:144:// C++: Drawable has a friend relationship with Octant and Octree. C# uses internal methods instead.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:145:// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
-- [ ] ./src/RedBolt/Audio/SoundSource.cs:400:    // C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP,
 - [ ] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class.
 - [ ] ./src/RedBolt/Audio/Audio.cs:160:        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread.
 - [ ] ./src/RedBolt/Audio/Audio.cs:422:        // C++: URHO3D_PROFILE("UpdateAudio");
