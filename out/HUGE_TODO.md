@@ -182,7 +182,6 @@
 - [ ] ./src/RedBolt/Resource/Decompress.cs:36:    // C++: void DecompressImageDXT(unsigned char* rgba, const void* blocks, int width, int height, int depth, TextureFormat format);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:80:    // C++: void DecompressImageETC(unsigned char* dstImage, const void* blocks, int width, int height, bool hasAlpha);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:134:    // C++: void DecompressImagePVRTC(unsigned char* rgba, const void* blocks, int width, int height, TextureFormat format);
-- [ ] ./src/RedBolt/Resource/Decompress.cs:241:    // C++: bool IsFlipBlockImplemented(TextureFormat format);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:251:    // C++: void FlipBlockVertical(unsigned char* dest, const unsigned char* src, TextureFormat format);
 - [ ] ./src/RedBolt/Resource/Decompress.cs:305:    // C++: void FlipBlockHorizontal(unsigned char* dest, const unsigned char* src, TextureFormat format);
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:399:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
