@@ -111,13 +111,6 @@ public struct BaseIntVector2<T> : IEquatable<BaseIntVector2<T>>
 
     public static BaseIntVector2<T> Abs(BaseIntVector2<T> vec) => new(T.Abs(vec.X), T.Abs(vec.Y));
 
-    // TODO: port - C++ compound assignment operators:
-    // constexpr BaseIntegerVector2& operator+=(const BaseIntegerVector2& rhs) { x_ += rhs.x_; y_ += rhs.y_; return *this; }
-    // constexpr BaseIntegerVector2& operator-=(const BaseIntegerVector2& rhs) { x_ -= rhs.x_; y_ -= rhs.y_; return *this; }
-    // constexpr BaseIntegerVector2& operator*=(T rhs) { x_ *= rhs; y_ *= rhs; return *this; }
-    // constexpr BaseIntegerVector2& operator*=(const BaseIntegerVector2& rhs) { x_ *= rhs.x_; y_ *= rhs.y_; return *this; }
-    // constexpr BaseIntegerVector2& operator/=(T rhs) { x_ /= rhs; y_ /= rhs; return *this; }
-    // constexpr BaseIntegerVector2& operator/=(const BaseIntegerVector2& rhs) { x_ /= rhs.x_; y_ /= rhs.y_; return *this; }
     // TODO: port - C++ code:
     // constexpr const T* Data() const { return &x_; }
     // constexpr T* MutableData() { return &x_; }

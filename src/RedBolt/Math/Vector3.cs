@@ -36,9 +36,15 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
         Z = T.CreateChecked(vector.Z);
     }
 
-    // TODO: port - C++ code:
-    // constexpr explicit BaseVector3(const T data[]) noexcept
-    //     : x_(data[0]), y_(data[1]), z_(data[2]) {}
+    public BaseRealVector3(ReadOnlySpan<T> data)
+    {
+        if (data.Length < 3)
+            throw new ArgumentException("Expected at least three elements.", nameof(data));
+
+        X = data[0];
+        Y = data[1];
+        Z = data[2];
+    }
 
     public static readonly BaseRealVector3<T> ZERO = new(T.Zero, T.Zero, T.Zero);
     public static readonly BaseRealVector3<T> LEFT = new(-T.One, T.Zero, T.Zero);

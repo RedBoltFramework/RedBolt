@@ -36,4 +36,11 @@ public class VectorParityTests
         Assert.Equal(new Vector3i(1, 2, 3), Vector3i.Abs(new Vector3i(-1, -2, -3)));
         Assert.Equal(new Vector4f(1, 2, 3, 4), value.ToVector4(4));
     }
+
+    [Fact]
+    public void VectorArrayConstructorsAndQuaternionZeroMatchRbfx()
+    {
+        Assert.Equal(new Vector3f(1, 2, 3), new Vector3f([1, 2, 3]));
+        Assert.Equal(new Quaternion(0, 0, 0, 0), Quaternion.Zero);
+    }
 }

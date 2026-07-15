@@ -74,6 +74,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A2. Math — depends on Container
 
+- [x] `Vector2.h` / `Vector3.h` / `Vector4.h` / `Quaternion.h` / `MathDefs.h` — vector constructors, constants, free helpers, and quaternion zero constant reconciled; C++ compound-assignment operators use C#'s built-in compound-assignment lowering
+- [~] `Ray.h` — object-level ray intersections are ported; raw vertex/index-buffer overloads remain pending because the managed API has no equivalent raw `void*` surface
 
 ## [x] A3. Core — depends on Container, Math
 

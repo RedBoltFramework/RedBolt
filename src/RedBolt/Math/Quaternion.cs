@@ -55,10 +55,9 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     }
 
     public static readonly Quaternion IDENTITY = new(1.0f, 0.0f, 0.0f, 0.0f);
-    // C++: static const Quaternion ZERO;
-    // TODO: port - C++ code:
-    // static const Quaternion ZERO{ 0.0f, 0.0f, 0.0f, 0.0f };
+    public static readonly Quaternion ZERO = new(0.0f, 0.0f, 0.0f, 0.0f);
     public static Quaternion Identity => IDENTITY;
+    public static Quaternion Zero => ZERO;
 
     public Vector3f Axis
     {
