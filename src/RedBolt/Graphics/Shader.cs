@@ -299,10 +299,9 @@ public sealed class Shader : Resource
                 if (isLineContinuation)
                     line = line[..^1];
 
-                // C++: if (!graphics->GetSettings().validateShaders_ || !line.trimmed().starts_with("//"))
-                // C++:     code += line;
-                // TODO: port - trim comments when shader validation is enabled.
-                builder.Append(line);
+                var validateShaders = GetSubsystem<Engine>()?.Parameters.ValidateShaders == true;
+                if (!validateShaders || !line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+                    builder.Append(line);
                 ++numNewLines;
                 if (!isLineContinuation)
                 {

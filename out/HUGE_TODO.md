@@ -127,9 +127,6 @@
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:79:    // TODO: port: the managed API has no SPIR-V-Cross reflection binding.
 - [ ] ./src/RedBolt/Graphics/ShaderOptimizer.cs:3:// TODO: port: the managed API has no SPIR-V optimizer/validator binding.
 - [ ] ./src/RedBolt/Graphics/ShaderCompiler.cs:3:// TODO: port: the managed API has no D3DCompile or D3D11/D3D12 compiler binding.
-- [ ] ./src/RedBolt/Graphics/Shader.cs:307:                // C++: if (!graphics->GetSettings().validateShaders_ || !line.trimmed().starts_with("//"))
-- [ ] ./src/RedBolt/Graphics/Shader.cs:308:                // C++:     code += line;
-- [ ] ./src/RedBolt/Graphics/Shader.cs:309:                // TODO: port - trim comments when shader validation is enabled.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:17:// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:20:// TODO: port - C++ code: many methods in C++ Renderer.h including:
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:24:// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.
