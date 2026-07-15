@@ -2,7 +2,6 @@ namespace RedBolt;
 
 /// <summary>Static model component.</summary>
 /// <remarks>
-// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
 // C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 // C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
@@ -147,6 +146,61 @@ public class StaticModel : Drawable
         }
 
         return triangles;
+    }
+
+    public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
+    {
+        if (query.Level == RayQueryLevel.RayAabb)
+        {
+            base.ProcessRayQuery(query, results);
+            return;
+        }
+
+        var worldBoundingBox = GetWorldBoundingBox();
+        if (query.Ray.HitDistance(worldBoundingBox) >= query.MaxDistance || !IsAttached)
+            return;
+
+        var localOrigin = Node.WorldToLocal(query.Ray.Origin);
+        var localEnd = Node.WorldToLocal(query.Ray.Origin + query.Ray.Direction);
+        var localDirection = localEnd - localOrigin;
+        if (localDirection.LengthSquared <= MathDefs.Epsilon * MathDefs.Epsilon)
+            return;
+
+        var localRay = new Ray(localOrigin, localDirection);
+        var distance = localRay.HitDistance(GetBoundingBox());
+        if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
+            return;
+
+        if (query.Level == RayQueryLevel.RayTriangle)
+        {
+            distance = float.PositiveInfinity;
+            for (var i = 0u; i < NumGeometries; ++i)
+            {
+                var geometry = GetLodGeometry(i, 0u);
+                if (geometry is null)
+                    continue;
+
+                var geometryDistance = geometry.GetHitDistance(localRay);
+                if (geometryDistance < distance)
+                    distance = geometryDistance;
+            }
+
+            if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
+                return;
+        }
+
+        var localHit = localRay.Origin + localRay.Direction * distance;
+        var worldHit = Node.LocalToWorld(localHit);
+        results.Add(new RayQueryResult
+        {
+            Drawable = this,
+            Node = Node,
+            Distance = (worldHit - query.Ray.Origin).Length,
+            Position = worldHit,
+            Normal = -query.Ray.Direction,
+            TextureUV = Vector2f.Zero,
+            SubObject = uint.MaxValue
+        });
     }
 
     public override void UpdateBatches(CommonFrameInfo frame)
