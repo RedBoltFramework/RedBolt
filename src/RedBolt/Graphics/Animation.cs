@@ -43,7 +43,6 @@ public struct AnimationTriggerPoint
 /// <summary>
 /// Skeletal animation resource.
 /// Don't use bone tracks and generic variant tracks with the same names.
-// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
 // C#: ObjectRevisionTracker is not ported; revision tracking is inlined here.
 public class Animation : ResourceWithMetadata
 {

@@ -4,8 +4,6 @@
 - [ ] ./src/RedBolt/Graphics/Texture.cs:30:// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:370:    // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:373:    // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
-- [ ] ./src/RedBolt/Graphics/Technique.cs:39:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Technique.cs:44:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/AnimationController.cs:176:            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
 - [ ] ./src/RedBolt/Graphics/AnimationController.cs:760:            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
@@ -20,7 +18,6 @@
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
-- [ ] ./src/RedBolt/Graphics/Animation.cs:46:// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:9:    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
