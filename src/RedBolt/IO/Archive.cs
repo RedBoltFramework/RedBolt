@@ -15,8 +15,7 @@ public sealed class ArchiveBlock : IDisposable
     {
     }
 
-    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0)
-    public ArchiveBlock(Archive archive, uint sizeHint)
+    public ArchiveBlock(Archive archive, uint sizeHint = 0)
     {
         _archive = archive;
         SizeHint = sizeHint;

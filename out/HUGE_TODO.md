@@ -77,7 +77,6 @@
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:47:// C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
-- [ ] ./src/RedBolt/IO/Archive.cs:18:    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0)
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:3:// C++: enum FileMode { FILE_READ = 0, FILE_WRITE, FILE_READWRITE }; — defined in AbstractFile.h, C# moves it to File.cs
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:4:// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:6:// C++: using AbstractFilePtr = SharedPtr<AbstractFile, RefCounted>;
