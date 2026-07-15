@@ -164,8 +164,6 @@ public sealed class ConfigFile : Object
     }
 
     /// <summary>Serialize persistent variable configuration. Current values are not serialized.</summary>
-    // C++: Uses Archive binary serialization (SerializeOptionalValue).
-    //       ConfigFlavor::SerializeInBlock uses SerializeOptionalValue for flavor + variables.
     public override void SerializeInBlock(Archive archive)
     {
         ArgumentNullException.ThrowIfNull(archive);
