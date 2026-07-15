@@ -8,11 +8,8 @@ public abstract class Application : Object
 
     private string _startupErrors = string.Empty;
 
-    // C++: StringVariantMap commandLineParameters_;
-
     protected Application()
     {
-        // C++: SubscribeToEvent(E_LOGMESSAGE, URHO3D_HANDLER(Application, HandleLogMessage));
         Engine = new Engine();
     }
 
