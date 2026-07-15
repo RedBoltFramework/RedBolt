@@ -1,8 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Input/FreeFlyController.cs:145:        // C++: iterates all joysticks, dispatches per type (gamepad/wheel/flightstick/unknown),
-- [ ] ./src/RedBolt/Input/FreeFlyController.cs:146:        // C++: differentiates world vs local space rotation with SetCameraRotation for flight stick
-- [ ] ./src/RedBolt/Input/FreeFlyController.cs:147:        // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/Input.cs:60:        // C++: for joysticks (non-controllers), calls SDL_JoystickGetAxisInitialState to read initial axis values
 - [ ] ./src/RedBolt/Input/Input.cs:125:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/Input.cs:147:    // C++: IntVector2 lastMousePosition_; IntVector2 lastVisibleMousePosition_;

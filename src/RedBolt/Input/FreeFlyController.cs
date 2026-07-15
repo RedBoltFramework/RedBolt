@@ -245,38 +245,97 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         return result;
     }
 
-    private Vector3f HandleController(float timeStep)
+    private Movement HandleWheel(JoystickState state, float timeStep)
     {
-        var input = GetSubsystem<Input>();
-        if (input is null) return Vector3f.Zero;
-        var acceleration = MathDefs.Clamp(_axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.TriggerLeft)), 0.0f, 1.0f);
-        var speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
-        var result = new Vector3f(
-            _axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.LeftX)) * speed * timeStep,
-            0.0f,
-            -_axisAdapter.Transform(input.GetControllerAxisPosition(ControllerAxis.LeftY)) * speed * timeStep);
-        var hat = input.GetHatPosition();
-        if ((hat & HatPosition.Up) != 0) result.Z += speed * timeStep;
-        if ((hat & HatPosition.Down) != 0) result.Z -= speed * timeStep;
-        if ((hat & HatPosition.Left) != 0) result.X -= speed * timeStep;
-        if ((hat & HatPosition.Right) != 0) result.X += speed * timeStep;
-        return result;
+        var movement = new Movement();
+        var speed = _speed;
+        movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition(0)) * timeStep * _axisSensitivity;
+        if (state.GetNumAxes() > 1)
+        {
+            if (state.HasAxisPosition(1))
+                movement.Translation.Z += TransformPedal(state.GetAxisPosition(1)) * speed * timeStep;
+            if (state.HasAxisPosition(2))
+                movement.Translation.Z -= TransformPedal(state.GetAxisPosition(2)) * speed * timeStep;
+        }
+        return movement;
     }
 
-    private Vector3f HandleGenericJoystick(float timeStep)
+    private Movement HandleFlightStick(JoystickState state, float timeStep)
     {
-        var input = GetSubsystem<Input>();
-        if (input is null) return Vector3f.Zero;
+        var movement = new Movement();
         var speed = _speed;
-        if (input.HasJoystickAxisPosition(4))
+        movement.Rotation.Z -= _axisAdapter.Transform(state.GetAxisPosition(0)) * timeStep * _axisSensitivity;
+        movement.Rotation.X -= _axisAdapter.Transform(state.GetAxisPosition(1)) * timeStep * _axisSensitivity;
+        movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition(3)) * timeStep * _axisSensitivity;
+        if (state.HasAxisPosition(2))
+            movement.Translation.Z += TransformPedal(state.GetAxisPosition(2)) * speed * timeStep;
+        if (state.HasAxisPosition(4))
+            movement.Translation.X += _axisAdapter.Transform(state.GetAxisPosition(4)) * speed * timeStep;
+        return movement;
+    }
+
+    private Movement HandleController(JoystickState state, float timeStep)
+    {
+        var movement = new Movement();
+        var speed = _speed;
+        if (state.HasAxisPosition((uint)ControllerAxis.TriggerLeft))
         {
-            var acceleration = MathDefs.Clamp((1.0f + _axisAdapter.Transform(input.GetJoystickAxisPosition(4))) * 0.5f, 0.0f, 1.0f);
-            speed = MathDefs.Lerp(_speed, _acceleratedSpeed, acceleration);
+            var value = _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.TriggerLeft));
+            speed = MathDefs.Lerp(_speed, _acceleratedSpeed, MathDefs.Clamp(value, 0.0f, 1.0f));
         }
-        return new Vector3f(
-            _axisAdapter.Transform(input.GetJoystickAxisPosition(0)) * speed * timeStep,
-            0.0f,
-            -_axisAdapter.Transform(input.GetJoystickAxisPosition(1)) * speed * timeStep);
+        movement.Translation.X += _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.LeftX)) * speed * timeStep;
+        movement.Translation.Z -= _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.LeftY)) * speed * timeStep;
+        movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.RightX)) * timeStep * _axisSensitivity;
+        movement.Rotation.X += _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.RightY)) * timeStep * _axisSensitivity;
+        if (state.GetNumHats() > 0)
+        {
+            var hat = state.GetHatPosition(0);
+            if ((hat & (int)HatPosition.Up) != 0) movement.Translation.Z += speed * timeStep;
+            if ((hat & (int)HatPosition.Down) != 0) movement.Translation.Z -= speed * timeStep;
+            if ((hat & (int)HatPosition.Left) != 0) movement.Translation.X -= speed * timeStep;
+            if ((hat & (int)HatPosition.Right) != 0) movement.Translation.X += speed * timeStep;
+        }
+        return movement;
+    }
+
+    private Movement HandleGenericJoystick(JoystickState state, float timeStep)
+    {
+        var movement = new Movement();
+        var speed = _speed;
+        if (state.HasAxisPosition(4))
+        {
+            var value = (1.0f + _axisAdapter.Transform(state.GetAxisPosition(4))) * 0.5f;
+            speed = MathDefs.Lerp(_speed, _acceleratedSpeed, MathDefs.Clamp(value, 0.0f, 1.0f));
+        }
+        if (state.HasAxisPosition(0))
+            movement.Translation.X += _axisAdapter.Transform(state.GetAxisPosition(0)) * speed * timeStep;
+        if (state.HasAxisPosition(1))
+            movement.Translation.Z -= _axisAdapter.Transform(state.GetAxisPosition(1)) * speed * timeStep;
+        if (state.HasAxisPosition(2))
+            movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition(2)) * timeStep * _axisSensitivity;
+        if (state.HasAxisPosition(3))
+            movement.Rotation.X += _axisAdapter.Transform(state.GetAxisPosition(3)) * timeStep * _axisSensitivity;
+        if (state.GetNumHats() > 0)
+        {
+            var hat = state.GetHatPosition(0);
+            if ((hat & (int)HatPosition.Up) != 0) movement.Translation.Z += speed * timeStep;
+            if ((hat & (int)HatPosition.Down) != 0) movement.Translation.Z -= speed * timeStep;
+            if ((hat & (int)HatPosition.Left) != 0) movement.Translation.X -= speed * timeStep;
+            if ((hat & (int)HatPosition.Right) != 0) movement.Translation.X += speed * timeStep;
+        }
+        return movement;
+    }
+
+    private float TransformPedal(float value)
+    {
+        var neutral = _axisAdapter.GetNeutralValue();
+        var inverted = _axisAdapter.IsInverted();
+        _axisAdapter.SetNeutralValue(-1.0f);
+        _axisAdapter.SetInverted(true);
+        var result = _axisAdapter.Transform(value);
+        _axisAdapter.SetNeutralValue(neutral);
+        _axisAdapter.SetInverted(inverted);
+        return result;
     }
 
     private void HandleMultitouch(ref InputEvents.MultitouchEvent value)
@@ -310,6 +369,13 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
             _lastKnownCameraRotation = rotation;
             _lastKnownEulerAngles = rotation.EulerAngles;
         }
+    }
+
+    private void SetCameraRotation(Quaternion rotation)
+    {
+        _lastKnownEulerAngles = rotation.EulerAngles;
+        _lastKnownCameraRotation = rotation;
+        Node.SetRotation(rotation);
     }
 
     private void SetCameraAngles(Vector3f eulerAngles)
