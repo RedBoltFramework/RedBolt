@@ -8,7 +8,6 @@ public abstract class Application : Object
 
     private string _startupErrors = string.Empty;
 
-    // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})
     // C++: StringVariantMap commandLineParameters_;
 
     protected Application()
