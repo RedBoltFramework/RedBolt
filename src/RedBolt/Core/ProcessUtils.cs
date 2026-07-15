@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using RedBolt.Bindings.Sdl;
 using System.Text;
 
 namespace RedBolt;
@@ -23,13 +24,6 @@ public enum PlatformId
     Count,
     Unknown = Count
 }
-
-// TODO: port - C++ code:
-// void ErrorDialog(const ea::string& title, const ea::string& message);
-// TODO: port - C++ code:
-// void OpenConsoleWindow();
-// TODO: port - C++ code:
-// ea::string GetConsoleInput();
 
 public static class ProcessUtils
 {
@@ -57,6 +51,13 @@ public static class ProcessUtils
     public static void PrintLine(string value, bool error = false)
     {
         (error ? Console.Error : Console.Out).WriteLine(value);
+    }
+
+    public static void ErrorDialog(string title, string message)
+    {
+        using var titleValue = new CString(title);
+        using var messageValue = new CString(message);
+        _ = SdlNativeBindings.SdlShowSimpleMessageBox((uint)SdlMessageBoxFlags.SdlMessageboxError, titleValue.Bytes, messageValue.Bytes, null!);
     }
 
     /// <summary>Parse arguments from a command line.</summary>

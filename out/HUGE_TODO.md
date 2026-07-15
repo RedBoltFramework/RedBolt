@@ -1,9 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
@@ -11,13 +8,8 @@
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Scene.cs:8:// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
 - [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
-- [ ] ./src/RedBolt/Scene/Scene.cs:56:    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
-- [ ] ./src/RedBolt/Scene/Scene.cs:58:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Scene.cs:831:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:8:// C++: class CustomVariantValue {
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:9:// C++:   friend class CustomVariantValueImpl<T>;
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:11:// C++:   CustomVariantValue() = default;

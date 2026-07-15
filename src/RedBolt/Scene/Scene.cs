@@ -53,10 +53,9 @@ public sealed class Scene : Serializable
     private ContextEventSubscription? _resourceBackgroundLoadedSubscription;
     private int _asyncLoadingMs = 5;
     private bool _asyncLoading;
-    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
+    private Vector3d _elapsedTimes;
+    private Vector3d _elapsedTimeWrap = new(1_000_000_000_000.0, 1024.0, 1.0);
     private float _elapsedTime;
-    // TODO: port - C++ code:
-    // DoubleVector3 elapsedTimeWrap_;
     private string _fileName = string.Empty;
     private IntVector3 _worldOrigin;
     private uint _nextComponentId = 1;
@@ -823,13 +822,19 @@ public sealed class Scene : Serializable
 
     public void SetElapsedTime(float time)
     {
-        _elapsedTime = time;
+        SetElapsedTime((double)time);
     }
 
     public float GetElapsedTime() => _elapsedTime;
 
-    // TODO: port - C++ code:
-    // const DoubleVector3& GetElapsedTimes() const { return elapsedTime_; }
+    public void SetElapsedTime(double time)
+    {
+        _elapsedTimes = new Vector3d(time, time, time);
+        WrapElapsedTime();
+        _elapsedTime = (float)_elapsedTimes.X;
+    }
+
+    public Vector3d GetElapsedTimes() => _elapsedTimes;
 
     public void SetAsyncLoadingMs(int ms)
     {
@@ -1036,7 +1041,9 @@ public sealed class Scene : Serializable
                 for (var i = 0; i < listenerSnapshot.Count; ++i)
                     listenerSnapshot.Array[i]!.OnScenePostUpdate(effectiveTimeStep);
 
-                _elapsedTime += effectiveTimeStep;
+                _elapsedTimes += new Vector3d(effectiveTimeStep, effectiveTimeStep, effectiveTimeStep);
+                WrapElapsedTime();
+                _elapsedTime = (float)_elapsedTimes.X;
             }
             finally
             {
@@ -1050,6 +1057,14 @@ public sealed class Scene : Serializable
             TimeStep = effectiveTimeStep
         };
         SendEvent(ref forcedPostUpdateEvent);
+    }
+
+    private void WrapElapsedTime()
+    {
+        _elapsedTimes = new Vector3d(
+            _elapsedTimes.X % _elapsedTimeWrap.X,
+            _elapsedTimes.Y % _elapsedTimeWrap.Y,
+            _elapsedTimes.Z % _elapsedTimeWrap.Z);
     }
 
     public void BeginThreadedUpdate()
