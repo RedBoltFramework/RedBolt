@@ -60,8 +60,6 @@ public sealed class SubsystemCache
         _subsystems.Remove(type);
     }
 
-    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
-    // then fills cached with nullptr and clears subsystems map.
     /// <summary>
     /// Remove all subsystems.
     /// </summary>
