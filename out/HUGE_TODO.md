@@ -64,9 +64,6 @@
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Zone.cs:11:// C++: Has ClearDrawablesZone public method. May not be fully ported yet.
 - [ ] ./src/RedBolt/Graphics/Zone.cs:12:// TODO: port - C++ code: void Zone::ClearDrawablesZone()
-- [ ] ./src/RedBolt/Math/BoundingBox.cs:64:    // C++: BoundingBox(const Polyhedron& poly);
-- [ ] ./src/RedBolt/Math/BoundingBox.cs:68:    // C++: void Define(const Polyhedron& poly);
-- [ ] ./src/RedBolt/Math/BoundingBox.cs:71:    // C++: void Merge(const Polyhedron& poly);
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
 - [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,

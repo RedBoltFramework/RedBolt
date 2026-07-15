@@ -60,10 +60,14 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         Define(sphere);
     }
 
-    // C++: BoundingBox(const Polyhedron& poly);
-
-    // C++: void Define(const Polyhedron& poly);
-    // C++: void Merge(const Polyhedron& poly);
+    public BoundingBox(Polyhedron polyhedron)
+    {
+        Min = new Vector3f(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Max = new Vector3f(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
+        Define(polyhedron);
+    }
 
     public BoundingBox(Frustum frustum)
     {
@@ -112,6 +116,12 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         Clear();
         Merge(frustum);
+    }
+
+    public void Define(Polyhedron polyhedron)
+    {
+        Clear();
+        Merge(polyhedron);
     }
 
     public void Clip(BoundingBox box)
@@ -224,6 +234,12 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     }
 
     public void Merge(Frustum frustum) => Merge(frustum.Vertices);
+
+    public void Merge(Polyhedron polyhedron)
+    {
+        foreach (var face in polyhedron.Faces)
+            Merge(face);
+    }
 
     public BoundingBox Merged(Vector3f point) { var result = this; result.Merge(point); return result; }
     public BoundingBox Merged(BoundingBox box) { var result = this; result.Merge(box); return result; }
