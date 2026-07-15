@@ -107,7 +107,6 @@
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:127:// C++:   bool Compare(...) override; bool IsZero() override;
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:128:// C++:   ea::string ToString() override; void Serialize(...) override;
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:48:    // C++: virtual T* GetValuePtr() / const T* GetValuePtr() const — missing
-- [ ] ./src/RedBolt/Core/CoreEvents.cs:6:    // C++: URHO3D_EVENT(E_BEGINFRAME, BeginFrame) { URHO3D_PARAM(P_FRAMENUMBER, FrameNumber); URHO3D_PARAM(P_TIMESTEP, TimeStep); }
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:125:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?

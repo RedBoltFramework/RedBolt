@@ -3,7 +3,6 @@ namespace RedBolt;
 public static class CoreEvents
 {
     /// <summary>Frame begin event.</summary>
-    // C++: URHO3D_EVENT(E_BEGINFRAME, BeginFrame) { URHO3D_PARAM(P_FRAMENUMBER, FrameNumber); URHO3D_PARAM(P_TIMESTEP, TimeStep); }
     public struct BeginFrameEvent
     {
         public uint FrameNumber;
