@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/Engine.cs:20:    // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
 - [ ] ./src/RedBolt/Engine/Engine.cs:23:    // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)
 - [ ] ./src/RedBolt/Engine/Engine.cs:145:        // C++: if (pauseMinimized_ && input->IsMinimized())
 - [ ] ./src/RedBolt/Engine/Engine.cs:202:        // TODO: port UI and RmlUI scale state updates when the managed UI APIs exist.

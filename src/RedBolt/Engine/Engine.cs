@@ -13,7 +13,6 @@ public sealed class Engine : Object
     private long _timeOut;
     private bool _audioPaused;
     private bool _exitRequired;
-    // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
     // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)
