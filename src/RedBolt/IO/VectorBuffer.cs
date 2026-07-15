@@ -1,9 +1,12 @@
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
 public sealed class VectorBuffer : AbstractFile
 {
     private const string VectorBufferName = "VectorBuffer";
     private byte[] _buffer = [];
+    private GCHandle _pinnedBuffer;
 
     public VectorBuffer()
     {
@@ -34,20 +37,19 @@ public sealed class VectorBuffer : AbstractFile
         return _buffer;
     }
 
-    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
     public nint GetData()
     {
-        return 0;
+        return PinBuffer();
     }
 
-    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
     public nint GetModifiableData()
     {
-        return 0;
+        return PinBuffer();
     }
 
     public void Clear()
     {
+        ReleaseBuffer();
         _buffer = [];
         Position = 0;
         Size = 0;
@@ -66,6 +68,7 @@ public sealed class VectorBuffer : AbstractFile
         if (size == Size)
             return;
 
+        ReleaseBuffer();
         var oldSize = Size;
         Array.Resize(ref _buffer, checked((int)size));
         Size = size;
@@ -128,5 +131,26 @@ public sealed class VectorBuffer : AbstractFile
         data.CopyTo(_buffer.AsSpan(checked((int)Position), data.Length));
         Position = end;
         return (uint)data.Length;
+    }
+
+    ~VectorBuffer()
+    {
+        ReleaseBuffer();
+    }
+
+    private nint PinBuffer()
+    {
+        if (Size == 0)
+            return nint.Zero;
+
+        if (!_pinnedBuffer.IsAllocated)
+            _pinnedBuffer = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+        return _pinnedBuffer.AddrOfPinnedObject();
+    }
+
+    private void ReleaseBuffer()
+    {
+        if (_pinnedBuffer.IsAllocated)
+            _pinnedBuffer.Free();
     }
 }

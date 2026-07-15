@@ -59,16 +59,16 @@ public sealed class AbstractFileTests
     }
 
     [Fact]
-    public void VectorBuffer_does_not_expose_stable_data_pointer_for_managed_storage()
+    public unsafe void VectorBuffer_exposes_data_pointers_for_managed_storage()
     {
-        var buffer = new VectorBuffer();
+        var buffer = new VectorBuffer(new byte[] { 42 });
 
-        Assert.Equal(nint.Zero, buffer.GetData());
-        Assert.Equal(nint.Zero, buffer.GetModifiableData());
+        Assert.NotEqual(nint.Zero, buffer.GetData());
+        Assert.NotEqual(nint.Zero, buffer.GetModifiableData());
+        Assert.Equal(42, ((byte*)buffer.GetData())[0]);
 
-        Assert.True(buffer.WriteUByte(42));
-        Assert.Equal(nint.Zero, buffer.GetData());
-        Assert.Equal(nint.Zero, buffer.GetModifiableData());
+        Assert.True(buffer.WriteUByte(9));
+        Assert.Equal(9, ((byte*)buffer.GetData())[0]);
 
         buffer.Clear();
         Assert.Equal(nint.Zero, buffer.GetData());
