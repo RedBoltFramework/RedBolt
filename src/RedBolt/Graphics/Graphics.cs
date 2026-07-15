@@ -16,7 +16,6 @@ namespace RedBolt;
     // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
     // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
     // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
-    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
     /// </remarks>
     public sealed class Graphics : Object
     {
@@ -581,6 +580,29 @@ layout(std140) uniform Material
         }
 
         return result;
+    }
+
+    public uint FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
+    {
+        var resolutions = GetResolutions(monitor);
+        if (resolutions.Count == 0)
+            return uint.MaxValue;
+
+        var best = 0u;
+        var bestError = uint.MaxValue;
+        for (var i = 0; i < resolutions.Count; ++i)
+        {
+            var error = (uint)(Math.Abs(resolutions[i].X - width) + Math.Abs(resolutions[i].Y - height));
+            if (refreshRate != 0)
+                error += (uint)Math.Abs(resolutions[i].Z - refreshRate);
+            if (error < bestError)
+            {
+                best = (uint)i;
+                bestError = error;
+            }
+        }
+
+        return best;
     }
 
     public Vector2i GetDesktopResolution(int monitor)
