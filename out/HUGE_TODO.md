@@ -2,10 +2,6 @@
 
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/Resource.cs:51:        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_READ) then Load(*file)
-- [ ] ./src/RedBolt/Resource/Resource.cs:106:        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_WRITE) then Save(*file)
-- [ ] ./src/RedBolt/Resource/Resource.cs:149:        // C++: name_ = name; nameHash_ = name;
-- [ ] ./src/RedBolt/Resource/Resource.cs:166:        // C++: if (Refs() > 1) { useTimer_.Reset(); return 0; } else return useTimer_.GetMSec(false);
 - [ ] ./src/RedBolt/Resource/PListValue.cs:153:    // C++: uses sscanf(string_->c_str(), "{{%d,%d},{%d,%d}}", &x, &y, &w, &h)
 - [ ] ./src/RedBolt/Resource/PListValue.cs:159:        // C++: specific format "{{%d,%d},{%d,%d}}" parsing via sscanf
 - [ ] ./src/RedBolt/Resource/PListValue.cs:166:    // C++: uses sscanf(string_->c_str(), "{%d,%d}", &x, &y) for specific format parsing
