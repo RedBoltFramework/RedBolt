@@ -238,10 +238,10 @@ public sealed class Engine : Object
 
     public bool GetPauseMinimized() => PauseMinimized;
 
-    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
-    //       autoExit_ is forced to true regardless of the argument.
     public void SetAutoExit(bool enable)
     {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS())
+            enable = true;
         AutoExit = enable;
     }
 
@@ -403,20 +403,6 @@ public sealed class Engine : Object
         SendCoreEvents(_currentTimeStep);
     }
 
-    // C++: void Engine::Render()
-    // {
-    //     if (headless_) return;
-    //     auto* graphics = GetSubsystem<Graphics>();
-    //     if (!graphics->BeginFrame()) return;
-    //     GetSubsystem<Renderer>()->Render();
-    //     graphics->ResetRenderTargets();
-    //     if (UI* ui = GetSubsystem<UI>())
-    //     {
-    //         if (!ui->IsRendered() && ui->GetRenderTarget() == nullptr)
-    //             ui->Render();
-    //     }
-    //     graphics->EndFrame();
-    // }
     public void Render()
     {
         if (!IsInitialized || IsHeadless)
