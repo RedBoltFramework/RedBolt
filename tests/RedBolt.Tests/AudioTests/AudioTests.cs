@@ -36,6 +36,27 @@ public sealed class AudioTests
     }
 
     [Fact]
+    public void Sound_source_uses_play_position_as_playing_state()
+    {
+        var scene = new Scene();
+        var source = scene.CreateChild().CreateComponent<SoundSource>();
+        var sound = new Sound();
+        sound.SetData([0, 0, 64, 0, 0, 0], 6);
+        sound.SetFormat(44100, sixteenBit: true, stereo: false);
+
+        source.Play(sound);
+        source.SetPlayPosition(1);
+
+        Assert.True(source.IsPlaying());
+        Assert.Equal(2, source.GetPlayPosition());
+
+        source.Stop();
+
+        Assert.False(source.IsPlaying());
+        Assert.Equal(0, source.GetPlayPosition());
+    }
+
+    [Fact]
     public void Sound_stream_defaults_to_44100_hz()
     {
         var stream = new TestSoundStream();

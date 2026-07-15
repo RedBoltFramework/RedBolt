@@ -22,7 +22,7 @@ public class SoundSource : Component
 
     private Sound? _sound;
     private SoundStream? _soundStream;
-    private int _position;
+    private int? _position;
     private int _fractPosition;
     private float _timePosition;
     private Sound? _streamBuffer;
@@ -30,7 +30,6 @@ public class SoundSource : Component
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
     private bool _lowFrequency;
-    private bool _playing; // C++: uses position_ != nullptr as playing indicator, no separate _playing field
     private readonly object _playLock = new();
 
     public SoundSource()
@@ -162,7 +161,7 @@ public class SoundSource : Component
     }
 
     public Sound? GetSound() => _sound;
-    public int GetPlayPosition() => _position;
+    public int GetPlayPosition() => _position ?? 0;
     public string GetSoundType() => SoundType;
     public float GetTimePosition() => _timePosition;
     public float GetFrequency() => Frequency;
@@ -173,7 +172,7 @@ public class SoundSource : Component
     public bool IsLowFrequency() => _lowFrequency;
     public AutoRemoveMode GetAutoRemoveMode() => AutoRemove;
     public bool GetIgnoreSceneTimeScale() => _ignoreSceneTimeScale;
-    public bool IsPlaying() => _playing && (_sound != null || _soundStream != null);
+    public bool IsPlaying() => _position.HasValue && (_sound != null || _soundStream != null);
 
     public void SetPlayPosition(int position)
     {
@@ -192,11 +191,11 @@ public class SoundSource : Component
 
         lock (_playLock)
         {
-            if (_soundStream != null && !_playing)
+            if (_soundStream != null && !_position.HasValue)
                 StopLockless();
         }
 
-        if (_playing || !_sendFinishedEvent || !IsAttached)
+        if (_position.HasValue || !_sendFinishedEvent || !IsAttached)
             return;
 
         _sendFinishedEvent = false;
@@ -215,7 +214,7 @@ public class SoundSource : Component
     {
         lock (_playLock)
         {
-            if (!_playing || (_sound == null && _soundStream == null))
+            if (!_position.HasValue || (_sound == null && _soundStream == null))
                 return;
 
             var effectiveTimeScale = GetEffectiveTimeScale();
@@ -254,17 +253,16 @@ public class SoundSource : Component
 
             if (stream != null && _streamBuffer != null)
             {
-                _unusedStreamSize = Math.Max(streamFilledSize - _position, 0);
+                _unusedStreamSize = Math.Max(streamFilledSize - (_position ?? 0), 0);
                 if (_unusedStreamSize != 0)
                 {
                     var data = _streamBuffer.GetData()!;
-                    Buffer.BlockCopy(data, _position, data, 0, _unusedStreamSize);
+                    Buffer.BlockCopy(data, _position ?? 0, data, 0, _unusedStreamSize);
                 }
 
                 if (decoded == 0 && stream.GetStopAtEnd())
                 {
-                    _playing = false;
-                    _position = 0;
+                    _position = null;
                 }
             }
         }
@@ -286,7 +284,7 @@ public class SoundSource : Component
             Stop();
     }
 
-    public int GetPositionAttr() => _position;
+    public int GetPositionAttr() => _position ?? 0;
 
     public void SetPositionAttr(int value) => SetPlayPosition(value);
 
@@ -307,7 +305,6 @@ public class SoundSource : Component
                     _position = 0;
                     _fractPosition = 0;
                     _sendFinishedEvent = true;
-                    _playing = true;
                     return;
                 }
             }
@@ -340,7 +337,6 @@ public class SoundSource : Component
             _position = 0;
             _fractPosition = 0;
             _sendFinishedEvent = true;
-            _playing = true;
             return;
         }
 
@@ -349,12 +345,11 @@ public class SoundSource : Component
 
     private void StopLockless()
     {
-        _position = 0;
+        _position = null;
         _timePosition = 0.0f;
         _soundStream = null;
         _streamBuffer = null;
         _unusedStreamSize = 0;
-        _playing = false;
     }
 
     private void SetPlayPositionLockless(int position)
@@ -362,18 +357,20 @@ public class SoundSource : Component
         if (_sound == null || _soundStream != null)
             return;
 
-        // C++: aligns odd positions up for 16-bit sound:
-        // if (sound_->IsSixteenBit() && (pos - start) & 1u) ++pos;
         _position = Math.Clamp(position, 0, (int)_sound.GetDataSize());
+        if (_sound.IsSixteenBit() && (_position.Value & 1) != 0)
+            _position++;
+        if (_position.Value > (int)_sound.GetDataSize())
+            _position = (int)_sound.GetDataSize();
         if (_sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
-            _timePosition = _position / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
+            _timePosition = _position.Value / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
     }
 
     private void MixNull(float timeStep, float effectiveFrequency)
     {
         lock (_playLock)
         {
-            if (!_playing || _sound == null || !IsEnabledEffective)
+            if (!_position.HasValue || _sound == null || !IsEnabledEffective)
                 return;
 
             _timePosition += timeStep * effectiveFrequency / _sound.GetFrequency();
@@ -384,8 +381,7 @@ public class SoundSource : Component
             }
             else if (_timePosition >= _sound.GetLength())
             {
-                _playing = false;
-                _position = 0;
+                _position = null;
                 _timePosition = 0.0f;
             }
         }
@@ -427,7 +423,7 @@ public class SoundSource : Component
         var sourceChannels = sound.IsStereo() ? 2 : 1;
         var end = sound.GetEndOffset();
         var repeat = sound.GetRepeatOffset();
-        var position = _position;
+        var position = _position ?? 0;
         var fractPosition = _fractPosition;
         var add = effectiveFrequency / mixRate;
         var intAdd = (int)add;
@@ -442,7 +438,7 @@ public class SoundSource : Component
         var rearRightVolume = (int)((Panning + 1.0f) * (-Reach + 1.0f) * (256.0f * gain + 0.5f));
         var centerVolume = (int)(((frontLeftVolume + frontRightVolume) * 0.5f) * MathDefs.Clamp(Reach, 0.0f, 1.0f));
 
-        for (var sample = 0u; sample < samples && _playing; sample++)
+        for (var sample = 0u; sample < samples && _position.HasValue; sample++)
         {
             if (position >= end)
             {
@@ -450,7 +446,7 @@ public class SoundSource : Component
                     position = repeat + (position - end) % (end - repeat);
                 else
                 {
-                    _playing = false;
+                    _position = null;
                     _sendFinishedEvent = true;
                     position = 0;
                     fractPosition = 0;
@@ -525,7 +521,7 @@ public class SoundSource : Component
 
             if (!sound.IsLooped() && position >= end)
             {
-                _playing = false;
+                _position = null;
                 _sendFinishedEvent = true;
                 position = 0;
                 fractPosition = 0;
@@ -534,12 +530,13 @@ public class SoundSource : Component
             }
         }
 
-        _position = position;
+        if (_position.HasValue)
+            _position = position;
         _fractPosition = fractPosition;
         if (_soundStream != null && _soundStream.GetFrequency() != 0)
             _timePosition += samples / (float)mixRate * effectiveFrequency / _soundStream.GetFrequency();
-        else if (_sound != null && _sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
-            _timePosition = _position / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
+        else if (_sound != null && _position.HasValue && _sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
+            _timePosition = _position.Value / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
     }
 
     private static int ReadSample(sbyte[] data, int offset, bool sixteenBit)
