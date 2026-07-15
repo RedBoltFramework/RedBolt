@@ -100,7 +100,6 @@ public sealed class ConfigFile : Object
     private readonly Dictionary<string, ConfigVariableDefinition> _definitions = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Variant> _variables = new(StringComparer.Ordinal);
 
-    // C++: explicit ConfigFile(Context* context);
     public ConfigFile()
     {
     }

@@ -10,8 +10,8 @@ public abstract class Application : Object
 
     protected Application()
     {
-        SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
         Engine = new Engine();
+        SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
     }
 
     public int ExitCode { get; private set; }
@@ -153,7 +153,7 @@ public abstract class Application : Object
         Engine.Exit();
     }
 
-    private void HandleLogMessage(ref IOEvents.LogMessage eventData)
+    protected void HandleLogMessage(ref IOEvents.LogMessage eventData)
     {
         if (eventData.Level == (int)LogLevel.Error)
         {
@@ -168,7 +168,7 @@ public abstract class Application : Object
     protected void ErrorExit(string message = "")
     {
         ErrorMessage = string.IsNullOrWhiteSpace(message)
-            ? string.IsNullOrWhiteSpace(_startupErrors)
+            ? string.IsNullOrEmpty(_startupErrors)
                 ? "Application has been terminated due to unexpected error."
                 : _startupErrors
             : message;
