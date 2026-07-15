@@ -25,25 +25,7 @@ public class AnimatedModel : StaticModel
     // TODO: port - C++ code:
     // UpdateGeometryType GetUpdateGeometryType() override;
     // TODO: port - C++ code:
-    // void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
-    // TODO: port - C++ code:
-    // void ApplyAnimation();
-    // TODO: port - C++ code:
     // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
-    // TODO: port - C++ code:
-    // unsigned GetNumMorphs() const;
-    // TODO: port - C++ code:
-    // void SetModelAttr(const ResourceRef& value);
-    // TODO: port - C++ code:
-    // void SetBonesEnabledAttr(const VariantVector& value);
-    // TODO: port - C++ code:
-    // void SetMorphsAttr(const ea::vector<unsigned char>& value);
-    // TODO: port - C++ code:
-    // ResourceRef GetModelAttr() const;
-    // TODO: port - C++ code:
-    // VariantVector GetBonesEnabledAttr() const;
-    // TODO: port - C++ code:
-    // const ea::vector<unsigned char>& GetMorphsAttr() const;
     // TODO: port - C++ code:
     // const ea::vector<ea::vector<unsigned>>& GetGeometryBoneMappings() const;
     // TODO: port - C++ code:
@@ -52,7 +34,6 @@ public class AnimatedModel : StaticModel
     // void UpdateBoneBoundingBox();
     // TODO: port - C++ code:
     // protected:
-    // void OnNodeSet(Node* previousNode, Node* currentNode) override;
     // void OnMarkedDirty(Node* node) override;
     // void OnWorldBoundingBoxUpdate() override;
     // TODO: port - C++ fields:
@@ -79,6 +60,8 @@ public class AnimatedModel : StaticModel
     private readonly List<ModelMorph> _morphs = [];
     private float _animationLodBias = 1.0f;
     private bool _updateInvisible;
+    private bool _isMaster;
+    private readonly List<byte> _morphsAttribute = [];
 
     /// <summary>Construct.</summary>
     public AnimatedModel()
@@ -194,6 +177,20 @@ public class AnimatedModel : StaticModel
         _skeleton.Reset();
     }
 
+    /// <summary>Apply all animation states to nodes.</summary>
+    // TODO: port - C++ helper methods used by ApplyAnimation are not available in the managed animation/skinning API yet.
+    public void ApplyAnimation()
+    {
+        // TODO: port - C++ code:
+        // if (isMaster_)
+        // {
+        //     InitializeLocalBoneTransforms(false);
+        //     CalculateAnimations();
+        //     CalculateLocalBoundingBox();
+        //     ApplyBoneTransformsToNodes();
+        // }
+    }
+
     /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
     public void ConnectToAnimationStateSource(AnimationStateSource? source)
     {
@@ -213,7 +210,7 @@ public class AnimatedModel : StaticModel
     public bool GetUpdateInvisible() => _updateInvisible;
 
     /// <summary>Return whether is the master animated model.</summary>
-    public bool IsMaster() => true;
+    public bool IsMaster() => _isMaster;
 
     /// <summary>Return vertex morph weight by index.</summary>
     public float GetMorphWeight(uint index) => index < _morphs.Count ? _morphs[(int)index].Weight : 0.0f;
@@ -240,6 +237,53 @@ public class AnimatedModel : StaticModel
         }
 
         return 0.0f;
+    }
+
+    /// <summary>Return number of vertex morphs.</summary>
+    public uint GetNumMorphs() => checked((uint)_morphs.Count);
+
+    /// <summary>Set model attribute.</summary>
+    public new void SetModelAttr(ResourceRef value)
+    {
+        var cache = GetSubsystem<ResourceCache>()!;
+        SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name), false);
+    }
+
+    /// <summary>Set bones' animation enabled attribute.</summary>
+    public void SetBonesEnabledAttr(VariantVector value)
+    {
+        var bones = _skeleton.GetModifiableBones();
+        for (var i = 0; i < bones.Count && i < value.Count; ++i)
+            bones[i].Animated = value[i].GetBool();
+    }
+
+    /// <summary>Set morphs attribute.</summary>
+    public void SetMorphsAttr(IReadOnlyList<byte> value)
+    {
+        for (uint index = 0; index < value.Count; ++index)
+            SetMorphWeight(index, value[(int)index] / 255.0f);
+    }
+
+    /// <summary>Return model attribute.</summary>
+    public new ResourceRef GetModelAttr() => base.GetModelAttr();
+
+    /// <summary>Return bones' animation enabled attribute.</summary>
+    public VariantVector GetBonesEnabledAttr()
+    {
+        var result = new VariantVector();
+        var bones = _skeleton.GetBones();
+        foreach (var bone in bones)
+            result.Add(new Variant(bone.Animated));
+        return result;
+    }
+
+    /// <summary>Return morphs attribute.</summary>
+    public IReadOnlyList<byte> GetMorphsAttr()
+    {
+        _morphsAttribute.Clear();
+        foreach (var morph in _morphs)
+            _morphsAttribute.Add((byte)(morph.Weight * 255.0f));
+        return _morphsAttribute;
     }
 
     /// <summary>Set skeleton.</summary>
@@ -270,5 +314,23 @@ public class AnimatedModel : StaticModel
             if (parentIndex != i && parentIndex < bones.Count)
                 bones[(int)parentIndex].Node!.AddChild(bones[i].Node!);
         }
+    }
+
+    /// <summary>Visualize the component as debug geometry.</summary>
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is not null && IsEnabledEffective)
+        {
+            debug.AddBoundingBox(GetWorldBoundingBox(), new Color(0.0f, 1.0f, 0.0f), depthTest);
+            debug.AddSkeleton(_skeleton, new Color(0.75f, 0.75f, 0.75f), false);
+        }
+    }
+
+    protected override void OnNodeSet(Node? previousNode, Node? currentNode)
+    {
+        base.OnNodeSet(previousNode, currentNode);
+
+        if (currentNode is not null)
+            _isMaster = currentNode.FindComponent<AnimatedModel>() is null;
     }
 }
