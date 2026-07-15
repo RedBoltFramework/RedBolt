@@ -489,6 +489,49 @@ public sealed class Node : Animatable
         return xml.Save(destination, indentation);
     }
 
+    public bool SaveXML(Serializer destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        using var stream = new MemoryStream();
+        if (!SaveXML(stream, indentation))
+            return false;
+
+        var data = stream.ToArray();
+        if (destination.Write(data) != data.Length)
+            return false;
+
+        return true;
+    }
+
+    public bool SaveJSON(Stream destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        var root = new JSONValue();
+        if (!SaveJSON(root))
+            return false;
+
+        var json = new JSONFile(string.Empty);
+        if (!json.FromString(root.ToString()))
+            return false;
+
+        return json.Save(destination, indentation);
+    }
+
+    public bool SaveJSON(Serializer destination, string indentation = "\t")
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        using var stream = new MemoryStream();
+        if (!SaveJSON(stream, indentation))
+            return false;
+
+        var data = stream.ToArray();
+        if (destination.Write(data) != data.Length)
+            return false;
+
+        return true;
+    }
+
     private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
     {
         prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;
@@ -695,7 +738,6 @@ public sealed class Node : Animatable
         return result;
     }
 
-    // TODO: port - C++ code:
     // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
     // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
     //
@@ -703,9 +745,6 @@ public sealed class Node : Animatable
     // void Node::GeneratePrefab(NodePrefab& prefab) const;  // in-place overload
     //
     // TODO: port - C++ code:
-    // bool Node::SaveJSON(Serializer& dest, const ea::string& indentation = "\t") const;
-    // bool Node::SaveXML(Serializer& dest, const ea::string& indentation = "\t") const;
-    //
     // TODO: port - C++ code:
     // bool Node::GetChildLazy(WeakPtr<Node>& childNode, StringHash nameHash, SceneLookupFlags flags = SceneLookupFlag::None) const;
     // template <class T> bool Node::GetNthComponentLazy(WeakPtr<T>& childComponent, unsigned index = 0) const;
