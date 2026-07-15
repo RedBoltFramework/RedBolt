@@ -35,9 +35,15 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
     {
     }
 
+    public virtual void UpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+    {
+    }
+
+    public virtual void PostUpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta)
+    {
+    }
+
     // TODO: port - C++ code:
-    // virtual void UpdateWorldOrigin(const IntVector3& oldOrigin, const IntVector3& newOrigin, const IntVector3& delta);
-    // virtual void PostUpdateWorldOrigin(const IntVector3& oldOrigin, const IntVector3& newOrigin, const IntVector3& delta);
     // virtual StringHash GetUpdateEvent() const;
     // virtual StringHash GetPostUpdateEvent() const;
     // void OnSetEnabled() override; // Changes update event subscription.
