@@ -2,7 +2,6 @@ namespace RedBolt;
 
 // C++: class URHO3D_API Base64OutputArchive : private VectorBuffer, public BinaryOutputArchive
 // C++ inherits VectorBuffer directly (multiple inheritance); C# uses composition.
-// C++: Base64OutputArchive(Context* context) — C# uses Context.Instance internally (allowed deviation).
 /// Binary archive backed by a managed buffer and exposed as Base64 text.
 public sealed class Base64OutputArchive : Archive
 {
@@ -46,7 +45,6 @@ public sealed class Base64OutputArchive : Archive
 
 // C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
 // C++ inherits VectorBuffer directly; C# uses composition with MemoryBuffer.
-// C++: Base64InputArchive(Context* context, const ea::string& base64) — C# uses Context.Instance internally (allowed deviation).
 /// Binary input archive initialized from Base64 text.
 public sealed class Base64InputArchive : Archive
 {

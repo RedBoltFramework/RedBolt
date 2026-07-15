@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (C++ has no separate header file; function is declared in Tangent.h/inlined in Tangent.cpp).
 using System.Runtime.InteropServices;
 
 namespace RedBolt;

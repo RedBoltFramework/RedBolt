@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (struct-only data types; no separate C++ header file).
 namespace RedBolt;
 
 /// <summary>

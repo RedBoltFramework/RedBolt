@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (port of InverseKinematics.h chains: IKTrigonometricChain, IKEyeChain).
 namespace RedBolt;
 
 /// <summary>Trigonometric two-segment IK chain.</summary>

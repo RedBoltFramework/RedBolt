@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (port of InverseKinematics.h types: IKNode, IKNodeSegment, IKSettings).
 namespace RedBolt;
 
 /// <summary>

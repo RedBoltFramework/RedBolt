@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (SpirVShader/ShaderDefineArray are struct-based wrappers for SPIR-V cross-compilation; no direct C++ counterpart file).
 namespace RedBolt;
 
 /// <summary>

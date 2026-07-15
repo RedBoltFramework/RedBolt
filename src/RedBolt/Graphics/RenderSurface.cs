@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (IDiligent view management uses generated bindings; static helpers accept null RenderSurface for main viewport).
 using System.Threading;
 using RedBolt.Bindings.Diligent;
 

@@ -1,4 +1,3 @@
-// C++: matches C++ within allowed deviations (C# HashSet/Dictionary substitutes ea:: containers; regex parsing replaced with string split; logging errors silently suppressed vs URHO3D_LOGERROR).
 using System.Linq;
 using System.Runtime.InteropServices;
 

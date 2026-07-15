@@ -20,7 +20,6 @@
 // THE SOFTWARE.
 //
 
-// C++: matches C++ within allowed deviations (ResourceWithMetadata replaces Resource base; ObjectRevisionTracker inlined).
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;

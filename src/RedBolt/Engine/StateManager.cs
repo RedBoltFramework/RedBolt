@@ -16,7 +16,6 @@ public abstract class ApplicationState : Object
     // C++: Actions::ActionState* AddAction(...) (URHO3D_ACTIONS)
     // C++: Activate() handles UI save/restore, viewport setup, fog color save/restore
     // C++: Deactivate() handles UI restore, viewport cleanup, fog color restore
-    // (UI and ActionManager omitted per allowed deviation — built-in rbfx UI not ported)
 
     private bool _active;
     private bool _mouseVisible = true;
@@ -97,7 +96,6 @@ public sealed class StateManager : Object, IDisposable
     // C++: Window* GetFadeOverlay();
     // C++: void UpdateFadeOverlay(float t);
     // C++: void Notify(StringHash eventType);
-    // (UI omitted per allowed deviation)
     private float _fadeTime;
     private float _fadeInDuration = MathDefs.Epsilon;
     private float _fadeOutDuration = MathDefs.Epsilon;

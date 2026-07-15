@@ -1,5 +1,3 @@
-// C# uses Span<T>/ReadOnlySpan<T> instead of raw pointers (allowed).
-// C# uses CompressedFormat instead of C++ TextureFormat (allowed - Diligent binding difference).
 namespace RedBolt;
 
 using System.Buffers.Binary;
@@ -36,7 +34,6 @@ public static class Decompress
 
     /// <summary>Decompress a DXT compressed image to RGBA.</summary>
     // C++: void DecompressImageDXT(unsigned char* rgba, const void* blocks, int width, int height, int depth, TextureFormat format);
-    // C# uses CompressedFormat instead of C++ TextureFormat (from Diligent)
     public static void DecompressImageDXT(
         Span<byte> rgba,
         ReadOnlySpan<byte> blocks,
@@ -81,7 +78,6 @@ public static class Decompress
 
     /// <summary>Decompress an ETC1/ETC2 compressed image to RGBA.</summary>
     // C++: void DecompressImageETC(unsigned char* dstImage, const void* blocks, int width, int height, bool hasAlpha);
-    // C# uses Span instead of raw pointers (allowed deviation)
     public static void DecompressImageETC(
         Span<byte> destination,
         ReadOnlySpan<byte> blocks,
@@ -136,7 +132,6 @@ public static class Decompress
 
     /// <summary>Decompress a PVRTC compressed image to RGBA.</summary>
     // C++: void DecompressImagePVRTC(unsigned char* rgba, const void* blocks, int width, int height, TextureFormat format);
-    // C# uses CompressedFormat instead of C++ TextureFormat (from Diligent)
     public static void DecompressImagePVRTC(
         Span<byte> rgba,
         ReadOnlySpan<byte> blocks,
@@ -244,7 +239,6 @@ public static class Decompress
 
     /// <summary>Returns whether flipping is implemented for texture format.</summary>
     // C++: bool IsFlipBlockImplemented(TextureFormat format);
-    // C# uses CompressedFormat instead of C++ TextureFormat
     public static bool IsFlipBlockImplemented(CompressedFormat format)
     {
         return format is CompressedFormat.Rgba
@@ -255,7 +249,6 @@ public static class Decompress
 
     /// <summary>Flip a compressed block vertically.</summary>
     // C++: void FlipBlockVertical(unsigned char* dest, const unsigned char* src, TextureFormat format);
-    // C# uses Span and CompressedFormat instead of raw pointers and TextureFormat
     public static void FlipBlockVertical(Span<byte> destination, ReadOnlySpan<byte> source, CompressedFormat format)
     {
         switch (format)
@@ -310,7 +303,6 @@ public static class Decompress
 
     /// <summary>Flip a compressed block horizontally.</summary>
     // C++: void FlipBlockHorizontal(unsigned char* dest, const unsigned char* src, TextureFormat format);
-    // C# uses Span and CompressedFormat instead of raw pointers and TextureFormat
     public static void FlipBlockHorizontal(Span<byte> destination, ReadOnlySpan<byte> source, CompressedFormat format)
     {
         switch (format)

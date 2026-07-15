@@ -441,8 +441,6 @@ public sealed class InputMap : ResourceWithMetadata
             if (mouseButton == MouseButton.None)
                 return;
 
-            // C++: stores the raw MouseButton enum value (1,2,4,...), then GetMask() does 1<<mouseButton_
-            // (which gives incorrect mask for LEFT since 1<<1=2 instead of 1). C# uses bit index instead.
             var btnIndex = (uint)BitOperations.TrailingZeroCount((uint)mouseButton);
             var mapping = new MouseButtonMapping(btnIndex);
             if (!_mouseButtons.Contains(mapping))

@@ -29,7 +29,6 @@ internal static class TextureFormatUtility
 // C++: Has direct Diligent API includes for ITexture, ITextureView, ISampler in header. C# accesses these from the Bindings namespace.
 // C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
 // C++: HandleRenderSurfaceUpdate is connected as event handler in the C++ object registration. C# uses SubscribeToEvent directly.
-// C++: Texture has renderSurfaces_ as ea::vector of SharedPtr to RenderSurface. C# uses RenderSurface?[].
 /// </remarks>
 public abstract class Texture : ResourceWithMetadata
 {

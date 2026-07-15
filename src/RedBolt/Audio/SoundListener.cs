@@ -3,8 +3,6 @@ namespace RedBolt;
 /// <summary>Sound listener component for 3D audio positioning.</summary>
 public sealed class SoundListener : Component
 {
-    // C++: explicit SoundListener(Context* context);
-    // C# uses Context.Instance (allowed deviation).
     public SoundListener()
     {
     }
