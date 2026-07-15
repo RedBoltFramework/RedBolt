@@ -3,7 +3,6 @@ namespace RedBolt;
 /// <summary>Static model component.</summary>
 /// <remarks>
 // C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
-// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
 // C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 // C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
@@ -150,6 +149,33 @@ public class StaticModel : Drawable
         return triangles;
     }
 
+    public override void UpdateBatches(CommonFrameInfo frame)
+    {
+        var worldBoundingBox = GetWorldBoundingBox();
+        var camera = frame.Camera;
+        if (camera is null)
+            return;
+
+        SetDistance(camera.GetDistance(worldBoundingBox.Center));
+        if (_batches.Count == 1)
+            _batches[0] = UpdateBatchDistance(_batches[0], GetDistance());
+        else
+        {
+            var worldTransform = Node.GetWorldTransform();
+            for (var i = 0; i < _batches.Count; ++i)
+            {
+                var center = Model?.GetGeometryCenter((uint)i) ?? Vector3f.Zero;
+                _batches[i] = UpdateBatchDistance(_batches[i], camera.GetDistance(worldTransform * center));
+            }
+        }
+
+        var size = worldBoundingBox.Size;
+        var scale = (size.X + size.Y + size.Z) / 3.0f;
+        var newLodDistance = camera.GetLodDistance(GetDistance(), scale, LodBias);
+        if (newLodDistance != GetLodDistance())
+            SetLodDistance(newLodDistance);
+    }
+
     public Material? GetMaterial(uint index = 0)
     {
         return index < _materials.Count ? _materials[(int)index] : null;
@@ -260,5 +286,11 @@ public class StaticModel : Drawable
         var currentModel = Model;
         Model = null;
         SetModel(currentModel);
+    }
+
+    private static SourceBatch UpdateBatchDistance(SourceBatch batch, float distance)
+    {
+        batch.Distance = distance;
+        return batch;
     }
 }
