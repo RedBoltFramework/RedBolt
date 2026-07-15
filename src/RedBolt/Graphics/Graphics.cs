@@ -14,7 +14,6 @@ namespace RedBolt;
     /// </summary>
     /// <remarks>
     // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
-    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
     /// </remarks>
 public sealed class Graphics : Object
     {
@@ -626,6 +625,24 @@ layout(std140) uniform Material
     {
         return _window is not null && !_window.IsNull
             && (SdlNativeBindings.SdlGetWindowFlags(_window) & (uint)SdlWindowFlags.SdlWindowMaximized) != 0;
+    }
+
+    public void Maximize()
+    {
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlMaximizeWindow(_window);
+    }
+
+    public void Minimize()
+    {
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlMinimizeWindow(_window);
+    }
+
+    public void Raise()
+    {
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlRaiseWindow(_window);
     }
 
     public Vector3f GetDisplayDPI(int monitor = 0)
