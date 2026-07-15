@@ -83,7 +83,7 @@ Each line below is one exact match. `[ ]` means not yet handled; third-party ent
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:22:        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:23:        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:24:        // C++: throws ArchiveException on creation failure
-- [ ] ./src/RedBolt/RenderAPI/PipelineState.cs:26:        // TODO: port Thread::IsMainThread() warning and early return.
+- [x] ./src/RedBolt/RenderAPI/PipelineState.cs:26:        // TODO: port Thread::IsMainThread() warning and early return. — matched with WorkQueue main-thread identity check and warning.
 - [ ] ./src/RedBolt/Container/Array2D.cs:129:// C++: template <class T, class Container = ea::vector<T>> class Array2D : public ArrayDimensions2D
 - [ ] ./src/RedBolt/Container/Array2D.cs:220:    // C++: const ArrayDimensions2D& Dim() const { return *this; }
 - [ ] ./src/RedBolt/Container/Array2D.cs:226:    // C++: const Container& GetContainer() const { return data_; }  (const overload)
