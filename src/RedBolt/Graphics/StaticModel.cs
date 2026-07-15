@@ -136,7 +136,7 @@ public class StaticModel : Drawable
 
     public uint GetNumGeometries() => NumGeometries;
 
-    public virtual uint GetNumOccluderTriangles()
+    public override uint GetNumOccluderTriangles()
     {
         var triangles = 0u;
         for (var i = 0u; i < NumGeometries; ++i)
@@ -216,7 +216,7 @@ public class StaticModel : Drawable
 
     public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
 
-    public Geometry? GetLodGeometry(uint batchIndex, uint level)
+    public override Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
         var model = Model;
         if (model is null || batchIndex >= model.NumGeometries)

@@ -223,9 +223,9 @@ public sealed class CustomGeometry : Drawable
             : null;
     }
 
-    public Geometry? GetLodGeometry(uint batchIndex, uint level) => batchIndex < _geometries.Count ? _geometries[(int)batchIndex] : null;
+    public override Geometry? GetLodGeometry(uint batchIndex, uint level) => batchIndex < _geometries.Count ? _geometries[(int)batchIndex] : null;
 
-    public uint GetNumOccluderTriangles()
+    public override uint GetNumOccluderTriangles()
     {
         var triangles = 0u;
         for (var i = 0; i < _geometries.Count; ++i)

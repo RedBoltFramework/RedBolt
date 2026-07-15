@@ -11,6 +11,14 @@ public enum DrawableFlags : byte
     Any = 0xff
 }
 
+/// <summary>Geometry update type.</summary>
+public enum UpdateGeometryType
+{
+    None = 0,
+    MainThread,
+    WorkerThread
+}
+
 public enum GlobalIlluminationType
 {
     None,
@@ -131,15 +139,6 @@ public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 
 /// <summary>Base class for visible components.</summary>
 /// <remarks>
-// TODO: port - C++ code: virtual void ProcessRayQuery(const RayOctreeQuery& query, ea::vector<RayQueryResult>& results)
-// TODO: port - C++ code: void ProcessCustomRayQuery(...)
-// TODO: port - C++ code: virtual UpdateGeometryType GetUpdateGeometryType() { return UPDATE_NONE; }
-// TODO: port - C++ code: virtual Geometry* GetLodGeometry(unsigned batchIndex, unsigned level)
-// TODO: port - C++ code: virtual unsigned GetNumOccluderTriangles()
-// TODO: port - C++ code: virtual bool DrawOcclusion(OcclusionBuffer* buffer)
-// TODO: port - C++ code: virtual void UpdateBatchesDelayed(const FrameInfo& frame)
-// TODO: port - C++ code: void RequestUpdateBatchesDelayed(const FrameInfo& frame)
-// TODO: port - C++ code: virtual void UpdateGeometry(const FrameInfo& frame)
 // C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
 // C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
 // C++: Drawable has a friend relationship with Octant and Octree. C# uses internal methods instead.
@@ -355,6 +354,37 @@ public abstract class Drawable : Component
     /// </summary>
     public IReadOnlyList<SourceBatch> GetBatches() => _batches;
 
+    /// <summary>Process raycast with custom transform.</summary>
+    public void ProcessCustomRayQuery(RayOctreeQuery query, BoundingBox worldBoundingBox, List<RayQueryResult> results)
+    {
+        var distanceAndNormal = query.Ray.HitDistanceAndNormal(worldBoundingBox);
+        if (distanceAndNormal.Distance < query.MaxDistance)
+        {
+            var result = new RayQueryResult
+            {
+                Position = query.Ray.Origin + distanceAndNormal.Distance * query.Ray.Direction,
+                // For the world bounding box the normal is in world space.
+                Normal = distanceAndNormal.Normal,
+                Distance = distanceAndNormal.Distance,
+                Drawable = this,
+                Node = Node,
+                SubObject = uint.MaxValue
+            };
+            results.Add(result);
+        }
+    }
+
+    /// <summary>Process octree raycast. May be called from a worker thread.</summary>
+    public virtual void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
+    {
+        ProcessCustomRayQuery(query, GetWorldBoundingBox(), results);
+    }
+
+    /// <summary>Update before octree reinsertion. May be called from a worker thread.</summary>
+    public virtual void Update(CommonFrameInfo frame)
+    {
+    }
+
     public virtual void UpdateBatches(CommonFrameInfo frame)
     {
         var worldBoundingBox = GetWorldBoundingBox();
@@ -374,6 +404,29 @@ public abstract class Drawable : Component
         if (newLodDistance != _lodDistance)
             _lodDistance = newLodDistance;
     }
+
+    /// <summary>Batch update from the main thread.</summary>
+    public virtual void UpdateBatchesDelayed(CommonFrameInfo frame)
+    {
+    }
+
+    /// <summary>Prepare geometry for rendering.</summary>
+    public virtual void UpdateGeometry(CommonFrameInfo frame)
+    {
+    }
+
+    /// <summary>Return whether a geometry update is necessary, and if it can happen in a worker thread.</summary>
+    public virtual UpdateGeometryType GetUpdateGeometryType() => UpdateGeometryType.None;
+
+    /// <summary>Return the geometry for a specific LOD level.</summary>
+    public virtual Geometry? GetLodGeometry(uint batchIndex, uint level)
+    {
+        // By default return the visible batch geometry.
+        return batchIndex < _batches.Count ? _batches[(int)batchIndex].Geometry : null;
+    }
+
+    /// <summary>Return number of occlusion geometry triangles.</summary>
+    public virtual uint GetNumOccluderTriangles() => 0;
 
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
     {
@@ -510,6 +563,13 @@ public abstract class Drawable : Component
     public void MarkForUpdate()
     {
         _worldBoundingBoxDirty = true;
+    }
+
+    /// <summary>Request UpdateBatchesDelayed call from the main thread.</summary>
+    protected void RequestUpdateBatchesDelayed(CommonFrameInfo frame)
+    {
+        var workQueue = GetSubsystem<WorkQueue>();
+        workQueue?.PostTaskForMainThread(() => UpdateBatchesDelayed(frame), TaskPriority.Immediate);
     }
 
     public override void OnSetEnabled()

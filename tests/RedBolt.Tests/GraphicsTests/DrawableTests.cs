@@ -84,4 +84,15 @@ public sealed class DrawableTests
             Context.SetInstance(previousContext);
         }
     }
+
+    [Fact]
+    public void Drawable_exposes_cpp_geometry_update_defaults_and_lod_fallback()
+    {
+        using var drawable = new CustomGeometry();
+
+        Assert.Equal(UpdateGeometryType.None, drawable.GetUpdateGeometryType());
+        Assert.Equal(0u, drawable.GetNumOccluderTriangles());
+        Assert.NotNull(drawable.GetLodGeometry(0u, 0u));
+        Assert.Null(drawable.GetLodGeometry(1u, 0u));
+    }
 }
