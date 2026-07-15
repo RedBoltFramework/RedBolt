@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
@@ -23,7 +24,12 @@ public class PipelineState : DeviceObject
 
     public override void Dispose()
     {
-        // TODO: port Thread::IsMainThread() warning and early return.
+        if (Thread.CurrentThread.ManagedThreadId != WorkQueue.GetMainThreadId())
+        {
+            Log.Logger.LogWarning("Pipeline state should be released only from main thread");
+            return;
+        }
+
         DestroyGPU();
         UnsubscribeFromShaders();
         if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
