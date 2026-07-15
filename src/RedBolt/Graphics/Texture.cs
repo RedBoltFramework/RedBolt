@@ -24,7 +24,6 @@ internal static class TextureFormatUtility
 
 /// <summary>Base class for texture resources.</summary>
 /// <remarks>
-// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
 /// </remarks>
 public abstract class Texture : ResourceWithMetadata
 {
@@ -319,10 +318,15 @@ public abstract class Texture : ResourceWithMetadata
 
     private void OnCreateGPU()
     {
+        ApplyRawSamplerState();
+        if (_rawTexture is not null)
+            RefreshMemoryUse((uint)Math.Min(_rawTexture.CalculateMemoryUseGPU(), uint.MaxValue));
     }
 
     private void OnDestroyGPU()
     {
+        foreach (var renderSurface in _renderSurfaces)
+            renderSurface?.Invalidate();
         _rawTexture?.Dispose();
         _rawTexture = null;
     }
@@ -466,7 +470,7 @@ public abstract class Texture : ResourceWithMetadata
             _rawTexture = new RawTexture(new RawTextureParams(
                 GetRawTextureType(), Format, _textureFlags,
                 new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample, SRGB: _requestedSRGB));
-            ApplyRawSamplerState();
+            OnCreateGPU();
         }
     }
 

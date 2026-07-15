@@ -1,7 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Texture.cs:30:// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:5:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:6:// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
@@ -10,10 +9,6 @@
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:9:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:10:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:11:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
-- [ ] ./src/RedBolt/Graphics/Skybox.cs:5:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Skybox.cs:7:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
-- [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
