@@ -1,7 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimationState.cs:91:    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:62:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:67:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
 - [ ] ./src/RedBolt/Graphics/Texture.cs:27:// C++: Texture inherits from ResourceWithMetadata and RawTexture (multiple inheritance). C# inherits from ResourceWithMetadata only and has a _rawTexture field.

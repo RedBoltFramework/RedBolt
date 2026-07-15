@@ -88,7 +88,6 @@ public enum AnimatedAttributeType
 /// </summary>
 public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference>
 {
-    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.
     public Serializable? Serializable;
     public uint AttributeIndex;
     public AnimatedAttributeType AttributeType;
