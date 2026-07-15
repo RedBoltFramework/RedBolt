@@ -6,16 +6,6 @@ namespace RedBolt;
 /// <summary>
 /// Class that manages all render buffers within viewport and viewport itself.
 /// </summary>
-// TODO: port - C++ code:
-// C++ RenderBufferManager inherits from Object and uses:
-// - Graphgics*, Renderer*, RenderDevice*, RenderContext*, RenderPipelineDebugger* external deps
-// - SharedPtr<DrawCommandQueue> drawQueue_
-// - StaticPipelineStateCache pipelineStates_ for quad/clear pipeline states
-// - Methods: InitializePipelineStates(), CreateQuadPipelineState(), GetQuadPipelineState()
-// - copyTexturePipelineState_, copyGammaToLinearTexturePipelineState_,
-//   copyLinearToGammaTexturePipelineState_, clearPipelineState_[] cached states
-// - SharedPtr<RenderBuffer> for viewport buffers (not raw RenderBuffer references)
-// - RenderBuffers are frame-transient: OnRenderBegin allocates, OnRenderEnd releases
 public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);

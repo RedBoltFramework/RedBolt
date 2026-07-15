@@ -1,4 +1,3 @@
-// C++: no direct C++ counterpart file.
 // C++ defines engine command-line parameters in Engine::DefineParameters(CLI::App&, StringVariantMap&) in Engine.cpp.
 using System.Globalization;
 

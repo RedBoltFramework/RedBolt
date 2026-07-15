@@ -1,4 +1,3 @@
-// C++: no direct C++ counterpart. XPathQuery is only forward-declared in XMLElement.h:48.
 // C# wraps System.Xml.XPath. Implementation is C#-only.
 using System.Globalization;
 using System.Xml.Linq;

@@ -1,4 +1,3 @@
-// C++: no direct C++ counterpart - adapter class
 namespace RedBolt;
 
 public interface IDearImGuiInputSink
@@ -9,4 +8,3 @@ public interface IDearImGuiInputSink
 
     bool WantCaptureMouse { get; }
 }
-
