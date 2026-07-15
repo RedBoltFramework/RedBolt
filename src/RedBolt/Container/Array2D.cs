@@ -126,7 +126,6 @@ public class ArrayDimensions2D
 /// <summary>
 /// 2D array template.
 /// </summary>
-// C++: template <class T, class Container = ea::vector<T>> class Array2D : public ArrayDimensions2D
 public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
 {
     /// <summary>
@@ -217,45 +216,37 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     /// <summary>
     /// Return array dimensions.
     /// </summary>
-    // C++: const ArrayDimensions2D& Dim() const { return *this; }
     public ArrayDimensions2D Dim() => this;
 
     /// <summary>
     /// Return underlying container.
     /// </summary>
-    // C++: const Container& GetContainer() const { return data_; }  (const overload)
     public T[] GetContainer() => _data;
 
     /// <summary>
     /// Return element by index.
     /// </summary>
-    // C++: const T& Get(const IntVector2& index) const { return data_[IndexToOffset(index)]; }  (const overload)
     public ref T Get(Vector2i index) => ref _data[checked((int)IndexToOffset(index))];
 
     /// <summary>
     /// Return element by index or null if out of bounds.
     /// </summary>
-    // C++: T* GetOptional(const IntVector2& index) { return Contains(index) ? &data_[IndexToOffset(index)] : nullptr; }
-    // C++: const T* GetOptional(const IntVector2& index) const { ... }  (const overload)
     // TODO: port - C++ returns pointer (T*), C# returns nullable value (T?)
     public T? GetOptional(Vector2i index) => Contains(index) ? _data[checked((int)IndexToOffset(index))] : default;
 
     /// <summary>
     /// Return element by wrapped index.
     /// </summary>
-    // C++: const T& GetWrapped(const IntVector2& index) const { ... }  (const overload)
     public ref T GetWrapped(Vector2i index) => ref _data[checked((int)IndexToOffset(WrapIndex(index)))];
 
     /// <summary>
     /// Return element by clamped index.
     /// </summary>
-    // C++: const T& GetClamped(const IntVector2& index) const { ... }  (const overload)
     public ref T GetClamped(Vector2i index) => ref _data[checked((int)IndexToOffset(ClampIndex(index)))];
 
     /// <summary>
     /// Return element by index.
     /// </summary>
-    // C++: const T& operator[](const IntVector2& index) const { return Get(index); }  (const overload)
     public ref T this[Vector2i index] => ref Get(index);
 
     /// <summary>
@@ -270,13 +261,11 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     /// <summary>
     /// Return array begin.
     /// </summary>
-    // C++: auto Begin() const { return data_.cbegin(); }  (const overload)
     public Span<T> Begin() => _data;
 
     /// <summary>
     /// Return array end.
     /// </summary>
-    // C++: auto End() const { return data_.cend(); }  (const overload)
     public Span<T> End() => _data.AsSpan(_data.Length);
 
     public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)_data).GetEnumerator();
