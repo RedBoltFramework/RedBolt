@@ -192,6 +192,22 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void XMLElement_64_bit_and_generic_vector_attributes_work()
+    {
+        var xml = new XMLFile("test.xml");
+        xml.FromString("<newRoot />");
+        var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
+
+        child.SetUInt64("unsigned", ulong.MaxValue);
+        child.SetInt64("signed", long.MinValue);
+        child.SetVector4("vector", new Vector4f(1.0f, 2.0f, 3.0f, 4.0f));
+
+        Assert.Equal(ulong.MaxValue, child.GetUInt64("unsigned"));
+        Assert.Equal(long.MinValue, child.GetInt64("signed"));
+        Assert.True(child.GetVector("vector").ApproximatelyEquivalent(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f)));
+    }
+
+    [Fact]
     public void XMLElement_bounding_box_attribute_works()
     {
         var xml = new XMLFile("test.xml");

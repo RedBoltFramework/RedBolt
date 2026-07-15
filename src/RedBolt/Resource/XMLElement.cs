@@ -174,6 +174,10 @@ public sealed class XMLElement
 
     public bool SetInt(string name, int value) => SetAttribute(name, value.ToString(CultureInfo.InvariantCulture));
 
+    public bool SetUInt64(string name, ulong value) => SetAttribute(name, value.ToString(CultureInfo.InvariantCulture));
+
+    public bool SetInt64(string name, long value) => SetAttribute(name, value.ToString(CultureInfo.InvariantCulture));
+
     public bool SetString(string name, string value) => SetAttribute(name, value);
 
     public bool SetColor(string name, Color value) => SetAttribute(name, value.ToString());
@@ -183,6 +187,14 @@ public sealed class XMLElement
     public bool SetVector3(string name, Vector3f value) => SetAttribute(name, value.ToString());
 
     public bool SetVector4(string name, Vector4f value) => SetAttribute(name, value.ToString());
+
+    public bool SetVectorVariant(string name, Variant value) => value.Type switch
+    {
+        VariantType.Vector2 => SetVector2(name, value.GetVector2()),
+        VariantType.Vector3 => SetVector3(name, value.GetVector3()),
+        VariantType.Vector4 => SetVector4(name, value.GetVector4()),
+        _ => false
+    };
 
     public bool SetQuaternion(string name, Quaternion value) => SetAttribute(name, value.ToString());
 
@@ -315,18 +327,9 @@ public sealed class XMLElement
         return _element?.Attribute(name)?.Value ?? string.Empty;
     }
 
-    // TODO: port - C++ code:
-    // const char* GetAttributeCString(const char* name) const;
-    // ea::string GetAttributeLower(const ea::string& name) const;
-    // ea::string GetAttributeUpper(const ea::string& name) const;
-    // unsigned long long GetUInt64(const ea::string& name) const;
-    // long long GetInt64(const ea::string& name) const;
-    // Vector4 GetVector(const ea::string& name) const;
-    // Variant GetVectorVariant(const ea::string& name) const;
-    // bool SetUInt64(const ea::string& name, unsigned long long value);
-    // bool SetInt64(const ea::string& name, long long value);
-    // bool SetVectorVariant(const ea::string& name, const Variant& value);
-    // static const XMLElement EMPTY;
+    public string GetAttributeLower(string name) => GetAttribute(name).ToLowerInvariant();
+
+    public string GetAttributeUpper(string name) => GetAttribute(name).ToUpperInvariant();
 
     public IReadOnlyList<string> GetAttributeNames()
     {
@@ -425,6 +428,10 @@ public sealed class XMLElement
 
     public int GetInt(string name) => int.TryParse(GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
 
+    public ulong GetUInt64(string name) => ulong.TryParse(GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0ul;
+
+    public long GetInt64(string name) => long.TryParse(GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0L;
+
     public IntRect GetIntRect(string name) => ParseIntRect(GetAttribute(name));
 
     public Vector2i GetIntVector2(string name) => ParseIntVector2(GetAttribute(name));
@@ -446,6 +453,32 @@ public sealed class XMLElement
     public Vector3f GetVector3(string name) => ParseVector3(GetAttribute(name));
 
     public Vector4f GetVector4(string name) => ParseVector4(GetAttribute(name));
+
+    public Vector4f GetVector(string name)
+    {
+        var parsed = ParseFloats(GetAttribute(name));
+        return parsed.Length switch
+        {
+            2 => new Vector4f(parsed[0], parsed[1], 0.0f, 0.0f),
+            3 => new Vector4f(parsed[0], parsed[1], parsed[2], 0.0f),
+            >= 4 => new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3]),
+            _ => Vector4f.Zero
+        };
+    }
+
+    public Variant GetVectorVariant(string name)
+    {
+        var parsed = ParseFloats(GetAttribute(name));
+        return parsed.Length switch
+        {
+            2 => new Variant(new Vector2f(parsed[0], parsed[1])),
+            3 => new Variant(new Vector3f(parsed[0], parsed[1], parsed[2])),
+            >= 4 => new Variant(new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3])),
+            _ => new Variant(VariantType.None)
+        };
+    }
+
+    // C++ returns an attribute pointer and exposes a static EMPTY element; C# uses string values and nullable elements instead.
 
     public Matrix3 GetMatrix3(string name) => ParseMatrix3(GetAttribute(name));
 
