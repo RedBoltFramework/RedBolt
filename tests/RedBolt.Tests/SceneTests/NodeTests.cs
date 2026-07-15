@@ -139,6 +139,22 @@ public sealed class NodeTests
     }
 
     [Fact]
+    public void Lazy_node_and_component_lookups_cache_matching_objects()
+    {
+        var scene = new Scene();
+        var node = scene.CreateChild("Parent");
+        var child = node.CreateChild("Child");
+        var camera = child.CreateComponent<Camera>();
+        Node? cachedChild = null;
+        Camera? cachedCamera = null;
+
+        Assert.True(node.GetChildLazy(ref cachedChild, child.NameHash));
+        Assert.Same(child, cachedChild);
+        Assert.True(child.GetNthComponentLazy(ref cachedCamera));
+        Assert.Same(camera, cachedCamera);
+    }
+
+    [Fact]
     public void Transform2d_helpers_canonicalize_z_components()
     {
         var scene = new Scene();
