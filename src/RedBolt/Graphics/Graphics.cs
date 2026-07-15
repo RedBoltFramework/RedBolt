@@ -15,10 +15,11 @@ namespace RedBolt;
     /// <remarks>
     // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
     // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
-    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
     /// </remarks>
-    public sealed class Graphics : Object
+public sealed class Graphics : Object
     {
+    private static uint _maxBonesHWSkinned;
+
     private const uint GlFront = 0x0404;
     private const uint GlBack = 0x0405;
     private const uint GlRgba = 0x1908;
@@ -689,6 +690,13 @@ layout(std140) uniform Material
     public static bool GetGL3Support() => true;
 
     public SdlWindow? GetSDLWindow() => GetNativeWindow();
+
+    public static void SetMaxBones(uint maxBones)
+    {
+        _maxBonesHWSkinned = maxBones;
+    }
+
+    public static uint GetMaxBones() => _maxBonesHWSkinned != 0u ? _maxBonesHWSkinned : 128u;
 
     /// <summary>
     /// Return OS-specific external window handle.

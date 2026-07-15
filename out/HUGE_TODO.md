@@ -147,7 +147,6 @@
 - [ ] ./src/RedBolt/Graphics/GraphicsUtils.cs:110:        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:19:    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
 - [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:142:// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:143:// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
