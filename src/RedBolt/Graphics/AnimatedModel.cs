@@ -6,9 +6,6 @@ namespace RedBolt;
 public class AnimatedModel : StaticModel
 {
     // TODO: port - C++ code:
-    // friend class AnimationState;
-    //
-    // TODO: port - C++ code:
     // void ApplyAttributes() override;
     // TODO: port - C++ code:
     // void ProcessCustomRayQuery(const RayOctreeQuery& query, const BoundingBox& worldBoundingBox,
