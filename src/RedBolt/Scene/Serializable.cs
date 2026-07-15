@@ -125,9 +125,6 @@ public abstract class Serializable : Object
                 : Load(identifier.ToUri());
     }
 
-    // TODO: port - C++ SerializeInBlock(Archive&, bool) uses SerializablePrefab to include temporary attributes.
-    // The managed archive has no SerializablePrefab or temporary-attribute serialization flag yet.
-
     public virtual bool Load(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -287,12 +284,17 @@ public abstract class Serializable : Object
 
     public override void SerializeInBlock(Archive archive)
     {
+        SerializeInBlock(archive, false);
+    }
+
+    public void SerializeInBlock(Archive archive, bool serializeTemporary)
+    {
         var count = 0u;
         if (!archive.IsInput)
         {
             foreach (var attribute in _attributes)
             {
-                if (attribute.ShouldSave)
+                if (attribute.ShouldSave || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0)
                     ++count;
             }
         }
@@ -307,13 +309,15 @@ public abstract class Serializable : Object
                 var attribute = FindAttribute(name);
                 var value = new Variant(attribute?.DefaultValue.Type ?? VariantType.None);
                 using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                if (attribute is not null && attribute.ShouldLoad) OnSetAttribute(attribute, ConvertVariant(attribute, value));
+                if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
+                    OnSetAttribute(attribute, ConvertVariant(attribute, value));
             }
             ApplyAttributes();
         }
         else
         {
-            foreach (var attribute in _attributes.Where(static attribute => attribute.ShouldSave))
+            foreach (var attribute in _attributes.Where(attribute =>
+                attribute.ShouldSave || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
                 var name = attribute.Name; ArchiveSerialization.SerializeValue(archive, "name", ref name);
