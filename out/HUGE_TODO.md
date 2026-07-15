@@ -1,6 +1,7 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
+- [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
@@ -8,6 +9,8 @@
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
+- [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
+- [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:37:    // C++: AttributeHandle ObjectReflection::AddAttribute(const AttributeInfo& attr)
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:38:    // C++: {
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:39:    // C++:     // None or pointer types can not be supported
