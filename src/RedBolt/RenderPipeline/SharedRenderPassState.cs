@@ -3,10 +3,6 @@ namespace RedBolt;
 /// <summary>
 /// State of render pipeline that can be accessed by render path and render passes.
 /// </summary>
-// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class.
-// C++ has constructor and destructor (empty).
-// C++ renderBufferManager_ is SharedPtr<RenderBufferManager>.
-// C++ renderBuffers_ is ea::fixed_hash_map<StringHash, SharedPtr<RenderBuffer>, MaxRenderBuffers>.
 public sealed class SharedRenderPassState
 {
     public const uint MaxRenderBuffers = 128;
