@@ -7,14 +7,10 @@ public sealed class Time : Object
 {
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
-    // C++: Timer elapsedTime_;
     private readonly Timer _elapsedTime = new();
-    // C++: unsigned frameNumber_{};
     private uint _frameNumber;
     private bool _isFrameInProgress;
-    // C++: float timeStep_{};
     private float _timeStep;
-    // C++: unsigned timerPeriod_{};
     private uint _timerPeriod;
 
     public uint FrameNumber
