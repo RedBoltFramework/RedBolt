@@ -240,8 +240,6 @@ internal static class ImageDds
     private const uint HeaderSize = 124u;
     private const uint PixelFormatSize = 32u;
 
-    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
-
     // C++ struct DDColorKey { unsigned dwColorSpaceLowValue_; unsigned dwColorSpaceHighValue_; };
     // C++ struct DDSCaps2 { unsigned dwCaps_; unsigned dwCaps2_; unsigned dwCaps3_; /* union with dwCaps4_/dwVolumeDepth_ */ };
     // C++ struct DDSurfaceDesc2 { /* full DirectDraw surface description with 18 fields */ };
@@ -251,6 +249,11 @@ internal static class ImageDds
     private const uint FourCcDxt3 = 0x33545844u;
     private const uint FourCcDxt5 = 0x35545844u;
 
+    private const uint DxgiFormatR32G32B32A32Float = 2u;
+    private const uint DxgiFormatR16G16B16A16Float = 10u;
+    private const uint DxgiFormatR16G16B16A16Unorm = 11u;
+    private const uint DxgiFormatR10G10B10A2Unorm = 24u;
+    private const uint DxgiFormatR9G9B9E5SharedExp = 67u;
     private const uint DxgiFormatR8G8B8A8Unorm = 28u;
     private const uint DxgiFormatR8G8B8A8UnormSrgb = 26u;
     private const uint DxgiFormatBc1Unorm = 71u;
@@ -283,12 +286,13 @@ internal static class ImageDds
     {
         return dxgiFormat switch
         {
-            DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => CompressedFormat.Rgba,
+            DxgiFormatR32G32B32A32Float or DxgiFormatR16G16B16A16Float or DxgiFormatR16G16B16A16Unorm
+                or DxgiFormatR10G10B10A2Unorm or DxgiFormatR9G9B9E5SharedExp
+                or DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => CompressedFormat.Rgba,
             DxgiFormatBc1Unorm or DxgiFormatBc1UnormSrgb => CompressedFormat.Dxt1,
             DxgiFormatBc2Unorm or DxgiFormatBc2UnormSrgb => CompressedFormat.Dxt3,
             DxgiFormatBc3Unorm or DxgiFormatBc3UnormSrgb => CompressedFormat.Dxt5,
-            DxgiFormatB5G6R5Unorm or DxgiFormatB5G5R5A1Unorm when AreTextureComponentsMatching(pixelFormat, CompressedFormat.Rgba)
-                => CompressedFormat.Rgba,
+            DxgiFormatB5G6R5Unorm or DxgiFormatB5G5R5A1Unorm => CompressedFormat.Rgba,
             _ => pixelFormat.FourCc switch
             {
                 FourCcDxt1 => CompressedFormat.Dxt1,
@@ -300,22 +304,34 @@ internal static class ImageDds
                 FourCcPtc2 => CompressedFormat.PvrtcRgba2Bpp,
                 FourCcPtc4 => CompressedFormat.PvrtcRgba4Bpp,
                 D3DFormatA16B16G16R16 or D3DFormatA16B16G16R16F or D3DFormatA32B32G32R32F => CompressedFormat.Rgba,
-                _ when AreTextureComponentsMatching(pixelFormat, CompressedFormat.Rgba) => CompressedFormat.Rgba,
+                _ when AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.Rgba)
+                    || AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.B5G6R5)
+                    || AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.B5G5R5A1) => CompressedFormat.Rgba,
                 _ when pixelFormat.RgbBitCount == 32 => CompressedFormat.Rgba,
                 _ => CompressedFormat.None
             }
         };
     }
 
-    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, CompressedFormat textureFormat)
+    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, DdsSimpleFormat textureFormat)
     {
         return textureFormat switch
         {
-            CompressedFormat.Rgba => pixelFormat.RgbBitCount == 32
+            DdsSimpleFormat.Rgba => pixelFormat.RgbBitCount == 32
                 && pixelFormat.RMask == 0x000000ff
                 && pixelFormat.GMask == 0x0000ff00
                 && pixelFormat.BMask == 0x00ff0000
                 && pixelFormat.AMask == 0xff000000,
+            DdsSimpleFormat.B5G6R5 => pixelFormat.RgbBitCount == 16
+                && pixelFormat.RMask == 0x0000f800
+                && pixelFormat.GMask == 0x000007e0
+                && pixelFormat.BMask == 0x0000001f
+                && pixelFormat.AMask == 0,
+            DdsSimpleFormat.B5G5R5A1 => pixelFormat.RgbBitCount == 16
+                && pixelFormat.RMask == 0x00007c00
+                && pixelFormat.GMask == 0x000003e0
+                && pixelFormat.BMask == 0x0000001f
+                && pixelFormat.AMask == 0x00008000,
             _ => false
         };
     }
@@ -473,6 +489,43 @@ internal static class ImageDds
         var sourcePixelSize = (int)formatInfo.SourceBytesPerPixel;
         for (var sourceOffset = 0; sourceOffset < source.Length; sourceOffset += sourcePixelSize)
         {
+            var destinationOffset = (sourceOffset / sourcePixelSize) * 4;
+            if (formatInfo.Encoding is DdsPixelEncoding.Float16 or DdsPixelEncoding.Unorm16)
+            {
+                var scale = formatInfo.Encoding == DdsPixelEncoding.Float16 ? 1.0f : 1.0f / ushort.MaxValue;
+                for (var channel = 0; channel < 4; ++channel)
+                {
+                    var raw = BinaryPrimitives.ReadUInt16LittleEndian(source.Slice(sourceOffset + channel * 2, 2));
+                    var value = formatInfo.Encoding == DdsPixelEncoding.Float16
+                        ? (float)BitConverter.UInt16BitsToHalf(raw)
+                        : raw * scale;
+                    destination[destinationOffset + channel] = ToByte(value);
+                }
+                continue;
+            }
+
+            if (formatInfo.Encoding == DdsPixelEncoding.Float32)
+            {
+                for (var channel = 0; channel < 4; ++channel)
+                {
+                    var raw = BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(sourceOffset + channel * 4, 4));
+                    destination[destinationOffset + channel] = ToByte(BitConverter.Int32BitsToSingle((int)raw));
+                }
+                continue;
+            }
+
+            if (formatInfo.Encoding == DdsPixelEncoding.SharedExponent)
+            {
+                var packed = BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(sourceOffset, 4));
+                var exponent = (packed >> 27) & 0x1fu;
+                var scale = MathF.Pow(2.0f, exponent - 24);
+                destination[destinationOffset + 0] = ToByte((packed & 0x1ffu) * scale);
+                destination[destinationOffset + 1] = ToByte(((packed >> 9) & 0x1ffu) * scale);
+                destination[destinationOffset + 2] = ToByte(((packed >> 18) & 0x1ffu) * scale);
+                destination[destinationOffset + 3] = 255;
+                continue;
+            }
+
             uint pixel = sourcePixelSize switch
             {
                 2 => BitConverter.ToUInt16(source.Slice(sourceOffset, 2)),
@@ -480,7 +533,6 @@ internal static class ImageDds
                 _ => BitConverter.ToUInt32(source.Slice(sourceOffset, 4))
             };
 
-            var destinationOffset = (sourceOffset / sourcePixelSize) * 4;
             destination[destinationOffset + 0] = ExtractChannel(pixel, formatInfo.RMask);
             destination[destinationOffset + 1] = ExtractChannel(pixel, formatInfo.GMask);
             destination[destinationOffset + 2] = ExtractChannel(pixel, formatInfo.BMask);
@@ -494,6 +546,11 @@ internal static class ImageDds
         {
             return header10.Value.DxgiFormat switch
             {
+                DxgiFormatR32G32B32A32Float => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
+                DxgiFormatR16G16B16A16Float => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
+                DxgiFormatR16G16B16A16Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
+                DxgiFormatR10G10B10A2Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000, false),
+                DxgiFormatR9G9B9E5SharedExp => new DdsFormatInfo(true, CompressedFormat.Rgba, 3, 4, 0, 0, 0, 0, false, DdsPixelEncoding.SharedExponent),
                 DxgiFormatR8G8B8A8Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, false),
                 DxgiFormatR8G8B8A8UnormSrgb => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, true),
                 DxgiFormatBc1Unorm => new DdsFormatInfo(true, CompressedFormat.Dxt1, 3, 0, 0, 0, 0, 0, false),
@@ -513,6 +570,9 @@ internal static class ImageDds
             FourCcDxt1 => new DdsFormatInfo(true, CompressedFormat.Dxt1, 3, 0, 0, 0, 0, 0, false),
             FourCcDxt3 => new DdsFormatInfo(true, CompressedFormat.Dxt3, 4, 0, 0, 0, 0, 0, false),
             FourCcDxt5 => new DdsFormatInfo(true, CompressedFormat.Dxt5, 4, 0, 0, 0, 0, 0, false),
+            D3DFormatA16B16G16R16 => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
+            D3DFormatA16B16G16R16F => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
+            D3DFormatA32B32G32R32F => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
             _ when pixelFormat.RgbBitCount is 16u or 24u or 32u
                 => new DdsFormatInfo(
                     true,
@@ -540,6 +600,9 @@ internal static class ImageDds
             ? (byte)(value >> (bits - 8))
             : (byte)((value * 255u) / ((1u << bits) - 1u));
     }
+
+    private static byte ToByte(float value)
+        => (byte)Math.Clamp((int)(value * 255.0f + 0.5f), 0, 255);
 
     private static byte[] ReadRemaining(Stream source)
     {
@@ -627,5 +690,22 @@ internal static class ImageDds
         uint GMask,
         uint BMask,
         uint AMask,
-        bool SRgb);
+        bool SRgb,
+        DdsPixelEncoding Encoding = DdsPixelEncoding.Packed);
+
+    private enum DdsPixelEncoding
+    {
+        Packed,
+        Unorm16,
+        Float16,
+        Float32,
+        SharedExponent
+    }
+
+    private enum DdsSimpleFormat
+    {
+        Rgba,
+        B5G6R5,
+        B5G5R5A1
+    }
 }

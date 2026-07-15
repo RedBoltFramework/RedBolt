@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 - [ ] ./src/RedBolt/Resource/Image.cs:93:    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
 - [ ] ./src/RedBolt/Resource/Image.cs:94:    // TODO: port - C++ exposes GetSDLSurface; managed code currently has no public SDL-surface return API.
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // TODO: port - C++ also caches FileSystem, Network, UI, SystemUI, ParticleGraphSystem, and PluginManager;
