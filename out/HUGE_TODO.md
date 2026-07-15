@@ -383,13 +383,13 @@
 - [ ] ./src/RedBolt/IO/Compression.cs:7:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
 - [ ] ./src/RedBolt/IO/Compression.cs:9:// C++: namespace-level free functions (CompressData, DecompressData, CompressStream, etc.)
 - [ ] ./src/RedBolt/Resource/Graph.cs:62:        // C++: uses SerializeMap helper; on input creates GraphNode via MakeShared<GraphNode>(context_) and calls SetGraph
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:3:// C++: class URHO3D_API Base64OutputArchive : private VectorBuffer, public BinaryOutputArchive
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:13:    // C++: n/a — C# convenience to access raw buffer bytes.
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:15:    // C++: ea::string GetBase64() const; — const in C++, C# flushes first.
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:46:// C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
-- [ ] ./src/RedBolt/IO/Archive.cs:18:    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0)
-- [ ] ./src/RedBolt/IO/Archive.cs:71:    // C++: virtual unsigned SerializeVersion(unsigned version) = 0;
-- [ ] ./src/RedBolt/IO/Archive.cs:72:    // C++: pure virtual in Archive, implemented in ArchiveBase. This C# default should ideally be abstract.
+- [x] ./src/RedBolt/IO/Base64Archive.cs:3:// C++: class URHO3D_API Base64OutputArchive : private VectorBuffer, public BinaryOutputArchive — reviewed; managed composition matches the C++ multiple-inheritance shape within the allowed C# model.
+- [x] ./src/RedBolt/IO/Base64Archive.cs:13:    // C++: n/a — C# convenience to access raw buffer bytes. — reviewed; managed-only raw-buffer access is intentionally retained as an API convenience.
+- [x] ./src/RedBolt/IO/Base64Archive.cs:15:    // C++: ea::string GetBase64() const; — const in C++, C# flushes first. — reviewed; flushing before reading the managed output buffer preserves the serialized result.
+- [x] ./src/RedBolt/IO/Base64Archive.cs:46:// C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive — reviewed; managed composition with MemoryBuffer matches the C++ archive behavior.
+- [x] ./src/RedBolt/IO/Archive.cs:18:    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0) — implemented as a public managed constructor.
+- [x] ./src/RedBolt/IO/Archive.cs:71:    // C++: virtual unsigned SerializeVersion(unsigned version) = 0; — implemented as an abstract Archive member.
+- [x] ./src/RedBolt/IO/Archive.cs:72:    // C++: pure virtual in Archive, implemented in ArchiveBase. This C# default should ideally be abstract. — moved the implementation to ArchiveBase and added forwarding overrides to Base64 adapters.
 - [x] ./src/RedBolt/IO/AbstractFile.cs:3:// C++: enum FileMode { FILE_READ = 0, FILE_WRITE, FILE_READWRITE }; — defined in AbstractFile.h, C# moves it to File.cs — reviewed; the managed enum remains public on File as the existing API mapping.
 - [x] ./src/RedBolt/IO/AbstractFile.cs:4:// C++: class URHO3D_API AbstractFile : public Deserializer, public Serializer — reviewed; C# cannot use multiple class inheritance and the managed serializer API is provided by the file subclasses.
 - [x] ./src/RedBolt/IO/AbstractFile.cs:6:// C++: using AbstractFilePtr = SharedPtr<AbstractFile, RefCounted>; — reviewed; RefCounted/SharedPtr are explicitly dropped in the managed port.

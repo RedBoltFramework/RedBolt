@@ -232,6 +232,7 @@ public sealed class ArchiveTests
         public override void Serialize(string name, ref string value) => StringValues.Add((name, value));
         public override void SerializeBytes(string name, Span<byte> bytes) => ByteValues.Add((name, bytes.ToArray()));
         public override void SerializeVle(string name, ref uint value) => VleValues.Add((name, value));
+        public override uint SerializeVersion(uint version) => version;
     }
 
     private sealed class CustomArchiveValue : IArchiveSerializable

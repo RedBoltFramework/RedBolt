@@ -114,5 +114,6 @@ public sealed class ObjectTests
         public override void Serialize(string name, ref string value) { }
         public override void SerializeBytes(string name, Span<byte> bytes) { }
         public override void SerializeVle(string name, ref uint value) { }
+        public override uint SerializeVersion(uint version) => version;
     }
 }

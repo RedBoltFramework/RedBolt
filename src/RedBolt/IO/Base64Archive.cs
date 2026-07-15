@@ -41,6 +41,7 @@ public sealed class Base64OutputArchive : Archive
     public override void Serialize(string name, ref string value) => _archive.Serialize(name, ref value);
     public override void SerializeBytes(string name, Span<byte> bytes) => _archive.SerializeBytes(name, bytes);
     public override void SerializeVle(string name, ref uint value) => _archive.SerializeVle(name, ref value);
+    public override uint SerializeVersion(uint version) => _archive.SerializeVersion(version);
 }
 
 // C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
@@ -84,4 +85,5 @@ public sealed class Base64InputArchive : Archive
     public override void Serialize(string name, ref string value) => _archive.Serialize(name, ref value);
     public override void SerializeBytes(string name, Span<byte> bytes) => _archive.SerializeBytes(name, bytes);
     public override void SerializeVle(string name, ref uint value) => _archive.SerializeVle(name, ref value);
+    public override uint SerializeVersion(uint version) => _archive.SerializeVersion(version);
 }
