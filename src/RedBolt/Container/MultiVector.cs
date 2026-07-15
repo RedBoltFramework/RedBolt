@@ -3,7 +3,6 @@ namespace RedBolt;
 /// <summary>Vector of vectors.</summary>
 public class MultiVector<T> : IEnumerable<T>
 {
-    // C++: using Index = ea::pair<unsigned, unsigned>;
     /// <summary>Index in multi-vector (pair of outer and inner indices).</summary>
     public readonly record struct Index(uint Outer, uint Inner);
 

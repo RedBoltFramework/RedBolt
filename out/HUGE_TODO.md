@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Container/MultiVector.cs:6:    // C++: using Index = ea::pair<unsigned, unsigned>;
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:15:    // C++: DefaultBinaryMagic is a global 'const BinaryMagic' in Resource.cpp, not a member of SimpleResource.
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:32:    // C++: BeginLoad creates JSONFile/XMLFile/BinaryFile objects as intermediaries, calls Load() on them,
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:152:    // C++: SaveFile opens a VFS file and writes via Save(*file, format) directly — no intermediate MemoryStream.
