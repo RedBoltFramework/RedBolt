@@ -75,29 +75,22 @@ public class RenderPipeline : Component
     /// </summary>
     public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
 
-    // C++: SetSettings calls Validate(), AdjustToSupported(), then MarkSettingsDirty.
-    // PropagateImpliedSettings is NOT called here (it's called in the pipeline view).
     public void SetSettings(RenderPipelineSettings settings)
     {
-        // C++: settings_ = settings; settings_.Validate(); settings_.AdjustToSupported(context_);
-        // MarkSettingsDirty does NOT call PropagateImpliedSettings in C++.
         ArgumentNullException.ThrowIfNull(settings);
         this._settings = settings;
         MarkSettingsDirty();
     }
 
-    // C++: UnsubscribeFromEvent(renderPath_, E_RELOADFINISHED); renderPath_ = renderPath;
-    // OnRenderPathReloaded(); SubscribeToEvent(renderPath_, E_RELOADFINISHED, ...);
-    // Note: C++ calls OnRenderPathReloaded BEFORE subscribing, not after.
     public void SetRenderPath(RenderPath? renderPath)
     {
         if (this._renderPath is not null)
             this._renderPath.ReloadFinished -= OnRenderPathReloadFinished;
 
         this._renderPath = renderPath;
+        OnRenderPathReloaded();
         if (this._renderPath is not null)
             this._renderPath.ReloadFinished += OnRenderPathReloadFinished;
-        OnRenderPathReloaded();
     }
 
     public bool SetRenderPath(string resourceName)
