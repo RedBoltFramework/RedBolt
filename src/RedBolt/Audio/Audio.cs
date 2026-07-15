@@ -419,7 +419,6 @@ public sealed class Audio : Object
 
     private void UpdateInternal(float timeStep)
     {
-        // C++: URHO3D_PROFILE("UpdateAudio");
         for (var i = _soundSources.Count - 1; i >= 0; i--)
         {
             var source = _soundSources[i];

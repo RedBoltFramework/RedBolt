@@ -225,7 +225,6 @@
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:145:// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
 - [ ] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class.
 - [ ] ./src/RedBolt/Audio/Audio.cs:160:        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread.
-- [ ] ./src/RedBolt/Audio/Audio.cs:422:        // C++: URHO3D_PROFILE("UpdateAudio");
 - [ ] ./src/RedBolt/Audio/Audio.cs:451:// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len)
 - [ ] ./src/RedBolt/Audio/Audio.cs:452:// C++: {
 - [ ] ./src/RedBolt/Audio/Audio.cs:453:// C++:     auto* audio = static_cast<Audio*>(userdata);

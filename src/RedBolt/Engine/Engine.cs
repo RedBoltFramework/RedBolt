@@ -13,9 +13,7 @@ public sealed class Engine : Object
     private readonly List<float> _lastTimeSteps = [];
     private float _currentTimeStep;
     private long _timeOut;
-    // C++: bool audioPaused_ = false;
     private bool _audioPaused;
-    // C++: bool exitRequired_{};
     private bool _exitRequired;
     // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
     private Context _previousContext = Context.Instance;
