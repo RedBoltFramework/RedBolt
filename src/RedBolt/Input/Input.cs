@@ -976,9 +976,6 @@ public sealed class Input : Object
 
     public void SetKey(Key key, Scancode scancode, bool newState)
     {
-        // C++: additionally handles Alt+Enter fullscreen toggle:
-        // if ((key == KEY_RETURN || key == KEY_RETURN2 || key == KEY_KP_ENTER) && newState && !repeat && toggleFullscreen_ &&
-        //     (GetKeyDown(KEY_LALT) || GetKeyDown(KEY_RALT))) graphics_->ToggleFullscreen();
         var wasDown = _keyDown.Contains(key);
         if (newState)
         {
@@ -1011,6 +1008,10 @@ public sealed class Input : Object
             };
             SendEvent(ref eventData);
         }
+
+        if ((key == Key.Return || key == Key.Return2 || key == Key.KpEnter) && newState && !wasDown && ToggleFullscreen &&
+            (_keyDown.Contains(Key.LeftAlt) || _keyDown.Contains(Key.RightAlt)))
+            GetSubsystem<Graphics>()?.ToggleFullscreen();
     }
 
     public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)
