@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/SimpleResource.cs:32:    // C++: BeginLoad creates JSONFile/XMLFile/BinaryFile objects as intermediaries, calls Load() on them,
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:152:    // C++: SaveFile opens a VFS file and writes via Save(*file, format) directly — no intermediate MemoryStream.
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:198:    // C++: PeekResourceFormat is a free function in Resource.cpp, not a member of SimpleResource.
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:199:    // C++: operates on Deserializer, not byte spans.

@@ -28,9 +28,6 @@ public abstract class SimpleResource : Resource
         _saveFormat = format == InternalResourceFormat.Unknown ? null : format;
     }
 
-    // C++: BeginLoad creates JSONFile/XMLFile/BinaryFile objects as intermediaries, calls Load() on them,
-    // then creates archives from the loaded intermediary files and calls SerializeValue(archive, GetRootBlockName(), *this).
-    // JSON/Binary deserialization happens in BeginLoad, not deferred to EndLoad.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -43,11 +40,14 @@ public abstract class SimpleResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    var archive = new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(data));
-                    using (archive.OpenUnorderedBlock(GetRootBlockName()))
+                    var jsonFile = new JSONFile(Name);
+                    if (!jsonFile.BeginLoad(new MemoryStream(data, writable: false)))
+                        return false;
+                    return jsonFile.LoadObjectCallback(archive =>
+                    {
+                        using var block = archive.OpenUnorderedBlock(GetRootBlockName());
                         SerializeInBlock(archive);
-                    archive.Flush();
-                    return true;
+                    });
                 }
 
                 case InternalResourceFormat.Xml:
@@ -59,10 +59,12 @@ public abstract class SimpleResource : Resource
 
                     if (xmlFile.Root.Name == GetRootBlockName())
                     {
-                        var archive = new XMLInputArchive(Context.Instance, xmlText);
-                        using (archive.OpenUnorderedBlock(GetRootBlockName()))
-                            SerializeInBlock(archive);
-                        archive.Flush();
+                        if (!xmlFile.LoadObjectCallback(archive =>
+                            {
+                                using var block = archive.OpenUnorderedBlock(GetRootBlockName());
+                                SerializeInBlock(archive);
+                            }))
+                            return false;
                     }
                     else if (!LoadLegacyXML(xmlFile.Root))
                         return false;
@@ -72,13 +74,16 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Binary:
                 {
-                    var payload = data.AsMemory(GetBinaryMagic().Length);
-                    var buffer = new MemoryBuffer(payload);
-                    var archive = new BinaryInputArchive(Context.Instance, buffer);
-                    using (archive.OpenUnorderedBlock(GetRootBlockName()))
+                    var binaryFile = new BinaryFile(Name);
+                    using var payload = new MemoryStream(data, GetBinaryMagic().Length,
+                        data.Length - GetBinaryMagic().Length, writable: false);
+                    if (!binaryFile.BeginLoad(payload))
+                        return false;
+                    return binaryFile.LoadObjectCallback(archive =>
+                    {
+                        using var block = archive.OpenUnorderedBlock(GetRootBlockName());
                         SerializeInBlock(archive);
-                    archive.Flush();
-                    return true;
+                    });
                 }
 
                 default:
