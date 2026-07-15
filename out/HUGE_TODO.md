@@ -2,8 +2,6 @@
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:5:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:7:// C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:9:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:10:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
@@ -63,10 +61,6 @@
 - [ ] ./src/RedBolt/IO/File.cs:93:        // TODO: port - C++ code:
 - [ ] ./src/RedBolt/IO/File.cs:287:        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName))
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:399:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:3:// C++: class URHO3D_API Base64OutputArchive : private VectorBuffer, public BinaryOutputArchive
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:13:    // C++: n/a — C# convenience to access raw buffer bytes.
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:15:    // C++: ea::string GetBase64() const; — const in C++, C# flushes first.
-- [ ] ./src/RedBolt/IO/Base64Archive.cs:47:// C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
 - [ ] ./src/RedBolt/RenderAPI/RawTexture.cs:174:    // TODO: port - C++ code:
