@@ -683,9 +683,7 @@ public sealed class Engine : Object
         if (graphics is not null)
         {
             graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
-            // C++: graphics->Close() is called unconditionally.
-            if (string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
-                graphics.Close();
+            graphics.Close();
         }
 
         SaveConfigFile();
