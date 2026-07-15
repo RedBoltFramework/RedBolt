@@ -363,16 +363,17 @@ public enum ShaderType
     MaxShaderTypes
 }
 
-// TODO: port - C++ code:
-// using TextureFormat = Diligent::TEXTURE_FORMAT;
-//
-// namespace EmulatedTextureFormat {
-//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGB_2BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 1);
-//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGBA_2BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 2);
-//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGB_4BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 3);
-//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGBA_4BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 4);
-// }
-// const Diligent::TextureFormatAttribs& GetTextureFormatInfo(TextureFormat textureFormat);
+/// <summary>Texture formats emulated by the engine when the backend does not expose them.</summary>
+public static class EmulatedTextureFormat
+{
+    private const int NativeTextureFormatCount = (int)global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatNumFormats;
+    public static readonly TextureFormat PvrtcRgb2Bpp = (TextureFormat)(NativeTextureFormatCount + 1);
+    public static readonly TextureFormat PvrtcRgba2Bpp = (TextureFormat)(NativeTextureFormatCount + 2);
+    public static readonly TextureFormat PvrtcRgb4Bpp = (TextureFormat)(NativeTextureFormatCount + 3);
+    public static readonly TextureFormat PvrtcRgba4Bpp = (TextureFormat)(NativeTextureFormatCount + 4);
+}
+
+// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 
 /// <summary>Vertex declaration element semantics.</summary>
 public enum VertexElementSemantic : byte
