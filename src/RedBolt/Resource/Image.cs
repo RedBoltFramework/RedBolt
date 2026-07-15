@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -90,7 +91,64 @@ public sealed class Image : Resource
 
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
-    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
+    public bool SaveWEBP(string fileName, float compression = 0.0f)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        if (IsCompressed())
+        {
+            Log.Logger.Log(LogLevel.Error, default, "Can not save compressed image to WebP", null, static (state, _) => state);
+            return false;
+        }
+
+        const int maxDimension = 16383;
+        if (Height > maxDimension || Width > maxDimension)
+        {
+            Log.Logger.Log(LogLevel.Error, default, $"Maximum dimension supported by WebP is {maxDimension}", null, static (state, _) => state);
+            return false;
+        }
+
+        if (Components is not (3 or 4))
+        {
+            Log.Logger.Log(LogLevel.Error, default, $"Can not save image with {Components} components to WebP, which requires 3 or 4", null, static (state, _) => state);
+            return false;
+        }
+
+        if (_data.Length == 0)
+        {
+            Log.Logger.Log(LogLevel.Error, default, "No image data to save", null, static (state, _) => state);
+            return false;
+        }
+
+        _ = compression;
+        var pinnedData = GCHandle.Alloc(_data, GCHandleType.Pinned);
+        try
+        {
+            var input = pinnedData.AddrOfPinnedObject();
+            var stride = checked(Width * (int)Components);
+            var output = IntPtr.Zero;
+            var outputSize = Components == 4
+                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncodeLosslessRGBA(input, Width, Height, stride, out output)
+                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncodeLosslessRGB(input, Width, Height, stride, out output);
+            if (outputSize == 0 || output == IntPtr.Zero)
+                return false;
+
+            try
+            {
+                var encoded = new byte[checked((int)outputSize)];
+                Marshal.Copy(output, encoded, 0, encoded.Length);
+                return WriteFile(fileName, encoded);
+            }
+            finally
+            {
+                RedBolt.Bindings.WebP.WebPNativeBindings.WebPFree(output);
+            }
+        }
+        finally
+        {
+            pinnedData.Free();
+        }
+    }
 
     /// <summary>Return an SDL surface from the image, or null if failed. Only RGB images are supported. Specify rect to only return partial image. You must free the surface yourself.</summary>
     public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default) => ImageSdl.GetSdlSurface(this, rect);
@@ -212,6 +270,7 @@ public sealed class Image : Resource
             ".tga" => SaveTGA(fileName),
             ".jpg" or ".jpeg" => SaveJPG(fileName, 90),
             ".png" => SavePNG(fileName),
+            ".webp" => SaveWEBP(fileName),
             ".dds" => SaveDDS(fileName),
             _ => base.SaveFile(fileName)
         };

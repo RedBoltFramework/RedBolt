@@ -34,11 +34,17 @@ set(REDBOLT_STB_BINDINGS_CS "${REDBOLT_STB_GENERATED_DIR}/${REDBOLT_STB_BINDINGS
 set(REDBOLT_STB_BINDINGS_CPP "${REDBOLT_STB_GENERATED_DIR}/${REDBOLT_STB_BINDINGS_STEM}.Bindings.g.cpp")
 set(REDBOLT_STB_BINDINGS_JSON "${REDBOLT_STB_GENERATED_DIR}/${REDBOLT_STB_BINDINGS_STEM}.json")
 set(REDBOLT_LZ4_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/lz4")
+set(REDBOLT_WEBP_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/webp")
 set(REDBOLT_LZ4_BINDINGS_STEM "RedBolt.Bindings.Lz4")
 set(REDBOLT_LZ4_BINDINGS_CS "${REDBOLT_LZ4_GENERATED_DIR}/${REDBOLT_LZ4_BINDINGS_STEM}.Bindings.g.cs")
 set(REDBOLT_LZ4_BINDINGS_CPP "${REDBOLT_LZ4_GENERATED_DIR}/${REDBOLT_LZ4_BINDINGS_STEM}.Bindings.g.cpp")
 set(REDBOLT_LZ4_BINDINGS_JSON "${REDBOLT_LZ4_GENERATED_DIR}/${REDBOLT_LZ4_BINDINGS_STEM}.json")
+set(REDBOLT_WEBP_BINDINGS_STEM "RedBolt.Bindings.WebP")
+set(REDBOLT_WEBP_BINDINGS_CS "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.Bindings.g.cs")
+set(REDBOLT_WEBP_BINDINGS_CPP "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.Bindings.g.cpp")
+set(REDBOLT_WEBP_BINDINGS_JSON "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.json")
 set(REDBOLT_LZ4_PARSE_HEADER "${REDBOLT_LZ4_GENERATED_DIR}/Lz4All.hpp")
+set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp")
 set(REDBOLT_STB_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/STB" CACHE PATH "Path to RedBolt's copied STB sources")
 set(REDBOLT_STB_INCLUDE_DIR "${REDBOLT_STB_SOURCE_ROOT}/include")
 set(REDBOLT_STB_VORBIS_HEADER "${REDBOLT_STB_INCLUDE_DIR}/STB/stb_vorbis.h")
@@ -104,6 +110,8 @@ include(cmake/RedBoltSharpCpp.cmake)
 find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
 find_path(REDBOLT_LZ4_INCLUDE_DIR lz4.h REQUIRED)
 find_library(REDBOLT_LZ4_LIBRARY lz4 REQUIRED)
+find_path(REDBOLT_WEBP_INCLUDE_DIR webp/encode.h REQUIRED)
+find_library(REDBOLT_WEBP_LIBRARY webp REQUIRED)
 
 redbolt_initialize_dotnet_consumer(
     CONSUMER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -119,16 +127,25 @@ if(NOT EXISTS "${REDBOLT_STB_VORBIS_HEADER}")
     message(FATAL_ERROR "rbfx stb_vorbis.h was not found at ${REDBOLT_STB_VORBIS_HEADER}")
 endif()
 
-file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED_DIR}" "${REDBOLT_IMGUI_GENERATED_DIR}" "${REDBOLT_STB_GENERATED_DIR}" "${REDBOLT_LZ4_GENERATED_DIR}")
+file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED_DIR}" "${REDBOLT_IMGUI_GENERATED_DIR}" "${REDBOLT_STB_GENERATED_DIR}" "${REDBOLT_LZ4_GENERATED_DIR}" "${REDBOLT_WEBP_GENERATED_DIR}")
 file(WRITE "${REDBOLT_STB_PARSE_HEADER}" [=[
 #pragma once
 #define STB_VORBIS_HEADER_ONLY
 #include <STB/stb_vorbis.h>
+struct stb_vorbis { int opaque; };
 ]=])
 file(WRITE "${REDBOLT_LZ4_PARSE_HEADER}" [=[
 #pragma once
 #include <lz4.h>
 #include <lz4hc.h>
+]=])
+file(WRITE "${REDBOLT_WEBP_PARSE_HEADER}" [=[
+#pragma once
+#include <stddef.h>
+#include <stdint.h>
+size_t WebPEncodeLosslessRGB(const void* rgb, int width, int height, int stride, void** output);
+size_t WebPEncodeLosslessRGBA(const void* rgba, int width, int height, int stride, void** output);
+void WebPFree(void* ptr);
 ]=])
 file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
 #include <SDL_config.h>
@@ -262,13 +279,27 @@ redbolt_add_native_binding_generation(
     INCLUDE_DIRS "${REDBOLT_LZ4_INCLUDE_DIR}"
     OWNED_HEADERS "${REDBOLT_LZ4_PARSE_HEADER}" "${REDBOLT_LZ4_INCLUDE_DIR}/lz4.h" "${REDBOLT_LZ4_INCLUDE_DIR}/lz4hc.h")
 
+redbolt_add_native_binding_generation(
+    TARGET redbolt-generate-webp-bindings
+    SURFACE webp
+    HEADER "${REDBOLT_WEBP_PARSE_HEADER}"
+    HEADER_INCLUDE_PATH "WebPAll.hpp"
+    FILE_STEM "${REDBOLT_WEBP_BINDINGS_STEM}"
+    OUTPUT_DIR "${REDBOLT_WEBP_GENERATED_DIR}"
+    OUTPUT_METADATA "${REDBOLT_WEBP_BINDINGS_JSON}"
+    OUTPUT_CS "${REDBOLT_WEBP_BINDINGS_CS}"
+    OUTPUT_CPP "${REDBOLT_WEBP_BINDINGS_CPP}"
+    INCLUDE_DIRS "${REDBOLT_WEBP_INCLUDE_DIR}"
+        OWNED_HEADERS "${REDBOLT_WEBP_PARSE_HEADER}" "${REDBOLT_WEBP_INCLUDE_DIR}/webp/encode.h" "${REDBOLT_WEBP_INCLUDE_DIR}/webp/types.h")
+
 add_custom_target(redbolt-generate-native-bindings
     DEPENDS
         redbolt-generate-sdl-bindings
         redbolt-generate-diligent-bindings
         redbolt-generate-dearimgui-bindings
         redbolt-generate-stb-bindings
-        redbolt-generate-lz4-bindings)
+        redbolt-generate-lz4-bindings
+        redbolt-generate-webp-bindings)
 
 add_subdirectory(native/RedBolt.Native)
 

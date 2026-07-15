@@ -13,6 +13,7 @@
     <ProjectReference Include="../RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Stb/RedBolt.Bindings.Stb.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Lz4/RedBolt.Bindings.Lz4.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.WebP/RedBolt.Bindings.WebP.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -73,6 +73,13 @@ internal static class Program
         "GetTextureFormatAttribs"
     };
 
+    private static readonly HashSet<string> RetainedWebPFunctions = new(StringComparer.Ordinal)
+    {
+        "WebPEncodeLosslessRGBA",
+        "WebPEncodeLosslessRGB",
+        "WebPFree"
+    };
+
     private static readonly HashSet<string> RetainedDiligentBaseInterfaceMethods = new(StringComparer.Ordinal)
     {
         "AddRef",
@@ -405,6 +412,25 @@ internal static class Program
     {
         if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui" || descriptor.Surface == "stb" || descriptor.Surface == "lz4")
             return 0;
+
+        if (descriptor.Surface == "webp")
+        {
+            var webpPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                if (compilation.Members[index] is FunctionBinding function &&
+                    (RetainedWebPFunctions.Contains(function.NativeName) || RetainedWebPFunctions.Contains(function.ManagedName)))
+                {
+                    continue;
+                }
+
+                compilation.Members.RemoveAt(index);
+                webpPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return webpPrunedCount;
+        }
 
         if (descriptor.Surface == "diligent")
         {
@@ -801,7 +827,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -866,6 +892,16 @@ internal static class Program
                     "Lz4NativeBindings",
                     "RedBolt.Native",
                     "redbolt_lz4",
+                    "-xc++",
+                    "-std=c++20",
+                    false),
+                "webp" => new BindingSurfaceDescriptor(
+                    "webp",
+                    "RedBolt.Bindings.WebP",
+                    "RedBolt.Bindings.WebP",
+                    "WebPNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_webp",
                     "-xc++",
                     "-std=c++20",
                     false),

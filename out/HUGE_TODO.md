@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/Image.cs:93:    // TODO: port - C++ exposes SaveWEBP; managed code currently has no WebP writer.
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // TODO: port - C++ also caches FileSystem, Network, UI, SystemUI, ParticleGraphSystem, and PluginManager;
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
