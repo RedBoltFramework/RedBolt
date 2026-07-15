@@ -141,16 +141,24 @@ public abstract class Deserializer : Serializer
 
     public string ReadLine()
     {
-        // C++: after '\r', peeks next char; if '\n', skips it. If not '\n', seeks back.
-        // C++: char c = ReadByte(); if (c == 10) break; if (c == 13) { if (!IsEof()) { char next = ReadByte(); if (next != 10) Seek(position_ - 1); } break; }
         var bytes = new List<byte>();
         while (!IsEof())
         {
             var value = ReadUByte();
             if (value == '\n')
                 break;
-            if (value != '\r')
-                bytes.Add(value);
+            if (value == '\r')
+            {
+                if (!IsEof())
+                {
+                    var next = ReadUByte();
+                    if (next != '\n')
+                        Seek(Position - 1);
+                }
+                break;
+            }
+
+            bytes.Add(value);
         }
 
         return Encoding.UTF8.GetString(bytes.ToArray());
