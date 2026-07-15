@@ -63,7 +63,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimationState.cs:114:                // TODO: port: AnimatedModel.SetMorphWeight once managed AnimatedModel is available.
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:62:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:67:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
-- [ ] ./src/RedBolt/Graphics/Texture2D.cs:181:    // C++: SharedPtr<Image> GetImage() -- returns pointer, no OwnerCache set.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:27:// C++: Texture inherits from ResourceWithMetadata and RawTexture (multiple inheritance). C# inherits from ResourceWithMetadata only and has a _rawTexture field.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:28:// C++: RawTexture is the base providing GPU resource management (Create, Destroy, Restore). C# wraps these via method calls on the RawTexture field.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:29:// C++: Has direct Diligent API includes for ITexture, ITextureView, ISampler in header. C# accesses these from the Bindings namespace.
@@ -93,7 +92,6 @@
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
 - [ ] ./src/RedBolt/Graphics/Animation.cs:46:// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
 - [ ] ./src/RedBolt/Graphics/Animation.cs:248:    // C++: bool Save(Serializer& dest) const
-- [ ] ./src/RedBolt/Graphics/Animation.cs:499:    // C++: SharedPtr<Animation> Clone(const ea::string& cloneName = EMPTY_STRING) const
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:9:    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.

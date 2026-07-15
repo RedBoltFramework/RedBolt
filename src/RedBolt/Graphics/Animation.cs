@@ -496,7 +496,6 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Clone the animation.
     /// </summary>
-    // C++: SharedPtr<Animation> Clone(const ea::string& cloneName = EMPTY_STRING) const
     public Animation Clone(string cloneName = "")
     {
         var ret = new Animation();
