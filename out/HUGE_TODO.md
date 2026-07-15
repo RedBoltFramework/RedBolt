@@ -3,8 +3,6 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:401:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-- [ ] ./src/RedBolt/Container/ConstString.cs:3:// C++: ConstString inherits from ea::string, so it IS a string with an embedded StringHash.
-- [ ] ./src/RedBolt/Container/ConstString.cs:5:// C++: URHO3D_GLOBAL_CONSTANT macro enables static inline const for header-defined constants.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:5:// C++: No direct C++ equivalent. C++ SimpleResource handles JSON/XML/Binary via Archive serialization.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:6:// C++: BeginLoad in SimpleResource uses JSONFile/XMLFile intermediaries; C# reads raw bytes and checks for XML.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:7:// C++: SimpleResource does NOT have DeserializeJson/SerializeJson/LoadLegacyXML — serialization uses SerializeInBlock(Archive).
