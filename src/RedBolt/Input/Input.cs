@@ -366,6 +366,17 @@ public sealed class Input : Object
                 continue;
             }
 
+            if (!HasFocus && eventType == SdlEventType.SdlMousebuttondown)
+            {
+                var size = GetBackbufferSize();
+                if (_nativeEvent.ButtonX > 0 && _nativeEvent.ButtonY > 0
+                    && _nativeEvent.ButtonX < size.X - 1 && _nativeEvent.ButtonY < size.Y - 1)
+                {
+                    GainFocus();
+                    continue;
+                }
+            }
+
             if (eventType == SdlEventType.SdlQuit)
             {
                 ExitRequested = true;
@@ -503,10 +514,56 @@ public sealed class Input : Object
             }
         }
 
+        HandleWrappedMouse();
+
         if (_suppressNextMouseMove && MouseMove != Vector2i.Zero)
             UnsuppressMouseMove();
 
         SendEvent<InputEvents.InputEndEvent>();
+    }
+
+    private void HandleWrappedMouse()
+    {
+        if (!MouseVisible || MouseMode != MouseMode.Wrap || _window is null || _window.IsNull)
+            return;
+
+        SdlNativeBindings.SdlGetGlobalMouseState(out var globalX, out var globalY);
+        var windowPosition = GetGlobalWindowPosition();
+        var backbufferPosition = SystemToBackbuffer(new Vector2i(globalX - windowPosition.X, globalY - windowPosition.Y));
+        const int buffer = 5;
+        var width = _backbufferSize.X - buffer * 2;
+        var height = _backbufferSize.Y - buffer * 2;
+        if (width <= 0 || height <= 0)
+            return;
+
+        var warp = false;
+        if (backbufferPosition.X < buffer)
+        {
+            backbufferPosition.X += width;
+            warp = true;
+        }
+        else if (backbufferPosition.X > buffer + width)
+        {
+            backbufferPosition.X -= width;
+            warp = true;
+        }
+
+        if (backbufferPosition.Y < buffer)
+        {
+            backbufferPosition.Y += height;
+            warp = true;
+        }
+        else if (backbufferPosition.Y > buffer + height)
+        {
+            backbufferPosition.Y -= height;
+            warp = true;
+        }
+
+        if (warp)
+        {
+            SetMousePosition(backbufferPosition);
+            SuppressNextMouseMove();
+        }
     }
 
     private static bool ShouldConsumeEventByDearImGui(IDearImGuiInputSink? dearImGui, SdlEventType eventType)
