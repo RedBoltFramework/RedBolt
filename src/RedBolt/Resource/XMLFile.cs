@@ -144,8 +144,6 @@ public sealed class XMLFile : Resource
         RefreshMemoryUse();
     }
 
-    // C++: PatchAdd delegates to AddNode/AddAttribute which include CombineText logic for
-    // C++: merging consecutive text nodes. C# simplified to direct element copy.
     private static void PatchAdd(XElement patch, object? original)
     {
         if (original is not XElement element) return;
@@ -225,10 +223,6 @@ public sealed class XMLFile : Resource
         else if (original is XAttribute attribute) attribute.Remove();
     }
 
-    // TODO: port - C++ code:
-    // bool CombineText(const pugi::xml_node& patch, const pugi::xml_node& original, bool prepend) const;
-    // AddNode(const pugi::xml_node& patch, const pugi::xpath_node& original) const;
-    // AddAttribute(const pugi::xml_node& patch, const pugi::xpath_node& original) const;
     private static XNode CloneNode(XNode node) => node switch
     {
         XElement element => new XElement(element),
