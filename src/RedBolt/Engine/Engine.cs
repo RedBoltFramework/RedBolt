@@ -122,14 +122,11 @@ public sealed class Engine : Object
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
-        // TODO: port - C++ code:
-        // auto* workQueue = GetSubsystem<WorkQueue>();
-        // workQueue->Update();
-
         var time = GetSubsystem<Time>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
         var renderer = GetSubsystem<Renderer>()!;
+        GetSubsystem<WorkQueue>()!.Update();
 
         if (!IsHeadless && !graphics.IsInitialized)
         {
