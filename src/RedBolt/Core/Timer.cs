@@ -69,7 +69,6 @@ public sealed class TimedCounter
 
     public TimedCounter(int intervalCount, uint intervalLengthMs)
     {
-        // C++:     data_.resize(intervalCount);
         // C++ has no argument validation on intervalCount.
         _intervalLengthMs = intervalLengthMs;
         _current = intervalCount - 1;
