@@ -170,7 +170,6 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
-- [ ] ./src/RedBolt/Resource/ResourceRouter.cs:3:// C++: No direct C++ equivalent. Resource routing in C++ is handled via ResourceCache.
 - [ ] ./src/RedBolt/Resource/ResourceLoading.cs:3:// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource)
 - [ ] ./src/RedBolt/IO/MemoryBuffer.cs:4:// C++: class URHO3D_API MemoryBuffer : public AbstractFile — AbstractFile inherits both Deserializer+Serializer.
 - [ ] ./src/RedBolt/IO/MemoryBuffer.cs:16:    // C++: MemoryBuffer(void* data, unsigned size); / MemoryBuffer(const void* data, unsigned size);
@@ -195,7 +194,6 @@
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:13:    // C++: n/a — C# convenience to access raw buffer bytes.
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:15:    // C++: ea::string GetBase64() const; — const in C++, C# flushes first.
 - [ ] ./src/RedBolt/IO/Base64Archive.cs:47:// C++: class URHO3D_API Base64InputArchive : private VectorBuffer, public BinaryInputArchive
-- [ ] ./src/RedBolt/Resource/AsyncLoadState.cs:1:// C++: enum AsyncLoadState in Resource.h:69.
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
 - [ ] ./src/RedBolt/IO/Archive.cs:18:    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0)
