@@ -28,7 +28,6 @@ public sealed class PipelineStateSubscription : IDisposable, ICloneable
         return new PipelineStateSubscription(_sender, _subscriber);
     }
 
-    // TODO: port: C# has no move construction, move assignment, or copy assignment operators; Clone represents copy construction.
 
     /// <summary>Destruct.</summary>
     public void Dispose()

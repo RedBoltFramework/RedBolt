@@ -139,9 +139,6 @@ public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 
 /// <summary>Base class for visible components.</summary>
 /// <remarks>
-// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
-// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
-// C++: Drawable has a friend relationship with Octant and Octree. C# uses internal methods instead.
 // C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
 /// </remarks>
 public abstract class Drawable : Component

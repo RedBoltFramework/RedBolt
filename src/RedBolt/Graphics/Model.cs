@@ -39,8 +39,6 @@ public sealed class ModelMorph
 
 /// <summary>3D model resource.</summary>
 /// <remarks>
-// C++: Model inherits from ResourceWithMetadata. C# matches and adds ICloneable.
-// C++: Model::Clone() returns SharedPtr&lt;Model&gt;. C# Clone() returns object via ICloneable.
 // C++: Has loadVBData_, loadIBData_, loadGeometries_ for async loading. C# doesn't use these.
 // TODO: port - C++ code: void Model::SetVertexBuffers(const ea::vector&lt;SharedPtr&lt;VertexBuffer&gt;&gt;& buffers,
 //   const ea::vector&lt;unsigned&gt;& morphRangeStarts, const ea::vector&lt;unsigned&gt;& morphRangeCounts)

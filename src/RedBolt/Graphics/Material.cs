@@ -100,9 +100,6 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 
 /// <summary>Describes how to render 3D geometries.</summary>
 /// <remarks>
-// C++: Material inherits from Resource, PipelineStateTracker, and IDFamily&lt;Material&gt;.
-// C# inherits from ResourceWithMetadata and lacks PipelineStateTracker and IDFamily.
-// C++: ResetToDefaults is called from the C++ constructor. C# uses ResetToDefaults in a separate constructor path.
 // C++: Has _batchedParameterUpdate_ flag to suppress hash/memory recalculation during bulk parameter updates.
 /// </remarks>
 public sealed class Material : ResourceWithMetadata

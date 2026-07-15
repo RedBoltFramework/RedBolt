@@ -12,9 +12,6 @@ public enum IndexBufferType
 
 /// <summary>Hardware index buffer.</summary>
 /// <remarks>
-// C++: IndexBuffer inherits from RawBuffer and PipelineStateTracker. C# inherits from PipelineStateTracker only and uses inner RawBuffer.
-// C++: RawBuffer has Create method natively. C# uses an inner helper class IndexRawBuffer for Create access.
-// C++: GetUnpackedData returns ea::vector&lt;unsigned&gt;. C# returns IReadOnlyList&lt;uint&gt; (allowed collection deviation).
 /// </remarks>
 public sealed class IndexBuffer : PipelineStateTracker
 {
