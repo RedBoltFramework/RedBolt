@@ -189,7 +189,11 @@ public sealed class BinaryInputArchive : ArchiveBase
         if (type == ArchiveBlockType.Array)
         {
             sizeHint = _deserializer.ReadVLE();
-            // C++: if (deserializer_->IsEof() && sizeHint != 0) { EndBlock(); throw IOFailureException(blockGuardName); }
+            if (_deserializer.IsEof() && sizeHint != 0)
+            {
+                EndBlock();
+                throw IoFailureException(name);
+            }
         }
     }
 
