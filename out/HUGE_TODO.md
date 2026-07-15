@@ -25,8 +25,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:33:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:35:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:181:    // TODO: port - C++ helper methods used by ApplyAnimation are not available in the managed animation/skinning API yet.
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:184:        // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:33:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:48:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:70:    //         URHO3D_ASSERTLOG(0, "TODO: Implement");
@@ -57,8 +55,6 @@
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
 - [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
 - [ ] ./src/RedBolt/Graphics/Drawable.cs:145:// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo).
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
