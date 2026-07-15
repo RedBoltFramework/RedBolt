@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>Static model component.</summary>
 /// <remarks>
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
+// C++: Has UpdateBatchesLightmaps() protected method. May not be fully ported.
 /// </remarks>
 public class StaticModel : Drawable
 {
@@ -224,7 +224,10 @@ public class StaticModel : Drawable
         var scale = (size.X + size.Y + size.Z) / 3.0f;
         var newLodDistance = camera.GetLodDistance(GetDistance(), scale, LodBias);
         if (newLodDistance != GetLodDistance())
+        {
             SetLodDistance(newLodDistance);
+            CalculateLodLevels();
+        }
     }
 
     public Material? GetMaterial(uint index = 0)
@@ -337,6 +340,34 @@ public class StaticModel : Drawable
         var currentModel = Model;
         Model = null;
         SetModel(currentModel);
+    }
+
+    private void CalculateLodLevels()
+    {
+        var model = Model;
+        if (model is null)
+            return;
+
+        var geometries = model.GetGeometries();
+        for (var i = 0; i < _batches.Count && i < geometries.Count; ++i)
+        {
+            var batchGeometries = geometries[i];
+            if (batchGeometries.Count <= 1)
+                continue;
+
+            var level = 1;
+            for (; level < batchGeometries.Count; ++level)
+            {
+                var geometry = batchGeometries[level];
+                if (geometry is not null && GetLodDistance() <= geometry.GetLodDistance())
+                    break;
+            }
+
+            var selectedLevel = level - 1;
+            var batch = _batches[i];
+            batch.Geometry = batchGeometries[selectedLevel];
+            _batches[i] = batch;
+        }
     }
 
     private static SourceBatch UpdateBatchDistance(SourceBatch batch, float distance)
