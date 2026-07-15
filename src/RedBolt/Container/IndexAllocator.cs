@@ -1,8 +1,5 @@
 namespace RedBolt;
 
-// C++: IndexAllocator is templated on MutexType (default DummyMutex):
-// template <class T = DummyMutex> class IndexAllocator
-// C++ also exposes: using MutexType = T;
 /// <summary>
 /// Utility to assign unique non-zero IDs to objects. Thread-safe.
 /// </summary>

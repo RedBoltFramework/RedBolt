@@ -7,8 +7,6 @@
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:6:// C++: BeginLoad in SimpleResource uses JSONFile/XMLFile intermediaries; C# reads raw bytes and checks for XML.
 - [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:7:// C++: SimpleResource does NOT have DeserializeJson/SerializeJson/LoadLegacyXML — serialization uses SerializeInBlock(Archive).
 - [ ] ./src/RedBolt/Resource/JSONResource.cs:5:// C++: No direct C++ equivalent. Uses System.Text.Json for serialization instead of rbfx's Archive.
-- [ ] ./src/RedBolt/Container/KeyFrameSet.cs:3:// C++: KeyFrameSet is a struct template with keyFrames_ as public field:
-- [ ] ./src/RedBolt/Container/IndexAllocator.cs:3:// C++: IndexAllocator is templated on MutexType (default DummyMutex):
 - [ ] ./src/RedBolt/Container/Array2D.cs:129:// C++: template <class T, class Container = ea::vector<T>> class Array2D : public ArrayDimensions2D
 - [ ] ./src/RedBolt/Container/Array2D.cs:220:    // C++: const ArrayDimensions2D& Dim() const { return *this; }
 - [ ] ./src/RedBolt/Container/Array2D.cs:226:    // C++: const Container& GetContainer() const { return data_; }  (const overload)
