@@ -6,6 +6,21 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     public const float DefaultTouchRotationSensitivity = 1.0f;
     public const float DefaultAxisRotationSensitivity = 100.0f;
 
+    private struct Movement
+    {
+        public Vector3f Rotation;
+        public Vector3f Translation;
+
+        public static Movement operator +(Movement left, Movement right)
+        {
+            return new Movement
+            {
+                Rotation = left.Rotation + right.Rotation,
+                Translation = left.Translation + right.Translation
+            };
+        }
+    }
+
     private float _speed = 20.0f;
     private float _acceleratedSpeed = 100.0f;
     private float _mouseSensitivity = DefaultMouseSensitivity;
@@ -135,25 +150,62 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     private void HandleKeyboardAndMouse(float timeStep)
     {
-        // C++: iterates all joysticks, dispatches per type (gamepad/wheel/flightstick/unknown),
-        // C++: differentiates world vs local space rotation with SetCameraRotation for flight stick
-        // TODO: port - C++ code:
-        // Movement HandleWheel(const JoystickState* state, float timeStep);
-        // Movement HandleFlightStick(const JoystickState* state, float timeStep);
-        // void SetCameraRotation(Quaternion quaternion);
-        // void OnSetEnabled() override; void UpdateEventSubscription();
-        UpdateCameraAngles();
         var input = GetSubsystem<Input>();
-        var controllerRotation = new Vector3f(
-            _axisAdapter.Transform(input?.GetControllerAxisPosition(ControllerAxis.RightY) ?? 0.0f),
-            _axisAdapter.Transform(input?.GetControllerAxisPosition(ControllerAxis.RightX) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
-        var genericRotation = new Vector3f(
-            _axisAdapter.Transform(input?.GetJoystickAxisPosition(3) ?? 0.0f),
-            _axisAdapter.Transform(input?.GetJoystickAxisPosition(2) ?? 0.0f), 0.0f) * (timeStep * _axisSensitivity);
-        var eulerAngles = _lastKnownEulerAngles + HandleMouse() + controllerRotation + genericRotation;
-        SetCameraAngles(eulerAngles);
+        if (input is null)
+            return;
 
-        var translation = HandleKeyboard(timeStep) + HandleController(timeStep) + HandleGenericJoystick(timeStep);
+        UpdateCameraAngles();
+        var worldMovement = new Movement
+        {
+            Rotation = HandleMouse(),
+            Translation = HandleKeyboard(timeStep)
+        };
+        var localMovement = new Movement();
+
+        for (var index = 0u; index < input.GetNumJoysticks(); ++index)
+        {
+            var state = input.GetJoystickByIndex(index);
+            if (!state.HasValue)
+                continue;
+
+            var joystick = state.Value;
+            var isAccelerometer = joystick.GetNumAxes() == 3 && joystick.GetNumButtons() == 0 && joystick.GetNumHats() == 0;
+            if (isAccelerometer)
+                continue;
+
+            switch (joystick.DeviceType)
+            {
+                case JoystickDeviceType.Guitar:
+                case JoystickDeviceType.DrumKit:
+                case JoystickDeviceType.Throttle:
+                    break;
+                case JoystickDeviceType.Wheel:
+                    worldMovement += HandleWheel(joystick, timeStep);
+                    break;
+                case JoystickDeviceType.FlightStick:
+                    localMovement += HandleFlightStick(joystick, timeStep);
+                    break;
+                case JoystickDeviceType.GameController:
+                    worldMovement += HandleController(joystick, timeStep);
+                    break;
+                default:
+                    worldMovement += HandleGenericJoystick(joystick, timeStep);
+                    break;
+            }
+        }
+
+        if (localMovement.Rotation == Vector3f.Zero)
+        {
+            SetCameraAngles(_lastKnownEulerAngles + worldMovement.Rotation);
+        }
+        else
+        {
+            var eulerAngles = _lastKnownEulerAngles + worldMovement.Rotation;
+            eulerAngles.X = MathDefs.Clamp(eulerAngles.X, _minPitch, _maxPitch);
+            SetCameraRotation(new Quaternion(eulerAngles) * new Quaternion(localMovement.Rotation));
+        }
+
+        var translation = localMovement.Translation + worldMovement.Translation;
         if (translation != Vector3f.Zero)
             Node.Translate(translation, TransformSpace.Local);
     }
