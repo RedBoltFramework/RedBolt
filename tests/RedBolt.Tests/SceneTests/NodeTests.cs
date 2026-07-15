@@ -132,6 +132,8 @@ public sealed class NodeTests
         Assert.Equal(100, node.GetVar("Health"));
         node.SetVarByHash(new StringHash("Armor"), 50);
         Assert.Equal(50, node.GetVar("Armor"));
+        Assert.Equal(100, node.GetMutableVar("Health"));
+        Assert.Equal(50, node.GetMutableVarByHash(new StringHash("Armor")));
         Assert.True(node.RemoveVar("Health"));
         Assert.Null(node.GetVar("Health"));
     }

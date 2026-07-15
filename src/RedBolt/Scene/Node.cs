@@ -779,10 +779,6 @@ public sealed class Node : Animatable
         }
     }
     //
-    // TODO: port - C++ code:
-    // Variant* Node::GetMutableVar(const ea::string& key);
-    // Variant* Node::GetMutableVarByHash(StringHash key);
-    //
     // C++ Node constructor takes Context* only; C# takes scene/parent/name/id/temporary.
     // C++ uses PIMPL via NodeImpl (name_, tags_, nameHash_, dependencyNodes_, attrBuffer_);
     // C# inlines those fields directly.
@@ -1832,17 +1828,15 @@ public sealed class Node : Animatable
         return _variables.GetValueOrDefault(key);
     }
 
-    // Variant* Node::GetMutableVar(const ea::string& key)
-    // {
-    //     auto i = vars_.find(key);
-    //     return i != vars_.end() ? &i->second : nullptr;
-    // }
-    //
-    // Variant* Node::GetMutableVarByHash(StringHash key)
-    // {
-    //     auto i = vars_.find_by_hash(key.Value());
-    //     return i != vars_.end() ? &i->second : nullptr;
-    // }
+    public object? GetMutableVar(string key)
+    {
+        return GetMutableVarByHash(new StringHash(key));
+    }
+
+    public object? GetMutableVarByHash(StringHash key)
+    {
+        return _variables.GetValueOrDefault(key);
+    }
 
     public IReadOnlyDictionary<StringHash, object?> GetVars() => Variables;
 
