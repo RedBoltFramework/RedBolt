@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -29,12 +30,19 @@ public sealed class BinaryFile : Resource
         return true;
     }
 
-    // C++: checks dest.Write(buffer_.GetData(), buffer_.GetSize()) != buffer_.GetSize() → URHO3D_LOGERROR("Can not save binary file") & returns false.
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        destination.Write(_buffer.Buffer);
-        return true;
+        try
+        {
+            destination.Write(_buffer.Buffer);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Log.Logger.LogError(exception, "Can not save binary file {Name}", Name);
+            return false;
+        }
     }
 
     public bool SaveObjectCallback(Action<Archive> serializeValue)

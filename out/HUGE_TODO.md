@@ -37,7 +37,6 @@
 - [ ] ./src/RedBolt/Core/StopToken.cs:9:/// TODO: For better memory management split this class into StopSource with shared_ptr
 - [ ] ./src/RedBolt/Scene/SplinePath.cs:202:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
-- [ ] ./src/RedBolt/Resource/BinaryFile.cs:32:    // C++: checks dest.Write(buffer_.GetData(), buffer_.GetSize()) != buffer_.GetSize() → URHO3D_LOGERROR("Can not save binary file") & returns false.
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
