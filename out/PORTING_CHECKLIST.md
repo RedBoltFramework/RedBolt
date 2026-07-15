@@ -548,7 +548,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `SoundSource.h`
   - [x] `SoundSource : Component` — Play/Stop, frequency/gain/panning/attenuation, mixing, and serialization ported
 - [x] `SoundSource3D.h`
-  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters and listener-relative attenuation calculation are ported
+  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters, listener-relative attenuation calculation, and sphere/cone debug geometry are ported
 - [x] `SoundListener.h`
   - [x] `SoundListener : Component` — listener component ported
 - [ ] `Microphone.h`

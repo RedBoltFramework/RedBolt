@@ -69,4 +69,18 @@ public sealed class AudioTests
         Assert.Contains(data[..(int)bytes], sample => sample != 0);
         Assert.True(stream.Seek(0));
     }
+
+    [Fact]
+    public void Sound_source_3d_draws_attenuation_geometry()
+    {
+        var scene = new Scene();
+        var source = scene.CreateChild("SoundSource3D").CreateComponent<SoundSource3D>();
+        source.SetDistanceAttenuation(1.0f, 5.0f, 2.0f);
+        var debugRenderer = new DebugRenderer();
+        debugRenderer.SetView(new Camera());
+
+        source.DrawDebugGeometry(debugRenderer, depthTest: false);
+
+        Assert.True(debugRenderer.HasContent());
+    }
 }

@@ -14,27 +14,30 @@ public sealed class SoundSource3D : SoundSource
         Attenuation = 0.0f;
     }
 
-    // TODO: port - C++ code:
-    // void SoundSource3D::DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override
-    // {
-    //     if (!debug || !node_ || !IsEnabledEffective()) return;
-    //     const Matrix3x4& worldTransform = node_->GetWorldTransform();
-    //     Vector3 worldPosition = worldTransform.Translation();
-    //     Quaternion worldRotation = worldTransform.Rotation();
-    //     if (innerAngle_ < DEFAULT_ANGLE && outerAngle_ > 0.0f)
-    //     {
-    //         const Quaternion rotation = worldRotation * Quaternion(Vector3::UP, Vector3::FORWARD);
-    //         debug->AddSphereSector(Sphere(worldPosition, nearDistance_), rotation, innerAngle_, false, INNER_COLOR, depthTest);
-    //         debug->AddSphereSector(Sphere(worldPosition, nearDistance_), rotation, outerAngle_, false, OUTER_COLOR, depthTest);
-    //         debug->AddSphereSector(Sphere(worldPosition, farDistance_), rotation, innerAngle_, true, INNER_COLOR, depthTest);
-    //         debug->AddSphereSector(Sphere(worldPosition, farDistance_), rotation, outerAngle_, true, OUTER_COLOR, depthTest);
-    //     }
-    //     else
-    //     {
-    //         debug->AddSphere(Sphere(worldPosition, nearDistance_), INNER_COLOR, depthTest);
-    //         debug->AddSphere(Sphere(worldPosition, farDistance_), OUTER_COLOR, depthTest);
-    //     }
-    // }
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is null || !IsAttached || !IsEnabledEffective)
+            return;
+
+        var worldPosition = Node.GetWorldPosition();
+        var worldRotation = Node.GetWorldRotation();
+        var innerColor = new Color(1.0f, 0.5f, 1.0f);
+        var outerColor = new Color(1.0f, 0.0f, 1.0f);
+
+        if (_innerAngle < 360.0f && _outerAngle > 0.0f)
+        {
+            var rotation = worldRotation * new Quaternion(Vector3f.Up, Vector3f.Forward);
+            debug.AddSphereSector(new Sphere(worldPosition, _nearDistance), rotation, _innerAngle, false, innerColor, depthTest);
+            debug.AddSphereSector(new Sphere(worldPosition, _nearDistance), rotation, _outerAngle, false, outerColor, depthTest);
+            debug.AddSphereSector(new Sphere(worldPosition, _farDistance), rotation, _innerAngle, true, innerColor, depthTest);
+            debug.AddSphereSector(new Sphere(worldPosition, _farDistance), rotation, _outerAngle, true, outerColor, depthTest);
+        }
+        else
+        {
+            debug.AddSphere(new Sphere(worldPosition, _nearDistance), innerColor, depthTest);
+            debug.AddSphere(new Sphere(worldPosition, _farDistance), outerColor, depthTest);
+        }
+    }
 
     public override void Update(float timeStep)
     {
