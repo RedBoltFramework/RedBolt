@@ -67,6 +67,17 @@ public sealed class DebugGeometryTests
     }
 
     [Fact]
+    public void DebugRenderer_adds_2d_lines_using_camera()
+    {
+        var debugRenderer = new DebugRenderer();
+        debugRenderer.SetView(new Camera());
+
+        debugRenderer.AddLine2D(new Vector2f(0.25f, 0.25f), new Vector2f(0.75f, 0.75f), Color.White);
+
+        Assert.True(debugRenderer.HasContent());
+    }
+
+    [Fact]
     public void DebugRenderer_shape_helpers_accumulate_geometry()
     {
         var debugRenderer = new DebugRenderer();

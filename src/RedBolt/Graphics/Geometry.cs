@@ -27,17 +27,13 @@ public enum GeometryType
 
 /// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>
 /// <remarks>
-// C++: Geometry inherits from Object, PipelineStateTracker, and IDFamily&lt;Geometry&gt;. C# inherits from PipelineStateTracker only.
-// C++: Has SetRawVertexData, SetRawIndexData for CPU-side operations. C# has these as simple field assignments.
-// C++: Has GetRawData/GetRawDataShared for CPU operations. C# uses the raw data fields directly.
-// C++: Has GetHitDistance(Ray), IsInside(Ray) methods for ray-hit testing that C# doesn't implement yet.
 // TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
 // TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
-// C++: Has UpdateHeadlessStatus() private method. C# has similar.
-// C++: Has vertexBuffersDependencies_ for tracking PipelineStateSubscription per vertex buffer. C# has same.
 /// </remarks>
 public sealed class Geometry : PipelineStateTracker
 {
+    private readonly IDFamily<Geometry> _idFamily = new();
+
     /// <summary>Vertex buffers.</summary>
     private readonly List<VertexBuffer?> _vertexBuffers = [null];
 
@@ -97,6 +93,25 @@ public sealed class Geometry : PipelineStateTracker
     {
         context.AddFactoryReflection<Geometry>();
     }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _idFamily.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>Return unique object ID or 0 if not assigned.</summary>
+    public uint GetObjectID() => _idFamily.GetObjectID();
+
+    /// <summary>Return upper bound of all used object IDs within family.</summary>
+    public static uint GetNextFreeObjectID() => IDFamily<Geometry>.GetNextFreeObjectID();
+
+    /// <summary>Acquire unique object ID. Ignored if unique ID is already acquired.</summary>
+    public void AcquireObjectID() => _idFamily.AcquireObjectID();
+
+    /// <summary>Release unique object ID. Ignored if unique ID is already released.</summary>
+    public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
 
     /// <summary>Set number of vertex buffers.</summary>
     public bool SetNumVertexBuffers(uint count)

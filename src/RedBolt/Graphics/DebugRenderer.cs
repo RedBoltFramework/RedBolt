@@ -5,26 +5,6 @@ namespace RedBolt;
 /// <summary>
 /// Debug geometry rendering component. Should be added only to the root scene node.
 /// </summary>
-/// <remarks>
-// C++: DebugRenderer inherits from Component and has additional rendering methods:
-// TODO: port - C++ code: void DebugRenderer::AddLine2D(const Vector2& start, const Vector2& end, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddLine2D(const Vector2& start, const Vector2& end, unsigned color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddFrustum(const Frustum& frustum, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddPolyhedron(const Polyhedron& poly, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddSphere(const Sphere& sphere, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddSphereSector(const Sphere& sphere, const Quaternion& rotation, float angle, bool drawLines, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddCylinder(const Vector3& position, float radius, float height, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddSkeleton(const Skeleton& skeleton, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddTriangleMesh(const void* vertexData, unsigned vertexSize, const void* indexData, ...)
-// TODO: port - C++ code: void DebugRenderer::AddTriangleMesh(Node* node, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddCircle(const Vector3& center, const Vector3& normal, float radius, const Color& color, int steps, bool depthTest, bool drawNormal)
-// TODO: port - C++ code: void DebugRenderer::AddCross(const Vector3& center, float size, const Color& color, bool depthTest)
-// TODO: port - C++ code: void DebugRenderer::AddQuad(const Vector3& center, float width, float height, const Color& color, bool depthTest)
-// C++: DebugRenderer uses StaticPipelineStateCache for pipeline states. C# uses PipelineState?[] arrays.
-// C++: DebugRenderer has a Render() method that updates vertex buffers and renders. C# has matched functionality differently.
-// C++: Has IsInside(BoundingBox) for frustum culling. C# has frustum field but may not use it for culling.
-// C++: Has HasContent() method.
-/// </remarks>
 public sealed class DebugRenderer : Component
 {
     private const int MaxLines = 1_000_000;
@@ -106,6 +86,30 @@ public sealed class DebugRenderer : Component
             _lines.Add(new DebugLine(start, end, color));
         else
             _noDepthLines.Add(new DebugLine(start, end, color));
+    }
+
+    /// <summary>
+    /// Add a line in 2D screen space.
+    /// </summary>
+    public void AddLine2D(Vector2f start, Vector2f end, Color color, bool depthTest = true)
+    {
+        AddLine2D(start, end, color.ToUInt(), depthTest);
+    }
+
+    /// <summary>
+    /// Add a line in 2D screen space with color already converted to unsigned.
+    /// </summary>
+    public void AddLine2D(Vector2f start, Vector2f end, uint color, bool depthTest = true)
+    {
+        if (_camera is null)
+            return;
+
+        var depth = _camera.GetNearClip() + MathDefs.LargeEpsilon;
+        AddLine(
+            _camera.ScreenToWorldPoint(new Vector3f(start.X, start.Y, depth)),
+            _camera.ScreenToWorldPoint(new Vector3f(end.X, end.Y, depth)),
+            color,
+            depthTest);
     }
 
     /// <summary>

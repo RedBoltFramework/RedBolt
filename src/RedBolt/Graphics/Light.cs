@@ -47,16 +47,9 @@ public readonly record struct FocusParameters(bool Focus, bool NonUniform, bool 
 
 /// <summary>Light component.</summary>
 /// <remarks>
-// C++: Light inherits from Drawable. C# matches.
 // C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
 // TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
 // TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
-// TODO: port - C++ code: void Light::SetIntensitySortValue(const BoundingBox& box)
-// C++: The SetIntensitySortValue with BoundingBox param computes sort value based on overall intensity over a bounding box.
-// C++: The SetRampTextureAttr returns ResourceRef for "Texture2D". C# returns "Texture2D" for all light types.
-// C++: Has ValidateShadowFocus / ValidateShadowCascade / ValidateShadowBias private methods. C# uses Validated() on the parameter types.
-// C++: ProcessRayQuery takes (const RayOctreeQuery& query, ea::vector&lt;RayQueryResult&gt;& results) as per Drawable. C# has a simplified version.
-// C++: OnWorldBoundingBoxUpdate is protected override. C# matches.
 /// </remarks>
 public sealed class Light : Drawable
 {
@@ -537,6 +530,59 @@ public sealed class Light : Drawable
                 SetSortValue(-Math.Max(distance, MathDefs.MinNearClip) * GetIntensityDivisor());
             else
                 SetSortValue(-MathDefs.LargeValue * GetIntensityDivisor());
+        }
+    }
+
+    public void SetIntensitySortValue(BoundingBox box)
+    {
+        // When sorting lights for object's maximum light cap, give priority based on attenuation and intensity
+        switch (_lightType)
+        {
+            case LightType.Directional:
+                SetSortValue(1.0f / GetIntensityDivisor());
+                break;
+
+            case LightType.Spot:
+            {
+                var centerPosition = box.Center;
+                var lightPosition = Node.WorldPosition;
+                var lightDirection = Node.WorldDirection;
+                var lightRay = new Ray(lightPosition, lightDirection);
+
+                var centerProjection = lightRay.Project(centerPosition);
+                var centerDistance = (centerProjection - lightPosition).Length;
+                var centerRay = new Ray(centerProjection, centerPosition - centerProjection);
+                var centerAngle = centerRay.HitDistance(box) / centerDistance;
+
+                var cornerPosition = centerPosition + box.HalfSize * new Vector3f(
+                    centerPosition.X < centerProjection.X ? 1.0f : -1.0f,
+                    centerPosition.Y < centerProjection.Y ? 1.0f : -1.0f,
+                    centerPosition.Z < centerProjection.Z ? 1.0f : -1.0f);
+                var cornerProjection = lightRay.Project(cornerPosition);
+                var cornerDistance = (cornerProjection - lightPosition).Length;
+                var cornerAngle = (cornerPosition - cornerProjection).Length / cornerDistance;
+
+                var spotAngle = Math.Min(centerAngle, cornerAngle);
+                var maxAngle = MathF.Tan(_fov * MathDefs.DegToRad * 0.5f);
+                var spotFactor = Math.Min(spotAngle / maxAngle, 1.0f);
+                // We do not know the actual range attenuation ramp, so take only spot attenuation into account
+                var attenuation = Math.Max(1.0f - spotFactor * spotFactor, MathDefs.Epsilon);
+                SetSortValue(1.0f / GetIntensityDivisor(attenuation));
+                break;
+            }
+
+            case LightType.Point:
+            {
+                var centerPosition = box.Center;
+                var lightPosition = Node.WorldPosition;
+                var lightDirection = (centerPosition - lightPosition).Normalized;
+                var lightRay = new Ray(lightPosition, lightDirection);
+                var distance = lightRay.HitDistance(box);
+                var normalizedDistance = distance / _range;
+                var attenuation = Math.Max(1.0f - normalizedDistance * normalizedDistance, MathDefs.Epsilon);
+                SetSortValue(1.0f / GetIntensityDivisor(attenuation));
+                break;
+            }
         }
     }
 

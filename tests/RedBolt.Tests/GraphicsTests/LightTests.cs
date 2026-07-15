@@ -166,6 +166,16 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Intensity_sort_value_over_bounding_box_works()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetRange(10.0f);
+        light.SetIntensitySortValue(new BoundingBox(new Vector3f(-1.0f, -1.0f, 4.0f), new Vector3f(1.0f, 1.0f, 6.0f)));
+
+        Assert.True(light.GetSortValue() > 0.0f);
+    }
+
+    [Fact]
     public void Update_batches_matches_light_distance_rules()
     {
         var scene = new Scene();
