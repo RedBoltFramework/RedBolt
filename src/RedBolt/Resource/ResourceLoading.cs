@@ -1,6 +1,5 @@
 namespace RedBolt;
 
-// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource)
 // are not free functions in C++ Resource.cpp. C++ path resolution and dependent loading is done inline in ResourceCache and
 // resource BeginLoad methods via GetSubsystem<ResourceCache>() and VFS.
 internal static class ResourceLoading
