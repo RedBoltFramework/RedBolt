@@ -1,13 +1,15 @@
 namespace RedBolt;
 
+/// <summary>Vector of vectors.</summary>
 public class MultiVector<T> : IEnumerable<T>
 {
     // C++: using Index = ea::pair<unsigned, unsigned>;
+    /// <summary>Index in multi-vector (pair of outer and inner indices).</summary>
     public readonly record struct Index(uint Outer, uint Inner);
 
     private readonly List<List<T>> _values = [];
 
-    // C++: outer_.resize(outerSize); then for each inner: inner.clear();
+    /// <summary>Clear inner vectors. Reset outer vector to fixed size.</summary>
     public void Clear(uint outerSize)
     {
         _values.Clear();
@@ -15,8 +17,8 @@ public class MultiVector<T> : IEnumerable<T>
             _values.Add([]);
     }
 
-    // C++: template <class ... Args> T& EmplaceBack(unsigned outerIndex, Args&& ... args)
-    // TODO: port - C++ uses variadic template arguments forwarded to inner emplace_back; C# uses factory Func<T>
+    /// <summary>Emplace element at the back of specified outer vector.</summary>
+    /// <remarks>C++ forwards variadic constructor arguments; the managed equivalent accepts a factory.</remarks>
     public T EmplaceBack(uint outerIndex, Func<T> factory)
     {
         var value = factory();
@@ -24,6 +26,7 @@ public class MultiVector<T> : IEnumerable<T>
         return value;
     }
 
+    /// <summary>Push element into back of specified outer vector. Return index of added element.</summary>
     public Index PushBack(uint outerIndex, T value)
     {
         var inner = (uint)_values[(int)outerIndex].Count;
@@ -31,8 +34,10 @@ public class MultiVector<T> : IEnumerable<T>
         return new Index(outerIndex, inner);
     }
 
+    /// <summary>Pop element from back of specified outer vector.</summary>
     public void PopBack(uint outerIndex) => _values[(int)outerIndex].RemoveAt(_values[(int)outerIndex].Count - 1);
 
+    /// <summary>Return size.</summary>
     public uint Size()
     {
         var size = 0u;
@@ -41,7 +46,7 @@ public class MultiVector<T> : IEnumerable<T>
         return size;
     }
 
-    // C++: void Resize(int outerSize) { outer_.resize(outerSize); }
+    /// <summary>Resize outer vector.</summary>
     public void Resize(int outerSize)
     {
         if (outerSize < _values.Count)
@@ -53,6 +58,7 @@ public class MultiVector<T> : IEnumerable<T>
         }
     }
 
+    /// <summary>Copy content to vector.</summary>
     public void CopyTo(List<T> dest)
     {
         dest.Clear();
@@ -60,15 +66,13 @@ public class MultiVector<T> : IEnumerable<T>
             dest.AddRange(values);
     }
 
-    // C++: const T& operator[](const Index& index) const { return outer_[index.first][index.second]; }
+    /// <summary>Return element.</summary>
     public T this[Index index] => _values[(int)index.Outer][(int)index.Inner];
 
-    // C++: OuterCollection& GetUnderlyingCollection() { return outer_; } _and_ const overload
+    /// <summary>Return outer collection.</summary>
     public List<List<T>> GetUnderlyingCollection() => _values;
 
-    // TODO: port - C++ has Begin() and End() methods (4 overloads: mutable/const begin, mutable/const end)
-    // TODO: port - C++ has BaseIterator<>, Iterator, ConstIterator nested types for forward-iterator support
-
+    /// <summary>Enumerate all elements in outer-vector order.</summary>
     public IEnumerator<T> GetEnumerator()
     {
         foreach (var values in _values)
