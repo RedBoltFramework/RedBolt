@@ -269,7 +269,7 @@ public abstract class Texture : ResourceWithMetadata
                     {
                         "mirror" => TextureAddressMode.Mirror,
                         "clamp" => TextureAddressMode.Clamp,
-                        "border" => TextureAddressMode.Border,
+                        "border" => TextureAddressMode.Clamp,
                         _ => TextureAddressMode.Wrap
                     };
                     SetAddressMode(coordinateIndex, mode);

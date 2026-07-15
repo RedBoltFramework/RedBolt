@@ -21,6 +21,8 @@ public static class RenderApiLimits
     public const uint MaxNumImmutableSamplers = 16;
 
     public const uint MaxShaderParameterGroups = 7;
+
+    public const uint MaxTextureCoordinates = 3;
 }
 
 /// <summary>Index of the frame, counted by the presents of the primary swap chain.</summary>
@@ -407,7 +409,7 @@ public enum TextureFilterMode : byte
     Anisotropic,
     NearestAnisotropic,
     Default,
-    // C++: MAX_FILTERMODES=6 sentinel value
+    Max
 }
 
 /// <summary>Texture addressing mode.</summary>
@@ -416,9 +418,7 @@ public enum TextureAddressMode
     Wrap,
     Mirror,
     Clamp,
-    // C++: ADDRESS_WRAP=0, ADDRESS_MIRROR=1, ADDRESS_CLAMP=2, MAX_ADDRESSMODES=3
-    // C++ has no "Border" value; Border is a non-allowed addition
-    Border
+    Max
 }
 
 /// <summary>Texture coordinates.</summary>
@@ -428,8 +428,6 @@ public enum TextureCoordinate
     V,
     W
 }
-
-// C++: static constexpr unsigned MaxTextureCoordinates = static_cast<unsigned>(TextureCoordinate::Count) = 3;
 
 /// <summary>Description of the single input required by the vertex shader.</summary>
 public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);

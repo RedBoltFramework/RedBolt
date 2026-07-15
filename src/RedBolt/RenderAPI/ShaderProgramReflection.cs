@@ -68,7 +68,6 @@ public sealed class ShaderProgramReflection
 /// Create reflection from shaders.
 /// It works only for GAPIs that can provide per-shader reflection data (this is everyone but old OpenGL).
 /// </summary>
-// C++: explicit ShaderProgramReflection(ea::span<Diligent::IShader* const> shaders);
 public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     {
         ArgumentNullException.ThrowIfNull(shaders);
