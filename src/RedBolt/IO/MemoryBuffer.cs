@@ -1,8 +1,6 @@
 using System.Text;
 using System.Runtime.InteropServices;
 
-// C++: class URHO3D_API MemoryBuffer : public AbstractFile — AbstractFile inherits both Deserializer+Serializer.
-// C# AbstractFile inherits only Deserializer; MemoryBuffer adds Write via implicit Serializer path.
 namespace RedBolt;
 
 public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
@@ -13,10 +11,6 @@ public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
     private readonly bool _usesUnmanagedBuffer;
     private readonly GCHandle _pinnedBuffer;
 
-    // C++: MemoryBuffer(void* data, unsigned size); / MemoryBuffer(const void* data, unsigned size);
-    // C# unifies mutable/const void* constructors via readOnly parameter.
-    // C++: unsigned char* GetData() const { return buffer_; }
-    // C++: bool IsReadOnly() const { return readOnly_; }
     public MemoryBuffer(nint data, uint size, bool readOnly = false)
         : base(size)
     {
@@ -31,7 +25,6 @@ public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
             Size = 0;
     }
 
-    // C++: explicit MemoryBuffer(ByteVector& data); — mutable byte vector
     public MemoryBuffer(byte[] data)
         : base(GetBufferSize(data))
     {
@@ -44,7 +37,6 @@ public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
         IsReadOnly = false;
     }
 
-    // C++: explicit MemoryBuffer(const ByteVector& data); — read-only byte vector
     public MemoryBuffer(ReadOnlyMemory<byte> data)
         : base((uint)data.Length)
     {
@@ -65,14 +57,11 @@ public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
         IsReadOnly = true;
     }
 
-    // C++: explicit MemoryBuffer(ea::string_view text); — read-only from string
     public MemoryBuffer(string text)
         : this(Encoding.UTF8.GetBytes(text ?? string.Empty).AsMemory())
     {
     }
 
-    // C++: explicit MemoryBuffer(VectorBuffer& data); — mutable VectorBuffer
-    // C++: explicit MemoryBuffer(const VectorBuffer& data); — read-only VectorBuffer (not in C# — use ReadOnlyMemory<byte>)
     public MemoryBuffer(VectorBuffer data)
         : base(GetBufferSize(data))
     {
