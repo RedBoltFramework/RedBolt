@@ -110,14 +110,12 @@ public class GraphInPin : GraphDataPin
         }
     }
 
-    // C++: private with friend class Graph; field accessor mapped to internal per friend rule
     /// <summary>Target node.</summary>
     internal uint _targetNode;
 
     /// <summary>Target pin name.</summary>
     internal string _targetPin = string.Empty;
 
-    // C++: private with friend class Graph; should be internal per friend rule
     /// <summary>Value.</summary>
     internal Variant _value;
 }

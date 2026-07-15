@@ -20,8 +20,6 @@
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:10:    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:94:    // C++: uses SerializeOptionalValue for node/pin/value with Variant::EMPTY default and custom serializer lambda
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:95:    // C++: value serialization uses SerializeOptionalValue(archive, "value", value_, Variant::EMPTY, lambda)
-- [ ] ./src/RedBolt/Resource/GraphPin.cs:113:    // C++: private with friend class Graph; field accessor mapped to internal per friend rule
-- [ ] ./src/RedBolt/Resource/GraphPin.cs:120:    // C++: private with friend class Graph; should be internal per friend rule
 - [ ] ./src/RedBolt/Core/VariantCurve.cs:43:    // C++: ea::string name_;
 - [ ] ./src/RedBolt/Core/VariantCurve.cs:45:    // C++: StringHash nameHash_;
 - [ ] ./src/RedBolt/Core/VariantCurve.cs:47:    // C++: KeyFrameInterpolation interpolation_{KeyFrameInterpolation::Linear};
