@@ -42,7 +42,6 @@ public sealed class RayQueryResult
 
 /// <summary>Octree component. Should be added only to the root scene node.</summary>
 /// <remarks>
-// TODO: port - C++ code: void Octree::QueueNodeTransformUpdate(Node* node, const Transform& transform)
 // C++: Octree has mutex-locked threaded drawable update support (drawableUpdates_, threadedDrawableUpdates_, pendingNodeTransforms_).
 /// </remarks>
 public sealed class Octant
@@ -353,6 +352,7 @@ public sealed class Octree : Component
     private readonly HashSet<Drawable> _manualDrawables = [];
     private readonly List<Drawable> _drawables = [];
     private readonly HashSet<Drawable> _drawableUpdates = [];
+    private readonly Dictionary<Node, Transform> _pendingNodeTransforms = [];
     private readonly ZoneLookupIndex _zones;
     private BoundingBox _worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
     private readonly Octant _rootOctant;
@@ -474,6 +474,11 @@ public sealed class Octree : Component
             _drawableUpdates.Add(drawable);
     }
 
+    public void QueueNodeTransformUpdate(Node node, Transform transform)
+    {
+        _pendingNodeTransforms[node] = transform;
+    }
+
     public void CancelUpdate(Drawable? drawable)
     {
         if (drawable is not null)
@@ -504,6 +509,13 @@ public sealed class Octree : Component
             _rootOctant.InsertDrawable(drawable);
         }
         _drawableUpdates.Clear();
+
+        foreach (var pair in _pendingNodeTransforms)
+        {
+            var transform = pair.Value;
+            pair.Key.SetTransform(transform.Position, transform.Rotation, transform.Scale);
+        }
+        _pendingNodeTransforms.Clear();
 
         if (Scene is { } scene)
         {
