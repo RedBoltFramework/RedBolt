@@ -77,7 +77,6 @@
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:55:    // C++:     handle.attributeInfo_ = &attributes_.back();
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:56:    // C++:     return handle;
 - [ ] ./src/RedBolt/Core/ObjectReflection.cs:57:    // C++: }
-- [ ] ./src/RedBolt/Core/ObjectExtensionMethods.cs:1:// C++: no direct C++ counterpart file.
 - [ ] ./src/RedBolt/Scene/Scene.cs:8:// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
 - [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
 - [ ] ./src/RedBolt/Scene/Scene.cs:56:    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
