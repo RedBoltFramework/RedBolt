@@ -22,8 +22,6 @@ public class AnimatedModel : StaticModel
     // TODO: port - C++ code:
     // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
     // TODO: port - C++ code:
-    // const ea::vector<ea::vector<unsigned>>& GetGeometryBoneMappings() const;
-    // TODO: port - C++ code:
     // const ea::vector<ea::vector<Matrix3x4>>& GetGeometrySkinMatrices() const;
     // TODO: port - C++ code:
     // void UpdateBoneBoundingBox();
@@ -226,6 +224,10 @@ public class AnimatedModel : StaticModel
 
     /// <summary>Return all vertex morphs.</summary>
     public IReadOnlyList<ModelMorph> GetMorphs() => _morphs;
+
+    /// <summary>Return per-geometry bone mappings.</summary>
+    public IReadOnlyList<IReadOnlyList<uint>> GetGeometryBoneMappings()
+        => GetModel()?.GetGeometryBoneMappings() ?? [];
 
     /// <summary>Return animation LOD bias.</summary>
     public float GetAnimationLodBias() => _animationLodBias;

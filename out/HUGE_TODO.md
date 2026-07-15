@@ -9,7 +9,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:17:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:21:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:23:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:25:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:27:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
