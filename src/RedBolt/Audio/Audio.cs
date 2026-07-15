@@ -157,7 +157,6 @@ public sealed class Audio : Object
 
     public void Update(float timeStep)
     {
-        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread.
         // C# uses manual polling with SDL_QueueAudio in Update() because the generated SDL binding has no audio callback surface.
         if (!_playing) return;
 
@@ -447,13 +446,5 @@ public sealed class Audio : Object
     }
 }
 
-// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len)
-// C++: {
-// C++:     auto* audio = static_cast<Audio*>(userdata);
-// C++:     {
-// C++:         MutexLock Lock(audio->GetMutex());
-// C++:         audio->MixOutput(stream, len / audio->GetSampleSize());
-// C++:     }
-// C++: }
 // C++ SDL calls this callback from the audio thread (pull model).
 // C# uses SDL_QueueAudio in Update() instead (push model).
