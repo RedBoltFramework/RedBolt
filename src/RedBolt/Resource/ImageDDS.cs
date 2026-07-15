@@ -1,5 +1,3 @@
-// TODO: port - C++ structs DDColorKey, DDSCaps2, and DDSurfaceDesc2 retain fields not needed by the managed loader.
-// TODO: port - C++ DDPixelFormat union members are represented by the fields used by the managed loader.
 using System.Numerics;
 using System.Buffers.Binary;
 
