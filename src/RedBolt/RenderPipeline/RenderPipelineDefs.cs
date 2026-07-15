@@ -1027,16 +1027,10 @@ public interface IRenderPipelineInterface
 /// <summary>
 /// Base interface of render pipeline viewport instance.
 /// </summary>
-    // C++: Inherits from Object and RenderPipelineInterface. Has URHO3D_OBJECT marker.
-    // Define(RenderSurface* renderTarget, Viewport* viewport) - no Graphics param.
-    // Update(const FrameInfo& frameInfo) - takes FrameInfo, not Graphics.
-    // Render() - no parameters at all.
-    // C++ has virtual ~RenderPipelineView() destructor (Dispose in C#).
-    // TODO: port - C++ code:
-    // C++ has UpdateFrameParameters() method that populates frameParameters_ from GetFrameShaderParameters()
     public abstract class RenderPipelineView : IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
+    protected readonly List<ShaderParameterDesc> _frameParameters = [];
 
     protected RenderPipelineView(RenderPipeline renderPipeline)
     {
@@ -1044,6 +1038,13 @@ public interface IRenderPipelineInterface
     }
 
     public RenderPipeline GetRenderPipeline() => _renderPipeline;
+
+    protected void UpdateFrameParameters()
+    {
+        _frameParameters.Clear();
+        foreach (var (name, value) in _renderPipeline.GetFrameShaderParameters())
+            _frameParameters.Add(new ShaderParameterDesc(new StringHash(name), Variant.FromObject(value)));
+    }
 
     public Context? GetContext() => Context.Instance;
 

@@ -337,10 +337,6 @@ public class RenderPipeline : Component
     /// Default implementation of render pipeline instance.
     /// </summary>
     // TODO: port - C++ code:
-    // C++ RenderPipelineView has fields: Graphics* graphics_ = GetSubsystem<Graphics>();
-    // Renderer* renderer_ = GetSubsystem<Renderer>();
-    // ea::vector<ShaderParameterDesc> frameParameters_;
-    // void UpdateFrameParameters() populates frameParameters_ from GetFrameShaderParameters()
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline _renderPipeline;
@@ -428,6 +424,7 @@ public class RenderPipeline : Component
                 _renderPath.Update(_sharedState);
             }
 
+            UpdateFrameParameters();
             _stats.NumGeometries = (uint)_viewport.Scene.StaticModels.Count;
             SendEndViewUpdateEvent();
             RaiseUpdateEnd(_frameInfo);
