@@ -7,10 +7,4 @@ public sealed class SoundListener : Component
     {
     }
 
-    // TODO: port - C++ code:
-    // static void RegisterObject(Context* context)
-    // {
-    //     context->AddFactoryReflection<SoundListener>(Category_Audio);
-    //     URHO3D_ACCESSOR_ATTRIBUTE("Is Enabled", IsEnabled, SetEnabled, bool, true, AM_DEFAULT);
-    // }
 }

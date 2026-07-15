@@ -4,7 +4,7 @@ namespace RedBolt;
 public abstract class SoundStream
 {
     /// <summary>Default frequency.</summary>
-    protected uint Frequency; // C++: frequency_(44100)
+    protected uint Frequency = 44100;
     /// <summary>Stop when no more data flag.</summary>
     protected bool StopAtEnd;
     /// <summary>Sixteen bit flag.</summary>

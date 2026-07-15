@@ -5,6 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class AudioTests
 {
+    private sealed class TestSoundStream : SoundStream
+    {
+        public override uint GetData(sbyte[] dest, uint numBytes) => 0;
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public AudioTests(HeadlessEngineFixture fixture)
@@ -28,6 +33,14 @@ public sealed class AudioTests
         Assert.Equal(0, source.GetPlayPosition());
 
         source.Stop();
+    }
+
+    [Fact]
+    public void Sound_stream_defaults_to_44100_hz()
+    {
+        var stream = new TestSoundStream();
+
+        Assert.Equal(44100u, stream.GetIntFrequency());
     }
 
     [Fact]

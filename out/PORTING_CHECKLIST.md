@@ -540,7 +540,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `Sound.h`
   - [x] `Sound : ResourceWithMetadata` — WAV loading, raw data, loop/size/format, decoder stream, and sample properties ported
 - [x] `SoundStream.h`
-  - [x] `SoundStream` — abstract base with Seek/GetData/SetFormat/StopAtEnd ported
+  - [x] `SoundStream` — abstract base with Seek/GetData/SetFormat/StopAtEnd ported, including the 44100 Hz default frequency
 - [x] `BufferedSoundStream.h`
   - [x] `BufferedSoundStream : SoundStream` — thread-safe buffered data with AddData/Clear ported
 - [x] `OggVorbisSoundStream.h`
