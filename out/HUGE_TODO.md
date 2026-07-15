@@ -1,9 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Core/CustomVariantValue.cs:8:// TODO: port - C++ custom variant traits expose pointer access, relocation, and inline storage size semantics not represented by the managed object model.
-- [ ] ./src/RedBolt/Core/CustomVariantValue.cs:88:// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
-- [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
 - [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
 - [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:

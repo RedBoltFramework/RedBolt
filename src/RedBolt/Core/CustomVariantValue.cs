@@ -5,8 +5,6 @@ public interface IArchiveSerializable
     void SerializeInBlock(Archive archive);
 }
 
-// TODO: port - C++ custom variant traits expose pointer access, relocation, and inline storage size semantics not represented by the managed object model.
-
 public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
 {
     public static readonly CustomVariantValue Empty = new();
@@ -85,7 +83,6 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
     }
 }
 
-// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
 public sealed class CustomVariantValueImpl<T> : CustomVariantValue
 {
     public CustomVariantValueImpl(T value)
