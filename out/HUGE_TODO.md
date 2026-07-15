@@ -91,7 +91,6 @@
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
 - [ ] ./src/RedBolt/Graphics/Animation.cs:46:// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
-- [ ] ./src/RedBolt/Graphics/Animation.cs:248:    // C++: bool Save(Serializer& dest) const
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:9:    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
@@ -166,7 +165,6 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields.
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo).
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
-- [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/Resource/ResourceLoading.cs:3:// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource)

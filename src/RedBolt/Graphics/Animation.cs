@@ -245,7 +245,6 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Save resource. Return true if successful.
     /// </summary>
-    // C++: bool Save(Serializer& dest) const
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);

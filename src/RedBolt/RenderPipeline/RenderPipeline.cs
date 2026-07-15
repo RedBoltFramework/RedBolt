@@ -333,7 +333,6 @@ public class RenderPipeline : Component
     /// <summary>
     /// Default implementation of render pipeline instance.
     /// </summary>
-    // TODO: port - C++ code:
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline _renderPipeline;
