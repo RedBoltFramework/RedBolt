@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/Application.cs:9:    // C++: ea::string startupErrors_; (accumulates startup log errors via HandleLogMessage)
 - [ ] ./src/RedBolt/Engine/Application.cs:10:    // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})
 - [ ] ./src/RedBolt/Engine/Application.cs:11:    // C++: StringVariantMap commandLineParameters_;
 - [ ] ./src/RedBolt/Engine/Application.cs:15:        // C++: SubscribeToEvent(E_LOGMESSAGE, URHO3D_HANDLER(Application, HandleLogMessage));

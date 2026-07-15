@@ -6,7 +6,8 @@ public abstract class Application : Object
 {
     public const int FailureExitCode = 1;
 
-    // C++: ea::string startupErrors_; (accumulates startup log errors via HandleLogMessage)
+    private string _startupErrors = string.Empty;
+
     // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})
     // C++: StringVariantMap commandLineParameters_;
 
