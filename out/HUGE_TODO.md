@@ -109,7 +109,6 @@
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:48:    // C++: virtual T* GetValuePtr() / const T* GetValuePtr() const — missing
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
-- [ ] ./src/RedBolt/Scene/Node.cs:744:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:747:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:748:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:752:    // TODO: port - C++ code:

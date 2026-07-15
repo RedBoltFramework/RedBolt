@@ -253,6 +253,23 @@ public sealed class Node : Animatable
         return prefab;
     }
 
+    public void GeneratePrefab(NodePrefab prefab, bool includeTemporary = false)
+    {
+        ArgumentNullException.ThrowIfNull(prefab);
+
+        var generated = GeneratePrefab(includeTemporary);
+        prefab.Clear();
+        prefab.Node.TypeName = generated.Node.TypeName;
+        prefab.Node.Id = generated.Node.Id;
+        prefab.Node.Temporary = generated.Node.Temporary;
+        foreach (var attribute in generated.Node.Attributes)
+            prefab.Node.Attributes.Add((AttributePrefab)attribute.Clone());
+        foreach (var component in generated.Components)
+            prefab.Components.Add((SerializablePrefab)component.Clone());
+        foreach (var child in generated.Children)
+            prefab.Children.Add((NodePrefab)child.Clone());
+    }
+
     public void LoadPrefab(NodePrefab prefab, bool clearExisting = true)
     {
         ArgumentNullException.ThrowIfNull(prefab);
@@ -741,8 +758,6 @@ public sealed class Node : Animatable
     // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
     // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
     //
-    // TODO: port - C++ code:
-    // void Node::GeneratePrefab(NodePrefab& prefab) const;  // in-place overload
     //
     // TODO: port - C++ code:
     // TODO: port - C++ code:
