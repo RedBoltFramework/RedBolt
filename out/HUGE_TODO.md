@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Input/Input.cs:883:        // C++: uses SDL_WarpMouseGlobal for explicit window rect
 - [ ] ./src/RedBolt/Input/Input.cs:906:        // C++: additionally handles Alt+Enter fullscreen toggle:
 - [ ] ./src/RedBolt/Input/Input.cs:1335:        // C++: positions are scaled to backbuffer coordinates (systemToBackbufferScale_),
 - [ ] ./src/RedBolt/Input/Input.cs:1336:        // C++: checks (sdlMouseRelative_ || mouseVisible_ || mouseMode_ == MM_FREE) before processing,
