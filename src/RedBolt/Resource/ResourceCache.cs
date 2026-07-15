@@ -597,9 +597,22 @@ public sealed class ResourceCache : Object
 
     public bool ReloadResource(Resource resource)
     {
-        // C++: sends E_RELOADSTARTED event, calls resource.Load(*file), sends E_RELOADFINISHED or E_RELOADFAILED
         ArgumentNullException.ThrowIfNull(resource);
-        return resource.Reload();
+        resource.SendEvent<ResourceEvents.ReloadStarted>();
+
+        var success = false;
+        using (var file = GetFile(resource.Name, sendEventOnFailure: false))
+        {
+            if (file is not null)
+                success = resource.Load(file);
+        }
+
+        if (success)
+            resource.SendEvent<ResourceEvents.ReloadFinished>();
+        else
+            resource.SendEvent<ResourceEvents.ReloadFailed>();
+
+        return success;
     }
 
     public void StoreResourceDependency(Resource resource, string dependency)
