@@ -1,4 +1,3 @@
-// C++: no direct C++ counterpart - adapter class
 namespace RedBolt;
 
 /// <summary>Multitouch event type.</summary>

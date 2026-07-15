@@ -120,8 +120,6 @@
 - [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
 - [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Input/PointerAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
-- [ ] ./src/RedBolt/Input/MultitouchAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
 - [ ] ./src/RedBolt/Engine/StateManager.cs:5:    // C++: SharedPtr<UIElement> rootElement_{}, savedRootElement_{};
 - [ ] ./src/RedBolt/Engine/StateManager.cs:6:    // C++: SharedPtr<Cursor> cursor_{}, savedCursor_{};
 - [ ] ./src/RedBolt/Engine/StateManager.cs:7:    // C++: IntVector2 rootCustomSize_{}, savedRootCustomSize_{};
