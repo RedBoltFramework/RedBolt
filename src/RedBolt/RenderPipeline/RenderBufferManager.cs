@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -172,7 +173,7 @@ public sealed class RenderBufferManager
             throw new InvalidOperationException("Cannot swap color buffers when color read/write is not enabled for the frame.");
 
         _readableColorBuffer ??= EnsureSecondaryColorBuffer();
-        // C++: URHO3D_ASSERT(readableColorBuffer_ && writeableColorBuffer_);
+        Debug.Assert(_readableColorBuffer is not null && _writeableColorBuffer is not null);
         // ea::swap(writeableColorBuffer_, readableColorBuffer_);
         var previousWriteable = _writeableColorBuffer;
         _writeableColorBuffer = _readableColorBuffer;
