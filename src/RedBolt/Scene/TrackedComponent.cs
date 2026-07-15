@@ -43,9 +43,6 @@ public class TrackedComponentRegistryBase : Component
 {
     public virtual bool IsOnlyEnabledTracked => false;
 
-    // Non-allowed divergence: C++ TrackedComponentRegistryBase has no constructor parameter.
-    // The C# version stores a _componentType StringHash for runtime type checking via
-    // IsInstanceOfTrackedComponent, which does not exist in C++.
     public TrackedComponentRegistryBase(StringHash componentType)
     {
         _componentType = componentType;
@@ -391,9 +388,8 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
 /// <summary>
 /// Template base of any TrackedComponent that automatically registers itself in registry.
 /// </summary>
-// Non-allowed divergence: C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-// class TrackedComponent : public ComponentType). C# inherits from TrackedComponentBase instead of ComponentType
-// because C# cannot inherit from a generic type parameter.
+// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
+// class TrackedComponent : public ComponentType). C# cannot inherit from a generic type parameter.
 public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedComponentBase
     where ComponentType : Component
     where RegistryComponentType : TrackedComponentRegistryBase

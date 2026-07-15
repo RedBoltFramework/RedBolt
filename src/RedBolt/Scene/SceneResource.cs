@@ -1,4 +1,3 @@
-// C++: non-allowed divergence - OnReloadBegin/OnReloadEnd events, IsPrefab property, and SetSaveFormatHint do not exist in C++ SceneResource.
 using System.Text;
 
 namespace RedBolt;
@@ -11,8 +10,6 @@ public sealed class SceneResource : Resource
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;
 
-    // Non-allowed divergence: OnReloadBegin/OnReloadEnd events do not exist in C++ SceneResource.
-    // C++ SceneResource only has BeginLoad, EndLoad, Save, SaveFile, GetScene, GetXmlRootName.
     public delegate void ReloadBeginHandler(SceneResource resource, ref bool cancelReload);
     public delegate void ReloadEndHandler(SceneResource resource, bool success);
 
