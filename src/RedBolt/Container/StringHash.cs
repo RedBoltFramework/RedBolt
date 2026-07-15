@@ -16,7 +16,6 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
     {
     }
 
-    // C++: constexpr explicit StringHash(unsigned value) noexcept
     public StringHash(uint value)
     {
         _value = value;
