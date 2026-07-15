@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
@@ -75,9 +76,14 @@ public class File : AbstractFile, IDisposable
     /// <summary>Read bytes from the file. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
-        // C++: logs URHO3D_LOGERROR("File not opened for reading") when mode is FILE_WRITE
-        if (!IsOpen || _mode == FileMode.Write)
+        if (!IsOpen)
             return 0;
+
+        if (_mode == FileMode.Write)
+        {
+            Log.Logger.LogError("File not opened for reading");
+            return 0;
+        }
 
         var size = Math.Min((uint)destination.Length, Size > Position ? Size - Position : 0);
         if (size == 0)
