@@ -2,7 +2,6 @@ using System.Text.Json;
 
 namespace RedBolt;
 
-// C++: No direct C++ equivalent. Uses System.Text.Json for serialization instead of rbfx's Archive.
 // C++ SimpleResource subclasses use SerializeInBlock with rbfx Archive serialization.
 public abstract class JSONResource<TValue> : JSONResourceBase
     where TValue : new()

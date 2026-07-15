@@ -1,9 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:5:// C++: No direct C++ equivalent. C++ SimpleResource handles JSON/XML/Binary via Archive serialization.
-- [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:6:// C++: BeginLoad in SimpleResource uses JSONFile/XMLFile intermediaries; C# reads raw bytes and checks for XML.
-- [ ] ./src/RedBolt/Resource/JSONResourceBase.cs:7:// C++: SimpleResource does NOT have DeserializeJson/SerializeJson/LoadLegacyXML — serialization uses SerializeInBlock(Archive).
-- [ ] ./src/RedBolt/Resource/JSONResource.cs:5:// C++: No direct C++ equivalent. Uses System.Text.Json for serialization instead of rbfx's Archive.
 - [ ] ./src/RedBolt/Container/Array2D.cs:240:    // TODO: port - C++ returns pointer (T*), C# returns nullable value (T?)
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:2:// TODO: port - C++ structs DDColorKey, DDSCaps2, and DDSurfaceDesc2 retain fields not needed by the managed loader.
@@ -464,3 +460,4 @@
 - [ ] ./src/RedBolt/Graphics/Viewport.cs:6:// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
 - [ ] ./src/RedBolt/Graphics/Viewport.cs:7:// C++: Has autoRenderPipeline_ flag. C# matches.
 - [ ] ./src/RedBolt/Graphics/Viewport.cs:8:// C++: GetRenderPipelineView returns RenderPipelineView*. C# matches.
+- [ ] ./src/RedBolt/Resource/JSONValue.cs:403:        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
