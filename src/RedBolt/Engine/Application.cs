@@ -10,6 +10,7 @@ public abstract class Application : Object
 
     protected Application()
     {
+        SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
         Engine = new Engine();
     }
 
@@ -152,27 +153,24 @@ public abstract class Application : Object
         Engine.Exit();
     }
 
-    // C++: void HandleLogMessage(StringHash eventType, VariantMap& eventData);
-    //       Accumulates LOG_ERROR messages into startupErrors_ (strips timestamp).
-    // TODO: port - C++ code:
-    // void Application::HandleLogMessage(StringHash eventType, VariantMap& eventData)
-    // {
-    //     using namespace LogMessage;
-    //     if (eventData[P_LEVEL].GetInt() == LOG_ERROR)
-    //     {
-    //         ea::string error = eventData[P_MESSAGE].GetString();
-    //         unsigned bracketPos = error.find(']');
-    //         if (bracketPos != ea::string::npos)
-    //             error = error.substr(bracketPos + 2);
-    //         startupErrors_ += error + "\n";
-    //     }
-    // }
+    private void HandleLogMessage(ref IOEvents.LogMessage eventData)
+    {
+        if (eventData.Level == (int)LogLevel.Error)
+        {
+            var error = eventData.Message;
+            var bracketPos = error.IndexOf(']');
+            if (bracketPos != -1)
+                error = error[(bracketPos + 2)..];
+            _startupErrors += error + "\n";
+        }
+    }
 
     protected void ErrorExit(string message = "")
     {
-        // C++: if message is empty, uses startupErrors_ (collected log errors) or fallback string.
         ErrorMessage = string.IsNullOrWhiteSpace(message)
-            ? "Application has been terminated due to unexpected error."
+            ? string.IsNullOrWhiteSpace(_startupErrors)
+                ? "Application has been terminated due to unexpected error."
+                : _startupErrors
             : message;
         Log.Logger.LogError(ErrorMessage);
         Exit(FailureExitCode);

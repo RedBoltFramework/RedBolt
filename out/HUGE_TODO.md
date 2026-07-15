@@ -1,8 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/Application.cs:158:    // C++: void HandleLogMessage(StringHash eventType, VariantMap& eventData);
-- [ ] ./src/RedBolt/Engine/Application.cs:160:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Engine/Application.cs:176:        // C++: if message is empty, uses startupErrors_ (collected log errors) or fallback string.
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:110:    // C++: explicit ConfigFile(Context* context);
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:115:    // C++: config returns ConfigVariableDefinitionMap&, StringVariantMap&, ConfigFlavorVector& (mutable refs)
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:176:    // C++: Uses Archive binary serialization (SerializeOptionalValue).
