@@ -12,7 +12,6 @@ public enum InternalResourceFormat
 
 public abstract class SimpleResource : Resource
 {
-    // C++: DefaultBinaryMagic is a global 'const BinaryMagic' in Resource.cpp, not a member of SimpleResource.
     public static readonly byte[] DefaultBinaryMagic = [0, (byte)'B', (byte)'I', (byte)'N'];
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;
