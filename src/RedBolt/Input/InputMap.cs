@@ -10,16 +10,13 @@ public sealed class InputMap : ResourceWithMetadata
     private static readonly ActionMapping EmptyMapping = new();
     private readonly Dictionary<string, ActionMapping> _actions = new(StringComparer.Ordinal);
     private float _deadZone = DefaultDeadZone;
-
-    // TODO: port - C++ code:
-    // int ignoreJoystickId_{-1};
-    // ignoreJoystickId_ = GetSubsystem<Input>()->FindAccelerometerJoystickId();
-    // Used to ignore SDL gyroscope virtual joystick in Evaluate()
+    private readonly int _ignoreJoystickId;
 
     public InputMap(string name, Input? input = null)
         : base(name)
     {
         Input = input;
+        _ignoreJoystickId = input?.FindAccelerometerJoystickId() ?? -1;
     }
 
     public Input? Input { get; private set; }
@@ -240,7 +237,7 @@ public sealed class InputMap : ResourceWithMetadata
     public float Evaluate(string action, Input input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return GetMapping(action).Evaluate(input, _deadZone);
+        return GetMapping(action).Evaluate(input, _deadZone, _ignoreJoystickId);
     }
 
     public float EvaluateByHash(StringHash actionHash) => Input is not null ? EvaluateByHash(actionHash, Input) : 0.0f;
@@ -248,7 +245,7 @@ public sealed class InputMap : ResourceWithMetadata
     public float EvaluateByHash(StringHash actionHash, Input input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return GetMappingByHash(actionHash).Evaluate(input, _deadZone);
+        return GetMappingByHash(actionHash).Evaluate(input, _deadZone, _ignoreJoystickId);
     }
 
     public static IReadOnlyList<string> GetScanCodeNames() => Enum.GetNames<Scancode>();
@@ -373,10 +370,8 @@ public sealed class InputMap : ResourceWithMetadata
             }
         }
 
-        // C++: Evaluate(Input* input, UI* ui, float deadZone, int ignoreJoystickId) takes UI and ignoreJoystickId params,
-        // C++: checks UI focus element before processing keyboard, iterates all joysticks (not just global state),
-        // C++: checks screen buttons via touch iteration
-        public float Evaluate(Input input, float deadZone)
+        // TODO: port - C++ suppresses keyboard input while a built-in UI element has focus; rbfx built-in UI is not ported.
+        public float Evaluate(Input input, float deadZone, int ignoreJoystickId)
         {
             ArgumentNullException.ThrowIfNull(input);
             foreach (var key in _keyboardKeys)
@@ -392,30 +387,45 @@ public sealed class InputMap : ResourceWithMetadata
                     return 1.0f;
             }
 
-            foreach (var controllerButton in _controllerButtons)
+            var totalSum = 0.0f;
+            for (uint joystickIndex = 0; joystickIndex < input.GetNumJoysticks(); ++joystickIndex)
             {
-                var pressed = controllerButton.IsController
-                    ? input.GetControllerButtonDown(controllerButton.GetControllerButton())
-                    : input.GetJoystickButtonDown(controllerButton.GetGenericButton());
-                if (pressed)
-                    return 1.0f;
-            }
+                var joystick = input.GetJoystickByIndex(joystickIndex);
+                if (joystick is null)
+                    continue;
+                var joystickState = joystick.Value;
+                if (joystickState.JoystickID == ignoreJoystickId)
+                    continue;
 
-            var sum = 0.0f;
-            foreach (var controllerAxis in _controllerAxes)
-            {
-                var position = controllerAxis.IsController
-                    ? input.GetControllerAxisPosition(controllerAxis.GetControllerAxis())
-                    : input.GetJoystickAxisPosition(controllerAxis.GetGenericAxis());
-                var translated = controllerAxis.Translate(position, deadZone);
-                sum += translated;
-            }
+                var isController = joystickState.IsController();
+                foreach (var controllerButton in _controllerButtons)
+                {
+                    var matches = controllerButton.IsController == isController;
+                    var pressed = controllerButton.IsController
+                        ? joystickState.GetButtonDown((uint)controllerButton.GetControllerButton())
+                        : joystickState.GetButtonDown(controllerButton.GetGenericButton());
+                    if (matches && pressed)
+                        return 1.0f;
+                }
 
-            foreach (var controllerHat in _controllerHats)
-            {
-                var hatPosition = (HatPosition)controllerHat.HatPosition;
-                if (hatPosition == HatPosition.Center || (input.GetHatPosition() & hatPosition) != 0)
-                    return 1.0f;
+                foreach (var controllerAxis in _controllerAxes)
+                {
+                    if (controllerAxis.IsController != isController)
+                        continue;
+                    var axis = controllerAxis.IsController ? (uint)controllerAxis.GetControllerAxis() : controllerAxis.GetGenericAxis();
+                    if (joystickState.HasAxisPosition(axis))
+                        totalSum += controllerAxis.Translate(joystickState.GetAxisPosition(axis), deadZone);
+                }
+
+                if (joystickState.GetNumHats() > 0)
+                {
+                    var hatPosition = joystickState.GetHatPosition(0);
+                    foreach (var controllerHat in _controllerHats)
+                    {
+                        if ((hatPosition & (1 << (int)controllerHat.HatPosition)) != 0)
+                            return 1.0f;
+                    }
+                }
             }
 
             foreach (var screenButton in _screenButtons)
@@ -424,7 +434,7 @@ public sealed class InputMap : ResourceWithMetadata
                     return 1.0f;
             }
 
-            return MathDefs.Clamp(sum, 0.0f, 1.0f);
+            return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
         }
 
         internal void AddKeyboardKey(Scancode scancode)
@@ -653,7 +663,6 @@ public record struct ControllerAxisMapping(bool IsController, uint Axis, float N
 
     public float Translate(float position, float deadZone)
     {
-        // C++: uses Equals(pos, pressed_) for exact comparison
         if (MathDefs.ApproximatelyEquivalent(position, Pressed))
             return 1.0f;
 

@@ -31,11 +31,7 @@
 - [ ] ./src/RedBolt/Math/Vector3.cs:31:    // C++: no constructor from BaseIntegerVector3 — conversion is via Cast<Vector3>() on the integer vector
 - [ ] ./src/RedBolt/Math/Vector3.cs:164:    // C++: returns radians: return Urho3D::Acos(DotProduct(rhs) / (Length() * rhs.Length()));
 - [ ] ./src/RedBolt/Math/Vector3.cs:167:    // C++: returns radians (signed angle in radians)
-- [ ] ./src/RedBolt/Input/InputMap.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Input/InputMap.cs:376:        // C++: Evaluate(Input* input, UI* ui, float deadZone, int ignoreJoystickId) takes UI and ignoreJoystickId params,
-- [ ] ./src/RedBolt/Input/InputMap.cs:377:        // C++: checks UI focus element before processing keyboard, iterates all joysticks (not just global state),
-- [ ] ./src/RedBolt/Input/InputMap.cs:378:        // C++: checks screen buttons via touch iteration
-- [ ] ./src/RedBolt/Input/InputMap.cs:656:        // C++: uses Equals(pos, pressed_) for exact comparison
+- [ ] ./src/RedBolt/Input/InputMap.cs:373:        // TODO: port - C++ suppresses keyboard input while a built-in UI element has focus; rbfx built-in UI is not ported.
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:16:    // C++: bool audioPaused_ = false;
 - [ ] ./src/RedBolt/Engine/Engine.cs:18:    // C++: bool exitRequired_{};
