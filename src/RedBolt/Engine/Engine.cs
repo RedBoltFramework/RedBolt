@@ -15,7 +15,6 @@ public sealed class Engine : Object
     private bool _exitRequired;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
-    // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)
     private readonly ConfigFile _configFile = new();
 
     public EngineParameters Parameters { get; private set; } = new();
