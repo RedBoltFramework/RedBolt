@@ -54,15 +54,15 @@
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:30:    // C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer" — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:4:// C++: class URHO3D_API MemoryBuffer : public AbstractFile — AbstractFile inherits both Deserializer+Serializer.
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:16:    // C++: MemoryBuffer(void* data, unsigned size); / MemoryBuffer(const void* data, unsigned size);
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:18:    // C++: unsigned char* GetData() const { return buffer_; }
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:19:    // C++: bool IsReadOnly() const { return readOnly_; }
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:34:    // C++: explicit MemoryBuffer(ByteVector& data); — mutable byte vector
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:47:    // C++: explicit MemoryBuffer(const ByteVector& data); — read-only byte vector
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:68:    // C++: explicit MemoryBuffer(ea::string_view text); — read-only from string
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:74:    // C++: explicit MemoryBuffer(VectorBuffer& data); — mutable VectorBuffer
-- [ ] ./src/RedBolt/IO/MemoryBuffer.cs:75:    // C++: explicit MemoryBuffer(const VectorBuffer& data); — read-only VectorBuffer (not in C# — use ReadOnlyMemory<byte>)
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:4:// C++: class URHO3D_API MemoryBuffer : public AbstractFile — AbstractFile inherits both Deserializer+Serializer. — reviewed; managed AbstractFile inheritance and stream API match the C++ shape.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:16:    // C++: MemoryBuffer(void* data, unsigned size); / MemoryBuffer(const void* data, unsigned size); — reviewed; mapped to the nint constructor with the existing read-only parameter.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:18:    // C++: unsigned char* GetData() const { return buffer_; } — reviewed; managed GetData returns the pinned native address.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:19:    // C++: bool IsReadOnly() const { return readOnly_; } — reviewed; managed IsReadOnly exposes the equivalent state.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:34:    // C++: explicit MemoryBuffer(ByteVector& data); — mutable byte vector — reviewed; mapped to the byte-array constructor.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:47:    // C++: explicit MemoryBuffer(const ByteVector& data); — read-only byte vector — reviewed; mapped to ReadOnlyMemory<byte>.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:68:    // C++: explicit MemoryBuffer(ea::string_view text); — read-only from string — reviewed; managed UTF-8 construction is read-only.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:74:    // C++: explicit MemoryBuffer(VectorBuffer& data); — mutable VectorBuffer — reviewed; mapped to VectorBuffer.
+- [x] ./src/RedBolt/IO/MemoryBuffer.cs:75:    // C++: explicit MemoryBuffer(const VectorBuffer& data); — read-only VectorBuffer (not in C# — use ReadOnlyMemory<byte>) — reviewed; managed API uses ReadOnlyMemory<byte> for the const form.
 - [ ] ./src/RedBolt/IO/File.cs:78:        // C++: logs URHO3D_LOGERROR("File not opened for reading") when mode is FILE_WRITE
 - [ ] ./src/RedBolt/IO/File.cs:86:        // C++: Android asset handles that are not compressed use a read buffer for performance.
 - [ ] ./src/RedBolt/IO/File.cs:87:        // TODO: port - C++ code:
@@ -783,4 +783,3 @@
 - [x] ./extern/thirdparty/imgui/imgui.cpp:1910:    IM_ASSERT(ImGui::IsNamedKeyOrMod(key)); // Backend needs to pass a valid ImGuiKey_ constant. 0..511 values are legacy native key codes which are not accepted by this API.
 - [x] ./extern/thirdparty/imgui/imgui.cpp:15494:            // However inputs are accepted immediately, so you press ImGuiKey_NavGamepadMenu + L1/R1 fast.
 - [x] ./extern/thirdparty/imgui/imgui.cpp:15891:    // Return whether the payload has been accepted
-
