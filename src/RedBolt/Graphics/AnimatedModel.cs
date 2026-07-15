@@ -22,8 +22,6 @@ public class AnimatedModel : StaticModel
     // TODO: port - C++ code:
     // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
     // TODO: port - C++ code:
-    // const ea::vector<ea::vector<Matrix3x4>>& GetGeometrySkinMatrices() const;
-    // TODO: port - C++ code:
     // void UpdateBoneBoundingBox();
     // TODO: port - C++ code:
     // protected:
@@ -228,6 +226,31 @@ public class AnimatedModel : StaticModel
     /// <summary>Return per-geometry bone mappings.</summary>
     public IReadOnlyList<IReadOnlyList<uint>> GetGeometryBoneMappings()
         => GetModel()?.GetGeometryBoneMappings() ?? [];
+
+    /// <summary>Return per-geometry skin matrices.</summary>
+    public IReadOnlyList<IReadOnlyList<Matrix3x4>> GetGeometrySkinMatrices()
+    {
+        var mappings = GetModel()?.GetGeometryBoneMappings();
+        if (mappings is null)
+            return [];
+
+        var worldTransform = IsAttached ? Node.GetWorldTransform() : Matrix3x4.IDENTITY;
+        var result = new List<IReadOnlyList<Matrix3x4>>(mappings.Count);
+        foreach (var mapping in mappings)
+        {
+            var matrices = new List<Matrix3x4>(mapping.Count);
+            foreach (var boneIndex in mapping)
+            {
+                var bone = _skeleton.GetBone(boneIndex);
+                matrices.Add(bone?.Node is { } boneNode
+                    ? boneNode.GetWorldTransform() * bone.OffsetMatrix
+                    : worldTransform);
+            }
+            result.Add(matrices);
+        }
+
+        return result;
+    }
 
     /// <summary>Return animation LOD bias.</summary>
     public float GetAnimationLodBias() => _animationLodBias;
