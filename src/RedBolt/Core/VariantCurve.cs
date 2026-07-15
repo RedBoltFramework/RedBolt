@@ -40,20 +40,13 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
     {
     }
 
-    // C++: ea::string name_;
     public string Name = string.Empty;
-    // C++: StringHash nameHash_;
     public StringHash NameHash;
-    // C++: KeyFrameInterpolation interpolation_{KeyFrameInterpolation::Linear};
     public KeyFrameInterpolation Interpolation = KeyFrameInterpolation.Linear;
-    // C++: float splineTension_{0.5f};
     public float SplineTension = 0.5f;
-    // C++: ea::vector<Variant> inTangents_ (mutable field, not readonly property)
-    public List<Variant> InTangents { get; } = [];
-    // C++: ea::vector<Variant> outTangents_ (mutable field, not readonly property)
-    public List<Variant> OutTangents { get; } = [];
-    // C++: VariantType type_{} (field, default VariantType::None)
-    public VariantType Type { get; private set; }
+    public List<Variant> InTangents = [];
+    public List<Variant> OutTangents = [];
+    public VariantType Type;
 
     public void Commit()
     {
