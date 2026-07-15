@@ -26,6 +26,10 @@ public enum PlatformId
 
 // TODO: port - C++ code:
 // void ErrorDialog(const ea::string& title, const ea::string& message);
+// TODO: port - C++ code:
+// void OpenConsoleWindow();
+// TODO: port - C++ code:
+// ea::string GetConsoleInput();
 
 public static class ProcessUtils
 {

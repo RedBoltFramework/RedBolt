@@ -2,6 +2,8 @@
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
+- [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
+- [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
@@ -11,27 +13,6 @@
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:29:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:31:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:37:    // C++: AttributeHandle ObjectReflection::AddAttribute(const AttributeInfo& attr)
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:38:    // C++: {
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:39:    // C++:     // None or pointer types can not be supported
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:40:    // C++:     if (attr.type_ == VAR_NONE || attr.type_ == VAR_VOIDPTR || attr.type_ == VAR_PTR)
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:41:    // C++:     {
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:42:    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute type {} to class {}",
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:43:    // C++:             Variant::GetTypeName(attr.type_), GetTypeName());
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:44:    // C++:         return AttributeHandle();
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:45:    // C++:     }
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:46:    // C++:     // Only SharedPtr<> of Serializable or it's subclasses are supported in attributes
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:47:    // C++:     if (attr.type_ == VAR_CUSTOM && !attr.defaultValue_.IsCustomType<SharedPtr<Serializable>>())
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:48:    // C++:     {
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:49:    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute of custom type to class {}", GetTypeName());
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:50:    // C++:         return AttributeHandle();
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:51:    // C++:     }
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:52:    // C++:     AttributeHandle handle;
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:53:    // C++:     attributes_.push_back(attr);
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:54:    // C++:     attributeNames_.push_back(attr.nameHash_);
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:55:    // C++:     handle.attributeInfo_ = &attributes_.back();
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:56:    // C++:     return handle;
-- [ ] ./src/RedBolt/Core/ObjectReflection.cs:57:    // C++: }
 - [ ] ./src/RedBolt/Scene/Scene.cs:8:// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
 - [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
 - [ ] ./src/RedBolt/Scene/Scene.cs:56:    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
