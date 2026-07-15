@@ -40,13 +40,6 @@ public sealed class Time : Object
 
     public void SetTimerPeriod(uint milliseconds)
     {
-        // C++: #if defined(_WIN32) && !defined(UWP)
-        // C++:     if (timerPeriod_ > 0)
-        // C++:         timeEndPeriod(timerPeriod_);
-        // C++:     timerPeriod_ = mSec;
-        // C++:     if (timerPeriod_ > 0)
-        // C++:         timeBeginPeriod(timerPeriod_);
-        // C++: #endif
         _timerPeriod = milliseconds;
     }
 
