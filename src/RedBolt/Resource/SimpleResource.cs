@@ -153,13 +153,9 @@ public abstract class SimpleResource : Resource
         }
     }
 
-    // C++: SaveFile opens a VFS file and writes via Save(*file, format) directly — no intermediate MemoryStream.
     public bool SaveFile(string fileName, InternalResourceFormat format)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = new MemoryStream();
-        if (!Save(stream, format))
-            return false;
 
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
         var identifier = new FileIdentifier(fileName);
@@ -167,17 +163,16 @@ public abstract class SimpleResource : Resource
             ? new MountPointGuard(virtualFileSystem.MountRoot())
             : null;
         var file = virtualFileSystem.OpenFile(identifier, File.FileMode.Write);
-        if (file is null)
+        if (file is not File outputFile || outputFile.Handle is null)
             return false;
 
         try
         {
-            var data = stream.ToArray();
-            return file.Write(data) == data.Length;
+            return Save(outputFile.Handle, format);
         }
         finally
         {
-            file.Close();
+            outputFile.Close();
         }
     }
 
