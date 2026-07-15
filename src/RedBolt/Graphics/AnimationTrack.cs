@@ -8,7 +8,6 @@ using VariantAnimationKeyFrame = RedBolt.VariantCurvePoint;
 namespace RedBolt;
 
 /// <summary>Skeletal animation keyframe.</summary>
-/// <remarks>TODO: port: C# structs cannot inherit another struct, so Transform fields are duplicated here.</remarks>
 public struct AnimationKeyFrame
 {
     /// <summary>Keyframe time.</summary>
