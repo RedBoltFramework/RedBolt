@@ -65,8 +65,6 @@ public sealed class RenderBufferManager
 
     public void SetFrameSettings(RenderBufferManagerFrameSettings frameSettings)
     {
-        // C++: frameSettings_ = frameSettings;
-        // if (frameSettings_.supportColorReadWrite_) frameSettings_.readableColor_ = true;
         this._frameSettings = frameSettings;
         this._frameSettings.ReadableColor |= this._frameSettings.SupportColorReadWrite;
     }
@@ -336,9 +334,6 @@ public sealed class RenderBufferManager
     /// <summary>
     /// Copy the current color output back to the viewport render target.
     /// </summary>
-    // C++: OnRenderEnd directly checks writeableColorBuffer_ != viewportColorBuffer_.Get()
-    // No separate NeedsViewportResolve() helper.
-    // flipColorBuffersNextTime_ ^= viewportColorBuffer_ == readableColorBuffer_;
     public void ResolveToViewport(Graphics graphics)
     {
         ArgumentNullException.ThrowIfNull(graphics);
@@ -428,14 +423,13 @@ public sealed class RenderBufferManager
     /// Clear depth and/or stencil render target(s).
     /// Changes currently bound depth-stencil and render targets.
     /// </summary>
-    // C++: ClearDepthStencil takes CubeMapFace face parameter.
-    // C++ uses renderContext_->ClearDepthStencil directly, not Graphics helper.
-    public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth, byte stencil = 0)
+    public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth,
+        byte stencil = 0, CubeMapFace face = CubeMapFace.PositiveX)
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(depthStencilBuffer);
 
-        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), colorTarget: null, depthStencilBuffer.GetView());
+        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), colorTarget: null, depthStencilBuffer.GetView((uint)face));
         graphics.ClearCurrentRenderTargets(
             clearColorTarget: false,
             clearDepth: (flags & ClearTarget.Depth) == ClearTarget.Depth,

@@ -99,8 +99,6 @@ public sealed class RenderPath : Resource
     /// <summary>
     /// Make deep copy of RenderPath.
     /// </summary>
-    // C++: checks passClone->IsInstanceOf<RenderPass>() and uses StaticCast<RenderPass>(passClone)
-    // before adding to passes_; clone uses MakeShared<RenderPath>(context_)
     public RenderPath Clone()
     {
         var clone = new RenderPath(Name);
