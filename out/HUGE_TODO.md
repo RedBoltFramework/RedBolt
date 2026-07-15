@@ -9,8 +9,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimationController.cs:176:            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
 - [ ] ./src/RedBolt/Graphics/AnimationController.cs:760:            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:8:    // C++: ea::vector<WeakPtr<Node>> instanceNodes_;
-- [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:9:    // C++: mutable VariantVector nodeIDsAttr_;
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:5:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:6:// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:7:// C++: Has GetLodGeometry, GetNumOccluderTriangles, DrawOcclusion overrides. C# has GetNumOccluderTriangles as virtual.
