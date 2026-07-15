@@ -336,7 +336,6 @@ public sealed class Input : Object
 
     public void PollEvents()
     {
-        // C++: Update() handles MM_WRAP mouse wrapping, REQUIRE_CLICK_TO_FOCUS, and GetBackgroundSize-based manual mouse move calculation
         if (!Enabled || !IsInitialized || _nativeEvent is null)
             return;
 
