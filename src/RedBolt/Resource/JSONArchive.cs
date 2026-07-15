@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -54,13 +55,12 @@ public sealed class JSONOutputArchive : ArchiveBase
     public override void Serialize(string name, ref ushort value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref int value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref uint value) => Write(name, JsonValue.Create(value));
-    // C++: serializes 64-bit ints as JSON strings (eastl::to_string) to avoid precision loss
-    public override void Serialize(string name, ref long value) => Write(name, JsonValue.Create(value));
-    public override void Serialize(string name, ref ulong value) => Write(name, JsonValue.Create(value));
+    public override void Serialize(string name, ref long value) => Write(name, JsonValue.Create(value.ToString(CultureInfo.InvariantCulture)));
+    public override void Serialize(string name, ref ulong value) => Write(name, JsonValue.Create(value.ToString(CultureInfo.InvariantCulture)));
     public override void Serialize(string name, ref float value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref double value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref string value) => Write(name, JsonValue.Create(value));
-    public override void SerializeBytes(string name, Span<byte> bytes) => Write(name, JsonValue.Create(Convert.ToBase64String(bytes)));
+    public override void SerializeBytes(string name, Span<byte> bytes) => Write(name, JsonValue.Create(Convert.ToHexString(bytes)));
     public override void SerializeVle(string name, ref uint value) => Write(name, JsonValue.Create(value));
 
     private void Attach(string name, JsonNode node)
@@ -92,9 +92,6 @@ public sealed class JSONOutputArchive : ArchiveBase
     }
 }
 
-// TODO: port - C++ code:
-// ea::optional<ea::string> ToJSONString(T& object) { ... }
-// ea::optional<T> FromJSONString(const ea::string& jsonString) { ... }
 public sealed class JSONInputArchive : ArchiveBase
 {
     private sealed class Frame(string name, ArchiveBlockType type, JsonNode node) : ArchiveBlockBase(name, type)
@@ -157,15 +154,14 @@ public sealed class JSONInputArchive : ArchiveBase
     public override void Serialize(string name, ref ushort value) => value = Read<ushort>(name);
     public override void Serialize(string name, ref int value) => value = Read<int>(name);
     public override void Serialize(string name, ref uint value) => value = Read<uint>(name);
-    // C++: reads 64-bit ints from JSON strings and converts via ToInt64/ToUInt64; also CheckType validation
-    public override void Serialize(string name, ref long value) => value = Read<long>(name);
-    public override void Serialize(string name, ref ulong value) => value = Read<ulong>(name);
+    public override void Serialize(string name, ref long value) => value = ReadInt64(name);
+    public override void Serialize(string name, ref ulong value) => value = ReadUInt64(name);
     public override void Serialize(string name, ref float value) => value = Read<float>(name);
     public override void Serialize(string name, ref double value) => value = Read<double>(name);
     public override void Serialize(string name, ref string value) => value = Read<string>(name);
     public override void SerializeBytes(string name, Span<byte> bytes)
     {
-        var decoded = Convert.FromBase64String(Read<string>(name));
+        var decoded = Convert.FromHexString(Read<string>(name));
         if (decoded.Length != bytes.Length)
             throw UnexpectedElementValueException(name);
         decoded.CopyTo(bytes);
@@ -177,6 +173,22 @@ public sealed class JSONInputArchive : ArchiveBase
         CheckBlockOrElementName(name);
         var node = Take(name) ?? throw ElementNotFoundException(name);
         return node.GetValue<T>();
+    }
+
+    private long ReadInt64(string name)
+    {
+        var value = Read<string>(name);
+        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+            throw UnexpectedElementValueException(name);
+        return result;
+    }
+
+    private ulong ReadUInt64(string name)
+    {
+        var value = Read<string>(name);
+        if (!ulong.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+            throw UnexpectedElementValueException(name);
+        return result;
     }
 
     private JsonNode? Take(string name)
