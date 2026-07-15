@@ -62,8 +62,6 @@
 - [ ] ./src/RedBolt/Input/Input.cs:1336:        // C++: checks (sdlMouseRelative_ || mouseVisible_ || mouseMode_ == MM_FREE) before processing,
 - [ ] ./src/RedBolt/Input/Input.cs:1337:        // C++: has touch emulation path that converts mouse motion to SDL_FINGERMOTION
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Zone.cs:11:// C++: Has ClearDrawablesZone public method. May not be fully ported yet.
-- [ ] ./src/RedBolt/Graphics/Zone.cs:12:// TODO: port - C++ code: void Zone::ClearDrawablesZone()
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
 - [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
 - [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,

@@ -8,8 +8,6 @@ namespace RedBolt;
 // C++: Zone methods OnWorldBoundingBoxUpdate, OnRemoveFromOctree are protected. C# has the same.
 // C++: Has UpdateAmbientGradient, MarkNodeDirty, MarkCachedAmbientDirty, MarkCachedTextureDirty. C# has these.
 // C++: Has UpdateZoneTextureSubscription private method for texture reload handling. C# has inline equivalent.
-// C++: Has ClearDrawablesZone public method. May not be fully ported yet.
-// TODO: port - C++ code: void Zone::ClearDrawablesZone()
 /// </remarks>
 public sealed class Zone : Drawable
 {
