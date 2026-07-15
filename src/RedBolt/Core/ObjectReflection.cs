@@ -64,22 +64,14 @@ public sealed class ObjectReflection
         return new AttributeHandle(copy);
     }
 
-    // C++: void ObjectReflection::RemoveAttribute(StringHash nameHash)
-    // C++: {
-    // C++:     const unsigned index = attributeNames_.index_of(nameHash);
-    // C++:     if (index >= attributeNames_.size())
-    // C++:     {
-    // C++:         URHO3D_LOGWARNING("Cannot find attribute {}", nameHash.ToDebugString());
-    // C++:         return;
-    // C++:     }
-    // C++:     attributes_.erase_at(index);
-    // C++:     attributeNames_.erase_at(index);
-    // C++: }
     public void RemoveAttribute(StringHash nameHash)
     {
         var index = _attributeNames.IndexOf(nameHash);
         if (index < 0)
+        {
+            Log.Logger.LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
             return;
+        }
         _attributes.RemoveAt(index);
         _attributeNames.RemoveAt(index);
     }
@@ -90,43 +82,29 @@ public sealed class ObjectReflection
         _attributeNames.Clear();
     }
 
-    // C++: void ObjectReflection::CopyAttributesFrom(const ObjectReflection* other)
-    // C++: {
-    // C++:     if (!other)
-    // C++:     {
-    // C++:         URHO3D_LOGWARNING("Attempt to copy base attributes from unknown base class for class " + GetTypeName());
-    // C++:         return;
-    // C++:     }
-    // C++:     // Prevent endless loop if mistakenly copying attributes from same class as derived
-    // C++:     if (other == this)
-    // C++:     {
-    // C++:         URHO3D_LOGWARNING("Attempt to copy base attributes to itself for class " + GetTypeName());
-    // C++:         return;
-    // C++:     }
-    // C++:     attributes_.append(other->attributes_);
-    // C++:     attributeNames_.append(other->attributeNames_);
-    // C++: }
-    public void CopyAttributesFrom(ObjectReflection other)
+    public void CopyAttributesFrom(ObjectReflection? other)
     {
-        if (other is null || ReferenceEquals(other, this))
+        if (other is null)
+        {
+            Log.Logger.LogWarning("Attempt to copy base attributes from unknown base class for class {TypeName}", ClassName);
             return;
+        }
+        if (ReferenceEquals(other, this))
+        {
+            Log.Logger.LogWarning("Attempt to copy base attributes to itself for class {TypeName}", ClassName);
+            return;
+        }
         foreach (var attribute in other._attributes)
             AddAttribute(attribute);
     }
 
-    // C++: void ObjectReflection::UpdateAttributeDefaultValue(StringHash nameHash, const Variant& defaultValue)
-    // C++: {
-    // C++:     AttributeInfo* info = GetAttribute(nameHash);
-    // C++:     if (info)
-    // C++:         info->defaultValue_ = defaultValue;
-    // C++:     else
-    // C++:         URHO3D_LOGWARNING("Cannot find attribute {}", nameHash.ToDebugString());
-    // C++: }
     public void UpdateAttributeDefaultValue(StringHash nameHash, Variant value)
     {
         var attribute = GetAttribute(nameHash);
         if (attribute is not null)
             attribute.DefaultValue = value;
+        else
+            Log.Logger.LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
     }
 
     public uint GetAttributeIndex(StringHash nameHash)
@@ -258,19 +236,6 @@ public class ObjectReflectionRegistry
 
     public void SetReflectionCategory<T>(string category) => SetReflectionCategory(typeof(T), category);
 
-    // C++: void ObjectReflectionRegistry::RemoveReflection(StringHash typeNameHash)
-    // C++: {
-    // C++:     const auto iter = reflections_.find(typeNameHash);
-    // C++:     if (iter == reflections_.end())
-    // C++:     {
-    // C++:         ErrorReflectionNotFound(typeNameHash);
-    // C++:         return;
-    // C++:     }
-    // C++:     const auto reflection = iter->second;
-    // C++:     RemoveReflectionFromCurrentCategory(reflection);
-    // C++:     reflections_.erase(iter);
-    // C++:     OnReflectionRemoved(this, reflection.Get());
-    // C++: }
     public void RemoveReflection(StringHash typeNameHash)
     {
         if (_reflections.Remove(typeNameHash, out var reflection))
