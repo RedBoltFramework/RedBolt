@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public abstract class ApplicationState : Object
@@ -140,8 +142,12 @@ public sealed class StateManager : Object, IDisposable
 
     public void EnqueueState(ApplicationState gameScreen, Dictionary<string, Variant>? bundle = null)
     {
-        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
         ArgumentNullException.ThrowIfNull(gameScreen);
+        if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
+        {
+            Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
+            return;
+        }
         bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
         _stateQueue.Enqueue(new QueueItem { State = gameScreen, StateType = gameScreen.GetTypeNameHash(), Bundle = bundle });
         InitiateTransition();
@@ -149,7 +155,11 @@ public sealed class StateManager : Object, IDisposable
 
     public void EnqueueState(StringHash type, Dictionary<string, Variant>? bundle = null)
     {
-        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
+        if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
+        {
+            Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
+            return;
+        }
         bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
         _stateQueue.Enqueue(new QueueItem { StateType = type, Bundle = bundle });
         InitiateTransition();
