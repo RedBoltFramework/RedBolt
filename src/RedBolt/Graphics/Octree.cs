@@ -42,20 +42,7 @@ public sealed class RayQueryResult
 
 /// <summary>Octree component. Should be added only to the root scene node.</summary>
 /// <remarks>
-// C++: Octree extends Component. C++ has these additional public methods:
-// TODO: port - C++ code: void Octree::DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override
-// TODO: port - C++ code: void Octree::GetDrawables(OctreeQuery& query) const
-// TODO: port - C++ code: void Octree::Raycast(RayOctreeQuery& query) const
-// TODO: port - C++ code: void Octree::RaycastSingle(RayOctreeQuery& query) const
-// TODO: port - C++ code: CachedDrawableZone Octree::QueryZone(Drawable* drawable) const
-// TODO: port - C++ code: CachedDrawableZone Octree::QueryZone(const Vector3& drawablePosition, unsigned zoneMask) const
-// TODO: port - C++ code: Zone* Octree::GetBackgroundZone() const
-// TODO: port - C++ code: void Octree::QueueUpdate(Drawable* drawable) / CancelUpdate / QueueNodeTransformUpdate
-// TODO: port - C++ code: void Octree::SetLocked(bool locked)
-// TODO: port - C++ code: void Octree::AddManualDrawable / RemoveManualDrawable
-// TODO: port - C++ code: void Octree::MarkZoneDirty(Zone* zone)
-// TODO: port - C++ code: const ea::vector<Drawable*>& Octree::GetAllDrawables() const
-// C++: Octree has ZoneLookupIndex member for zone queries. C# zones are looked up differently.
+// TODO: port - C++ code: void Octree::QueueNodeTransformUpdate(Node* node, const Transform& transform)
 // C++: Octree has mutex-locked threaded drawable update support (drawableUpdates_, threadedDrawableUpdates_, pendingNodeTransforms_).
 /// </remarks>
 public sealed class Octant
@@ -414,7 +401,7 @@ public sealed class Octree : Component
 
     public BoundingBox GetWorldBoundingBox() => _worldBoundingBox;
 
-    public IReadOnlyList<Drawable> GetAllDrawables() => _drawables.ToArray();
+    public IReadOnlyList<Drawable> GetAllDrawables() => _drawables;
 
     public uint GetNumDrawables() => (uint)GetAllDrawables().Count;
 
@@ -491,6 +478,12 @@ public sealed class Octree : Component
     {
         if (drawable is not null)
             _drawableUpdates.Remove(drawable);
+    }
+
+    public void MarkZoneDirty(Zone zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        _zones.UpdateZone(zone);
     }
 
     public void Update(float timeStep = 0.0f)

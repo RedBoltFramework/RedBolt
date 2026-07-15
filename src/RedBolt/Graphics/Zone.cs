@@ -372,6 +372,8 @@ public sealed class Zone : Drawable
         _inverseWorldDirty = true;
         _ambientStartColor = AmbientColor;
         _ambientEndColor = AmbientColor;
+        if (GetOctant() is { } octant)
+            octant.GetOctree().MarkZoneDirty(this);
     }
 
     private void MarkCachedAmbientDirty()
