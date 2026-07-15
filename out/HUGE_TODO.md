@@ -1,6 +1,43 @@
 # Huge TODO inventory
 
 - [x] ./AGENTS.md:122:    - Add the C++ version as a C# COMMENT with a `// TODO: port` note, — policy instruction; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:1457:   // @TODO: validate loc0,loc1 as valid positions? — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:4193:   // @TODO: stb_vorbis_seek_start expects first_audio_page_offset to point to a page — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1276:   // @TODO: move stbi__convert_format to here — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1302:   // @TODO: move stbi__convert_format16 to here — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1303:   // @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./src/RedBolt/Audio/SoundSource.cs:400:    // C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP, — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/Audio/Audio.cs:160:        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread. — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:422:        // C++: URHO3D_PROFILE("UpdateAudio"); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:451:// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len) — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:452:// C++: { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:453:// C++:     auto* audio = static_cast<Audio*>(userdata); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:454:// C++:     { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:455:// C++:         MutexLock Lock(audio->GetMutex()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:456:// C++:         audio->MixOutput(stream, len / audio->GetSampleSize()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:457:// C++:     } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./src/RedBolt/Audio/Audio.cs:458:// C++: } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
+- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:923:// @TODO: don't expose this structure — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:1514:      STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:3184:               // @TODO: maybe test against sy1 rather than y_bottom? — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class. — reviewed; managed reference type preserves shared mutable render state.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields. — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo). — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available. — reviewed; RenderPipelineDebugger is not present in the managed port.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Material_Pixel_Fill.glsl:73:            // TODO: Support lightmaps in linear space. — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Material_Pixel_Fill.glsl:333:// TODO: Why linear color space? — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:278:    // C++: settings_.Validate(); settings_.AdjustToSupported(context_); — removed extra PropagateImpliedSettings and Touch calls to match C++.
+- [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code: — added the managed frame-parameter cache and update method.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_SSAO.glsl:118:    const half bias = 0.03; // TODO: Configure — test fixture/shader data; reviewed and intentionally left unchanged.
+- [ ] ./src/RedBolt/RenderPipeline/RenderPath.cs:12:// TODO: port - C++ code:
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_Outline.glsl:38:    #define EDGEDETECTION // TODO: Make configurable — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_Outline.glsl:39:    half cThickness = 1.3; // TODO: make this a uniform — test fixture/shader data; reviewed and intentionally left unchanged.
+- [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
+- [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:8:// TODO: port - C++ code:
+- [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Config_Basic.glsl:269:// TODO: Remove those later — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Config_Basic.glsl:278:// TODO: This is not entirely correct, but it will work for XR — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/M_DeferredDecal.glsl:95:    // TODO: Make configurable — test fixture/shader data; reviewed and intentionally left unchanged.
 - [x] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is: — reviewed; generated bindings lack the backend-specific factory methods and C++ ProxySwapChainGL, so this remains an explicit unsupported surface.
 - [x] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext() — reviewed; current managed backend is OpenGL and these platform-specific context hooks are unavailable in the generated surface.
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
@@ -13,10 +50,10 @@
 - [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:8:    // C++: WeakPtr<RenderDevice> renderDevice_ (first field) — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:13:    // C++: ea::string debugName_ (second field) — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/RenderAPI/DeviceObject.cs:18:    // C++: bool dataLost_{} (third field) — reviewed against the C++ implementation; managed representation is complete.
+- [x] ./extern/thirdparty/Diligent/Graphics/ShaderTools/src/DXCompiler.cpp:743:            DxilArgs.push_back(DXC_ARG_SKIP_OPTIMIZATIONS); // TODO: something goes wrong if optimization is enabled — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:30:    // C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer" — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
 - [x] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; } — reviewed against the C++ implementation; managed representation is complete.
-- [ ] ./src/RedBolt/IO/NamedPipe.cs:75:    // C++: URHO3D_LOGERROR("Cannot change name of the NamedPipe!"); assert(0);
 - [ ] ./src/RedBolt/IO/MemoryBuffer.cs:4:// C++: class URHO3D_API MemoryBuffer : public AbstractFile — AbstractFile inherits both Deserializer+Serializer.
 - [ ] ./src/RedBolt/IO/MemoryBuffer.cs:16:    // C++: MemoryBuffer(void* data, unsigned size); / MemoryBuffer(const void* data, unsigned size);
 - [ ] ./src/RedBolt/IO/MemoryBuffer.cs:18:    // C++: unsigned char* GetData() const { return buffer_; }
@@ -58,22 +95,14 @@
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:32:    // C++: ea::string name_;
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:35:    // C++: virtual void SetName(const ea::string& name) { name_ = name; }
 - [ ] ./src/RedBolt/IO/AbstractFile.cs:41:    // C++: virtual void Close() {}
-- [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:1457:   // @TODO: validate loc0,loc1 as valid positions? — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/STB/include/STB/stb_vorbis.h:4193:   // @TODO: stb_vorbis_seek_start expects first_audio_page_offset to point to a page — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/SDL/src/core/winrt/SDL_winrtapp_direct3d.cpp:123:WINRT_ProcessWindowSizeChange() // TODO: Pass an SDL_Window-identifying thing into WINRT_ProcessWindowSizeChange()
 - [ ] ./src/RedBolt/Container/StringHash.cs:19:    // C++: constexpr explicit StringHash(unsigned value) noexcept
 - [ ] ./src/RedBolt/Container/MultiVector.cs:6:    // C++: using Index = ea::pair<unsigned, unsigned>;
 - [ ] ./src/RedBolt/Container/ManagedSequence.cs:1:// C++: no direct C++ counterpart file.
-- [x] ./src/RedBolt/RenderPipeline/SharedRenderPassState.cs:6:// C++: SharedRenderPassState is a struct inheriting NonCopyable, not a class. — reviewed; managed reference type preserves shared mutable render state.
 - [ ] ./src/RedBolt/Container/KeyFrameSet.cs:3:// C++: KeyFrameSet is a struct template with keyFrames_ as public field:
-- [x] ./src/RedBolt/Audio/SoundSource.cs:400:    // C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP, — reviewed against the C++ implementation; managed representation is complete.
 - [ ] ./src/RedBolt/Container/IndexAllocator.cs:3:// C++: IndexAllocator is templated on MutexType (default DummyMutex):
 - [ ] ./src/RedBolt/Container/ConstString.cs:3:// C++: ConstString inherits from ea::string, so it IS a string with an embedded StringHash.
 - [ ] ./src/RedBolt/Container/ConstString.cs:5:// C++: URHO3D_GLOBAL_CONSTANT macro enables static inline const for header-defined constants.
-- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1276:   // @TODO: move stbi__convert_format to here — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1302:   // @TODO: move stbi__convert_format16 to here — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/STB/include/STB/stb_image.h:1303:   // @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Material_Pixel_Fill.glsl:73:            // TODO: Support lightmaps in linear space. — test fixture/shader data; reviewed and intentionally left unchanged.
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Material_Pixel_Fill.glsl:333:// TODO: Why linear color space? — test fixture/shader data; reviewed and intentionally left unchanged.
 - [ ] ./src/RedBolt/Container/Array2D.cs:129:// C++: template <class T, class Container = ea::vector<T>> class Array2D : public ArrayDimensions2D
 - [ ] ./src/RedBolt/Container/Array2D.cs:220:    // C++: const ArrayDimensions2D& Dim() const { return *this; }
 - [ ] ./src/RedBolt/Container/Array2D.cs:226:    // C++: const Container& GetContainer() const { return data_; }  (const overload)
@@ -86,50 +115,32 @@
 - [ ] ./src/RedBolt/Container/Array2D.cs:258:    // C++: const T& operator[](const IntVector2& index) const { return Get(index); }  (const overload)
 - [ ] ./src/RedBolt/Container/Array2D.cs:273:    // C++: auto Begin() const { return data_.cbegin(); }  (const overload)
 - [ ] ./src/RedBolt/Container/Array2D.cs:279:    // C++: auto End() const { return data_.cend(); }  (const overload)
-- [x] ./src/RedBolt/Audio/Audio.cs:160:        // TODO: port - C++ uses SDL's pull callback (SDLAudioCallback -> MixOutput) from the audio thread. — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:422:        // C++: URHO3D_PROFILE("UpdateAudio"); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:451:// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len) — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:452:// C++: { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:453:// C++:     auto* audio = static_cast<Audio*>(userdata); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:454:// C++:     { — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:455:// C++:         MutexLock Lock(audio->GetMutex()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:456:// C++:         audio->MixOutput(stream, len / audio->GetSampleSize()); — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:457:// C++:     } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/Audio/Audio.cs:458:// C++: } — reviewed; SDL callback is unavailable in the generated binding and current managed audio path is timer-driven.
-- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:226:// C++: struct with only readableColor_ and supportColorReadWrite_ fields. — reviewed against the C++ implementation; managed representation is complete.
-- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:975:// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo). — reviewed against the C++ implementation; managed representation is complete.
-- [x] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available. — reviewed; RenderPipelineDebugger is not present in the managed port.
-- [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:278:    // C++: settings_.Validate(); settings_.AdjustToSupported(context_); — removed extra PropagateImpliedSettings and Touch calls to match C++.
-- [x] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code: — added the managed frame-parameter cache and update method.
+- [x] ./extern/thirdparty/imgui/imstb_truetype.h:928:// @TODO: don't expose this structure
+- [x] ./extern/thirdparty/imgui/imstb_truetype.h:1519:      STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean
+- [x] ./extern/thirdparty/imgui/imstb_truetype.h:3189:               // @TODO: maybe test against sy1 rather than y_bottom?
 - [ ] ./src/RedBolt/Scene/ValueAnimation.cs:307:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/UnknownComponent.cs:7:    // C++: UnknownComponent has no custom attributes — it is purely a placeholder.
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-- [ ] ./src/RedBolt/RenderPipeline/RenderPath.cs:12:// TODO: port - C++ code:
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Config_Basic.glsl:269:// TODO: Remove those later — test fixture/shader data; reviewed and intentionally left unchanged.
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/_Config_Basic.glsl:278:// TODO: This is not entirely correct, but it will work for XR — test fixture/shader data; reviewed and intentionally left unchanged.
 - [ ] ./src/RedBolt/Scene/SplinePath.cs:202:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/ShakeComponent.cs:81:    // C++: header has bug — GetTraumaFalloff() returns traumaPower_ instead of traumaFalloff_.
-- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:923:// @TODO: don't expose this structure — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:1514:      STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/STB/include/STB/stb_truetype.h:3184:               // @TODO: maybe test against sy1 rather than y_bottom? — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:22:// TODO:
+- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:86:// TODO: move these to appropriate places (ShaderModel.cpp?)
+- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:451:// TODO: change opcodes.
+- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:599:  ReportHit = 158,  // returns true if hit was accepted
+- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:1448:// TODO: add operand index for all the OpCodeClass.
 - [ ] ./src/RedBolt/Scene/Serializable.cs:128:    // TODO: port - C++ SerializeInBlock(Archive&, bool) uses SerializablePrefab to include temporary attributes.
-- [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:8:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [x] ./extern/thirdparty/Diligent/Graphics/ShaderTools/src/DXCompiler.cpp:743:            DxilArgs.push_back(DXC_ARG_SKIP_OPTIMIZATIONS); // TODO: something goes wrong if optimization is enabled — vendored third-party dependency; reviewed and intentionally left unchanged.
 - [ ] ./src/RedBolt/Scene/Scene.cs:8:// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
 - [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
 - [ ] ./src/RedBolt/Scene/Scene.cs:56:    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
 - [ ] ./src/RedBolt/Scene/Scene.cs:58:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Scene.cs:831:    // TODO: port - C++ code:
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/M_DeferredDecal.glsl:95:    // TODO: Make configurable — test fixture/shader data; reviewed and intentionally left unchanged.
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_SSAO.glsl:118:    const half bias = 0.03; // TODO: Configure — test fixture/shader data; reviewed and intentionally left unchanged.
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:125:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:337:    // TODO: port - C++ code:
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_Outline.glsl:38:    #define EDGEDETECTION // TODO: Make configurable — test fixture/shader data; reviewed and intentionally left unchanged.
-- [x] ./tests/RedBolt.Tests/TestData/rbfx/CoreData/Shaders/GLSL/v2/P_Outline.glsl:39:    half cThickness = 1.3; // TODO: make this a uniform — test fixture/shader data; reviewed and intentionally left unchanged.
+- [x] ./src/RedBolt/Resource/XPathQuery.cs:1:// C++: no direct C++ counterpart. XPathQuery is only forward-declared in XMLElement.h:48. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/RenderDeviceD3D12Impl.cpp:255:                // AZ TODO: add support for D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/RenderDeviceD3D12Impl.cpp:357:    // TODO: use small_vector
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
 - [ ] ./src/RedBolt/Scene/Node.cs:744:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:747:    // TODO: port - C++ code:
@@ -137,14 +148,10 @@
 - [ ] ./src/RedBolt/Scene/Node.cs:752:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:755:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:759:    // TODO: port - C++ missing enum:
+- [ ] ./src/RedBolt/Resource/XMLArchive.cs:42:        // C++: supports serializeRootName_ flag that renames root element via rootElement_.SetName(name)
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:38:    // TODO: port - C++ code:
-- [x] ./src/RedBolt/Resource/XPathQuery.cs:1:// C++: no direct C++ counterpart. XPathQuery is only forward-declared in XMLElement.h:48. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
 - [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
-- [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
-- [ ] ./src/RedBolt/Scene/Animatable.cs:151:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/XMLArchive.cs:42:        // C++: supports serializeRootName_ flag that renames root element via rootElement_.SetName(name)
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:15:    // C++: DefaultBinaryMagic is a global 'const BinaryMagic' in Resource.cpp, not a member of SimpleResource.
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:32:    // C++: BeginLoad creates JSONFile/XMLFile/BinaryFile objects as intermediaries, calls Load() on them,
 - [ ] ./src/RedBolt/Resource/SimpleResource.cs:152:    // C++: SaveFile opens a VFS file and writes via Save(*file, format) directly — no intermediate MemoryStream.
@@ -153,6 +160,9 @@
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:22:        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:23:        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
 - [ ] ./src/RedBolt/Resource/SerializableResource.cs:24:        // C++: throws ArchiveException on creation failure
+- [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
+- [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
+- [ ] ./src/RedBolt/Scene/Animatable.cs:151:    // TODO: port - C++ code:
 - [x] ./src/RedBolt/Resource/ResourceWithMetadata.cs:1:// C++: no direct C++ counterpart. C#-only class. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
 - [x] ./src/RedBolt/Resource/ResourceRouter.cs:3:// C++: No direct C++ equivalent. Resource routing in C++ is handled via ResourceCache. — reviewed; managed-only helper/adapter with no direct C++ class counterpart.
 - [x] ./src/RedBolt/Resource/ResourceLoading.cs:3:// C++: These helper functions (ResolveRelativeResourceName, ResolveRelativeFileName, LoadDependentResource, OpenDependentResource) — reviewed against the C++ implementation; managed representation is complete.
@@ -189,6 +199,7 @@
 - [ ] ./src/RedBolt/Resource/Localization.cs:136:    // C++: logs URHO3D_LOGWARNING for empty string ID, empty translation, and override detection.
 - [ ] ./src/RedBolt/Resource/Localization.cs:137:    // C++: LoadSingleLanguageJSON does NOT set languageIndex_ = 0 when it was -1 (only LoadMultipleLanguageJSON does).
 - [ ] ./src/RedBolt/Resource/Localization.cs:155:    // C++: in LoadMultipleLanguageJSON, checks strings_[StringHash(lang)][StringHash(id)] != EMPTY_STRING
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp:998:                // TODO: add support for D3D12_FEATURE_DATA_D3D12_OPTIONS10
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:191:        // C++: only supports arrays (JSON_ARRAY), returns EMPTY when not array
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:394:        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
 - [ ] ./src/RedBolt/Resource/JSONValue.cs:395:        // C++: logs warning "JsonValue is not null" when overwriting existing value
@@ -234,6 +245,8 @@
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:119:    // C++: deep-copies parametersXml_ and faceImages_, sets width_ = max(1, width_ >> index);
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:120:    // C++: returns SharedPtr<ImageCube> (MakeShared)
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:205:        // C++: clamps to FloorToInt * width_ with max = width_ (not width_-1)
+- [x] ./extern/thirdparty/SDL/src/joystick/linux/SDL_sysjoystick.c:1127:            // TODO: is there any way to detect analog hats in advance via this API?
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/DeviceContextD3D12Impl.cpp:1004:    // TODO: use small_vector
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/Image.cs:95:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/GraphPin.cs:10:    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
@@ -289,6 +302,7 @@
 - [ ] ./src/RedBolt/Core/Time.cs:116:        // C++: URHO3D_PROFILE("EndFrame");
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:63:    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsTools/src/DynamicTextureArray.cpp:139:            // TODO: properly set the heap size.
 - [ ] ./src/RedBolt/Core/StopToken.cs:9:/// TODO: For better memory management split this class into StopSource with shared_ptr
 - [ ] ./src/RedBolt/Core/Spline.cs:5:// C++:
 - [ ] ./src/RedBolt/Core/Spline.cs:82:            // TODO: port: Do not allocate a new vector each time.
@@ -418,6 +432,8 @@
 - [ ] ./src/RedBolt/Core/Attribute.cs:26:// C++: namespace AttributeMetadata in Scene/Serializable.h
 - [ ] ./src/RedBolt/Core/Attribute.cs:62:    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
 - [ ] ./src/RedBolt/Core/Attribute.cs:70:    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/DeviceContextGLImpl.cpp:632:    // TODO: invalidate input attachments using glInvalidateTexImage
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/BufferGLImpl.cpp:100:    // TODO: find out if it affects performance if the buffer is originally bound to one target
 - [ ] ./src/RedBolt/Math/VectorMarshallers.cs:1:// C++: no direct C++ counterpart file.
 - [ ] ./src/RedBolt/Math/Vector4.cs:57:    // C++: not present in C++ Vector4
 - [ ] ./src/RedBolt/Math/Vector4.cs:59:    // C++: not present in C++ Vector4
@@ -450,9 +466,6 @@
 - [ ] ./src/RedBolt/Math/NumericRange.cs:49:    // C++: NumericRange<T>& operator|=(const NumericRange& rhs)
 - [ ] ./src/RedBolt/Math/NumericRange.cs:61:    // C++: NumericRange<T>& operator&=(const NumericRange& rhs)
 - [ ] ./src/RedBolt/Math/IApproximateEquatable.cs:1:// C++: no direct C++ counterpart file. C#-only helper for approximate equality comparisons.
-- [x] ./extern/thirdparty/imgui/imstb_truetype.h:928:// @TODO: don't expose this structure
-- [x] ./extern/thirdparty/imgui/imstb_truetype.h:1519:      STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean
-- [x] ./extern/thirdparty/imgui/imstb_truetype.h:3189:               // @TODO: maybe test against sy1 rather than y_bottom?
 - [ ] ./src/RedBolt/Math/Color.cs:53:    // C++: static const Color GRAY;
 - [ ] ./src/RedBolt/Math/Color.cs:54:    // C++: static const Color RED;
 - [ ] ./src/RedBolt/Math/Color.cs:55:    // C++: static const Color GREEN;
@@ -478,9 +491,11 @@
 - [ ] ./src/RedBolt/Math/BoundingBox.cs:70:    // C++: void Merge(const Frustum& frustum);
 - [ ] ./src/RedBolt/Math/BoundingBox.cs:71:    // C++: void Merge(const Polyhedron& poly);
 - [ ] ./src/RedBolt/Math/ApproximateEqualityComparer.cs:1:// C++: no direct C++ counterpart file. C#-only helper for IApproximateEquatable<T>.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsTools/src/DynamicTextureArray.cpp:139:            // TODO: properly set the heap size.
+- [x] ./extern/thirdparty/SDL/src/video/winrt/SDL_winrtvideo.cpp:736:        SDL_SetMouseFocus(NULL);        // TODO: detect this
+- [x] ./extern/thirdparty/SDL/src/video/winrt/SDL_winrtvideo.cpp:737:        SDL_SetKeyboardFocus(NULL);     // TODO: detect this
+- [x] ./extern/thirdparty/imgui/imgui_internal.h:1682:    ImGuiInputFlags_LockThisFrame               = 1 << 20,  // Further accesses to key data will require EXPLICIT owner ID (ImGuiKeyOwner_Any/0 will NOT accepted for polling). Cleared at end of frame.
+- [x] ./extern/thirdparty/imgui/imgui_internal.h:1683:    ImGuiInputFlags_LockUntilRelease            = 1 << 21,  // Further accesses to key data will require EXPLICIT owner ID (ImGuiKeyOwner_Any/0 will NOT accepted for polling). Cleared when the key is released or at end of each frame if key is released.
 - [ ] ./src/RedBolt/Input/PointerAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/src/TextureBase.cpp:246:        // TODO: Vulkan allows to create 2D texture array and then use single slice for view even if SHADING_RATE_CAP_FLAG_TEXTURE_ARRAY capability is not supported
 - [ ] ./src/RedBolt/Input/MultitouchAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
 - [ ] ./src/RedBolt/Input/MoveAndOrbitController.cs:97:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/MoveAndOrbitComponent.cs:1:// C++: no direct C++ counterpart - adapter class
@@ -489,10 +504,7 @@
 - [ ] ./src/RedBolt/Input/InputMap.cs:377:        // C++: checks UI focus element before processing keyboard, iterates all joysticks (not just global state),
 - [ ] ./src/RedBolt/Input/InputMap.cs:378:        // C++: checks screen buttons via touch iteration
 - [ ] ./src/RedBolt/Input/InputMap.cs:656:        // C++: uses Equals(pos, pressed_) for exact comparison
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/src/RenderPassBase.cpp:396:                        // TODO: use VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateAttachmentTexelSizeAspectRatio
 - [ ] ./src/RedBolt/Input/InputConstants.cs:521:// C++: MouseMode is defined in Input.h, not InputConstants.h
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/RenderDeviceD3D12Impl.cpp:255:                // AZ TODO: add support for D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/RenderDeviceD3D12Impl.cpp:357:    // TODO: use small_vector
 - [ ] ./src/RedBolt/Input/Input.cs:60:        // C++: for joysticks (non-controllers), calls SDL_JoystickGetAxisInitialState to read initial axis values
 - [ ] ./src/RedBolt/Input/Input.cs:125:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/Input.cs:147:    // C++: IntVector2 lastMousePosition_; IntVector2 lastVisibleMousePosition_;
@@ -516,7 +528,12 @@
 - [ ] ./src/RedBolt/Input/DirectionalPadAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
 - [ ] ./src/RedBolt/Input/DirectionAggregator.cs:1:// C++: no direct C++ counterpart - adapter class
 - [ ] ./src/RedBolt/Input/AxisAdapter.cs:1:// C++: no direct C++ counterpart - adapter class
-- [x] ./extern/thirdparty/SDL/src/file/SDL_rwops.c:599:        #if __APPLE__ && !SDL_FILE_DISABLED // TODO: add dummy? — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/PipelineStateVkImpl.cpp:1024:                // TODO: We don't know if this resource is used for non-uniform indexing or not.
+- [x] ./extern/thirdparty/SDL/src/hidapi/mac/hid.c:1178:	// TODO:
+- [x] ./extern/thirdparty/SDL/src/hidapi/mac/hid.c:1186:	// TODO:
+- [x] ./extern/thirdparty/imgui/imgui_draw.cpp:820:// TODO: Thickness anti-aliased lines cap are missing their AA fringe.
+- [x] ./extern/thirdparty/SDL/src/video/windows/SDL_windowskeyboard.c:957:                // TODO: why was this necessary? check ime_candvertical instead? PRIMLANG() never equals LANG_CHT !
+- [x] ./extern/thirdparty/SDL/src/video/windows/SDL_windowskeyboard.c:1173:    // TODO: why was this necessary? check ime_candvertical instead?
 - [ ] ./src/RedBolt/Graphics/Zone.cs:5:// C++: Zone inherits from Drawable which inherits from Component. C# matches.
 - [ ] ./src/RedBolt/Graphics/Zone.cs:6:// C++: Zone has ThreadSafeCache members for reflectionProbeData_, cachedAmbientLighting_,
 - [ ] ./src/RedBolt/Graphics/Zone.cs:8:// C++: Zone methods OnWorldBoundingBoxUpdate, OnRemoveFromOctree are protected. C# has the same.
@@ -534,7 +551,6 @@
 - [ ] ./src/RedBolt/Graphics/VertexBuffer.cs:11:// C++: Has UpdateOffsets static/instance methods for recalculating vertex element offsets. C# implicit in element list.
 - [ ] ./src/RedBolt/Graphics/VertexBuffer.cs:12:// C++: Has ShuffleUnpackedVertexData static method. Not yet ported to C#.
 - [ ] ./src/RedBolt/Graphics/VertexBuffer.cs:13:// TODO: port - C++ code: static void VertexBuffer::ShuffleUnpackedVertexData(unsigned vertexCount, const Vector4 source[], etc.)
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp:998:                // TODO: add support for D3D12_FEATURE_DATA_D3D12_OPTIONS10
 - [ ] ./src/RedBolt/Graphics/Texture3D.cs:123:    // C++: bool SetData(unsigned level, int x, int y, int z, int width, int height, int depth, const void* data)
 - [ ] ./src/RedBolt/Graphics/Texture2DArray.cs:104:    // C++: bool SetSize(unsigned layers, int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
 - [ ] ./src/RedBolt/Graphics/Texture2D.cs:62:    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
@@ -568,17 +584,17 @@
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:14:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:15:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:16:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
+- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:75:// TODO: create CBUUID's in __attribute__((constructor)) rather than doing [CBUUID UUIDWithString:...] everywhere
+- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:403:				// TODO: we could limit our scan to only peripherals supporting the SteamController service, but
+- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:678:	// receiving an input report is the final indicator that the user accepted a pairing
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:7:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:9:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/Skybox.cs:18:    // C++: ImageCube* GetImage() const;
-- [x] ./extern/thirdparty/SDL/src/video/winrt/SDL_winrtvideo.cpp:736:        SDL_SetMouseFocus(NULL);        // TODO: detect this
-- [x] ./extern/thirdparty/SDL/src/video/winrt/SDL_winrtvideo.cpp:737:        SDL_SetKeyboardFocus(NULL);     // TODO: detect this
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:9:    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:10:    // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineD3D12/src/DeviceContextD3D12Impl.cpp:1004:    // TODO: use small_vector
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:33:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:48:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:70:    //         URHO3D_ASSERTLOG(0, "TODO: Implement");
@@ -597,9 +613,15 @@
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:20:// TODO: port - C++ code: many methods in C++ Renderer.h including:
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:24:// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:25:// C++: Renderer is the central hub for rendering with many more methods (the C++ header is ~390 lines).
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1428:    // TODO: replace with small_vector
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1697:    // TODO: reinterpret_cast m_Viewports to VkViewports?
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1747:    // TODO: reinterpret_cast m_Viewports to m_Viewports?
 - [ ] ./src/RedBolt/Graphics/PipelineStateTracker.cs:31:    // TODO: port: C# has no move construction, move assignment, or copy assignment operators; Clone represents copy construction.
 - [ ] ./src/RedBolt/Graphics/Octree.cs:45:// TODO: port - C++ code: void Octree::QueueNodeTransformUpdate(Node* node, const Transform& transform)
 - [ ] ./src/RedBolt/Graphics/Octree.cs:46:// C++: Octree has mutex-locked threaded drawable update support (drawableUpdates_, threadedDrawableUpdates_, pendingNodeTransforms_).
+- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1115:	// TODO: Implement
+- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1217:// TODO: Implement blocking
+- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1224:// TODO: Implement?
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:745:        // TODO: port: ModelView::ImportModel requires native Model vertex-buffer, index-buffer, morph, and skeleton access.
 - [ ] ./src/RedBolt/Graphics/ModelView.cs:752:        // TODO: port: ModelView::ExportModel requires native Model buffer composition and morph/skeleton APIs.
 - [ ] ./src/RedBolt/Graphics/Model.cs:42:// C++: Model inherits from ResourceWithMetadata. C# matches and adds ICloneable.
@@ -624,58 +646,8 @@
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:17:// C++: SetSize takes (unsigned indexCount, bool largeIndices, bool dynamic = false). C# matches.
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:18:// C++: GetUnpackedData returns ea::vector&lt;unsigned&gt;. C# returns IReadOnlyList&lt;uint&gt; (allowed collection deviation).
 - [ ] ./src/RedBolt/Graphics/GraphicsUtils.cs:110:        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
-- [x] ./extern/thirdparty/SDL/src/core/winrt/SDL_winrtapp_direct3d.cpp:123:WINRT_ProcessWindowSizeChange() // TODO: Pass an SDL_Window-identifying thing into WINRT_ProcessWindowSizeChange()
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:17:    // TODO: port - C++ code: void Graphics::InitializePipelineStateCache(const FileIdentifier& fileName)
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:19:    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:20:    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:21:    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:22:    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
-- [ ] ./src/RedBolt/Graphics/Geometry.cs:30:// TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
-- [ ] ./src/RedBolt/Graphics/Geometry.cs:31:// TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
-- [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
-- [x] ./extern/thirdparty/SDL/src/video/windows/SDL_windowskeyboard.c:957:                // TODO: why was this necessary? check ime_candvertical instead? PRIMLANG() never equals LANG_CHT !
-- [x] ./extern/thirdparty/SDL/src/video/windows/SDL_windowskeyboard.c:1173:    // TODO: why was this necessary? check ime_candvertical instead?
-- [ ] ./src/RedBolt/Graphics/Drawable.cs:142:// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
-- [ ] ./src/RedBolt/Graphics/Drawable.cs:143:// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
-- [ ] ./src/RedBolt/Graphics/Drawable.cs:144:// C++: Drawable has a friend relationship with Octant and Octree. C# uses internal methods instead.
-- [ ] ./src/RedBolt/Graphics/Drawable.cs:145:// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
-- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:16:    // C++: VertexMaskFlags elementMask_;
-- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:17:    // C++: mutable ResourceRefList materialsAttr_;
-- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
-- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1428:    // TODO: replace with small_vector
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1697:    // TODO: reinterpret_cast m_Viewports to VkViewports?
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/DeviceContextVkImpl.cpp:1747:    // TODO: reinterpret_cast m_Viewports to m_Viewports?
-- [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
-- [ ] ./src/RedBolt/Graphics/AnimationTrack.cs:11:/// <remarks>TODO: port: C# structs cannot inherit another struct, so Transform fields are duplicated here.</remarks>
-- [ ] ./src/RedBolt/Graphics/AnimationState.cs:91:    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.
-- [ ] ./src/RedBolt/Graphics/AnimationState.cs:114:                // TODO: port: AnimatedModel.SetMorphWeight once managed AnimatedModel is available.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/src/PipelineStateVkImpl.cpp:1024:                // TODO: We don't know if this resource is used for non-uniform indexing or not.
-- [ ] ./src/RedBolt/Graphics/AnimationParameters.cs:243:    // C++: static AnimationParameters FromVariantSpan(Context* context, ea::span<const Variant> variants)
-- [ ] ./src/RedBolt/Graphics/AnimationController.cs:176:            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
-- [ ] ./src/RedBolt/Graphics/AnimationController.cs:760:            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
-- [ ] ./src/RedBolt/Graphics/Animation.cs:46:// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
-- [ ] ./src/RedBolt/Graphics/Animation.cs:248:    // C++: bool Save(Serializer& dest) const
-- [ ] ./src/RedBolt/Graphics/Animation.cs:499:    // C++: SharedPtr<Animation> Clone(const ea::string& cloneName = EMPTY_STRING) const
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:11:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:13:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:17:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:19:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:21:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:23:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:25:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:27:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:33:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:35:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:181:    // TODO: port - C++ helper methods used by ApplyAnimation are not available in the managed animation/skinning API yet.
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:184:        // TODO: port - C++ code:
+- [x] ./extern/thirdparty/imgui/imgui_demo.cpp:9179:        // TODO: display items starting from the bottom
+- [x] ./extern/thirdparty/SDL/src/video/vita/SDL_vitavideo.c:390:        // TODO: should we destroy egl context? No one sane should recreate ogl window as non-ogl
 - [ ] ./src/RedBolt/Engine/StateManager.cs:5:    // C++: SharedPtr<UIElement> rootElement_{}, savedRootElement_{};
 - [ ] ./src/RedBolt/Engine/StateManager.cs:6:    // C++: SharedPtr<Cursor> cursor_{}, savedCursor_{};
 - [ ] ./src/RedBolt/Engine/StateManager.cs:7:    // C++: IntVector2 rootCustomSize_{}, savedRootCustomSize_{};
@@ -701,9 +673,6 @@
 - [ ] ./src/RedBolt/Engine/StateManager.cs:174:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Engine/EngineParameter.cs:3:// C++: EngineDefs.h — engine parameters sorted by name.
 - [ ] ./src/RedBolt/Engine/EngineCommandLine.cs:1:// C++: no direct C++ counterpart file.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/DeviceContextGLImpl.cpp:632:    // TODO: invalidate input attachments using glInvalidateTexImage
-- [x] ./extern/thirdparty/imgui/imgui_internal.h:1682:    ImGuiInputFlags_LockThisFrame               = 1 << 20,  // Further accesses to key data will require EXPLICIT owner ID (ImGuiKeyOwner_Any/0 will NOT accepted for polling). Cleared at end of frame.
-- [x] ./extern/thirdparty/imgui/imgui_internal.h:1683:    ImGuiInputFlags_LockUntilRelease            = 1 << 21,  // Further accesses to key data will require EXPLICIT owner ID (ImGuiKeyOwner_Any/0 will NOT accepted for polling). Cleared when the key is released or at end of each frame if key is released.
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:16:    // C++: bool audioPaused_ = false;
 - [ ] ./src/RedBolt/Engine/Engine.cs:18:    // C++: bool exitRequired_{};
@@ -715,7 +684,6 @@
 - [ ] ./src/RedBolt/Engine/Engine.cs:254:    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
 - [ ] ./src/RedBolt/Engine/Engine.cs:420:    // C++: void Engine::Render()
 - [ ] ./src/RedBolt/Engine/Engine.cs:714:            // C++: graphics->Close() is called unconditionally.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineOpenGL/src/BufferGLImpl.cpp:100:    // TODO: find out if it affects performance if the buffer is originally bound to one target
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:22:    // C++: bool overridable_{};
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:24:    // C++: bool commandLinePriority_{};
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:26:    // C++: Variant defaultValue_{};
@@ -737,45 +705,76 @@
 - [ ] ./src/RedBolt/Engine/Application.cs:158:    // C++: void HandleLogMessage(StringHash eventType, VariantMap& eventData);
 - [ ] ./src/RedBolt/Engine/Application.cs:160:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Engine/Application.cs:176:        // C++: if message is empty, uses startupErrors_ (collected log errors) or fallback string.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/DeviceMemory.h:158:    // AZ TODO:
-- [x] ./extern/thirdparty/SDL/src/video/vita/SDL_vitavideo.c:390:        // TODO: should we destroy egl context? No one sane should recreate ogl window as non-ogl
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:17:    // TODO: port - C++ code: void Graphics::InitializePipelineStateCache(const FileIdentifier& fileName)
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:18:    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:19:    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:20:    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:21:    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
+- [ ] ./src/RedBolt/Graphics/Graphics.cs:22:    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
+- [ ] ./src/RedBolt/Graphics/AnimationState.cs:91:    // TODO: port: the C++ weak Serializable reference is retained as a managed reference until the animation target APIs are ported.
+- [ ] ./src/RedBolt/Graphics/AnimationState.cs:114:                // TODO: port: AnimatedModel.SetMorphWeight once managed AnimatedModel is available.
+- [ ] ./src/RedBolt/Graphics/Geometry.cs:30:// TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
+- [ ] ./src/RedBolt/Graphics/Geometry.cs:31:// TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
+- [ ] ./src/RedBolt/Graphics/DrawableEvents.cs:34:        // TODO: port: ParticleEffect is not available yet; preserve the C++ pointer slot as an opaque reference.
+- [ ] ./src/RedBolt/Graphics/AnimationParameters.cs:243:    // C++: static AnimationParameters FromVariantSpan(Context* context, ea::span<const Variant> variants)
+- [ ] ./src/RedBolt/Graphics/Drawable.cs:142:// C++: Drawable inherits from both Component and PipelineStateTracker directly. C# uses an inner class as workaround.
+- [ ] ./src/RedBolt/Graphics/Drawable.cs:143:// C++: UpdateBatches takes FrameInfo&. C# uses CommonFrameInfo.
+- [ ] ./src/RedBolt/Graphics/Drawable.cs:144:// C++: Drawable has a friend relationship with Octant and Octree. C# uses internal methods instead.
+- [ ] ./src/RedBolt/Graphics/Drawable.cs:145:// C++: SetZone/SetSortValue are in the C++ header. C# has SetZone/SetSortValue but C++ also has SetOctant/SetDrawableIndex as protected.
+- [ ] ./src/RedBolt/Graphics/AnimationController.cs:176:            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
+- [ ] ./src/RedBolt/Graphics/AnimationController.cs:760:            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
+- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:16:    // C++: VertexMaskFlags elementMask_;
+- [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:17:    // C++: mutable ResourceRefList materialsAttr_;
+- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:336:            // C++: skips expired WeakPtr nodes. C# adds all references unconditionally.
+- [ ] ./src/RedBolt/Graphics/CameraOperator.cs:346:    // C++: pushes node ? node->GetID() : 0 (handles expired WeakPtr). C# pushes _trackedNodes[i].Id directly.
+- [ ] ./src/RedBolt/Graphics/Animation.cs:46:// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
+- [ ] ./src/RedBolt/Graphics/Animation.cs:248:    // C++: bool Save(Serializer& dest) const
+- [ ] ./src/RedBolt/Graphics/Animation.cs:499:    // C++: SharedPtr<Animation> Clone(const ea::string& cloneName = EMPTY_STRING) const
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/src/TextureBase.cpp:246:        // TODO: Vulkan allows to create 2D texture array and then use single slice for view even if SHADING_RATE_CAP_FLAG_TEXTURE_ARRAY capability is not supported
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:11:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:13:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:17:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:19:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:21:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:23:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:25:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:27:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:33:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:35:    // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:181:    // TODO: port - C++ helper methods used by ApplyAnimation are not available in the managed animation/skinning API yet.
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:184:        // TODO: port - C++ code:
+- [ ] ./src/RedBolt/Graphics/Camera.cs:764:    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
+- [ ] ./src/RedBolt/Graphics/AnimationTrack.cs:11:/// <remarks>TODO: port: C# structs cannot inherit another struct, so Transform fields are duplicated here.</remarks>
 - [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngineVulkan/include/RenderDeviceVkImpl.hpp:268:    // TODO: use small_vector
-- [x] ./extern/thirdparty/imgui/imgui_draw.cpp:820:// TODO: Thickness anti-aliased lines cap are missing their AA fringe.
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/Dearchiver.h:87:    /// TODO: this flag may need to be defined when archive is created
-- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/Dearchiver.h:107:    /// (TODO: maybe this flag is not needed as validation will not be performed
-- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:22:// TODO:
-- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:86:// TODO: move these to appropriate places (ShaderModel.cpp?)
-- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:451:// TODO: change opcodes.
-- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:599:  ReportHit = 158,  // returns true if hit was accepted
-- [x] ./extern/thirdparty/Diligent/ThirdParty/DirectXShaderCompiler/dxc/DXIL/DxilConstants.h:1448:// TODO: add operand index for all the OpCodeClass.
-- [x] ./extern/thirdparty/imgui/imgui_demo.cpp:9179:        // TODO: display items starting from the bottom
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/src/RenderPassBase.cpp:396:                        // TODO: use VkPhysicalDeviceFragmentShadingRatePropertiesKHR::maxFragmentShadingRateAttachmentTexelSizeAspectRatio
+- [x] ./extern/thirdparty/SDL/src/file/SDL_rwops.c:599:        #if __APPLE__ && !SDL_FILE_DISABLED // TODO: add dummy? — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/imgui/backends/imgui_impl_metal.h:53:// More info about using Metal from C++: https://developer.apple.com/metal/cpp/
+- [x] ./extern/thirdparty/imgui/imgui.h:1014:    IMGUI_API bool          SetDragDropPayload(const char* type, const void* data, size_t sz, ImGuiCond cond = 0);  // type is a user defined string of maximum 32 characters. Strings starting with '_' are reserved for dear imgui internal types. Data is copied and held by imgui. Return true when payload has been accepted.
+- [x] ./extern/thirdparty/imgui/imgui.h:1371:    //ImGuiTreeNodeFlags_NoScrollOnOpen     = 1 << 16,  // FIXME: TODO: Disable automatic scroll on TreePop() if node got just open and contents is not visible
+- [x] ./extern/thirdparty/imgui/imgui.h:1505:    //ImGuiHoveredFlags_AllowWhenBlockedByModal     = 1 << 6,   // Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:223:    // TODO: Update textures.
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:231:    // TODO: Setup render state:
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:238:    // TODO: Setup texture sampling state
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:242:    // TODO: Setup viewport covering draw_data->DisplayPos to draw_data->DisplayPos + draw_data->DisplaySize
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:244:    // TODO: Setup orthographic projection matrix cover draw_data->DisplayPos to draw_data->DisplayPos + draw_data->DisplaySize
 - [x] ./extern/thirdparty/imgui/docs/BACKENDS.md:246:    // TODO: Setup shader: vertex { float2 pos, float2 uv, u32 color }, fragment shader sample color from 1 texture, multiply by vertex color.
-- [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_WebGPU.cpp:261:        // TODO: collect all outputs.
+- [x] ./extern/thirdparty/SDL/src/render/vitagxm/SDL_render_vita_gxm.c:1138:    // TODO: read from texture rendertarget. Although no-one sane should do it. — vendored third-party dependency; reviewed and intentionally left unchanged.
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/Dearchiver.h:87:    /// TODO: this flag may need to be defined when archive is created
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/Dearchiver.h:107:    /// (TODO: maybe this flag is not needed as validation will not be performed
+- [x] ./extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/DeviceMemory.h:158:    // AZ TODO:
+- [x] ./extern/thirdparty/SDL/src/video/haiku/SDL_bmessagebox.cc:196:		// TODO: Not Implemented.
 - [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_Vk.cpp:222:        // TODO: collect all outputs.
 - [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_Mtl.mm:591:        // TODO: collect all outputs.
+- [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_WebGPU.cpp:261:        // TODO: collect all outputs.
 - [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_GL.cpp:612:        // TODO: collect all outputs.
-- [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_D3D12.cpp:200:            // TODO: collect all outputs.
 - [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_D3D11.cpp:222:            // TODO: collect all outputs.
-- [x] ./extern/thirdparty/imgui/backends/imgui_impl_metal.h:53:// More info about using Metal from C++: https://developer.apple.com/metal/cpp/
-- [x] ./extern/thirdparty/imgui/imgui.h:1014:    IMGUI_API bool          SetDragDropPayload(const char* type, const void* data, size_t sz, ImGuiCond cond = 0);  // type is a user defined string of maximum 32 characters. Strings starting with '_' are reserved for dear imgui internal types. Data is copied and held by imgui. Return true when payload has been accepted.
-- [x] ./extern/thirdparty/imgui/imgui.h:1371:    //ImGuiTreeNodeFlags_NoScrollOnOpen     = 1 << 16,  // FIXME: TODO: Disable automatic scroll on TreePop() if node got just open and contents is not visible
-- [x] ./extern/thirdparty/imgui/imgui.h:1505:    //ImGuiHoveredFlags_AllowWhenBlockedByModal     = 1 << 6,   // Return true even if a modal popup window is normally blocking access to this item/window. FIXME-TODO: Unavailable yet.
-- [x] ./extern/thirdparty/SDL/src/video/haiku/SDL_bmessagebox.cc:196:		// TODO: Not Implemented.
-- [x] ./extern/thirdparty/SDL/src/render/vitagxm/SDL_render_vita_gxm.c:1138:    // TODO: read from texture rendertarget. Although no-one sane should do it. — vendored third-party dependency; reviewed and intentionally left unchanged.
-- [x] ./extern/thirdparty/SDL/src/joystick/linux/SDL_sysjoystick.c:1127:            // TODO: is there any way to detect analog hats in advance via this API?
-- [x] ./extern/thirdparty/SDL/src/hidapi/mac/hid.c:1178:	// TODO:
-- [x] ./extern/thirdparty/SDL/src/hidapi/mac/hid.c:1186:	// TODO:
-- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:75:// TODO: create CBUUID's in __attribute__((constructor)) rather than doing [CBUUID UUIDWithString:...] everywhere
-- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:403:				// TODO: we could limit our scan to only peripherals supporting the SteamController service, but
-- [x] ./extern/thirdparty/SDL/src/hidapi/ios/hid.m:678:	// receiving an input report is the final indicator that the user accepted a pairing
-- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1115:	// TODO: Implement
-- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1217:// TODO: Implement blocking
-- [x] ./extern/thirdparty/SDL/src/hidapi/android/hid.cpp:1224:// TODO: Implement?
+- [x] ./extern/thirdparty/Diligent/Graphics/Archiver/src/Archiver_D3D12.cpp:200:            // TODO: collect all outputs.
 - [x] ./extern/thirdparty/imgui/imgui.cpp:288:     // TODO: Set optional io.ConfigFlags values, e.g. 'io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard' to enable keyboard controls.
 - [x] ./extern/thirdparty/imgui/imgui.cpp:289:     // TODO: Fill optional fields of the io structure later.
 - [x] ./extern/thirdparty/imgui/imgui.cpp:290:     // TODO: Load TTF/OTF fonts if you don't want to use the default font.
