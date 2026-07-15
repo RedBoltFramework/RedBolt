@@ -108,9 +108,6 @@
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:128:// C++:   ea::string ToString() override; void Serialize(...) override;
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:48:    // C++: virtual T* GetValuePtr() / const T* GetValuePtr() const — missing
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
-- [ ] ./src/RedBolt/Core/Attribute.cs:26:// C++: namespace AttributeMetadata in Scene/Serializable.h
-- [ ] ./src/RedBolt/Core/Attribute.cs:62:    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
-- [ ] ./src/RedBolt/Core/Attribute.cs:70:    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
 - [ ] ./src/RedBolt/Scene/Node.cs:744:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Node.cs:747:    // TODO: port - C++ code:

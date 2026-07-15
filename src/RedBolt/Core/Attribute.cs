@@ -23,7 +23,6 @@ public enum AttributeScopeHint
     Scene
 }
 
-// C++: namespace AttributeMetadata in Scene/Serializable.h
 public static class AttributeMetadata
 {
     /// Names of vector struct elements. StringVector.
@@ -59,7 +58,6 @@ public abstract class AttributeAccessor
     /// </summary>
     public abstract void Set(Serializable ptr, Variant src);
 
-    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
     public virtual object? GetObject(Serializable ptr)
     {
         var result = default(Variant);
@@ -67,7 +65,6 @@ public abstract class AttributeAccessor
         return result.GetObject();
     }
 
-    // C++: not in C++ AttributeAccessor; C# delegate-based adaptation
     public virtual void SetObject(Serializable ptr, object? src) => Set(ptr, Variant.FromObject(src));
 }
 
