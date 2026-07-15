@@ -1,6 +1,5 @@
 namespace RedBolt;
 
-// C++: EngineDefs.h — engine parameters sorted by name.
 // Keep sorted when adding new elements.
 public static class EngineParameter
 {
