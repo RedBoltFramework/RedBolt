@@ -231,7 +231,6 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     /// <summary>
     /// Return element by index or null if out of bounds.
     /// </summary>
-    // TODO: port - C++ returns pointer (T*), C# returns nullable value (T?)
     public T? GetOptional(Vector2i index) => Contains(index) ? _data[checked((int)IndexToOffset(index))] : default;
 
     /// <summary>
