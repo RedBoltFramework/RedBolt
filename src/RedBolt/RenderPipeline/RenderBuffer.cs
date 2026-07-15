@@ -5,10 +5,6 @@ namespace RedBolt;
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.
 /// </summary>
-// TODO: port - C++ code:
-// C++ RenderBuffer inherits from Object and takes RenderPipelineInterface* in constructor.
-// C++ has virtual OnRenderBegin(const CommonFrameInfo&) and OnRenderEnd(const CommonFrameInfo&) callbacks.
-// C++ subscribes to renderPipeline->OnRenderBegin and OnRenderEnd in constructor.
 public abstract class RenderBuffer
 {
     protected bool _bufferIsReady;
@@ -32,6 +28,14 @@ public abstract class RenderBuffer
         }
 
         return true;
+    }
+
+    public virtual void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+    }
+
+    public virtual void OnRenderEnd(CommonFrameInfo frameInfo)
+    {
     }
 
     /// <summary>

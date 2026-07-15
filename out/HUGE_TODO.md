@@ -1,7 +1,6 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:8:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Resource/ResourceCache.cs:490:    // C++: delegates to VFS GetCanonicalIdentifier; this has custom path normalisation logic
 - [ ] ./src/RedBolt/Resource/ResourceCache.cs:602:        // C++: sends E_RELOADSTARTED event, calls resource.Load(*file), sends E_RELOADFINISHED or E_RELOADFAILED

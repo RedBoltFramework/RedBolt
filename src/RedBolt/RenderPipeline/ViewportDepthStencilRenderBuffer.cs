@@ -19,7 +19,7 @@ public sealed class ViewportDepthStencilRenderBuffer : RenderBuffer
         _bufferIsReady = true;
     }
 
-    public void OnRenderEnd(CommonFrameInfo frameInfo)
+    public override void OnRenderEnd(CommonFrameInfo frameInfo)
     {
         _bufferIsReady = false;
     }
