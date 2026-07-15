@@ -99,6 +99,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Timer.h` — `Time` frame-progress state, lifecycle disposal, and context reflection attribute access ported
 - [x] `ProcessUtils.h` — console output and command-line argument parsing ported; platform-only dialog/FPU/console-input hooks remain pending
 - [x] `Variant.h` — mutable reset, buffer/custom assignment, mutating string conversion, and hash API ported
+- [x] `Serializable.h` — reflection access and binary/XML/JSON/auto-detected resource loading ported; prefab temporary-serialization overload remains pending
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
 
 ## [x] A4. IO — depends on Container, Core

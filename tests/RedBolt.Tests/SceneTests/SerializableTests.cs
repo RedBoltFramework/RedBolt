@@ -55,6 +55,26 @@ public sealed class SerializableTests
         Assert.Equal("clone", clone.Label);
     }
 
+    [Fact]
+    public void Serializable_exposes_registered_reflection()
+    {
+        var previous = Context.Instance;
+        var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            var reflection = context.Reflect<TestSerializable>();
+            var serializable = new TestSerializable();
+
+            Assert.Same(reflection, serializable.GetReflection());
+            Assert.Equal(2u, serializable.GetNumAttributes());
+        }
+        finally
+        {
+            Context.SetInstance(previous);
+        }
+    }
+
     private static void AssertValues(TestSerializable value)
     {
         Assert.Equal(42, value.Number);

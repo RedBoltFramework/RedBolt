@@ -13,15 +13,11 @@ public abstract class Serializable : Object
 
     public uint NumAttributes => (uint)_attributes.Count;
 
-    // TODO: port - C++ code:
-    // virtual bool Load(const ea::string& resourceName);     // Load from binary resource file
-    // virtual bool LoadXML(const ea::string& resourceName);   // Load from XML resource file
-    // virtual bool LoadJSON(const ea::string& resourceName);   // Load from JSON resource file
-    // virtual bool LoadFile(const ea::string& resourceName);  // Load from auto-detected resource type
-    // virtual ObjectReflection* GetReflection() const;
-    // virtual const ea::vector<AttributeInfo>* GetAttributes() const;
-    // void SerializeInBlock(Archive& archive, bool serializeTemporary);
-    // Variant GetAttribute(unsigned index) const;             // C++ returns Variant, C# returns object?
+    /// <summary>Return reflection used for serialization.</summary>
+    public virtual ObjectReflection? GetReflection()
+    {
+        return Context.Instance.GetReflection(new StringHash(GetType().GetClassName()));
+    }
 
     public bool Temporary { get; private set; }
 
@@ -92,6 +88,45 @@ public abstract class Serializable : Object
     {
         return NumAttributes;
     }
+
+    /// <summary>Load from a binary resource.</summary>
+    public virtual bool Load(string resourceName)
+    {
+        var resourceCache = GetSubsystem<ResourceCache>();
+        using var source = resourceCache.GetFile(resourceName, false);
+        return source is not null && Load(source);
+    }
+
+    /// <summary>Load from an XML resource.</summary>
+    public virtual bool LoadXML(string resourceName)
+    {
+        var resource = GetSubsystem<ResourceCache>().GetResourceOrNull<XMLFile>(resourceName);
+        return resource is not null && LoadXML(resource.GetRoot());
+    }
+
+    /// <summary>Load from a JSON resource.</summary>
+    public virtual bool LoadJSON(string resourceName)
+    {
+        var resource = GetSubsystem<ResourceCache>().GetResourceOrNull<JSONFile>(resourceName);
+        return resource is not null && LoadJSON(resource.GetRoot());
+    }
+
+    /// <summary>Load from a resource of automatically detected type.</summary>
+    public virtual bool LoadFile(string resourceName)
+    {
+        var resourceCache = GetSubsystem<ResourceCache>();
+        var identifier = new FileIdentifier(resourceName);
+        resourceCache.RouteResourceName(ref identifier);
+        var extension = Path.GetExtension(identifier.ToUri());
+        return extension.Equals(".xml", StringComparison.OrdinalIgnoreCase)
+            ? LoadXML(identifier.ToUri())
+            : extension.Equals(".json", StringComparison.OrdinalIgnoreCase)
+                ? LoadJSON(identifier.ToUri())
+                : Load(identifier.ToUri());
+    }
+
+    // TODO: port - C++ SerializeInBlock(Archive&, bool) uses SerializablePrefab to include temporary attributes.
+    // The managed archive has no SerializablePrefab or temporary-attribute serialization flag yet.
 
     public virtual bool Load(Stream source)
     {
