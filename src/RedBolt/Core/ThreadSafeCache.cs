@@ -43,8 +43,6 @@ public class ThreadSafeCache<T>
         }
     }
 
-    // TODO: port C++ operator=(const T& object) when an equivalent managed surface is chosen.
-
     /// <summary>
     /// Return object value. Intentionally unchecked, caller must ensure that cache is valid.
     /// </summary>
