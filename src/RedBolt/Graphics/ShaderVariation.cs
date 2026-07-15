@@ -6,7 +6,6 @@ namespace RedBolt;
 /// <summary>Vertex or pixel shader on the GPU.</summary>
 public sealed partial class ShaderVariation : RawShader
 {
-    // C++: WeakPtr<Shader> owner_ is private, only public methods are GetShaderName(), GetShaderVariationName(), GetDefines()
     // C++: CompileFromSource(), Create(), PrepareGLSLShaderCode() etc. are all private in the C++ header
 
     private readonly Graphics? _graphics;
