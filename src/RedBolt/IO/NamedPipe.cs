@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -72,10 +74,11 @@ public sealed class NamedPipe : AbstractFile, IDisposable
         }
     }
 
-    // C++: URHO3D_LOGERROR("Cannot change name of the NamedPipe!"); assert(0);
     /// <summary>Not supported.</summary>
     public override void SetName(string name)
     {
+        Log.Logger.LogError("Cannot change name of the NamedPipe!");
+        Debug.Assert(false);
     }
 
     /// <summary>Open the pipe in either server or client mode.</summary>
