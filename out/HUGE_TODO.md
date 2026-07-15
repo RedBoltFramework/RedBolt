@@ -1,7 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Input/Input.cs:125:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Input/Input.cs:195:    // C++: IsMinimized() returns true also when !inputFocus_ && graphics_->GetFullscreen()
 - [ ] ./src/RedBolt/Input/Input.cs:324:        // C++: Update() handles MM_WRAP mouse wrapping, REQUIRE_CLICK_TO_FOCUS, and GetBackgroundSize-based manual mouse move calculation
 - [ ] ./src/RedBolt/Input/Input.cs:325:        // C++: also sends E_MOUSEMOVE event manually for mouse delta accumulation
 - [ ] ./src/RedBolt/Input/Input.cs:737:        // TODO: port SDL screen joystick creation and UI layout/style integration.

@@ -143,9 +143,6 @@ public struct JoystickState
     public int[] Hats = [];
 }
 
-// TODO: port - C++ code:
-// PrioritySignal<void(SDL_Event& evt, bool& consumed), RawInputPriority> OnRawInput;
-// enum class RawInputPriority : int { Lowest = 0, UISubsystem = 1000, ExternalTool = 2000, ... };
 public sealed class Input : Object
 {
     private const uint SdlInitVideo = 0x00000020u;
@@ -172,6 +169,7 @@ public sealed class Input : Object
     private MouseButton _mouseButtonDown;
     private MouseButton _mouseButtonPress;
     private Vector2i _mousePressPosition = new(int.MinValue, int.MinValue);
+    private bool _isMinimized;
     private int _mouseMoveWheel;
     private HatPosition _hatPosition = HatPosition.Center;
     private Vector2i _backbufferSize = Vector2i.Zero;
@@ -210,8 +208,7 @@ public sealed class Input : Object
 
     public bool HasFocus { get; private set; }
 
-    // C++: IsMinimized() returns true also when !inputFocus_ && graphics_->GetFullscreen()
-    public bool IsMinimized { get; private set; }
+    public bool IsMinimized => _isMinimized || (!HasFocus && GetSubsystem<Graphics>()?.GetFullscreen() == true);
 
     public bool ToggleFullscreen { get; private set; } = true;
 
@@ -1303,7 +1300,7 @@ public sealed class Input : Object
         _backbufferSize = Vector2i.Zero;
         _systemToBackbufferScale = Vector2f.One;
         HasFocus = false;
-        IsMinimized = false;
+        _isMinimized = false;
     }
 
     private void HandleKeyDown(SdlEvent @event)
@@ -1378,9 +1375,9 @@ public sealed class Input : Object
             return;
         }
         else if (windowEvent == SdlWindowEventID.SdlWindoweventMinimized)
-            IsMinimized = true;
+            _isMinimized = true;
         else if (windowEvent == SdlWindowEventID.SdlWindoweventRestored)
-            IsMinimized = false;
+            _isMinimized = false;
 
         var eventData = new InputEvents.InputFocusEvent { Focus = HasFocus, Minimized = IsMinimized };
         SendEvent(ref eventData);
