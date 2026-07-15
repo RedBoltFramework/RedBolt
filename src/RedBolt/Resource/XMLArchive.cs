@@ -13,15 +13,17 @@ public sealed class XMLOutputArchive : ArchiveBase
 
     private readonly List<Frame> _stack = [];
     private XElement? _root;
+    private readonly bool _serializeRootName;
 
-    public XMLOutputArchive()
-        : this(Context.Instance)
+    public XMLOutputArchive(bool serializeRootName = true)
+        : this(Context.Instance, serializeRootName)
     {
     }
 
-    public XMLOutputArchive(Context context)
+    public XMLOutputArchive(Context context, bool serializeRootName = true)
         : base(context)
     {
+        _serializeRootName = serializeRootName;
     }
 
     public XElement? Root => _root;
@@ -39,7 +41,6 @@ public sealed class XMLOutputArchive : ArchiveBase
 
     public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
     {
-        // C++: supports serializeRootName_ flag that renames root element via rootElement_.SetName(name)
         CheckBlockOrElementName(name);
 
         var element = new XElement(name);
@@ -113,29 +114,32 @@ public sealed class XMLInputArchive : ArchiveBase
     }
 
     private readonly XElement _root;
+    private readonly bool _serializeRootName;
     private readonly List<Frame> _stack = [];
 
-    public XMLInputArchive(string xml)
-        : this(Context.Instance, xml)
+    public XMLInputArchive(string xml, bool serializeRootName = false)
+        : this(Context.Instance, xml, serializeRootName)
     {
     }
 
-    public XMLInputArchive(Context context, string xml)
+    public XMLInputArchive(Context context, string xml, bool serializeRootName = false)
         : base(context)
     {
         ArgumentNullException.ThrowIfNull(xml);
         _root = XDocument.Parse(xml).Root ?? throw new InvalidOperationException("XML archive root is missing.");
+        _serializeRootName = serializeRootName;
     }
 
-    public XMLInputArchive(XElement root)
-        : this(Context.Instance, root)
+    public XMLInputArchive(XElement root, bool serializeRootName = false)
+        : this(Context.Instance, root, serializeRootName)
     {
     }
 
-    public XMLInputArchive(Context context, XElement root)
+    public XMLInputArchive(Context context, XElement root, bool serializeRootName = false)
         : base(context)
     {
         _root = root ?? throw new ArgumentNullException(nameof(root));
+        _serializeRootName = serializeRootName;
     }
 
     public override bool IsInput => true;
@@ -157,7 +161,7 @@ public sealed class XMLInputArchive : ArchiveBase
         XElement element;
         if (_stack.Count == 0)
         {
-            if (_root.Name.LocalName != name)
+            if (_serializeRootName && _root.Name.LocalName != name)
                 throw ElementNotFoundException(name);
             element = _root;
         }
