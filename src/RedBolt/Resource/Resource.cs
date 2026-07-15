@@ -33,11 +33,13 @@ public abstract class Resource : Object
         var success = BeginLoad(source);
         if (success)
             success &= EndLoad();
-        // C++: does not fire a ReloadFinished event here; reload events are sent by ResourceCache::ReloadResource
         AsyncLoadState = AsyncLoadState.Done;
-        if (success)
-            ReloadFinished?.Invoke(this);
         return success;
+    }
+
+    internal void NotifyReloadFinished()
+    {
+        ReloadFinished?.Invoke(this);
     }
 
     public virtual bool BeginLoad(Stream source) => false;

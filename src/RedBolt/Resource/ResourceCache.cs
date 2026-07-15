@@ -592,7 +592,7 @@ public sealed class ResourceCache : Object
         if (!_cache.TryGetValue((typeof(T), name), out var resource))
             return false;
 
-        return resource.Reload();
+        return ReloadResource(resource);
     }
 
     public bool ReloadResource(Resource resource)
@@ -608,7 +608,10 @@ public sealed class ResourceCache : Object
         }
 
         if (success)
+        {
+            resource.NotifyReloadFinished();
             resource.SendEvent<ResourceEvents.ReloadFinished>();
+        }
         else
             resource.SendEvent<ResourceEvents.ReloadFailed>();
 
