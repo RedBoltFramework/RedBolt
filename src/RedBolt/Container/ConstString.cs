@@ -3,8 +3,6 @@ namespace RedBolt;
 // C++: ConstString inherits from ea::string, so it IS a string with an embedded StringHash.
 // C#: ConstString wraps string since System.String is sealed. Implicit operators bridge the gap.
 // C++: URHO3D_GLOBAL_CONSTANT macro enables static inline const for header-defined constants.
-// TODO: port - C++ code:
-// #define URHO3D_GLOBAL_CONSTANT(definition) static inline const definition
 /// <summary>
 /// Immutable string with precomputed hash.
 /// </summary>

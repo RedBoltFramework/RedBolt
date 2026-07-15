@@ -71,6 +71,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
 - [x] `MultiVector.h` — vector-of-vectors operations ported; `IEnumerable<T>` supplies the C++ iterator surface and `Func<T>` supplies the variadic `EmplaceBack` factory adaptation
+- [x] `ConstString.h` — immutable string/hash wrapper ported; the C++ global-constant macro is preprocessor-only and intentionally omitted
 
 ## [x] A2. Math — depends on Container
 
