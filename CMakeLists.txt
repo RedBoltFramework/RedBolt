@@ -143,9 +143,15 @@ file(WRITE "${REDBOLT_WEBP_PARSE_HEADER}" [=[
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 size_t WebPEncodeLosslessRGB(const void* rgb, int width, int height, int stride, void** output);
 size_t WebPEncodeLosslessRGBA(const void* rgba, int width, int height, int stride, void** output);
 void WebPFree(void* ptr);
+#ifdef __cplusplus
+}
+#endif
 ]=])
 file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
 #include <SDL_config.h>
