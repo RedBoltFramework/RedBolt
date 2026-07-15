@@ -364,14 +364,19 @@ public sealed class XMLElement
 
     public Variant GetVariantValue(VariantType type)
     {
-        return type switch
+        var result = type switch
         {
             VariantType.VariantVector => new Variant(GetVariantVector()),
             VariantType.StringVector => new Variant(GetStringVector()),
             VariantType.VariantMap => new Variant(GetVariantMap()),
             VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
-            _ => Variant.FromString(type, GetAttribute("value"))
+            _ => default
         };
+
+        if (type is not (VariantType.VariantVector or VariantType.StringVector or VariantType.VariantMap or VariantType.StringVariantMap))
+            result.FromString(type, GetAttribute("value"));
+
+        return result;
     }
 
     public VariantVector GetVariantVector()

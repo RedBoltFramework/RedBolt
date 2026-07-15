@@ -42,7 +42,7 @@ public enum VariantType
     CString
 }
 
-public readonly struct Variant : IEquatable<Variant>
+public struct Variant : IEquatable<Variant>
 {
     private static readonly string[] TypeNames =
     [
@@ -374,27 +374,17 @@ public readonly struct Variant : IEquatable<Variant>
         _cstringValue = value ?? new CString();
     }
 
-    // TODO: port - C++ code:
-    // void Clear() { SetType(VAR_NONE); }
+    /// <summary>Reset to empty.</summary>
+    public void Clear() => this = default;
 
-    // TODO: port - C++ code:
-    // void SetBuffer(const void* data, unsigned size);
+    /// <summary>Set buffer type from a memory area.</summary>
+    public void SetBuffer(ReadOnlySpan<byte> data, uint size)
+    {
+        this = new Variant(data[..(int)size].ToArray());
+    }
 
-    // TODO: port - C++ code:
-    // template <class T> void SetCustom(T value);
-
-    // TODO: port - C++ code:
-    // unsigned ToHash() const;
-
-    // TODO: port - C++ code:
-    // static const ResourceRef emptyResourceRef;
-    // static const ResourceRefList emptyResourceRefList;
-
-    // C++: FromString is void (mutates this).
-    // C#: FromString is static Variant (returns new instance).
-
-    // TODO: port - C++ code:
-    // inline ea::vector<const char*> ToCStringVector(const StringVector& strings);
+    /// <summary>Set custom value.</summary>
+    public void SetCustom<T>(T value) => this = MakeCustomValue(value);
 
     public VariantType Type => _type;
 
@@ -662,7 +652,11 @@ public readonly struct Variant : IEquatable<Variant>
             return ToString();
 
         if (_type == VariantType.String)
-            return FromString(targetType, _stringValue);
+        {
+            var result = default(Variant);
+            result.FromString(targetType, _stringValue);
+            return result;
+        }
 
         return targetType switch
         {
@@ -675,7 +669,13 @@ public readonly struct Variant : IEquatable<Variant>
         };
     }
 
-    public static Variant FromString(VariantType type, string value)
+    /// <summary>Set from type and value string.</summary>
+    public void FromString(string type, string value) => FromString(GetTypeFromName(type), value);
+
+    /// <summary>Set from type and value string.</summary>
+    public void FromString(VariantType type, string value) => this = CreateFromString(type, value);
+
+    private static Variant CreateFromString(VariantType type, string value)
     {
         value ??= string.Empty;
         return type switch
@@ -1020,6 +1020,9 @@ public readonly struct Variant : IEquatable<Variant>
 
         return hash.ToHashCode();
     }
+
+    /// <summary>Hash function for containers.</summary>
+    public uint ToHash() => unchecked((uint)GetHashCode());
 
     public override string ToString()
     {

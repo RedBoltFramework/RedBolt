@@ -102,46 +102,46 @@ public static partial class ArchiveSerialization
             SerializeResourceRefList(archive, name, ref value);
             return;
         case VariantType.Vector2:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector2(), static item => new Variant(item), static text => Variant.FromString(VariantType.Vector2, text).GetVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector2, text).GetVector2());
             return;
         case VariantType.DoubleVector2:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector2(), static item => new Variant(item), static text => Variant.FromString(VariantType.DoubleVector2, text).GetDoubleVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.DoubleVector2, text).GetDoubleVector2());
             return;
         case VariantType.Vector3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector3(), static item => new Variant(item), static text => Variant.FromString(VariantType.Vector3, text).GetVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector3, text).GetVector3());
             return;
         case VariantType.DoubleVector3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector3(), static item => new Variant(item), static text => Variant.FromString(VariantType.DoubleVector3, text).GetDoubleVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.DoubleVector3, text).GetDoubleVector3());
             return;
         case VariantType.Vector4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector4(), static item => new Variant(item), static text => Variant.FromString(VariantType.Vector4, text).GetVector4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector4(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector4, text).GetVector4());
             return;
         case VariantType.Quaternion:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetQuaternion(), static item => new Variant(item), static text => Variant.FromString(VariantType.Quaternion, text).GetQuaternion());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetQuaternion(), static item => new Variant(item), static text => ParseVariant(VariantType.Quaternion, text).GetQuaternion());
             return;
         case VariantType.Color:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetColor(), static item => new Variant(item), static text => Variant.FromString(VariantType.Color, text).GetColor());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetColor(), static item => new Variant(item), static text => ParseVariant(VariantType.Color, text).GetColor());
             return;
         case VariantType.Rect:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetRect(), static item => new Variant(item), static text => Variant.FromString(VariantType.Rect, text).GetRect());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetRect(), static item => new Variant(item), static text => ParseVariant(VariantType.Rect, text).GetRect());
             return;
         case VariantType.IntRect:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntRect(), static item => new Variant(item), static text => Variant.FromString(VariantType.IntRect, text).GetIntRect());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntRect(), static item => new Variant(item), static text => ParseVariant(VariantType.IntRect, text).GetIntRect());
             return;
         case VariantType.Vector2i:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector2(), static item => new Variant(item), static text => Variant.FromString(VariantType.Vector2i, text).GetIntVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector2i, text).GetIntVector2());
             return;
         case VariantType.Vector3i:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector3(), static item => new Variant(item), static text => Variant.FromString(VariantType.Vector3i, text).GetIntVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector3i, text).GetIntVector3());
             return;
         case VariantType.Matrix3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3(), static item => new Variant(item), static text => Variant.FromString(VariantType.Matrix3, text).GetMatrix3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix3, text).GetMatrix3());
             return;
         case VariantType.Matrix3x4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3x4(), static item => new Variant(item), static text => Variant.FromString(VariantType.Matrix3x4, text).GetMatrix3x4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3x4(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix3x4, text).GetMatrix3x4());
             return;
         case VariantType.Matrix4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix4(), static item => new Variant(item), static text => Variant.FromString(VariantType.Matrix4, text).GetMatrix4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix4(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix4, text).GetMatrix4());
             return;
         case VariantType.VariantCurve:
             SerializeVariantCurve(archive, name, ref value);
@@ -423,5 +423,12 @@ public static partial class ArchiveSerialization
         {
             throw new NotSupportedException($"Archive serialization for '{typeof(T).Name}' is not implemented.");
         }
+    }
+
+    private static Variant ParseVariant(VariantType type, string text)
+    {
+        var result = default(Variant);
+        result.FromString(type, text);
+        return result;
     }
 }

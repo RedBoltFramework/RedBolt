@@ -399,7 +399,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public Variant GetVariantValue(VariantType type)
     {
         // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
-        return type switch
+        var result = type switch
         {
             VariantType.Bool => new Variant(GetBool()),
             VariantType.Int => new Variant(GetInt()),
@@ -411,8 +411,13 @@ public sealed class JSONValue : IEquatable<JSONValue>
             VariantType.VariantMap => new Variant(GetVariantMap()),
             VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
             VariantType.StringVector => new Variant(new StringVector(GetArray().Select(static item => item.GetString()))),
-            _ => Variant.FromString(type, GetString())
+            _ => default
         };
+
+        if (type is not (VariantType.Bool or VariantType.Int or VariantType.Int64 or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.StringVector))
+            result.FromString(type, GetString());
+
+        return result;
     }
 
     public void SetVariantVector(VariantVector values) => Set(values.Select(FromVariantObject));

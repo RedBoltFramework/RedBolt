@@ -98,6 +98,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
 - [x] `Timer.h` — `Time` frame-progress state, lifecycle disposal, and context reflection attribute access ported
 - [x] `ProcessUtils.h` — console output and command-line argument parsing ported; platform-only dialog/FPU/console-input hooks remain pending
+- [x] `Variant.h` — mutable reset, buffer/custom assignment, mutating string conversion, and hash API ported
   - [-] `EventReceiverGroup : RefCounted` — **EXCLUDED** · reason: named-event receiver grouping · replaced-by: allowed struct-event subscription buckets
 
 ## [x] A4. IO — depends on Container, Core

@@ -2,6 +2,13 @@ namespace RedBolt.Tests;
 
 public sealed class VariantTests
 {
+    private static Variant ParseVariant(VariantType type, string value)
+    {
+        var result = default(Variant);
+        result.FromString(type, value);
+        return result;
+    }
+
     private enum TestEnum
     {
         None,
@@ -24,7 +31,7 @@ public sealed class VariantTests
         Assert.Equal(variant, Variant.FromObject(pointer));
         Assert.Equal(VariantType.VoidPtr, VariantTypeUtility.GetVariantType(pointer));
 
-        var parsed = Variant.FromString(VariantType.VoidPtr, "0x1234");
+        var parsed = ParseVariant(VariantType.VoidPtr, "0x1234");
         Assert.Equal(IntPtr.Zero, parsed.GetVoidPtr());
         Assert.False(parsed.GetBool());
         Assert.True(parsed.IsZero());
@@ -64,6 +71,25 @@ public sealed class VariantTests
         var returnedBuffer = vectorBufferVariant.GetVectorBuffer();
         returnedBuffer.GetBuffer()[0] = 9;
         Assert.Equal(new byte[] { 4, 5, 6 }, vectorBufferVariant.GetBuffer());
+    }
+
+    [Fact]
+    public void Mutating_methods_match_rbfx_variant_contracts()
+    {
+        var variant = new Variant(1);
+        variant.Clear();
+        Assert.True(variant.IsEmpty);
+
+        variant.SetBuffer(new byte[] { 1, 2, 3 }, 2);
+        Assert.Equal(new byte[] { 1, 2 }, variant.GetBuffer());
+
+        variant.SetCustom(42);
+        Assert.Equal(42, variant.GetCustom<int>());
+
+        var parsed = default(Variant);
+        parsed.FromString("Int", "7");
+        Assert.Equal(7, parsed.GetInt());
+        Assert.Equal(unchecked((uint)parsed.GetHashCode()), parsed.ToHash());
     }
 
     [Fact]
@@ -115,18 +141,18 @@ public sealed class VariantTests
         Assert.Equal(3, new Variant(3.9f).Convert(VariantType.Int).GetInt());
         Assert.True(new Variant(1).Convert(VariantType.Bool).GetBool());
         Assert.Equal("3", new Variant(3).Convert(VariantType.String).GetString());
-        Assert.True(Variant.FromString(VariantType.Bool, " yes").GetBool());
-        Assert.Equal(42, Variant.FromString(VariantType.Int, "42").GetInt());
-        Assert.Equal(0.5f, Variant.FromString(VariantType.Float, "0.5").GetFloat());
-        Assert.Equal(new byte[] { 1, 2, 3 }, Variant.FromString(VariantType.Buffer, "1 2 3").GetBuffer());
-        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Vector3, "1 2 3").GetVector3());
-        Assert.Equal(Vector3f.ZERO, Variant.FromString(VariantType.Vector3, "1 2").GetVector3());
-        Assert.Equal(new Color(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Color, "1 2 3").GetColor());
-        Assert.Equal(Quaternion.FromEulerAngles(1.0f, 2.0f, 3.0f), Variant.FromString(VariantType.Quaternion, "1 2 3").GetQuaternion());
-        Assert.Equal(new IntRect(1, 2, 3, 4), Variant.FromString(VariantType.IntRect, "1 2 3 4").GetIntRect());
-        Assert.Equal(new Matrix3(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f), Variant.FromString(VariantType.Matrix3, "1 2 3 4 5 6 7 8 9").GetMatrix3());
-        Assert.Equal(default(Matrix3), Variant.FromString(VariantType.Matrix3, "1 2 3 4 5 6 7 8").GetMatrix3());
-        Assert.Equal(new Matrix4(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f), Variant.FromString(VariantType.Matrix4, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16").GetMatrix4());
+        Assert.True(ParseVariant(VariantType.Bool, " yes").GetBool());
+        Assert.Equal(42, ParseVariant(VariantType.Int, "42").GetInt());
+        Assert.Equal(0.5f, ParseVariant(VariantType.Float, "0.5").GetFloat());
+        Assert.Equal(new byte[] { 1, 2, 3 }, ParseVariant(VariantType.Buffer, "1 2 3").GetBuffer());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Vector3, "1 2 3").GetVector3());
+        Assert.Equal(Vector3f.ZERO, ParseVariant(VariantType.Vector3, "1 2").GetVector3());
+        Assert.Equal(new Color(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Color, "1 2 3").GetColor());
+        Assert.Equal(Quaternion.FromEulerAngles(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Quaternion, "1 2 3").GetQuaternion());
+        Assert.Equal(new IntRect(1, 2, 3, 4), ParseVariant(VariantType.IntRect, "1 2 3 4").GetIntRect());
+        Assert.Equal(new Matrix3(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f), ParseVariant(VariantType.Matrix3, "1 2 3 4 5 6 7 8 9").GetMatrix3());
+        Assert.Equal(default(Matrix3), ParseVariant(VariantType.Matrix3, "1 2 3 4 5 6 7 8").GetMatrix3());
+        Assert.Equal(new Matrix4(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f), ParseVariant(VariantType.Matrix4, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16").GetMatrix4());
         Assert.Equal(VariantType.None, new Variant(1).Convert(VariantType.Vector3).Type);
     }
 

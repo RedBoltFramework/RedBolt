@@ -6,12 +6,12 @@ public static partial class ArchiveSerialization
 {
     public static void SerializeValue(Archive archive, string name, ref Vector3f value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Vector3, text).GetVector3());
+        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Vector3, text).GetVector3());
     }
 
     public static void SerializeValue(Archive archive, string name, ref Vector4f value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Vector4, text).GetVector4());
+        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Vector4, text).GetVector4());
     }
 
     public static void SerializeValue(Archive archive, string name, ref SphericalHarmonicsDot9 value)
@@ -28,7 +28,7 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, ref Matrix3x4 value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => Variant.FromString(VariantType.Matrix3x4, text).GetMatrix3x4());
+        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Matrix3x4, text).GetMatrix3x4());
     }
 
     public static void SerializeValue(Archive archive, string name, ref Tetrahedron value)
