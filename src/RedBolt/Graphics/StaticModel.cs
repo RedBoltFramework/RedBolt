@@ -3,8 +3,6 @@ namespace RedBolt;
 /// <summary>Static model component.</summary>
 /// <remarks>
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
-// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
 // C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
 /// </remarks>
 public class StaticModel : Drawable

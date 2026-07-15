@@ -3,8 +3,6 @@
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:9:// C++: Has geometryData_ (ea::vector&lt;StaticModelGeometryData&gt;) for per-geometry LOD data. C# doesn't store this separately.
-- [ ] ./src/RedBolt/Graphics/StaticModel.cs:10:// C++: Has geometries_ (ea::vector&lt;ea::vector&lt;SharedPtr&lt;Geometry&gt;&gt;&gt;). C# gets geometries from Model directly.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:11:// C++: Has CalculateLodLevels() and UpdateBatchesLightmaps() protected methods. May not be fully ported.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:146:        // TODO: port: enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
