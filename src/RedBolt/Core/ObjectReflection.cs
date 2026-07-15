@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public static class ObjectReflection<T>
@@ -197,26 +199,6 @@ public class ObjectReflectionRegistry
 
     public event Action<ObjectReflection>? ReflectionRemoved;
 
-    // TODO: port - C++ method:
-    // ObjectReflection* ObjectReflectionRegistry::ReflectCustomType(ea::unique_ptr<TypeInfo> typeInfo)
-    // {
-    //     if (!typeInfo)
-    //     {
-    //         URHO3D_LOGWARNING("Attempt to reflect class without TypeInfo");
-    //         return nullptr;
-    //     }
-    //     const StringHash typeNameHash = typeInfo->GetType();
-    //     const auto iter = reflections_.find(typeNameHash);
-    //     if (iter == reflections_.end())
-    //     {
-    //         const auto reflection = MakeShared<ObjectReflection>(context_, ea::move(typeInfo));
-    //         reflections_.emplace(typeNameHash, reflection);
-    //         AddReflectionToCurrentCategory(reflection);
-    //         return reflection;
-    //     }
-    //     return iter->second;
-    // }
-
     public ObjectReflection Reflect(Type type)
     {
         var reflection = new ObjectReflection(type);
@@ -296,6 +278,8 @@ public class ObjectReflectionRegistry
             RemoveReflectionFromCategory(reflection);
             ReflectionRemoved?.Invoke(reflection);
         }
+        else
+            Log.Logger.LogWarning("Reflection of object {TypeName} is not found", typeNameHash.ToDebugString());
     }
 
     public void RemoveReflection<T>()
@@ -327,15 +311,4 @@ public class ObjectReflectionRegistry
             category.Remove(reflection.TypeId);
     }
 
-    // TODO: port - C++ method:
-    // void ObjectReflectionRegistry::ErrorReflectionNotFound(StringHash typeNameHash) const
-    // {
-    //     URHO3D_LOGWARNING("Reflection of object {} is not found", typeNameHash.ToDebugString());
-    // }
-
-    // TODO: port - C++ method:
-    // void ObjectReflectionRegistry::ErrorDuplicateReflection(StringHash typeNameHash) const
-    // {
-    //     URHO3D_ASSERTLOG(0, "Object {} is reflectied multiple times.", typeNameHash.ToDebugString());
-    // }
 }
