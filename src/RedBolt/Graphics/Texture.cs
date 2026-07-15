@@ -363,11 +363,61 @@ public abstract class Texture : ResourceWithMetadata
             cache.ReleaseResources<Material>();
     }
 
-    // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.
-    protected bool CreateForImage(RawTextureParams baseParams, Image? image) => false;
+    protected bool CreateForImage(RawTextureParams baseParams, Image? image)
+    {
+        if (image is null)
+            return false;
 
-    // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
-    protected bool UpdateFromImage(uint arraySlice, Image? image) => false;
+        var quality = GetSubsystem<Renderer>()?.GetTextureQuality() ?? MaterialQuality.High;
+        var maxLevels = image.IsCompressed()
+            ? Math.Max(image.NumCompressedLevels, 1u)
+            : CalculateFullMipChainLength(Math.Max(image.Width, Math.Max(image.Height, image.Depth)));
+        var mostDetailedLevel = Math.Min((uint)GetMipsToSkip(quality), maxLevels - 1u);
+        var numLevels = baseParams.NumLevels == 0
+            ? maxLevels - mostDetailedLevel
+            : Math.Min(baseParams.NumLevels, maxLevels - mostDetailedLevel);
+        var baseImage = image.GetDecompressedImageLevel(mostDetailedLevel);
+        if (baseImage is null)
+            return false;
+
+        _mostDetailedLevel = mostDetailedLevel;
+        var parameters = baseParams with
+        {
+            Size = new Vector3i(baseImage.Width, baseImage.Height, baseImage.Depth),
+            NumLevels = numLevels,
+            Format = baseImage.GetGPUFormat(),
+            SRGB = _requestedSRGB
+        };
+
+        OnDestroyGPU();
+        _rawTexture = new RawTexture(parameters);
+        Format = parameters.Format;
+        Width = parameters.Size.X;
+        Height = parameters.Size.Y;
+        Depth = parameters.Size.Z;
+        Levels = parameters.NumLevels;
+        MultiSample = (int)parameters.MultiSample;
+        _textureFlags = parameters.Flags;
+        return true;
+    }
+
+    protected bool UpdateFromImage(uint arraySlice, Image? image)
+    {
+        if (image is null || _rawTexture is null)
+            return false;
+
+        for (var level = 0u; level < Levels; ++level)
+        {
+            var mipImage = image.GetDecompressedImageLevel(_mostDetailedLevel + level);
+            if (mipImage is null)
+                return false;
+
+            var size = new Vector3i(mipImage.Width, mipImage.Height, mipImage.Depth);
+            _rawTexture.Update(level, Vector3i.Zero, size, arraySlice, mipImage.GetData());
+        }
+
+        return true;
+    }
 
     protected bool ReadToImage(uint arraySlice, uint level, Image? image)
     {
