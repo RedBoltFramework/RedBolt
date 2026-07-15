@@ -20,22 +20,6 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
         Z = z;
     }
 
-    // C++: uses static FromXZ(const BaseVector2<T>&, T) instead of a constructor
-    public BaseRealVector3(BaseRealVector2<T> vector, T z = default)
-    {
-        X = vector.X;
-        Y = vector.Y;
-        Z = z;
-    }
-
-    // C++: no constructor from BaseIntegerVector3 — conversion is via Cast<Vector3>() on the integer vector
-    public BaseRealVector3(Vector3i vector)
-    {
-        X = T.CreateChecked(vector.X);
-        Y = T.CreateChecked(vector.Y);
-        Z = T.CreateChecked(vector.Z);
-    }
-
     public BaseRealVector3(ReadOnlySpan<T> data)
     {
         if (data.Length < 3)
@@ -161,10 +145,8 @@ public struct BaseRealVector3<T> : IEquatable<BaseRealVector3<T>>, IApproximateE
 
     public BaseRealVector3<T> Lerp(BaseRealVector3<T> rhs, T t) => this * (T.One - t) + rhs * t;
 
-    // C++: returns radians: return Urho3D::Acos(DotProduct(rhs) / (Length() * rhs.Length()));
     public T Angle(BaseRealVector3<T> rhs) => T.Acos(DotProduct(rhs) / (Length * rhs.Length)) * T.CreateChecked(MathDefs.RadToDeg);
 
-    // C++: returns radians (signed angle in radians)
     public T SignedAngle(BaseRealVector3<T> rhs, BaseRealVector3<T> axis)
     {
         var angle = Angle(rhs);

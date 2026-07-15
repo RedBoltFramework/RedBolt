@@ -20,8 +20,8 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
 
     public BoundingBox(Rect rect)
     {
-        Min = new Vector3f(rect.Min, 0.0f);
-        Max = new Vector3f(rect.Max, 0.0f);
+        Min = new Vector3f(rect.Min.X, rect.Min.Y, 0.0f);
+        Max = new Vector3f(rect.Max.X, rect.Max.Y, 0.0f);
         _dummyMin = 0.0f;
         _dummyMax = 0.0f;
     }
@@ -83,7 +83,7 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     }
 
     public void Define(BoundingBox box) => Define(box.Min, box.Max);
-    public void Define(Rect rect) => Define(new Vector3f(rect.Min, 0.0f), new Vector3f(rect.Max, 0.0f));
+    public void Define(Rect rect) => Define(new Vector3f(rect.Min.X, rect.Min.Y, 0.0f), new Vector3f(rect.Max.X, rect.Max.Y, 0.0f));
     public void Define(float min, float max) => Define(new Vector3f(min, min, min), new Vector3f(max, max, max));
     public void Define(Vector3f point) => Min = Max = point;
     public void Define(Vector3f min, Vector3f max)

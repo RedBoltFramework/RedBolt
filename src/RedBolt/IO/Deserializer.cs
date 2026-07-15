@@ -76,7 +76,9 @@ public abstract class Deserializer : Serializer
                     double.CreateChecked(ReadFloat()),
                     double.CreateChecked(ReadFloat())),
             VectorBinaryEncoding.Double => ReadDoubleVector3(),
-            VectorBinaryEncoding.Int32 => new Vector3d(ReadIntVector3()) / MathDefs.MaxInt * param,
+            VectorBinaryEncoding.Int32 => ReadIntVector3() is var intVector
+                ? new Vector3d(intVector.X, intVector.Y, intVector.Z) / MathDefs.MaxInt * param
+                : Vector3d.ZERO,
             VectorBinaryEncoding.Int16 => new Vector3d(ReadShort(), ReadShort(), ReadShort()) / MathDefs.MaxShort * param,
             _ => Vector3d.ZERO
         };
