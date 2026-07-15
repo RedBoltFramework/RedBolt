@@ -12,9 +12,6 @@ namespace RedBolt;
     /// <summary>
     /// Graphics subsystem. Manages the application window, rendering state and GPU resources.
     /// </summary>
-    /// <remarks>
-    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
-    /// </remarks>
 public sealed class Graphics : Object
     {
     private static uint _maxBonesHWSkinned;

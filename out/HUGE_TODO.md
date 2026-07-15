@@ -32,7 +32,6 @@
 - [ ] ./src/RedBolt/Graphics/Light.cs:50:// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
 - [ ] ./src/RedBolt/Graphics/Light.cs:51:// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
 - [ ] ./src/RedBolt/Graphics/Light.cs:52:// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
-- [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:55:        // TODO: port backend-specific secondary swap-chain creation. The C++ implementation is:
 - [ ] ./src/RedBolt/RenderAPI/RenderDevice.cs:160:    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
