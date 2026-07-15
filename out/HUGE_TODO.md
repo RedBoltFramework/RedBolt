@@ -4,8 +4,6 @@
 - [ ] ./src/RedBolt/Graphics/Texture.cs:30:// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:370:    // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:373:    // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
-- [ ] ./src/RedBolt/Graphics/AnimationController.cs:176:            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
-- [ ] ./src/RedBolt/Graphics/AnimationController.cs:760:            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:5:// C++: Has ProcessRayQuery, ProcessCustomRayQuery override. C# may rely on base class or not have all overloads.
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:6:// C++: Has UpdateBatches override. C# relies on base Drawable.UpdateBatches.

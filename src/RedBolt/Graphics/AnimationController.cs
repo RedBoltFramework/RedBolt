@@ -172,9 +172,7 @@ public class AnimationController : AnimationStateSource
 
         // Reset skeleton if necessary
         if (_resetSkeleton)
-        {
-            // TODO: port: AnimatedModel.ResetBones() once managed AnimatedModel is available.
-        }
+            Node?.GetComponent<AnimatedModel>()?.ResetBones();
 
         // Node and attribute animations need to be applied manually
         CommitNodeAndAttributeAnimations();
@@ -757,7 +755,6 @@ public class AnimationController : AnimationStateSource
 
         foreach (var track in animation.Tracks.Values)
         {
-            // TODO: port: AnimatedModel skeleton track resolution requires the managed AnimatedModel API.
             var trackNode = GetTrackNodeByNameHash(track.NameHash, startNode);
             if (trackNode is not null)
             {
