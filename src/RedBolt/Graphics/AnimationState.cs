@@ -111,7 +111,8 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
                 break;
 
             case AnimatedAttributeType.AnimatedModelMorphs:
-                // TODO: port: AnimatedModel.SetMorphWeight once managed AnimatedModel is available.
+                if (Serializable is AnimatedModel animatedModel)
+                    animatedModel.SetMorphWeight(new StringHash(SubAttributeKey), value.GetFloat());
                 break;
         }
     }

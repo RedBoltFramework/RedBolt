@@ -125,4 +125,29 @@ public sealed class AnimationStateTests
 
         Assert.Equal(4.0f, output[attribute].GetFloat());
     }
+
+    [Fact]
+    public void Animated_attribute_reference_sets_animated_model_morph_weight()
+    {
+        var model = new Model("MorphAnimation");
+        var skeleton = new Skeleton();
+        skeleton.SetNumBones(1);
+        skeleton.GetModifiableBones()[0].Name = "Root";
+        skeleton.GetModifiableBones()[0].NameHash = new StringHash("Root");
+        skeleton.GetModifiableBones()[0].ParentIndex = 0;
+        model.SetSkeleton(skeleton);
+        model.SetMorphs([new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") }]);
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(model, false);
+
+        var attribute = new AnimatedAttributeReference
+        {
+            Serializable = animatedModel,
+            AttributeType = AnimatedAttributeType.AnimatedModelMorphs,
+            SubAttributeKey = new StringHash("Smile")
+        };
+        attribute.SetValue(new Variant(0.75f));
+
+        Assert.Equal(0.75f, animatedModel.GetMorphWeight("Smile"));
+    }
 }
