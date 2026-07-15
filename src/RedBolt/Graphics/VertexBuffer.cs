@@ -4,14 +4,6 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Hardware vertex buffer.</summary>
-/// <remarks>
-// C++: VertexBuffer inherits from RawBuffer and PipelineStateTracker. C# inherits from PipelineStateTracker only and uses inner RawBuffer.
-// C++: RawBuffer has Create method natively. C# uses an inner helper class VertexRawBuffer for Create access.
-// C++: Has GetElement(specific type + semantic) static methods on the full elements list. C# has the same.
-// C++: Has UpdateOffsets static/instance methods for recalculating vertex element offsets. C# implicit in element list.
-// C++: Has ShuffleUnpackedVertexData static method. Not yet ported to C#.
-// TODO: port - C++ code: static void VertexBuffer::ShuffleUnpackedVertexData(unsigned vertexCount, const Vector4 source[], etc.)
-/// </remarks>
 public sealed class VertexBuffer : PipelineStateTracker
 {
     private sealed class VertexRawBuffer : RawBuffer
