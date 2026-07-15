@@ -110,10 +110,10 @@ public sealed class Audio : Object
 
         if (_deviceId == 0)
         {
-            // C++: separate error messages for auto vs non-auto mode:
-            // C++ auto:   URHO3D_LOGERROR("Could not initialize audio output");
-            // C++ manual: URHO3D_LOGERRORF("Could not initialize audio output for speaker mode %s", SPEAKER_MODE_NAMES[speakerMode]);
-            Log.Logger.LogError("Could not initialize audio output: {SdlError}", DecodeUtf8(SdlNativeBindings.SdlGetError()));
+            if (speakerMode == SpeakerMode.Auto)
+                Log.Logger.LogError("Could not initialize audio output");
+            else
+                Log.Logger.LogError("Could not initialize audio output for speaker mode {SpeakerMode}", speakerMode);
             return false;
         }
 
@@ -143,7 +143,8 @@ public sealed class Audio : Object
         _interpolation = interpolation;
         _clipBuffer = new int[_fragmentSize * AudioNumChannels[(int)_speakerMode]];
         _outputBuffer = new short[_clipBuffer.Length];
-        // C++: URHO3D_LOGINFO("Set audio mode " + ea::to_string(mixRate_) + " Hz " + SPEAKER_MODE_NAMES[speakerMode_] + " " + (interpolation_ ? "interpolated" : ""));
+        Log.Logger.LogInformation("Set audio mode {MixRate} Hz {SpeakerMode} {Interpolation}",
+            _mixRate, _speakerMode, _interpolation ? "interpolated" : "");
         return Play();
     }
 
@@ -189,7 +190,7 @@ public sealed class Audio : Object
         if (_playing) return true;
         if (_deviceId == 0)
         {
-            // C++: URHO3D_LOGERROR("No audio mode set, can not start playback");
+            Log.Logger.LogError("No audio mode set, can not start playback");
             return false;
         }
         SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 0);
