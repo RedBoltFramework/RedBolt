@@ -60,15 +60,19 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         Define(sphere);
     }
 
-    // C++: BoundingBox(const Frustum& frustum);
     // C++: BoundingBox(const Polyhedron& poly);
 
-    // C++: void Define(const Vector3* vertices, unsigned count);
-    // C++: void Define(const Frustum& frustum);
     // C++: void Define(const Polyhedron& poly);
-    // C++: void Merge(const Vector3* vertices, unsigned count);
-    // C++: void Merge(const Frustum& frustum);
     // C++: void Merge(const Polyhedron& poly);
+
+    public BoundingBox(Frustum frustum)
+    {
+        Min = new Vector3f(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        Max = new Vector3f(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        _dummyMin = 0.0f;
+        _dummyMax = 0.0f;
+        Define(frustum);
+    }
 
     public Vector3f Center => (Min + Max) * 0.5f;
     public bool Defined => Min.X != float.PositiveInfinity;
@@ -102,6 +106,12 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
     {
         var offset = new Vector3f(sphere.Radius, sphere.Radius, sphere.Radius);
         Define(sphere.Center - offset, sphere.Center + offset);
+    }
+
+    public void Define(Frustum frustum)
+    {
+        Clear();
+        Merge(frustum);
     }
 
     public void Clip(BoundingBox box)
@@ -212,6 +222,8 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         Merge(sphere.Center - offset);
         Merge(sphere.Center + offset);
     }
+
+    public void Merge(Frustum frustum) => Merge(frustum.Vertices);
 
     public BoundingBox Merged(Vector3f point) { var result = this; result.Merge(point); return result; }
     public BoundingBox Merged(BoundingBox box) { var result = this; result.Merge(box); return result; }
