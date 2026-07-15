@@ -1,4 +1,3 @@
-// C++: no direct C++ counterpart file.
 // This is a C#-only allocation-free SequenceEqual replacement needed to avoid GC churn.
 namespace RedBolt;
 
