@@ -3,7 +3,6 @@ namespace RedBolt;
 /// <summary>Static model component.</summary>
 /// <remarks>
 // TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-// C++: Has UpdateBatchesLightmaps() protected method. May not be fully ported.
 /// </remarks>
 public class StaticModel : Drawable
 {
@@ -228,6 +227,8 @@ public class StaticModel : Drawable
             SetLodDistance(newLodDistance);
             CalculateLodLevels();
         }
+
+        UpdateBatchesLightmaps();
     }
 
     public Material? GetMaterial(uint index = 0)
@@ -240,6 +241,7 @@ public class StaticModel : Drawable
     public void SetBakeLightmap(bool bakeLightmap)
     {
         BakeLightmap = bakeLightmap;
+        UpdateBatchesLightmaps();
     }
 
     public bool GetBakeLightmap() => BakeLightmap;
@@ -256,6 +258,7 @@ public class StaticModel : Drawable
     public void SetLightmapIndex(uint index)
     {
         LightmapIndex = index;
+        UpdateBatchesLightmaps();
     }
 
     public uint GetLightmapIndex() => LightmapIndex;
@@ -263,6 +266,7 @@ public class StaticModel : Drawable
     public void SetLightmapScaleOffset(Vector4f scaleOffset)
     {
         LightmapScaleOffset = scaleOffset;
+        UpdateBatchesLightmaps();
     }
 
     public Vector4f GetLightmapScaleOffset() => LightmapScaleOffset;
@@ -366,6 +370,28 @@ public class StaticModel : Drawable
             var selectedLevel = level - 1;
             var batch = _batches[i];
             batch.Geometry = batchGeometries[selectedLevel];
+            _batches[i] = batch;
+        }
+    }
+
+    private void UpdateBatchesLightmaps()
+    {
+        var useLightmap = GetBakeLightmapEffective();
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var batch = _batches[i];
+            if (useLightmap)
+            {
+                batch.LightmapIndex = LightmapIndex;
+                batch.GeometryType = GeometryType.StaticNoInstancing;
+                batch.LightmapScaleOffset = LightmapScaleOffset;
+            }
+            else
+            {
+                batch.GeometryType = GeometryType.Static;
+                batch.LightmapScaleOffset = null;
+            }
+
             _batches[i] = batch;
         }
     }
