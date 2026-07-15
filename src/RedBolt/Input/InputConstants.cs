@@ -518,16 +518,6 @@ public enum Scancode : uint
     App2 = SdlScancode.SdlScancodeApp2,
 }
 
-// C++: MouseMode is defined in Input.h, not InputConstants.h
-public enum MouseMode
-{
-    Absolute,
-    Relative,
-    Wrap,
-    Free,
-    Invalid
-}
-
 [Flags]
 public enum HatPosition : uint
 {

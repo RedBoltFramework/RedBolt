@@ -370,7 +370,6 @@ public sealed class InputMap : ResourceWithMetadata
             }
         }
 
-        // TODO: port - C++ suppresses keyboard input while a built-in UI element has focus; rbfx built-in UI is not ported.
         public float Evaluate(Input input, float deadZone, int ignoreJoystickId)
         {
             ArgumentNullException.ThrowIfNull(input);

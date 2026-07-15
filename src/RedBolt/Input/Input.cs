@@ -6,6 +6,16 @@ using System.Linq;
 
 namespace RedBolt;
 
+/// <summary>Input mouse modes.</summary>
+public enum MouseMode
+{
+    Absolute,
+    Relative,
+    Wrap,
+    Free,
+    Invalid
+}
+
 /// <summary>Input state for a finger touch.</summary>
 public struct TouchState
 {

@@ -22,7 +22,6 @@
 - [ ] ./src/RedBolt/Engine/StateManager.cs:165:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Engine/StateManager.cs:174:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Input/MoveAndOrbitController.cs:97:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Input/InputMap.cs:373:        // TODO: port - C++ suppresses keyboard input while a built-in UI element has focus; rbfx built-in UI is not ported.
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:16:    // C++: bool audioPaused_ = false;
 - [ ] ./src/RedBolt/Engine/Engine.cs:18:    // C++: bool exitRequired_{};
@@ -34,7 +33,6 @@
 - [ ] ./src/RedBolt/Engine/Engine.cs:254:    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
 - [ ] ./src/RedBolt/Engine/Engine.cs:420:    // C++: void Engine::Render()
 - [ ] ./src/RedBolt/Engine/Engine.cs:714:            // C++: graphics->Close() is called unconditionally.
-- [ ] ./src/RedBolt/Input/InputConstants.cs:521:// C++: MouseMode is defined in Input.h, not InputConstants.h
 - [ ] ./src/RedBolt/Engine/Application.cs:9:    // C++: ea::string startupErrors_; (accumulates startup log errors via HandleLogMessage)
 - [ ] ./src/RedBolt/Engine/Application.cs:10:    // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})
 - [ ] ./src/RedBolt/Engine/Application.cs:11:    // C++: StringVariantMap commandLineParameters_;
