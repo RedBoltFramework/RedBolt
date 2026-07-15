@@ -127,11 +127,6 @@ public sealed class Shader : Resource
         return variation;
     }
 
-    // C++: ea::string Shader::GetShaderName() const
-    // C++: static const ea::string prefix = "Shaders/GLSL/v2";
-    // C++: const ea::string& name = GetName();
-    // C++: if (!name.starts_with(prefix)) { URHO3D_LOGWARNING("Shader '{}'...", name); return name; }
-    // C++: return name.substr(prefix.length());
     public string GetShaderName()
     {
         var resourceName = GetResourceName(Name).Replace('\\', '/');

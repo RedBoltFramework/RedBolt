@@ -127,11 +127,6 @@
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:79:    // TODO: port: the managed API has no SPIR-V-Cross reflection binding.
 - [ ] ./src/RedBolt/Graphics/ShaderOptimizer.cs:3:// TODO: port: the managed API has no SPIR-V optimizer/validator binding.
 - [ ] ./src/RedBolt/Graphics/ShaderCompiler.cs:3:// TODO: port: the managed API has no D3DCompile or D3D11/D3D12 compiler binding.
-- [ ] ./src/RedBolt/Graphics/Shader.cs:130:    // C++: ea::string Shader::GetShaderName() const
-- [ ] ./src/RedBolt/Graphics/Shader.cs:131:    // C++: static const ea::string prefix = "Shaders/GLSL/v2";
-- [ ] ./src/RedBolt/Graphics/Shader.cs:132:    // C++: const ea::string& name = GetName();
-- [ ] ./src/RedBolt/Graphics/Shader.cs:133:    // C++: if (!name.starts_with(prefix)) { URHO3D_LOGWARNING("Shader '{}'...", name); return name; }
-- [ ] ./src/RedBolt/Graphics/Shader.cs:134:    // C++: return name.substr(prefix.length());
 - [ ] ./src/RedBolt/Graphics/Shader.cs:307:                // C++: if (!graphics->GetSettings().validateShaders_ || !line.trimmed().starts_with("//"))
 - [ ] ./src/RedBolt/Graphics/Shader.cs:308:                // C++:     code += line;
 - [ ] ./src/RedBolt/Graphics/Shader.cs:309:                // TODO: port - trim comments when shader validation is enabled.
@@ -163,7 +158,6 @@
 - [ ] ./src/RedBolt/Graphics/Light.cs:52:// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:15:// C++: IndexBuffer inherits from RawBuffer and PipelineStateTracker. C# inherits from PipelineStateTracker only and uses inner RawBuffer.
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:16:// C++: RawBuffer has Create method natively. C# uses an inner helper class IndexRawBuffer for Create access.
-- [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:17:// C++: SetSize takes (unsigned indexCount, bool largeIndices, bool dynamic = false). C# matches.
 - [ ] ./src/RedBolt/Graphics/IndexBuffer.cs:18:// C++: GetUnpackedData returns ea::vector&lt;unsigned&gt;. C# returns IReadOnlyList&lt;uint&gt; (allowed collection deviation).
 - [ ] ./src/RedBolt/Graphics/GraphicsUtils.cs:110:        // C++: if (!texture) { URHO3D_ASSERTLOG(false, "Trying to add null texture..."); return; }
 - [ ] ./src/RedBolt/Graphics/Graphics.cs:16:    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
