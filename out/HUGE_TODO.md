@@ -10,7 +10,6 @@
 - [ ] ./src/RedBolt/Scene/Scene.cs:19:// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:8:// TODO: port - C++ custom variant traits expose pointer access, relocation, and inline storage size semantics not represented by the managed object model.
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:88:// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
-- [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
@@ -244,7 +243,6 @@
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipelineDefs.cs:1010:    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:278:    // C++: settings_.Validate(); settings_.AdjustToSupported(context_);
 - [ ] ./src/RedBolt/RenderPipeline/RenderPipeline.cs:337:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/IO/VectorBuffer.cs:30:    // C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer"
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:38:    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/IO/VectorBuffer.cs:44:    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
 - [ ] ./src/RedBolt/Resource/ResourceRouter.cs:3:// C++: No direct C++ equivalent. Resource routing in C++ is handled via ResourceCache.

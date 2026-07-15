@@ -306,7 +306,6 @@ public sealed class SerializablePrefab : ICloneable, IEquatable<SerializablePref
                 continue;
 
             // If temporary attribute was saved, we load it unconditionally.
-            // TODO: Maybe have a flag to control this behavior?
             if (!attribute.ShouldLoad && (attribute.Mode & AttributeMode.Temporary) == 0)
                 continue;
 

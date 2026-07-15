@@ -27,7 +27,6 @@ public sealed class VectorBuffer : AbstractFile
 
     public ReadOnlySpan<byte> Buffer => _buffer;
 
-    // C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer"
     public override string Name => base.Name.Length != 0 ? base.Name : VectorBufferName;
 
     public byte[] GetBuffer()
