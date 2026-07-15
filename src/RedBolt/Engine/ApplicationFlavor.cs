@@ -1,5 +1,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -19,6 +21,10 @@ public class ApplicationFlavorMap : Dictionary<string, ApplicationFlavorComponen
 /// <summary>Class that represents pattern of flavor components.</summary>
 public struct ApplicationFlavorPattern
 {
+    private static readonly Regex FlavorComponentRegex = new(
+        @"\A\s*([\w\*]*)\s*=\s*((?:[\w\*]+\s*,\s*)*(?:[\w\*]+))\s*\z",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>Flavor components.</summary>
     public ApplicationFlavorMap Components;
 
@@ -35,23 +41,21 @@ public struct ApplicationFlavorPattern
 
     internal static ApplicationFlavorMap ParseFlavorString(string str)
     {
-        // C++: uses std::regex to validate format and logs URHO3D_LOGERROR on invalid components.
-        // C++: static const std::regex r(R"(\s*([\w\*]*)\s*=\s*((?:[\w\*]+\s*,\s*)*(?:[\w\*]+))\s*)");
-        // C#: silently skips invalid components instead of logging an error.
         var result = new ApplicationFlavorMap();
-        if (string.IsNullOrWhiteSpace(str))
-            return result;
-
-        var components = str.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var components = str.Split(';');
         foreach (var component in components)
         {
-            var equalsIndex = component.IndexOf('=');
-            if (equalsIndex < 0)
+            var match = FlavorComponentRegex.Match(component);
+            if (!match.Success)
+            {
+                Log.Logger.LogError(
+                    "Invalid application flavor component: '{Component}', should be like 'component=tag1[,tag2,...]'",
+                    component);
                 continue;
+            }
 
-            var key = component[..equalsIndex].Trim();
-            var tagsStr = component[(equalsIndex + 1)..];
-            var tags = tagsStr.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var key = match.Groups[1].Value;
+            var tags = match.Groups[2].Value.Split(',');
 
             if (!result.TryGetValue(key, out var tagSet))
             {
@@ -96,10 +100,6 @@ public struct ApplicationFlavor
         Components = components;
     }
 
-    // C++: Matches uses M_MAX_UNSIGNED, not uint.MaxValue. M_MAX_UNSIGNED may differ from uint.MaxValue.
-    // TODO: port - C++ code:
-    // if (components_ == ApplicationFlavor::Universal.components_)
-    //     return M_MAX_UNSIGNED;
     /// <summary>Returns distance (smaller is better) if flavor matches the pattern. Returns null if doesn't match.</summary>
     public readonly uint? Matches(ApplicationFlavorPattern pattern)
     {

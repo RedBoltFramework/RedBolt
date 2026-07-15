@@ -12,8 +12,6 @@
 - [ ] ./src/RedBolt/Core/CustomVariantValue.cs:88:// TODO: port - C++ custom variant traits provide specialized move, compare, serialization, and inline-storage behavior not represented by the managed generic implementation.
 - [ ] ./src/RedBolt/Scene/NodePrefab.cs:234:            // TODO: Maybe have a flag to control this behavior?
 - [ ] ./src/RedBolt/Scene/Node.cs:3:// TODO: port - C++: class Node : public Serializable. C# uses Animatable to expose
-- [ ] ./src/RedBolt/Scene/Node.cs:762:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/Node.cs:763:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:6:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/LogicComponent.cs:46:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Animatable.cs:35:    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
@@ -38,10 +36,6 @@
 - [ ] ./src/RedBolt/Input/InputMap.cs:377:        // C++: checks UI focus element before processing keyboard, iterates all joysticks (not just global state),
 - [ ] ./src/RedBolt/Input/InputMap.cs:378:        // C++: checks screen buttons via touch iteration
 - [ ] ./src/RedBolt/Input/InputMap.cs:656:        // C++: uses Equals(pos, pressed_) for exact comparison
-- [ ] ./src/RedBolt/Engine/ApplicationFlavor.cs:38:        // C++: uses std::regex to validate format and logs URHO3D_LOGERROR on invalid components.
-- [ ] ./src/RedBolt/Engine/ApplicationFlavor.cs:39:        // C++: static const std::regex r(R"(\s*([\w\*]*)\s*=\s*((?:[\w\*]+\s*,\s*)*(?:[\w\*]+))\s*)");
-- [ ] ./src/RedBolt/Engine/ApplicationFlavor.cs:99:    // C++: Matches uses M_MAX_UNSIGNED, not uint.MaxValue. M_MAX_UNSIGNED may differ from uint.MaxValue.
-- [ ] ./src/RedBolt/Engine/ApplicationFlavor.cs:100:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:16:    // C++: bool audioPaused_ = false;
 - [ ] ./src/RedBolt/Engine/Engine.cs:18:    // C++: bool exitRequired_{};

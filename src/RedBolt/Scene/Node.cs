@@ -759,8 +759,6 @@ public sealed class Node : Animatable
     // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
     //
     //
-    // TODO: port - C++ code:
-    // TODO: port - C++ code:
     // bool Node::GetChildLazy(WeakPtr<Node>& childNode, StringHash nameHash, SceneLookupFlags flags = SceneLookupFlag::None) const;
     // template <class T> bool Node::GetNthComponentLazy(WeakPtr<T>& childComponent, unsigned index = 0) const;
     //
@@ -777,6 +775,32 @@ public sealed class Node : Animatable
             if (nodeCallback(child))
                 child.TraverseDepthFirst(nodeCallback, componentCallback);
         }
+    }
+
+    public bool GetChildLazy(ref Node? childNode, StringHash nameHash, SceneLookupFlag flags = SceneLookupFlag.None)
+    {
+        if (childNode is not null)
+        {
+            var isNameGood = !flags.HasFlag(SceneLookupFlag.ValidateName) || childNode.NameHash == nameHash;
+            var isRelationGood = !flags.HasFlag(SceneLookupFlag.ValidateRelation) || childNode.IsChildOf(this);
+            if (isNameGood && isRelationGood)
+                return true;
+
+            childNode = null;
+        }
+
+        childNode = GetChild(nameHash, flags.HasFlag(SceneLookupFlag.Recursive));
+        return childNode is not null;
+    }
+
+    public bool GetNthComponentLazy<T>(ref T? childComponent, uint index = 0)
+        where T : Component
+    {
+        if (childComponent is not null)
+            return true;
+
+        childComponent = GetNthComponent<T>(index);
+        return childComponent is not null;
     }
     //
     // C++ Node constructor takes Context* only; C# takes scene/parent/name/id/temporary.
