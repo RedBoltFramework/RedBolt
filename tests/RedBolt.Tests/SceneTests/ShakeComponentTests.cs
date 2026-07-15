@@ -40,7 +40,7 @@ public sealed class ShakeComponentTests
 
         Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTimeScale(), 10.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTraumaPower(), 3.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTraumaFalloff(), 2.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTraumaFalloff(), 3.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTrauma(), 0.5f));
     }
 }

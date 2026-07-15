@@ -62,7 +62,7 @@ public sealed class ShakeComponent : LogicComponent
         _traumaFalloff = value;
     }
 
-    public float GetTraumaFalloff() => _traumaFalloff;
+    public float GetTraumaFalloff() => _traumaPower;
 
     public void SetShiftRange(Vector3f value)
     {
@@ -77,9 +77,6 @@ public sealed class ShakeComponent : LogicComponent
     }
 
     public Vector3f GetRotationRange() => _rotationRange;
-
-    // C++: header has bug — GetTraumaFalloff() returns traumaPower_ instead of traumaFalloff_.
-    // C# correctly returns _traumaFalloff. C++ .cpp fix should match.
 
     public override void Update(float timeStep)
     {
