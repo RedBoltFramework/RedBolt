@@ -104,10 +104,9 @@ public sealed class ConfigFile : Object
     {
     }
 
-    // C++: config returns ConfigVariableDefinitionMap&, StringVariantMap&, ConfigFlavorVector& (mutable refs)
-    public IReadOnlyList<ConfigFlavor> VariablesPerFlavor => _variablesPerFlavor;
-    public IReadOnlyDictionary<string, ConfigVariableDefinition> Definitions => _definitions;
-    public IReadOnlyDictionary<string, Variant> Variables => _variables;
+    public List<ConfigFlavor> VariablesPerFlavor => _variablesPerFlavor;
+    public Dictionary<string, ConfigVariableDefinition> Definitions => _definitions;
+    public Dictionary<string, Variant> Variables => _variables;
 
     public ConfigVariableDefinition DefineVariable(string name, Variant defaultValue)
     {

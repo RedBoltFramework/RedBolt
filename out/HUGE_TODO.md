@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/ConfigFile.cs:115:    // C++: config returns ConfigVariableDefinitionMap&, StringVariantMap&, ConfigFlavorVector& (mutable refs)
 - [ ] ./src/RedBolt/Engine/ConfigFile.cs:176:    // C++: Uses Archive binary serialization (SerializeOptionalValue).
 - [ ] ./src/RedBolt/Input/FreeFlyController.cs:16:    // C++: gets Input via GetSubsystem<Input>() each frame, doesn't store it as a field
 - [ ] ./src/RedBolt/Input/FreeFlyController.cs:145:        // C++: iterates all joysticks, dispatches per type (gamepad/wheel/flightstick/unknown),
