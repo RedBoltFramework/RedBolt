@@ -18,8 +18,6 @@
 - [ ] ./src/RedBolt/Scene/Animatable.cs:141:    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
 - [ ] ./src/RedBolt/Scene/Animatable.cs:149:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Scene/Component.cs:188:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Engine/StateManager.cs:165:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
-- [ ] ./src/RedBolt/Engine/StateManager.cs:174:        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
 - [ ] ./src/RedBolt/Input/MoveAndOrbitController.cs:97:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Engine/Engine.cs:12:    // C++: float timeStep_; (single field, not nullable + separate tracking)
 - [ ] ./src/RedBolt/Engine/Engine.cs:16:    // C++: bool audioPaused_ = false;
@@ -65,7 +63,6 @@
 - [ ] ./src/RedBolt/Input/Input.cs:125:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/Input/Input.cs:147:    // C++: IntVector2 lastMousePosition_; IntVector2 lastVisibleMousePosition_;
 - [ ] ./src/RedBolt/Input/Input.cs:149:    // C++: ea::string textInput_;
-- [ ] ./src/RedBolt/Input/Input.cs:156:    // C++: M_MIN_INT, M_MIN_INT
 - [ ] ./src/RedBolt/Input/Input.cs:195:    // C++: IsMinimized() returns true also when !inputFocus_ && graphics_->GetFullscreen()
 - [ ] ./src/RedBolt/Input/Input.cs:324:        // C++: Update() handles MM_WRAP mouse wrapping, REQUIRE_CLICK_TO_FOCUS, and GetBackgroundSize-based manual mouse move calculation
 - [ ] ./src/RedBolt/Input/Input.cs:325:        // C++: also sends E_MOUSEMOVE event manually for mouse delta accumulation

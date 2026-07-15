@@ -163,7 +163,6 @@ public sealed class Input : Object
     private MouseButton _mouseButtonDown;
     private MouseButton _mouseButtonPress;
     private Vector2i _mousePressPosition = new(int.MinValue, int.MinValue);
-    // C++: M_MIN_INT, M_MIN_INT
     private int _mouseMoveWheel;
     private HatPosition _hatPosition = HatPosition.Center;
     private Vector2i _backbufferSize = Vector2i.Zero;
