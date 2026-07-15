@@ -40,15 +40,6 @@ public sealed class ModelMorph
 /// <summary>3D model resource.</summary>
 /// <remarks>
 // C++: Has loadVBData_, loadIBData_, loadGeometries_ for async loading. C# doesn't use these.
-// TODO: port - C++ code: void Model::SetVertexBuffers(const ea::vector&lt;SharedPtr&lt;VertexBuffer&gt;&gt;& buffers,
-//   const ea::vector&lt;unsigned&gt;& morphRangeStarts, const ea::vector&lt;unsigned&gt;& morphRangeCounts)
-// TODO: port - C++ code: void Model::SetIndexBuffers(const ea::vector&lt;SharedPtr&lt;IndexBuffer&gt;&gt;& buffers)
-// TODO: port - C++ code: void Model::SetSkeleton(const Skeleton& skeleton)
-// TODO: port - C++ code: void Model::SetGeometryBoneMappings(const ea::vector&lt;ea::vector&lt;unsigned&gt;&gt;& mappings)
-// TODO: port - C++ code: void Model::SetMorphs(const ea::vector&lt;ModelMorph&gt;& morphs)
-// TODO: port - C++ code: const ModelMorph* Model::GetMorph(unsigned index) const
-// TODO: port - C++ code: const ModelMorph* Model::GetMorph(const ea::string& name) const
-// TODO: port - C++ code: const ModelMorph* Model::GetMorph(StringHash nameHash) const
 /// </remarks>
 public sealed class Model : ResourceWithMetadata, ICloneable
 {
