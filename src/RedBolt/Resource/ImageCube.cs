@@ -12,7 +12,6 @@ public sealed class ImageCube : Resource
     {
     }
 
-    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);

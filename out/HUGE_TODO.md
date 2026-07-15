@@ -2,7 +2,6 @@
 
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ PickTextureFormat and AreTextureComponentsMatching support native texture formats not represented by CompressedFormat.
-- [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
 - [ ] ./src/RedBolt/Scene/UnknownComponent.cs:7:    // C++: UnknownComponent has no custom attributes — it is purely a placeholder.
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
