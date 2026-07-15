@@ -34,27 +34,6 @@ public sealed class ObjectReflection
     public AttributeScopeHint ScopeHint { get; private set; } = AttributeScopeHint.Attribute;
     public StringHash TypeId { get; }
 
-    // C++: AttributeHandle ObjectReflection::AddAttribute(const AttributeInfo& attr)
-    // C++: {
-    // C++:     // None or pointer types can not be supported
-    // C++:     if (attr.type_ == VAR_NONE || attr.type_ == VAR_VOIDPTR || attr.type_ == VAR_PTR)
-    // C++:     {
-    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute type {} to class {}",
-    // C++:             Variant::GetTypeName(attr.type_), GetTypeName());
-    // C++:         return AttributeHandle();
-    // C++:     }
-    // C++:     // Only SharedPtr<> of Serializable or it's subclasses are supported in attributes
-    // C++:     if (attr.type_ == VAR_CUSTOM && !attr.defaultValue_.IsCustomType<SharedPtr<Serializable>>())
-    // C++:     {
-    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute of custom type to class {}", GetTypeName());
-    // C++:         return AttributeHandle();
-    // C++:     }
-    // C++:     AttributeHandle handle;
-    // C++:     attributes_.push_back(attr);
-    // C++:     attributeNames_.push_back(attr.nameHash_);
-    // C++:     handle.attributeInfo_ = &attributes_.back();
-    // C++:     return handle;
-    // C++: }
     public AttributeHandle AddAttribute(AttributeInfo attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
