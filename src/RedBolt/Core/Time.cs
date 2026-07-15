@@ -90,8 +90,6 @@ public sealed class Time : Object
         _timeStep = elapsedTimeStep;
 
         _isFrameInProgress = true;
-        // C++: URHO3D_PROFILE("BeginFrame");
-
         var eventData = new CoreEvents.BeginFrameEvent
         {
             FrameNumber = _frameNumber,
@@ -102,8 +100,6 @@ public sealed class Time : Object
 
     public void EndFrame()
     {
-        // C++: URHO3D_PROFILE("EndFrame");
-
         SendEvent<CoreEvents.EndFrameEvent>();
         SendEvent<CoreEvents.EndFramePrivateEvent>();
 

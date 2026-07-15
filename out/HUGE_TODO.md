@@ -5,8 +5,6 @@
 - [ ] ./src/RedBolt/Resource/ImageCube.cs:15:    // TODO: port - C++ logs ImageCube load errors with URHO3D_LOGERROR; managed failure paths currently return false without logging.
 - [ ] ./src/RedBolt/Resource/Image.cs:91:    // TODO: port - C++ exposes SaveDDS, SaveWEBP, and GetSDLSurface; managed code currently has no DDS/WebP writers or public SDL-surface return API.
 - [ ] ./src/RedBolt/Scene/UnknownComponent.cs:7:    // C++: UnknownComponent has no custom attributes — it is purely a placeholder.
-- [ ] ./src/RedBolt/Core/Time.cs:104:        // C++: URHO3D_PROFILE("BeginFrame");
-- [ ] ./src/RedBolt/Core/Time.cs:116:        // C++: URHO3D_PROFILE("EndFrame");
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:63:    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
