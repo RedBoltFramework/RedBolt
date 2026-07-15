@@ -685,9 +685,16 @@ public sealed class Node : Animatable
         return true;
     }
 
-    // TODO: port - C++ code:
-    // AttributeScopeHint Node::GetEffectiveScopeHint() const;
-    //
+    public AttributeScopeHint GetEffectiveScopeHint()
+    {
+        var result = AttributeScopeHint.Serializable;
+        foreach (var component in _components)
+            result = (AttributeScopeHint)Math.Max((int)result, (int)component.GetEffectiveScopeHint());
+        foreach (var child in _children)
+            result = (AttributeScopeHint)Math.Max((int)result, (int)child.GetEffectiveScopeHint());
+        return result;
+    }
+
     // TODO: port - C++ code:
     // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
     // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
