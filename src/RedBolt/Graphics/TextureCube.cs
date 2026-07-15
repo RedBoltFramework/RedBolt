@@ -96,13 +96,10 @@ public sealed class TextureCube : Texture
 
     public bool SetSize(int size, TextureFormat format, int multiSample, bool noMultiSampledAutoResolve)
     {
-        // C++: TextureCube SetSize has no noMultiSampledAutoResolve param; this overload discards it.
         _ = noMultiSampledAutoResolve;
         return SetSize(size, format, TextureFlag.None, multiSample);
     }
 
-    // C++: bool SetSize(int size, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
-    // C++ uses Create(params). C# uses SetDimensions.
     public bool SetSize(int size, TextureFormat format, TextureFlag flags, int multiSample = 1)
     {
         if (size <= 0)
