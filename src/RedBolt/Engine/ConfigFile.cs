@@ -19,13 +19,9 @@ public sealed class ConfigVariableDefinition
     public ConfigVariableDefinition Overridable() { IsOverridable = true; return this; }
     public ConfigVariableDefinition CommandLinePriority() { HasCommandLinePriority = true; return this; }
 
-    // C++: bool overridable_{};
     public bool IsOverridable;
-    // C++: bool commandLinePriority_{};
     public bool HasCommandLinePriority;
-    // C++: Variant defaultValue_{};
     public Variant DefaultValue;
-    // C++: VariantType type_{};
     public VariantType Type;
 }
 
@@ -100,11 +96,8 @@ public sealed class ConfigFile : Object
         }
     }
 
-    // C++: ConfigFlavorVector variablesPerFlavor_;
     private readonly List<ConfigFlavor> _variablesPerFlavor = [];
-    // C++: ConfigVariableDefinitionMap definitions_;
     private readonly Dictionary<string, ConfigVariableDefinition> _definitions = new(StringComparer.Ordinal);
-    // C++: StringVariantMap variables_;
     private readonly Dictionary<string, Variant> _variables = new(StringComparer.Ordinal);
 
     // C++: explicit ConfigFile(Context* context);
