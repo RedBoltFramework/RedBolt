@@ -134,9 +134,7 @@ public sealed class Engine : Object
         time.BeginFrame(timeStep);
 
         var audio = GetSubsystem<Audio>()!;
-        // C++: if (pauseMinimized_ && input->IsMinimized())
-        // C++ does not gate on !IsHeadless here.
-        var isPaused = !IsHeadless && PauseMinimized && input.IsMinimized;
+        var isPaused = PauseMinimized && input.IsMinimized;
         if (isPaused)
         {
             if (audio.IsPlaying())

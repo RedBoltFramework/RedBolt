@@ -1,6 +1,5 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Engine/Engine.cs:145:        // C++: if (pauseMinimized_ && input->IsMinimized())
 - [ ] ./src/RedBolt/Engine/Engine.cs:202:        // TODO: port UI and RmlUI scale state updates when the managed UI APIs exist.
 - [ ] ./src/RedBolt/Engine/Engine.cs:212:    // C++: #if defined(IOS) || defined(TVOS) – on iOS/tvOS DoExit() is NOT called
 - [ ] ./src/RedBolt/Engine/Engine.cs:254:    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
