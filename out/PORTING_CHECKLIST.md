@@ -538,7 +538,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `AudioEvents.h`
   - [x] audio event definitions — SoundFinished, RecordingUpdated/Started/Ended events ported
 - [x] `Sound.h`
-  - [x] `Sound : ResourceWithMetadata` — WAV loading, raw data, loop/size/format, decoder stream, and sample properties ported
+  - [x] `Sound : ResourceWithMetadata` — WAV loading, raw data, loop/size/format, decoder stream, sample properties, and optional XML format/loop/metadata parameters ported
 - [x] `SoundStream.h`
   - [x] `SoundStream` — abstract base with Seek/GetData/SetFormat/StopAtEnd ported, including the 44100 Hz default frequency
 - [x] `BufferedSoundStream.h`

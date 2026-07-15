@@ -34,9 +34,9 @@ public sealed class Sound : ResourceWithMetadata
             _ => LoadRaw(source)
         };
 
-        // TODO: port - C++ code:
-        // if (success)
-        //     LoadParameters();
+        // Load optional parameters.
+        if (success)
+            LoadParameters();
         return success;
     }
 
@@ -272,23 +272,54 @@ public sealed class Sound : ResourceWithMetadata
         }
     }
 
-    // TODO: port - C++ code:
-    // void Sound::LoadParameters()
-    // {
-    //     auto* cache = GetSubsystem<ResourceCache>();
-    //     ea::string xmlName = ReplaceExtension(GetName(), ".xml");
-    //     SharedPtr<XMLFile> file(cache->GetTempResource<XMLFile>(xmlName, false));
-    //     if (!file) return;
-    //     XMLElement rootElem = file->GetRoot();
-    //     LoadMetadataFromXML(rootElem);
-    //     for (XMLElement paramElem = rootElem.GetChild(); paramElem; paramElem = paramElem.GetNext())
-    //     {
-    //         ea::string name = paramElem.GetName();
-    //         if (name == "format" && !compressed_)
-    //         { ... set frequency_, sixteenBit_, stereo_ from attributes ... }
-    //         if (name == "loop") { ... SetLooped / SetLoop from attributes ... }
-    //     }
-    // }
+    private void LoadParameters()
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        if (cache is null)
+            return;
+
+        var xmlName = Path.ChangeExtension(GetName(), ".xml");
+        XMLFile? file;
+        try
+        {
+            file = cache.GetTempResource<XMLFile>(xmlName, false);
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        if (file is null)
+            return;
+
+        var rootElement = file.GetRoot();
+        LoadMetadataFromXML(rootElement);
+
+        for (var parameterElement = rootElement.GetChild(); parameterElement.NotNull; parameterElement = parameterElement.GetNext())
+        {
+            var name = parameterElement.Name;
+
+            if (name == "format" && !_compressed)
+            {
+                if (parameterElement.HasAttribute("frequency"))
+                    _frequency = (uint)parameterElement.GetInt("frequency");
+                if (parameterElement.HasAttribute("sixteenbit"))
+                    _sixteenBit = parameterElement.GetBool("sixteenbit");
+                if (parameterElement.HasAttribute("16bit"))
+                    _sixteenBit = parameterElement.GetBool("16bit");
+                if (parameterElement.HasAttribute("stereo"))
+                    _stereo = parameterElement.GetBool("stereo");
+            }
+
+            if (name == "loop")
+            {
+                if (parameterElement.HasAttribute("enable"))
+                    SetLooped(parameterElement.GetBool("enable"));
+                if (parameterElement.HasAttribute("start") && parameterElement.HasAttribute("end"))
+                    SetLoop((uint)parameterElement.GetInt("start"), (uint)parameterElement.GetInt("end"));
+            }
+        }
+    }
 
     internal static sbyte[] CopyToSByteArray(byte[] source)
     {
