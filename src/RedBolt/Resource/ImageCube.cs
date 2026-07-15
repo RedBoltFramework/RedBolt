@@ -31,10 +31,12 @@ public sealed class ImageCube : Resource
         var imageElement = root.GetChild("image");
         if (imageElement.NotNull)
         {
-            var imageName = imageElement.GetAttribute("name");
+            var imageName = ResourceLoading.ResolveRelativeResourceName(this, imageElement.GetAttribute("name"));
             var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
             if (image is null)
                 return false;
+
+            OwnerCache?.StoreResourceDependency(this, imageName);
 
             if (image.IsCubemap())
             {
@@ -60,10 +62,12 @@ public sealed class ImageCube : Resource
             var faceIndex = 0;
             while (faceElement.NotNull && faceIndex < _faceImages.Length)
             {
-                var imageName = faceElement.GetAttribute("name");
+                var imageName = ResourceLoading.ResolveRelativeResourceName(this, faceElement.GetAttribute("name"));
                 var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
                 if (image is null)
                     return false;
+
+                OwnerCache?.StoreResourceDependency(this, imageName);
 
                 SetImage((CubeMapFace)faceIndex, image);
                 ++faceIndex;
