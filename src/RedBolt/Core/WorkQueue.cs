@@ -434,9 +434,6 @@ public sealed class WorkQueue : Object
             : (uint)(Math.Abs(Thread.CurrentThread.ManagedThreadId) % (int)_numProcessingThreads);
     }
 
-    // TODO: port - C++ code:
-    // void CompleteImmediateForAnotherThread(unsigned threadIndex);
-
     private void ProcessPostedTasks()
     {
         if (_fallbackTaskQueue.Count > 0)
