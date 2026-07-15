@@ -11,6 +11,8 @@ namespace RedBolt;
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
 public class File : AbstractFile, IDisposable
 {
+    private const uint ReadBufferSize = 32768;
+
     /// <summary>File open mode.</summary>
     public enum FileMode
     {
@@ -89,14 +91,39 @@ public class File : AbstractFile, IDisposable
         if (size == 0)
             return 0;
 
-        // C++: Android asset handles that are not compressed use a read buffer for performance.
-        // TODO: port - C++ code:
-        // #ifdef __ANDROID__
-        // if (assetHandle_ && !compressed_) {
-        //     if (!readBuffer_) { readBuffer_ = new unsigned char[READ_BUFFER_SIZE]; readBufferOffset_ = 0; readBufferSize_ = 0; }
-        //     ... buffered read loop ...
-        // }
-        // #endif
+        if (_assetHandle is not null && !_compressed)
+        {
+            if (_readBuffer is null)
+            {
+                _readBuffer = new byte[ReadBufferSize];
+                _readBufferOffset = 0;
+                _readBufferSize = 0;
+            }
+
+            var sizeLeft = size;
+            var destinationOffset = 0;
+            while (sizeLeft != 0)
+            {
+                if (_readBufferOffset >= _readBufferSize)
+                {
+                    _readBufferSize = Math.Min(Size - Position, ReadBufferSize);
+                    _readBufferOffset = 0;
+                    if (!ReadInternal(_readBuffer.AsSpan(0, checked((int)_readBufferSize))))
+                        return 0;
+                }
+
+                var copySize = Math.Min(_readBufferSize - _readBufferOffset, sizeLeft);
+                _readBuffer.AsSpan(checked((int)_readBufferOffset), checked((int)copySize))
+                    .CopyTo(destination.Slice(destinationOffset, checked((int)copySize)));
+                sizeLeft -= copySize;
+                _readBufferOffset += copySize;
+                Position += copySize;
+                destinationOffset += checked((int)copySize);
+            }
+
+            return size;
+        }
+
         if (_readSyncNeeded)
         {
             SeekInternal(Position + _offset);
