@@ -1,11 +1,7 @@
 # Huge TODO inventory
 
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/Texture.cs:27:// C++: Texture inherits from ResourceWithMetadata and RawTexture (multiple inheritance). C# inherits from ResourceWithMetadata only and has a _rawTexture field.
-- [ ] ./src/RedBolt/Graphics/Texture.cs:28:// C++: RawTexture is the base providing GPU resource management (Create, Destroy, Restore). C# wraps these via method calls on the RawTexture field.
-- [ ] ./src/RedBolt/Graphics/Texture.cs:29:// C++: Has direct Diligent API includes for ITexture, ITextureView, ISampler in header. C# accesses these from the Bindings namespace.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:30:// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
-- [ ] ./src/RedBolt/Graphics/Texture.cs:31:// C++: HandleRenderSurfaceUpdate is connected as event handler in the C++ object registration. C# uses SubscribeToEvent directly.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:370:    // TODO: port: Image-backed GPU creation requires Texture and RawTexture to share one class hierarchy.
 - [ ] ./src/RedBolt/Graphics/Texture.cs:373:    // TODO: port: Image-backed GPU uploads require Texture and RawTexture to share one class hierarchy.
 - [ ] ./src/RedBolt/Graphics/Technique.cs:39:    // TODO: port - C++ code:
