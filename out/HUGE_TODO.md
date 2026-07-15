@@ -2,7 +2,6 @@
 
 - [ ] ./src/RedBolt/RenderPipeline/RenderBufferManager.cs:9:// TODO: port - C++ code:
 - [ ] ./src/RedBolt/RenderPipeline/RenderBuffer.cs:59:// TODO: port - C++ code:
-- [ ] ./src/RedBolt/Resource/ResourceCache.cs:750:        // C++: prints a detailed table with resource count, avg memory, max memory, budget, and total per type
 - [ ] ./src/RedBolt/Resource/Resource.cs:36:        // C++: does not fire a ReloadFinished event here; reload events are sent by ResourceCache::ReloadResource
 - [ ] ./src/RedBolt/Resource/Resource.cs:51:        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_READ) then Load(*file)
 - [ ] ./src/RedBolt/Resource/Resource.cs:106:        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_WRITE) then Save(*file)

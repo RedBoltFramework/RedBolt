@@ -758,11 +758,30 @@ public sealed class ResourceCache : Object
 
     public string PrintMemoryUsage()
     {
-        // C++: prints a detailed table with resource count, avg memory, max memory, budget, and total per type
-        var lines = _cache.GroupBy(static item => item.Key.Type)
-            .OrderBy(static group => group.Key.Name, StringComparer.Ordinal)
-            .Select(group => $"{group.Key.Name}: {group.Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse)} bytes ({group.Count()} resources)");
-        return string.Join(Environment.NewLine, lines);
+        var output = new System.Text.StringBuilder("Resource Type                 Cnt       Avg       Max    Budget     Total\n\n");
+        uint totalResourceCount = 0;
+        ulong totalLargest = 0;
+        ulong totalUse = 0;
+
+        foreach (var (type, group) in _resourceGroups.OrderBy(static pair => pair.Key.Name, StringComparer.Ordinal))
+        {
+            var resourceCount = (uint)group.Resources.Count;
+            var average = resourceCount == 0 ? 0UL : group.MemoryUse / resourceCount;
+            var largest = group.Resources.Values.Select(static resource => (ulong)resource.MemoryUse).DefaultIfEmpty().Max();
+            totalResourceCount += resourceCount;
+            totalLargest = Math.Max(totalLargest, largest);
+            totalUse += group.MemoryUse;
+
+            output.AppendFormat(
+                "{0,-28} {1,4} {2,9} {3,9} {4,9} {5,9}\n",
+                type.Name, resourceCount, average, largest, group.MemoryBudget, group.MemoryUse);
+        }
+
+        var totalAverage = totalResourceCount == 0 ? 0UL : totalUse / totalResourceCount;
+        output.AppendFormat(
+            "{0,-28} {1,4} {2,9} {3,9} {4,9} {5,9}\n",
+            "All", totalResourceCount, totalAverage, totalLargest, "-", totalUse);
+        return output.ToString();
     }
 
     public string PrintResources(string typeName = "")
