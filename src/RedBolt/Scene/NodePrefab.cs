@@ -4,6 +4,17 @@ namespace RedBolt;
 
 public sealed class AttributePrefab : ICloneable
 {
+    // TODO: port - C++ code:
+    // enum class IdentifierType : unsigned char { Id, Name, NameHash, Unused };
+    // IdentifierType GetIdentifierType() const;
+    // explicit AttributePrefab(AttributeId id);
+    // explicit AttributePrefab(const ea::string& name);
+    // explicit AttributePrefab(const char* name);
+    // explicit AttributePrefab(StringHash nameHash);
+    // AttributeId id_{};  // separate Id field (different from uint Id?)
+    // bool operator==(const AttributePrefab& rhs) const;
+    // bool operator!=(const AttributePrefab& rhs) const { return !(*this == rhs); }
+
     public string Name
     {
         get => _name;
@@ -111,6 +122,15 @@ public sealed class AttributePrefab : ICloneable
 
 public sealed class SerializablePrefab : ICloneable
 {
+    // TODO: port - C++ code:
+    // void SetType(const ea::string& typeName);
+    // void SetType(const char* typeName);
+    // void SetType(StringHash typeNameHash);
+    // StringHash typeNameHash_;  // private field set by SetType(StringHash)
+    // AttributeScopeHint GetEffectiveScopeHint(Context* context) const;
+    // bool operator==(const SerializablePrefab& rhs) const;
+    // bool operator!=(const SerializablePrefab& rhs) const { return !(*this == rhs); }
+
     public string TypeName { get; set; } = string.Empty;
     public uint Id { get; set; }
     public bool Temporary { get; set; }
@@ -314,6 +334,21 @@ public sealed class SerializablePrefab : ICloneable
 
 public sealed class NodePrefab : ICloneable
 {
+    // TODO: port - C++ code:
+    // class PrefabNormalizer { ... };  // separate utility class for ID normalization
+    // AttributeScopeHint GetEffectiveScopeHint(Context* context) const;
+    // bool operator==(const NodePrefab& rhs) const;
+    // bool operator!=(const NodePrefab& rhs) const { return !(*this == rhs); }
+    //
+    // C++ NormalizeIds takes Context* context and delegates to PrefabNormalizer:
+    //   void PrefabNormalizer::ScanNode(NodePrefab& node);
+    //   void PrefabNormalizer::RemapAndPrune(NodePrefab& node);
+    //
+    // Free functions (entry points for archive serialization):
+    //   void SerializeValue(Archive&, const char* name, AttributePrefab&, bool compactSave = false);
+    //   void SerializeValue(Archive&, const char* name, SerializablePrefab&, PrefabArchiveFlags, bool compactSave = false);
+    //   void SerializeValue(Archive&, const char* name, NodePrefab&, PrefabArchiveFlags, bool compactSave = false);
+
     public static NodePrefab Empty { get; } = new();
 
     public SerializablePrefab Node { get; } = new();

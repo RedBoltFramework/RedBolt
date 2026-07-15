@@ -11,6 +11,11 @@ public sealed class InputMap : ResourceWithMetadata
     private readonly Dictionary<string, ActionMapping> _actions = new(StringComparer.Ordinal);
     private float _deadZone = DefaultDeadZone;
 
+    // TODO: port - C++ code:
+    // int ignoreJoystickId_{-1};
+    // ignoreJoystickId_ = GetSubsystem<Input>()->FindAccelerometerJoystickId();
+    // Used to ignore SDL gyroscope virtual joystick in Evaluate()
+
     public InputMap(string name, Input? input = null)
         : base(name)
     {
@@ -368,6 +373,9 @@ public sealed class InputMap : ResourceWithMetadata
             }
         }
 
+        // C++: Evaluate(Input* input, UI* ui, float deadZone, int ignoreJoystickId) takes UI and ignoreJoystickId params,
+        // C++: checks UI focus element before processing keyboard, iterates all joysticks (not just global state),
+        // C++: checks screen buttons via touch iteration
         public float Evaluate(Input input, float deadZone)
         {
             ArgumentNullException.ThrowIfNull(input);
@@ -433,6 +441,8 @@ public sealed class InputMap : ResourceWithMetadata
             if (mouseButton == MouseButton.None)
                 return;
 
+            // C++: stores the raw MouseButton enum value (1,2,4,...), then GetMask() does 1<<mouseButton_
+            // (which gives incorrect mask for LEFT since 1<<1=2 instead of 1). C# uses bit index instead.
             var btnIndex = (uint)BitOperations.TrailingZeroCount((uint)mouseButton);
             var mapping = new MouseButtonMapping(btnIndex);
             if (!_mouseButtons.Contains(mapping))
@@ -645,6 +655,7 @@ public record struct ControllerAxisMapping(bool IsController, uint Axis, float N
 
     public float Translate(float position, float deadZone)
     {
+        // C++: uses Equals(pos, pressed_) for exact comparison
         if (MathDefs.ApproximatelyEquivalent(position, Pressed))
             return 1.0f;
 

@@ -33,6 +33,7 @@ public abstract class Resource : Object
         var success = BeginLoad(source);
         if (success)
             success &= EndLoad();
+        // C++: does not fire a ReloadFinished event here; reload events are sent by ResourceCache::ReloadResource
         AsyncLoadState = AsyncLoadState.Done;
         if (success)
             ReloadFinished?.Invoke(this);
@@ -47,6 +48,7 @@ public abstract class Resource : Object
 
     public bool LoadFile(string fileName)
     {
+        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_READ) then Load(*file)
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
@@ -101,6 +103,7 @@ public abstract class Resource : Object
 
     public virtual bool SaveFile(string fileName)
     {
+        // C++: delegates directly to VFS: vfs->OpenFile(fileName, FILE_WRITE) then Save(*file)
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         using var stream = new MemoryStream();
         if (!Save(stream))
@@ -143,6 +146,7 @@ public abstract class Resource : Object
 
     public void SetName(string name)
     {
+        // C++: name_ = name; nameHash_ = name;
         Name = name ?? string.Empty;
     }
 
@@ -159,6 +163,7 @@ public abstract class Resource : Object
 
     public uint GetUseTimer()
     {
+        // C++: if (Refs() > 1) { useTimer_.Reset(); return 0; } else return useTimer_.GetMSec(false);
         return (uint)Math.Min(uint.MaxValue, _useTimer.ElapsedMilliseconds);
     }
 

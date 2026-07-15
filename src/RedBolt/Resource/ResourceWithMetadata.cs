@@ -1,3 +1,4 @@
+// C++: no direct C++ counterpart. C#-only class.
 namespace RedBolt;
 
 public abstract class ResourceWithMetadata : Resource

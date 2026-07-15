@@ -69,7 +69,8 @@ public sealed class TimedCounter
 
     public TimedCounter(int intervalCount, uint intervalLengthMs)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(intervalCount);
+        // C++:     data_.resize(intervalCount);
+        // C++ has no argument validation on intervalCount.
         _intervalLengthMs = intervalLengthMs;
         _current = intervalCount - 1;
         _data = new float[intervalCount];

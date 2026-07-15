@@ -52,6 +52,14 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
         Define(box);
     }
 
+    // C++: Sphere(const Frustum& frustum);
+    // C++: Sphere(const Polyhedron& poly);
+
+    // C++: void Define(const Frustum& frustum);
+    // C++: void Define(const Polyhedron& poly);
+    // C++: void Merge(const Frustum& frustum);
+    // C++: void Merge(const Polyhedron& poly);
+
     public bool Defined => Radius >= 0.0f;
 
     public void Clear()

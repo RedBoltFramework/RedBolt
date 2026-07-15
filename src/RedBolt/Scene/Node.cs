@@ -1,5 +1,8 @@
 namespace RedBolt;
 
+// C++: class Node : public Serializable
+// Non-allowed divergence: C# inherits from Animatable instead of Serializable.
+// Animatable adds ObjectAnimation support that changes the base class hierarchy.
 public sealed class Node : Animatable
 {
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
@@ -683,29 +686,38 @@ public sealed class Node : Animatable
         return true;
     }
 
-    // Remaining reader/writer overloads are represented by NodePrefab and Archive entry points above.
-    // void Node::LoadInternal(const SerializablePrefab& nodePrefab, PrefabReader& reader, SceneResolver& resolver, PrefabLoadFlags flags);
-    // bool Node::Load(PrefabReader& reader, PrefabLoadFlags flags);
-    // void Node::SaveInternal(PrefabWriter& writer) const;
-    // bool Node::Save(PrefabWriter& writer) const;
-    // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3f& position, const Quaternion& rotation);
-    // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3f& position, const Quaternion& rotation);
-    // void Node::GeneratePrefab(NodePrefab& prefab) const;
-    // NodePrefab Node::GeneratePrefab() const;
+    // TODO: port - C++ code:
     // AttributeScopeHint Node::GetEffectiveScopeHint() const;
-    // bool Node::Load(Deserializer& source);
-    // bool Node::LoadXML(const XMLElement& source);
-    // bool Node::LoadJSON(const JSONValue& source);
-    // bool Node::Save(Serializer& dest) const;
-    // bool Node::SaveXML(XMLElement& dest) const;
-    // bool Node::SaveJSON(JSONValue& dest) const;
-    // bool Node::SaveXML(Serializer& dest, const ea::string& indentation) const;
-    // bool Node::SaveJSON(Serializer& dest, const ea::string& indentation) const;
-    // bool Node::Load(Deserializer& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs);
-    // bool Node::LoadXML(const XMLElement& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs, bool removeComponents);
-    // bool Node::LoadJSON(const JSONValue& source, SceneResolver& resolver, bool loadChildren, bool rewriteIDs);
-    // Node* Node::CloneRecursive(Node* parent, SceneResolver& resolver);
-    // Component* Node::SafeCreateComponent(const ea::string& typeName, StringHash type, unsigned id);
+    //
+    // TODO: port - C++ code:
+    // Node* Node::InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position, const Quaternion& rotation);
+    // Node* Node::InstantiatePrefab(const NodePrefab& prefab, const Vector3& position, const Quaternion& rotation);
+    //
+    // TODO: port - C++ code:
+    // void Node::GeneratePrefab(NodePrefab& prefab) const;  // in-place overload
+    //
+    // TODO: port - C++ code:
+    // bool Node::SaveJSON(Serializer& dest, const ea::string& indentation = "\t") const;
+    // bool Node::SaveXML(Serializer& dest, const ea::string& indentation = "\t") const;
+    //
+    // TODO: port - C++ code:
+    // bool Node::GetChildLazy(WeakPtr<Node>& childNode, StringHash nameHash, SceneLookupFlags flags = SceneLookupFlag::None) const;
+    // template <class T> bool Node::GetNthComponentLazy(WeakPtr<T>& childComponent, unsigned index = 0) const;
+    //
+    // TODO: port - C++ code:
+    // template <class T, class U> void Node::TraverseDepthFirst(const T& nodeCallback, const U& componentCallback);
+    //
+    // TODO: port - C++ code:
+    // Variant* Node::GetMutableVar(const ea::string& key);
+    // Variant* Node::GetMutableVarByHash(StringHash key);
+    //
+    // TODO: port - C++ missing enum:
+    // enum class SceneLookupFlag { None, Recursive, ValidateName, ValidateRelation };
+    // URHO3D_FLAGSET(SceneLookupFlag, SceneLookupFlags);
+    //
+    // C++ Node constructor takes Context* only; C# takes scene/parent/name/id/temporary.
+    // C++ uses PIMPL via NodeImpl (name_, tags_, nameHash_, dependencyNodes_, attrBuffer_);
+    // C# inlines those fields directly.
     //
     // Scene lifetime helpers - the managed Scene is currently constructor-owned and non-nullable,
     // so these mutators do not yet map onto the C# API surface:
@@ -2034,8 +2046,7 @@ public sealed class Node : Animatable
 
     public void SetVarByHash(StringHash key, object? value)
     {
-        if (_variables.ContainsKey(key))
-            _variables[key] = value;
+        _variables[key] = value;
     }
 
     public void SetVariables(IEnumerable<KeyValuePair<StringHash, object?>> variables)

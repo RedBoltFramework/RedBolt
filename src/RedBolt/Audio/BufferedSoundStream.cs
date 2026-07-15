@@ -37,6 +37,7 @@ public sealed class BufferedSoundStream : SoundStream
     /// <summary>Buffer sound data.</summary>
     public void AddData(byte[] data, uint numBytes)
     {
+        // C++: if (data && numBytes) — checks for null data pointer; C# does not null-check data array.
         if (numBytes == 0) return;
         var copy = new byte[numBytes];
         Buffer.BlockCopy(data, 0, copy, 0, (int)numBytes);
@@ -49,6 +50,7 @@ public sealed class BufferedSoundStream : SoundStream
 
     public void AddData(short[] data, uint numBytes)
     {
+        // C++: if (data && numBytes) — checks for null data pointer; C# does not null-check data array.
         if (numBytes == 0) return;
         var bytes = new byte[numBytes];
         Buffer.BlockCopy(data, 0, bytes, 0, (int)numBytes);

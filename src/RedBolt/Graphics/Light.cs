@@ -45,6 +45,19 @@ public readonly record struct FocusParameters(bool Focus, bool NonUniform, bool 
     };
 }
 
+/// <summary>Light component.</summary>
+/// <remarks>
+// C++: Light inherits from Drawable. C# matches.
+// C++: Light has SetLightQueue / GetLightQueue methods. C++ uses LightBatchQueue for light rendering batches.
+// TODO: port - C++ code: void Light::SetLightQueue(LightBatchQueue* queue)
+// TODO: port - C++ code: LightBatchQueue* Light::GetLightQueue() const
+// TODO: port - C++ code: void Light::SetIntensitySortValue(const BoundingBox& box)
+// C++: The SetIntensitySortValue with BoundingBox param computes sort value based on overall intensity over a bounding box.
+// C++: The SetRampTextureAttr returns ResourceRef for "Texture2D". C# returns "Texture2D" for all light types.
+// C++: Has ValidateShadowFocus / ValidateShadowCascade / ValidateShadowBias private methods. C# uses Validated() on the parameter types.
+// C++: ProcessRayQuery takes (const RayOctreeQuery& query, ea::vector&lt;RayQueryResult&gt;& results) as per Drawable. C# has a simplified version.
+// C++: OnWorldBoundingBoxUpdate is protected override. C# matches.
+/// </remarks>
 public sealed class Light : Drawable
 {
     public const float ShadowMinQuantize = 0.1f;

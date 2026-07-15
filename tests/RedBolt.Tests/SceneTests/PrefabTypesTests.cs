@@ -25,7 +25,7 @@ public sealed class PrefabTypesTests
 
         var result = PrefabTypes.ToComponentFlags(flags);
 
-        Assert.True((result & PrefabArchiveFlag.IgnoreSerializableId) != 0);
+        Assert.Equal(PrefabArchiveFlag.IgnoreSerializableId, result);
         Assert.False((result & PrefabArchiveFlag.IgnoreSerializableType) != 0);
     }
 }

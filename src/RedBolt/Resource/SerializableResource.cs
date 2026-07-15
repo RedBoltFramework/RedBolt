@@ -19,6 +19,9 @@ public class SerializableResource : SimpleResource
 
     public override void SerializeInBlock(Archive archive)
     {
+        // C++: calls serializable->SerializeInBlock(archive) directly for entire object
+        // C++: no attribute-level serialization; value_ DynamicCast from context_->CreateObject
+        // C++: throws ArchiveException on creation failure
         if (archive.IsInput)
         {
             var typeName = string.Empty;

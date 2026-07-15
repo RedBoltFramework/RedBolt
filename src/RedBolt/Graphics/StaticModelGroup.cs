@@ -2,6 +2,12 @@ namespace RedBolt;
 
 public sealed class StaticModelGroup : StaticModel
 {
+    // TODO: port - C++ code:
+    // bool DrawOcclusion(OcclusionBuffer* buffer) override;
+
+    // C++: ea::vector<WeakPtr<Node>> instanceNodes_;
+    // C++: mutable VariantVector nodeIDsAttr_;
+
     private static readonly Matrix3x4[] _identityWorldTransform = [Matrix3x4.Identity];
     private readonly List<Node> _instanceNodes = [];
     private readonly List<Matrix3x4> _worldTransforms = [];

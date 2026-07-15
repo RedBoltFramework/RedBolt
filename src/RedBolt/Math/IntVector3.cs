@@ -94,6 +94,20 @@ public struct BaseIntVector3<T> : IEquatable<BaseIntVector3<T>>
 
     public static BaseIntVector3<T> Abs(BaseIntVector3<T> vec) => new(T.Abs(vec.X), T.Abs(vec.Y), T.Abs(vec.Z));
 
+    // TODO: port - C++ compound assignment operators:
+    // constexpr BaseIntegerVector3& operator+=(const BaseIntegerVector3& rhs) { x_ += rhs.x_; y_ += rhs.y_; z_ += rhs.z_; return *this; }
+    // constexpr BaseIntegerVector3& operator-=(const BaseIntegerVector3& rhs) { x_ -= rhs.x_; y_ -= rhs.y_; z_ -= rhs.z_; return *this; }
+    // constexpr BaseIntegerVector3& operator*=(T rhs) { x_ *= rhs; y_ *= rhs; z_ *= rhs; return *this; }
+    // constexpr BaseIntegerVector3& operator*=(const BaseIntegerVector3& rhs) { x_ *= rhs.x_; y_ *= rhs.y_; z_ *= rhs.z_; return *this; }
+    // constexpr BaseIntegerVector3& operator/=(T rhs) { x_ /= rhs; y_ /= rhs; z_ /= rhs; return *this; }
+    // constexpr BaseIntegerVector3& operator/=(const BaseIntegerVector3& rhs) { x_ /= rhs.x_; y_ /= rhs.y_; z_ /= rhs.z_; return *this; }
+    // TODO: port - C++ code:
+    // constexpr const T* Data() const { return &x_; }
+    // constexpr T* MutableData() { return &x_; }
+    // TODO: port - C++ code:
+    // template <class OtherVectorType> constexpr OtherVectorType Cast(typename OtherVectorType::ScalarType w = {}) const
+    // template <class OtherVectorType> constexpr OtherVectorType CastXZ(typename OtherVectorType::ScalarType w = {}) const
+
     public Vector2f ToVector2() => new(float.CreateChecked(X), float.CreateChecked(Y));
 
     public BaseIntVector2<T> ToIntVector2() => new(X, Y);

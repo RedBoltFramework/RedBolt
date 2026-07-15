@@ -13,6 +13,7 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
     private float _axisSensitivity = DefaultAxisRotationSensitivity;
     private float _minPitch = -90.0f;
     private float _maxPitch = 90.0f;
+    // C++: gets Input via GetSubsystem<Input>() each frame, doesn't store it as a field
     private Input? _input;
     private bool _isActive;
     private bool _oldMouseVisible = true;
@@ -141,6 +142,13 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
 
     private void HandleKeyboardAndMouse(float timeStep)
     {
+        // C++: iterates all joysticks, dispatches per type (gamepad/wheel/flightstick/unknown),
+        // C++: differentiates world vs local space rotation with SetCameraRotation for flight stick
+        // TODO: port - C++ code:
+        // Movement HandleWheel(const JoystickState* state, float timeStep);
+        // Movement HandleFlightStick(const JoystickState* state, float timeStep);
+        // void SetCameraRotation(Quaternion quaternion);
+        // void OnSetEnabled() override; void UpdateEventSubscription();
         UpdateCameraAngles();
         var controllerRotation = new Vector3f(
             _axisAdapter.Transform(_input?.GetControllerAxisPosition(ControllerAxis.RightY) ?? 0.0f),

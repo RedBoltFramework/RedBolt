@@ -6,8 +6,13 @@ public abstract class Application : Object
 {
     public const int FailureExitCode = 1;
 
+    // C++: ea::string startupErrors_; (accumulates startup log errors via HandleLogMessage)
+    // C++: StringVariantMap engineParameters_; (constructed with {{EP_ENGINE_CLI_PARAMETERS, true}})
+    // C++: StringVariantMap commandLineParameters_;
+
     protected Application()
     {
+        // C++: SubscribeToEvent(E_LOGMESSAGE, URHO3D_HANDLER(Application, HandleLogMessage));
         Engine = new Engine();
     }
 
@@ -118,6 +123,10 @@ public abstract class Application : Object
                     ++frameCount;
                 }
             }
+
+            // C++: SendEvent(E_APPLICATIONSTARTED); after Start()
+            // C++: SendEvent(E_APPLICATIONSTOPPED); in all exit paths and in finally block
+            // TODO: port - C++ sends E_APPLICATIONSTARTED / E_APPLICATIONSTOPPED events.
         }
         catch (Exception exception)
         {
@@ -146,8 +155,25 @@ public abstract class Application : Object
         Engine.Exit();
     }
 
+    // C++: void HandleLogMessage(StringHash eventType, VariantMap& eventData);
+    //       Accumulates LOG_ERROR messages into startupErrors_ (strips timestamp).
+    // TODO: port - C++ code:
+    // void Application::HandleLogMessage(StringHash eventType, VariantMap& eventData)
+    // {
+    //     using namespace LogMessage;
+    //     if (eventData[P_LEVEL].GetInt() == LOG_ERROR)
+    //     {
+    //         ea::string error = eventData[P_MESSAGE].GetString();
+    //         unsigned bracketPos = error.find(']');
+    //         if (bracketPos != ea::string::npos)
+    //             error = error.substr(bracketPos + 2);
+    //         startupErrors_ += error + "\n";
+    //     }
+    // }
+
     protected void ErrorExit(string message = "")
     {
+        // C++: if message is empty, uses startupErrors_ (collected log errors) or fallback string.
         ErrorMessage = string.IsNullOrWhiteSpace(message)
             ? "Application has been terminated due to unexpected error."
             : message;

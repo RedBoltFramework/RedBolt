@@ -127,6 +127,11 @@ public sealed class Shader : Resource
         return variation;
     }
 
+    // C++: ea::string Shader::GetShaderName() const
+    // C++: static const ea::string prefix = "Shaders/GLSL/v2";
+    // C++: const ea::string& name = GetName();
+    // C++: if (!name.starts_with(prefix)) { URHO3D_LOGWARNING("Shader '{}'...", name); return name; }
+    // C++: return name.substr(prefix.length());
     public string GetShaderName()
     {
         var resourceName = GetResourceName(Name).Replace('\\', '/');
@@ -299,6 +304,9 @@ public sealed class Shader : Resource
                 if (isLineContinuation)
                     line = line[..^1];
 
+                // C++: if (!graphics->GetSettings().validateShaders_ || !line.trimmed().starts_with("//"))
+                // C++:     code += line;
+                // TODO: port - trim comments when shader validation is enabled.
                 builder.Append(line);
                 ++numNewLines;
                 if (!isLineContinuation)

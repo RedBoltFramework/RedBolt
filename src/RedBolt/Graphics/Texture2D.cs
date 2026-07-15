@@ -59,9 +59,13 @@ public sealed class Texture2D : Texture
         return success;
     }
 
+    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
+    // C++ uses Create(params) with RawTextureParams; also handles requestedSRGB_ format.
     public bool SetSize(int width, int height, TextureFormat format, int multiSample = 1, bool noMultiSampledAutoResolve = false)
         => SetSize(width, height, format, TextureFlag.None, multiSample, noMultiSampledAutoResolve);
 
+    // C++: bool SetSize(int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
+    // C++ uses Create(params) with sRGB check; has no noMultiSampledAutoResolve param.
     public bool SetSize(int width, int height, TextureFormat format, TextureFlag flags, int multiSample = 1,
         bool noMultiSampledAutoResolve = false)
     {
@@ -74,6 +78,8 @@ public sealed class Texture2D : Texture
         return true;
     }
 
+    // C++: bool SetData(unsigned level, int x, int y, int width, int height, const void* data)
+    // C++ simply calls Update(level, {x,y,0}, {width,height,1}, 0, data). _levelData management is C#-added.
     public bool SetData(uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
         if (level >= Levels || x < 0 || y < 0 || width <= 0 || height <= 0)
@@ -113,6 +119,8 @@ public sealed class Texture2D : Texture
 
     public bool SetData(uint level, int x, int y, int width, int height, byte[] data) => SetData(level, x, y, width, height, data.AsSpan());
 
+    // C++: bool SetData(Image* image)
+    // C++ uses CreateForImage(params, image) + UpdateFromImage(). C# manually computes mips.
     public bool SetData(Image? image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -151,6 +159,8 @@ public sealed class Texture2D : Texture
         return GetDataNoCopy(level)?.ToArray();
     }
 
+    // C++: bool GetData(unsigned level, void* dest)
+    // C++ calls Read(0, level, dest, M_MAX_UNSIGNED). C# reads from _levelData cache.
     public bool GetData(uint level, Span<byte> destination)
     {
         if (!_levelData.TryGetValue(level, out var levelBytes) || destination.Length < levelBytes.Length)
@@ -166,6 +176,9 @@ public sealed class Texture2D : Texture
         return GetData(level, destination.AsSpan());
     }
 
+    // C++: bool GetImage(Image& image)
+    // C++ calls ReadToImage(0, 0, &image). C# falls back to _levelData when ReadToImage returns empty.
+    // C++: SharedPtr<Image> GetImage() -- returns pointer, no OwnerCache set.
     public bool GetImage(Image image)
     {
         ArgumentNullException.ThrowIfNull(image);

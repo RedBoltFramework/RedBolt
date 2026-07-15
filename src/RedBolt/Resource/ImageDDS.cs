@@ -1,3 +1,15 @@
+// C++: Defined in ImageDDS.h/.cpp.
+// C++ structs not ported: DDColorKey (full), DDSCaps2 (full), DDSurfaceDesc2 (full 18-field struct).
+// C++ DDPixelFormat has union members (dwYUVBitCount_, dwStencilBitDepth_, etc.) - C# DdsPixelFormat is simplified.
+// Non-allowed divergence: Missing C++ functions MakeFourCC(), PickTextureFormat(), AreTextureComponentsMatching().
+// Non-allowed divergence: Missing FourCC constants: FOURCC_ETC1, FOURCC_ETC2, FOURCC_ETC2A, FOURCC_PTC2, FOURCC_PTC4.
+// Non-allowed divergence: Missing D3DFMT constants: D3DFMT_A16B16G16R16, D3DFMT_A16B16G16R16F, D3DFMT_A32B32G32R32F.
+// Non-allowed divergence: C# CompressedLevel record struct with decompression logic not in C++ ImageDDS.h.
+//   C++ decompression lives in separate Decompress.h/.cpp; ImageDDS.h only defines format structures and helper functions.
+// Non-allowed divergence: C# DxgiFormatR8G8B8A8UnormSrgb = 29u; C++ uses DDS_DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = 26.
+// Non-allowed divergence: C++ resolves DXGI formats via map lookup in PickTextureFormat(); C# resolves via switch in ResolveFormat().
+//   C++ supports: R32G32B32A32_FLOAT, RGBA16_FLOAT, RGBA16_UNORM, R10G10B10A2_UNORM, R9G9B9E5_SHAREDEXP, ETC1, ETC2, ETC2A, PTC2, PTC4
+// Non-allowed divergence: C++ AreTextureComponentsMatching() returns false for partial mask mismatches; C# ExtractChannel handles any mask.
 using System.Numerics;
 using System.Buffers.Binary;
 
@@ -239,6 +251,24 @@ internal static class ImageDds
     private const uint FileId = 0x20534444u;
     private const uint HeaderSize = 124u;
     private const uint PixelFormatSize = 32u;
+
+    // TODO: port - C++ code:
+    // constexpr unsigned MakeFourCC(char ch0, char ch1, char ch2, char ch3)
+    // {
+    //     return static_cast<unsigned>(ch0) | (static_cast<unsigned>(ch1) << 8)
+    //         | (static_cast<unsigned>(ch2) << 16) | (static_cast<unsigned>(ch3) << 24);
+    // }
+
+    // TODO: port - C++ code:
+    // /// Deduce texture format from DDS file format.
+    // URHO3D_API TextureFormat PickTextureFormat(const DDPixelFormat& pixelFormat, unsigned dxgiFormat);
+    //
+    // /// Return whether the RGBA components in pixel format match texture format.
+    // URHO3D_API bool AreTextureComponentsMatching(const DDPixelFormat& pixelFormat, TextureFormat textureFormat);
+
+    // C++ struct DDColorKey { unsigned dwColorSpaceLowValue_; unsigned dwColorSpaceHighValue_; };
+    // C++ struct DDSCaps2 { unsigned dwCaps_; unsigned dwCaps2_; unsigned dwCaps3_; /* union with dwCaps4_/dwVolumeDepth_ */ };
+    // C++ struct DDSurfaceDesc2 { /* full DirectDraw surface description with 18 fields */ };
 
     private const uint FourCcDx10 = 0x30315844u;
     private const uint FourCcDxt1 = 0x31545844u;

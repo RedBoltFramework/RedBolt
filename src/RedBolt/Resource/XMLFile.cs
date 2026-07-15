@@ -18,6 +18,8 @@ public sealed class XMLFile : Resource
 
     public override bool BeginLoad(Stream source)
     {
+        // C++: checks for "inherit" attribute in root, loads inherited XML, patches, stores dependencies
+        // C++: error logging via URHO3D_LOGERROR
         ArgumentNullException.ThrowIfNull(source);
         using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
         return FromString(reader.ReadToEnd());
@@ -142,15 +144,19 @@ public sealed class XMLFile : Resource
         RefreshMemoryUse();
     }
 
+    // C++: PatchAdd delegates to AddNode/AddAttribute which include CombineText logic for
+    // C++: merging consecutive text nodes. C# simplified to direct element copy.
     private static void PatchAdd(XElement patch, object? original)
     {
         if (original is not XElement element) return;
         var type = patch.Attribute("type")?.Value;
         if (type?.StartsWith('@') == true)
         {
+            // C++: AddAttribute validates child is text, strips '@' prefix, uses SetAttributeValue
             element.SetAttributeValue(type[1..], patch.Value);
             return;
         }
+        // C++: AddNode handles append/prepend/before/after with CombineText merging
         var copies = patch.Nodes().Select(CloneNode).ToArray();
         switch (patch.Attribute("pos")?.Value)
         {
@@ -175,6 +181,10 @@ public sealed class XMLFile : Resource
         else if (original is XAttribute attribute) attribute.Remove();
     }
 
+    // TODO: port - C++ code:
+    // bool CombineText(const pugi::xml_node& patch, const pugi::xml_node& original, bool prepend) const;
+    // AddNode(const pugi::xml_node& patch, const pugi::xpath_node& original) const;
+    // AddAttribute(const pugi::xml_node& patch, const pugi::xpath_node& original) const;
     private static XNode CloneNode(XNode node) => node switch
     {
         XElement element => new XElement(element),

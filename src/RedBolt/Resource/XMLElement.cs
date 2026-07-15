@@ -315,6 +315,19 @@ public sealed class XMLElement
         return _element?.Attribute(name)?.Value ?? string.Empty;
     }
 
+    // TODO: port - C++ code:
+    // const char* GetAttributeCString(const char* name) const;
+    // ea::string GetAttributeLower(const ea::string& name) const;
+    // ea::string GetAttributeUpper(const ea::string& name) const;
+    // unsigned long long GetUInt64(const ea::string& name) const;
+    // long long GetInt64(const ea::string& name) const;
+    // Vector4 GetVector(const ea::string& name) const;
+    // Variant GetVectorVariant(const ea::string& name) const;
+    // bool SetUInt64(const ea::string& name, unsigned long long value);
+    // bool SetInt64(const ea::string& name, long long value);
+    // bool SetVectorVariant(const ea::string& name, const Variant& value);
+    // static const XMLElement EMPTY;
+
     public IReadOnlyList<string> GetAttributeNames()
     {
         return _element?.Attributes().Select(static attribute => attribute.Name.LocalName).ToArray() ?? Array.Empty<string>();

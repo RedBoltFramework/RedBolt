@@ -157,6 +157,7 @@ public sealed class RenderDevice : Object
         _defaultTextureParametersDirty = true;
     }
 
+    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
     /// <summary>
     /// Restore device if is was lost. Only applicable for Android.
     /// </summary>

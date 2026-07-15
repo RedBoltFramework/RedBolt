@@ -9,13 +9,18 @@ public sealed class Engine : Object
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private readonly HiresTimer _frameTimer = new();
     private float? _nextTimeStep;
+    // C++: float timeStep_; (single field, not nullable + separate tracking)
     private readonly List<float> _lastTimeSteps = [];
     private float _currentTimeStep;
     private long _timeOut;
+    // C++: bool audioPaused_ = false;
     private bool _audioPaused;
+    // C++: bool exitRequired_{};
     private bool _exitRequired;
+    // C++: Context is owned externally; Engine::Engine(Context* context) ctor receives it.
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
+    // C++: SharedPtr<ConfigFile> engineParameters_; (direct ConfigFile, not separate _configFile + Parameters)
     private readonly ConfigFile _configFile = new();
 
     public EngineParameters Parameters { get; private set; } = new();
@@ -117,6 +122,10 @@ public sealed class Engine : Object
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
 
+        // TODO: port - C++ code:
+        // auto* workQueue = GetSubsystem<WorkQueue>();
+        // workQueue->Update();
+
         var time = GetSubsystem<Time>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
@@ -136,6 +145,8 @@ public sealed class Engine : Object
         time.BeginFrame(timeStep);
 
         var audio = GetSubsystem<Audio>()!;
+        // C++: if (pauseMinimized_ && input->IsMinimized())
+        // C++ does not gate on !IsHeadless here.
         var isPaused = !IsHeadless && PauseMinimized && input.IsMinimized;
         if (isPaused)
         {
@@ -201,6 +212,8 @@ public sealed class Engine : Object
         }
     }
 
+    // C++: #if defined(IOS) || defined(TVOS) – on iOS/tvOS DoExit() is NOT called
+    //       because iOS/tvOS apps cannot legally exit on their own.
     public void Exit()
     {
         DoExit();
@@ -241,6 +254,8 @@ public sealed class Engine : Object
 
     public bool GetPauseMinimized() => PauseMinimized;
 
+    // C++: #if defined(__ANDROID__) || defined(IOS) || defined(TVOS) – on mobile platforms
+    //       autoExit_ is forced to true regardless of the argument.
     public void SetAutoExit(bool enable)
     {
         AutoExit = enable;
@@ -405,6 +420,20 @@ public sealed class Engine : Object
         SendCoreEvents(_currentTimeStep);
     }
 
+    // C++: void Engine::Render()
+    // {
+    //     if (headless_) return;
+    //     auto* graphics = GetSubsystem<Graphics>();
+    //     if (!graphics->BeginFrame()) return;
+    //     GetSubsystem<Renderer>()->Render();
+    //     graphics->ResetRenderTargets();
+    //     if (UI* ui = GetSubsystem<UI>())
+    //     {
+    //         if (!ui->IsRendered() && ui->GetRenderTarget() == nullptr)
+    //             ui->Render();
+    //     }
+    //     graphics->EndFrame();
+    // }
     public void Render()
     {
         if (!IsInitialized || IsHeadless)
@@ -685,6 +714,7 @@ public sealed class Engine : Object
         if (graphics is not null)
         {
             graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
+            // C++: graphics->Close() is called unconditionally.
             if (string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
                 graphics.Close();
         }

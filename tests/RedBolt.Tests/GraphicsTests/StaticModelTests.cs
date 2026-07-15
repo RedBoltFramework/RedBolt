@@ -38,7 +38,7 @@ public sealed class StaticModelTests
 
         var modelAttribute = cube.GetModelAttr();
         var materialsAttribute = cube.GetMaterialsAttr();
-        Assert.Equal(StringHash.Calculate("Model"), modelAttribute.Type);
+        Assert.Equal(new StringHash("Model"), modelAttribute.Type);
         Assert.Equal(model.Name, modelAttribute.Name);
         Assert.Equal(material.Name, materialsAttribute.Names[0]);
 

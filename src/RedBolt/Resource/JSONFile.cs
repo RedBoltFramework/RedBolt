@@ -18,6 +18,9 @@ public sealed class JSONFile : Resource
     {
     }
 
+    // TODO: port - C++ code:
+    // ~JSONFile() override;
+
     public JSONValue Root { get; private set; } = new();
 
     public static void RegisterObject(Context context)
@@ -25,6 +28,10 @@ public sealed class JSONFile : Resource
         ArgumentNullException.ThrowIfNull(context);
     }
 
+    // C++: unsigned dataSize = source.GetSize();
+    // C++: if (!dataSize && !source.GetName().empty()) { URHO3D_LOGERROR("Zero sized JSON data in " + source.GetName()); return false; }
+    // C++: SetMemoryUse(dataSize) — raw data size, not UTF8 byte count.
+    // C++: uses rapidjson::Document::Parse with kParseCommentsFlag | kParseTrailingCommasFlag.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -37,6 +44,8 @@ public sealed class JSONFile : Resource
         return true;
     }
 
+    // C++: if (source.empty()) return false;
+    // C++: MemoryBuffer buffer(source.c_str(), source.length()); return Load(buffer);
     public bool FromString(string source)
     {
         if (source.Length == 0 || !ParseResourceJSON(source, out var value))
@@ -49,6 +58,7 @@ public sealed class JSONFile : Resource
 
     public JSONValue GetRoot() => Root;
 
+    // C++: delegates to Save(dest, "\t").
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -57,6 +67,9 @@ public sealed class JSONFile : Resource
         return true;
     }
 
+    // C++: writer.SetIndent(!indendation.empty() ? indendation.front() : '\0', indendation.length());
+    // C++: uses rapidjson PrettyWriter with character-count indentation (first char is the indent char,
+    // length determines how many times to repeat).
     public bool Save(Stream destination, string indentation)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -65,6 +78,8 @@ public sealed class JSONFile : Resource
         return true;
     }
 
+    // C++: root_.Clear(); JSONOutputArchive archive{this}; serializeValue(archive); return true;
+    // C++: passes 'this' (the JSONFile) to the archive, which writes directly into the JSONFile's root.
     public bool SaveObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -83,6 +98,8 @@ public sealed class JSONFile : Resource
         }
     }
 
+    // C++: JSONInputArchive archive{this}; serializeValue(archive); return true;
+    // C++: passes 'this' (the JSONFile) to the archive, which reads from the JSONFile's root directly.
     public bool LoadObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -111,8 +128,11 @@ public sealed class JSONFile : Resource
         return LoadObjectCallback(value.SerializeInBlock);
     }
 
+    // C++: uses rapidjson PrettyWriter with SetIndent; empty indentation → '\0' indent char (no indent).
     public override string ToString() => ToString("\t");
 
+    // C++: writer.SetIndent(!indendation.empty() ? indendation.front() : ' ', indendation.length());
+    // C++: default indentation is "\t", default in ToString(dest) overload is "\t".
     public string ToString(string indentation)
     {
         var rootNode = Root.ToJsonNode();
@@ -135,6 +155,8 @@ public sealed class JSONFile : Resource
         return string.Join('\n', lines);
     }
 
+    // C++: uses rapidjson document.Parse; if (reportError) logs URHO3D_LOGERRORF with parse error.
+    // C++: return false when parse fails.
     public static bool ParseJSON(string json, out JSONValue value, bool reportError = true)
     {
         try

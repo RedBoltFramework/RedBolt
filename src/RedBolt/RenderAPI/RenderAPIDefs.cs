@@ -361,6 +361,17 @@ public enum ShaderType
     MaxShaderTypes
 }
 
+// TODO: port - C++ code:
+// using TextureFormat = Diligent::TEXTURE_FORMAT;
+//
+// namespace EmulatedTextureFormat {
+//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGB_2BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 1);
+//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGBA_2BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 2);
+//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGB_4BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 3);
+//   static constexpr TextureFormat TEX_FORMAT_PVRTC_RGBA_4BPP = static_cast<TextureFormat>(TEX_FORMAT_NUM_FORMATS + 4);
+// }
+// const Diligent::TextureFormatAttribs& GetTextureFormatInfo(TextureFormat textureFormat);
+
 /// <summary>Vertex declaration element semantics.</summary>
 public enum VertexElementSemantic : byte
 {
@@ -395,7 +406,8 @@ public enum TextureFilterMode : byte
     Trilinear,
     Anisotropic,
     NearestAnisotropic,
-    Default
+    Default,
+    // C++: MAX_FILTERMODES=6 sentinel value
 }
 
 /// <summary>Texture addressing mode.</summary>
@@ -404,6 +416,8 @@ public enum TextureAddressMode
     Wrap,
     Mirror,
     Clamp,
+    // C++: ADDRESS_WRAP=0, ADDRESS_MIRROR=1, ADDRESS_CLAMP=2, MAX_ADDRESSMODES=3
+    // C++ has no "Border" value; Border is a non-allowed addition
     Border
 }
 
@@ -414,6 +428,8 @@ public enum TextureCoordinate
     V,
     W
 }
+
+// C++: static constexpr unsigned MaxTextureCoordinates = static_cast<unsigned>(TextureCoordinate::Count) = 3;
 
 /// <summary>Description of the single input required by the vertex shader.</summary>
 public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);

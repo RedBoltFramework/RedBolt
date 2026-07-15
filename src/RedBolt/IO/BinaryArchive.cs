@@ -187,7 +187,10 @@ public sealed class BinaryInputArchive : ArchiveBase
             _stack[^1].OpenInlineBlock();
 
         if (type == ArchiveBlockType.Array)
+        {
             sizeHint = _deserializer.ReadVLE();
+            // C++: if (deserializer_->IsEof() && sizeHint != 0) { EndBlock(); throw IOFailureException(blockGuardName); }
+        }
     }
 
     public override void EndBlock()

@@ -86,7 +86,7 @@ public struct IntRect : IEquatable<IntRect>
 
     public readonly Intersection IsInside(IntRect rect)
     {
-        if (rect.Right < Left || rect.Left > Right || rect.Bottom < Top || rect.Top > Bottom)
+        if (rect.Right < Left || rect.Left >= Right || rect.Bottom < Top || rect.Top >= Bottom)
             return Intersection.Outside;
         if (rect.Left < Left || rect.Right > Right || rect.Top < Top || rect.Bottom > Bottom)
             return Intersection.Intersects;
@@ -120,7 +120,11 @@ public struct IntRect : IEquatable<IntRect>
     public readonly bool Equals(IntRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
     public override bool Equals(object? obj) => obj is IntRect other && Equals(other);
     public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
-    public readonly uint ToHash() => (uint)GetHashCode();
+    public readonly uint ToHash() => unchecked(
+        (uint)Left * 31u * 31u * 31u
+        + (uint)Right * 31u * 31u
+        + (uint)Top * 31u
+        + (uint)Bottom);
     public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Left, Top, Right, Bottom);
 
     public static bool operator ==(IntRect lhs, IntRect rhs) => lhs.Equals(rhs);

@@ -75,7 +75,7 @@ public sealed class ResourceTests
         Assert.Equal(["Textures/Test.png", string.Empty], names);
 
         var references = Resource.GetResourceRefList<FailingResource>([resource, null]);
-        Assert.Equal(typeof(FailingResource).GetTypeId().Value, references.Type);
+        Assert.Equal(typeof(FailingResource).GetTypeId(), references.Type);
         Assert.Equal(["Textures/Test.png", string.Empty], references.Names);
     }
 

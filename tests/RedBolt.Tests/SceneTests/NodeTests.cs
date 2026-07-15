@@ -131,7 +131,7 @@ public sealed class NodeTests
         node.SetVar("Health", 100);
         Assert.Equal(100, node.GetVar("Health"));
         node.SetVarByHash(new StringHash("Armor"), 50);
-        Assert.Null(node.GetVar("Armor"));
+        Assert.Equal(50, node.GetVar("Armor"));
         Assert.True(node.RemoveVar("Health"));
         Assert.Null(node.GetVar("Health"));
     }

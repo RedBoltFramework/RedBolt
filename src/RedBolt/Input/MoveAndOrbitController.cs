@@ -40,7 +40,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
 
     public void LoadInputMap(string name)
     {
-        SetInputMapAttr(new ResourceRef(StringHash.Calculate(nameof(InputMap)), name));
+        SetInputMapAttr(new ResourceRef(new StringHash(nameof(InputMap)), name));
     }
 
     public void SetInput(Input? input)
@@ -78,7 +78,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     {
         return _inputMap is null
             ? ResourceRef.Empty
-            : new ResourceRef(StringHash.Calculate(nameof(InputMap)), _inputMap.Name);
+            : new ResourceRef(new StringHash(nameof(InputMap)), _inputMap.Name);
     }
 
     public void SetMovementUIElement(object? element) => _movementUIElement = element;
@@ -93,6 +93,14 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
         if (currentNode is null)
             _component = null;
     }
+
+    // TODO: port - C++ code:
+    // void HandleInputEnd(StringHash eventName, VariantMap& eventData); -- subscribes to E_INPUTEND
+    // void EvaluateTouchRects(IntRect& movementRect, IntRect& rotationRect) const;
+    // void FindTouchStates(const IntRect& movementRect, const IntRect& rotationRect, TouchState*& movementTouch, TouchState*& rotationTouch);
+    // int movementTouchId_{-1}; int rotationTouchId_{-1}; IntVector2 movementTouchOrigin_{};
+    // void OnSceneSet(Scene* previousScene, Scene* scene) override; void ApplyAttributes() override;
+    // TouchState integration for movement/rotation touch gestures in HandleInputEnd
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {

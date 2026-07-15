@@ -61,6 +61,7 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
     }
 
     /// <summary>Return hit distance to a frustum.</summary>
+    // C++: solidInside defaults to true
     public float HitDistance(Frustum frustum, bool solidInside = false)
     {
         var maxOutside = 0.0f;
@@ -175,6 +176,15 @@ public struct Ray : IEquatable<Ray>, IApproximateEquatable<Ray>
     {
         return new Ray(transform * Origin, transform.RotationMatrix * Direction);
     }
+
+    // TODO: port - C++ code:
+    // float HitDistance(const void* vertexData, unsigned vertexStride, unsigned vertexStart, unsigned vertexCount, Vector3* outNormal = nullptr, Vector2* outUV = nullptr, unsigned uvOffset = 0) const;
+    // TODO: port - C++ code:
+    // float HitDistance(const void* vertexData, unsigned vertexStride, const void* indexData, unsigned indexSize, unsigned indexStart, unsigned indexCount, Vector3* outNormal = nullptr, Vector2* outUV = nullptr, unsigned uvOffset = 0) const;
+    // TODO: port - C++ code:
+    // bool InsideGeometry(const void* vertexData, unsigned vertexSize, unsigned vertexStart, unsigned vertexCount) const;
+    // TODO: port - C++ code:
+    // bool InsideGeometry(const void* vertexData, unsigned vertexSize, const void* indexData, unsigned indexSize, unsigned indexStart, unsigned indexCount) const;
 
     public bool ApproximatelyEquivalent(Ray rhs, float epsilon = MathDefs.Epsilon) =>
         Origin.ApproximatelyEquivalent(rhs.Origin, epsilon) && Direction.ApproximatelyEquivalent(rhs.Direction, epsilon);

@@ -9,6 +9,9 @@ namespace RedBolt;
 /// <summary>
 /// Base class for serializable resource that uses Archive serialization.
 /// </summary>
+// TODO: port - C++ code:
+// C++ inherits from SimpleResource (not Resource) and serializes via SerializeInBlock(Archive& archive)
+// instead of BeginLoad/Save with XML/JSON parsing.
 public sealed class RenderPath : Resource
 {
     private readonly List<RenderPass> _passes = [];
@@ -65,8 +68,7 @@ public sealed class RenderPath : Resource
             var passTraits = pass.GetTraits();
             _traits = new RenderPassTraits(
                 _traits.NeedReadWriteColorBuffer || passTraits.NeedReadWriteColorBuffer,
-                _traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler,
-                _traits.NeedReadableDepth || passTraits.NeedReadableDepth);
+                _traits.NeedBilinearColorSampler || passTraits.NeedBilinearColorSampler);
         }
     }
 
@@ -97,6 +99,8 @@ public sealed class RenderPath : Resource
     /// <summary>
     /// Make deep copy of RenderPath.
     /// </summary>
+    // C++: checks passClone->IsInstanceOf<RenderPass>() and uses StaticCast<RenderPass>(passClone)
+    // before adding to passes_; clone uses MakeShared<RenderPath>(context_)
     public RenderPath Clone()
     {
         var clone = new RenderPath(Name);

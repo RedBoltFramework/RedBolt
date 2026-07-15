@@ -101,6 +101,8 @@ public sealed class Texture2DArray : Texture
     /// <summary>
     /// Set layers, size, format and usage. Set layers to zero to leave them unchanged. Return true if successful.
     /// </summary>
+    // C++: bool SetSize(unsigned layers, int width, int height, TextureFormat format, TextureFlags flags = TextureFlag::None, int multiSample = 1)
+    // C++ has no multiSample/noMultiSampledAutoResolve params; uses Create(params).
     public bool SetSize(uint layers, int width, int height, TextureFormat format, TextureFlag flags = TextureFlag.None,
         int multiSample = 1, bool noMultiSampledAutoResolve = false)
     {

@@ -23,10 +23,47 @@ public enum PlatformId
     Unknown = Count
 }
 
+// TODO: port - C++ code:
+// static const char* DYN_LIB_SUFFIX = ".dll"; // on Windows
+// static const char* DYN_LIB_SUFFIX = ".dylib"; // on Apple
+// static const char* DYN_LIB_SUFFIX = ".so"; // on other platforms
+
+// TODO: port - C++ code:
+// void InitFPU();
+// TODO: port - C++ code:
+// void ErrorDialog(const ea::string& title, const ea::string& message);
+// TODO: port - C++ code:
+// void ErrorExit(const ea::string& message = EMPTY_STRING, int exitCode = EXIT_FAILURE);
+// TODO: port - C++ code:
+// void OpenConsoleWindow();
+// TODO: port - C++ code:
+// void PrintUnicode(const ea::string& str, bool error = false);
+// TODO: port - C++ code:
+// void PrintUnicodeLine(const ea::string& str, bool error = false);
+// TODO: port - C++ code:
+// void PrintLine(const ea::string& str, bool error = false);
+// TODO: port - C++ code:
+// void PrintLine(const char* str, bool error = false);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& ParseArguments(const ea::string& cmdLine, bool skipFirstArgument = true);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& ParseArguments(const char* cmdLine);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& ParseArguments(const ea::wstring& cmdLine);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& ParseArguments(const wchar_t* cmdLine);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& ParseArguments(int argc, char** argv);
+// TODO: port - C++ code:
+// const ea::vector<ea::string>& GetArguments();
+// TODO: port - C++ code:
+// ea::string GetConsoleInput();
+
 public static class ProcessUtils
 {
     private static string _miniDumpDir = string.Empty;
 
+    // C++: static const char* DYN_LIB_SUFFIX (compile-time platform constant)
     public static string DynLibSuffix =>
         OperatingSystem.IsWindows() ? ".dll" :
         OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? ".dylib" :

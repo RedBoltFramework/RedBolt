@@ -175,7 +175,7 @@ public static partial class ArchiveSerialization
         using var block = archive.OpenUnorderedBlock(name);
         var type = resourceRef.Type;
         var resourceName = resourceRef.Name;
-        archive.Serialize("type", ref type);
+        SerializeValue(archive, "type", ref type);
         archive.Serialize("name", ref resourceName);
         if (archive.IsInput)
             value = new Variant(new ResourceRef(type, resourceName));
@@ -316,7 +316,7 @@ public static partial class ArchiveSerialization
         var resourceRefList = archive.IsInput ? ResourceRefList.Empty : value.GetResourceRefList();
         using var block = archive.OpenUnorderedBlock(name);
         var type = resourceRefList.Type;
-        archive.Serialize("type", ref type);
+        SerializeValue(archive, "type", ref type);
         var names = archive.IsInput ? new List<string>() : resourceRefList.Names.ToList();
         SerializeStringVector(archive, "names", names);
         if (archive.IsInput)

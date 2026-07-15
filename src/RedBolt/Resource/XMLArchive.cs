@@ -39,6 +39,7 @@ public sealed class XMLOutputArchive : ArchiveBase
 
     public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
     {
+        // C++: supports serializeRootName_ flag that renames root element via rootElement_.SetName(name)
         CheckBlockOrElementName(name);
 
         var element = new XElement(name);

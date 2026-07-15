@@ -11,6 +11,13 @@ public sealed class StringHashTests
     }
 
     [Fact]
+    public void Calculate_matches_rbfx_hash_order_and_case()
+    {
+        Assert.Equal(1532508831u, StringHash.Calculate("Renderer.Debug"));
+        Assert.NotEqual(StringHash.Calculate("renderer.debug"), StringHash.Calculate("Renderer.Debug"));
+    }
+
+    [Fact]
     public void From_uint_preserves_value()
     {
         Assert.Equal(123u, ((StringHash)123u).Value);

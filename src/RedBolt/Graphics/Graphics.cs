@@ -9,8 +9,20 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class Graphics : Object
-{
+    /// <summary>
+    /// Graphics subsystem. Manages the application window, rendering state and GPU resources.
+    /// </summary>
+    /// <remarks>
+    // TODO: port - C++ code: void Graphics::Configure(const GraphicsSettings& settings) - configure before initial setup.
+    // TODO: port - C++ code: void Graphics::InitializePipelineStateCache(const FileIdentifier& fileName)
+    // TODO: port - C++ code: void Graphics::Maximize() / Minimize() / Raise()
+    // TODO: port - C++ code: static void Graphics::SetMaxBones() / static unsigned Graphics::GetMaxBones()
+    // TODO: port - C++ code: static bool Graphics::GetGL3Support() - always returns true
+    // TODO: port - C++ code: void* Graphics::GetSDLWindow() - returns SDL_Window*
+    // TODO: port - C++ code: unsigned Graphics::FindBestResolutionIndex(int monitor, int width, int height, int refreshRate)
+    /// </remarks>
+    public sealed class Graphics : Object
+    {
     private const uint GlFront = 0x0404;
     private const uint GlBack = 0x0405;
     private const uint GlRgba = 0x1908;
@@ -1328,6 +1340,14 @@ layout(std140) uniform Material
         Width = windowWidth;
         Height = windowHeight;
         _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
+        _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
+        _depthStencilView = _swapChain.GetDepthBufferDSV();
+        if (_renderTargetView.IsNull || _depthStencilView.IsNull)
+            throw new InvalidOperationException("Swap chain render target or depth view was null.");
+
+        _renderTargets[0] = _renderTargetView;
+        _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
+        _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
     }
 
     internal void UpdateWindowSettings(WindowSettings oldSettings, WindowSettings newSettings)

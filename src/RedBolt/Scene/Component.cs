@@ -95,6 +95,10 @@ public abstract class Component : Animatable
 
     public virtual void GetDependencyNodes(ICollection<Node> destination) { }
 
+    // TODO: port - C++ code:
+    // virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    // public virtual void DrawDebugGeometry(DebugRenderer debug, bool depthTest) { }
+
     public virtual bool HasAuxiliaryData() => false;
 
     public virtual void SerializeAuxiliaryData(Archive archive) { }
@@ -182,4 +186,9 @@ public abstract class Component : Animatable
         if (mode == AutoRemoveMode.Component) Remove();
         else if (mode == AutoRemoveMode.Node) _node?.Remove();
     }
+
+    // TODO: port - C++ code:
+    // Component* GetFixedUpdateSource();
+    // Return a component from the scene root that sends out fixed update events
+    // (either PhysicsWorld or PhysicsWorld2D). Return null if neither exists.
 }

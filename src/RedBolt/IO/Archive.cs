@@ -15,6 +15,7 @@ public sealed class ArchiveBlock : IDisposable
     {
     }
 
+    // C++: public: explicit ArchiveBlock(Archive& archive, unsigned sizeHint = 0)
     internal ArchiveBlock(Archive archive, uint sizeHint)
     {
         _archive = archive;
@@ -67,6 +68,8 @@ public abstract class Archive
     public abstract void SerializeBytes(string name, Span<byte> bytes);
     public abstract void SerializeVle(string name, ref uint value);
 
+    // C++: virtual unsigned SerializeVersion(unsigned version) = 0;
+    // C++: pure virtual in Archive, implemented in ArchiveBase. This C# default should ideally be abstract.
     public virtual uint SerializeVersion(uint version)
     {
         SerializeVle("Version", ref version);

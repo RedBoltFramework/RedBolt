@@ -188,6 +188,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public JSONValue Get(int index)
     {
+        // C++: only supports arrays (JSON_ARRAY), returns EMPTY when not array
         if (IsObject && index >= 0 && index < _objectValue.Count)
             return _objectValue.ElementAt(index).Value;
 
@@ -388,10 +389,16 @@ public sealed class JSONValue : IEquatable<JSONValue>
         return Get("value").GetVariantValue(type);
     }
 
-    public void SetVariantValue(Variant value) => Set(FromVariantValue(value));
+    public void SetVariantValue(Variant value)
+    {
+        // C++: takes optional Context*; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
+        // C++: logs warning "JsonValue is not null" when overwriting existing value
+        Set(FromVariantValue(value));
+    }
 
     public Variant GetVariantValue(VariantType type)
     {
+        // C++: takes optional Context* for Serializable support; handles VAR_INT64, VAR_RESOURCEREF, VAR_RESOURCEREFLIST, VAR_CUSTOM (SharedPtr<Serializable>)
         return type switch
         {
             VariantType.Bool => new Variant(GetBool()),
@@ -414,6 +421,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public void SetVariantMap(VariantMap values)
     {
+        // C++: stores as JSON object where keys are hex hash strings, not as JSON array with "hash" fields
         Set(values.Select(pair =>
         {
             var item = FromVariantObject(pair.Value);
@@ -424,6 +432,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
 
     public VariantMap GetVariantMap()
     {
+        // C++: iterates JSON object keys (hex hash strings → StringHash), not a JSON array with "hash" fields
         var result = new VariantMap();
         foreach (var item in GetArray())
             result[new StringHash(item.Get("hash").GetUInt())] = item.GetVariant();

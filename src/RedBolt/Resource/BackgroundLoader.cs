@@ -1,5 +1,10 @@
 namespace RedBolt;
 
+// C++: BackgroundLoadItem is a struct in BackgroundLoader.h with URHO3D_API.
+// C++: stores SharedPtr<Resource> resource_ (the actual resource object, not a Task).
+// C++: stores dependencies as ea::hash_set<ea::pair<StringHash, StringHash>>
+// C++: stores dependents as ea::hash_set<ea::pair<StringHash, StringHash>>
+// C++: has bool sendEventOnFailure_ field.
 internal sealed class BackgroundLoadItem
 {
     public required Type Type { get; init; }
@@ -15,6 +20,9 @@ internal sealed class BackgroundLoadItem
     public HashSet<(Type Type, string Name)> Dependents { get; } = [];
 }
 
+// C++: BackgroundLoader inherits from RefCounted and Thread.
+// C++: has private ThreadFunction() override — background loading loop running on explicit thread with mutex lock/unlock/sleep.
+// C++: uses Mutex backgroundLoadMutex_ for thread-safe queue access.
 public sealed class BackgroundLoader : IDisposable
 {
     private readonly ResourceCache _owner;
@@ -47,6 +55,9 @@ public sealed class BackgroundLoader : IDisposable
             _queue.Clear();
     }
 
+    // C++: creates resource via DynamicCast<Resource>(owner_->GetContext()->CreateObject(type))
+    // C++: sets resource name and async state to ASYNC_QUEUED eagerly.
+    // C++: starts thread via if (!IsStarted()) Run();
     public bool QueueResource(Type type, string name, bool sendEventOnFailure = true, Resource? caller = null)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -97,6 +108,8 @@ public sealed class BackgroundLoader : IDisposable
         return true;
     }
 
+    // C++: acquires mutex, finds item, releases mutex, polls resource state in loop with Time::Sleep(1),
+    // then calls FinishBackgroundLoading(item). Erases by key via mutex.
     public void WaitForResource(Type type, string name)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -119,6 +132,7 @@ public sealed class BackgroundLoader : IDisposable
         FinishResource(key, item);
     }
 
+    // C++: iterates queue with mutex, calls FinishBackgroundLoading for each ready item, breaks on time limit.
     public void FinishResources(int maxMs)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -157,6 +171,9 @@ public sealed class BackgroundLoader : IDisposable
         lock (_sync)
             return _queue.Count;
     }
+
+    // TODO: port - C++ code:
+    // void ThreadFunction() override — background loading loop.
 
     private void FinishResource((Type Type, string Name) key, BackgroundLoadItem item)
     {

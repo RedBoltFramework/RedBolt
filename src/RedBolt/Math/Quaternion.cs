@@ -55,6 +55,9 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     }
 
     public static readonly Quaternion IDENTITY = new(1.0f, 0.0f, 0.0f, 0.0f);
+    // C++: static const Quaternion ZERO;
+    // TODO: port - C++ code:
+    // static const Quaternion ZERO{ 0.0f, 0.0f, 0.0f, 0.0f };
     public static Quaternion Identity => IDENTITY;
 
     public Vector3f Axis
@@ -181,6 +184,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon) &&
         MathDefs.ApproximatelyEquivalent(Z, rhs.Z, epsilon);
 
+    // C++: return Urho3D::Equals(Abs(DotProduct(rhs)), 1.0f, eps);
     public bool Equivalent(Quaternion rhs, float epsilon = MathDefs.Epsilon) =>
         ApproximatelyEquivalent(rhs, epsilon) || ApproximatelyEquivalent(-rhs, epsilon);
 

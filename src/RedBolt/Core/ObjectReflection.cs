@@ -32,6 +32,27 @@ public sealed class ObjectReflection
     public AttributeScopeHint ScopeHint { get; private set; } = AttributeScopeHint.Attribute;
     public StringHash TypeId { get; }
 
+    // C++: AttributeHandle ObjectReflection::AddAttribute(const AttributeInfo& attr)
+    // C++: {
+    // C++:     // None or pointer types can not be supported
+    // C++:     if (attr.type_ == VAR_NONE || attr.type_ == VAR_VOIDPTR || attr.type_ == VAR_PTR)
+    // C++:     {
+    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute type {} to class {}",
+    // C++:             Variant::GetTypeName(attr.type_), GetTypeName());
+    // C++:         return AttributeHandle();
+    // C++:     }
+    // C++:     // Only SharedPtr<> of Serializable or it's subclasses are supported in attributes
+    // C++:     if (attr.type_ == VAR_CUSTOM && !attr.defaultValue_.IsCustomType<SharedPtr<Serializable>>())
+    // C++:     {
+    // C++:         URHO3D_LOGWARNING("Attempt to register unsupported attribute of custom type to class {}", GetTypeName());
+    // C++:         return AttributeHandle();
+    // C++:     }
+    // C++:     AttributeHandle handle;
+    // C++:     attributes_.push_back(attr);
+    // C++:     attributeNames_.push_back(attr.nameHash_);
+    // C++:     handle.attributeInfo_ = &attributes_.back();
+    // C++:     return handle;
+    // C++: }
     public AttributeHandle AddAttribute(AttributeInfo attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
@@ -41,6 +62,17 @@ public sealed class ObjectReflection
         return new AttributeHandle(copy);
     }
 
+    // C++: void ObjectReflection::RemoveAttribute(StringHash nameHash)
+    // C++: {
+    // C++:     const unsigned index = attributeNames_.index_of(nameHash);
+    // C++:     if (index >= attributeNames_.size())
+    // C++:     {
+    // C++:         URHO3D_LOGWARNING("Cannot find attribute {}", nameHash.ToDebugString());
+    // C++:         return;
+    // C++:     }
+    // C++:     attributes_.erase_at(index);
+    // C++:     attributeNames_.erase_at(index);
+    // C++: }
     public void RemoveAttribute(StringHash nameHash)
     {
         var index = _attributeNames.IndexOf(nameHash);
@@ -56,6 +88,22 @@ public sealed class ObjectReflection
         _attributeNames.Clear();
     }
 
+    // C++: void ObjectReflection::CopyAttributesFrom(const ObjectReflection* other)
+    // C++: {
+    // C++:     if (!other)
+    // C++:     {
+    // C++:         URHO3D_LOGWARNING("Attempt to copy base attributes from unknown base class for class " + GetTypeName());
+    // C++:         return;
+    // C++:     }
+    // C++:     // Prevent endless loop if mistakenly copying attributes from same class as derived
+    // C++:     if (other == this)
+    // C++:     {
+    // C++:         URHO3D_LOGWARNING("Attempt to copy base attributes to itself for class " + GetTypeName());
+    // C++:         return;
+    // C++:     }
+    // C++:     attributes_.append(other->attributes_);
+    // C++:     attributeNames_.append(other->attributeNames_);
+    // C++: }
     public void CopyAttributesFrom(ObjectReflection other)
     {
         if (other is null || ReferenceEquals(other, this))
@@ -64,6 +112,14 @@ public sealed class ObjectReflection
             AddAttribute(attribute);
     }
 
+    // C++: void ObjectReflection::UpdateAttributeDefaultValue(StringHash nameHash, const Variant& defaultValue)
+    // C++: {
+    // C++:     AttributeInfo* info = GetAttribute(nameHash);
+    // C++:     if (info)
+    // C++:         info->defaultValue_ = defaultValue;
+    // C++:     else
+    // C++:         URHO3D_LOGWARNING("Cannot find attribute {}", nameHash.ToDebugString());
+    // C++: }
     public void UpdateAttributeDefaultValue(StringHash nameHash, Variant value)
     {
         var attribute = GetAttribute(nameHash);
@@ -141,6 +197,26 @@ public class ObjectReflectionRegistry
 
     public event Action<ObjectReflection>? ReflectionRemoved;
 
+    // TODO: port - C++ method:
+    // ObjectReflection* ObjectReflectionRegistry::ReflectCustomType(ea::unique_ptr<TypeInfo> typeInfo)
+    // {
+    //     if (!typeInfo)
+    //     {
+    //         URHO3D_LOGWARNING("Attempt to reflect class without TypeInfo");
+    //         return nullptr;
+    //     }
+    //     const StringHash typeNameHash = typeInfo->GetType();
+    //     const auto iter = reflections_.find(typeNameHash);
+    //     if (iter == reflections_.end())
+    //     {
+    //         const auto reflection = MakeShared<ObjectReflection>(context_, ea::move(typeInfo));
+    //         reflections_.emplace(typeNameHash, reflection);
+    //         AddReflectionToCurrentCategory(reflection);
+    //         return reflection;
+    //     }
+    //     return iter->second;
+    // }
+
     public ObjectReflection Reflect(Type type)
     {
         var reflection = new ObjectReflection(type);
@@ -200,6 +276,19 @@ public class ObjectReflectionRegistry
 
     public void SetReflectionCategory<T>(string category) => SetReflectionCategory(typeof(T), category);
 
+    // C++: void ObjectReflectionRegistry::RemoveReflection(StringHash typeNameHash)
+    // C++: {
+    // C++:     const auto iter = reflections_.find(typeNameHash);
+    // C++:     if (iter == reflections_.end())
+    // C++:     {
+    // C++:         ErrorReflectionNotFound(typeNameHash);
+    // C++:         return;
+    // C++:     }
+    // C++:     const auto reflection = iter->second;
+    // C++:     RemoveReflectionFromCurrentCategory(reflection);
+    // C++:     reflections_.erase(iter);
+    // C++:     OnReflectionRemoved(this, reflection.Get());
+    // C++: }
     public void RemoveReflection(StringHash typeNameHash)
     {
         if (_reflections.Remove(typeNameHash, out var reflection))
@@ -237,4 +326,16 @@ public class ObjectReflectionRegistry
         if (_categories.TryGetValue(reflection.Category, out var category))
             category.Remove(reflection.TypeId);
     }
+
+    // TODO: port - C++ method:
+    // void ObjectReflectionRegistry::ErrorReflectionNotFound(StringHash typeNameHash) const
+    // {
+    //     URHO3D_LOGWARNING("Reflection of object {} is not found", typeNameHash.ToDebugString());
+    // }
+
+    // TODO: port - C++ method:
+    // void ObjectReflectionRegistry::ErrorDuplicateReflection(StringHash typeNameHash) const
+    // {
+    //     URHO3D_ASSERTLOG(0, "Object {} is reflectied multiple times.", typeNameHash.ToDebugString());
+    // }
 }

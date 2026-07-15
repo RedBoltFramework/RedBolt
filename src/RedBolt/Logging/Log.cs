@@ -3,6 +3,29 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+// C++: class URHO3D_API Log : public Object { URHO3D_OBJECT(Log, Object); ... }
+// C++ Log subsystem uses spdlog; C# uses Microsoft.Extensions.Logging (allowed deviation).
+// The C++ class shape (Log inheriting Object) differs from this static wrapper.
+//
+// TODO: port - C++ code:
+//   enum LogLevel { LOG_TRACE = 0, LOG_DEBUG = 1, LOG_INFO = 2, LOG_WARNING = 3, LOG_ERROR = 4, LOG_NONE = 5, MAX_LOGLEVELS };
+//   static const Color LOG_LEVEL_COLORS[];
+//   static const char* logLevelNames[];
+//   struct StoredLogMessage { ... };
+//   struct LogFileParams { bool rotateOnOpen_, rotateBySize_; unsigned maxFiles_, maxSize_; };
+//   class Logger { void Write(LogLevel, string_view); void Trace/Debug/Info/Warning/Error(...); };
+// Missing C++ Log instance methods (used as subsystem on Context):
+//   void Open(const ea::string& fileName, const LogFileParams& params = {});
+//   void Close();
+//   void SetLevel(LogLevel level);
+//   void SetLogFormat(const ea::string& format);
+//   void SetQuiet(bool quiet);
+//   LogLevel GetLevel() const;
+//   bool IsQuiet() const;
+//   static Logger GetLogger(const ea::string& name);
+//   static Logger GetLogger();
+//   void PumpThreadMessages();
+//   void SendMessageEvent(LogLevel, time_t, const ea::string&, const ea::string&);
 internal static class Log
 {
     private static readonly object SyncRoot = new();

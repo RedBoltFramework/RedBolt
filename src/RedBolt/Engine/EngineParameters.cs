@@ -36,6 +36,14 @@ public sealed class EngineParameters
 
     public bool LogQuiet { get; set; }
 
+    public bool LogRotateOnOpen { get; set; } = true;
+
+    public bool LogRotateBySize { get; set; }
+
+    public uint LogMaxFiles { get; set; } = 20;
+
+    public uint LogMaxSize { get; set; } = 20 * 1024 * 1024;
+
     public string MainPlugin { get; set; } = string.Empty;
 
     public int Monitor { get; set; }
@@ -91,6 +99,8 @@ public sealed class EngineParameters
     public int SoundMode { get; set; }
 
     public uint DearImGuiFlags { get; set; }
+
+    public uint SystemUIFlags { get; set; }
 
     public int TextureAnisotropy { get; set; } = 4;
 

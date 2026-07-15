@@ -72,6 +72,7 @@ public sealed class NamedPipe : AbstractFile, IDisposable
         }
     }
 
+    // C++: URHO3D_LOGERROR("Cannot change name of the NamedPipe!"); assert(0);
     /// <summary>Not supported.</summary>
     public override void SetName(string name)
     {

@@ -1,3 +1,6 @@
+// C++: no direct C++ counterpart file.
+// C++ defines engine command-line parameters in Engine::DefineParameters(CLI::App&, StringVariantMap&) in Engine.cpp.
+// The C# CommandLineParser-based approach replaces the CLI11 library used in C++ (allowed deviation per AGENTS.md §10).
 using System.Globalization;
 
 namespace RedBolt;

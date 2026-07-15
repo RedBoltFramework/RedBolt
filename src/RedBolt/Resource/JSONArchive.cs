@@ -54,6 +54,7 @@ public sealed class JSONOutputArchive : ArchiveBase
     public override void Serialize(string name, ref ushort value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref int value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref uint value) => Write(name, JsonValue.Create(value));
+    // C++: serializes 64-bit ints as JSON strings (eastl::to_string) to avoid precision loss
     public override void Serialize(string name, ref long value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref ulong value) => Write(name, JsonValue.Create(value));
     public override void Serialize(string name, ref float value) => Write(name, JsonValue.Create(value));
@@ -91,6 +92,9 @@ public sealed class JSONOutputArchive : ArchiveBase
     }
 }
 
+// TODO: port - C++ code:
+// ea::optional<ea::string> ToJSONString(T& object) { ... }
+// ea::optional<T> FromJSONString(const ea::string& jsonString) { ... }
 public sealed class JSONInputArchive : ArchiveBase
 {
     private sealed class Frame(string name, ArchiveBlockType type, JsonNode node) : ArchiveBlockBase(name, type)
@@ -153,6 +157,7 @@ public sealed class JSONInputArchive : ArchiveBase
     public override void Serialize(string name, ref ushort value) => value = Read<ushort>(name);
     public override void Serialize(string name, ref int value) => value = Read<int>(name);
     public override void Serialize(string name, ref uint value) => value = Read<uint>(name);
+    // C++: reads 64-bit ints from JSON strings and converts via ToInt64/ToUInt64; also CheckType validation
     public override void Serialize(string name, ref long value) => value = Read<long>(name);
     public override void Serialize(string name, ref ulong value) => value = Read<ulong>(name);
     public override void Serialize(string name, ref float value) => value = Read<float>(name);

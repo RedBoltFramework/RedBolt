@@ -1,37 +1,37 @@
 namespace RedBolt;
 
-public readonly record struct ResourceRef
+public record struct ResourceRef
 {
+    public StringHash Type;
+    public string Name;
+
+    public ResourceRef()
+    {
+        Type = default;
+        Name = string.Empty;
+    }
+
     public ResourceRef(StringHash type)
-        : this(type.Value, string.Empty)
+        : this(type, string.Empty)
     {
     }
 
     public ResourceRef(StringHash type, string name)
-        : this(type.Value, name)
     {
+        Type = type;
+        Name = name;
     }
 
     public ResourceRef(string type, string name)
-        : this(new StringHash(type).Value, name)
+        : this(new StringHash(type), name)
     {
     }
 
-    public ResourceRef(uint type, string name)
-    {
-        Type = type;
-        Name = name ?? string.Empty;
-    }
-
-    public static ResourceRef Empty { get; } = new(0u, string.Empty);
-
-    public uint Type { get; init; }
-
-    public string Name { get; init; }
+    public static ResourceRef Empty { get; } = new();
 
     public static bool IsNullOrEmpty(ResourceRef resourceRef)
     {
-        return resourceRef.Type == 0u || string.IsNullOrEmpty(resourceRef.Name);
+        return resourceRef.Type.IsEmpty() || string.IsNullOrEmpty(resourceRef.Name);
     }
 
     public static ResourceRef Parse(string value)
@@ -45,7 +45,7 @@ public readonly record struct ResourceRef
 
         var typePart = value[..separator].Trim();
         var namePart = value[(separator + 1)..].Trim();
-        var type = uint.TryParse(typePart, out var parsedType) ? parsedType : new StringHash(typePart).Value;
+        var type = uint.TryParse(typePart, out var parsedType) ? new StringHash(parsedType) : new StringHash(typePart);
         return new ResourceRef(type, namePart);
     }
 
@@ -53,22 +53,23 @@ public readonly record struct ResourceRef
     {
         unchecked
         {
-            var hash = 2166136261u;
-            hash = (hash ^ Type) * 16777619u;
-            hash = (hash ^ StringHash.Calculate(Name ?? string.Empty)) * 16777619u;
-            return hash;
+            var result = 0u;
+            CombineHash(ref result, Type.ToHash());
+            CombineHash(ref result, StringHash.Calculate(Name));
+            return result;
         }
     }
 
-    public override string ToString()
-    {
-        var typeName = new StringHash(Type).Reverse();
-        return $"{typeName};{Name}";
-    }
+    public override string ToString() => $"{Type.Reverse()};{Name}";
 
     public string ToString(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return $"{context.GetTypeName(new StringHash(Type))};{Name}";
+        return $"{context.GetTypeName(Type)};{Name}";
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 }

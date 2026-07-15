@@ -1,3 +1,6 @@
+// C++: no direct C++ counterpart file.
+// C++ equivalent functionality lives in Object.h (TypeName, GetTypeNameStatic, URHO3D_OBJECT reflection).
+// The C# version provides a reflection-based facade for the C++ URHO3D_OBJECT metadata system.
 namespace RedBolt;
 
 public static class ObjectExtensionMethods

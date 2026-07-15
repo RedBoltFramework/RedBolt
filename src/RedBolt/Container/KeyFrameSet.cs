@@ -1,5 +1,10 @@
 namespace RedBolt;
 
+// C++: KeyFrameSet is a struct template with keyFrames_ as public field:
+// template <class T> struct KeyFrameSet { ea::vector<KeyFrame> keyFrames_; ... };
+// C++ uses free function template GetKeyFrameTime(T) for ordering;
+// C# uses a delegate Func<T,float> passed to the constructor.
+// The C++ struct is just a data+algorithms template; the C++ T can be any type.
 public class KeyFrameSet<T>
 {
     private readonly Func<T, float> _getKeyFrameTime;

@@ -304,6 +304,14 @@ public sealed class ValueAnimation : Resource
             : LinearInterpolation(index - 1, index, scaledTime);
     }
 
+    // TODO: port - C++ code:
+    // mutable VariantVector splineTangents_;
+    // mutable bool splineTangentsDirty_;
+    // void UpdateSplineTangents() const  // precomputes cached tangents called from SplineInterpolation
+    //
+    // C++ caches spline tangents in splineTangents_ and only recomputes when dirty.
+    // C# computes tangents inline in SplineInterpolation, losing the caching optimization.
+
     public IReadOnlyList<VAnimKeyFrame> GetKeyFrames() => _keyFrames;
 
     public bool HasEventFrames() => _eventFrames.Count != 0;

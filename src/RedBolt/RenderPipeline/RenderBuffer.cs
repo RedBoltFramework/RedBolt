@@ -5,6 +5,10 @@ namespace RedBolt;
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.
 /// </summary>
+// TODO: port - C++ code:
+// C++ RenderBuffer inherits from Object and takes RenderPipelineInterface* in constructor.
+// C++ has virtual OnRenderBegin(const CommonFrameInfo&) and OnRenderEnd(const CommonFrameInfo&) callbacks.
+// C++ subscribes to renderPipeline->OnRenderBegin and OnRenderEnd in constructor.
 public abstract class RenderBuffer
 {
     protected bool _bufferIsReady;
@@ -52,6 +56,11 @@ public abstract class RenderBuffer
 /// <summary>
 /// Writable and readable render buffer texture (2D or cubemap).
 /// </summary>
+// TODO: port - C++ code:
+// C++ TextureRenderBuffer constructor takes RenderPipelineInterface* + RenderBufferParams + Vector2.
+// C++ OnRenderBegin allocates textures via RenderPool::GetTexture (transient/persistent).
+// C++ OnRenderEnd sets currentTexture_ = nullptr and bufferIsReady_ = false.
+// Texture lifetime is frame-only in C++.
 public sealed class TextureRenderBuffer : RenderBuffer
 {
     private readonly RenderBufferParams _bufferParams;

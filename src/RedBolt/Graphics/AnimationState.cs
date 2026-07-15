@@ -151,7 +151,7 @@ public struct AttributeAnimationStateTrack
 public sealed class AnimationState
 {
     private readonly AnimationController? _controller;
-    private object? _model;
+    private AnimatedModel? _model;
     private Animation? _animation;
     private bool _tracksDirty = true;
     private uint _animationRevision;
@@ -234,7 +234,7 @@ public sealed class AnimationState
 
     public Animation? GetAnimation() => _animation;
 
-    public object? GetModel() => _model;
+    public AnimatedModel? GetModel() => _model;
 
     public string GetStartBone() => _startBone;
 

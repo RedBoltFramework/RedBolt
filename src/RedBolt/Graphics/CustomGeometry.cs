@@ -11,6 +11,11 @@ public sealed class CustomGeometryVertex
 
 public sealed class CustomGeometry : Drawable
 {
+    // TODO: port - C++ code:
+    // bool DrawOcclusion(OcclusionBuffer* buffer) override;
+    // C++: VertexMaskFlags elementMask_;
+    // C++: mutable ResourceRefList materialsAttr_;
+
     private const uint MaskPosition = 1u;
     private const uint MaskNormal = 1u << 1;
     private const uint MaskColor = 1u << 2;

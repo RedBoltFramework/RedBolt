@@ -60,6 +60,16 @@ public struct BoundingBox : IEquatable<BoundingBox>, IApproximateEquatable<Bound
         Define(sphere);
     }
 
+    // C++: BoundingBox(const Frustum& frustum);
+    // C++: BoundingBox(const Polyhedron& poly);
+
+    // C++: void Define(const Vector3* vertices, unsigned count);
+    // C++: void Define(const Frustum& frustum);
+    // C++: void Define(const Polyhedron& poly);
+    // C++: void Merge(const Vector3* vertices, unsigned count);
+    // C++: void Merge(const Frustum& frustum);
+    // C++: void Merge(const Polyhedron& poly);
+
     public Vector3f Center => (Min + Max) * 0.5f;
     public bool Defined => Min.X != float.PositiveInfinity;
     public Vector3f HalfSize => (Max - Min) * 0.5f;

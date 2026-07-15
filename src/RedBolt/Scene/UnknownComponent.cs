@@ -4,6 +4,9 @@ public sealed class UnknownComponent : Component
 {
     public string OriginalTypeName { get; private set; } = string.Empty;
 
+    // C++: UnknownComponent has no custom attributes — it is purely a placeholder.
+    // C# adds OriginalTypeName which does not exist in C++ UnknownComponent.
+
     public UnknownComponent()
     {
         RegisterAttribute(

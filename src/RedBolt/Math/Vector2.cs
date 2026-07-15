@@ -28,6 +28,7 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
         Y = data[1];
     }
 
+    // C++: no constructor from BaseIntegerVector2 — conversion is via Cast<Vector2>() on the integer vector
     public BaseRealVector2(Vector2i vector)
     {
         X = T.CreateChecked(vector.X);
@@ -125,8 +126,10 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
 
     public T ScalarCrossProduct(BaseRealVector2<T> rhs) => Y * rhs.X - X * rhs.Y;
 
+    // C++: returns radians: return Urho3D::Acos(DotProduct(rhs) / (Length() * rhs.Length()));
     public T Angle(BaseRealVector2<T> rhs) => T.Acos(DotProduct(rhs) / (Length * rhs.Length)) * T.CreateChecked(MathDefs.RadToDeg);
 
+    // C++: returns radians (signed angle in radians)
     public T SignedAngle(BaseRealVector2<T> rhs) => Angle(rhs) * (ScalarCrossProduct(rhs) >= T.Zero ? T.One : -T.One);
 
     public BaseRealVector2<T> Lerp(BaseRealVector2<T> rhs, T t) => this * (T.One - t) + rhs * t;
@@ -215,6 +218,8 @@ public struct BaseRealVector2<T> : IEquatable<BaseRealVector2<T>>, IApproximateE
 
     public static BaseRealVector2<T> Sqrt(BaseRealVector2<T> vec) => new(T.Sqrt(vec.X), T.Sqrt(vec.Y));
 
+    // C++: Fract(Sin(seed.DotProduct(BaseVector2<T>(12.9898f, 78.233f)) * M_RADTODEG) * 43758.5453f);
+    // Note: C++ multiplies the dot product by M_RADTODEG inside Sin(). The C# version omits this.
     public static T StableRandom(BaseRealVector2<T> seed)
     {
         var value = T.Sin(seed.DotProduct(new(T.CreateChecked(12.9898), T.CreateChecked(78.233)))) * T.CreateChecked(43758.5453);

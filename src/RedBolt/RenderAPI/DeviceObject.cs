@@ -5,15 +5,18 @@ namespace RedBolt;
 /// </summary>
 public abstract class DeviceObject : Object
 {
-    /// <summary>
-    /// Android only: whether the data is lost due to context loss.
-    /// </summary>
-    private bool _dataLost;
+    // C++: WeakPtr<RenderDevice> renderDevice_ (first field)
+    private RenderDevice? _renderDevice;
     /// <summary>
     /// Debug name of the object.
     /// </summary>
+    // C++: ea::string debugName_ (second field)
     private string _debugName = string.Empty;
-    private RenderDevice? _renderDevice;
+    /// <summary>
+    /// Android only: whether the data is lost due to context loss.
+    /// </summary>
+    // C++: bool dataLost_{} (third field)
+    private bool _dataLost;
 
     protected DeviceObject(DeviceObjectFlag flags = DeviceObjectFlag.None)
     {

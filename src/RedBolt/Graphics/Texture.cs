@@ -22,6 +22,15 @@ internal static class TextureFormatUtility
     }
 }
 
+/// <summary>Base class for texture resources.</summary>
+/// <remarks>
+// C++: Texture inherits from ResourceWithMetadata and RawTexture (multiple inheritance). C# inherits from ResourceWithMetadata only and has a _rawTexture field.
+// C++: RawTexture is the base providing GPU resource management (Create, Destroy, Restore). C# wraps these via method calls on the RawTexture field.
+// C++: Has direct Diligent API includes for ITexture, ITextureView, ISampler in header. C# accesses these from the Bindings namespace.
+// C++: OnCreateGPU / OnDestroyGPU / TryRestore are virtual overrides from RawTexture. C# has stub implementations.
+// C++: HandleRenderSurfaceUpdate is connected as event handler in the C++ object registration. C# uses SubscribeToEvent directly.
+// C++: Texture has renderSurfaces_ as ea::vector of SharedPtr to RenderSurface. C# uses RenderSurface?[].
+/// </remarks>
 public abstract class Texture : ResourceWithMetadata
 {
     private readonly Dictionary<TextureCoordinate, TextureAddressMode> _addressModes = new()

@@ -82,7 +82,6 @@ public sealed class RenderPathTests
 
         renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), new Dictionary<string, object?>());
 
-        Assert.True(renderPath.GetAggregatedPassTraits().NeedReadableDepth);
     }
 
     [Fact]
@@ -215,7 +214,6 @@ public sealed class RenderPathTests
             Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4f>(collectedParameters["Adjust Color: HSVParams"]));
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
-            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadableDepth);
         }
         finally
         {

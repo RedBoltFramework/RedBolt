@@ -30,7 +30,7 @@ public class SoundSource : Component
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
     private bool _lowFrequency;
-    private bool _playing;
+    private bool _playing; // C++: uses position_ != nullptr as playing indicator, no separate _playing field
     private readonly object _playLock = new();
 
     public SoundSource()
@@ -362,6 +362,8 @@ public class SoundSource : Component
         if (_sound == null || _soundStream != null)
             return;
 
+        // C++: aligns odd positions up for 16-bit sound:
+        // if (sound_->IsSixteenBit() && (pos - start) & 1u) ++pos;
         _position = Math.Clamp(position, 0, (int)_sound.GetDataSize());
         if (_sound.GetSampleSize() != 0 && _sound.GetFrequency() != 0)
             _timePosition = _position / (float)(_sound.GetSampleSize() * _sound.GetFrequency());
@@ -399,6 +401,10 @@ public class SoundSource : Component
         return scene.GetEffectiveTimeScale();
     }
 
+    // C++: has 13+ separate optimized mix methods (MixMonoToMono, MixMonoToStereo, MixMonoToMonoIP,
+    // MixMonoToStereoIP, MixStereoToMono, MixStereoToStereo, MixStereoToMonoIP, MixStereoToStereoIP,
+    // MixMonoToSurround, MixMonoToSurroundIP, MixStereoToMulti, MixStereoToMultiIP, MixZeroVolume)
+    // The C# version combines them into a single MixSound method.
     private void MixSound(Sound sound, int[] dest, uint samples, int mixRate, float effectiveFrequency, SpeakerMode mode, bool interpolation)
     {
         var data = sound.GetData();

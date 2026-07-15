@@ -38,9 +38,7 @@ public sealed class PListFile : Resource
         if (!LoadDict(_root, dictElement))
             return false;
 
-        MemoryUse = source.CanSeek
-            ? (uint)Math.Min(uint.MaxValue, source.Length)
-            : (uint)System.Text.Encoding.UTF8.GetByteCount(xmlFile.ToString());
+        MemoryUse = source.CanSeek ? (uint)Math.Min(uint.MaxValue, source.Length) : 0;
         return true;
     }
 

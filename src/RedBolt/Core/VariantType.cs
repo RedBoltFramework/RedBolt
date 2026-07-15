@@ -308,7 +308,7 @@ public readonly struct Variant : IEquatable<Variant>
     public Variant(ResourceRefList value)
     {
         _type = VariantType.ResourceRefList;
-        _resourceRefListValue = value ?? ResourceRefList.Empty;
+        _resourceRefListValue = value;
     }
 
     public Variant(Matrix3 value)
@@ -373,6 +373,28 @@ public readonly struct Variant : IEquatable<Variant>
         _type = VariantType.CString;
         _cstringValue = value ?? new CString();
     }
+
+    // TODO: port - C++ code:
+    // void Clear() { SetType(VAR_NONE); }
+
+    // TODO: port - C++ code:
+    // void SetBuffer(const void* data, unsigned size);
+
+    // TODO: port - C++ code:
+    // template <class T> void SetCustom(T value);
+
+    // TODO: port - C++ code:
+    // unsigned ToHash() const;
+
+    // TODO: port - C++ code:
+    // static const ResourceRef emptyResourceRef;
+    // static const ResourceRefList emptyResourceRefList;
+
+    // C++: FromString is void (mutates this).
+    // C#: FromString is static Variant (returns new instance).
+
+    // TODO: port - C++ code:
+    // inline ea::vector<const char*> ToCStringVector(const StringVector& strings);
 
     public VariantType Type => _type;
 

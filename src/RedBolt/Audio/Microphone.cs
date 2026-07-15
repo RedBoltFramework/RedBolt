@@ -49,18 +49,16 @@ public sealed class Microphone : Object
 
     public void Update(byte[] rawData, int rawDataLen)
     {
-        ArgumentNullException.ThrowIfNull(rawData);
-        rawDataLen = Math.Clamp(rawDataLen, 0, rawData.Length);
-        rawDataLen &= ~1;
         if (!_enabled || rawDataLen == 0)
             return;
 
+        var sampleCount = rawDataLen / sizeof(short);
         if (_wakeThreshold != uint.MaxValue)
         {
             var needsWake = false;
-            for (var i = 0; i < rawDataLen; i += sizeof(short))
+            for (var i = 0; i < sampleCount; ++i)
             {
-                var sample = BitConverter.ToInt16(rawData, i);
+                var sample = BitConverter.ToInt16(rawData, i * sizeof(short));
                 if (Math.Abs((int)sample) > _wakeThreshold)
                 {
                     needsWake = true;
@@ -79,8 +77,8 @@ public sealed class Microphone : Object
 
         lock (_lock)
         {
-            for (var i = 0; i < rawDataLen; i += sizeof(short))
-                _buffer.Add(BitConverter.ToInt16(rawData, i));
+            for (var i = 0; i < sampleCount; ++i)
+                _buffer.Add(BitConverter.ToInt16(rawData, i * sizeof(short)));
             _linkedStream?.AddData(rawData, (uint)rawDataLen);
             _isDirty = true;
             _isSleeping = false;

@@ -110,6 +110,9 @@ public sealed class Audio : Object
 
         if (_deviceId == 0)
         {
+            // C++: separate error messages for auto vs non-auto mode:
+            // C++ auto:   URHO3D_LOGERROR("Could not initialize audio output");
+            // C++ manual: URHO3D_LOGERRORF("Could not initialize audio output for speaker mode %s", SPEAKER_MODE_NAMES[speakerMode]);
             Log.Logger.LogError("Could not initialize audio output: {SdlError}", DecodeUtf8(SdlNativeBindings.SdlGetError()));
             return false;
         }
@@ -140,6 +143,7 @@ public sealed class Audio : Object
         _interpolation = interpolation;
         _clipBuffer = new int[_fragmentSize * AudioNumChannels[(int)_speakerMode]];
         _outputBuffer = new short[_clipBuffer.Length];
+        // C++: URHO3D_LOGINFO("Set audio mode " + ea::to_string(mixRate_) + " Hz " + SPEAKER_MODE_NAMES[speakerMode_] + " " + (interpolation_ ? "interpolated" : ""));
         return Play();
     }
 
@@ -152,11 +156,15 @@ public sealed class Audio : Object
 
     public void Update(float timeStep)
     {
+        // C++: Audio uses SDL's pull callback (SDLAudioCallback → MixOutput) from the audio thread.
+        // C# uses manual polling with SDL_QueueAudio in Update() due to C#/native callback limitations.
         if (!_playing) return;
 
         lock (_audioMutex)
         {
             UpdateInternal(timeStep);
+            // C++: iterates microphones calling CheckDirtiness() and erases expired WeakPtrs.
+            // C# does not clean up expired microphones.
             foreach (var microphone in _microphones)
             {
                 microphone.UpdateNative();
@@ -181,7 +189,11 @@ public sealed class Audio : Object
     public bool Play()
     {
         if (_playing) return true;
-        if (_deviceId == 0) return false;
+        if (_deviceId == 0)
+        {
+            // C++: URHO3D_LOGERROR("No audio mode set, can not start playback");
+            return false;
+        }
         SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 0);
         UpdateInternal(0.0f);
         _playing = true;
@@ -296,6 +308,8 @@ public sealed class Audio : Object
             while (samples != 0 && destinationOffset < dest.Length)
             {
                 var workSamples = Math.Min(samples, _fragmentSize);
+                // C++: clipSamples = workSamples; if (speakerMode_ != SPK_MONO) clipSamples = AUDIO_NUM_CHANNELS[speakerMode_] * fragmentSize_;
+                // C++ uses a fixed full fragment size for non-mono clip buffer; C# computes dynamically from workSamples.
                 var clipSamples = checked((int)(workSamples * (uint)channels));
                 clipSamples = Math.Min(clipSamples, dest.Length - destinationOffset);
                 workSamples = (uint)(clipSamples / channels);
@@ -412,6 +426,7 @@ public sealed class Audio : Object
 
     private void UpdateInternal(float timeStep)
     {
+        // C++: URHO3D_PROFILE("UpdateAudio");
         for (var i = _soundSources.Count - 1; i >= 0; i--)
         {
             var source = _soundSources[i];
@@ -439,3 +454,14 @@ public sealed class Audio : Object
         return Encoding.UTF8.GetString(length < 0 ? source : source[..length]);
     }
 }
+
+// C++: static void SDLAudioCallback(void* userdata, Uint8* stream, int len)
+// C++: {
+// C++:     auto* audio = static_cast<Audio*>(userdata);
+// C++:     {
+// C++:         MutexLock Lock(audio->GetMutex());
+// C++:         audio->MixOutput(stream, len / audio->GetSampleSize());
+// C++:     }
+// C++: }
+// C++ SDL calls this callback from the audio thread (pull model).
+// C# uses SDL_QueueAudio in Update() instead (push model).

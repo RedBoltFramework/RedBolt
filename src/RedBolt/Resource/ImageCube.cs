@@ -2,6 +2,7 @@ namespace RedBolt;
 
 public sealed class ImageCube : Resource
 {
+    // C++: has int width_ field for tracking face width independently
     private readonly Image?[] _faceImages = new Image[6];
     private XMLFile? _parametersXml;
     private SphericalHarmonicsDot9? _cachedSphericalHarmonics;
@@ -11,6 +12,8 @@ public sealed class ImageCube : Resource
     {
     }
 
+    // C++: SplitPath(GetName()) for path resolution; ResetDependencies(this); loads cachedSphericalHarmonics_
+    // C++: from XML <sh> element; async loading PrecalculateLevels; error logging via URHO3D_LOGERROR
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -97,6 +100,7 @@ public sealed class ImageCube : Resource
 
     public Image? GetImage(CubeMapFace face) => _faceImages[(int)face];
 
+    // C++: SetImage is not a public method; faceImages_ assigned directly in BeginLoad without Cubemap=true
     public void SetImage(CubeMapFace face, Image image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -112,6 +116,8 @@ public sealed class ImageCube : Resource
         return maxLevel - Math.Min(maxLevel, 3u);
     }
 
+    // C++: deep-copies parametersXml_ and faceImages_, sets width_ = max(1, width_ >> index);
+    // C++: returns SharedPtr<ImageCube> (MakeShared)
     public ImageCube GetDecompressedImageLevel(uint index)
     {
         var cube = new ImageCube(Name + "#level");
@@ -196,6 +202,7 @@ public sealed class ImageCube : Resource
             return (face, Vector2i.Zero);
 
         var width = image.GetWidth();
+        // C++: clamps to FloorToInt * width_ with max = width_ (not width_-1)
         var x = Math.Clamp((int)(uv.X * width), 0, width - 1);
         var y = Math.Clamp((int)(uv.Y * width), 0, width - 1);
         return (face, new Vector2i(x, y));

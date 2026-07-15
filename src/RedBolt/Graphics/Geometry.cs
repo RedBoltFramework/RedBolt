@@ -26,6 +26,16 @@ public enum GeometryType
 }
 
 /// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>
+/// <remarks>
+// C++: Geometry inherits from Object, PipelineStateTracker, and IDFamily&lt;Geometry&gt;. C# inherits from PipelineStateTracker only.
+// C++: Has SetRawVertexData, SetRawIndexData for CPU-side operations. C# has these as simple field assignments.
+// C++: Has GetRawData/GetRawDataShared for CPU operations. C# uses the raw data fields directly.
+// C++: Has GetHitDistance(Ray), IsInside(Ray) methods for ray-hit testing that C# doesn't implement yet.
+// TODO: port - C++ code: float Geometry::GetHitDistance(const Ray& ray, Vector3* outNormal, Vector2* outUV)
+// TODO: port - C++ code: bool Geometry::IsInside(const Ray& ray)
+// C++: Has UpdateHeadlessStatus() private method. C# has similar.
+// C++: Has vertexBuffersDependencies_ for tracking PipelineStateSubscription per vertex buffer. C# has same.
+/// </remarks>
 public sealed class Geometry : PipelineStateTracker
 {
     /// <summary>Vertex buffers.</summary>

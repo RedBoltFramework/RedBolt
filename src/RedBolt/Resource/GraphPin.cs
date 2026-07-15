@@ -7,6 +7,7 @@ public class GraphPin : IArchiveSerializable
     public string GetName() => _name;
 
     /// <summary>Serialize content from/to archive.</summary>
+    // C++: uses SerializeOptionalValue(archive, "name", name_); not manual IsInput check
     public virtual void SerializeInBlock(Archive archive)
     {
         if (!archive.IsInput || archive.HasElementOrBlock("name"))
@@ -90,6 +91,8 @@ public class GraphInPin : GraphDataPin
     }
 
     /// <summary>Serialize content from/to archive.</summary>
+    // C++: uses SerializeOptionalValue for node/pin/value with Variant::EMPTY default and custom serializer lambda
+    // C++: value serialization uses SerializeOptionalValue(archive, "value", value_, Variant::EMPTY, lambda)
     public override void SerializeInBlock(Archive archive)
     {
         base.SerializeInBlock(archive);
@@ -107,14 +110,16 @@ public class GraphInPin : GraphDataPin
         }
     }
 
+    // C++: private with friend class Graph; field accessor mapped to internal per friend rule
     /// <summary>Target node.</summary>
     internal uint _targetNode;
 
     /// <summary>Target pin name.</summary>
     internal string _targetPin = string.Empty;
 
-    /// <summary>Target node.</summary>
-    private Variant _value;
+    // C++: private with friend class Graph; should be internal per friend rule
+    /// <summary>Value.</summary>
+    internal Variant _value;
 }
 
 /// <summary>Graph node execution flow "enter" pin. May be connected to multiple exit pins.</summary>

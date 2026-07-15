@@ -2,6 +2,10 @@ using System.Text;
 
 namespace RedBolt;
 
+// C++: No direct C++ equivalent. C++ SimpleResource handles JSON/XML/Binary via Archive serialization.
+// C++: BeginLoad in SimpleResource uses JSONFile/XMLFile intermediaries; C# reads raw bytes and checks for XML.
+// C++: SimpleResource does NOT have DeserializeJson/SerializeJson/LoadLegacyXML — serialization uses SerializeInBlock(Archive).
+// This class is a C#-specific abstraction.
 public abstract class JSONResourceBase : Resource
 {
     protected JSONResourceBase(string name)

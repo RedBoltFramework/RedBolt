@@ -13,6 +13,17 @@ public sealed class FrameStatistics
     public uint ChangedAnimations;
 }
 
+/// <remarks>
+// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
+// It manages view batches, drawable queues, occlusion, shadow maps, post-processing, geometry updates, etc.
+// The C# renderer is a simplified version that delegates much work to RenderPipelineView instances.
+// TODO: port - C++ code: many methods in C++ Renderer.h including:
+//   DrawableUpdateQueues, UpdateQueuedBatches, BatchCompositing, shadow map allocation,
+//   light volume geometry creation, material quality management, geometry/LOD update batching,
+//   instancing buffer management, render statistics beyond basic frame counts, etc.
+// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.
+// C++: Renderer is the central hub for rendering with many more methods (the C++ header is ~390 lines).
+/// </remarks>
 public sealed class Renderer : Object
 {
     private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);

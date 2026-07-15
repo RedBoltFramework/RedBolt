@@ -2,6 +2,16 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+// C++:
+// static const char* interpolationModeNames[] =
+// {
+//     "Bezier",
+//     "Catmull-Rom",
+//     "Linear",
+//     "Catmull-Rom Full",
+//     nullptr
+// };
+
 public enum InterpolationMode
 {
     /// <summary>Bezier interpolation.</summary>
@@ -351,6 +361,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
         case VariantType.Color:
             return lhs.GetColor().Lerp(rhs.GetColor(), t);
         case VariantType.Double:
+            // C++: return Lerp(lhs.GetDouble(), rhs.GetDouble(), t);
             return lhs.GetDouble() * (1.0 - t) + rhs.GetDouble() * t;
         default:
             return default;

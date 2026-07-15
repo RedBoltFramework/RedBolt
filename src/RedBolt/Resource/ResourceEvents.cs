@@ -1,3 +1,5 @@
+// C++: Present. No non-allowed divergences found. Matches ResourceEvents.h 1:1
+// (struct-based event format is allowed deviation per AGENTS.md section 10).
 namespace RedBolt;
 
 public static class ResourceEvents

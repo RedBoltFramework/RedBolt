@@ -12,6 +12,7 @@ public enum InternalResourceFormat
 
 public abstract class SimpleResource : Resource
 {
+    // C++: DefaultBinaryMagic is a global 'const BinaryMagic' in Resource.cpp, not a member of SimpleResource.
     public static readonly byte[] DefaultBinaryMagic = [0, (byte)'B', (byte)'I', (byte)'N'];
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;
@@ -28,6 +29,9 @@ public abstract class SimpleResource : Resource
         _saveFormat = format == InternalResourceFormat.Unknown ? null : format;
     }
 
+    // C++: BeginLoad creates JSONFile/XMLFile/BinaryFile objects as intermediaries, calls Load() on them,
+    // then creates archives from the loaded intermediary files and calls SerializeValue(archive, GetRootBlockName(), *this).
+    // JSON/Binary deserialization happens in BeginLoad, not deferred to EndLoad.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -145,6 +149,7 @@ public abstract class SimpleResource : Resource
         }
     }
 
+    // C++: SaveFile opens a VFS file and writes via Save(*file, format) directly — no intermediate MemoryStream.
     public bool SaveFile(string fileName, InternalResourceFormat format)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -190,6 +195,8 @@ public abstract class SimpleResource : Resource
         return copy.ToArray();
     }
 
+    // C++: PeekResourceFormat is a free function in Resource.cpp, not a member of SimpleResource.
+    // C++: operates on Deserializer, not byte spans.
     private static InternalResourceFormat PeekResourceFormat(ReadOnlySpan<byte> data, ReadOnlySpan<byte> binaryMagic)
     {
         if (data.StartsWith(binaryMagic))

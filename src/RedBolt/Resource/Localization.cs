@@ -12,10 +12,16 @@ public sealed class Localization : Object
     {
     }
 
+    // TODO: port - C++ code:
+    // /// Destruct. Free all resources.
+    // ~Localization() override;
+
     public int GetNumLanguages() => _languages.Count;
 
     public int GetLanguageIndex() => _languageIndex;
 
+    // C++: if (language.empty()) { URHO3D_LOGWARNING("...language name is empty"); return -1; }
+    // C++: if (GetNumLanguages() == 0) { URHO3D_LOGWARNING("...no loaded languages"); return -1; }
     public int GetLanguageIndex(string language)
     {
         if (string.IsNullOrEmpty(language))
@@ -23,16 +29,20 @@ public sealed class Localization : Object
         return _languages.FindIndex(existing => string.Equals(existing, language, StringComparison.Ordinal));
     }
 
+    // C++: checks languageIndex_ == -1 and logs URHO3D_LOGWARNING("...no loaded languages") returning EMPTY_STRING.
+    // C++: after check, returns languages_[languageIndex_] without range check.
     public string GetLanguage()
     {
         return _languageIndex >= 0 && _languageIndex < _languages.Count ? _languages[_languageIndex] : string.Empty;
     }
 
+    // C++: three separate checks with URHO3D_LOGWARNING for (no languages), (index out of range), then returns languages_[index].
     public string GetLanguage(int index)
     {
         return index >= 0 && index < _languages.Count ? _languages[index] : string.Empty;
     }
 
+    // C++: checks GetNumLanguages()==0 → URHO3D_LOGWARNING("no loaded languages"); checks index out of range → URHO3D_LOGWARNING("index out of range").
     public void SetLanguage(int index)
     {
         if (index >= 0 && index < _languages.Count && index != _languageIndex)
@@ -42,6 +52,7 @@ public sealed class Localization : Object
         }
     }
 
+    // C++: checks language.empty() → URHO3D_LOGWARNING; checks GetNumLanguages()==0 → URHO3D_LOGWARNING; checks index==-1 → URHO3D_LOGWARNING("language not found").
     public void SetLanguage(string language)
     {
         if (string.IsNullOrEmpty(language))
@@ -51,6 +62,10 @@ public sealed class Localization : Object
             SetLanguage(index);
     }
 
+    // C++: URHO3D_LOGWARNING("no loaded languages") when GetNumLanguages()==0.
+    // C++: URHO3D_LOGWARNING("invalid language index") when index >= languages_.size().
+    // C++: URHO3D_LOGTRACE when translation not found.
+    // C++: strings_[index < 0 ? GetLanguage() : languages_[index]][StringHash(id)] — no extra null-language guard.
     public string Get(string id, int index = -1)
     {
         if (string.IsNullOrEmpty(id))
@@ -76,6 +91,7 @@ public sealed class Localization : Object
         _languageIndex = -1;
     }
 
+    // C++: does not validate name parameter; does not null-check cache before dereferencing.
     public void LoadJSONFile(string name, string language = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -92,6 +108,7 @@ public sealed class Localization : Object
             LoadSingleLanguageJSON(jsonFile.GetRoot(), language);
     }
 
+    // C++: logs URHO3D_LOGWARNING entries for empty string ID, empty language name, empty translation, and override detection.
     public void LoadMultipleLanguageJSON(JSONValue source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -114,6 +131,10 @@ public sealed class Localization : Object
         }
     }
 
+    // C++: language parameter has default = EMPTY_STRING (optional).
+    // C++: does not save/restore _languageIndex around StoreTranslation calls.
+    // C++: logs URHO3D_LOGWARNING for empty string ID, empty translation, and override detection.
+    // C++: LoadSingleLanguageJSON does NOT set languageIndex_ = 0 when it was -1 (only LoadMultipleLanguageJSON does).
     public void LoadSingleLanguageJSON(JSONValue source, string language)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -131,6 +152,8 @@ public sealed class Localization : Object
         _languageIndex = languageIndex;
     }
 
+    // C++: in LoadMultipleLanguageJSON, checks strings_[StringHash(lang)][StringHash(id)] != EMPTY_STRING
+    // and logs URHO3D_LOGWARNING("override translation") before overwriting.
     private void StoreTranslation(string id, string language, string translatedString)
     {
         if (!_strings.TryGetValue(language, out var translations))

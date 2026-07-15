@@ -57,6 +57,7 @@ public struct JoystickState
     /// <summary>Reset button, axis and hat states to neutral.</summary>
     public void Reset()
     {
+        // C++: for joysticks (non-controllers), calls SDL_JoystickGetAxisInitialState to read initial axis values
         Buttons ??= [];
         ButtonPress ??= [];
         Axes ??= [];
@@ -121,6 +122,9 @@ public struct JoystickState
     public int[] Hats = [];
 }
 
+// TODO: port - C++ code:
+// PrioritySignal<void(SDL_Event& evt, bool& consumed), RawInputPriority> OnRawInput;
+// enum class RawInputPriority : int { Lowest = 0, UISubsystem = 1000, ExternalTool = 2000, ... };
 public sealed class Input : Object
 {
     private const uint SdlInitVideo = 0x00000020u;
@@ -140,13 +144,16 @@ public sealed class Input : Object
     private readonly Dictionary<int, SdlJoystick> _nativeJoysticks = [];
     private readonly Dictionary<int, SdlGameController> _nativeControllers = [];
     private readonly Timer _mousePressTimer = new();
+    // C++: IntVector2 lastMousePosition_; IntVector2 lastVisibleMousePosition_;
     private IntRect? _explicitWindowRect;
+    // C++: ea::string textInput_;
     private SdlEvent? _nativeEvent;
     private SdlWindow? _window;
     private MouseButton _mouseButtonClick;
     private MouseButton _mouseButtonDown;
     private MouseButton _mouseButtonPress;
     private Vector2i _mousePressPosition = new(int.MinValue, int.MinValue);
+    // C++: M_MIN_INT, M_MIN_INT
     private int _mouseMoveWheel;
     private HatPosition _hatPosition = HatPosition.Center;
     private Vector2i _backbufferSize = Vector2i.Zero;
@@ -185,6 +192,7 @@ public sealed class Input : Object
 
     public bool HasFocus { get; private set; }
 
+    // C++: IsMinimized() returns true also when !inputFocus_ && graphics_->GetFullscreen()
     public bool IsMinimized { get; private set; }
 
     public bool ToggleFullscreen { get; private set; } = true;
@@ -313,6 +321,8 @@ public sealed class Input : Object
 
     public void PollEvents()
     {
+        // C++: Update() handles MM_WRAP mouse wrapping, REQUIRE_CLICK_TO_FOCUS, and GetBackgroundSize-based manual mouse move calculation
+        // C++: also sends E_MOUSEMOVE event manually for mouse delta accumulation
         if (!Enabled || !IsInitialized || _nativeEvent is null)
             return;
 
@@ -869,6 +879,8 @@ public sealed class Input : Object
 
     public void SetMousePosition(Vector2i position)
     {
+        // C++: converts position via BackbufferToSystem() before SDL_WarpMouseInWindow,
+        // C++: uses SDL_WarpMouseGlobal for explicit window rect
         var delta = position - MousePosition;
         MousePosition = position;
         if (IsInitialized && _window is not null && !_window.IsNull)
@@ -891,6 +903,9 @@ public sealed class Input : Object
 
     public void SetKey(Key key, Scancode scancode, bool newState)
     {
+        // C++: additionally handles Alt+Enter fullscreen toggle:
+        // if ((key == KEY_RETURN || key == KEY_RETURN2 || key == KEY_KP_ENTER) && newState && !repeat && toggleFullscreen_ &&
+        //     (GetKeyDown(KEY_LALT) || GetKeyDown(KEY_RALT))) graphics_->ToggleFullscreen();
         var wasDown = _keyDown.Contains(key);
         if (newState)
         {
@@ -1317,6 +1332,9 @@ public sealed class Input : Object
 
     private void HandleMouseMotion(SdlEvent @event)
     {
+        // C++: positions are scaled to backbuffer coordinates (systemToBackbufferScale_),
+        // C++: checks (sdlMouseRelative_ || mouseVisible_ || mouseMode_ == MM_FREE) before processing,
+        // C++: has touch emulation path that converts mouse motion to SDL_FINGERMOTION
         MousePosition = new Vector2i(@event.MotionX, @event.MotionY);
         MouseMove = new Vector2i(MouseMove.X + @event.MotionXrel, MouseMove.Y + @event.MotionYrel);
         _mouseMoveScaled = false;

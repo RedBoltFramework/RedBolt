@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 
+// C++: matches C++ within allowed deviations (ResourceWithMetadata replaces Resource base; ObjectRevisionTracker inlined).
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -43,7 +44,8 @@ public struct AnimationTriggerPoint
 /// <summary>
 /// Skeletal animation resource.
 /// Don't use bone tracks and generic variant tracks with the same names.
-/// </summary>
+// C++: Animation derives from both ResourceWithMetadata AND ObjectRevisionTracker.
+// C#: ObjectRevisionTracker is not ported; revision tracking is inlined here.
 public class Animation : ResourceWithMetadata
 {
     /// <summary>
@@ -244,6 +246,7 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Save resource. Return true if successful.
     /// </summary>
+    // C++: bool Save(Serializer& dest) const
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -494,6 +497,7 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Clone the animation.
     /// </summary>
+    // C++: SharedPtr<Animation> Clone(const ea::string& cloneName = EMPTY_STRING) const
     public Animation Clone(string cloneName = "")
     {
         var ret = new Animation();

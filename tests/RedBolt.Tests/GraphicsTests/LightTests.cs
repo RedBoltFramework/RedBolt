@@ -194,8 +194,8 @@ public sealed class LightTests
 
         Assert.Null(light.GetRampTexture());
         Assert.Null(light.GetShapeTexture());
-        Assert.Equal(StringHash.Calculate("Texture2D"), light.GetRampTextureAttr().Type);
-        Assert.Equal(StringHash.Calculate("Texture"), light.GetShapeTextureAttr().Type);
+        Assert.Equal(new StringHash("Texture2D"), light.GetRampTextureAttr().Type);
+        Assert.Equal(new StringHash("Texture"), light.GetShapeTextureAttr().Type);
     }
 
     [Fact]

@@ -19,9 +19,13 @@ public sealed class ConfigVariableDefinition
     public ConfigVariableDefinition Overridable() { IsOverridable = true; return this; }
     public ConfigVariableDefinition CommandLinePriority() { HasCommandLinePriority = true; return this; }
 
+    // C++: bool overridable_{};
     public bool IsOverridable;
+    // C++: bool commandLinePriority_{};
     public bool HasCommandLinePriority;
+    // C++: Variant defaultValue_{};
     public Variant DefaultValue;
+    // C++: VariantType type_{};
     public VariantType Type;
 }
 
@@ -96,14 +100,19 @@ public sealed class ConfigFile : Object
         }
     }
 
+    // C++: ConfigFlavorVector variablesPerFlavor_;
     private readonly List<ConfigFlavor> _variablesPerFlavor = [];
+    // C++: ConfigVariableDefinitionMap definitions_;
     private readonly Dictionary<string, ConfigVariableDefinition> _definitions = new(StringComparer.Ordinal);
+    // C++: StringVariantMap variables_;
     private readonly Dictionary<string, Variant> _variables = new(StringComparer.Ordinal);
 
+    // C++: explicit ConfigFile(Context* context);
     public ConfigFile()
     {
     }
 
+    // C++: config returns ConfigVariableDefinitionMap&, StringVariantMap&, ConfigFlavorVector& (mutable refs)
     public IReadOnlyList<ConfigFlavor> VariablesPerFlavor => _variablesPerFlavor;
     public IReadOnlyDictionary<string, ConfigVariableDefinition> Definitions => _definitions;
     public IReadOnlyDictionary<string, Variant> Variables => _variables;
@@ -163,6 +172,9 @@ public sealed class ConfigFile : Object
         return _definitions.TryGetValue(name, out var def) ? def.DefaultValue : default;
     }
 
+    /// <summary>Serialize persistent variable configuration. Current values are not serialized.</summary>
+    // C++: Uses Archive binary serialization (SerializeOptionalValue).
+    //       ConfigFlavor::SerializeInBlock uses SerializeOptionalValue for flavor + variables.
     public override void SerializeInBlock(Archive archive)
     {
         ArgumentNullException.ThrowIfNull(archive);

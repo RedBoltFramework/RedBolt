@@ -144,6 +144,20 @@ public static partial class MathDefs
 
     public static int Mod(int x, int y) => x % y;
 
+    // TODO: port - C++ code:
+    // URHO3D_API void SinCos(float angle, float& sin, float& cos);
+    // C++ implementation in MathDefs.cpp:
+    // void SinCos(float angle, float& sin, float& cos)
+    // {
+    //     sin = Sin(angle);
+    //     cos = Cos(angle);
+    // }
+    public static void SinCos(float angle, out float sin, out float cos)
+    {
+        sin = Sin(angle);
+        cos = Cos(angle);
+    }
+
     public static float AbsMod(float x, float y)
     {
         var result = Mod(x, y);

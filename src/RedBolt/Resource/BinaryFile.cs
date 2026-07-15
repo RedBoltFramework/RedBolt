@@ -11,6 +11,9 @@ public sealed class BinaryFile : Resource
     {
     }
 
+    // TODO: port - C++ code:
+    // ~BinaryFile() override;
+
     public IReadOnlyList<byte> Data => _buffer.GetBuffer();
 
     public static void RegisterObject(Context context)
@@ -18,6 +21,8 @@ public sealed class BinaryFile : Resource
         ArgumentNullException.ThrowIfNull(context);
     }
 
+    // C++: source.Seek(0); buffer_.SetData(source, source.GetSize()); SetMemoryUse(buffer_.GetBuffer().capacity());
+    // C++: reads data via VectorBuffer.SetData(Deserializer&, size) directly — no intermediate MemoryStream copy.
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -28,6 +33,7 @@ public sealed class BinaryFile : Resource
         return true;
     }
 
+    // C++: checks dest.Write(buffer_.GetData(), buffer_.GetSize()) != buffer_.GetSize() → URHO3D_LOGERROR("Can not save binary file") & returns false.
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -35,6 +41,8 @@ public sealed class BinaryFile : Resource
         return true;
     }
 
+    // C++: does NOT call archive.Flush() or SetMemoryUse after serialization.
+    // C++: BinaryOutputArchive archive{GetContext(), AsSerializer()}; serializeValue(archive);
     public bool SaveObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -54,6 +62,8 @@ public sealed class BinaryFile : Resource
         }
     }
 
+    // C++: does NOT call archive.Flush().
+    // C++: MemoryBuffer readBuffer{buffer_.GetBuffer()}; BinaryInputArchive archive{GetContext(), readBuffer};
     public bool LoadObjectCallback(Action<Archive> serializeValue)
     {
         ArgumentNullException.ThrowIfNull(serializeValue);
@@ -71,6 +81,9 @@ public sealed class BinaryFile : Resource
         }
     }
 
+    // TODO: port - C++ code:
+    // template <class T, class ... Args> bool SaveObject(const char* name, const T& object, Args &&... args);
+    // template <class T, class ... Args> bool LoadObject(const char* name, T& object, Args &&... args) const;
     public bool SaveObject(Object value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -88,6 +101,8 @@ public sealed class BinaryFile : Resource
         _buffer.Clear();
     }
 
+    // C++: void SetData(const ByteVector& data) — takes const reference.
+    // C++: buffer_.SetData(data); SetMemoryUse(buffer_.GetBuffer().capacity()) — uses capacity(), not size().
     public void SetData(IEnumerable<byte> value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -95,6 +110,8 @@ public sealed class BinaryFile : Resource
         SetMemoryUse(_buffer.Size);
     }
 
+    // C++: void SetText(ea::string_view text) — zero-copy view.
+    // C++: SetMemoryUse(static_cast<unsigned>(buffer_.GetBuffer().capacity())) — uses capacity().
     public void SetText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);

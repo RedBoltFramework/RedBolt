@@ -1,3 +1,5 @@
+// C++: no direct C++ counterpart. SDL image load/save functionality is inline in Image.cpp (Image::LoadSDL, Image::SavePNG, etc).
+// C# extraction into separate file with native SDL bindings via P/Invoke is an allowed architectural deviation.
 using RedBolt.Bindings.Sdl;
 using System.Runtime.InteropServices;
 

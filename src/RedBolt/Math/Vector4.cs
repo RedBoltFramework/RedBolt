@@ -54,7 +54,9 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     public static Vector4f Zero => ZERO;
     public static Vector4f One => ONE;
 
+    // C++: not present in C++ Vector4
     public readonly Vector2f Xy => new(X, Y);
+    // C++: not present in C++ Vector4
     public readonly Vector2f Zw => new(Z, W);
     public readonly float[] Data => [X, Y, Z, W];
     public readonly bool IsNaN => float.IsNaN(X) || float.IsNaN(Y) || float.IsNaN(Z) || float.IsNaN(W);
@@ -99,6 +101,20 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     public readonly float AbsDotProduct(Vector4f rhs) => Math.Abs(X * rhs.X) + Math.Abs(Y * rhs.Y) + Math.Abs(Z * rhs.Z) + Math.Abs(W * rhs.W);
     public readonly float ProjectOntoAxis(Vector3f axis) => DotProduct(axis.Normalized.ToVector4());
     public readonly Vector4f Lerp(Vector4f rhs, float t) => this * (1.0f - t) + rhs * t;
+
+    // TODO: port - C++ code:
+    // /// Per-component linear interpolation between two 4-vectors.
+    // inline Vector4 VectorLerp(const Vector4& lhs, const Vector4& rhs, const Vector4& t) { return lhs + (rhs - lhs) * t; }
+    // /// Per-component min of two 4-vectors.
+    // inline Vector4 VectorMin(const Vector4& lhs, const Vector4& rhs) { return Vector4(Min(lhs.x_, rhs.x_), Min(lhs.y_, rhs.y_), Min(lhs.z_, rhs.z_), Min(lhs.w_, rhs.w_)); }
+    // /// Per-component max of two 4-vectors.
+    // inline Vector4 VectorMax(const Vector4& lhs, const Vector4& rhs) { return Vector4(Max(lhs.x_, rhs.x_), Max(lhs.y_, rhs.y_), Max(lhs.z_, rhs.z_), Max(lhs.w_, rhs.w_)); }
+    // /// Per-component floor of 4-vector.
+    // inline Vector4 VectorFloor(const Vector4& vec) { return Vector4(Floor(vec.x_), Floor(vec.y_), Floor(vec.z_), Floor(vec.w_)); }
+    // /// Per-component round of 4-vector.
+    // inline Vector4 VectorRound(const Vector4& vec) { return Vector4(Round(vec.x_), Round(vec.y_), Round(vec.z_), Round(vec.w_)); }
+    // /// Per-component ceil of 4-vector.
+    // inline Vector4 VectorCeil(const Vector4& vec) { return Vector4(Ceil(vec.x_), Ceil(vec.y_), Ceil(vec.z_), Ceil(vec.w_)); }
     public readonly Vector2f ToVector2() => new(X, Y);
     public readonly IntVector2 ToIntVector2() => new((int)X, (int)Y);
     public readonly Vector3f ToVector3() => new(X, Y, Z);
@@ -158,7 +174,8 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector4f operator /(Vector4f lhs, Vector4f rhs) => new(lhs.X / rhs.X, lhs.Y / rhs.Y, lhs.Z / rhs.Z, lhs.W / rhs.W);
 
+    // C++: not present in C++ Vector4 — C++ only has vector * scalar, not vector + scalar or vector - scalar
     public static Vector4f operator +(Vector4f lhs, float rhs) => new(lhs.X + rhs, lhs.Y + rhs, lhs.Z + rhs, lhs.W + rhs);
-
+    // C++: not present in C++ Vector4
     public static Vector4f operator -(Vector4f lhs, float rhs) => new(lhs.X - rhs, lhs.Y - rhs, lhs.Z - rhs, lhs.W - rhs);
 }

@@ -487,6 +487,7 @@ public sealed class ResourceCache : Object
         return GetVirtualFileSystem().GetAbsoluteNameFromIdentifier(resourceName);
     }
 
+    // C++: delegates to VFS GetCanonicalIdentifier; this has custom path normalisation logic
     public string SanitateResourceName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -598,6 +599,7 @@ public sealed class ResourceCache : Object
 
     public bool ReloadResource(Resource resource)
     {
+        // C++: sends E_RELOADSTARTED event, calls resource.Load(*file), sends E_RELOADFINISHED or E_RELOADFAILED
         ArgumentNullException.ThrowIfNull(resource);
         return resource.Reload();
     }
@@ -745,6 +747,7 @@ public sealed class ResourceCache : Object
 
     public string PrintMemoryUsage()
     {
+        // C++: prints a detailed table with resource count, avg memory, max memory, budget, and total per type
         var lines = _cache.GroupBy(static item => item.Key.Type)
             .OrderBy(static group => group.Key.Name, StringComparer.Ordinal)
             .Select(group => $"{group.Key.Name}: {group.Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse)} bytes ({group.Count()} resources)");

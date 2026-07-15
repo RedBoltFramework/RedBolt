@@ -34,6 +34,9 @@ public sealed class Sound : ResourceWithMetadata
             _ => LoadRaw(source)
         };
 
+        // TODO: port - C++ code:
+        // if (success)
+        //     LoadParameters();
         return success;
     }
 
@@ -268,6 +271,24 @@ public sealed class Sound : ResourceWithMetadata
                 _data[_end + i] = 0;
         }
     }
+
+    // TODO: port - C++ code:
+    // void Sound::LoadParameters()
+    // {
+    //     auto* cache = GetSubsystem<ResourceCache>();
+    //     ea::string xmlName = ReplaceExtension(GetName(), ".xml");
+    //     SharedPtr<XMLFile> file(cache->GetTempResource<XMLFile>(xmlName, false));
+    //     if (!file) return;
+    //     XMLElement rootElem = file->GetRoot();
+    //     LoadMetadataFromXML(rootElem);
+    //     for (XMLElement paramElem = rootElem.GetChild(); paramElem; paramElem = paramElem.GetNext())
+    //     {
+    //         ea::string name = paramElem.GetName();
+    //         if (name == "format" && !compressed_)
+    //         { ... set frequency_, sixteenBit_, stereo_ from attributes ... }
+    //         if (name == "loop") { ... SetLooped / SetLoop from attributes ... }
+    //     }
+    // }
 
     internal static sbyte[] CopyToSByteArray(byte[] source)
     {

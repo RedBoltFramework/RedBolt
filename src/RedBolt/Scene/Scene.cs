@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Asynchronous scene loading mode.</summary>
+// C++: static const unsigned FIRST_REPLICATED_ID = 0x1; and LAST_REPLICATED_ID = 0xffffff;
 public enum LoadMode
 {
     /// <summary>Preload resources without loading scene content.</summary>
@@ -15,6 +16,8 @@ public enum LoadMode
     SceneAndResources
 }
 
+// C++: Scene extends Node (class Scene : public Node), not Serializable. Scene IS the root node.
+// In C++ the scene root is `this`; in C# it's accessed via the `Root` property.
 public sealed class Scene : Serializable
 {
     private sealed class AsyncProgress
@@ -50,7 +53,10 @@ public sealed class Scene : Serializable
     private ContextEventSubscription? _resourceBackgroundLoadedSubscription;
     private int _asyncLoadingMs = 5;
     private bool _asyncLoading;
+    // C++: DoubleVector3 elapsedTime_ with wrap support; C# simplifies to a single float.
     private float _elapsedTime;
+    // TODO: port - C++ code:
+    // DoubleVector3 elapsedTimeWrap_;
     private string _fileName = string.Empty;
     private IntVector3 _worldOrigin;
     private uint _nextComponentId = 1;
@@ -821,6 +827,9 @@ public sealed class Scene : Serializable
     }
 
     public float GetElapsedTime() => _elapsedTime;
+
+    // TODO: port - C++ code:
+    // const DoubleVector3& GetElapsedTimes() const { return elapsedTime_; }
 
     public void SetAsyncLoadingMs(int ms)
     {

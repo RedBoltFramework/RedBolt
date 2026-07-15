@@ -75,6 +75,7 @@ public class File : AbstractFile, IDisposable
     /// <summary>Read bytes from the file. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
+        // C++: logs URHO3D_LOGERROR("File not opened for reading") when mode is FILE_WRITE
         if (!IsOpen || _mode == FileMode.Write)
             return 0;
 
@@ -82,6 +83,14 @@ public class File : AbstractFile, IDisposable
         if (size == 0)
             return 0;
 
+        // C++: Android asset handles that are not compressed use a read buffer for performance.
+        // TODO: port - C++ code:
+        // #ifdef __ANDROID__
+        // if (assetHandle_ && !compressed_) {
+        //     if (!readBuffer_) { readBuffer_ = new unsigned char[READ_BUFFER_SIZE]; readBufferOffset_ = 0; readBufferSize_ = 0; }
+        //     ... buffered read loop ...
+        // }
+        // #endif
         if (_readSyncNeeded)
         {
             SeekInternal(Position + _offset);
@@ -132,6 +141,7 @@ public class File : AbstractFile, IDisposable
 
         if (!ReadInternal(destination[..checked((int)size)]))
         {
+            // C++: logs URHO3D_LOGERROR("Error while reading from file " + GetName())
             SeekInternal(Position + _offset);
             return 0;
         }
@@ -144,6 +154,7 @@ public class File : AbstractFile, IDisposable
     /// <summary>Set position from the beginning of the file.</summary>
     public override uint Seek(uint position)
     {
+        // C++: logs URHO3D_LOGERROR("Seeking backward in a compressed file is not supported") if seeking backward in compressed file
         if (!IsOpen)
             return 0;
 
@@ -179,6 +190,7 @@ public class File : AbstractFile, IDisposable
     /// <summary>Write bytes to the file. Return number of bytes actually written.</summary>
     public override uint Write(ReadOnlySpan<byte> data)
     {
+        // C++: logs URHO3D_LOGERROR("File not opened for writing") when mode is FILE_READ
         if (!IsOpen || _mode == FileMode.Read || data.IsEmpty)
             return 0;
 
@@ -194,6 +206,7 @@ public class File : AbstractFile, IDisposable
         }
         catch (IOException)
         {
+            // C++: logs URHO3D_LOGERROR("Error while writing to file " + GetName())
             SeekInternal(Position + _offset);
             return 0;
         }
@@ -259,6 +272,7 @@ public class File : AbstractFile, IDisposable
     /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
     private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
     {
+        // C++: checks file system access with fileSystem->CheckAccess(GetPath(fileName))
         Close();
         _compressed = false;
         _readSyncNeeded = false;

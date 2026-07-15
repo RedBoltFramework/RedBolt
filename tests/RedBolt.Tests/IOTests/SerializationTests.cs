@@ -131,8 +131,8 @@ public sealed class SerializationTests
         var matrix3 = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
         var matrix3x4 = new Matrix3x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
         var matrix4 = new Matrix4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
-        var resourceRef = new ResourceRef(StringHash.Calculate("Material"), "Materials/Test.xml");
-        var resourceRefList = new ResourceRefList(StringHash.Calculate("Texture2D"), ["A.png", "B.png"]);
+        var resourceRef = new ResourceRef(new StringHash("Material"), "Materials/Test.xml");
+        var resourceRefList = new ResourceRefList(new StringHash("Texture2D"), ["A.png", "B.png"]);
 
         Assert.True(buffer.WriteMatrix3(matrix3));
         Assert.True(buffer.WriteMatrix3x4(matrix3x4));

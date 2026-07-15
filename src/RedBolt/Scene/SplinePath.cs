@@ -199,6 +199,28 @@ public sealed class SplinePath : Component
 
     public uint GetControlledIdAttr() => _controlledIdAttr;
 
+    // TODO: port - C++ code:
+    // void SplinePath::DrawDebugGeometry(DebugRenderer* debug, bool /*depthTest*/)
+    // {
+    //     if (debug && node_ && IsEnabledEffective())
+    //     {
+    //         if (spline_.GetKnots().size() > 1)
+    //         {
+    //             Vector3 a = spline_.GetPoint(0.f).GetVector3();
+    //             for (auto i = 1; i <= 100; ++i)
+    //             {
+    //                 Vector3 b = spline_.GetPoint(i / 100.f).GetVector3();
+    //                 debug->AddLine(a, b, Color::GREEN);
+    //                 a = b;
+    //             }
+    //         }
+    //         for (auto i = controlPoints_.begin(); i != controlPoints_.end(); ++i)
+    //             debug->AddNode(i->Get());
+    //         if (controlledNode_)
+    //             debug->AddNode(controlledNode_.Get());
+    //     }
+    // }
+
     protected internal override void OnMarkedDirty(Node node)
     {
         if (_controlPoints.Contains(node))

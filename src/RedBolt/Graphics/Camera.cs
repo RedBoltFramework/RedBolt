@@ -52,6 +52,27 @@ public sealed class Camera : Component
     private readonly RenderDevice? _renderDevice;
     private Zone? _zone;
 
+    // TODO: port - C++ code:
+    // void Camera::DrawDebugGeometry(DebugRenderer* debug, bool depthTest)
+    // The C++ Camera overrides DrawDebugGeometry to render the camera frustum as debug geometry.
+    // It also overrides OnNodeSet and OnMarkedDirty as protected (not public).
+
+    // TODO: port - C++ code:
+    // static void Camera::RegisterObject(Context* context)
+    // Registers object factory and attributes in the C++ reflection system.
+
+    // TODO: port - C++ code (SetOrthoSize overload):
+    // void Camera::SetOrthoSize(const Vector2& orthoSize)
+    // {
+    //     orthographic_ = true;
+    //     autoAspectRatio_ = false;
+    //     orthoSize_ = orthoSize.y_;
+    //     aspectRatio_ = orthoSize.x_ / orthoSize.y_;
+    //     viewProjDirty_ = true;
+    //     cachedFrustum_.Invalidate();
+    // }
+    // C++: The SetOrthoSize(Vector2) overload also sets orthographic_ = true before changing aspect ratio.
+
     public Camera()
     {
         _renderDevice = GetSubsystem<RenderDevice>();
@@ -650,6 +671,7 @@ public sealed class Camera : Component
 
     public void SetOrthoSize(Vector2f value)
     {
+        // C++: void Camera::SetOrthoSize(const Vector2& orthoSize) also sets orthographic_ = true
         AutoAspectRatio = false;
         _orthoSize = value.Y;
         _aspectRatio = value.X / value.Y;
@@ -754,6 +776,10 @@ public sealed class Camera : Component
         _viewProjDirty = true;
         _frustumDirty = true;
     }
+
+    // C++: The C++ version also handles dirty flags for each cached matrix (cachedView_, cachedProjection_,
+    // cachedViewProj_, cachedFrustum_) using ThreadSafeCache<CachedInverse<Matrix3x4>> etc.
+    // The C# version uses simple bool dirty flags instead.
 
     public Matrix3x4 GetEffectiveWorldTransform()
     {

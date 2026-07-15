@@ -141,6 +141,8 @@ public abstract class Deserializer : Serializer
 
     public string ReadLine()
     {
+        // C++: after '\r', peeks next char; if '\n', skips it. If not '\n', seeks back.
+        // C++: char c = ReadByte(); if (c == 10) break; if (c == 13) { if (!IsEof()) { char next = ReadByte(); if (next != 10) Seek(position_ - 1); } break; }
         var bytes = new List<byte>();
         while (!IsEof())
         {
@@ -184,7 +186,7 @@ public abstract class Deserializer : Serializer
 
     public Rect ReadRect() => new(ReadVector2(), ReadVector2());
 
-    public ResourceRef ReadResourceRef() => new(ReadStringHash().Value, ReadString());
+    public ResourceRef ReadResourceRef() => new(ReadStringHash(), ReadString());
 
     public ResourceRefList ReadResourceRefList()
     {

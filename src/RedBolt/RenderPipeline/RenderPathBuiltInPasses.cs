@@ -888,7 +888,6 @@ public sealed class AmbientOcclusionPass : RenderPass
         : base(passName)
     {
         SetComment(DefaultComment);
-        SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: false, NeedBilinearColorSampler: false, NeedReadableDepth: true));
     }
 
     public override void CollectParameters(IDictionary<string, object?> parameters)

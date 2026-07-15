@@ -558,6 +558,6 @@ public sealed class SceneTests
         Assert.IsType<StringVariantMap>(created.GetAttribute("Variables"));
         Assert.Equal(Scene.DefaultUpdateEvents, created.GetAttribute("Update Events"));
         Assert.Equal(IntVector3.Zero, created.GetAttribute("World Origin"));
-        Assert.Equal(ObjectReflection<Texture2D>.TypeId.Value, ((ResourceRefList)created.GetAttribute("Lightmaps")!).Type);
+        Assert.Equal(ObjectReflection<Texture2D>.TypeId, ((ResourceRefList)created.GetAttribute("Lightmaps")!).Type);
     }
 }

@@ -2,11 +2,20 @@ using Container = System.Collections.Generic.Dictionary<RedBolt.StringHash, obje
 
 namespace RedBolt;
 
+// TODO: port - C++ code:
+// using CachedSubsystemList = ea::tuple<
+//     Engine, Time, WorkQueue, FileSystem, VirtualFileSystem,
+//     Log, ResourceCache, Localization, Network, Input, Audio, UI, SystemUI,
+//     Graphics, Renderer, RenderDevice, ParticleGraphSystem, PluginManager, StateManager>;
+
 /// <summary>
 /// List of cached subsystems that don't require hash map lookup.
 /// </summary>
 public sealed class SubsystemCache
 {
+    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
+    // Network (if URHO3D_NETWORK), Audio, UI, SystemUI (if URHO3D_SYSTEMUI),
+    // ParticleGraphSystem (if URHO3D_PARTICLE_GRAPH), PluginManager, StateManager
     private static readonly Type[] CachedSubsystemTypes =
     [
         typeof(Engine),
@@ -57,6 +66,8 @@ public sealed class SubsystemCache
         _subsystems.Remove(type);
     }
 
+    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
+    // then fills cached with nullptr and clears subsystems map.
     /// <summary>
     /// Remove all subsystems.
     /// </summary>

@@ -36,6 +36,17 @@ public enum LightingMode
 
 public sealed class Pass : PipelineStateTracker
 {
+    // TODO: port - C++ code:
+    // ea::vector<SharedPtr<ShaderVariation>>& GetVertexShaders() { return vertexShaders_; }
+    // ea::vector<SharedPtr<ShaderVariation>>& GetPixelShaders() { return pixelShaders_; }
+    // ea::vector<SharedPtr<ShaderVariation>>& GetVertexShaders(const StringHash& extraDefinesHash);
+    // ea::vector<SharedPtr<ShaderVariation>>& GetPixelShaders(const StringHash& extraDefinesHash);
+    // TODO: port - C++ fields:
+    // ea::vector<SharedPtr<ShaderVariation>> vertexShaders_;
+    // ea::vector<SharedPtr<ShaderVariation>> pixelShaders_;
+    // ea::unordered_map<StringHash, ea::vector<SharedPtr<ShaderVariation>>> extraVertexShaders_;
+    // ea::unordered_map<StringHash, ea::vector<SharedPtr<ShaderVariation>>> extraPixelShaders_;
+
     private static readonly IReadOnlyList<string> DefaultPixelTextureDefines =
     [
         "Albedo",

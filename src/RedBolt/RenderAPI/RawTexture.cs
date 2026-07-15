@@ -171,10 +171,74 @@ public class RawTexture : DeviceObject
         return true;
     }
 
+    // TODO: port - C++ code:
+    // bool RawTexture::CreateFromD3D11Texture2D(void* d3d11Texture2D, TextureFormat format, int msaaLevel)
+    // {
+    // #if D3D11_SUPPORTED
+    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::D3D11)
+    //     {
+    //         auto deviceD3D11 = static_cast<Diligent::IRenderDeviceD3D11*>(renderDevice_->GetRenderDevice());
+    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    //         deviceD3D11->CreateTexture2DFromD3DResource(
+    //             reinterpret_cast<ID3D11Texture2D*>(d3d11Texture2D), Diligent::RESOURCE_STATE_UNKNOWN, &texture);
+    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing ID3D11Texture2D pointer"); return false; }
+    //         return CreateFromHandle(texture, format, msaaLevel);
+    //     }
+    // #endif
+    //     URHO3D_ASSERT(false, "RawTexture::CreateFromD3D11Texture2D is not supported on this platform");
+    //     return false;
+    // }
     public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel) => false;
 
+    // TODO: port - C++ code:
+    // bool RawTexture::CreateFromD3D12Resource(void* d3d12Resource, TextureFormat format, int msaaLevel)
+    // {
+    // #if D3D12_SUPPORTED
+    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::D3D12)
+    //     {
+    //         auto deviceD3D12 = static_cast<Diligent::IRenderDeviceD3D12*>(renderDevice_->GetRenderDevice());
+    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    //         deviceD3D12->CreateTextureFromD3DResource(
+    //             reinterpret_cast<ID3D12Resource*>(d3d12Resource), Diligent::RESOURCE_STATE_UNKNOWN, &texture);
+    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing ID3D12Resource pointer"); return false; }
+    //         return CreateFromHandle(texture, format, msaaLevel);
+    //     }
+    // #endif
+    //     URHO3D_ASSERT(false, "RawTexture::CreateFromD3D12Resource is not supported on this platform");
+    //     return false;
+    // }
     public bool CreateFromD3D12Resource(nint d3d12Resource, TextureFormat format, int msaaLevel) => false;
 
+    // TODO: port - C++ code:
+    // bool RawTexture::CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams& params)
+    // {
+    // #if VULKAN_SUPPORTED
+    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::Vulkan)
+    //     {
+    //         Diligent::TextureDesc textureDesc;
+    //         textureDesc.Name = "Texture from external resource";
+    //         textureDesc.Type = textureTypeToDimensions[params.type_];
+    //         textureDesc.Usage = Diligent::USAGE_DEFAULT;
+    //         textureDesc.Format = params.format_;
+    //         textureDesc.Width = params.size_.x_;
+    //         textureDesc.Height = params.size_.y_;
+    //         if (params.type_ == TextureType::Texture3D) textureDesc.Depth = params.size_.z_;
+    //         else textureDesc.ArraySize = params.arraySize_;
+    //         if (params.flags_.Test(TextureFlag::BindRenderTarget)) textureDesc.BindFlags |= Diligent::BIND_RENDER_TARGET;
+    //         if (params.flags_.Test(TextureFlag::BindDepthStencil)) textureDesc.BindFlags |= Diligent::BIND_DEPTH_STENCIL;
+    //         if (params.flags_.Test(TextureFlag::BindUnorderedAccess)) textureDesc.BindFlags |= Diligent::BIND_UNORDERED_ACCESS;
+    //         textureDesc.MipLevels = params.numLevels_;
+    //         textureDesc.SampleCount = params.multiSample_;
+    //         auto deviceVk = static_cast<Diligent::IRenderDeviceVk*>(renderDevice_->GetRenderDevice());
+    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+    //         deviceVk->CreateTextureFromVulkanImage((VkImage)vkImage, textureDesc, Diligent::RESOURCE_STATE_UNKNOWN, &texture);
+    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing VkImage pointer"); return false; }
+    //         return CreateFromHandle(texture, params.format_, params.multiSample_);
+    //     }
+    // #endif
+    //     URHO3D_ASSERT(false, "RawTexture::CreateFromVulkanImage is not supported on this platform");
+    //     return false;
+    // }
     public bool CreateFromVulkanImage(ulong vkImage, RawTextureParams parameters) => false;
 
     public bool CreateFromGLTexture(uint handle, TextureType type, TextureFlag flags, TextureFormat format,

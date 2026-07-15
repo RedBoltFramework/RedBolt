@@ -14,6 +14,28 @@ public sealed class SoundSource3D : SoundSource
         Attenuation = 0.0f;
     }
 
+    // TODO: port - C++ code:
+    // void SoundSource3D::DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override
+    // {
+    //     if (!debug || !node_ || !IsEnabledEffective()) return;
+    //     const Matrix3x4& worldTransform = node_->GetWorldTransform();
+    //     Vector3 worldPosition = worldTransform.Translation();
+    //     Quaternion worldRotation = worldTransform.Rotation();
+    //     if (innerAngle_ < DEFAULT_ANGLE && outerAngle_ > 0.0f)
+    //     {
+    //         const Quaternion rotation = worldRotation * Quaternion(Vector3::UP, Vector3::FORWARD);
+    //         debug->AddSphereSector(Sphere(worldPosition, nearDistance_), rotation, innerAngle_, false, INNER_COLOR, depthTest);
+    //         debug->AddSphereSector(Sphere(worldPosition, nearDistance_), rotation, outerAngle_, false, OUTER_COLOR, depthTest);
+    //         debug->AddSphereSector(Sphere(worldPosition, farDistance_), rotation, innerAngle_, true, INNER_COLOR, depthTest);
+    //         debug->AddSphereSector(Sphere(worldPosition, farDistance_), rotation, outerAngle_, true, OUTER_COLOR, depthTest);
+    //     }
+    //     else
+    //     {
+    //         debug->AddSphere(Sphere(worldPosition, nearDistance_), INNER_COLOR, depthTest);
+    //         debug->AddSphere(Sphere(worldPosition, farDistance_), OUTER_COLOR, depthTest);
+    //     }
+    // }
+
     public override void Update(float timeStep)
     {
         CalculateAttenuation();

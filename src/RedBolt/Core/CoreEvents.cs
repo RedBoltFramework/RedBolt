@@ -2,41 +2,50 @@ namespace RedBolt;
 
 public static class CoreEvents
 {
+    /// <summary>Frame begin event.</summary>
+    // C++: URHO3D_EVENT(E_BEGINFRAME, BeginFrame) { URHO3D_PARAM(P_FRAMENUMBER, FrameNumber); URHO3D_PARAM(P_TIMESTEP, TimeStep); }
     public struct BeginFrameEvent
     {
         public uint FrameNumber;
         public float TimeStep;
     }
 
+    /// <summary>Pre-update event that indicates that both local and network input has been processed.</summary>
     public struct InputReadyEvent
     {
         public float TimeStep;
     }
 
+    /// <summary>Application-wide logic update event.</summary>
     public struct UpdateEvent
     {
         public float TimeStep;
     }
 
+    /// <summary>Application-wide logic post-update event.</summary>
     public struct PostUpdateEvent
     {
         public float TimeStep;
     }
 
+    /// <summary>Render update event.</summary>
     public struct RenderUpdateEvent
     {
         public float TimeStep;
     }
 
+    /// <summary>Post-render update event.</summary>
     public struct PostRenderUpdateEvent
     {
         public float TimeStep;
     }
 
+    /// <summary>Frame end event.</summary>
     public struct EndFrameEvent
     {
     }
 
+    /// <summary>Frame end event, only for tools and testing.</summary>
     public struct EndFramePrivateEvent
     {
     }

@@ -1,3 +1,4 @@
+// C++: no direct C++ counterpart file. C#-only helper for IApproximateEquatable<T>.
 namespace RedBolt;
 
 public sealed class ApproximateEqualityComparer<T> : IEqualityComparer<T>

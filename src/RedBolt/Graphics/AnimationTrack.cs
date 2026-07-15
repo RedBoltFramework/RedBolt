@@ -208,6 +208,12 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
         }
     }
 
+    // C++: template <class T> ea::vector<T> RemapKeyFrameValues(const ea::vector<float>& destKeys,
+    //     ea::span<const ea::pair<float, T>> sourceKeyFrames)
+    // C++ uses ea::lower_bound with different firstIndex/secondIndex computation.
+    // C++: const unsigned secondIndex = ea::min<unsigned>(sourceKeyFrames.size() - 1, iter - begin);
+    //     const unsigned firstIndex = iter == end ? secondIndex : ea::max(1u, secondIndex) - 1;
+    // C# uses custom LowerBound + different index computation below.
     private static List<Vector3f> RemapVectorValues(List<float> destinationKeys,
         ReadOnlySpan<(float Time, Vector3f Value)> sourceKeyFrames)
     {

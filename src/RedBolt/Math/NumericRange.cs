@@ -46,6 +46,30 @@ public struct NumericRange<T> : IEquatable<NumericRange<T>>
     /// </summary>
     public readonly bool ContainsExclusive(T value) => First < value && value < Second;
 
+    // C++: NumericRange<T>& operator|=(const NumericRange& rhs)
+    // {
+    //     this->first = ea::min(this->first, rhs.first);
+    //     this->second = ea::max(this->second, rhs.second);
+    //     return *this;
+    // }
+    public void Accumulate(NumericRange<T> rhs)
+    {
+        First = T.Min(First, rhs.First);
+        Second = T.Max(Second, rhs.Second);
+    }
+
+    // C++: NumericRange<T>& operator&=(const NumericRange& rhs)
+    // {
+    //     this->first = ea::max(this->first, rhs.first);
+    //     this->second = ea::min(this->second, rhs.second);
+    //     return *this;
+    // }
+    public void Trim(NumericRange<T> rhs)
+    {
+        First = T.Max(First, rhs.First);
+        Second = T.Min(Second, rhs.Second);
+    }
+
     /// <summary>
     /// Accumulate range.
     /// </summary>

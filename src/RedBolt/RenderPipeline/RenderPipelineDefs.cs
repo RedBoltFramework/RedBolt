@@ -223,6 +223,8 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
 /// <summary>
 /// Frequently-changing settings of render buffer manager.
 /// </summary>
+// C++: struct with only readableColor_ and supportColorReadWrite_ fields.
+// FilteredColor and ReadableDepth are C# additions (not in C++).
 public struct RenderBufferManagerFrameSettings
 {
     /// <summary>
@@ -970,6 +972,9 @@ public sealed class RenderOutputTargetInfo
 /// <summary>
 /// Common parameters of rendered frame.
 /// </summary>
+// C++: struct with RenderSurface* renderTarget_ (not RenderOutputTargetInfo).
+// C++ has ea::array<Camera*, 2> cameras_ (fixed array of 2 raw pointers).
+// C++ does NOT have Scene, ViewReferenceNode, Camera, Octree convenience aliases.
 public sealed class CommonFrameInfo
 {
     public uint FrameNumber { get; set; }
@@ -1022,7 +1027,14 @@ public interface IRenderPipelineInterface
 /// <summary>
 /// Base interface of render pipeline viewport instance.
 /// </summary>
-public abstract class RenderPipelineView : IRenderPipelineInterface
+    // C++: Inherits from Object and RenderPipelineInterface. Has URHO3D_OBJECT marker.
+    // Define(RenderSurface* renderTarget, Viewport* viewport) - no Graphics param.
+    // Update(const FrameInfo& frameInfo) - takes FrameInfo, not Graphics.
+    // Render() - no parameters at all.
+    // C++ has virtual ~RenderPipelineView() destructor (Dispose in C#).
+    // TODO: port - C++ code:
+    // C++ has UpdateFrameParameters() method that populates frameParameters_ from GetFrameShaderParameters()
+    public abstract class RenderPipelineView : IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
 

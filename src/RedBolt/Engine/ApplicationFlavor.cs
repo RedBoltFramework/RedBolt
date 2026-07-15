@@ -1,3 +1,4 @@
+// C++: matches C++ within allowed deviations (C# HashSet/Dictionary substitutes ea:: containers; regex parsing replaced with string split; logging errors silently suppressed vs URHO3D_LOGERROR).
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -35,6 +36,9 @@ public struct ApplicationFlavorPattern
 
     internal static ApplicationFlavorMap ParseFlavorString(string str)
     {
+        // C++: uses std::regex to validate format and logs URHO3D_LOGERROR on invalid components.
+        // C++: static const std::regex r(R"(\s*([\w\*]*)\s*=\s*((?:[\w\*]+\s*,\s*)*(?:[\w\*]+))\s*)");
+        // C#: silently skips invalid components instead of logging an error.
         var result = new ApplicationFlavorMap();
         if (string.IsNullOrWhiteSpace(str))
             return result;
@@ -93,6 +97,10 @@ public struct ApplicationFlavor
         Components = components;
     }
 
+    // C++: Matches uses M_MAX_UNSIGNED, not uint.MaxValue. M_MAX_UNSIGNED may differ from uint.MaxValue.
+    // TODO: port - C++ code:
+    // if (components_ == ApplicationFlavor::Universal.components_)
+    //     return M_MAX_UNSIGNED;
     /// <summary>Returns distance (smaller is better) if flavor matches the pattern. Returns null if doesn't match.</summary>
     public readonly uint? Matches(ApplicationFlavorPattern pattern)
     {

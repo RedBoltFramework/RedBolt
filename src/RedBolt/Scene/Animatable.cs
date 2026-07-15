@@ -32,6 +32,13 @@ public class Animatable : Serializable
     private bool _animationEnabled = true;
     private ObjectAnimation? _objectAnimation;
 
+    // TODO: port - C++ Animatable overrides LoadXML/LoadJSON/SaveXML/SaveJSON to serialize
+    // animation data (object animation and attribute animations) as children of the node/component.
+    // C++ Animatable::LoadXML loads <objectanimation> and <attributeanimation> elements.
+    // C++ Animatable::LoadJSON loads "objectanimation" and "attributeanimation" JSON objects.
+    // C++ Animatable::SaveXML writes <objectanimation> and <attributeanimation> child elements.
+    // C++ Animatable::SaveJSON writes "objectanimation" and "attributeanimation" JSON values.
+
     public void SetAnimationEnabled(bool enable)
     {
         _animationEnabled = enable;
@@ -131,6 +138,8 @@ public class Animatable : Serializable
         return GetAttributeAnimationInfo(name)?.GetTime() ?? 0.0f;
     }
 
+    // C++: OnAttributeAnimationAdded/OnAttributeAnimationRemoved are pure virtual (= 0).
+    // C# makes them virtual (non-abstract), deviating from C++.
     protected virtual void OnAttributeAnimationAdded()
     {
     }
@@ -138,6 +147,14 @@ public class Animatable : Serializable
     protected virtual void OnAttributeAnimationRemoved()
     {
     }
+
+    // TODO: port - C++ code:
+    // void OnObjectAnimationAdded(ObjectAnimation* objectAnimation);
+    // void OnObjectAnimationRemoved(ObjectAnimation* objectAnimation);
+    // void HandleAttributeAnimationAdded(StringHash eventType, VariantMap& eventData);
+    // void HandleAttributeAnimationRemoved(StringHash eventType, VariantMap& eventData);
+    // void SetObjectAnimationAttr(const ResourceRef& value);
+    // ResourceRef GetObjectAnimationAttr() const;
 
     protected virtual Animatable? FindAttributeAnimationTarget(string name, out string outName)
     {

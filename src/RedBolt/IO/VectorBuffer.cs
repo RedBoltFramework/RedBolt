@@ -27,6 +27,7 @@ public sealed class VectorBuffer : AbstractFile
 
     public ReadOnlySpan<byte> Buffer => _buffer;
 
+    // C++: GetName() checks AbstractFile::GetName() first; if empty, returns "VectorBuffer"
     public override string Name => base.Name.Length != 0 ? base.Name : VectorBufferName;
 
     public byte[] GetBuffer()
@@ -34,11 +35,13 @@ public sealed class VectorBuffer : AbstractFile
         return _buffer;
     }
 
+    // C++: const unsigned char* GetData() const { return size_ ? &buffer_[0] : nullptr; }
     public nint GetData()
     {
         return 0;
     }
 
+    // C++: unsigned char* GetModifiableData() { return size_ ? &buffer_[0] : nullptr; }
     public nint GetModifiableData()
     {
         return 0;

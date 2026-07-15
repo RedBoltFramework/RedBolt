@@ -1,3 +1,4 @@
+// C++: no direct C++ counterpart - adapter class
 namespace RedBolt;
 
 public sealed class MoveAndOrbitComponent : LogicComponent

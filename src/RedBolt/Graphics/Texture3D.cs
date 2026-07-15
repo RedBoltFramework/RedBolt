@@ -120,6 +120,8 @@ public sealed class Texture3D : Texture
     /// <summary>
     /// Set data either partially or fully on a mip level. Return true if successful.
     /// </summary>
+    // C++: bool SetData(unsigned level, int x, int y, int z, int width, int height, int depth, const void* data)
+    // C++ simply calls Update(). C# manually manages _levelData cache.
     public bool SetData(uint level, int x, int y, int z, int width, int height, int depth, ReadOnlySpan<byte> data)
     {
         if (level >= Levels || x < 0 || y < 0 || z < 0 || width <= 0 || height <= 0 || depth <= 0)

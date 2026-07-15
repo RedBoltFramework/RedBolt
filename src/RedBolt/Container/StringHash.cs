@@ -16,6 +16,7 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
     {
     }
 
+    // C++: constexpr explicit StringHash(unsigned value) noexcept
     public StringHash(uint value)
     {
         _value = value;
@@ -35,6 +36,16 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
 
     public uint Value => _value;
 
+    public uint MutableValue()
+    {
+        return _value;
+    }
+
+    public void SetMutableValue(uint value)
+    {
+        _value = value;
+    }
+
     public bool IsEmpty() => _value == EmptyValue;
 
     public static explicit operator bool(StringHash hash) => !hash.IsEmpty();
@@ -50,16 +61,6 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
     }
 
     public uint ToHash() => _value;
-
-    public uint MutableValue()
-    {
-        return _value;
-    }
-
-    public void SetMutableValue(uint value)
-    {
-        _value = value;
-    }
 
     public int CompareTo(StringHash other) => _value.CompareTo(other._value);
 
@@ -95,12 +96,12 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
     {
         unchecked
         {
+            var byteCount = System.Text.Encoding.UTF8.GetByteCount(value);
+            Span<byte> bytes = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+            System.Text.Encoding.UTF8.GetBytes(value, bytes);
             var hash = 2166136261u;
-            foreach (var character in value)
-            {
-                hash ^= char.ToLowerInvariant(character);
-                hash *= 16777619u;
-            }
+            foreach (var valueByte in bytes)
+                hash = (hash * 16777619u) ^ valueByte;
             return hash;
         }
     }

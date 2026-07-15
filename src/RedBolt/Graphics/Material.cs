@@ -98,6 +98,19 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
     public static bool operator !=(TechniqueEntry left, TechniqueEntry right) => !left.Equals(right);
 }
 
+/// <summary>Describes how to render 3D geometries.</summary>
+/// <remarks>
+// C++: Material inherits from Resource, PipelineStateTracker, and IDFamily&lt;Material&gt;.
+// C# inherits from ResourceWithMetadata and lacks PipelineStateTracker and IDFamily.
+// TODO: port - C++ code: void Material::MarkForAuxView(unsigned frameNumber)
+// TODO: port - C++ code: unsigned Material::GetAuxViewFrameNumber() const
+// TODO: port - C++ code: void Material::SetScene(Scene* scene) / Scene* Material::GetScene() const
+// TODO: port - C++ code: void Material::ReleaseShaders()
+// TODO: port - C++ code: bool Material::GetSpecular() const
+// C++: Material has _specular_ field for specular lighting (default true, currently missing in C#).
+// C++: ResetToDefaults is called from the C++ constructor. C# uses ResetToDefaults in a separate constructor path.
+// C++: Has _batchedParameterUpdate_ flag to suppress hash/memory recalculation during bulk parameter updates.
+/// </remarks>
 public sealed class Material : ResourceWithMetadata
 {
     private readonly Dictionary<string, MaterialShaderParameter> _shaderParameters = new(StringComparer.Ordinal);
@@ -113,6 +126,8 @@ public sealed class Material : ResourceWithMetadata
     }
 
     public bool AlphaToCoverage { get; set; }
+
+    // TODO: port - C++: bool specular_{}; // Specular lighting flag, default false. Used for specular rendering pass selection.
 
     public BiasParameters DepthBias { get; set; }
 

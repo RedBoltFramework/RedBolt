@@ -1,5 +1,11 @@
 namespace RedBolt;
 
+// TODO: port - C++ code:
+// void Invoke(VariantMap& eventData) const { handler_(receiver_, eventType_, eventData); }
+
+// TODO: port - C++ code:
+// void SetSenderAndEventType(Object* sender, StringHash eventType);
+
 /// <summary>
 /// Internal helper class for invoking event handler functions.
 /// </summary>

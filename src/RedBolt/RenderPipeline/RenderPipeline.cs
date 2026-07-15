@@ -75,13 +75,20 @@ public class RenderPipeline : Component
     /// </summary>
     public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
 
+    // C++: SetSettings calls Validate(), AdjustToSupported(), then MarkSettingsDirty.
+    // PropagateImpliedSettings is NOT called here (it's called in the pipeline view).
     public void SetSettings(RenderPipelineSettings settings)
     {
+        // C++: settings_ = settings; settings_.Validate(); settings_.AdjustToSupported(context_);
+        // MarkSettingsDirty does NOT call PropagateImpliedSettings in C++.
         ArgumentNullException.ThrowIfNull(settings);
         this._settings = settings;
         MarkSettingsDirty();
     }
 
+    // C++: UnsubscribeFromEvent(renderPath_, E_RELOADFINISHED); renderPath_ = renderPath;
+    // OnRenderPathReloaded(); SubscribeToEvent(renderPath_, E_RELOADFINISHED, ...);
+    // Note: C++ calls OnRenderPathReloaded BEFORE subscribing, not after.
     public void SetRenderPath(RenderPath? renderPath)
     {
         if (this._renderPath is not null)
@@ -275,6 +282,9 @@ public class RenderPipeline : Component
         }
     }
 
+    // C++: settings_.Validate(); settings_.AdjustToSupported(context_);
+    // OnSettingsChanged(this, settings_);
+    // No PropagateImpliedSettings() call, no revision increment.
     private void MarkSettingsDirty()
     {
         _settings.Validate();
@@ -333,6 +343,11 @@ public class RenderPipeline : Component
     /// <summary>
     /// Default implementation of render pipeline instance.
     /// </summary>
+    // TODO: port - C++ code:
+    // C++ RenderPipelineView has fields: Graphics* graphics_ = GetSubsystem<Graphics>();
+    // Renderer* renderer_ = GetSubsystem<Renderer>();
+    // ea::vector<ShaderParameterDesc> frameParameters_;
+    // void UpdateFrameParameters() populates frameParameters_ from GetFrameShaderParameters()
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline _renderPipeline;

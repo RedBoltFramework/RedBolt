@@ -135,7 +135,7 @@ public abstract class Serializer
 
     public bool WriteRect(Rect value) => WriteVector2(value.Min) && WriteVector2(value.Max);
 
-    public bool WriteResourceRef(ResourceRef value) => WriteStringHash(new StringHash(value.Type)) && WriteString(value.Name);
+    public bool WriteResourceRef(ResourceRef value) => WriteStringHash(value.Type) && WriteString(value.Name);
 
     public bool WriteResourceRefList(ResourceRefList value)
     {

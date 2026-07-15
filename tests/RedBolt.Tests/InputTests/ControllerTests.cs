@@ -170,7 +170,7 @@ public sealed class ControllerTests
         var scene = new Scene();
         var controller = scene.CreateChild("Controller").CreateComponent<MoveAndOrbitController>();
         controller.SetInput(Input);
-        controller.SetInputMapAttr(new ResourceRef(StringHash.Calculate(nameof(InputMap)), cachedMap.Name));
+        controller.SetInputMapAttr(new ResourceRef(new StringHash(nameof(InputMap)), cachedMap.Name));
         controller.SetMovementUIElement("MovementArea");
         controller.SetRotationUIElement("RotationArea");
 

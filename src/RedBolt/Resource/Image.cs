@@ -88,6 +88,14 @@ public sealed class Image : Resource
 
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
+    // TODO: port - C++ code:
+    // bool SaveDDS(const string& fileName) const;   // Save in DDS format. Only uncompressed RGBA images are supported.
+    // bool SaveWEBP(const string& fileName, float compression = 0.0f) const;   // Save in WebP format.
+
+    // TODO: port - C++ code:
+    // SDL_Surface* GetSDLSurface(const IntRect& rect = IntRect::ZERO) const;
+    //   Return an SDL surface from the image, or null if failed. Only RGB images are supported.
+
     public bool SaveBMP(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);

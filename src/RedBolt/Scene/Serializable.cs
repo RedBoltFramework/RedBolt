@@ -13,6 +13,16 @@ public abstract class Serializable : Object
 
     public uint NumAttributes => (uint)_attributes.Count;
 
+    // TODO: port - C++ code:
+    // virtual bool Load(const ea::string& resourceName);     // Load from binary resource file
+    // virtual bool LoadXML(const ea::string& resourceName);   // Load from XML resource file
+    // virtual bool LoadJSON(const ea::string& resourceName);   // Load from JSON resource file
+    // virtual bool LoadFile(const ea::string& resourceName);  // Load from auto-detected resource type
+    // virtual ObjectReflection* GetReflection() const;
+    // virtual const ea::vector<AttributeInfo>* GetAttributes() const;
+    // void SerializeInBlock(Archive& archive, bool serializeTemporary);
+    // Variant GetAttribute(unsigned index) const;             // C++ returns Variant, C# returns object?
+
     public bool Temporary { get; private set; }
 
     public virtual void ApplyAttributes()

@@ -84,13 +84,22 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
 
     public Matrix3 Matrix3 => new(M00, M01, M02, M10, M11, M12, M20, M21, M22);
     public Matrix4 Matrix4 => new(M00, M01, M02, M03, M10, M11, M12, M13, M20, M21, M22, M23, 0.0f, 0.0f, 0.0f, 1.0f);
-    public Matrix3 RotationMatrix => Matrix3.Scaled(new Vector3f(
-        1.0f / MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
-        1.0f / MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
-        1.0f / MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22)));
+    public Matrix3 RotationMatrix
+    {
+        get
+        {
+            var invScale = new Vector3f(
+                1.0f / MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
+                1.0f / MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
+                1.0f / MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
+            if (Determinant < 0.0f)
+                invScale.X = -invScale.X;
+            return Matrix3.Scaled(invScale);
+        }
+    }
     public Quaternion Rotation => new(RotationMatrix);
     public Vector3f Scale => new(
-        MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
+        (Determinant < 0.0f ? -1.0f : 1.0f) * MathF.Sqrt(M00 * M00 + M10 * M10 + M20 * M20),
         MathF.Sqrt(M01 * M01 + M11 * M11 + M21 * M21),
         MathF.Sqrt(M02 * M02 + M12 * M12 + M22 * M22));
     public Vector3f Translation => new(M03, M13, M23);
@@ -163,8 +172,7 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
     {
         translation = Translation;
         scale = Scale;
-        var invScale = new Vector3f(1.0f / scale.X, 1.0f / scale.Y, 1.0f / scale.Z);
-        rotation = new Quaternion(Matrix3.Scaled(invScale));
+        rotation = new Quaternion(RotationMatrix);
     }
 
     public float Element(uint row, uint column) => Data[checked((int)(row * 4 + column))];
@@ -220,6 +228,23 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         lhs.M20 == rhs.M20 && lhs.M21 == rhs.M21 && lhs.M22 == rhs.M22 && lhs.M23 == rhs.M23;
 
     public static bool operator !=(Matrix3x4 lhs, Matrix3x4 rhs) => !(lhs == rhs);
+
+    public static Matrix3x4 operator +(Matrix3x4 lhs, Matrix3x4 rhs) => new(
+        lhs.M00 + rhs.M00, lhs.M01 + rhs.M01, lhs.M02 + rhs.M02, lhs.M03 + rhs.M03,
+        lhs.M10 + rhs.M10, lhs.M11 + rhs.M11, lhs.M12 + rhs.M12, lhs.M13 + rhs.M13,
+        lhs.M20 + rhs.M20, lhs.M21 + rhs.M21, lhs.M22 + rhs.M22, lhs.M23 + rhs.M23);
+
+    public static Matrix3x4 operator -(Matrix3x4 lhs, Matrix3x4 rhs) => new(
+        lhs.M00 - rhs.M00, lhs.M01 - rhs.M01, lhs.M02 - rhs.M02, lhs.M03 - rhs.M03,
+        lhs.M10 - rhs.M10, lhs.M11 - rhs.M11, lhs.M12 - rhs.M12, lhs.M13 - rhs.M13,
+        lhs.M20 - rhs.M20, lhs.M21 - rhs.M21, lhs.M22 - rhs.M22, lhs.M23 - rhs.M23);
+
+    public static Matrix3x4 operator *(Matrix3x4 lhs, float rhs) => new(
+        lhs.M00 * rhs, lhs.M01 * rhs, lhs.M02 * rhs, lhs.M03 * rhs,
+        lhs.M10 * rhs, lhs.M11 * rhs, lhs.M12 * rhs, lhs.M13 * rhs,
+        lhs.M20 * rhs, lhs.M21 * rhs, lhs.M22 * rhs, lhs.M23 * rhs);
+
+    public static Matrix3x4 operator *(float lhs, Matrix3x4 rhs) => rhs * lhs;
 
     public static Vector3f operator *(Matrix3x4 lhs, Vector3f rhs) => new(
         lhs.M00 * rhs.X + lhs.M01 * rhs.Y + lhs.M02 * rhs.Z + lhs.M03,

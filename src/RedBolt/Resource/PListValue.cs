@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace RedBolt;
 
@@ -14,9 +13,8 @@ public enum PListValueType
     ValueVector
 }
 
-public sealed class PListValue : IEquatable<PListValue>, ICloneable
+public sealed class PListValue : IEquatable<PListValue>, ICloneable, IDisposable
 {
-    private static readonly Regex NumberPattern = new(@"-?\d+(?:\.\d+)?", RegexOptions.Compiled);
     private static readonly IReadOnlyDictionary<string, PListValue> EmptyValueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
     private static readonly IReadOnlyList<PListValue> EmptyValueVector = Array.Empty<PListValue>();
 
@@ -70,6 +68,8 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
 
     public object Clone() => new PListValue(this);
 
+    public static explicit operator bool(PListValue? value) => value is not null && value._type != PListValueType.None;
+
     public static bool operator ==(PListValue left, PListValue right) => Equals(left, right);
 
     public static bool operator !=(PListValue left, PListValue right) => !Equals(left, right);
@@ -78,38 +78,53 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
 
     public void SetInt(int value)
     {
-        Reset();
-        _type = PListValueType.Int;
+        if (_type != PListValueType.Int)
+        {
+            Reset();
+            _type = PListValueType.Int;
+        }
         _intValue = value;
     }
 
     public void SetBool(bool value)
     {
-        Reset();
-        _type = PListValueType.Bool;
+        if (_type != PListValueType.Bool)
+        {
+            Reset();
+            _type = PListValueType.Bool;
+        }
         _boolValue = value;
     }
 
     public void SetFloat(float value)
     {
-        Reset();
-        _type = PListValueType.Float;
+        if (_type != PListValueType.Float)
+        {
+            Reset();
+            _type = PListValueType.Float;
+        }
         _floatValue = value;
     }
 
     public void SetString(string value)
     {
-        Reset();
-        _type = PListValueType.String;
+        if (_type != PListValueType.String)
+        {
+            Reset();
+            _type = PListValueType.String;
+        }
         _stringValue = value ?? string.Empty;
     }
 
     public void SetValueMap(IReadOnlyDictionary<string, PListValue> valueMap)
     {
         ArgumentNullException.ThrowIfNull(valueMap);
-        Reset();
-        _type = PListValueType.ValueMap;
-        this._valueMap = new Dictionary<string, PListValue>(StringComparer.Ordinal);
+        if (_type != PListValueType.ValueMap)
+        {
+            Reset();
+            _type = PListValueType.ValueMap;
+        }
+        _valueMap.Clear();
         foreach (var item in valueMap)
             this._valueMap[item.Key] = new PListValue(item.Value);
     }
@@ -117,9 +132,14 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
     public void SetValueVector(IReadOnlyList<PListValue> valueVector)
     {
         ArgumentNullException.ThrowIfNull(valueVector);
-        Reset();
-        _type = PListValueType.ValueVector;
-        this._valueVector = valueVector.Select(static value => new PListValue(value)).ToList();
+        if (_type != PListValueType.ValueVector)
+        {
+            Reset();
+            _type = PListValueType.ValueVector;
+        }
+        _valueVector.Clear();
+        foreach (var value in valueVector)
+            _valueVector.Add(new PListValue(value));
     }
 
     public int GetInt() => _type == PListValueType.Int ? _intValue : 0;
@@ -130,17 +150,20 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
 
     public string GetString() => _type == PListValueType.String ? _stringValue : string.Empty;
 
+    // C++: uses sscanf(string_->c_str(), "{{%d,%d},{%d,%d}}", &x, &y, &w, &h)
     public IntRect GetIntRect()
     {
         if (_type != PListValueType.String)
             return IntRect.Zero;
 
+        // C++: specific format "{{%d,%d},{%d,%d}}" parsing via sscanf
         var numbers = ParseNumbers();
         return numbers.Length >= 4
             ? new IntRect(numbers[0], numbers[1], numbers[0] + numbers[2], numbers[1] + numbers[3])
             : IntRect.Zero;
     }
 
+    // C++: uses sscanf(string_->c_str(), "{%d,%d}", &x, &y) for specific format parsing
     public Vector2i GetIntVector2()
     {
         if (_type != PListValueType.String)
@@ -150,6 +173,7 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
         return numbers.Length >= 2 ? new Vector2i(numbers[0], numbers[1]) : Vector2i.Zero;
     }
 
+    // C++: uses sscanf(string_->c_str(), "{%d,%d,%d}", &x, &y, &z) for specific format parsing
     public Vector3i GetIntVector3()
     {
         if (_type != PListValueType.String)
@@ -255,10 +279,26 @@ public sealed class PListValue : IEquatable<PListValue>, ICloneable
 
     private int[] ParseNumbers()
     {
-        return NumberPattern.Matches(_stringValue)
-            .Select(static match => int.TryParse(match.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0)
-            .ToArray();
+        var numbers = new List<int>();
+        var index = 0;
+        while (index < _stringValue.Length)
+        {
+            while (index < _stringValue.Length && !char.IsDigit(_stringValue[index]) && _stringValue[index] != '-')
+                ++index;
+            if (index >= _stringValue.Length)
+                break;
+
+            var start = index++;
+            while (index < _stringValue.Length && char.IsDigit(_stringValue[index]))
+                ++index;
+            if (int.TryParse(_stringValue.AsSpan(start, index - start), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
+                numbers.Add(value);
+        }
+
+        return [.. numbers];
     }
+
+    public void Dispose() => Reset();
 
     private void Reset()
     {

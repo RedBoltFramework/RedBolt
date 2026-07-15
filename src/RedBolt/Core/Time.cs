@@ -3,13 +3,40 @@ using System.Threading;
 
 namespace RedBolt;
 
+// TODO: port constructor - C++ code:
+// Time::Time(Context* context) :
+//     Object(context),
+//     frameNumber_(0),
+//     timeStep_(0.0f),
+//     timerPeriod_(0)
+// {
+// #ifdef _WIN32
+//     LARGE_INTEGER frequency;
+//     if (QueryPerformanceFrequency(&frequency))
+//     {
+//         HiresTimer::frequency = frequency.QuadPart;
+//         HiresTimer::supported = true;
+//     }
+// #else
+//     HiresTimer::frequency = 1000000;
+//     HiresTimer::supported = true;
+// #endif
+// }
+
 public sealed class Time : Object
 {
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 
+    // C++: Timer elapsedTime_;
     private readonly Timer _elapsedTime = new();
+    // C++: unsigned frameNumber_{};
     private uint _frameNumber;
+    // TODO: port - C++ code:
+    // bool isFrameInProgress_{};
+    // private bool _isFrameInProgress;
+    // C++: float timeStep_{};
     private float _timeStep;
+    // C++: unsigned timerPeriod_{};
     private uint _timerPeriod;
 
     public uint FrameNumber
@@ -27,6 +54,10 @@ public sealed class Time : Object
 
     public uint TimerPeriod => _timerPeriod;
 
+    // TODO: port - C++ code:
+    // bool IsFrameInProgress() const { return isFrameInProgress_; }
+    // public bool IsFrameInProgress() => _isFrameInProgress;
+
     public uint GetFrameNumber() => FrameNumber;
 
     public float GetTimeStep() => TimeStep;
@@ -37,6 +68,13 @@ public sealed class Time : Object
 
     public void SetTimerPeriod(uint milliseconds)
     {
+        // C++: #if defined(_WIN32) && !defined(UWP)
+        // C++:     if (timerPeriod_ > 0)
+        // C++:         timeEndPeriod(timerPeriod_);
+        // C++:     timerPeriod_ = mSec;
+        // C++:     if (timerPeriod_ > 0)
+        // C++:         timeBeginPeriod(timerPeriod_);
+        // C++: #endif
         _timerPeriod = milliseconds;
     }
 
@@ -86,6 +124,9 @@ public sealed class Time : Object
 
         _timeStep = elapsedTimeStep;
 
+        // C++: isFrameInProgress_ = true;
+        // C++: URHO3D_PROFILE("BeginFrame");
+
         var eventData = new CoreEvents.BeginFrameEvent
         {
             FrameNumber = _frameNumber,
@@ -96,7 +137,15 @@ public sealed class Time : Object
 
     public void EndFrame()
     {
+        // C++: URHO3D_PROFILE("EndFrame");
+
         SendEvent<CoreEvents.EndFrameEvent>();
         SendEvent<CoreEvents.EndFramePrivateEvent>();
+
+        // C++: isFrameInProgress_ = false;
     }
+
+    // TODO: port - C++ code:
+    // ~Time() override { SetTimerPeriod(0); }
+    // public void Dispose() { SetTimerPeriod(0); }
 }

@@ -9,8 +9,7 @@ namespace RedBolt;
 /// <param name="NeedBilinearColorSampler">Whether it's required that color sampling is at least bilinear.</param>
 public readonly record struct RenderPassTraits(
     bool NeedReadWriteColorBuffer,
-    bool NeedBilinearColorSampler,
-    bool NeedReadableDepth = false);
+    bool NeedBilinearColorSampler);
 
 /// <summary>
 /// Render pass, component of render path.

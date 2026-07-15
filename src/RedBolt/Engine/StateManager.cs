@@ -2,9 +2,26 @@ namespace RedBolt;
 
 public abstract class ApplicationState : Object
 {
+    // C++: SharedPtr<UIElement> rootElement_{}, savedRootElement_{};
+    // C++: SharedPtr<Cursor> cursor_{}, savedCursor_{};
+    // C++: IntVector2 rootCustomSize_{}, savedRootCustomSize_{};
+    // C++: ea::vector<SharedPtr<Viewport>> viewports_;
+    // C++: Color savedFogColor_{};
+    // C++: SharedPtr<ActionManager> actionManager_; (URHO3D_ACTIONS)
+    // C++: MouseMode mouseMode_{MM_FREE};
+    // C++: Constructor: ApplicationState(Context* context) — creates rootElement_, actionManager_
+    // C++: void InitMouseMode(), HandleMouseModeRequest(), HandleMouseModeChange()
+    // C++: void RegisterObject(Context* context)
+    // C++: Cursor* GetCursor() const, ActionManager* GetActionManager() const
+    // C++: Actions::ActionState* AddAction(...) (URHO3D_ACTIONS)
+    // C++: Activate() handles UI save/restore, viewport setup, fog color save/restore
+    // C++: Deactivate() handles UI restore, viewport cleanup, fog color restore
+    // (UI and ActionManager omitted per allowed deviation — built-in rbfx UI not ported)
+
     private bool _active;
     private bool _mouseVisible = true;
     private bool _mouseGrabbed;
+    // C++: MouseMode mouseMode_{MM_FREE};
     private MouseMode _mouseMode = MouseMode.Absolute;
     private Color _fogColor = new(0.0f, 0.0f, 0.0f);
     private ContextEventSubscription? _updateSubscription;
@@ -72,9 +89,15 @@ public sealed class StateManager : Object, IDisposable
 
     private StringHash _originState = StringHash.Empty;
     private StringHash _destinationState = StringHash.Empty;
+    // C++: stateCache_ uses WeakPtr<ApplicationState>, not strong references.
     private readonly Dictionary<StringHash, ApplicationState?> _stateCache = [];
     private readonly Queue<QueueItem> _stateQueue = new();
     private ApplicationState? _activeState;
+    // C++: SharedPtr<Window> fadeOverlay_;
+    // C++: Window* GetFadeOverlay();
+    // C++: void UpdateFadeOverlay(float t);
+    // C++: void Notify(StringHash eventType);
+    // (UI omitted per allowed deviation)
     private float _fadeTime;
     private float _fadeInDuration = MathDefs.Epsilon;
     private float _fadeOutDuration = MathDefs.Epsilon;
@@ -140,6 +163,8 @@ public sealed class StateManager : Object, IDisposable
 
     public void EnqueueState(ApplicationState gameScreen, Dictionary<string, Variant>? bundle = null)
     {
+        // C++: if (!gameScreen) { URHO3D_LOGERROR("No target state provided"); return; }
+        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
         ArgumentNullException.ThrowIfNull(gameScreen);
         bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
         _stateQueue.Enqueue(new QueueItem { State = gameScreen, StateType = gameScreen.GetTypeNameHash(), Bundle = bundle });
@@ -148,6 +173,7 @@ public sealed class StateManager : Object, IDisposable
 
     public void EnqueueState(StringHash type, Dictionary<string, Variant>? bundle = null)
     {
+        // C++: if (!Thread::IsMainThread()) { URHO3D_LOGERROR("State transition could only be scheduled from the main thread"); return; }
         bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
         _stateQueue.Enqueue(new QueueItem { StateType = type, Bundle = bundle });
         InitiateTransition();

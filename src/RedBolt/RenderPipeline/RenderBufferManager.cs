@@ -5,6 +5,16 @@ namespace RedBolt;
 /// <summary>
 /// Class that manages all render buffers within viewport and viewport itself.
 /// </summary>
+// TODO: port - C++ code:
+// C++ RenderBufferManager inherits from Object and uses:
+// - Graphgics*, Renderer*, RenderDevice*, RenderContext*, RenderPipelineDebugger* external deps
+// - SharedPtr<DrawCommandQueue> drawQueue_
+// - StaticPipelineStateCache pipelineStates_ for quad/clear pipeline states
+// - Methods: InitializePipelineStates(), CreateQuadPipelineState(), GetQuadPipelineState()
+// - copyTexturePipelineState_, copyGammaToLinearTexturePipelineState_,
+//   copyLinearToGammaTexturePipelineState_, clearPipelineState_[] cached states
+// - SharedPtr<RenderBuffer> for viewport buffers (not raw RenderBuffer references)
+// - RenderBuffers are frame-transient: OnRenderBegin allocates, OnRenderEnd releases
 public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
@@ -54,6 +64,8 @@ public sealed class RenderBufferManager
 
     public void SetFrameSettings(RenderBufferManagerFrameSettings frameSettings)
     {
+        // C++: frameSettings_ = frameSettings;
+        // if (frameSettings_.supportColorReadWrite_) frameSettings_.readableColor_ = true;
         this._frameSettings = frameSettings;
         this._frameSettings.ReadableColor |= this._frameSettings.SupportColorReadWrite;
     }
@@ -160,6 +172,8 @@ public sealed class RenderBufferManager
             throw new InvalidOperationException("Cannot swap color buffers when color read/write is not enabled for the frame.");
 
         _readableColorBuffer ??= EnsureSecondaryColorBuffer();
+        // C++: URHO3D_ASSERT(readableColorBuffer_ && writeableColorBuffer_);
+        // ea::swap(writeableColorBuffer_, readableColorBuffer_);
         var previousWriteable = _writeableColorBuffer;
         _writeableColorBuffer = _readableColorBuffer;
         _readableColorBuffer = previousWriteable;
@@ -321,6 +335,9 @@ public sealed class RenderBufferManager
     /// <summary>
     /// Copy the current color output back to the viewport render target.
     /// </summary>
+    // C++: OnRenderEnd directly checks writeableColorBuffer_ != viewportColorBuffer_.Get()
+    // No separate NeedsViewportResolve() helper.
+    // flipColorBuffersNextTime_ ^= viewportColorBuffer_ == readableColorBuffer_;
     public void ResolveToViewport(Graphics graphics)
     {
         ArgumentNullException.ThrowIfNull(graphics);
@@ -410,6 +427,8 @@ public sealed class RenderBufferManager
     /// Clear depth and/or stencil render target(s).
     /// Changes currently bound depth-stencil and render targets.
     /// </summary>
+    // C++: ClearDepthStencil takes CubeMapFace face parameter.
+    // C++ uses renderContext_->ClearDepthStencil directly, not Graphics helper.
     public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(graphics);

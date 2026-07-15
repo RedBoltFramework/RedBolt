@@ -1,5 +1,14 @@
 namespace RedBolt;
 
+/// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
+/// <remarks>
+// C++: Viewport inherits from Object. C# matches.
+// C++: Has RegisterObject static method for factory registration. C# doesn't have it (not needed with C# reflection).
+// C++: Viewport stores scene, camera, rightEye, cullCamera as WeakPtr. C# uses plain references (allowed GC deviation).
+// C++: Has renderPipelineView_ as SharedPtr&lt;RenderPipelineView&gt;. C# uses plain RenderPipelineView? reference.
+// C++: Has autoRenderPipeline_ flag. C# matches.
+// C++: GetRenderPipelineView returns RenderPipelineView*. C# matches.
+/// </remarks>
 public sealed class Viewport : Object
 {
     private bool _autoRenderPipeline = true;

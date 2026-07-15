@@ -5,6 +5,75 @@ namespace RedBolt;
 /// <summary>Animated model component.</summary>
 public class AnimatedModel : StaticModel
 {
+    // TODO: port - C++ code:
+    // friend class AnimationState;
+    //
+    // TODO: port - C++ code:
+    // void ApplyAttributes() override;
+    // TODO: port - C++ code:
+    // void ProcessCustomRayQuery(const RayOctreeQuery& query, const BoundingBox& worldBoundingBox,
+    //     const Matrix3x4& worldTransform, ea::span<const Matrix3x4> boneWorldTransforms,
+    //     ea::vector<RayQueryResult>& results);
+    // TODO: port - C++ code:
+    // void ProcessRayQuery(const RayOctreeQuery& query, ea::vector<RayQueryResult>& results) override;
+    // TODO: port - C++ code:
+    // void Update(const FrameInfo& frame) override;
+    // TODO: port - C++ code:
+    // void UpdateBatches(const FrameInfo& frame) override;
+    // TODO: port - C++ code:
+    // void UpdateGeometry(const FrameInfo& frame) override;
+    // TODO: port - C++ code:
+    // UpdateGeometryType GetUpdateGeometryType() override;
+    // TODO: port - C++ code:
+    // void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
+    // TODO: port - C++ code:
+    // void ApplyAnimation();
+    // TODO: port - C++ code:
+    // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
+    // TODO: port - C++ code:
+    // unsigned GetNumMorphs() const;
+    // TODO: port - C++ code:
+    // void SetModelAttr(const ResourceRef& value);
+    // TODO: port - C++ code:
+    // void SetBonesEnabledAttr(const VariantVector& value);
+    // TODO: port - C++ code:
+    // void SetMorphsAttr(const ea::vector<unsigned char>& value);
+    // TODO: port - C++ code:
+    // ResourceRef GetModelAttr() const;
+    // TODO: port - C++ code:
+    // VariantVector GetBonesEnabledAttr() const;
+    // TODO: port - C++ code:
+    // const ea::vector<unsigned char>& GetMorphsAttr() const;
+    // TODO: port - C++ code:
+    // const ea::vector<ea::vector<unsigned>>& GetGeometryBoneMappings() const;
+    // TODO: port - C++ code:
+    // const ea::vector<ea::vector<Matrix3x4>>& GetGeometrySkinMatrices() const;
+    // TODO: port - C++ code:
+    // void UpdateBoneBoundingBox();
+    // TODO: port - C++ code:
+    // protected:
+    // void OnNodeSet(Node* previousNode, Node* currentNode) override;
+    // void OnMarkedDirty(Node* node) override;
+    // void OnWorldBoundingBoxUpdate() override;
+    // TODO: port - C++ fields:
+    // ea::vector<ModelAnimationOutput> skeletonData_;
+    // SharedPtr<SoftwareModelAnimator> modelAnimator_;
+    // ea::vector<Matrix3x4> skinMatrices_;
+    // ea::vector<ea::vector<unsigned>> geometryBoneMappings_;
+    // ea::vector<ea::vector<Matrix3x4>> geometrySkinMatrices_;
+    // ea::vector<ea::vector<Matrix3x4*>> geometrySkinMatrixPtrs_;
+    // BoundingBox boneBoundingBox_;
+    // mutable VectorBuffer attrBuffer_;
+    // unsigned animationLodFrameNumber_;
+    // float animationLodTimer_;
+    // float animationLodDistance_;
+    // bool softwareSkinning_;
+    // unsigned numSoftwareSkinningBones_;
+    // bool isMaster_;
+    // bool assignBonesPending_;
+    // bool forceAnimationUpdate_;
+    // bool animationDirty_, morphsDirty_, skinningDirty_, boneBoundingBoxDirty_;
+
     private readonly Skeleton _skeleton = new();
     private AnimationStateSource? _animationStateSource;
     private readonly List<ModelMorph> _morphs = [];

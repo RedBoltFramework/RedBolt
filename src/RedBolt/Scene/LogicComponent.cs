@@ -3,6 +3,8 @@ namespace RedBolt;
 public abstract class LogicComponent : Component, ISceneUpdateListener
 {
     private UpdateEvent _updateEventMask = UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate | UpdateEvent.UseFixedUpdate | UpdateEvent.UseFixedPostUpdate;
+    // TODO: port - C++ code:
+    // UpdateEventFlags currentEventMask_; // Current event subscription mask.
     private bool _delayedStartCalled;
 
     public virtual void Start()
@@ -32,6 +34,22 @@ public abstract class LogicComponent : Component, ISceneUpdateListener
     public virtual void FixedPostUpdate(float timeStep)
     {
     }
+
+    // TODO: port - C++ code:
+    // virtual void UpdateWorldOrigin(const IntVector3& oldOrigin, const IntVector3& newOrigin, const IntVector3& delta);
+    // virtual void PostUpdateWorldOrigin(const IntVector3& oldOrigin, const IntVector3& newOrigin, const IntVector3& delta);
+    // virtual StringHash GetUpdateEvent() const;
+    // virtual StringHash GetPostUpdateEvent() const;
+    // void OnSetEnabled() override; // Changes update event subscription.
+    // void OnSceneSet(Scene* previousScene, Scene* scene) override; // Subscribes/unsubscribes to update events.
+    //
+    // void UpdateEventSubscription(); // Subscribe/unsubscribe to update events.
+    // void HandleSceneUpdate(StringHash eventType, VariantMap& eventData);
+    // void HandleScenePostUpdate(StringHash eventType, VariantMap& eventData);
+    // void HandlePhysicsPreStep(StringHash eventType, VariantMap& eventData);
+    // void HandlePhysicsPostStep(StringHash eventType, VariantMap& eventData);
+    // void HandleWorldOriginUpdate(StringHash eventType, VariantMap& eventData);
+    // void HandleWorldOriginPostUpdate(StringHash eventType, VariantMap& eventData);
 
     public void SetUpdateEventMask(UpdateEvent mask)
     {

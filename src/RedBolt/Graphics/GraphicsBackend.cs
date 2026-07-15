@@ -2,9 +2,10 @@ namespace RedBolt;
 
 public enum GraphicsBackend
 {
-    Auto,
-    OpenGL,
-    Vulkan,
-    D3D11,
-    D3D12
+    D3D11 = 0,
+    D3D12 = 1,
+    OpenGL = 2,
+    Vulkan = 3,
+    Auto = 4,
+    Count = 5
 }
