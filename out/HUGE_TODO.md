@@ -9,7 +9,6 @@
 - [ ] ./src/RedBolt/Resource/JSONResource.cs:5:// C++: No direct C++ equivalent. Uses System.Text.Json for serialization instead of rbfx's Archive.
 - [ ] ./src/RedBolt/Container/Array2D.cs:240:    // TODO: port - C++ returns pointer (T*), C# returns nullable value (T?)
 - [ ] ./src/RedBolt/RenderAPI/RenderAPIDefs.cs:376:// TODO: port - C++ GetTextureFormatInfo returns backend-independent format attributes; no managed lookup API exists yet.
-- [ ] ./src/RedBolt/Resource/ImageDDS.cs:1:// C++: Defined in ImageDDS.h/.cpp.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:2:// TODO: port - C++ structs DDColorKey, DDSCaps2, and DDSurfaceDesc2 retain fields not needed by the managed loader.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:3:// TODO: port - C++ DDPixelFormat union members are represented by the fields used by the managed loader.
 - [ ] ./src/RedBolt/Resource/ImageDDS.cs:246:    // TODO: port - C++ code:
