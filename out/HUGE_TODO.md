@@ -32,14 +32,10 @@
 - [ ] ./src/RedBolt/Core/Time.cs:116:        // C++: URHO3D_PROFILE("EndFrame");
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:63:    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
+- [ ] ./src/RedBolt/Scene/ShakeComponent.cs:81:    // C++: header has bug — GetTraumaFalloff() returns traumaPower_ instead of traumaFalloff_.
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
 - [ ] ./src/RedBolt/Core/StopToken.cs:9:/// TODO: For better memory management split this class into StopSource with shared_ptr
 - [ ] ./src/RedBolt/Scene/SplinePath.cs:202:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Scene/ShakeComponent.cs:81:    // C++: header has bug — GetTraumaFalloff() returns traumaPower_ instead of traumaFalloff_.
-- [ ] ./src/RedBolt/Core/Spline.cs:5:// C++:
-- [ ] ./src/RedBolt/Core/Spline.cs:82:            // TODO: port: Do not allocate a new vector each time.
-- [ ] ./src/RedBolt/Core/Spline.cs:235:            // TODO: port: Do not allocate a new vector each time.
-- [ ] ./src/RedBolt/Core/Spline.cs:364:            // C++: return Lerp(lhs.GetDouble(), rhs.GetDouble(), t);
 - [ ] ./src/RedBolt/Core/Profiler.cs:13:    // C++: void SetProfilerThreadName(const char* name)
 - [ ] ./src/RedBolt/Core/Profiler.cs:14:    // C++: {
 - [ ] ./src/RedBolt/Core/Profiler.cs:15:    // C++: #if URHO3D_PROFILING

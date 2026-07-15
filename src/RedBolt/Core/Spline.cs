@@ -2,16 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-// C++:
-// static const char* interpolationModeNames[] =
-// {
-//     "Bezier",
-//     "Catmull-Rom",
-//     "Linear",
-//     "Catmull-Rom Full",
-//     nullptr
-// };
-
 public enum InterpolationMode
 {
     /// <summary>Bezier interpolation.</summary>
@@ -29,6 +19,9 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
 {
     private InterpolationMode _interpolationMode;
     private VariantVector _knots = new();
+    private readonly VariantVector _fullKnotsScratch = new();
+    private readonly VariantVector _bezierScratchA = new();
+    private readonly VariantVector _bezierScratchB = new();
 
     /// <summary>Default constructor.</summary>
     public Spline()
@@ -79,26 +72,25 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
             return LinearInterpolation(_knots, f);
         case InterpolationMode.CatmullRomFullCurve:
         {
-            // TODO: port: Do not allocate a new vector each time.
-            var fullKnots = new VariantVector();
+            _fullKnotsScratch.Clear();
             if (_knots.Count > 1)
             {
                 // Non-cyclic case: duplicate start and end
                 if (!_knots[0].Equals(_knots[^1]))
                 {
-                    fullKnots.Add(_knots[0]);
-                    fullKnots.AddRange(_knots);
-                    fullKnots.Add(_knots[^1]);
+                    _fullKnotsScratch.Add(_knots[0]);
+                    _fullKnotsScratch.AddRange(_knots);
+                    _fullKnotsScratch.Add(_knots[^1]);
                 }
                 // Cyclic case: smooth the tangents
                 else
                 {
-                    fullKnots.Add(_knots[^2]);
-                    fullKnots.AddRange(_knots);
-                    fullKnots.Add(_knots[1]);
+                    _fullKnotsScratch.Add(_knots[^2]);
+                    _fullKnotsScratch.AddRange(_knots);
+                    _fullKnotsScratch.Add(_knots[1]);
                 }
             }
-            return CatmullRomInterpolation(fullKnots, f);
+            return CatmullRomInterpolation(_fullKnotsScratch, f);
         }
         default:
             Log.Logger.LogError("Unsupported interpolation mode");
@@ -232,10 +224,11 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
         }
         else
         {
-            // TODO: port: Do not allocate a new vector each time.
-            var interpolatedKnots = new VariantVector();
-            for (var i = 1; i < knots.Count; ++i)
+            var source = knots;
+            var destination = _bezierScratchA;
+            while (source.Count > 2)
             {
+                destination.Clear();
                 switch (knots[0].Type)
                 {
                 case VariantType.Float:
@@ -244,13 +237,17 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
                 case VariantType.Vector4:
                 case VariantType.Color:
                 case VariantType.Double:
-                    interpolatedKnots.Add(LinearInterpolation(knots[i - 1], knots[i], t));
+                    for (var i = 1; i < source.Count; ++i)
+                        destination.Add(LinearInterpolation(source[i - 1], source[i], t));
                     break;
                 default:
                     return default;
                 }
+                var previousSource = source;
+                source = destination;
+                destination = ReferenceEquals(previousSource, _bezierScratchA) ? _bezierScratchB : _bezierScratchA;
             }
-            return BezierInterpolation(interpolatedKnots, t);
+            return LinearInterpolation(source[0], source[1], t);
         }
     }
 
@@ -361,7 +358,6 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
         case VariantType.Color:
             return lhs.GetColor().Lerp(rhs.GetColor(), t);
         case VariantType.Double:
-            // C++: return Lerp(lhs.GetDouble(), rhs.GetDouble(), t);
             return lhs.GetDouble() * (1.0 - t) + rhs.GetDouble() * t;
         default:
             return default;
