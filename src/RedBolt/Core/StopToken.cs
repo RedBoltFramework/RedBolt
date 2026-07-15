@@ -6,8 +6,6 @@ namespace RedBolt;
 /// <summary>
 /// Stop token used to thread-safely stop asynchronous task. This object can be passed
 /// by value and all copies will share same internal state..
-/// TODO: For better memory management split this class into StopSource with shared_ptr
-/// and StopToken with weak_ptr, or reuse corresponding classes from C++20 standard library.
 /// </summary>
 public readonly struct StopToken
 {

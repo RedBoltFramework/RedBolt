@@ -8,7 +8,6 @@
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:10:    // C++: CachedSubsystemList includes FileSystem, VirtualFileSystem, Log (if URHO3D_LOGGING),
 - [ ] ./src/RedBolt/Core/SubsystemCache.cs:63:    // C++: uses ea::move (not Clone) — moves arrays to temps to avoid modifying during destruction,
 - [ ] ./src/RedBolt/Scene/TrackedComponent.cs:391:// TODO: port - C++ inherits from ComponentType (template <class ComponentType, class RegistryComponentType>
-- [ ] ./src/RedBolt/Core/StopToken.cs:9:/// TODO: For better memory management split this class into StopSource with shared_ptr
 - [ ] ./src/RedBolt/Scene/SplinePath.cs:202:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Core/Profiler.cs:28:    // TODO: port - C++ macros:
 - [ ] ./src/RedBolt/Core/ProcessUtils.cs:27:// TODO: port - C++ code:
