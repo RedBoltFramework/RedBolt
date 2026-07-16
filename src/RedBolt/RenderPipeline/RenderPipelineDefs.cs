@@ -324,6 +324,19 @@ public struct DrawQuadParams
 public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture, IntRect Rect)
 {
     /// <summary>
+    /// Return shadow map region for one split.
+    /// </summary>
+    public ShadowMapRegion GetSplit(uint split, Vector2i numSplits)
+    {
+        var splitSize = new Vector2i(Rect.Width / numSplits.X, Rect.Height / numSplits.Y);
+        System.Diagnostics.Debug.Assert(splitSize.X * numSplits.X == Rect.Width);
+        System.Diagnostics.Debug.Assert(splitSize.Y * numSplits.Y == Rect.Height);
+        var splitIndex = new Vector2i((int)(split % (uint)numSplits.X), (int)(split / (uint)numSplits.X));
+        var splitBegin = Rect.Min + splitIndex * splitSize;
+        return this with { Rect = new IntRect(splitBegin, splitBegin + splitSize) };
+    }
+
+    /// <summary>
     /// Return whether the shadow map region is not empty.
     /// </summary>
     public bool IsEmpty => Texture is null;

@@ -367,8 +367,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ViewportDepthStencilRenderBuffer : RenderBuffer`
 - [~] `RenderBufferManager.h`
   - [~] `RenderBufferManager : Object` — settings/frame-settings assignment, live swap-chain color/depth/multisample/sRGB output resolution, C++ color/AA/filter/usage output-matching criteria, viewport/output management, buffer swapping, clears, static output-keyed fullscreen pipeline states, allocation-free texture-copy parameters, fullscreen helpers, and depth-first multi-color target binding are ported; cached clear-quad pipeline states remain incomplete
-- [ ] `ShadowMapAllocator.h`
-  - [ ] `ShadowMapAllocator : Object`
+- [x] `ShadowMapAllocator.h`
+  - [x] `ShadowMapAllocator : Object`
 - [x] `InstancingBuffer.h` — settings-driven vertex declarations, begin/end composition, instance indexing, element upload, buffer access, and enable state match C++; focused tests cover disabled, initialized, and repeated composition paths
 - [x] `ShaderProgramCompositor.h` — shader-program descriptions, common/geometry/material/light/shadow/light-volume defines, texture color-space hints, instancing selection, and normal/tangent availability match C++
   - [x] `ShaderProgramCompositor : Object`
