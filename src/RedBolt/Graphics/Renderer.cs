@@ -26,8 +26,6 @@ public sealed class FrameStatistics
 /// </remarks>
 public sealed class Renderer : Object
 {
-    private readonly record struct ActiveRenderPipelineView(RenderPipeline Pipeline, RenderPipelineView View);
-
     private readonly Zone _defaultZone = new();
     private Geometry? _dirLightGeometry;
     private Geometry? _spotLightGeometry;
@@ -41,7 +39,7 @@ public sealed class Renderer : Object
     private bool _backbufferSurfaceViewportsDirty;
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
-    private readonly Dictionary<Viewport, ActiveRenderPipelineView> _renderPipelineViews = [];
+    private readonly List<RenderPipelineView> _renderPipelineViews = [];
     private readonly HashSet<Octree> _updatedOctrees = [];
     private readonly CommonFrameInfo _frameInfo = new();
     private readonly FrameStatistics _frameStats = new();
@@ -107,45 +105,38 @@ public sealed class Renderer : Object
 
     public uint GetNumViews()
     {
-        var count = 0u;
-        foreach (var viewport in _viewports)
-        {
-            if (viewport is not null)
-                ++count;
-        }
-
-        return count;
+        return (uint)_renderPipelineViews.Count;
     }
 
     public uint GetNumGeometries()
     {
         var count = 0u;
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
-            count += renderPipelineView.View.GetStats().NumGeometries;
+        foreach (var renderPipelineView in _renderPipelineViews)
+            count += renderPipelineView.GetStats().NumGeometries;
         return count;
     }
 
     public uint GetNumLights()
     {
         var count = 0u;
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
-            count += renderPipelineView.View.GetStats().NumLights;
+        foreach (var renderPipelineView in _renderPipelineViews)
+            count += renderPipelineView.GetStats().NumLights;
         return count;
     }
 
     public uint GetNumShadowMaps()
     {
         var count = 0u;
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
-            count += renderPipelineView.View.GetStats().NumShadowedLights;
+        foreach (var renderPipelineView in _renderPipelineViews)
+            count += renderPipelineView.GetStats().NumShadowedLights;
         return count;
     }
 
     public uint GetNumOccluders()
     {
         var count = 0u;
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
-            count += renderPipelineView.View.GetStats().NumOccluders;
+        foreach (var renderPipelineView in _renderPipelineViews)
+            count += renderPipelineView.GetStats().NumOccluders;
         return count;
     }
 
@@ -315,6 +306,8 @@ public sealed class Renderer : Object
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
+        _renderPipelineViews.Clear();
+
         if (_backbufferSurfaceViewportsDirty)
         {
             _backbufferSurfaceViewportsDirty = false;
@@ -341,25 +334,10 @@ public sealed class Renderer : Object
         }
         _queuedViewports.Clear();
 
-        var hasBackbufferViews = false;
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
-        {
-            if (renderPipelineView.View.GetFrameInfo().RenderTarget is null)
-            {
-                hasBackbufferViews = true;
-                break;
-            }
-        }
-
-        if (!hasBackbufferViews && _renderPipelineViews.Count != 0)
-        {
-            graphics.ResetRenderTargets();
-            graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
-        }
-
         _updatedOctrees.Clear();
-        foreach (var viewport in _viewports)
+        for (var i = _viewports.Count - 1; i >= 0; --i)
         {
+            var viewport = _viewports[i];
             if (viewport is null)
                 continue;
 
@@ -379,14 +357,35 @@ public sealed class Renderer : Object
                 octree.SetLocked(true);
             }
 
-            _renderPipelineViews[viewport] = new ActiveRenderPipelineView(
-                renderPipelineView.GetRenderPipeline(), renderPipelineView);
             if (!renderPipelineView.Define(viewport, graphics))
                 continue;
 
+            _renderPipelineViews.Add(renderPipelineView);
             renderPipelineView.Update(graphics);
-            renderPipelineView.Render(graphics, TextureQuality);
         }
+
+        var hasBackbufferViews = false;
+        foreach (var renderPipelineView in _renderPipelineViews)
+        {
+            if (renderPipelineView.GetFrameInfo().RenderTarget is null)
+            {
+                hasBackbufferViews = true;
+                break;
+            }
+        }
+
+        if (!hasBackbufferViews)
+        {
+            graphics.ResetRenderTargets();
+            graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
+        }
+
+        var renderDevice = GetSubsystem<RenderDevice>();
+        renderDevice?.SetDefaultTextureFilterMode(TextureFilterMode);
+        renderDevice?.SetDefaultTextureAnisotropy(TextureAnisotropy);
+
+        for (var i = _renderPipelineViews.Count - 1; i >= 0; --i)
+            _renderPipelineViews[i].Render(graphics, TextureQuality);
 
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
@@ -398,27 +397,14 @@ public sealed class Renderer : Object
 
     public void DrawDebugGeometry(bool depthTest)
     {
-        foreach (var renderPipelineView in _renderPipelineViews.Values)
+        foreach (var renderPipelineView in _renderPipelineViews)
         {
-            if (!renderPipelineView.Pipeline.Settings.DrawDebugGeometry)
+            if (!renderPipelineView.GetRenderPipeline().Settings.DrawDebugGeometry)
                 continue;
 
-            renderPipelineView.View.DrawDebugGeometries(depthTest);
-            renderPipelineView.View.DrawDebugLights(depthTest);
+            renderPipelineView.DrawDebugGeometries(depthTest);
+            renderPipelineView.DrawDebugLights(depthTest);
         }
-    }
-
-    private RenderPipelineView GetOrCreateRenderPipelineView(Viewport viewport, RenderPipeline renderPipeline)
-    {
-        if (_renderPipelineViews.TryGetValue(viewport, out var existing)
-            && ReferenceEquals(existing.Pipeline, renderPipeline))
-        {
-            return existing.View;
-        }
-
-        var created = renderPipeline.Instantiate();
-        _renderPipelineViews[viewport] = new ActiveRenderPipelineView(renderPipeline, created);
-        return created;
     }
 
     private void EnsureViewportCount(uint count)

@@ -26,7 +26,7 @@ public sealed class RendererTests
         Renderer.SetViewport(0u, viewport);
 
         Assert.Equal(2u, Renderer.GetNumViewports());
-        Assert.Equal(2u, Renderer.GetNumViews());
+        Assert.Equal(0u, Renderer.GetNumViews());
         Assert.Same(viewport, Renderer.GetViewportForScene(scene, 1u));
     }
 
