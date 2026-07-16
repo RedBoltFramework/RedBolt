@@ -103,6 +103,7 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 /// </remarks>
 public sealed class Material : ResourceWithMetadata
 {
+    private readonly IDFamily<Material> _idFamily = new();
     private readonly Dictionary<string, MaterialShaderParameter> _shaderParameters = new(StringComparer.Ordinal);
     private readonly Dictionary<StringHash, ShaderParameterAnimationInfo> _shaderParameterAnimationInfos = new();
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
@@ -114,11 +115,25 @@ public sealed class Material : ResourceWithMetadata
     private Scene? _scene;
     private ContextEventSubscription? _sceneAttributeAnimationSubscription;
 
-    internal Material(string name)
+    public Material(string name)
         : base(name)
     {
         ResetToDefaults();
     }
+
+    public override void Dispose()
+    {
+        _idFamily.Dispose();
+        base.Dispose();
+    }
+
+    public uint GetObjectID() => _idFamily.GetObjectID();
+
+    public static uint GetNextFreeObjectID() => IDFamily<Material>.GetNextFreeObjectID();
+
+    public void AcquireObjectID() => _idFamily.AcquireObjectID();
+
+    public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
 
     public bool AlphaToCoverage { get; set; }
 

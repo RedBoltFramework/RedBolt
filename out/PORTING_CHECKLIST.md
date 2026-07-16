@@ -285,7 +285,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Material.h`
   - [~] `struct TechniqueEntry`
   - [x] `ShaderParameterAnimationInfo : ValueAnimationInfo`
-  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state/ID-family inheritance and batched parameter-update optimization remain managed deviations
+  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — public construction, unique object-ID allocation/lifetime, specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state-tracker inheritance and batched parameter-update optimization remain incomplete
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, component-owned geometry/LOD storage, per-geometry centers and LOD state, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, indexed occlusion drawing, custom-transform AABB/OBB/triangle/UV ray queries, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; remaining class-shape parity is incomplete
 - [x] `AnimatedModel.h`
@@ -356,8 +356,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `RenderPipelineInterface` — global context accessor, render-target-aware view definition, debug geometry/light dispatch, and per-pipeline debugger accessor match C++
   - [~] pipeline enums / settings structs — flags, frame statistics, default settings, validation, implied-setting propagation, and render-path adjustment are ported; native RG32F support is unavailable in the managed TextureFormat surface
 - [x] `ShaderConsts.h` — all 67 built-in shader constants and 10 shader resources match C++ names and declaration order; focused parity tests cover every exported value
-- [ ] `PipelineBatchSortKey.h`
-  - [ ] batch sort-key structs
+- [x] `PipelineBatchSortKey.h` — both 64-bit state-sort layouts, render-order/back-to-front comparison, batch groups, and the required `PipelineBatch` value surface match C++; managed `PipelineBatch` uses reference semantics to preserve the C++ sort-key pointer relationship
+  - [x] batch sort-key structs
 - [~] `SharedRenderPassState.h`
   - [~] `struct SharedRenderPassState : NonCopyable` — fixed 128-entry render-buffer capacity and shared identifiers are ported; managed Graphics convenience state remains for current render-pass integration
 - [~] `RenderBuffer.h`

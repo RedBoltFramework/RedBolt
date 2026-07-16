@@ -7,6 +7,7 @@ namespace RedBolt;
 /// <summary>Cooked pipeline state.</summary>
 public class PipelineState : DeviceObject
 {
+    private readonly IDFamily<PipelineState> _idFamily = new();
     private readonly WeakReference<PipelineStateCache>? _owner;
     private readonly PipelineStateDesc _desc;
     private IPipelineState? _handle;
@@ -34,8 +35,17 @@ public class PipelineState : DeviceObject
         UnsubscribeFromShaders();
         if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
             pipelineStateCache.ReleasePipelineState(_desc);
+        _idFamily.Dispose();
         base.Dispose();
     }
+
+    public uint GetObjectID() => _idFamily.GetObjectID();
+
+    public static uint GetNextFreeObjectID() => IDFamily<PipelineState>.GetNextFreeObjectID();
+
+    public void AcquireObjectID() => _idFamily.AcquireObjectID();
+
+    public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
 
     public string DebugName
     {
