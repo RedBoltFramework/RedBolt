@@ -341,8 +341,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
 - [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests
   - [x] `OcclusionBuffer : Object`
-- [ ] `DebugRenderer.h`
-  - [ ] `DebugRenderer : Component`
+- [~] `DebugRenderer.h` — `DebugLine` and `DebugTriangle` field order, constructors, and value storage match C++; component geometry helpers and C++ line/triangle caps are ported, while render-state and lifecycle parity remain to audit
+  - [~] `DebugRenderer : Component`
 - [~] `Renderer.h`
   - [~] `Renderer : Object` — the complete C++ public method and state-field set, C++ field ordering/defaults, conditional screen-mode-driven initialization, screen-mode view reset handling, initialization-time black cubemap/light-volume creation, default-zone/default-technique/default-material/default-light-texture access, mutable frame information/statistics, end-of-frame statistic reset, texture-quality clamping and texture reload, material-shader release helper, separate render-update-event-driven update and render phases, per-frame render-pipeline view tracking, reverse main-view queueing and reverse render ordering, render-surface pipeline integration, queued-pair deduplication, render-device texture defaults, multi-viewport rendering, debug-geometry/light dispatch, frame-stat aggregation, nullable viewport-slot and scene-query semantics, backbuffer render-surface replacement/viewport synchronization, no-backbuffer clearing, and end-of-all-views render event dispatch are ported; built-in-UI mouse-position propagation is excluded, while final declaration-order/documentation parity and C# buffer-upload adaptation remain to audit
 - [~] `Graphics.h`

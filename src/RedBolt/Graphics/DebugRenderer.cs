@@ -8,7 +8,7 @@ namespace RedBolt;
 public sealed class DebugRenderer : Component
 {
     private const int MaxLines = 1_000_000;
-    private const int MaxTriangles = 1_000_000;
+    private const int MaxTriangles = 100_000;
 
     private readonly DynamicVertexBuffer _vertexBuffer = new();
     private readonly PipelineState?[] _depthLinesPipelineState = new PipelineState?[2];
