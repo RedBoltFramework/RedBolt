@@ -787,10 +787,12 @@ public sealed class RenderDevice : Object
         Log.Logger.LogInformation("OpenGL context is lost");
         InvalidateDeviceState();
 
-        var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(GetImmediateContext()!.Handle, ownsHandle: false);
+        using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(GetImmediateContext()!)
+            ?? throw new InvalidOperationException("OpenGL device context interface is unavailable.");
         deviceContextGL.InvalidateState();
 
-        var renderDeviceGLES = IRenderDeviceGLES.CreateManagedWrapper(GetRenderDevice()!.Handle, ownsHandle: false);
+        using var renderDeviceGLES = IRenderDeviceGLES.QueryManagedWrapper(GetRenderDevice()!)
+            ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
         renderDeviceGLES.Invalidate();
 
         GetSubsystem<Graphics>()!.ReleaseGLContext();
@@ -809,7 +811,8 @@ public sealed class RenderDevice : Object
             return false;
         }
 
-        var renderDeviceGLES = IRenderDeviceGLES.CreateManagedWrapper(GetRenderDevice()!.Handle, ownsHandle: false);
+        using var renderDeviceGLES = IRenderDeviceGLES.QueryManagedWrapper(GetRenderDevice()!)
+            ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
         renderDeviceGLES.Resume(IntPtr.Zero);
         RestoreDeviceState();
         Log.Logger.LogInformation("OpenGL context is restored");

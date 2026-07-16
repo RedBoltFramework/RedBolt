@@ -255,23 +255,23 @@ private:
     GLuint defaultFBO_{};
 };
 
-ISwapChain* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
+ISwapChainGL* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window)
 {
     auto& defaultAllocator = DefaultRawMemoryAllocator::GetAllocator();
     auto swapChain = NEW_RC_OBJ(defaultAllocator, "ProxySwapChainGL instance", ProxySwapChainGL)(
         device, deviceContext, swapChainDesc, static_cast<SDL_Window*>(window));
-    RefCntAutoPtr<ISwapChain> result{swapChain};
+    RefCntAutoPtr<ISwapChainGL> result{swapChain};
     return result.Detach();
 }
 
-ISwapChain* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
+ISwapChainGL* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window)
 {
     auto& defaultAllocator = DefaultRawMemoryAllocator::GetAllocator();
     auto secondarySwapChain = NEW_RC_OBJ(defaultAllocator, "Secondary ProxySwapChainGL instance", ProxySwapChainGL)(
         device, deviceContext, swapChainDesc, static_cast<SDL_Window*>(window));
-    RefCntAutoPtr<ISwapChain> result{secondarySwapChain};
+    RefCntAutoPtr<ISwapChainGL> result{secondarySwapChain};
     return result.Detach();
 }
 

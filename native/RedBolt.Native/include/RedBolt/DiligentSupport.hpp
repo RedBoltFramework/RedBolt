@@ -52,9 +52,9 @@ Uint32 GetTemporaryGLProgramVertexAttributeCount(const void* program);
 const char* GetTemporaryGLProgramVertexAttributeName(const void* program, Uint32 index);
 Uint32 GetTemporaryGLProgramVertexAttributeLocation(const void* program, Uint32 index);
 bool BindTemporaryGLProgramVertexAttributes(const void* program, IPipelineState* pipelineState);
-ISwapChain* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
+ISwapChainGL* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window);
-ISwapChain* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
+ISwapChainGL* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window);
 ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* deviceContext,
     ISwapChain* nativeSwapChain, Uint32 depthFormat, Uint32 multiSample);

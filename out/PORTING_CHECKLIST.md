@@ -65,6 +65,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, SPIRV-Tools, and Linux Vulkan
   surfaces into the build tree; dedicated managed binding projects consume them; the native batch links the matching
   rbfx-version shader libraries; generated borrowed-record array element access supports SPIRV-Cross reflection lists;
+  generated native-interface queries now use Diligent `QueryInterface` identifiers, own and release the acquired reference,
+  and replace all interface-pointer `CreateManagedWrapper` reinterpretations; the GL proxy helper preserves its concrete
+  `ISwapChainGL` type exactly as the C++ construction path does;
   the generated SPIR-V optimizer support surface preserves rbfx's interface-aware performance-pass sequence and
   deterministic native lifetime; and `ShaderLibraryBindingTests` verifies process/context creation and deterministic
   release through all three managed surfaces. Linux Vulkan device, X11 swap-chain, multisample proxy, surface-extent resize,

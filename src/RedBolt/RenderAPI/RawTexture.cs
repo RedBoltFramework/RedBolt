@@ -190,7 +190,8 @@ public class RawTexture : DeviceObject
         var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
         if (renderDevice?.GetBackend() == RenderBackend.D3D11 && nativeDevice is { IsNull: false })
         {
-            var deviceD3D11 = IRenderDeviceD3D11.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            using var deviceD3D11 = IRenderDeviceD3D11.QueryManagedWrapper(nativeDevice)
+                ?? throw new InvalidOperationException("D3D11 render device interface is unavailable.");
             deviceD3D11.CreateTexture2DFromD3DResource(
                 d3d11Texture2D, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
@@ -219,7 +220,8 @@ public class RawTexture : DeviceObject
         var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
         if (renderDevice?.GetBackend() == RenderBackend.D3D12 && nativeDevice is { IsNull: false })
         {
-            var deviceD3D12 = IRenderDeviceD3D12.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            using var deviceD3D12 = IRenderDeviceD3D12.QueryManagedWrapper(nativeDevice)
+                ?? throw new InvalidOperationException("D3D12 render device interface is unavailable.");
             deviceD3D12.CreateTextureFromD3DResource(
                 d3d12Resource, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
@@ -272,7 +274,8 @@ public class RawTexture : DeviceObject
             if ((parameters.Flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
                 textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
 
-            var deviceVk = IRenderDeviceVk.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            using var deviceVk = IRenderDeviceVk.QueryManagedWrapper(nativeDevice)
+                ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
             deviceVk.CreateTextureFromVulkanImage(
                 (nint)vkImage, textureDesc, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
@@ -302,7 +305,8 @@ public class RawTexture : DeviceObject
         if (renderDevice?.GetBackend() != RenderBackend.OpenGL || nativeDevice is null || nativeDevice.IsNull)
             return false;
 
-        var glDevice = IRenderDeviceGL.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+        using var glDevice = IRenderDeviceGL.QueryManagedWrapper(nativeDevice)
+            ?? throw new InvalidOperationException("OpenGL render device interface is unavailable.");
         using var nativeName = new CString("Texture from external resource");
         using var desc = new TextureDesc
         {

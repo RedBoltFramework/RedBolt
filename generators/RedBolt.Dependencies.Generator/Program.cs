@@ -97,6 +97,19 @@ internal static class Program
         "Release"
     };
 
+    private static readonly IReadOnlyDictionary<string, string> DiligentQueryableInterfaces =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Diligent::IEngineFactoryVk"] = "Diligent::IID_EngineFactoryVk",
+            ["Diligent::IDeviceContextGL"] = "Diligent::IID_DeviceContextGL",
+            ["Diligent::ISwapChainVk"] = "Diligent::IID_SwapChainVk",
+            ["Diligent::IRenderDeviceVk"] = "Diligent::IID_RenderDeviceVk",
+            ["Diligent::IRenderDeviceD3D11"] = "Diligent::IID_RenderDeviceD3D11",
+            ["Diligent::IRenderDeviceD3D12"] = "Diligent::IID_RenderDeviceD3D12",
+            ["Diligent::IRenderDeviceGL"] = "Diligent::IID_RenderDeviceGL",
+            ["Diligent::IRenderDeviceGLES"] = "Diligent::IID_RenderDeviceGLES"
+        };
+
     private static int Main(string[] args)
     {
         SharpCppLog.Configure();
@@ -303,7 +316,19 @@ internal static class Program
         foreach (var record in compilation.Records)
         {
             if (IsDiligentInterfaceRecord(record))
+            {
                 record.SetMetadata(MetadataKeys.NativeInterfaceWrapper, true);
+                if (record.CppQualifiedName is not ("Diligent::IMemoryAllocator" or "Diligent::IReferenceCounters"))
+                    record.SetMetadata(MetadataKeys.NativeInterfaceReleaseMethod, "Release");
+                if (DiligentQueryableInterfaces.TryGetValue(record.CppQualifiedName, out var interfaceIdExpression))
+                {
+                    record.SetMetadata(
+                        MetadataKeys.NativeInterfaceQuery,
+                        new NativeInterfaceQueryAnnotation(
+                            "Diligent::IObject",
+                            interfaceIdExpression));
+                }
+            }
         }
     }
 

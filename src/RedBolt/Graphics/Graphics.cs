@@ -720,7 +720,8 @@ layout(std140) uniform Material
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat, int multiSample)
     {
         System.Diagnostics.Debug.Assert(_device is not null && _immediateContext is not null && _factory is not null);
-        var factoryVulkan = IEngineFactoryVk.CreateManagedWrapper(_factory!.Handle, ownsHandle: false);
+        using var factoryVulkan = IEngineFactoryVk.QueryManagedWrapper(_factory!)
+            ?? throw new InvalidOperationException("Vulkan engine factory interface is unavailable.");
 #if REDBOLT_PLATFORM_LINUX
         var nativeWindowInfo = GetSubsystem<Input>()!.GetNativeWindowInfo();
         using var nativeWindow = new LinuxNativeWindow
@@ -988,14 +989,15 @@ layout(std140) uniform Material
             if (_device.IsNull || _immediateContext.IsNull)
                 throw new InvalidOperationException("Generated AttachToActiveGLContext binding returned a null device or context.");
 
-            _swapChain = DiligentNativeBindings.CreateProxySwapChainGL(
+            var swapChainGL = DiligentNativeBindings.CreateProxySwapChainGL(
                 _device, _immediateContext, swapChainDesc, _window.Handle);
-            if (_swapChain.IsNull)
+            if (swapChainGL.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
 
-                var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(_immediateContext.Handle, ownsHandle: false);
-                var swapChainGL = ISwapChainGL.CreateManagedWrapper(_swapChain.Handle, ownsHandle: false);
+                using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(_immediateContext)
+                    ?? throw new InvalidOperationException("OpenGL device context interface is unavailable.");
                 deviceContextGL.SetSwapChain(swapChainGL);
+                _swapChain = swapChainGL;
             }
             else if (backend == RenderBackend.Vulkan)
             {
@@ -1079,7 +1081,8 @@ layout(std140) uniform Material
                     out var nativeSwapChain);
                 if (nativeSwapChain.IsNull)
                     throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
-                _swapChainVulkan = ISwapChainVk.CreateManagedWrapper(nativeSwapChain.Handle, ownsHandle: false);
+                _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
+                    ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
 
                 var renderDevice = GetSubsystem<RenderDevice>()!;
                 var depthFormat = RenderDevice.SelectDefaultDepthFormat(_device, true);
@@ -1626,7 +1629,10 @@ layout(std140) uniform Material
                 break;
 
             case RenderBackend.Vulkan:
-                var renderDeviceVulkan = IRenderDeviceVk.CreateManagedWrapper(_device!.Handle, ownsHandle: false);
+            {
+            {
+                using var renderDeviceVulkan = IRenderDeviceVk.QueryManagedWrapper(_device!)
+                    ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
                 uint surfaceWidth = 0;
                 uint surfaceHeight = 0;
                 if (_swapChainVulkan is not null && DiligentNativeBindings.GetVulkanSurfaceExtent(
@@ -1635,7 +1641,9 @@ layout(std140) uniform Material
                 else
                     Log.Logger.LogError("Cannot resize Vulkan swap chain");
                 break;
+            }
 
+            }
             default:
                 throw new InvalidOperationException("Unsupported render backend.");
         }
@@ -1743,6 +1751,7 @@ layout(std140) uniform Material
         _diligentViewport?.Dispose();
         _diligentViewport = null;
 
+        ReleaseIfNotNull(_swapChainVulkan);
         _swapChainVulkan = null;
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
@@ -2143,12 +2152,13 @@ layout(std140) uniform Material
         if (shaderResource is null)
             return null;
 
-        var shaderBackend = GetShaderBackend();
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, effectiveShaderDefines, shaderBackend);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, shaderBackend);
-        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
-        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var reflection = new ShaderProgramReflection([vertexShader, pixelShader]);
+        var vertexVariation = shaderResource.GetVariation(ShaderType.VS, effectiveShaderDefines);
+        var pixelVariation = shaderResource.GetVariation(ShaderType.PS, effectiveShaderDefines);
+        var vertexShader = vertexVariation.GetHandle();
+        var pixelShader = pixelVariation.GetHandle();
+        if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
+            return null;
+        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
         var customLayout = CreateCustomUniformLayout(reflection);
         var samplerOverrides = new ImmutableSamplersDesc();
         if (bilinearColorSampler)
@@ -2159,7 +2169,18 @@ layout(std140) uniform Material
         {
             var quadGeometry = GetOrCreateFullscreenQuadGeometry();
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
-            layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            var layoutElements = BuildLayoutElements(vertexBuffer);
+            var vertexAttributes = vertexVariation.GetBytecode().VertexAttributes;
+            for (var i = 0; i < vertexAttributes.Count; ++i)
+            {
+                if (vertexAttributes[i].Semantic == VertexElementSemantic.Position &&
+                    vertexAttributes[i].SemanticIndex == 0)
+                {
+                    layoutElements[0] = layoutElements[0] with { InputIndex = vertexAttributes[i].InputIndex };
+                    break;
+                }
+            }
+            layoutArray = new TemporaryLayoutArray(layoutElements);
             using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
                 GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var pipelineName = new CString($"{shaderName}:{shaderDefines}:fullscreen");
@@ -2218,6 +2239,8 @@ layout(std140) uniform Material
                 customBuffer,
                 customLayout,
                 layoutArray);
+            _ = vertexShader.AddRef();
+            _ = pixelShader.AddRef();
             layoutArray = null;
             _fullscreenPipelines[key] = cached;
             return cached;
