@@ -339,15 +339,14 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `OutlineGroup.h`
 - [~] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
 - [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests
-  - [ ] `OcclusionBuffer : Object`
+  - [x] `OcclusionBuffer : Object`
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
 - [~] `Renderer.h`
   - [~] `Renderer : Object` — the complete C++ public method and state-field set, C++ field ordering/defaults, conditional screen-mode-driven initialization, screen-mode view reset handling, initialization-time black cubemap/light-volume creation, default-zone/default-technique/default-material/default-light-texture access, mutable frame information/statistics, end-of-frame statistic reset, texture-quality clamping and texture reload, material-shader release helper, separate render-update-event-driven update and render phases, per-frame render-pipeline view tracking, reverse main-view queueing and reverse render ordering, render-surface pipeline integration, queued-pair deduplication, render-device texture defaults, multi-viewport rendering, debug-geometry/light dispatch, frame-stat aggregation, nullable viewport-slot and scene-query semantics, backbuffer render-surface replacement/viewport synchronization, no-backbuffer clearing, and end-of-all-views render event dispatch are ported; built-in-UI mouse-position propagation is excluded, while final declaration-order/documentation parity and C# buffer-upload adaptation remain to audit
 - [~] `Graphics.h`
   - [~] `Graphics : Object` — OpenGL rendering, C++ active-context attachment and primary proxy swap-chain initialization with effective SDL sRGB/depth/multisample properties, C++ texture color-space shader hints, linear-output camera ambient/fog uploads and fog clears, SDL window title/position/icon operations, screen-mode queries and lifecycle, monitor/display resolution enumeration, DPI reporting, screenshot capture, screen-mode diagnostics/events, and VFS-backed pipeline-state-cache save are ported; backend-specific paths remain
-- [ ] `LightBakingSettings.h` ⤴ pairs with `Glow`
-  - [ ] `LightBakingSettings`
+- [x] `LightBakingSettings.h` ⤴ pairs with `Glow` — all eleven settings structures, constructors, field ordering, defaults, and nested aggregate defaults match C++; focused tests cover aggregate and tracing defaults
 - [ ] `LightBaker.h` ⤴ pairs with `Glow`
   - [ ] `LightBaker : Component`
 
