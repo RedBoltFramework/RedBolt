@@ -369,8 +369,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RenderBufferManager : Object` — settings/frame-settings assignment, live swap-chain color/depth/multisample/sRGB output resolution, C++ color/AA/filter/usage output-matching criteria, viewport/output management, buffer swapping, clears, fullscreen helpers, and depth-first multi-color target binding are ported; native pipeline-state/cache integration remains incomplete
 - [ ] `ShadowMapAllocator.h`
   - [ ] `ShadowMapAllocator : Object`
-- [ ] `InstancingBuffer.h`
-  - [ ] `InstancingBuffer : Object`
+- [x] `InstancingBuffer.h` — settings-driven vertex declarations, begin/end composition, instance indexing, element upload, buffer access, and enable state match C++; focused tests cover disabled, initialized, and repeated composition paths
 - [ ] `ShaderProgramCompositor.h`
   - [ ] `ShaderProgramCompositor : Object`
 - [ ] `StaticPipelineStateCache.h`
