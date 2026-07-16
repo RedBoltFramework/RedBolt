@@ -13,6 +13,40 @@ public sealed class ConfigFileTests
     }
 
     [Fact]
+    public void Engine_mounts_preferences_directory_before_loading_overrides()
+    {
+        var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-config-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(preferencesDirectory);
+        System.IO.File.WriteAllText(Path.Combine(preferencesDirectory, "EngineConfig.json"), """
+            {
+                "FullScreen": { "type": "Bool", "value": false }
+            }
+            """);
+
+        try
+        {
+            using var engine = new Engine();
+            Assert.True(engine.Initialize(new EngineParameters
+            {
+                ApplicationName = "RedBolt.Tests.Config",
+                ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
+                ConfigName = "EngineConfig.json",
+                FullScreen = true,
+                Headless = true,
+                LogName = "none://"
+            }));
+
+            Assert.False(engine.Parameters.FullScreen);
+            Assert.Equal(preferencesDirectory + Path.DirectorySeparatorChar, engine.GetAppPreferencesDir());
+        }
+        finally
+        {
+            if (Directory.Exists(preferencesDirectory))
+                Directory.Delete(preferencesDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Config_file_loads_rbfx_defaults_and_overrides_through_vfs()
     {
         var fileSystem = _fixture.Context.GetSubsystem<VirtualFileSystem>()!;

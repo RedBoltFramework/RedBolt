@@ -120,7 +120,7 @@ public sealed class EngineTests
             using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.PsoCache",
-                ApplicationPreferencesDir = preferencesDirectory,
+                ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
                 ConfigName = string.Empty,
                 Headless = true,
                 PsoCache = "conf://psocache.bin"
@@ -148,7 +148,7 @@ public sealed class EngineTests
             using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.Log",
-                ApplicationPreferencesDir = preferencesDirectory,
+                ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
                 ConfigName = string.Empty,
                 Headless = true,
                 LogName = "conf://Urho3D.log"

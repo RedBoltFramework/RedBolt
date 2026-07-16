@@ -17,6 +17,7 @@ public sealed class Engine : Object
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
     private readonly ConfigFile _configFile = new();
+    private string _appPreferencesDir = string.Empty;
 
     public EngineParameters Parameters { get; private set; } = new();
 
@@ -54,7 +55,6 @@ public sealed class Engine : Object
         Parameters = applicationParameters.Clone();
         InitializeContext();
         PopulateDefaultParameters();
-        LoadConfigFiles();
         var resources = GetSubsystem<ResourceCache>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
@@ -410,7 +410,7 @@ public sealed class Engine : Object
             virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
     }
 
-    public string GetAppPreferencesDir() => Parameters.ApplicationPreferencesDir;
+    public string GetAppPreferencesDir() => _appPreferencesDir;
 
     public void Update()
     {
@@ -509,25 +509,30 @@ public sealed class Engine : Object
 
     private void ApplyInitializationParameters()
     {
-        IsHeadless = Parameters.Headless;
-        if (!Parameters.FrameLimiter)
-            MaxFps = 0;
-
-        if (string.IsNullOrEmpty(Parameters.ApplicationPreferencesDir))
+        _appPreferencesDir = Parameters.ApplicationPreferencesDir;
+        if (string.IsNullOrEmpty(_appPreferencesDir))
         {
             var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if (string.IsNullOrEmpty(localApplicationData))
                 localApplicationData = AppContext.BaseDirectory;
-            Parameters.ApplicationPreferencesDir = Path.Combine(
-                localApplicationData, Parameters.OrganizationName, Parameters.ApplicationName);
+            _appPreferencesDir = Path.Combine(
+                localApplicationData, Parameters.OrganizationName, Parameters.ApplicationName)
+                + Path.DirectorySeparatorChar;
         }
 
         Log.Initialize(Parameters, GetLogFileName(Parameters.LogName));
 
-        if (!string.IsNullOrEmpty(Parameters.ApplicationPreferencesDir))
-            Directory.CreateDirectory(Parameters.ApplicationPreferencesDir);
+        if (!string.IsNullOrEmpty(_appPreferencesDir))
+            Directory.CreateDirectory(_appPreferencesDir);
 
         InitializeVirtualFileSystem(enableResourceRootFile: true);
+
+        LoadConfigFiles();
+
+        IsHeadless = Parameters.Headless;
+        if (!Parameters.FrameLimiter)
+            MaxFps = 0;
+
         _timeOut = (long)Parameters.TimeOut * 1_000_000L;
     }
 
@@ -805,8 +810,8 @@ public sealed class Engine : Object
         return fileIdentifier.Scheme switch
         {
             "file" => fileIdentifier.FileName,
-            "conf" => Path.Combine(GetAppPreferencesDir(), fileIdentifier.FileName),
-            "" => Path.Combine(AppContext.BaseDirectory, fileIdentifier.FileName),
+            "conf" => GetAppPreferencesDir() + fileIdentifier.FileName,
+            "" => AppContext.BaseDirectory + fileIdentifier.FileName,
             _ => string.Empty
         };
     }
