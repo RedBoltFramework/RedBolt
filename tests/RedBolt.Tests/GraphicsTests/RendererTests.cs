@@ -153,6 +153,14 @@ public sealed class RendererTests
         Assert.Equal(1, Renderer.GetTextureAnisotropy());
         Assert.Equal(TextureFilterMode.Trilinear, Renderer.GetTextureFilterMode());
         Assert.Equal(MaterialQuality.Medium, Renderer.GetTextureQuality());
+
+        Renderer.SetTextureQuality((MaterialQuality)uint.MaxValue);
+        Assert.Equal(MaterialQuality.High, Renderer.GetTextureQuality());
+
+        Renderer.SetTextureQuality((MaterialQuality)uint.MinValue);
+        Assert.Equal(MaterialQuality.Low, Renderer.GetTextureQuality());
+
+        Renderer.SetTextureQuality(MaterialQuality.High);
     }
 
     [Fact]

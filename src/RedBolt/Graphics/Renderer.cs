@@ -233,7 +233,13 @@ public sealed class Renderer : Object
 
     public void SetTextureQuality(MaterialQuality quality)
     {
-        TextureQuality = quality;
+        quality = (MaterialQuality)Math.Clamp((uint)quality, (uint)MaterialQuality.Low, (uint)MaterialQuality.High);
+
+        if (quality != TextureQuality)
+        {
+            TextureQuality = quality;
+            ReloadTextures();
+        }
     }
 
     public MaterialQuality GetTextureQuality() => TextureQuality;
@@ -414,6 +420,19 @@ public sealed class Renderer : Object
     {
         while (_viewports.Count < count)
             _viewports.Add(null);
+    }
+
+    private void ReloadTextures()
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        if (cache is null)
+            return;
+
+        foreach (var texture in cache.GetResources<Texture2D>())
+            cache.ReloadResource(texture);
+
+        foreach (var texture in cache.GetResources<TextureCube>())
+            cache.ReloadResource(texture);
     }
 
     private void CreateGeometries()
