@@ -238,15 +238,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
 - [~] `ShaderVariation.h`
   - [~] `ShaderVariation : RawShader` — variation lifecycle, reload recreation, virtual shader-cache load/save, source preprocessing, backend target selection, translation, optimization, D3D compilation, Vulkan/direct-source bytecode selection, SPIR-V vertex-attribute reflection, bytecode creation, and diagnostics are ported; remaining class-shape and native shader-cache/dependency details remain TODO
-- [~] `ModelView.h`
-  - [~] `struct ModelVertexFormat` — editable vertex format conversion, merging, hashing, and equality are ported
-  - [~] `struct ModelVertex` — editable vertex access, semantic replacement, repair, pruning, and equality are ported
-  - [~] `struct ModelVertexMorph` — morph state and normalization are ported
-  - [~] `struct GeometryLODView` — primitive queries, triangle iteration, normalization, bounds, CPU normal recalculation, and C++-equivalent tangent generation are ported
-  - [~] `struct GeometryView` — LOD normalization, morph counting, and equality are ported
-  - [~] `struct BoneView` — transforms, offset-matrix recalculation, bounding-volume state, and equality are ported
-  - [~] `struct ModelMorphView` — editable morph metadata is ported
-  - [~] `ModelView : Object` — CPU-side geometry transforms, bounds, normals, bone-weight repair, metadata, and material references are ported; native Model import/export and GPU buffer composition remain TODO
+- [x] `ModelView.h`
+  - [x] `struct ModelVertexFormat` — editable vertex format conversion, merging, hashing, and equality are ported
+  - [x] `struct ModelVertex` — editable vertex access, semantic replacement, repair, pruning, and equality are ported
+  - [x] `struct ModelVertexMorph` — morph state and normalization are ported
+  - [x] `struct GeometryLODView` — primitive queries, triangle iteration, normalization, bounds, CPU normal recalculation, and C++-equivalent tangent generation are ported
+  - [x] `struct GeometryView` — LOD normalization, morph counting, and equality are ported
+  - [x] `struct BoneView` — transforms, offset-matrix recalculation, bounding-volume state, and equality are ported
+  - [x] `struct ModelMorphView` — editable morph metadata is ported
+  - [x] `ModelView : Object` — editable operations, native Model import/export, vertex/index buffer layout and composition, in-place buffer reuse, morph packing/ranges, metadata, geometry LODs, and skeleton conversion are ported
 - [~] `Model.h`
   - [~] `Model : ResourceWithMetadata` — geometry loading and resource storage are ported; serialized skeleton retention, geometry bone mappings, morph metadata/packed data, vertex/index buffer ownership, and their accessors/validation are now ported, while clone/save parity remains incomplete
 - [x] `AnimationTrack.h`

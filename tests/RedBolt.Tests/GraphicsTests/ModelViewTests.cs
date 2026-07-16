@@ -99,6 +99,59 @@ public sealed class ModelViewTests
         Assert.Equal(new Vector3f(1, 0, 0), lod.Vertices[0].GetTangent());
     }
 
+    [Fact]
+    public void Model_view_exports_and_imports_geometry_morphs_skeleton_and_metadata()
+    {
+        var format = new ModelVertexFormat
+        {
+            Position = VertexElementType.Vector3,
+            Normal = VertexElementType.Vector3
+        };
+        var lod = new GeometryLODView
+        {
+            PrimitiveType = PrimitiveType.TriangleList,
+            LodDistance = 4.0f,
+            VertexFormat = format
+        };
+        lod.Vertices.Add(CreateTangentVertex(0, 0, 0, 0, 0));
+        lod.Vertices.Add(CreateTangentVertex(1, 0, 0, 1, 0));
+        lod.Vertices.Add(CreateTangentVertex(0, 1, 0, 0, 1));
+        lod.Indices.AddRange([0, 1, 2]);
+        lod.Morphs[0] = [new ModelVertexMorph { Index = 1, PositionDelta = new Vector3f(0, 0, 2) }];
+
+        var view = new ModelView();
+        view.SetName("Models/RoundTrip.mdl");
+        view.SetGeometries([new GeometryView { Lods = [lod] }]);
+        view.SetMorphs([new ModelMorphView { Name = "Raise", InitialWeight = 0.25f }]);
+        view.SetBones([new BoneView
+        {
+            Name = "Root",
+            ParentIndex = uint.MaxValue,
+            Position = new Vector3f(1, 2, 3),
+            Rotation = Quaternion.IDENTITY,
+            Scale = Vector3f.ONE,
+            OffsetMatrix = Matrix3x4.IDENTITY,
+            ShapeFlags = BoneCollisionShape.Sphere,
+            BoundingSphereRadius = 2.0f
+        }]);
+        view.AddMetadata("Tag", new Variant("round-trip"));
+
+        var model = view.ExportModel(ModelViewExportFlag.Headless);
+        var imported = new ModelView();
+
+        Assert.True(imported.ImportModel(model));
+        Assert.Equal("Models/RoundTrip.mdl", imported.GetName());
+        Assert.Equal("round-trip", imported.GetMetadata("Tag").GetString());
+        Assert.Equal(4.0f, imported.GetGeometries()[0].Lods[0].LodDistance);
+        Assert.Equal([0u, 1u, 2u], imported.GetGeometries()[0].Lods[0].Indices);
+        Assert.Equal(new Vector3f(0, 0, 2), imported.GetGeometries()[0].Lods[0].Morphs[0][0].PositionDelta);
+        Assert.Equal("Raise", imported.GetMorphs()[0].Name);
+        Assert.Equal(0.25f, imported.GetMorphs()[0].InitialWeight);
+        Assert.Equal("Root", imported.GetBones()[0].Name);
+        Assert.Equal(uint.MaxValue, imported.GetBones()[0].ParentIndex);
+        Assert.Equal(2.0f, imported.GetBones()[0].BoundingSphereRadius);
+    }
+
     private static ModelVertex CreateVertex(float x, float y, float z)
     {
         var vertex = new ModelVertex();

@@ -1,4 +1,7 @@
 using System.Collections;
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -720,6 +723,31 @@ public enum ModelViewExportFlag
 /// <summary>Represents Model in editable form.</summary>
 public sealed class ModelView : Object
 {
+    private sealed class VertexBufferBuilder
+    {
+        public ModelVertexFormat VertexFormat = new();
+        public readonly List<GeometryLODView> VertexSources = [];
+        public uint NumVertices;
+
+        // TODO: Remove suboptimal copying of morphs
+        public readonly List<ModelVertexMorphVector> Morphs = [];
+        public uint MorphRangeStart;
+        public uint MorphRangeCount;
+
+        public VertexBuffer? Buffer;
+    }
+
+    private sealed class IndexBufferBuilder
+    {
+        public bool LargeIndices;
+        public readonly List<(GeometryLODView Geometry, uint BaseIndex)> IndexSources = [];
+        public uint NumIndices;
+
+        public IndexBuffer? Buffer;
+    }
+
+    private readonly record struct GeometryRange(uint VertexBuffer, uint StartVertex, uint StartIndex);
+
     private string _name = string.Empty;
     private List<GeometryView> _geometries = [];
     private List<BoneView> _bones = [];
@@ -742,22 +770,349 @@ public sealed class ModelView : Object
     /// <summary>Import and export from/to native Model.</summary>
     public bool ImportModel(Model? model)
     {
-        // TODO: port: ModelView::ImportModel requires native Model vertex-buffer, index-buffer, morph, and skeleton access.
-        return false;
+        Clear();
+
+        // Read name
+        _name = model!.Name;
+
+        // Read metadata
+        foreach (var key in model.GetMetadataKeys())
+            _metadata.Add(key, model.GetMetadata(key));
+
+        var modelVertexBuffers = model.GetVertexBuffers();
+        var modelGeometries = model.GetGeometries();
+        var modelMorphs = model.GetMorphs();
+
+        // Read morphs metadata
+        for (var morphIndex = 0; morphIndex < modelMorphs.Count; ++morphIndex)
+        {
+            _morphs.Add(new ModelMorphView
+            {
+                Name = modelMorphs[morphIndex].Name,
+                InitialWeight = modelMorphs[morphIndex].Weight
+            });
+        }
+
+        // Read geometries
+        for (var geometryIndex = 0; geometryIndex < modelGeometries.Count; ++geometryIndex)
+        {
+            var geometryView = new GeometryView();
+            var modelGeometryLods = modelGeometries[geometryIndex];
+            for (var lodIndex = 0; lodIndex < modelGeometryLods.Count; ++lodIndex)
+            {
+                var modelGeometry = modelGeometryLods[lodIndex]!;
+                var geometry = new GeometryLODView
+                {
+                    LodDistance = modelGeometry.GetLodDistance(),
+                    PrimitiveType = modelGeometry.GetPrimitiveType()
+                };
+
+                // Copy indices
+                if (modelGeometry.GetIndexBuffer() is { } modelIndexBuffer)
+                {
+                    var numIndices = modelGeometry.GetIndexCount();
+                    if (!CheckIndexCount(geometry.PrimitiveType, numIndices))
+                    {
+                        Log.Logger.LogError("Incorrect number of geometry indices");
+                        return false;
+                    }
+
+                    geometry.Indices.AddRange(modelIndexBuffer.GetUnpackedData(
+                        modelGeometry.GetIndexStart(), modelGeometry.GetIndexCount()));
+                }
+                else
+                {
+                    var numIndices = modelGeometry.GetVertexCount();
+                    if (!CheckIndexCount(geometry.PrimitiveType, numIndices))
+                    {
+                        Log.Logger.LogError("Incorrect number of geometry vertices");
+                        return false;
+                    }
+
+                    for (var i = 0u; i < numIndices; ++i)
+                        geometry.Indices.Add(i);
+                }
+
+                // Adjust indices
+                for (var i = 0; i < geometry.Indices.Count; ++i)
+                    geometry.Indices[i] -= modelGeometry.GetVertexStart();
+
+                // Copy vertices and read vertex format
+                var vertexStart = modelGeometry.GetVertexStart();
+                var vertexCount = modelGeometry.GetVertexCount();
+                for (var i = 0u; i < vertexCount; ++i)
+                    geometry.Vertices.Add(new ModelVertex());
+
+                foreach (var modelVertexBuffer in modelGeometry.GetVertexBuffers())
+                {
+                    if (modelVertexBuffer is null)
+                        continue;
+                    if (!CheckVertexElements(modelVertexBuffer.GetElements()))
+                    {
+                        Log.Logger.LogError("Unsupported vertex elements are present");
+                        return false;
+                    }
+
+                    var vertexBufferData = GetVertexBufferData(modelVertexBuffer, vertexStart, vertexCount);
+                    var vertexElements = modelVertexBuffer.GetElements();
+                    for (var i = 0; i < vertexBufferData.Count; ++i)
+                    {
+                        var vertex = geometry.Vertices[i];
+                        foreach (var element in vertexElements)
+                            vertex.ReplaceElement(vertexBufferData[i], element);
+                        geometry.Vertices[i] = vertex;
+                    }
+
+                    var vertexFormat = ParseVertexElements(vertexElements);
+                    geometry.VertexFormat.MergeFrom(vertexFormat);
+
+                    // Read morphs for this vertex buffer
+                    for (var morphIndex = 0; morphIndex < modelMorphs.Count; ++morphIndex)
+                    {
+                        var modelMorph = modelMorphs[morphIndex];
+                        var vertexBufferIndex = -1;
+                        for (var i = 0; i < modelVertexBuffers.Count; ++i)
+                        {
+                            if (ReferenceEquals(modelVertexBuffers[i], modelVertexBuffer))
+                            {
+                                vertexBufferIndex = i;
+                                break;
+                            }
+                        }
+                        if (vertexBufferIndex < 0 || !modelMorph.Buffers.TryGetValue((uint)vertexBufferIndex, out var vertexBufferMorph))
+                            continue;
+
+                        if (!geometry.Morphs.TryGetValue((uint)morphIndex, out var morphData))
+                            geometry.Morphs[(uint)morphIndex] = morphData = [];
+                        for (var i = 0u; i < vertexBufferMorph.VertexCount; ++i)
+                        {
+                            var vertexMorph = ReadVertexMorph(vertexBufferMorph, i);
+                            if (vertexMorph.Index >= vertexStart && vertexMorph.Index < vertexStart + vertexCount)
+                                morphData.Add(vertexMorph);
+                        }
+                    }
+                }
+
+                // Cleanup morphs
+                foreach (var morphIndex in geometry.Morphs.Keys.ToArray())
+                {
+                    var morphVector = geometry.Morphs[morphIndex];
+                    morphVector.Sort((lhs, rhs) => lhs.Index.CompareTo(rhs.Index));
+                    var newMorphVector = new ModelVertexMorphVector();
+                    foreach (var vertexMorph in morphVector)
+                    {
+                        if (newMorphVector.Count != 0 && newMorphVector[^1].Index == vertexMorph.Index)
+                        {
+                            var previous = newMorphVector[^1];
+                            if (vertexMorph.HasPosition())
+                                previous.PositionDelta = vertexMorph.PositionDelta;
+                            if (vertexMorph.HasNormal())
+                                previous.NormalDelta = vertexMorph.NormalDelta;
+                            if (vertexMorph.HasTangent())
+                                previous.TangentDelta = vertexMorph.TangentDelta;
+                            newMorphVector[^1] = previous;
+                            continue;
+                        }
+                        newMorphVector.Add(vertexMorph);
+                    }
+
+                    for (var i = 0; i < newMorphVector.Count; ++i)
+                    {
+                        var vertexMorph = newMorphVector[i];
+                        vertexMorph.Index -= vertexStart;
+                        newMorphVector[i] = vertexMorph;
+                    }
+
+                    if (newMorphVector.Count == 0)
+                        geometry.Morphs.Remove(morphIndex);
+                    else
+                        geometry.Morphs[morphIndex] = newMorphVector;
+                }
+
+                geometryView.Lods.Add(geometry);
+            }
+            _geometries.Add(geometryView);
+        }
+
+        // Read bones
+        var modelBones = model.GetSkeleton().GetBones();
+        var hasRootBone = false;
+        for (var boneIndex = 0; boneIndex < modelBones.Count; ++boneIndex)
+        {
+            var modelBone = modelBones[boneIndex];
+            var isRootBone = modelBone.ParentIndex == boneIndex;
+            if (isRootBone)
+            {
+                if (hasRootBone)
+                {
+                    Log.Logger.LogError("Multiple root bones are present");
+                    return false;
+                }
+                hasRootBone = true;
+            }
+
+            _bones.Add(new BoneView
+            {
+                Name = modelBone.Name,
+                ParentIndex = isRootBone ? uint.MaxValue : modelBone.ParentIndex,
+                Position = modelBone.InitialPosition,
+                Rotation = modelBone.InitialRotation,
+                Scale = modelBone.InitialScale,
+                OffsetMatrix = modelBone.OffsetMatrix,
+                ShapeFlags = modelBone.CollisionMask,
+                BoundingSphereRadius = modelBone.Radius,
+                LocalBoundingBox = modelBone.BoundingBox
+            });
+        }
+
+        return true;
     }
 
     /// <summary>Export into a native Model.</summary>
     public void ExportModel(Model model, ModelViewExportFlag flags = ModelViewExportFlag.None)
     {
-        // TODO: port: ModelView::ExportModel requires native Model buffer composition and morph/skeleton APIs.
-        ArgumentNullException.ThrowIfNull(model);
+        var inplace = (flags & ModelViewExportFlag.Inplace) != 0;
+
+        // Prepare buffer layout
+        var vertexBufferBuilders = new List<VertexBufferBuilder>();
+        var indexBufferBuilder = new IndexBufferBuilder();
+        var geometryRanges = new Dictionary<(int Geometry, int Lod), GeometryRange>();
+        CreateGeometryBufferBuilders(_geometries, vertexBufferBuilders, indexBufferBuilder, geometryRanges, inplace);
+
+        // Create buffers or connect to existing buffers
+        if (inplace)
+            ConnectToModelBuffers(model, vertexBufferBuilders, indexBufferBuilder);
+        else
+            AllocateNewBuffers(vertexBufferBuilders, indexBufferBuilder);
+
+        for (var i = 0; i < vertexBufferBuilders.Count; ++i)
+            vertexBufferBuilders[i].Buffer?.SetDebugName($"Model '{_name}' Vertex Buffer {i}");
+        indexBufferBuilder.Buffer?.SetDebugName($"Model '{_name}' Index Buffer");
+
+        // Copy data
+        foreach (var vertexBufferBuilder in vertexBufferBuilders)
+            ComposeVertexBufferData(vertexBufferBuilder);
+        ComposeIndexBufferData(indexBufferBuilder);
+
+        // Initialize morph info
+        foreach (var vertexBufferBuilder in vertexBufferBuilders)
+            CalculateMorphRange(vertexBufferBuilder);
+
+        // Extract vertex buffers info
+        var vertexBuffers = vertexBufferBuilders.Select(builder => builder.Buffer!).ToList();
+        var morphRangeStarts = vertexBufferBuilders.Select(builder => builder.MorphRangeStart).ToList();
+        var morphRangeCounts = vertexBufferBuilders.Select(builder => builder.MorphRangeCount).ToList();
+
+        // Inplace mode: preserve unused vertex buffers
+        if (inplace)
+        {
+            vertexBuffers = model.GetVertexBuffers().ToList();
+            while (morphRangeStarts.Count < vertexBuffers.Count)
+                morphRangeStarts.Add(0);
+            while (morphRangeCounts.Count < vertexBuffers.Count)
+                morphRangeCounts.Add(0);
+        }
+
+        // Create morphs
+        var morphs = _morphs.Select(morph => new ModelMorph
+        {
+            Name = morph.Name,
+            NameHash = new StringHash(morph.Name),
+            Weight = morph.InitialWeight
+        }).ToList();
+
+        for (var i = 0; i < vertexBufferBuilders.Count; ++i)
+        {
+            var builderMorphs = vertexBufferBuilders[i].Morphs;
+            while (morphs.Count < builderMorphs.Count)
+                morphs.Add(new ModelMorph());
+            for (var j = 0; j < builderMorphs.Count; ++j)
+            {
+                var vertexBufferMorph = CreateVertexBufferMorph(builderMorphs[j]);
+                if (vertexBufferMorph.VertexCount > 0)
+                    morphs[j].Buffers[(uint)i] = vertexBufferMorph;
+            }
+        }
+
+        // Create model
+        model.SetName(_name);
+        foreach (var pair in _metadata)
+            model.AddMetadata(pair.Key, pair.Value);
+        model.SetBoundingBox(CalculateBoundingBox());
+        model.SetVertexBuffers(vertexBuffers, morphRangeStarts, morphRangeCounts);
+        if (indexBufferBuilder.Buffer is not null)
+            model.SetIndexBuffers([indexBufferBuilder.Buffer]);
+        model.SetMorphs(morphs);
+
+        // Write geometries
+        var exportedGeometries = Enumerable.Range(0, _geometries.Count).Where(i => _geometries[i].Exported).ToList();
+        model.SetNumGeometries((uint)exportedGeometries.Count);
+        for (var geometryIndex = 0; geometryIndex < exportedGeometries.Count; ++geometryIndex)
+        {
+            var sourceGeometryIndex = exportedGeometries[geometryIndex];
+            var sourceGeometry = _geometries[sourceGeometryIndex];
+            if (sourceGeometry.Lods.Count == 0)
+                continue;
+
+            model.SetGeometryCenter((uint)geometryIndex, sourceGeometry.Lods[0].CalculateCenter());
+            model.SetNumGeometryLodLevels((uint)geometryIndex, (uint)sourceGeometry.Lods.Count);
+            for (var lodIndex = 0; lodIndex < sourceGeometry.Lods.Count; ++lodIndex)
+            {
+                var sourceGeometryLod = sourceGeometry.Lods[lodIndex];
+                var geometry = new Geometry();
+                geometry.SetLodDistance(sourceGeometryLod.LodDistance);
+                if (geometryRanges.TryGetValue((sourceGeometryIndex, lodIndex), out var range))
+                {
+                    geometry.SetNumVertexBuffers(1);
+                    geometry.SetVertexBuffer(0, vertexBufferBuilders[(int)range.VertexBuffer].Buffer);
+                    geometry.SetIndexBuffer(indexBufferBuilder.Buffer);
+                    geometry.SetDrawRange(sourceGeometryLod.PrimitiveType, range.StartIndex,
+                        (uint)sourceGeometryLod.Indices.Count, range.StartVertex,
+                        (uint)sourceGeometryLod.Vertices.Count);
+                }
+                model.SetGeometry((uint)geometryIndex, (uint)lodIndex, geometry);
+            }
+        }
+
+        // Write bones
+        var skeleton = new Skeleton();
+        skeleton.SetNumBones((uint)_bones.Count);
+        var skeletonBones = skeleton.GetModifiableBones();
+        for (var boneIndex = 0; boneIndex < _bones.Count; ++boneIndex)
+        {
+            var sourceBone = _bones[boneIndex];
+            var isRootBone = sourceBone.ParentIndex == uint.MaxValue;
+            var bone = skeletonBones[boneIndex];
+            bone.Name = sourceBone.Name;
+            bone.NameHash = new StringHash(sourceBone.Name);
+            bone.ParentIndex = isRootBone ? (uint)boneIndex : sourceBone.ParentIndex;
+            bone.InitialPosition = sourceBone.Position;
+            bone.InitialRotation = sourceBone.Rotation;
+            bone.InitialScale = sourceBone.Scale;
+            bone.OffsetMatrix = sourceBone.OffsetMatrix;
+            bone.CollisionMask = sourceBone.ShapeFlags;
+            bone.Radius = sourceBone.BoundingSphereRadius;
+            bone.BoundingBox = sourceBone.LocalBoundingBox;
+            if (isRootBone)
+                skeleton.SetRootBoneIndex((uint)boneIndex);
+        }
+        skeleton.UpdateBoneOrder();
+        model.SetSkeleton(skeleton);
     }
 
     /// <summary>Export into a new native Model.</summary>
     public Model ExportModel(ModelViewExportFlag flags = ModelViewExportFlag.None, string name = "")
     {
-        var model = new Model(string.IsNullOrEmpty(name) ? _name : name);
-        ExportModel(model, flags & ~ModelViewExportFlag.Inplace);
+        if ((flags & ModelViewExportFlag.Inplace) != 0)
+        {
+            Log.Logger.LogWarning("ModelViewExportFlag.Inplace is ignored: Model is not provided to ModelView.ExportModel");
+            flags &= ~ModelViewExportFlag.Inplace;
+        }
+
+        var model = new Model(string.Empty);
+        ExportModel(model, flags);
+        if (!string.IsNullOrEmpty(name))
+            model.SetName(name);
         return model;
     }
 
@@ -1010,6 +1365,394 @@ public sealed class ModelView : Object
                 bone.ResetBoundingVolume();
             _bones[i] = bone;
         }
+    }
+
+    /// <summary>Read vertex buffer data.</summary>
+    private static List<ModelVertex> GetVertexBufferData(VertexBuffer vertexBuffer, uint start, uint count)
+    {
+        var unpackedData = vertexBuffer.GetUnpackedData(start, count);
+        var shuffledData = new Vector4f[checked((int)(count * (uint)ModelVertex.VertexElements.Length))];
+        VertexBuffer.ShuffleUnpackedVertexData(count, unpackedData.ToArray(), vertexBuffer.GetElements(),
+            shuffledData, ModelVertex.VertexElements);
+
+        var result = new List<ModelVertex>(checked((int)count));
+        for (var i = 0; i < count; ++i)
+        {
+            var vertex = new ModelVertex();
+            var data = shuffledData.AsSpan(checked((int)(i * (uint)ModelVertex.VertexElements.Length)),
+                ModelVertex.VertexElements.Length);
+            vertex.Position = data[0];
+            vertex.Normal = data[1];
+            vertex.Tangent = data[2];
+            vertex.Binormal = data[3];
+            vertex.BlendIndices = data[4];
+            vertex.BlendWeights = data[5];
+            for (var j = 0; j < ModelVertex.MaxColors; ++j)
+                vertex.Color[j] = data[6 + j];
+            for (var j = 0; j < ModelVertex.MaxUVs; ++j)
+                vertex.Uv[j] = data[10 + j];
+            result.Add(vertex);
+        }
+        return result;
+    }
+
+    /// <summary>Parse vertex elements into simpler format.</summary>
+    private static ModelVertexFormat ParseVertexElements(IReadOnlyList<VertexElement> elements)
+    {
+        var result = new ModelVertexFormat();
+        foreach (var element in elements)
+        {
+            switch (element.Semantic)
+            {
+                case VertexElementSemantic.Position:
+                    result.Position = element.Type;
+                    break;
+                case VertexElementSemantic.Normal:
+                    result.Normal = element.Type;
+                    break;
+                case VertexElementSemantic.Binormal:
+                    result.Binormal = element.Type;
+                    break;
+                case VertexElementSemantic.Tangent:
+                    result.Tangent = element.Type;
+                    break;
+                case VertexElementSemantic.TexCoord when element.Index < ModelVertex.MaxUVs:
+                    result.Uv[element.Index] = element.Type;
+                    break;
+                case VertexElementSemantic.Color when element.Index < ModelVertex.MaxColors:
+                    result.Color[element.Index] = element.Type;
+                    break;
+                case VertexElementSemantic.BlendWeights:
+                    result.BlendWeights = element.Type;
+                    break;
+                case VertexElementSemantic.BlendIndices:
+                    result.BlendIndices = element.Type;
+                    break;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Check if vertex elements can be imported into ModelVertex.</summary>
+    private static bool CheckVertexElements(IReadOnlyList<VertexElement> elements)
+    {
+        foreach (var element in elements)
+        {
+            if (element.Semantic == VertexElementSemantic.ObjectIndex)
+                return false;
+            if (element.Semantic == VertexElementSemantic.Color)
+            {
+                if (element.Index >= ModelVertex.MaxColors)
+                    return false;
+            }
+            else if (element.Semantic == VertexElementSemantic.TexCoord)
+            {
+                if (element.Index >= ModelVertex.MaxUVs)
+                    return false;
+            }
+            else if (element.Index > 0)
+                return false;
+        }
+        return true;
+    }
+
+    private static bool CheckIndexCount(PrimitiveType primitiveType, uint count)
+    {
+        return primitiveType switch
+        {
+            PrimitiveType.TriangleList => count % 3 == 0,
+            PrimitiveType.LineList => count % 2 == 0,
+            PrimitiveType.PointList => true,
+            PrimitiveType.TriangleStrip or PrimitiveType.TriangleFan => count == 0 || count >= 3,
+            PrimitiveType.LineStrip => count == 0 || count >= 2,
+            _ => false
+        };
+    }
+
+    private static VertexBufferMorph CreateVertexBufferMorph(ModelVertexMorphVector morphVector)
+    {
+        morphVector = [.. morphVector];
+        ModelViewFunctions.NormalizeModelVertexMorphVector(morphVector);
+        var hasPosition = morphVector.Any(morph => morph.HasPosition());
+        var hasNormal = morphVector.Any(morph => morph.HasNormal());
+        var hasTangent = morphVector.Any(morph => morph.HasTangent());
+        var result = new VertexBufferMorph();
+        if (!hasPosition && !hasNormal && !hasTangent)
+            return result;
+
+        var stride = sizeof(uint);
+        if (hasPosition)
+        {
+            result.ElementMask |= VertexMask.Position;
+            stride += sizeof(float) * 3;
+        }
+        if (hasNormal)
+        {
+            result.ElementMask |= VertexMask.Normal;
+            stride += sizeof(float) * 3;
+        }
+        if (hasTangent)
+        {
+            result.ElementMask |= VertexMask.Tangent;
+            stride += sizeof(float) * 3;
+        }
+
+        result.VertexCount = (uint)morphVector.Count;
+        result.DataSize = checked(result.VertexCount * (uint)stride);
+        result.MorphData = new byte[checked((int)result.DataSize)];
+        for (var i = 0; i < morphVector.Count; ++i)
+        {
+            var source = morphVector[i];
+            var destination = result.MorphData.AsSpan(i * stride, stride);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination, source.Index);
+            var offset = sizeof(uint);
+            if (hasPosition)
+            {
+                MemoryMarshal.Write(destination[offset..], in source.PositionDelta);
+                offset += sizeof(float) * 3;
+            }
+            if (hasNormal)
+            {
+                MemoryMarshal.Write(destination[offset..], in source.NormalDelta);
+                offset += sizeof(float) * 3;
+            }
+            if (hasTangent)
+                MemoryMarshal.Write(destination[offset..], in source.TangentDelta);
+        }
+        return result;
+    }
+
+    private static ModelVertexMorph ReadVertexMorph(VertexBufferMorph vertexBufferMorph, uint index)
+    {
+        var stride = sizeof(uint);
+        if ((vertexBufferMorph.ElementMask & VertexMask.Position) != 0)
+            stride += sizeof(float) * 3;
+        if ((vertexBufferMorph.ElementMask & VertexMask.Normal) != 0)
+            stride += sizeof(float) * 3;
+        if ((vertexBufferMorph.ElementMask & VertexMask.Tangent) != 0)
+            stride += sizeof(float) * 3;
+
+        var source = vertexBufferMorph.MorphData.AsSpan(checked((int)index * stride), stride);
+        var result = new ModelVertexMorph { Index = BinaryPrimitives.ReadUInt32LittleEndian(source) };
+        var offset = sizeof(uint);
+        if ((vertexBufferMorph.ElementMask & VertexMask.Position) != 0)
+        {
+            result.PositionDelta = MemoryMarshal.Read<Vector3f>(source[offset..]);
+            offset += sizeof(float) * 3;
+        }
+        if ((vertexBufferMorph.ElementMask & VertexMask.Normal) != 0)
+        {
+            result.NormalDelta = MemoryMarshal.Read<Vector3f>(source[offset..]);
+            offset += sizeof(float) * 3;
+        }
+        if ((vertexBufferMorph.ElementMask & VertexMask.Tangent) != 0)
+            result.TangentDelta = MemoryMarshal.Read<Vector3f>(source[offset..]);
+        return result;
+    }
+
+    private static uint GetMatchingVertexBuffer(List<VertexBufferBuilder> vertexBuffers, ModelVertexFormat vertexFormat)
+    {
+        for (var i = 0; i < vertexBuffers.Count; ++i)
+        {
+            if (vertexBuffers[i].VertexFormat == vertexFormat)
+                return (uint)i;
+        }
+        vertexBuffers.Add(new VertexBufferBuilder { VertexFormat = vertexFormat });
+        return (uint)vertexBuffers.Count - 1;
+    }
+
+    private static void CreateGeometryBufferBuilders(IReadOnlyList<GeometryView> geometries,
+        List<VertexBufferBuilder> vertexBufferBuilders, IndexBufferBuilder indexBufferBuilder,
+        Dictionary<(int Geometry, int Lod), GeometryRange> geometryRanges, bool isInplace)
+    {
+        for (var geometryIndex = 0; geometryIndex < geometries.Count; ++geometryIndex)
+        {
+            var sourceGeometry = geometries[geometryIndex];
+            if (!sourceGeometry.Exported)
+                continue;
+            for (var lodIndex = 0; lodIndex < sourceGeometry.Lods.Count; ++lodIndex)
+            {
+                var sourceGeometryLod = sourceGeometry.Lods[lodIndex];
+                // Keep empty geometries when building inplace to have predictable vertex buffer layout.
+                if (!isInplace && (sourceGeometryLod.Vertices.Count == 0 || sourceGeometryLod.Indices.Count == 0))
+                    continue;
+
+                var vertexBufferIndex = GetMatchingVertexBuffer(vertexBufferBuilders, sourceGeometryLod.VertexFormat);
+                var vertexBufferBuilder = vertexBufferBuilders[(int)vertexBufferIndex];
+                var startVertex = vertexBufferBuilder.NumVertices;
+                var startIndex = indexBufferBuilder.NumIndices;
+                geometryRanges[(geometryIndex, lodIndex)] = new GeometryRange(vertexBufferIndex, startVertex, startIndex);
+                vertexBufferBuilder.VertexSources.Add(sourceGeometryLod);
+                indexBufferBuilder.IndexSources.Add((sourceGeometryLod, startVertex));
+                vertexBufferBuilder.NumVertices += (uint)sourceGeometryLod.Vertices.Count;
+                indexBufferBuilder.NumIndices += (uint)sourceGeometryLod.Indices.Count;
+                var largestIndex = sourceGeometryLod.Indices.Count == 0 ? 0u : sourceGeometryLod.Indices.Max();
+                indexBufferBuilder.LargeIndices |= startVertex + largestIndex >= 0xffff;
+
+                foreach (var pair in sourceGeometryLod.Morphs)
+                {
+                    while (vertexBufferBuilder.Morphs.Count <= pair.Key)
+                        vertexBufferBuilder.Morphs.Add([]);
+                    var vertexBufferMorph = vertexBufferBuilder.Morphs[(int)pair.Key];
+                    foreach (var sourceMorph in pair.Value)
+                    {
+                        var morph = sourceMorph;
+                        morph.Index += startVertex;
+                        vertexBufferMorph.Add(morph);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ConnectToModelBuffers(Model model, List<VertexBufferBuilder> vertexBufferBuilders,
+        IndexBufferBuilder indexBufferBuilder)
+    {
+        var originalVertexBuffers = model.GetVertexBuffers();
+        for (var i = 0; i < vertexBufferBuilders.Count; ++i)
+        {
+            var builder = vertexBufferBuilders[i];
+            var original = i < originalVertexBuffers.Count ? originalVertexBuffers[i] : null;
+            if (original is null)
+            {
+                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} is not found", i);
+                return;
+            }
+            if (original.GetVertexCount() < builder.NumVertices)
+            {
+                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} has only {Actual} vertices and {Required} are required",
+                    i, original.GetVertexCount(), builder.NumVertices);
+                return;
+            }
+            if (!builder.VertexFormat.ToVertexElements().SequenceEqual(original.GetElements()))
+            {
+                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} elements don't match", i);
+                return;
+            }
+            builder.Buffer = original;
+        }
+
+        var originalIndexBuffers = model.GetIndexBuffers();
+        var originalIndexBuffer = originalIndexBuffers.Count != 0 ? originalIndexBuffers[0] : null;
+        if (originalIndexBuffer is null)
+        {
+            Log.Logger.LogError("Cannot create Model inplace: Index Buffer is not found");
+            return;
+        }
+        if (originalIndexBuffer.GetIndexCount() < indexBufferBuilder.NumIndices)
+        {
+            Log.Logger.LogError("Cannot create Model inplace: Index Buffer has only {Actual} indices and {Required} are required",
+                originalIndexBuffer.GetIndexCount(), indexBufferBuilder.NumIndices);
+            return;
+        }
+        if (indexBufferBuilder.LargeIndices && originalIndexBuffer.GetIndexSize() != 4)
+        {
+            Log.Logger.LogError("Cannot create Model inplace: Index Buffer index size does not match");
+            return;
+        }
+        indexBufferBuilder.Buffer = originalIndexBuffer;
+    }
+
+    private static void AllocateNewBuffers(List<VertexBufferBuilder> vertexBufferBuilders,
+        IndexBufferBuilder indexBufferBuilder)
+    {
+        foreach (var builder in vertexBufferBuilders)
+        {
+            var vertexElements = builder.VertexFormat.ToVertexElements();
+            if (vertexElements.Count == 0)
+            {
+                Log.Logger.LogError("No vertex elements in vertex buffer");
+                continue;
+            }
+            var vertexBuffer = new VertexBuffer();
+            vertexBuffer.SetShadowed(true);
+            vertexBuffer.SetSize(builder.NumVertices, vertexElements);
+            builder.Buffer = vertexBuffer;
+        }
+
+        if (indexBufferBuilder.NumIndices != 0)
+        {
+            var indexBuffer = new IndexBuffer();
+            indexBuffer.SetShadowed(true);
+            indexBuffer.SetSize(indexBufferBuilder.NumIndices, indexBufferBuilder.LargeIndices);
+            indexBufferBuilder.Buffer = indexBuffer;
+        }
+    }
+
+    private static void CalculateMorphRange(VertexBufferBuilder builder)
+    {
+        var minMorphVertex = uint.MaxValue;
+        var maxMorphVertex = 0u;
+        foreach (var morphData in builder.Morphs)
+        {
+            foreach (var vertexMorph in morphData)
+            {
+                minMorphVertex = Math.Min(minMorphVertex, vertexMorph.Index);
+                maxMorphVertex = Math.Max(maxMorphVertex, vertexMorph.Index);
+            }
+        }
+        if (minMorphVertex <= maxMorphVertex)
+        {
+            builder.MorphRangeStart = minMorphVertex;
+            builder.MorphRangeCount = maxMorphVertex - minMorphVertex + 1;
+        }
+    }
+
+    private static void ComposeVertexBufferData(VertexBufferBuilder builder)
+    {
+        if (builder.NumVertices == 0)
+            return;
+        if (builder.Buffer is null)
+        {
+            Log.Logger.LogError("Cannot map VertexBuffer");
+            return;
+        }
+
+        var destinationElements = builder.Buffer.GetElements();
+        var unpacked = new Vector4f[checked((int)(builder.NumVertices * (uint)destinationElements.Count))];
+        var offset = 0u;
+        foreach (var geometry in builder.VertexSources)
+        {
+            foreach (var vertex in geometry.Vertices)
+            {
+                var data = vertex.Data();
+                for (var destinationIndex = 0; destinationIndex < destinationElements.Count; ++destinationIndex)
+                {
+                    var destinationElement = destinationElements[destinationIndex];
+                    for (var sourceIndex = 0; sourceIndex < ModelVertex.VertexElements.Length; ++sourceIndex)
+                    {
+                        var sourceElement = ModelVertex.VertexElements[sourceIndex];
+                        if (destinationElement.Semantic == sourceElement.Semantic && destinationElement.Index == sourceElement.Index)
+                        {
+                            unpacked[checked((int)(offset * (uint)destinationElements.Count + (uint)destinationIndex))] = data[sourceIndex];
+                            break;
+                        }
+                    }
+                }
+                ++offset;
+            }
+        }
+        builder.Buffer.SetUnpackedData(unpacked);
+    }
+
+    private static void ComposeIndexBufferData(IndexBufferBuilder builder)
+    {
+        if (builder.NumIndices == 0)
+            return;
+        if (builder.Buffer is null)
+        {
+            Log.Logger.LogError("Cannot map IndexBuffer");
+            return;
+        }
+
+        var indices = new uint[checked((int)builder.NumIndices)];
+        var offset = 0;
+        foreach (var (geometry, baseIndex) in builder.IndexSources)
+        {
+            foreach (var index in geometry.Indices)
+                indices[offset++] = index + baseIndex;
+        }
+        builder.Buffer.SetUnpackedData(indices);
     }
 
     /// <summary>Set contents.</summary>
