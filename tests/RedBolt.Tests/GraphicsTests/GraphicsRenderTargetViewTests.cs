@@ -64,12 +64,12 @@ public sealed class GraphicsRenderTargetViewTests
             var texture = new Texture2D("Textures/DirtyRenderTargetView");
             Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
 
-            var uploadedTexture = GetUploadedTexture(texture);
-            Assert.False(GetResolveDirty(uploadedTexture));
+            var rawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
+            Assert.False(rawTexture.GetResolveDirty());
 
             RenderTargetView.Texture(texture).MarkDirty();
 
-            Assert.True(GetResolveDirty(uploadedTexture));
+            Assert.True(rawTexture.GetResolveDirty());
         }, multiSample: 4);
     }
 
