@@ -26,19 +26,6 @@ public sealed class BatchStateCacheTests
         }
     }
 
-    private sealed class UICallback : UIBatchStateCacheCallback
-    {
-        public PipelineState? State;
-        public int CreateCount;
-
-        public override PipelineState? CreateUIBatchPipelineState(UIBatchStateKey key,
-            UIBatchStateCreateContext context)
-        {
-            ++CreateCount;
-            return State;
-        }
-    }
-
     private readonly HeadlessEngineFixture _fixture;
 
     public BatchStateCacheTests(HeadlessEngineFixture fixture)
@@ -87,25 +74,4 @@ public sealed class BatchStateCacheTests
         Assert.Equal(1, callback.PlaceholderCount);
     }
 
-    [Fact]
-    public void UI_cache_reuses_and_invalidates_state_like_cpp()
-    {
-        using var material = new Material("UI Cache Material");
-        using var technique = new Technique("UI Cache Technique");
-        var pass = technique.CreatePass("base");
-        using var state = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc());
-        var callback = new UICallback { State = state };
-        var cache = new UIBatchStateCache();
-        var key = new UIBatchStateKey(false, new PipelineStateOutputDesc(), material, pass,
-            BlendMode.Alpha, 3);
-
-        Assert.Same(state, cache.GetOrCreatePipelineState(key, default, callback));
-        Assert.Same(state, cache.GetPipelineState(key));
-        Assert.Equal(1, callback.CreateCount);
-
-        material.SetFillMode(FillMode.Wireframe);
-        Assert.Null(cache.GetPipelineState(key));
-        Assert.Same(state, cache.GetOrCreatePipelineState(key, default, callback));
-        Assert.Equal(2, callback.CreateCount);
-    }
 }

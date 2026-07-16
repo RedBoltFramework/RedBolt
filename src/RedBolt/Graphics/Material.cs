@@ -146,7 +146,7 @@ public sealed class Material : ResourceWithMetadata
             CombineHash(ref hash, nameHash.Value);
             CombineHash(ref hash, info.Texture.GetSRGB() ? 1u : 0u);
             CombineHash(ref hash, info.Texture.GetLinear() ? 1u : 0u);
-            CombineHash(ref hash, unchecked((uint)info.Texture.GetSamplerStateDesc().GetHashCode()));
+            CombineHash(ref hash, info.Texture.GetSamplerStateDesc().ToHash());
         }
         return Math.Max(1u, hash);
     }

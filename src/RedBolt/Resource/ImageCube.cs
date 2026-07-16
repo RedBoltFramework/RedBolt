@@ -180,11 +180,11 @@ public sealed class ImageCube : Resource
                 var offset = ProjectTexelOnCubeLevel(face, x, y, level); var distance = offset.Length;
                 if (distance <= 0) continue;
                 var weight = 1f / (distance * distance * distance);
-                result.AddScaled(new SphericalHarmonicsColor9(offset / distance, image.GetPixel(x, y).GammaToLinear()), weight);
+                result += new SphericalHarmonicsColor9(offset / distance, image.GetPixel(x, y).GammaToLinear()) * weight;
                 weightSum += weight;
             }
         }
-        if (weightSum > 0) result.Scale(4f * MathF.PI / weightSum);
+        if (weightSum > 0) result *= 4f * MathF.PI / weightSum;
         return result;
     }
 

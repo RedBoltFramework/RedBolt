@@ -281,17 +281,17 @@ public readonly record struct BatchStateLookupKey(
     uint DrawableHash,
     uint PixelLightHash,
     GeometryType GeometryType,
-    Geometry? Geometry,
-    Material? Material,
-    Pass? Pass);
+    Geometry Geometry,
+    Material Material,
+    Pass Pass);
 
 public readonly record struct BatchStateCreateKey(
     uint DrawableHash,
     uint PixelLightHash,
     GeometryType GeometryType,
-    Geometry? Geometry,
-    Material? Material,
-    Pass? Pass,
+    Geometry Geometry,
+    Material Material,
+    Pass Pass,
     Drawable? Drawable,
     LightProcessor? PixelLight,
     uint PixelLightIndex)
@@ -300,19 +300,6 @@ public readonly record struct BatchStateCreateKey(
 }
 
 public readonly record struct BatchStateCreateContext(Object? Pass, uint SubpassIndex, uint ShadowSplitIndex);
-
-public readonly record struct UIBatchStateKey(
-    bool LinearOutput,
-    PipelineStateOutputDesc OutputDesc,
-    Material? Material,
-    Pass? Pass,
-    BlendMode BlendMode,
-    uint SamplerStateHash);
-
-public readonly record struct UIBatchStateCreateContext(
-    VertexBuffer? VertexBuffer,
-    IndexBuffer? IndexBuffer,
-    SamplerStateDesc? DefaultSampler);
 
 /// <summary>
 /// ID of static pipeline state.
@@ -391,20 +378,6 @@ public abstract class BatchStateCacheCallback
     public abstract PipelineState? CreateBatchPipelineStatePlaceholder(
         uint vertexStride,
         PipelineStateOutputDesc outputDesc);
-}
-
-/// <summary>
-/// Pipeline state cache callback used to create actual pipeline state for UI batches.
-/// </summary>
-public abstract class UIBatchStateCacheCallback
-{
-    /// <summary>
-    /// Create pipeline state for given key.
-    /// Only attributes that contribute to pipeline state hashes are safe to use.
-    /// </summary>
-    public abstract PipelineState? CreateUIBatchPipelineState(
-        UIBatchStateKey key,
-        UIBatchStateCreateContext context);
 }
 
 /// <summary>

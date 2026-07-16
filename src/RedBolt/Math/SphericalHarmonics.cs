@@ -1,78 +1,101 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt;
 
-public readonly struct SphericalHarmonics9
+[InlineArray(9)]
+public struct SphericalHarmonicsFloat9
 {
-    public static readonly float[] Factors = [0.282095f, 0.488603f, 0.488603f, 0.488603f, 1.092548f, 1.092548f, 0.315392f, 1.092548f, 0.546274f];
-    public static readonly float[] Cosines = [1f, 2f / 3f, 2f / 3f, 2f / 3f, .25f, .25f, .25f, .25f, .25f];
-    public readonly float[] Values;
-    public SphericalHarmonics9(Vector3f d)
+    private float _element0;
+}
+
+[InlineArray(9)]
+public struct SphericalHarmonicsVector9
+{
+    private Vector3f _element0;
+}
+
+public struct SphericalHarmonics9
+{
+    public static ReadOnlySpan<float> Factors =>
+    [0.282095f, 0.488603f, 0.488603f, 0.488603f, 1.092548f, 1.092548f, 0.315392f, 1.092548f, 0.546274f];
+
+    public static ReadOnlySpan<float> Cosines =>
+    [1.0f, 2.0f / 3.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f];
+
+    public SphericalHarmonicsFloat9 Values;
+
+    public SphericalHarmonics9(Vector3f dir)
     {
-        Values = new float[9];
-        Values[0] = Factors[0]; Values[1] = Factors[1] * d.Y; Values[2] = Factors[2] * d.Z; Values[3] = Factors[3] * d.X;
-        Values[4] = Factors[4] * d.X * d.Y; Values[5] = Factors[5] * d.Y * d.Z; Values[6] = Factors[6] * (3 * d.Z * d.Z - 1);
-        Values[7] = Factors[7] * d.X * d.Z; Values[8] = Factors[8] * (d.X * d.X - d.Y * d.Y);
+        this = default;
+        var factors = Factors;
+        Values[0] = factors[0];
+        Values[1] = factors[1] * dir.Y;
+        Values[2] = factors[2] * dir.Z;
+        Values[3] = factors[3] * dir.X;
+        Values[4] = factors[4] * dir.X * dir.Y;
+        Values[5] = factors[5] * dir.Y * dir.Z;
+        Values[6] = factors[6] * (3.0f * dir.Z * dir.Z - 1.0f);
+        Values[7] = factors[7] * dir.X * dir.Z;
+        Values[8] = factors[8] * (dir.X * dir.X - dir.Y * dir.Y);
     }
+
+    public static SphericalHarmonics9 Zero => default;
 }
 
 public struct SphericalHarmonicsColor9
 {
-    public Vector3f[] Values = new Vector3f[9];
-
-    public SphericalHarmonicsColor9() { }
+    public SphericalHarmonicsVector9 Values;
 
     public SphericalHarmonicsColor9(Vector3f color)
     {
-        var factor = 1.0f / (SphericalHarmonics9.Cosines[0] * SphericalHarmonics9.Factors[0]);
-        Values[0] = color * factor;
+        this = default;
+        Values[0] = color * (1.0f / (SphericalHarmonics9.Cosines[0] * SphericalHarmonics9.Factors[0]));
     }
 
-    public SphericalHarmonicsColor9(Color color) : this(new Vector3f(color.R, color.G, color.B)) { }
-
-    public SphericalHarmonicsColor9(Vector3f direction, Color color)
+    public SphericalHarmonicsColor9(Color color) : this(color.ToVector3())
     {
-        var basis = new SphericalHarmonics9(direction); var rgb = new Vector3f(color.R, color.G, color.B);
-        for (var i = 0; i < 9; ++i) Values[i] = rgb * basis.Values[i];
     }
 
-    public SphericalHarmonicsColor9(Vector3f direction, Vector3f color)
+    public SphericalHarmonicsColor9(Vector3f dir, Vector3f color)
     {
-        var basis = new SphericalHarmonics9(direction);
-        for (var i = 0; i < 9; ++i) Values[i] = color * basis.Values[i];
+        this = default;
+        var sh = new SphericalHarmonics9(dir);
+        for (var i = 0; i < 9; ++i)
+            Values[i] = color * sh.Values[i];
     }
 
-    public Vector3f Evaluate(Vector3f direction)
+    public SphericalHarmonicsColor9(Vector3f dir, Color color) : this(dir, color.ToVector3())
     {
-        var basis = new SphericalHarmonics9(direction.NormalizedOrDefault()); var result = Vector3f.ZERO;
-        for (var i = 0; i < 9; ++i) result += Values[i] * (SphericalHarmonics9.Cosines[i] * basis.Values[i]);
+    }
+
+    public readonly Vector3f Evaluate(Vector3f dir)
+    {
+        var sh = new SphericalHarmonics9(dir.Normalized);
+        var result = Vector3f.Zero;
+        for (var i = 0; i < 9; ++i)
+            result += SphericalHarmonics9.Cosines[i] * sh.Values[i] * Values[i];
         return result;
     }
 
-    public Vector3f EvaluateAverage()
+    public readonly Vector3f EvaluateAverage() =>
+        SphericalHarmonics9.Cosines[0] * SphericalHarmonics9.Factors[0] * Values[0]
+        - SphericalHarmonics9.Cosines[6] * SphericalHarmonics9.Factors[6] * Values[6];
+
+    public static SphericalHarmonicsColor9 operator +(SphericalHarmonicsColor9 lhs, SphericalHarmonicsColor9 rhs)
     {
-        var result = Vector3f.ZERO;
-        result += SphericalHarmonics9.Cosines[0] * SphericalHarmonics9.Factors[0] * Values[0];
-        result -= SphericalHarmonics9.Cosines[6] * SphericalHarmonics9.Factors[6] * Values[6];
-        return result;
+        for (var i = 0; i < 9; ++i)
+            lhs.Values[i] += rhs.Values[i];
+        return lhs;
     }
 
-    public void Add(SphericalHarmonicsColor9 rhs) { for (var i = 0; i < 9; ++i) Values[i] += rhs.Values[i]; }
-
-    public void Multiply(float scale) { for (var i = 0; i < 9; ++i) Values[i] *= scale; }
-
-    public SphericalHarmonicsColor9 Scaled(float scale) { var result = Clone(); result.Multiply(scale); return result; }
-
-    public SphericalHarmonicsColor9 Clone()
+    public static SphericalHarmonicsColor9 operator *(SphericalHarmonicsColor9 lhs, float rhs)
     {
-        var result = new SphericalHarmonicsColor9();
-        for (var i = 0; i < 9; ++i) result.Values[i] = Values[i];
-        return result;
+        for (var i = 0; i < 9; ++i)
+            lhs.Values[i] *= rhs;
+        return lhs;
     }
 
-    // Retained for backward compatibility with existing C# callers:
-    // C++ equivalent: operator+=
-    public void AddScaled(SphericalHarmonicsColor9 value, float scale) { for (var i = 0; i < 9; ++i) Values[i] += value.Values[i] * scale; }
-    // C++ equivalent: operator*=
-    public void Scale(float scale) { Multiply(scale); }
+    public static SphericalHarmonicsColor9 Zero => default;
 }
 
 public struct SphericalHarmonicsDot9
@@ -85,96 +108,73 @@ public struct SphericalHarmonicsDot9
     public Vector4f Bb;
     public Vector4f C;
 
-    public SphericalHarmonicsDot9(SphericalHarmonicsColor9 harmonics)
+    public SphericalHarmonicsDot9(Vector3f color)
     {
-        var sh = harmonics.Clone();
+        this = default;
+        Ar.W = color.X;
+        Ag.W = color.Y;
+        Ab.W = color.Z;
+    }
+
+    public SphericalHarmonicsDot9(Color color) : this(color.ToVector3())
+    {
+    }
+
+    public SphericalHarmonicsDot9(SphericalHarmonicsColor9 sh)
+    {
+        this = default;
         for (var i = 0; i < 9; ++i)
             sh.Values[i] *= SphericalHarmonics9.Cosines[i] * SphericalHarmonics9.Factors[i];
-
         sh.Values[0] -= sh.Values[6];
         sh.Values[6] *= 3.0f;
-
         Ar = new Vector4f(sh.Values[3].X, sh.Values[1].X, sh.Values[2].X, sh.Values[0].X);
         Ag = new Vector4f(sh.Values[3].Y, sh.Values[1].Y, sh.Values[2].Y, sh.Values[0].Y);
         Ab = new Vector4f(sh.Values[3].Z, sh.Values[1].Z, sh.Values[2].Z, sh.Values[0].Z);
-
         Br = new Vector4f(sh.Values[4].X, sh.Values[5].X, sh.Values[6].X, sh.Values[7].X);
         Bg = new Vector4f(sh.Values[4].Y, sh.Values[5].Y, sh.Values[6].Y, sh.Values[7].Y);
         Bb = new Vector4f(sh.Values[4].Z, sh.Values[5].Z, sh.Values[6].Z, sh.Values[7].Z);
-
-        C = new Vector4f(sh.Values[8], 1.0f);
+        C = new Vector4f(sh.Values[8].X, sh.Values[8].Y, sh.Values[8].Z, 1.0f);
     }
 
-    public SphericalHarmonicsDot9(Vector3f color)
+    public readonly Vector3f Evaluate(Vector3f dir)
     {
-        Ar = new Vector4f(0.0f, 0.0f, 0.0f, color.X);
-        Ag = new Vector4f(0.0f, 0.0f, 0.0f, color.Y);
-        Ab = new Vector4f(0.0f, 0.0f, 0.0f, color.Z);
-        Br = default;
-        Bg = default;
-        Bb = default;
-        C = default;
+        var a = new Vector4f(dir.X, dir.Y, dir.Z, 1.0f);
+        var b = new Vector4f(dir.X * dir.Y, dir.Y * dir.Z, dir.Z * dir.Z, dir.Z * dir.X);
+        var c = dir.X * dir.X - dir.Y * dir.Y;
+        return new Vector3f(Dot(Ar, a) + Dot(Br, b), Dot(Ag, a) + Dot(Bg, b), Dot(Ab, a) + Dot(Bb, b))
+            + new Vector3f(C.X, C.Y, C.Z) * c;
     }
 
-    public SphericalHarmonicsDot9(Color color)
-        : this(color.ToVector3())
+    public readonly Vector3f EvaluateAverage() => new(Ar.W, Ag.W, Ab.W);
+
+    public static SphericalHarmonicsDot9 operator +(SphericalHarmonicsDot9 lhs, SphericalHarmonicsDot9 rhs)
     {
+        lhs.Ar += rhs.Ar; lhs.Ag += rhs.Ag; lhs.Ab += rhs.Ab;
+        lhs.Br += rhs.Br; lhs.Bg += rhs.Bg; lhs.Bb += rhs.Bb; lhs.C += rhs.C;
+        return lhs;
     }
 
-    public Vector3f Evaluate(Vector3f direction)
+    public static SphericalHarmonicsDot9 operator +(SphericalHarmonicsDot9 lhs, Vector3f rhs)
     {
-        var a = new Vector4f(direction, 1.0f);
-        var b = new Vector4f(direction.X * direction.Y, direction.Y * direction.Z, direction.Z * direction.Z, direction.Z * direction.X);
-        var c = direction.X * direction.X - direction.Y * direction.Y;
-
-        var result = new Vector3f(Ar.DotProduct(a), Ag.DotProduct(a), Ab.DotProduct(a));
-        result.X += Br.DotProduct(b);
-        result.Y += Bg.DotProduct(b);
-        result.Z += Bb.DotProduct(b);
-        result += C.ToVector3() * c;
-        return result;
+        lhs.Ar.W += rhs.X; lhs.Ag.W += rhs.Y; lhs.Ab.W += rhs.Z;
+        return lhs;
     }
 
-    public Vector3f EvaluateAverage() => new(Ar.W, Ag.W, Ab.W);
-
-    public SphericalHarmonicsDot9 Clone()
-        => this;
-
-    public void Add(SphericalHarmonicsDot9 value)
+    public static SphericalHarmonicsDot9 operator *(SphericalHarmonicsDot9 lhs, float rhs)
     {
-        Ar += value.Ar;
-        Ag += value.Ag;
-        Ab += value.Ab;
-        Br += value.Br;
-        Bg += value.Bg;
-        Bb += value.Bb;
-        C += value.C;
+        lhs.Ar *= rhs; lhs.Ag *= rhs; lhs.Ab *= rhs;
+        lhs.Br *= rhs; lhs.Bg *= rhs; lhs.Bb *= rhs; lhs.C *= rhs;
+        return lhs;
     }
 
-    public void Add(Vector3f value)
+    public readonly Color GetDebugColor()
     {
-        Ar.W += value.X;
-        Ag.W += value.Y;
-        Ab.W += value.Z;
+        var average = EvaluateAverage();
+        return new Color(average.X, average.Y, average.Z).LinearToGamma();
     }
 
-    public void Scale(float scale)
-    {
-        Ar *= scale;
-        Ag *= scale;
-        Ab *= scale;
-        Br *= scale;
-        Bg *= scale;
-        Bb *= scale;
-        C *= scale;
-    }
+    public static SphericalHarmonicsDot9 Zero => default;
 
-    public SphericalHarmonicsDot9 Scaled(float scale)
-    {
-        var result = this;
-        result.Scale(scale);
-        return result;
-    }
-
-    public Color GetDebugColor() => new Color(EvaluateAverage()).LinearToGamma();
+    private static float Dot(Vector4f lhs, Vector4f rhs) =>
+        lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W;
 }

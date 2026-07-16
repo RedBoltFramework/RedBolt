@@ -96,6 +96,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A2. Math — depends on Container
 
 - [x] `Vector2.h` / `Vector3.h` / `Vector4.h` / `Quaternion.h` / `MathDefs.h` — vector constructors, constants, free helpers, and quaternion zero constant reconciled; C++ compound-assignment operators use C#'s built-in compound-assignment lowering
+- [x] `SphericalHarmonics.h` — fixed-size coefficients, directional basis, color evaluation, packed dot representation, accumulation, scaling, and debug color match C++
 - [~] `Ray.h` — object-level ray intersections are ported; raw vertex/index-buffer overloads remain pending because the managed API has no equivalent raw `void*` surface
 
 ## [x] A3. Core — depends on Container, Math
@@ -147,7 +148,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct RenderDeviceCaps`
   - [x] `struct RenderDeviceStats`
   - [x] `struct VertexShaderAttribute`
-  - [x] `struct SamplerStateDesc`
+  - [x] `struct SamplerStateDesc` — field equality and deterministic C++ tuple-combine `ToHash` are ported
   - [x] `struct PipelineStateOutputDesc`
   - [x] `struct InputLayoutElementDesc`
   - [x] `struct InputLayoutDesc`
@@ -374,9 +375,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ShaderProgramCompositor : Object`
 - [x] `StaticPipelineStateCache.h` — descriptor value ownership, stable IDs, output-keyed pipeline creation, invalidation, and sparse per-output state storage match C++
   - [x] `StaticPipelineStateCache : Object`
-- [x] `BatchStateCache.h` — batch/UI lookup and creation keys, output invalidation, object-hash validation, atomic lazy invalidation, callback recreation, and placeholder caching match C++; the built-in default UI pipeline creator is excluded with the retained-mode UI subsystem
+- [x] `BatchStateCache.h` — batch lookup and creation keys, output invalidation, object-hash validation, atomic lazy invalidation, callback recreation, and placeholder caching match C++
   - [x] `BatchStateCache : NonCopyable`
-  - [x] `UIBatchStateCache : NonCopyable`
+  - [-] `UIBatchStateCache : NonCopyable` — **EXCLUDED** with the retained-mode rbfx UI subsystem
 - [ ] `PipelineStateBuilder.h`
   - [ ] `PipelineStateBuilder : Object, BatchStateCacheCallback`
 - [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++

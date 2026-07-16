@@ -298,7 +298,7 @@ public sealed class Zone : Drawable
 
     public Vector3f GetAmbientLighting() => _cachedAmbientLighting.Get();
 
-    public SphericalHarmonicsDot9 GetAmbientAndBackgroundLighting() => _cachedAmbientAndBackgroundLighting.Get().Clone();
+    public SphericalHarmonicsDot9 GetAmbientAndBackgroundLighting() => _cachedAmbientAndBackgroundLighting.Get();
 
     public void UpdateCachedData()
     {
@@ -321,10 +321,10 @@ public sealed class Zone : Drawable
         if (_cachedAmbientAndBackgroundLighting.IsInvalidated())
         {
             var sh = _zoneTexture is not null
-                ? _cachedTextureLighting.Get().Clone()
+                ? _cachedTextureLighting.Get()
                 : new SphericalHarmonicsDot9(FogColor.GammaToLinear());
-            sh.Scale(BackgroundBrightness);
-            sh.Add(GetAmbientLighting());
+            sh *= BackgroundBrightness;
+            sh += GetAmbientLighting();
             _cachedAmbientAndBackgroundLighting.Restore(sh);
         }
 

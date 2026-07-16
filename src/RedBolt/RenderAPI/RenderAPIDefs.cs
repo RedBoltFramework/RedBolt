@@ -488,6 +488,25 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
         return hash.ToHashCode();
     }
 
+    public uint ToHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, (uint)FilterMode);
+        CombineHash(ref hash, Anisotropy);
+        CombineHash(ref hash, ShadowCompare ? 1u : 0u);
+        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.U]);
+        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.V]);
+        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.W]);
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(MinLod)));
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(MaxLod)));
+        return hash;
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
+    }
+
     private static SamplerStateDesc Create(TextureFilterMode filterMode, TextureAddressMode addressMode)
     {
         var desc = new SamplerStateDesc
