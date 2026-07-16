@@ -1051,7 +1051,7 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
     /// <summary>
     /// Called in the beginning of the update to check if pipeline should be executed.
     /// </summary>
-    public abstract bool Define(Viewport viewport, Graphics graphics);
+    public abstract bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics);
 
     /// <summary>
     /// Called for defined pipelines before rendering. Frame info is only partially filled.

@@ -234,14 +234,14 @@ public sealed class RenderPipelineTests
         using var buffersReadySubscription = scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) => ++buffersReadyCalls);
         using var endRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) => ++endRenderCalls);
 
-        Assert.True(view.Define(viewport, _fixture.Graphics));
+        Assert.True(view.Define(null, viewport, _fixture.Graphics));
 
         view.Update(_fixture.Graphics);
         view.Render(_fixture.Graphics, MaterialQuality.High);
 
         Assert.Equal(1, trackingPass.UpdateCalls);
         Assert.Equal(1, trackingPass.RenderCalls);
-        Assert.Equal(new Vector2i(320, 200), view.GetFrameInfo().ViewportSize);
+        Assert.Equal(new Vector2i(1, 1), view.GetFrameInfo().ViewportSize);
         Assert.Equal(0u, view.GetStats().NumGeometries);
         Assert.Equal(1, beginUpdateCalls);
         Assert.Equal(1, endUpdateCalls);
@@ -268,14 +268,14 @@ public sealed class RenderPipelineTests
             var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
             var view = renderPipeline.Instantiate();
 
-            Assert.True(view.Define(viewport, _fixture.Graphics));
+            Assert.True(view.Define(null, viewport, _fixture.Graphics));
 
             view.Update(_fixture.Graphics);
             view.Render(_fixture.Graphics, MaterialQuality.High);
 
             Assert.True(capturePass.WasBufferPresent);
             Assert.Equal(TextureFormat.RGBA8, capturePass.CapturedFormat);
-            Assert.Equal(new Vector2i(320, 200), capturePass.CapturedSize);
+            Assert.Equal(new Vector2i(1, 1), capturePass.CapturedSize);
         }
         finally
         {

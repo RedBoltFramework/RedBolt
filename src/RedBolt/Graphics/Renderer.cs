@@ -320,49 +320,20 @@ public sealed class Renderer : Object
             }
         }
 
-        Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
-
-        foreach (var (renderSurface, viewport) in _queuedViewports)
-        {
-            if (renderSurface is not null)
-            {
-                graphics.RenderViewport(renderSurface, viewport, TextureQuality);
-                renderSurface.ResetUpdateQueued();
-            }
-            else
-                graphics.RenderViewport(viewport, TextureQuality);
-        }
-        _queuedViewports.Clear();
-
         _updatedOctrees.Clear();
         for (var i = _viewports.Count - 1; i >= 0; --i)
-        {
-            var viewport = _viewports[i];
-            if (viewport is null)
-                continue;
+            QueueViewport(_backbufferSurface, _viewports[i]);
 
-            var renderPipelineView = viewport.GetRenderPipelineView();
-            if (renderPipelineView is null)
-            {
-                viewport.AllocateView();
-                renderPipelineView = viewport.GetRenderPipelineView();
-            }
-            if (renderPipelineView is null)
-                continue;
+        var numMainViewports = _queuedViewports.Count;
+        for (var i = 0; i < numMainViewports; ++i)
+            UpdateQueuedViewport(i, graphics);
 
-            var octree = viewport.Scene?.Root.GetComponent<Octree>();
-            if (octree is not null && _updatedOctrees.Add(octree))
-            {
-                octree.Update(Context.GetSubsystem<Time>()?.TimeStep ?? 0.0f);
-                octree.SetLocked(true);
-            }
+        Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
 
-            if (!renderPipelineView.Define(viewport, graphics))
-                continue;
+        for (var i = numMainViewports; i < _queuedViewports.Count; ++i)
+            UpdateQueuedViewport(i, graphics);
 
-            _renderPipelineViews.Add(renderPipelineView);
-            renderPipelineView.Update(graphics);
-        }
+        _queuedViewports.Clear();
 
         var hasBackbufferViews = false;
         foreach (var renderPipelineView in _renderPipelineViews)
@@ -393,6 +364,36 @@ public sealed class Renderer : Object
         graphics.PresentFrame(beforePresent);
 
         Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
+    }
+
+    private void UpdateQueuedViewport(int index, Graphics graphics)
+    {
+        var (renderTarget, viewport) = _queuedViewports[index];
+
+        var renderPipelineView = viewport.GetRenderPipelineView();
+        if (renderPipelineView is null)
+        {
+            viewport.AllocateView();
+            renderPipelineView = viewport.GetRenderPipelineView();
+        }
+        if (renderPipelineView is null || !renderPipelineView.Define(renderTarget, viewport, graphics))
+            return;
+
+        _renderPipelineViews.Add(renderPipelineView);
+
+        var octree = viewport.Scene?.Root.GetComponent<Octree>();
+        if (octree is not null && _updatedOctrees.Add(octree))
+        {
+            _frameInfo.Camera = viewport.Camera;
+            _frameInfo.ViewportSize = viewport.Rect.Size;
+            if (_frameInfo.ViewportSize == Vector2i.Zero)
+                _frameInfo.ViewportSize = new Vector2i(graphics.Width, graphics.Height);
+            octree.Update(Context.GetSubsystem<Time>()?.TimeStep ?? 0.0f);
+            octree.SetLocked(true);
+        }
+
+        renderPipelineView.Update(graphics);
+        renderTarget?.ResetUpdateQueued();
     }
 
     public void DrawDebugGeometry(bool depthTest)

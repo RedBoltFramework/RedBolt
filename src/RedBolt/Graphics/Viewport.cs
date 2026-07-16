@@ -83,12 +83,12 @@ public sealed class Viewport : Object
             return new IntRect(Vector2i.Zero, renderTargetSize);
 
         var rect = new IntRect(
-            Math.Clamp(Rect.Left, 0, renderTargetSize.X - 1),
-            Math.Clamp(Rect.Top, 0, renderTargetSize.Y - 1),
+            Math.Min(Math.Max(Rect.Left, 0), renderTargetSize.X - 1),
+            Math.Min(Math.Max(Rect.Top, 0), renderTargetSize.Y - 1),
             0,
             0);
-        rect.Right = Math.Clamp(Rect.Right, rect.Left + 1, renderTargetSize.X);
-        rect.Bottom = Math.Clamp(Rect.Bottom, rect.Top + 1, renderTargetSize.Y);
+        rect.Right = Math.Min(Math.Max(Rect.Right, rect.Left + 1), renderTargetSize.X);
+        rect.Bottom = Math.Min(Math.Max(Rect.Bottom, rect.Top + 1), renderTargetSize.Y);
 
         if (isOpenGl && renderTarget is not null && compensateRenderTargetFlip)
         {

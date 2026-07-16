@@ -359,7 +359,7 @@ public class RenderPipeline : Component
 
         public override bool IsLinearColorSpace => _renderBufferManager.IsLinearColorSpace();
 
-        public override bool Define(Viewport viewport, Graphics graphics)
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
         {
             ArgumentNullException.ThrowIfNull(viewport);
             ArgumentNullException.ThrowIfNull(graphics);
@@ -370,9 +370,7 @@ public class RenderPipeline : Component
             this._viewport = viewport;
             SyncFromPipeline();
 
-            var viewportRect = viewport.Rect != IntRect.Zero
-                ? viewport.Rect
-                : new IntRect(0, 0, graphics.Width, graphics.Height);
+            var viewportRect = viewport.GetEffectiveRect(renderTarget);
 
             var engineTime = _renderPipeline.GetSubsystem<Time>();
             _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
@@ -380,7 +378,27 @@ public class RenderPipeline : Component
             _frameInfo.Viewport = viewport;
             _frameInfo.ViewportRect = viewportRect;
             _frameInfo.ViewportSize = viewportRect.Size;
-            _frameInfo.RenderTarget = graphics.GetSwapChainOutputTarget();
+            var colorTexture = renderTarget?.GetParentTexture();
+            var depthSurface = renderTarget?.GetLinkedDepthStencil();
+            var depthTexture = depthSurface?.GetParentTexture();
+            _frameInfo.RenderTarget = colorTexture is not null
+                ? new RenderOutputTargetInfo(
+                    renderTarget!.GetView(),
+                    new IntRect(0, 0, renderTarget.GetWidth(), renderTarget.GetHeight()),
+                    colorTexture.Format,
+                    depthSurface?.GetView(),
+                    depthTexture?.Format ?? TextureFormat.Unknown,
+                    renderTarget.GetMultiSample(),
+                    colorTexture,
+                    depthTexture,
+                    colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear
+                        or TextureFilterMode.Anisotropic,
+                    colorTexture.GetLinear() || colorTexture.GetSRGB()
+                        || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
+                    TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
+                    depthTexture is not null,
+                    depthTexture?.Format == TextureFormat.Depth24Stencil8)
+                : null;
             _frameInfo.Cameras[0] = viewport.Camera;
             _frameInfo.Cameras[1] = viewport.RightEye;
 
