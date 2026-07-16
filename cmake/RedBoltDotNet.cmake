@@ -123,6 +123,17 @@ function(redbolt_write_last_props)
     string(REPLACE "\\" "/" sharpcpp_root "${sharpcpp_root}")
     string(REPLACE "\\" "/" sharpcpp_compat_props_file "${sharpcpp_compat_props_file}")
 
+    set(managed_define_constants "$(DefineConstants)")
+    if(D3D11_SUPPORTED)
+        string(APPEND managed_define_constants ";REDBOLT_D3D11_SUPPORTED")
+    endif()
+    if(D3D12_SUPPORTED)
+        string(APPEND managed_define_constants ";REDBOLT_D3D12_SUPPORTED")
+    endif()
+    if(VULKAN_SUPPORTED)
+        string(APPEND managed_define_constants ";REDBOLT_VULKAN_SUPPORTED")
+    endif()
+
     set(content "<Project>\n")
     if(NOT sharpcpp_compat_props_file STREQUAL "")
         string(APPEND content
@@ -134,6 +145,7 @@ function(redbolt_write_last_props)
 
     string(APPEND content
         "  <PropertyGroup Condition=\"'$(Configuration)' == ''\">\n"
+        "    <DefineConstants>${managed_define_constants}</DefineConstants>\n"
         "    <RedBoltCMakeBuildDir>${cmake_build_dir}</RedBoltCMakeBuildDir>\n"
         "    <RedBoltOutputDir>${output_root}/${default_configuration}</RedBoltOutputDir>\n"
         "    <RedBoltIntermediateRoot>${intermediate_root}/${default_configuration}</RedBoltIntermediateRoot>\n"
@@ -146,6 +158,7 @@ function(redbolt_write_last_props)
     foreach(configuration IN LISTS configurations)
         string(APPEND content
             "  <PropertyGroup Condition=\"'$(Configuration)' == '${configuration}'\">\n"
+            "    <DefineConstants>${managed_define_constants}</DefineConstants>\n"
             "    <RedBoltCMakeBuildDir>${cmake_build_dir}</RedBoltCMakeBuildDir>\n"
             "    <RedBoltOutputDir>${output_root}/${configuration}</RedBoltOutputDir>\n"
             "    <RedBoltIntermediateRoot>${intermediate_root}/${configuration}</RedBoltIntermediateRoot>\n"

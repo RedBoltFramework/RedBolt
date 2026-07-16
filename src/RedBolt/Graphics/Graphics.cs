@@ -3528,9 +3528,11 @@ layout(std140) uniform Material
         var usesAmbient = PassUsesAmbient(pass);
         var usesLighting = PassUsesLighting(pass);
         var passDefines = stage == ShaderStage.Vertex ? pass.GetEffectiveVertexShaderDefines() : pass.GetEffectivePixelShaderDefines();
+        var textureDefines = ComposeTextureDefines(material,
+            stage == ShaderStage.Vertex ? pass.VertexTextureDefines : pass.PixelTextureDefines);
         var key = new ShaderDefinesKey(
             vertexBuffer.GetElementMask(),
-            GetMaterialTextureMask(material),
+            textureDefines,
             passDefines,
             usesAmbient,
             usesLighting,
@@ -3571,10 +3573,8 @@ layout(std140) uniform Material
         if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Color) != 0)
             defines.Add("URHO3D_VERTEX_HAS_COLOR");
 
-        AddTextureDefine(defines, material.GetTexture(AlbedoTextureSlot), "ALBEDO");
-        AddTextureDefine(defines, material.GetTexture(NormalTextureSlot), "NORMAL");
-        AddTextureDefine(defines, material.GetTexture(PropertiesTextureSlot), "PROPERTIES");
-        AddTextureDefine(defines, material.GetTexture(EmissionTextureSlot), "EMISSION");
+        if (!string.IsNullOrEmpty(textureDefines))
+            defines.AddRange(textureDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
         if (!string.IsNullOrWhiteSpace(passDefines))
             defines.AddRange(passDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
@@ -3592,24 +3592,20 @@ layout(std140) uniform Material
         return cachedDefines;
     }
 
-    private static byte GetMaterialTextureMask(Material material)
+    private static string ComposeTextureDefines(Material material, IReadOnlyList<string> textureNames)
     {
-        byte mask = 0;
-        if (material.GetTexture(AlbedoTextureSlot) is not null)
-            mask |= 1 << 0;
-        if (material.GetTexture(NormalTextureSlot) is not null)
-            mask |= 1 << 1;
-        if (material.GetTexture(PropertiesTextureSlot) is not null)
-            mask |= 1 << 2;
-        if (material.GetTexture(EmissionTextureSlot) is not null)
-            mask |= 1 << 3;
-        return mask;
-    }
+        var defines = new List<string>(textureNames.Count);
+        foreach (var textureName in textureNames)
+        {
+            if (material.GetTexture(textureName) is not { } texture)
+                continue;
 
-    private static void AddTextureDefine(ICollection<string> defines, Texture? texture, string name)
-    {
-        if (texture is not null)
-            defines.Add($"URHO3D_TEXTURE_{name}=1");
+            var hint = (texture.GetLinear() ? 1 : 0) + (texture.GetSRGB() ? 1 : 0);
+            if (hint > 1)
+                Log.Logger.LogWarning("Texture {Material} cannot be both sRGB and Linear", material.GetName());
+            defines.Add($"URHO3D_TEXTURE_{textureName.ToUpperInvariant()}={Math.Min(1, hint) + 1}");
+        }
+        return string.Join(' ', defines);
     }
 
     private static Pass? GetFirstOutlinePass(Technique technique)
@@ -4464,7 +4460,7 @@ layout(std140) uniform Material
         global::RedBolt.Bindings.Diligent.TextureFormat DepthFormat);
     private readonly record struct ShaderDefinesKey(
         uint ElementMask,
-        byte TextureMask,
+        string TextureDefines,
         string PassDefines,
         bool UsesAmbient,
         bool UsesLighting,

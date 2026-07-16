@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
@@ -171,75 +172,116 @@ public class RawTexture : DeviceObject
         return true;
     }
 
-    // TODO: port - C++ code:
-    // bool RawTexture::CreateFromD3D11Texture2D(void* d3d11Texture2D, TextureFormat format, int msaaLevel)
-    // {
-    // #if D3D11_SUPPORTED
-    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::D3D11)
-    //     {
-    //         auto deviceD3D11 = static_cast<Diligent::IRenderDeviceD3D11*>(renderDevice_->GetRenderDevice());
-    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
-    //         deviceD3D11->CreateTexture2DFromD3DResource(
-    //             reinterpret_cast<ID3D11Texture2D*>(d3d11Texture2D), Diligent::RESOURCE_STATE_UNKNOWN, &texture);
-    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing ID3D11Texture2D pointer"); return false; }
-    //         return CreateFromHandle(texture, format, msaaLevel);
-    //     }
-    // #endif
-    //     URHO3D_ASSERT(false, "RawTexture::CreateFromD3D11Texture2D is not supported on this platform");
-    //     return false;
-    // }
-    public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel) => false;
+    public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel)
+    {
+#if REDBOLT_D3D11_SUPPORTED
+        var renderDevice = GetRenderDevice();
+        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+        if (renderDevice?.GetBackend() == RenderBackend.D3D11 && nativeDevice is { IsNull: false })
+        {
+            var deviceD3D11 = IRenderDeviceD3D11.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            deviceD3D11.CreateTexture2DFromD3DResource(
+                d3d11Texture2D, ResourceState.ResourceStateUnknown, out var texture);
+            if (texture is null || texture.IsNull)
+            {
+                Log.Logger.LogError("Failed to create texture from existing ID3D11Texture2D pointer");
+                return false;
+            }
 
-    // TODO: port - C++ code:
-    // bool RawTexture::CreateFromD3D12Resource(void* d3d12Resource, TextureFormat format, int msaaLevel)
-    // {
-    // #if D3D12_SUPPORTED
-    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::D3D12)
-    //     {
-    //         auto deviceD3D12 = static_cast<Diligent::IRenderDeviceD3D12*>(renderDevice_->GetRenderDevice());
-    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
-    //         deviceD3D12->CreateTextureFromD3DResource(
-    //             reinterpret_cast<ID3D12Resource*>(d3d12Resource), Diligent::RESOURCE_STATE_UNKNOWN, &texture);
-    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing ID3D12Resource pointer"); return false; }
-    //         return CreateFromHandle(texture, format, msaaLevel);
-    //     }
-    // #endif
-    //     URHO3D_ASSERT(false, "RawTexture::CreateFromD3D12Resource is not supported on this platform");
-    //     return false;
-    // }
-    public bool CreateFromD3D12Resource(nint d3d12Resource, TextureFormat format, int msaaLevel) => false;
+            try
+            {
+                return CreateFromHandle(texture, format, msaaLevel);
+            }
+            finally
+            {
+                Release(texture);
+            }
+        }
+#endif
+        return false;
+    }
 
-    // TODO: port - C++ code:
-    // bool RawTexture::CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams& params)
-    // {
-    // #if VULKAN_SUPPORTED
-    //     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::Vulkan)
-    //     {
-    //         Diligent::TextureDesc textureDesc;
-    //         textureDesc.Name = "Texture from external resource";
-    //         textureDesc.Type = textureTypeToDimensions[params.type_];
-    //         textureDesc.Usage = Diligent::USAGE_DEFAULT;
-    //         textureDesc.Format = params.format_;
-    //         textureDesc.Width = params.size_.x_;
-    //         textureDesc.Height = params.size_.y_;
-    //         if (params.type_ == TextureType::Texture3D) textureDesc.Depth = params.size_.z_;
-    //         else textureDesc.ArraySize = params.arraySize_;
-    //         if (params.flags_.Test(TextureFlag::BindRenderTarget)) textureDesc.BindFlags |= Diligent::BIND_RENDER_TARGET;
-    //         if (params.flags_.Test(TextureFlag::BindDepthStencil)) textureDesc.BindFlags |= Diligent::BIND_DEPTH_STENCIL;
-    //         if (params.flags_.Test(TextureFlag::BindUnorderedAccess)) textureDesc.BindFlags |= Diligent::BIND_UNORDERED_ACCESS;
-    //         textureDesc.MipLevels = params.numLevels_;
-    //         textureDesc.SampleCount = params.multiSample_;
-    //         auto deviceVk = static_cast<Diligent::IRenderDeviceVk*>(renderDevice_->GetRenderDevice());
-    //         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
-    //         deviceVk->CreateTextureFromVulkanImage((VkImage)vkImage, textureDesc, Diligent::RESOURCE_STATE_UNKNOWN, &texture);
-    //         if (!texture) { URHO3D_LOGERROR("Failed to create texture from existing VkImage pointer"); return false; }
-    //         return CreateFromHandle(texture, params.format_, params.multiSample_);
-    //     }
-    // #endif
-    //     URHO3D_ASSERT(false, "RawTexture::CreateFromVulkanImage is not supported on this platform");
-    //     return false;
-    // }
-    public bool CreateFromVulkanImage(ulong vkImage, RawTextureParams parameters) => false;
+    public bool CreateFromD3D12Resource(nint d3d12Resource, TextureFormat format, int msaaLevel)
+    {
+#if REDBOLT_D3D12_SUPPORTED
+        var renderDevice = GetRenderDevice();
+        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+        if (renderDevice?.GetBackend() == RenderBackend.D3D12 && nativeDevice is { IsNull: false })
+        {
+            var deviceD3D12 = IRenderDeviceD3D12.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            deviceD3D12.CreateTextureFromD3DResource(
+                d3d12Resource, ResourceState.ResourceStateUnknown, out var texture);
+            if (texture is null || texture.IsNull)
+            {
+                Log.Logger.LogError("Failed to create texture from existing ID3D12Resource pointer");
+                return false;
+            }
+
+            try
+            {
+                return CreateFromHandle(texture, format, msaaLevel);
+            }
+            finally
+            {
+                Release(texture);
+            }
+        }
+#endif
+        return false;
+    }
+
+    public bool CreateFromVulkanImage(ulong vkImage, RawTextureParams parameters)
+    {
+#if REDBOLT_VULKAN_SUPPORTED
+        var renderDevice = GetRenderDevice();
+        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+        if (renderDevice?.GetBackend() == RenderBackend.Vulkan && nativeDevice is { IsNull: false })
+        {
+            using var nativeName = new CString("Texture from external resource");
+            using var textureDesc = new TextureDesc
+            {
+                Name = nativeName.Pointer,
+                Type = GetResourceDimension(parameters.Type),
+                Usage = Usage.UsageDefault,
+                Format = Graphics.MapTextureFormat(parameters.Format, parameters.SRGB),
+                Width = checked((uint)parameters.Size.X),
+                Height = checked((uint)parameters.Size.Y),
+                MipLevels = parameters.NumLevels,
+                SampleCount = parameters.MultiSample
+            };
+            if (parameters.Type == TextureType.Texture3D)
+                textureDesc.Depth = checked((uint)parameters.Size.Z);
+            else
+                textureDesc.ArraySize = parameters.ArraySize;
+
+            if ((parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget)
+                textureDesc.BindFlags |= BindFlags.BindRenderTarget;
+            if ((parameters.Flags & TextureFlag.BindDepthStencil) == TextureFlag.BindDepthStencil)
+                textureDesc.BindFlags |= BindFlags.BindDepthStencil;
+            if ((parameters.Flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
+                textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
+
+            var deviceVk = IRenderDeviceVk.CreateManagedWrapper(nativeDevice.Handle, ownsHandle: false);
+            deviceVk.CreateTextureFromVulkanImage(
+                (nint)vkImage, textureDesc, ResourceState.ResourceStateUnknown, out var texture);
+            if (texture is null || texture.IsNull)
+            {
+                Log.Logger.LogError("Failed to create texture from existing VkImage pointer");
+                return false;
+            }
+
+            try
+            {
+                return CreateFromHandle(texture, parameters.Format, checked((int)parameters.MultiSample));
+            }
+            finally
+            {
+                Release(texture);
+            }
+        }
+#endif
+        return false;
+    }
 
     public bool CreateFromGLTexture(uint handle, TextureType type, TextureFlag flags, TextureFormat format,
         uint arraySize, int msaaLevel)

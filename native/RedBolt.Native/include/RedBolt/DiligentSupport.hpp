@@ -10,6 +10,16 @@
 #include <RenderDeviceGL.h>
 #include <ShaderGL.h>
 
+#if D3D11_SUPPORTED
+#include <RenderDeviceD3D11.h>
+#endif
+#if D3D12_SUPPORTED
+#include <RenderDeviceD3D12.h>
+#endif
+#if VULKAN_SUPPORTED
+#include <RenderDeviceVk.h>
+#endif
+
 namespace Diligent
 {
 
