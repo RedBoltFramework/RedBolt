@@ -92,7 +92,7 @@ public sealed class EngineTests
     }
 
     [Fact]
-    public void Exit_keeps_graphics_available_for_screenshot_on_exit()
+    public void Exit_closes_graphics_when_screenshot_on_exit_is_configured()
     {
         using var engine = new EngineScope(new Engine(), new EngineParameters
         {
@@ -108,7 +108,7 @@ public sealed class EngineTests
 
         engine.Value.Exit();
 
-        Assert.True(graphics.IsInitialized);
+        Assert.False(graphics.IsInitialized);
     }
 
     [Fact]

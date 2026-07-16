@@ -13,6 +13,7 @@ public sealed class Engine : Object
     private long _timeOut;
     private bool _audioPaused;
     private bool _exitRequired;
+    private bool _screenshotCapturedForExit;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
     private readonly ConfigFile _configFile = new();
@@ -114,6 +115,8 @@ public sealed class Engine : Object
 
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before running frames.");
+        if (IsExiting)
+            return;
 
         var time = GetSubsystem<Time>()!;
         var input = GetSubsystem<Input>()!;
@@ -167,7 +170,11 @@ public sealed class Engine : Object
             }
 
             if (!IsHeadless)
-                renderer.RenderFrame(graphics, beforePresent: null);
+            {
+                var screenshotPath = _exitRequired ? Parameters.ScreenshotOnExit : null;
+                renderer.RenderFrame(graphics, beforePresent: null, screenshotPath: screenshotPath);
+                _screenshotCapturedForExit = !string.IsNullOrWhiteSpace(screenshotPath);
+            }
         }
 
         ApplyFrameLimit();
@@ -319,6 +326,7 @@ public sealed class Engine : Object
         _timeOut = 0;
         _audioPaused = false;
         _exitRequired = false;
+        _screenshotCapturedForExit = false;
         _frameTimer.Reset();
     }
 
@@ -673,7 +681,7 @@ public sealed class Engine : Object
 
     private void HandleEndFrame()
     {
-        if (_exitRequired)
+        if (_exitRequired && (IsHeadless || string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit) || _screenshotCapturedForExit))
             DoExit();
     }
 
@@ -739,7 +747,12 @@ public sealed class Engine : Object
         {
             _timeOut -= elapsed;
             if (_timeOut <= 0)
-                Exit();
+            {
+                if (!IsHeadless && !string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
+                    _exitRequired = true;
+                else
+                    Exit();
+            }
         }
 
         if (MinFps > 0)

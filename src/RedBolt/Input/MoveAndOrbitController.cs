@@ -94,6 +94,14 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             _component = null;
     }
 
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    {
+        base.OnSceneSet(previousScene, scene);
+        _input = scene is not null ? GetSubsystem<Input>() : null;
+        if (_inputMap is not null)
+            _inputMap.SetInput(_input);
+    }
+
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
     {
         if (!IsEnabledEffective || _input is null)

@@ -4,6 +4,7 @@
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
 - [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:11:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:13:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:17:    // TODO: port - C++ code:
@@ -12,7 +13,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:27:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:33:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:33:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/ShaderTranslator.cs:48:    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.

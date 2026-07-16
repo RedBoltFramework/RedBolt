@@ -134,7 +134,6 @@ public abstract class Application : Object
         {
             if (started)
             {
-                CaptureScreenshotOnExit();
                 Stop();
                 SendEvent<EngineEvents.ApplicationStoppedEvent>();
             }
@@ -184,25 +183,6 @@ public abstract class Application : Object
     private bool ShouldStopAfterStart()
     {
         return ExitCode != 0 || Engine.IsExiting;
-    }
-
-    private void CaptureScreenshotOnExit()
-    {
-        var screenshotPath = Engine.Parameters.ScreenshotOnExit;
-        if (Engine.IsHeadless || string.IsNullOrWhiteSpace(screenshotPath) || !Graphics.IsInitialized)
-            return;
-
-        try
-        {
-            if (Renderer.GetNumViews() > 0)
-                Renderer.RenderFrame(Graphics, screenshotPath: screenshotPath);
-            else
-                Graphics.SaveScreenshot(screenshotPath);
-        }
-        catch (Exception exception)
-        {
-            Log.Logger.LogWarning(exception, "Failed to save screenshot to '{ScreenshotPath}'.", screenshotPath);
-        }
     }
 
 }

@@ -55,6 +55,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 `RenderPipeline`, `Graphics`, `Input`, `Engine`, `SystemUI`. Generated bindings exist for `Container`, `Core`,
 `Math`, `Resource`, `Scene`, `Script`, `UI`. Update statuses as you reconcile.
 
+## HUGE TODO execution progress
+
+- [x] Packet 0 baseline — generated binding commands share one prebuilt dependency-generator binary, so clean
+  regeneration is deterministic under `-j16`; all 1010 tests pass; screenshot-on-exit retains the valid rendered
+  buffer through final-frame capture; and `MoveAndOrbitController` acquires the scene input subsystem before
+  evaluating its input map. The required two-second MultipleViewports capture is visibly correct on both the Radeon
+  driver and the host's llvmpipe fallback.
+- [ ] Packet 1 generated binding foundation — pending shader-library and backend-specific Diligent surfaces.
+
 ---
 
 # PART A — ESSENTIAL CORE (port in this order)
