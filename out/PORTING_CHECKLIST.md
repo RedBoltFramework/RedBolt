@@ -11,7 +11,7 @@
 - [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; upstream comparison removed the extra C# `RenderPipeline` component and aligned settings reads with `RenderDevice`; runtime now starts successfully, but the 3D box remains absent in the screenshot and requires further engine-level investigation
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
-- [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership is now available; pose/skinning integration remains required
+- [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership and SoftwareModelAnimator CPU morphing/skinning are available; runtime pose/skinning integration remains required
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
@@ -298,8 +298,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `AnimationController.h` — animation parameter management, playback lifecycle, replacement merge path, UpdateAnimation assertions, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel pose/attribute integration remains TODO
   - [~] `AnimationParameters` — global resource lookups use a local context variable because this C++ value-style class has no Object.GetSubsystem() instance
   - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath, track-node lookup, trigger dispatch, node/attribute output aggregation, managed node/variant track setup, controller-to-model state connection, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel skeleton/pose integration remains TODO
-- [ ] `SoftwareModelAnimator.h`
-  - [ ] `SoftwareModelAnimator : Object`
+- [x] `SoftwareModelAnimator.h`
+  - [x] `VertexBufferAnimationData`
+  - [x] `SoftwareModelAnimator : Object` — model geometry and animated-stream cloning, morph reset/application, four-weight extraction and reduction, CPU position/normal/tangent skinning, and GPU commit are ported
 - [ ] `BillboardSet.h`
   - [ ] `struct Billboard`
   - [ ] `BillboardSet : Drawable`
