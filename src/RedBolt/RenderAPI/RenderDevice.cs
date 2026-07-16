@@ -22,6 +22,9 @@ public sealed class RenderDevice : Object
     private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
     private FrameIndex _frameIndex = FrameIndex.First;
     private WindowSettings? _windowSettings;
+#if REDBOLT_VULKAN_SUPPORTED
+    private SwapChainDesc? _oldNativeSwapChainDesc;
+#endif
     private readonly Timer _statsTimer = new();
     private RenderDeviceStats _stats = new();
     private RenderDeviceStats _maxStats = new();
@@ -817,16 +820,83 @@ public sealed class RenderDevice : Object
 #endif
     }
 
-    private static void InvalidateVulkanContext()
+    private void InvalidateVulkanContext()
     {
+#if REDBOLT_VULKAN_SUPPORTED
+        Log.Logger.LogInformation("Vulkan context is lost");
+        InvalidateDeviceState();
+
+        _oldNativeSwapChainDesc?.Dispose();
+        _oldNativeSwapChainDesc = GetSubsystem<Graphics>()!.ReleaseVulkanSwapChain();
+#else
         Log.Logger.LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
+#endif
     }
 
-    private static bool RestoreVulkanContext()
+    private bool RestoreVulkanContext()
     {
+#if REDBOLT_VULKAN_SUPPORTED
+        System.Diagnostics.Debug.Assert(_oldNativeSwapChainDesc is not null);
+        using var swapChainDesc = new SwapChainDesc
+        {
+            ColorBufferFormat = _oldNativeSwapChainDesc!.ColorBufferFormat,
+            DepthBufferFormat = _oldNativeSwapChainDesc.DepthBufferFormat,
+            Width = _oldNativeSwapChainDesc.Width,
+            Height = _oldNativeSwapChainDesc.Height,
+            PreTransform = _oldNativeSwapChainDesc.PreTransform
+        };
+
+        var graphics = GetSubsystem<Graphics>()!;
+        var depthFormat = SelectDefaultDepthFormat(GetRenderDevice()!, true);
+        var colorFormat = Graphics.UnmapTextureFormat(swapChainDesc.ColorBufferFormat, out _);
+        var multiSample = GetSupportedMultiSample(colorFormat, GetWindowSettings().MultiSample);
+        if (!graphics.RestoreVulkanSwapChain(swapChainDesc, depthFormat, multiSample))
+        {
+            Log.Logger.LogError("Failed to restore Vulkan context");
+            return false;
+        }
+
+        _oldNativeSwapChainDesc.Dispose();
+        _oldNativeSwapChainDesc = null;
+        RestoreDeviceState();
+        Log.Logger.LogInformation("Vulkan context is restored");
+        return true;
+#else
         Log.Logger.LogWarning("RenderDevice::RestoreVulkanContext is supported only for Vulkan backend");
         return true;
+#endif
     }
+
+#if REDBOLT_VULKAN_SUPPORTED
+    private static global::RedBolt.Bindings.Diligent.TextureFormat SelectDefaultDepthFormat(
+        IRenderDevice device, bool needStencil)
+    {
+        global::RedBolt.Bindings.Diligent.TextureFormat[] depthStencilFormats =
+        [
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8X24Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
+        ];
+        global::RedBolt.Bindings.Diligent.TextureFormat[] depthOnlyFormats =
+        [
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8X24Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
+        ];
+
+        foreach (var format in needStencil ? depthStencilFormats : depthOnlyFormats)
+        {
+            using var formatInfo = device.GetTextureFormatInfoExt(format);
+            if ((formatInfo.BindFlags & BindFlags.BindDepthStencil) != BindFlags.BindNone)
+                return format;
+        }
+
+        System.Diagnostics.Debug.Assert(false);
+        return global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown;
+    }
+#endif
 
     private static IReadOnlyList<string> ParseOrientations(string orientations)
     {

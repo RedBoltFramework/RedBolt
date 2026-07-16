@@ -71,6 +71,7 @@ internal static class Program
         "GetEngineFactoryOpenGL",
         "CreateTemporaryGLProgram",
         "CreateSecondaryProxySwapChainGL",
+        "CreateProxySwapChainMS",
         "DeleteTemporaryGLProgram",
         "GetTemporaryGLProgramVertexAttributeCount",
         "GetTemporaryGLProgramVertexAttributeName",

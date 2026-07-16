@@ -4,6 +4,7 @@
 #include <SwapChainGL.h>
 #include <SwapChainBase.hpp>
 #include <DefaultRawMemoryAllocator.hpp>
+#include <ObjectBase.hpp>
 #include <SDL.h>
 
 #include <stdexcept>
@@ -261,6 +262,159 @@ ISwapChain* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContex
     auto secondarySwapChain = NEW_RC_OBJ(defaultAllocator, "Secondary ProxySwapChainGL instance", ProxySwapChainGL)(
         device, deviceContext, swapChainDesc, static_cast<SDL_Window*>(window));
     RefCntAutoPtr<ISwapChain> result{secondarySwapChain};
+    return result.Detach();
+}
+
+class ProxySwapChainMS : public ObjectBase<ISwapChain>
+{
+public:
+    using TBase = ObjectBase<ISwapChain>;
+
+    ProxySwapChainMS(IReferenceCounters* refCounters, IRenderDevice* device,
+        IDeviceContext* deviceContext, ISwapChain* nativeSwapChain, TEXTURE_FORMAT depthFormat,
+        Uint32 multiSample)
+        : TBase(refCounters)
+        , depthFormat_(depthFormat)
+        , multiSample_(multiSample)
+        , nativeSwapChain_(nativeSwapChain)
+        , renderDevice_(device)
+        , immediateContext_(deviceContext)
+    {
+        CreateDepthStencil();
+        CreateRenderTarget();
+        UpdateDesc();
+    }
+
+    /// Implement ISwapChainGL
+    /// @{
+    void DILIGENT_CALL_TYPE Present(Uint32 SyncInterval) override
+    {
+        if (msaaRenderTarget_)
+        {
+            ITexture* currentBackBuffer = nativeSwapChain_->GetCurrentBackBufferRTV()->GetTexture();
+
+            ResolveTextureSubresourceAttribs resolveAttribs;
+            resolveAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+            resolveAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+            immediateContext_->ResolveTextureSubresource(msaaRenderTarget_, currentBackBuffer, resolveAttribs);
+        }
+
+        nativeSwapChain_->Present(SyncInterval);
+    }
+
+    const SwapChainDesc& DILIGENT_CALL_TYPE GetDesc() const override { return swapChainDesc_; }
+
+    void DILIGENT_CALL_TYPE Resize(Uint32 newWidth, Uint32 newHeight, SURFACE_TRANSFORM NewTransform) override
+    {
+        const SwapChainDesc& swapChainDesc = nativeSwapChain_->GetDesc();
+        const Uint32 oldWidth = swapChainDesc.Width;
+        const Uint32 oldHeight = swapChainDesc.Height;
+
+        nativeSwapChain_->Resize(newWidth, newHeight, NewTransform);
+        UpdateDesc();
+
+        if (swapChainDesc.Width != oldWidth || swapChainDesc.Height != oldHeight)
+        {
+            CreateDepthStencil();
+            CreateRenderTarget();
+        }
+    }
+
+    void DILIGENT_CALL_TYPE SetFullscreenMode(const DisplayModeAttribs& DisplayMode) override
+    {
+        VERIFY_EXPR(false && "Fullscreen mode cannot be set through the proxy swap chain");
+    }
+
+    void DILIGENT_CALL_TYPE SetWindowedMode() override
+    {
+        VERIFY_EXPR(false && "Fullscreen mode cannot be set through the proxy swap chain");
+    }
+
+    void DILIGENT_CALL_TYPE SetMaximumFrameLatency(Uint32 MaxLatency) override
+    {
+        nativeSwapChain_->SetMaximumFrameLatency(MaxLatency);
+    }
+
+    ITextureView* DILIGENT_CALL_TYPE GetCurrentBackBufferRTV() override
+    {
+        return multiSample_ > 1 ? msaaRenderTargetView_ : nativeSwapChain_->GetCurrentBackBufferRTV();
+    }
+
+    ITextureView* DILIGENT_CALL_TYPE GetDepthBufferDSV() override { return depthBufferView_; }
+    /// @}
+
+private:
+    void CreateDepthStencil()
+    {
+        const SwapChainDesc& swapChainDesc = nativeSwapChain_->GetDesc();
+
+        TextureDesc desc;
+        desc.Name = "Main depth buffer";
+        desc.Type = RESOURCE_DIM_TEX_2D;
+        desc.Width = swapChainDesc.Width;
+        desc.Height = swapChainDesc.Height;
+        desc.Format = depthFormat_;
+        desc.SampleCount = multiSample_;
+        desc.Usage = USAGE_DEFAULT;
+        desc.BindFlags = BIND_DEPTH_STENCIL;
+
+        RefCntAutoPtr<ITexture> depthBuffer;
+        renderDevice_->CreateTexture(desc, nullptr, &depthBuffer);
+
+        depthBufferView_ = depthBuffer->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
+    }
+
+    void CreateRenderTarget()
+    {
+        if (multiSample_ <= 1)
+            return;
+
+        const SwapChainDesc& swapChainDesc = nativeSwapChain_->GetDesc();
+
+        TextureDesc desc;
+        desc.Name = "Main depth buffer";
+        desc.Type = RESOURCE_DIM_TEX_2D;
+        desc.Width = swapChainDesc.Width;
+        desc.Height = swapChainDesc.Height;
+        desc.Format = swapChainDesc.ColorBufferFormat;
+        desc.SampleCount = multiSample_;
+        desc.Usage = USAGE_DEFAULT;
+        desc.BindFlags = BIND_RENDER_TARGET;
+
+        RefCntAutoPtr<ITexture> renderTarget;
+        renderDevice_->CreateTexture(desc, nullptr, &renderTarget);
+
+        msaaRenderTarget_ = renderTarget;
+        msaaRenderTargetView_ = msaaRenderTarget_->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
+    }
+
+    void UpdateDesc()
+    {
+        swapChainDesc_ = nativeSwapChain_->GetDesc();
+        swapChainDesc_.DepthBufferFormat = depthFormat_;
+    }
+
+    const TEXTURE_FORMAT depthFormat_{};
+    const Uint32 multiSample_{};
+
+    const RefCntAutoPtr<ISwapChain> nativeSwapChain_;
+    const RefCntAutoPtr<IRenderDevice> renderDevice_;
+    const RefCntAutoPtr<IDeviceContext> immediateContext_;
+
+    RefCntAutoPtr<ITextureView> depthBufferView_;
+    RefCntAutoPtr<ITexture> msaaRenderTarget_;
+    RefCntAutoPtr<ITextureView> msaaRenderTargetView_;
+
+    SwapChainDesc swapChainDesc_;
+};
+
+ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* deviceContext,
+    ISwapChain* nativeSwapChain, Uint32 depthFormat, Uint32 multiSample)
+{
+    auto& defaultAllocator = DefaultRawMemoryAllocator::GetAllocator();
+    auto proxySwapChain = NEW_RC_OBJ(defaultAllocator, "ProxySwapChainMS instance", ProxySwapChainMS)(
+        device, deviceContext, nativeSwapChain, static_cast<TEXTURE_FORMAT>(depthFormat), multiSample);
+    RefCntAutoPtr<ISwapChain> result{proxySwapChain};
     return result.Detach();
 }
 

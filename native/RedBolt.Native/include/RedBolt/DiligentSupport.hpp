@@ -43,5 +43,7 @@ Uint32 GetTemporaryGLProgramVertexAttributeLocation(const void* program, Uint32 
 bool BindTemporaryGLProgramVertexAttributes(const void* program, IPipelineState* pipelineState);
 ISwapChain* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window);
+ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* deviceContext,
+    ISwapChain* nativeSwapChain, Uint32 depthFormat, Uint32 multiSample);
 
 } // namespace Diligent

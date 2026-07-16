@@ -698,6 +698,61 @@ layout(std140) uniform Material
 
     public ISwapChain? GetNativeSwapChain() => _swapChain;
 
+#if REDBOLT_VULKAN_SUPPORTED
+    internal SwapChainDesc ReleaseVulkanSwapChain()
+    {
+        System.Diagnostics.Debug.Assert(_swapChain is not null);
+        using var swapChainDesc = _swapChain!.GetDesc();
+        var oldNativeSwapChainDesc = swapChainDesc.Clone();
+
+        _renderTargets[0] = null;
+        _renderTargetView = null;
+        _depthStencilView = null;
+        _swapChainOutputTarget = null;
+        _swapChainColorFormat = 0;
+        _swapChainDepthFormat = 0;
+        ReleaseIfNotNull(_swapChain);
+        _swapChain = null;
+        return oldNativeSwapChainDesc;
+    }
+
+    internal bool RestoreVulkanSwapChain(SwapChainDesc swapChainDesc,
+        global::RedBolt.Bindings.Diligent.TextureFormat depthFormat, int multiSample)
+    {
+        System.Diagnostics.Debug.Assert(_device is not null && _immediateContext is not null && _factory is not null);
+        var factoryVulkan = IEngineFactoryVk.CreateManagedWrapper(_factory!.Handle, ownsHandle: false);
+#if REDBOLT_PLATFORM_LINUX
+        var nativeWindowInfo = GetSubsystem<Input>()!.GetNativeWindowInfo();
+        using var nativeWindow = new LinuxNativeWindow
+        {
+            PDisplay = nativeWindowInfo.Display,
+            WindowId = nativeWindowInfo.WindowId
+        };
+#else
+#error Vulkan native window restoration is not ported for this platform
+#endif
+        factoryVulkan.CreateSwapChainVk(_device!, _immediateContext!, swapChainDesc, nativeWindow,
+            out var nativeSwapChain);
+        if (nativeSwapChain.IsNull)
+            return false;
+
+        _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
+            _device!, _immediateContext!, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
+        ReleaseIfNotNull(nativeSwapChain);
+        if (_swapChain is null || _swapChain.IsNull)
+            return false;
+
+        _configuredMultiSample = multiSample;
+        _swapChain.Resize(swapChainDesc.Width, swapChainDesc.Height, swapChainDesc.PreTransform);
+        _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
+        _depthStencilView = _swapChain.GetDepthBufferDSV();
+        _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
+        _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
+        _renderTargets[0] = _renderTargetView;
+        return true;
+    }
+#endif
+
     internal IntPtr GetGLContext() => _glContext;
 
     internal void ReleaseGLContext()
