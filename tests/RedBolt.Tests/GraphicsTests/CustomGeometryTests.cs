@@ -96,6 +96,25 @@ public sealed class CustomGeometryTests
     }
 
     [Fact]
+    public void Occluder_triangle_count_respects_geometry_and_material()
+    {
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        custom.BeginGeometry(0u, PrimitiveType.TriangleList);
+        custom.DefineVertex(new Vector3f(0.0f, 0.0f, 0.0f));
+        custom.DefineVertex(new Vector3f(2.0f, 0.0f, 0.0f));
+        custom.DefineVertex(new Vector3f(0.0f, 2.0f, 0.0f));
+        custom.Commit();
+
+        Assert.Equal(1u, custom.GetNumOccluderTriangles());
+
+        var material = Resources.Get<Material>("Materials/FirstCube").Clone("CustomOccluder");
+        material.SetOcclusion(false);
+        custom.SetMaterial(material);
+
+        Assert.Equal(0u, custom.GetNumOccluderTriangles());
+    }
+
+    [Fact]
     public void Material_attribute_resolves_resource_names()
     {
         var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();

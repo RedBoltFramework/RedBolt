@@ -316,7 +316,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `struct Decal`
   - [ ] `DecalSet : Drawable`
 - [~] `CustomGeometry.h`
-  - [~] `CustomGeometry : Drawable` — dynamic custom-geometry definition, vertex serialization, resource-cache material attributes, C++ vertex-count occluder accounting, material assignment, bounds, geometry access, and managed ray-query support are ported; native occlusion-buffer drawing and full GPU buffer lifecycle remain incomplete
+  - [~] `CustomGeometry : Drawable` — dynamic custom-geometry definition, vertex serialization, resource-cache material attributes, C++ LOD-geometry and material-aware occluder triangle accounting, native occlusion-buffer drawing, material assignment, bounds, geometry access, and managed ray-query support are ported; full class-shape and GPU buffer lifecycle parity remain incomplete
 - [ ] `Terrain.h`
   - [ ] `Terrain : Component`
 - [ ] `TerrainPatch.h`

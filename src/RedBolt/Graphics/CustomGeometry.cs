@@ -242,11 +242,17 @@ public sealed class CustomGeometry : Drawable
     public override uint GetNumOccluderTriangles()
     {
         var triangles = 0u;
-        for (var i = 0; i < _geometries.Count; ++i)
+        for (var i = 0; i < _batches.Count; ++i)
         {
-            if (_materials[i] is { Occlusion: false })
+            var geometry = GetLodGeometry((uint)i, 0);
+            if (geometry is null)
                 continue;
-            triangles += _geometries[i].GetVertexCount() / 3u;
+
+            var material = _batches[i].Material;
+            if (material is not null && !material.GetOcclusion())
+                continue;
+
+            triangles += geometry.GetVertexCount() / 3u;
         }
 
         return triangles;
