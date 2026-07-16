@@ -424,6 +424,9 @@ public abstract class Drawable : Component
     /// <summary>Return number of occlusion geometry triangles.</summary>
     public virtual uint GetNumOccluderTriangles() => 0;
 
+    /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
+    public virtual bool DrawOcclusion(OcclusionBuffer buffer) => true;
+
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
     {
         return _viewFrameNumber == frame.FrameNumber &&

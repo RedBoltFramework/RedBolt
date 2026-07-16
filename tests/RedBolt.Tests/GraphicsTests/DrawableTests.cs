@@ -7,7 +7,7 @@ public sealed class DrawableTests
     {
         using var drawable = new CustomGeometry();
 
-        Assert.Empty(drawable.GetBatches());
+        Assert.Single(drawable.GetBatches());
 
         ref var hint = ref drawable.GetMutableLightProbeTetrahedronHint();
         Assert.Equal(uint.MaxValue, hint);

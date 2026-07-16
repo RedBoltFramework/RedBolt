@@ -11,8 +11,6 @@ public sealed class CustomGeometryVertex
 
 public sealed class CustomGeometry : Drawable
 {
-    // TODO: port - C++ code:
-    // bool DrawOcclusion(OcclusionBuffer* buffer) override;
     private const uint MaskPosition = 1u;
     private const uint MaskNormal = 1u << 1;
     private const uint MaskColor = 1u << 2;
@@ -45,6 +43,7 @@ public sealed class CustomGeometry : Drawable
         _primitiveTypes.Clear();
         _vertices.Clear();
         _geometries.Clear();
+        _batches.Clear();
         _materials.Clear();
         SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
@@ -54,6 +53,7 @@ public sealed class CustomGeometry : Drawable
         while (_geometries.Count < num)
         {
             _geometries.Add(new Geometry());
+            _batches.Add(new SourceBatch());
             _primitiveTypes.Add(PrimitiveType.TriangleList);
             _vertices.Add([]);
             _materials.Add(null);
@@ -63,9 +63,17 @@ public sealed class CustomGeometry : Drawable
         {
             var index = _geometries.Count - 1;
             _geometries.RemoveAt(index);
+            _batches.RemoveAt(index);
             _primitiveTypes.RemoveAt(index);
             _vertices.RemoveAt(index);
             _materials.RemoveAt(index);
+        }
+
+        for (var i = 0; i < _geometries.Count; ++i)
+        {
+            var batch = _batches[i];
+            batch.Geometry = _geometries[i].GetVertexCount() != 0 ? _geometries[i] : null;
+            _batches[i] = batch;
         }
 
         if (_geometryIndex >= _geometries.Count)
@@ -186,12 +194,18 @@ public sealed class CustomGeometry : Drawable
             _geometries[i].SetDrawRange(_primitiveTypes[i], 0u, 0u, vertexStart, vertexCount);
             vertexStart += vertexCount;
         }
+        SetNumGeometries((uint)_geometries.Count);
     }
 
     public void SetMaterial(Material? material)
     {
         for (var i = 0; i < _materials.Count; ++i)
+        {
             _materials[i] = material;
+            var batch = _batches[i];
+            batch.Material = material;
+            _batches[i] = batch;
+        }
     }
 
     public bool SetMaterial(uint index, Material? material)
@@ -200,6 +214,9 @@ public sealed class CustomGeometry : Drawable
             return false;
 
         _materials[(int)index] = material;
+        var batch = _batches[(int)index];
+        batch.Material = material;
+        _batches[(int)index] = batch;
         return true;
     }
 
@@ -233,6 +250,43 @@ public sealed class CustomGeometry : Drawable
         }
 
         return triangles;
+    }
+
+    /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
+    public override bool DrawOcclusion(OcclusionBuffer buffer)
+    {
+        var success = true;
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var geometry = GetLodGeometry((uint)i, 0);
+            if (geometry is null)
+                continue;
+
+            var material = _batches[i].Material;
+            if (material is not null)
+            {
+                if (!material.GetOcclusion())
+                    continue;
+                buffer.SetCullMode(material.GetCullMode());
+            }
+            else
+                buffer.SetCullMode(CullMode.CounterClockwise);
+
+            geometry.GetRawDataShared(out var vertexData, out var vertexSize, out var indexData, out var indexSize,
+                out var elements);
+            if (vertexData is null || elements is null)
+                continue;
+            var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
+                VertexElementSemantic.Position);
+            if (positionElement is null || positionElement.Value.Offset != 0)
+                continue;
+
+            success = buffer.AddTriangles(Node.GetWorldTransform(), vertexData, vertexSize, geometry.GetVertexStart(),
+                geometry.GetVertexCount());
+            if (!success)
+                break;
+        }
+        return success;
     }
 
     public IReadOnlyList<byte> GetGeometryDataAttr()

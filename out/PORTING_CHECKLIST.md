@@ -333,7 +333,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `CubemapRenderer`
 - [~] `OutlineGroup.h`
 - [~] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
-- [ ] `OcclusionBuffer.h`
+- [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and `CustomGeometry::DrawOcclusion` are ported and covered by `OcclusionBufferTests`; `StaticModel` and `StaticModelGroup` occlusion hooks remain separate inventory entries
   - [ ] `OcclusionBuffer : Object`
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
