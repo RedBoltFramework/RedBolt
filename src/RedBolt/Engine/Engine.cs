@@ -121,7 +121,6 @@ public sealed class Engine : Object
         var time = GetSubsystem<Time>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
-        var renderer = GetSubsystem<Renderer>()!;
         GetSubsystem<WorkQueue>()!.Update();
 
         if (!IsHeadless && !graphics.IsInitialized)
@@ -165,23 +164,12 @@ public sealed class Engine : Object
             var shouldUpdate = !isPaused;
             if (shouldUpdate)
             {
-                SendCoreEvents(timeStep);
-                update(timeStep);
+                SendCoreEvents(timeStep, update);
             }
 
             if (!IsHeadless)
             {
-                var screenshotPath = _exitRequired ? Parameters.ScreenshotOnExit : null;
-                if (string.IsNullOrWhiteSpace(screenshotPath))
-                    renderer.RenderFrame(graphics);
-                else
-                {
-                    renderer.RenderFrame(graphics, beforePresent: () =>
-                    {
-                        using var screenshot = new Image("Screenshot");
-                        _screenshotCapturedForExit = graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(screenshotPath);
-                    });
-                }
+                Render();
             }
         }
 
@@ -424,8 +412,21 @@ public sealed class Engine : Object
         if (!IsInitialized || IsHeadless)
             return;
         var graphics = GetSubsystem<Graphics>()!;
-        var renderer = GetSubsystem<Renderer>()!;
-        renderer.RenderFrame(graphics, beforePresent: null);
+        if (!graphics.BeginFrame())
+            return;
+
+        GetSubsystem<Renderer>()!.Render();
+
+        graphics.ResetRenderTargets();
+
+        var screenshotPath = _exitRequired ? Parameters.ScreenshotOnExit : null;
+        if (!string.IsNullOrWhiteSpace(screenshotPath))
+        {
+            using var screenshot = new Image("Screenshot");
+            _screenshotCapturedForExit = graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(screenshotPath);
+        }
+
+        graphics.EndFrame();
     }
 
     /// <summary>Load and merge config files.</summary>
@@ -658,7 +659,7 @@ public sealed class Engine : Object
         return result;
     }
 
-    private void SendCoreEvents(float timeStep)
+    private void SendCoreEvents(float timeStep, Action<float>? update = null)
     {
         var inputReadyEventData = new CoreEvents.InputReadyEvent
         {
@@ -671,6 +672,7 @@ public sealed class Engine : Object
             TimeStep = timeStep
         };
         _context.SendEvent(ref updateEventData);
+        update?.Invoke(timeStep);
 
         var postUpdateEventData = new CoreEvents.PostUpdateEvent
         {

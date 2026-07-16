@@ -47,6 +47,8 @@ public sealed class Renderer : Object
     public Renderer()
     {
         CreateGeometries();
+        SubscribeToEvent<CoreEvents.RenderUpdateEvent>((ref CoreEvents.RenderUpdateEvent eventData) =>
+            Update(eventData.TimeStep));
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
         {
             _frameStats.Animations = 0;
@@ -302,11 +304,18 @@ public sealed class Renderer : Object
             _queuedViewports.Add(queuedViewport);
     }
 
-    internal void RenderFrame(Graphics graphics, Action? beforePresent = null)
+    public void Update(float timeStep)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-
         _renderPipelineViews.Clear();
+
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is null || !graphics.IsInitialized)
+            return;
+
+        _frameInfo.FrameNumber = GetSubsystem<Time>()?.FrameNumber ?? 0;
+        _frameInfo.TimeStep = timeStep;
+        _frameInfo.Camera = null;
+        _updatedOctrees.Clear();
 
         if (_backbufferSurfaceViewportsDirty)
         {
@@ -320,7 +329,6 @@ public sealed class Renderer : Object
             }
         }
 
-        _updatedOctrees.Clear();
         for (var i = _viewports.Count - 1; i >= 0; --i)
             QueueViewport(_backbufferSurface, _viewports[i]);
 
@@ -334,6 +342,15 @@ public sealed class Renderer : Object
             UpdateQueuedViewport(i, graphics);
 
         _queuedViewports.Clear();
+    }
+
+    public void Render()
+    {
+        var graphics = GetSubsystem<Graphics>()!;
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+
+        renderDevice.SetDefaultTextureFilterMode(TextureFilterMode);
+        renderDevice.SetDefaultTextureAnisotropy(TextureAnisotropy);
 
         var hasBackbufferViews = false;
         foreach (var renderPipelineView in _renderPipelineViews)
@@ -351,17 +368,11 @@ public sealed class Renderer : Object
             graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
         }
 
-        var renderDevice = GetSubsystem<RenderDevice>();
-        renderDevice?.SetDefaultTextureFilterMode(TextureFilterMode);
-        renderDevice?.SetDefaultTextureAnisotropy(TextureAnisotropy);
-
         for (var i = _renderPipelineViews.Count - 1; i >= 0; --i)
             _renderPipelineViews[i].Render(graphics, TextureQuality);
 
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
-
-        graphics.PresentFrame(beforePresent);
 
         Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }

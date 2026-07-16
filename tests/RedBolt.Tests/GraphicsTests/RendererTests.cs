@@ -66,7 +66,7 @@ public sealed class RendererTests
     }
 
     [Fact]
-    public void Backbuffer_render_surface_receives_registered_viewports_on_render()
+    public void Update_skips_backbuffer_viewport_assignment_when_graphics_is_uninitialized()
     {
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
@@ -79,18 +79,16 @@ public sealed class RendererTests
         Renderer.SetViewport(0u, viewport);
         Renderer.SetBackbufferRenderSurface(renderSurface);
 
-        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
+        Renderer.Update(0.0f);
 
-        Assert.Same(viewport, renderSurface.GetViewport(0));
+        Assert.Null(renderSurface.GetViewport(0));
         renderSurface.SetNumViewports(0);
         Renderer.SetBackbufferRenderSurface(null);
         Renderer.ClearViewports();
     }
 
     [Fact]
-    public void Render_allocates_automatic_render_pipeline_for_viewport()
+    public void Update_skips_pipeline_allocation_when_graphics_is_uninitialized()
     {
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
@@ -98,12 +96,10 @@ public sealed class RendererTests
 
         Renderer.SetViewport(0u, viewport);
 
-        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
+        Renderer.Update(0.0f);
 
-        Assert.NotNull(scene.Root.GetComponent<RenderPipeline>());
-        Assert.NotNull(viewport.GetRenderPipelineView());
+        Assert.Null(scene.Root.GetComponent<RenderPipeline>());
+        Assert.Null(viewport.GetRenderPipelineView());
         Renderer.ClearViewports();
     }
 
@@ -114,9 +110,7 @@ public sealed class RendererTests
         using var subscription = Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
             (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
 
-        var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
+        Renderer.Render();
 
         Assert.Equal(1, eventCount);
     }
