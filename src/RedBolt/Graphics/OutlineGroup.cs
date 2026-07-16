@@ -79,7 +79,7 @@ public sealed class OutlineGroup : Component
 
         this._color = color;
         foreach (var cachedMaterial in _cachedMaterials.Values)
-            cachedMaterial.Material.SetShaderParameter("OutlineColor", color.ToVector4(), isCustom: true);
+            cachedMaterial.Material.SetShaderParameter(ShaderConsts.Custom_OutlineColor, color.ToVector4(), isCustom: true);
     }
 
     public Color GetColor() => _color;
@@ -155,7 +155,7 @@ public sealed class OutlineGroup : Component
         outlineMaterial.SetAlphaToCoverage(false);
         outlineMaterial.SetFillMode(FillMode.Solid);
         outlineMaterial.SetRenderOrder(_renderOrder);
-        outlineMaterial.SetShaderParameter("OutlineColor", _color.ToVector4(), isCustom: true);
+        outlineMaterial.SetShaderParameter(ShaderConsts.Custom_OutlineColor, _color.ToVector4(), isCustom: true);
 
         var outlineTechniques = new List<TechniqueEntry>(referenceMaterial.GetTechniques().Count);
         foreach (var entry in referenceMaterial.GetTechniques())

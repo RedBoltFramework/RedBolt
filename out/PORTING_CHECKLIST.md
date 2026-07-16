@@ -356,8 +356,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `RenderPipelineDefs.h`
   - [x] `RenderPipelineInterface` — global context accessor, render-target-aware view definition, debug geometry/light dispatch, and per-pipeline debugger accessor match C++
   - [~] pipeline enums / settings structs — flags, frame statistics, default settings, validation, implied-setting propagation, and render-path adjustment are ported; native RG32F support is unavailable in the managed TextureFormat surface
-- [ ] `ShaderConsts.h`
-  - [ ] shader constant name definitions
+- [x] `ShaderConsts.h` — all 67 built-in shader constants and 10 shader resources match C++ names and declaration order; focused parity tests cover every exported value
 - [ ] `PipelineBatchSortKey.h`
   - [ ] batch sort-key structs
 - [~] `SharedRenderPassState.h`
