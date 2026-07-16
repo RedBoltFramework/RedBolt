@@ -1,10 +1,11 @@
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
 /// <summary>Vertex or pixel shader on the GPU.</summary>
-public sealed partial class ShaderVariation : RawShader
+public sealed class ShaderVariation : RawShader
 {
 
     private readonly Graphics? _graphics;
@@ -41,35 +42,37 @@ public sealed partial class ShaderVariation : RawShader
         return Shader.PrepareSource(GetStage(ShaderType), Defines, backend, extraCode);
     }
 
-    /// <summary>Compile shader from source.</summary>
-    public bool CompileFromSource(RenderBackend? backend = null, string extraCode = "")
+    private bool CompileFromSource()
     {
-        var effectiveBackend = backend ?? GetRenderBackend();
         var originalShaderCode = Shader.SourceCode;
-        if (string.IsNullOrWhiteSpace(originalShaderCode))
-            return false;
-
-        var preparedSource = string.IsNullOrEmpty(extraCode)
-            ? PrepareGLSLShaderCode(originalShaderCode)
-            : PrepareSource(MapRenderBackend(effectiveBackend), extraCode);
+        var preparedSource = PrepareGLSLShaderCode(originalShaderCode);
         var processed = ProcessShaderSource(
-            out var translatedSource, out _, out var translatedBytecode, preparedSource);
+            out var translatedSource, out var translatedSpirv, out var translatedBytecode, preparedSource);
         var loggedSourceShaderName = GetShaderCacheFileIdentifier(GetCachedVariationName("glsl"));
         ShaderSourceLogger.LogShaderSource(loggedSourceShaderName, Defines, translatedSource);
 
         if (!processed)
             return false;
 
+        var renderBackend = GetRenderBackend();
         var shaderBytecode = new ShaderBytecode(GetShaderType())
         {
-            Mime = GetCompiledShaderMime(effectiveBackend),
+            Mime = GetCompiledShaderMime(renderBackend),
             Bytecode = translatedBytecode
         };
-        if (GetShaderType() == ShaderType.VS)
-            shaderBytecode.VertexAttributes.AddRange(ParseVertexAttributes(translatedSource));
+        if (translatedSpirv.HasValue && GetShaderType() == ShaderType.VS)
+            shaderBytecode.VertexAttributes.AddRange(
+                ShaderTranslator.GetVertexAttributesFromSpirV(translatedSpirv.Value));
 
         CreateFromBinary(shaderBytecode);
-        return GetHandle() is { IsNull: false };
+        if (GetHandle() is not { IsNull: false })
+        {
+            if (renderBackend == RenderBackend.OpenGL)
+                Log.Logger.LogInformation("Shader files:\n{Files}", global::RedBolt.Shader.GetShaderFileList());
+            return false;
+        }
+
+        return true;
     }
 
     private void OnReloaded()
@@ -223,18 +226,104 @@ public sealed partial class ShaderVariation : RawShader
     }
 
     private bool ProcessShaderSource(
-        out string translatedSource, out TargetShader? translatedSpirv, out byte[] translatedBytecode,
+        out string translatedSource, out SpirVShader? translatedSpirv, out byte[] translatedBytecode,
         string originalShaderCode)
     {
         translatedSource = originalShaderCode;
         translatedSpirv = null;
         translatedBytecode = Encoding.UTF8.GetBytes(originalShaderCode);
 
-        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
-        // The native implementation translates and optimizes the source according to the target backend.
-        _ = NeedShaderTranslation();
-        _ = NeedShaderOptimization();
+        var renderBackend = GetRenderBackend();
+        var targetShaderLanguage = GetTargetShaderLanguage(renderBackend);
+        var needShaderTranslation = NeedShaderTranslation();
+        var needShaderOptimization = NeedShaderOptimization();
+
+        if (needShaderTranslation)
+        {
+            var spirvShader = new SpirVShader();
+            ShaderTranslator.ParseUniversalShader(ref spirvShader, GetShaderType(), originalShaderCode,
+                new ShaderDefineArray(), targetShaderLanguage);
+            if (!spirvShader)
+            {
+                Log.Logger.LogError("Failed to convert shader {Shader} from GLSL to SPIR-V:\n{Files}{Output}",
+                    GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), spirvShader.CompilerOutput);
+                return false;
+            }
+
+            translatedSpirv = spirvShader;
+
+            if (needShaderOptimization)
+            {
+                var optimizerOutput = string.Empty;
+                if (!ShaderOptimizer.OptimizeSpirVShader(ref spirvShader, ref optimizerOutput, targetShaderLanguage))
+                {
+                    Log.Logger.LogError("Failed to optimize SPIR-V shader {Shader}:\n{Output}",
+                        GetShaderVariationName(), optimizerOutput);
+                    return false;
+                }
+
+                translatedSpirv = spirvShader;
+            }
+
+            // Vulkan uses SPIRV directly
+            if (targetShaderLanguage == TargetShaderLanguage.Vulkan10)
+            {
+                translatedBytecode = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(spirvShader.Bytecode)).ToArray();
+            }
+            else
+            {
+                // Translate to target language
+                var targetShader = new TargetShader();
+                ShaderTranslator.TranslateSpirVShader(ref targetShader, spirvShader, targetShaderLanguage);
+                if (!targetShader)
+                {
+                    Log.Logger.LogError("Failed to convert shader {Shader} from SPIR-V to HLSL:\n{Files}{Output}",
+                        GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), targetShader.CompilerOutput);
+                    return false;
+                }
+
+                translatedSource = targetShader.SourceCode;
+                if (renderBackend is RenderBackend.D3D11 or RenderBackend.D3D12)
+                {
+                    // On D3D backends, compile the translated source code
+                    if (!ShaderCompiler.CompileHLSLToBinary(out var hlslBytecode, out var compilerOutput,
+                            targetShader.SourceCode, GetShaderType()))
+                    {
+                        Log.Logger.LogError("Failed to compile HLSL shader {Shader}:\n{Files}{Output}",
+                            GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), compilerOutput);
+                        return false;
+                    }
+
+                    translatedBytecode = hlslBytecode;
+                }
+                else
+                {
+                    // On OpenGL backends, just store the translated source code
+                    translatedBytecode = Encoding.UTF8.GetBytes(targetShader.SourceCode);
+                }
+            }
+        }
+
         return true;
+    }
+
+    private static TargetShaderLanguage GetTargetShaderLanguage(RenderBackend renderBackend)
+    {
+        switch (renderBackend)
+        {
+            case RenderBackend.D3D11:
+            case RenderBackend.D3D12:
+                return TargetShaderLanguage.Hlsl50;
+            case RenderBackend.Vulkan:
+                return TargetShaderLanguage.Vulkan10;
+            case RenderBackend.OpenGL:
+                return RenderAPIUtils.IsOpenGLESBackend(renderBackend)
+                    ? TargetShaderLanguage.GlslEs30
+                    : TargetShaderLanguage.Glsl41;
+            default:
+                System.Diagnostics.Debug.Assert(false);
+                return TargetShaderLanguage.Vulkan10;
+        }
     }
 
     private ShaderTranslationPolicy GetShaderTranslationPolicy()
@@ -304,35 +393,6 @@ public sealed partial class ShaderVariation : RawShader
         };
     }
 
-    private static IEnumerable<VertexShaderAttribute> ParseVertexAttributes(string source)
-    {
-        var layoutMatches = VertexInputRegex().Matches(source);
-        foreach (Match match in layoutMatches.Count != 0 ? layoutMatches : VertexInputMacroRegex().Matches(source))
-        {
-            var name = match.Groups["name"].Value;
-            if (TryMapVertexAttribute(name, out var attribute))
-                yield return attribute;
-        }
-    }
-
-    private static bool TryMapVertexAttribute(string name, out VertexShaderAttribute attribute)
-    {
-        attribute = name switch
-        {
-            "iPos" => new VertexShaderAttribute(VertexElementSemantic.Position, 0, 0),
-            "iBlendWeights" => new VertexShaderAttribute(VertexElementSemantic.BlendWeights, 0, 0),
-            "iBlendIndices" => new VertexShaderAttribute(VertexElementSemantic.BlendIndices, 0, 0),
-            "iTexCoord" => new VertexShaderAttribute(VertexElementSemantic.TexCoord, 0, 0),
-            "iTexCoord1" => new VertexShaderAttribute(VertexElementSemantic.TexCoord, 1, 0),
-            "iColor" => new VertexShaderAttribute(VertexElementSemantic.Color, 0, 0),
-            "iNormal" => new VertexShaderAttribute(VertexElementSemantic.Normal, 0, 0),
-            "iTangent" => new VertexShaderAttribute(VertexElementSemantic.Tangent, 0, 0),
-            _ => default
-        };
-
-        return name is "iPos" or "iBlendWeights" or "iBlendIndices" or "iTexCoord" or "iTexCoord1" or "iColor" or "iNormal" or "iTangent";
-    }
-
     private static string GetCompiledShaderMime(RenderBackend backend) => backend switch
     {
         RenderBackend.D3D11 or RenderBackend.D3D12 => "application/hlsl-bin",
@@ -340,19 +400,4 @@ public sealed partial class ShaderVariation : RawShader
         _ => "application/glsl"
     };
 
-    private static GraphicsBackend MapRenderBackend(RenderBackend backend) => backend switch
-    {
-        RenderBackend.D3D11 => GraphicsBackend.D3D11,
-        RenderBackend.D3D12 => GraphicsBackend.D3D12,
-        RenderBackend.Vulkan => GraphicsBackend.Vulkan,
-        _ => GraphicsBackend.OpenGL
-    };
-
-    [GeneratedRegex(@"layout\s*\(\s*location\s*=\s*\d+\s*\)\s*in\s+[A-Za-z0-9_]+\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*;",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex VertexInputRegex();
-
-    [GeneratedRegex(@"VERTEX_INPUT(?:_HIGHP)?\s*\(\s*(?:[A-Za-z_][A-Za-z0-9_]*\s+)+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant)]
-    private static partial Regex VertexInputMacroRegex();
 }

@@ -149,6 +149,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct InputLayoutDesc`
   - [x] `struct ImmutableSamplersDesc`
 - [~] `RenderAPIUtils.h`
+  - [x] platform-default render backend selection and explicit-request fallback match C++
   - [~] RenderAPI free functions — backend/platform predicates, enum tables, shader-input parsing/name conversion, native shader-stage mapping, backend/policy selection, mip sizing, depth/stencil/color classification, managed texture mappings including Depth16/D32S8, managed Texture.SRGB integration, native sRGB mappings, direct VulkanDescriptorPoolSize serialization, and optional Vulkan/D3D12 render-setting serialization are ported; native compile-time backend filtering and translator/optimizer support remain TODO because the managed APIs differ
 - [-] `GAPIIncludes.h` — **EXCLUDED** · reason: Diligent header aggregation · replaced-by: generated Diligent bindings
 - [x] `ShaderBytecode.h`
@@ -174,7 +175,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct ComputePipelineStateDesc`
   - [~] `PipelineStateDesc` — graphics/compute variant construction and typed accessors now preserve the C++ single-active-alternative invariant
   - [~] `PipelineStateDesc` — default variant now matches C++ graphics-alternative initialization
-  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, reflection-based validity, material-specific immutable sampler descriptors, and Dispose-based destructor cleanup are ported; native descriptor parity remains under review
+  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, reflection-based validity, material-specific immutable sampler descriptors, OpenGL temporary-program vertex-input reflection/location binding, and Dispose-based destructor cleanup are ported; native descriptor parity remains under review
   - [~] `PipelineStateCache : Object, DeviceObject` — descriptor cache lookup, weak-state ownership, release diagnostics, and cached-data lifecycle match C++; native Diligent pipeline-cache creation/handle access remains TODO because the generated managed surface does not expose `IPipelineStateCache`
 - [x] `RenderPool.h`
   - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation/restore lifecycle are ported
@@ -183,7 +184,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RenderContext.h` — `RenderContext : Object` is ported, including cached render-target output, dimensions, swap-chain state, viewport clamping, target dirty marking, disposal, platform-specific debug-scope enablement, device-lost clip-state reset, and SDL-resolved OpenGL clip-plane toggles
 - [x] `DrawCommandQueue.h` — `DrawCommandQueue` is ported, including command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, four-float blend-factor binding, and the C++ void shader-parameter API/group-mismatch behavior
 - [~] `RenderDevice.h`
-  - [~] `RenderDevice : Object` — native factory/SDL-window/device/context/swap-chain accessors, adapter-derived device capabilities, texture format capability and multisample queries, separate swap-chain/window size reporting, fullscreen mode enumeration/selection, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, unordered device-object ownership, queued pipeline reloads, screenshot capture, dynamic window settings, post-initialize default raw textures, explicit device-state invalidation/restoration, render-pool loss/restore handling, and device-object destruction are ported; initialization, secondary swap-chain creation, and backend-specific device management remain
+  - [~] `RenderDevice : Object` — native factory/SDL-window/device/context/swap-chain accessors, adapter-derived device capabilities, texture format capability and multisample queries, separate swap-chain/window size reporting, fullscreen mode enumeration/selection, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, unordered device-object ownership, queued pipeline reloads, screenshot capture, dynamic window settings, platform-default backend selection, post-initialize default raw textures, explicit device-state invalidation/restoration, render-pool loss/restore handling, and device-object destruction are ported; initialization, secondary swap-chain creation, and backend-specific device management remain
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 
@@ -196,8 +197,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
   - [x] `FindVersionTag`
   - [x] shader translation helpers — universal GLSL compilation to SPIR-V, HLSL 5.0 semantic/sampler remapping, GLSL 4.1 and GLSL ES 3.0 translation, clip-distance handling, and SPIR-V vertex-input reflection match C++; focused tests cover diagnostics, all target languages, remapping, and reflected semantic/location indices
-- [~] `ShaderCompiler.h`
-  - [~] shader compiler helpers — exact C++ D3DCompile implementation is preserved as a TODO; managed generated bindings do not expose D3DCompile or COM shader blobs
+- [x] `ShaderCompiler.h`
+  - [x] shader compiler helpers — shader-stage profiles, optimization level 3, pixel-shader flow-control preference, debug-build flag, diagnostics, bytecode transfer, COM blob release, and unsupported-platform behavior match C++ through generated SharpCpp bindings and a platform-gated support implementation
 
 ## A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
@@ -236,7 +237,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Shader.h`
   - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
 - [~] `ShaderVariation.h`
-  - [~] `ShaderVariation : RawShader` — variation lifecycle, reload recreation, virtual shader-cache load/save, source preprocessing, bytecode creation, and vertex attributes are ported; native SPIR-V translation/optimization/reflection remain TODO
+  - [~] `ShaderVariation : RawShader` — variation lifecycle, reload recreation, virtual shader-cache load/save, source preprocessing, backend target selection, translation, optimization, D3D compilation, Vulkan/direct-source bytecode selection, SPIR-V vertex-attribute reflection, bytecode creation, and diagnostics are ported; remaining class-shape and native shader-cache/dependency details remain TODO
 - [~] `ModelView.h`
   - [~] `struct ModelVertexFormat` — editable vertex format conversion, merging, hashing, and equality are ported
   - [~] `struct ModelVertex` — editable vertex access, semantic replacement, repair, pruning, and equality are ported

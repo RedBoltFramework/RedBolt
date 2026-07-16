@@ -33,7 +33,6 @@ sealed class HelloGuiApplication : Application
         parameters.Borderless = false;
         parameters.FullScreen = false;
         parameters.WindowMaximize = false;
-        parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();
         parameters.WindowMaximize = false;

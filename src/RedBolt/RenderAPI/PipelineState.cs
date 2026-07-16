@@ -160,10 +160,35 @@ public class PipelineState : DeviceObject
 
         SubscribeToShaders();
         TemporaryLayoutArray? layout = null;
+        nint temporaryGlProgram = 0;
         try
         {
+            var isOpenGl = GetRenderDevice()?.GetBackend() == RenderBackend.OpenGL;
+            var hasSeparableShaderPrograms = device.GetDeviceInfo().FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
+            var vertexAttributes = desc.VertexShader!.GetBytecode().VertexAttributes;
+            if (isOpenGl)
+            {
+                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(vertexShader, pixelShader,
+                    desc.DomainShader?.GetHandle()!, desc.HullShader?.GetHandle()!, desc.GeometryShader?.GetHandle()!,
+                    hasSeparableShaderPrograms);
+                vertexAttributes = [];
+                var numAttributes = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
+                for (var i = 0u; i < numAttributes; ++i)
+                {
+                    var attributeName = System.Text.Encoding.UTF8.GetString(
+                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, i));
+                    var attribute = RenderAPIUtils.ParseVertexAttribute(attributeName);
+                    if (attribute is not null)
+                    {
+                        vertexAttributes.Add(attribute.Value with
+                        {
+                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(temporaryGlProgram, i)
+                        });
+                    }
+                }
+            }
             if (desc.InputLayout.Size != 0u)
-                layout = new TemporaryLayoutArray(desc.InputLayout.Elements);
+                layout = new TemporaryLayoutArray(desc.InputLayout.Elements, vertexAttributes);
 
             var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
             var reflection = new ShaderProgramReflection(shaders);
@@ -219,11 +244,19 @@ public class PipelineState : DeviceObject
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
             device.CreateGraphicsPipelineState(createInfo, out _handle);
+            if (isOpenGl && _handle is not null && !_handle.IsNull &&
+                !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, _handle))
+            {
+                DestroyGPU();
+                return;
+            }
             FinishCreation(reflection);
         }
         finally
         {
             layout?.Dispose();
+            if (temporaryGlProgram != 0)
+                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
         }
     }
 
@@ -343,17 +376,40 @@ public class PipelineState : DeviceObject
     {
         private readonly nint _memory;
         private readonly CString _semantic = new("ATTRIB");
-        public TemporaryLayoutArray(ReadOnlySpan<InputLayoutElementDesc> elements)
+        public TemporaryLayoutArray(ReadOnlySpan<InputLayoutElementDesc> elements,
+            IReadOnlyList<VertexShaderAttribute> attributes)
         {
-            Count = (uint)elements.Length;
+            var inputIndices = new uint[elements.Length];
+            Array.Fill(inputIndices, uint.MaxValue);
+            foreach (var attribute in attributes)
+            {
+                for (var i = elements.Length - 1; i >= 0; --i)
+                {
+                    if (elements[i].ElementSemantic == attribute.Semantic &&
+                        elements[i].ElementSemanticIndex == attribute.SemanticIndex)
+                    {
+                        inputIndices[i] = attribute.InputIndex;
+                        break;
+                    }
+                }
+            }
+            Count = 0;
+            foreach (var inputIndex in inputIndices)
+            {
+                if (inputIndex != uint.MaxValue)
+                    ++Count;
+            }
             var elementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
-            _memory = Marshal.AllocHGlobal(elements.Length * elementSize);
+            _memory = Marshal.AllocHGlobal((int)Count * elementSize);
+            var destinationIndex = 0;
             for (var i = 0; i < elements.Length; ++i)
             {
-                var native = LayoutElement.CreateManagedWrapper(_memory + i * elementSize, false);
+                if (inputIndices[i] == uint.MaxValue)
+                    continue;
+                var native = LayoutElement.CreateManagedWrapper(_memory + destinationIndex++ * elementSize, false);
                 var source = elements[i];
                 var type = GetElementType(source.ElementType);
-                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = uint.MaxValue; native.BufferSlot = source.BufferIndex;
+                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = inputIndices[i]; native.BufferSlot = source.BufferIndex;
                 native.NumComponents = type.Components; native.ValueType = type.Type; native.IsNormalized = type.Normalized;
                 native.RelativeOffset = source.ElementOffset; native.Stride = source.BufferStride;
                 native.Frequency = source.InstanceStepRate != 0 ? InputElementFrequency.InputElementFrequencyPerInstance : InputElementFrequency.InputElementFrequencyPerVertex;

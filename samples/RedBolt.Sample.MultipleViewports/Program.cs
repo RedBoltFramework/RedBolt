@@ -30,7 +30,6 @@ sealed class MultipleViewportsApplication : Application
         parameters.ApplicationName = "RedBolt.Sample.MultipleViewports";
         parameters.Borderless = false;
         parameters.FullScreen = false;
-        parameters.GraphicsBackend = GraphicsBackend.OpenGL;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = FindResourcePrefixPath();
         parameters.WindowMaximize = false;

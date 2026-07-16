@@ -834,7 +834,7 @@ public sealed class RenderDevice : Object
 
     private static RenderBackend MapRenderBackend(GraphicsBackend backend) => backend switch
     {
-        GraphicsBackend.Auto => RenderBackend.OpenGL,
+        GraphicsBackend.Auto => RenderAPIUtils.SelectRenderBackend(),
         GraphicsBackend.OpenGL => RenderBackend.OpenGL,
         GraphicsBackend.Vulkan => RenderBackend.Vulkan,
         GraphicsBackend.D3D11 => RenderBackend.D3D11,

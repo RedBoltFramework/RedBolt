@@ -103,6 +103,10 @@ public sealed class ShaderTranslatorTests
             new ShaderDefineArray(), TargetShaderLanguage.Glsl41);
         Assert.True(spirv.IsValid(), spirv.CompilerOutput);
 
+        var optimizerOutput = string.Empty;
+        Assert.True(ShaderOptimizer.OptimizeSpirVShader(
+            ref spirv, ref optimizerOutput, TargetShaderLanguage.Glsl41), optimizerOutput);
+
         var attributes = ShaderTranslator.GetVertexAttributesFromSpirV(spirv);
 
         Assert.Contains(new VertexShaderAttribute(VertexElementSemantic.Position, 0, 2), attributes);

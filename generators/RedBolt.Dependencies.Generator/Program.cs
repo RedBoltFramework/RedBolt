@@ -69,6 +69,12 @@ internal static class Program
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
+        "CreateTemporaryGLProgram",
+        "DeleteTemporaryGLProgram",
+        "GetTemporaryGLProgramVertexAttributeCount",
+        "GetTemporaryGLProgramVertexAttributeName",
+        "GetTemporaryGLProgramVertexAttributeLocation",
+        "BindTemporaryGLProgramVertexAttributes",
         "GetShaderCodeBufferVariableAt",
         "GetTextureFormatAttribs"
     };
@@ -491,7 +497,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools" or "spirvoptimizer")
+        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
             return 0;
 
         if (descriptor.Surface == "webp")
@@ -1023,6 +1029,16 @@ internal static class Program
                     "SpirVOptimizerNativeBindings",
                     "RedBolt.Native",
                     "redbolt_spirvoptimizer",
+                    "-xc++",
+                    "-std=c++20",
+                    true),
+                "shadercompiler" => new BindingSurfaceDescriptor(
+                    "shadercompiler",
+                    "RedBolt.Bindings.ShaderCompiler",
+                    "RedBolt.Bindings.ShaderCompiler",
+                    "ShaderCompilerNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_shadercompiler",
                     "-xc++",
                     "-std=c++20",
                     true),

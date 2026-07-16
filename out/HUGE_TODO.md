@@ -3,7 +3,6 @@
 - [ ] ./src/RedBolt/Graphics/CustomGeometry.cs:14:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModelGroup.cs:5:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/StaticModel.cs:8:// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-- [ ] ./src/RedBolt/Graphics/ShaderVariation.cs:236:        // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:11:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:13:    // TODO: port - C++ code:
@@ -14,7 +13,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
-- [ ] ./src/RedBolt/Graphics/ShaderCompiler.cs:3:// TODO: port: the managed API has no D3DCompile or D3D11/D3D12 compiler binding.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:17:// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:20:// TODO: port - C++ code: many methods in C++ Renderer.h including:
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:24:// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.

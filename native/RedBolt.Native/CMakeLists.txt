@@ -45,7 +45,9 @@ add_library(RedBolt.Native SHARED
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_OPTIMIZER_BINDINGS_CPP}"
+    "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
     src/SpirVOptimizerSupport.cpp
+    src/ShaderCompilerSupport.cpp
     "${REDBOLT_STB_SOURCE_ROOT}/stb_impl.cpp")
 
 set_source_files_properties(
@@ -100,3 +102,7 @@ target_link_libraries(RedBolt.Native
         SPIRV-Tools
         SPIRV-Tools-opt
         -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)
+
+if(D3D11_SUPPORTED OR D3D12_SUPPORTED)
+    target_link_libraries(RedBolt.Native PRIVATE d3dcompiler)
+endif()
