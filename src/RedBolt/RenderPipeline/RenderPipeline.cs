@@ -1,5 +1,7 @@
 namespace RedBolt;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>
 /// Scene component that spawns render pipeline instances.
 /// </summary>
@@ -336,7 +338,7 @@ public class RenderPipeline : Component
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline _renderPipeline;
-        private readonly RenderBufferManager _renderBufferManager = new();
+        private readonly RenderBufferManager _renderBufferManager;
         private readonly SharedRenderPassState _sharedState = new();
         private readonly Dictionary<string, object?> _effectiveRenderPathParameters = new(StringComparer.Ordinal);
         private readonly RenderPipelineStats _stats = new();
@@ -352,6 +354,7 @@ public class RenderPipeline : Component
             : base(renderPipeline)
         {
             this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+            _renderBufferManager = new RenderBufferManager(this);
         }
 
         public override bool IsLinearColorSpace => _renderBufferManager.IsLinearColorSpace();
@@ -393,6 +396,15 @@ public class RenderPipeline : Component
                 return;
 
             SyncFromPipeline();
+
+            // Begin debug snapshot
+            var input = _renderPipeline.GetSubsystem<Input>();
+            var qualifiers = input?.GetQualifiers() ?? Qualifier.None;
+            var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
+                && input!.GetKeyPress(Key.F12);
+            if (takeSnapshot)
+                GetDebugger().BeginSnapshot();
+
             var cameraPosition = _viewport.Camera.IsAttached
                 ? _viewport.Camera.Node.WorldPosition
                 : Vector3f.Zero;
@@ -464,6 +476,13 @@ public class RenderPipeline : Component
             RaiseCollectStatistics(_stats);
             SendEndViewRenderEvent();
             RaiseRenderEnd(_frameInfo);
+
+            // End debug snapshot
+            if (GetDebugger().IsSnapshotInProgress())
+            {
+                GetDebugger().EndSnapshot();
+                Log.Logger.LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+            }
         }
 
         public override CommonFrameInfo GetFrameInfo() => _frameInfo;

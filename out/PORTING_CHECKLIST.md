@@ -350,7 +350,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
 - [~] `RenderPipelineDefs.h`
-  - [~] `RenderPipelineInterface` — global context accessor and debug geometry/light dispatch now match C++; debugger accessor remains a TODO until `RenderPipelineDebugger` is ported
+  - [x] `RenderPipelineInterface` — global context accessor, debug geometry/light dispatch, and per-pipeline debugger accessor match C++
   - [~] pipeline enums / settings structs — flags, frame statistics, default settings, validation, implied-setting propagation, and render-path adjustment are ported; native RG32F support is unavailable in the managed TextureFormat surface
 - [ ] `ShaderConsts.h`
   - [ ] shader constant name definitions
@@ -410,12 +410,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `SceneProcessor : Object, LightProcessorCallback`
 - [ ] `OutlineScenePass.h`
   - [ ] `OutlineScenePass : ScenePass`
-- [ ] `RenderPipelineDebugger.h`
-  - [ ] `struct DebugFrameSnapshotBatch`
-  - [ ] `struct DebugFrameSnapshotQuad`
-  - [ ] `struct DebugFrameSnapshotPass`
-  - [ ] `struct DebugFrameSnapshot`
-  - [ ] `RenderPipelineDebugger`
+- [~] `RenderPipelineDebugger.h`
+  - [~] `struct DebugFrameSnapshotBatch` — snapshot fields and formatting are ported; the constructor from native `PipelineBatch` awaits that class
+  - [x] `struct DebugFrameSnapshotQuad`
+  - [x] `struct DebugFrameSnapshotPass`
+  - [x] `struct DebugFrameSnapshot`
+  - [~] `RenderPipelineDebugger` — snapshot state machine, pass/quad reporting, default-pipeline capture hotkey, and final logging are ported; scene-batch call sites await `DrawableProcessor` and `BatchRenderer`
 - [~] `Passes/FullScreenShaderPass.h`
   - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, fullscreen rendering, and cloning are ported; managed shader-resource/cache state remains adapted
 - [~] `Passes/AmbientOcclusionPass.h`

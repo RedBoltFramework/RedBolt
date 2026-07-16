@@ -1002,7 +1002,7 @@ public interface IRenderPipelineInterface
 {
     Context? GetContext();
 
-    // TODO: port RenderPipelineDebugger* GetDebugger() = 0; when RenderPipelineDebugger is available.
+    RenderPipelineDebugger GetDebugger();
 
     bool IsLinearColorSpace { get; }
 
@@ -1022,9 +1022,10 @@ public interface IRenderPipelineInterface
 /// <summary>
 /// Base interface of render pipeline viewport instance.
 /// </summary>
-    public abstract class RenderPipelineView : IRenderPipelineInterface
+public abstract class RenderPipelineView : IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
+    private readonly RenderPipelineDebugger _debugger = new();
     protected readonly List<ShaderParameterDesc> _frameParameters = [];
 
     protected RenderPipelineView(RenderPipeline renderPipeline)
@@ -1042,6 +1043,8 @@ public interface IRenderPipelineInterface
     }
 
     public Context? GetContext() => Context.Instance;
+
+    public RenderPipelineDebugger GetDebugger() => _debugger;
 
     public abstract bool IsLinearColorSpace { get; }
 

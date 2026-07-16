@@ -40,9 +40,11 @@ public sealed class RenderBufferManager
     private bool _hdr;
     private bool _viewportTargetLinearColorSpace;
     private Graphics? _lastGraphics;
+    private readonly RenderPipelineDebugger? _debugger;
 
-    public RenderBufferManager()
+    public RenderBufferManager(IRenderPipelineInterface? renderPipeline = null)
     {
+        _debugger = renderPipeline?.GetDebugger();
         _applyColorTextureMetadata = ApplyColorTextureMetadata;
         _depthStencilBuffer = _viewportDepthBuffer;
         _writeableColorBuffer = _viewportColorBuffer;
@@ -228,6 +230,8 @@ public sealed class RenderBufferManager
             GetInvOutputSize(),
             GetDefaultClipToUVSpaceOffsetAndScale(),
             flipVertical);
+        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+            _debugger!.ReportQuad(debugComment ?? shaderName, graphics.GetCurrentRenderTargetSize());
     }
 
     /// <summary>
@@ -254,6 +258,8 @@ public sealed class RenderBufferManager
             GetInvOutputSize(),
             GetDefaultClipToUVSpaceOffsetAndScale(),
             flipVertical);
+        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+            _debugger!.ReportQuad(debugComment ?? shaderName, graphics.GetCurrentRenderTargetSize());
     }
 
     public void CopyTextureRegion(Graphics graphics, string debugComment, Texture sourceTexture, IntRect sourceRect,
