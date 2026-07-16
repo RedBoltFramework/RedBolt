@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum SkinningMode
@@ -13,57 +15,45 @@ public sealed class FrameStatistics
     public uint ChangedAnimations;
 }
 
-/// <remarks>
-// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
-// It manages view batches, drawable queues, occlusion, shadow maps, post-processing, geometry updates, etc.
-// The C# renderer is a simplified version that delegates much work to RenderPipelineView instances.
-// TODO: port - C++ code: many methods in C++ Renderer.h including:
-//   DrawableUpdateQueues, UpdateQueuedBatches, BatchCompositing, shadow map allocation,
-//   light volume geometry creation, material quality management, geometry/LOD update batching,
-//   instancing buffer management, render statistics beyond basic frame counts, etc.
-// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.
-// C++: Renderer is the central hub for rendering with many more methods (the C++ header is ~390 lines).
-/// </remarks>
+/// <summary>
+/// High-level rendering subsystem. Manages drawing of 3D views.
+/// </summary>
 public sealed class Renderer : Object
 {
+    private RenderSurface? _backbufferSurface;
+    private bool _backbufferSurfaceViewportsDirty;
+    private Technique? _defaultTechnique;
     private readonly Zone _defaultZone = new();
     private Geometry? _dirLightGeometry;
     private Geometry? _spotLightGeometry;
     private Geometry? _pointLightGeometry;
-    private Technique? _defaultTechnique;
     private Material? _defaultMaterial;
     private Texture2D? _defaultLightRamp;
     private Texture2D? _defaultLightSpot;
     private TextureCube? _blackCubeMap;
-    private RenderSurface? _backbufferSurface;
-    private bool _backbufferSurfaceViewportsDirty;
     private readonly List<Viewport?> _viewports = [];
     private readonly List<(RenderSurface? Surface, Viewport Viewport)> _queuedViewports = [];
     private readonly List<RenderPipelineView> _renderPipelineViews = [];
     private readonly HashSet<Octree> _updatedOctrees = [];
+    private readonly HashSet<Technique> _shaderErrorDisplayed = [];
     private readonly CommonFrameInfo _frameInfo = new();
-    private readonly FrameStatistics _frameStats = new();
+    private int _textureAnisotropy = 4;
+    private TextureFilterMode _textureFilterMode = TextureFilterMode.Trilinear;
+    private MaterialQuality _textureQuality = MaterialQuality.High;
     private bool _initialized;
     private bool _resetViews;
     private bool _hardwareSkinningSupported = true;
+    private SkinningMode _skinningMode;
+    private uint _numSoftwareSkinningBones = 4;
+    private readonly FrameStatistics _frameStats = new();
 
     public Renderer()
     {
         SubscribeToEvent<GraphicsEvents.ScreenModeEvent>((ref GraphicsEvents.ScreenModeEvent _) => HandleScreenMode());
+
+        // Try to initialize right now, but skip if screen mode is not yet set
         Initialize();
     }
-
-    public int TextureAnisotropy { get; private set; } = 4;
-
-    public TextureFilterMode TextureFilterMode { get; private set; } = TextureFilterMode.Trilinear;
-
-    public MaterialQuality TextureQuality { get; private set; } = MaterialQuality.High;
-
-    public SkinningMode SkinningMode { get; private set; } = SkinningMode.Auto;
-
-    public uint NumSoftwareSkinningBones { get; private set; } = 4;
-
-    public uint NumViews => GetNumViews();
 
     public FrameStatistics GetFrameStats() => _frameStats;
 
@@ -80,24 +70,14 @@ public sealed class Renderer : Object
 
     public void SetViewport(uint index, Viewport? viewport)
     {
-        EnsureViewportCount(index + 1);
+        if (index >= _viewports.Count)
+            SetNumViewports(index + 1);
         _viewports[(int)index] = viewport;
-    }
-
-    public void SetViewport(Viewport viewport)
-    {
-        SetViewport(0, viewport);
     }
 
     public void SetDefaultTechnique(Technique? technique)
     {
         _defaultTechnique = technique;
-    }
-
-    public void ClearViewports()
-    {
-        _viewports.Clear();
-        _renderPipelineViews.Clear();
     }
 
     public uint GetNumViewports() => (uint)_viewports.Count;
@@ -180,72 +160,59 @@ public sealed class Renderer : Object
         return _defaultLightSpot;
     }
 
-    public TextureCube GetBlackCubeMap()
-    {
-        if (_blackCubeMap is not null)
-            return _blackCubeMap;
-
-        _blackCubeMap = new TextureCube("BlackCubeMap");
-        _blackCubeMap.SetNumLevels(1);
-        _blackCubeMap.SetSize(1, TextureFormat.RGBA8);
-        _blackCubeMap.SetFilterMode(TextureFilterMode.Nearest);
-        var data = new byte[] { 0, 0, 0, 255 };
-        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; ++face)
-            _blackCubeMap.SetData(face, 0, 0, 0, 1, 1, data);
-
-        return _blackCubeMap;
-    }
+    public TextureCube? GetBlackCubeMap() => _blackCubeMap;
 
     public void SetNumViewports(uint count)
     {
-        EnsureViewportCount(count);
+        while (_viewports.Count < count)
+            _viewports.Add(null);
         while (_viewports.Count > count)
             _viewports.RemoveAt(_viewports.Count - 1);
     }
 
     public void SetTextureAnisotropy(int level)
     {
-        TextureAnisotropy = Math.Max(1, level);
+        _textureAnisotropy = Math.Max(1, level);
     }
 
-    public int GetTextureAnisotropy() => TextureAnisotropy;
+    public int GetTextureAnisotropy() => _textureAnisotropy;
 
     public void SetTextureFilterMode(TextureFilterMode mode)
     {
-        TextureFilterMode = mode;
+        _textureFilterMode = mode;
     }
 
-    public TextureFilterMode GetTextureFilterMode() => TextureFilterMode;
+    public TextureFilterMode GetTextureFilterMode() => _textureFilterMode;
 
     public void SetTextureQuality(MaterialQuality quality)
     {
         quality = (MaterialQuality)Math.Clamp((uint)quality, (uint)MaterialQuality.Low, (uint)MaterialQuality.High);
 
-        if (quality != TextureQuality)
+        if (quality != _textureQuality)
         {
-            TextureQuality = quality;
+            _textureQuality = quality;
             ReloadTextures();
         }
     }
 
-    public MaterialQuality GetTextureQuality() => TextureQuality;
+    public MaterialQuality GetTextureQuality() => _textureQuality;
 
     public void SetSkinningMode(SkinningMode mode)
     {
-        SkinningMode = mode;
+        _skinningMode = mode;
     }
 
-    public SkinningMode GetSkinningMode() => SkinningMode;
+    public SkinningMode GetSkinningMode() => _skinningMode;
 
     public bool GetUseHardwareSkinning() =>
-        SkinningMode == SkinningMode.Auto && _hardwareSkinningSupported || SkinningMode == SkinningMode.Hardware;
+        _skinningMode == SkinningMode.Auto && _hardwareSkinningSupported || _skinningMode == SkinningMode.Hardware;
 
     public void SetNumSoftwareSkinningBones(uint numBones)
     {
-        NumSoftwareSkinningBones = numBones;
+        _numSoftwareSkinningBones = numBones;
     }
 
-    public uint GetNumSoftwareSkinningBones() => NumSoftwareSkinningBones;
+    public uint GetNumSoftwareSkinningBones() => _numSoftwareSkinningBones;
 
     public Geometry? GetLightGeometry(Light light)
     {
@@ -339,8 +306,8 @@ public sealed class Renderer : Object
         var graphics = GetSubsystem<Graphics>()!;
         var renderDevice = GetSubsystem<RenderDevice>()!;
 
-        renderDevice.SetDefaultTextureFilterMode(TextureFilterMode);
-        renderDevice.SetDefaultTextureAnisotropy(TextureAnisotropy);
+        renderDevice.SetDefaultTextureFilterMode(_textureFilterMode);
+        renderDevice.SetDefaultTextureAnisotropy(_textureAnisotropy);
 
         var hasBackbufferViews = false;
         foreach (var renderPipelineView in _renderPipelineViews)
@@ -359,7 +326,7 @@ public sealed class Renderer : Object
         }
 
         for (var i = _renderPipelineViews.Count - 1; i >= 0; --i)
-            _renderPipelineViews[i].Render(graphics, TextureQuality);
+            _renderPipelineViews[i].Render(graphics, _textureQuality);
 
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
@@ -409,15 +376,10 @@ public sealed class Renderer : Object
         }
     }
 
-    private void EnsureViewportCount(uint count)
-    {
-        while (_viewports.Count < count)
-            _viewports.Add(null);
-    }
-
     private void Initialize()
     {
         var graphics = GetSubsystem<Graphics>();
+        var renderDevice = GetSubsystem<RenderDevice>();
         var cache = GetSubsystem<ResourceCache>();
 
         if (graphics is null || !graphics.IsInitialized || cache is null)
@@ -442,6 +404,8 @@ public sealed class Renderer : Object
             _frameStats.Animations = 0;
             _frameStats.ChangedAnimations = 0;
         });
+
+        Log.Logger.LogInformation("Initialized renderer");
     }
 
     private void HandleScreenMode()
@@ -531,6 +495,14 @@ public sealed class Renderer : Object
                 20, 16, 20, 17, 0, 23, 10, 1, 9, 14, 2, 13, 18, 3, 17, 20, 6, 11,
                 22, 5, 15, 8, 4, 19, 12, 7, 21, 16
             ]);
+
+        _blackCubeMap = new TextureCube("BlackCubeMap");
+        _blackCubeMap.SetNumLevels(1);
+        _blackCubeMap.SetSize(1, TextureFormat.RGBA8);
+        _blackCubeMap.SetFilterMode(TextureFilterMode.Nearest);
+        var blackCubeMapData = new byte[] { 0, 0, 0, 255 };
+        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; ++face)
+            _blackCubeMap.SetData(face, 0, 0, 0, 1, 1, blackCubeMapData);
     }
 
     private static Geometry CreateGeometry(string name, float[] vertexData, uint[] indexData)

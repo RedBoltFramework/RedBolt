@@ -308,7 +308,7 @@ public sealed class Engine : Object
 
         GetSubsystem<RenderDevice>()!.OnEngineShutdown();
         GetSubsystem<Graphics>()!.Shutdown();
-        GetSubsystem<Renderer>()!.ClearViewports();
+        GetSubsystem<Renderer>()!.SetNumViewports(0);
         GetSubsystem<Input>()!.Shutdown();
         _context.Reset();
         if (ReferenceEquals(RedBolt.Context.Instance, _context))

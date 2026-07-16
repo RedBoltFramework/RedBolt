@@ -84,7 +84,7 @@ public sealed class RendererTests
         Assert.Null(renderSurface.GetViewport(0));
         renderSurface.SetNumViewports(0);
         Renderer.SetBackbufferRenderSurface(null);
-        Renderer.ClearViewports();
+        Renderer.SetNumViewports(0);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class RendererTests
 
         Assert.Null(scene.Root.GetComponent<RenderPipeline>());
         Assert.Null(viewport.GetRenderPipelineView());
-        Renderer.ClearViewports();
+        Renderer.SetNumViewports(0);
     }
 
     [Fact]
@@ -202,16 +202,26 @@ public sealed class RendererTests
     }
 
     [Fact]
-    public void Default_material_and_black_cube_map_are_cached()
+    public void Default_material_and_black_cube_map_follow_renderer_initialization()
     {
         var material = Renderer.GetDefaultMaterial();
         var blackCubeMap = Renderer.GetBlackCubeMap();
 
         Assert.Same(material, Renderer.GetDefaultMaterial());
         Assert.Same(blackCubeMap, Renderer.GetBlackCubeMap());
-        Assert.Equal(new Vector2i(1, 1), blackCubeMap.GetSize());
-        Assert.Equal(TextureFilterMode.Nearest, blackCubeMap.GetFilterMode());
-        Assert.Equal(new byte[] { 0, 0, 0, 255 }, blackCubeMap.GetData(CubeMapFace.PositiveX, 0));
+        if (Renderer.GetQuadGeometry() is null)
+        {
+            Assert.Null(material);
+            Assert.Null(blackCubeMap);
+        }
+        else
+        {
+            Assert.NotNull(material);
+            Assert.NotNull(blackCubeMap);
+            Assert.Equal(new Vector2i(1, 1), blackCubeMap.GetSize());
+            Assert.Equal(TextureFilterMode.Nearest, blackCubeMap.GetFilterMode());
+            Assert.Equal(new byte[] { 0, 0, 0, 255 }, blackCubeMap.GetData(CubeMapFace.PositiveX, 0));
+        }
     }
 
     [Fact]
