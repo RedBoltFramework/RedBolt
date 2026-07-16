@@ -65,8 +65,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, and SPIRV-Tools
   surfaces into the build tree; dedicated managed binding projects consume them; the native batch links the matching
   rbfx-version shader libraries; generated borrowed-record array element access supports SPIRV-Cross reflection lists;
-  and `ShaderLibraryBindingTests` verifies process/context creation and deterministic release through all three managed
-  surfaces. The standard gate passes 1021 tests and the two-second
+  the generated SPIR-V optimizer support surface preserves rbfx's interface-aware performance-pass sequence and
+  deterministic native lifetime; and `ShaderLibraryBindingTests` verifies process/context creation and deterministic
+  release through all three managed surfaces. The standard gate passes 1025 tests and the two-second
   MultipleViewports capture is visibly correct. D3DCompiler and backend-specific Diligent surfaces remain pending
   under their platform/backend feature conditions.
 
@@ -189,8 +190,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ShaderDefs.h` — `SpirVShader`, `TargetShaderLanguage`, and `ShaderDefineArray` are ported, including bytecode/compiler-output storage, validity conversion, define parsing/appending, size, unused-define detection, and name/value storage
 - [x] `ShaderSourceLogger.h`
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
-- [~] `ShaderOptimizer.h`
-  - [~] shader optimizer helpers — generated SPIRV-Tools context, validator, optimizer-option, and C API access is available and smoke-tested; the exact C++ optimizer body remains pending Packet 3E
+- [x] `ShaderOptimizer.h`
+  - [x] shader optimizer helpers — target environment selection, diagnostic aggregation, Vulkan legalization and validation, interface-preserving performance passes, validator options, failure semantics, and output transfer match C++; focused tests cover valid Vulkan/non-Vulkan modules and malformed-input preservation
 - [x] `ShaderTranslator.h`
   - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
   - [x] `FindVersionTag`

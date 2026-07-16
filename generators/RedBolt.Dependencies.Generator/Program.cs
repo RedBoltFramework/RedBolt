@@ -491,7 +491,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools")
+        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools" or "spirvoptimizer")
             return 0;
 
         if (descriptor.Surface == "webp")
@@ -1016,6 +1016,16 @@ internal static class Program
                     "-xc",
                     "-std=c17",
                     false),
+                "spirvoptimizer" => new BindingSurfaceDescriptor(
+                    "spirvoptimizer",
+                    "RedBolt.Bindings.SpirVTools",
+                    "RedBolt.Bindings.SpirVTools",
+                    "SpirVOptimizerNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_spirvoptimizer",
+                    "-xc++",
+                    "-std=c++20",
+                    true),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };
         }

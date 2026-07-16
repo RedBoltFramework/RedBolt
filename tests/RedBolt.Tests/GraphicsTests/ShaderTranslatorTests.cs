@@ -108,4 +108,53 @@ public sealed class ShaderTranslatorTests
         Assert.Contains(new VertexShaderAttribute(VertexElementSemantic.Position, 0, 2), attributes);
         Assert.Contains(new VertexShaderAttribute(VertexElementSemantic.TexCoord, 1, 5), attributes);
     }
+
+    [Theory]
+    [InlineData(TargetShaderLanguage.Glsl41)]
+    [InlineData(TargetShaderLanguage.Vulkan10)]
+    public void Valid_spirv_shader_is_optimized(TargetShaderLanguage language)
+    {
+        var shader = new SpirVShader();
+        ShaderTranslator.ParseUniversalShader(ref shader, ShaderType.VS,
+            "layout(location = 0) in vec3 iPos;\nvoid main() { gl_Position = vec4(iPos, 1.0); }",
+            new ShaderDefineArray(), language);
+        Assert.True(shader.IsValid(), shader.CompilerOutput);
+        var optimizerOutput = string.Empty;
+
+        var result = ShaderOptimizer.OptimizeSpirVShader(ref shader, ref optimizerOutput, language);
+
+        Assert.True(result, optimizerOutput);
+        Assert.True(shader.IsValid());
+        Assert.Equal(0x07230203u, shader.Bytecode[0]);
+    }
+
+    [Fact]
+    public void Non_vulkan_optimizer_failure_preserves_shader()
+    {
+        var originalBytecode = new List<uint> { 1, 2, 3 };
+        var shader = new SpirVShader { Bytecode = new List<uint>(originalBytecode) };
+        var optimizerOutput = string.Empty;
+
+        var result = ShaderOptimizer.OptimizeSpirVShader(
+            ref shader, ref optimizerOutput, TargetShaderLanguage.Glsl41);
+
+        Assert.True(result);
+        Assert.Equal(originalBytecode, shader.Bytecode);
+        Assert.Contains("Failed to optimize SPIR-V shader:", optimizerOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Vulkan_optimizer_failure_is_fatal_and_preserves_shader()
+    {
+        var originalBytecode = new List<uint> { 1, 2, 3 };
+        var shader = new SpirVShader { Bytecode = new List<uint>(originalBytecode) };
+        var optimizerOutput = string.Empty;
+
+        var result = ShaderOptimizer.OptimizeSpirVShader(
+            ref shader, ref optimizerOutput, TargetShaderLanguage.Vulkan10);
+
+        Assert.False(result);
+        Assert.Equal(originalBytecode, shader.Bytecode);
+        Assert.Contains("Failed to optimize SPIR-V shader:", optimizerOutput, StringComparison.Ordinal);
+    }
 }

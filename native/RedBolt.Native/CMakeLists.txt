@@ -44,6 +44,8 @@ add_library(RedBolt.Native SHARED
     "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
+    "${REDBOLT_SPIRV_OPTIMIZER_BINDINGS_CPP}"
+    src/SpirVOptimizerSupport.cpp
     "${REDBOLT_STB_SOURCE_ROOT}/stb_impl.cpp")
 
 set_source_files_properties(
@@ -96,4 +98,5 @@ target_link_libraries(RedBolt.Native
         SPIRV
         spirv-cross-c
         SPIRV-Tools
+        SPIRV-Tools-opt
         -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)

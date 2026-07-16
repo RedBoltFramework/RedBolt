@@ -14,7 +14,6 @@
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:29:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:31:    // TODO: port - C++ code:
 - [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:39:    // TODO: port - C++ fields:
-- [ ] ./src/RedBolt/Graphics/ShaderOptimizer.cs:3:// TODO: port: the managed API has no SPIR-V optimizer/validator binding.
 - [ ] ./src/RedBolt/Graphics/ShaderCompiler.cs:3:// TODO: port: the managed API has no D3DCompile or D3D11/D3D12 compiler binding.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:17:// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:20:// TODO: port - C++ code: many methods in C++ Renderer.h including:

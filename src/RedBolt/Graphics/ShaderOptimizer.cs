@@ -1,47 +1,46 @@
+using System.Runtime.InteropServices;
+using System.Text;
+using RedBolt.Bindings.SpirVTools;
+using RedBoltNative;
+
 namespace RedBolt;
 
-// TODO: port: the managed API has no SPIR-V optimizer/validator binding.
-// URHO3D_API bool OptimizeSpirVShader(
-//     SpirVShader& shader, ea::string& optimizerOutput, TargetShaderLanguage targetLanguage);
-// bool OptimizeSpirVShader(SpirVShader& shader, ea::string& optimizerOutput, TargetShaderLanguage targetLanguage)
-// {
-// #ifdef URHO3D_SHADER_OPTIMIZER
-//     const bool isVulkan = targetLanguage == TargetShaderLanguage::VULKAN_1_0;
-//     const auto targetEnv = GetTarget(targetLanguage);
-//
-//     spvtools::Optimizer spirvOptimizer(targetEnv);
-//     spirvOptimizer.SetMessageConsumer(AppendToString(optimizerOutput));
-//
-//     if (isVulkan)
-//         spirvOptimizer.RegisterLegalizationPasses();
-//
-//     spirvOptimizer.RegisterPerformancePasses(true);
-//
-//     spvtools::OptimizerOptions optimizerOptions;
-//     optimizerOptions.set_run_validator(!isVulkan);
-//
-//     std::vector<uint32_t> optimizedSPIRV;
-//     if (!spirvOptimizer.Run(shader.bytecode_.data(), shader.bytecode_.size(), &optimizedSPIRV, optimizerOptions))
-//     {
-//         // Vulkan requires optimization, other backends don't.
-//         return !isVulkan;
-//     }
-//
-//     if (isVulkan)
-//     {
-//         spvtools::ValidatorOptions validatorOptions;
-//         spvtools::SpirvTools tools(targetEnv);
-//         tools.SetMessageConsumer(AppendToString(optimizerOutput));
-//         if (!tools.Validate(optimizedSPIRV.data(), optimizedSPIRV.size(), validatorOptions))
-//         {
-//             return false;
-//         }
-//     }
-//
-//     shader.bytecode_ = ea::move(optimizedSPIRV);
-//     return true;
-// #else
-//     URHO3D_ASSERTLOG(0, "URHO3D_SHADER_OPTIMIZER should be enabled to use OptimizeSpirVShader");
-//     return false;
-// #endif
-// }
+public static class ShaderOptimizer
+{
+    private static SpvTargetEnv GetTarget(TargetShaderLanguage targetLanguage)
+    {
+        return targetLanguage switch
+        {
+            TargetShaderLanguage.Vulkan10 => SpvTargetEnv.SpvEnvVulkan10,
+            _ => SpvTargetEnv.SpvEnvUniversal16
+        };
+    }
+
+    public static bool OptimizeSpirVShader(ref SpirVShader shader, ref string optimizerOutput,
+        TargetShaderLanguage targetLanguage)
+    {
+        var isVulkan = targetLanguage == TargetShaderLanguage.Vulkan10;
+        var targetEnv = GetTarget(targetLanguage);
+
+        using var spirvOptimizer = new SpirVOptimizerSupport();
+        var bytecode = CollectionsMarshal.AsSpan(shader.Bytecode);
+        uint emptyBytecode = 0;
+        ref var firstWord = ref (bytecode.IsEmpty ? ref emptyBytecode : ref MemoryMarshal.GetReference(bytecode));
+        var result = spirvOptimizer.Optimize(in firstWord, (nuint)bytecode.Length, (uint)targetEnv, isVulkan);
+        optimizerOutput += Encoding.UTF8.GetString(spirvOptimizer.GetOutput());
+
+        if (!result)
+            return false;
+
+        var optimizedSize = spirvOptimizer.GetBytecodeSize();
+        if (optimizedSize != 0)
+        {
+            var optimizedBytecode = new List<uint>(checked((int)optimizedSize));
+            for (nuint i = 0; i < optimizedSize; ++i)
+                optimizedBytecode.Add(spirvOptimizer.GetBytecodeWord(i));
+            shader.Bytecode = optimizedBytecode;
+        }
+
+        return true;
+    }
+}
