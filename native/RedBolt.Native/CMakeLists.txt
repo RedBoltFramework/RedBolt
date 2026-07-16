@@ -2,7 +2,11 @@ add_library(redbolt-diligent-support STATIC
     src/DiligentSupport.cpp)
 target_link_libraries(redbolt-diligent-support
     PUBLIC
-        redbolt-native-support)
+        redbolt-native-support
+    PRIVATE
+        SDL2::SDL2)
+target_include_directories(redbolt-diligent-support PRIVATE
+    "${CMAKE_SOURCE_DIR}/extern/thirdparty/Diligent/Graphics/GraphicsEngine/include")
 set_target_properties(redbolt-diligent-support PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 

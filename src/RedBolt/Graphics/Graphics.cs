@@ -692,6 +692,8 @@ layout(std140) uniform Material
 
     public ISwapChain? GetNativeSwapChain() => _swapChain;
 
+    internal IntPtr GetGLContext() => _glContext;
+
     public SdlWindow? GetNativeWindow() => _window;
 
     public static bool GetGL3Support() => true;
