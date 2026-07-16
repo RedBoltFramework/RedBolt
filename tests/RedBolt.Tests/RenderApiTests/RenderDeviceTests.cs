@@ -357,6 +357,35 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Restore_does_not_recreate_device_objects_on_desktop()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            _fixture.RenderDevice.PostInitialize();
+            var texture = _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D);
+
+            Assert.True(_fixture.RenderDevice.Restore());
+
+            Assert.Same(texture, _fixture.RenderDevice.GetDefaultTexture(TextureType.Texture2D));
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+        }
+    }
+
+    [Fact]
     public void Render_device_loss_restore_recreates_defaults_and_resets_context_state()
     {
         var parameters = new EngineParameters

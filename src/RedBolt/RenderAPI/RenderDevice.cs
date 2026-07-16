@@ -152,15 +152,11 @@ public sealed class RenderDevice : Object
         _defaultTextureParametersDirty = true;
     }
 
-    // TODO: port - C++ code: InvalidateGLESContext(), RestoreGLESContext(), InvalidateVulkanContext(), RestoreVulkanContext()
     /// <summary>
     /// Restore device if is was lost. Only applicable for Android.
     /// </summary>
     public bool Restore()
     {
-        SendDeviceObjectEvent(DeviceObjectEvent.Restore);
-        SendEvent<GraphicsEvents.DeviceResetEvent>();
-        InitializeDefaultObjects();
         return true;
     }
 
@@ -183,9 +179,30 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool EmulateLossAndRestore()
     {
-        InvalidateDeviceState();
-        RestoreDeviceState();
-        return true;
+        const uint delayMs = 250;
+        if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
+        {
+            InvalidateVulkanContext();
+            Log.Logger.LogInformation("Emulated context lost");
+            SdlNativeBindings.SdlDelay(delayMs);
+            return RestoreVulkanContext();
+        }
+        else if (ProcessUtils.GetPlatform() == PlatformId.Android)
+        {
+            System.Diagnostics.Debug.Assert(GetDeviceSettings().Backend == RenderBackend.OpenGL);
+
+            InvalidateGLESContext();
+            Log.Logger.LogInformation("Emulated context lost");
+            SdlNativeBindings.SdlDelay(delayMs);
+            return RestoreGLESContext();
+        }
+        else
+        {
+            InvalidateDeviceState();
+            Log.Logger.LogInformation("Emulated context lost");
+            RestoreDeviceState();
+            return true;
+        }
     }
 
     /// <summary>
@@ -743,6 +760,28 @@ public sealed class RenderDevice : Object
         }
 
         _renderPool.Invalidate();
+    }
+
+    private static void InvalidateGLESContext()
+    {
+        Log.Logger.LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
+    }
+
+    private static bool RestoreGLESContext()
+    {
+        Log.Logger.LogWarning("RenderDevice::RestoreGLESContext is supported only for Android platform");
+        return true;
+    }
+
+    private static void InvalidateVulkanContext()
+    {
+        Log.Logger.LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
+    }
+
+    private static bool RestoreVulkanContext()
+    {
+        Log.Logger.LogWarning("RenderDevice::RestoreVulkanContext is supported only for Vulkan backend");
+        return true;
     }
 
     private static IReadOnlyList<string> ParseOrientations(string orientations)
