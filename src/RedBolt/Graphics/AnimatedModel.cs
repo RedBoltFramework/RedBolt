@@ -8,12 +8,6 @@ public class AnimatedModel : StaticModel
     // TODO: port - C++ code:
     // void ApplyAttributes() override;
     // TODO: port - C++ code:
-    // void ProcessCustomRayQuery(const RayOctreeQuery& query, const BoundingBox& worldBoundingBox,
-    //     const Matrix3x4& worldTransform, ea::span<const Matrix3x4> boneWorldTransforms,
-    //     ea::vector<RayQueryResult>& results);
-    // TODO: port - C++ code:
-    // void ProcessRayQuery(const RayOctreeQuery& query, ea::vector<RayQueryResult>& results) override;
-    // TODO: port - C++ code:
     // void UpdateBatches(const FrameInfo& frame) override;
     // TODO: port - C++ code:
     // void UpdateGeometry(const FrameInfo& frame) override;
@@ -57,6 +51,76 @@ public class AnimatedModel : StaticModel
     /// <summary>Construct.</summary>
     public AnimatedModel()
     {
+    }
+
+    /// <summary>Process raycast with custom transform.</summary>
+    public void ProcessCustomRayQuery(RayOctreeQuery query, BoundingBox worldBoundingBox,
+        Matrix3x4 worldTransform, ReadOnlySpan<Matrix3x4> boneWorldTransforms, List<RayQueryResult> results)
+    {
+        var level = query.Level;
+        if (level < RayQueryLevel.RayTriangle || _skeleton.GetNumBones() == 0)
+        {
+            base.ProcessCustomRayQuery(query, worldBoundingBox, worldTransform, results);
+            return;
+        }
+
+        if (query.Ray.HitDistance(worldBoundingBox) >= query.MaxDistance)
+            return;
+
+        var bones = _skeleton.GetBones();
+
+        for (var i = 0; i < bones.Count; ++i)
+        {
+            var bone = bones[i];
+            if (bone.Node is null)
+                continue;
+
+            float distance;
+
+            var transform = i < boneWorldTransforms.Length ? boneWorldTransforms[i] : bone.Node.GetWorldTransform();
+
+            if ((bone.CollisionMask & BoneCollisionShape.Box) != 0)
+            {
+                var box = bone.BoundingBox;
+                var distanceAndNormal = query.Ray.HitDistanceAndNormal(box.Transformed(transform));
+                distance = distanceAndNormal.Distance;
+                if (distance >= query.MaxDistance)
+                    continue;
+                if (level != RayQueryLevel.RayAabb)
+                {
+                    var inverse = transform.Inverse;
+                    var localRay = query.Ray.Transformed(inverse);
+                    distance = localRay.HitDistance(box);
+                    if (distance >= query.MaxDistance)
+                        continue;
+                }
+            }
+            else if ((bone.CollisionMask & BoneCollisionShape.Sphere) != 0)
+            {
+                var boneSphere = new Sphere(transform.Translation, bone.Radius);
+                distance = query.Ray.HitDistance(boneSphere);
+                if (distance >= query.MaxDistance)
+                    continue;
+            }
+            else
+                continue;
+
+            results.Add(new RayQueryResult
+            {
+                Position = query.Ray.Origin + distance * query.Ray.Direction,
+                Normal = -query.Ray.Direction,
+                Distance = distance,
+                Drawable = this,
+                Node = Node,
+                SubObject = checked((uint)i)
+            });
+        }
+    }
+
+    /// <summary>Process octree raycast. May be called from a worker thread.</summary>
+    public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
+    {
+        ProcessCustomRayQuery(query, GetWorldBoundingBox(), Node.GetWorldTransform(), [], results);
     }
 
     /// <summary>Set model and create bone nodes.</summary>

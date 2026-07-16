@@ -434,8 +434,28 @@ public sealed class Geometry : PipelineStateTracker
     }
 
     /// <summary>Return ray hit distance or infinity if no hit.</summary>
-    public float GetHitDistance(Ray ray, Vector3f? outNormal = null, Vector2f? outUv = null)
+    public float GetHitDistance(Ray ray)
     {
+        return GetHitDistance(ray, false, false, out _, out _);
+    }
+
+    /// <summary>Return ray hit distance or infinity if no hit.</summary>
+    public float GetHitDistance(Ray ray, out Vector3f outNormal)
+    {
+        return GetHitDistance(ray, true, false, out outNormal, out _);
+    }
+
+    /// <summary>Return ray hit distance or infinity if no hit.</summary>
+    public float GetHitDistance(Ray ray, out Vector3f outNormal, out Vector2f outUv)
+    {
+        return GetHitDistance(ray, true, true, out outNormal, out outUv);
+    }
+
+    private float GetHitDistance(Ray ray, bool requestNormal, bool requestUv,
+        out Vector3f outNormal, out Vector2f outUv)
+    {
+        outNormal = Vector3f.Zero;
+        outUv = Vector2f.Zero;
         GetRawData(out var vertexDataList, out var vertexSize, out var rawIndexDataList, out var indexSize,
             out var elements);
 
@@ -448,10 +468,10 @@ public sealed class Geometry : PipelineStateTracker
             return float.PositiveInfinity;
 
         var uvElement = VertexBuffer.GetElement(elements, VertexElementType.Vector2, VertexElementSemantic.TexCoord);
-        if (outUv is not null && uvElement is null)
+        if (requestUv && uvElement is null)
         {
             Log.Logger.LogWarning("Illegal GetHitDistance call: UV return requested on vertex buffer without UV coords");
-            outUv = Vector2f.Zero;
+            requestUv = false;
         }
 
         var indexData = rawIndexDataList as byte[];
@@ -463,6 +483,7 @@ public sealed class Geometry : PipelineStateTracker
             return float.PositiveInfinity;
 
         var nearest = float.PositiveInfinity;
+        var nearestNormal = Vector3f.Zero;
         var nearestBary = Vector3f.Zero;
         var nearestIndices = Vector3i.Zero;
 
@@ -502,16 +523,20 @@ public sealed class Geometry : PipelineStateTracker
             var vertex1 = hasIndexData ? ReadIndex(IndexStart + index + 1) : VertexStart + index + 1;
             var vertex2 = hasIndexData ? ReadIndex(IndexStart + index + 2) : VertexStart + index + 2;
             var distance = ray.HitDistance(ReadPosition(vertex0), ReadPosition(vertex1), ReadPosition(vertex2),
-                out _, out var barycentric);
+                out var normal, out var barycentric);
             if (distance < nearest)
             {
                 nearest = distance;
+                nearestNormal = normal;
                 nearestBary = barycentric;
                 nearestIndices = new Vector3i(checked((int)vertex0), checked((int)vertex1), checked((int)vertex2));
             }
         }
 
-        if (outUv is not null)
+        if (requestNormal)
+            outNormal = nearest == float.PositiveInfinity ? Vector3f.Zero : nearestNormal;
+
+        if (requestUv)
         {
             if (nearest == float.PositiveInfinity)
                 outUv = Vector2f.Zero;

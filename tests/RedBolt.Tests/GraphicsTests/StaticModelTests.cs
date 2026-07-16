@@ -201,6 +201,25 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Custom_ray_query_uses_supplied_world_transform()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+        var transform = Matrix3x4.FromTranslation(new Vector3f(5.0f, 0.0f, 0.0f));
+        var worldBoundingBox = model.GetBoundingBox().Transformed(transform);
+        using var query = new RayOctreeQuery(new Ray(new Vector3f(5.0f, 0.0f, -5.0f), Vector3f.Forward),
+            RayQueryLevel.RayObb);
+
+        cube.ProcessCustomRayQuery(query, worldBoundingBox, transform, query.Result);
+
+        var result = Assert.Single(query.Result);
+        Assert.Same(cube, result.Drawable);
+        Assert.Equal(uint.MaxValue, result.SubObject);
+        Assert.True(result.Distance < query.MaxDistance);
+    }
+
+    [Fact]
     public void IsInsideLocal_requires_geometry_inside_bounding_box()
     {
         var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();

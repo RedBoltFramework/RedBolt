@@ -66,9 +66,10 @@ public sealed class GeometryTests
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
 
         var distance = geometry.GetHitDistance(new Ray(new Vector3f(0.25f, 0.25f, 1.0f),
-            new Vector3f(0.0f, 0.0f, -1.0f)));
+            new Vector3f(0.0f, 0.0f, -1.0f)), out var normal);
 
         Assert.Equal(1.0f, distance);
+        Assert.Equal(new Vector3f(0.0f, 0.0f, 1.0f), normal);
         Assert.True(geometry.IsInside(new Ray(new Vector3f(0.25f, 0.25f, -1.0f),
             new Vector3f(0.0f, 0.0f, 1.0f))));
     }

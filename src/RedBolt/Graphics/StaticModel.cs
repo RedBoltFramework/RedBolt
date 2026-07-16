@@ -187,57 +187,67 @@ public class StaticModel : Drawable
 
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
     {
-        if (query.Level == RayQueryLevel.RayAabb)
+        ProcessCustomRayQuery(query, GetWorldBoundingBox(), Node.GetWorldTransform(), results);
+    }
+
+    /// <summary>Process raycast with custom transform.</summary>
+    public void ProcessCustomRayQuery(RayOctreeQuery query, BoundingBox worldBoundingBox,
+        Matrix3x4 worldTransform, List<RayQueryResult> results)
+    {
+        var level = query.Level;
+
+        if (level == RayQueryLevel.RayAabb)
         {
-            base.ProcessRayQuery(query, results);
+            base.ProcessCustomRayQuery(query, worldBoundingBox, results);
             return;
         }
 
-        var worldBoundingBox = GetWorldBoundingBox();
-        if (query.Ray.HitDistance(worldBoundingBox) >= query.MaxDistance || !IsAttached)
-            return;
+        var inverse = worldTransform.Inverse;
+        var localRay = query.Ray.Transformed(inverse);
+        var distanceAndNormal = localRay.HitDistanceAndNormal(GetBoundingBox());
+        var distance = distanceAndNormal.Distance;
+        var normal = (worldTransform.Matrix3 * distanceAndNormal.Normal).Normalized;
+        var geometryUv = Vector2f.Zero;
+        var hitBatch = uint.MaxValue;
 
-        var localOrigin = Node.WorldToLocal(query.Ray.Origin);
-        var localEnd = Node.WorldToLocal(query.Ray.Origin + query.Ray.Direction);
-        var localDirection = localEnd - localOrigin;
-        if (localDirection.LengthSquared <= MathDefs.Epsilon * MathDefs.Epsilon)
-            return;
-
-        var localRay = new Ray(localOrigin, localDirection);
-        var distance = localRay.HitDistance(GetBoundingBox());
-        if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
-            return;
-
-        if (query.Level == RayQueryLevel.RayTriangle)
+        if (level >= RayQueryLevel.RayTriangle && distance < query.MaxDistance)
         {
             distance = float.PositiveInfinity;
-            for (var i = 0u; i < NumGeometries; ++i)
+
+            for (var i = 0; i < _batches.Count; ++i)
             {
-                var geometry = GetLodGeometry(i, 0u);
+                var geometry = _batches[i].Geometry;
                 if (geometry is null)
                     continue;
 
-                var geometryDistance = geometry.GetHitDistance(localRay);
-                if (geometryDistance < distance)
+                float geometryDistance;
+                Vector3f geometryNormal;
+                if (level == RayQueryLevel.RayTriangle)
+                    geometryDistance = geometry.GetHitDistance(localRay, out geometryNormal);
+                else
+                    geometryDistance = geometry.GetHitDistance(localRay, out geometryNormal, out geometryUv);
+                if (geometryDistance < query.MaxDistance && geometryDistance < distance)
+                {
                     distance = geometryDistance;
+                    normal = (worldTransform.Matrix3 * geometryNormal).Normalized;
+                    hitBatch = checked((uint)i);
+                }
             }
-
-            if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
-                return;
         }
 
-        var localHit = localRay.Origin + localRay.Direction * distance;
-        var worldHit = Node.LocalToWorld(localHit);
-        results.Add(new RayQueryResult
+        if (distance < query.MaxDistance)
         {
-            Drawable = this,
-            Node = Node,
-            Distance = (worldHit - query.Ray.Origin).Length,
-            Position = worldHit,
-            Normal = -query.Ray.Direction,
-            TextureUV = Vector2f.Zero,
-            SubObject = uint.MaxValue
-        });
+            results.Add(new RayQueryResult
+            {
+                Position = query.Ray.Origin + distance * query.Ray.Direction,
+                Normal = normal,
+                TextureUV = geometryUv,
+                Distance = distance,
+                Drawable = this,
+                Node = Node,
+                SubObject = hitBatch
+            });
+        }
     }
 
     public override void UpdateBatches(CommonFrameInfo frame)
