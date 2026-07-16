@@ -277,13 +277,42 @@ public sealed class RenderPipelineStats
     public uint NumOccluders { get; set; }
 }
 
-public readonly record struct BatchStateCreateKey;
+public readonly record struct BatchStateLookupKey(
+    uint DrawableHash,
+    uint PixelLightHash,
+    GeometryType GeometryType,
+    Geometry? Geometry,
+    Material? Material,
+    Pass? Pass);
 
-public readonly record struct BatchStateCreateContext;
+public readonly record struct BatchStateCreateKey(
+    uint DrawableHash,
+    uint PixelLightHash,
+    GeometryType GeometryType,
+    Geometry? Geometry,
+    Material? Material,
+    Pass? Pass,
+    Drawable? Drawable,
+    LightProcessor? PixelLight,
+    uint PixelLightIndex)
+{
+    public BatchStateLookupKey LookupKey => new(DrawableHash, PixelLightHash, GeometryType, Geometry, Material, Pass);
+}
 
-public readonly record struct UIBatchStateKey;
+public readonly record struct BatchStateCreateContext(Object? Pass, uint SubpassIndex, uint ShadowSplitIndex);
 
-public readonly record struct UIBatchStateCreateContext;
+public readonly record struct UIBatchStateKey(
+    bool LinearOutput,
+    PipelineStateOutputDesc OutputDesc,
+    Material? Material,
+    Pass? Pass,
+    BlendMode BlendMode,
+    uint SamplerStateHash);
+
+public readonly record struct UIBatchStateCreateContext(
+    VertexBuffer? VertexBuffer,
+    IndexBuffer? IndexBuffer,
+    SamplerStateDesc? DefaultSampler);
 
 /// <summary>
 /// ID of static pipeline state.

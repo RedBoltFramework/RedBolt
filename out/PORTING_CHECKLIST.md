@@ -285,7 +285,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Material.h`
   - [~] `struct TechniqueEntry`
   - [x] `ShaderParameterAnimationInfo : ValueAnimationInfo`
-  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — public construction, unique object-ID allocation/lifetime, specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state-tracker inheritance and batched parameter-update optimization remain incomplete
+  - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — public construction, unique object-ID allocation/lifetime, C++ pipeline-state hash inputs, specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; dependency propagation and batched parameter-update optimization remain incomplete
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, component-owned geometry/LOD storage, per-geometry centers and LOD state, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, indexed occlusion drawing, custom-transform AABB/OBB/triangle/UV ray queries, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; remaining class-shape parity is incomplete
 - [x] `AnimatedModel.h`
@@ -374,9 +374,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ShaderProgramCompositor : Object`
 - [x] `StaticPipelineStateCache.h` — descriptor value ownership, stable IDs, output-keyed pipeline creation, invalidation, and sparse per-output state storage match C++
   - [x] `StaticPipelineStateCache : Object`
-- [ ] `BatchStateCache.h`
-  - [ ] `BatchStateCache : NonCopyable`
-  - [ ] `UIBatchStateCache : NonCopyable`
+- [x] `BatchStateCache.h` — batch/UI lookup and creation keys, output invalidation, object-hash validation, atomic lazy invalidation, callback recreation, and placeholder caching match C++; the built-in default UI pipeline creator is excluded with the retained-mode UI subsystem
+  - [x] `BatchStateCache : NonCopyable`
+  - [x] `UIBatchStateCache : NonCopyable`
 - [ ] `PipelineStateBuilder.h`
   - [ ] `PipelineStateBuilder : Object, BatchStateCacheCallback`
 - [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++

@@ -113,6 +113,13 @@ public static class ShaderTranslator
             shader = GlslangNativeBindings.GlslangShaderCreate(input);
             GlslangNativeBindings.GlslangShaderSetOptions(shader,
                 (int)GlslangShaderOptionsT.GlslangShaderAutoMapLocations);
+            if (GlslangNativeBindings.GlslangShaderPreprocess(shader, input) == 0)
+            {
+                outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
+                    GlslangNativeBindings.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
+                return;
+            }
+            input.Code = GlslangNativeBindings.GlslangShaderGetPreprocessedCode(shader);
             if (GlslangNativeBindings.GlslangShaderParse(shader, input) == 0)
             {
                 outputShader.CompilerOutput = Marshal.PtrToStringUTF8(

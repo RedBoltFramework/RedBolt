@@ -129,6 +129,33 @@ public sealed class Material : ResourceWithMetadata
 
     public uint GetObjectID() => _idFamily.GetObjectID();
 
+    public uint GetPipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, new StringHash(VertexShaderDefines).Value);
+        CombineHash(ref hash, new StringHash(PixelShaderDefines).Value);
+        CombineHash(ref hash, (uint)CullMode);
+        CombineHash(ref hash, (uint)ShadowCullMode);
+        CombineHash(ref hash, (uint)FillMode);
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.ConstantBias)));
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.SlopeScaledBias)));
+        CombineHash(ref hash, AlphaToCoverage ? 1u : 0u);
+        CombineHash(ref hash, _specular ? 1u : 0u);
+        foreach (var (nameHash, info) in _textures)
+        {
+            CombineHash(ref hash, nameHash.Value);
+            CombineHash(ref hash, info.Texture.GetSRGB() ? 1u : 0u);
+            CombineHash(ref hash, info.Texture.GetLinear() ? 1u : 0u);
+            CombineHash(ref hash, unchecked((uint)info.Texture.GetSamplerStateDesc().GetHashCode()));
+        }
+        return Math.Max(1u, hash);
+    }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
+    }
+
     public static uint GetNextFreeObjectID() => IDFamily<Material>.GetNextFreeObjectID();
 
     public void AcquireObjectID() => _idFamily.AcquireObjectID();
