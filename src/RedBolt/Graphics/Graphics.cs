@@ -854,9 +854,6 @@ layout(std140) uniform Material
 
         GetSubsystem<RenderDevice>()?.ResetWindowSettings();
 
-        if (parameters.GraphicsBackend is not GraphicsBackend.Auto and not GraphicsBackend.OpenGL)
-            throw new NotSupportedException($"The first RedBolt graphics backend supports OpenGL only, not {parameters.GraphicsBackend}.");
-
         _window = input.Window;
         _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
         if (_glContext == IntPtr.Zero)

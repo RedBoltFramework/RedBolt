@@ -25,10 +25,7 @@ public static class RenderAPIUtils
 
     private static readonly RenderBackend[] SupportedBackends =
     [
-        RenderBackend.D3D11,
-        RenderBackend.D3D12,
-        RenderBackend.OpenGL,
-        RenderBackend.Vulkan
+        RenderBackend.OpenGL
     ];
 
     private static readonly string[] ShaderInputNames =
@@ -249,8 +246,6 @@ public static class RenderAPIUtils
             _ => RenderBackend.OpenGL
         };
 
-        // Native compile-time backend feature flags are not represented by the managed API.
-        // Keep the complete managed backend enum as the supported set.
         var backend = requestedBackend ?? defaultBackend;
         foreach (var supportedBackend in SupportedBackends)
         {

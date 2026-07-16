@@ -865,15 +865,19 @@ public sealed class RenderDevice : Object
         return WindowMode.Windowed;
     }
 
-    private static RenderBackend MapRenderBackend(GraphicsBackend backend) => backend switch
+    private static RenderBackend MapRenderBackend(GraphicsBackend backend)
     {
-        GraphicsBackend.Auto => RenderAPIUtils.SelectRenderBackend(),
-        GraphicsBackend.OpenGL => RenderBackend.OpenGL,
-        GraphicsBackend.Vulkan => RenderBackend.Vulkan,
-        GraphicsBackend.D3D11 => RenderBackend.D3D11,
-        GraphicsBackend.D3D12 => RenderBackend.D3D12,
-        _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, null)
-    };
+        var requestedBackend = backend switch
+        {
+            GraphicsBackend.Auto => (RenderBackend?)null,
+            GraphicsBackend.OpenGL => RenderBackend.OpenGL,
+            GraphicsBackend.Vulkan => RenderBackend.Vulkan,
+            GraphicsBackend.D3D11 => RenderBackend.D3D11,
+            GraphicsBackend.D3D12 => RenderBackend.D3D12,
+            _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, null)
+        };
+        return RenderAPIUtils.SelectRenderBackend(requestedBackend);
+    }
 
     private static int CompareFullscreenMode(FullscreenMode mode, Vector2i size, int refreshRate)
     {
