@@ -388,8 +388,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery`
 - [ ] `ShadowSplitProcessor.h`
   - [ ] `ShadowSplitProcessor`
-- [ ] `LightAccumulator.h`
-  - [ ] `LightAccumulator`
+- [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
+  - [x] `LightAccumulator`
 - [ ] `LightProcessor.h`
   - [ ] `LightProcessor : NonCopyable`
   - [ ] `LightProcessorCache : NonCopyable`
