@@ -1198,10 +1198,7 @@ layout(std140) uniform Material
         beforePresent?.Invoke();
 
         if (!string.IsNullOrWhiteSpace(screenshotPath))
-        {
-            ResetRenderTargets();
             SavePresentedFrameScreenshot(screenshotPath);
-        }
 
         GetSubsystem<RenderDevice>()?.Present();
     }
@@ -1567,6 +1564,9 @@ layout(std140) uniform Material
 
     private void SavePresentedFrameScreenshot(string fileName)
     {
+        if (TrySaveCurrentFramebufferScreenshot(fileName, GlBack))
+            return;
+
         if (_renderTargetView is not null)
         {
             var sourceTexture = _renderTargetView.GetTexture();
@@ -1577,8 +1577,7 @@ layout(std140) uniform Material
             }
         }
 
-        if (!TrySaveCurrentFramebufferScreenshot(fileName, GlBack))
-            SaveCurrentFramebufferScreenshot(fileName);
+        SaveCurrentFramebufferScreenshot(fileName);
     }
 
     private bool TrySaveCurrentFramebufferScreenshot(string fileName)
