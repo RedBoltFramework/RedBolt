@@ -946,7 +946,11 @@ layout(std140) uniform Material
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
         var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
-        ClearCurrentRenderTargets(FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black);
+        var fogColorGamma = FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black;
+        var effectiveFogColor = GetSwapChainOutputTarget().LinearColorSpace
+            ? fogColorGamma.GammaToLinear()
+            : fogColorGamma;
+        ClearCurrentRenderTargets(effectiveFogColor);
         RenderScene(viewport, materialQuality, viewportRect);
         SendEvent<GraphicsEvents.EndRenderingEvent>();
         UnbindRenderTargets();
@@ -970,7 +974,12 @@ layout(std140) uniform Material
         var depthStencil = renderSurface.GetLinkedDepthStencil()?.GetView();
         SetRenderTargets(viewportRect, colorTarget, depthStencil);
         var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
-        ClearCurrentRenderTargets(FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black);
+        var fogColorGamma = FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black;
+        var outputTexture = renderSurface.GetParentTexture()!;
+        var linearColorSpace = outputTexture.GetLinear() || outputTexture.GetSRGB()
+            || TextureFormatUtility.IsFloatColorFormat(outputTexture.Format);
+        var effectiveFogColor = linearColorSpace ? fogColorGamma.GammaToLinear() : fogColorGamma;
+        ClearCurrentRenderTargets(effectiveFogColor);
         RenderScene(viewport, materialQuality, viewportRect);
         SendEvent<GraphicsEvents.EndRenderingEvent>();
 
@@ -1746,7 +1755,7 @@ layout(std140) uniform Material
         if (pipeline is null || uploadedGeometry is null || _immediateContext is null)
             return default;
 
-        UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone);
+        UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone, linearColorSpace);
         var effectiveAmbient = linearColorSpace
             ? drawableAmbient
             : new Color(drawableAmbient.X, drawableAmbient.Y, drawableAmbient.Z, drawableAmbient.W).LinearToGamma().ToVector4();
@@ -3452,7 +3461,7 @@ layout(std140) uniform Material
         WriteFullscreenCameraBufferData(data.AsSpan(), clipToUvOffsetAndScale, invInputSize, flipVertical);
     }
 
-    private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone)
+    private void UpdateCameraBuffer(IBuffer buffer, Camera camera, Zone? zone, bool linearColorSpace)
     {
         Span<byte> data = stackalloc byte[CameraBufferSize];
         WriteMatrix4Raw(data, 0, camera.GetView().Matrix4);
@@ -3469,9 +3478,13 @@ layout(std140) uniform Material
         WriteVector4(data, 272, new Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
         WriteVector4(data, 288, GetDepthReconstruct(camera));
         WriteVector2(data, 304, new Vector2f(1.0f / Math.Max(Width, 1), 1.0f / Math.Max(Height, 1)));
-        WriteVector4(data, 320, zone is not null ? new Vector4f(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient);
+        var ambientColorGamma = camera.GetEffectiveAmbientColor() * camera.GetEffectiveAmbientBrightness();
+        var effectiveAmbientColor = linearColorSpace ? ambientColorGamma.GammaToLinear() : ambientColorGamma;
+        WriteVector4(data, 320, effectiveAmbientColor.ToVector4());
         WriteVector4(data, 336, GetFogParameters(camera, zone));
-        WriteVector3(data, 352, zone is not null ? zone.GetFogColor().ToVector3() : new Vector3f(DefaultFogColor.X, DefaultFogColor.Y, DefaultFogColor.Z));
+        var fogColorGamma = camera.GetEffectiveFogColor();
+        var effectiveFogColor = linearColorSpace ? fogColorGamma.GammaToLinear() : fogColorGamma;
+        WriteVector3(data, 352, effectiveFogColor.ToVector3());
         WriteFloat(data, 364, 0.0f);
         UpdateBuffer(buffer, data);
     }

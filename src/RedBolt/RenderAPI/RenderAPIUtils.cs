@@ -25,7 +25,18 @@ public static class RenderAPIUtils
 
     private static readonly RenderBackend[] SupportedBackends =
     [
-        RenderBackend.OpenGL
+#if REDBOLT_D3D11_SUPPORTED
+        RenderBackend.D3D11,
+#endif
+#if REDBOLT_D3D12_SUPPORTED
+        RenderBackend.D3D12,
+#endif
+#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
+        RenderBackend.OpenGL,
+#endif
+#if REDBOLT_VULKAN_SUPPORTED
+        RenderBackend.Vulkan,
+#endif
     ];
 
     private static readonly string[] ShaderInputNames =
