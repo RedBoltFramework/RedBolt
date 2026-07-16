@@ -108,6 +108,7 @@ layout(std140) uniform Material
     private IEngineFactory? _factory;
     private IRenderDevice? _device;
     private ISwapChain? _swapChain;
+    private ISwapChainVk? _swapChainVulkan;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private RenderOutputTargetInfo? _swapChainOutputTarget;
     private ITextureView? _renderTargetView;
@@ -806,6 +807,15 @@ layout(std140) uniform Material
         return renderDevice?.GetBackend() ?? RenderBackend.OpenGL;
     }
 
+    private GraphicsBackend GetShaderBackend() => GetRenderBackend() switch
+    {
+        RenderBackend.OpenGL => GraphicsBackend.OpenGL,
+        RenderBackend.Vulkan => GraphicsBackend.Vulkan,
+        RenderBackend.D3D11 => GraphicsBackend.D3D11,
+        RenderBackend.D3D12 => GraphicsBackend.D3D12,
+        _ => GraphicsBackend.Auto
+    };
+
     /// <summary>
     /// Return dummy color texture format for shadow maps.
     /// </summary>
@@ -931,15 +941,21 @@ layout(std140) uniform Material
         GetSubsystem<RenderDevice>()?.ResetWindowSettings();
 
         _window = input.Window;
-        _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
-        if (_glContext == IntPtr.Zero)
-            throw new InvalidOperationException("Generated SDL_GL_CreateContext binding returned a null context.");
+        var backend = GetSubsystem<RenderDevice>()!.GetBackend();
+        if (backend == RenderBackend.OpenGL)
+        {
+            _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
+            if (_glContext == IntPtr.Zero)
+                throw new InvalidOperationException("Generated SDL_GL_CreateContext binding returned a null context.");
+        }
 
         try
         {
-            CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(_window, _glContext), "SDL_GL_MakeCurrent");
-            _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
-            SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
+            if (backend == RenderBackend.OpenGL)
+            {
+                CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(_window, _glContext), "SDL_GL_MakeCurrent");
+                _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
+                SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
             Width = actualWidth;
             Height = actualHeight;
             _configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
@@ -978,9 +994,106 @@ layout(std140) uniform Material
             if (_swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
 
-            var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(_immediateContext.Handle, ownsHandle: false);
-            var swapChainGL = ISwapChainGL.CreateManagedWrapper(_swapChain.Handle, ownsHandle: false);
-            deviceContextGL.SetSwapChain(swapChainGL);
+                var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(_immediateContext.Handle, ownsHandle: false);
+                var swapChainGL = ISwapChainGL.CreateManagedWrapper(_swapChain.Handle, ownsHandle: false);
+                deviceContextGL.SetSwapChain(swapChainGL);
+            }
+            else if (backend == RenderBackend.Vulkan)
+            {
+                SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
+                Width = actualWidth;
+                Height = actualHeight;
+
+                using var createInfo = new EngineVkCreateInfo
+                {
+                    FeaturesAsyncShaderCompilation = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesBinaryOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesBindlessResources = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesComputeShaders = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesDepthBiasClamp = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesDepthClamp = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesDualSourceBlend = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesDurationQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesFormattedBuffers = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesGeometryShaders = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesIndependentBlend = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesInstanceDataStepRate = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesMeshShaders = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesMultiViewport = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesMultithreadedResourceCreation = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesNativeFence = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesNativeMultiDraw = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesPipelineStatisticsQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesPixelUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesRayTracing = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesResourceBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesResourceBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderFloat16 = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderInputOutput16 = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderInt8 = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderResourceRuntimeArrays = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesShaderResourceStaticArrays = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesSparseResources = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesSubpassFramebufferFetch = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTessellation = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTextureComponentSwizzle = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTextureCompressionBC = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTextureCompressionETC2 = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTextureSubresourceViews = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTextureUAVExtendedFormats = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTileShaders = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTimestampQueries = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesTransferQueueTimestampQueries = DeviceFeatureState.DeviceFeatureStateDisabled,
+                    FeaturesUniformBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesUniformBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesVariableRateShading = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesVertexPipelineUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesWaveOp = DeviceFeatureState.DeviceFeatureStateOptional,
+                    FeaturesWireframeFill = DeviceFeatureState.DeviceFeatureStateOptional
+                };
+                var factoryVulkan = DiligentNativeBindings.GetEngineFactoryVk();
+                if (factoryVulkan.IsNull)
+                    throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
+
+                _factory = factoryVulkan;
+                factoryVulkan.CreateDeviceAndContextsVk(createInfo, out _device, out _immediateContext);
+                if (_device.IsNull || _immediateContext.IsNull)
+                    throw new InvalidOperationException("Generated CreateDeviceAndContextsVk binding returned a null device or context.");
+
+                using var swapChainDesc = new SwapChainDesc
+                {
+                    ColorBufferFormat = GetSubsystem<RenderDevice>()!.GetWindowSettings().SRgb
+                        ? global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
+                        : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+                    DepthBufferFormat = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
+                };
+                var nativeWindowInfo = input.GetNativeWindowInfo();
+                using var nativeWindow = new LinuxNativeWindow
+                {
+                    PDisplay = nativeWindowInfo.Display,
+                    WindowId = nativeWindowInfo.WindowId
+                };
+                factoryVulkan.CreateSwapChainVk(_device, _immediateContext, swapChainDesc, nativeWindow,
+                    out var nativeSwapChain);
+                if (nativeSwapChain.IsNull)
+                    throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
+                _swapChainVulkan = ISwapChainVk.CreateManagedWrapper(nativeSwapChain.Handle, ownsHandle: false);
+
+                var renderDevice = GetSubsystem<RenderDevice>()!;
+                var depthFormat = RenderDevice.SelectDefaultDepthFormat(_device, true);
+                _configuredMultiSample = renderDevice.GetSupportedMultiSample(
+                    (TextureFormat)swapChainDesc.ColorBufferFormat, parameters.MultiSample);
+                _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
+                    _device, _immediateContext, nativeSwapChain, (uint)depthFormat, (uint)_configuredMultiSample);
+                ReleaseIfNotNull(nativeSwapChain);
+                if (_swapChain.IsNull)
+                    throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
+            }
+            else
+                throw new InvalidOperationException("Unsupported render backend.");
 
             _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
             _depthStencilView = _swapChain.GetDepthBufferDSV();
@@ -1506,11 +1619,30 @@ layout(std140) uniform Material
         if (!IsInitialized || _window is null || _window.IsNull || _swapChain is null || _swapChain.IsNull)
             return;
 
-        SdlNativeBindings.SdlGetWindowSize(_window, out var windowWidth, out var windowHeight);
-        SdlNativeBindings.SdlGlGetDrawableSize(_window, out var drawableWidth, out var drawableHeight);
-        Width = windowWidth;
-        Height = windowHeight;
-        _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
+        switch (GetRenderBackend())
+        {
+            case RenderBackend.OpenGL:
+                SdlNativeBindings.SdlGlGetDrawableSize(_window, out var drawableWidth, out var drawableHeight);
+                _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
+                break;
+
+            case RenderBackend.Vulkan:
+                var renderDeviceVulkan = IRenderDeviceVk.CreateManagedWrapper(_device!.Handle, ownsHandle: false);
+                uint surfaceWidth = 0;
+                uint surfaceHeight = 0;
+                if (_swapChainVulkan is not null && DiligentNativeBindings.GetVulkanSurfaceExtent(
+                        renderDeviceVulkan, _swapChainVulkan, ref surfaceWidth, ref surfaceHeight))
+                    _swapChain.Resize(surfaceWidth, surfaceHeight);
+                else
+                    Log.Logger.LogError("Cannot resize Vulkan swap chain");
+                break;
+
+            default:
+                throw new InvalidOperationException("Unsupported render backend.");
+        }
+        using var swapChainDesc = _swapChain.GetDesc();
+        Width = (int)swapChainDesc.Width;
+        Height = (int)swapChainDesc.Height;
         _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
         _depthStencilView = _swapChain.GetDepthBufferDSV();
         if (_renderTargetView.IsNull || _depthStencilView.IsNull)
@@ -1612,6 +1744,7 @@ layout(std140) uniform Material
         _diligentViewport?.Dispose();
         _diligentViewport = null;
 
+        _swapChainVulkan = null;
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         _factory = null;
@@ -1906,8 +2039,9 @@ layout(std140) uniform Material
         if (vertexShaderResource is null || pixelShaderResource is null)
             return null;
 
-        var preparedVertexSource = vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
-        var preparedPixelSource = pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode);
+        var shaderBackend = GetShaderBackend();
+        var preparedVertexSource = vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, shaderBackend, ShaderExtraCode);
+        var preparedPixelSource = pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, shaderBackend, ShaderExtraCode);
         var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
             pass.VertexShader, preparedVertexSource);
         var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
@@ -2010,11 +2144,16 @@ layout(std140) uniform Material
         if (shaderResource is null)
             return null;
 
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, effectiveShaderDefines, GraphicsBackend.OpenGL);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, GraphicsBackend.OpenGL);
+        var shaderBackend = GetShaderBackend();
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, effectiveShaderDefines, shaderBackend);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, effectiveShaderDefines, shaderBackend);
         var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
+        var reflection = new ShaderProgramReflection([vertexShader, pixelShader]);
+        var customLayout = CreateCustomUniformLayout(reflection);
+        var samplerOverrides = new ImmutableSamplersDesc();
+        if (bilinearColorSampler)
+            samplerOverrides.Add(AlbedoTextureSlot, SamplerStateDesc.Bilinear());
 
         TemporaryLayoutArray? layoutArray = null;
         try
@@ -2022,12 +2161,16 @@ layout(std140) uniform Material
             var quadGeometry = GetOrCreateFullscreenQuadGeometry();
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
             layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
+                GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var pipelineName = new CString($"{shaderName}:{shaderDefines}:fullscreen");
             using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
                 Name = pipelineName.Pointer,
                 PipelineType = PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                ResourceLayoutImmutableSamplers = samplers.First!,
+                ResourceLayoutNumImmutableSamplers = samplers.Count
             };
             using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
             {
@@ -2103,8 +2246,9 @@ layout(std140) uniform Material
         if (shaderResource is null)
             return null;
 
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, GraphicsBackend.OpenGL);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, GraphicsBackend.OpenGL);
+        var shaderBackend = GetShaderBackend();
+        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, shaderBackend);
+        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, shaderBackend);
         var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
         var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
         var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
@@ -3193,8 +3337,10 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainColor => _renderTargetView ?? throw new InvalidOperationException("Swap chain color target is not available."),
-            RenderTargetViewType.SwapChainDepthStencil => _depthStencilView ?? throw new InvalidOperationException("Swap chain depth target is not available."),
+            RenderTargetViewType.SwapChainColor => _swapChain?.GetCurrentBackBufferRTV()
+                ?? throw new InvalidOperationException("Swap chain color target is not available."),
+            RenderTargetViewType.SwapChainDepthStencil => _swapChain?.GetDepthBufferDSV()
+                ?? throw new InvalidOperationException("Swap chain depth target is not available."),
             RenderTargetViewType.Resource => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ResourceSlice => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ReadOnlyResource => ResolveTextureReadOnlyDepthView(view),
@@ -4909,7 +5055,7 @@ layout(std140) uniform Material
             {
                 var pair = resources[i];
                 var source = FindSampler(overrides, pair.Key) ?? SamplerStateDesc.Bilinear();
-                _names[i] = new CString(GetSamplerName(pair.Key, pair.Value.InternalName));
+                _names[i] = new CString(pair.Value.InternalName);
                 _descriptions[i] = CreateSamplerDesc(source, renderDevice);
                 _samplers[i] = ImmutableSamplerDesc.CreateManagedWrapper(
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
@@ -4944,16 +5090,6 @@ layout(std140) uniform Material
             }
             return null;
         }
-
-        private static string GetSamplerName(StringHash name, string fallback) => name == AlbedoTextureSlot
-            ? "sAlbedo"
-            : name == NormalTextureSlot
-                ? "sNormal"
-                : name == PropertiesTextureSlot
-                    ? "sProperties"
-                    : name == EmissionTextureSlot
-                        ? "sEmission"
-                        : fallback;
 
         private static SamplerDesc CreateSamplerDesc(SamplerStateDesc source, RenderDevice? renderDevice)
         {

@@ -29,6 +29,9 @@ public class RawTexture : DeviceObject
     internal static bool IsCreatingManagedTexture { get; private set; }
 
     private RawTextureParams _parameters;
+    private uint _formatBlockWidth;
+    private uint _formatBlockHeight;
+    private uint _formatElementSize;
     private SamplerStateDesc _samplerStateDesc = new();
     private Texture? _texture;
     private ITexture? _handle;
@@ -73,6 +76,14 @@ public class RawTexture : DeviceObject
 
         _texture = createdTexture;
         this._parameters = finalizedParameters;
+        var nativeFormat = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB);
+        using (var formatInfo = TextureFormatAttribs.CreateManagedWrapper(
+                   DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat), false))
+        {
+            _formatBlockWidth = formatInfo.BlockWidth;
+            _formatBlockHeight = formatInfo.BlockHeight;
+            _formatElementSize = formatInfo.GetElementSize();
+        }
         SetDebugName($"RawTexture #{parameters.GetHashCode():X8}");
         DestroyGPU();
         if (!CreateGPU())
@@ -375,12 +386,14 @@ public class RawTexture : DeviceObject
             offset.X + size.X > levelSize.X || offset.Y + size.Y > levelSize.Y || offset.Z + size.Z > levelSize.Z)
             throw new ArgumentOutOfRangeException(nameof(size));
 
-        var packedRowStride = checked((uint)size.X * GetTexelSize(_parameters.Format));
+        var widthInBlocks = ((uint)size.X + _formatBlockWidth - 1) / _formatBlockWidth;
+        var heightInBlocks = ((uint)size.Y + _formatBlockHeight - 1) / _formatBlockHeight;
+        var packedRowStride = checked(widthInBlocks * _formatElementSize);
         rowStride = rowStride != 0u ? rowStride : packedRowStride;
-        sliceStride = sliceStride != 0u ? sliceStride : checked(rowStride * (uint)size.Y);
+        sliceStride = sliceStride != 0u ? sliceStride : checked(rowStride * heightInBlocks);
         if (rowStride < packedRowStride)
             throw new ArgumentOutOfRangeException(nameof(rowStride));
-        if (sliceStride < rowStride * (uint)size.Y)
+        if (sliceStride < rowStride * heightInBlocks)
             throw new ArgumentOutOfRangeException(nameof(sliceStride));
         var requiredDataSize = checked((ulong)sliceStride * (uint)(size.Z - 1) +
             (ulong)rowStride * (uint)size.Y);
@@ -456,8 +469,10 @@ public class RawTexture : DeviceObject
         if (level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
             return false;
         var levelSize = GetMipLevelSize(_parameters.Size, level);
-        var rowSize = checked((uint)levelSize.X * GetTexelSize(_parameters.Format));
-        var requiredSize = checked(rowSize * (uint)levelSize.Y * (uint)levelSize.Z);
+        var widthInBlocks = ((uint)levelSize.X + _formatBlockWidth - 1) / _formatBlockWidth;
+        var heightInBlocks = ((uint)levelSize.Y + _formatBlockHeight - 1) / _formatBlockHeight;
+        var rowSize = checked(widthInBlocks * _formatElementSize);
+        var requiredSize = checked(rowSize * heightInBlocks * (uint)levelSize.Z);
         if ((uint)buffer.Length < requiredSize)
             return false;
         if (_handle is null)
@@ -517,17 +532,16 @@ public class RawTexture : DeviceObject
             try
             {
                 var source = (byte*)mapped.PData;
-                var sourceRowStride = Math.Max((nuint)mapped.Stride, (nuint)((rowSize + 3u) & ~3u));
-                var sourceDepthStride = Math.Max((nuint)mapped.DepthStride,
-                    checked(sourceRowStride * (nuint)levelSize.Y));
+                var sourceRowStride = (nuint)mapped.Stride;
+                var sourceDepthStride = (nuint)mapped.DepthStride;
                 fixed (byte* destinationStart = buffer)
                 {
                     for (var z = 0; z < levelSize.Z; ++z)
                     {
-                        for (var y = 0; y < levelSize.Y; ++y)
+                        for (var y = 0u; y < heightInBlocks; ++y)
                         {
                             var sourceOffset = checked((nint)z * (nint)sourceDepthStride + (nint)y * (nint)sourceRowStride);
-                            var destinationOffset = checked((z * levelSize.Y + y) * (int)rowSize);
+                            var destinationOffset = checked(((nuint)(uint)z * heightInBlocks + y) * rowSize);
                             Buffer.MemoryCopy(source + sourceOffset,
                                 destinationStart + destinationOffset, rowSize, rowSize);
                         }
@@ -569,7 +583,9 @@ public class RawTexture : DeviceObject
     private ulong GetMipLevelSizeInBytes(uint level)
     {
         var size = GetMipLevelSize(_parameters.Size, level);
-        return checked((ulong)(uint)size.X * (uint)size.Y * (uint)size.Z * GetTexelSize(_parameters.Format));
+        var widthInBlocks = ((uint)size.X + _formatBlockWidth - 1) / _formatBlockWidth;
+        var heightInBlocks = ((uint)size.Y + _formatBlockHeight - 1) / _formatBlockHeight;
+        return checked((ulong)widthInBlocks * heightInBlocks * (uint)size.Z * _formatElementSize);
     }
 
     /// <summary>Create UAV for given array slices and mip levels.</summary>
@@ -1057,18 +1073,6 @@ public class RawTexture : DeviceObject
         Math.Max(size.X >> (int)level, 1),
         Math.Max(size.Y >> (int)level, 1),
         Math.Max(size.Z >> (int)level, 1));
-
-    private static uint GetTexelSize(TextureFormat format) => format switch
-    {
-        TextureFormat.R8 => 1u,
-        TextureFormat.RG16F => 4u,
-        TextureFormat.RGB8 => 4u,
-        TextureFormat.RGBA8 => 4u,
-        TextureFormat.RGBA16F => 8u,
-        TextureFormat.Depth32 => 4u,
-        TextureFormat.Depth24Stencil8 => 4u,
-        _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
-    };
 
     private static uint CalculateNumLevelsRtv(Texture texture, RawTextureParams parameters)
     {

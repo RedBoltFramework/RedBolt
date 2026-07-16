@@ -868,13 +868,13 @@ public sealed class RenderDevice : Object
     }
 
 #if REDBOLT_VULKAN_SUPPORTED
-    private static global::RedBolt.Bindings.Diligent.TextureFormat SelectDefaultDepthFormat(
+    internal static global::RedBolt.Bindings.Diligent.TextureFormat SelectDefaultDepthFormat(
         IRenderDevice device, bool needStencil)
     {
         global::RedBolt.Bindings.Diligent.TextureFormat[] depthStencilFormats =
         [
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8X24Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
         ];
@@ -882,7 +882,7 @@ public sealed class RenderDevice : Object
         [
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8X24Uint,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
         ];
 

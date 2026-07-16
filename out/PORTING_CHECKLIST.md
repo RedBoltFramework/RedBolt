@@ -62,14 +62,15 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   buffer through final-frame capture; and `MoveAndOrbitController` acquires the scene input subsystem before
   evaluating its input map. The required two-second MultipleViewports capture is visibly correct on both the Radeon
   driver and the host's llvmpipe fallback.
-- [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, and SPIRV-Tools
+- [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, SPIRV-Tools, and Linux Vulkan
   surfaces into the build tree; dedicated managed binding projects consume them; the native batch links the matching
   rbfx-version shader libraries; generated borrowed-record array element access supports SPIRV-Cross reflection lists;
   the generated SPIR-V optimizer support surface preserves rbfx's interface-aware performance-pass sequence and
   deterministic native lifetime; and `ShaderLibraryBindingTests` verifies process/context creation and deterministic
-  release through all three managed surfaces. The standard gate passes 1025 tests and the two-second
-  MultipleViewports capture is visibly correct. D3DCompiler and backend-specific Diligent surfaces remain pending
-  under their platform/backend feature conditions.
+  release through all three managed surfaces. Linux Vulkan device, X11 swap-chain, multisample proxy, surface-extent resize,
+  shader, immutable-sampler, and rotating-backbuffer paths run directly with `--vulkan`; OpenGL remains the C++ platform
+  default. The standard gate passes 1058 tests and the OpenGL MultipleViewports capture is visibly correct. D3DCompiler
+  and the remaining backend/platform-specific Diligent surfaces remain pending under their feature conditions.
 
 ---
 
@@ -184,7 +185,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RenderContext.h` — `RenderContext : Object` is ported, including cached render-target output, dimensions, swap-chain state, viewport clamping, target dirty marking, disposal, platform-specific debug-scope enablement, device-lost clip-state reset, and SDL-resolved OpenGL clip-plane toggles
 - [x] `DrawCommandQueue.h` — `DrawCommandQueue` is ported, including command recording, reflected data, execution, native state caching, temporary resource-view preparation, default raw-texture fallback, four-float blend-factor binding, and the C++ void shader-parameter API/group-mismatch behavior
 - [~] `RenderDevice.h`
-  - [~] `RenderDevice : Object` — native factory/SDL-window/device/context/swap-chain accessors, adapter-derived device capabilities, texture format capability and multisample queries, separate swap-chain/window size reporting, fullscreen mode enumeration/selection, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, unordered device-object ownership, queued pipeline reloads, screenshot capture, dynamic window settings, platform-default backend selection, post-initialize default raw textures, explicit device-state invalidation/restoration, render-pool loss/restore handling, OpenGL secondary swap-chain creation, generated GL/GLES and Vulkan lifecycle interface coverage, C++ Android GLES invalidation/restoration flow, Linux Vulkan invalidation/restoration flow with the C++ multisample proxy swap chain, and device-object destruction are ported; Android GLES/Linux Vulkan platform verification, other Vulkan native-window branches, and backend-specific device initialization remain
+  - [~] `RenderDevice : Object` — native factory/SDL-window/device/context/swap-chain accessors, adapter-derived device capabilities, texture format capability and multisample queries, separate swap-chain/window size reporting, fullscreen mode enumeration/selection, destructor disposal, default sampler settings, DPI scaling, render statistics, present/frame lifecycle, unordered device-object ownership, queued pipeline reloads, screenshot capture, dynamic window settings, platform-default backend selection, post-initialize default raw textures, explicit device-state invalidation/restoration, render-pool loss/restore handling, OpenGL secondary swap-chain creation, generated GL/GLES and Vulkan lifecycle interface coverage, C++ Android GLES invalidation/restoration flow, Linux Vulkan initialization and invalidation/restoration with the C++ multisample proxy swap chain, Vulkan surface-capability resize, dynamic rotating backbuffer views, and device-object destruction are ported and Linux Vulkan is runtime-verified; Android GLES platform verification, other Vulkan native-window branches, and other backend-specific device initialization remain
 
 ## A8. Shader — depends on Core, IO (feeds Graphics)
 

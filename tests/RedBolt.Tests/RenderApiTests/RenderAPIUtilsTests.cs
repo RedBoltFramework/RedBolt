@@ -17,7 +17,7 @@ public sealed class RenderAPIUtilsTests
     [Fact]
     public void Backend_selection_and_texture_internal_formats_match_managed_surface()
     {
-        Assert.Equal(RenderBackend.OpenGL, RenderAPIUtils.SelectRenderBackend(RenderBackend.Vulkan));
+        Assert.Equal(RenderBackend.Vulkan, RenderAPIUtils.SelectRenderBackend(RenderBackend.Vulkan));
         Assert.Equal(RenderBackend.OpenGL, RenderAPIUtils.SelectRenderBackend());
         Assert.Equal(ShaderTranslationPolicy.Verbatim, RenderAPIUtils.SelectShaderTranslationPolicy(RenderBackend.OpenGL));
         Assert.Equal(TextureFormat.RGBA8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x8058u));

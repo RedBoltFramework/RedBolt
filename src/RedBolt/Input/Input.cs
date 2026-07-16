@@ -245,6 +245,9 @@ public sealed class Input : Object
 
         try
         {
+            var backend = GetSubsystem<RenderDevice>()!.GetBackend();
+            if (backend == RenderBackend.OpenGL)
+            {
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 3), "SDL_GL_SetAttribute major version");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 3), "SDL_GL_SetAttribute minor version");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
@@ -252,9 +255,12 @@ public sealed class Input : Object
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, 1), "SDL_GL_SetAttribute sRGB framebuffer");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, parameters.MultiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, Math.Max(parameters.MultiSample, 0)), "SDL_GL_SetAttribute multisample samples");
+            }
 
             using var title = new CString(parameters.WindowTitle);
-            var windowFlags = SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown;
+            var windowFlags = backend == RenderBackend.OpenGL
+                ? SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown
+                : 0;
             if (parameters.FullScreen)
                 windowFlags |= SdlWindowFlags.SdlWindowFullscreenDesktop;
             else if (parameters.Borderless)
@@ -273,7 +279,7 @@ public sealed class Input : Object
                 flags: (uint)windowFlags);
 
             if (_window.IsNull)
-                throw new InvalidOperationException("Generated SDL_CreateWindow binding returned a null OpenGL window.");
+                throw new InvalidOperationException("Generated SDL_CreateWindow binding returned a null window.");
 
             if (parameters.WindowMaximize)
                 SdlNativeBindings.SdlMaximizeWindow(_window);
@@ -1305,10 +1311,10 @@ public sealed class Input : Object
     {
         using var wmInfo = CreateInitializedWmInfo();
         if (SdlNativeBindings.SdlGetWindowWMInfo(Window, wmInfo) != SdlBool.SdlTrue)
-            throw new InvalidOperationException("Generated SDL_GetWindowWMInfo binding failed for the OpenGL window.");
+            throw new InvalidOperationException("Generated SDL_GetWindowWMInfo binding failed for the window.");
 
         if (wmInfo.Subsystem != SdlSyswmType.SdlSyswmX11)
-            throw new InvalidOperationException($"RedBolt OpenGL first-cube path requires SDL X11 WM info, got {wmInfo.Subsystem}.");
+            throw new InvalidOperationException($"RedBolt requires SDL X11 WM info, got {wmInfo.Subsystem}.");
 
         if (wmInfo.InfoX11Display == IntPtr.Zero || wmInfo.InfoX11Window == 0)
             throw new InvalidOperationException("SDL X11 WM info did not contain display and window handles.");

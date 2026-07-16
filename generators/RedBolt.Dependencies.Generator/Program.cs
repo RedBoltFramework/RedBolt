@@ -69,10 +69,12 @@ internal static class Program
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
+        "GetEngineFactoryVk",
         "CreateTemporaryGLProgram",
         "CreateProxySwapChainGL",
         "CreateSecondaryProxySwapChainGL",
         "CreateProxySwapChainMS",
+        "GetVulkanSurfaceExtent",
         "DeleteTemporaryGLProgram",
         "GetTemporaryGLProgramVertexAttributeCount",
         "GetTemporaryGLProgramVertexAttributeName",
@@ -140,6 +142,7 @@ internal static class Program
             FixCDependencyTypes(compilation, descriptor);
             FixDiligentBlendFactors(compilation, descriptor);
             FixDiligentTextureFormatFunction(compilation, descriptor);
+            FixDiligentVulkanImageHandle(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
             var prunedCount = IgnoreStdlibWrappers(compilation);
@@ -415,6 +418,25 @@ internal static class Program
             return;
 
         function.ReturnType = BindingType.IntPtr;
+    }
+
+    private static void FixDiligentVulkanImageHandle(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "diligent")
+            return;
+
+        var renderDeviceVk = compilation.Records.FirstOrDefault(static record =>
+            string.Equals(record.CppQualifiedName, "Diligent::IRenderDeviceVk", StringComparison.Ordinal));
+        var createTexture = renderDeviceVk?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
+            string.Equals(method.NativeName, "CreateTextureFromVulkanImage", StringComparison.Ordinal));
+        var vkImage = createTexture?.Parameters.FirstOrDefault(static parameter =>
+            string.Equals(parameter.NativeName, "vkImage", StringComparison.Ordinal));
+        if (vkImage is null)
+            return;
+
+        vkImage.Type = BindingType.CreateConfigured("VkImage", "nint", BindingPrimitiveKind.NativeInt);
+        vkImage.CppTypeName = "VkImage";
+        createTexture!.ClearIgnoreReason();
     }
 
     private static int PruneDiligentAccessoryRecords(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)

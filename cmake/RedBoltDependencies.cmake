@@ -116,7 +116,7 @@ set(D3D11_SUPPORTED FALSE CACHE INTERNAL "D3D11 is not supported")
 set(D3D12_SUPPORTED FALSE CACHE INTERNAL "D3D12 is not supported")
 set(GL_SUPPORTED TRUE CACHE INTERNAL "OpenGL is supported")
 set(GLES_SUPPORTED FALSE CACHE INTERNAL "OpenGLES is not supported")
-set(VULKAN_SUPPORTED FALSE CACHE INTERNAL "Vulkan is not supported")
+set(VULKAN_SUPPORTED TRUE CACHE INTERNAL "Vulkan is supported on Linux platform")
 set(METAL_SUPPORTED FALSE CACHE INTERNAL "Metal is not supported")
 set(WEBGPU_SUPPORTED FALSE CACHE INTERNAL "WebGPU is not supported")
 set(ARCHIVER_SUPPORTED FALSE CACHE INTERNAL "Archiver is not supported")
@@ -146,7 +146,7 @@ target_compile_definitions(Diligent-PublicBuildSettings INTERFACE
     D3D12_SUPPORTED=0
     GL_SUPPORTED=1
     GLES_SUPPORTED=0
-    VULKAN_SUPPORTED=0
+    VULKAN_SUPPORTED=1
     METAL_SUPPORTED=0
     WEBGPU_SUPPORTED=0)
 
@@ -183,7 +183,9 @@ target_link_libraries(Diligent-GraphicsEngineInterface INTERFACE
     Diligent-PublicBuildSettings)
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngine")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/ShaderTools" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/ShaderTools")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineNextGenBase" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineNextGenBase")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineOpenGL")
+redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineVulkan")
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
@@ -194,7 +196,10 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/Vulkan-Headers/include"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/volk"
     CACHE INTERNAL "Diligent include directories used by RedBolt")
 
 set(REDBOLT_DILIGENT_BINDING_DEFINES
@@ -203,7 +208,7 @@ set(REDBOLT_DILIGENT_BINDING_DEFINES
     "D3D12_SUPPORTED=0"
     "GL_SUPPORTED=1"
     "GLES_SUPPORTED=0"
-    "VULKAN_SUPPORTED=0"
+    "VULKAN_SUPPORTED=1"
     "METAL_SUPPORTED=0"
     "WEBGPU_SUPPORTED=0"
     "DILIGENT_NO_HLSL=1"
@@ -225,6 +230,7 @@ endif()
 target_link_libraries(redbolt-diligent-headers INTERFACE
     Diligent-GraphicsEngineInterface
     Diligent-GraphicsEngineOpenGLInterface
+    Diligent-GraphicsEngineVkInterface
     Diligent-TargetPlatform)
 
 add_library(redbolt-native-support INTERFACE)
@@ -246,6 +252,7 @@ add_custom_target(redbolt-diligent-build
     DEPENDS
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
+        Diligent-GraphicsEngineVk-static
     COMMENT "Building RedBolt Diligent dependency targets")
 
 redbolt_add_external_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui")

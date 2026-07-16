@@ -428,4 +428,19 @@ ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* device
     return result.Detach();
 }
 
+#if VULKAN_SUPPORTED
+bool GetVulkanSurfaceExtent(IRenderDeviceVk* device, ISwapChainVk* swapChain, Uint32& width, Uint32& height)
+{
+    VkSurfaceCapabilitiesKHR surfCapabilities = {};
+    const VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        device->GetVkPhysicalDevice(), swapChain->GetVkSurface(), &surfCapabilities);
+    if (err != VK_SUCCESS || surfCapabilities.currentExtent.width == 0xFFFFFFFF)
+        return false;
+
+    width = surfCapabilities.currentExtent.width;
+    height = surfCapabilities.currentExtent.height;
+    return true;
+}
+#endif
+
 } // namespace Diligent

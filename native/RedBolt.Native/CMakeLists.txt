@@ -21,7 +21,7 @@ target_compile_definitions(redbolt-imgui-backend PRIVATE
     D3D12_SUPPORTED=0
     GL_SUPPORTED=1
     GLES_SUPPORTED=0
-    VULKAN_SUPPORTED=0
+    VULKAN_SUPPORTED=1
     METAL_SUPPORTED=0
     WEBGPU_SUPPORTED=0
     DILIGENT_NO_HLSL=1)
@@ -33,6 +33,7 @@ target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
+        Diligent-GraphicsEngineVk-static
         ImGui
         ImGuiSdl2)
 set_target_properties(redbolt-imgui-backend PROPERTIES
@@ -93,6 +94,7 @@ target_link_libraries(RedBolt.Native
         redbolt-sdl2-image
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
+        Diligent-GraphicsEngineVk-static
         ImGui
         ImGuiSdl2
         redbolt-native-support

@@ -12,6 +12,17 @@
 #include <ShaderGL.h>
 #include <SwapChainGL.h>
 
+#if VULKAN_SUPPORTED
+#define DILIGENT_USE_VOLK 1
+#if DILIGENT_USE_VOLK
+#define VK_NO_PROTOTYPES
+#endif
+#include <vulkan/vulkan.h>
+#if DILIGENT_USE_VOLK
+#include <volk.h>
+#endif
+#endif
+
 #if GLES_SUPPORTED
 #include <RenderDeviceGLES.h>
 #endif
@@ -47,5 +58,8 @@ ISwapChain* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContex
     const SwapChainDesc& swapChainDesc, void* window);
 ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* deviceContext,
     ISwapChain* nativeSwapChain, Uint32 depthFormat, Uint32 multiSample);
+#if VULKAN_SUPPORTED
+bool GetVulkanSurfaceExtent(IRenderDeviceVk* device, ISwapChainVk* swapChain, Uint32& width, Uint32& height);
+#endif
 
 } // namespace Diligent

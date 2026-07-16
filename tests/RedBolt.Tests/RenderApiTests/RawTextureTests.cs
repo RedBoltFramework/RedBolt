@@ -299,11 +299,11 @@ public sealed class RawTextureTests
         WithInitializedGraphics(() =>
         {
             var rawTexture = new RawTexture(new RawTextureParams(
-                TextureType.Texture2D, TextureFormat.R8, TextureFlag.None, new Vector3i(3, 3, 1), NumLevels: 1u));
-            byte[] source = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                TextureType.Texture2D, TextureFormat.R8, TextureFlag.None, new Vector3i(4, 3, 1), NumLevels: 1u));
+            byte[] source = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             var destination = new byte[source.Length];
 
-            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(3, 3, 1), 0u, source, rowStride: 3u);
+            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 3, 1), 0u, source, rowStride: 4u);
 
             Assert.True(rawTexture.Read(0u, 0u, destination));
             Assert.Equal(source, destination);
