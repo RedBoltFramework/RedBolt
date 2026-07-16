@@ -31,7 +31,7 @@ public sealed class AnimationStateSourceTests
         Assert.Equal("Root", state.GetStartBone());
         Assert.True(state.IsLooped());
         Assert.True(state.IsEnabled());
-        Assert.Equal(1.5f, state.GetTime());
+        Assert.Equal(0.0f, state.GetTime());
         Assert.Equal(0.75f, state.GetWeight());
         Assert.Equal(AnimationBlendMode.Additive, state.GetBlendMode());
         Assert.True(state.AreTracksDirty());

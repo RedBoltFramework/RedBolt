@@ -198,9 +198,9 @@ public sealed class AnimationState
     /// </summary>
     public void Update(bool looped, float time, float weight)
     {
-        _looped = looped;
-        _time = time;
-        _weight = weight;
+        SetLooped(looped);
+        SetTime(time);
+        SetWeight(weight);
     }
 
     public bool AreTracksDirty() => _tracksDirty;
@@ -221,16 +221,50 @@ public sealed class AnimationState
 
     public void AddAttributeTrack(AttributeAnimationStateTrack track) => _attributeTracks.Add(track);
 
-    public void OnTracksReady() => _tracksDirty = false;
+    public void OnTracksReady()
+    {
+        _tracksDirty = false;
+        _animationRevision = _animation?.GetRevision() ?? 0u;
+        _model?.MarkAnimationDirty();
+    }
 
-    public void SetLooped(bool looped) => _looped = looped;
+    public void SetLooped(bool looped)
+    {
+        if (_looped != looped)
+        {
+            _looped = looped;
+            _model?.MarkAnimationDirty();
+        }
+    }
 
-    public void SetWeight(float weight) => _weight = weight;
+    public void SetWeight(float weight)
+    {
+        if (_animation is null)
+            return;
+
+        weight = Math.Clamp(weight, 0.0f, 1.0f);
+        if (weight != _weight)
+        {
+            _weight = weight;
+            _model?.MarkAnimationDirty();
+        }
+    }
 
     /// <summary>
     /// Set time position. Does not fire animation triggers.
     /// </summary>
-    public void SetTime(float time) => _time = time;
+    public void SetTime(float time)
+    {
+        if (_animation is null)
+            return;
+
+        time = Math.Clamp(time, 0.0f, _animation.Length);
+        if (time != _time)
+        {
+            _time = time;
+            _model?.MarkAnimationDirty();
+        }
+    }
 
     public Animation? GetAnimation() => _animation;
 

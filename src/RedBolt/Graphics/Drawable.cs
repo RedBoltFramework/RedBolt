@@ -194,7 +194,7 @@ public abstract class Drawable : Component
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
     protected readonly System.Collections.Generic.List<SourceBatch> _batches = [];
     private readonly Matrix3x4[] _worldTransform = [Matrix3x4.Identity];
-    private uint _viewFrameNumber;
+    protected uint _viewFrameNumber;
     private float _distance;
     private float _lodDistance;
     private float _sortValue;
@@ -567,7 +567,8 @@ public abstract class Drawable : Component
 
     public void MarkForUpdate()
     {
-        _worldBoundingBoxDirty = true;
+        if (_octant is not null)
+            _octant.GetOctree().QueueUpdate(this);
     }
 
     /// <summary>Request UpdateBatchesDelayed call from the main thread.</summary>
@@ -617,7 +618,12 @@ public abstract class Drawable : Component
 
     protected internal override void OnMarkedDirty(Node node)
     {
+        _worldBoundingBoxDirty = true;
         MarkForUpdate();
+
+        // Mark zone assignment dirty when transform changes
+        if (ReferenceEquals(node, Node))
+            _zoneDirty = true;
     }
 
     /// <summary>

@@ -6,11 +6,6 @@ namespace RedBolt;
 /// <summary>Animated model component.</summary>
 public class AnimatedModel : StaticModel
 {
-    // TODO: port - C++ animation update sequence:
-    // PrepareForThreadedUpdate, CalculateAnimations, ApplyBoneTransformsToNodes.
-    // TODO: port - C++ remaining fields:
-    // mutable VectorBuffer attrBuffer_;
-
     private bool _animationDirty;
     private bool _morphsDirty;
     private bool _skinningDirty = true;
@@ -35,7 +30,7 @@ public class AnimatedModel : StaticModel
     private bool _isMaster = true;
     private bool _assignBonesPending;
     private bool _forceAnimationUpdate;
-    private readonly List<byte> _morphsAttribute = [];
+    private readonly VectorBuffer _attrBuffer = new();
 
     /// <summary>Construct.</summary>
     public AnimatedModel()
@@ -327,49 +322,72 @@ public class AnimatedModel : StaticModel
     public void ResetBones()
     {
         _skeleton.Reset();
+        MarkAnimationDirty();
     }
 
     /// <summary>Apply all animation states to nodes.</summary>
     public void ApplyAnimation()
     {
-        if (!_isMaster)
-            return;
-
-        _skeleton.ResetSilent();
-        var outputs = new List<ModelAnimationOutput>(checked((int)_skeleton.GetNumBones()));
-        foreach (var bone in _skeleton.GetBones())
+        // Reset skeleton, apply all animations, calculate bones' bounding box. Make sure this is only done for the master model
+        // (first AnimatedModel in a node)
+        if (_isMaster)
         {
-            outputs.Add(new ModelAnimationOutput
-            {
-                LocalToParent = new Transform(bone.InitialPosition, bone.InitialRotation, bone.InitialScale)
-            });
+            InitializeLocalBoneTransforms(false);
+            CalculateAnimations();
+            CalculateLocalBoundingBox();
+            ApplyBoneTransformsToNodes();
         }
-
-        if (_animationStateSource is not null)
-        {
-            foreach (var state in _animationStateSource.GetAnimationStates())
-                state.CalculateModelTracks(outputs);
-        }
-
-        var bones = _skeleton.GetBones();
-        for (var i = 0; i < bones.Count; ++i)
-        {
-            var boneNode = bones[i].Node;
-            if (boneNode is null)
-                continue;
-
-            var transform = outputs[i].LocalToParent;
-            boneNode.SetTransformSilent(transform.Position, transform.Rotation, transform.Scale);
-        }
-
-        Node?.MarkDirty();
     }
 
     /// <summary>Update animation before octree reinsertion.</summary>
     public override void Update(CommonFrameInfo frame)
     {
-        base.Update(frame);
-        ApplyAnimation();
+        if (!PrepareForThreadedUpdate(frame.Camera, frame.FrameNumber))
+            return;
+
+        if (_isMaster)
+        {
+            // On main component, update animation and bounding box
+            var transformsDirty = false;
+            if (_animationDirty || _boneBoundingBoxDirty)
+            {
+                InitializeLocalBoneTransforms(false);
+
+                if (_animationDirty)
+                {
+                    if (UpdateAndCheckAnimationTimers(frame.TimeStep))
+                    {
+                        CalculateAnimations();
+                        transformsDirty = true;
+                    }
+                }
+
+                if (_boneBoundingBoxDirty)
+                    CalculateLocalBoundingBox();
+            }
+
+            if (transformsDirty)
+            {
+                var octree = GetOctant()!.GetOctree();
+                for (var boneIndex = 0; boneIndex < _skeleton.GetNumBones(); ++boneIndex)
+                {
+                    var node = _skeleton.GetBone((uint)boneIndex)!.Node;
+                    var transform = _skeletonData[boneIndex].LocalToParent;
+                    if (node is not null)
+                        octree.QueueNodeTransformUpdate(node, transform);
+                }
+            }
+        }
+        else
+        {
+            // On sibling components, just update bounding box.
+            // Note that bounding box is delayed by one frame!
+            if (_boneBoundingBoxDirty)
+            {
+                InitializeLocalBoneTransforms(false);
+                CalculateLocalBoundingBox();
+            }
+        }
     }
 
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
@@ -560,10 +578,10 @@ public class AnimatedModel : StaticModel
     /// <summary>Return morphs attribute.</summary>
     public IReadOnlyList<byte> GetMorphsAttr()
     {
-        _morphsAttribute.Clear();
+        _attrBuffer.Clear();
         foreach (var morph in _morphs)
-            _morphsAttribute.Add((byte)(morph.Weight * 255.0f));
-        return _morphsAttribute;
+            _attrBuffer.WriteUByte((byte)(morph.Weight * 255.0f));
+        return _attrBuffer.GetBuffer();
     }
 
     /// <summary>Set skeleton.</summary>
@@ -923,6 +941,40 @@ public class AnimatedModel : StaticModel
         }
     }
 
+    private bool PrepareForThreadedUpdate(Camera? camera, uint frameNumber)
+    {
+        // If node was invisible last frame, need to decide animation LOD distance here
+        // If headless, retain the current animation distance (should be 0)
+        if (camera is not null && Math.Abs(unchecked((int)(frameNumber - _viewFrameNumber))) > 1)
+        {
+            // First check for no update at all when invisible, except on first update. In that case reset LOD timer to ensure update
+            // next time the model is in view
+            if (_viewFrameNumber != 0 && !_updateInvisible)
+            {
+                if (_animationDirty)
+                {
+                    _animationLodTimer = -1.0f;
+                    _forceAnimationUpdate = true;
+                }
+                return false;
+            }
+
+            // Force view frame number to be valid
+            _viewFrameNumber = Math.Max(1u, _viewFrameNumber);
+
+            var distance = camera.GetDistance(Node.GetWorldPosition());
+            // If distance is greater than draw distance, no need to update at all
+            if (DrawDistance > 0.0f && distance > DrawDistance)
+                return false;
+
+            var size = GetWorldBoundingBox().Size;
+            var scale = (size.X + size.Y + size.Z) / 3.0f;
+            _animationLodDistance = camera.GetLodDistance(distance, scale, LodBias);
+        }
+
+        return true;
+    }
+
     private bool UpdateAndCheckAnimationTimers(float timeStep)
     {
         // If using animation LOD, accumulate time and see if it is time to update
@@ -942,6 +994,45 @@ public class AnimatedModel : StaticModel
                 _animationLodTimer = 0.0f;
         }
         return true;
+    }
+
+    private void CalculateAnimations()
+    {
+        if (!_isMaster)
+            throw new InvalidOperationException("Only master AnimatedModel may calculate animations.");
+
+        // AnimationStateSource is a weak pointer which may or may not be an issue
+        if (_animationStateSource is not null)
+        {
+            foreach (var state in _animationStateSource.GetAnimationStates())
+                state.CalculateModelTracks(_skeletonData);
+        }
+
+        _animationDirty = false;
+        _boneBoundingBoxDirty = true;
+    }
+
+    private void ApplyBoneTransformsToNodes()
+    {
+        for (var boneIndex = 0; boneIndex < _skeleton.GetNumBones(); ++boneIndex)
+        {
+            var bone = _skeleton.GetBone((uint)boneIndex)!;
+            var transform = _skeletonData[boneIndex].LocalToParent;
+            if (bone.Node is { } node)
+                node.SetTransformSilent(transform.Position, transform.Rotation, transform.Scale);
+        }
+
+        // Skeleton reset and animations apply the node transforms "silently" to avoid repeated marking dirty. Mark dirty now
+        Node.MarkDirty();
+    }
+
+    internal void MarkAnimationDirty()
+    {
+        if (_isMaster)
+        {
+            _animationDirty = true;
+            MarkForUpdate();
+        }
     }
 
     private void UpdateSkinning()

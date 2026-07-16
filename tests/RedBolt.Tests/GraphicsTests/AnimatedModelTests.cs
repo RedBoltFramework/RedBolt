@@ -98,6 +98,31 @@ public sealed class AnimatedModelTests
     }
 
     [Fact]
+    public void Animation_state_changes_mark_connected_master_model_dirty_and_clamp_values()
+    {
+        var animatedModel = CreateAnimatedModel(BoneCollisionShape.Box);
+        var animation = new Animation();
+        animation.SetLength(2.0f);
+        var state = new AnimationState();
+        state.ConnectToAnimatedModel(animatedModel);
+        state.Initialize(animation, string.Empty, AnimationBlendMode.Lerp);
+
+        SetPrivateField(animatedModel, "_animationDirty", false);
+        state.OnTracksReady();
+        Assert.True(GetPrivateField<bool>(animatedModel, "_animationDirty"));
+
+        SetPrivateField(animatedModel, "_animationDirty", false);
+        state.SetWeight(2.0f);
+        Assert.Equal(1.0f, state.GetWeight());
+        Assert.True(GetPrivateField<bool>(animatedModel, "_animationDirty"));
+
+        SetPrivateField(animatedModel, "_animationDirty", false);
+        state.SetTime(3.0f);
+        Assert.Equal(2.0f, state.GetTime());
+        Assert.True(GetPrivateField<bool>(animatedModel, "_animationDirty"));
+    }
+
+    [Fact]
     public void Animated_model_ray_query_hits_bone_box()
     {
         var animatedModel = CreateAnimatedModel(BoneCollisionShape.Box);

@@ -11,7 +11,7 @@
 - [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; upstream comparison removed the extra C# `RenderPipeline` component and aligned settings reads with `RenderDevice`; runtime now starts successfully, but the 3D box remains absent in the screenshot and requires further engine-level investigation
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
-- [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership, component-owned cloned geometry, geometry bone mappings, hardware/software skin matrices, and SoftwareModelAnimator runtime morphing/skinning updates are available; the remaining animation pose/threading state machine still requires parity work
+- [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership, threaded pose calculation and octree transform commits, component-owned cloned geometry, geometry bone mappings, hardware/software skin matrices, and SoftwareModelAnimator runtime morphing/skinning updates are ported; sample runtime validation remains
 - [ ] `07_Billboards` — requires complete `BillboardSet` parity
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
@@ -284,20 +284,20 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state/ID-family inheritance and batched parameter-update optimization remain managed deviations
 - [~] `StaticModel.h`
 - [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, component-owned geometry/LOD storage, per-geometry centers and LOD state, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, indexed occlusion drawing, custom-transform AABB/OBB/triangle/UV ray queries, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; remaining class-shape parity is incomplete
-- [~] `AnimatedModel.h`
-  - [~] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, deferred bone assignment, compatible skeleton reload, master/non-master bone-node sharing, listener/event lifecycle, local/final bone transforms, bone/world bounds, per-view batch distances, model-bounds LOD scale, minimum multi-view animation LOD distance, geometry-update thread classification, component-owned cloned geometries, morph-buffer updates, global/per-geometry skin matrices, hardware/software skinning selection and updates, morph weights, animation LOD bias, invisible-update state, debug skeleton rendering, model/bone/morph attribute helpers, and custom/public bone box/sphere ray queries are ported; the remaining animation calculation/threading and serialization runtime state remains incomplete
+- [x] `AnimatedModel.h`
+  - [x] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, deferred bone assignment, compatible skeleton reload, master/non-master bone-node sharing, listener/event lifecycle, local/final bone transforms, threaded animation calculation and octree transform commits, invisible and animation-LOD gates, bone/world bounds, per-view batch distances, model-bounds LOD scale, geometry-update thread classification, component-owned cloned geometries, morph-buffer updates, global/per-geometry skin matrices, hardware/software skinning selection and updates, morph weights, reusable morph attribute serialization buffer, debug skeleton rendering, model/bone/morph attribute helpers, and custom/public bone box/sphere ray queries are ported
 - [~] `StaticModelGroup.h`
 - [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, per-instance indexed occlusion drawing, and batch distance/world-transform/LOD updates are ported; remaining class-shape parity is still incomplete
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
-- [~] `AnimationStateSource.h` — base component, managed animation-state list, throttling state, and controller-to-model source connection are ported; model pose consumption remains incomplete
+- [~] `AnimationStateSource.h` — base component, managed animation-state list, throttling state, controller-to-model source connection, and model pose consumption are ported
   - [~] `AnimationStateSource`
-- [~] `AnimationState.h` — enums, track/output records, lifecycle state, node, model, and attribute track blending, and ordinary/node-variable attribute application are ported; AnimatedModel pose application and morph reflection remain TODO
+- [~] `AnimationState.h` — enums, track/output records, lifecycle state, clamped time/weight changes with model dirty propagation, node/model/attribute track blending, ordinary/node-variable attribute application, AnimatedModel pose application, and morph reflection are ported
   - [~] `struct AnimatedAttributeReference`
   - [~] `AnimationState : RefCounted`
-- [~] `AnimationController.h` — animation parameter management, playback lifecycle, replacement merge path, UpdateAnimation assertions, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel pose/attribute integration remains TODO
+- [~] `AnimationController.h` — animation parameter management, playback lifecycle, replacement merge path, UpdateAnimation assertions, structured animation-parameter metadata, Update Pose action registration, and AnimatedModel pose/attribute integration are ported
   - [~] `AnimationParameters` — global resource lookups use a local context variable because this C++ value-style class has no Object.GetSubsystem() instance
-  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath, track-node lookup, trigger dispatch, node/attribute output aggregation, managed node/variant track setup, controller-to-model state connection, structured animation-parameter metadata, and Update Pose action registration are ported; AnimatedModel skeleton/pose integration remains TODO
+  - [~] `AnimationController : AnimationStateSource` — ParseAnimatablePath, track-node lookup, trigger dispatch, node/attribute output aggregation, managed node/variant track setup, controller-to-model state connection, structured animation-parameter metadata, Update Pose action registration, and AnimatedModel skeleton/pose integration are ported
 - [x] `SoftwareModelAnimator.h`
   - [x] `VertexBufferAnimationData`
   - [x] `SoftwareModelAnimator : Object` — model geometry and animated-stream cloning, morph reset/application, four-weight extraction and reduction, CPU position/normal/tangent skinning, and GPU commit are ported
