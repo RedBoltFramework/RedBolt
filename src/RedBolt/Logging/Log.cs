@@ -12,14 +12,11 @@ internal static class Log
 
     public static ILogger Logger => _currentLogger;
 
-    public static void Initialize(EngineParameters parameters)
+    public static void Initialize(EngineParameters parameters, string logPath)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
         var minimumLevel = ParseLevel(parameters.LogLevel);
-        var logPath = string.IsNullOrWhiteSpace(parameters.LogName)
-            ? "RedBolt.log"
-            : Path.GetFullPath(parameters.LogName);
 
         var factory = LoggerFactory.Create(builder =>
         {
@@ -35,7 +32,8 @@ internal static class Log
                 });
             }
 
-            builder.AddProvider(new FileLoggerProvider(logPath));
+            if (!string.IsNullOrEmpty(logPath))
+                builder.AddProvider(new FileLoggerProvider(logPath));
         });
 
         lock (SyncRoot)

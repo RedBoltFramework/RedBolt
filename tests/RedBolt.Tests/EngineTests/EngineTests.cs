@@ -140,6 +140,30 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_resolves_conf_log_name_to_application_preferences_directory()
+    {
+        var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-log-{Guid.NewGuid():N}");
+        try
+        {
+            using var engine = new EngineScope(new Engine(), new EngineParameters
+            {
+                ApplicationName = "RedBolt.Tests.Log",
+                ApplicationPreferencesDir = preferencesDirectory,
+                ConfigName = string.Empty,
+                Headless = true,
+                LogName = "conf://Urho3D.log"
+            });
+
+            Assert.True(System.IO.File.Exists(Path.Combine(preferencesDirectory, "Urho3D.log")));
+        }
+        finally
+        {
+            if (Directory.Exists(preferencesDirectory))
+                Directory.Delete(preferencesDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Time_step_helpers_work()
     {
         _fixture.Engine.SetNextTimeStep(0.125f);

@@ -522,6 +522,11 @@ public sealed class Engine : Object
                 localApplicationData, Parameters.OrganizationName, Parameters.ApplicationName);
         }
 
+        Log.Initialize(Parameters, GetLogFileName(Parameters.LogName));
+
+        if (!string.IsNullOrEmpty(Parameters.ApplicationPreferencesDir))
+            Directory.CreateDirectory(Parameters.ApplicationPreferencesDir);
+
         InitializeVirtualFileSystem(enableResourceRootFile: true);
         _timeOut = (long)Parameters.TimeOut * 1_000_000L;
     }

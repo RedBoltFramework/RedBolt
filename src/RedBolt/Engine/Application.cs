@@ -88,8 +88,6 @@ public abstract class Application : Object
             }
         }
 
-        Log.Initialize(parameters);
-
         if (ShouldStopBeforeInitialization())
             return ExitCode;
 
