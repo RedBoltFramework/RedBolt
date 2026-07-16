@@ -426,7 +426,7 @@ public class RenderPipeline : Component
             RaiseUpdateEnd(_frameInfo);
         }
 
-        public override void Render(Graphics graphics, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
         {
             ArgumentNullException.ThrowIfNull(graphics);
             if (_viewport is null)

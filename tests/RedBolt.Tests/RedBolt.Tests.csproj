@@ -7,6 +7,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../../src/RedBolt.Bindings.Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <ProjectReference Include="../../src/RedBolt.Bindings.SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <ProjectReference Include="../../src/RedBolt.Bindings.SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
   </ItemGroup>
 

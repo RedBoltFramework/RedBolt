@@ -62,7 +62,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   buffer through final-frame capture; and `MoveAndOrbitController` acquires the scene input subsystem before
   evaluating its input map. The required two-second MultipleViewports capture is visibly correct on both the Radeon
   driver and the host's llvmpipe fallback.
-- [ ] Packet 1 generated binding foundation — pending shader-library and backend-specific Diligent surfaces.
+- [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, and SPIRV-Tools
+  surfaces into the build tree; dedicated managed binding projects consume them; the native batch links the matching
+  rbfx-version shader libraries; and `ShaderLibraryBindingTests` verifies process/context creation and deterministic
+  release through all three managed surfaces. The standard gate passes 1013 tests and the two-second
+  MultipleViewports capture is visibly correct. D3DCompiler and backend-specific Diligent surfaces remain pending
+  under their platform/backend feature conditions.
 
 ---
 
@@ -184,11 +189,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ShaderSourceLogger.h`
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
 - [~] `ShaderOptimizer.h`
-  - [~] shader optimizer helpers — exact C++ optimizer body is preserved as a TODO; managed SPIR-V shader and optimizer/validator APIs are not yet available
+  - [~] shader optimizer helpers — generated SPIRV-Tools context, validator, optimizer-option, and C API access is available and smoke-tested; the exact C++ optimizer body remains pending Packet 3E
 - [~] `ShaderTranslator.h`
   - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
   - [x] `FindVersionTag`
-  - [~] shader translation helpers — exact C++ ParseUniversalShader, TranslateSpirVShader, and SPIR-V reflection bodies are preserved as TODOs because managed glslang/SPIR-V-Cross bindings are unavailable
+  - [~] shader translation helpers — generated glslang and SPIRV-Cross C API access is available and smoke-tested; the exact C++ ParseUniversalShader, TranslateSpirVShader, and SPIR-V reflection bodies remain pending Packets 3B-3D
 - [~] `ShaderCompiler.h`
   - [~] shader compiler helpers — exact C++ D3DCompile implementation is preserved as a TODO; managed generated bindings do not expose D3DCompile or COM shader blobs
 

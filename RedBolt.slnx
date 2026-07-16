@@ -5,6 +5,9 @@
   <Folder Name="/src/">
     <Project Path="src/RedBolt.Bindings.DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <Project Path="src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <Project Path="src/RedBolt.Bindings.Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <Project Path="src/RedBolt.Bindings.SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <Project Path="src/RedBolt.Bindings.SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <Project Path="src/RedBolt.Bindings.Stb/RedBolt.Bindings.Stb.csproj" />
     <Project Path="src/RedBolt.Bindings.Lz4/RedBolt.Bindings.Lz4.csproj" />
     <Project Path="src/RedBolt.Bindings.WebP/RedBolt.Bindings.WebP.csproj" />

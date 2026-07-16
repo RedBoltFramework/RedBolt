@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -206,15 +207,123 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool TakeScreenShot(out Vector2i size, out byte[] data)
     {
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is null)
+        size = Vector2i.Zero;
+        data = [];
+
+        var flipY = GetDeviceSettings().Backend == RenderBackend.OpenGL;
+
+        var resolvedBackBuffer = GetResolvedBackBuffer();
+        if (resolvedBackBuffer is null)
         {
-            size = Vector2i.Zero;
-            data = [];
+            Log.Logger.LogError("Failed to create resolve texture for RenderDevice.TakeScreenShot");
             return false;
         }
 
-        return graphics.TryCaptureScreenShot(out size, out data);
+        var stagingTexture = ReadTextureToStaging(resolvedBackBuffer);
+        _ = resolvedBackBuffer.Release();
+        if (stagingTexture is null)
+        {
+            Log.Logger.LogError("Failed to create staging texture for RenderDevice.TakeScreenShot");
+            return false;
+        }
+
+        var deviceContext = GetImmediateContext()!;
+        using var mappedData = new MappedTextureSubresource();
+        deviceContext.MapTextureSubresource(
+            stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedData);
+
+        if (mappedData.PData == IntPtr.Zero)
+        {
+            Log.Logger.LogError("Failed to map staging texture for RenderDevice.TakeScreenShot");
+            _ = stagingTexture.Release();
+            return false;
+        }
+
+        using var desc = stagingTexture.GetDesc();
+        using var formatInfo = TextureFormatAttribs.CreateManagedWrapper(
+            DiligentNativeBindings.GetTextureFormatAttribs(desc.Format), false);
+        if (formatInfo.GetElementSize() != 4 || formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
+        {
+            Log.Logger.LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");
+            _ = stagingTexture.Release();
+            return false;
+        }
+
+        size = new Vector2i(checked((int)desc.Width), checked((int)desc.Height));
+
+        var elementSize = checked((int)formatInfo.GetElementSize());
+        var rowSize = checked(size.X * elementSize);
+        data = new byte[checked(size.X * size.Y * elementSize)];
+
+        for (var i = 0; i < size.Y; ++i)
+        {
+            var row = flipY ? size.Y - i - 1 : i;
+            Marshal.Copy(IntPtr.Add(mappedData.PData, checked((int)((nuint)row * mappedData.Stride))), data, i * rowSize, rowSize);
+        }
+
+        deviceContext.UnmapTextureSubresource(stagingTexture, 0, 0);
+        _ = stagingTexture.Release();
+        return true;
+    }
+
+    private ITexture? GetResolvedBackBuffer()
+    {
+        var swapChain = GetSwapChain()!;
+        var backBuffer = swapChain.GetCurrentBackBufferRTV().GetTexture();
+        using var backBufferDesc = backBuffer.GetDesc();
+
+        if (backBufferDesc.SampleCount == 1)
+        {
+            _ = backBuffer.AddRef();
+            return backBuffer;
+        }
+
+        using var textureDesc = new TextureDesc();
+        textureDesc.Type = ResourceDimension.ResourceDimTex2d;
+        textureDesc.Usage = Usage.UsageDefault;
+        textureDesc.Format = backBufferDesc.Format;
+        textureDesc.Width = backBufferDesc.Width;
+        textureDesc.Height = backBufferDesc.Height;
+        textureDesc.BindFlags = BindFlags.BindRenderTarget;
+
+        GetRenderDevice()!.CreateTexture(textureDesc, null!, out var resolvedBackBuffer);
+        if (resolvedBackBuffer is null || resolvedBackBuffer.IsNull)
+            return null;
+
+        using var attribs = new ResolveTextureSubresourceAttribs();
+        attribs.SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
+        attribs.DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
+        GetImmediateContext()!.ResolveTextureSubresource(backBuffer, resolvedBackBuffer, attribs);
+
+        return resolvedBackBuffer;
+    }
+
+    private ITexture? ReadTextureToStaging(ITexture sourceTexture)
+    {
+        using var sourceTextureDesc = sourceTexture.GetDesc();
+
+        using var textureDesc = new TextureDesc();
+        textureDesc.Type = ResourceDimension.ResourceDimTex2d;
+        textureDesc.Usage = Usage.UsageStaging;
+        textureDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessRead;
+        textureDesc.Format = sourceTextureDesc.Format;
+        textureDesc.Width = sourceTextureDesc.Width;
+        textureDesc.Height = sourceTextureDesc.Height;
+
+        GetRenderDevice()!.CreateTexture(textureDesc, null!, out var stagingTexture);
+        if (stagingTexture is null || stagingTexture.IsNull)
+            return null;
+
+        using var attribs = new CopyTextureAttribs(
+            sourceTexture,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            stagingTexture,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        var deviceContext = GetImmediateContext()!;
+        deviceContext.CopyTexture(attribs);
+        deviceContext.WaitForIdle();
+
+        return stagingTexture;
     }
 
     /// <summary>

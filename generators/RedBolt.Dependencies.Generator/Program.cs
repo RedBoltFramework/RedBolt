@@ -128,6 +128,7 @@ internal static class Program
 
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
+            FixCDependencyTypes(compilation, descriptor);
             FixDiligentBlendFactors(compilation, descriptor);
             FixDiligentTextureFormatFunction(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
@@ -313,6 +314,86 @@ internal static class Program
             publicTypeName: "global::RedBolt.Bindings.Diligent.BlendFactors");
     }
 
+    private static void FixCDependencyTypes(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface is not ("glslang" or "spirvcross" or "spirvtools"))
+            return;
+
+        for (var index = 0; index < compilation.TypeAliases.Count; ++index)
+        {
+            var alias = compilation.TypeAliases[index];
+            if (alias.CppQualifiedName == "spvc_bool")
+                compilation.TypeAliases[index] = alias with { TargetType = BindingType.Int8 };
+        }
+
+        foreach (var function in compilation.Functions)
+        {
+            if (function.CppReturnTypeName == "spvc_bool")
+            {
+                function.ReturnType = BindingType.CreateConfigured(
+                    "spvc_bool",
+                    BindingType.UInt8.ManagedTypeName,
+                    primitiveKind: BindingPrimitiveKind.UInt8);
+            }
+            else if (function.ReturnType.PrimitiveKind == BindingPrimitiveKind.Boolean)
+            {
+                function.ReturnType = BindingType.Boolean;
+                function.CppReturnTypeName = "bool";
+            }
+
+            foreach (var parameter in function.Parameters)
+            {
+                if (descriptor.Surface == "spirvcross" &&
+                    function.NativeName == "spvc_constant_set_scalar_i8" &&
+                    parameter.NativeName == "value")
+                {
+                    parameter.Type = BindingType.Int8;
+                    parameter.CppTypeName = "signed char";
+                }
+                else if (parameter.CppTypeName == "spvc_bool")
+                {
+                    parameter.Type = BindingType.CreateConfigured(
+                        "spvc_bool",
+                        BindingType.UInt8.ManagedTypeName,
+                        primitiveKind: BindingPrimitiveKind.UInt8);
+                }
+                else if (parameter.Type.PrimitiveKind == BindingPrimitiveKind.Boolean)
+                {
+                    parameter.Type = BindingType.Boolean;
+                    parameter.CppTypeName = "bool";
+                }
+            }
+        }
+
+        foreach (var record in compilation.Records)
+        {
+            foreach (var field in record.Members.OfType<FieldBinding>())
+            {
+                if (field.CppTypeName == "spvc_bool")
+                {
+                    field.Type = BindingType.CreateConfigured(
+                        "spvc_bool",
+                        BindingType.UInt8.ManagedTypeName,
+                        primitiveKind: BindingPrimitiveKind.UInt8);
+                }
+                else if (field.Type.PrimitiveKind == BindingPrimitiveKind.Boolean)
+                {
+                    field.Type = BindingType.Boolean;
+                    field.CppTypeName = "bool";
+                }
+            }
+
+            if (record.Members.OfType<FieldBinding>().Any(static field => field.IsReadOnly))
+            {
+                for (var index = record.Members.Count - 1; index >= 0; --index)
+                {
+                    if (record.Members[index] is FunctionBinding { IsConstructor: true })
+                        record.Members.RemoveAt(index);
+                }
+            }
+        }
+    }
+
     private static void FixDiligentTextureFormatFunction(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
         if (descriptor.Surface != "diligent")
@@ -410,7 +491,7 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface == "sdl" || descriptor.Surface == "dearimgui" || descriptor.Surface == "stb" || descriptor.Surface == "lz4")
+        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools")
             return 0;
 
         if (descriptor.Surface == "webp")
@@ -827,7 +908,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -904,6 +985,36 @@ internal static class Program
                     "redbolt_webp",
                     "-xc++",
                     "-std=c++20",
+                    false),
+                "glslang" => new BindingSurfaceDescriptor(
+                    "glslang",
+                    "RedBolt.Bindings.Glslang",
+                    "RedBolt.Bindings.Glslang",
+                    "GlslangNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_glslang",
+                    "-xc",
+                    "-std=c17",
+                    false),
+                "spirvcross" => new BindingSurfaceDescriptor(
+                    "spirvcross",
+                    "RedBolt.Bindings.SpirVCross",
+                    "RedBolt.Bindings.SpirVCross",
+                    "SpirVCrossNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_spirvcross",
+                    "-xc",
+                    "-std=c17",
+                    false),
+                "spirvtools" => new BindingSurfaceDescriptor(
+                    "spirvtools",
+                    "RedBolt.Bindings.SpirVTools",
+                    "RedBolt.Bindings.SpirVTools",
+                    "SpirVToolsNativeBindings",
+                    "RedBolt.Native",
+                    "redbolt_spirvtools",
+                    "-xc",
+                    "-std=c17",
                     false),
                 _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
             };

@@ -81,7 +81,7 @@ public sealed class RendererTests
 
         var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
 
         Assert.Same(viewport, renderSurface.GetViewport(0));
         renderSurface.SetNumViewports(0);
@@ -100,7 +100,7 @@ public sealed class RendererTests
 
         var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
 
         Assert.NotNull(scene.Root.GetComponent<RenderPipeline>());
         Assert.NotNull(viewport.GetRenderPipelineView());
@@ -116,7 +116,7 @@ public sealed class RendererTests
 
         var renderFrame = typeof(Renderer).GetMethod("RenderFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(renderFrame);
-        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null, null]);
+        renderFrame!.Invoke(Renderer, [_fixture.Graphics, null]);
 
         Assert.Equal(1, eventCount);
     }

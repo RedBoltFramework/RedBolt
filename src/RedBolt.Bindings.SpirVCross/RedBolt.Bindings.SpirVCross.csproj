@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Bindings.SpirVCross</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/spirv-cross')">
+    <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-cross/**/*.g.cs" LinkBase="Generated" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SharpCpp.Support">
+      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

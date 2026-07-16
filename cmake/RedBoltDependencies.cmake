@@ -101,7 +101,7 @@ set(DILIGENT_INSTALL_PDB OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_FORMAT_VALIDATION ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_HLSL ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_ARCHIVER ON CACHE BOOL "" FORCE)
-set(DILIGENT_NO_GLSLANG ON CACHE BOOL "" FORCE)
+set(DILIGENT_NO_GLSLANG OFF CACHE BOOL "" FORCE)
 
 set(PLATFORM_WIN32 FALSE CACHE INTERNAL "")
 set(PLATFORM_UNIVERSAL_WINDOWS FALSE CACHE INTERNAL "")
@@ -158,7 +158,17 @@ target_compile_definitions(Diligent-BuildSettings INTERFACE
     "$<$<NOT:$<CONFIG:DEBUG>>:NDEBUG>")
 
 include("${REDBOLT_DILIGENT_SOURCE_ROOT}/BuildTools/CMake/BuildUtils.cmake")
+set(SPIRV_CROSS_ENABLE_C_API ON CACHE BOOL "Enable SPIRV-Cross C API" FORCE)
+set(ARCHIVER_SUPPORTED TRUE CACHE INTERNAL "Enable Diligent SPIR-V toolchain dependencies" FORCE)
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty")
+set(ARCHIVER_SUPPORTED FALSE CACHE INTERNAL "Archiver is not supported" FORCE)
+if(TARGET SPIRV-Tools-opt)
+    add_dependencies(SPIRV-Tools-opt
+        spirv-tools-build-version
+        spirv-tools-header-DebugInfo
+        spirv-tools-header-NonSemanticShaderDebugInfo100
+        spirv-tools-header-OpenCLDebugInfo100)
+endif()
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives" "${CMAKE_BINARY_DIR}/deps/Diligent/Primitives")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms" "${CMAKE_BINARY_DIR}/deps/Diligent/Platforms")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Common" "${CMAKE_BINARY_DIR}/deps/Diligent/Common")

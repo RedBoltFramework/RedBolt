@@ -381,25 +381,35 @@ public sealed class GraphicsRenderTargetViewTests
 
     private Color ReadBackTexturePixel(ITexture texture)
     {
-        var method = typeof(Graphics).GetMethod("SaveTexture", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("Graphics.SaveTexture was not found.");
-        var path = Path.Combine(Path.GetTempPath(), $"redbolt-graphics-readback-{Guid.NewGuid():N}.bmp");
+        var renderDevice = Context.Instance.GetSubsystem<RenderDevice>()
+            ?? throw new InvalidOperationException("RenderDevice was not available.");
+        var method = typeof(RenderDevice).GetMethod("ReadTextureToStaging", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("RenderDevice.ReadTextureToStaging was not found.");
+        var stagingTexture = Assert.IsAssignableFrom<ITexture>(method.Invoke(renderDevice, [texture]));
+        var immediateContext = renderDevice.GetImmediateContext()
+            ?? throw new InvalidOperationException("Immediate context was not available.");
         try
         {
-            method.Invoke(_fixture.Graphics, [texture, path]);
-
-            using var stream = System.IO.File.OpenRead(path);
-            var image = new Image("Textures/Readback");
-            Assert.True(image.BeginLoad(stream));
-            var level = image.GetDecompressedImageLevel(0u)
-                ?? throw new InvalidOperationException("Image level 0 was not available.");
-            var data = level.GetData();
-            return new Color(data[0] / 255.0f, data[1] / 255.0f, data[2] / 255.0f, data[3] / 255.0f);
+            using var mappedData = new MappedTextureSubresource();
+            immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedData);
+            try
+            {
+                var data = new byte[4];
+                Marshal.Copy(mappedData.PData, data, 0, data.Length);
+                using var desc = stagingTexture.GetDesc();
+                if (desc.Format is RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm
+                    or RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb)
+                    (data[0], data[2]) = (data[2], data[0]);
+                return new Color(data[0] / 255.0f, data[1] / 255.0f, data[2] / 255.0f, data[3] / 255.0f);
+            }
+            finally
+            {
+                immediateContext.UnmapTextureSubresource(stagingTexture, 0, 0);
+            }
         }
         finally
         {
-            if (System.IO.File.Exists(path))
-                System.IO.File.Delete(path);
+            _ = stagingTexture.Release();
         }
     }
 

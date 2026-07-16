@@ -16,10 +16,6 @@ public sealed class Graphics : Object
     {
     private static uint _maxBonesHWSkinned;
 
-    private const uint GlFront = 0x0404;
-    private const uint GlBack = 0x0405;
-    private const uint GlRgba = 0x1908;
-    private const uint GlUnsignedByte = 0x1401;
     private const int CameraBufferSize = 368;
     private const int FrameBufferSize = 16;
     private const int ObjectBufferSize = 80;
@@ -108,9 +104,6 @@ layout(std140) uniform Material
     private Texture2D? _defaultNormalTexture;
     private Texture2D? _defaultPropertiesTexture;
     private Texture2D? _defaultEmissionTexture;
-    private GlFinishDelegate? _glFinish;
-    private GlReadBufferDelegate? _glReadBuffer;
-    private GlReadPixelsDelegate? _glReadPixels;
     private IDeviceContext? _immediateContext;
     private IEngineFactory? _factory;
     private IRenderDevice? _device;
@@ -913,15 +906,15 @@ layout(std140) uniform Material
         }
     }
 
-    internal void RenderViewport(Viewport? viewport, Action? beforePresent = null, string? screenshotPath = null)
+    internal void RenderViewport(Viewport? viewport)
     {
-        RenderViewport(viewport, MaterialQuality.High, beforePresent, screenshotPath);
+        RenderViewport(viewport, MaterialQuality.High);
     }
 
     /// <summary>
     /// Render viewport through the legacy direct path that binds the backbuffer and draws the scene.
     /// </summary>
-    internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality, Action? beforePresent = null, string? screenshotPath = null)
+    internal void RenderViewport(Viewport? viewport, MaterialQuality materialQuality)
     {
         if (!IsInitialized || viewport is null || _immediateContext is null || _swapChain is null || _renderTargetView is null || _depthStencilView is null)
             return;
@@ -1188,17 +1181,14 @@ layout(std140) uniform Material
     }
 
     /// <summary>
-    /// Present the current frame after optional screenshot capture.
+    /// Present the current frame.
     /// </summary>
-    internal void PresentFrame(string? screenshotPath = null, Action? beforePresent = null)
+    internal void PresentFrame(Action? beforePresent = null)
     {
         if (!IsInitialized || _swapChain is null)
             return;
 
         beforePresent?.Invoke();
-
-        if (!string.IsNullOrWhiteSpace(screenshotPath))
-            SavePresentedFrameScreenshot(screenshotPath);
 
         GetSubsystem<RenderDevice>()?.Present();
     }
@@ -1473,182 +1463,6 @@ layout(std140) uniform Material
 
         if (oldSettings.VSync != newSettings.VSync)
             _ = SdlNativeBindings.SdlGlSetSwapInterval(newSettings.VSync ? 1 : 0);
-    }
-
-    public void SaveScreenshot(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (!IsInitialized || _device is null || _immediateContext is null || _renderTargetView is null)
-            throw new InvalidOperationException("Graphics system is not initialized.");
-
-        if (TrySaveCurrentFramebufferScreenshot(fileName))
-            return;
-
-        var sourceTexture = _renderTargetView.GetTexture();
-        if (!sourceTexture.IsNull)
-        {
-            SaveTexture(sourceTexture, fileName);
-            return;
-        }
-
-        if (!TrySaveCurrentFramebufferScreenshot(fileName))
-            throw new InvalidOperationException("Backbuffer texture was not available for screenshot capture.");
-    }
-
-    private void SaveTexture(ITexture sourceTexture, string fileName)
-    {
-        ArgumentNullException.ThrowIfNull(sourceTexture);
-
-        if (_device is null || _immediateContext is null)
-            throw new InvalidOperationException("Graphics system is not initialized.");
-
-        using var sourceDescription = sourceTexture.GetDesc();
-        var width = checked((int)sourceDescription.Width);
-        var height = checked((int)sourceDescription.Height);
-
-        using var stagingDescOwner = CreateTextureDesc();
-        var stagingDescription = stagingDescOwner.Desc;
-        stagingDescription.Type = sourceDescription.Type;
-        stagingDescription.Width = sourceDescription.Width;
-        stagingDescription.Height = sourceDescription.Height;
-        CopyTextureDescArraySizeOrDepth(stagingDescription, sourceDescription);
-        stagingDescription.MipLevels = 1;
-        stagingDescription.Format = sourceDescription.Format;
-        stagingDescription.BindFlags = BindFlags.BindNone;
-        stagingDescription.CPUAccessFlags = CpuAccessFlags.CpuAccessRead;
-        stagingDescription.MiscFlags = MiscTextureFlags.MiscTextureFlagNone;
-        stagingDescription.SampleCount = 1;
-        stagingDescription.Usage = Usage.UsageStaging;
-
-        ITexture? stagingTexture = null;
-        try
-        {
-            _device.CreateTexture(stagingDescription, null!, out stagingTexture);
-            if (stagingTexture is null || stagingTexture.IsNull)
-                throw new InvalidOperationException("Failed to create the staging texture for screenshot capture.");
-
-            using var copyAttributes = new CopyTextureAttribs(
-                sourceTexture,
-                ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-                stagingTexture,
-                ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-            _immediateContext.CopyTexture(copyAttributes);
-            _immediateContext.Flush();
-            _immediateContext.WaitForIdle();
-
-            using var mappedSubresource = new MappedTextureSubresource();
-            _immediateContext.MapTextureSubresource(stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedSubresource);
-            try
-            {
-                var rgbaPixels = new byte[checked(width * height * 4)];
-                CopyMappedTexture(sourceDescription.Format, width, height, mappedSubresource, rgbaPixels);
-                SaveImageFile(fileName, width, height, rgbaPixels);
-            }
-            finally
-            {
-                _immediateContext.UnmapTextureSubresource(stagingTexture, 0, 0);
-            }
-        }
-        finally
-        {
-            ReleaseIfNotNull(stagingTexture);
-        }
-    }
-
-    private void SaveCurrentFramebufferScreenshot(string fileName)
-    {
-        if (!TrySaveCurrentFramebufferScreenshot(fileName))
-            throw new InvalidOperationException("OpenGL framebuffer readback is not available.");
-    }
-
-    private void SavePresentedFrameScreenshot(string fileName)
-    {
-        if (TrySaveCurrentFramebufferScreenshot(fileName, GlBack))
-            return;
-
-        if (_renderTargetView is not null)
-        {
-            var sourceTexture = _renderTargetView.GetTexture();
-            if (!sourceTexture.IsNull)
-            {
-                SaveTexture(sourceTexture, fileName);
-                return;
-            }
-        }
-
-        SaveCurrentFramebufferScreenshot(fileName);
-    }
-
-    private bool TrySaveCurrentFramebufferScreenshot(string fileName)
-    {
-        return TrySaveCurrentFramebufferScreenshot(fileName, GlBack);
-    }
-
-    private bool TrySaveCurrentFramebufferScreenshot(string fileName, uint readBuffer)
-    {
-        if (!TryCaptureScreenShot(readBuffer, out var size, out var rgbaPixels))
-            return false;
-
-        SaveImageFile(fileName, size.X, size.Y, rgbaPixels);
-        return true;
-    }
-
-    private void SaveImageFile(string fileName, int width, int height, ReadOnlySpan<byte> rgbaPixels)
-    {
-        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var mountPoint = virtualFileSystem.MountRoot();
-        try
-        {
-            ImageFileWriter.Save(virtualFileSystem, fileName, width, height, rgbaPixels);
-        }
-        finally
-        {
-            virtualFileSystem.Unmount(mountPoint);
-        }
-    }
-
-    internal bool TryCaptureScreenShot(out Vector2i size, out byte[] data)
-    {
-        return TryCaptureScreenShot(GlBack, out size, out data);
-    }
-
-    private bool TryCaptureScreenShot(uint readBuffer, out Vector2i size, out byte[] data)
-    {
-        size = Vector2i.Zero;
-        data = [];
-        if (_glContext == IntPtr.Zero || Width <= 0 || Height <= 0)
-            return false;
-
-        EnsureOpenGlReadbackFunctions();
-
-        size = new Vector2i(Width, Height);
-        data = new byte[checked(Width * Height * 4)];
-        using var pinnedPixels = new PinnedBuffer(data);
-
-        _glFinish!.Invoke();
-        _glReadBuffer!.Invoke(readBuffer);
-        _glReadPixels!.Invoke(0, 0, Width, Height, GlRgba, GlUnsignedByte, pinnedPixels.Pointer);
-        FlipImageRows(data, Width, Height);
-        return true;
-    }
-
-    private void EnsureOpenGlReadbackFunctions()
-    {
-        _glFinish ??= LoadOpenGlProcedure<GlFinishDelegate>("glFinish");
-        _glReadBuffer ??= LoadOpenGlProcedure<GlReadBufferDelegate>("glReadBuffer");
-        _glReadPixels ??= LoadOpenGlProcedure<GlReadPixelsDelegate>("glReadPixels");
-    }
-
-    private static T LoadOpenGlProcedure<T>(string name)
-        where T : Delegate
-    {
-        using var pinnedName = new CString(name);
-        var procedure = SdlNativeBindings.SdlGlGetProcAddress(pinnedName.Bytes);
-        if (procedure == IntPtr.Zero)
-            throw new InvalidOperationException($"OpenGL procedure '{name}' is not available.");
-
-        return Marshal.GetDelegateForFunctionPointer<T>(procedure);
     }
 
     public void Shutdown()
@@ -4406,57 +4220,6 @@ layout(std140) uniform Material
             _ = value.Release();
     }
 
-    private static void CopyMappedTexture(RedBolt.Bindings.Diligent.TextureFormat format, int width, int height, MappedTextureSubresource mappedSubresource, byte[] rgbaPixels)
-    {
-        var rowLength = checked(width * 4);
-        var row = new byte[rowLength];
-        for (var sourceY = 0; sourceY < height; ++sourceY)
-        {
-            var sourceRow = IntPtr.Add(mappedSubresource.PData, checked((int)(mappedSubresource.Stride * (ulong)sourceY)));
-            Marshal.Copy(sourceRow, row, 0, rowLength);
-
-            var destinationOffset = (height - 1 - sourceY) * rowLength;
-            switch (format)
-            {
-                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm:
-                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb:
-                    Buffer.BlockCopy(row, 0, rgbaPixels, destinationOffset, rowLength);
-                    break;
-
-                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm:
-                case RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb:
-                    for (var x = 0; x < width; ++x)
-                    {
-                        var sourceOffset = x * 4;
-                        var destinationPixelOffset = destinationOffset + sourceOffset;
-                        rgbaPixels[destinationPixelOffset + 0] = row[sourceOffset + 2];
-                        rgbaPixels[destinationPixelOffset + 1] = row[sourceOffset + 1];
-                        rgbaPixels[destinationPixelOffset + 2] = row[sourceOffset + 0];
-                        rgbaPixels[destinationPixelOffset + 3] = row[sourceOffset + 3];
-                    }
-                    break;
-
-                default:
-                    throw new NotSupportedException($"Screenshot capture does not support backbuffer format '{format}'.");
-            }
-        }
-    }
-
-    private static void FlipImageRows(byte[] rgbaPixels, int width, int height)
-    {
-        var rowLength = checked(width * 4);
-        var temporaryRow = new byte[rowLength];
-        for (var y = 0; y < height / 2; ++y)
-        {
-            var topOffset = y * rowLength;
-            var bottomOffset = (height - 1 - y) * rowLength;
-
-            Buffer.BlockCopy(rgbaPixels, topOffset, temporaryRow, 0, rowLength);
-            Buffer.BlockCopy(rgbaPixels, bottomOffset, rgbaPixels, topOffset, rowLength);
-            Buffer.BlockCopy(temporaryRow, 0, rgbaPixels, bottomOffset, rowLength);
-        }
-    }
-
     private static bool IsRenderDiagnosticsEnabled()
     {
         var value = Environment.GetEnvironmentVariable("REDBOLT_RENDER_DIAGNOSTICS");
@@ -4663,15 +4426,6 @@ layout(std140) uniform Material
 
         return false;
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void GlFinishDelegate();
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void GlReadBufferDelegate(uint mode);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate void GlReadPixelsDelegate(int x, int y, int width, int height, uint format, uint type, IntPtr pixels);
 
     private readonly record struct LayoutElementSpec(
         uint InputIndex,

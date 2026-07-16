@@ -172,8 +172,16 @@ public sealed class Engine : Object
             if (!IsHeadless)
             {
                 var screenshotPath = _exitRequired ? Parameters.ScreenshotOnExit : null;
-                renderer.RenderFrame(graphics, beforePresent: null, screenshotPath: screenshotPath);
-                _screenshotCapturedForExit = !string.IsNullOrWhiteSpace(screenshotPath);
+                if (string.IsNullOrWhiteSpace(screenshotPath))
+                    renderer.RenderFrame(graphics);
+                else
+                {
+                    renderer.RenderFrame(graphics, beforePresent: () =>
+                    {
+                        using var screenshot = new Image("Screenshot");
+                        _screenshotCapturedForExit = graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(screenshotPath);
+                    });
+                }
             }
         }
 

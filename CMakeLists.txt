@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+set(REDBOLT_THIRDPARTY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern/thirdparty" CACHE PATH "Path to RedBolt's copied native dependency sources" FORCE)
+set(REDBOLT_SHARPCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree used by RedBolt generators")
 
 set(REDBOLT_BIN_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 set(REDBOLT_GENERATED_ROOT "${CMAKE_BINARY_DIR}/generated")
@@ -43,9 +47,20 @@ set(REDBOLT_WEBP_BINDINGS_STEM "RedBolt.Bindings.WebP")
 set(REDBOLT_WEBP_BINDINGS_CS "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.Bindings.g.cs")
 set(REDBOLT_WEBP_BINDINGS_CPP "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.Bindings.g.cpp")
 set(REDBOLT_WEBP_BINDINGS_JSON "${REDBOLT_WEBP_GENERATED_DIR}/${REDBOLT_WEBP_BINDINGS_STEM}.json")
+set(REDBOLT_GLSLANG_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/glslang")
+set(REDBOLT_SPIRV_CROSS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-cross")
+set(REDBOLT_SPIRV_TOOLS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-tools")
+set(REDBOLT_GLSLANG_BINDINGS_STEM "RedBolt.Bindings.Glslang")
+set(REDBOLT_SPIRV_CROSS_BINDINGS_STEM "RedBolt.Bindings.SpirVCross")
+set(REDBOLT_SPIRV_TOOLS_BINDINGS_STEM "RedBolt.Bindings.SpirVTools")
+foreach(shader_surface GLSLANG SPIRV_CROSS SPIRV_TOOLS)
+    set(REDBOLT_${shader_surface}_BINDINGS_CS "${REDBOLT_${shader_surface}_GENERATED_DIR}/${REDBOLT_${shader_surface}_BINDINGS_STEM}.Bindings.g.cs")
+    set(REDBOLT_${shader_surface}_BINDINGS_CPP "${REDBOLT_${shader_surface}_GENERATED_DIR}/${REDBOLT_${shader_surface}_BINDINGS_STEM}.Bindings.g.cpp")
+    set(REDBOLT_${shader_surface}_BINDINGS_JSON "${REDBOLT_${shader_surface}_GENERATED_DIR}/${REDBOLT_${shader_surface}_BINDINGS_STEM}.json")
+endforeach()
 set(REDBOLT_LZ4_PARSE_HEADER "${REDBOLT_LZ4_GENERATED_DIR}/Lz4All.hpp")
 set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp")
-set(REDBOLT_STB_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/STB" CACHE PATH "Path to RedBolt's copied STB sources")
+set(REDBOLT_STB_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/STB" CACHE PATH "Path to RedBolt's copied STB sources" FORCE)
 set(REDBOLT_STB_INCLUDE_DIR "${REDBOLT_STB_SOURCE_ROOT}/include")
 set(REDBOLT_STB_VORBIS_HEADER "${REDBOLT_STB_INCLUDE_DIR}/STB/stb_vorbis.h")
 set(REDBOLT_STB_PARSE_HEADER "${REDBOLT_STB_GENERATED_DIR}/StbVorbisAll.hpp")
@@ -94,8 +109,6 @@ string(APPEND REDBOLT_SHARPCPP_E2E_COMPAT_PROPS_CONTENT
     "</Project>\n")
 file(WRITE "${REDBOLT_SHARPCPP_E2E_COMPAT_PROPS}" "${REDBOLT_SHARPCPP_E2E_COMPAT_PROPS_CONTENT}")
 
-set(REDBOLT_THIRDPARTY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern/thirdparty" CACHE PATH "Path to RedBolt's copied native dependency sources" FORCE)
-set(REDBOLT_SHARPCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree used by RedBolt generators")
 set(REDBOLT_SHARPCPP_E2E_TOOL "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Tool/SharpCpp.Tool.csproj")
 set(REDBOLT_SHARPCPP_E2E_CSPROJ "${REDBOLT_SHARPCPP_ROOT}/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj")
 
@@ -106,6 +119,13 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 include(cmake/RedBoltDependencies.cmake)
 include(cmake/RedBoltDotNet.cmake)
 include(cmake/RedBoltSharpCpp.cmake)
+
+set(REDBOLT_GLSLANG_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang")
+set(REDBOLT_SPIRV_CROSS_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Cross")
+set(REDBOLT_SPIRV_TOOLS_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools")
+set(REDBOLT_GLSLANG_C_HEADER "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Include/glslang_c_interface.h")
+set(REDBOLT_SPIRV_CROSS_C_HEADER "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}/spirv_cross_c.h")
+set(REDBOLT_SPIRV_TOOLS_C_HEADER "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include/spirv-tools/libspirv.h")
 
 find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
 find_path(REDBOLT_LZ4_INCLUDE_DIR lz4.h REQUIRED)
@@ -127,7 +147,7 @@ if(NOT EXISTS "${REDBOLT_STB_VORBIS_HEADER}")
     message(FATAL_ERROR "rbfx stb_vorbis.h was not found at ${REDBOLT_STB_VORBIS_HEADER}")
 endif()
 
-file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED_DIR}" "${REDBOLT_IMGUI_GENERATED_DIR}" "${REDBOLT_STB_GENERATED_DIR}" "${REDBOLT_LZ4_GENERATED_DIR}" "${REDBOLT_WEBP_GENERATED_DIR}")
+file(MAKE_DIRECTORY "${REDBOLT_SDL_GENERATED_DIR}" "${REDBOLT_DILIGENT_GENERATED_DIR}" "${REDBOLT_IMGUI_GENERATED_DIR}" "${REDBOLT_STB_GENERATED_DIR}" "${REDBOLT_LZ4_GENERATED_DIR}" "${REDBOLT_WEBP_GENERATED_DIR}" "${REDBOLT_GLSLANG_GENERATED_DIR}" "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}" "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}")
 file(WRITE "${REDBOLT_STB_PARSE_HEADER}" [=[
 #pragma once
 #define STB_VORBIS_HEADER_ONLY
@@ -298,6 +318,45 @@ redbolt_add_native_binding_generation(
     INCLUDE_DIRS "${REDBOLT_WEBP_INCLUDE_DIR}"
         OWNED_HEADERS "${REDBOLT_WEBP_PARSE_HEADER}" "${REDBOLT_WEBP_INCLUDE_DIR}/webp/encode.h" "${REDBOLT_WEBP_INCLUDE_DIR}/webp/types.h")
 
+redbolt_add_native_binding_generation(
+    TARGET redbolt-generate-glslang-bindings
+    SURFACE glslang
+    HEADER "${REDBOLT_GLSLANG_C_HEADER}"
+    HEADER_INCLUDE_PATH "glslang/Include/glslang_c_interface.h"
+    FILE_STEM "${REDBOLT_GLSLANG_BINDINGS_STEM}"
+    OUTPUT_DIR "${REDBOLT_GLSLANG_GENERATED_DIR}"
+    OUTPUT_METADATA "${REDBOLT_GLSLANG_BINDINGS_JSON}"
+    OUTPUT_CS "${REDBOLT_GLSLANG_BINDINGS_CS}"
+    OUTPUT_CPP "${REDBOLT_GLSLANG_BINDINGS_CPP}"
+    INCLUDE_DIRS "${REDBOLT_GLSLANG_SOURCE_ROOT}"
+    OWNED_HEADERS "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Include")
+
+redbolt_add_native_binding_generation(
+    TARGET redbolt-generate-spirv-cross-bindings
+    SURFACE spirvcross
+    HEADER "${REDBOLT_SPIRV_CROSS_C_HEADER}"
+    HEADER_INCLUDE_PATH "spirv_cross_c.h"
+    FILE_STEM "${REDBOLT_SPIRV_CROSS_BINDINGS_STEM}"
+    OUTPUT_DIR "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}"
+    OUTPUT_METADATA "${REDBOLT_SPIRV_CROSS_BINDINGS_JSON}"
+    OUTPUT_CS "${REDBOLT_SPIRV_CROSS_BINDINGS_CS}"
+    OUTPUT_CPP "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
+    INCLUDE_DIRS "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}"
+    OWNED_HEADERS "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}")
+
+redbolt_add_native_binding_generation(
+    TARGET redbolt-generate-spirv-tools-bindings
+    SURFACE spirvtools
+    HEADER "${REDBOLT_SPIRV_TOOLS_C_HEADER}"
+    HEADER_INCLUDE_PATH "spirv-tools/libspirv.h"
+    FILE_STEM "${REDBOLT_SPIRV_TOOLS_BINDINGS_STEM}"
+    OUTPUT_DIR "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}"
+    OUTPUT_METADATA "${REDBOLT_SPIRV_TOOLS_BINDINGS_JSON}"
+    OUTPUT_CS "${REDBOLT_SPIRV_TOOLS_BINDINGS_CS}"
+    OUTPUT_CPP "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
+    INCLUDE_DIRS "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include"
+    OWNED_HEADERS "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
+
 add_custom_target(redbolt-generate-native-bindings
     DEPENDS
         redbolt-generate-sdl-bindings
@@ -305,7 +364,10 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-dearimgui-bindings
         redbolt-generate-stb-bindings
         redbolt-generate-lz4-bindings
-        redbolt-generate-webp-bindings)
+        redbolt-generate-webp-bindings
+        redbolt-generate-glslang-bindings
+        redbolt-generate-spirv-cross-bindings
+        redbolt-generate-spirv-tools-bindings)
 
 add_subdirectory(native/RedBolt.Native)
 

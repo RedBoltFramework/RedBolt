@@ -300,7 +300,7 @@ public sealed class Renderer : Object
             _queuedViewports.Add(queuedViewport);
     }
 
-    internal void RenderFrame(Graphics graphics, Action? beforePresent = null, string? screenshotPath = null)
+    internal void RenderFrame(Graphics graphics, Action? beforePresent = null)
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
@@ -380,7 +380,7 @@ public sealed class Renderer : Object
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
 
-        graphics.PresentFrame(screenshotPath, beforePresent);
+        graphics.PresentFrame(beforePresent);
 
         Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }

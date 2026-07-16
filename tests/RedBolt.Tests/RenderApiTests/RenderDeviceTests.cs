@@ -159,7 +159,8 @@ public sealed class RenderDeviceTests
             ApplicationName = "RenderDeviceTests",
             Headless = false,
             WindowWidth = 64,
-            WindowHeight = 48
+            WindowHeight = 48,
+            WindowMaximize = false
         };
 
         _fixture.Input.Initialize(parameters);
@@ -228,6 +229,7 @@ public sealed class RenderDeviceTests
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
         try
         {
+            _fixture.RenderDevice.UpdateSwapChainSize();
             var image = new Image("RenderDeviceTests.Screenshot");
 
             Assert.True(_fixture.Graphics.TakeScreenShot(image));
