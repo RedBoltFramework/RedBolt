@@ -5,19 +5,11 @@ namespace RedBolt;
 /// <summary>
 /// Debug geometry rendering component. Should be added only to the root scene node.
 /// </summary>
-public sealed class DebugRenderer : Component
+public class DebugRenderer : Component
 {
     private const int MaxLines = 1_000_000;
     private const int MaxTriangles = 100_000;
 
-    private readonly DynamicVertexBuffer _vertexBuffer = new();
-    private readonly PipelineState?[] _depthLinesPipelineState = new PipelineState?[2];
-    private readonly PipelineState?[] _noDepthLinesPipelineState = new PipelineState?[2];
-    private PipelineState? _depthTrianglesPipelineState;
-    private PipelineState? _noDepthTrianglesPipelineState;
-    private readonly RawBuffer?[] _vertexBuffers = new RawBuffer?[1];
-    private bool _pipelineStatesInitialized;
-    private bool _vertexBufferInitialized;
     private readonly List<DebugLine> _lines = [];
     private readonly List<DebugLine> _noDepthLines = [];
     private readonly List<DebugTriangle> _triangles = [];
@@ -26,8 +18,18 @@ public sealed class DebugRenderer : Component
     private Matrix4 _projection;
     private Matrix4 _gpuProjection;
     private Frustum _frustum = new();
-    private Camera? _camera;
+    private readonly DynamicVertexBuffer _vertexBuffer = new();
+    private readonly RawBuffer?[] _vertexBuffers = new RawBuffer?[1];
+    private bool _vertexBufferInitialized;
     private bool _lineAntiAlias;
+    private Camera? _camera;
+
+    private readonly StaticPipelineStateCache _pipelineStates = new();
+    private bool _pipelineStatesInitialized;
+    private readonly StaticPipelineStateId[] _depthLinesPipelineState = new StaticPipelineStateId[2];
+    private readonly StaticPipelineStateId[] _noDepthLinesPipelineState = new StaticPipelineStateId[2];
+    private StaticPipelineStateId _depthTrianglesPipelineState;
+    private StaticPipelineStateId _noDepthTrianglesPipelineState;
 
     /// <summary>
     /// Register object factory.
@@ -599,7 +601,7 @@ public sealed class DebugRenderer : Component
         if (renderDevice is null || renderContext is null)
             return;
 
-        using var scope = new RenderScope(renderContext, "DebugRenderer");
+        using var scope = new RenderScope(renderContext, "DebugRenderer::Render");
 
         var numVertices = checked((uint)((_lines.Count + _noDepthLines.Count) * 2
             + (_triangles.Count + _noDepthTriangles.Count) * 3));
@@ -620,53 +622,70 @@ public sealed class DebugRenderer : Component
         _vertexBuffer.Commit();
 
         if (!_pipelineStatesInitialized)
-            InitializePipelineStates(renderContext);
+            InitializePipelineStates();
 
         var drawQueue = renderDevice.GetDefaultQueue();
         drawQueue.Reset();
-        if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Camera, true))
+
+        void SetDefaultConstants()
         {
-            drawQueue.AddShaderParameter(GraphicsDefs.VspView, _view);
-            drawQueue.AddShaderParameter(GraphicsDefs.VspViewInv, _view.Inverse);
-            drawQueue.AddShaderParameter(GraphicsDefs.VspViewProj, _gpuProjection * _view);
-            drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Camera);
+            if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Camera, true))
+            {
+                drawQueue.AddShaderParameter(GraphicsDefs.VspView, _view);
+                drawQueue.AddShaderParameter(GraphicsDefs.VspViewInv, _view.Inverse);
+                drawQueue.AddShaderParameter(GraphicsDefs.VspViewProj, _gpuProjection * _view);
+                drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Camera);
+            }
+            if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Material, false))
+            {
+                drawQueue.AddShaderParameter(GraphicsDefs.PspMatDiffColor, Color.White.ToVector4());
+                drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Material);
+            }
+            if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Object, true))
+            {
+                drawQueue.AddShaderParameter(GraphicsDefs.VspModel, Matrix3x4.Identity);
+                drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Object);
+            }
         }
-        if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Material, true))
+
+        void Draw(PipelineState? pipelineState, uint startVertex, uint vertexCount)
         {
-            drawQueue.AddShaderParameter(GraphicsDefs.PspMatDiffColor, Color.White.ToVector4());
-            drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Material);
-        }
-        if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Object, true))
-        {
-            drawQueue.AddShaderParameter(GraphicsDefs.VspModel, Matrix3x4.Identity);
-            drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Object);
+            if (pipelineState is null || !pipelineState.IsValid)
+                return;
+
+            drawQueue.SetPipelineState(pipelineState);
+            SetDefaultConstants();
+            drawQueue.Draw(startVertex, vertexCount);
         }
 
         _vertexBuffers[0] = _vertexBuffer.GetVertexBuffer().GetRawBuffer();
         drawQueue.SetVertexBuffers(_vertexBuffers);
 
+        var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
         var linePipeline = _lineAntiAlias ? 1 : 0;
         var start = 0u;
-        Draw(drawQueue, _depthLinesPipelineState[linePipeline], start, checked((uint)_lines.Count * 2));
+        if (_lines.Count != 0)
+            Draw(_pipelineStates.GetState(_depthLinesPipelineState[linePipeline], outputDesc), start, checked((uint)_lines.Count * 2));
         start += checked((uint)_lines.Count * 2);
-        Draw(drawQueue, _noDepthLinesPipelineState[linePipeline], start, checked((uint)_noDepthLines.Count * 2));
+        if (_noDepthLines.Count != 0)
+            Draw(_pipelineStates.GetState(_noDepthLinesPipelineState[linePipeline], outputDesc), start, checked((uint)_noDepthLines.Count * 2));
         start += checked((uint)_noDepthLines.Count * 2);
-        Draw(drawQueue, _depthTrianglesPipelineState, start, checked((uint)_triangles.Count * 3));
+        if (_triangles.Count != 0)
+            Draw(_pipelineStates.GetState(_depthTrianglesPipelineState, outputDesc), start, checked((uint)_triangles.Count * 3));
         start += checked((uint)_triangles.Count * 3);
-        Draw(drawQueue, _noDepthTrianglesPipelineState, start, checked((uint)_noDepthTriangles.Count * 3));
+        if (_noDepthTriangles.Count != 0)
+            Draw(_pipelineStates.GetState(_noDepthTrianglesPipelineState, outputDesc), start, checked((uint)_noDepthTriangles.Count * 3));
         renderContext.Execute(drawQueue);
     }
 
-    private void InitializePipelineStates(RenderContext renderContext)
+    private void InitializePipelineStates()
     {
         _pipelineStatesInitialized = true;
         var graphics = GetSubsystem<Graphics>();
-        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
-        if (graphics is null || pipelineStateCache is null)
+        if (graphics is null)
             return;
 
-        var output = renderContext.GetCurrentRenderTargetsDesc();
-        PipelineState? CreatePipelineState(PrimitiveType primitiveType, BlendMode blendMode,
+        StaticPipelineStateId CreatePipelineState(PrimitiveType primitiveType, BlendMode blendMode,
             CompareMode depthCompare, bool depthWriteEnabled, bool lineAntiAlias, string debugName)
         {
             var desc = new GraphicsPipelineStateDesc
@@ -682,10 +701,7 @@ public sealed class DebugRenderer : Component
                 DebugName = $"DebugRenderer for {debugName}"
             };
             GraphicsUtils.InitializeInputLayout(desc.InputLayout, [_vertexBuffer.GetVertexBuffer()]);
-            desc.Output.DepthStencilFormat = output.DepthStencilFormat;
-            desc.Output.MultiSample = output.MultiSample;
-            desc.Output.SetRenderTargetFormats(output.RenderTargetFormats);
-            return pipelineStateCache.GetGraphicsPipelineState(desc);
+            return _pipelineStates.CreateState(desc);
         }
 
         for (var lineAntiAlias = 0; lineAntiAlias < 2; ++lineAntiAlias)
@@ -699,15 +715,6 @@ public sealed class DebugRenderer : Component
             BlendMode.Alpha, CompareMode.LessEqual, false, false, "Triangles with Depth Test");
         _noDepthTrianglesPipelineState = CreatePipelineState(PrimitiveType.TriangleList,
             BlendMode.Alpha, CompareMode.Always, false, false, "Triangles without Depth Test");
-    }
-
-    private static void Draw(DrawCommandQueue drawQueue, PipelineState? pipelineState, uint start, uint count)
-    {
-        if (pipelineState is null || count == 0)
-            return;
-
-        drawQueue.SetPipelineState(pipelineState);
-        drawQueue.Draw(start, count);
     }
 
     private static void WriteLines(IReadOnlyList<DebugLine> lines, Span<byte> destination, ref int vertexIndex)

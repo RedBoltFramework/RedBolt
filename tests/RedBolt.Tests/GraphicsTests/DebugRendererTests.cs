@@ -3,6 +3,20 @@ namespace RedBolt.Tests;
 public sealed class DebugRendererTests
 {
     [Fact]
+    public void EndFrameClearsAccumulatedGeometry()
+    {
+        using var renderer = new DebugRenderer();
+        renderer.AddLine(Vector3f.Zero, Vector3f.One, Color.White);
+        renderer.AddTriangle(Vector3f.Zero, Vector3f.Right, Vector3f.Up, Color.White, false);
+
+        Assert.True(renderer.HasContent());
+
+        renderer.HandleEndFrame();
+
+        Assert.False(renderer.HasContent());
+    }
+
+    [Fact]
     public void DebugLineStoresCppFields()
     {
         var start = new Vector3f(1.0f, 2.0f, 3.0f);
