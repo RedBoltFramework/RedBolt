@@ -157,6 +157,22 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool Restore()
     {
+#if REDBOLT_PLATFORM_ANDROID
+        if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
+            return true;
+
+        if (GetDeviceSettings().Backend == RenderBackend.OpenGL)
+        {
+            if (SdlNativeBindings.SdlGlGetCurrentContext() == IntPtr.Zero)
+            {
+                InvalidateGLESContext();
+                return RestoreGLESContext();
+            }
+            return true;
+        }
+
+        System.Diagnostics.Debug.Assert(false, "Unsupported render backend");
+#endif
         return true;
     }
 
@@ -762,15 +778,43 @@ public sealed class RenderDevice : Object
         _renderPool.Invalidate();
     }
 
-    private static void InvalidateGLESContext()
+    private void InvalidateGLESContext()
     {
+#if REDBOLT_PLATFORM_ANDROID && REDBOLT_GLES_SUPPORTED
+        Log.Logger.LogInformation("OpenGL context is lost");
+        InvalidateDeviceState();
+
+        var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(GetImmediateContext()!.Handle, ownsHandle: false);
+        deviceContextGL.InvalidateState();
+
+        var renderDeviceGLES = IRenderDeviceGLES.CreateManagedWrapper(GetRenderDevice()!.Handle, ownsHandle: false);
+        renderDeviceGLES.Invalidate();
+
+        GetSubsystem<Graphics>()!.ReleaseGLContext();
+#else
         Log.Logger.LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
+#endif
     }
 
-    private static bool RestoreGLESContext()
+    private bool RestoreGLESContext()
     {
+#if REDBOLT_PLATFORM_ANDROID && REDBOLT_GLES_SUPPORTED
+        if (!GetSubsystem<Graphics>()!.RestoreGLContext())
+        {
+            var error = System.Text.Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0');
+            Log.Logger.LogError("Could not restore OpenGL context: {Error}", error);
+            return false;
+        }
+
+        var renderDeviceGLES = IRenderDeviceGLES.CreateManagedWrapper(GetRenderDevice()!.Handle, ownsHandle: false);
+        renderDeviceGLES.Resume(IntPtr.Zero);
+        RestoreDeviceState();
+        Log.Logger.LogInformation("OpenGL context is restored");
+        return true;
+#else
         Log.Logger.LogWarning("RenderDevice::RestoreGLESContext is supported only for Android platform");
         return true;
+#endif
     }
 
     private static void InvalidateVulkanContext()

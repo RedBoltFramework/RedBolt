@@ -700,6 +700,21 @@ layout(std140) uniform Material
 
     internal IntPtr GetGLContext() => _glContext;
 
+    internal void ReleaseGLContext()
+    {
+        if (_glContext == IntPtr.Zero)
+            return;
+
+        SdlNativeBindings.SdlGlDeleteContext(_glContext);
+        _glContext = IntPtr.Zero;
+    }
+
+    internal bool RestoreGLContext()
+    {
+        _glContext = SdlNativeBindings.SdlGlCreateContext(_window!);
+        return _glContext != IntPtr.Zero;
+    }
+
     public SdlWindow? GetNativeWindow() => _window;
 
     public static bool GetGL3Support() => true;
