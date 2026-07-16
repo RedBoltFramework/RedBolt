@@ -147,6 +147,11 @@ public sealed class StaticModelTests
         geometry.SetRawVertexData(new byte[36],
             [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
         geometry.SetRawIndexData(new byte[6], sizeof(ushort));
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetShadowed(true);
+        Assert.True(indexBuffer.SetSize(3));
+        indexBuffer.SetUnpackedData([0u, 1u, 2u]);
+        geometry.SetIndexBuffer(indexBuffer);
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
         var model = new Model("Occlusion");
         model.SetNumGeometries(1);

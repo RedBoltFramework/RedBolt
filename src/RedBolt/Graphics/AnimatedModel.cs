@@ -1,36 +1,15 @@
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 /// <summary>Animated model component.</summary>
 public class AnimatedModel : StaticModel
 {
-    // TODO: port - C++ code:
-    // void UpdateBatches(const FrameInfo& frame) override;
-    // TODO: port - C++ code:
-    // void UpdateGeometry(const FrameInfo& frame) override;
-    // TODO: port - C++ code:
-    // UpdateGeometryType GetUpdateGeometryType() override;
-    // TODO: port - C++ code:
-    // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
-    // TODO: port - C++ fields:
-    // ea::vector<ModelAnimationOutput> skeletonData_;
-    // SharedPtr<SoftwareModelAnimator> modelAnimator_;
-    // ea::vector<Matrix3x4> skinMatrices_;
-    // ea::vector<ea::vector<unsigned>> geometryBoneMappings_;
-    // ea::vector<ea::vector<Matrix3x4>> geometrySkinMatrices_;
-    // ea::vector<ea::vector<Matrix3x4*>> geometrySkinMatrixPtrs_;
-    // BoundingBox boneBoundingBox_;
+    // TODO: port - C++ animation update sequence:
+    // PrepareForThreadedUpdate, CalculateAnimations, ApplyBoneTransformsToNodes.
+    // TODO: port - C++ remaining fields:
     // mutable VectorBuffer attrBuffer_;
-    // unsigned animationLodFrameNumber_;
-    // float animationLodTimer_;
-    // float animationLodDistance_;
-    // bool softwareSkinning_;
-    // unsigned numSoftwareSkinningBones_;
-    // bool isMaster_;
-    // bool assignBonesPending_;
-    // bool forceAnimationUpdate_;
-    // bool animationDirty_, morphsDirty_, skinningDirty_, boneBoundingBoxDirty_;
 
     private bool _animationDirty;
     private bool _morphsDirty;
@@ -39,8 +18,12 @@ public class AnimatedModel : StaticModel
     private readonly Skeleton _skeleton = new();
     private readonly List<ModelAnimationOutput> _skeletonData = [];
     private AnimationStateSource? _animationStateSource;
+    private SoftwareModelAnimator? _modelAnimator;
     private readonly List<ModelMorph> _morphs = [];
-    private readonly List<Matrix3x4> _skinMatrices = [];
+    private Matrix3x4[] _skinMatrices = [];
+    private readonly List<List<uint>> _geometryBoneMappings = [];
+    private readonly List<Matrix3x4[]> _geometrySkinMatrices = [];
+    private readonly List<List<(int GeometryIndex, int MatrixIndex)>> _geometrySkinMatrixPtrs = [];
     private BoundingBox _boneBoundingBox;
     private uint _animationLodFrameNumber;
     private float _animationLodBias = 1.0f;
@@ -57,6 +40,7 @@ public class AnimatedModel : StaticModel
     /// <summary>Construct.</summary>
     public AnimatedModel()
     {
+        UpdateSoftwareSkinningState();
     }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
@@ -148,14 +132,40 @@ public class AnimatedModel : StaticModel
             return;
         }
 
-        base.SetModel(model);
+        if (_model is not null)
+            _model.ReloadFinished -= HandleModelReloadFinished;
+
+        _model = model;
         _morphs.Clear();
 
         if (model is null)
         {
+            RemoveRootBone();
+            SetNumGeometries(0);
+            _geometryBoneMappings.Clear();
+            _modelAnimator = null;
+            _skeletonData.Clear();
+            SetBoundingBox(default);
             SetSkeleton(new Skeleton(), false);
             return;
         }
+
+        model.ReloadFinished += HandleModelReloadFinished;
+
+        SetNumGeometries(model.GetNumGeometries());
+        var geometries = model.GetGeometries();
+        for (var i = 0; i < geometries.Count; ++i)
+        {
+            _geometries[i].Clear();
+            _geometries[i].AddRange(geometries[i]);
+            _geometryData[i] = new StaticModelGeometryData { Center = model.GetGeometryCenter((uint)i) };
+        }
+
+        _geometryBoneMappings.Clear();
+        foreach (var sourceMapping in model.GetGeometryBoneMappings())
+            _geometryBoneMappings.Add([.. sourceMapping]);
+
+        _modelAnimator = null;
 
         foreach (var sourceMorph in model.GetMorphs())
         {
@@ -179,15 +189,49 @@ public class AnimatedModel : StaticModel
             _morphs.Add(morph);
         }
 
+        SetBoundingBox(model.GetBoundingBox());
         _boneBoundingBox = GetBoundingBox();
         _boneBoundingBoxDirty = true;
         SetSkeleton(model.GetSkeleton(), createBones);
-        ResizeList(_skinMatrices, checked((int)_skeleton.GetNumBones()));
+        ResetLodLevels();
+        _skinMatrices = new Matrix3x4[_skeleton.GetNumBones()];
         ResizeList(_skeletonData, checked((int)_skeleton.GetNumBones()));
+        SetGeometryBoneMappings();
+        UpdateSoftwareSkinningState();
+
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var batch = _batches[i];
+            if (_skinMatrices.Length != 0 && !_softwareSkinning)
+            {
+                batch.GeometryType = GeometryType.Skinned;
+                if (_geometrySkinMatrices.Count != 0 && _geometrySkinMatrices[i].Length != 0)
+                    batch.WorldTransform = _geometrySkinMatrices[i];
+                else
+                    batch.WorldTransform = _skinMatrices;
+                batch.NumWorldTransforms = checked((uint)batch.WorldTransform.Length);
+            }
+            else if (_softwareSkinning)
+            {
+                batch.GeometryType = GeometryType.Static;
+                batch.WorldTransform = [Matrix3x4.Identity];
+                batch.NumWorldTransforms = 1;
+            }
+            else
+            {
+                batch.GeometryType = GeometryType.Static;
+                batch.WorldTransform = [Node.GetWorldTransform()];
+                batch.NumWorldTransforms = 1;
+            }
+            _batches[i] = batch;
+        }
+
+        if (_softwareSkinning)
+            CloneGeometries();
     }
 
     /// <summary>Set model and create bone nodes.</summary>
-    public new void SetModel(Model? model) => SetModel(model, true);
+    public override void SetModel(Model? model) => SetModel(model, true);
 
     /// <summary>Set animation LOD bias.</summary>
     public void SetAnimationLodBias(float bias)
@@ -207,7 +251,29 @@ public class AnimatedModel : StaticModel
         if (index >= _morphs.Count)
             return;
 
-        _morphs[(int)index].Weight = weight;
+        // If morph vertex buffers have not been created yet, create now
+        if (weight != 0.0f && _modelAnimator is null)
+            CloneGeometries();
+
+        if (weight != _morphs[(int)index].Weight)
+        {
+            _morphs[(int)index].Weight = weight;
+
+            // For a master model, set the same morph weight on non-master models
+            if (_isMaster)
+            {
+                var models = Node.GetComponents<AnimatedModel>();
+
+                // Indexing might not be the same, so use the name hash instead
+                for (var i = 1; i < models.Count; ++i)
+                {
+                    if (!models[i]._isMaster)
+                        models[i].SetMorphWeight(_morphs[(int)index].NameHash, weight);
+                }
+            }
+
+            MarkMorphsDirty();
+        }
     }
 
     /// <summary>Set vertex morph weight by name.</summary>
@@ -241,6 +307,20 @@ public class AnimatedModel : StaticModel
     {
         foreach (var morph in _morphs)
             morph.Weight = 0.0f;
+
+        // For a master model, reset weights on non-master models
+        if (_isMaster)
+        {
+            var models = Node.GetComponents<AnimatedModel>();
+
+            for (var i = 1; i < models.Count; ++i)
+            {
+                if (!models[i]._isMaster)
+                    models[i].ResetMorphWeights();
+            }
+        }
+
+        MarkMorphsDirty();
     }
 
     /// <summary>Reset node transforms of skeleton bones.</summary>
@@ -344,6 +424,26 @@ public class AnimatedModel : StaticModel
         }
     }
 
+    /// <summary>Prepare geometry for rendering.</summary>
+    public override void UpdateGeometry(CommonFrameInfo frame)
+    {
+        // Late update in case the model came into view and animation was dirtied in the meanwhile
+        if (_forceAnimationUpdate)
+        {
+            var needUpdate = UpdateAndCheckAnimationTimers(frame.TimeStep);
+            if (!needUpdate)
+                throw new InvalidOperationException("Animation update was forced but animation timers rejected it.");
+            ApplyAnimation();
+            _forceAnimationUpdate = false;
+        }
+
+        if (_skinningDirty)
+            UpdateSkinning();
+
+        if (_morphsDirty)
+            UpdateMorphs();
+    }
+
     /// <summary>Return whether a geometry update is necessary, and if it can happen in a worker thread.</summary>
     public override UpdateGeometryType GetUpdateGeometryType()
     {
@@ -367,33 +467,20 @@ public class AnimatedModel : StaticModel
     /// <summary>Return all vertex morphs.</summary>
     public IReadOnlyList<ModelMorph> GetMorphs() => _morphs;
 
+    /// <summary>Return all morph vertex buffers.</summary>
+    public IReadOnlyList<VertexBuffer?> GetMorphVertexBuffers()
+    {
+        return _modelAnimator?.GetVertexBuffers() ?? Array.Empty<VertexBuffer?>();
+    }
+
     /// <summary>Return per-geometry bone mappings.</summary>
     public IReadOnlyList<IReadOnlyList<uint>> GetGeometryBoneMappings()
-        => GetModel()?.GetGeometryBoneMappings() ?? [];
+        => _geometryBoneMappings;
 
     /// <summary>Return per-geometry skin matrices.</summary>
     public IReadOnlyList<IReadOnlyList<Matrix3x4>> GetGeometrySkinMatrices()
     {
-        var mappings = GetModel()?.GetGeometryBoneMappings();
-        if (mappings is null)
-            return [];
-
-        var worldTransform = IsAttached ? Node.GetWorldTransform() : Matrix3x4.IDENTITY;
-        var result = new List<IReadOnlyList<Matrix3x4>>(mappings.Count);
-        foreach (var mapping in mappings)
-        {
-            var matrices = new List<Matrix3x4>(mapping.Count);
-            foreach (var boneIndex in mapping)
-            {
-                var bone = _skeleton.GetBone(boneIndex);
-                matrices.Add(bone?.Node is { } boneNode
-                    ? boneNode.GetWorldTransform() * bone.OffsetMatrix
-                    : worldTransform);
-            }
-            result.Add(matrices);
-        }
-
-        return result;
+        return _geometrySkinMatrices;
     }
 
     /// <summary>Return animation LOD bias.</summary>
@@ -775,6 +862,178 @@ public class AnimatedModel : StaticModel
 
         _boneBoundingBoxDirty = false;
         _worldBoundingBoxDirty = true;
+    }
+
+    private void MarkMorphsDirty()
+    {
+        _morphsDirty = true;
+    }
+
+    private void CloneGeometries()
+    {
+        _modelAnimator = new SoftwareModelAnimator();
+        _modelAnimator.Initialize(_model!, _softwareSkinning, _numSoftwareSkinningBones);
+        var animatedGeometries = _modelAnimator.GetGeometries();
+        _geometries.Clear();
+        foreach (var sourceLods in animatedGeometries)
+            _geometries.Add([.. sourceLods]);
+
+        // Make sure the rendering batches use the new cloned geometries
+        ResetLodLevels();
+        MarkMorphsDirty();
+    }
+
+    private void SetGeometryBoneMappings()
+    {
+        _geometrySkinMatrices.Clear();
+        _geometrySkinMatrixPtrs.Clear();
+
+        if (_geometryBoneMappings.Count == 0)
+            return;
+
+        // Check if all mappings are empty, then we do not need to use mapped skinning
+        var allEmpty = true;
+        for (var i = 0; i < _geometryBoneMappings.Count; ++i)
+        {
+            if (_geometryBoneMappings[i].Count != 0)
+                allEmpty = false;
+        }
+
+        if (allEmpty)
+            return;
+
+        if (_softwareSkinning)
+        {
+            Log.Logger.LogWarning("Geometry bone mappings are ignored in software skinning");
+            return;
+        }
+
+        // Reserve space for per-geometry skinning matrices
+        for (var i = 0; i < _geometryBoneMappings.Count; ++i)
+            _geometrySkinMatrices.Add(new Matrix3x4[_geometryBoneMappings[i].Count]);
+
+        // Build original-to-skinindex matrix pointer mapping for fast copying
+        // Note: at this point layout of geometrySkinMatrices_ cannot be modified or pointers become invalid
+        for (var i = 0; i < _skeleton.GetNumBones(); ++i)
+            _geometrySkinMatrixPtrs.Add([]);
+        for (var i = 0; i < _geometryBoneMappings.Count; ++i)
+        {
+            for (var j = 0; j < _geometryBoneMappings[i].Count; ++j)
+                _geometrySkinMatrixPtrs[(int)_geometryBoneMappings[i][j]].Add((i, j));
+        }
+    }
+
+    private bool UpdateAndCheckAnimationTimers(float timeStep)
+    {
+        // If using animation LOD, accumulate time and see if it is time to update
+        var throttlingAllowed = _animationStateSource is null || _animationStateSource.IsAnimationThrottlingAllowed();
+        if (throttlingAllowed && _animationLodBias > 0.0f && _animationLodDistance > 0.0f)
+        {
+            // Perform the first update always regardless of LOD timer
+            if (_animationLodTimer >= 0.0f)
+            {
+                _animationLodTimer += _animationLodBias * timeStep * AnimationLodBaseScale;
+                if (_animationLodTimer >= _animationLodDistance)
+                    _animationLodTimer %= _animationLodDistance;
+                else
+                    return false;
+            }
+            else
+                _animationLodTimer = 0.0f;
+        }
+        return true;
+    }
+
+    private void UpdateSkinning()
+    {
+        // Note: the model's world transform will be baked in the skin matrices
+        var bones = _skeleton.GetBones();
+        // Use model's world transform in case a bone is missing
+        var worldTransform = Node.GetWorldTransform();
+
+        // Skinning with global matrices only
+        if (_geometrySkinMatrices.Count == 0)
+        {
+            for (var i = 0; i < bones.Count; ++i)
+            {
+                var bone = bones[i];
+                _skinMatrices[i] = bone.Node is not null
+                    ? bone.Node.GetWorldTransform() * bone.OffsetMatrix
+                    : worldTransform;
+            }
+        }
+        // Skinning with per-geometry matrices
+        else
+        {
+            for (var i = 0; i < bones.Count; ++i)
+            {
+                var bone = bones[i];
+                _skinMatrices[i] = bone.Node is not null
+                    ? bone.Node.GetWorldTransform() * bone.OffsetMatrix
+                    : worldTransform;
+
+                // Copy the skin matrix to per-geometry matrices as needed
+                for (var j = 0; j < _geometrySkinMatrixPtrs[i].Count; ++j)
+                {
+                    var target = _geometrySkinMatrixPtrs[i][j];
+                    _geometrySkinMatrices[target.GeometryIndex][target.MatrixIndex] = _skinMatrices[i];
+                }
+            }
+        }
+
+        _skinningDirty = false;
+
+        // If software skinning is enabled, force update
+        if (_softwareSkinning)
+            _morphsDirty = true;
+    }
+
+    private void UpdateMorphs()
+    {
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is null)
+            return;
+
+        if (_modelAnimator is not null)
+        {
+            _modelAnimator.ResetAnimation();
+            _modelAnimator.ApplyMorphs(CollectionsMarshal.AsSpan(_morphs));
+            if (_softwareSkinning)
+                _modelAnimator.ApplySkinning(_skinMatrices);
+            _modelAnimator.Commit();
+        }
+
+        _morphsDirty = false;
+    }
+
+    private void HandleModelReloadFinished(Resource resource)
+    {
+        var currentModel = _model;
+        _model = null;
+        SetModel(currentModel);
+    }
+
+    private void UpdateSoftwareSkinningState()
+    {
+        var renderer = GetSubsystem<Renderer>();
+        if (renderer is null)
+            return;
+
+        _softwareSkinning = !renderer.GetUseHardwareSkinning();
+        _numSoftwareSkinningBones = renderer.GetNumSoftwareSkinningBones();
+
+        if (renderer.GetSkinningMode() == SkinningMode.Auto && _model is not null)
+        {
+            // Fallback to software skinning if too many bones affect the model
+            if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > Graphics.GetMaxBones())
+            {
+                Log.Logger.LogWarning(
+                    "Model {Name} have {NumBones} bones, but only {MaxBones} can be skinned on GPU. Falling back to software skinning.",
+                    _model.Name, _model.GetSkeleton().GetNumBones(), Graphics.GetMaxBones());
+
+                _softwareSkinning = true;
+            }
+        }
     }
 
     private static void ResizeList<T>(List<T> values, int size)

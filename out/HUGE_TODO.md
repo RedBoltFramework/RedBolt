@@ -1,10 +1,7 @@
 # Huge TODO inventory
 
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:10:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:12:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:15:    // TODO: port - C++ code:
-- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:18:    // TODO: port - C++ fields:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:8:    // TODO: port - C++ animation update sequence:
+- [ ] ./src/RedBolt/Graphics/AnimatedModel.cs:10:    // TODO: port - C++ remaining fields:
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:17:// C++: The C++ Renderer is a significantly larger subsystem that orchestrates the full rendering pipeline.
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:20:// TODO: port - C++ code: many methods in C++ Renderer.h including:
 - [ ] ./src/RedBolt/Graphics/Renderer.cs:24:// C++: Renderer has methods like SetNumViewports, AutoResolveRenderSurface, RenderDebugGeometry, etc.

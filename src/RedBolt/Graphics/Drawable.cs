@@ -421,6 +421,12 @@ public abstract class Drawable : Component
         return batchIndex < _batches.Count ? _batches[(int)batchIndex].Geometry : null;
     }
 
+    /// <summary>Get Geometry pointer if the source one is not null or empty.</summary>
+    protected static Geometry? GetGeometryIfNotEmpty(Geometry? geometry)
+    {
+        return geometry is not null && geometry.GetEffectiveIndexCount() > 0 ? geometry : null;
+    }
+
     /// <summary>Return number of occlusion geometry triangles.</summary>
     public virtual uint GetNumOccluderTriangles() => 0;
 

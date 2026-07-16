@@ -32,6 +32,34 @@ public sealed class AnimatedModelTests
     }
 
     [Fact]
+    public void Nonzero_morph_weight_clones_model_vertex_buffers_on_demand()
+    {
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetShadowed(true);
+        Assert.True(vertexBuffer.SetSize(1, VertexMask.Position));
+        vertexBuffer.SetData(new byte[vertexBuffer.GetVertexSize()]);
+        var model = new Model("Morph");
+        Assert.True(model.SetVertexBuffers([vertexBuffer], [0u], [1u]));
+        var morph = new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") };
+        morph.Buffers[0] = new VertexBufferMorph
+        {
+            ElementMask = VertexMask.Position,
+            VertexCount = 1,
+            DataSize = sizeof(uint) + 3u * sizeof(float),
+            MorphData = new byte[sizeof(uint) + 3 * sizeof(float)]
+        };
+        model.SetMorphs([morph]);
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(model, true);
+
+        Assert.Empty(animatedModel.GetMorphVertexBuffers());
+        animatedModel.SetMorphWeight(0u, 1.0f);
+
+        Assert.NotSame(vertexBuffer, Assert.IsType<VertexBuffer>(Assert.Single(animatedModel.GetMorphVertexBuffers())));
+        Assert.Equal(UpdateGeometryType.MainThread, animatedModel.GetUpdateGeometryType());
+    }
+
+    [Fact]
     public void Animated_model_attribute_helpers_match_native_values()
     {
         var model = new Model("AnimatedModel");

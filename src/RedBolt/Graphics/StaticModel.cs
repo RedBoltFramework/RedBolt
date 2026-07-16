@@ -1,10 +1,24 @@
 namespace RedBolt;
 
+/// <summary>Static model per-geometry extra data.</summary>
+public struct StaticModelGeometryData
+{
+    /// <summary>Geometry center.</summary>
+    public Vector3f Center;
+    /// <summary>Current LOD level.</summary>
+    public uint LodLevel;
+}
+
 /// <summary>Static model component.</summary>
 public class StaticModel : Drawable
 {
     private static readonly uint ModelType = StringHash.Calculate("Model");
-    private readonly List<Material?> _materials = [];
+    /// <summary>Extra per-geometry data.</summary>
+    protected readonly List<StaticModelGeometryData> _geometryData = [];
+    /// <summary>All geometries.</summary>
+    protected readonly List<List<Geometry?>> _geometries = [];
+    /// <summary>Model.</summary>
+    protected Model? _model;
 
     public StaticModel()
         : base(DrawableFlags.Geometry)
@@ -17,9 +31,9 @@ public class StaticModel : Drawable
         set => SetMaterial(value);
     }
 
-    public Model? Model { get; private set; }
+    public Model? Model => _model;
 
-    public uint NumGeometries => Model?.NumGeometries ?? 0u;
+    public uint NumGeometries => (uint)_geometries.Count;
 
     public uint OcclusionLodLevel { get; set; } = uint.MaxValue;
 
@@ -31,9 +45,9 @@ public class StaticModel : Drawable
 
     public Vector4f LightmapScaleOffset { get; set; } = new(1.0f, 1.0f, 0.0f, 0.0f);
 
-    public void SetModel(Model? model)
+    public virtual void SetModel(Model? model)
     {
-        if (ReferenceEquals(Model, model))
+        if (ReferenceEquals(_model, model))
             return;
 
         if (!IsAttached)
@@ -43,19 +57,33 @@ public class StaticModel : Drawable
             return;
         }
 
-        if (Model is not null)
-            Model.ReloadFinished -= HandleModelReloadFinished;
+        if (_model is not null)
+            _model.ReloadFinished -= HandleModelReloadFinished;
 
-        Model = model;
-        if (Model is not null)
+        _model = model;
+        if (model is not null)
         {
-            Model.ReloadFinished += HandleModelReloadFinished;
-            SetBoundingBox(Model.GetBoundingBox());
-            ResizeMaterials(Model.NumGeometries);
+            model.ReloadFinished += HandleModelReloadFinished;
+
+            SetNumGeometries(model.GetNumGeometries());
+            var geometries = model.GetGeometries();
+            var worldTransform = new[] { Node.GetWorldTransform() };
+            for (var i = 0; i < geometries.Count; ++i)
+            {
+                var batch = _batches[i];
+                batch.WorldTransform = worldTransform;
+                _batches[i] = batch;
+                _geometries[i].Clear();
+                _geometries[i].AddRange(geometries[i]);
+                _geometryData[i] = new StaticModelGeometryData { Center = model.GetGeometryCenter((uint)i) };
+            }
+
+            SetBoundingBox(model.GetBoundingBox());
+            ResetLodLevels();
         }
         else
         {
-            ResizeMaterials(0u);
+            SetNumGeometries(0);
             SetBoundingBox(default);
         }
     }
@@ -67,12 +95,8 @@ public class StaticModel : Drawable
 
     public void SetMaterial(Material? material)
     {
-        if (_materials.Count == 0)
-            ResizeMaterials(1);
-
-        for (var i = 0; i < _materials.Count; ++i)
+        for (var i = 0; i < _batches.Count; ++i)
         {
-            _materials[i] = material;
             var batch = _batches[i];
             batch.Material = material;
             _batches[i] = batch;
@@ -81,10 +105,9 @@ public class StaticModel : Drawable
 
     public bool SetMaterial(uint index, Material? material)
     {
-        if (index >= _materials.Count)
+        if (index >= _batches.Count)
             return false;
 
-        _materials[(int)index] = material;
         var batch = _batches[(int)index];
         batch.Material = material;
         _batches[(int)index] = batch;
@@ -124,6 +147,19 @@ public class StaticModel : Drawable
 
     public void ResetLodLevels()
     {
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            if (_geometries[i].Count == 0)
+                _geometries[i].Add(null);
+            var batch = _batches[i];
+            batch.Geometry = GetGeometryIfNotEmpty(_geometries[i][0]);
+            _batches[i] = batch;
+            var geometryData = _geometryData[i];
+            geometryData.LodLevel = 0;
+            _geometryData[i] = geometryData;
+        }
+
+        SetLodDistance(float.PositiveInfinity);
     }
 
     public Model? GetModel() => Model;
@@ -265,8 +301,8 @@ public class StaticModel : Drawable
             var worldTransform = Node.GetWorldTransform();
             for (var i = 0; i < _batches.Count; ++i)
             {
-                var center = Model?.GetGeometryCenter((uint)i) ?? Vector3f.Zero;
-                _batches[i] = UpdateBatchDistance(_batches[i], camera.GetDistance(worldTransform * center));
+                _batches[i] = UpdateBatchDistance(_batches[i],
+                    camera.GetDistance(worldTransform * _geometryData[i].Center));
             }
         }
 
@@ -284,7 +320,7 @@ public class StaticModel : Drawable
 
     public Material? GetMaterial(uint index = 0)
     {
-        return index < _materials.Count ? _materials[(int)index] : null;
+        return index < _batches.Count ? _batches[(int)index].Material : null;
     }
 
     public uint GetOcclusionLodLevel() => OcclusionLodLevel;
@@ -333,35 +369,38 @@ public class StaticModel : Drawable
     public void SetMaterialsAttr(ResourceRefList value)
     {
         var cache = GetSubsystem<ResourceCache>()!;
-        var count = Math.Min(value.Names.Count, _materials.Count);
+        var count = Math.Min(value.Names.Count, _batches.Count);
         for (var i = 0; i < count; ++i)
         {
             var name = value.Names[i];
-            _materials[i] = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
             var batch = _batches[i];
-            batch.Material = _materials[i];
+            batch.Material = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
             _batches[i] = batch;
         }
 
-        for (var i = count; i < _materials.Count; ++i)
+        for (var i = count; i < _batches.Count; ++i)
         {
-            _materials[i] = null;
             var batch = _batches[i];
             batch.Material = null;
             _batches[i] = batch;
         }
     }
 
-    public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
+    public ResourceRefList GetMaterialsAttr()
+    {
+        var materials = new List<Material?>(_batches.Count);
+        for (var i = 0; i < _batches.Count; ++i)
+            materials.Add(GetMaterial((uint)i));
+        return Resource.GetResourceRefList(materials);
+    }
 
     public override Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
-        var model = Model;
-        if (model is null || batchIndex >= model.NumGeometries)
+        if (batchIndex >= _geometries.Count)
             return null;
 
-        var geometries = model.GetGeometries()[(int)batchIndex];
-        return level < geometries.Count ? geometries[(int)level] : model.GetGeometry(batchIndex);
+        var geometries = _geometries[(int)batchIndex];
+        return level < geometries.Count ? geometries[(int)level] : _batches[(int)batchIndex].Geometry;
     }
 
     public bool IsInside(Vector3f point)
@@ -389,49 +428,38 @@ public class StaticModel : Drawable
         return false;
     }
 
-    private void ResizeMaterials(uint count)
+    protected void SetNumGeometries(uint count)
     {
-        while (_materials.Count < count)
+        while (_batches.Count < count)
         {
-            _materials.Add(null);
             _batches.Add(new SourceBatch());
+            _geometries.Add([]);
+            _geometryData.Add(default);
         }
 
-        while (_materials.Count > count)
+        while (_batches.Count > count)
         {
-            _materials.RemoveAt(_materials.Count - 1);
             _batches.RemoveAt(_batches.Count - 1);
+            _geometries.RemoveAt(_geometries.Count - 1);
+            _geometryData.RemoveAt(_geometryData.Count - 1);
         }
 
-        for (var i = 0; i < _batches.Count; ++i)
-        {
-            var batch = _batches[i];
-            batch.Geometry = Model?.GetGeometry((uint)i);
-            batch.Material = _materials[i];
-            batch.WorldTransform = IsAttached ? [Node.GetWorldTransform()] : null;
-            _batches[i] = batch;
-        }
-
+        ResetLodLevels();
         UpdateBatchesLightmaps();
     }
 
     private void HandleModelReloadFinished(Resource resource)
     {
-        var currentModel = Model;
-        Model = null;
+        var currentModel = _model;
+        _model = null;
         SetModel(currentModel);
     }
 
     protected void CalculateLodLevels()
     {
-        var model = Model;
-        if (model is null)
-            return;
-
-        var geometries = model.GetGeometries();
-        for (var i = 0; i < _batches.Count && i < geometries.Count; ++i)
+        for (var i = 0; i < _batches.Count; ++i)
         {
-            var batchGeometries = geometries[i];
+            var batchGeometries = _geometries[i];
             if (batchGeometries.Count <= 1)
                 continue;
 
@@ -444,9 +472,15 @@ public class StaticModel : Drawable
             }
 
             var selectedLevel = level - 1;
-            var batch = _batches[i];
-            batch.Geometry = batchGeometries[selectedLevel];
-            _batches[i] = batch;
+            var geometryData = _geometryData[i];
+            if (geometryData.LodLevel != selectedLevel)
+            {
+                geometryData.LodLevel = checked((uint)selectedLevel);
+                _geometryData[i] = geometryData;
+                var batch = _batches[i];
+                batch.Geometry = GetGeometryIfNotEmpty(batchGeometries[selectedLevel]);
+                _batches[i] = batch;
+            }
         }
     }
 
