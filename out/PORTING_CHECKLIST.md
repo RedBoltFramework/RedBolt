@@ -379,8 +379,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `UIBatchStateCache : NonCopyable`
 - [ ] `PipelineStateBuilder.h`
   - [ ] `PipelineStateBuilder : Object, BatchStateCacheCallback`
-- [ ] `CameraProcessor.h`
-  - [ ] `CameraProcessor : Object`
+- [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++
+  - [x] `CameraProcessor : Object`
 - [ ] `LightProcessorQuery.h`
   - [ ] `PointLightGeometryQuery : SphereOctreeQuery`
   - [ ] `SpotLightGeometryQuery : FrustumOctreeQuery`
