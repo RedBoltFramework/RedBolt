@@ -6,9 +6,15 @@
 #include <GL/glew.h>
 
 #include <EngineFactoryOpenGL.h>
+#include <DeviceContextGL.h>
 #include <PipelineStateGL.h>
 #include <RenderDeviceGL.h>
 #include <ShaderGL.h>
+#include <SwapChainGL.h>
+
+#if GLES_SUPPORTED
+#include <RenderDeviceGLES.h>
+#endif
 
 #if D3D11_SUPPORTED
 #include <RenderDeviceD3D11.h>
@@ -17,7 +23,10 @@
 #include <RenderDeviceD3D12.h>
 #endif
 #if VULKAN_SUPPORTED
+#include <DeviceContextVk.h>
+#include <EngineFactoryVk.h>
 #include <RenderDeviceVk.h>
+#include <SwapChainVk.h>
 #endif
 
 namespace Diligent
