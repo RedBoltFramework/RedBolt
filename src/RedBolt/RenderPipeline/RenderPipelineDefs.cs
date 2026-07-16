@@ -286,6 +286,39 @@ public readonly record struct UIBatchStateKey;
 public readonly record struct UIBatchStateCreateContext;
 
 /// <summary>
+/// ID of static pipeline state.
+/// </summary>
+public enum StaticPipelineStateId : uint
+{
+    Invalid,
+}
+
+/// <summary>
+/// Pipeline state, shader parameters and shader resources needed to draw a fullscreen quad.
+/// </summary>
+public struct DrawQuadParams
+{
+    private IReadOnlyList<ShaderResourceDesc>? _resources;
+    private IReadOnlyList<ShaderParameterDesc>? _parameters;
+
+    public StaticPipelineStateId PipelineStateId { get; set; }
+    public PipelineState? PipelineState { get; set; }
+    public Vector4f ClipToUVOffsetAndScale { get; set; }
+    public Vector2f InvInputSize { get; set; }
+    public bool BindSecondaryColorToDiffuse { get; set; }
+    public IReadOnlyList<ShaderResourceDesc> Resources
+    {
+        readonly get => _resources ?? Array.Empty<ShaderResourceDesc>();
+        set => _resources = value;
+    }
+    public IReadOnlyList<ShaderParameterDesc> Parameters
+    {
+        readonly get => _parameters ?? Array.Empty<ShaderParameterDesc>();
+        set => _parameters = value;
+    }
+}
+
+/// <summary>
 /// Region of shadow map that contains one or more shadow split.
 /// </summary>
 public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture, IntRect Rect)

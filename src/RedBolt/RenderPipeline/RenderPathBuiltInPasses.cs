@@ -10,6 +10,12 @@ public sealed class FullScreenShaderPass : RenderPass
     private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
     private readonly Dictionary<string, object?> _currentParameters = new(StringComparer.Ordinal);
     private readonly List<ParameterBinding> _parameterBindings = [];
+    private readonly List<StringHash> _shaderParameterSources = [];
+    private readonly List<Variant> _shaderParameterDefaults = [];
+    private readonly List<ShaderParameterDesc> _shaderParameters = [];
+    private readonly List<ShaderResourceDesc> _shaderResources = [];
+    private StaticPipelineStateId _pipelineStateId;
+    private string _debugComment = string.Empty;
     private string _shaderName = string.Empty;
     private string _shaderDefines = string.Empty;
     private BlendMode _blendMode = BlendMode.Replace;
@@ -25,25 +31,25 @@ public sealed class FullScreenShaderPass : RenderPass
             "Shader Name",
             typeof(string),
             self => ((FullScreenShaderPass)self)._shaderName,
-            (self, value) => ((FullScreenShaderPass)self)._shaderName = value as string ?? string.Empty,
+            (self, value) => ((FullScreenShaderPass)self).SetShaderName(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Shader Defines",
             typeof(string),
             self => ((FullScreenShaderPass)self)._shaderDefines,
-            (self, value) => ((FullScreenShaderPass)self)._shaderDefines = value as string ?? string.Empty,
+            (self, value) => ((FullScreenShaderPass)self).SetShaderDefines(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Blend Mode",
             typeof(BlendMode),
             self => ((FullScreenShaderPass)self)._blendMode,
-            (self, value) => ((FullScreenShaderPass)self)._blendMode = ParseBlendMode(value),
+            (self, value) => ((FullScreenShaderPass)self).SetBlendMode(ParseBlendMode(value)),
             BlendMode.Replace);
         RegisterAttribute(
             "Read+Write Color Output",
             typeof(bool),
             self => ((FullScreenShaderPass)self)._needReadWriteColorOutput,
-            (self, value) => ((FullScreenShaderPass)self)._needReadWriteColorOutput = value is bool enabled && enabled,
+            (self, value) => ((FullScreenShaderPass)self).SetNeedReadWriteColorOutput(value is bool enabled && enabled),
             false);
         RegisterAttribute(
             "Bilinear Color Sampler",
@@ -81,22 +87,35 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         _currentParameters.Clear();
         RefreshParameterBindings();
+        _shaderParameterSources.Clear();
+        _shaderParameterDefaults.Clear();
+        _shaderParameters.Clear();
+        _shaderResources.Clear();
+
+        foreach (var (name, defaultValue) in _parameters)
+        {
+            var value = Variant.FromObject(defaultValue);
+            _shaderParameterSources.Add(new StringHash(_parametersPrefix + name));
+            _shaderParameterDefaults.Add(value);
+            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), value));
+        }
+        _pipelineStateId = StaticPipelineStateId.Invalid;
     }
 
     public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> externalParameters)
     {
         _currentParameters.Clear();
         var shouldBeDisabled = _disableOnDefaultParameters;
-        foreach (var binding in _parameterBindings)
+        for (var i = 0; i < _shaderParameters.Count; ++i)
         {
-            if (externalParameters.TryGetValue(binding.ExternalName, out var value))
+            var sourceName = _parameterBindings[i].ExternalName;
+            if (externalParameters.TryGetValue(sourceName, out var value))
             {
-                _currentParameters[binding.Name] = value;
-                if (shouldBeDisabled && !Equals(value, binding.DefaultValue))
+                var variant = Variant.FromObject(value);
+                _shaderParameters[i] = _shaderParameters[i] with { Value = variant };
+                if (shouldBeDisabled && variant != _shaderParameterDefaults[i])
                     shouldBeDisabled = false;
             }
-            else
-                _currentParameters[binding.Name] = binding.DefaultValue;
         }
 
         SetTraits(new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler));
@@ -110,6 +129,16 @@ public sealed class FullScreenShaderPass : RenderPass
         if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrEmpty(_shaderName))
             return;
 
+        if (_pipelineStateId == StaticPipelineStateId.Invalid)
+        {
+            _debugComment = $"Apply shader \"{_shaderName}\"({_shaderDefines})";
+            IReadOnlyList<NamedSamplerStateDesc> samplers = _needReadWriteColorOutput
+                ? [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())]
+                : Array.Empty<NamedSamplerStateDesc>();
+            _pipelineStateId = renderBufferManager.CreateQuadPipelineState(
+                _blendMode, _shaderName, _shaderDefines, samplers);
+        }
+
         if (_needReadWriteColorOutput)
             renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
@@ -117,24 +146,12 @@ public sealed class FullScreenShaderPass : RenderPass
         if (_needReadWriteColorOutput)
         {
             renderBufferManager.DrawFeedbackViewportQuad(
-                graphics,
-                _shaderName,
-                _shaderDefines,
-                _blendMode,
-                _bilinearColorSampler,
-                _currentParameters,
-                GetComment());
+                _debugComment, _pipelineStateId, _shaderResources, _shaderParameters);
         }
         else
         {
             renderBufferManager.DrawViewportQuad(
-                graphics,
-                _shaderName,
-                _shaderDefines,
-                _blendMode,
-                _bilinearColorSampler,
-                _currentParameters,
-                GetComment());
+                _debugComment, _pipelineStateId, _shaderResources, _shaderParameters);
         }
     }
 
@@ -166,6 +183,36 @@ public sealed class FullScreenShaderPass : RenderPass
         foreach (var (name, parameterValue) in values)
             _parameters[name] = parameterValue;
         RefreshParameterBindings();
+    }
+
+    private void SetShaderName(string value)
+    {
+        _shaderName = value;
+        InvalidateCache();
+    }
+
+    private void SetShaderDefines(string value)
+    {
+        _shaderDefines = value;
+        InvalidateCache();
+    }
+
+    private void SetBlendMode(BlendMode value)
+    {
+        _blendMode = value;
+        InvalidateCache();
+    }
+
+    private void SetNeedReadWriteColorOutput(bool value)
+    {
+        _needReadWriteColorOutput = value;
+        InvalidateCache();
+    }
+
+    private void InvalidateCache()
+    {
+        _pipelineStateId = StaticPipelineStateId.Invalid;
+        _debugComment = string.Empty;
     }
 
     private void SetParametersPrefix(string prefix)

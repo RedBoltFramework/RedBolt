@@ -338,7 +338,7 @@ public class RenderPipeline : Component
     private sealed class DefaultRenderPipelineView : RenderPipelineView
     {
         private readonly RenderPipeline _renderPipeline;
-        private readonly RenderBufferManager _renderBufferManager;
+        private RenderBufferManager? _renderBufferManager;
         private readonly SharedRenderPassState _sharedState = new();
         private readonly Dictionary<string, object?> _effectiveRenderPathParameters = new(StringComparer.Ordinal);
         private readonly RenderPipelineStats _stats = new();
@@ -354,10 +354,9 @@ public class RenderPipeline : Component
             : base(renderPipeline)
         {
             this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
-            _renderBufferManager = new RenderBufferManager(this);
         }
 
-        public override bool IsLinearColorSpace => _renderBufferManager.IsLinearColorSpace();
+        public override bool IsLinearColorSpace => _renderBufferManager?.IsLinearColorSpace() ?? false;
 
         public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
         {
@@ -366,6 +365,8 @@ public class RenderPipeline : Component
 
             if (!_renderPipeline.IsAttached || !ReferenceEquals(_renderPipeline.Scene, viewport.Scene))
                 return false;
+
+            _renderBufferManager ??= new RenderBufferManager(this);
 
             this._viewport = viewport;
             SyncFromPipeline();

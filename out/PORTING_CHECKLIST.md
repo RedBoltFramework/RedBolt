@@ -179,7 +179,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct ComputePipelineStateDesc`
   - [~] `PipelineStateDesc` — graphics/compute variant construction and typed accessors now preserve the C++ single-active-alternative invariant
   - [~] `PipelineStateDesc` — default variant now matches C++ graphics-alternative initialization
-  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, reflection-based validity, material-specific immutable sampler descriptors, OpenGL temporary-program vertex-input reflection/location binding, and Dispose-based destructor cleanup are ported; native descriptor parity remains under review
+  - [~] `PipelineState : Object, DeviceObject, IDFamily<PipelineState>` — GPU creation, dependency-aware restore lifecycle, shader subscriptions, cache ownership, reflection-based validity, material-specific immutable sampler descriptors, Depth32Stencil8 native output mapping, OpenGL temporary-program vertex-input reflection/location binding, and Dispose-based destructor cleanup are ported; native descriptor parity remains under review
   - [~] `PipelineStateCache : Object, DeviceObject` — descriptor cache lookup, weak-state ownership, release diagnostics, and cached-data lifecycle match C++; native Diligent pipeline-cache creation/handle access remains TODO because the generated managed surface does not expose `IPipelineStateCache`
 - [x] `RenderPool.h`
   - [x] `RenderPool : Object` — uniform buffers, transient/persistent textures, frame-age cleanup, allocation-free recycling, scratch allocation, and device invalidation/restore lifecycle are ported
@@ -239,7 +239,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `RenderSurface.h` — viewport storage, update queue state, linked surfaces, texture-surface access, renderer queue integration, and destructor cleanup are ported; native GPU surface lifecycle remains managed/CPU-backed
   - [~] `RenderSurface : RefCounted` — viewport/update state, linked render/depth surfaces, parent texture dimensions/views, resolve state, and main-viewport helpers are ported; native GPU view restoration remains managed-resource dependent
 - [~] `Shader.h`
-  - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
+  - [~] `Shader : Resource` — reload signaling, recursive include processing with dependency tracking, timestamps, normalized variation caching, C++ `v2/...` universal shader-name resolution, shader-file indexing, and source validation are ported; managed GLSL preparation remains alongside the C++ resource API and native shader-cache/dependency details remain TODO
 - [~] `ShaderVariation.h`
   - [~] `ShaderVariation : RawShader` — variation lifecycle, reload recreation, virtual shader-cache load/save, source preprocessing, backend target selection, translation, optimization, D3D compilation, Vulkan/direct-source bytecode selection, SPIR-V vertex-attribute reflection, bytecode creation, and diagnostics are ported; remaining class-shape and native shader-cache/dependency details remain TODO
 - [x] `ModelView.h`
@@ -366,14 +366,14 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ViewportColorRenderBuffer : RenderBuffer`
   - [x] `ViewportDepthStencilRenderBuffer : RenderBuffer`
 - [~] `RenderBufferManager.h`
-  - [~] `RenderBufferManager : Object` — settings/frame-settings assignment, live swap-chain color/depth/multisample/sRGB output resolution, C++ color/AA/filter/usage output-matching criteria, viewport/output management, buffer swapping, clears, fullscreen helpers, and depth-first multi-color target binding are ported; native pipeline-state/cache integration remains incomplete
+  - [~] `RenderBufferManager : Object` — settings/frame-settings assignment, live swap-chain color/depth/multisample/sRGB output resolution, C++ color/AA/filter/usage output-matching criteria, viewport/output management, buffer swapping, clears, static output-keyed fullscreen pipeline states, allocation-free texture-copy parameters, fullscreen helpers, and depth-first multi-color target binding are ported; cached clear-quad pipeline states remain incomplete
 - [ ] `ShadowMapAllocator.h`
   - [ ] `ShadowMapAllocator : Object`
 - [x] `InstancingBuffer.h` — settings-driven vertex declarations, begin/end composition, instance indexing, element upload, buffer access, and enable state match C++; focused tests cover disabled, initialized, and repeated composition paths
 - [x] `ShaderProgramCompositor.h` — shader-program descriptions, common/geometry/material/light/shadow/light-volume defines, texture color-space hints, instancing selection, and normal/tangent availability match C++
   - [x] `ShaderProgramCompositor : Object`
-- [ ] `StaticPipelineStateCache.h`
-  - [ ] `StaticPipelineStateCache : Object`
+- [x] `StaticPipelineStateCache.h` — descriptor value ownership, stable IDs, output-keyed pipeline creation, invalidation, and sparse per-output state storage match C++
+  - [x] `StaticPipelineStateCache : Object`
 - [ ] `BatchStateCache.h`
   - [ ] `BatchStateCache : NonCopyable`
   - [ ] `UIBatchStateCache : NonCopyable`
@@ -418,7 +418,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct DebugFrameSnapshot`
   - [~] `RenderPipelineDebugger` — snapshot state machine, pass/quad reporting, default-pipeline capture hotkey, and final logging are ported; scene-batch call sites await `DrawableProcessor` and `BatchRenderer`
 - [~] `Passes/FullScreenShaderPass.h`
-  - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, fullscreen rendering, and cloning are ported; managed shader-resource/cache state remains adapted
+  - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, C++ static-pipeline cache invalidation/restoration, fullscreen rendering, and cloning are ported; managed attribute/reflection registration remains adapted
 - [~] `Passes/AmbientOcclusionPass.h`
   - [~] `AmbientOcclusionPass : RenderPass` — parameter processing, view initialization, cache/update flow, AO rendering, and cloning are ported; managed readable-depth trait integration and native shader-cache details remain adapted
 - [~] `Passes/AutoExposurePass.h`

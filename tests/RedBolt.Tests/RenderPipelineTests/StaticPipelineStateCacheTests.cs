@@ -1,0 +1,39 @@
+namespace RedBolt.Tests;
+
+public sealed class StaticPipelineStateCacheTests
+{
+    [Fact]
+    public void Create_state_deduplicates_cpp_descriptor_values()
+    {
+        var cache = new StaticPipelineStateCache();
+        var description = new GraphicsPipelineStateDesc
+        {
+            DebugName = "Static state",
+            BlendMode = BlendMode.Alpha
+        };
+
+        var first = cache.CreateState(description);
+        var second = cache.CreateState(new GraphicsPipelineStateDesc(description));
+
+        Assert.NotEqual(StaticPipelineStateId.Invalid, first);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public void Create_state_stores_cpp_value_copy()
+    {
+        var cache = new StaticPipelineStateCache();
+        var description = new GraphicsPipelineStateDesc
+        {
+            DebugName = "Static state",
+            BlendMode = BlendMode.Alpha
+        };
+        var original = new GraphicsPipelineStateDesc(description);
+
+        var first = cache.CreateState(description);
+        description.BlendMode = BlendMode.Add;
+
+        Assert.Equal(first, cache.CreateState(original));
+        Assert.NotEqual(first, cache.CreateState(description));
+    }
+}

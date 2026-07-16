@@ -11,6 +11,15 @@ public sealed class RenderBufferManager
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private readonly List<WeakReference<TextureRenderBuffer>> _managedTextureBuffers = [];
     private readonly Action<Texture, TextureFormat> _applyColorTextureMetadata;
+    private readonly Graphics? _graphics;
+    private readonly Renderer? _renderer;
+    private readonly RenderDevice? _renderDevice;
+    private readonly RenderContext? _renderContext;
+    private readonly DrawCommandQueue? _drawQueue;
+    private readonly StaticPipelineStateCache _pipelineStates = new();
+    private StaticPipelineStateId _copyTexturePipelineState;
+    private StaticPipelineStateId _copyGammaToLinearTexturePipelineState;
+    private StaticPipelineStateId _copyLinearToGammaTexturePipelineState;
 
     private readonly struct ClearFramebufferParameters
     {
@@ -24,6 +33,7 @@ public sealed class RenderBufferManager
     private readonly ViewportColorRenderBuffer _viewportColorBuffer = new();
     private readonly ViewportDepthStencilRenderBuffer _viewportDepthBuffer = new();
     private readonly RenderTargetView[] _renderTargetViews = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
+    private readonly ShaderResourceDesc[] _copyShaderResources = new ShaderResourceDesc[1];
     private TextureRenderBuffer? _primaryColorBuffer;
     private TextureRenderBuffer? _secondaryColorBuffer;
     private TextureRenderBuffer? _depthBuffer;
@@ -39,11 +49,17 @@ public sealed class RenderBufferManager
     private bool _linearColorSpace;
     private bool _hdr;
     private bool _viewportTargetLinearColorSpace;
+    private float _timeStep;
     private Graphics? _lastGraphics;
     private readonly RenderPipelineDebugger? _debugger;
 
     public RenderBufferManager(IRenderPipelineInterface? renderPipeline = null)
     {
+        _graphics = Context.Instance.GetSubsystem<Graphics>();
+        _renderer = Context.Instance.GetSubsystem<Renderer>();
+        _renderDevice = Context.Instance.GetSubsystem<RenderDevice>();
+        _renderContext = _renderDevice?.GetRenderContext();
+        _drawQueue = _renderDevice?.GetDefaultQueue();
         _debugger = renderPipeline?.GetDebugger();
         _applyColorTextureMetadata = ApplyColorTextureMetadata;
         _depthStencilBuffer = _viewportDepthBuffer;
@@ -121,7 +137,161 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(frameInfo);
         ArgumentNullException.ThrowIfNull(graphics);
         _lastGraphics = graphics;
+        _timeStep = frameInfo.TimeStep;
+        if (_copyTexturePipelineState == StaticPipelineStateId.Invalid)
+            InitializePipelineStates();
         OnViewportDefined(frameInfo.RenderTarget, frameInfo.ViewportRect);
+    }
+
+    /// <summary>
+    /// Create pipeline states for fullscreen quad rendering.
+    /// </summary>
+    public StaticPipelineStateId CreateQuadPipelineState(GraphicsPipelineStateDesc description)
+    {
+        var quadGeometry = _renderer?.GetQuadGeometry();
+        if (quadGeometry is null)
+            return StaticPipelineStateId.Invalid;
+
+        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(description, quadGeometry);
+        description.ColorWriteEnabled = true;
+
+        return _pipelineStates.CreateState(description);
+    }
+
+    public StaticPipelineStateId CreateQuadPipelineState(BlendMode blendMode, string shaderName,
+        string shaderDefines, IReadOnlyList<NamedSamplerStateDesc> samplers)
+    {
+        var defines = shaderDefines + " URHO3D_GEOMETRY_STATIC";
+
+        var description = new GraphicsPipelineStateDesc
+        {
+            DebugName = $"Quad with {shaderName}({defines})",
+            BlendMode = blendMode,
+            VertexShader = _graphics?.GetShader(ShaderType.VS, shaderName, defines),
+            PixelShader = _graphics?.GetShader(ShaderType.PS, shaderName, defines)
+        };
+
+        foreach (var sampler in samplers)
+            description.Samplers.Add(sampler.Name, sampler.Desc);
+
+        return CreateQuadPipelineState(description);
+    }
+
+    /// <summary>
+    /// Return pipeline state for fullscreen quad rendering for current output.
+    /// </summary>
+    public PipelineState? GetQuadPipelineState(StaticPipelineStateId id)
+    {
+        return _renderContext is null
+            ? null
+            : _pipelineStates.GetState(id, _renderContext.GetCurrentRenderTargetsDesc());
+    }
+
+    /// <summary>
+    /// Render fullscreen quad with custom parameters into currently bound render buffer.
+    /// </summary>
+    public void DrawQuad(string debugComment, DrawQuadParams parameters, bool flipVertical = false)
+    {
+        var pipelineState = parameters.PipelineState ?? GetQuadPipelineState(parameters.PipelineStateId);
+        if (pipelineState is null || !pipelineState.IsValid || _renderContext is null || _drawQueue is null)
+            return;
+
+        using var renderScope = new RenderScope(_renderContext, debugComment);
+
+        var quadGeometry = _renderer?.GetQuadGeometry();
+        if (quadGeometry is null)
+            return;
+        var modelMatrix = Matrix3x4.Identity;
+        var projection = Matrix4.Identity;
+        if (flipVertical)
+            projection.M11 = -1.0f;
+
+        var isOpenGL = _renderDevice?.GetBackend() == RenderBackend.OpenGL;
+        modelMatrix.M23 = isOpenGL ? 0.0f : 0.5f;
+
+        _drawQueue.Reset();
+        _drawQueue.SetPipelineState(pipelineState);
+
+        if (_drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Frame))
+        {
+            _drawQueue.AddShaderParameter(ShaderConsts.Frame_DeltaTime, _timeStep);
+            _drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Frame);
+        }
+
+        if (_drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Camera))
+        {
+            _drawQueue.AddShaderParameter(ShaderConsts.Camera_GBufferOffsets, parameters.ClipToUVOffsetAndScale);
+            _drawQueue.AddShaderParameter(ShaderConsts.Camera_GBufferInvSize, parameters.InvInputSize);
+            _drawQueue.AddShaderParameter(ShaderConsts.Camera_ViewProj, projection);
+            _drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Camera);
+        }
+
+        if (_drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Object))
+        {
+            _drawQueue.AddShaderParameter(ShaderConsts.Object_Model, modelMatrix);
+            _drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Object);
+        }
+
+        if (_drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Custom))
+        {
+            foreach (var shaderParameter in parameters.Parameters)
+                _drawQueue.AddShaderParameter(shaderParameter.Name, shaderParameter.Value);
+            _drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Custom);
+        }
+
+        if (parameters.BindSecondaryColorToDiffuse)
+        {
+            var secondaryColor = GetSecondaryColorTexture()?.GetRawTexture();
+            if (secondaryColor is not null)
+                _drawQueue.AddShaderResource(ShaderResources.Albedo, secondaryColor);
+        }
+        foreach (var shaderResource in parameters.Resources)
+        {
+            var canBind = !parameters.BindSecondaryColorToDiffuse || shaderResource.Name != ShaderResources.Albedo;
+            var rawTexture = shaderResource.Texture?.GetRawTexture();
+            if (canBind && rawTexture is not null)
+                _drawQueue.AddShaderResource(shaderResource.Name, rawTexture);
+        }
+        _drawQueue.CommitShaderResources();
+
+        GraphicsUtils.SetBuffersFromGeometry(_drawQueue, quadGeometry);
+        _drawQueue.DrawIndexed(quadGeometry.GetIndexStart(), quadGeometry.GetIndexCount());
+
+        _renderContext.Execute(_drawQueue);
+
+        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+            _debugger!.ReportQuad(debugComment, _renderContext.GetCurrentViewport().Size);
+    }
+
+    public void DrawViewportQuad(string debugComment, StaticPipelineStateId pipelineStateId,
+        IReadOnlyList<ShaderResourceDesc> resources, IReadOnlyList<ShaderParameterDesc> parameters,
+        bool flipVertical = false)
+    {
+        var drawParams = new DrawQuadParams
+        {
+            PipelineStateId = pipelineStateId,
+            ClipToUVOffsetAndScale = GetDefaultClipToUVSpaceOffsetAndScale(),
+            InvInputSize = GetInvOutputSize(),
+            Resources = resources,
+            Parameters = parameters
+        };
+        DrawQuad(debugComment, drawParams, flipVertical);
+    }
+
+    public void DrawFeedbackViewportQuad(string debugComment, StaticPipelineStateId pipelineStateId,
+        IReadOnlyList<ShaderResourceDesc> resources, IReadOnlyList<ShaderParameterDesc> parameters,
+        bool flipVertical = false)
+    {
+        var drawParams = new DrawQuadParams
+        {
+            PipelineStateId = pipelineStateId,
+            ClipToUVOffsetAndScale = GetDefaultClipToUVSpaceOffsetAndScale(),
+            InvInputSize = GetInvOutputSize(),
+            BindSecondaryColorToDiffuse = true,
+            Resources = resources,
+            Parameters = parameters
+        };
+        DrawQuad(debugComment, drawParams, flipVertical);
     }
 
     public void OnRenderEnd(CommonFrameInfo frameInfo)
@@ -272,7 +442,10 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(sourceTexture);
 
         var destinationLinearColorSpace = GetDestinationLinearColorSpace(destinationSurface);
-        graphics.SetRenderTargets(destinationRect, destinationSurface, depthStencilTarget: null);
+        if (_renderContext is null)
+            return;
+        _renderContext.SetRenderTargets(default, [destinationSurface]);
+        _renderContext.SetViewport(destinationRect);
         DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical, destinationLinearColorSpace);
     }
 
@@ -295,24 +468,39 @@ public sealed class RenderBufferManager
         var effectiveSourceRect = sourceRect != IntRect.Zero
             ? sourceRect
             : new IntRect(0, 0, sourceTexture.Width, sourceTexture.Height);
-        var shaderDefines = GetCopyFramebufferShaderDefines(sourceTexture, mode, destinationLinearColorSpace);
-
         var invInputSize = new Vector2f(
             sourceTexture.Width > 0 ? 1.0f / sourceTexture.Width : 0.0f,
             sourceTexture.Height > 0 ? 1.0f / sourceTexture.Height : 0.0f);
-        graphics.DrawFullscreenQuad(
-            debugComment,
-            "X_CopyFramebuffer",
-            shaderDefines,
-            BlendMode.Replace,
-            sourceTexture.GetFilterMode() is not TextureFilterMode.Nearest,
-            sourceTexture,
-            secondaryTexture: null,
-            depthTexture: null,
-            EmptyShaderParameters,
-            invInputSize,
-            GetClipToUvOffsetAndScale(sourceTexture.Width, sourceTexture.Height, effectiveSourceRect),
-            flipVertical);
+        var shaderDefines = GetCopyFramebufferShaderDefines(sourceTexture, mode, destinationLinearColorSpace);
+        var pipelineStateId = shaderDefines switch
+        {
+            "URHO3D_GAMMA_TO_LINEAR" => _copyGammaToLinearTexturePipelineState,
+            "URHO3D_LINEAR_TO_GAMMA" => _copyLinearToGammaTexturePipelineState,
+            _ => _copyTexturePipelineState
+        };
+        _copyShaderResources[0] = new ShaderResourceDesc(ShaderResources.Albedo, sourceTexture);
+        var drawParams = new DrawQuadParams
+        {
+            PipelineStateId = pipelineStateId,
+            InvInputSize = invInputSize,
+            ClipToUVOffsetAndScale = GetClipToUvOffsetAndScale(
+                sourceTexture.Width, sourceTexture.Height, effectiveSourceRect),
+            Resources = _copyShaderResources
+        };
+        DrawQuad(debugComment, drawParams, flipVertical);
+    }
+
+    private void InitializePipelineStates()
+    {
+        NamedSamplerStateDesc[] samplers =
+            [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())];
+
+        _copyTexturePipelineState = CreateQuadPipelineState(
+            BlendMode.Replace, "v2/X_CopyFramebuffer", string.Empty, samplers);
+        _copyGammaToLinearTexturePipelineState = CreateQuadPipelineState(
+            BlendMode.Replace, "v2/X_CopyFramebuffer", "URHO3D_GAMMA_TO_LINEAR", samplers);
+        _copyLinearToGammaTexturePipelineState = CreateQuadPipelineState(
+            BlendMode.Replace, "v2/X_CopyFramebuffer", "URHO3D_LINEAR_TO_GAMMA", samplers);
     }
 
     /// <summary>

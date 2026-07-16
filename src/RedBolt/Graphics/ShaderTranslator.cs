@@ -98,9 +98,7 @@ public static class ShaderTranslator
                 Language = GlslangSourceT.GlslangSourceGlsl,
                 Stage = stage,
                 Client = envClient,
-                ClientVersion = envClient == GlslangClientT.GlslangClientVulkan
-                    ? GlslangTargetClientVersionT.GlslangTargetVulkan10
-                    : GlslangTargetClientVersionT.GlslangTargetOpengl450,
+                ClientVersion = GlslangTargetClientVersionT.GlslangTargetOpengl450,
                 TargetLanguage = GlslangTargetLanguageT.GlslangTargetSpv,
                 TargetLanguageVersion = GlslangTargetLanguageVersionT.GlslangTargetSpv10,
                 Code = source,

@@ -688,8 +688,13 @@ layout(std140) uniform Material
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var cache = GetSubsystem<ResourceCache>();
-        var shader = cache?.GetResourceOrNull<Shader>(Shader.GetResourceName(name));
-        return shader is null ? null : new ShaderVariation(shader, type, defines);
+        var shaderResourceName = Shader.GetResourceName(name);
+        var shader = name.StartsWith("v2/", StringComparison.Ordinal)
+            ? cache?.Exists(shaderResourceName) == true
+                ? cache.GetResourceOrNull<Shader>(shaderResourceName)
+                : null
+            : cache?.GetResourceOrNull<Shader>(shaderResourceName);
+        return shader?.GetVariation(type, defines);
     }
 
     public IRenderDevice? GetNativeRenderDevice() => _device;
@@ -1747,7 +1752,6 @@ layout(std140) uniform Material
             pipeline.Dispose();
         _clearFramebufferPipelines.Clear();
 
-        _fullscreenQuadGeometry = null;
         _diligentViewport?.Dispose();
         _diligentViewport = null;
 

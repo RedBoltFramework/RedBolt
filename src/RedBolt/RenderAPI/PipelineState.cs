@@ -354,6 +354,7 @@ public class PipelineState : DeviceObject
     private static RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat value) => value switch
     {
         TextureFormat.Depth32 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
+        TextureFormat.Depth32Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
         TextureFormat.Depth24Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
         TextureFormat.R8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
         TextureFormat.RG16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,

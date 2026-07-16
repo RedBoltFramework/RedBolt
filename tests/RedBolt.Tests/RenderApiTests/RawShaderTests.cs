@@ -101,6 +101,34 @@ public sealed class RawShaderTests
         });
     }
 
+    [Fact]
+    public void Fullscreen_copy_shader_variations_compile_to_native_handles_when_graphics_is_initialized()
+    {
+        WithInitializedGraphics(() =>
+        {
+            const string defines = "URHO3D_GEOMETRY_STATIC";
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "v2/X_CopyFramebuffer", defines);
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "v2/X_CopyFramebuffer", defines);
+
+            Assert.NotNull(vertexShader);
+            Assert.NotNull(pixelShader);
+            Assert.NotNull(vertexShader!.GetHandle());
+            Assert.NotNull(pixelShader!.GetHandle());
+            Assert.False(vertexShader.GetHandle()!.IsNull);
+            Assert.False(pixelShader.GetHandle()!.IsNull);
+
+            var renderBufferManager = new RenderBufferManager();
+            var pipelineStateId = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace,
+                "v2/X_CopyFramebuffer",
+                string.Empty,
+                [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())]);
+            var pipelineState = renderBufferManager.GetQuadPipelineState(pipelineStateId);
+            Assert.NotNull(pipelineState);
+            Assert.True(pipelineState!.IsValid);
+        });
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters

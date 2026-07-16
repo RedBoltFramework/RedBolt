@@ -12,6 +12,7 @@ public enum ShaderStage
 
 public sealed class Shader : Resource
 {
+    private const string UniversalShaderRoot = "Shaders/GLSL/";
     private const string ShaderRoot = "Shaders/GLSL/v2/";
     private static readonly Regex VertexInputRegex = new(
         @"VERTEX_INPUT\((?<decl>[^)]*?\s(?<name>[A-Za-z_][A-Za-z0-9_]*))\)",
@@ -235,17 +236,20 @@ public sealed class Shader : Resource
         ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
 
         var normalized = shaderName.Trim().Replace('\\', '/');
+        var shaderRoot = normalized.StartsWith("v2/", StringComparison.Ordinal)
+            ? UniversalShaderRoot
+            : ShaderRoot;
         if (normalized.EndsWith(".glsl", StringComparison.OrdinalIgnoreCase))
         {
-            return normalized.StartsWith(ShaderRoot, StringComparison.Ordinal)
+            return normalized.StartsWith(UniversalShaderRoot, StringComparison.Ordinal)
                 ? normalized
-                : ShaderRoot + normalized.TrimStart('/');
+                : shaderRoot + normalized.TrimStart('/');
         }
 
-        if (normalized.StartsWith(ShaderRoot, StringComparison.Ordinal))
+        if (normalized.StartsWith(UniversalShaderRoot, StringComparison.Ordinal))
             return normalized + ".glsl";
 
-        return ShaderRoot + normalized.TrimStart('/') + ".glsl";
+        return shaderRoot + normalized.TrimStart('/') + ".glsl";
     }
 
     private void ProcessSource(
