@@ -393,9 +393,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `LightProcessor.h`
   - [ ] `LightProcessor : NonCopyable`
   - [ ] `LightProcessorCache : NonCopyable`
-- [ ] `DrawableProcessor.h`
-  - [ ] `DrawableProcessorPass : Object`
-  - [ ] `DrawableProcessor : Object`
+- [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
+  - [x] `DrawableProcessorPass : Object`
+  - [~] `DrawableProcessor : Object` — supporting batch data definitions are ported; processor implementation remains pending
 - [ ] `BatchCompositor.h`
   - [ ] `BatchCompositorPass : DrawableProcessorPass`
   - [ ] `BatchCompositor : Object`
