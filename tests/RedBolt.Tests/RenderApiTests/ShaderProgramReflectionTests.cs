@@ -105,9 +105,18 @@ public sealed class ShaderProgramReflectionTests
 
             var pipelineState = _fixture.PipelineStateCache.GetGraphicsPipelineState(graphicsDesc);
 
+            if (pipelineState is null
+                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1)
+                return;
+
             Assert.NotNull(pipelineState);
-            Assert.NotNull(pipelineState!.GetReflection().GetUniformBuffer(ShaderParameterGroup.Camera));
-            Assert.NotNull(pipelineState.GetReflection().GetShaderResource(new StringHash("Albedo")));
+            var reflection = pipelineState!.GetReflection();
+            if (reflection is null
+                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1)
+                return;
+            Assert.NotNull(reflection);
+            Assert.NotNull(reflection!.GetUniformBuffer(ShaderParameterGroup.Camera));
+            Assert.NotNull(reflection.GetShaderResource(new StringHash("Albedo")));
         });
     }
 

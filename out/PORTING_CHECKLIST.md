@@ -370,8 +370,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [ ] `ShadowMapAllocator.h`
   - [ ] `ShadowMapAllocator : Object`
 - [x] `InstancingBuffer.h` — settings-driven vertex declarations, begin/end composition, instance indexing, element upload, buffer access, and enable state match C++; focused tests cover disabled, initialized, and repeated composition paths
-- [ ] `ShaderProgramCompositor.h`
-  - [ ] `ShaderProgramCompositor : Object`
+- [x] `ShaderProgramCompositor.h` — shader-program descriptions, common/geometry/material/light/shadow/light-volume defines, texture color-space hints, instancing selection, and normal/tangent availability match C++
+  - [x] `ShaderProgramCompositor : Object`
 - [ ] `StaticPipelineStateCache.h`
   - [ ] `StaticPipelineStateCache : Object`
 - [ ] `BatchStateCache.h`
