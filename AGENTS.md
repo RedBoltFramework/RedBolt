@@ -17,7 +17,31 @@ The port must be 1:1 (as close as possible) to the original C++ code.
 You may only change things that this document explicitly allows you to change.
 
 If you see any existing C# code that deviates from the C++ original and is NOT
-on the "ALLOWED DEVIATIONS" list in section 8, you MUST fix it to match C++.
+on the "ALLOWED DEVIATIONS" list in section 10, you MUST fix it to match C++.
+
+### NON-NEGOTIABLE SOURCE-OF-TRUTH RULE
+
+The rbfx C++ implementation is the ONLY source of truth for implementation
+decisions. C# code, tests, runtime symptoms, compiler errors, debugger output,
+and personal judgment may reveal that something is wrong, but they MUST NEVER
+be used to design the fix.
+
+For EVERY implementation, bug fix, crash fix, rendering fix, test fix, API fix,
+refactor, or cleanup, you MUST do all of the following BEFORE editing C# code:
+
+1. Locate the corresponding rbfx C++ class, function, field, test, and call path.
+2. Read the complete relevant C++ declarations and method bodies.
+3. Identify exactly how the C# code deviates from the C++ code.
+4. Copy the C++ structure, ordering, control flow, state changes, and lifetime
+   behavior into C#, applying only the mappings and deviations allowed below.
+
+If you cannot find a corresponding C++ implementation, STOP. Do not invent a
+solution. Search the C++ repository again, inspect callers and related classes,
+and ask the user only if the C++ source still cannot determine the behavior.
+
+An issue is NEVER permission to improve, redesign, simplify, harden, or work
+around the C# implementation. The only valid fix is a faithful port of what the
+C++ implementation already does. A green test that deviates from C++ is wrong.
 
 ## 2. TOOLS YOU MUST USE
 
@@ -40,6 +64,12 @@ STEP 0 - Preparation
 STEP 1 - Find the C++ class
   - Use jcodemunch-mcp to open the C++ class outline (all methods, fields, bases).
   - Write down: base classes, interfaces, every method, every field.
+  - Open and read the COMPLETE C++ body of every method that may be added,
+    changed, removed, debugged, or tested in this slice.
+  - Trace the relevant C++ callers and callees whenever behavior depends on
+    frame ordering, ownership, teardown, events, platform gates, or side effects.
+  - DO NOT inspect the C# implementation and decide how it should work without
+    first completing this C++ review.
 
 STEP 2 - Match the class shape
   - Make sure the C# class has the SAME base classes / interfaces.
@@ -56,6 +86,17 @@ STEP 3 - Match every member, one by one
     e. Match the method body logic line-by-line to the C++ body.
     f. Implement copy-constructors as `ICloneable.Clone()`.
     g. Match member access (do not use `internal` for ported functions ever).
+
+STEP 3A - Fixes discovered while building or testing
+  If a build, test, sample, debugger, or trace reveals a problem:
+    a. STOP editing the C# implementation.
+    b. Find and re-read the corresponding C++ implementation and call path.
+    c. Compare C# against C++ and identify the concrete deviation.
+    d. Fix ONLY that deviation by porting the C++ code.
+    e. If C# already matches C++, continue tracing the C++ call path until the
+       actual missing or divergent port is found.
+    f. NEVER create a C#-only workaround, fallback, helper, state flag, special
+       case, or alternate execution path to make the symptom disappear.
 
 STEP 4 - Build and test (see section 6). Do not move on until it is GREEN.
 
@@ -108,6 +149,13 @@ The build output binaries are in:
 
 ## 7. THINGS YOU MUST ALWAYS DO
 
+- Before changing implementation code for ANY reason, read the corresponding
+  C++ implementation and use it to determine the change.
+- For bug fixes, write down the exact C++-to-C# deviation being corrected. If
+  there is no identified deviation, you are not ready to edit the C# code.
+- Treat C++ lifecycle and ordering as required behavior, including frame
+  boundaries, exit gates, teardown order, ownership, callbacks, and platform
+  compile-time conditions.
 - Port EVERY function and method, even ones that look useless or redundant.
 - Port EVERY code comment if such exists.
 - Port EVERY doxygen documentation comment as C# xml documentation comment.
@@ -129,6 +177,15 @@ The build output binaries are in:
 
 ## 8. THINGS YOU MUST NEVER DO
 
+- NEVER diagnose a symptom and design a C# fix from first principles. Diagnose
+  by comparing against C++, then port the C++ behavior.
+- NEVER use the existing C# implementation as the specification.
+- NEVER add a helper, workaround, fallback, state flag, special case, or new
+  execution path unless the same thing exists in C++ or is an allowed deviation.
+- NEVER change implementation code before locating and reading its C++
+  counterpart. Build errors and test failures do not waive this requirement.
+- NEVER update a test to bless behavior that differs from C++. Tests must verify
+  the faithfully ported C++ behavior, not preserve an invented C# API.
 - NEVER invent your own code to plug gaps -> ALWAYS just port C++ code.
 - NEVER invent your own defensive code only because you think it is better -> ALWAYS just port C++ code.
 - NEVER introduce your own comments outside of allowed cases.
@@ -136,7 +193,7 @@ The build output binaries are in:
 - NEVER write manual/hand-authored native bindings.
 - NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
   P/Invoke declarations, or C# wrapper classes for native dependency APIs.
-- NEVER take shortcuts that make C# diverge from C++ logic (except section 9).
+- NEVER take shortcuts that make C# diverge from C++ logic (except section 10).
 - NEVER port things C# already provides (see section 10).
 - NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:
   no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
@@ -204,6 +261,8 @@ Anything not on this list must match C++.
 
 - Re-read the C++ source with jcodemunch-mcp. The C++ code is the source of truth.
 - Match the C++ code. When in doubt, copy the C++ structure and logic.
+- If a proposed fix cannot be justified by pointing to corresponding C++ code,
+  do not implement it.
 - Do not guess at runtime behavior. Use debug-mcp or apitrace to confirm.
 - Prompt user to clarify deviations
   - Record agreed deviations in AGENTS.md file
