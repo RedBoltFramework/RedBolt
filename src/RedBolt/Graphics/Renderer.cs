@@ -49,6 +49,11 @@ public sealed class Renderer : Object
     public Renderer()
     {
         CreateGeometries();
+        SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
+        {
+            _frameStats.Animations = 0;
+            _frameStats.ChangedAnimations = 0;
+        });
     }
 
     public int TextureAnisotropy { get; private set; } = 4;
@@ -433,6 +438,16 @@ public sealed class Renderer : Object
 
         foreach (var texture in cache.GetResources<TextureCube>())
             cache.ReloadResource(texture);
+    }
+
+    private void ReleaseMaterialShaders()
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        if (cache is null)
+            return;
+
+        foreach (var material in cache.GetResources<Material>())
+            material.ReleaseShaders();
     }
 
     private void CreateGeometries()

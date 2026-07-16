@@ -164,6 +164,19 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Frame_statistics_are_reset_at_end_of_frame()
+    {
+        var statistics = Renderer.GetMutableFrameStats();
+        statistics.Animations = 4;
+        statistics.ChangedAnimations = 2;
+
+        _fixture.Context.SendEvent<CoreEvents.EndFrameEvent>();
+
+        Assert.Equal(0u, statistics.Animations);
+        Assert.Equal(0u, statistics.ChangedAnimations);
+    }
+
+    [Fact]
     public void Skinning_mode_helpers_work()
     {
         Renderer.SetSkinningMode(SkinningMode.Hardware);
