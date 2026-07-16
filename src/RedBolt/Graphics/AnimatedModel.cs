@@ -292,6 +292,69 @@ public class AnimatedModel : StaticModel
         ApplyAnimation();
     }
 
+    /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
+    public override void UpdateBatches(CommonFrameInfo frame)
+    {
+        var camera = frame.Camera;
+        if (camera is null)
+            return;
+
+        var worldTransform = Node.GetWorldTransform();
+        var worldBoundingBox = GetWorldBoundingBox();
+        SetDistance(camera.GetDistance(worldBoundingBox.Center));
+
+        // Note: per-geometry distances do not take skinning into account. Especially in case of a ragdoll they may be
+        // much off base if the node's own transform is not updated
+        if (_batches.Count == 1)
+        {
+            var batch = _batches[0];
+            batch.Distance = GetDistance();
+            _batches[0] = batch;
+        }
+        else
+        {
+            for (var i = 0; i < _batches.Count; ++i)
+            {
+                var batch = _batches[i];
+                batch.Distance = camera.GetDistance(worldTransform * (Model?.GetGeometryCenter((uint)i) ?? Vector3f.Zero));
+                _batches[i] = batch;
+            }
+        }
+
+        // Use a transformed version of the model's bounding box instead of world bounding box for LOD scale
+        // determination so that animation does not change the scale
+        var transformedBoundingBox = GetBoundingBox().Transformed(worldTransform);
+        var size = transformedBoundingBox.Size;
+        var scale = (size.X + size.Y + size.Z) / 3.0f;
+        var newLodDistance = camera.GetLodDistance(GetDistance(), scale, LodBias);
+
+        // If model is rendered from several views, use the minimum LOD distance for animation LOD
+        if (frame.FrameNumber != _animationLodFrameNumber)
+        {
+            _animationLodDistance = newLodDistance;
+            _animationLodFrameNumber = frame.FrameNumber;
+        }
+        else
+            _animationLodDistance = Math.Min(_animationLodDistance, newLodDistance);
+
+        if (newLodDistance != GetLodDistance())
+        {
+            SetLodDistance(newLodDistance);
+            CalculateLodLevels();
+        }
+    }
+
+    /// <summary>Return whether a geometry update is necessary, and if it can happen in a worker thread.</summary>
+    public override UpdateGeometryType GetUpdateGeometryType()
+    {
+        if (_morphsDirty || _forceAnimationUpdate || (_skinningDirty && _softwareSkinning))
+            return UpdateGeometryType.MainThread;
+        else if (_skinningDirty)
+            return UpdateGeometryType.WorkerThread;
+        else
+            return UpdateGeometryType.None;
+    }
+
     /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
     public void ConnectToAnimationStateSource(AnimationStateSource? source)
     {

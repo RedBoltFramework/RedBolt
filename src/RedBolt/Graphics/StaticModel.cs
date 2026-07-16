@@ -422,7 +422,7 @@ public class StaticModel : Drawable
         SetModel(currentModel);
     }
 
-    private void CalculateLodLevels()
+    protected void CalculateLodLevels()
     {
         var model = Model;
         if (model is null)

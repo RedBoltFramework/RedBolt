@@ -183,6 +183,59 @@ public sealed class AnimatedModelTests
         Assert.Equal(master.GetWorldBoundingBox(), attachment.GetWorldBoundingBox());
     }
 
+    [Fact]
+    public void Update_batches_matches_model_bounds_and_minimum_animation_lod_distance()
+    {
+        var model = CreateSkeletonModel("Lod", BoneCollisionShape.Box);
+        model.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
+        model.SetNumGeometries(2);
+        model.SetGeometryCenter(0, new Vector3f(-2.0f, 0.0f, 0.0f));
+        model.SetGeometryCenter(1, new Vector3f(2.0f, 0.0f, 0.0f));
+        var scene = new Scene();
+        var modelNode = scene.CreateChild("AnimatedModel");
+        modelNode.SetScale(new Vector3f(2.0f, 3.0f, 4.0f));
+        var animatedModel = modelNode.CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(model, true);
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -10.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        var frame = new CommonFrameInfo { Camera = camera, FrameNumber = 7 };
+
+        animatedModel.UpdateBatches(frame);
+
+        var expectedLodDistance = camera.GetLodDistance(animatedModel.GetDistance(), 6.0f, animatedModel.LodBias);
+        Assert.Equal(expectedLodDistance, animatedModel.GetLodDistance());
+        Assert.Equal(camera.GetDistance(modelNode.GetWorldTransform() * new Vector3f(-2.0f, 0.0f, 0.0f)),
+            animatedModel.GetBatches()[0].Distance);
+        Assert.Equal(camera.GetDistance(modelNode.GetWorldTransform() * new Vector3f(2.0f, 0.0f, 0.0f)),
+            animatedModel.GetBatches()[1].Distance);
+
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -5.0f));
+        animatedModel.UpdateBatches(frame);
+
+        Assert.Equal(animatedModel.GetLodDistance(), GetPrivateField<float>(animatedModel, "_animationLodDistance"));
+        Assert.Equal(7u, GetPrivateField<uint>(animatedModel, "_animationLodFrameNumber"));
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false, UpdateGeometryType.None)]
+    [InlineData(false, false, true, false, UpdateGeometryType.WorkerThread)]
+    [InlineData(false, false, true, true, UpdateGeometryType.MainThread)]
+    [InlineData(true, false, false, false, UpdateGeometryType.MainThread)]
+    [InlineData(false, true, false, false, UpdateGeometryType.MainThread)]
+    [InlineData(true, true, true, false, UpdateGeometryType.MainThread)]
+    public void Update_geometry_type_matches_cpp_dirty_flag_precedence(bool morphsDirty,
+        bool forceAnimationUpdate, bool skinningDirty, bool softwareSkinning, UpdateGeometryType expected)
+    {
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        SetPrivateField(animatedModel, "_morphsDirty", morphsDirty);
+        SetPrivateField(animatedModel, "_forceAnimationUpdate", forceAnimationUpdate);
+        SetPrivateField(animatedModel, "_skinningDirty", skinningDirty);
+        SetPrivateField(animatedModel, "_softwareSkinning", softwareSkinning);
+
+        Assert.Equal(expected, animatedModel.GetUpdateGeometryType());
+    }
+
     private static AnimatedModel CreateAnimatedModel(BoneCollisionShape collisionShape)
     {
         var model = CreateSkeletonModel("AnimatedModelRayQuery", collisionShape);
@@ -205,5 +258,19 @@ public sealed class AnimatedModelTests
         bone.Radius = 1.0f;
         model.SetSkeleton(skeleton);
         return model;
+    }
+
+    private static T GetPrivateField<T>(AnimatedModel animatedModel, string name)
+    {
+        var field = typeof(AnimatedModel).GetField(name,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        return Assert.IsType<T>(field!.GetValue(animatedModel));
+    }
+
+    private static void SetPrivateField<T>(AnimatedModel animatedModel, string name, T value)
+    {
+        var field = typeof(AnimatedModel).GetField(name,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        field!.SetValue(animatedModel, value);
     }
 }
