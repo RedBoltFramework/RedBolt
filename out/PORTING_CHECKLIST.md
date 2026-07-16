@@ -226,7 +226,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Texture.h`
   - [~] `Texture : ResourceWithMetadata, RawTexture` — sampler/mip/size/data metadata, requested-versus-realized mip-level semantics, XML parameter parsing, format component/data-size calculations including depth formats, bind-flag queries, C++-matching render-target/depth-stencil `RenderSurface` slice preservation/materialization, render-surface update subscription/queue handling, resource restore, texture-budget material release, managed `RawTexture` GPU composition/update for ordinary texture resources, full-mip raw-texture material binding, immutable material sampler application, sampler-state synchronization, and RGBA8 GPU readback to `Image` are ported; full C++ inheritance parity and remaining image format transfer hooks remain TODO
 - [~] `Texture2D.h`
-  - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, texture-budget checks, mip selection, CPU data upload/readback, flag-aware size configuration, image conversion, object registration, and managed RawTexture creation/data updates are ported; image-backed GPU transfer remains TODO
+  - [~] `Texture2D : Texture` — two-phase image loading including headless short-circuiting, texture-budget checks, mip selection, flag-aware size configuration, image conversion, object registration, and C++-matching RawTexture image creation, updates, mip generation, GPU readback, and render-target usage flags are ported; full Texture/RawTexture inheritance parity remains TODO
 - [~] `Texture3D.h`
   - [~] `Texture3D : Texture` — two-phase volume/color-LUT loading including headless short-circuiting, mip selection, CPU volume upload/readback, usage-flag propagation, object registration, and RawTexture volume updates are ported; image-backed GPU transfer remains TODO
 - [~] `TextureCube.h`
@@ -361,7 +361,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `struct SharedRenderPassState : NonCopyable` — fixed 128-entry render-buffer capacity and shared identifiers are ported; managed Graphics convenience state remains for current render-pass integration
 - [~] `RenderBuffer.h`
   - [~] `RenderBuffer : Object`
-  - [~] `TextureRenderBuffer : RenderBuffer`
+  - [~] `TextureRenderBuffer : RenderBuffer` — viewport sizing, color/depth bind-flag selection through the shared C++ texture-format predicates, multisampling, no-auto-resolve propagation, filtering, and 2D/cubemap render-target views are ported; RenderPool-backed transient/persistent texture ownership remains TODO
   - [x] `ViewportColorRenderBuffer : RenderBuffer`
   - [x] `ViewportDepthStencilRenderBuffer : RenderBuffer`
 - [~] `RenderBufferManager.h`
@@ -442,7 +442,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A11. Input — depends on Core, Graphics (window)
 
-- [~] `Input : Object` — core SDL lifecycle/window, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, gesture archive save/load, and window helpers are ported; screen joystick creation/visibility remains excluded with the built-in UI
+- [~] `Input : Object` — core SDL lifecycle/window including the C++ OpenGL framebuffer/depth/stencil/sRGB/MSAA window-creation fallback order, frame state, keyboard/mouse/controller/generic joystick/touch polling, focus, modes, conversion helpers, raw and typed event dispatch, text/drop input, joystick/touch queries, native keyboard/gesture state helpers, gesture archive save/load, and window helpers are ported; screen joystick creation/visibility remains excluded with the built-in UI
 - [x] `InputMap.h`
   - [x] `struct KeyboardKeyMapping` — scancode wrapper with archive serialization ported
   - [x] `struct ControllerButtonMapping`

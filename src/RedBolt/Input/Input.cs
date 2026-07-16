@@ -248,13 +248,10 @@ public sealed class Input : Object
             var backend = GetSubsystem<RenderDevice>()!.GetBackend();
             if (backend == RenderBackend.OpenGL)
             {
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 3), "SDL_GL_SetAttribute major version");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 3), "SDL_GL_SetAttribute minor version");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, 1), "SDL_GL_SetAttribute sRGB framebuffer");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, parameters.MultiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
-            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, Math.Max(parameters.MultiSample, 0)), "SDL_GL_SetAttribute multisample samples");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
             }
 
             using var title = new CString(parameters.WindowTitle);
@@ -270,16 +267,53 @@ public sealed class Input : Object
             if (parameters.WindowMaximize)
                 windowFlags |= SdlWindowFlags.SdlWindowMaximized;
 
-            _window = SdlNativeBindings.SdlCreateWindow(
-                title.Bytes,
-                x: explicitRect?.Left ?? parameters.WindowPositionX ?? 64,
-                y: explicitRect?.Top ?? parameters.WindowPositionY ?? 64,
-                w: windowWidth,
-                h: windowHeight,
-                flags: (uint)windowFlags);
+            var windowX = explicitRect?.Left ?? parameters.WindowPositionX ?? 64;
+            var windowY = explicitRect?.Top ?? parameters.WindowPositionY ?? 64;
+            SdlWindow? window = null;
+            if (backend == RenderBackend.OpenGL)
+            {
+                foreach (var colorBits in new[] { 8, 1 })
+                {
+                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlRedSize, colorBits), "SDL_GL_SetAttribute red size");
+                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlGreenSize, colorBits), "SDL_GL_SetAttribute green size");
+                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlBlueSize, colorBits), "SDL_GL_SetAttribute blue size");
+                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlAlphaSize, 0), "SDL_GL_SetAttribute alpha size");
+                    foreach (var depthBits in new[] { 24, 16 })
+                    {
+                        CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDepthSize, depthBits), "SDL_GL_SetAttribute depth size");
+                        foreach (var stencilBits in new[] { 8, 0 })
+                        {
+                            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlStencilSize, stencilBits), "SDL_GL_SetAttribute stencil size");
+                            foreach (var srgb in new[] { 1, 0 })
+                            {
+                                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, srgb), "SDL_GL_SetAttribute sRGB framebuffer");
+                                for (var multiSample = Math.Max(parameters.MultiSample, 1); multiSample > 0; multiSample /= 2)
+                                {
+                                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, multiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
+                                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, multiSample > 1 ? multiSample : 0), "SDL_GL_SetAttribute multisample samples");
+                                    window = SdlNativeBindings.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
+                                    if (!window.IsNull)
+                                        break;
+                                }
+                                if (window is { IsNull: false })
+                                    break;
+                            }
+                            if (window is { IsNull: false })
+                                break;
+                        }
+                        if (window is { IsNull: false })
+                            break;
+                    }
+                    if (window is { IsNull: false })
+                        break;
+                }
+            }
+            else
+                window = SdlNativeBindings.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
 
-            if (_window.IsNull)
-                throw new InvalidOperationException("Generated SDL_CreateWindow binding returned a null window.");
+            if (window is null || window.IsNull)
+                throw new InvalidOperationException($"Could not create window: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
+            _window = window;
 
             if (parameters.WindowMaximize)
                 SdlNativeBindings.SdlMaximizeWindow(_window);

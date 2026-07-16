@@ -816,23 +816,30 @@ public class RawTexture : DeviceObject
     {
         var shaderTexture = _resolvedHandle ?? _handle!;
         if ((bindFlags & BindFlags.BindShaderResource) != 0)
-            _shaderResourceView = CreateView(shaderTexture, TextureViewType.TextureViewShaderResource);
+            _shaderResourceView = GetDefaultView(shaderTexture, TextureViewType.TextureViewShaderResource);
         if ((bindFlags & BindFlags.BindRenderTarget) != 0)
         {
-            _renderTargetView = CreateView(_handle!, TextureViewType.TextureViewRenderTarget);
+            _renderTargetView = GetDefaultView(_handle!, TextureViewType.TextureViewRenderTarget);
             _renderSurfaces = CreateRenderSurfaces(_renderTargetView, TextureViewType.TextureViewRenderTarget);
         }
         if ((bindFlags & BindFlags.BindDepthStencil) != 0)
         {
-            _depthStencilView = CreateView(_handle!, TextureViewType.TextureViewDepthStencil);
+            _depthStencilView = GetDefaultView(_handle!, TextureViewType.TextureViewDepthStencil);
             _renderSurfaces = CreateRenderSurfaces(_depthStencilView, TextureViewType.TextureViewDepthStencil);
-            _readOnlyDepthStencilView = CreateView(_handle!, TextureViewType.TextureViewReadOnlyDepthStencil);
+            if (_depthStencilView is not null)
+            {
+                using var readOnlyDesc = _depthStencilView.GetDesc();
+                readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
+                _handle!.CreateView(readOnlyDesc, out _readOnlyDepthStencilView);
+                if (_readOnlyDepthStencilView is { IsNull: true })
+                    _readOnlyDepthStencilView = null;
+            }
             _readOnlyRenderSurfaces = CreateRenderSurfaces(_readOnlyDepthStencilView,
                 TextureViewType.TextureViewReadOnlyDepthStencil);
         }
         if ((bindFlags & BindFlags.BindUnorderedAccess) != 0)
         {
-            _unorderedAccessView = CreateView(_handle!, TextureViewType.TextureViewUnorderedAccess);
+            _unorderedAccessView = GetDefaultView(_handle!, TextureViewType.TextureViewUnorderedAccess);
             if (_unorderedAccessView is not null)
                 _uavs[default] = _unorderedAccessView;
         }
@@ -840,6 +847,18 @@ public class RawTexture : DeviceObject
             ((bindFlags & BindFlags.BindRenderTarget) == 0 || _renderTargetView is not null) &&
             ((bindFlags & BindFlags.BindDepthStencil) == 0 || _depthStencilView is not null && _readOnlyDepthStencilView is not null) &&
             ((bindFlags & BindFlags.BindUnorderedAccess) == 0 || _unorderedAccessView is not null);
+    }
+
+    private ITextureView? GetDefaultView(ITexture texture, TextureViewType viewType)
+    {
+        var view = texture.GetDefaultView(viewType);
+        if (view is not null && !view.IsNull)
+        {
+            _ = view.AddRef();
+            return view;
+        }
+
+        return CreateView(texture, viewType);
     }
 
     private ITextureView? CreateView(ITexture texture, TextureViewType viewType, uint firstSlice = 0u, uint numSlices = 0u)

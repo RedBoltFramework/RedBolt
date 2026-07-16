@@ -25,7 +25,7 @@ public sealed class TextureFileTests
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
             Assert.Equal(TextureFormat.Unknown, texture.Format);
-            Assert.Null(texture.GetData(0));
+            Assert.False(texture.GetData(0, Array.Empty<byte>()));
         }
         finally
         {

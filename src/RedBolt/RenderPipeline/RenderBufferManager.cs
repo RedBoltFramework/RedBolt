@@ -700,7 +700,7 @@ public sealed class RenderBufferManager
                 continue;
 
             buffer.RefreshForViewport(_viewportRect);
-            if (buffer.BufferParams.TextureFormat is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8)
+            if (RenderAPIUtils.IsDepthTextureFormat(buffer.BufferParams.TextureFormat))
                 continue;
 
             ApplyColorTextureMetadata(buffer.Texture, buffer.Texture.Format);

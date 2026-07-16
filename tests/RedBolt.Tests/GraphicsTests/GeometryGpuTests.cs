@@ -115,7 +115,6 @@ public sealed class GeometryGpuTests
         tex.SetSize(4, 4, TextureFormat.RGBA8);
         var data = Enumerable.Range(0, 64).Select(v => (byte)v).ToArray();
         Assert.True(tex.SetData(0u, 0, 0, 4, 4, data));
-        Assert.Equal(64, tex.GetData(0u)?.Length);
         Assert.Equal(4u, tex.GetComponents());
         Assert.Equal(64u, tex.GetDataSize(4, 4));
     }

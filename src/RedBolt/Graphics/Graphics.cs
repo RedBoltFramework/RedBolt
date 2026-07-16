@@ -116,7 +116,6 @@ layout(std140) uniform Material
     private ITextureView? _currentDepthStencilTarget;
     private int _currentRenderTargetCount;
     private int _configuredMultiSample = 1;
-    private Geometry? _fullscreenQuadGeometry;
     private global::RedBolt.Bindings.Diligent.TextureFormat _currentColorTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _currentDepthTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainColorFormat;
@@ -2337,33 +2336,8 @@ layout(std140) uniform Material
 
     private Geometry GetOrCreateFullscreenQuadGeometry()
     {
-        if (_fullscreenQuadGeometry is not null)
-            return _fullscreenQuadGeometry;
-
-        var vertexBuffer = new VertexBuffer();
-        vertexBuffer.SetSize(4, [new VertexElement(VertexElementType.Vector4, VertexElementSemantic.Position)]);
-        var vertexData = new float[]
-        {
-            -1.0f, -1.0f, 0.0f, 1.0f,
-            -1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, 0.0f, 1.0f
-        };
-        var vertexBytes = new byte[vertexData.Length * sizeof(float)];
-        Buffer.BlockCopy(vertexData, 0, vertexBytes, 0, vertexBytes.Length);
-        vertexBuffer.SetData(vertexBytes);
-
-        var indexBuffer = new IndexBuffer();
-        indexBuffer.SetSize(6, largeIndices: false);
-        indexBuffer.SetShadowed(true);
-        indexBuffer.SetUnpackedData([0u, 1u, 2u, 0u, 2u, 3u]);
-
-        var geometry = new Geometry();
-        geometry.SetVertexBuffer(0, vertexBuffer);
-        geometry.SetIndexBuffer(indexBuffer);
-        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6, 0, 4);
-        _fullscreenQuadGeometry = geometry;
-        return geometry;
+        return GetSubsystem<Renderer>()?.GetQuadGeometry()
+            ?? throw new InvalidOperationException("Renderer quad geometry is not initialized.");
     }
 
     private void UpdateFullscreenFrameBuffer(IBuffer buffer)
@@ -2386,7 +2360,9 @@ layout(std140) uniform Material
     private void UpdateFullscreenObjectBuffer(IBuffer buffer)
     {
         Span<byte> data = stackalloc byte[ObjectBufferSize];
-        WriteMatrix4Raw(data, 0, Matrix4.Identity);
+        var modelMatrix = Matrix4.Identity;
+        modelMatrix.M23 = GetSubsystem<RenderDevice>()?.GetBackend() == RenderBackend.OpenGL ? 0.0f : 0.5f;
+        WriteMatrix4Raw(data, 0, modelMatrix);
         WriteVector4(data, 64, DefaultAmbient);
         UpdateBuffer(buffer, data);
     }
@@ -2999,35 +2975,6 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        var data = texture.GetDataNoCopy(0);
-        if (data is { Length: > 0 })
-        {
-            if (texture.MultiSample != 1)
-                throw new NotSupportedException("CPU-backed multisampled Texture2D uploads are not implemented in the current managed renderer.");
-            if (bindUnorderedAccess)
-                throw new NotSupportedException("CPU-backed Texture2D uploads with unordered access are not implemented in the current managed renderer.");
-
-            // CPU-backed textures still upload only their base level in the managed renderer.
-            // Keep the GPU texture single-mip until full subresource upload is implemented.
-            textureDesc.MipLevels = 1;
-            textureDesc.BindFlags = BindFlags.BindShaderResource;
-            textureDesc.Usage = Usage.UsageImmutable;
-
-            using var dataHandle = new PinnedBuffer(data);
-            using var subresource = new TextureSubResData(dataHandle.Pointer, (nuint)(texture.Width * texture.GetComponents()), 0);
-            using var textureData = new TextureData(subresource, 1, _immediateContext);
-            _device.CreateTexture(textureDesc, textureData, out var gpuTextureWithData);
-            if (gpuTextureWithData.IsNull)
-                throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
-
-            var shaderResourceView = RetainDefaultTextureView(
-                gpuTextureWithData.GetDefaultView(TextureViewType.TextureViewShaderResource));
-            uploaded = new UploadedTexture(texture, gpuTextureWithData, shaderResourceView, null, null, null,
-                supportsUnorderedAccess: false);
-            _uploadedTextures[texture] = uploaded;
-            return uploaded;
-        }
-
         textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
@@ -3174,14 +3121,9 @@ layout(std140) uniform Material
         var rawTexture = texture.GetRawTexture();
         if (rawTexture is null || !rawTexture.IsValid())
             return false;
-        if (!HasCpuTextureData(texture))
-            return false;
         var parameters = rawTexture.GetParams();
         if (bindUnorderedAccess && (parameters.Flags & TextureFlag.BindUnorderedAccess) == 0)
             return false;
-        if ((parameters.Flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0)
-            return false;
-
         rawTexture.Resolve();
         rawTexture.GenerateLevels();
         var textureHandle = rawTexture.GetHandle();
@@ -3190,37 +3132,9 @@ layout(std140) uniform Material
             return false;
 
         uploaded = new UploadedTexture(texture, textureHandle, shaderResourceView,
-            null, null, null,
+            rawTexture.GetRenderTargetView(), rawTexture.GetDepthStencilView(), rawTexture.GetReadOnlyDepthStencilView(),
             rawTexture.GetResolvedHandle(), bindUnorderedAccess, ownsResources: false);
         return true;
-    }
-
-    private static bool HasCpuTextureData(Texture texture)
-    {
-        switch (texture)
-        {
-            case Texture2D texture2D:
-                return texture2D.GetDataNoCopy(0) is { Length: > 0 };
-
-            case TextureCube textureCube:
-                for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; ++face)
-                {
-                    if (textureCube.GetData(face, 0u) is { Length: > 0 })
-                        return true;
-                }
-                return false;
-
-            case Texture2DArray texture2DArray:
-                for (var slice = 0u; slice < texture2DArray.Layers; ++slice)
-                {
-                    if (texture2DArray.GetData(slice, 0u) is { Length: > 0 })
-                        return true;
-                }
-                return false;
-
-            default:
-                return false;
-        }
     }
 
     private (ITexture? Texture, ITextureView? ShaderView) CreateResolvedTextureAndShaderView(Texture texture, TextureDesc sourceDesc)
@@ -3327,6 +3241,11 @@ layout(std140) uniform Material
     {
         if (view is not { } actualView || actualView.RenderTexture is null)
             return;
+        if (actualView.RenderTexture.GetRawTexture() is { } rawTexture)
+        {
+            rawTexture.MarkDirty();
+            return;
+        }
         if (!_uploadedTextures.TryGetValue(actualView.RenderTexture, out var uploaded))
             return;
 
@@ -3488,6 +3407,9 @@ layout(std140) uniform Material
             TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
             TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
             TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+            TextureFormat.RGBA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+            TextureFormat.BGRA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
+            TextureFormat.BGRA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
             TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
             _ => default
         };
@@ -3513,7 +3435,7 @@ layout(std140) uniform Material
         _currentOutputDesc.ClearRenderTargetFormats();
         Span<TextureFormat> formats = stackalloc TextureFormat[colorTargets.Length];
         for (var i = 0; i < colorTargets.Length; ++i)
-            formats[i] = UnmapTextureFormat(ResolveColorTargetFormat(colorTargets[i]), out _);
+            formats[i] = UnmapPipelineTextureFormat(ResolveColorTargetFormat(colorTargets[i]));
         _currentOutputDesc.SetRenderTargetFormats(formats);
 
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
@@ -3562,6 +3484,14 @@ layout(std140) uniform Material
         };
     }
 
+    internal static TextureFormat UnmapPipelineTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format) => format switch
+    {
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => TextureFormat.BGRA8Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => TextureFormat.RGBA8Srgb,
+        _ => UnmapTextureFormat(format, out _)
+    };
+
     private static TextureFormat MarkSrgb(TextureFormat format, out bool isSrgb)
     {
         isSrgb = true;
@@ -3576,6 +3506,7 @@ layout(std140) uniform Material
         var expectedFormat = MapTextureFormat(texture.Format);
         if (expectedFormat == 0)
             return false;
+        var expectedFlags = texture.GetRawTexture()?.GetParams().Flags ?? TextureFlag.None;
 
         return uploaded.Dimension == GetResourceDimension(texture)
             && uploaded.Width == (uint)texture.Width
@@ -3583,6 +3514,8 @@ layout(std140) uniform Material
             && uploaded.ArraySizeOrDepth == GetArraySizeOrDepth(texture)
             && uploaded.SampleCount == (uint)texture.MultiSample
             && uploaded.HasResolvedTexture == NeedsResolvedTexture(texture)
+            && ((expectedFlags & TextureFlag.BindRenderTarget) == 0 || uploaded.RenderTargetView is not null)
+            && ((expectedFlags & TextureFlag.BindDepthStencil) == 0 || uploaded.DepthStencilView is not null)
             && (!requireUnorderedAccess || uploaded.SupportsUnorderedAccess)
             && uploaded.Format == expectedFormat
             && uploaded.MipLevels == GetUploadedMipLevels(texture);
@@ -3639,7 +3572,6 @@ layout(std140) uniform Material
         return texture switch
         {
             { MultiSample: > 1 } => 1u,
-            Texture2D texture2D when texture2D.GetDataNoCopy(0) is { Length: > 0 } => 1u,
             _ => Math.Max(texture.Levels, 1u)
         };
     }

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 using RedBolt;
 using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Sdl;
 
 namespace RedBolt.Tests;
 
@@ -42,7 +43,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/PublicRenderTargetView");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
 
             var renderTargetView = RenderTargetView.Texture(texture);
             var nativeView = renderTargetView.GetView();
@@ -60,7 +61,7 @@ public sealed class GraphicsRenderTargetViewTests
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
 
             var texture = new Texture2D("Textures/DirtyRenderTargetView");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
 
             var uploadedTexture = GetUploadedTexture(texture);
             Assert.False(GetResolveDirty(uploadedTexture));
@@ -82,6 +83,11 @@ public sealed class GraphicsRenderTargetViewTests
             Assert.Equal(outputTarget.DepthStencilFormat, RenderTargetView.SwapChainDepthStencil(_fixture.RenderDevice).GetFormat());
             Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainColor(_fixture.RenderDevice).GetMultiSample());
             Assert.Equal(outputTarget.MultiSample, RenderTargetView.SwapChainDepthStencil(_fixture.RenderDevice).GetMultiSample());
+            if (_fixture.RenderDevice.GetBackend() == RenderBackend.OpenGL)
+            {
+                Assert.Equal(0, SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, out var effectiveSrgb));
+                Assert.Equal(effectiveSrgb != 0, outputTarget.LinearColorSpace);
+            }
         }, multiSample: 4);
     }
 
@@ -159,7 +165,7 @@ public sealed class GraphicsRenderTargetViewTests
             var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/MultisampledRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
 
             var nativeTexture = GetNativeTexture(GetUploadedTexture(texture));
             var desc = nativeTexture.GetDesc();
@@ -180,7 +186,7 @@ public sealed class GraphicsRenderTargetViewTests
             var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/ResolvedRenderBuffer");
-            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, sampleCount));
+            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(texture), depthStencilTarget: null);
             ClearCurrentRenderTargets(new Color(1.0f, 0.0f, 0.0f, 1.0f), clearColorTarget: true, clearDepth: false, clearStencil: false);
@@ -205,7 +211,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/SingleSampleResolvedRenderBuffer");
-            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, 1));
+            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 1));
             var renderTargetView = ResolveRenderTargetView(RenderTargetView.Texture(texture));
             Assert.False(renderTargetView.IsNull);
 
@@ -232,7 +238,7 @@ public sealed class GraphicsRenderTargetViewTests
             var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
             Assert.True(sampleCount > 1, $"Expected multisample level > 1, got {sampleCount}.");
             var texture = new Texture2D("Textures/ManualResolveRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, sampleCount, noMultiSampledAutoResolve: true));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount, noMultiSampledAutoResolve: true));
 
             var nativeTexture = GetNativeTexture(GetUploadedTexture(texture));
             var shaderResourceTexture = GetShaderResourceTexture(texture);
@@ -249,8 +255,8 @@ public sealed class GraphicsRenderTargetViewTests
         {
             var source = new Texture2D("Textures/CopySource");
             var destination = new Texture2D("Textures/CopyDestination");
-            Assert.True(source.SetSize(8, 8, TextureFormat.RGBA8));
-            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8));
+            Assert.True(source.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(source), depthStencilTarget: null);
             ClearCurrentRenderTargets(new Color(1.0f, 0.0f, 0.0f, 1.0f), clearColorTarget: true, clearDepth: false, clearStencil: false);
@@ -276,7 +282,7 @@ public sealed class GraphicsRenderTargetViewTests
             var source = new Texture2D("Textures/CpuCopySource");
             var destination = new Texture2D("Textures/CpuCopyDestination");
             Assert.True(source.SetSize(1, 1, TextureFormat.RGBA8));
-            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8));
+            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
             Assert.True(source.SetData(0, 0, 0, 1, 1, [255, 0, 0, 255]));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(destination), depthStencilTarget: null);

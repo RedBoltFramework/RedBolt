@@ -11,6 +11,9 @@ public enum TextureFormat
     RG16F,
     RGB8,
     RGBA8,
+    RGBA8Srgb,
+    BGRA8,
+    BGRA8Srgb,
     RGBA16F
 }
 
@@ -442,7 +445,8 @@ public abstract class Texture : ResourceWithMetadata
         Height = Math.Max(height, 0);
         Depth = Math.Max(depth, 1);
         MultiSample = Math.Max(multiSample, 1);
-        NoMultiSampledAutoResolve = noMultiSampledAutoResolve;
+        NoMultiSampledAutoResolve = noMultiSampledAutoResolve ||
+            (flags & TextureFlag.NoMultiSampledAutoResolve) != 0;
         _textureFlags = flags | (noMultiSampledAutoResolve ? TextureFlag.NoMultiSampledAutoResolve : TextureFlag.None);
         Format = format;
         Levels = _requestedLevels == 0

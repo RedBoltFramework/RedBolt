@@ -604,6 +604,27 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Texture_render_buffer_creates_depth_stencil_texture_for_all_depth_formats()
+    {
+        foreach (var format in new[]
+                 {
+                     TextureFormat.Depth16,
+                     TextureFormat.Depth32,
+                     TextureFormat.Depth24Stencil8,
+                     TextureFormat.Depth32Stencil8
+                 })
+        {
+            var buffer = new TextureRenderBuffer(new RenderBufferParams(format));
+
+            buffer.RefreshForViewport(new IntRect(0, 0, 320, 200));
+
+            var flags = buffer.Texture.GetRawTexture()!.GetParams().Flags;
+            Assert.True((flags & TextureFlag.BindDepthStencil) != 0);
+            Assert.True((flags & TextureFlag.BindRenderTarget) == 0);
+        }
+    }
+
+    [Fact]
     public void Render_buffer_manager_respects_color_space_over_output_texture_format()
     {
         var manager = new RenderBufferManager();

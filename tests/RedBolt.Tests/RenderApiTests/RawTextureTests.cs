@@ -6,6 +6,33 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RawTextureTests
 {
+    [Fact]
+    public void Texture2D_image_upload_and_readback_use_raw_texture()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var image = new Image("Textures/RawTextureImage");
+            var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
+            Assert.True(image.SetSize(2, 2, 4u));
+            image.SetData(imageData);
+
+            var texture = new Texture2D("Textures/RawTexture2D");
+            texture.SetNumLevels(1u);
+            Assert.True(texture.SetData(image));
+
+            var readback = new byte[16];
+            Assert.True(texture.GetData(0u, readback));
+            Assert.Equal(imageData, readback);
+            Assert.False(texture.GetData(0u, new byte[15]));
+
+            var output = texture.GetImage();
+            Assert.NotNull(output);
+            Assert.Equal(2, output.Width);
+            Assert.Equal(2, output.Height);
+            Assert.Equal(imageData, output.GetData());
+        });
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public RawTextureTests(HeadlessEngineFixture fixture)

@@ -136,16 +136,21 @@ public sealed class TextureRenderBuffer : RenderBuffer
     {
         var nextSize = CalculateTextureSize(outputViewportRect.Size);
         var nextFormat = _bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : _bufferParams.TextureFormat;
+        var textureFlags = RenderAPIUtils.IsDepthTextureFormat(nextFormat)
+            ? TextureFlag.BindDepthStencil
+            : TextureFlag.BindRenderTarget;
+        if ((_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0)
+            textureFlags |= TextureFlag.NoMultiSampledAutoResolve;
         if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat || Texture.MultiSample != _bufferParams.MultiSampleLevel)
         {
             switch (Texture)
             {
-                case Texture2D texture2D when texture2D.SetSize(nextSize.X, nextSize.Y, nextFormat, _bufferParams.MultiSampleLevel,
-                    (_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0):
+                case Texture2D texture2D when texture2D.SetSize(
+                    nextSize.X, nextSize.Y, nextFormat, textureFlags, _bufferParams.MultiSampleLevel):
                     break;
 
-                case TextureCube textureCube when textureCube.SetSize(Math.Max(nextSize.X, nextSize.Y), nextFormat, _bufferParams.MultiSampleLevel,
-                    (_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0):
+                case TextureCube textureCube when textureCube.SetSize(
+                    Math.Max(nextSize.X, nextSize.Y), nextFormat, textureFlags, _bufferParams.MultiSampleLevel):
                     nextSize = new Vector2i(textureCube.Width, textureCube.Height);
                     break;
 
@@ -154,7 +159,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
             }
         }
 
-        if (!IsDepthTextureFormat(nextFormat))
+        if (!RenderAPIUtils.IsDepthTextureFormat(nextFormat))
         {
             Texture.SetFilterMode((_bufferParams.Flags & RenderBufferFlag.BilinearFiltering) != 0
                 ? TextureFilterMode.Bilinear
@@ -179,6 +184,4 @@ public sealed class TextureRenderBuffer : RenderBuffer
         return new Vector2i(width, height);
     }
 
-    private static bool IsDepthTextureFormat(TextureFormat format)
-        => format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8;
 }

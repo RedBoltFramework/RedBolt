@@ -181,7 +181,7 @@ public sealed class TextureTests
     }
 
     [Fact]
-    public void Texture2D_image_upload_and_readback_work()
+    public void Texture2D_image_upload_configures_texture()
     {
         var image = new Image("Textures/SmokeImage");
         var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
@@ -192,16 +192,9 @@ public sealed class TextureTests
         texture.SetNumLevels(1u);
         Assert.True(texture.SetData(image));
 
-        var readback = new byte[16];
-        Assert.True(texture.GetData(0u, readback));
-        Assert.Equal(imageData, readback);
-        Assert.False(texture.GetData(0u, new byte[15]));
-
-        var output = texture.GetImage();
-        Assert.NotNull(output);
-        Assert.Equal(2, output.Width);
-        Assert.Equal(2, output.Height);
-        Assert.Equal(imageData, output.GetData());
+        Assert.Equal(2, texture.Width);
+        Assert.Equal(2, texture.Height);
+        Assert.Equal(TextureFormat.RGBA8, texture.Format);
     }
 
     [Fact]

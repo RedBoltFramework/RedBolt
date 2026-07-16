@@ -2,7 +2,6 @@ namespace RedBolt;
 
 public sealed class Texture2D : Texture
 {
-    private readonly Dictionary<uint, byte[]> _levelData = new();
     private Image? _loadImage;
     private XMLFile? _loadParameters;
 
@@ -69,98 +68,31 @@ public sealed class Texture2D : Texture
             return false;
 
         SetDimensions(width, height, 1, format, multiSample, noMultiSampledAutoResolve, flags);
-        _levelData.Clear();
-        RefreshTotalMemoryUse();
         return true;
     }
 
-    // C++ simply calls Update(level, {x,y,0}, {width,height,1}, 0, data). _levelData management is C#-added.
     public bool SetData(uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        if (level >= Levels || x < 0 || y < 0 || width <= 0 || height <= 0)
-            return false;
-
-        var levelWidth = GetLevelWidth(level);
-        var levelHeight = GetLevelHeight(level);
-        if (x + width > levelWidth || y + height > levelHeight)
-            return false;
-
-        var bytesPerPixel = (int)GetComponents();
-        if (bytesPerPixel == 0)
-            return false;
-
-        var expected = checked(width * height * bytesPerPixel);
-        if (data.Length != expected)
-            return false;
-
-        if (!_levelData.TryGetValue(level, out var levelBytes))
-        {
-            levelBytes = new byte[checked(levelWidth * levelHeight * bytesPerPixel)];
-            _levelData[level] = levelBytes;
-        }
-
-        for (var row = 0; row < height; ++row)
-        {
-            var sourceOffset = row * width * bytesPerPixel;
-            var destinationOffset = ((y + row) * levelWidth + x) * bytesPerPixel;
-            data.Slice(sourceOffset, width * bytesPerPixel).CopyTo(levelBytes.AsSpan(destinationOffset, width * bytesPerPixel));
-        }
-
         GetRawTexture()?.Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), 0u, data);
-
-        RefreshTotalMemoryUse();
         return true;
     }
 
     public bool SetData(uint level, int x, int y, int width, int height, byte[] data) => SetData(level, x, y, width, height, data.AsSpan());
 
-    // C++ uses CreateForImage(params, image) + UpdateFromImage(). C# manually computes mips.
     public bool SetData(Image? image)
     {
-        ArgumentNullException.ThrowIfNull(image);
-
-        var maxLevels = image.IsCompressed()
-            ? Math.Max(image.NumCompressedLevels, 1u)
-            : CalculateFullMipChainLength(Math.Max(image.Width, Math.Max(image.Height, image.Depth)));
-        var mostDetailedLevel = Math.Min((uint)GetMipsToSkip(MaterialQuality.High), maxLevels - 1u);
-        var numLevels = _requestedLevels == 0
-            ? maxLevels - mostDetailedLevel
-            : Math.Min(_requestedLevels, maxLevels - mostDetailedLevel);
-
-        _mostDetailedLevel = mostDetailedLevel;
-        SetNumLevels(numLevels);
-        Levels = numLevels;
-
-        var baseLevel = image.GetDecompressedImageLevel(mostDetailedLevel);
-        if (baseLevel is null || !SetSize(baseLevel.Width, baseLevel.Height, TextureFormat.RGBA8))
+        var parameters = new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+            NumLevels: _requestedLevels);
+        if (!CreateForImage(parameters, image))
             return false;
 
-        for (var level = 0u; level < Levels; ++level)
-        {
-            var mipImage = image.GetDecompressedImageLevel(mostDetailedLevel + level);
-            if (mipImage is null)
-                return false;
-
-            if (!SetData(level, 0, 0, mipImage.Width, mipImage.Height, mipImage.GetData()))
-                return false;
-        }
-
-        return true;
+        return UpdateFromImage(0, image);
     }
 
-    public byte[]? GetData(uint level)
-    {
-        return GetDataNoCopy(level)?.ToArray();
-    }
-
-    // C++ calls Read(0, level, dest, M_MAX_UNSIGNED). C# reads from _levelData cache.
     public bool GetData(uint level, Span<byte> destination)
     {
-        if (!_levelData.TryGetValue(level, out var levelBytes) || destination.Length < levelBytes.Length)
-            return false;
-
-        levelBytes.AsSpan().CopyTo(destination);
-        return true;
+        return GetRawTexture()?.Read(0, level, destination) == true;
     }
 
     public bool GetData(uint level, byte[] destination)
@@ -169,21 +101,9 @@ public sealed class Texture2D : Texture
         return GetData(level, destination.AsSpan());
     }
 
-    // C++ calls ReadToImage(0, 0, &image). C# falls back to _levelData when ReadToImage returns empty.
     public bool GetImage(Image image)
     {
-        ArgumentNullException.ThrowIfNull(image);
-        if (Format is not (TextureFormat.RGB8 or TextureFormat.RGBA8))
-            return false;
-
-        if (!_levelData.TryGetValue(0u, out var levelBytes))
-            return ReadToImage(0u, 0u, image);
-
-        if (!image.SetSize(Width, Height, 4u))
-            return false;
-
-        image.SetData(levelBytes);
-        return true;
+        return ReadToImage(0, 0, image);
     }
 
     public Image? GetImage()
@@ -192,28 +112,4 @@ public sealed class Texture2D : Texture
         return GetImage(image) ? image : null;
     }
 
-    internal byte[]? GetDataNoCopy(uint level) => _levelData.TryGetValue(level, out var bytes) ? bytes : null;
-
-    private void RefreshTotalMemoryUse()
-    {
-        var total = 0;
-        foreach (var item in _levelData)
-            total += item.Value.Length;
-        RefreshMemoryUse((uint)total);
-    }
-
-    private static uint CalculateFullMipChainLength(int largestDimension)
-    {
-        if (largestDimension <= 0)
-            return 1u;
-
-        var levels = 1u;
-        while (largestDimension > 1)
-        {
-            largestDimension = Math.Max(largestDimension / 2, 1);
-            ++levels;
-        }
-
-        return levels;
-    }
 }
