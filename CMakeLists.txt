@@ -123,7 +123,7 @@ include(cmake/RedBoltSharpCpp.cmake)
 set(REDBOLT_GLSLANG_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang")
 set(REDBOLT_SPIRV_CROSS_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Cross")
 set(REDBOLT_SPIRV_TOOLS_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools")
-set(REDBOLT_GLSLANG_C_HEADER "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Include/glslang_c_interface.h")
+set(REDBOLT_GLSLANG_C_HEADER "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Public/resource_limits_c.h")
 set(REDBOLT_SPIRV_CROSS_C_HEADER "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}/spirv_cross_c.h")
 set(REDBOLT_SPIRV_TOOLS_C_HEADER "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include/spirv-tools/libspirv.h")
 
@@ -322,14 +322,14 @@ redbolt_add_native_binding_generation(
     TARGET redbolt-generate-glslang-bindings
     SURFACE glslang
     HEADER "${REDBOLT_GLSLANG_C_HEADER}"
-    HEADER_INCLUDE_PATH "glslang/Include/glslang_c_interface.h"
+    HEADER_INCLUDE_PATH "glslang/Public/resource_limits_c.h"
     FILE_STEM "${REDBOLT_GLSLANG_BINDINGS_STEM}"
     OUTPUT_DIR "${REDBOLT_GLSLANG_GENERATED_DIR}"
     OUTPUT_METADATA "${REDBOLT_GLSLANG_BINDINGS_JSON}"
     OUTPUT_CS "${REDBOLT_GLSLANG_BINDINGS_CS}"
     OUTPUT_CPP "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     INCLUDE_DIRS "${REDBOLT_GLSLANG_SOURCE_ROOT}"
-    OWNED_HEADERS "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Include")
+    OWNED_HEADERS "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Include" "${REDBOLT_GLSLANG_SOURCE_ROOT}/glslang/Public")
 
 redbolt_add_native_binding_generation(
     TARGET redbolt-generate-spirv-cross-bindings

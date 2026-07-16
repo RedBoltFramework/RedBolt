@@ -10,7 +10,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <ProjectReference Include="../RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.Glslang/RedBolt.Bindings.Glslang.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <ProjectReference Include="../RedBolt.Bindings.SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Stb/RedBolt.Bindings.Stb.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Lz4/RedBolt.Bindings.Lz4.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.WebP/RedBolt.Bindings.WebP.csproj" />

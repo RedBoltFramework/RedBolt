@@ -266,9 +266,7 @@ public sealed partial class ShaderVariation : RawShader
         if (string.IsNullOrEmpty(cacheDirectory))
             return FileIdentifier.Empty;
 
-        var fileIdentifier = new FileIdentifier(cacheDirectory);
-        if (string.IsNullOrEmpty(fileIdentifier.Scheme))
-            fileIdentifier = new FileIdentifier("file", Path.GetFullPath(fileIdentifier.FileName));
+        var fileIdentifier = FileIdentifier.FromUri(cacheDirectory);
         fileIdentifier.AppendPath(variationName);
         return fileIdentifier;
     }

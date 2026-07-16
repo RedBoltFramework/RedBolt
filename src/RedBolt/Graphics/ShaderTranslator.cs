@@ -1,3 +1,8 @@
+using System.Runtime.InteropServices;
+using System.Text;
+using RedBolt.Bindings.Glslang;
+using RedBolt.Bindings.SpirVCross;
+
 namespace RedBolt;
 
 /// <summary>
@@ -30,81 +35,390 @@ public static class ShaderTranslator
         return end < 0 ? ((uint)start, (uint)shaderCode.Length) : ((uint)start, (uint)end);
     }
 
-    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
-    // URHO3D_API void ParseUniversalShader(SpirVShader& output, ShaderType shaderType, ea::string_view sourceCode,
-    //     const ShaderDefineArray& shaderDefines, TargetShaderLanguage targetLanguage);
-    // void ParseUniversalShader(SpirVShader& output, ShaderType shaderType, ea::string_view sourceCode,
-    //     const ShaderDefineArray& shaderDefines, TargetShaderLanguage targetLanguage)
-    // {
-    // #ifdef URHO3D_SHADER_TRANSLATOR
-    //     CompileSpirV(output, ConvertShaderType(shaderType), sourceCode, shaderDefines, targetLanguage);
-    // #else
-    //     URHO3D_ASSERTLOG(0, "URHO3D_SHADER_TRANSLATOR should be enabled to use ParseUniversalShader");
-    //
-    //     output = {};
-    // #endif
-    // }
+    /// <summary>Convert universal GLSL shader to SPIR-V.</summary>
+    public static void ParseUniversalShader(ref SpirVShader output, ShaderType shaderType, string sourceCode,
+        ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
+    {
+        CompileSpirV(ref output, ConvertShaderType(shaderType), sourceCode, shaderDefines, targetLanguage);
+    }
 
-    // TODO: port: the managed API has no glslang translator or SPIR-V-Cross binding.
-    // URHO3D_API void TranslateSpirVShader(
-    //     TargetShader& output, const SpirVShader& shader, TargetShaderLanguage targetLanguage);
-    // void TranslateSpirVShader(TargetShader& output, const SpirVShader& shader, TargetShaderLanguage targetLanguage)
-    // {
-    // #ifdef URHO3D_SHADER_TRANSLATOR
-    //     output.language_ = targetLanguage;
-    //     switch (targetLanguage)
-    //     {
-    //     case TargetShaderLanguage::HLSL_5_0:
-    //         ConvertToHLSL5(output, shader);
-    //         break;
-    //
-    //     case TargetShaderLanguage::GLSL_4_1:
-    //         ConvertToGLSL(output, shader, 410, false);
-    //         break;
-    //
-    //     case TargetShaderLanguage::GLSL_ES_3_0:
-    //         ConvertToGLSL(output, shader, 300, true);
-    //         break;
-    //
-    //     default:
-    //         URHO3D_ASSERTLOG(0, "TODO: Implement");
-    //     }
-    // #else
-    //     URHO3D_ASSERTLOG(0, "URHO3D_SHADER_TRANSLATOR should be enabled to use TranslateSpirVShader");
-    //
-    //     output = {};
-    // #endif
-    // }
+    private static GlslangStageT ConvertShaderType(ShaderType shaderType)
+    {
+        return shaderType switch
+        {
+            ShaderType.VS => GlslangStageT.GlslangStageVertex,
+            ShaderType.PS => GlslangStageT.GlslangStageFragment,
+            ShaderType.GS => GlslangStageT.GlslangStageGeometry,
+            ShaderType.HS => GlslangStageT.GlslangStageTesscontrol,
+            ShaderType.DS => GlslangStageT.GlslangStageTessevaluation,
+            ShaderType.CS => GlslangStageT.GlslangStageCompute,
+            _ => GlslangStageT.GlslangStageVertex
+        };
+    }
 
-    // TODO: port: the managed API has no SPIR-V-Cross reflection binding.
-    // URHO3D_API VertexShaderAttributeVector GetVertexAttributesFromSpirV(const SpirVShader& shader);
-    // VertexShaderAttributeVector GetVertexAttributesFromSpirV(const SpirVShader& shader)
-    // {
-    // #ifdef URHO3D_SHADER_TRANSLATOR
-    //     VertexShaderAttributeVector result;
-    //
-    //     // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
-    //     spirv_cross::Parser parser{shader.bytecode_};
-    //     parser.parse();
-    //     spirv_cross::Compiler compiler{ea::move(parser.get_parsed_ir())};
-    //
-    //     spirv_cross::ShaderResources resources = compiler.get_shader_resources();
-    //     for (const auto& input : resources.stage_inputs)
-    //     {
-    //         if (compiler.has_decoration(input.id, spv::DecorationLocation))
-    //         {
-    //             const auto location = compiler.get_decoration(input.id, spv::DecorationLocation);
-    //             if (const auto vertexInput = ParseVertexAttribute(input.name.c_str()))
-    //             {
-    //                 result.push_back(*vertexInput);
-    //                 result.back().inputIndex_ = location;
-    //             }
-    //         }
-    //     }
-    //     return result;
-    // #else
-    //     URHO3D_ASSERTLOG(0, "URHO3D_SHADER_TRANSLATOR should be enabled to use GetVertexAttributesFromSpirV");
-    //     return {};
-    // #endif
-    // }
+    private static void AppendWithoutVersion(StringBuilder dest, string source)
+    {
+        var versionTag = FindVersionTag(source);
+        if (versionTag is null)
+        {
+            dest.Append(source);
+            return;
+        }
+
+        var version = checked((int)versionTag.Value.Start);
+        dest.Append(source, 0, version);
+        dest.Append("//");
+        dest.Append(source, version, source.Length - version);
+    }
+
+    /// <summary>Compile SpirV shader.</summary>
+    private static void CompileSpirV(ref SpirVShader outputShader, GlslangStageT stage, string sourceCode,
+        ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
+    {
+        outputShader.Bytecode.Clear();
+        outputShader.CompilerOutput = string.Empty;
+
+        // Prepare defines
+        var shaderCode = new StringBuilder("#version 450\n");
+        foreach (var define in shaderDefines.Defines)
+            shaderCode.Append("#define ").Append(define.Name).Append(' ').Append(define.Value).Append('\n');
+        AppendWithoutVersion(shaderCode, sourceCode);
+
+        GlslangGuardian.EnsureInitialized();
+        var source = Marshal.StringToCoTaskMemUTF8(shaderCode.ToString());
+        GlslangShaderS? shader = null;
+        GlslangProgramS? program = null;
+        try
+        {
+            var envClient = targetLanguage == TargetShaderLanguage.Vulkan10
+                ? GlslangClientT.GlslangClientVulkan
+                : GlslangClientT.GlslangClientOpengl;
+            using var input = new GlslangInputS
+            {
+                Language = GlslangSourceT.GlslangSourceGlsl,
+                Stage = stage,
+                Client = envClient,
+                ClientVersion = envClient == GlslangClientT.GlslangClientVulkan
+                    ? GlslangTargetClientVersionT.GlslangTargetVulkan10
+                    : GlslangTargetClientVersionT.GlslangTargetOpengl450,
+                TargetLanguage = GlslangTargetLanguageT.GlslangTargetSpv,
+                TargetLanguageVersion = GlslangTargetLanguageVersionT.GlslangTargetSpv10,
+                Code = source,
+                DefaultVersion = 450,
+                DefaultProfile = GlslangProfileT.GlslangCoreProfile,
+                ForceDefaultVersionAndProfile = 0,
+                ForwardCompatible = 0,
+                Messages = GlslangMessagesT.GlslangMsgDefaultBit,
+                Resource = GlslangNativeBindings.GlslangDefaultResource()
+            };
+
+            shader = GlslangNativeBindings.GlslangShaderCreate(input);
+            GlslangNativeBindings.GlslangShaderSetOptions(shader,
+                (int)GlslangShaderOptionsT.GlslangShaderAutoMapLocations);
+            if (GlslangNativeBindings.GlslangShaderPreprocess(shader, input) == 0)
+            {
+                outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
+                    GlslangNativeBindings.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
+                return;
+            }
+            input.Code = GlslangNativeBindings.GlslangShaderGetPreprocessedCode(shader);
+            if (GlslangNativeBindings.GlslangShaderParse(shader, input) == 0)
+            {
+                outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
+                    GlslangNativeBindings.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
+                return;
+            }
+
+            program = GlslangNativeBindings.GlslangProgramCreate();
+            GlslangNativeBindings.GlslangProgramAddShader(program, shader);
+            if (GlslangNativeBindings.GlslangProgramLink(program, (int)GlslangMessagesT.GlslangMsgDefaultBit) == 0
+                || GlslangNativeBindings.GlslangProgramMapIo(program) == 0)
+            {
+                outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
+                    GlslangNativeBindings.GlslangProgramGetInfoLog(program)) ?? string.Empty;
+                return;
+            }
+
+            using var spvOptions = new GlslangSpvOptionsS
+            {
+                GenerateDebugInfo = true,
+                DisableOptimizer = true,
+                OptimizeSize = false
+            };
+            GlslangNativeBindings.GlslangProgramSpirvGenerateWithOptions(program, stage, spvOptions);
+            var spirvLog = Marshal.PtrToStringUTF8(
+                GlslangNativeBindings.GlslangProgramSpirvGetMessages(program)) ?? string.Empty;
+            if (!string.IsNullOrEmpty(spirvLog))
+            {
+                outputShader.CompilerOutput = spirvLog;
+                return;
+            }
+
+            var size = checked((int)GlslangNativeBindings.GlslangProgramSpirvGetSize(program));
+            var bytecode = GlslangNativeBindings.GlslangProgramSpirvGetPtr(program);
+            outputShader.Bytecode.Capacity = Math.Max(outputShader.Bytecode.Capacity, size);
+            for (var i = 0; i < size; ++i)
+                outputShader.Bytecode.Add(unchecked((uint)Marshal.ReadInt32(bytecode, i * sizeof(uint))));
+        }
+        finally
+        {
+            if (program is not null)
+                GlslangNativeBindings.GlslangProgramDelete(program);
+            if (shader is not null)
+                GlslangNativeBindings.GlslangShaderDelete(shader);
+            Marshal.FreeCoTaskMem(source);
+        }
+    }
+
+    private static class GlslangGuardian
+    {
+        private static readonly bool Initialized = Initialize();
+
+        public static void EnsureInitialized()
+        {
+            _ = Initialized;
+        }
+
+        private static bool Initialize()
+        {
+            var initialized = GlslangNativeBindings.GlslangInitializeProcess() != 0;
+            AppDomain.CurrentDomain.ProcessExit += static (_, _) => GlslangNativeBindings.GlslangFinalizeProcess();
+            return initialized;
+        }
+    }
+
+    /// <summary>Convert SPIR-V shader to target shader language.</summary>
+    public static void TranslateSpirVShader(ref TargetShader output, SpirVShader shader,
+        TargetShaderLanguage targetLanguage)
+    {
+        output.Language = targetLanguage;
+        switch (targetLanguage)
+        {
+            case TargetShaderLanguage.Hlsl50:
+                ConvertToHlsl5(ref output, shader);
+                break;
+
+            case TargetShaderLanguage.Glsl41:
+                ConvertToGlsl(ref output, shader, 410, false);
+                break;
+
+            case TargetShaderLanguage.GlslEs30:
+                ConvertToGlsl(ref output, shader, 300, true);
+                break;
+
+            default:
+                System.Diagnostics.Debug.Assert(false, "TODO: Implement");
+                break;
+        }
+    }
+
+    /// <summary>Convert SpirV to HLSL5</summary>
+    private static void ConvertToHlsl5(ref TargetShader output, SpirVShader shader)
+    {
+        output.SourceCode = string.Empty;
+        output.CompilerOutput = string.Empty;
+
+        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendHlsl, out var context);
+        try
+        {
+            var samplers = new List<string>();
+            RemapHlslInputLayout(compiler, context);
+            CollectHlslSamplers(compiler, context, samplers);
+
+            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
+            SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionEmitLineDirectives, true);
+            SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionHlslShaderModel, 50u);
+            SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionHlslPointSizeCompat, true);
+            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerInstallCompilerOptions(compiler, options), context);
+            output.SourceCode = CompileCompiler(compiler, context);
+            ReplaceHlslSamplers(ref output.SourceCode, samplers);
+            if (string.IsNullOrEmpty(output.SourceCode))
+                output.CompilerOutput = "Unknown error";
+        }
+        finally
+        {
+            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+        }
+    }
+
+    private static void RemapHlslInputLayout(SpvcCompilerS compiler, SpvcContextS context)
+    {
+        if (SpirVCrossNativeBindings.SpvcCompilerGetExecutionModel(compiler)
+            != SpvExecutionModel.SpvExecutionModelVertex)
+            return;
+
+        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+        CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+            SpvcResourceType.SpvcResourceTypeStageInput, out var resourceList, out var resourceCount), context);
+        for (nuint i = 0; i < resourceCount; ++i)
+        {
+            var input = resourceList.GetArrayElement(i);
+            System.Diagnostics.Debug.Assert(SpirVCrossNativeBindings.SpvcCompilerHasDecoration(compiler,
+                input.Id, SpvDecoration.SpvDecorationLocation) != 0);
+            var location = SpirVCrossNativeBindings.SpvcCompilerGetDecoration(compiler,
+                input.Id, SpvDecoration.SpvDecorationLocation);
+            var semantic = Marshal.StringToCoTaskMemUTF8($"ATTRIB{location}");
+            try
+            {
+                using var remap = new SpvcHlslVertexAttributeRemap
+                {
+                    Location = location,
+                    Semantic = semantic
+                };
+                CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerHlslAddVertexAttributeRemap(
+                    compiler, remap, 1), context);
+            }
+            finally
+            {
+                Marshal.FreeCoTaskMem(semantic);
+            }
+        }
+    }
+
+    private static void CollectHlslSamplers(SpvcCompilerS compiler, SpvcContextS context, List<string> samplers)
+    {
+        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+        CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+            SpvcResourceType.SpvcResourceTypeSampledImage, out var resourceList, out var resourceCount), context);
+        for (nuint i = 0; i < resourceCount; ++i)
+        {
+            var resource = resourceList.GetArrayElement(i);
+            var type = SpirVCrossNativeBindings.SpvcCompilerGetTypeHandle(compiler, resource.BaseTypeId);
+            if (SpirVCrossNativeBindings.SpvcTypeGetBasetype(type) == SpvcBasetype.SpvcBasetypeSampledImage
+                && SpirVCrossNativeBindings.SpvcTypeGetImageDimension(type) != SpvDim.SpvDimBuffer)
+            {
+                var name = Marshal.PtrToStringUTF8(resource.Name) ?? string.Empty;
+                samplers.Add("_" + name + "_sampler");
+            }
+        }
+    }
+
+    private static void ReplaceHlslSamplers(ref string hlsl, IReadOnlyList<string> samplers)
+    {
+        const char placeholder = '\u0001';
+        foreach (var name in samplers)
+        {
+            for (var position = hlsl.IndexOf(name, StringComparison.Ordinal); position >= 0;
+                 position = hlsl.IndexOf(name, position, StringComparison.Ordinal))
+            {
+                hlsl = hlsl.Remove(position, 1).Insert(position, placeholder.ToString());
+            }
+        }
+
+        hlsl = hlsl.Replace(placeholder.ToString(), string.Empty, StringComparison.Ordinal);
+    }
+
+    private static void RemoveClipDistance(ref string shaderCode)
+    {
+        var index = shaderCode.IndexOf("out float gl_ClipDistance", StringComparison.Ordinal);
+        if (index >= 0)
+            shaderCode = shaderCode.Insert(index, "// Workaround for GLSL ES:\n// ");
+    }
+
+    private static void ConvertToGlsl(ref TargetShader output, SpirVShader shader, uint version, bool es)
+    {
+        output.SourceCode = string.Empty;
+        output.CompilerOutput = string.Empty;
+
+        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendGlsl, out var context);
+        try
+        {
+            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
+            SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionGlslVersion, version);
+            SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionGlslEs, es);
+            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerInstallCompilerOptions(compiler, options), context);
+            output.SourceCode = CompileCompiler(compiler, context);
+            if (string.IsNullOrEmpty(output.SourceCode))
+            {
+                output.CompilerOutput = "Unknown error";
+                return;
+            }
+
+            if (es)
+                RemoveClipDistance(ref output.SourceCode);
+        }
+        finally
+        {
+            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+        }
+    }
+
+    private static SpvcCompilerS CreateCompiler(SpirVShader shader, SpvcBackend backend, out SpvcContextS context)
+    {
+        CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreate(out context), context: null);
+        try
+        {
+            var bytecode = shader.Bytecode.ToArray();
+            if (bytecode.Length == 0)
+                throw new InvalidOperationException("SPIR-V shader is empty.");
+            CheckSpvc(SpirVCrossNativeBindings.SpvcContextParseSpirv(
+                context, in bytecode[0], checked((nuint)bytecode.Length), out var parsedIr), context);
+            CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreateCompiler(context, backend, parsedIr,
+                SpvcCaptureMode.SpvcCaptureModeTakeOwnership, out var compiler), context);
+            return compiler;
+        }
+        catch
+        {
+            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+            throw;
+        }
+    }
+
+    private static void SetCompilerOption(SpvcCompilerOptionsS options, SpvcCompilerOption option, uint value)
+    {
+        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerOptionsSetUint(options, option, value), null);
+    }
+
+    private static void SetCompilerOption(SpvcCompilerOptionsS options, SpvcCompilerOption option, bool value)
+    {
+        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerOptionsSetBool(options, option, value ? (byte)1 : (byte)0), null);
+    }
+
+    private static string CompileCompiler(SpvcCompilerS compiler, SpvcContextS context)
+    {
+        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCompile(compiler, out var source), context);
+        return Marshal.PtrToStringUTF8(source) ?? string.Empty;
+    }
+
+    private static void CheckSpvc(SpvcResult result, SpvcContextS? context)
+    {
+        if (result == SpvcResult.SpvcSuccess)
+            return;
+
+        var message = context is null
+            ? result.ToString()
+            : Marshal.PtrToStringUTF8(SpirVCrossNativeBindings.SpvcContextGetLastErrorString(context)) ?? result.ToString();
+        throw new InvalidOperationException(message);
+    }
+
+    public static List<VertexShaderAttribute> GetVertexAttributesFromSpirV(SpirVShader shader)
+    {
+        var result = new List<VertexShaderAttribute>();
+        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendNone, out var context);
+        try
+        {
+            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+            CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+                SpvcResourceType.SpvcResourceTypeStageInput, out var resourceList, out var resourceCount), context);
+            for (nuint i = 0; i < resourceCount; ++i)
+            {
+                var input = resourceList.GetArrayElement(i);
+                if (SpirVCrossNativeBindings.SpvcCompilerHasDecoration(compiler,
+                        input.Id, SpvDecoration.SpvDecorationLocation) == 0)
+                    continue;
+
+                var location = SpirVCrossNativeBindings.SpvcCompilerGetDecoration(compiler,
+                    input.Id, SpvDecoration.SpvDecorationLocation);
+                var name = Marshal.PtrToStringUTF8(input.Name) ?? string.Empty;
+                var vertexInput = RenderAPIUtils.ParseVertexAttribute(name);
+                if (vertexInput is not null)
+                    result.Add(vertexInput.Value with { InputIndex = location });
+            }
+            return result;
+        }
+        finally
+        {
+            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+        }
+    }
 }

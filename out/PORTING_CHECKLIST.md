@@ -64,8 +64,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   driver and the host's llvmpipe fallback.
 - [~] Packet 1 generated binding foundation — SharpCpp now generates glslang, SPIRV-Cross C, and SPIRV-Tools
   surfaces into the build tree; dedicated managed binding projects consume them; the native batch links the matching
-  rbfx-version shader libraries; and `ShaderLibraryBindingTests` verifies process/context creation and deterministic
-  release through all three managed surfaces. The standard gate passes 1013 tests and the two-second
+  rbfx-version shader libraries; generated borrowed-record array element access supports SPIRV-Cross reflection lists;
+  and `ShaderLibraryBindingTests` verifies process/context creation and deterministic release through all three managed
+  surfaces. The standard gate passes 1021 tests and the two-second
   MultipleViewports capture is visibly correct. D3DCompiler and backend-specific Diligent surfaces remain pending
   under their platform/backend feature conditions.
 
@@ -190,10 +191,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] shader source logging helpers — source logging and define header output are ported through Engine.Parameters and VirtualFileSystem
 - [~] `ShaderOptimizer.h`
   - [~] shader optimizer helpers — generated SPIRV-Tools context, validator, optimizer-option, and C API access is available and smoke-tested; the exact C++ optimizer body remains pending Packet 3E
-- [~] `ShaderTranslator.h`
+- [x] `ShaderTranslator.h`
   - [x] `struct TargetShader` — target language, source/compiler output storage, and validity conversion are ported
   - [x] `FindVersionTag`
-  - [~] shader translation helpers — generated glslang and SPIRV-Cross C API access is available and smoke-tested; the exact C++ ParseUniversalShader, TranslateSpirVShader, and SPIR-V reflection bodies remain pending Packets 3B-3D
+  - [x] shader translation helpers — universal GLSL compilation to SPIR-V, HLSL 5.0 semantic/sampler remapping, GLSL 4.1 and GLSL ES 3.0 translation, clip-distance handling, and SPIR-V vertex-input reflection match C++; focused tests cover diagnostics, all target languages, remapping, and reflected semantic/location indices
 - [~] `ShaderCompiler.h`
   - [~] shader compiler helpers — exact C++ D3DCompile implementation is preserved as a TODO; managed generated bindings do not expose D3DCompile or COM shader blobs
 
