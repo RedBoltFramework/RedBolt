@@ -116,9 +116,84 @@ public sealed class AnimatedModelTests
         Assert.Empty(query.Result);
     }
 
+    [Fact]
+    public void Apply_attributes_assigns_existing_bone_nodes()
+    {
+        var model = CreateSkeletonModel("DeferredBones", BoneCollisionShape.Box);
+        var node = new Scene().CreateChild("AnimatedModel");
+        var rootNode = node.CreateChild("Root");
+        var animatedModel = node.CreateComponent<AnimatedModel>();
+
+        animatedModel.SetModel(model, false);
+        Assert.Null(animatedModel.GetSkeleton().GetBone(0u)!.Node);
+
+        animatedModel.ApplyAttributes();
+
+        Assert.Same(rootNode, animatedModel.GetSkeleton().GetBone(0u)!.Node);
+        Assert.Contains(animatedModel, rootNode.GetListeners());
+    }
+
+    [Fact]
+    public void Compatible_skeleton_reload_preserves_bone_node_and_animated_state()
+    {
+        var node = new Scene().CreateChild("AnimatedModel");
+        var animatedModel = node.CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(CreateSkeletonModel("First", BoneCollisionShape.Box), true);
+        var originalNode = animatedModel.GetSkeleton().GetBone(0u)!.Node;
+        animatedModel.GetSkeleton().GetModifiableBones()[0].Animated = false;
+
+        animatedModel.SetModel(CreateSkeletonModel("Second", BoneCollisionShape.Sphere), true);
+
+        var bone = animatedModel.GetSkeleton().GetBone(0u)!;
+        Assert.Same(originalNode, bone.Node);
+        Assert.False(bone.Animated);
+        Assert.Equal(BoneCollisionShape.Sphere, bone.CollisionMask);
+    }
+
+    [Fact]
+    public void Update_bone_bounding_box_uses_local_bone_transform()
+    {
+        var model = CreateSkeletonModel("Bounds", BoneCollisionShape.Box);
+        model.GetSkeleton().GetModifiableBones()[0].InitialPosition = new Vector3f(3.0f, 0.0f, 0.0f);
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(model, true);
+
+        animatedModel.UpdateBoneBoundingBox();
+
+        var bounds = animatedModel.GetWorldBoundingBox();
+        Assert.Equal(Intersection.Inside, bounds.IsInside(new Vector3f(3.0f, 0.0f, 0.0f)));
+        Assert.Equal(Intersection.Outside, bounds.IsInside(Vector3f.Zero));
+    }
+
+    [Fact]
+    public void Non_master_model_uses_master_bone_nodes_and_world_bounds()
+    {
+        var node = new Scene().CreateChild("AnimatedModels");
+        var master = node.CreateComponent<AnimatedModel>();
+        master.SetModel(CreateSkeletonModel("Master", BoneCollisionShape.Box), true);
+        master.UpdateBoneBoundingBox();
+        var attachment = node.CreateComponent<AnimatedModel>();
+        attachment.SetModel(CreateSkeletonModel("Attachment", BoneCollisionShape.Box), false);
+
+        attachment.ApplyAttributes();
+
+        Assert.True(master.IsMaster());
+        Assert.False(attachment.IsMaster());
+        Assert.Same(master.GetSkeleton().GetBone(0u)!.Node, attachment.GetSkeleton().GetBone(0u)!.Node);
+        Assert.Equal(master.GetWorldBoundingBox(), attachment.GetWorldBoundingBox());
+    }
+
     private static AnimatedModel CreateAnimatedModel(BoneCollisionShape collisionShape)
     {
-        var model = new Model("AnimatedModelRayQuery");
+        var model = CreateSkeletonModel("AnimatedModelRayQuery", collisionShape);
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(model, true);
+        return animatedModel;
+    }
+
+    private static Model CreateSkeletonModel(string name, BoneCollisionShape collisionShape)
+    {
+        var model = new Model(name);
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         var bone = skeleton.GetModifiableBones()[0];
@@ -129,9 +204,6 @@ public sealed class AnimatedModelTests
         bone.BoundingBox = new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f));
         bone.Radius = 1.0f;
         model.SetSkeleton(skeleton);
-
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
-        animatedModel.SetModel(model, true);
-        return animatedModel;
+        return model;
     }
 }

@@ -6,8 +6,6 @@ namespace RedBolt;
 public class AnimatedModel : StaticModel
 {
     // TODO: port - C++ code:
-    // void ApplyAttributes() override;
-    // TODO: port - C++ code:
     // void UpdateBatches(const FrameInfo& frame) override;
     // TODO: port - C++ code:
     // void UpdateGeometry(const FrameInfo& frame) override;
@@ -15,12 +13,6 @@ public class AnimatedModel : StaticModel
     // UpdateGeometryType GetUpdateGeometryType() override;
     // TODO: port - C++ code:
     // const ea::vector<SharedPtr<VertexBuffer>>& GetMorphVertexBuffers() const;
-    // TODO: port - C++ code:
-    // void UpdateBoneBoundingBox();
-    // TODO: port - C++ code:
-    // protected:
-    // void OnMarkedDirty(Node* node) override;
-    // void OnWorldBoundingBoxUpdate() override;
     // TODO: port - C++ fields:
     // ea::vector<ModelAnimationOutput> skeletonData_;
     // SharedPtr<SoftwareModelAnimator> modelAnimator_;
@@ -40,17 +32,38 @@ public class AnimatedModel : StaticModel
     // bool forceAnimationUpdate_;
     // bool animationDirty_, morphsDirty_, skinningDirty_, boneBoundingBoxDirty_;
 
+    private bool _animationDirty;
+    private bool _morphsDirty;
+    private bool _skinningDirty = true;
+    private bool _boneBoundingBoxDirty = true;
     private readonly Skeleton _skeleton = new();
+    private readonly List<ModelAnimationOutput> _skeletonData = [];
     private AnimationStateSource? _animationStateSource;
     private readonly List<ModelMorph> _morphs = [];
+    private readonly List<Matrix3x4> _skinMatrices = [];
+    private BoundingBox _boneBoundingBox;
+    private uint _animationLodFrameNumber;
     private float _animationLodBias = 1.0f;
+    private float _animationLodTimer = -1.0f;
+    private float _animationLodDistance;
     private bool _updateInvisible;
-    private bool _isMaster;
+    private bool _softwareSkinning;
+    private uint _numSoftwareSkinningBones = 4;
+    private bool _isMaster = true;
+    private bool _assignBonesPending;
+    private bool _forceAnimationUpdate;
     private readonly List<byte> _morphsAttribute = [];
 
     /// <summary>Construct.</summary>
     public AnimatedModel()
     {
+    }
+
+    /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
+    public override void ApplyAttributes()
+    {
+        if (_assignBonesPending)
+            AssignBoneNodes();
     }
 
     /// <summary>Process raycast with custom transform.</summary>
@@ -166,7 +179,11 @@ public class AnimatedModel : StaticModel
             _morphs.Add(morph);
         }
 
+        _boneBoundingBox = GetBoundingBox();
+        _boneBoundingBoxDirty = true;
         SetSkeleton(model.GetSkeleton(), createBones);
+        ResizeList(_skinMatrices, checked((int)_skeleton.GetNumBones()));
+        ResizeList(_skeletonData, checked((int)_skeleton.GetNumBones()));
     }
 
     /// <summary>Set model and create bone nodes.</summary>
@@ -408,25 +425,89 @@ public class AnimatedModel : StaticModel
             return;
         }
 
-        _skeleton.Define(skeleton);
-        if (!createBones)
-            return;
-
-        var bones = _skeleton.GetModifiableBones();
-        for (var i = 0; i < bones.Count; ++i)
+        if (_isMaster)
         {
-            var bone = bones[i];
-            var boneNode = Node!.CreateChild(bone.Name);
-            boneNode.SetTransform(bone.InitialPosition, bone.InitialRotation, bone.InitialScale);
-            bone.Node = boneNode;
+            if (_skeleton.GetNumBones() == skeleton.GetNumBones())
+            {
+                var destBones = _skeleton.GetModifiableBones();
+                var srcBones = skeleton.GetBones();
+                var compatible = true;
+
+                for (var i = 0; i < destBones.Count; ++i)
+                {
+                    if (destBones[i].Node is not null && destBones[i].Name == srcBones[i].Name &&
+                        destBones[i].ParentIndex == srcBones[i].ParentIndex)
+                    {
+                        var boneNode = destBones[i].Node;
+                        var animated = destBones[i].Animated;
+                        destBones[i] = (Bone)srcBones[i].Clone();
+                        destBones[i].Node = boneNode;
+                        destBones[i].Animated = animated;
+                    }
+                    else
+                    {
+                        compatible = false;
+                        break;
+                    }
+                }
+                if (compatible)
+                    return;
+            }
+
+            _animationStateSource?.MarkAnimationStateTracksDirty();
+
+            if (createBones)
+                RemoveRootBone();
+
+            _skeleton.Define(skeleton);
+
+            FinalizeBoneBoundingBoxes();
+
+            if (createBones)
+            {
+                var bones = _skeleton.GetModifiableBones();
+                for (var i = 0; i < bones.Count; ++i)
+                {
+                    var bone = bones[i];
+                    var boneNode = Node!.CreateChild(bone.Name);
+                    boneNode.AddListener(this);
+                    boneNode.SetTransform(bone.InitialPosition, bone.InitialRotation, bone.InitialScale);
+                    boneNode.SetTemporary(IsTemporary);
+                    bone.Node = boneNode;
+                }
+
+                for (var i = 0; i < bones.Count; ++i)
+                {
+                    var parentIndex = bones[i].ParentIndex;
+                    if (parentIndex != i && parentIndex < bones.Count)
+                        bones[(int)parentIndex].Node!.AddChild(bones[i].Node!);
+                }
+            }
+
+            var eventData = new DrawableEvents.BoneHierarchyCreatedEvent { Node = Node };
+            SendEvent(ref eventData);
+        }
+        else
+        {
+            _skeleton.Define(skeleton);
+
+            var master = Node!.GetComponent<AnimatedModel>();
+            if (master is not null && !ReferenceEquals(master, this))
+                master.FinalizeBoneBoundingBoxes();
+
+            if (createBones)
+            {
+                var bones = _skeleton.GetModifiableBones();
+                for (var i = 0; i < bones.Count; ++i)
+                {
+                    var boneNode = Node.GetChild(bones[i].Name, true);
+                    boneNode?.AddListener(this);
+                    bones[i].Node = boneNode;
+                }
+            }
         }
 
-        for (var i = 0; i < bones.Count; ++i)
-        {
-            var parentIndex = bones[i].ParentIndex;
-            if (parentIndex != i && parentIndex < bones.Count)
-                bones[(int)parentIndex].Node!.AddChild(bones[i].Node!);
-        }
+        _assignBonesPending = !createBones;
     }
 
     /// <summary>Visualize the component as debug geometry.</summary>
@@ -445,5 +526,199 @@ public class AnimatedModel : StaticModel
 
         if (currentNode is not null)
             _isMaster = currentNode.FindComponent<AnimatedModel>() is null;
+    }
+
+    /// <summary>Handle node transform being dirtied.</summary>
+    protected internal override void OnMarkedDirty(Node node)
+    {
+        base.OnMarkedDirty(node);
+
+        if (_skeleton.GetNumBones() != 0)
+        {
+            _skinningDirty = true;
+            _boneBoundingBoxDirty = true;
+        }
+    }
+
+    /// <summary>Recalculate the world-space bounding box.</summary>
+    protected override void OnWorldBoundingBoxUpdate()
+    {
+        if (_isMaster)
+            _worldBoundingBox = _boneBoundingBox.Transformed(Node.GetWorldTransform());
+        else
+        {
+            var master = Node.GetComponent<AnimatedModel>();
+            if (ReferenceEquals(master, this))
+                _isMaster = true;
+            if (master is not null)
+                _worldBoundingBox = master.GetWorldBoundingBox();
+        }
+    }
+
+    /// <summary>Recalculate the bone bounding box.</summary>
+    public void UpdateBoneBoundingBox()
+    {
+        InitializeLocalBoneTransforms(false);
+        CalculateLocalBoundingBox();
+    }
+
+    private void AssignBoneNodes()
+    {
+        _assignBonesPending = false;
+
+        if (Node is null)
+            return;
+
+        var allBonesFound = true;
+        var bones = _skeleton.GetModifiableBones();
+        for (var i = 0; i < bones.Count; ++i)
+        {
+            var boneNode = Node.GetChild(bones[i].Name, true);
+            if (boneNode is not null)
+            {
+                boneNode.AddListener(this);
+                bones[i].Node = boneNode;
+            }
+            else
+            {
+                allBonesFound = false;
+                break;
+            }
+        }
+
+        if (!allBonesFound && GetModel() is { } model)
+            SetSkeleton(model.GetSkeleton(), true);
+
+        _animationStateSource?.MarkAnimationStateTracksDirty();
+    }
+
+    private void FinalizeBoneBoundingBoxes()
+    {
+        var bones = _skeleton.GetModifiableBones();
+        var models = Node.GetComponents<AnimatedModel>();
+
+        if (models.Count > 1)
+        {
+            if (GetModel() is { } model)
+            {
+                var modelBones = model.GetSkeleton().GetBones();
+                for (var i = 0; i < bones.Count && i < modelBones.Count; ++i)
+                {
+                    bones[i].CollisionMask = modelBones[i].CollisionMask;
+                    bones[i].Radius = modelBones[i].Radius;
+                    bones[i].BoundingBox = modelBones[i].BoundingBox;
+                }
+            }
+
+            for (var i = 0; i < models.Count; ++i)
+            {
+                if (ReferenceEquals(models[i], this))
+                    continue;
+
+                var otherSkeleton = models[i].GetSkeleton();
+                for (var j = 0; j < bones.Count; ++j)
+                {
+                    var otherBone = otherSkeleton.GetBone(bones[j].NameHash);
+                    if (otherBone is null)
+                        continue;
+                    if ((otherBone.CollisionMask & BoneCollisionShape.Sphere) != 0)
+                    {
+                        bones[j].CollisionMask |= BoneCollisionShape.Sphere;
+                        bones[j].Radius = Math.Max(bones[j].Radius, otherBone.Radius);
+                    }
+                    if ((otherBone.CollisionMask & BoneCollisionShape.Box) != 0)
+                    {
+                        bones[j].CollisionMask |= BoneCollisionShape.Box;
+                        if (bones[j].BoundingBox.Defined)
+                            bones[j].BoundingBox.Merge(otherBone.BoundingBox);
+                        else
+                            bones[j].BoundingBox.Define(otherBone.BoundingBox);
+                    }
+                }
+            }
+        }
+
+        for (var i = 0; i < bones.Count; ++i)
+        {
+            if ((bones[i].CollisionMask & BoneCollisionShape.Box) != 0 &&
+                bones[i].BoundingBox.Size.Length < MathDefs.Epsilon)
+                bones[i].CollisionMask &= ~BoneCollisionShape.Box;
+            if ((bones[i].CollisionMask & BoneCollisionShape.Sphere) != 0 && bones[i].Radius < MathDefs.Epsilon)
+                bones[i].CollisionMask &= ~BoneCollisionShape.Sphere;
+        }
+    }
+
+    private void RemoveRootBone()
+    {
+        var rootBone = _skeleton.GetRootBone();
+        rootBone?.Node?.Remove();
+    }
+
+    private void InitializeLocalBoneTransforms(bool reset)
+    {
+        if (_skeleton.GetNumBones() != _skeletonData.Count)
+            throw new InvalidOperationException("Skeleton data size does not match bone count.");
+
+        for (var i = 0; i < _skeleton.GetNumBones(); ++i)
+        {
+            var bone = _skeleton.GetBone(checked((uint)i))!;
+            var output = _skeletonData[(int)i];
+            output.Dirty = AnimationChannel.None;
+            output.LocalToParent = !reset && bone.Node is not null
+                ? new Transform(bone.Node.Position, bone.Node.Rotation, bone.Node.Scale)
+                : new Transform(bone.InitialPosition, bone.InitialRotation, bone.InitialScale);
+            _skeletonData[(int)i] = output;
+        }
+    }
+
+    private void CalculateFinalBoneTransforms()
+    {
+        var bonesOrder = _skeleton.GetBonesOrder();
+        for (var i = 0; i < bonesOrder.Count; ++i)
+        {
+            var boneIndex = bonesOrder[i];
+            var bone = _skeleton.GetBone(boneIndex)!;
+            var output = _skeletonData[(int)boneIndex];
+            output.LocalToComponent = bone.ParentIndex == boneIndex
+                ? output.LocalToParent.ToMatrix3x4()
+                : _skeletonData[(int)bone.ParentIndex].LocalToComponent * output.LocalToParent.ToMatrix3x4();
+            _skeletonData[(int)boneIndex] = output;
+        }
+    }
+
+    private void CalculateLocalBoundingBox()
+    {
+        CalculateFinalBoneTransforms();
+
+        _boneBoundingBox.Clear();
+
+        var bones = _skeleton.GetBones();
+        if (bones.Count == 0)
+            _boneBoundingBox.Merge(Vector3f.Zero);
+        else
+        {
+            for (var boneIndex = 0; boneIndex < bones.Count; ++boneIndex)
+            {
+                var bone = bones[boneIndex];
+                var transform = _skeletonData[boneIndex].LocalToComponent;
+                if ((bone.CollisionMask & BoneCollisionShape.Box) != 0)
+                    _boneBoundingBox.Merge(bone.BoundingBox.Transformed(transform));
+                else if ((bone.CollisionMask & BoneCollisionShape.Sphere) != 0)
+                    _boneBoundingBox.Merge(new Sphere(transform.Translation, bone.Radius * 0.5f));
+            }
+            if (!_boneBoundingBox.Defined)
+                _boneBoundingBox.Merge(Vector3f.Zero);
+        }
+
+        _boneBoundingBoxDirty = false;
+        _worldBoundingBoxDirty = true;
+    }
+
+    private static void ResizeList<T>(List<T> values, int size)
+    {
+        if (values.Count > size)
+            values.RemoveRange(size, values.Count - size);
+        while (values.Count < size)
+            values.Add(default!);
     }
 }

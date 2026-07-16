@@ -184,8 +184,8 @@ public abstract class Drawable : Component
     }
 
     private BoundingBox _boundingBox;
-    private BoundingBox _worldBoundingBox;
-    private bool _worldBoundingBoxDirty = true;
+    protected BoundingBox _worldBoundingBox;
+    protected bool _worldBoundingBoxDirty = true;
     private CachedDrawableZone _cachedZone;
     private bool _zoneDirty;
     private Octant? _octant;
