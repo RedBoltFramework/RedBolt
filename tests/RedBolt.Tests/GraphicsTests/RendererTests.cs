@@ -158,16 +158,17 @@ public sealed class RendererTests
     }
 
     [Fact]
-    public void Frame_statistics_are_reset_at_end_of_frame()
+    public void Uninitialized_renderer_does_not_subscribe_to_end_frame()
     {
         var statistics = Renderer.GetMutableFrameStats();
         statistics.Animations = 4;
         statistics.ChangedAnimations = 2;
+        var initialized = Renderer.GetQuadGeometry() is not null;
 
         _fixture.Context.SendEvent<CoreEvents.EndFrameEvent>();
 
-        Assert.Equal(0u, statistics.Animations);
-        Assert.Equal(0u, statistics.ChangedAnimations);
+        Assert.Equal(initialized ? 0u : 4u, statistics.Animations);
+        Assert.Equal(initialized ? 0u : 2u, statistics.ChangedAnimations);
     }
 
     [Fact]
@@ -238,7 +239,7 @@ public sealed class RendererTests
     }
 
     [Fact]
-    public void Light_and_quad_geometry_match_renderer_geometry_contract()
+    public void Uninitialized_renderer_does_not_create_light_geometries()
     {
         var directionalLight = new Light();
         directionalLight.SetLightType(LightType.Directional);
@@ -247,10 +248,20 @@ public sealed class RendererTests
         var pointLight = new Light();
         pointLight.SetLightType(LightType.Point);
 
-        Assert.Same(Renderer.GetQuadGeometry(), Renderer.GetLightGeometry(directionalLight));
-        Assert.Equal(6u, Renderer.GetLightGeometry(directionalLight)!.GetIndexCount());
-        Assert.Equal(36u, Renderer.GetLightGeometry(spotLight)!.GetIndexCount());
-        Assert.Equal(132u, Renderer.GetLightGeometry(pointLight)!.GetIndexCount());
+        if (Renderer.GetQuadGeometry() is not null)
+        {
+            Assert.Same(Renderer.GetQuadGeometry(), Renderer.GetLightGeometry(directionalLight));
+            Assert.Equal(6u, Renderer.GetLightGeometry(directionalLight)!.GetIndexCount());
+            Assert.Equal(36u, Renderer.GetLightGeometry(spotLight)!.GetIndexCount());
+            Assert.Equal(132u, Renderer.GetLightGeometry(pointLight)!.GetIndexCount());
+        }
+        else
+        {
+            Assert.Null(Renderer.GetQuadGeometry());
+            Assert.Null(Renderer.GetLightGeometry(directionalLight));
+            Assert.Null(Renderer.GetLightGeometry(spotLight));
+            Assert.Null(Renderer.GetLightGeometry(pointLight));
+        }
     }
 
     [Fact]

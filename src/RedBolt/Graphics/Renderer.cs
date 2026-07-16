@@ -43,17 +43,14 @@ public sealed class Renderer : Object
     private readonly HashSet<Octree> _updatedOctrees = [];
     private readonly CommonFrameInfo _frameInfo = new();
     private readonly FrameStatistics _frameStats = new();
+    private bool _initialized;
+    private bool _resetViews;
+    private bool _hardwareSkinningSupported = true;
 
     public Renderer()
     {
-        CreateGeometries();
-        SubscribeToEvent<CoreEvents.RenderUpdateEvent>((ref CoreEvents.RenderUpdateEvent eventData) =>
-            Update(eventData.TimeStep));
-        SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
-        {
-            _frameStats.Animations = 0;
-            _frameStats.ChangedAnimations = 0;
-        });
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>((ref GraphicsEvents.ScreenModeEvent _) => HandleScreenMode());
+        Initialize();
     }
 
     public int TextureAnisotropy { get; private set; } = 4;
@@ -165,16 +162,7 @@ public sealed class Renderer : Object
         return _defaultTechnique;
     }
 
-    public Material GetDefaultMaterial()
-    {
-        _defaultMaterial ??= new Material(string.Empty);
-        if (_defaultMaterial.GetNumTechniques() == 0 || _defaultMaterial.GetTechniqueEntry(0).Technique is null)
-        {
-            _defaultMaterial.SetNumTechniques(1);
-            _defaultMaterial.SetTechnique(0, GetDefaultTechnique());
-        }
-        return _defaultMaterial;
-    }
+    public Material? GetDefaultMaterial() => _defaultMaterial;
 
     public Texture2D? GetDefaultLightRamp()
     {
@@ -249,7 +237,8 @@ public sealed class Renderer : Object
 
     public SkinningMode GetSkinningMode() => SkinningMode;
 
-    public bool GetUseHardwareSkinning() => SkinningMode is SkinningMode.Auto or SkinningMode.Hardware;
+    public bool GetUseHardwareSkinning() =>
+        SkinningMode == SkinningMode.Auto && _hardwareSkinningSupported || SkinningMode == SkinningMode.Hardware;
 
     public void SetNumSoftwareSkinningBones(uint numBones)
     {
@@ -342,6 +331,7 @@ public sealed class Renderer : Object
             UpdateQueuedViewport(i, graphics);
 
         _queuedViewports.Clear();
+        _resetViews = false;
     }
 
     public void Render()
@@ -382,7 +372,7 @@ public sealed class Renderer : Object
         var (renderTarget, viewport) = _queuedViewports[index];
 
         var renderPipelineView = viewport.GetRenderPipelineView();
-        if (renderPipelineView is null)
+        if (renderPipelineView is null || _resetViews)
         {
             viewport.AllocateView();
             renderPipelineView = viewport.GetRenderPipelineView();
@@ -423,6 +413,43 @@ public sealed class Renderer : Object
     {
         while (_viewports.Count < count)
             _viewports.Add(null);
+    }
+
+    private void Initialize()
+    {
+        var graphics = GetSubsystem<Graphics>();
+        var cache = GetSubsystem<ResourceCache>();
+
+        if (graphics is null || !graphics.IsInitialized || cache is null)
+            return;
+
+        _hardwareSkinningSupported = true;
+
+        _defaultLightRamp = cache.GetResourceOrNull<Texture2D>("Textures/Ramp.png");
+        _defaultLightSpot = cache.GetResourceOrNull<Texture2D>("Textures/Spot.png");
+        _defaultMaterial = new Material(string.Empty);
+
+        CreateGeometries();
+
+        SetNumViewports(1);
+
+        _initialized = true;
+
+        SubscribeToEvent<CoreEvents.RenderUpdateEvent>((ref CoreEvents.RenderUpdateEvent eventData) =>
+            Update(eventData.TimeStep));
+        SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
+        {
+            _frameStats.Animations = 0;
+            _frameStats.ChangedAnimations = 0;
+        });
+    }
+
+    private void HandleScreenMode()
+    {
+        if (!_initialized)
+            Initialize();
+        else
+            _resetViews = true;
     }
 
     private void ReloadTextures()

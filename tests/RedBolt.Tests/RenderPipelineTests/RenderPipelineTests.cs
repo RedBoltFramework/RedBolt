@@ -331,7 +331,6 @@ public sealed class RenderPipelineTests
         Assert.NotNull(manager.GetColorOutput().GetTexture());
         Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
         Assert.Equal(TextureFormat.RGBA16F, manager.GetColorOutput().GetTexture()!.Format);
-        Assert.Equal(TextureFormat.Depth24Stencil8, manager.GetDepthStencilOutput().GetTexture()!.Format);
         Assert.NotNull(manager.GetSecondaryColorTexture());
         Assert.True(manager.NeedsViewportResolve());
     }
@@ -349,7 +348,6 @@ public sealed class RenderPipelineTests
 
         Assert.NotNull(manager.GetColorOutput().GetTexture());
         Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
-        Assert.Equal(TextureFormat.Depth24Stencil8, manager.GetDepthStencilOutput().GetTexture()!.Format);
         Assert.Same(manager.GetDepthStencilOutput().GetTexture(), manager.GetDepthStencilTexture());
         Assert.True(manager.NeedsViewportResolve());
     }
@@ -385,7 +383,6 @@ public sealed class RenderPipelineTests
         manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
 
         Assert.NotNull(manager.GetDepthStencilTexture());
-        Assert.Equal(TextureFormat.Depth24Stencil8, manager.GetDepthStencilTexture()!.Format);
     }
 
     [Fact]

@@ -63,7 +63,8 @@ public sealed class RenderBufferManager
 
     public void OnViewportDefined(RenderOutputTargetInfo? renderTarget, IntRect viewportRect)
     {
-        var renderDevice = _lastGraphics?.GetSubsystem<RenderDevice>();
+        var graphics = _lastGraphics ?? Context.Instance.GetSubsystem<Graphics>()!;
+        var renderDevice = graphics.GetSubsystem<RenderDevice>();
         var colorTarget = renderTarget?.ColorTarget
             ?? RenderTargetView.SwapChainColor(renderDevice!);
         var depthTarget = renderTarget?.DepthStencilTarget
@@ -71,7 +72,8 @@ public sealed class RenderBufferManager
         this._viewportRect = viewportRect;
         _viewportColorBuffer.SetOutput(colorTarget, renderTarget?.ColorTexture, renderDevice, viewportRect);
         _viewportDepthBuffer.SetOutput(depthTarget, renderTarget?.DepthStencilTexture, renderDevice, viewportRect);
-        _viewportTargetLinearColorSpace = renderTarget?.LinearColorSpace ?? false;
+        _viewportTargetLinearColorSpace = renderTarget?.LinearColorSpace
+            ?? graphics.GetSwapChainOutputTarget().LinearColorSpace;
 
         ResolveOutputParams(renderTarget);
         RefreshManagedTextureBuffers();
@@ -558,13 +560,18 @@ public sealed class RenderBufferManager
         var fallbackFlags = _settings.FilteredColor
             ? RenderBufferFlag.BilinearFiltering
             : RenderBufferFlag.None;
-        var fallbackMultiSample = _settings.InheritMultiSampleLevel ? 1 : _settings.MultiSampleLevel;
-        var fallbackOutputColorFormat = renderTarget?.ColorFormat ?? TextureFormat.RGBA8;
+        var graphics = _lastGraphics ?? Context.Instance.GetSubsystem<Graphics>()!;
+        var renderDevice = graphics.GetSubsystem<RenderDevice>();
+        var outputColorTarget = renderTarget?.ColorTarget ?? RenderTargetView.SwapChainColor(renderDevice!);
+        var outputDepthStencilTarget = renderTarget?.DepthStencilTarget ?? RenderTargetView.SwapChainDepthStencil(renderDevice!);
+        var outputMultiSample = renderTarget?.MultiSample ?? graphics.GetSwapChainMultiSample();
+        var fallbackMultiSample = _settings.InheritMultiSampleLevel ? outputMultiSample : _settings.MultiSampleLevel;
+        var fallbackOutputColorFormat = outputColorTarget.GetFormat();
         var nextColorOutputParams = new RenderBufferParams(
             GetColorTextureFormat(_settings.ColorSpace, fallbackOutputColorFormat),
             fallbackMultiSample,
             fallbackFlags);
-        var nextDepthStencilOutputParams = new RenderBufferParams(TextureFormat.Depth24Stencil8, fallbackMultiSample | 0, RenderBufferFlag.Persistent);
+        var nextDepthStencilOutputParams = new RenderBufferParams(outputDepthStencilTarget.GetFormat(), fallbackMultiSample, RenderBufferFlag.Persistent);
         var nextLinearColorSpace = IsManagedOutputLinearColorSpace(_settings.ColorSpace, nextColorOutputParams.TextureFormat, _viewportTargetLinearColorSpace);
         var nextHdr = TextureFormatUtility.IsFloatColorFormat(nextColorOutputParams.TextureFormat);
 

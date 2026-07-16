@@ -249,6 +249,7 @@ public sealed class Input : Object
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 3), "SDL_GL_SetAttribute minor version");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
+            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, 1), "SDL_GL_SetAttribute sRGB framebuffer");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, parameters.MultiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
             CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, Math.Max(parameters.MultiSample, 0)), "SDL_GL_SetAttribute multisample samples");
 

@@ -72,7 +72,6 @@ public sealed class Engine : Object
             try
             {
                 graphics.Initialize(Parameters, input);
-                GetSubsystem<RenderDevice>()!.PostInitialize();
             }
             catch (Exception exception)
             {

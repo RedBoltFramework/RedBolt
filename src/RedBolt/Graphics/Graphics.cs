@@ -247,6 +247,13 @@ layout(std140) uniform Material
         renderContext.ClearRenderTarget(0, Color.Black);
         renderDevice.Present();
 
+        OnScreenModeChanged();
+        return true;
+    }
+
+    private void OnScreenModeChanged()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>()!;
         var currentSettings = renderDevice.GetWindowSettings();
         Log.Logger.LogInformation(
             "Set screen mode: {Width}x{Height} pixels at {RefreshRate} Hz at monitor {Monitor} [{Mode}]{Resizable}{MultiSample}",
@@ -268,7 +275,6 @@ layout(std140) uniform Material
             RefreshRate = currentSettings.RefreshRate
         };
         SendEvent(ref screenModeEvent);
-        return true;
     }
 
     /// <summary>
@@ -897,6 +903,8 @@ layout(std140) uniform Material
 
             _clearColorHandle = GCHandle.Alloc(_clearColor, GCHandleType.Pinned);
             IsInitialized = true;
+            GetSubsystem<RenderDevice>()!.PostInitialize();
+            OnScreenModeChanged();
         }
         catch
         {
