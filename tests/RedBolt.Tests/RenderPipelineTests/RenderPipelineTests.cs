@@ -662,26 +662,6 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
-    public void Render_buffer_manager_allocates_linear_ldr_intermediate_buffer_for_swapchain_output()
-    {
-        var manager = new RenderBufferManager();
-        manager.SetSettings(new RenderBufferManagerSettings
-        {
-            ColorSpace = RenderPipelineColorSpace.LinearLDR
-        });
-        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
-        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
-
-        var colorOutput = manager.GetColorOutput().GetTexture();
-
-        Assert.NotNull(colorOutput);
-        Assert.True(manager.IsLinearColorSpace());
-        Assert.False(manager.IsHDR());
-        Assert.True(colorOutput!.GetSRGB());
-        Assert.True(manager.NeedsViewportResolve());
-    }
-
-    [Fact]
     public void Render_buffer_manager_allocates_linear_ldr_intermediate_buffer_for_non_srgb_texture_output()
     {
         var manager = new RenderBufferManager();

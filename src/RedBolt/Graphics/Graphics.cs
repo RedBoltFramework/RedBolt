@@ -943,6 +943,10 @@ layout(std140) uniform Material
             Width = actualWidth;
             Height = actualHeight;
             _configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
+            if (SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlMultisamplesamples, out var effectiveMultiSample) == 0)
+                _configuredMultiSample = Math.Max(1, effectiveMultiSample);
+            var effectiveSrgb = 0;
+            _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, out effectiveSrgb);
 
             var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
@@ -952,16 +956,31 @@ layout(std140) uniform Material
                 WindowPDisplay = nativeWindowInfo.Display,
                 WindowWindowId = nativeWindowInfo.WindowId
             };
-            using var swapChainDesc = new SwapChainDesc();
+            using var swapChainDesc = new SwapChainDesc
+            {
+                ColorBufferFormat = effectiveSrgb != 0
+                    ? global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
+                    : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+                DepthBufferFormat = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
+            };
 
             var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
             if (factory.IsNull)
                 throw new InvalidOperationException("Generated GetEngineFactoryOpenGL binding returned a null factory.");
 
             _factory = factory;
-            factory.CreateDeviceAndSwapChainGL(engineCreateInfo, out _device, out _immediateContext, swapChainDesc, out _swapChain);
-            if (_device.IsNull || _immediateContext.IsNull || _swapChain.IsNull)
-                throw new InvalidOperationException("Generated CreateDeviceAndSwapChainGL binding returned a null device, context, or swap chain.");
+            factory.AttachToActiveGLContext(engineCreateInfo, out _device, out _immediateContext);
+            if (_device.IsNull || _immediateContext.IsNull)
+                throw new InvalidOperationException("Generated AttachToActiveGLContext binding returned a null device or context.");
+
+            _swapChain = DiligentNativeBindings.CreateProxySwapChainGL(
+                _device, _immediateContext, swapChainDesc, _window.Handle);
+            if (_swapChain.IsNull)
+                throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
+
+            var deviceContextGL = IDeviceContextGL.CreateManagedWrapper(_immediateContext.Handle, ownsHandle: false);
+            var swapChainGL = ISwapChainGL.CreateManagedWrapper(_swapChain.Handle, ownsHandle: false);
+            deviceContextGL.SetSwapChain(swapChainGL);
 
             _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
             _depthStencilView = _swapChain.GetDepthBufferDSV();

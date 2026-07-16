@@ -90,7 +90,7 @@ public sealed class RenderBufferManager
         var isMultiSampleMatching = outputMultiSample == _colorOutputParams.MultiSampleLevel;
         var isFilterMatching = (renderTarget?.BilinearFiltered ?? false)
             == ((_colorOutputParams.Flags & RenderBufferFlag.BilinearFiltering) != 0);
-        var isLinearColorSpaceMatching = (renderTarget?.LinearColorSpace ?? false) == _linearColorSpace;
+        var isLinearColorSpaceMatching = (renderTarget?.LinearColorSpace ?? _viewportTargetLinearColorSpace) == _linearColorSpace;
         var isColorUsageMatching = isSimpleTextureOutput || !needSimpleTexture;
         var isOutputMatching = isColorFormatMatching && isMultiSampleMatching && isFilterMatching
             && isLinearColorSpaceMatching && isColorUsageMatching;
