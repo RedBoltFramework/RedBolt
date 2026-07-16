@@ -123,6 +123,38 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void DrawOcclusion_submits_indexed_geometry_and_respects_material()
+    {
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(CreateOcclusionModel());
+        var buffer = new OcclusionBuffer();
+        Assert.True(buffer.SetSize(16, 16, false));
+        buffer.SetMaxTriangles(0);
+
+        Assert.False(cube.DrawOcclusion(buffer));
+
+        var material = Resources.Get<Material>("Materials/FirstCube").Clone("NonOccluder");
+        material.SetOcclusion(false);
+        cube.SetMaterial(material);
+        buffer.Reset();
+        Assert.True(cube.DrawOcclusion(buffer));
+        Assert.Equal(0u, buffer.GetNumTriangles());
+    }
+
+    private static Model CreateOcclusionModel()
+    {
+        var geometry = new Geometry();
+        geometry.SetRawVertexData(new byte[36],
+            [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
+        geometry.SetRawIndexData(new byte[6], sizeof(ushort));
+        Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
+        var model = new Model("Occlusion");
+        model.SetNumGeometries(1);
+        Assert.True(model.SetGeometry(0, 0, geometry));
+        return model;
+    }
+
+    [Fact]
     public void Model_geometry_collections_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");

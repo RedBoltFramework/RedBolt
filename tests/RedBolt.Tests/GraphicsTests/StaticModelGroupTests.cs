@@ -43,7 +43,7 @@ public sealed class StaticModelGroupTests
     {
         var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
-        group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        group.SetModel(CreateOcclusionModel());
         group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
         var a = scene.CreateChild("A");
         var b = scene.CreateChild("B");
@@ -133,6 +133,37 @@ public sealed class StaticModelGroupTests
         material.SetOcclusion(false);
         group.SetMaterial(material);
         Assert.Equal(0u, group.GetNumOccluderTriangles());
+    }
+
+    [Fact]
+    public void DrawOcclusion_submits_each_enabled_instance()
+    {
+        var scene = new Scene();
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+        group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        group.AddInstanceNode(scene.CreateChild("A"));
+        group.AddInstanceNode(scene.CreateChild("B"));
+        var buffer = new OcclusionBuffer();
+        Assert.True(buffer.SetSize(16, 16, false));
+        buffer.SetMaxTriangles(uint.MaxValue);
+
+        Assert.True(group.DrawOcclusion(buffer));
+
+        var geometry = group.GetLodGeometry(0u, uint.MaxValue)!;
+        Assert.Equal(2u * geometry.GetIndexCount() / 3u, buffer.GetNumTriangles());
+    }
+
+    private static Model CreateOcclusionModel()
+    {
+        var geometry = new Geometry();
+        geometry.SetRawVertexData(new byte[36],
+            [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
+        geometry.SetRawIndexData(new byte[6], sizeof(ushort));
+        Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
+        var model = new Model("Occlusion");
+        model.SetNumGeometries(1);
+        Assert.True(model.SetGeometry(0, 0, geometry));
+        return model;
     }
 
     [Fact]

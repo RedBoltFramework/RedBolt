@@ -1,9 +1,6 @@
 namespace RedBolt;
 
 /// <summary>Static model component.</summary>
-/// <remarks>
-// TODO: port - C++ code: bool StaticModel::DrawOcclusion(OcclusionBuffer* buffer) override
-/// </remarks>
 public class StaticModel : Drawable
 {
     private static readonly uint ModelType = StringHash.Calculate("Model");
@@ -74,7 +71,12 @@ public class StaticModel : Drawable
             ResizeMaterials(1);
 
         for (var i = 0; i < _materials.Count; ++i)
+        {
             _materials[i] = material;
+            var batch = _batches[i];
+            batch.Material = material;
+            _batches[i] = batch;
+        }
     }
 
     public bool SetMaterial(uint index, Material? material)
@@ -83,6 +85,9 @@ public class StaticModel : Drawable
             return false;
 
         _materials[(int)index] = material;
+        var batch = _batches[(int)index];
+        batch.Material = material;
+        _batches[(int)index] = batch;
         return true;
     }
 
@@ -142,6 +147,42 @@ public class StaticModel : Drawable
         }
 
         return triangles;
+    }
+
+    /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
+    public override bool DrawOcclusion(OcclusionBuffer buffer)
+    {
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var geometry = GetLodGeometry((uint)i, OcclusionLodLevel);
+            if (geometry is null)
+                continue;
+
+            var material = _batches[i].Material;
+            if (material is not null)
+            {
+                if (!material.GetOcclusion())
+                    continue;
+                buffer.SetCullMode(material.GetCullMode());
+            }
+            else
+                buffer.SetCullMode(CullMode.CounterClockwise);
+
+            geometry.GetRawDataShared(out var vertexData, out var vertexSize, out var indexData, out var indexSize,
+                out var elements);
+            if (vertexData is null || indexData is null || elements is null)
+                continue;
+            var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
+                VertexElementSemantic.Position);
+            if (positionElement is null || positionElement.Value.Offset != 0)
+                continue;
+
+            if (!buffer.AddTriangles(Node.GetWorldTransform(), vertexData, vertexSize, indexData, indexSize,
+                    geometry.GetIndexStart(), geometry.GetIndexCount()))
+                return false;
+        }
+
+        return true;
     }
 
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
@@ -287,10 +328,18 @@ public class StaticModel : Drawable
         {
             var name = value.Names[i];
             _materials[i] = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
+            var batch = _batches[i];
+            batch.Material = _materials[i];
+            _batches[i] = batch;
         }
 
         for (var i = count; i < _materials.Count; ++i)
+        {
             _materials[i] = null;
+            var batch = _batches[i];
+            batch.Material = null;
+            _batches[i] = batch;
+        }
     }
 
     public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
@@ -333,10 +382,27 @@ public class StaticModel : Drawable
     private void ResizeMaterials(uint count)
     {
         while (_materials.Count < count)
+        {
             _materials.Add(null);
+            _batches.Add(new SourceBatch());
+        }
 
         while (_materials.Count > count)
+        {
             _materials.RemoveAt(_materials.Count - 1);
+            _batches.RemoveAt(_batches.Count - 1);
+        }
+
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var batch = _batches[i];
+            batch.Geometry = Model?.GetGeometry((uint)i);
+            batch.Material = _materials[i];
+            batch.WorldTransform = IsAttached ? [Node.GetWorldTransform()] : null;
+            _batches[i] = batch;
+        }
+
+        UpdateBatchesLightmaps();
     }
 
     private void HandleModelReloadFinished(Resource resource)

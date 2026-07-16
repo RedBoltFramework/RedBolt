@@ -2,9 +2,6 @@ namespace RedBolt;
 
 public sealed class StaticModelGroup : StaticModel
 {
-    // TODO: port - C++ code:
-    // bool DrawOcclusion(OcclusionBuffer* buffer) override;
-
     private static readonly Matrix3x4[] _identityWorldTransform = [Matrix3x4.Identity];
     private readonly List<Node> _instanceNodes = [];
     private readonly List<Matrix3x4> _worldTransforms = [];
@@ -178,6 +175,47 @@ public sealed class StaticModelGroup : StaticModel
         }
 
         return triangles;
+    }
+
+    /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
+    public override bool DrawOcclusion(OcclusionBuffer buffer)
+    {
+        _ = GetWorldBoundingBox();
+
+        for (var i = 0u; i < _numWorldTransforms; ++i)
+        {
+            for (var j = 0; j < _batches.Count; ++j)
+            {
+                var geometry = GetLodGeometry((uint)j, OcclusionLodLevel);
+                if (geometry is null)
+                    continue;
+
+                var material = _batches[j].Material;
+                if (material is not null)
+                {
+                    if (!material.GetOcclusion())
+                        continue;
+                    buffer.SetCullMode(material.GetCullMode());
+                }
+                else
+                    buffer.SetCullMode(CullMode.CounterClockwise);
+
+                geometry.GetRawDataShared(out var vertexData, out var vertexSize, out var indexData, out var indexSize,
+                    out var elements);
+                if (vertexData is null || indexData is null || elements is null)
+                    continue;
+                var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
+                    VertexElementSemantic.Position);
+                if (positionElement is null || positionElement.Value.Offset != 0)
+                    continue;
+
+                if (!buffer.AddTriangles(_worldTransforms[(int)i], vertexData, vertexSize, indexData, indexSize,
+                        geometry.GetIndexStart(), geometry.GetIndexCount()))
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     public override void UpdateBatches(CommonFrameInfo frame)

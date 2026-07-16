@@ -283,11 +283,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ShaderParameterAnimationInfo : ValueAnimationInfo`
   - [~] `Material : Resource, PipelineStateTracker, IDFamily<Material>` — specular state, auxiliary-view frame tracking, scene-specific animation subscriptions, and shader release forwarding are ported; C++ pipeline-state/ID-family inheritance and batched parameter-update optimization remain managed deviations
 - [~] `StaticModel.h`
-- [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; batch LOD/occlusion drawing remains incomplete
+- [~] `StaticModel : Drawable` — model/material resource attributes, model reload reapplication, attached-node model assignment, material and batch sizing, lightmap state, C++ LOD-geometry fallback semantics, material-aware occluder triangle counting, indexed occlusion drawing, bounding-box containment, C++ ray-based triangle containment, and material-list loading are ported; full batch/LOD class-shape parity remains incomplete
 - [~] `AnimatedModel.h`
   - [~] `AnimatedModel : StaticModel` — model/skeleton/morph ownership, bone-node creation, morph weights, animation LOD bias, invisible-update state, master-model tracking, debug skeleton rendering, and model/bone/morph attribute helpers are ported; pose application, skinning, morph-buffer updates, ray queries, threaded updates, and the remaining serialization/runtime attributes remain incomplete
 - [~] `StaticModelGroup.h`
-- [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, and batch distance/world-transform/LOD updates are ported; occlusion drawing remains incomplete because managed OcclusionBuffer APIs are not yet available
+- [~] `StaticModelGroup : StaticModel` — instance-node listener lifecycle, transform bounds, ray-query distance tests, material-aware instance-scaled occluder triangle counts, per-instance indexed occlusion drawing, and batch distance/world-transform/LOD updates are ported; remaining class-shape parity is still incomplete
 - [~] `Skybox.h`
   - [~] `Skybox : StaticModel`
 - [~] `AnimationStateSource.h` — base component, managed animation-state list, throttling state, and controller-to-model source connection are ported; model pose consumption remains incomplete
@@ -333,7 +333,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `CubemapRenderer`
 - [~] `OutlineGroup.h`
 - [~] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
-- [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and `CustomGeometry::DrawOcclusion` are ported and covered by `OcclusionBufferTests`; `StaticModel` and `StaticModelGroup` occlusion hooks remain separate inventory entries
+- [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests
   - [ ] `OcclusionBuffer : Object`
 - [ ] `DebugRenderer.h`
   - [ ] `DebugRenderer : Component`
