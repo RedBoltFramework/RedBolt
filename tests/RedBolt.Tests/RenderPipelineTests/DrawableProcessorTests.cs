@@ -111,6 +111,52 @@ public sealed class DrawableProcessorTests
         Assert.True(processorPass.IsLinearColorSpace);
     }
 
+    [Fact]
+    public void PipelineBatchDescCapturesDrawableStateAndCreatesBatchKey()
+    {
+        var drawable = new CustomGeometry();
+        drawable.SetNumGeometries(1);
+        drawable.BeginGeometry(0, PrimitiveType.TriangleList);
+        drawable.DefineVertex(Vector3f.Zero);
+        drawable.DefineVertex(Vector3f.Right);
+        drawable.DefineVertex(Vector3f.Up);
+        drawable.Commit();
+        var material = new Material("test");
+        drawable.SetMaterial(material);
+        var pass = new Pass("base");
+
+        var batch = new PipelineBatchDesc(drawable, 0, pass);
+        var key = batch.GetKey();
+
+        Assert.Same(drawable, key.Drawable);
+        Assert.Same(batch.Geometry, key.Geometry);
+        Assert.Same(material, key.Material);
+        Assert.Same(pass, key.Pass);
+        Assert.Equal(drawable.GetPipelineStateHash(), key.DrawableHash);
+        Assert.Equal(batch.GeometryType, key.GeometryType);
+    }
+
+    [Fact]
+    public void PipelineBatchDescInitializesShadowAndLitLightState()
+    {
+        var batch = new PipelineBatchDesc();
+        var lightProcessor = new LightProcessor();
+
+        batch.InitializeShadowBatch(lightProcessor, 3, 17);
+
+        Assert.Equal(uint.MaxValue, batch.PixelLightIndex);
+        Assert.Same(lightProcessor, batch.PixelLightForPipelineState);
+        Assert.Equal(3u, batch.PixelLightForPipelineStateIndex);
+        Assert.Equal(17u, batch.PixelLightForPipelineStateHash);
+
+        batch.InitializeLitBatch(lightProcessor, 5, 23);
+
+        Assert.Equal(5u, batch.PixelLightIndex);
+        Assert.Same(lightProcessor, batch.PixelLightForPipelineState);
+        Assert.Equal(5u, batch.PixelLightForPipelineStateIndex);
+        Assert.Equal(23u, batch.PixelLightForPipelineStateHash);
+    }
+
     private sealed class TestDrawableProcessorPass : DrawableProcessorPass
     {
         public TestDrawableProcessorPass(IRenderPipelineInterface renderPipeline,

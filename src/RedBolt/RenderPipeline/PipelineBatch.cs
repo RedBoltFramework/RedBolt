@@ -50,3 +50,60 @@ public class PipelineBatch
         GeometryType = sourceBatch.GeometryType;
     }
 }
+
+/// <summary>
+/// Information needed to fully create PipelineBatch.
+/// </summary>
+public class PipelineBatchDesc : PipelineBatch
+{
+    public Pass? Pass;
+    public uint DrawableHash;
+    /// <summary>
+    /// Light that contributes to pipeline state.
+    /// For scene batches: per-pixel forward light applied to object.
+    /// For shadow batches: owner shadow split.
+    /// </summary>
+    public LightProcessor? PixelLightForPipelineState;
+    public uint PixelLightForPipelineStateIndex;
+    public uint PixelLightForPipelineStateHash;
+
+    public PipelineBatchDesc()
+    {
+    }
+
+    public PipelineBatchDesc(Drawable drawable, uint sourceBatchIndex, Pass pass, object? userData = null)
+        : base(drawable, sourceBatchIndex, userData)
+    {
+        Pass = pass;
+        DrawableHash = drawable.GetPipelineStateHash();
+    }
+
+    public void InitializeShadowBatch(LightProcessor light, uint lightIndex, uint lightHash)
+    {
+        PixelLightForPipelineState = light;
+        PixelLightForPipelineStateIndex = lightIndex;
+        PixelLightForPipelineStateHash = lightHash;
+    }
+
+    public void InitializeLitBatch(LightProcessor light, uint lightIndex, uint lightHash)
+    {
+        PixelLightIndex = lightIndex;
+        PixelLightForPipelineState = light;
+        PixelLightForPipelineStateIndex = lightIndex;
+        PixelLightForPipelineStateHash = lightHash;
+    }
+
+    public BatchStateCreateKey GetKey()
+    {
+        return new BatchStateCreateKey(
+            DrawableHash,
+            PixelLightForPipelineStateHash,
+            GeometryType,
+            Geometry!,
+            Material!,
+            Pass!,
+            Drawable,
+            PixelLightForPipelineState,
+            PixelLightForPipelineStateIndex);
+    }
+}
