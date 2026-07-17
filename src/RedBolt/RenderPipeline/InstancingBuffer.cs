@@ -57,6 +57,14 @@ public sealed class InstancingBuffer : Object
         data[..size].CopyTo(_currentInstanceData.Span.Slice(offset, size));
     }
 
+    /// <summary>Set one or more 4-float elements from an unmanaged value (matches C++ SetElements(const void*, ...)).</summary>
+    public void SetElements<T>(in T value, uint index, uint count) where T : unmanaged
+    {
+        SetElements(System.Runtime.InteropServices.MemoryMarshal.AsBytes(
+            System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(ref System.Runtime.CompilerServices.Unsafe.AsRef(in value), 1)),
+            index, count);
+    }
+
     /// <summary>Return settings.</summary>
     public InstancingBufferSettings GetSettings() => _settings;
 

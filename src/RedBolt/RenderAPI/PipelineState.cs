@@ -163,6 +163,19 @@ public class PipelineState : DeviceObject
 
     private void CreateGPU(IRenderDevice device, GraphicsPipelineStateDesc desc)
     {
+        // C++ PipelineState::CreateGPU logs and aborts when any attached shader failed to compile.
+        foreach (var shader in new RawShader?[]
+                 { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader })
+        {
+            if (shader is not null && (shader.GetHandle() is null || shader.GetHandle()!.IsNull))
+            {
+                Log.Logger.LogError(
+                    "Failed to create PipelineState '{Name}' due to failed {Type} shader compilation",
+                    GetDebugName(), shader.GetShaderType());
+                return;
+            }
+        }
+
         var vertexShader = desc.VertexShader?.GetHandle();
         var pixelShader = desc.PixelShader?.GetHandle();
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
@@ -253,11 +266,24 @@ public class PipelineState : DeviceObject
 
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
+            // C++ also wires the Diligent PSO cache handle when available.
+            var psoCache = GetSubsystem<PipelineStateCache>()?.GetHandle();
+            if (psoCache is { IsNull: false })
+                createInfo.PPSOCache = psoCache;
             device.CreateGraphicsPipelineState(createInfo, out _handle);
-            if (isOpenGl && _handle is not null && !_handle.IsNull &&
+            if (_handle is null || _handle.IsNull)
+            {
+                DestroyGPU();
+                Log.Logger.LogError("Failed to create PipelineState '{Name}'", GetDebugName());
+                return;
+            }
+            if (isOpenGl &&
                 !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, _handle))
             {
                 DestroyGPU();
+                Log.Logger.LogError(
+                    "Failed to create PipelineState '{Name}' due to OpenGL program linking error",
+                    GetDebugName());
                 return;
             }
             FinishCreation(reflection);

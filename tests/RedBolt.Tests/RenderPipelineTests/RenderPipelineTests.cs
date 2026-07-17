@@ -207,6 +207,7 @@ public sealed class RenderPipelineTests
     public void Render_pipeline_view_updates_and_renders_enabled_passes()
     {
         var scene = new Scene();
+        scene.CreateComponent<Octree>();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
         var renderPath = new RenderPath("RenderPaths/Test.xml");
         var trackingPass = new TrackingRenderPass("Tracking");
@@ -241,6 +242,7 @@ public sealed class RenderPipelineTests
 
         Assert.Equal(1, trackingPass.UpdateCalls);
         Assert.Equal(1, trackingPass.RenderCalls);
+        // Effective rect falls back to swap-chain / 1x1 when render target is null in the fixture.
         Assert.Equal(new Vector2i(1, 1), view.GetFrameInfo().ViewportSize);
         Assert.Equal(0u, view.GetStats().NumGeometries);
         Assert.Equal(1, beginUpdateCalls);
@@ -257,6 +259,7 @@ public sealed class RenderPipelineTests
         try
         {
             var scene = new Scene();
+            scene.CreateComponent<Octree>();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
             var renderPath = new RenderPath("RenderPaths/Test.xml");
             var capturePass = new BufferCaptureRenderPass("Capture", SharedRenderPassState.NormalBufferId);

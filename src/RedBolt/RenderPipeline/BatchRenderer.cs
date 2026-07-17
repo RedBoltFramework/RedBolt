@@ -1,3 +1,7 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>Common parameters of batch rendering.</summary>
@@ -47,69 +51,97 @@ public class BatchRenderer : Object
     }
 
     public void SetSettings(BatchRendererSettings settings) => _settings = settings;
-
     public BatchRendererSettings GetSettings() => _settings;
 
-    /// <summary>Render batches sorted by pipeline state.</summary>
     public void RenderBatches(BatchRenderingContext ctx, PipelineBatchGroup<PipelineBatchByState> batchGroup)
     {
-        ReportBatches(batchGroup.Batches.Span, static batch => batch.PipelineBatch);
+        batchGroup.Flags = AdjustRenderFlags(batchGroup.Flags);
+        RunCompositor(ctx, batchGroup.Flags, batchGroup.StartInstance, batchGroup.StartInstance + batchGroup.NumInstances,
+            batchGroup.Batches.Span, static b => b.PipelineBatch, lightVolume: false);
     }
 
-    /// <summary>Render batches sorted back to front.</summary>
     public void RenderBatches(BatchRenderingContext ctx, PipelineBatchGroup<PipelineBatchBackToFront> batchGroup)
     {
-        ReportBatches(batchGroup.Batches.Span, static batch => batch.PipelineBatch);
+        batchGroup.Flags = AdjustRenderFlags(batchGroup.Flags);
+        RunCompositor(ctx, batchGroup.Flags, batchGroup.StartInstance, batchGroup.StartInstance + batchGroup.NumInstances,
+            batchGroup.Batches.Span, static b => b.PipelineBatch, lightVolume: false);
     }
 
-    /// <summary>Render light volume batches.</summary>
     public void RenderLightVolumeBatches(BatchRenderingContext ctx, ReadOnlySpan<PipelineBatchByState> batches)
     {
-        ReportBatches(batches, static batch => batch.PipelineBatch);
+        RunCompositor(ctx, BatchRenderFlag.EnablePixelLights, 0, 0, batches, static b => b.PipelineBatch, lightVolume: true);
     }
 
-    /// <summary>Store instancing data for state-sorted batches.</summary>
+    private void RunCompositor<T>(BatchRenderingContext ctx, BatchRenderFlag flags, uint startInstance, uint nextInstance,
+        ReadOnlySpan<T> batches, Func<T, PipelineBatch?> select, bool lightVolume)
+    {
+        // Empty groups need no compositor work (and drawable processor may lack a scene in unit tests).
+        if (batches.IsEmpty)
+            return;
+
+        // C++ always constructs DrawCommandCompositor with the InstancingBuffer pointer (may be disabled).
+        // Do not skip scene draws when the buffer object is absent or disabled.
+        var debuggerEnabled = RenderPipelineDebugger.IsSnapshotInProgress(_debugger);
+        var compositor = new DrawCommandCompositor(ctx, _settings, debuggerEnabled ? _debugger : null,
+            _drawableProcessor, _instancingBuffer, flags, startInstance, debuggerEnabled);
+        foreach (var item in batches)
+        {
+            var pipelineBatch = select(item);
+            if (pipelineBatch is null)
+                continue;
+            if (lightVolume)
+                compositor.ProcessLightVolumeBatch(pipelineBatch);
+            else
+                compositor.ProcessSceneBatch(pipelineBatch);
+        }
+        compositor.FlushDrawCommands(nextInstance);
+    }
+
     public void PrepareInstancingBuffer(ref PipelineBatchGroup<PipelineBatchByState> batches)
-    {
-        PrepareInstancingBufferImpl(ref batches);
-    }
+        => PrepareInstancingBufferImpl(ref batches);
 
-    /// <summary>Store instancing data for back-to-front batches.</summary>
     public void PrepareInstancingBuffer(ref PipelineBatchGroup<PipelineBatchBackToFront> batches)
-    {
-        PrepareInstancingBufferImpl(ref batches);
-    }
+        => PrepareInstancingBufferImpl(ref batches);
 
     private void PrepareInstancingBufferImpl<T>(ref PipelineBatchGroup<T> batches)
     {
-        // Full instancing buffer fill is ported with the C++ DrawCommandCompositor path.
-        // Keep group metadata consistent for callers until that path lands.
-        if (_instancingBuffer is null)
-        {
-            batches.StartInstance = 0;
-            batches.NumInstances = 0;
-            return;
-        }
-
+        batches.Flags = AdjustRenderFlags(batches.Flags);
         batches.StartInstance = 0;
         batches.NumInstances = 0;
-    }
-
-    private void ReportBatches<T>(ReadOnlySpan<T> batches, Func<T, PipelineBatch?> selectBatch)
-    {
-        if (!RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+        if (_instancingBuffer is null)
             return;
 
-        var resetInstancingGroup = true;
-        foreach (var item in batches)
+        var objectParameterBuilder = new ObjectParameterBuilder(_settings, batches.Flags);
+        if (!objectParameterBuilder.IsInstancingSupported())
+            return;
+
+        batches.StartInstance = _instancingBuffer.GetNextInstanceIndex();
+        foreach (var sortedBatch in batches.Batches.Span)
         {
-            var pipelineBatch = selectBatch(item);
-            if (pipelineBatch is null || pipelineBatch.PipelineState is null)
+            PipelineBatch? pipelineBatch = sortedBatch switch
+            {
+                PipelineBatchByState byState => byState.PipelineBatch,
+                PipelineBatchBackToFront backToFront => backToFront.PipelineBatch,
+                _ => null
+            };
+            if (pipelineBatch is null || !objectParameterBuilder.IsBatchInstanced(pipelineBatch))
                 continue;
 
-            _debugger!.ReportSceneBatch(new DebugFrameSnapshotBatch(_drawableProcessor, pipelineBatch, resetInstancingGroup));
-            resetInstancingGroup = false;
+            var sourceBatch = pipelineBatch.GetSourceBatch();
+            if (objectParameterBuilder.IsAmbientEnabled())
+                objectParameterBuilder.SetBatchAmbient(_drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex));
+
+            for (var i = 0u; i < sourceBatch.NumWorldTransforms; ++i)
+                objectParameterBuilder.AddBatchesToInstancingBuffer(_instancingBuffer, sourceBatch, i);
+            batches.NumInstances += sourceBatch.NumWorldTransforms;
         }
+    }
+
+    private BatchRenderFlag AdjustRenderFlags(BatchRenderFlag flags)
+    {
+        if (_instancingBuffer is null || !_instancingBuffer.IsEnabled())
+            flags &= ~BatchRenderFlag.EnableInstancingForStaticGeometry;
+        return flags;
     }
 }
 

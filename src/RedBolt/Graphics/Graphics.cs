@@ -927,8 +927,18 @@ layout(std140) uniform Material
         return _swapChainOutputTarget;
     }
 
+    /// <summary>
+    /// Return the managed texture format that matches the swap chain color buffer.
+    /// C++ <c>RenderTargetView::GetFormat</c> returns <c>SwapChainDesc.ColorBufferFormat</c> as-is
+    /// (Diligent <c>TextureFormat</c>). Preserve BGRA/sRGB so pipeline RT formats match the actual
+    /// back buffer — required for Vulkan PSO compatibility.
+    /// </summary>
     internal TextureFormat GetSwapChainColorTextureFormat(out bool isSrgb)
-        => UnmapTextureFormat(GetSwapChainColorFormat(), out isSrgb);
+    {
+        var format = UnmapPipelineTextureFormat(GetSwapChainColorFormat());
+        isSrgb = format is TextureFormat.RGBA8Srgb or TextureFormat.BGRA8Srgb;
+        return format;
+    }
 
     internal TextureFormat GetSwapChainDepthTextureFormat()
         => UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
@@ -2052,14 +2062,16 @@ layout(std140) uniform Material
         if (vertexShaderResource is null || pixelShaderResource is null)
             return null;
 
-        var shaderBackend = GetShaderBackend();
-        var preparedVertexSource = vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, shaderBackend, ShaderExtraCode);
-        var preparedPixelSource = pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, shaderBackend, ShaderExtraCode);
-        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
-            pass.VertexShader, preparedVertexSource);
-        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
-            pass.PixelShader, preparedPixelSource);
-        var reflection = new ShaderProgramReflection([vertexShader, pixelShader]);
+        // C++ RawShader uses SPIR-V bytecode on Vulkan/D3D and GLSL verbatim on OpenGL.
+        // Use ShaderVariation (same path as fullscreen) instead of CompileShader from GLSL source.
+        var vertexVariation = vertexShaderResource.GetVariation(ShaderType.VS, vertexDefines);
+        var pixelVariation = pixelShaderResource.GetVariation(ShaderType.PS, pixelDefines);
+        var vertexShader = vertexVariation.GetHandle();
+        var pixelShader = pixelVariation.GetHandle();
+        if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
+            return null;
+
+        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
         var customLayout = CreateCustomUniformLayout(reflection);
         var samplerOverrides = new ImmutableSamplersDesc();
         var textureEnumerator = material.EnumerateTextures();
@@ -2072,7 +2084,9 @@ layout(std140) uniform Material
         TemporaryLayoutArray? layoutArray = null;
         try
         {
-            layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            var layoutElements = BuildLayoutElements(vertexBuffer);
+            ApplyVertexAttributeLocations(layoutElements, vertexVariation.GetBytecode().VertexAttributes);
+            layoutArray = new TemporaryLayoutArray(layoutElements);
             using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
                 GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var pipelineName = new CString($"{pass.VertexShader}:{pass.PixelShader}:{key.LayoutSignature}");
@@ -2123,6 +2137,9 @@ layout(std140) uniform Material
             DumpFirstPipelineDiagnostics(pass, key, vertexShaderResource, pixelShaderResource, vertexDefines, pixelDefines,
                 vertexShader, pixelShader, pipelineState, shaderResources);
 
+            // Keep variation GPU handles alive while the pipeline owns them.
+            _ = vertexShader.AddRef();
+            _ = pixelShader.AddRef();
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
                 customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
             layoutArray = null;
@@ -2273,12 +2290,13 @@ layout(std140) uniform Material
         if (shaderResource is null)
             return null;
 
-        var shaderBackend = GetShaderBackend();
-        var vertexSource = shaderResource.PrepareSource(ShaderStage.Vertex, shaderDefines, shaderBackend);
-        var pixelSource = shaderResource.PrepareSource(ShaderStage.Pixel, shaderDefines, shaderBackend);
-        var vertexShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, shaderName, vertexSource);
-        var pixelShader = CreateShader(_device, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, shaderName, pixelSource);
-        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexShader, pixelShader]));
+        var vertexVariation = shaderResource.GetVariation(ShaderType.VS, shaderDefines);
+        var pixelVariation = shaderResource.GetVariation(ShaderType.PS, shaderDefines);
+        var vertexShader = vertexVariation.GetHandle();
+        var pixelShader = pixelVariation.GetHandle();
+        if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
+            return null;
+        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexVariation, pixelVariation]));
         var settings = GetClearFramebufferPipelineSettings(flags);
 
         TemporaryLayoutArray? layoutArray = null;
@@ -2286,7 +2304,9 @@ layout(std140) uniform Material
         {
             var quadGeometry = GetOrCreateFullscreenQuadGeometry();
             var vertexBuffer = quadGeometry.GetVertexBuffer(0) ?? throw new InvalidOperationException("Fullscreen quad geometry has no vertex buffer.");
-            layoutArray = new TemporaryLayoutArray(BuildLayoutElements(vertexBuffer));
+            var layoutElements = BuildLayoutElements(vertexBuffer);
+            ApplyVertexAttributeLocations(layoutElements, vertexVariation.GetBytecode().VertexAttributes);
+            layoutArray = new TemporaryLayoutArray(layoutElements);
             using var pipelineName = new CString($"{shaderName}:{flags}:clear");
             using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
             {
@@ -2340,6 +2360,8 @@ layout(std140) uniform Material
             if (shaderResources.IsNull)
                 throw new InvalidOperationException($"Failed to create clear framebuffer shader resources for {shaderName}.");
 
+            _ = vertexShader.AddRef();
+            _ = pixelShader.AddRef();
             cached = new FullscreenPipelineResources(
                 pipelineState,
                 vertexShader,
@@ -3917,6 +3939,32 @@ layout(std140) uniform Material
         return elements.ToArray();
     }
 
+    /// <summary>
+    /// Map layout InputIndex values to SPIR-V/HLSL locations from vertex shader reflection.
+    /// Matches C++ InitializeInputLayout attribute location binding used for Vulkan/D3D.
+    /// </summary>
+    private static void ApplyVertexAttributeLocations(LayoutElementSpec[] layoutElements,
+        IReadOnlyList<VertexShaderAttribute> vertexAttributes)
+    {
+        if (vertexAttributes.Count == 0)
+            return;
+
+        for (var i = 0; i < layoutElements.Length; ++i)
+        {
+            var semantic = layoutElements[i].Semantic;
+            var semanticIndex = layoutElements[i].SemanticIndex;
+            for (var attributeIndex = 0; attributeIndex < vertexAttributes.Count; ++attributeIndex)
+            {
+                var attribute = vertexAttributes[attributeIndex];
+                if (attribute.Semantic == semantic && attribute.SemanticIndex == semanticIndex)
+                {
+                    layoutElements[i] = layoutElements[i] with { InputIndex = attribute.InputIndex };
+                    break;
+                }
+            }
+        }
+    }
+
     private static void AddLayoutElement(List<LayoutElementSpec> target, VertexBuffer vertexBuffer,
         VertexElementSemantic semantic, byte index, uint inputIndex)
     {
@@ -3946,7 +3994,9 @@ layout(std140) uniform Material
             RelativeOffset = element.Offset,
             Stride = vertexBuffer.GetVertexSize(),
             Frequency = InputElementFrequency.InputElementFrequencyPerVertex,
-            InstanceDataStepRate = 1
+            InstanceDataStepRate = 1,
+            Semantic = semantic,
+            SemanticIndex = index
         });
     }
 
@@ -4649,7 +4699,9 @@ layout(std140) uniform Material
         uint RelativeOffset,
         uint Stride,
         InputElementFrequency Frequency,
-        uint InstanceDataStepRate)
+        uint InstanceDataStepRate,
+        VertexElementSemantic Semantic = VertexElementSemantic.Position,
+        uint SemanticIndex = 0)
     {
         public LayoutElementSpec()
             : this(0, 0, 0, global::RedBolt.Bindings.Diligent.ValueType.VtFloat32, false, 0, 0,

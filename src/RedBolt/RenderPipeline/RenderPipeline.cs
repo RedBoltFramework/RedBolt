@@ -339,6 +339,15 @@ public class RenderPipeline : Component
     {
         private readonly RenderPipeline _renderPipeline;
         private RenderBufferManager? _renderBufferManager;
+        private ShadowMapAllocator? _shadowMapAllocator;
+        private InstancingBuffer? _instancingBuffer;
+        private SceneProcessor? _sceneProcessor;
+        private UnorderedScenePass? _opaquePass;
+        private UnorderedScenePass? _postOpaquePass;
+        private UnorderedScenePass? _depthPrePass;
+        private BackToFrontScenePass? _alphaPass;
+        private BackToFrontScenePass? _postAlphaPass;
+        private OutlineScenePass? _outlineScenePass;
         private readonly SharedRenderPassState _sharedState = new();
         private readonly Dictionary<string, object?> _effectiveRenderPathParameters = new(StringComparer.Ordinal);
         private readonly RenderPipelineStats _stats = new();
@@ -349,6 +358,11 @@ public class RenderPipeline : Component
         private RenderPath? _renderPath;
         private Viewport? _viewport;
         private uint _syncedRevision;
+        private bool _settingsDirty = true;
+        private bool _parametersDirty = true;
+        private uint _settingsHash;
+        private bool _linearColorSpace;
+        private RenderOutputFlag _renderOutputFlags;
 
         public DefaultRenderPipelineView(RenderPipeline renderPipeline)
             : base(renderPipeline)
@@ -356,7 +370,7 @@ public class RenderPipeline : Component
             this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         }
 
-        public override bool IsLinearColorSpace => _renderBufferManager?.IsLinearColorSpace() ?? false;
+        public override bool IsLinearColorSpace => _linearColorSpace;
 
         public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
         {
@@ -366,19 +380,59 @@ public class RenderPipeline : Component
             if (!_renderPipeline.IsAttached || !ReferenceEquals(_renderPipeline.Scene, viewport.Scene))
                 return false;
 
-            _renderBufferManager ??= new RenderBufferManager(this);
-
             this._viewport = viewport;
             SyncFromPipeline();
 
-            var viewportRect = viewport.GetEffectiveRect(renderTarget);
+            if (_sceneProcessor is null)
+            {
+                _sharedState.RenderPipelineInterface = this;
+                _renderBufferManager = new RenderBufferManager(this);
+                _sharedState.RenderBufferManager = _renderBufferManager;
+                _shadowMapAllocator = new ShadowMapAllocator();
+                _instancingBuffer = new InstancingBuffer();
+                _sceneProcessor = new SceneProcessor(this, "shadow", _shadowMapAllocator, _instancingBuffer);
 
+                var drawableProcessor = _sceneProcessor.GetDrawableProcessor();
+                var pipelineStateBuilder = _sceneProcessor.GetPipelineStateBuilder();
+
+                _opaquePass = new UnorderedScenePass(this, drawableProcessor, pipelineStateBuilder,
+                    DrawableProcessorPassFlag.HasAmbientLighting,
+                    string.Empty, "base", "litbase", "light");
+                _postOpaquePass = new UnorderedScenePass(this, drawableProcessor, pipelineStateBuilder,
+                    DrawableProcessorPassFlag.None, "postopaque");
+                _alphaPass = new BackToFrontScenePass(this, drawableProcessor, pipelineStateBuilder,
+                    DrawableProcessorPassFlag.HasAmbientLighting | DrawableProcessorPassFlag.NeedReadableDepth
+                    | DrawableProcessorPassFlag.RefractionPass | DrawableProcessorPassFlag.ReadOnlyDepth,
+                    string.Empty, "alpha", "alpha", "litalpha");
+                _postAlphaPass = new BackToFrontScenePass(this, drawableProcessor, pipelineStateBuilder,
+                    DrawableProcessorPassFlag.ReadOnlyDepth, "postalpha");
+                _outlineScenePass = new OutlineScenePass(this, drawableProcessor, pipelineStateBuilder,
+                    ["deferred", "deferred_decal", "base", "alpha"]);
+
+                _sceneProcessor.SetPasses(
+                [
+                    _depthPrePass, _opaquePass, null, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
+                ]);
+
+                var outlineParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
+                _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams) as TextureRenderBuffer;
+                _outlineBuffer?.SetEnabled(false);
+                if (_outlineBuffer is not null)
+                    _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = _outlineBuffer;
+            }
+
+            var viewportRect = viewport.GetEffectiveRect(renderTarget);
             var engineTime = _renderPipeline.GetSubsystem<Time>();
             _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
             _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
             _frameInfo.Viewport = viewport;
             _frameInfo.ViewportRect = viewportRect;
             _frameInfo.ViewportSize = viewportRect.Size;
+            _frameInfo.Scene = viewport.Scene;
+            _frameInfo.Camera = viewport.Camera;
+            _frameInfo.Cameras[0] = viewport.Camera;
+            _frameInfo.Cameras[1] = viewport.RightEye;
+
             var colorTexture = renderTarget?.GetParentTexture();
             var depthSurface = renderTarget?.GetLinkedDepthStencil();
             var depthTexture = depthSurface?.GetParentTexture();
@@ -400,23 +454,64 @@ public class RenderPipeline : Component
                     depthTexture is not null,
                     depthTexture?.Format == TextureFormat.Depth24Stencil8)
                 : null;
-            _frameInfo.Cameras[0] = viewport.Camera;
-            _frameInfo.Cameras[1] = viewport.RightEye;
 
-            _renderBufferManager.SetSettings(_renderPipeline.Settings.RenderBufferManager);
-            _renderBufferManager.SetFrameSettings(new RenderBufferManagerFrameSettings());
+            if (!_sceneProcessor!.Define(_frameInfo))
+                return false;
+
+            _sceneProcessor.SetRenderCamera(viewport.Camera);
+            _sharedState.RenderCamera = viewport.Camera;
+
+            if (_settingsDirty)
+            {
+                _settingsDirty = false;
+                _parametersDirty = true;
+                ApplySettings();
+            }
+
+            if (_parametersDirty && _renderPath is not null)
+            {
+                _parametersDirty = false;
+                _renderPath.UpdateParameters(
+                    _renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _effectiveRenderPathParameters);
+            }
+
+            _renderBufferManager!.SetSettings(_renderPipeline.Settings.RenderBufferManager);
+            _renderBufferManager.OnViewportDefined(_frameInfo.RenderTarget, _frameInfo.ViewportRect);
+            _linearColorSpace = _renderBufferManager.IsLinearColorSpace();
+
+            var standardOutputDesc = new PipelineStateOutputDesc
+            {
+                DepthStencilFormat = _renderBufferManager.GetOutputDepthStencilFormat(),
+                MultiSample = (uint)_renderBufferManager.GetOutputMultiSample()
+            };
+            standardOutputDesc.SetRenderTargetFormat(_renderBufferManager.GetOutputColorFormat());
+
+            _opaquePass!.SetForwardOutputDesc(standardOutputDesc);
+            _depthPrePass?.SetForwardOutputDesc(standardOutputDesc);
+            _postOpaquePass!.SetForwardOutputDesc(standardOutputDesc);
+            _alphaPass!.SetForwardOutputDesc(standardOutputDesc);
+            _postAlphaPass!.SetForwardOutputDesc(standardOutputDesc);
+
+            var batchCompositor = _sceneProcessor.GetBatchCompositor();
+            batchCompositor.SetLightVolumesOutputDesc(standardOutputDesc);
+            if (_shadowMapAllocator is not null)
+                batchCompositor.SetShadowOutputDesc(_shadowMapAllocator.ShadowOutputDesc);
+
             return true;
         }
 
         public override void Update(Graphics graphics)
         {
             ArgumentNullException.ThrowIfNull(graphics);
-            if (_viewport is null)
+            if (_viewport is null || _sceneProcessor is null)
                 return;
 
             SyncFromPipeline();
 
-            // Begin debug snapshot
+            var engineTime = _renderPipeline.GetSubsystem<Time>();
+            _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
+            _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
+
             var input = _renderPipeline.GetSubsystem<Input>();
             var qualifiers = input?.GetQualifiers() ?? Qualifier.None;
             var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
@@ -424,35 +519,43 @@ public class RenderPipeline : Component
             if (takeSnapshot)
                 GetDebugger().BeginSnapshot();
 
-            var cameraPosition = _viewport.Camera.IsAttached
-                ? _viewport.Camera.Node.WorldPosition
-                : Vector3f.Zero;
-            _viewport.Camera.SetZone(graphics.FindZone(_viewport.Scene, cameraPosition));
+            _shadowMapAllocator?.ResetAllShadowMaps();
             RaiseUpdateBegin(_frameInfo);
             SendBeginViewUpdateEvent();
+
+            var pipelineStateHash = _renderPipeline.Settings.CalculatePipelineStateHash();
+            if (_settingsHash != pipelineStateHash)
+            {
+                _settingsHash = pipelineStateHash;
+                _settingsDirty = true;
+                RaisePipelineStatesInvalidated();
+            }
+
+            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
+            _outlineScenePass?.SetOutlineGroups(_sceneProcessor.GetFrameInfo().Scene!, drawDebugGeometry);
+
+            _sceneProcessor.Update();
+
+            if (_outlineBuffer is not null && _outlineScenePass is not null)
+                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches());
 
             _sharedState.RenderPipelineInterface = this;
             _sharedState.RenderCamera = _viewport.Camera;
             _sharedState.Graphics = graphics;
             _sharedState.RenderBuffers.Clear();
-            _renderBufferManager.PopulateSharedState(_sharedState);
+            _renderBufferManager?.PopulateSharedState(_sharedState);
 
             if (_renderPath is not null)
             {
                 _renderPath.UpdateParameters(_renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _effectiveRenderPathParameters);
-                var traits = _renderPath.GetAggregatedPassTraits();
-                _renderBufferManager.SetFrameSettings(new RenderBufferManagerFrameSettings
-                {
-                    SupportColorReadWrite = traits.NeedReadWriteColorBuffer
-                });
-                _renderBufferManager.OnViewportDefined(_frameInfo.RenderTarget, _frameInfo.ViewportRect);
-                _sharedState.RenderBuffers.Clear();
-                _renderBufferManager.PopulateSharedState(_sharedState);
                 _renderPath.Update(_sharedState);
             }
 
             UpdateFrameParameters();
-            _stats.NumGeometries = (uint)_viewport.Scene.StaticModels.Count;
+            _stats.NumGeometries = _sceneProcessor.GetFrameInfo().Scene is { } scene
+                ? (uint)scene.StaticModels.Count
+                : 0u;
+
             SendEndViewUpdateEvent();
             RaiseUpdateEnd(_frameInfo);
         }
@@ -460,23 +563,87 @@ public class RenderPipeline : Component
         public override void Render(Graphics graphics, MaterialQuality materialQuality)
         {
             ArgumentNullException.ThrowIfNull(graphics);
-            if (_viewport is null)
+            if (_viewport is null || _sceneProcessor is null || _renderBufferManager is null)
                 return;
+
+            var caps = graphics.GetSubsystem<RenderDevice>()?.GetCaps() ?? default;
+            var canReadDepth = _renderPipeline.Settings.RenderBufferManager.ReadableDepth && caps.ReadOnlyDepth;
+
+            var hasRefraction = _alphaPass?.HasRefractionBatches() == true;
+            var frameSettings = new RenderBufferManagerFrameSettings
+            {
+                SupportColorReadWrite = (_renderOutputFlags & RenderOutputFlag.NeedColorOutputReadAndWrite) != 0
+            };
+            if (hasRefraction)
+                frameSettings.SupportColorReadWrite = true;
+            _renderBufferManager.SetFrameSettings(frameSettings);
 
             RaiseRenderBegin(_frameInfo);
             SendBeginViewRenderEvent();
-
-            _sharedState.Graphics = graphics;
             Context.Instance.SendEvent<GraphicsEvents.BeginRenderingEvent>();
             _renderBufferManager.OnRenderBegin(_frameInfo, graphics);
             SendViewBuffersReadyEvent();
-            var fogColor = _viewport.Camera.GetEffectiveFogColor();
-            var effectiveFogColor = IsLinearColorSpace ? fogColor.GammaToLinear() : fogColor;
+
+            _sceneProcessor.PrepareDrawablesBeforeRendering();
+            _sceneProcessor.PrepareInstancingBuffer();
+            _sceneProcessor.RenderShadowMaps();
+
+            var camera = _sceneProcessor.GetFrameInfo().Camera ?? _viewport.Camera;
+            var fogColorInGammaSpace = camera.GetEffectiveFogColor();
+            var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
+
+            // Forward path (C++ DefaultRenderPipelineView::Render non-deferred branch)
             _renderBufferManager.ClearOutput(graphics, effectiveFogColor);
             _renderBufferManager.SetOutputRenderTargets(graphics);
-            graphics.RenderScene(_viewport, materialQuality, _frameInfo.ViewportRect);
+
+            if (_depthPrePass is not null)
+            {
+                _sceneProcessor.RenderSceneBatches(
+                    "DepthPrePass", camera, _depthPrePass.GetBaseBatches());
+            }
+
+            var cameraParameters = new ShaderParameterDesc[]
+            {
+                new(ShaderConsts.Camera_GBufferOffsets, new Variant(_renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale())),
+                new(ShaderConsts.Camera_GBufferInvSize, new Variant(_renderBufferManager.GetInvOutputSize())),
+            };
+            var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
+
+            _sceneProcessor.RenderSceneBatches(
+                "OpaqueBase", camera, _opaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters);
+            _sceneProcessor.RenderSceneBatches(
+                "OpaqueLight", camera, _opaquePass.GetLightBatches(), default, cameraParameters, frameParameters);
+            _sceneProcessor.RenderSceneBatches(
+                "PostOpaque", camera, _postOpaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters);
+
+            if (hasRefraction)
+                _renderBufferManager.SwapColorBuffers(true);
+
+            var depthAndColorTextures = new ShaderResourceDesc[]
+            {
+                new(ShaderResources.DepthBuffer, canReadDepth ? _renderBufferManager.GetDepthStencilTexture() : null),
+                new(ShaderResources.Emission, _renderBufferManager.GetSecondaryColorTexture()),
+            };
+
+            if (canReadDepth)
+                _renderBufferManager.SetOutputRenderTargets(graphics, true);
+
+            _sceneProcessor.RenderSceneBatches(
+                "Alpha", camera, _alphaPass!.GetBatches(), depthAndColorTextures, cameraParameters, frameParameters);
+            _sceneProcessor.RenderSceneBatches(
+                "PostAlpha", camera, _postAlphaPass!.GetBatches(), default, cameraParameters, frameParameters);
+
+            if (_outlineBuffer is not null && _outlineBuffer.IsEnabled)
+            {
+                _renderBufferManager.SetRenderTargets(graphics, _outlineBuffer);
+                graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
+                _sceneProcessor.RenderSceneBatches(
+                    "Outline", camera, _outlineScenePass!.GetBatches(), default, cameraParameters, frameParameters);
+                _renderBufferManager.SetOutputRenderTargets(graphics);
+            }
+
+            // Publish normal buffer for SSAO / other paths that read SharedRenderPassState.NormalBufferId.
             RenderNormalBuffer(graphics, materialQuality);
-            RenderOutlines(graphics, materialQuality);
             _renderPath?.Render(_sharedState);
 
             var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
@@ -496,11 +663,30 @@ public class RenderPipeline : Component
             SendEndViewRenderEvent();
             RaiseRenderEnd(_frameInfo);
 
-            // End debug snapshot
             if (GetDebugger().IsSnapshotInProgress())
             {
                 GetDebugger().EndSnapshot();
                 Log.Logger.LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+            }
+        }
+
+        private void ApplySettings()
+        {
+            _renderPipeline.Settings.Validate();
+            _renderPipeline.Settings.AdjustToSupported(_renderPipeline.GetSubsystem<Graphics>()!);
+            _sceneProcessor?.SetSettings(_renderPipeline.Settings);
+            _instancingBuffer?.SetSettings(_renderPipeline.Settings.InstancingBuffer);
+            _shadowMapAllocator?.SetSettings(_renderPipeline.Settings.ShadowMapAllocator);
+            _renderBufferManager?.SetSettings(_renderPipeline.Settings.RenderBufferManager);
+
+            if (_renderPipeline.Settings.SceneProcessor.DepthPrePass && _depthPrePass is null && _sceneProcessor is not null)
+            {
+                _depthPrePass = new UnorderedScenePass(this, _sceneProcessor.GetDrawableProcessor(),
+                    _sceneProcessor.GetPipelineStateBuilder(), DrawableProcessorPassFlag.None, "depth");
+                _sceneProcessor.SetPasses(
+                [
+                    _depthPrePass, _opaquePass, null, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
+                ]);
             }
         }
 

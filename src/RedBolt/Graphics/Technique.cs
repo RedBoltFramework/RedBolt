@@ -523,7 +523,11 @@ public sealed class Technique : Resource
 
     public static uint GetPassIndex(string passName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(passName);
+        // C++ Technique::GetPassIndex returns M_MAX_UNSIGNED for empty pass names
+        // (used by ScenePass constructors for unused deferred/light slots).
+        if (string.IsNullOrEmpty(passName))
+            return uint.MaxValue;
+
         var lower = passName.ToLowerInvariant();
         if (PassIndices.TryGetValue(lower, out var index))
             return index;

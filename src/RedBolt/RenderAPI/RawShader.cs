@@ -1,5 +1,6 @@
 using System.Text;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
@@ -88,7 +89,10 @@ public class RawShader : DeviceObject
             LoadConstantBufferReflection = true
         };
 
-        if (string.Equals(_bytecode.Mime, "application/glsl", StringComparison.Ordinal))
+        // C++ RawShader::CreateGPU selects source vs bytecode by RenderBackend, not MIME.
+        var backend = GetSubsystem<RenderDevice>()?.GetBackend() ?? RenderBackend.OpenGL;
+        if (backend == RenderBackend.OpenGL
+            || string.Equals(_bytecode.Mime, "application/glsl", StringComparison.Ordinal))
         {
             using var source = new CString(Encoding.UTF8.GetString(_bytecode.Bytecode));
             shaderCreateInfo.Source = source.Pointer;
@@ -114,8 +118,11 @@ public class RawShader : DeviceObject
             }
         }
 
-        if (_handle is { IsNull: true })
+        if (_handle is null || _handle.IsNull)
+        {
             _handle = null;
+            Log.Logger.LogError("Failed to create shader '{Name}'", GetDebugName());
+        }
     }
 
     protected void DestroyGPU()

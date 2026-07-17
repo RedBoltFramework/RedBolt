@@ -36,8 +36,10 @@ public sealed class ShadowMapAllocator : Object
 
     public ShadowMapAllocator()
     {
-        _renderDevice = GetSubsystem<RenderDevice>()!;
-        _renderContext = GetSubsystem<RenderContext>()!;
+        // C++: renderContext_ = renderDevice_->GetRenderContext()
+        _renderDevice = GetSubsystem<RenderDevice>()
+            ?? throw new InvalidOperationException("RenderDevice subsystem is required.");
+        _renderContext = _renderDevice.GetRenderContext();
         CacheSettings();
     }
 

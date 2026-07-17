@@ -400,7 +400,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `BatchCompositorPass : DrawableProcessorPass` — deferred/forward batch composition, delayed pipeline-state resolution, placeholder states, and per-frame cache invalidation match C++
   - [x] `BatchCompositor : Object` — pass filtering, shadow batch composition hooks, scene-pass compose, light-volume batches, and `FillSortKeys` match C++
 - [x] `BatchRenderer.h`
-  - [x] `BatchRenderer : Object` — construction, settings, batch/light-volume render entry points, instancing-buffer prepare hooks, and debugger scene-batch reporting are ported; full DrawCommandCompositor GPU emission path remains
+  - [x] `BatchRenderer : Object` — construction, settings, batch/light-volume render entry points, instancing-buffer prepare, debugger reporting, and DrawCommandCompositor GPU emission (object params, camera/light/material constants, resources, indexed/instanced draws) are ported
 - [x] `RenderPass.h`
   - [x] `RenderPass` — pass-name and render-buffer connection semantics match C++; initial managed enable behavior, cloning, and render-path serialization remain managed-runtime adaptations
 - [x] `RenderPath.h`
@@ -435,7 +435,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `RenderPipelineView`
   - [x] `RenderPipeline : Component` — hash-keyed parameter updates and ResourceRef/VariantVector attribute accessors now match C++; remaining lifecycle and native pipeline integrations are incomplete
 - [x] `DefaultRenderPipeline.h`
-  - [x] `DefaultRenderPipelineView` — managed embedded view covers Define/Update/Render and frame/stat access; native debugger, scene-pass graph, output-flag calculation, and debug-draw members remain unported adaptations
+  - [x] `DefaultRenderPipelineView` — SceneProcessor-based forward Define/Update/Render (opaque/light/alpha/shadow/outline, SSAO normal buffer publish) matches C++ default path; deferred GBuffer lighting branch and full output-flag propagation remain partial
 - [x] `StereoRenderPipeline.h`
   - [x] `StereoRenderPipelineView : RenderPipelineView` — stereo octree queries, `StereoSceneProcessor` occluder/drawable collection, forward stereo batch rendering with instance multiplier 2, outline path, render-path hooks, and dual-eye debug geometry match C++; stereo runtime validation remains sample-gated
   - [x] `StereoRenderPipeline : RenderPipeline` — `Instantiate()` returns `StereoRenderPipelineView`
