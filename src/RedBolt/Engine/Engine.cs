@@ -490,10 +490,13 @@ public sealed class Engine : Object
             var definition = _configFile.DefineVariable(
                 property.Name, Variant.FromObject(property.GetValue(Parameters)));
             if (property.Name is nameof(EngineParameters.AutoloadPaths)
-                or nameof(EngineParameters.ConfigName)
                 or nameof(EngineParameters.LogLevel)
                 or nameof(EngineParameters.LogName)
                 or nameof(EngineParameters.LogQuiet)
+                or nameof(EngineParameters.LogRotateOnOpen)
+                or nameof(EngineParameters.LogRotateBySize)
+                or nameof(EngineParameters.LogMaxFiles)
+                or nameof(EngineParameters.LogMaxSize)
                 or nameof(EngineParameters.ResourcePackages)
                 or nameof(EngineParameters.ResourcePaths)
                 or nameof(EngineParameters.ResourcePrefixPaths)
