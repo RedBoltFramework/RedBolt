@@ -316,10 +316,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RibbonTrail.h`
   - [x] `struct TrailPoint` — position, forward, parent position, elapsed length, lifetime, and sort distance match C++
   - [x] `RibbonTrail : Drawable` — face-camera/bone trail types, emission/update, buffer rebuilds, sorting, world-origin shifts, and scene post-update match C++
-- [ ] `DecalSet.h`
-  - [ ] `struct DecalVertex`
-  - [ ] `struct Decal`
-  - [ ] `DecalSet : Drawable`
+- [x] `DecalSet.h`
+  - [x] `struct DecalVertex` — position, normal, UV, tangent, and optional skinning weights/indices match C++
+  - [x] `struct Decal` — timer, TTL, local bounds, vertex/index storage, and AddVertex dedupe match C++
+  - [x] `DecalSet : Drawable` — material/limits, AddDecal frustum clip path, buffer rebuild, skinning, attribute serialize, and time-limited cleanup match C++
 - [~] `CustomGeometry.h`
   - [~] `CustomGeometry : Drawable` — dynamic custom-geometry definition, vertex serialization, resource-cache material attributes, C++ LOD-geometry and material-aware occluder triangle accounting, native occlusion-buffer drawing, material assignment, bounds, geometry access, and managed ray-query support are ported; full class-shape and GPU buffer lifecycle parity remain incomplete
 - [ ] `Terrain.h`
