@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt.Tests;
 
@@ -39,8 +40,8 @@ public sealed class Array2DTests
         Assert.Equal(9, array.Get(new Vector2i(1, 1)));
         Assert.Equal(7, array.GetWrapped(new Vector2i(-1, -1)));
         Assert.Equal(7, array.GetClamped(new Vector2i(9, 9)));
-        Assert.Equal(0, array.GetOptional(new Vector2i(-1, 0)));
-        Assert.Null(new Array2D<string>(3, 2).GetOptional(new Vector2i(-1, 0)));
+        Assert.True(Unsafe.IsNullRef(ref array.GetOptional(new Vector2i(-1, 0))));
+        Assert.True(Unsafe.IsNullRef(ref new Array2D<string>(3, 2).GetOptional(new Vector2i(-1, 0))));
         Assert.Equal(6, array.Begin().Length);
         Assert.Equal(0, array.End().Length);
         Assert.Equal(44, array.Sum());
@@ -58,6 +59,35 @@ public sealed class Array2DTests
         Assert.Equal(16, array.Sum());
         array.Reset();
         Assert.Equal(0u, array.GetCapacity());
+    }
+
+    [Fact]
+    public void Clone_and_dispose_preserve_cpp_value_lifetime()
+    {
+        var value = new CopyableValue(7);
+        var array = new Array2D<CopyableValue>(2, 1, value);
+        var clone = (Array2D<CopyableValue>)array.Clone();
+
+        Assert.NotSame(value, array.Get(new Vector2i(0, 0)));
+        Assert.NotSame(array.Get(new Vector2i(0, 0)), array.Get(new Vector2i(1, 0)));
+        Assert.NotSame(array.Get(new Vector2i(0, 0)), clone.Get(new Vector2i(0, 0)));
+
+        var first = array.Get(new Vector2i(0, 0));
+        array.Dispose();
+        Assert.True(first.IsDisposed);
+        Assert.False(clone.Get(new Vector2i(0, 0)).IsDisposed);
+
+        clone.Dispose();
+    }
+
+    private sealed class CopyableValue(int value) : ICloneable, IDisposable
+    {
+        public int Value { get; } = value;
+        public bool IsDisposed { get; private set; }
+
+        public object Clone() => new CopyableValue(Value);
+
+        public void Dispose() => IsDisposed = true;
     }
 }
 

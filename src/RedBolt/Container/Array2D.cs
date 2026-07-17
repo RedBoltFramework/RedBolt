@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt;
 
 /// <summary>
 /// 2D indexing utilities for row-major 2D array.
 /// </summary>
-public class ArrayDimensions2D
+public class ArrayDimensions2D : ICloneable
 {
     /// <summary>
     /// Construct default.
@@ -112,6 +113,8 @@ public class ArrayDimensions2D
         (_height, other._height) = (other._height, _height);
     }
 
+    public virtual object Clone() => new ArrayDimensions2D(_width, _height);
+
     /// <summary>
     /// Array width.
     /// </summary>
@@ -126,7 +129,7 @@ public class ArrayDimensions2D
 /// <summary>
 /// 2D array template.
 /// </summary>
-public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
+public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>, ICloneable, IDisposable
 {
     /// <summary>
     /// Construct default.
@@ -195,6 +198,7 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     public void Reset(int width, int height)
     {
         SetSize(width, height);
+        DisposeData();
         _data = new T[checked((int)GetCapacity())];
     }
 
@@ -204,6 +208,7 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     public void Reset(int width, int height, T value)
     {
         SetSize(width, height);
+        DisposeData();
         _data = new T[checked((int)GetCapacity())];
         Fill(value);
     }
@@ -211,7 +216,15 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     /// <summary>
     /// Fill array with given value.
     /// </summary>
-    public void Fill(T value) => Array.Fill(_data, value);
+    public void Fill(T value)
+    {
+        for (var i = 0; i < _data.Length; ++i)
+        {
+            var copy = CopyValue(value);
+            DisposeValue(_data[i]);
+            _data[i] = copy;
+        }
+    }
 
     /// <summary>
     /// Return array dimensions.
@@ -231,7 +244,12 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     /// <summary>
     /// Return element by index or null if out of bounds.
     /// </summary>
-    public T? GetOptional(Vector2i index) => Contains(index) ? _data[checked((int)IndexToOffset(index))] : default;
+    public ref T GetOptional(Vector2i index)
+    {
+        if (Contains(index))
+            return ref _data[checked((int)IndexToOffset(index))];
+        return ref Unsafe.NullRef<T>();
+    }
 
     /// <summary>
     /// Return element by wrapped index.
@@ -270,6 +288,36 @@ public class Array2D<T> : ArrayDimensions2D, IEnumerable<T>
     public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)_data).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public override object Clone()
+    {
+        var result = new Array2D<T>(GetWidth(), GetHeight());
+        for (var i = 0; i < _data.Length; ++i)
+            result._data[i] = CopyValue(_data[i]);
+        return result;
+    }
+
+    public void Dispose()
+    {
+        DisposeData();
+        _data = [];
+        SetSize(0, 0);
+        GC.SuppressFinalize(this);
+    }
+
+    private static T CopyValue(T value) => value is ICloneable cloneable ? (T)cloneable.Clone() : value;
+
+    private static void DisposeValue(T value)
+    {
+        if (value is ICloneable && value is IDisposable disposable)
+            disposable.Dispose();
+    }
+
+    private void DisposeData()
+    {
+        foreach (var value in _data)
+            DisposeValue(value);
+    }
 
     /// <summary>
     /// Array data.

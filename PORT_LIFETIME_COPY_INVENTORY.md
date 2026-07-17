@@ -99,7 +99,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED after restoring the rbfx getter name `RollAngleoffFactor`. Constructor defaults and copied math temporaries use independent C# value types; the class adds no owned disposable fields. | — | — | — |
 | `src/RedBolt/Audio/SoundStream.cs` | `Source/Urho3D/Audio/SoundStream.h`<br>`Source/Urho3D/Audio/SoundStream.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED. Constructor defaults match, the default destructor owns no disposable fields after the allowed `RefCounted` removal, and all returns are scalar values. | — | — | — |
-| `src/RedBolt/Container/Array2D.cs` | `Source/Urho3D/Container/Array2D.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Container/Array2D.cs` | `Source/Urho3D/Container/Array2D.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after adding `Clone()` for both implicit C++ copy constructors, cloning value-like elements during container copies/fills, deterministically disposing cloned value elements when C++ clears or destroys its vector, and restoring `GetOptional` as a nullable reference to stored data instead of a value copy. | — | — | — |
 | `src/RedBolt/Container/CString.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/ConstString.cs` | `Source/Urho3D/Container/ConstString.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/IndexAllocator.cs` | `Source/Urho3D/Container/IndexAllocator.h` | ☐ | ☐ | ☐ |
