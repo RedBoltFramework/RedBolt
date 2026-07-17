@@ -327,13 +327,171 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     private void ConsumeUpdateQueue()
     {
-        // TODO: port full budgeted cubemap render loop from C++ ConsumeUpdateQueue
-        _updateQueue.Clear();
-        _ = MaxStaticUpdates;
-        _ = _cubemapRenderer;
-        _ = _filterCubemaps;
-        _ = _renderBudget;
+        var renderDevice = GetSubsystem<RenderDevice>();
+        var filterCubemapsEffective = _filterCubemaps && SupportFiltering(renderDevice);
+
+        uint numStaticProbesRendered = 0;
+        uint numRenderedFaces = 0;
+        for (var queueIndex = 0; queueIndex < _updateQueue.Count; ++queueIndex)
+        {
+            if (numRenderedFaces >= _renderBudget && _renderBudget > 0)
+                break;
+
+            var queuedProbe = _updateQueue[queueIndex];
+            var probe = queuedProbe.Probe;
+            if (probe is null)
+                continue;
+
+            var position = probe.Node?.GetWorldPosition() ?? Vector3f.Zero;
+
+            // Skip custom texture probes
+            if (probe.GetProbeType() == ReflectionProbeType.CustomTexture)
+            {
+                _updateQueue[queueIndex] = default;
+                continue;
+            }
+
+            // Render dynamic probe
+            if (queuedProbe.CubemapRenderer is { } probeRenderer)
+            {
+                var parameters = new CubemapUpdateParameters
+                {
+                    Settings = probe.GetCubemapRenderingSettings(),
+                    Position = position,
+                    SlicedUpdate = probe.IsSlicedUpdate(),
+                    FilterResult = filterCubemapsEffective
+                };
+
+                var result = probeRenderer.Update(parameters);
+
+                numRenderedFaces += result.NumRenderedFaces;
+                if (result.IsComplete)
+                    _updateQueue[queueIndex] = default;
+                continue;
+            }
+
+            // Skip static probes if out of budget
+            if (numStaticProbesRendered >= MaxStaticUpdates)
+                continue;
+
+            if (_cubemapRenderer is null)
+                continue;
+
+            // Render mixed probe
+            if (probe.GetMixedProbeTexture() is { } probeTexture)
+            {
+                // TODO: Create correct texture from the start
+                if (filterCubemapsEffective && !probeTexture.IsUnorderedAccess())
+                {
+                    probeTexture.SetSize(
+                        probeTexture.Width,
+                        probeTexture.Format,
+                        TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess);
+                }
+
+                var parameters = new CubemapUpdateParameters
+                {
+                    Settings = probe.GetCubemapRenderingSettings(),
+                    Position = position,
+                    FilterResult = filterCubemapsEffective,
+                    OverrideFinalTexture = probeTexture
+                };
+
+                var result = _cubemapRenderer.Update(parameters);
+                System.Diagnostics.Debug.Assert(result.IsComplete);
+            }
+            else
+            {
+                // Render baked probe
+                var parameters = new CubemapUpdateParameters
+                {
+                    Settings = probe.GetCubemapRenderingSettings(),
+                    Position = position,
+                    FilterResult = filterCubemapsEffective
+                };
+
+                var result = _cubemapRenderer.Update(parameters);
+                System.Diagnostics.Debug.Assert(result.IsComplete);
+
+                // One-shot subscription to save baked texture when faces complete
+                Action<TextureCube>? handler = null;
+                var capturedProbe = probe;
+                handler = texture =>
+                {
+                    if (handler is not null)
+                        _cubemapRenderer.CubemapRendered -= handler;
+                    // File save path depends on scene file name; skip empty path (matches C++ log error)
+                    var filePath = GetBakedProbeFilePath();
+                    if (string.IsNullOrEmpty(filePath))
+                        return;
+                    var fileName = $"ReflectionProbe-{capturedProbe.Id}";
+                    var textureFileName = SaveTextureToFile(texture, filePath, fileName);
+                    if (!string.IsNullOrEmpty(textureFileName))
+                        capturedProbe.SetTextureAttr(new ResourceRef(new StringHash(nameof(TextureCube)), textureFileName));
+                };
+                _cubemapRenderer.CubemapRendered += handler;
+            }
+
+            numRenderedFaces += (uint)CubeMapFace.MaxCubeMapFaces;
+            _updateQueue[queueIndex] = default;
+            ++numStaticProbesRendered;
+        }
+
+        _updateQueue.RemoveAll(queued => queued.Probe is null);
     }
+
+    private string GetBakedProbeFilePath()
+    {
+        var scene = Scene;
+        if (scene is null)
+            return string.Empty;
+        var sceneFileName = scene.GetFileName();
+        if (string.IsNullOrEmpty(sceneFileName))
+            return string.Empty;
+        return $"{sceneFileName}.d/Textures";
+    }
+
+    private string SaveTextureToFile(TextureCube texture, string filePath, string fileName)
+    {
+        if (string.IsNullOrEmpty(filePath))
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                Log.Logger, "Cannot save reflection probe texture to file");
+            return string.Empty;
+        }
+
+        var textureFileName = $"{filePath}/{fileName}.xml";
+        try
+        {
+            Directory.CreateDirectory(filePath);
+            var xmlFile = new XMLFile("ReflectionProbeCubemap");
+            var rootElement = xmlFile.GetOrCreateRoot("cubemap");
+            for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+            {
+                var faceFileName = $"{fileName}-{face}.png";
+                var image = texture.GetImage((CubeMapFace)face);
+                image?.SavePNG($"{filePath}/{faceFileName}");
+
+                var faceElement = rootElement.CreateChild("face");
+                faceElement.SetAttribute("name", faceFileName);
+            }
+
+            xmlFile.SaveFile(textureFileName);
+        }
+        catch (Exception ex)
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                Log.Logger, ex, "Failed to save reflection probe texture");
+            return string.Empty;
+        }
+
+        return textureFileName;
+    }
+
+    private static bool SupportFiltering(RenderDevice? device) =>
+        device is not null
+        && device.GetCaps().ComputeShaders
+        && device.IsUnorderedAccessFormatSupported(TextureFormat.RGBA8);
 
     private static void AppendReference(Span<ReflectionProbeReference> result, ReflectionProbeReference newReference)
     {
@@ -357,27 +515,101 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         if (probes.Count == 0)
             return;
 
-        // Simplified flat BVH: one leaf per probe (full power-of-two tree remains TODO for large counts)
+        var numProbes = probes.Count;
+
+        var probesData = new List<InternalReflectionProbeData>(numProbes);
         foreach (var probe in probes)
+            probesData.Add(new InternalReflectionProbeData(probe));
+
+        var probesDataPtrs = new List<InternalReflectionProbeData>(numProbes);
+        probesDataPtrs.AddRange(probesData);
+
+        var nodeCount = (int)MathDefs.NextPowerOfTwo((uint)numProbes) * 2 - 1;
+        result.Capacity = Math.Max(result.Capacity, nodeCount);
+        for (var i = 0; i < nodeCount; ++i)
+            result.Add(default);
+
+        SplitBoundingVolumes(result, 0, nodeCount, probesDataPtrs, 0, probesDataPtrs.Count);
+    }
+
+    private static void SplitBoundingVolumes(
+        List<ReflectionProbeBVH> result, int resultOffset, int capacity,
+        List<InternalReflectionProbeData> probes, int probesOffset, int probesCount)
+    {
+        System.Diagnostics.Debug.Assert(probesCount > 0);
+        System.Diagnostics.Debug.Assert(capacity > 0);
+        System.Diagnostics.Debug.Assert(MathDefs.IsPowerOfTwo((uint)(capacity + 1)));
+
+        if (probesCount == 1)
         {
-            var data = new InternalReflectionProbeData(probe);
-            result.Add(new ReflectionProbeBVH
+            var leaf = probes[probesOffset];
+            result[resultOffset] = new ReflectionProbeBVH
             {
-                Data = data,
-                WorldBoundingBox = data.GetWorldBoundingBox()
-            });
+                Data = leaf,
+                WorldBoundingBox = leaf.GetWorldBoundingBox()
+            };
+            return;
         }
+
+        var worldBox = new BoundingBox();
+        for (var i = 0; i < probesCount; ++i)
+            worldBox.Merge(probes[probesOffset + i].GetWorldBoundingBox());
+
+        result[resultOffset] = new ReflectionProbeBVH
+        {
+            Data = null,
+            WorldBoundingBox = worldBox
+        };
+
+        var size = worldBox.Size;
+        var splitAxis = size.X > size.Y && size.X > size.Z ? 0 : size.Y > size.Z ? 1 : 2;
+
+        // Sort probes in place for this span
+        probes.Sort(probesOffset, probesCount, Comparer<InternalReflectionProbeData>.Create((lhs, rhs) =>
+        {
+            var lhsCenter = lhs.GetWorldBoundingBox().Center;
+            var rhsCenter = rhs.GetWorldBoundingBox().Center;
+            var l = splitAxis == 0 ? lhsCenter.X : splitAxis == 1 ? lhsCenter.Y : lhsCenter.Z;
+            var r = splitAxis == 0 ? rhsCenter.X : splitAxis == 1 ? rhsCenter.Y : rhsCenter.Z;
+            return l.CompareTo(r);
+        }));
+
+        var median = probesCount / 2;
+        var halfCapacity = capacity / 2;
+        SplitBoundingVolumes(result, resultOffset + 1, halfCapacity, probes, probesOffset, median);
+        SplitBoundingVolumes(result, resultOffset + 1 + halfCapacity, halfCapacity, probes, probesOffset + median,
+            probesCount - median);
     }
 
     private static void QueryBvh(List<ReflectionProbeBVH> intersections, List<ReflectionProbeBVH> bvh,
         BoundingBox worldBoundingBox)
     {
-        foreach (var node in bvh)
+        if (bvh.Count == 0)
+            return;
+        QueryBvhRange(intersections, bvh, 0, bvh.Count, worldBoundingBox);
+    }
+
+    private static void QueryBvhRange(List<ReflectionProbeBVH> intersections, List<ReflectionProbeBVH> bvh,
+        int offset, int count, BoundingBox worldBoundingBox)
+    {
+        // Early return if outside
+        if (bvh[offset].WorldBoundingBox.IsInside(worldBoundingBox) == Intersection.Outside)
+            return;
+
+        // If node with probe, store and stop
+        if (bvh[offset].Data is not null)
         {
-            if (node.WorldBoundingBox.IsInside(worldBoundingBox) == Intersection.Outside)
-                continue;
-            if (node.Data is not null)
-                intersections.Add(node);
+            intersections.Add(bvh[offset]);
+            return;
+        }
+
+        // Check children
+        if (count > 1)
+        {
+            System.Diagnostics.Debug.Assert(count % 2 == 1);
+            var stride = count / 2;
+            QueryBvhRange(intersections, bvh, offset + 1, stride, worldBoundingBox);
+            QueryBvhRange(intersections, bvh, offset + 1 + stride, stride, worldBoundingBox);
         }
     }
 }
@@ -409,10 +641,12 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest, bool compact)
     {
-        // TODO: port complete C++ ReflectionProbe::DrawDebugGeometry box drawing
-        _ = debug;
-        _ = depthTest;
-        _ = compact;
+        if (debug is not null && IsEnabledEffective && Node is not null)
+        {
+            debug.AddBoundingBox(_boundingBox, Node.GetWorldTransform(), Color.Blue, depthTest);
+            if (!compact && _useBoxProjection)
+                debug.AddBoundingBox(_data.ProjectionBox, Matrix3x4.Identity, Color.Magenta, depthTest);
+        }
     }
 
     /// <summary>Queue ReflectionProbe to be re-rendered as soon as possible.</summary>
@@ -486,6 +720,15 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public TextureCube? GetTexture() => _texture;
 
+    public void SetTextureAttr(ResourceRef value)
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        SetTexture(cache?.GetResourceOrNull<TextureCube>(value.Name));
+    }
+
+    public ResourceRef GetTextureAttr() =>
+        Resource.GetResourceRef(_texture, new StringHash(nameof(TextureCube)));
+
     public void SetBoxProjectionUsed(bool useBoxProjection)
     {
         _useBoxProjection = useBoxProjection;
@@ -551,29 +794,66 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     private void UpdateCubemapRenderer()
     {
-        // TODO: port complete C++ ReflectionProbe::UpdateCubemapRenderer for dynamic/mixed probes
-        if (_probeType == ReflectionProbeType.Dynamic && Scene is not null)
-            _dynamicProbeRenderer ??= new CubemapRenderer(Scene);
-        else
+        var scene = Scene;
+        if (scene is null
+            || _probeType is ReflectionProbeType.Baked or ReflectionProbeType.CustomTexture)
         {
             _dynamicProbeRenderer?.Dispose();
             _dynamicProbeRenderer = null;
+            _mixedProbeTexture = null;
+            UpdateProbeTextureData(_texture);
+            return;
+        }
+
+        switch (_probeType)
+        {
+            case ReflectionProbeType.Dynamic:
+                if (_dynamicProbeRenderer is null)
+                {
+                    _dynamicProbeRenderer = new CubemapRenderer(scene);
+                    _dynamicProbeRenderer.CubemapRendered += OnDynamicCubemapRendered;
+                    _mixedProbeTexture = null;
+                }
+                break;
+            case ReflectionProbeType.Mixed:
+                if (_mixedProbeTexture is null)
+                {
+                    _mixedProbeTexture = new TextureCube("ReflectionProbe.Mixed");
+                    CubemapRenderer.DefineTexture(_mixedProbeTexture, _cubemapRenderingSettings);
+                    if (_dynamicProbeRenderer is not null)
+                    {
+                        _dynamicProbeRenderer.CubemapRendered -= OnDynamicCubemapRendered;
+                        _dynamicProbeRenderer.Dispose();
+                        _dynamicProbeRenderer = null;
+                    }
+                    UpdateProbeTextureData(_mixedProbeTexture);
+                }
+                break;
+            default:
+                System.Diagnostics.Debug.Assert(false, "Unsupported probe type");
+                break;
         }
     }
+
+    private void OnDynamicCubemapRendered(TextureCube texture) => UpdateProbeTextureData(texture);
 
     private void UpdateProbeTextureData(TextureCube? texture)
     {
         _data.ReflectionMap = texture;
-        if (texture is not null && texture.Levels > 1)
-            _data.RoughnessToLodFactor = MathF.Log2(texture.Levels - 1);
-        else
-            _data.RoughnessToLodFactor = 0;
+        // C++: LogBaseTwo(texture->GetWidth()) when texture present
+        _data.RoughnessToLodFactor = texture is not null ? MathF.Log2(texture.Width) : 1.0f;
     }
 
     private void UpdateProbeBoxData()
     {
-        _data.ProjectionBox = _useBoxProjection ? _projectionBox : default;
-        if (Node is not null)
-            _data.CubemapCenter = new Vector4f(Node.GetWorldPosition(), _useBoxProjection ? 1.0f : 0.0f);
+        if (!_useBoxProjection || Node is null)
+        {
+            _data.CubemapCenter = Vector4f.Zero;
+            return;
+        }
+
+        var position = Node.GetWorldPosition();
+        _data.CubemapCenter = position.ToVector4(1.0f);
+        _data.ProjectionBox = new BoundingBox(position + _projectionBox.Min, position + _projectionBox.Max);
     }
 }

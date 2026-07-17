@@ -332,10 +332,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `GlobalIllumination : Component` — compile/reset probes, SH/ambient sample, file ref, offset, and world-origin shift match C++
 - [x] `ReflectionProbeData.h` — cubemap center, projection box, `ReflectionProbeReference` reset/validity/importance match C++
 - [x] `ReflectionProbe.h`
-  - [x] `ReflectionProbeManager : TrackedComponentRegistryBase` — tracking, spatial/movable query, static BVH leaf queries, bake/update queues match C++; budgeted cubemap consume/dynamic probe update residual is documented in source TODO notes
-  - [x] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>` — type/movable/priority/box/texture/settings accessors and dirty marking match C++; debug draw and dynamic cubemap lifecycle remain partial
+  - [x] `ReflectionProbeManager : TrackedComponentRegistryBase` — tracking, spatial/movable query, power-of-two BVH build/query, bake/update queues, and budgeted `ConsumeUpdateQueue` (dynamic sliced, mixed override, baked save subscription) match C++
+  - [x] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>` — type/movable/priority/box/texture/settings accessors, dirty marking, debug bounding-box draw, and dynamic/mixed/baked `UpdateCubemapRenderer` lifecycle match C++
 - [x] `CubemapRenderer.h`
-  - [x] `CubemapRenderer` — settings, update entry, and pipeline hooks are ported; full per-face camera/viewport render and filter path remains documented residual (see source TODO: port complete C++ CubemapRenderer face rendering)
+  - [x] `CubemapRenderer` — camera/viewport per face, full and sliced update, queue face render surfaces, EndViewRender completion, DefineTexture, and optional compute FilterCubemap match C++
 - [x] `OutlineGroup.h`
 - [x] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
 - [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests

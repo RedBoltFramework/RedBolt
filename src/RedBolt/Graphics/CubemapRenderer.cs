@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum CubemapUpdateStage
@@ -66,38 +68,403 @@ public struct CubemapUpdateParameters
 /// <summary>Utility class that handles cubemap rendering from scene.</summary>
 public class CubemapRenderer : Object
 {
+    // Needs to match group size in C_FilterCubemap.glsl
+    private const int CubeFilterDispatchSize = 16;
+
+    private static readonly Quaternion[] FaceRotations =
+    [
+        new(0, 90, 0),
+        new(0, -90, 0),
+        new(-90, 0, 0),
+        new(90, 0, 0),
+        new(0, 0, 0),
+        new(0, 180, 0)
+    ];
+
+    private static ReadOnlySpan<uint> GetRayCounts(uint numLevels)
+    {
+        // static const unsigned rayCounts[]{1, 8, 16};
+        // static const unsigned rayCounts128[]{1, 8, 16, 16, 16, 16, 32, 32};
+        // static const unsigned rayCounts256[]{1, 8, 16, 16, 16, 16, 16, 32, 32};
+        if (numLevels == 7)
+            return new uint[] { 1, 8, 16, 16, 16, 16, 32, 32 };
+        if (numLevels == 8)
+            return new uint[] { 1, 8, 16, 16, 16, 16, 16, 32, 32 };
+        return new uint[] { 1, 8, 16 };
+    }
+
+    private sealed class CachedPipelineStates
+    {
+        public uint NumLevels;
+        public readonly List<PipelineState> PipelineStates = [];
+    }
+
     public event Action<TextureCube>? CubemapRendered;
 
-    private readonly Scene? _scene;
-    private CubemapUpdateStage _updateStage = CubemapUpdateStage.Idle;
+    private readonly Scene _scene;
+    private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
+    private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
+    private readonly RenderPipeline _renderPipeline;
+    private readonly TextureCube _viewportTexture = new("CubemapRenderer.Viewport");
+    private readonly TextureCube _filteredTexture = new("CubemapRenderer.Filtered");
+
+    private CubemapUpdateParameters _currentParams;
+    private CubemapUpdateStage _updateStage;
+    private uint _numFacesToUpdate;
+    private uint _numFacesToRender;
+    private TextureCube? _currentViewportTexture;
+    private TextureCube? _currentFilteredTexture;
+    private bool _viewportsConnectedToSelf;
+    private CachedPipelineStates? _cachedPipelineStates;
+    private ContextEventSubscription? _endViewRenderSubscription;
 
     public CubemapRenderer(Scene scene)
     {
         _scene = scene ?? throw new ArgumentNullException(nameof(scene));
-        // TODO: port complete C++ CubemapRenderer camera/viewport/pipeline initialization
+        _renderPipeline = new RenderPipeline();
+        InitializeRenderPipeline();
+        InitializeCameras();
     }
 
     public override void Dispose()
     {
+        _endViewRenderSubscription?.Dispose();
+        _endViewRenderSubscription = null;
         CubemapRendered = null;
+        if (_currentViewportTexture is not null && !ReferenceEquals(_currentViewportTexture, _viewportTexture))
+            DisconnectViewportsFromTexture(_currentViewportTexture);
+        if (_viewportsConnectedToSelf)
+            DisconnectViewportsFromTexture(_viewportTexture);
         base.Dispose();
+    }
+
+    private void InitializeRenderPipeline()
+    {
+        var settings = _renderPipeline.Settings;
+        settings.DrawDebugGeometry = false;
+        _renderPipeline.SetSettings(settings);
+    }
+
+    private void InitializeCameras()
+    {
+        for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+        {
+            // C++ freestanding Node(context); managed nodes require a scene owner.
+            var cameraNode = _scene.Root.CreateTemporaryChild($"CubemapCamera_{face}");
+            cameraNode.SetWorldRotation(FaceRotations[face]);
+            var camera = cameraNode.CreateComponent<Camera>();
+            camera.SetFov(90.0f);
+            camera.SetAspectRatio(1.0f);
+            camera.SetDrawDebugGeometry(false);
+            _renderCameraNodes[face] = cameraNode;
+
+            _viewports[face] = new Viewport(_scene, camera, IntRect.Zero, _renderPipeline);
+        }
+    }
+
+    private void ConnectViewportsToTexture(TextureCube texture)
+    {
+        for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+        {
+            var surface = texture.GetRenderSurface((CubeMapFace)face);
+            surface?.SetViewport(0, _viewports[face]);
+        }
+
+        _endViewRenderSubscription?.Dispose();
+        _endViewRenderSubscription = SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>(
+            (ref GraphicsEvents.EndViewRenderEvent e) =>
+            {
+                if (ReferenceEquals(e.Texture, texture))
+                    ProcessFaceRendered();
+            });
+    }
+
+    private void DisconnectViewportsFromTexture(TextureCube texture)
+    {
+        for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+        {
+            var surface = texture.GetRenderSurface((CubeMapFace)face);
+            surface?.SetNumViewports(0);
+        }
     }
 
     public static void DefineTexture(TextureCube texture, CubemapRenderingSettings settings,
         TextureFlag flags = TextureFlag.None)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        // TODO: port complete C++ CubemapRenderer::DefineTexture size/format setup
-        _ = settings;
-        _ = flags;
+        texture.SetSize((int)settings.TextureSize, TextureFormat.RGBA8, flags | TextureFlag.BindRenderTarget);
+        texture.SetFilterMode(TextureFilterMode.Trilinear);
     }
 
     public CubemapUpdateResult Update(CubemapUpdateParameters updateParameters)
     {
-        // TODO: port complete C++ CubemapRenderer::Update face rendering and filtering
-        _ = updateParameters;
-        _ = _scene;
-        _updateStage = CubemapUpdateStage.Idle;
-        return new CubemapUpdateResult { NumRenderedFaces = 0, IsComplete = true };
+        if (!_currentParams.IsConsistentWith(updateParameters))
+        {
+            _currentParams = updateParameters;
+
+            _updateStage = CubemapUpdateStage.Idle;
+            _numFacesToUpdate = 0;
+            _numFacesToRender = 0;
+        }
+
+        System.Diagnostics.Debug.Assert(_updateStage != CubemapUpdateStage.Ready);
+
+        if (updateParameters.OverrideFinalTexture is not null
+            && !IsTextureMatching(updateParameters.OverrideFinalTexture, updateParameters.Settings))
+        {
+            Log.Logger.LogError("Invalid texture is used as override for CubemapRenderer::Update");
+            return new CubemapUpdateResult
+            {
+                NumRenderedFaces = (uint)CubeMapFace.MaxCubeMapFaces,
+                IsComplete = true
+            };
+        }
+
+        if (_updateStage == CubemapUpdateStage.Idle)
+            PrepareForUpdate(updateParameters);
+
+        if (_updateStage == CubemapUpdateStage.Idle && !updateParameters.SlicedUpdate)
+            return UpdateFull();
+
+        return UpdateSliced();
+    }
+
+    private void PrepareForUpdate(CubemapUpdateParameters updateParameters)
+    {
+        // Assign current textures
+        if (updateParameters.FilterResult)
+        {
+            _currentViewportTexture = _viewportTexture;
+            _currentFilteredTexture = updateParameters.OverrideFinalTexture ?? _filteredTexture;
+        }
+        else
+        {
+            _currentViewportTexture = updateParameters.OverrideFinalTexture ?? _viewportTexture;
+            _currentFilteredTexture = null;
+        }
+
+        // Initialize contents
+        if (ReferenceEquals(_currentViewportTexture, _viewportTexture)
+            && !IsTextureMatching(_viewportTexture, updateParameters.Settings))
+        {
+            DefineTexture(_viewportTexture, updateParameters.Settings, TextureFlag.None);
+            ConnectViewportsToTexture(_viewportTexture);
+            _viewportsConnectedToSelf = true;
+        }
+        if (ReferenceEquals(_currentFilteredTexture, _filteredTexture)
+            && !IsTextureMatching(_filteredTexture, updateParameters.Settings))
+        {
+            DefineTexture(_filteredTexture, updateParameters.Settings, TextureFlag.BindUnorderedAccess);
+        }
+
+        if (!ReferenceEquals(_currentViewportTexture, _viewportTexture))
+        {
+            if (_viewportsConnectedToSelf)
+            {
+                DisconnectViewportsFromTexture(_viewportTexture);
+                _viewportsConnectedToSelf = false;
+            }
+            if (_currentViewportTexture is not null)
+                ConnectViewportsToTexture(_currentViewportTexture);
+        }
+        else if (!_viewportsConnectedToSelf)
+        {
+            ConnectViewportsToTexture(_viewportTexture);
+            _viewportsConnectedToSelf = true;
+        }
+
+        for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+        {
+            var camera = _renderCameraNodes[face].GetComponent<Camera>();
+            if (camera is null)
+                continue;
+            camera.SetNearClip(updateParameters.Settings.NearClip);
+            camera.SetFarClip(updateParameters.Settings.FarClip);
+            camera.SetViewMask(updateParameters.Settings.ViewMask);
+        }
+
+        foreach (var cameraNode in _renderCameraNodes)
+            cameraNode.SetWorldPosition(updateParameters.Position);
+    }
+
+    private bool IsTextureMatching(TextureCube? textureCube, CubemapRenderingSettings settings) =>
+        textureCube is not null && textureCube.Width == settings.TextureSize;
+
+    private CubemapUpdateResult UpdateFull()
+    {
+        _updateStage = CubemapUpdateStage.Ready;
+        _numFacesToUpdate = 0;
+        _numFacesToRender = (uint)CubeMapFace.MaxCubeMapFaces;
+
+        for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
+            QueueFaceUpdate((CubeMapFace)face);
+
+        return new CubemapUpdateResult
+        {
+            NumRenderedFaces = (uint)CubeMapFace.MaxCubeMapFaces,
+            IsComplete = true
+        };
+    }
+
+    private CubemapUpdateResult UpdateSliced()
+    {
+        if (_updateStage == CubemapUpdateStage.Idle)
+        {
+            _updateStage = CubemapUpdateStage.RenderFaces;
+            _numFacesToUpdate = (uint)CubeMapFace.MaxCubeMapFaces;
+        }
+
+        if (_updateStage == CubemapUpdateStage.RenderFaces)
+        {
+            --_numFacesToUpdate;
+
+            var face = (CubeMapFace)_numFacesToUpdate;
+            QueueFaceUpdate(face);
+
+            if (_numFacesToUpdate == 0)
+            {
+                _updateStage = CubemapUpdateStage.Ready;
+                _numFacesToRender = 1;
+            }
+        }
+
+        var isComplete = _updateStage == CubemapUpdateStage.Ready;
+        return new CubemapUpdateResult { NumRenderedFaces = 1, IsComplete = isComplete };
+    }
+
+    private void ProcessFaceRendered()
+    {
+        System.Diagnostics.Debug.Assert(_updateStage != CubemapUpdateStage.Ready || _numFacesToRender > 0);
+
+        if (_updateStage == CubemapUpdateStage.Ready && _numFacesToRender > 0)
+        {
+            --_numFacesToRender;
+            if (_numFacesToRender == 0)
+            {
+                _updateStage = CubemapUpdateStage.Idle;
+                ProcessCubemapRendered();
+            }
+        }
+    }
+
+    private void ProcessCubemapRendered()
+    {
+        if (_currentViewportTexture is not null
+            && !ReferenceEquals(_currentViewportTexture, _viewportTexture))
+            DisconnectViewportsFromTexture(_currentViewportTexture);
+
+        if (_currentFilteredTexture is not null && _currentViewportTexture is not null)
+            FilterCubemap(_currentViewportTexture, _currentFilteredTexture);
+
+        var finalTexture = _currentFilteredTexture ?? _currentViewportTexture;
+        if (finalTexture is not null)
+            CubemapRendered?.Invoke(finalTexture);
+
+        _currentViewportTexture = null;
+        _currentFilteredTexture = null;
+    }
+
+    private void QueueFaceUpdate(CubeMapFace face)
+    {
+        var renderer = GetSubsystem<Renderer>();
+        if (renderer is null || _currentViewportTexture is null)
+            return;
+
+        var surface = _currentViewportTexture.GetRenderSurface(face);
+        renderer.QueueRenderSurface(surface);
+    }
+
+    private void FilterCubemap(TextureCube sourceTexture, TextureCube destTexture)
+    {
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null || !renderDevice.GetCaps().ComputeShaders)
+        {
+            Log.Logger.LogError("CubemapRenderer::FilterCubemap cannot be executed without compute shader support");
+            return;
+        }
+
+        var numLevels = destTexture.GetLevels();
+        EnsurePipelineStates(numLevels);
+        if (_cachedPipelineStates is null)
+            return;
+
+        var renderContext = renderDevice.GetRenderContext();
+        var drawQueue = renderDevice.GetDefaultQueue();
+        if (renderContext is null || drawQueue is null)
+            return;
+
+        using var renderScope = new RenderScope(renderContext, "CubemapRenderer::FilterCubemap");
+
+        var sourceRaw = sourceTexture.GetRawTexture();
+        var destRaw = destTexture.GetRawTexture();
+        if (sourceRaw is null || destRaw is null)
+            return;
+
+        for (var i = 0u; i < numLevels; ++i)
+            destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(i));
+
+        drawQueue.Reset();
+
+        for (var i = 0u; i < numLevels; ++i)
+        {
+            var pipelineState = _cachedPipelineStates.PipelineStates[(int)i];
+            drawQueue.SetPipelineState(pipelineState);
+
+            drawQueue.AddShaderResource(new StringHash("SourceTexture"), sourceRaw);
+            drawQueue.CommitShaderResources();
+
+            drawQueue.AddUnorderedAccessView(new StringHash("OutputTexture"), destRaw, new RawTextureUAVKey().FromLevel(i));
+            drawQueue.CommitUnorderedAccessViews();
+
+            // Calculate number of threadgroups to dispatch
+            var dispatchW = (destTexture.GetLevelWidth(i) + CubeFilterDispatchSize - 1) / CubeFilterDispatchSize;
+            var dispatchH = (destTexture.GetLevelHeight(i) + CubeFilterDispatchSize - 1) / CubeFilterDispatchSize;
+            drawQueue.Dispatch(new Vector3i(dispatchW, dispatchH, 6));
+        }
+
+        renderContext.ResetRenderTargets();
+        renderContext.Execute(drawQueue);
+    }
+
+    private void EnsurePipelineStates(uint numLevels)
+    {
+        if (_cachedPipelineStates is not null && _cachedPipelineStates.NumLevels == numLevels)
+            return;
+
+        var graphics = GetSubsystem<Graphics>();
+        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
+        if (graphics is null || pipelineStateCache is null)
+            return;
+
+        var cache = new CachedPipelineStates { NumLevels = numLevels };
+
+        var rayCounts = GetRayCounts(numLevels);
+        var roughStep = 1.0f / (numLevels - 1);
+        for (var i = 0u; i < numLevels; ++i)
+        {
+            var levelWidth = (float)(1 << (int)(numLevels - 1 - i));
+            var rayCount = rayCounts[(int)Math.Min(i, (uint)(rayCounts.Length - 1))];
+
+            var shaderParams =
+                $"RAY_COUNT={rayCount}u FILTER_RES={(uint)levelWidth}u FILTER_INV_RES={1.0f / levelWidth:F7} ROUGHNESS={roughStep * i:F7}";
+
+            var desc = new ComputePipelineStateDesc
+            {
+                DebugName = $"C_FilterCubemap: {i} of {numLevels}",
+                ComputeShader = graphics.GetShader(ShaderType.CS, "v2/C_FilterCubemap", shaderParams)
+            };
+            desc.Samplers.Add(new StringHash("SourceTexture"), SamplerStateDesc.Bilinear());
+
+            var pipelineState = pipelineStateCache.GetComputePipelineState(desc);
+            if (pipelineState is null || !pipelineState.IsValid)
+            {
+                Log.Logger.LogError("CubemapRenderer::FilterCubemap failed to create pipeline state");
+                return;
+            }
+
+            cache.PipelineStates.Add(pipelineState);
+        }
+
+        _cachedPipelineStates = cache;
     }
 }
