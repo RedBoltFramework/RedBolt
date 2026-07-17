@@ -135,7 +135,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED under the allowed reflection/type-system facade. The class is static and has no construction or destruction state; methods return newly formatted immutable strings or a scalar `StringHash`, with no mutable object copy or ownership transfer. | — | — | — |
 | `src/RedBolt/Core/ObjectReflection.cs` | `Source/Urho3D/Core/ObjectReflection.h`<br>`Source/Urho3D/Core/ObjectReflection.cpp` | ☑ | ☐ | ☐ |
 | 2026-07-17 partial outcome | Constructor/type/factory setup VERIFIED under the allowed C# reflection facade. `AddAttribute` and `CopyAttributesFrom` already clone C++ by-value `AttributeInfo` entries, while returned attribute/reflection collections preserve borrowed aliases. Deterministic destruction on attribute/metadata removal and deep copy/assignment of attribute defaults and metadata remain dependent on the `AttributeInfo` and `Variant` audits. | — | — | — |
-| `src/RedBolt/Core/ObjectRevisionTracker.cs` | `Source/Urho3D/Core/ObjectRevisionTracker.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/ObjectRevisionTracker.cs` | `Source/Urho3D/Core/ObjectRevisionTracker.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. Implicit construction initializes revision to 1, destruction is trivial, and revision updates preserve the nonzero sentinel across unsigned overflow. `GetRevision` returns only a scalar `uint`; no C++ tracker copy-construction call sites exist in the currently ported code. | — | — | — |
 | `src/RedBolt/Core/ProcessUtils.cs` | `Source/Urho3D/Core/ProcessUtils.h`<br>`Source/Urho3D/Core/ProcessUtils.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/Profiler.cs` | `Source/Urho3D/Core/Profiler.h`<br>`Source/Urho3D/Core/Profiler.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/Spline.cs` | `Source/Urho3D/Core/Spline.h`<br>`Source/Urho3D/Core/Spline.cpp` | ☐ | ☐ | ☐ |
