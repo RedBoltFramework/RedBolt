@@ -20,6 +20,9 @@ public sealed class RenderBufferManager
     private StaticPipelineStateId _copyTexturePipelineState;
     private StaticPipelineStateId _copyGammaToLinearTexturePipelineState;
     private StaticPipelineStateId _copyLinearToGammaTexturePipelineState;
+    // C++: MaxClearVariants = (CLEAR_COLOR | CLEAR_DEPTH | CLEAR_STENCIL) + 1
+    private const int MaxClearVariants = (int)(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil) + 1;
+    private readonly StaticPipelineStateId[] _clearPipelineState = new StaticPipelineStateId[MaxClearVariants];
 
     private readonly struct ClearFramebufferParameters
     {
@@ -492,6 +495,32 @@ public sealed class RenderBufferManager
             BlendMode.Replace, "v2/X_CopyFramebuffer", "URHO3D_GAMMA_TO_LINEAR", samplers);
         _copyLinearToGammaTexturePipelineState = CreateQuadPipelineState(
             BlendMode.Replace, "v2/X_CopyFramebuffer", "URHO3D_LINEAR_TO_GAMMA", samplers);
+
+        // C++ InitializePipelineStates: clearPipelineState_[i] for each ClearTargetFlags variant
+        for (var i = 0; i < MaxClearVariants; ++i)
+            _clearPipelineState[i] = CreateQuadPipelineState(GetClearPipelineStateDesc((ClearTarget)i));
+    }
+
+    /// <summary>
+    /// C++ GetClearPipelineStateDesc — v2/X_ClearFramebuffer with color/depth/stencil write flags.
+    /// </summary>
+    private GraphicsPipelineStateDesc GetClearPipelineStateDesc(ClearTarget flags)
+    {
+        const string shaderName = "v2/X_ClearFramebuffer";
+        return new GraphicsPipelineStateDesc
+        {
+            DebugName = shaderName,
+            VertexShader = _graphics?.GetShader(ShaderType.VS, shaderName, string.Empty),
+            PixelShader = _graphics?.GetShader(ShaderType.PS, shaderName, string.Empty),
+            ColorWriteEnabled = (flags & ClearTarget.Color) != 0,
+            BlendMode = BlendMode.Replace,
+            DepthWriteEnabled = (flags & ClearTarget.Depth) != 0,
+            DepthCompareFunction = CompareMode.Always,
+            StencilWriteMask = (flags & ClearTarget.Stencil) != 0 ? 0xffu : 0u,
+            StencilOperationOnPassed = StencilOp.Ref,
+            StencilTestEnabled = (flags & ClearTarget.Stencil) != 0,
+            StencilCompareFunction = CompareMode.Always,
+        };
     }
 
     /// <summary>
@@ -658,19 +687,17 @@ public sealed class RenderBufferManager
             return;
         }
 
-        // Sub-rect clear via fullscreen quad (matches C++ isOpenGL depth remapping).
-        var clearParameters = new ClearFramebufferParameters
+        // C++ ClearOutputRect subregion: DrawViewportQuad with clearPipelineState_[flags]
+        var clearParams = new ShaderParameterDesc[]
         {
-            Color = new Vector4f(color.R, color.G, color.B, color.A),
-            Depth = GetFullscreenQuadClearDepth(depth)
+            new(new StringHash("Color"), new Variant(color)),
+            new(new StringHash("Depth"), new Variant(GetFullscreenQuadClearDepth(depth))),
         };
-        graphics.DrawClearFramebufferQuad(
+        DrawViewportQuad(
             "Clear output subregion",
-            flags,
-            clearParameters,
-            GetInvOutputSize(),
-            GetDefaultClipToUVSpaceOffsetAndScale(),
-            stencil);
+            _clearPipelineState[(int)flags],
+            Array.Empty<ShaderResourceDesc>(),
+            clearParams);
     }
 
     public void ClearOutput(Graphics graphics, ClearTarget flags, Color color, float depth, byte stencil = 0)
