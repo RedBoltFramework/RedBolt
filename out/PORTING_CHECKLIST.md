@@ -391,8 +391,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ShadowSplitProcessor` — directional/spot/point initialization, caster processing via DrawableProcessor preprocess, FinalizeShadow texel snap/zoom, world-to-shadow matrix, and batch sort with DisableColorOutput match C++ (freestanding Node mapped to private temporary Scene)
 - [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
   - [x] `LightAccumulator`
-- [~] `LightProcessor.h`
-  - [~] `LightProcessor : NonCopyable` — `CookedLightParams`, `BeginUpdate`/`Update` lit-geometry queries and split setup, `EndUpdate` shadow-map allocation, non-shadow cooking, and pipeline-state hashes match C++; remaining shadow-parameter cooking depends on full `ShadowSplitProcessor` bodies
+- [x] `LightProcessor.h`
+  - [x] `LightProcessor : NonCopyable` — lit-geometry queries, shadow split setup/processing, EndUpdate allocation, full CookedLightParams (including shadow matrices/fade/intensity/bias), and pipeline-state hashes match C++
   - [x] `LightProcessorCache : NonCopyable` — generation-based LRU cleanup with budget/TTL settings and get-or-create match C++
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`

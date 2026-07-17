@@ -423,12 +423,120 @@ public partial class LightProcessor
         }
 
         // Skip the rest if no shadow
-        if (_shadowMap.IsEmpty)
+        if (_shadowMap.IsEmpty || _numActiveSplits == 0)
             return;
 
-        // TODO: port remaining shadow-parameter cooking once ShadowSplitProcessor is fully implemented
-        _ = cullCamera;
-        _ = settings;
+        // Add subpixel offset if PCF kernel is even
+        var subPixelOffset = settings.PcfKernelSize % 2 == 0 ? 0.5f : 0.0f;
+
+        // Initialize size of shadow map
+        var textureSizeX = (float)_shadowMap.Texture!.Width;
+        var textureSizeY = (float)_shadowMap.Texture.Height;
+        _cookedParams.ShadowMapInvSize = new Vector2f(1.0f / textureSizeX, 1.0f / textureSizeY);
+
+        _cookedParams.ShadowCubeUVBias = Vector2f.Zero;
+        _cookedParams.ShadowCubeAdjust = default;
+        switch (lightType)
+        {
+            case LightType.Directional:
+                _cookedParams.NumLightMatrices = Light.MaxCascadeSplits;
+                for (var splitIndex = 0u; splitIndex < _numActiveSplits; ++splitIndex)
+                    _cookedParams.LightMatrices[splitIndex] =
+                        _splits[(int)splitIndex].GetWorldToShadowSpaceMatrix(subPixelOffset);
+                break;
+
+            case LightType.Spot:
+                _cookedParams.NumLightMatrices = 1;
+                _cookedParams.LightMatrices[0] = _splits[0].GetWorldToShadowSpaceMatrix(subPixelOffset);
+                break;
+
+            case LightType.Point:
+            {
+                var splitViewport = _splits[0].GetShadowMap().Rect;
+                var cubeShadowMapPadding = _splits[0].GetShadowMapPadding();
+                var viewportSizeX = (float)splitViewport.Width;
+                var viewportSizeY = (float)splitViewport.Height;
+                var viewportOffsetX = (float)splitViewport.Left;
+                var viewportOffsetY = (float)splitViewport.Top;
+                var relativeViewportSize = new Vector2f(viewportSizeX / textureSizeX, viewportSizeY / textureSizeY);
+                var relativeViewportOffset = new Vector2f(viewportOffsetX / textureSizeX, viewportOffsetY / textureSizeY);
+                _cookedParams.ShadowCubeUVBias =
+                    Vector2f.One - 2.0f * cubeShadowMapPadding * _cookedParams.ShadowMapInvSize / relativeViewportSize;
+
+                if (_renderBackend == RenderBackend.OpenGL)
+                {
+                    var scale = relativeViewportSize * new Vector2f(1, -1);
+                    var offset = new Vector2f(0, 1) + relativeViewportOffset * new Vector2f(1, -1);
+                    _cookedParams.ShadowCubeAdjust = new Vector4f(scale, offset);
+                }
+                else
+                {
+                    _cookedParams.ShadowCubeAdjust = new Vector4f(relativeViewportSize, relativeViewportOffset);
+                }
+
+                break;
+            }
+        }
+
+        {
+            // Calculate shadow camera depth parameters for point light shadows and shadow fade parameters for
+            //  directional light shadows, stored in the same uniform
+            var shadowCamera = _splits[0].GetShadowCamera();
+            var nearClip = shadowCamera.GetNearClip();
+            var farClip = shadowCamera.GetFarClip();
+            var q = farClip / (farClip - nearClip);
+            var r = -q * nearClip;
+
+            var parameters = _light.GetShadowCascade();
+            var viewFarClip = cullCamera.GetFarClip();
+            var shadowRange = parameters.GetShadowRange();
+            var fadeStart = parameters.FadeStart * shadowRange / viewFarClip;
+            var fadeEnd = shadowRange / viewFarClip;
+            var fadeRange = fadeEnd - fadeStart;
+
+            _cookedParams.ShadowDepthFade = new Vector4f(q, r, fadeStart, 1.0f / fadeRange);
+        }
+
+        {
+            var intensity = _light.GetShadowIntensity();
+            var fadeStart = _light.GetShadowFadeDistance();
+            var fadeEnd = _light.GetShadowDistance();
+            if (fadeStart > 0.0f && fadeEnd > 0.0f && fadeEnd > fadeStart)
+                intensity = MathDefs.Lerp(intensity, 1.0f,
+                    MathDefs.Clamp((_light.GetDistance() - fadeStart) / (fadeEnd - fadeStart), 0.0f, 1.0f));
+
+            // Include number of samples for PCF 1x1 and 2x2 only, bigger PCFs need non-uniform factors
+            var samples = settings.PcfKernelSize == 2 ? 4.0f : 1.0f;
+            _cookedParams.ShadowIntensity = new Vector4f((1.0f - intensity) / samples, intensity, 0.0f, 0.0f);
+        }
+
+        var splitDistances = new[] { MathDefs.LargeValue, MathDefs.LargeValue, MathDefs.LargeValue, MathDefs.LargeValue };
+        if (lightType == LightType.Directional)
+        {
+            for (var i = 0u; i < _numActiveSplits; ++i)
+                splitDistances[i] = _splits[(int)i].GetCascadeZRange().Second / cullCamera.GetFarClip();
+        }
+
+        _cookedParams.ShadowSplitDistances = new Vector4f(splitDistances);
+
+        Array.Fill(_cookedParams.ShadowDepthBiasMultiplier, 1.0f);
+        if (_light.GetLightType() == LightType.Directional)
+        {
+            var biasAutoAdjust = _light.GetShadowCascade().BiasAutoAdjust;
+            var firstSplitDepthRange = _splits[0].GetShadowCamera().GetFarClip();
+            for (var i = 1u; i < _numActiveSplits; ++i)
+            {
+                var splitDepthRange = _splits[(int)i].GetShadowCamera().GetFarClip();
+                var splitScale = Math.Max(1.0f, splitDepthRange / firstSplitDepthRange);
+                var multiplier = 1.0f + (splitScale - 1.0f) * biasAutoAdjust;
+                _cookedParams.ShadowDepthBiasMultiplier[i] = MathDefs.SnapRound(multiplier, 0.1f);
+            }
+        }
+
+        var normalOffset = _light.GetShadowBias().NormalOffset * settings.NormalOffsetScale;
+        for (var i = 0u; i < _numActiveSplits; ++i)
+            _cookedParams.ShadowNormalBias[i] =
+                _splits[(int)i].GetShadowMapTexelSizeInWorldSpace() * normalOffset;
     }
 
     private void UpdateHashes()
