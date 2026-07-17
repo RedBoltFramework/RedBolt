@@ -34,6 +34,19 @@ public sealed class ReflectionProbeDataTests
     }
 
     [Fact]
+    public void Cached_drawable_reflection_copy_has_independent_probe_arrays()
+    {
+        var cache = new CachedDrawableReflection();
+        cache.StaticProbes[0] = new ReflectionProbeReference { Data = new ReflectionProbeData() };
+
+        var copy = cache;
+        copy.StaticProbes[0].Reset();
+
+        Assert.True(cache.StaticProbes[0].IsValid);
+        Assert.False(copy.StaticProbes[0].IsValid);
+    }
+
+    [Fact]
     public void Reflection_probe_reference_orders_by_priority_or_volume()
     {
         var data = new ReflectionProbeData();

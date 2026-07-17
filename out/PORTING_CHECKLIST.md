@@ -150,10 +150,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Camera.h` / `Camera.cpp` — non-copyable component semantics, value-owned projection/view/frustum caches, weak Graphics observation, borrowed Zone ownership, and default derived destruction reconciled
 - [x] `CameraOperator.h` / `CameraOperator.cpp` — weak tracked-node ownership, value-owned serialization and point caches, listener registration/removal, and default derived destruction reconciled
 - [x] `CubemapRenderer.h` / `CubemapRenderer.cpp` — weak scene and texture observations, independent parameter value copies, shared pipeline-state aliases, non-copyable object semantics, and managed temporary-camera teardown reconciled
-- [~] `CustomGeometry.h` / `CustomGeometry.cpp` — vertex value semantics, owned geometry/buffer teardown, borrowed batch materials, cached material attributes, mapped commit, and ray queries reconciled; final closure depends on pending Drawable, Geometry, VertexBuffer data-loss-state, and SourceBatch audits
+- [~] `CustomGeometry.h` / `CustomGeometry.cpp` — vertex value semantics, owned geometry/buffer teardown, borrowed batch materials, cached material attributes, mapped commit, and ray queries reconciled; final closure depends on pending Geometry and VertexBuffer data-loss-state audits
 - [x] `DebugLine` / `DebugTriangle` in `DebugRenderer.h` — zero-default construction, field order, independent value copies, trivial destruction, and DebugRenderer value-list storage verified
 - [x] `DebugRenderer.h` / `DebugRenderer.cpp` — weak camera observation, independent frustum value copy, owned vertex-buffer and pipeline-cache teardown, non-copyable component semantics, and value-owned debug primitives reconciled
 - [x] `DecalSet.h` / `DecalSet.cpp` — decal and vertex value-copy semantics, owned geometry and buffer teardown, cloned bone values with borrowed weak node listeners, skinned face extraction and bone remapping, and shared tangent generation reconciled
+- [x] `Drawable.h` / `Drawable.cpp` — non-copyable base semantics, SourceBatch shallow value copies, independent cached reflection values, weak borrowed zone/camera observations, queued-update cancellation, deterministic batch release, and abstract bounding-box contract reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

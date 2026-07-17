@@ -394,6 +394,11 @@ public class StaticModel : Drawable
         return Resource.GetResourceRefList(materials);
     }
 
+    protected override void OnWorldBoundingBoxUpdate()
+    {
+        _worldBoundingBox = _boundingBox.Transformed(Node.GetWorldTransform());
+    }
+
     public override Geometry? GetLodGeometry(uint batchIndex, uint level)
     {
         if (batchIndex >= _geometries.Count)

@@ -37,8 +37,14 @@ public enum ReflectionMode
 /// <summary>Cached info about current zone.</summary>
 public struct CachedDrawableZone
 {
+    private WeakReference<Zone>? _zone;
+
     /// <summary>Pointer to Zone.</summary>
-    public Zone? Zone;
+    public Zone? Zone
+    {
+        readonly get => _zone is not null && _zone.TryGetTarget(out var zone) ? zone : null;
+        set => _zone = value is not null ? new WeakReference<Zone>(value) : null;
+    }
 
     /// <summary>Node position at the moment of last caching.</summary>
     public Vector3f CachePosition;
@@ -54,13 +60,21 @@ public struct CachedDrawableZone
     }
 }
 
+[System.Runtime.CompilerServices.InlineArray(2)]
+public struct ReflectionProbeReferenceArray
+{
+    private ReflectionProbeReference _element0;
+
+    public readonly int Length => 2;
+}
+
 /// <summary>Cached info about current static reflection probe.</summary>
 public struct CachedDrawableReflection
 {
     /// <summary>Most important reflection probes affecting Drawable.</summary>
-    public ReflectionProbeReference[] StaticProbes { get; set; }
+    public ReflectionProbeReferenceArray StaticProbes;
 
-    public ReflectionProbeReference[] Probes { get; set; }
+    public ReflectionProbeReferenceArray Probes;
 
     /// <summary>Information for cache invalidation.</summary>
     public uint CacheRevision { get; set; }
@@ -71,8 +85,6 @@ public struct CachedDrawableReflection
 
     public CachedDrawableReflection()
     {
-        StaticProbes = new ReflectionProbeReference[2];
-        Probes = new ReflectionProbeReference[2];
         CacheRevision = 0;
         CachePosition = default;
         CacheInvalidationDistanceSquared = -1.0f;
@@ -179,16 +191,21 @@ public abstract class Drawable : Component
     public override void Dispose()
     {
         RemoveFromOctree();
+        _numViewCameras = 0;
+        _viewCameras.Clear();
+        _cachedReflection = new CachedDrawableReflection();
+        _batches.Clear();
         _pipelineStateTracker.Dispose();
         base.Dispose();
     }
 
-    private BoundingBox _boundingBox;
+    protected BoundingBox _boundingBox;
     protected BoundingBox _worldBoundingBox;
     protected bool _worldBoundingBoxDirty = true;
-    private CachedDrawableZone _cachedZone;
+    private CachedDrawableZone _cachedZone = new();
     private bool _zoneDirty;
     private Octant? _octant;
+    internal bool _updateQueued;
     private uint _drawableIndex = uint.MaxValue;
     private CachedDrawableReflection _cachedReflection = new();
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
@@ -197,8 +214,21 @@ public abstract class Drawable : Component
     protected uint _viewFrameNumber;
     private float _distance;
     private float _lodDistance;
+    private float _drawDistance;
+    private float _shadowDistance;
     private float _sortValue;
-    protected readonly System.Collections.Generic.List<Camera?> _viewCameras = [];
+    private float _lodBias = 1.0f;
+    private uint _viewMask = DefaultViewMask;
+    private uint _lightMask = DefaultLightMask;
+    private uint _shadowMask = DefaultShadowMask;
+    private uint _zoneMask = DefaultZoneMask;
+    private bool _castShadows;
+    private bool _occluder;
+    private bool _occludee = true;
+    private GlobalIlluminationType _globalIlluminationType;
+    private ReflectionMode _reflectionMode = ReflectionMode.BlendProbesAndZone;
+    protected readonly System.Collections.Generic.List<WeakReference<Camera>?> _viewCameras = [];
+    private int _numViewCameras;
     private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;
@@ -207,29 +237,77 @@ public abstract class Drawable : Component
 
     public DrawableFlags DrawableFlags { get; }
 
-    public float DrawDistance { get; set; }
+    public float DrawDistance
+    {
+        get => _drawDistance;
+        set => SetDrawDistance(value);
+    }
 
-    public float ShadowDistance { get; set; }
+    public float ShadowDistance
+    {
+        get => _shadowDistance;
+        set => SetShadowDistance(value);
+    }
 
-    public float LodBias { get; set; } = 1.0f;
+    public float LodBias
+    {
+        get => _lodBias;
+        set => SetLodBias(value);
+    }
 
-    public uint ViewMask { get; set; } = DefaultViewMask;
+    public uint ViewMask
+    {
+        get => _viewMask;
+        set => SetViewMask(value);
+    }
 
-    public uint LightMask { get; set; } = DefaultLightMask;
+    public uint LightMask
+    {
+        get => _lightMask;
+        set => SetLightMask(value);
+    }
 
-    public uint ShadowMask { get; set; } = DefaultShadowMask;
+    public uint ShadowMask
+    {
+        get => _shadowMask;
+        set => SetShadowMask(value);
+    }
 
-    public uint ZoneMask { get; set; } = DefaultZoneMask;
+    public uint ZoneMask
+    {
+        get => _zoneMask;
+        set => SetZoneMask(value);
+    }
 
-    public bool CastShadows { get; set; }
+    public bool CastShadows
+    {
+        get => _castShadows;
+        set => SetCastShadows(value);
+    }
 
-    public bool Occluder { get; set; }
+    public bool Occluder
+    {
+        get => _occluder;
+        set => SetOccluder(value);
+    }
 
-    public bool Occludee { get; set; } = true;
+    public bool Occludee
+    {
+        get => _occludee;
+        set => SetOccludee(value);
+    }
 
-    public GlobalIlluminationType GlobalIlluminationType { get; set; }
+    public GlobalIlluminationType GlobalIlluminationType
+    {
+        get => _globalIlluminationType;
+        set => SetGlobalIlluminationType(value);
+    }
 
-    public ReflectionMode ReflectionMode { get; set; } = ReflectionMode.BlendProbesAndZone;
+    public ReflectionMode ReflectionMode
+    {
+        get => _reflectionMode;
+        set => SetReflectionMode(value);
+    }
 
     public BoundingBox GetBoundingBox() => _boundingBox;
 
@@ -280,6 +358,11 @@ public abstract class Drawable : Component
     /// Return index in octree.
     /// </summary>
     public uint GetDrawableIndex() => _drawableIndex;
+
+    /// <summary>
+    /// Return whether the drawable is added to Octree.
+    /// </summary>
+    public bool IsInOctree() => _drawableIndex != uint.MaxValue;
 
     internal void SetDrawableIndex(uint drawableIndex) => _drawableIndex = drawableIndex;
 
@@ -332,7 +415,7 @@ public abstract class Drawable : Component
     public bool IsInView()
     {
         var renderer = GetSubsystem<Renderer>();
-        return renderer is not null && _viewFrameNumber == renderer.GetFrameInfo().FrameNumber && _viewCameras.Count > 0;
+        return renderer is not null && _viewFrameNumber == renderer.GetFrameInfo().FrameNumber && _numViewCameras > 0;
     }
 
     /// <summary>
@@ -342,7 +425,7 @@ public abstract class Drawable : Component
     {
         var renderer = GetSubsystem<Renderer>();
         return renderer is not null && _viewFrameNumber == renderer.GetFrameInfo().FrameNumber &&
-            (camera is null || _viewCameras.Contains(camera));
+            (camera is null || ContainsViewCamera(camera));
     }
 
     /// <summary>
@@ -436,7 +519,7 @@ public abstract class Drawable : Component
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
     {
         return _viewFrameNumber == frame.FrameNumber &&
-            (anyCamera || _viewCameras.Contains(frame.Cameras[0]));
+            (anyCamera || frame.Cameras[0] is { } camera && ContainsViewCamera(camera));
     }
 
     public BoundingBox GetWorldBoundingBox()
@@ -452,12 +535,12 @@ public abstract class Drawable : Component
 
     public void SetDrawDistance(float distance)
     {
-        DrawDistance = distance;
+        _drawDistance = distance;
     }
 
     public void SetShadowDistance(float distance)
     {
-        ShadowDistance = distance;
+        _shadowDistance = distance;
     }
 
     public void SetSortValue(float value)
@@ -480,10 +563,10 @@ public abstract class Drawable : Component
         if (frame.FrameNumber != _viewFrameNumber)
         {
             _viewFrameNumber = frame.FrameNumber;
-            _viewCameras.Clear();
+            _numViewCameras = 0;
         }
 
-        _viewCameras.Add(frame.Cameras[0]);
+        SetViewCamera(_numViewCameras++, frame.Cameras[0]);
     }
 
     public void MarkInView(uint frameNumber)
@@ -491,63 +574,75 @@ public abstract class Drawable : Component
         if (frameNumber != _viewFrameNumber)
         {
             _viewFrameNumber = frameNumber;
-            _viewCameras.Clear();
+            _numViewCameras = 0;
         }
     }
 
     public void SetLodBias(float bias)
     {
-        LodBias = Math.Max(bias, MathDefs.Epsilon);
+        _lodBias = Math.Max(bias, MathDefs.Epsilon);
     }
 
     public void SetViewMask(uint mask)
     {
-        ViewMask = mask;
+        _viewMask = mask;
     }
 
     public void SetLightMask(uint mask)
     {
-        LightMask = mask;
+        _lightMask = mask;
         MarkPipelineStateHashDirty();
     }
 
     public void SetShadowMask(uint mask)
     {
-        ShadowMask = mask;
+        _shadowMask = mask;
     }
 
     public void SetZoneMask(uint mask)
     {
-        ZoneMask = mask;
+        _zoneMask = mask;
         _cachedZone.CacheInvalidationDistanceSquared = -1.0f;
         if (IsAttached)
             OnMarkedDirty(Node);
+        else
+        {
+            _worldBoundingBoxDirty = true;
+            MarkForUpdate();
+            _zoneDirty = true;
+        }
     }
 
     public void SetCastShadows(bool enable)
     {
-        CastShadows = enable;
+        _castShadows = enable;
     }
 
     public void SetOccluder(bool enable)
     {
-        Occluder = enable;
+        _occluder = enable;
     }
 
     public void SetOccludee(bool enable)
     {
-        Occludee = enable;
+        if (enable != _occludee)
+        {
+            _occludee = enable;
+            // Reinsert to octree to make sure octant occlusion does not erroneously hide this drawable
+            if (_octant is not null && !_updateQueued)
+                _octant.GetOctree().QueueUpdate(this);
+        }
     }
 
     public void SetGlobalIlluminationType(GlobalIlluminationType type)
     {
-        GlobalIlluminationType = type;
+        _globalIlluminationType = type;
         MarkPipelineStateHashDirty();
     }
 
     public void SetReflectionMode(ReflectionMode mode)
     {
-        ReflectionMode = mode;
+        _reflectionMode = mode;
         MarkPipelineStateHashDirty();
     }
 
@@ -567,7 +662,7 @@ public abstract class Drawable : Component
 
     public void MarkForUpdate()
     {
-        if (_octant is not null)
+        if (!_updateQueued && _octant is not null)
             _octant.GetOctree().QueueUpdate(this);
     }
 
@@ -611,10 +706,7 @@ public abstract class Drawable : Component
         _worldBoundingBox = box;
     }
 
-    protected virtual void OnWorldBoundingBoxUpdate()
-    {
-        _worldBoundingBox = IsAttached ? _boundingBox.Transformed(Node.GetWorldTransform()) : _boundingBox;
-    }
+    protected abstract void OnWorldBoundingBoxUpdate();
 
     protected internal override void OnMarkedDirty(Node node)
     {
@@ -675,8 +767,33 @@ public abstract class Drawable : Component
             return;
 
         var octree = _octant.GetOctree();
+        if (_updateQueued)
+            octree.CancelUpdate(this);
         OnRemoveFromOctree();
         octree.RemoveDrawable(this, _octant);
+    }
+
+    private bool ContainsViewCamera(Camera camera)
+    {
+        for (var i = 0; i < _numViewCameras; ++i)
+        {
+            if (_viewCameras[i] is { } weakCamera && weakCamera.TryGetTarget(out var viewCamera) &&
+                ReferenceEquals(viewCamera, camera))
+                return true;
+        }
+        return false;
+    }
+
+    private void SetViewCamera(int index, Camera? camera)
+    {
+        if (index == _viewCameras.Count)
+            _viewCameras.Add(camera is not null ? new WeakReference<Camera>(camera) : null);
+        else if (camera is null)
+            _viewCameras[index] = null;
+        else if (_viewCameras[index] is { } weakCamera)
+            weakCamera.SetTarget(camera);
+        else
+            _viewCameras[index] = new WeakReference<Camera>(camera);
     }
 
     protected PipelineStateSubscription CreateDependency(PipelineStateTracker? dependency)

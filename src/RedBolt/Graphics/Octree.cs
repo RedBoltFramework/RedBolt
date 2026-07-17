@@ -468,7 +468,10 @@ public sealed class Octree : Component
     public void QueueUpdate(Drawable? drawable)
     {
         if (drawable is not null)
+        {
             _drawableUpdates.Add(drawable);
+            drawable._updateQueued = true;
+        }
     }
 
     public void QueueNodeTransformUpdate(Node node, Transform transform)
@@ -479,7 +482,10 @@ public sealed class Octree : Component
     public void CancelUpdate(Drawable? drawable)
     {
         if (drawable is not null)
+        {
             _drawableUpdates.Remove(drawable);
+            drawable._updateQueued = false;
+        }
     }
 
     public void MarkZoneDirty(Zone zone)
@@ -492,7 +498,7 @@ public sealed class Octree : Component
     {
         foreach (var drawable in _drawableUpdates)
         {
-            drawable.MarkForUpdate();
+            drawable._updateQueued = false;
             var octant = drawable.GetOctant();
             if (octant is null || !ReferenceEquals(octant.GetOctree(), this))
                 continue;
@@ -550,7 +556,9 @@ public sealed class Octree : Component
 
         _manualDrawables.Remove(drawable);
         drawable.SetDrawableIndex(uint.MaxValue);
+        drawable._updateQueued = false;
         drawable.GetMutableCachedZone() = new CachedDrawableZone();
+        drawable.GetMutableCachedReflection() = new CachedDrawableReflection();
     }
 
     public IReadOnlyList<Drawable> GetDrawables(DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)

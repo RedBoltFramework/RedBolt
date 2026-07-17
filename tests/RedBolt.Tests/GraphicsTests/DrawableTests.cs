@@ -2,6 +2,28 @@ namespace RedBolt.Tests;
 
 public sealed class DrawableTests
 {
+    private sealed class UpdateProbeDrawable : Drawable
+    {
+        public int NumUpdates { get; private set; }
+        public int NumBoundingBoxUpdates { get; private set; }
+
+        public override void Update(CommonFrameInfo frame)
+        {
+            ++NumUpdates;
+        }
+
+        public void ResetBoundingBoxUpdates()
+        {
+            NumBoundingBoxUpdates = 0;
+            _worldBoundingBoxDirty = true;
+        }
+
+        protected override void OnWorldBoundingBoxUpdate()
+        {
+            ++NumBoundingBoxUpdates;
+        }
+    }
+
     [Fact]
     public void Drawable_exposes_batches_and_mutable_light_probe_hint()
     {
@@ -94,5 +116,39 @@ public sealed class DrawableTests
         Assert.Equal(0u, drawable.GetNumOccluderTriangles());
         Assert.NotNull(drawable.GetLodGeometry(0u, 0u));
         Assert.Null(drawable.GetLodGeometry(1u, 0u));
+    }
+
+    [Fact]
+    public void Drawable_properties_use_cpp_setter_behavior()
+    {
+        using var drawable = new CustomGeometry();
+        var originalHash = drawable.GetPipelineStateHash();
+
+        drawable.LodBias = 0.0f;
+        drawable.GlobalIlluminationType = GlobalIlluminationType.UseLightMap;
+        drawable.ZoneMask = 1u;
+
+        Assert.Equal(MathDefs.Epsilon, drawable.GetLodBias());
+        Assert.NotEqual(originalHash, drawable.GetPipelineStateHash());
+        Assert.True(drawable.IsZoneDirty());
+    }
+
+    [Fact]
+    public void Drawable_dispose_cancels_queued_octree_update()
+    {
+        var octree = new Scene().CreateComponent<Octree>();
+        var drawable = new UpdateProbeDrawable();
+        octree.AddManualDrawable(drawable);
+        Assert.True(drawable.IsInOctree());
+        drawable.ResetBoundingBoxUpdates();
+        octree.QueueUpdate(drawable);
+
+        drawable.Dispose();
+        octree.Update();
+
+        Assert.Equal(0, drawable.NumUpdates);
+        Assert.Equal(0, drawable.NumBoundingBoxUpdates);
+        Assert.False(drawable.IsInOctree());
+        Assert.DoesNotContain(drawable, octree.GetAllDrawables());
     }
 }

@@ -7,7 +7,7 @@ public sealed class OctreeQueryTests
     [Fact]
     public void Point_query_filters_drawables_by_point_flags_and_view_mask()
     {
-        var drawable = new StaticModel();
+        var drawable = new Scene().CreateChild("Drawable").CreateComponent<StaticModel>();
         drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
         var result = new List<Drawable>();
         var query = new PointOctreeQuery(result, Vector3f.Zero);
