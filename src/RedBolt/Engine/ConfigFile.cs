@@ -1,16 +1,20 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
 /// <summary>Configuration parameter description.</summary>
-public sealed class ConfigVariableDefinition
+public sealed class ConfigVariableDefinition : ICloneable, IDisposable
 {
     public ConfigVariableDefinition SetDefault(Variant value)
     {
-        DefaultValue = value;
+        var replacement = value.Clone();
+        DefaultValue.Dispose();
+        DefaultValue = replacement;
         Type = value.Type;
         return this;
     }
@@ -23,15 +27,60 @@ public sealed class ConfigVariableDefinition
     public bool HasCommandLinePriority;
     public Variant DefaultValue;
     public VariantType Type;
+
+    public ConfigVariableDefinition Clone()
+    {
+        return new ConfigVariableDefinition
+        {
+            IsOverridable = IsOverridable,
+            HasCommandLinePriority = HasCommandLinePriority,
+            DefaultValue = DefaultValue.Clone(),
+            Type = Type
+        };
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        DefaultValue.Dispose();
+        DefaultValue = default;
+    }
 }
 
 /// <summary>A class responsible for serializing configuration parameters.</summary>
 public sealed class ConfigFile : Object
 {
-    public struct ConfigFlavor
+    private static readonly Variant EmptyVariable;
+
+    public struct ConfigFlavor : ICloneable, IDisposable
     {
         public ApplicationFlavorPattern Flavor;
-        public Dictionary<string, Variant> Variables;
+        public StringVariantMap Variables;
+
+        public ConfigFlavor()
+        {
+            Flavor = new ApplicationFlavorPattern();
+            Variables = new StringVariantMap();
+        }
+
+        public readonly ConfigFlavor Clone()
+        {
+            return new ConfigFlavor
+            {
+                Flavor = Flavor.Clone(),
+                Variables = new StringVariantMap(Variables)
+            };
+        }
+
+        readonly object ICloneable.Clone() => Clone();
+
+        public void Dispose()
+        {
+            Variables?.Dispose();
+            Variables = null!;
+            Flavor = default;
+        }
 
         public void SerializeInBlock(Archive archive)
         {
@@ -40,6 +89,7 @@ public sealed class ConfigFile : Object
             if (archive.IsInput)
             {
                 Flavor.Components ??= new ApplicationFlavorMap();
+                Flavor.Components.Clear();
                 for (var i = 0u; i < arrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
@@ -65,21 +115,32 @@ public sealed class ConfigFile : Object
                 }
             }
 
-            var varMap = Variables ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
+            var varMap = Variables ??= new StringVariantMap();
             var varCount = archive.IsInput ? 0u : (uint)varMap.Count;
             using var varArrayBlock = archive.OpenArrayBlock("Variables", varCount);
             if (archive.IsInput)
             {
-                varMap.Clear();
+                varMap.Dispose();
                 for (var i = 0u; i < varArrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
                     var key = string.Empty;
                     var value = default(Variant);
-                    ArchiveSerialization.SerializeValue(archive, "key", ref key);
-                    ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                    if (!string.IsNullOrEmpty(key))
-                        varMap[key] = value;
+                    try
+                    {
+                        ArchiveSerialization.SerializeValue(archive, "key", ref key);
+                        ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                        if (!string.IsNullOrEmpty(key))
+                        {
+                            if (varMap.Remove(key, out var previous))
+                                previous.Dispose();
+                            varMap[key] = value.Clone();
+                        }
+                    }
+                    finally
+                    {
+                        value.Dispose();
+                    }
                 }
             }
             else
@@ -98,15 +159,30 @@ public sealed class ConfigFile : Object
 
     private readonly List<ConfigFlavor> _variablesPerFlavor = [];
     private readonly Dictionary<string, ConfigVariableDefinition> _definitions = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, Variant> _variables = new(StringComparer.Ordinal);
+    private readonly StringVariantMap _variables = new();
 
     public ConfigFile()
     {
     }
 
+    public override void Dispose()
+    {
+        _variables.Dispose();
+        foreach (var definition in _definitions.Values)
+            definition.Dispose();
+        _definitions.Clear();
+        for (var i = _variablesPerFlavor.Count - 1; i >= 0; --i)
+        {
+            var flavor = _variablesPerFlavor[i];
+            flavor.Dispose();
+        }
+        _variablesPerFlavor.Clear();
+        base.Dispose();
+    }
+
     public List<ConfigFlavor> VariablesPerFlavor => _variablesPerFlavor;
     public Dictionary<string, ConfigVariableDefinition> Definitions => _definitions;
-    public Dictionary<string, Variant> Variables => _variables;
+    public StringVariantMap Variables => _variables;
 
     public ConfigVariableDefinition DefineVariable(string name, Variant defaultValue)
     {
@@ -139,8 +215,10 @@ public sealed class ConfigFile : Object
     public void SetVariable(string name, Variant value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (!value.IsEmpty) _variables[name] = value;
-        else _variables.Remove(name);
+        if (_variables.Remove(name, out var previous))
+            previous.Dispose();
+        if (!value.IsEmpty)
+            _variables[name] = value.Clone();
     }
 
     public bool HasVariable(string name)
@@ -155,12 +233,15 @@ public sealed class ConfigFile : Object
         return _definitions.TryGetValue(name, out var def) ? def : null;
     }
 
-    public Variant GetVariable(string name)
+    public ref readonly Variant GetVariable(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_variables.TryGetValue(name, out var value) && !value.IsEmpty)
-            return value;
-        return _definitions.TryGetValue(name, out var def) ? def.DefaultValue : default;
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_variables, name);
+        if (!Unsafe.IsNullRef(ref value) && !value.IsEmpty)
+            return ref value;
+        if (_definitions.TryGetValue(name, out var definition))
+            return ref definition.DefaultValue;
+        return ref EmptyVariable;
     }
 
     /// <summary>Serialize persistent variable configuration. Current values are not serialized.</summary>
@@ -171,6 +252,11 @@ public sealed class ConfigFile : Object
         using var arrayBlock = archive.OpenArrayBlock("Default", count);
         if (archive.IsInput)
         {
+            for (var i = _variablesPerFlavor.Count - 1; i >= 0; --i)
+            {
+                var oldFlavor = _variablesPerFlavor[i];
+                oldFlavor.Dispose();
+            }
             _variablesPerFlavor.Clear();
             for (var i = 0u; i < arrayBlock.SizeHint; ++i)
             {
@@ -196,13 +282,13 @@ public sealed class ConfigFile : Object
     {
         var fileSystem = GetSubsystem<VirtualFileSystem>();
         var fileIdentifier = FileIdentifier.FromUri(fileName);
-        if (fileSystem is null || !fileSystem.Exists(fileIdentifier))
+        if (!fileSystem!.Exists(fileIdentifier))
         {
             Log.Logger.LogInformation("ConfigFile '{FileName}' is not found.", fileName);
             return false;
         }
 
-        var jsonFile = new JSONFile();
+        using var jsonFile = new JSONFile();
         if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
         {
             Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
@@ -216,6 +302,11 @@ public sealed class ConfigFile : Object
             return false;
         }
 
+        for (var i = _variablesPerFlavor.Count - 1; i >= 0; --i)
+        {
+            var oldFlavor = _variablesPerFlavor[i];
+            oldFlavor.Dispose();
+        }
         _variablesPerFlavor.Clear();
         foreach (var defaultNode in defaults)
         {
@@ -225,7 +316,7 @@ public sealed class ConfigFile : Object
             var configFlavor = new ConfigFlavor
             {
                 Flavor = new ApplicationFlavorPattern(),
-                Variables = new Dictionary<string, Variant>(StringComparer.Ordinal)
+                Variables = new StringVariantMap()
             };
 
             if (defaultObject["Flavor"] is JsonArray flavorArray)
@@ -256,14 +347,20 @@ public sealed class ConfigFile : Object
 
                     var key = variableObject["key"]?.GetValue<string>() ?? string.Empty;
                     if (!string.IsNullOrEmpty(key))
-                        configFlavor.Variables[key] = JSONValue.FromJsonNode(variableObject).GetVariant();
+                    {
+                        using var value = JSONValue.FromJsonNode(variableObject).GetVariant();
+                        if (configFlavor.Variables.Remove(key, out var previous))
+                            previous.Dispose();
+                        configFlavor.Variables[key] = value.Clone();
+                    }
                 }
             }
 
             _variablesPerFlavor.Add(configFlavor);
         }
 
-        foreach (var (name, value) in GetFlavorVariables(flavor))
+        using var flavorVariables = GetFlavorVariables(flavor);
+        foreach (var (name, value) in flavorVariables)
             SetVariable(name, value);
 
         Log.Logger.LogInformation("ConfigFile '{FileName}' is loaded with flavor '{Flavor}'.", fileName, flavor);
@@ -275,13 +372,13 @@ public sealed class ConfigFile : Object
     {
         var fileSystem = GetSubsystem<VirtualFileSystem>();
         var fileIdentifier = FileIdentifier.FromUri(fileName);
-        if (fileSystem is null || !fileSystem.Exists(fileIdentifier))
+        if (!fileSystem!.Exists(fileIdentifier))
         {
             Log.Logger.LogInformation("ConfigFile overrides '{FileName}' are not found.", fileName);
             return false;
         }
 
-        var jsonFile = new JSONFile();
+        using var jsonFile = new JSONFile();
         if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
         {
             Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
@@ -296,13 +393,14 @@ public sealed class ConfigFile : Object
                 if (node is not JsonObject)
                     continue;
 
-                var value = JSONValue.FromJsonNode(node).GetVariant();
+                using var value = JSONValue.FromJsonNode(node).GetVariant();
                 ApplyOverride(name, value);
             }
         }
         else
         {
-            foreach (var (name, value) in jsonFile.Root.GetStringVariantMap())
+            using var overrides = jsonFile.Root.GetStringVariantMap();
+            foreach (var (name, value) in overrides)
                 ApplyOverride(name, value);
         }
 
@@ -314,11 +412,10 @@ public sealed class ConfigFile : Object
     public bool SaveOverrides(string fileName, ApplicationFlavor flavor)
     {
         var fileSystem = GetSubsystem<VirtualFileSystem>();
-        if (fileSystem is null)
-            return false;
 
         var root = new JsonObject();
-        foreach (var (name, value) in GetChangedVariables(flavor))
+        using var overrides = GetChangedVariables(flavor);
+        foreach (var (name, value) in overrides)
         {
             var jsonValue = new JSONValue();
             jsonValue.SetVariant(value);
@@ -326,45 +423,61 @@ public sealed class ConfigFile : Object
         }
 
         var options = new JsonSerializerOptions { WriteIndented = true };
-        return fileSystem.WriteAllText(FileIdentifier.FromUri(fileName), root.ToJsonString(options));
+        return fileSystem!.WriteAllText(FileIdentifier.FromUri(fileName), root.ToJsonString(options));
     }
 
-    public Dictionary<string, Variant> GetFlavorVariables(ApplicationFlavor flavor)
+    public StringVariantMap GetFlavorVariables(ApplicationFlavor flavor)
     {
-        var filtered = new List<(uint penalty, ConfigFlavor configFlavor)>();
-        foreach (var cf in _variablesPerFlavor)
+        var filtered = new List<(uint penalty, int index)>();
+        for (var i = 0; i < _variablesPerFlavor.Count; ++i)
         {
+            var cf = _variablesPerFlavor[i];
             var penalty = flavor.Matches(cf.Flavor);
             if (penalty.HasValue)
-                filtered.Add(((uint)penalty.Value, cf));
+                filtered.Add(((uint)penalty.Value, i));
         }
 
-        filtered.Sort((a, b) => b.penalty.CompareTo(a.penalty));
-
-        var result = new Dictionary<string, Variant>(StringComparer.Ordinal);
-        foreach (var (_, cf) in filtered)
+        filtered.Sort((a, b) =>
         {
-            foreach (var (key, value) in cf.Variables ?? new Dictionary<string, Variant>())
-                result[key] = value;
+            var penaltyComparison = b.penalty.CompareTo(a.penalty);
+            return penaltyComparison != 0 ? penaltyComparison : a.index.CompareTo(b.index);
+        });
+
+        var result = new StringVariantMap();
+        foreach (var (_, index) in filtered)
+        {
+            var variables = _variablesPerFlavor[index].Variables;
+            if (variables is null)
+                continue;
+            foreach (var (key, value) in variables)
+            {
+                if (result.Remove(key, out var previous))
+                    previous.Dispose();
+                result[key] = value.Clone();
+            }
         }
         return result;
     }
 
-    public Dictionary<string, Variant> GetChangedVariables(ApplicationFlavor flavor)
+    public StringVariantMap GetChangedVariables(ApplicationFlavor flavor)
     {
-        var defaultValues = new Dictionary<string, Variant>(StringComparer.Ordinal);
+        using var defaultValues = new StringVariantMap();
         foreach (var (name, def) in _definitions)
-            defaultValues[name] = def.DefaultValue;
+            defaultValues[name] = def.DefaultValue.Clone();
 
-        var flavorVars = GetFlavorVariables(flavor);
+        using var flavorVars = GetFlavorVariables(flavor);
         foreach (var (name, value) in flavorVars)
-            defaultValues[name] = value;
+        {
+            if (defaultValues.Remove(name, out var previous))
+                previous.Dispose();
+            defaultValues[name] = value.Clone();
+        }
 
-        var overrides = new Dictionary<string, Variant>(StringComparer.Ordinal);
+        var overrides = new StringVariantMap();
         foreach (var (name, value) in _variables)
         {
             if (!defaultValues.TryGetValue(name, out var defVal)) continue;
-            if (!defVal.Equals(value)) overrides[name] = value;
+            if (!defVal.Equals(value)) overrides[name] = value.Clone();
         }
         return overrides;
     }

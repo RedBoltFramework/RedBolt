@@ -21,6 +21,12 @@ public sealed class Engine : Object
     private readonly ConfigFile _configFile = new();
     private string _appPreferencesDir = string.Empty;
 
+    public Engine()
+    {
+        InitializeContext();
+        PopulateDefaultParameters();
+    }
+
     public EngineParameters Parameters { get; private set; } = new();
 
     public bool IsInitialized { get; private set; }
@@ -55,8 +61,6 @@ public sealed class Engine : Object
             return true;
 
         Parameters = applicationParameters.Clone();
-        InitializeContext();
-        PopulateDefaultParameters();
         var resources = GetSubsystem<ResourceCache>()!;
         var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
@@ -308,13 +312,14 @@ public sealed class Engine : Object
 
     public void Shutdown()
     {
-        if (!IsInitialized)
-            return;
-
-        GetSubsystem<RenderDevice>()!.OnEngineShutdown();
-        GetSubsystem<Graphics>()!.Shutdown();
-        GetSubsystem<Renderer>()!.SetNumViewports(0);
-        GetSubsystem<Input>()!.Shutdown();
+        if (IsInitialized)
+        {
+            GetSubsystem<RenderDevice>()!.OnEngineShutdown();
+            GetSubsystem<Graphics>()!.Shutdown();
+            GetSubsystem<Renderer>()!.SetNumViewports(0);
+            GetSubsystem<Input>()!.Shutdown();
+        }
+        _configFile.Dispose();
         _context.Reset();
         if (ReferenceEquals(RedBolt.Context.Instance, _context))
             RedBolt.Context.SetInstance(_previousContext);

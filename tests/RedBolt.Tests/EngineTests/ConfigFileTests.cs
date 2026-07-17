@@ -74,7 +74,7 @@ public sealed class ConfigFileTests
 
         try
         {
-            var configFile = new ConfigFile();
+            using var configFile = new ConfigFile();
             configFile.DefineVariable("FullScreen", new Variant(true)).Overridable();
 
             Assert.True(configFile.LoadDefaults("memory://ConfigDefaults.json", ApplicationFlavor.Universal));
@@ -84,13 +84,39 @@ public sealed class ConfigFileTests
 
             Assert.True(configFile.LoadOverrides("memory://ConfigOverrides.json"));
             Assert.Equal(new Variant(false), configFile.GetVariable("FullScreen"));
-            Assert.Single(configFile.GetChangedVariables(ApplicationFlavor.Universal));
+            using var changedVariables = configFile.GetChangedVariables(ApplicationFlavor.Universal);
+            Assert.Single(changedVariables);
         }
         finally
         {
             fileSystem.Unmount(mountPoint);
             mountPoint.Dispose();
         }
+    }
+
+    [Fact]
+    public void Config_file_copies_owned_variant_values()
+    {
+        using var configFile = new ConfigFile();
+        using var defaultItems = new VariantVector { new Variant(new byte[] { 1, 2, 3 }) };
+        using var defaultValue = new Variant(defaultItems);
+        configFile.DefineVariable("Nested", defaultValue).Overridable();
+
+        defaultValue.GetVariantVector()[0].GetBuffer()[0] = 9;
+        ref readonly var storedDefault = ref configFile.GetVariable("Nested");
+        Assert.Equal(1, storedDefault.GetVariantVector()[0].GetBuffer()[0]);
+
+        using var overrideItems = new VariantVector { new Variant(new byte[] { 4, 5, 6 }) };
+        using var overrideValue = new Variant(overrideItems);
+        configFile.SetVariable("Nested", overrideValue);
+        overrideValue.GetVariantVector()[0].GetBuffer()[0] = 8;
+
+        using var changedVariables = configFile.GetChangedVariables(ApplicationFlavor.Universal);
+        Assert.Equal(4, changedVariables["Nested"].GetVariantVector()[0].GetBuffer()[0]);
+        changedVariables["Nested"].GetVariantVector()[0].GetBuffer()[0] = 7;
+
+        ref readonly var storedOverride = ref configFile.GetVariable("Nested");
+        Assert.Equal(4, storedOverride.GetVariantVector()[0].GetBuffer()[0]);
     }
 
     [Fact]

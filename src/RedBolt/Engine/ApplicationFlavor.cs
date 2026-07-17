@@ -39,7 +39,7 @@ public struct ApplicationFlavorPattern : ICloneable
     /// <summary>Construct from string representation.</summary>
     public ApplicationFlavorPattern(string str) : this() { Components = ParseFlavorString(str); }
 
-    internal ApplicationFlavorPattern(ApplicationFlavorMap components)
+    public ApplicationFlavorPattern(ApplicationFlavorMap components)
     {
         Components = new ApplicationFlavorMap(components);
     }
@@ -110,7 +110,7 @@ public struct ApplicationFlavor : ICloneable
     /// <summary>Construct from string representation.</summary>
     public ApplicationFlavor(string str) : this() { Components = ApplicationFlavorPattern.ParseFlavorString(str); }
 
-    internal ApplicationFlavor(ApplicationFlavorMap components)
+    public ApplicationFlavor(ApplicationFlavorMap components)
     {
         Components = new ApplicationFlavorMap(components);
     }
