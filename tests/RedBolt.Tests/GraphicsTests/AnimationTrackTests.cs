@@ -62,4 +62,61 @@ public sealed class AnimationTrackTests
         track.KeyFrames[1] = new VariantCurvePoint { Time = 1.0f, Value = 2.0f };
         Assert.False(track.IsLooped());
     }
+
+    [Fact]
+    public void Animation_track_clone_is_independent()
+    {
+        var track = new AnimationTrack
+        {
+            Name = "Bone",
+            NameHash = new StringHash("Bone"),
+            ChannelMask = AnimationChannel.Position,
+            PositionWeight = 0.25f,
+            RotationWeight = 0.5f,
+            ScaleWeight = 0.75f
+        };
+        track.AddKeyFrame(new AnimationKeyFrame(1.0f, Vector3f.One));
+
+        var clone = track.Clone();
+        track.Dispose();
+
+        Assert.Equal("Bone", clone.Name);
+        Assert.Equal(new StringHash("Bone"), clone.NameHash);
+        Assert.Equal(AnimationChannel.Position, clone.ChannelMask);
+        Assert.Equal(0.25f, clone.PositionWeight);
+        Assert.Equal(0.5f, clone.RotationWeight);
+        Assert.Equal(0.75f, clone.ScaleWeight);
+        Assert.Single(clone.KeyFrames);
+        Assert.Equal(1.0f, clone.KeyFrames[0].Time);
+    }
+
+    [Fact]
+    public void Variant_animation_track_clone_is_independent()
+    {
+        var track = new VariantAnimationTrack
+        {
+            Name = "Attribute",
+            NameHash = new StringHash("Attribute"),
+            Interpolation = KeyFrameInterpolation.TangentSpline,
+            SplineTension = 0.25f,
+            Type = VariantType.String,
+            Weight = 0.5f
+        };
+        track.KeyFrames.Add(new VariantCurvePoint { Time = 1.0f, Value = "Value" });
+        track.InTangents.Add("In");
+        track.OutTangents.Add("Out");
+
+        var clone = track.Clone();
+        track.Dispose();
+
+        Assert.Equal("Attribute", clone.Name);
+        Assert.Equal(new StringHash("Attribute"), clone.NameHash);
+        Assert.Equal(KeyFrameInterpolation.TangentSpline, clone.Interpolation);
+        Assert.Equal(0.25f, clone.SplineTension);
+        Assert.Equal(VariantType.String, clone.Type);
+        Assert.Equal(0.5f, clone.Weight);
+        Assert.Equal("Value", clone.KeyFrames[0].Value.GetString());
+        Assert.Equal("In", clone.InTangents[0].GetString());
+        Assert.Equal("Out", clone.OutTangents[0].GetString());
+    }
 }

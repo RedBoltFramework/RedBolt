@@ -450,7 +450,8 @@ public class Animation : ResourceWithMetadata
         MarkRevisionUpdated();
 
         var nameHash = new StringHash(name);
-        var removed = _tracks.Remove(nameHash);
+        var removed = _tracks.Remove(nameHash, out var animationTrack);
+        animationTrack?.Dispose();
         if (_variantTracks.Remove(nameHash, out var variantTrack))
         {
             variantTrack.Dispose();
@@ -465,6 +466,8 @@ public class Animation : ResourceWithMetadata
     public void RemoveAllTracks()
     {
         MarkRevisionUpdated();
+        foreach (var track in _tracks.Values)
+            track.Dispose();
         _tracks.Clear();
         foreach (var track in _variantTracks.Values)
             track.Dispose();
@@ -571,47 +574,10 @@ public class Animation : ResourceWithMetadata
         ret._length = _length;
 
         foreach (var item in _tracks)
-        {
-            var sourceTrack = item.Value;
-            var track = new AnimationTrack
-            {
-                Name = sourceTrack.Name,
-                NameHash = sourceTrack.NameHash,
-                ChannelMask = sourceTrack.ChannelMask,
-                PositionWeight = sourceTrack.PositionWeight,
-                RotationWeight = sourceTrack.RotationWeight,
-                ScaleWeight = sourceTrack.ScaleWeight
-            };
-            track.KeyFrames.AddRange(sourceTrack.KeyFrames);
-            ret._tracks.Add(item.Key, track);
-        }
+            ret._tracks.Add(item.Key, item.Value.Clone());
 
         foreach (var item in _variantTracks)
-        {
-            var sourceTrack = item.Value;
-            var track = new VariantAnimationTrack
-            {
-                Name = sourceTrack.Name,
-                NameHash = sourceTrack.NameHash,
-                Interpolation = sourceTrack.Interpolation,
-                SplineTension = sourceTrack.SplineTension,
-                Weight = sourceTrack.Weight
-            };
-            foreach (var keyFrame in sourceTrack.KeyFrames)
-            {
-                track.KeyFrames.Add(new VariantCurvePoint
-                {
-                    Time = keyFrame.Time,
-                    Value = keyFrame.Value.Clone()
-                });
-            }
-            foreach (var tangent in sourceTrack.InTangents)
-                track.InTangents.Add(tangent.Clone());
-            foreach (var tangent in sourceTrack.OutTangents)
-                track.OutTangents.Add(tangent.Clone());
-            track.Type = sourceTrack.Type;
-            ret._variantTracks.Add(item.Key, track);
-        }
+            ret._variantTracks.Add(item.Key, item.Value.Clone());
 
         foreach (var trigger in _triggers)
             ret._triggers.Add(trigger.Clone());
@@ -746,21 +712,11 @@ public class Animation : ResourceWithMetadata
     /// </summary>
     public void SetTracks(IReadOnlyList<AnimationTrack> tracks)
     {
+        foreach (var track in _tracks.Values)
+            track.Dispose();
         _tracks.Clear();
         foreach (var sourceTrack in tracks)
-        {
-            var track = new AnimationTrack
-            {
-                Name = sourceTrack.Name,
-                NameHash = sourceTrack.NameHash,
-                ChannelMask = sourceTrack.ChannelMask,
-                PositionWeight = sourceTrack.PositionWeight,
-                RotationWeight = sourceTrack.RotationWeight,
-                ScaleWeight = sourceTrack.ScaleWeight
-            };
-            track.KeyFrames.AddRange(sourceTrack.KeyFrames);
-            _tracks[new StringHash(sourceTrack.Name)] = track;
-        }
+            _tracks[new StringHash(sourceTrack.Name)] = sourceTrack.Clone();
     }
 
     private void LoadTracksFromXML(XMLElement source)

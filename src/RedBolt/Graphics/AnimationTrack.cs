@@ -44,7 +44,7 @@ public struct AnimationKeyFrame
 }
 
 /// <summary>Skeletal animation track, stores keyframes of a single bone.</summary>
-public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
+public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>, ICloneable, IDisposable
 {
     /// <summary>Bone or scene node name.</summary>
     public string Name = string.Empty;
@@ -62,6 +62,28 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
     public AnimationTrack()
         : base(static keyFrame => keyFrame.Time)
     {
+    }
+
+    public AnimationTrack Clone()
+    {
+        var clone = new AnimationTrack
+        {
+            Name = Name,
+            NameHash = NameHash,
+            ChannelMask = ChannelMask,
+            PositionWeight = PositionWeight,
+            RotationWeight = RotationWeight,
+            ScaleWeight = ScaleWeight
+        };
+        clone.KeyFrames.AddRange(KeyFrames);
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        KeyFrames.Clear();
     }
 
     /// <summary>Sample value at given time.</summary>
@@ -311,10 +333,32 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
 
 /// <summary>Generic variant animation keyframe.</summary>
 /// <summary>Generic animation track, stores keyframes of single animatable entity.</summary>
-public sealed class VariantAnimationTrack : VariantCurve
+public sealed class VariantAnimationTrack : VariantCurve, ICloneable
 {
     /// <summary>Weight of the track.</summary>
     public float Weight = 1.0f;
+
+    public new VariantAnimationTrack Clone()
+    {
+        var clone = new VariantAnimationTrack
+        {
+            Name = Name,
+            NameHash = NameHash,
+            Interpolation = Interpolation,
+            SplineTension = SplineTension,
+            Type = Type,
+            Weight = Weight
+        };
+        foreach (var keyFrame in KeyFrames)
+            clone.KeyFrames.Add(new VariantCurvePoint { Time = keyFrame.Time, Value = keyFrame.Value.Clone() });
+        foreach (var tangent in InTangents)
+            clone.InTangents.Add(tangent.Clone());
+        foreach (var tangent in OutTangents)
+            clone.OutTangents.Add(tangent.Clone());
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
 
     /// <summary>Return whether the track is looped, i.e. the first and the last keyframes have the same value.</summary>
     public bool IsLooped()

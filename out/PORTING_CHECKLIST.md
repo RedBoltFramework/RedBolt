@@ -142,7 +142,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [~] A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
 - [~] `AnimatedModel.h` / `AnimatedModel.cpp` — constructor, factory registration, weak animation-state ownership, animator replacement, and last-model bone-hierarchy destruction reconciled; final lifetime/copy closure depends on pending Skeleton, SoftwareModelAnimator, Model morph, StaticModel, and Node removal audits
-- [~] `Animation.h` / `Animation.cpp` — constructor/factory and owned trigger/track teardown reconciled; trigger and variant-track copies are independent, while final closure depends on ResourceWithMetadata, AnimationTrack, Variant call sites, and AnimationController pointer mapping
+- [~] `Animation.h` / `Animation.cpp` — constructor/factory and owned trigger/track teardown reconciled; trigger, transform-track, and variant-track copies are independent, while final closure depends on ResourceWithMetadata, Variant call sites, and AnimationController pointer mapping
 - [~] `AnimationController.h` / `AnimationController.cpp` — constructor, controller-owned teardown, animation-instance value copies, deferred state synchronization, model/bone track connection, renderer statistics, and attribute subspan serialization reconciled; final lifetime/copy closure depends on AnimationStateSource/AnimationState, Variant, Skeleton/Bone, AnimatedModel, and borrowed trigger-pointer audits
 - [x] `AnimationParameters` in `AnimationController.h` / `AnimationController.cpp` — all constructors, implicit field teardown, independent wrapped-time copies, borrowed animation aliases, fluent helpers, delayed removal, and variant/binary serialization reconciled
 
