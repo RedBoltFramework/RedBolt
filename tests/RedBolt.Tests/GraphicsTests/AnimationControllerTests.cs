@@ -48,7 +48,7 @@ public sealed class AnimationControllerTests
     {
         var animation = new Animation("Walk");
         animation.SetLength(2.0f);
-        var controller = new AnimationController();
+        var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
         var parameters = new AnimationParameters(animation)
             .Layer(1)
@@ -61,6 +61,8 @@ public sealed class AnimationControllerTests
         Assert.Equal(1u, controller.GetAnimationLayer(0));
         Assert.Same(animation, controller.GetAnimationParameters(0).GetAnimation());
         Assert.NotSame(parameters, controller.GetAnimationParameters(0));
+        Assert.Empty(controller.GetAnimationStates());
+        controller.Update(0.0f);
         Assert.Single(controller.GetAnimationStates());
         Assert.True(controller.IsPlaying(animation));
 
@@ -80,6 +82,7 @@ public sealed class AnimationControllerTests
         controller.Update(0.0f);
 
         Assert.Equal(0u, controller.GetNumAnimations());
+        Assert.Empty(controller.GetAnimationStates());
         Assert.False(controller.IsPlaying(animation));
     }
 
@@ -90,10 +93,12 @@ public sealed class AnimationControllerTests
         keepAnimation.SetLength(4.0f);
         var filteredAnimation = new Animation("Filtered");
         filteredAnimation.SetLength(4.0f);
-        var controller = new AnimationController();
+        var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
         controller.AddAnimation(new AnimationParameters(keepAnimation).Layer(1).Weight(0.25f));
         controller.AddAnimation(new AnimationParameters(filteredAnimation).Layer(2).Weight(0.75f));
+        Assert.Empty(controller.GetAnimationStates());
+        controller.Update(0.0f);
         var originalState = controller.GetAnimationStates()[0];
 
         var replacement = new AnimationParameters(keepAnimation).Layer(1).Weight(1.0f);
@@ -112,6 +117,7 @@ public sealed class AnimationControllerTests
         controller.Update(0.0f);
 
         Assert.Equal(0u, controller.GetNumAnimations());
+        Assert.Empty(controller.GetAnimationStates());
     }
 
     [Fact]
@@ -124,6 +130,8 @@ public sealed class AnimationControllerTests
 
         controller.AddAnimation(new AnimationParameters(animation));
 
+        Assert.Empty(controller.GetAnimationStates());
+        controller.Update(0.0f);
         Assert.Same(node.GetComponent<AnimatedModel>(), controller.GetAnimationStates()[0].GetModel());
     }
 }

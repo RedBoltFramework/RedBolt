@@ -82,6 +82,19 @@ public class AnimationController : AnimationStateSource
             .SetMetadata(AttributeMetadata.IsAction, true);
     }
 
+    public override void Dispose()
+    {
+        foreach (var value in _animatedAttributes.Values)
+            value.Dispose();
+        _animatedAttributes.Clear();
+        _animatedNodes.Clear();
+        _pendingTriggers.Clear();
+        _tempAnimations.Clear();
+        _animations.Clear();
+        _animationStates.Clear();
+        base.Dispose();
+    }
+
     /// <summary>
     /// Register object factory.
     /// </summary>
@@ -128,6 +141,15 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public virtual void Update(float timeStep)
     {
+        var renderer = GetSubsystem<Renderer>();
+        if (renderer is not null)
+        {
+            var stats = renderer.GetMutableFrameStats();
+            ++stats.Animations;
+            if (_revisionDirty)
+                ++stats.ChangedAnimations;
+        }
+
         // Update revision
         if (_revisionDirty)
         {
@@ -155,7 +177,6 @@ public class AnimationController : AnimationStateSource
             if (!_animations[i].Params.Removed)
                 continue;
 
-            _animationStates.Remove(_animations[i].State!);
             _animations.RemoveAt(i);
         }
 
@@ -256,7 +277,7 @@ public class AnimationController : AnimationStateSource
             else
             {
                 EnsureStateInitialized(instance.State, instance.Params);
-                _animations.Add(instance);
+                _animations.Add(instance.Clone());
             }
         }
 
@@ -285,14 +306,10 @@ public class AnimationController : AnimationStateSource
 
         var model = GetComponent<AnimatedModel>();
         if (model is not null)
-        {
-            model.ConnectToAnimationStateSource(this);
             instance.State.ConnectToAnimatedModel(model);
-        }
 
         EnsureStateInitialized(instance.State!, instance.Params);
         _animations.Add(instance);
-        _animationStates.Add(instance.State!);
 
         _animationStatesDirty = true;
         _revisionDirty = true;
@@ -333,7 +350,6 @@ public class AnimationController : AnimationStateSource
             return;
         }
 
-        _animationStates.Remove(_animations[(int)index].State!);
         _animations.RemoveAt((int)index);
         _animationStatesDirty = true;
         _revisionDirty = true;
@@ -657,7 +673,6 @@ public class AnimationController : AnimationStateSource
     public void SetAnimationsAttr(VariantVector value)
     {
         _animations.Clear();
-        _animationStates.Clear();
         _revisionDirty = true;
 
         if (value.Count == 0 || value[0].Type != VariantType.Int)
@@ -728,7 +743,8 @@ public class AnimationController : AnimationStateSource
     private void SortAnimationStates()
     {
         _tempAnimations.Clear();
-        _tempAnimations.AddRange(_animations);
+        for (var i = 0; i < _animations.Count; ++i)
+            _tempAnimations.Add(_animations[i].Clone());
         _tempAnimations.Sort(static (lhs, rhs) => lhs.Params.LayerIndex.CompareTo(rhs.Params.LayerIndex));
 
         _animationStates.Clear();
@@ -753,8 +769,25 @@ public class AnimationController : AnimationStateSource
         var startNode = !string.IsNullOrEmpty(startBoneName) ? Node.GetChild(startBoneName, true) : null;
         startNode ??= Node;
 
+        var model = GetComponent<AnimatedModel>();
+
         foreach (var track in animation.Tracks.Values)
         {
+            var trackBoneIndex = model is not null ? model.GetSkeleton().GetBoneIndex(track.NameHash) : uint.MaxValue;
+            var trackBone = trackBoneIndex != uint.MaxValue ? model!.GetSkeleton().GetBone(trackBoneIndex) : null;
+            if (trackBone?.Node is { } boneNode &&
+                (ReferenceEquals(startNode, Node) || boneNode.IsChildOf(startNode)))
+            {
+                state.AddModelTrack(new ModelAnimationStateTrack
+                {
+                    Track = track,
+                    Node = boneNode,
+                    BoneIndex = trackBoneIndex,
+                    Bone = trackBone
+                });
+                continue;
+            }
+
             var trackNode = GetTrackNodeByNameHash(track.NameHash, startNode);
             if (trackNode is not null)
             {
@@ -785,9 +818,12 @@ public class AnimationController : AnimationStateSource
     private void ConnectToAnimatedModel()
     {
         var model = Node?.GetComponent<AnimatedModel>();
-        model?.ConnectToAnimationStateSource(this);
-        foreach (var animation in _animations)
-            animation.State?.ConnectToAnimatedModel(model);
+        if (model is not null)
+        {
+            model.ConnectToAnimationStateSource(this);
+            foreach (var animation in _animations)
+                animation.State?.ConnectToAnimatedModel(model);
+        }
     }
 
     private AnimatedAttributeReference ParseAnimatablePath(string path, Node? startNode)
@@ -962,7 +998,10 @@ public class AnimationController : AnimationStateSource
         }
 
         foreach (var attribute in _animatedAttributes.Keys)
+        {
+            _animatedAttributes[attribute].Dispose();
             _animatedAttributes[attribute] = default;
+        }
 
         for (var i = 0; i < _animationStates.Count; ++i)
         {
@@ -1009,10 +1048,21 @@ public class AnimationController : AnimationStateSource
     /// <summary>
     /// Currently playing animations.
     /// </summary>
-    private sealed class AnimationInstance
+    private sealed class AnimationInstance : ICloneable
     {
         public required AnimationParameters Params;
         public AnimationState? State;
+
+        public AnimationInstance Clone()
+        {
+            return new AnimationInstance
+            {
+                Params = new AnimationParameters(Params),
+                State = State
+            };
+        }
+
+        object ICloneable.Clone() => Clone();
     }
 
     private readonly List<AnimationInstance> _animations = [];
