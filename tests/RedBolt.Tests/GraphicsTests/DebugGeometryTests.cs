@@ -24,6 +24,21 @@ public sealed class DebugGeometryTests
     }
 
     [Fact]
+    public void DebugLine_copy_is_independent()
+    {
+        var source = new DebugLine(Vector3f.One, Vector3f.Zero, 0x12345678u);
+
+        var copy = source;
+        copy.Start = Vector3f.Zero;
+        copy.Color = 0u;
+
+        Assert.Equal(Vector3f.One, source.Start);
+        Assert.Equal(0x12345678u, source.Color);
+        Assert.Equal(Vector3f.Zero, copy.Start);
+        Assert.Equal(0u, copy.Color);
+    }
+
+    [Fact]
     public void DebugTriangle_constructor_preserves_values()
     {
         var triangle = new DebugTriangle(
@@ -36,6 +51,21 @@ public sealed class DebugGeometryTests
         Assert.Equal(new Vector3f(4.0f, 5.0f, 6.0f), triangle.VertexB);
         Assert.Equal(new Vector3f(7.0f, 8.0f, 9.0f), triangle.VertexC);
         Assert.Equal(0x12345678u, triangle.Color);
+    }
+
+    [Fact]
+    public void DebugTriangle_copy_is_independent()
+    {
+        var source = new DebugTriangle(Vector3f.One, Vector3f.Up, Vector3f.Forward, 0x12345678u);
+
+        var copy = source;
+        copy.VertexA = Vector3f.Zero;
+        copy.Color = 0u;
+
+        Assert.Equal(Vector3f.One, source.VertexA);
+        Assert.Equal(0x12345678u, source.Color);
+        Assert.Equal(Vector3f.Zero, copy.VertexA);
+        Assert.Equal(0u, copy.Color);
     }
 
     [Fact]
