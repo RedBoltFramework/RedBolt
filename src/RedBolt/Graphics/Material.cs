@@ -317,6 +317,7 @@ public sealed class Material : ResourceWithMetadata
     /// </summary>
     public Technique? FindTechnique(MaterialQuality materialQuality, float lodDistance = 0.0f)
     {
+        // If only one technique, no choice
         if (_techniques.Count == 1)
             return _techniques[0].Technique;
 
@@ -329,7 +330,17 @@ public sealed class Material : ResourceWithMetadata
                 return technique;
         }
 
+        // If no suitable technique found, fallback to the last
         return _techniques.Count > 0 ? _techniques[^1].Technique : null;
+    }
+
+    /// <summary>
+    /// Find the best technique for the specified drawable and material quality.
+    /// </summary>
+    public Technique? FindTechnique(Drawable drawable, MaterialQuality materialQuality)
+    {
+        ArgumentNullException.ThrowIfNull(drawable);
+        return FindTechnique(materialQuality, drawable.GetLodDistance());
     }
 
     public Pass? GetPass(uint index, string passName)

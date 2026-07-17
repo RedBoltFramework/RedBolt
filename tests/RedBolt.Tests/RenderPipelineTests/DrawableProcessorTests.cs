@@ -140,7 +140,7 @@ public sealed class DrawableProcessorTests
     public void PipelineBatchDescInitializesShadowAndLitLightState()
     {
         var batch = new PipelineBatchDesc();
-        var lightProcessor = new LightProcessor();
+        var lightProcessor = new LightProcessor(new Light());
 
         batch.InitializeShadowBatch(lightProcessor, 3, 17);
 

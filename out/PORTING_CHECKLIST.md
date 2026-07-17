@@ -378,36 +378,37 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `BatchStateCache.h` — batch lookup and creation keys, output invalidation, object-hash validation, atomic lazy invalidation, callback recreation, and placeholder caching match C++
   - [x] `BatchStateCache : NonCopyable`
   - [-] `UIBatchStateCache : NonCopyable` — **EXCLUDED** with the retained-mode rbfx UI subsystem
-- [ ] `PipelineStateBuilder.h`
-  - [ ] `PipelineStateBuilder : Object, BatchStateCacheCallback`
+- [~] `PipelineStateBuilder.h`
+  - [~] `PipelineStateBuilder : Object, BatchStateCacheCallback` — shell type exists for `BatchCompositorPass.CreatePipelineState` signature parity; full builder implementation remains TODO
 - [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++
   - [x] `CameraProcessor : Object`
 - [ ] `LightProcessorQuery.h`
   - [ ] `PointLightGeometryQuery : SphereOctreeQuery`
   - [ ] `SpotLightGeometryQuery : FrustumOctreeQuery`
   - [ ] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery`
-- [ ] `ShadowSplitProcessor.h`
-  - [ ] `ShadowSplitProcessor`
+- [~] `ShadowSplitProcessor.h`
+  - [~] `ShadowSplitProcessor` — public API surface, shadow-batch storage, and `FinalizeShadowBatches` match C++; directional/spot/point initialization and caster processing bodies remain TODO
 - [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
   - [x] `LightAccumulator`
-- [ ] `LightProcessor.h`
-  - [ ] `LightProcessor : NonCopyable`
-  - [ ] `LightProcessorCache : NonCopyable`
+- [~] `LightProcessor.h`
+  - [~] `LightProcessor : NonCopyable` — `CookedLightParams`, public hash/split/geometry accessors, and constructor match C++; `BeginUpdate`/`Update`/`EndUpdate` bodies remain TODO
+  - [~] `LightProcessorCache : NonCopyable` — settings, generation-aware get-or-create, and dispose match C++; LRU expiration update body remains TODO
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
-  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries accessors, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
-- [~] `BatchCompositor.h` — `PipelineBatchDesc` construction, shadow/lit light state, and batch-state key projection match C++; compositor classes remain pending
-  - [ ] `BatchCompositorPass : DrawableProcessorPass`
-  - [ ] `BatchCompositor : Object`
+  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries/light-processor/geometry-lighting accessors, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
+- [~] `BatchCompositor.h` — `PipelineBatch`/`PipelineBatchDesc`, `BatchCompositorPass` scene composition, and `BatchCompositor` shadow/scene/light-volume composition match C++ control flow; full lighting still depends on complete `LightProcessor`/`ShadowSplitProcessor` update paths
+  - [x] `BatchCompositorPass : DrawableProcessorPass` — deferred/forward batch composition, delayed pipeline-state resolution, placeholder states, and per-frame cache invalidation match C++
+  - [x] `BatchCompositor : Object` — pass filtering, shadow batch composition hooks, scene-pass compose, light-volume batches, and `FillSortKeys` match C++
 - [~] `BatchRenderer.h`
   - [~] `BatchRenderer : Object` — construction, settings, batch/light-volume render entry points, instancing-buffer prepare hooks, and debugger scene-batch reporting are ported; full DrawCommandCompositor GPU emission path remains
 - [~] `RenderPass.h`
   - [~] `RenderPass` — pass-name and render-buffer connection semantics match C++; initial managed enable behavior, cloning, and render-path serialization remain managed-runtime adaptations
 - [~] `RenderPath.h`
   - [~] `RenderPath : SimpleResource` — pass iteration, enabled-pass repair, pass ordering, and render-target lifecycle dispatch now follow C++; managed XML/JSON resource serialization and extended depth trait remain adaptations
-- [ ] `ScenePass.h`
-  - [ ] `UnorderedScenePass : ScenePass`
-  - [ ] `BackToFrontScenePass : ScenePass`
+- [x] `ScenePass.h`
+  - [x] `ScenePass : BatchCompositorPass` — forward-lit and unlit constructors plus instancing prepare hook match C++
+  - [x] `UnorderedScenePass : ScenePass` — deferred/base/light sort keys, partial negative-light sort, and batch-group flags match C++
+  - [x] `BackToFrontScenePass : ScenePass` — distance factoring for additive/subtractive lights, NaN distance validation, refraction detection, and batch-group flags match C++
 - [ ] `SceneProcessor.h`
   - [ ] `SceneProcessor : Object, LightProcessorCallback`
 - [ ] `OutlineScenePass.h`

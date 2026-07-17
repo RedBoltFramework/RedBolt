@@ -113,15 +113,3 @@ public class BatchRenderer : Object
     }
 }
 
-/// <summary>
-/// Placeholder for shadow-split processor until the full C++ class is ported.
-/// BatchRenderingContext only needs a camera reference from the split.
-/// </summary>
-public class ShadowSplitProcessor
-{
-    private Camera? _shadowCamera;
-
-    public void SetShadowCamera(Camera? camera) => _shadowCamera = camera;
-
-    public Camera? GetShadowCamera() => _shadowCamera;
-}

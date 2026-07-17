@@ -178,8 +178,10 @@ public class DrawableProcessor : Object
     private readonly IRenderPipelineInterface _renderPipeline;
     private readonly List<DrawableProcessorPass> _passes = [];
     private readonly List<Light?> _lights = [];
+    private readonly List<LightProcessor?> _lightProcessors = [];
     private readonly List<Drawable?> _geometries = [];
     private readonly List<SortedOccluder> _sortedOccluders = [];
+    private readonly Dictionary<uint, LightAccumulator> _geometryLighting = [];
     private DrawableProcessorSettings _settings = new();
     private CommonFrameInfo _frameInfo = new();
     private FloatRange _sceneZRange;
@@ -223,11 +225,25 @@ public class DrawableProcessor : Object
     public Light? GetLight(uint lightIndex) =>
         lightIndex < (uint)_lights.Count ? _lights[(int)lightIndex] : null;
 
+    public IReadOnlyList<LightProcessor?> GetLightProcessors() => _lightProcessors;
+
+    public LightProcessor? GetLightProcessor(uint lightIndex) =>
+        lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;
+
+    public LightAccumulator GetGeometryLighting(uint drawableIndex) =>
+        _geometryLighting.TryGetValue(drawableIndex, out var lighting) ? lighting : new LightAccumulator();
+
+    public void SetGeometryLighting(uint drawableIndex, LightAccumulator lighting) =>
+        _geometryLighting[drawableIndex] = lighting;
+
     /// <summary>Replace the per-frame light list used by pipeline batches and debugger reporting.</summary>
     public void SetLights(IReadOnlyList<Light?> lights)
     {
         _lights.Clear();
         _lights.AddRange(lights);
+        _lightProcessors.Clear();
+        foreach (var light in lights)
+            _lightProcessors.Add(light is null ? null : new LightProcessor(light));
     }
 
     /// <summary>Replace the per-frame geometry list used by scene processing.</summary>
@@ -243,6 +259,8 @@ public class DrawableProcessor : Object
         _sortedOccluders.Clear();
         _geometries.Clear();
         _lights.Clear();
+        _lightProcessors.Clear();
+        _geometryLighting.Clear();
         _sceneZRange = default;
     }
 

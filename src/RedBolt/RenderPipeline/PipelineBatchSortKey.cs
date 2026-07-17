@@ -66,11 +66,11 @@ public readonly struct PipelineBatchByState : IComparable<PipelineBatchByState>
 /// <summary>
 /// Pipeline batch sorted by render order and back to front.
 /// </summary>
-public readonly struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
+public struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
 {
-    public readonly byte RenderOrder;
-    public readonly float Distance;
-    public readonly PipelineBatch? PipelineBatch;
+    public byte RenderOrder;
+    public float Distance;
+    public PipelineBatch? PipelineBatch;
 
     public PipelineBatchBackToFront(PipelineBatch pipelineBatch)
     {

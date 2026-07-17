@@ -71,7 +71,7 @@ public class PipelineBatchDesc : PipelineBatch
     {
     }
 
-    public PipelineBatchDesc(Drawable drawable, uint sourceBatchIndex, Pass pass, object? userData = null)
+    public PipelineBatchDesc(Drawable drawable, uint sourceBatchIndex, Pass? pass, object? userData = null)
         : base(drawable, sourceBatchIndex, userData)
     {
         Pass = pass;
@@ -85,7 +85,7 @@ public class PipelineBatchDesc : PipelineBatch
         PixelLightForPipelineStateHash = lightHash;
     }
 
-    public void InitializeLitBatch(LightProcessor light, uint lightIndex, uint lightHash)
+    public void InitializeLitBatch(LightProcessor? light, uint lightIndex, uint lightHash)
     {
         PixelLightIndex = lightIndex;
         PixelLightForPipelineState = light;
