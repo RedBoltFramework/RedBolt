@@ -28,15 +28,13 @@ public sealed class Audio : Object
     private readonly Dictionary<StringHash, float> _masterGain = [];
     private readonly HashSet<StringHash> _pausedSoundTypes = [];
     private readonly object _audioMutex = new();
-    private readonly Context _audioContext;
-
     private int[] _clipBuffer = [];
     private short[] _outputBuffer = [];
     private uint _sampleSize;
     private uint _fragmentSize;
     private uint _bufferLengthMSec;
     private int _mixRate;
-    private bool _interpolation = true;
+    private bool _interpolation;
     private SpeakerMode _speakerMode = SpeakerMode.Auto;
     private bool _playing;
     private uint _deviceId;
@@ -44,7 +42,6 @@ public sealed class Audio : Object
 
     public Audio()
     {
-        _audioContext = RedBolt.Context.Instance;
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
         RegisterAudioLibrary();
@@ -54,7 +51,7 @@ public sealed class Audio : Object
     public override void Dispose()
     {
         Release();
-        _audioContext.ReleaseSdl();
+        Context.ReleaseSdl();
         base.Dispose();
         GC.SuppressFinalize(this);
     }

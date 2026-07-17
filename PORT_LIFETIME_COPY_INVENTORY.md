@@ -77,7 +77,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt.DearImGui/DearImGui.cs` | `Source/Urho3D/SystemUI/SystemUI.cpp`<br>`Source/Urho3D/SystemUI/SystemUI.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt.DearImGui/DearImGuiEvents.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt.DearImGui/ImGuiDiligentRendererEx.cs` | `Source/Urho3D/SystemUI/ImGuiDiligentRendererEx.cpp`<br>`Source/Urho3D/SystemUI/ImGuiDiligentRendererEx.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/Audio.cs` | `Source/Urho3D/Audio/Audio.h`<br>`Source/Urho3D/Audio/Audio.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/Audio.cs` | `Source/Urho3D/Audio/Audio.h`<br>`Source/Urho3D/Audio/Audio.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after fixing the extra stored context alias and the incorrect `interpolation_` construction default. Destructor order is `Release()`, SDL release, then base teardown; C++ weak microphone/listener fields are non-owning under the allowed smart-pointer removal. `EnumerateMicrophones` returns an independent collection and `CreateMicrophone` returns the same object reference under the allowed `SharedPtr` removal. | — | — | — |
 | `src/RedBolt/Audio/AudioDefs.cs` | `Source/Urho3D/Audio/AudioDefs.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/AudioEvents.cs` | `Source/Urho3D/Audio/AudioEvents.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/BufferedSoundStream.cs` | `Source/Urho3D/Audio/BufferedSoundStream.h`<br>`Source/Urho3D/Audio/BufferedSoundStream.cpp` | ☐ | ☐ | ☐ |

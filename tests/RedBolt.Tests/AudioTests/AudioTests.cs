@@ -18,6 +18,14 @@ public sealed class AudioTests
     }
 
     [Fact]
+    public void Audio_constructor_preserves_cpp_default_interpolation_state()
+    {
+        using var audio = new Audio();
+
+        Assert.False(audio.GetInterpolation());
+    }
+
+    [Fact]
     public void Sound_source_starts_from_the_first_sample()
     {
         var scene = new Scene();
