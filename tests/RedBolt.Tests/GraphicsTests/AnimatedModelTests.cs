@@ -3,6 +3,18 @@ namespace RedBolt.Tests;
 public sealed class AnimatedModelTests
 {
     [Fact]
+    public void Animated_model_registers_geometry_factory()
+    {
+        using var context = new Context();
+
+        AnimatedModel.RegisterObject(context);
+
+        using var animatedModel = Assert.IsType<AnimatedModel>(
+            context.CreateObject(ObjectReflection<AnimatedModel>.TypeId));
+        Assert.Equal(ObjectCategory.Category_Geometry, context.GetReflection<AnimatedModel>().Category);
+    }
+
+    [Fact]
     public void Animated_model_copies_skeleton_and_morphs_from_model()
     {
         var model = new Model("AnimatedModel");
@@ -234,6 +246,43 @@ public sealed class AnimatedModelTests
         Assert.False(attachment.IsMaster());
         Assert.Same(master.GetSkeleton().GetBone(0u)!.Node, attachment.GetSkeleton().GetBone(0u)!.Node);
         Assert.Equal(master.GetWorldBoundingBox(), attachment.GetWorldBoundingBox());
+    }
+
+    [Fact]
+    public void Animated_model_destruction_removes_bones_only_after_last_model()
+    {
+        var node = new Scene().CreateChild("AnimatedModels");
+        var model = CreateSkeletonModel("Shared", BoneCollisionShape.Box);
+        model.GetSkeleton().SetRootBoneIndex(0);
+        var master = node.CreateComponent<AnimatedModel>();
+        master.SetModel(model, true);
+        var rootBoneNode = master.GetSkeleton().GetRootBone()!.Node!;
+        var attachment = node.CreateComponent<AnimatedModel>();
+        attachment.SetModel(model, true);
+
+        node.RemoveComponent(attachment);
+        attachment.Dispose();
+
+        Assert.Same(rootBoneNode, node.GetChild("Root"));
+
+        node.RemoveComponent(master);
+        master.Dispose();
+
+        Assert.Null(node.GetChild("Root"));
+    }
+
+    [Fact]
+    public void Animated_model_keeps_animation_state_source_weak()
+    {
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var source = new AnimationController();
+
+        animatedModel.ConnectToAnimationStateSource(source);
+
+        var weakSource = GetPrivateField<WeakReference<AnimationStateSource>>(animatedModel,
+            "_animationStateSource");
+        Assert.True(weakSource.TryGetTarget(out var target));
+        Assert.Same(source, target);
     }
 
     [Fact]

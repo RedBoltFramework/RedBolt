@@ -12,7 +12,7 @@ public class AnimatedModel : StaticModel
     private bool _boneBoundingBoxDirty = true;
     private readonly Skeleton _skeleton = new();
     private readonly List<ModelAnimationOutput> _skeletonData = [];
-    private AnimationStateSource? _animationStateSource;
+    private WeakReference<AnimationStateSource>? _animationStateSource;
     private SoftwareModelAnimator? _modelAnimator;
     private readonly List<ModelMorph> _morphs = [];
     private Matrix3x4[] _skinMatrices = [];
@@ -20,6 +20,7 @@ public class AnimatedModel : StaticModel
     private readonly List<Matrix3x4[]> _geometrySkinMatrices = [];
     private readonly List<List<(int GeometryIndex, int MatrixIndex)>> _geometrySkinMatrixPtrs = [];
     private BoundingBox _boneBoundingBox;
+    private readonly VectorBuffer _attrBuffer = new();
     private uint _animationLodFrameNumber;
     private float _animationLodBias = 1.0f;
     private float _animationLodTimer = -1.0f;
@@ -30,12 +31,45 @@ public class AnimatedModel : StaticModel
     private bool _isMaster = true;
     private bool _assignBonesPending;
     private bool _forceAnimationUpdate;
-    private readonly VectorBuffer _attrBuffer = new();
 
     /// <summary>Construct.</summary>
     public AnimatedModel()
     {
         UpdateSoftwareSkinningState();
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        // When being destroyed, remove the bone hierarchy if appropriate (last AnimatedModel in the node)
+        var rootBone = _skeleton.GetRootBone();
+        if (rootBone?.Node is { } rootBoneNode)
+        {
+            var parent = rootBoneNode.Parent;
+            if (parent is not null && parent.GetComponent<AnimatedModel>() is null)
+                RemoveRootBone();
+        }
+
+        if (_model is not null)
+            _model.ReloadFinished -= HandleModelReloadFinished;
+        _attrBuffer.Clear();
+        _geometrySkinMatrixPtrs.Clear();
+        _geometrySkinMatrices.Clear();
+        _geometryBoneMappings.Clear();
+        _skinMatrices = [];
+        _morphs.Clear();
+        _modelAnimator?.Dispose();
+        _modelAnimator = null;
+        _animationStateSource = null;
+        _skeletonData.Clear();
+        _skeleton.ClearBones();
+        base.Dispose();
+    }
+
+    /// <summary>Register object factory. Drawable must be registered first.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<AnimatedModel>(ObjectCategory.Category_Geometry);
     }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
@@ -138,6 +172,7 @@ public class AnimatedModel : StaticModel
             RemoveRootBone();
             SetNumGeometries(0);
             _geometryBoneMappings.Clear();
+            _modelAnimator?.Dispose();
             _modelAnimator = null;
             _skeletonData.Clear();
             SetBoundingBox(default);
@@ -160,6 +195,7 @@ public class AnimatedModel : StaticModel
         foreach (var sourceMapping in model.GetGeometryBoneMappings())
             _geometryBoneMappings.Add([.. sourceMapping]);
 
+        _modelAnimator?.Dispose();
         _modelAnimator = null;
 
         foreach (var sourceMorph in model.GetMorphs())
@@ -476,7 +512,7 @@ public class AnimatedModel : StaticModel
     /// <summary>Connect to AnimationStateSource that provides animation states.</summary>
     public void ConnectToAnimationStateSource(AnimationStateSource? source)
     {
-        _animationStateSource = source;
+        _animationStateSource = source is not null ? new WeakReference<AnimationStateSource>(source) : null;
     }
 
     /// <summary>Return the skeleton.</summary>
@@ -622,7 +658,8 @@ public class AnimatedModel : StaticModel
                     return;
             }
 
-            _animationStateSource?.MarkAnimationStateTracksDirty();
+            if (_animationStateSource is not null && _animationStateSource.TryGetTarget(out var animationStateSource))
+                animationStateSource.MarkAnimationStateTracksDirty();
 
             if (createBones)
                 RemoveRootBone();
@@ -757,7 +794,8 @@ public class AnimatedModel : StaticModel
         if (!allBonesFound && GetModel() is { } model)
             SetSkeleton(model.GetSkeleton(), true);
 
-        _animationStateSource?.MarkAnimationStateTracksDirty();
+        if (_animationStateSource is not null && _animationStateSource.TryGetTarget(out var animationStateSource))
+            animationStateSource.MarkAnimationStateTracksDirty();
     }
 
     private void FinalizeBoneBoundingBoxes()
@@ -889,6 +927,7 @@ public class AnimatedModel : StaticModel
 
     private void CloneGeometries()
     {
+        _modelAnimator?.Dispose();
         _modelAnimator = new SoftwareModelAnimator();
         _modelAnimator.Initialize(_model!, _softwareSkinning, _numSoftwareSkinningBones);
         var animatedGeometries = _modelAnimator.GetGeometries();
@@ -978,7 +1017,9 @@ public class AnimatedModel : StaticModel
     private bool UpdateAndCheckAnimationTimers(float timeStep)
     {
         // If using animation LOD, accumulate time and see if it is time to update
-        var throttlingAllowed = _animationStateSource is null || _animationStateSource.IsAnimationThrottlingAllowed();
+        var throttlingAllowed = _animationStateSource is null ||
+            !_animationStateSource.TryGetTarget(out var animationStateSource) ||
+            animationStateSource.IsAnimationThrottlingAllowed();
         if (throttlingAllowed && _animationLodBias > 0.0f && _animationLodDistance > 0.0f)
         {
             // Perform the first update always regardless of LOD timer
@@ -1002,9 +1043,9 @@ public class AnimatedModel : StaticModel
             throw new InvalidOperationException("Only master AnimatedModel may calculate animations.");
 
         // AnimationStateSource is a weak pointer which may or may not be an issue
-        if (_animationStateSource is not null)
+        if (_animationStateSource is not null && _animationStateSource.TryGetTarget(out var animationStateSource))
         {
-            foreach (var state in _animationStateSource.GetAnimationStates())
+            foreach (var state in animationStateSource.GetAnimationStates())
                 state.CalculateModelTracks(_skeletonData);
         }
 
