@@ -30,7 +30,6 @@ internal static class EngineCommandLine
         parser.AddFlag(["-v", "--vsync"], "Enable vertical sync", () => parameters.VSync = true);
         parser.AddFlag(["-w", "--windowed"], "Use decorated windowed mode", () =>
         {
-            parameters.FullScreen = false;
             parameters.Borderless = false;
         });
         parser.AddFlag(["-f", "--full-screen"], "Use full-screen mode", () => parameters.FullScreen = true);
@@ -39,6 +38,10 @@ internal static class EngineCommandLine
         parser.AddFlag(["-q", "--quiet"], "Disable logging output", () => parameters.LogQuiet = true);
         parser.AddOption(["-l", "--log"], "level", "Set log level", value => parameters.LogLevel = ParseLogLevel(value));
         parser.AddOption(["--log-file"], "path", "Set log output file", value => parameters.LogName = value);
+        parser.AddFlag(["--no-log-rotate-on-open"], "Disable log rotation on log open", () => parameters.LogRotateOnOpen = false);
+        parser.AddFlag(["--log-rotate-by-size"], "Rotate log file by size", () => parameters.LogRotateBySize = true);
+        parser.AddOption(["--log-rotate-max-files"], "count", "Set maximum number of log files to keep", value => parameters.LogMaxFiles = ParseUInt(value));
+        parser.AddOption(["--log-rotate-max-size"], "bytes", "Set maximum log file size", value => parameters.LogMaxSize = ParseUInt(value));
         parser.AddOption(["-x", "--width"], "pixels", "Set the window width", value => parameters.WindowWidth = ParseInt(value));
         parser.AddOption(["-y", "--height"], "pixels", "Set the window height", value => parameters.WindowHeight = ParseInt(value));
         parser.AddOption(["--monitor"], "index", "Select the display monitor", value => parameters.Monitor = ParseInt(value));

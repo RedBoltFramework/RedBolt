@@ -12,6 +12,8 @@ public sealed class ApplicationCommandLineTests
         var exitCode = application.Run(
         [
             "--headless",
+            "--full-screen",
+            "--windowed",
             "--width=1234",
             "--height=567",
             "--touch",
@@ -19,6 +21,10 @@ public sealed class ApplicationCommandLineTests
             "--screenshot-on-exit=/tmp/redbolt-test.png",
             "--screenshot-parameters=3,2",
             "--app-name=RedBolt.Tests.Override",
+            "--no-log-rotate-on-open",
+            "--log-rotate-by-size",
+            "--log-rotate-max-files=7",
+            "--log-rotate-max-size=4096",
             "--no-load-fonts"
         ]);
 
@@ -26,6 +32,12 @@ public sealed class ApplicationCommandLineTests
         Assert.NotNull(application.ObservedParameters);
         Assert.True(application.Started);
         Assert.True(application.ObservedParameters!.Headless);
+        Assert.False(application.ObservedParameters.Borderless);
+        Assert.True(application.ObservedParameters.FullScreen);
+        Assert.False(application.ObservedParameters.LogRotateOnOpen);
+        Assert.True(application.ObservedParameters.LogRotateBySize);
+        Assert.Equal(7u, application.ObservedParameters.LogMaxFiles);
+        Assert.Equal(4096u, application.ObservedParameters.LogMaxSize);
         Assert.Equal(1234, application.ObservedParameters.WindowWidth);
         Assert.Equal(567, application.ObservedParameters.WindowHeight);
         Assert.True(application.ObservedParameters.TouchEmulation);
@@ -67,8 +79,14 @@ public sealed class ApplicationCommandLineTests
             ObservedParameters = new EngineParameters
             {
                 ApplicationName = Engine.Parameters.ApplicationName,
+                Borderless = Engine.Parameters.Borderless,
+                FullScreen = Engine.Parameters.FullScreen,
                 Headless = Engine.Parameters.Headless,
                 LoadFonts = Engine.Parameters.LoadFonts,
+                LogMaxFiles = Engine.Parameters.LogMaxFiles,
+                LogMaxSize = Engine.Parameters.LogMaxSize,
+                LogRotateBySize = Engine.Parameters.LogRotateBySize,
+                LogRotateOnOpen = Engine.Parameters.LogRotateOnOpen,
                 ScreenshotCount = Engine.Parameters.ScreenshotCount,
                 ScreenshotFrameDelay = Engine.Parameters.ScreenshotFrameDelay,
                 ScreenshotOnExit = Engine.Parameters.ScreenshotOnExit,
