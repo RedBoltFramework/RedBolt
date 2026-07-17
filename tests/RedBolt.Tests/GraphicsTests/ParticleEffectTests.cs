@@ -258,12 +258,10 @@ public sealed class ParticleEmitterTests
         };
         emitter.SetParticlesAttr(particles);
         emitter.SetNumBillboards(1);
-        var billboard = emitter.GetBillboard(0);
+        ref var billboard = ref emitter.GetBillboard(0);
         billboard.Enabled = true;
         billboard.Position = Vector3f.Zero;
         billboard.Size = Vector2f.One;
-        emitter.SetBillboard(0, billboard);
-
         // Force needUpdate by calling MarkForUpdate and setting last frame inequality through
         // a public Update after toggling emitting (period timer path still needs needUpdate).
         // Directly call the private path via Update after simulating post-update with scene event.

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
@@ -92,8 +93,6 @@ public class BillboardSet : Drawable
     public BillboardSet()
         : base(DrawableFlags.Geometry)
     {
-        _vertexBuffer.SetShadowed(true);
-        _indexBuffer.SetShadowed(true);
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
 
@@ -104,9 +103,19 @@ public class BillboardSet : Drawable
         {
             Geometry = _geometry,
             GeometryType = GeometryType.Billboard,
-            WorldTransform = _transforms,
-            NumWorldTransforms = 2
+            WorldTransform = _transforms
         });
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _sortedBillboards.Clear();
+        _indexBuffer.Dispose();
+        _vertexBuffer.Dispose();
+        _geometry.Dispose();
+        _billboards.Clear();
+        base.Dispose();
     }
 
     /// <summary>Register object factory.</summary>
@@ -395,30 +404,9 @@ public class BillboardSet : Drawable
     /// <summary>Return billboard by index.</summary>
     public ref Billboard GetBillboard(uint index)
     {
-        if (index >= (uint)_billboards.Count)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        return ref CollectionsMarshal.AsSpan(_billboards)[(int)index];
-    }
-
-    /// <summary>Try get billboard by index; returns false if out of range.</summary>
-    public bool TryGetBillboard(uint index, out Billboard billboard)
-    {
         if (index < (uint)_billboards.Count)
-        {
-            billboard = _billboards[(int)index];
-            return true;
-        }
-
-        billboard = default;
-        return false;
-    }
-
-    /// <summary>Replace billboard at index.</summary>
-    public void SetBillboard(uint index, in Billboard billboard)
-    {
-        if (index >= (uint)_billboards.Count)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        _billboards[(int)index] = billboard;
+            return ref CollectionsMarshal.AsSpan(_billboards)[(int)index];
+        return ref Unsafe.NullRef<Billboard>();
     }
 
     /// <summary>Return whether billboards are relative to the scene node.</summary>
@@ -792,7 +780,7 @@ public class BillboardSet : Drawable
         {
             _animationLodTimer += _animationLodBias * frame.TimeStep * AnimationLodBaseScale;
             if (_animationLodTimer >= GetLodDistance())
-                _animationLodTimer = MathF.IEEERemainder(_animationLodTimer, GetLodDistance());
+                _animationLodTimer %= GetLodDistance();
             else
             {
                 // No LOD if immediate update forced

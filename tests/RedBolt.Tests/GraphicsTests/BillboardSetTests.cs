@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt.Tests;
 
@@ -34,7 +35,7 @@ public sealed class BillboardSetTests
         var batches = set.GetBatches();
         Assert.Single(batches);
         Assert.Equal(GeometryType.Billboard, batches[0].GeometryType);
-        Assert.Equal(2u, batches[0].NumWorldTransforms);
+        Assert.Equal(1u, batches[0].NumWorldTransforms);
         Assert.NotNull(batches[0].Geometry);
     }
 
@@ -129,12 +130,9 @@ public sealed class BillboardSetTests
         first.Rotation = 12.0f;
         first.Direction = new Vector3f(0, 0, 1);
         first.Enabled = true;
-        set.SetBillboard(0, first);
-
         ref var second = ref set.GetBillboard(1);
         second.Position = new Vector3f(-1, -2, -3);
         second.Enabled = false;
-        set.SetBillboard(1, second);
 
         var attr = set.GetBillboardsAttr();
         Assert.Equal(2 * 7 + 1, attr.Count);
@@ -167,17 +165,15 @@ public sealed class BillboardSetTests
         var set = node.CreateComponent<BillboardSet>();
         set.SetNumBillboards(2);
 
-        var disabled = set.GetBillboard(0);
+        ref var disabled = ref set.GetBillboard(0);
         disabled.Position = new Vector3f(100, 0, 0);
         disabled.Size = new Vector2f(2, 2);
         disabled.Enabled = false;
-        set.SetBillboard(0, disabled);
 
-        var enabled = set.GetBillboard(1);
+        ref var enabled = ref set.GetBillboard(1);
         enabled.Position = new Vector3f(0, 5, 0);
         enabled.Size = new Vector2f(2, 2);
         enabled.Enabled = true;
-        set.SetBillboard(1, enabled);
         set.Commit();
 
         var box = set.GetWorldBoundingBox();
@@ -199,11 +195,10 @@ public sealed class BillboardSetTests
         var set = node.CreateComponent<BillboardSet>();
         set.SetNumBillboards(1);
 
-        var billboard = set.GetBillboard(0);
+        ref var billboard = ref set.GetBillboard(0);
         billboard.Position = new Vector3f(0, 0, 5);
         billboard.Size = new Vector2f(2, 2);
         billboard.Enabled = true;
-        set.SetBillboard(0, billboard);
         set.Commit();
 
         var results = new List<RayQueryResult>();
@@ -230,15 +225,13 @@ public sealed class BillboardSetTests
         var set = node.CreateComponent<BillboardSet>();
         set.SetNumBillboards(2);
 
-        var first = set.GetBillboard(0);
+        ref var first = ref set.GetBillboard(0);
         first.Position = Vector3f.Zero;
         first.Size = Vector2f.One;
         first.Enabled = true;
-        set.SetBillboard(0, first);
 
-        var second = set.GetBillboard(1);
+        ref var second = ref set.GetBillboard(1);
         second.Enabled = false;
-        set.SetBillboard(1, second);
         set.Commit();
 
         var frame = new CommonFrameInfo
@@ -276,5 +269,24 @@ public sealed class BillboardSetTests
             "Direction",
             "Axis Angle"
         ], names);
+    }
+
+    [Fact]
+    public void Invalid_billboard_index_returns_null_reference()
+    {
+        var set = new BillboardSet();
+
+        Assert.True(Unsafe.IsNullRef(ref set.GetBillboard(0)));
+    }
+
+    [Fact]
+    public void Dispose_destroys_owned_billboards()
+    {
+        var set = new BillboardSet();
+        set.SetNumBillboards(2);
+
+        set.Dispose();
+
+        Assert.Equal(0u, set.GetNumBillboards());
     }
 }
