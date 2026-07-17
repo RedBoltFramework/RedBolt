@@ -361,13 +361,16 @@ public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture
 /// <summary>
 /// Pipeline state cache callback used to create actual pipeline state.
 /// </summary>
-public abstract class BatchStateCacheCallback
+/// <remarks>
+/// C++ uses a pure-virtual class with multiple inheritance; mapped to an interface in C#.
+/// </remarks>
+public interface BatchStateCacheCallback
 {
     /// <summary>
     /// Create pipeline state for given context and key.
     /// Only attributes that contribute to pipeline state hashes are safe to use.
     /// </summary>
-    public abstract PipelineState? CreateBatchPipelineState(
+    PipelineState? CreateBatchPipelineState(
         BatchStateCreateKey key,
         BatchStateCreateContext context,
         PipelineStateOutputDesc outputDesc);
@@ -375,7 +378,7 @@ public abstract class BatchStateCacheCallback
     /// <summary>
     /// Create placeholder pipeline state when actual pipeline state creation fails.
     /// </summary>
-    public abstract PipelineState? CreateBatchPipelineStatePlaceholder(
+    PipelineState? CreateBatchPipelineStatePlaceholder(
         uint vertexStride,
         PipelineStateOutputDesc outputDesc);
 }
@@ -383,22 +386,25 @@ public abstract class BatchStateCacheCallback
 /// <summary>
 /// Light processor callback.
 /// </summary>
-public abstract class LightProcessorCallback
+/// <remarks>
+/// C++ uses a pure-virtual class with multiple inheritance; mapped to an interface in C#.
+/// </remarks>
+public interface LightProcessorCallback
 {
     /// <summary>
     /// Return whether light needs shadow.
     /// </summary>
-    public abstract bool IsLightShadowed(Light light);
+    bool IsLightShadowed(Light light);
 
     /// <summary>
     /// Return best shadow map size for given light. Should be safe to call from multiple threads.
     /// </summary>
-    public abstract uint GetShadowMapSize(Light light, uint numActiveSplits);
+    uint GetShadowMapSize(Light light, uint numActiveSplits);
 
     /// <summary>
     /// Allocate shadow map for one frame.
     /// </summary>
-    public abstract ShadowMapRegion AllocateTransientShadowMap(Vector2i size);
+    ShadowMapRegion AllocateTransientShadowMap(Vector2i size);
 }
 
 public enum DrawableAmbientMode

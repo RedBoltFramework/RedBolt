@@ -379,7 +379,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `BatchStateCache : NonCopyable`
   - [-] `UIBatchStateCache : NonCopyable` — **EXCLUDED** with the retained-mode rbfx UI subsystem
 - [~] `PipelineStateBuilder.h`
-  - [~] `PipelineStateBuilder : Object, BatchStateCacheCallback` — shell type exists for `BatchCompositorPass.CreatePipelineState` signature parity; full builder implementation remains TODO
+  - [~] `PipelineStateBuilder : Object, BatchStateCacheCallback` — construction, compositor access, input-layout/shader setup helpers, and placeholder pipeline-state creation match C++; full `CreateBatchPipelineState` body remains TODO (depends on complete SceneProcessor)
 - [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++
   - [x] `CameraProcessor : Object`
 - [ ] `LightProcessorQuery.h`

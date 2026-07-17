@@ -11,14 +11,14 @@ public sealed class BatchStateCacheTests
         public int CreateCount;
         public int PlaceholderCount;
 
-        public override PipelineState? CreateBatchPipelineState(BatchStateCreateKey key,
+        public PipelineState? CreateBatchPipelineState(BatchStateCreateKey key,
             BatchStateCreateContext context, PipelineStateOutputDesc outputDesc)
         {
             ++CreateCount;
             return State;
         }
 
-        public override PipelineState? CreateBatchPipelineStatePlaceholder(uint vertexStride,
+        public PipelineState? CreateBatchPipelineStatePlaceholder(uint vertexStride,
             PipelineStateOutputDesc outputDesc)
         {
             ++PlaceholderCount;
