@@ -178,15 +178,15 @@ implementation and MUST be ported explicitly.
 ## 6. BUILD AND VERIFY (run these commands)
 
 Build:
-  cmake --preset dev
-  cmake --build --preset Debug --target restore
-  cmake --build --preset Debug --target RedBolt -- -j16
+  cmake --preset linux-gcc-x64-dll
+  cmake --build --preset linux-gcc-x64-dll-debug --target restore
+  cmake --build --preset linux-gcc-x64-dll-debug --target RedBolt -- -j16
 
 Use `-j16` for parallel builds.
 
 Run the sample and capture a screenshot:
   rm -f /tmp/screenshot.png
-  out/build/dev/bin/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
+  cmake-build/linux-gcc-x64-dll/bin/Debug/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
@@ -194,7 +194,14 @@ Run the tests (adjust the filter to your area):
 (Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
 The build output binaries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/out/build/dev/bin/Debug
+  /home/rk/Desktop/src/rbfx/RedBolt/cmake-build/linux-gcc-x64-dll/bin/Debug
+
+CMake symlinks runtime resource directories into:
+  /home/rk/Desktop/src/rbfx/RedBolt/cmake-build/linux-gcc-x64-dll/bin
+
+The engine sets the process working directory to the managed executable directory.
+Samples and tests that consume the staged resource directories use `CoreData;Data`
+with resource prefix paths `.;..`.
 
 ## 7. THINGS YOU MUST ALWAYS DO
 
@@ -293,6 +300,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - The MultipleViewports sample may explicitly disable window maximization and configure default window dimensions so `--width` and `--height` control the actual window size.
 - C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.
 - The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
+- Engine construction sets the process working directory to the managed executable directory so CMake-staged resource-directory symlinks resolve consistently.
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
 - All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
 - `SystemUI` is renamed to `DearImGui`.

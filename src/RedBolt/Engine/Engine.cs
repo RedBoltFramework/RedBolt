@@ -4,6 +4,9 @@ namespace RedBolt;
 
 public sealed class Engine : Object
 {
+    private static readonly string ExecutableDirectory =
+        Path.GetDirectoryName(typeof(Engine).Assembly.Location) ?? AppContext.BaseDirectory;
+
     private readonly record struct ResourceRootEntry(string FullName, string ShortName);
 
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
@@ -23,6 +26,7 @@ public sealed class Engine : Object
 
     public Engine()
     {
+        Directory.SetCurrentDirectory(ExecutableDirectory);
         InitializeContext();
         PopulateDefaultParameters();
     }
@@ -382,7 +386,7 @@ public sealed class Engine : Object
             foreach (var prefixPath in prefixPaths)
                 absolutePrefixPaths.Add(NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar);
 
-            var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory) + Path.DirectorySeparatorChar;
+            var programDirectory = NormalizeConfiguredResourcePath(ExecutableDirectory) + Path.DirectorySeparatorChar;
             if (!absolutePrefixPaths.Contains(programDirectory, StringComparer.Ordinal))
                 absolutePrefixPaths.Add(programDirectory);
 
@@ -531,7 +535,7 @@ public sealed class Engine : Object
         {
             var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if (string.IsNullOrEmpty(localApplicationData))
-                localApplicationData = AppContext.BaseDirectory;
+                localApplicationData = ExecutableDirectory;
             _appPreferencesDir = Path.Combine(
                 localApplicationData, Parameters.OrganizationName, Parameters.ApplicationName)
                 + Path.DirectorySeparatorChar;
@@ -625,7 +629,7 @@ public sealed class Engine : Object
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var programDirectory = NormalizeConfiguredResourcePath(AppContext.BaseDirectory);
+        var programDirectory = NormalizeConfiguredResourcePath(ExecutableDirectory);
         while (!string.IsNullOrEmpty(programDirectory))
         {
             var fullFileName = Path.Combine(programDirectory, fileName);
@@ -756,7 +760,7 @@ public sealed class Engine : Object
     {
         return Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
-            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
+            : Path.GetFullPath(Path.Combine(ExecutableDirectory, path));
     }
 
     public void ApplyFrameLimit()
@@ -839,7 +843,7 @@ public sealed class Engine : Object
         {
             "file" => fileIdentifier.FileName,
             "conf" => GetAppPreferencesDir() + fileIdentifier.FileName,
-            "" => AppContext.BaseDirectory + fileIdentifier.FileName,
+            "" => Path.Combine(ExecutableDirectory, fileIdentifier.FileName),
             _ => string.Empty
         };
     }

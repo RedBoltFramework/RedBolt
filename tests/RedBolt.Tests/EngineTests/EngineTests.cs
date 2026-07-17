@@ -13,6 +13,17 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_constructor_uses_executable_directory_and_staged_resources()
+    {
+        var executableDirectory = Path.GetDirectoryName(typeof(Engine).Assembly.Location)!;
+        var resourceDirectory = Path.GetFullPath(Path.Combine(executableDirectory, ".."));
+
+        Assert.Equal(executableDirectory, Directory.GetCurrentDirectory());
+        Assert.Contains(Path.Combine(resourceDirectory, "CoreData"), _fixture.Resources.GetResourceDirs());
+        Assert.Contains(Path.Combine(resourceDirectory, "Data"), _fixture.Resources.GetResourceDirs());
+    }
+
+    [Fact]
     public void Engine_parameters_match_cpp_defaults()
     {
         var parameters = new EngineParameters();
@@ -248,8 +259,9 @@ public sealed class EngineTests
     public void Engine_initialization_uses_resource_root_file_when_enabled()
     {
         var suffix = Guid.NewGuid().ToString("N");
-        var resourceRootFile = Path.Combine(AppContext.BaseDirectory, $"resource-root-{suffix}.ini");
-        var resourceDirectory = Path.Combine(AppContext.BaseDirectory, $"resource-root-{suffix}");
+        var executableDirectory = Path.GetDirectoryName(typeof(EngineTests).Assembly.Location)!;
+        var resourceRootFile = Path.Combine(executableDirectory, $"resource-root-{suffix}.ini");
+        var resourceDirectory = Path.Combine(executableDirectory, $"resource-root-{suffix}");
         Directory.CreateDirectory(resourceDirectory);
         System.IO.File.WriteAllText(Path.Combine(resourceDirectory, "marker.txt"), "resource root");
         System.IO.File.WriteAllText(resourceRootFile, $"# Comment{Environment.NewLine}Core = {Path.GetFileName(resourceDirectory)}{Environment.NewLine}");

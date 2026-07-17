@@ -223,16 +223,7 @@ public sealed class RenderPathTests
 
     private static string GetCoreData()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var coreData = Path.Combine(directory.FullName, "bin", "CoreData");
-            if (Directory.Exists(coreData))
-                return Path.GetFullPath(coreData);
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not find upstream Rbfx CoreData directory.");
+        return RbfxTestData.CoreData;
     }
 
     private sealed class TrackingRenderPass : RenderPass

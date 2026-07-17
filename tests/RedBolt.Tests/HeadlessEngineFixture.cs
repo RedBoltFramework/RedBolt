@@ -15,6 +15,8 @@ public sealed class HeadlessEngineFixture : IDisposable
         {
             ApplicationName = "RedBolt.Tests",
             Headless = true,
+            ResourcePaths = "CoreData;Data",
+            ResourcePrefixPaths = ".;..",
             WindowMaximize = false,
             WindowWidth = 1280,
             WindowHeight = 720
