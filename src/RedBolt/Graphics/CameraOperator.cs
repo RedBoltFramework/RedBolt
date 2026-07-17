@@ -35,14 +35,14 @@ public class CameraOperator : Component
         "   NodeID"
     };
 
-    private readonly List<Node> _trackedNodes = [];
+    private readonly List<WeakReference<Node>> _trackedNodes = [];
     private readonly VariantVector _nodeIdsAttr = [];
-    private readonly List<Vector3f> _points = [];
     private bool _nodesDirty;
     private bool _nodeIdsDirty;
     private bool _boundingBoxEnabled;
     private BoundingBox _boundingBox;
     private Rect _padding = Rect.Zero;
+    private readonly List<Vector3f> _points = [];
 
     /// <summary>
     /// Construct.
@@ -110,6 +110,17 @@ public class CameraOperator : Component
     }
 
     /// <summary>
+    /// Destruct.
+    /// </summary>
+    public override void Dispose()
+    {
+        _points.Clear();
+        _nodeIdsAttr.Dispose();
+        _trackedNodes.Clear();
+        base.Dispose();
+    }
+
+    /// <summary>
     /// Register object factory.
     /// </summary>
     public static void RegisterObject(Context context)
@@ -128,7 +139,10 @@ public class CameraOperator : Component
 
         // Remove all old nodes before searching for new
         for (var i = 0; i < _trackedNodes.Count; ++i)
-            _trackedNodes[i].RemoveListener(this);
+        {
+            if (_trackedNodes[i].TryGetTarget(out var trackedNode))
+                trackedNode.RemoveListener(this);
+        }
 
         _trackedNodes.Clear();
 
@@ -142,7 +156,7 @@ public class CameraOperator : Component
                 if (node is not null)
                 {
                     node.AddListener(this);
-                    _trackedNodes.Add(node);
+                    _trackedNodes.Add(new WeakReference<Node>(node));
                 }
             }
         }
@@ -254,13 +268,16 @@ public class CameraOperator : Component
         if (node is null)
             return;
 
-        if (_trackedNodes.Contains(node))
-            return;
+        for (var i = 0; i < _trackedNodes.Count; ++i)
+        {
+            if (_trackedNodes[i].TryGetTarget(out var trackedNode) && ReferenceEquals(trackedNode, node))
+                return;
+        }
 
         // Add as a listener for the node, so that we know to dirty the transforms when the node moves or is
         // enabled/disabled
         node.AddListener(this);
-        _trackedNodes.Add(node);
+        _trackedNodes.Add(new WeakReference<Node>(node));
     }
 
     /// <summary>
@@ -271,12 +288,15 @@ public class CameraOperator : Component
         if (node is null)
             return;
 
-        var index = _trackedNodes.IndexOf(node);
-        if (index < 0)
-            return;
-
-        node.RemoveListener(this);
-        _trackedNodes.RemoveAt(index);
+        for (var i = 0; i < _trackedNodes.Count; ++i)
+        {
+            if (_trackedNodes[i].TryGetTarget(out var trackedNode) && ReferenceEquals(trackedNode, node))
+            {
+                node.RemoveListener(this);
+                _trackedNodes.RemoveAt(i);
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -285,7 +305,10 @@ public class CameraOperator : Component
     public void RemoveAllTrackedNodes()
     {
         for (var i = 0; i < _trackedNodes.Count; ++i)
-            _trackedNodes[i].RemoveListener(this);
+        {
+            if (_trackedNodes[i].TryGetTarget(out var trackedNode))
+                trackedNode.RemoveListener(this);
+        }
 
         _trackedNodes.Clear();
         _nodeIdsDirty = true;
@@ -301,7 +324,7 @@ public class CameraOperator : Component
     /// </summary>
     public Node? GetTrackedNode(uint index)
     {
-        return index < _trackedNodes.Count ? _trackedNodes[(int)index] : null;
+        return index < _trackedNodes.Count && _trackedNodes[(int)index].TryGetTarget(out var node) ? node : null;
     }
 
     /// <summary>
@@ -333,7 +356,10 @@ public class CameraOperator : Component
             ApplyAttributes();
 
         for (var i = 0; i < _trackedNodes.Count; ++i)
-            _points.Add(_trackedNodes[i].WorldPosition);
+        {
+            if (_trackedNodes[i].TryGetTarget(out var trackedNode))
+                _points.Add(trackedNode.WorldPosition);
+        }
 
         if (_points.Count != 0)
             FocusOn(_points, camera);
@@ -350,7 +376,7 @@ public class CameraOperator : Component
         _nodeIdsAttr.Add(numInstances);
 
         for (var i = 0u; i < numInstances; ++i)
-            _nodeIdsAttr.Add(_trackedNodes[(int)i].Id);
+            _nodeIdsAttr.Add(_trackedNodes[(int)i].TryGetTarget(out var node) ? node.Id : 0u);
 
         _nodeIdsDirty = false;
     }

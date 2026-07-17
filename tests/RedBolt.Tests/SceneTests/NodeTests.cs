@@ -95,6 +95,30 @@ public sealed class NodeTests
     }
 
     [Fact]
+    public void Listener_registration_does_not_retain_component()
+    {
+        var source = new Scene().CreateChild("Source");
+        WeakReference<ListenerProbe> listenerReference = null!;
+
+        void AddListener()
+        {
+            var listener = new ListenerProbe();
+            listenerReference = new WeakReference<ListenerProbe>(listener);
+            source.AddListener(listener);
+        }
+
+        AddListener();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(listenerReference.TryGetTarget(out _));
+        _ = source.GetWorldPosition();
+        source.SetPosition(Vector3f.One);
+        Assert.Empty(source.GetListeners());
+    }
+
+    [Fact]
     public void SetAttribute_name_updates_property()
     {
         var scene = new Scene();

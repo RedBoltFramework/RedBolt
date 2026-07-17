@@ -132,8 +132,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A5. Resource — depends on IO, Core
 
-## [x] A6. Scene — depends on Resource, Core
+## [~] A6. Scene — depends on Resource, Core
 
+- [~] `Node.h` / `Node.cpp` — listener ownership and expired-listener cleanup reconciled while auditing CameraOperator; the complete Node lifetime/copy audit remains pending
 
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 
@@ -147,6 +148,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `AnimationParameters` in `AnimationController.h` / `AnimationController.cpp` — all constructors, implicit field teardown, independent wrapped-time copies, borrowed animation aliases, fluent helpers, delayed removal, and variant/binary serialization reconciled
 - [~] `BillboardSet.h` / `BillboardSet.cpp` — constructor defaults, billboard value storage and mutable references, derived resource teardown, and non-copyable component semantics reconciled; final ownership closure depends on pending Drawable, Geometry, IndexBuffer, and VertexBuffer audits
 - [x] `Camera.h` / `Camera.cpp` — non-copyable component semantics, value-owned projection/view/frustum caches, weak Graphics observation, borrowed Zone ownership, and default derived destruction reconciled
+- [x] `CameraOperator.h` / `CameraOperator.cpp` — weak tracked-node ownership, value-owned serialization and point caches, listener registration/removal, and default derived destruction reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

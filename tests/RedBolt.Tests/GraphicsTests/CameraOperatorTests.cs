@@ -6,6 +6,26 @@ namespace RedBolt.Tests;
 public sealed class CameraOperatorTests
 {
     [Fact]
+    public void Camera_operator_stores_tracked_nodes_weakly_and_destroys_owned_ids()
+    {
+        var scene = new Scene();
+        var cameraOperator = new CameraOperator();
+        var target = scene.CreateChild("Target");
+
+        cameraOperator.TrackNode(target);
+        cameraOperator.SetNodeIDsAttr(new VariantVector { new Variant(1u), new Variant(target.Id) });
+        var nodeIds = cameraOperator.GetNodeIDsAttr();
+
+        var trackedNodes = GetPrivateField<List<WeakReference<Node>>>(cameraOperator, "_trackedNodes");
+        Assert.Single(trackedNodes);
+        Assert.True(trackedNodes[0].TryGetTarget(out var resolvedTarget));
+        Assert.Same(target, resolvedTarget);
+
+        cameraOperator.Dispose();
+        Assert.Empty(nodeIds);
+    }
+
+    [Fact]
     public void Camera_operator_tracks_nodes_and_refreshes_node_id_attribute()
     {
         var scene = new Scene();
@@ -84,5 +104,13 @@ public sealed class CameraOperatorTests
             "Move camera to keep tracked nodes and/or bounding box in frustum",
             updateCamera.Accessor!.GetObject(cameraOperator));
         updateCamera.Accessor!.SetObject(cameraOperator, true);
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<T>(field.GetValue(instance));
     }
 }

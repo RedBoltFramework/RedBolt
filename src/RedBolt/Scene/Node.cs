@@ -12,7 +12,7 @@ public sealed class Node : Animatable
     private Quaternion _worldRotation = Quaternion.Identity;
     private readonly List<Component> _components = [];
     private readonly List<Node> _children = [];
-    private readonly List<Component> _listeners = [];
+    private readonly List<WeakReference<Component>> _listeners = [];
     // NodeImpl.
     private readonly List<Node> _dependencyNodes = [];
     private string _name = string.Empty;
@@ -1864,14 +1864,29 @@ public sealed class Node : Animatable
 
     public IReadOnlyList<Node> GetDependencyNodes() => _dependencyNodes;
 
-    public IReadOnlyList<Component> GetListeners() => _listeners.ToArray();
+    public IReadOnlyList<Component> GetListeners()
+    {
+        var listeners = new List<Component>(_listeners.Count);
+        for (var i = 0; i < _listeners.Count; ++i)
+        {
+            if (_listeners[i].TryGetTarget(out var listener))
+                listeners.Add(listener);
+        }
+        return listeners;
+    }
 
     public void AddListener(Component? component)
     {
-        if (component is null || _listeners.Contains(component))
+        if (component is null)
             return;
 
-        _listeners.Add(component);
+        for (var i = 0; i < _listeners.Count; ++i)
+        {
+            if (_listeners[i].TryGetTarget(out var listener) && ReferenceEquals(listener, component))
+                return;
+        }
+
+        _listeners.Add(new WeakReference<Component>(component));
         if (_dirty)
             component.OnMarkedDirty(this);
     }
@@ -1881,7 +1896,14 @@ public sealed class Node : Animatable
         if (component is null)
             return;
 
-        _listeners.Remove(component);
+        for (var i = 0; i < _listeners.Count; ++i)
+        {
+            if (_listeners[i].TryGetTarget(out var listener) && ReferenceEquals(listener, component))
+            {
+                _listeners.RemoveAt(i);
+                return;
+            }
+        }
     }
 
     public bool LookAt(Vector3f target, Vector3f? up = null, TransformSpace space = TransformSpace.World)
@@ -1911,11 +1933,19 @@ public sealed class Node : Animatable
 
         _dirty = true;
 
-        foreach (var listener in _listeners)
-            listener.OnMarkedDirty(this);
-
-        foreach (var component in _components)
-            component.OnMarkedDirty(this);
+        for (var i = 0; i < _listeners.Count;)
+        {
+            if (_listeners[i].TryGetTarget(out var listener))
+            {
+                listener.OnMarkedDirty(this);
+                ++i;
+            }
+            else
+            {
+                _listeners[i] = _listeners[^1];
+                _listeners.RemoveAt(_listeners.Count - 1);
+            }
+        }
 
         foreach (var child in _children)
             child.MarkDirty();
@@ -2259,8 +2289,16 @@ public sealed class Node : Animatable
 
         _enabled = enable;
 
-        foreach (var listener in _listeners)
-            listener.OnNodeSetEnabled(this);
+        for (var i = 0; i < _listeners.Count;)
+        {
+            if (_listeners[i].TryGetTarget(out var listener))
+            {
+                listener.OnNodeSetEnabled(this);
+                ++i;
+            }
+            else
+                _listeners.RemoveAt(i);
+        }
 
         foreach (var component in _components)
         {
