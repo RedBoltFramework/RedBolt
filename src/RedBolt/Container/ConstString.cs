@@ -10,7 +10,7 @@ namespace RedBolt;
 /// <c>operator const ea::string&amp;()</c> is used:
 /// <c>const ea::string&amp; s2 = ConstString("text");</c>
 /// </remarks>
-public sealed class ConstString
+public sealed class ConstString : ICloneable
 {
     /// <summary>
     /// Construct an empty string.
@@ -37,6 +37,8 @@ public sealed class ConstString
     public StringHash GetHash() => _hash;
 
     public override string ToString() => _value;
+
+    public object Clone() => new ConstString(_value);
 
     public static implicit operator StringHash(ConstString value) => value._hash;
 

@@ -22,4 +22,15 @@ public sealed class ConstStringTests
         Assert.Equal(new StringHash(nameof(StaticModel)), value.GetHash());
         Assert.Equal(value.GetHash(), (StringHash)value);
     }
+
+    [Fact]
+    public void Clone_returns_independent_wrapper_with_same_value()
+    {
+        var value = new ConstString(nameof(StaticModel));
+        var clone = (ConstString)value.Clone();
+
+        Assert.NotSame(value, clone);
+        Assert.Equal((string)value, (string)clone);
+        Assert.Equal(value.GetHash(), clone.GetHash());
+    }
 }
