@@ -143,7 +143,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED. The managed profiler facade is static; color constants are scalars and thread naming retains only an immutable managed string. C++ zone RAII remains compile-time Tracy instrumentation rather than a ported runtime class, and this file has no constructed, destructed, or returned mutable object values. | — | — | — |
 | `src/RedBolt/Core/Spline.cs` | `Source/Urho3D/Core/Spline.h`<br>`Source/Urho3D/Core/Spline.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-17 partial outcome | Corrected vector-level value semantics: knot-vector construction and `SetKnots` now create independent containers, `Clone()` performs one independent container copy, and `GetKnots` exposes the C++ const-reference result read-only. Element construction/assignment/return and deterministic destruction of knots and scratch vectors remain dependent on the `Variant` audit. | — | — | — |
-| `src/RedBolt/Core/StopToken.cs` | `Source/Urho3D/Core/StopToken.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/StopToken.cs` | `Source/Urho3D/Core/StopToken.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED under the allowed C# threading-primitives mapping. Construction creates one shared stop state, value copies share that state exactly like the C++ `shared_ptr<atomic<bool>>`, and `Stop`/`IsStopped` use volatile access. Managed shared-state reclamation needs no manual destructor, and the only return is a scalar bool. | — | — | — |
 | `src/RedBolt/Core/StringHashRegister.cs` | `Source/Urho3D/Core/StringHashRegister.h`<br>`Source/Urho3D/Core/StringHashRegister.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/SubsystemCache.cs` | `Source/Urho3D/Core/SubsystemCache.h`<br>`Source/Urho3D/Core/SubsystemCache.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/ThreadSafeCache.cs` | `Source/Urho3D/Core/ThreadSafeCache.h` | ☐ | ☐ | ☐ |
