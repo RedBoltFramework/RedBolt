@@ -598,7 +598,7 @@ public class DrawableProcessor : Object
 
             // Update zone
             UpdateDrawableZone(boundingBox, drawable);
-            // TODO: port UpdateDrawableReflection when ReflectionProbeManager is available
+            UpdateDrawableReflection(boundingBox, drawable);
 
             // Do not add "infinite" objects like skybox to prevent shadow map focusing behaving erroneously
             if (!zRange.IsValid())
@@ -836,6 +836,65 @@ public class DrawableProcessor : Object
                 cachedZone = _frameInfo.Octree.QueryZone(drawableCenter, drawable.GetZoneMask());
                 drawable.MarkPipelineStateHashDirty();
             }
+        }
+    }
+
+    public void UpdateDrawableReflection(BoundingBox boundingBox, Drawable drawable)
+    {
+        var mode = drawable.GetReflectionMode();
+        if (mode == ReflectionMode.Zone)
+            return;
+
+        var manager = _frameInfo.Scene?.Root.GetComponent<ReflectionProbeManager>();
+        if (manager is null)
+            return;
+
+        var drawableCenter = boundingBox.Center;
+        ref var cachedReflection = ref drawable.GetMutableCachedReflection();
+
+        if (!manager.HasStaticProbes())
+        {
+            for (var i = 0; i < 2; ++i)
+                cachedReflection.Probes[i].Reset();
+        }
+        else
+        {
+            var drawableCacheDistanceSquared = (cachedReflection.CachePosition - drawableCenter).LengthSquared;
+
+            var forcedUpdate = !float.IsFinite(drawableCacheDistanceSquared)
+                || cachedReflection.CacheRevision != manager.GetRevision();
+            if (forcedUpdate || drawableCacheDistanceSquared > cachedReflection.CacheInvalidationDistanceSquared)
+            {
+                var staticProbes = new ReflectionProbeReference[2];
+                var cacheDistance = cachedReflection.CacheInvalidationDistanceSquared;
+                manager.QueryStaticProbes(boundingBox, staticProbes, ref cacheDistance);
+                cachedReflection.StaticProbes[0] = staticProbes[0];
+                cachedReflection.StaticProbes[1] = staticProbes[1];
+                cachedReflection.CacheInvalidationDistanceSquared = cacheDistance;
+                cachedReflection.CacheRevision = manager.GetRevision();
+                cachedReflection.CachePosition = drawableCenter;
+            }
+
+            cachedReflection.Probes[0] = cachedReflection.StaticProbes[0];
+            cachedReflection.Probes[1] = cachedReflection.StaticProbes[1];
+        }
+
+        if (manager.HasDynamicProbes())
+        {
+            var probes = new ReflectionProbeReference[2];
+            probes[0] = cachedReflection.Probes[0];
+            probes[1] = cachedReflection.Probes[1];
+            manager.QueryDynamicProbes(boundingBox, probes);
+            cachedReflection.Probes[0] = probes[0];
+            cachedReflection.Probes[1] = probes[1];
+        }
+
+        // Estimate Zone weight and replace 2nd probe if it's less important
+        if (cachedReflection.Probes[1].IsValid && mode == ReflectionMode.BlendProbesAndZone)
+        {
+            var zoneWeight = Math.Max(0.0f, 1.0f - cachedReflection.Probes[0].Volume - cachedReflection.Probes[1].Volume);
+            if (zoneWeight > cachedReflection.Probes[1].Volume)
+                cachedReflection.Probes[1].Reset();
         }
     }
 

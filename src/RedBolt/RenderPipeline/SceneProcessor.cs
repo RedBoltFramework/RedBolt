@@ -192,9 +192,8 @@ public class SceneProcessor : Object, LightProcessorCallback
         _frameInfo.ViewReferenceNode = _frameInfo.Camera?.Node;
 
         _frameInfo.Octree = _frameInfo.Scene?.Root.GetComponent<Octree>();
-        // TODO: port ReflectionProbeManager when ReflectionProbe is available
-        // frameInfo.reflectionProbeManager_ = frameInfo_.octree_
-        //     ? frameInfo_.scene_->GetOrCreateComponent<ReflectionProbeManager>() : nullptr;
+        if (_frameInfo.Octree is not null && _frameInfo.Scene is not null)
+            _frameInfo.Scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
 
         for (var i = 0; i < frameInfo.Cameras.Length && i < _frameInfo.Cameras.Length; ++i)
             _frameInfo.Cameras[i] = frameInfo.Cameras[i];

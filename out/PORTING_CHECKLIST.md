@@ -330,13 +330,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `LightProbeGroup : Component` — auto placement, collection, baked-data reload hooks, masks, and debug spheres match C++
 - [x] `GlobalIllumination.h`
   - [x] `GlobalIllumination : Component` — compile/reset probes, SH/ambient sample, file ref, offset, and world-origin shift match C++
-- [~] `ReflectionProbeData.h`
-  - [~] reflection probe data struct — cubemap center, projection box, `ReflectionProbeReference.Reset()`, validity, and importance comparison now match C++; manager/probe integration remains unported
-- [ ] `ReflectionProbe.h`
-  - [ ] `ReflectionProbeManager : TrackedComponentRegistryBase`
-  - [ ] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>`
-- [ ] `CubemapRenderer.h`
-  - [ ] `CubemapRenderer`
+- [x] `ReflectionProbeData.h` — cubemap center, projection box, `ReflectionProbeReference` reset/validity/importance match C++
+- [~] `ReflectionProbe.h`
+  - [~] `ReflectionProbeManager : TrackedComponentRegistryBase` — tracking, spatial/movable query, static BVH leaf queries, bake/update queues match C++; full budgeted render consume remains TODO
+  - [~] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>` — type/movable/priority/box/texture/settings accessors and dirty marking match C++; debug draw and dynamic cubemap lifecycle remain partial
+- [~] `CubemapRenderer.h`
+  - [~] `CubemapRenderer` — settings/update parameter types and Update entry point exist; face rendering/pipeline filtering remain TODO
 - [~] `OutlineGroup.h`
 - [~] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
 - [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests
@@ -396,7 +395,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `LightProcessorCache : NonCopyable` — generation-based LRU cleanup with budget/TTL settings and get-or-create match C++
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
-  - [~] `DrawableProcessor : Object` — ProcessVisibleDrawables/ProcessLights/ProcessForwardLighting/UpdateGeometries, PreprocessShadowCasters, zone cache, light-processor cache/sort, and pass batch collection are ported; UpdateDrawableReflection remains TODO pending ReflectionProbeManager
+  - [x] `DrawableProcessor : Object` — ProcessVisibleDrawables/ProcessLights/ProcessForwardLighting/UpdateGeometries, PreprocessShadowCasters, zone and reflection-probe cache updates, light-processor cache/sort, and pass batch collection match C++
 - [x] `BatchCompositor.h` — `PipelineBatch`/`PipelineBatchDesc`, `BatchCompositorPass` scene composition, and `BatchCompositor` shadow/scene/light-volume composition match C++
   - [x] `BatchCompositorPass : DrawableProcessorPass` — deferred/forward batch composition, delayed pipeline-state resolution, placeholder states, and per-frame cache invalidation match C++
   - [x] `BatchCompositor : Object` — pass filtering, shadow batch composition hooks, scene-pass compose, light-volume batches, and `FillSortKeys` match C++
