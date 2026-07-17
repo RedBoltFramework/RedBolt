@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt.Tests;
 
@@ -25,6 +26,35 @@ public sealed class CustomGeometryTests
     }
 
     [Fact]
+    public void Vertex_copy_is_independent()
+    {
+        var source = new CustomGeometryVertex
+        {
+            Position = new Vector3f(1.0f, 2.0f, 3.0f),
+            Normal = Vector3f.Up,
+            Color = 0x12345678,
+            TexCoord = Vector2f.One,
+            Tangent = new Vector4f(1.0f, 0.0f, 0.0f, 1.0f)
+        };
+
+        var copy = source;
+        copy.Position = Vector3f.Zero;
+
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), source.Position);
+        Assert.Equal(Vector3f.Zero, copy.Position);
+        Assert.Equal(source.Normal, copy.Normal);
+        Assert.Equal(source.Color, copy.Color);
+        Assert.Equal(source.TexCoord, copy.TexCoord);
+        Assert.Equal(source.Tangent, copy.Tangent);
+    }
+
+    [Fact]
+    public void Renderer_is_not_copyable()
+    {
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(CustomGeometry)));
+    }
+
+    [Fact]
     public void Dynamic_vertex_definition_and_commit_work()
     {
         var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
@@ -42,8 +72,8 @@ public sealed class CustomGeometryTests
 
         custom.DefineGeometry(1u, PrimitiveType.LineList, 2u, true, true, true, true);
 
-        var editable = custom.GetVertex(1u, 1u);
-        Assert.NotNull(editable);
+        ref var editable = ref custom.GetVertex(1u, 1u);
+        Assert.False(Unsafe.IsNullRef(ref editable));
         editable.Position = new Vector3f(2.0f, 0.0f, 0.0f);
         editable.Normal = Vector3f.Up;
         editable.Color = new Color(1.0f, 1.0f, 0.0f).ToUInt();
@@ -72,9 +102,10 @@ public sealed class CustomGeometryTests
         custom.DefineGeometry(1u, PrimitiveType.LineList, 2u, false, false, false, false);
         custom.Commit();
 
-        Assert.Equal(5u, custom.GetVertexBuffer().GetVertexCount());
-        Assert.Equal(12u, custom.GetVertexBuffer().GetVertexSize());
-        Assert.Equal(60, custom.GetVertexBuffer().GetData().Count);
+        var vertexBuffer = custom.GetLodGeometry(0u, 0u)!.GetVertexBuffer(0u)!;
+        Assert.Equal(5u, vertexBuffer.GetVertexCount());
+        Assert.Equal(12u, vertexBuffer.GetVertexSize());
+        Assert.Equal(60, vertexBuffer.GetData().Count);
     }
 
     [Fact]
@@ -123,7 +154,43 @@ public sealed class CustomGeometryTests
         custom.SetMaterialsAttr(Resource.GetResourceRefList(new Material?[] { material }));
 
         Assert.Same(material, custom.GetMaterial());
-        Assert.Equal(material.Name, custom.GetMaterialsAttr().Names[0]);
+        var first = custom.GetMaterialsAttr();
+        var second = custom.GetMaterialsAttr();
+        Assert.Same(first.Names, second.Names);
+        Assert.Equal(material.Name, second.Names[0]);
+    }
+
+    [Fact]
+    public void Vertex_pointer_returns_null_ref_when_out_of_range()
+    {
+        var custom = new CustomGeometry();
+
+        ref var vertex = ref custom.GetVertex(1u, 0u);
+
+        Assert.True(Unsafe.IsNullRef(ref vertex));
+    }
+
+    [Fact]
+    public void Triangle_ray_query_uses_committed_geometry()
+    {
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        custom.BeginGeometry(0u, PrimitiveType.TriangleList);
+        custom.DefineVertex(new Vector3f(0.0f, 0.0f, 0.0f));
+        custom.DefineVertex(new Vector3f(1.0f, 0.0f, 0.0f));
+        custom.DefineVertex(new Vector3f(0.0f, 1.0f, 0.0f));
+        custom.Commit();
+        var results = new List<RayQueryResult>();
+        var query = new RayOctreeQuery(results,
+            new Ray(new Vector3f(0.25f, 0.25f, 1.0f), new Vector3f(0.0f, 0.0f, -1.0f)),
+            RayQueryLevel.RayTriangle);
+
+        custom.ProcessRayQuery(query, results);
+
+        var result = Assert.Single(results);
+        Assert.Same(custom, result.Drawable);
+        Assert.Equal(1.0f, result.Distance);
+        Assert.Equal(new Vector3f(0.0f, 0.0f, 1.0f), result.Normal);
+        Assert.Equal(MathDefs.MaxUnsigned, result.SubObject);
     }
 
     [Fact]
@@ -137,7 +204,7 @@ public sealed class CustomGeometryTests
         custom.DefineVertex(new Vector3f(1.0f, -1.0f, 0.0f));
         custom.DefineVertex(new Vector3f(0.0f, 1.0f, 0.0f));
         custom.DefineGeometry(1u, PrimitiveType.LineList, 2u, false, false, false, false);
-        custom.GetVertex(1u, 1u)!.Position = new Vector3f(2.0f, 0.0f, 0.0f);
+        custom.GetVertex(1u, 1u).Position = new Vector3f(2.0f, 0.0f, 0.0f);
         custom.Commit();
 
         var data = custom.GetGeometryDataAttr();
@@ -146,6 +213,6 @@ public sealed class CustomGeometryTests
 
         Assert.Equal(2u, clone.GetNumGeometries());
         Assert.Equal(3u, clone.GetNumVertices(0u));
-        Assert.Equal(new Vector3f(2.0f, 0.0f, 0.0f), clone.GetVertex(1u, 1u)?.Position);
+        Assert.Equal(new Vector3f(2.0f, 0.0f, 0.0f), clone.GetVertex(1u, 1u).Position);
     }
 }

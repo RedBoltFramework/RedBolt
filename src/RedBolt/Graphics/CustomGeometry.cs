@@ -1,6 +1,10 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
-public sealed class CustomGeometryVertex
+public struct CustomGeometryVertex
 {
     public Vector3f Position;
     public Vector3f Normal;
@@ -11,83 +15,108 @@ public sealed class CustomGeometryVertex
 
 public sealed class CustomGeometry : Drawable
 {
-    private const uint MaskPosition = 1u;
-    private const uint MaskNormal = 1u << 1;
-    private const uint MaskColor = 1u << 2;
-    private const uint MaskTexCoord = 1u << 3;
-    private const uint MaskTangent = 1u << 4;
+    private const uint MaskPosition = (uint)VertexMask.Position;
+    private const uint MaskNormal = (uint)VertexMask.Normal;
+    private const uint MaskColor = (uint)VertexMask.Color;
+    private const uint MaskTexCoord = (uint)VertexMask.TexCoord1;
+    private const uint MaskTangent = (uint)VertexMask.Tangent;
     private readonly List<PrimitiveType> _primitiveTypes = [];
     private readonly List<List<CustomGeometryVertex>> _vertices = [];
     private readonly List<Geometry> _geometries = [];
-    private readonly List<Material?> _materials = [];
     private readonly VertexBuffer _vertexBuffer = new();
     private uint _elementMask = MaskPosition;
     private uint _geometryIndex;
+    private ResourceRefList _materialsAttr = new(nameof(Material));
+    private bool _dynamic;
 
     public CustomGeometry()
         : base(DrawableFlags.Geometry)
     {
+        _vertexBuffer.SetDebugName("CustomGeometry Geometry");
         _vertexBuffer.SetShadowed(true);
         SetNumGeometries(1u);
-        SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
 
-    public bool Dynamic { get; private set; }
-
-    public uint ElementMask => _elementMask;
+    public override void Dispose()
+    {
+        _materialsAttr.Names.Clear();
+        for (var i = _geometries.Count - 1; i >= 0; --i)
+            _geometries[i].Dispose();
+        _geometries.Clear();
+        _vertexBuffer.Dispose();
+        _vertices.Clear();
+        _primitiveTypes.Clear();
+        for (var i = _batches.Count - 1; i >= 0; --i)
+        {
+            var batch = _batches[i];
+            batch.Dispose();
+        }
+        _batches.Clear();
+        base.Dispose();
+    }
 
     public void Clear()
     {
         _elementMask = MaskPosition;
-        _geometryIndex = 0u;
+        for (var i = _batches.Count - 1; i >= 0; --i)
+        {
+            var batch = _batches[i];
+            batch.Dispose();
+        }
+        _batches.Clear();
+        for (var i = _geometries.Count - 1; i >= 0; --i)
+            _geometries[i].Dispose();
+        _geometries.Clear();
         _primitiveTypes.Clear();
         _vertices.Clear();
-        _geometries.Clear();
-        _batches.Clear();
-        _materials.Clear();
-        SetLocalBoundingBox(CreateUndefinedBoundingBox());
     }
 
     public void SetNumGeometries(uint num)
     {
-        while (_geometries.Count < num)
-        {
-            _geometries.Add(new Geometry());
+        while (_batches.Count < num)
             _batches.Add(new SourceBatch());
+        while (_geometries.Count < num)
+            _geometries.Add(null!);
+        while (_primitiveTypes.Count < num)
             _primitiveTypes.Add(PrimitiveType.TriangleList);
+        while (_vertices.Count < num)
             _vertices.Add([]);
-            _materials.Add(null);
-        }
 
+        while (_batches.Count > num)
+        {
+            var index = _batches.Count - 1;
+            var batch = _batches[index];
+            batch.Dispose();
+            _batches.RemoveAt(index);
+        }
         while (_geometries.Count > num)
         {
             var index = _geometries.Count - 1;
+            _geometries[index].Dispose();
             _geometries.RemoveAt(index);
-            _batches.RemoveAt(index);
-            _primitiveTypes.RemoveAt(index);
-            _vertices.RemoveAt(index);
-            _materials.RemoveAt(index);
         }
+        while (_primitiveTypes.Count > num)
+            _primitiveTypes.RemoveAt(_primitiveTypes.Count - 1);
+        while (_vertices.Count > num)
+            _vertices.RemoveAt(_vertices.Count - 1);
 
         for (var i = 0; i < _geometries.Count; ++i)
         {
+            _geometries[i] ??= new Geometry();
             var batch = _batches[i];
             batch.Geometry = _geometries[i].GetVertexCount() != 0 ? _geometries[i] : null;
             _batches[i] = batch;
         }
-
-        if (_geometryIndex >= _geometries.Count)
-            _geometryIndex = _geometries.Count == 0 ? 0u : (uint)_geometries.Count - 1u;
     }
 
     public void SetDynamic(bool enable)
     {
-        Dynamic = enable;
+        _dynamic = enable;
     }
 
     public void BeginGeometry(uint index, PrimitiveType type)
     {
-        if (index >= _geometries.Count)
+        if (index > _geometries.Count)
             return;
 
         _geometryIndex = index;
@@ -99,7 +128,7 @@ public sealed class CustomGeometry : Drawable
 
     public void DefineVertex(Vector3f position)
     {
-        if (_geometryIndex >= _vertices.Count)
+        if (_vertices.Count < _geometryIndex)
             return;
 
         _vertices[(int)_geometryIndex].Add(new CustomGeometryVertex { Position = position });
@@ -107,48 +136,47 @@ public sealed class CustomGeometry : Drawable
 
     public void DefineNormal(Vector3f normal)
     {
-        if (!TryGetLastVertex(out var vertex))
+        if (_vertices.Count < _geometryIndex || _vertices[(int)_geometryIndex].Count == 0)
             return;
 
+        ref var vertex = ref CollectionsMarshal.AsSpan(_vertices[(int)_geometryIndex])[^1];
         vertex.Normal = normal;
         _elementMask |= MaskNormal;
     }
 
     public void DefineColor(Color color)
     {
-        DefineColor(color.ToUInt());
-    }
-
-    public void DefineColor(uint color)
-    {
-        if (!TryGetLastVertex(out var vertex))
+        if (_vertices.Count < _geometryIndex || _vertices[(int)_geometryIndex].Count == 0)
             return;
 
-        vertex.Color = color;
+        ref var vertex = ref CollectionsMarshal.AsSpan(_vertices[(int)_geometryIndex])[^1];
+        vertex.Color = color.ToUInt();
         _elementMask |= MaskColor;
     }
 
     public void DefineTexCoord(Vector2f texCoord)
     {
-        if (!TryGetLastVertex(out var vertex))
+        if (_vertices.Count < _geometryIndex || _vertices[(int)_geometryIndex].Count == 0)
             return;
 
+        ref var vertex = ref CollectionsMarshal.AsSpan(_vertices[(int)_geometryIndex])[^1];
         vertex.TexCoord = texCoord;
         _elementMask |= MaskTexCoord;
     }
 
     public void DefineTangent(Vector4f tangent)
     {
-        if (!TryGetLastVertex(out var vertex))
+        if (_vertices.Count < _geometryIndex || _vertices[(int)_geometryIndex].Count == 0)
             return;
 
+        ref var vertex = ref CollectionsMarshal.AsSpan(_vertices[(int)_geometryIndex])[^1];
         vertex.Tangent = tangent;
         _elementMask |= MaskTangent;
     }
 
     public void DefineGeometry(uint index, PrimitiveType type, uint numVertices, bool hasNormals, bool hasColors, bool hasTexCoords, bool hasTangents)
     {
-        if (index >= _geometries.Count)
+        if (index > _geometries.Count)
             return;
 
         _geometryIndex = index;
@@ -182,26 +210,41 @@ public sealed class CustomGeometry : Drawable
         }
 
         SetLocalBoundingBox(box);
-        var vertexSize = GetVertexSize(_elementMask);
-        _vertexBuffer.SetSize(totalVertices, vertexSize, Dynamic);
-        _vertexBuffer.SetData(GetPackedVertexData());
+        if (_vertexBuffer.GetVertexCount() != totalVertices || _vertexBuffer.GetElementMask() != _elementMask ||
+            _vertexBuffer.IsDynamicBuffer() != _dynamic)
+            _vertexBuffer.SetSize(totalVertices, _elementMask, _dynamic);
 
-        var vertexStart = 0u;
-        for (var i = 0; i < _geometries.Count; ++i)
+        if (totalVertices != 0)
         {
-            var vertexCount = (uint)_vertices[i].Count;
-            _geometries[i].SetVertexBuffer(0u, _vertexBuffer);
-            _geometries[i].SetDrawRange(_primitiveTypes[i], 0u, 0u, vertexStart, vertexCount);
-            vertexStart += vertexCount;
+            var destination = _vertexBuffer.Map();
+            if (!destination.IsEmpty)
+            {
+                var offset = 0;
+                foreach (var geometryVertices in _vertices)
+                {
+                    foreach (var vertex in geometryVertices)
+                        WriteVertex(destination, ref offset, vertex);
+                }
+                _vertexBuffer.Unmap();
+
+                var vertexStart = 0u;
+                for (var i = 0; i < _geometries.Count; ++i)
+                {
+                    var vertexCount = (uint)_vertices[i].Count;
+                    _geometries[i].SetVertexBuffer(0u, _vertexBuffer);
+                    _geometries[i].SetDrawRange(_primitiveTypes[i], 0u, 0u, vertexStart, vertexCount);
+                    vertexStart += vertexCount;
+                }
+            }
         }
+        // TODO: port _vertexBuffer.ClearDataLost() when VertexBuffer exposes DeviceObject data-loss state.
         SetNumGeometries((uint)_geometries.Count);
     }
 
     public void SetMaterial(Material? material)
     {
-        for (var i = 0; i < _materials.Count; ++i)
+        for (var i = 0; i < _batches.Count; ++i)
         {
-            _materials[i] = material;
             var batch = _batches[i];
             batch.Material = material;
             _batches[i] = batch;
@@ -210,10 +253,9 @@ public sealed class CustomGeometry : Drawable
 
     public bool SetMaterial(uint index, Material? material)
     {
-        if (index >= _materials.Count)
+        if (index >= _batches.Count)
             return false;
 
-        _materials[(int)index] = material;
         var batch = _batches[(int)index];
         batch.Material = material;
         _batches[(int)index] = batch;
@@ -224,17 +266,17 @@ public sealed class CustomGeometry : Drawable
 
     public uint GetNumVertices(uint index) => index < _vertices.Count ? (uint)_vertices[(int)index].Count : 0u;
 
-    public bool IsDynamic() => Dynamic;
+    public bool IsDynamic() => _dynamic;
 
-    public Material? GetMaterial(uint index = 0u) => index < _materials.Count ? _materials[(int)index] : null;
+    public Material? GetMaterial(uint index = 0u) => index < _batches.Count ? _batches[(int)index].Material : null;
 
     public List<List<CustomGeometryVertex>> GetVertices() => _vertices;
 
-    public CustomGeometryVertex? GetVertex(uint geometryIndex, uint vertexNum)
+    public ref CustomGeometryVertex GetVertex(uint geometryIndex, uint vertexNum)
     {
-        return geometryIndex < _vertices.Count && vertexNum < _vertices[(int)geometryIndex].Count
-            ? _vertices[(int)geometryIndex][(int)vertexNum]
-            : null;
+        if (geometryIndex < _vertices.Count && vertexNum < _vertices[(int)geometryIndex].Count)
+            return ref CollectionsMarshal.AsSpan(_vertices[(int)geometryIndex])[(int)vertexNum];
+        return ref Unsafe.NullRef<CustomGeometryVertex>();
     }
 
     public override Geometry? GetLodGeometry(uint batchIndex, uint level) => batchIndex < _geometries.Count ? _geometries[(int)batchIndex] : null;
@@ -319,7 +361,7 @@ public sealed class CustomGeometry : Drawable
 
         var buffer = new MemoryBuffer(data);
         SetNumGeometries(buffer.ReadVLE());
-        _elementMask = buffer.ReadUInt() | MaskPosition;
+        _elementMask = buffer.ReadUInt();
         for (var i = 0; i < _geometries.Count; ++i)
         {
             var numVertices = buffer.ReadVLE();
@@ -335,40 +377,77 @@ public sealed class CustomGeometry : Drawable
     public void SetMaterialsAttr(ResourceRefList value)
     {
         var cache = GetSubsystem<ResourceCache>()!;
-        var count = Math.Min(value.Names.Count, _materials.Count);
-        for (var i = 0; i < count; ++i)
-        {
-            var name = value.Names[i];
-            _materials[i] = string.IsNullOrEmpty(name) ? null : cache.GetResourceOrNull<Material>(name);
-        }
-
-        for (var i = count; i < _materials.Count; ++i)
-            _materials[i] = null;
+        for (var i = 0; i < value.Names.Count; ++i)
+            SetMaterial((uint)i, cache.GetResourceOrNull<Material>(value.Names[i]));
     }
 
-    public ResourceRefList GetMaterialsAttr() => Resource.GetResourceRefList(_materials);
-
-    public VertexBuffer GetVertexBuffer() => _vertexBuffer;
-
-    internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
+    public ResourceRefList GetMaterialsAttr()
     {
-        if (level == RayQueryLevel.RayTriangleUv)
-            yield break;
+        while (_materialsAttr.Names.Count < _batches.Count)
+            _materialsAttr.Names.Add(string.Empty);
+        while (_materialsAttr.Names.Count > _batches.Count)
+            _materialsAttr.Names.RemoveAt(_materialsAttr.Names.Count - 1);
+        for (var i = 0; i < _batches.Count; ++i)
+            _materialsAttr.Names[i] = _batches[i].Material?.Name ?? string.Empty;
+        return _materialsAttr;
+    }
 
-        var distance = level == RayQueryLevel.RayAabb ? ray.HitDistance(GetWorldBoundingBox()) : HitDistanceObb(ray);
-        if (float.IsPositiveInfinity(distance) || distance > maxDistance)
-            yield break;
-
-        yield return new RayQueryResult
+    public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
+    {
+        switch (query.Level)
         {
-            Drawable = this,
-            Node = IsAttached ? Node : null,
-            Distance = distance,
-            Position = ray.Origin + ray.Direction * distance,
-            Normal = -ray.Direction,
-            TextureUV = Vector2f.Zero,
-            SubObject = uint.MaxValue
-        };
+            case RayQueryLevel.RayAabb:
+                base.ProcessRayQuery(query, results);
+                break;
+
+            case RayQueryLevel.RayObb:
+            case RayQueryLevel.RayTriangle:
+            {
+                var worldTransform = Node.GetWorldTransform();
+                var inverse = worldTransform.Inverse;
+                var localRay = query.Ray.Transformed(inverse);
+                var distanceAndNormal = localRay.HitDistanceAndNormal(BoundingBox);
+                var distance = distanceAndNormal.Distance;
+                var normal = worldTransform * distanceAndNormal.Normal.ToVector4(0.0f);
+
+                if (query.Level == RayQueryLevel.RayTriangle && distance < query.MaxDistance)
+                {
+                    distance = float.PositiveInfinity;
+
+                    for (var i = 0; i < _batches.Count; ++i)
+                    {
+                        var geometry = _batches[i].Geometry;
+                        if (geometry is null)
+                            continue;
+
+                        var geometryDistance = geometry.GetHitDistance(localRay, out var geometryNormal);
+                        if (geometryDistance < query.MaxDistance && geometryDistance < distance)
+                        {
+                            distance = geometryDistance;
+                            normal = (Node.GetWorldTransform() * geometryNormal.ToVector4()).Normalized;
+                        }
+                    }
+                }
+
+                if (distance < query.MaxDistance)
+                {
+                    results.Add(new RayQueryResult
+                    {
+                        Position = query.Ray.Origin + distance * query.Ray.Direction,
+                        Normal = normal,
+                        Distance = distance,
+                        Drawable = this,
+                        Node = Node,
+                        SubObject = MathDefs.MaxUnsigned
+                    });
+                }
+                break;
+            }
+
+            case RayQueryLevel.RayTriangleUv:
+                Log.Logger.LogWarning("RAY_TRIANGLE_UV query level is not supported for CustomGeometry component");
+                break;
+        }
     }
 
     protected override void OnWorldBoundingBoxUpdate()
@@ -378,29 +457,7 @@ public sealed class CustomGeometry : Drawable
             : IsAttached ? BoundingBox.Transformed(Node.GetWorldTransform()) : BoundingBox);
     }
 
-    private bool TryGetLastVertex(out CustomGeometryVertex vertex)
-    {
-        vertex = null!;
-        if (_geometryIndex >= _vertices.Count || _vertices[(int)_geometryIndex].Count == 0)
-            return false;
-
-        vertex = _vertices[(int)_geometryIndex][^1];
-        return true;
-    }
-
-    private byte[] GetPackedVertexData()
-    {
-        var buffer = new VectorBuffer();
-        foreach (var geometryVertices in _vertices)
-        {
-            foreach (var vertex in geometryVertices)
-                WriteVertex(buffer, vertex);
-        }
-
-        return buffer.GetBuffer();
-    }
-
-    private void WriteVertex(VectorBuffer buffer, CustomGeometryVertex vertex)
+    private void WriteVertex(VectorBuffer buffer, in CustomGeometryVertex vertex)
     {
         if ((_elementMask & MaskPosition) != 0u)
             buffer.WriteVector3(vertex.Position);
@@ -412,6 +469,35 @@ public sealed class CustomGeometry : Drawable
             buffer.WriteVector2(vertex.TexCoord);
         if ((_elementMask & MaskTangent) != 0u)
             buffer.WriteVector4(vertex.Tangent);
+    }
+
+    private void WriteVertex(Span<byte> destination, ref int offset, in CustomGeometryVertex vertex)
+    {
+        if ((_elementMask & MaskPosition) != 0u)
+        {
+            MemoryMarshal.Write(destination[offset..], in vertex.Position);
+            offset += 12;
+        }
+        if ((_elementMask & MaskNormal) != 0u)
+        {
+            MemoryMarshal.Write(destination[offset..], in vertex.Normal);
+            offset += 12;
+        }
+        if ((_elementMask & MaskColor) != 0u)
+        {
+            MemoryMarshal.Write(destination[offset..], in vertex.Color);
+            offset += 4;
+        }
+        if ((_elementMask & MaskTexCoord) != 0u)
+        {
+            MemoryMarshal.Write(destination[offset..], in vertex.TexCoord);
+            offset += 8;
+        }
+        if ((_elementMask & MaskTangent) != 0u)
+        {
+            MemoryMarshal.Write(destination[offset..], in vertex.Tangent);
+            offset += 16;
+        }
     }
 
     private CustomGeometryVertex ReadVertex(MemoryBuffer buffer)
@@ -428,42 +514,6 @@ public sealed class CustomGeometry : Drawable
         if ((_elementMask & MaskTangent) != 0u)
             vertex.Tangent = buffer.ReadVector4();
         return vertex;
-    }
-
-    private float HitDistanceObb(Ray ray)
-    {
-        if (!IsAttached)
-            return ray.HitDistance(BoundingBox);
-
-        var localOrigin = Node.WorldToLocal(ray.Origin);
-        var localEnd = Node.WorldToLocal(ray.Origin + ray.Direction);
-        var localDirection = localEnd - localOrigin;
-        if (localDirection.LengthSquared <= MathDefs.Epsilon * MathDefs.Epsilon)
-            return float.PositiveInfinity;
-
-        var localRay = new Ray(localOrigin, localDirection);
-        var localDistance = localRay.HitDistance(BoundingBox);
-        if (float.IsPositiveInfinity(localDistance))
-            return localDistance;
-
-        var localHit = localRay.Origin + localRay.Direction * localDistance;
-        return (Node.LocalToWorld(localHit) - ray.Origin).Length;
-    }
-
-    private static uint GetVertexSize(uint mask)
-    {
-        var size = 0u;
-        if ((mask & MaskPosition) != 0u)
-            size += 12u;
-        if ((mask & MaskNormal) != 0u)
-            size += 12u;
-        if ((mask & MaskColor) != 0u)
-            size += 4u;
-        if ((mask & MaskTexCoord) != 0u)
-            size += 8u;
-        if ((mask & MaskTangent) != 0u)
-            size += 16u;
-        return size;
     }
 
     private static BoundingBox CreateUndefinedBoundingBox()

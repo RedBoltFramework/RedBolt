@@ -708,7 +708,9 @@ public sealed class Octree : Component
 
         if (drawable is CustomGeometry customGeometry)
         {
-            foreach (var result in customGeometry.CreateRayQueryResults(ray, level, maxDistance))
+            var results = new List<RayQueryResult>();
+            customGeometry.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance), results);
+            foreach (var result in results)
                 yield return result;
             yield break;
         }
