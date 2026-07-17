@@ -151,7 +151,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED under the allowed removal of `SharedPtr`: cached entries are borrowed aliases and deterministic subsystem ownership/destruction is handled by `Context`. Construction initializes cache type hashes, and `Clear` detaches both collections before owner-driven teardown. `Get` returns borrowed aliases and `GetContainer` now exposes the C++ const-reference container as a borrowed read-only dictionary view. | — | — | — |
 | `src/RedBolt/Core/ThreadSafeCache.cs` | `Source/Urho3D/Core/ThreadSafeCache.h` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED for all currently ported instantiations under the allowed C# threading-primitives mapping. Cached values are structs with memberwise C++-equivalent copies; `ReflectionProbeData` intentionally aliases its borrowed texture reference. Built-in lock/atomic fields need no manual destructor, and outward call paths consume independent struct snapshots without owned disposable state. | — | — | — |
-| `src/RedBolt/Core/Time.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/Time.cs` | `Source/Urho3D/Core/Timer.h` (`Time`)<br>`Source/Urho3D/Core/Timer.cpp` (`Time`) | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. Implicit managed construction preserves zeroed frame/timestep/period state and runtime timer support; `Dispose()` resets the timer period before base event teardown, matching the C++ destructor. Frame events use the allowed struct-event mapping, and all returns are scalars or independent immutable timestamp strings. | — | — | — |
 | `src/RedBolt/Core/Timer.cs` | `Source/Urho3D/Core/Timer.h`<br>`Source/Urho3D/Core/Timer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/VariantCurve.cs` | `Source/Urho3D/Core/VariantCurve.h`<br>`Source/Urho3D/Core/VariantCurve.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/VariantType.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
