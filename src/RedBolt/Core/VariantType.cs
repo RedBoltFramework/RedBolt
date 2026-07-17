@@ -434,16 +434,23 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     }
 
     /// <summary>Reset to empty.</summary>
-    public void Clear() => this = default;
+    public void Clear() => Dispose();
 
     /// <summary>Set buffer type from a memory area.</summary>
     public void SetBuffer(ReadOnlySpan<byte> data, uint size)
     {
-        this = new Variant(data[..(int)size].ToArray());
+        var replacement = new Variant(data[..(int)size].ToArray());
+        Dispose();
+        this = replacement;
     }
 
     /// <summary>Set custom value.</summary>
-    public void SetCustom<T>(T value) => this = MakeCustomValue(value);
+    public void SetCustom<T>(T value)
+    {
+        var replacement = MakeCustomValue(value);
+        Dispose();
+        this = replacement;
+    }
 
     public VariantType Type => _type;
 
@@ -732,7 +739,12 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public void FromString(string type, string value) => FromString(GetTypeFromName(type), value);
 
     /// <summary>Set from type and value string.</summary>
-    public void FromString(VariantType type, string value) => this = CreateFromString(type, value);
+    public void FromString(VariantType type, string value)
+    {
+        var replacement = CreateFromString(type, value);
+        Dispose();
+        this = replacement;
+    }
 
     private static Variant CreateFromString(VariantType type, string value)
     {

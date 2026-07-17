@@ -119,6 +119,25 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Mutating_methods_destroy_the_previous_owned_payload()
+    {
+        var variant = Variant.MakeCustomValue(new CloneableCustomValue(7));
+        var firstValue = variant.GetCustom<CloneableCustomValue>();
+        variant.SetBuffer(new byte[] { 1, 2, 3 }, 3);
+        Assert.True(firstValue.IsDisposed);
+
+        variant.SetCustom(new CloneableCustomValue(8));
+        var secondValue = variant.GetCustom<CloneableCustomValue>();
+        variant.FromString(VariantType.Int, "42");
+        Assert.True(secondValue.IsDisposed);
+
+        variant.SetCustom(new CloneableCustomValue(9));
+        var thirdValue = variant.GetCustom<CloneableCustomValue>();
+        variant.Clear();
+        Assert.True(thirdValue.IsDisposed);
+    }
+
+    [Fact]
     public void Getters_match_rbfx_conversion_and_default_contracts()
     {
         Assert.Equal(3, new Variant(3.9f).GetInt());
