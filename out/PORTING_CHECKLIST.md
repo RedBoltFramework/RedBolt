@@ -387,8 +387,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `PointLightGeometryQuery : SphereOctreeQuery` — lit/forward-lit/shadow-caster classification for point lights match C++ (`bool& hasLitGeometries` mapped to post-query property)
   - [x] `SpotLightGeometryQuery : FrustumOctreeQuery` — same classification for spot lights match C++
   - [x] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery` — directional shadow-caster filtering match C++
-- [~] `ShadowSplitProcessor.h`
-  - [~] `ShadowSplitProcessor` — public API surface, shadow-batch storage, and `FinalizeShadowBatches` match C++; directional/spot/point initialization and caster processing bodies remain TODO
+- [x] `ShadowSplitProcessor.h`
+  - [x] `ShadowSplitProcessor` — directional/spot/point initialization, caster processing via DrawableProcessor preprocess, FinalizeShadow texel snap/zoom, world-to-shadow matrix, and batch sort with DisableColorOutput match C++ (freestanding Node mapped to private temporary Scene)
 - [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
   - [x] `LightAccumulator`
 - [~] `LightProcessor.h`
@@ -396,7 +396,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `LightProcessorCache : NonCopyable` — generation-based LRU cleanup with budget/TTL settings and get-or-create match C++
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
-  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries/light-processor/geometry-lighting accessors, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
+  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries/light-processor/geometry-lighting/Z-range accessors, PreprocessShadowCasters, zone cache update, geometry-update queues, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
 - [~] `BatchCompositor.h` — `PipelineBatch`/`PipelineBatchDesc`, `BatchCompositorPass` scene composition, and `BatchCompositor` shadow/scene/light-volume composition match C++ control flow; full lighting still depends on complete `LightProcessor`/`ShadowSplitProcessor` update paths
   - [x] `BatchCompositorPass : DrawableProcessorPass` — deferred/forward batch composition, delayed pipeline-state resolution, placeholder states, and per-frame cache invalidation match C++
   - [x] `BatchCompositor : Object` — pass filtering, shadow batch composition hooks, scene-pass compose, light-volume batches, and `FillSortKeys` match C++

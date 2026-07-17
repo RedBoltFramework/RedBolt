@@ -183,6 +183,11 @@ public class DrawableProcessor : Object
     private readonly List<SortedOccluder> _sortedOccluders = [];
     private readonly Dictionary<uint, LightAccumulator> _geometryLighting = [];
     private readonly Dictionary<uint, GeometryRenderFlag> _geometryRenderFlags = [];
+    private readonly Dictionary<uint, FloatRange> _geometryZRanges = [];
+    private readonly HashSet<uint> _isDrawableUpdated = [];
+    private readonly WorkQueueVector<Drawable> _queuedDrawableUpdates = new();
+    private readonly WorkQueueVector<Drawable> _threadedGeometryUpdates = new();
+    private readonly WorkQueueVector<Drawable> _nonThreadedGeometryUpdates = new();
     private DrawableProcessorSettings _settings = new();
     private CommonFrameInfo _frameInfo = new();
     private FloatRange _sceneZRange;
@@ -243,6 +248,14 @@ public class DrawableProcessor : Object
     public void SetGeometryRenderFlags(uint drawableIndex, GeometryRenderFlag flags) =>
         _geometryRenderFlags[drawableIndex] = flags;
 
+    public FloatRange GetGeometryZRange(uint drawableIndex) =>
+        _geometryZRanges.TryGetValue(drawableIndex, out var range) ? range : default;
+
+    public void SetGeometryZRange(uint drawableIndex, FloatRange range) =>
+        _geometryZRanges[drawableIndex] = range;
+
+    public void SetSceneZRange(FloatRange range) => _sceneZRange = range;
+
     /// <summary>Replace the per-frame light list used by pipeline batches and debugger reporting.</summary>
     public void SetLights(IReadOnlyList<Light?> lights)
     {
@@ -269,7 +282,161 @@ public class DrawableProcessor : Object
         _lightProcessors.Clear();
         _geometryLighting.Clear();
         _geometryRenderFlags.Clear();
+        _geometryZRanges.Clear();
+        _isDrawableUpdated.Clear();
+        _queuedDrawableUpdates.Clear();
+        _threadedGeometryUpdates.Clear();
+        _nonThreadedGeometryUpdates.Clear();
         _sceneZRange = default;
+    }
+
+    public void PreprocessShadowCasters(List<Drawable> shadowCasters,
+        IReadOnlyList<Drawable> candidates, FloatRange frustumSubRange, Light light, Camera shadowCamera)
+    {
+        shadowCasters.Clear();
+
+        var cullCamera = _frameInfo.Camera;
+        if (cullCamera is null)
+            return;
+
+        var shadowCameraFrustum = shadowCamera.GetFrustum();
+        var worldToLightSpace = shadowCamera.GetView();
+        var lightType = light.GetLightType();
+
+        // Convert frustum (or sub-frustum) to shadow camera space
+        var splitZRange = lightType != LightType.Directional ? _sceneZRange : _sceneZRange & frustumSubRange;
+        var frustum = cullCamera.GetSplitFrustum(splitZRange.First, splitZRange.Second);
+        var lightSpaceFrustum = frustum.Transformed(worldToLightSpace);
+        var lightSpaceFrustumBoundingBox = new BoundingBox(lightSpaceFrustum);
+
+        // Check for degenerate split frustum: in that case there is no need to get shadow casters
+        if (lightSpaceFrustum.Vertices[0] == lightSpaceFrustum.Vertices[4])
+            return;
+
+        foreach (var drawable in candidates)
+        {
+            // For point light, check that this drawable is inside the split shadow camera frustum
+            if (lightType == LightType.Point
+                && shadowCameraFrustum.IsInsideFast(drawable.GetWorldBoundingBox()) == Intersection.Outside)
+                continue;
+
+            // Queue shadow caster if it's visible
+            var lightSpaceBoundingBox = drawable.GetWorldBoundingBox().Transformed(worldToLightSpace);
+            var isDrawableVisible = (GetGeometryRenderFlags(drawable.GetDrawableIndex())
+                & GeometryRenderFlag.VisibleInCullCamera) != 0;
+            if (isDrawableVisible
+                || IsShadowCasterVisible(lightSpaceBoundingBox, shadowCamera, lightSpaceFrustum, lightSpaceFrustumBoundingBox))
+            {
+                QueueDrawableUpdate(drawable);
+                shadowCasters.Add(drawable);
+            }
+        }
+    }
+
+    public void QueueDrawableUpdate(Drawable drawable)
+    {
+        var drawableIndex = drawable.GetDrawableIndex();
+        if (!_isDrawableUpdated.Add(drawableIndex))
+            return;
+        _queuedDrawableUpdates.Insert(drawable);
+    }
+
+    public void ProcessShadowCasters()
+    {
+        var workQueue = GetSubsystem<WorkQueue>();
+        if (workQueue is not null)
+        {
+            var list = new List<Drawable>();
+            _queuedDrawableUpdates.CopyTo(list);
+            WorkQueue.ForEachParallel(workQueue, list, (_, drawable) => ProcessQueuedDrawable(drawable));
+        }
+        else
+        {
+            foreach (var drawable in _queuedDrawableUpdates)
+                ProcessQueuedDrawable(drawable);
+        }
+
+        _queuedDrawableUpdates.Clear();
+    }
+
+    public void ProcessQueuedDrawable(Drawable drawable)
+    {
+        drawable.UpdateBatches(_frameInfo);
+        drawable.MarkInView(_frameInfo);
+
+        var boundingBox = drawable.GetWorldBoundingBox();
+        UpdateDrawableZone(boundingBox, drawable);
+        QueueDrawableGeometryUpdate(WorkQueue.GetThreadIndex(), drawable);
+    }
+
+    public void UpdateDrawableZone(BoundingBox boundingBox, Drawable drawable)
+    {
+        var drawableCenter = boundingBox.Center;
+        ref var cachedZone = ref drawable.GetMutableCachedZone();
+        var drawableCacheDistanceSquared = (cachedZone.CachePosition - drawableCenter).LengthSquared;
+
+        // Force update if bounding box is invalid
+        var forcedUpdate = !float.IsFinite(drawableCacheDistanceSquared);
+        // TODO: Do we want strict compare here too?
+        if (forcedUpdate || drawableCacheDistanceSquared >= cachedZone.CacheInvalidationDistanceSquared)
+        {
+            if (_frameInfo.Octree is not null)
+            {
+                cachedZone = _frameInfo.Octree.QueryZone(drawableCenter, drawable.GetZoneMask());
+                drawable.MarkPipelineStateHashDirty();
+            }
+        }
+    }
+
+    public void QueueDrawableGeometryUpdate(uint threadIndex, Drawable drawable)
+    {
+        var updateGeometryType = drawable.GetUpdateGeometryType();
+        if (updateGeometryType == UpdateGeometryType.MainThread)
+            _nonThreadedGeometryUpdates.PushBack(threadIndex, drawable);
+        else if (updateGeometryType == UpdateGeometryType.WorkerThread)
+            _threadedGeometryUpdates.PushBack(threadIndex, drawable);
+    }
+
+    private static bool IsBoundingBoxShadowInOrthoFrustum(BoundingBox boundingBox,
+        Frustum frustum, BoundingBox frustumBoundingBox)
+    {
+        // Extrude the bounding box up to the far edge of the frustum's light space bounding box
+        var extrudedBoundingBox = boundingBox;
+        extrudedBoundingBox.Max = new Vector3f(
+            extrudedBoundingBox.Max.X,
+            extrudedBoundingBox.Max.Y,
+            Math.Max(extrudedBoundingBox.Max.Z, frustumBoundingBox.Max.Z));
+        return frustum.IsInsideFast(extrudedBoundingBox) != Intersection.Outside;
+    }
+
+    private static bool IsBoundingBoxShadowInPerspectiveFrustum(BoundingBox boundingBox,
+        Frustum frustum, float extrusionDistance)
+    {
+        // Extrusion direction depends on the position of the shadow caster
+        var center = boundingBox.Center;
+        var size = boundingBox.Size;
+
+        // Because of the perspective, the bounding box must also grow when it is extruded to the distance
+        var originalDistance = MathDefs.Clamp(center.Z - size.Z * 0.5f, MathDefs.Epsilon, extrusionDistance);
+        var sizeFactor = extrusionDistance / originalDistance;
+
+        // Calculate the endpoint box and merge it to the original. Because it's axis-aligned, it will be larger
+        // than necessary, so the test will be conservative
+        var newCenter = center * sizeFactor;
+        var newHalfSize = size * sizeFactor * 0.5f;
+
+        var extrudedBox = new BoundingBox(newCenter - newHalfSize, newCenter + newHalfSize);
+        extrudedBox.Merge(boundingBox);
+
+        return frustum.IsInsideFast(extrudedBox) != Intersection.Outside;
+    }
+
+    private static bool IsShadowCasterVisible(BoundingBox lightSpaceBoundingBox, Camera shadowCamera,
+        Frustum lightSpaceFrustum, BoundingBox lightSpaceFrustumBoundingBox)
+    {
+        if (shadowCamera.IsOrthographic())
+            return IsBoundingBoxShadowInOrthoFrustum(lightSpaceBoundingBox, lightSpaceFrustum, lightSpaceFrustumBoundingBox);
+        return IsBoundingBoxShadowInPerspectiveFrustum(lightSpaceBoundingBox, lightSpaceFrustum, shadowCamera.GetFarClip());
     }
 
     public void OnCollectStatistics(RenderPipelineStats stats)
