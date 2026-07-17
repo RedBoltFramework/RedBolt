@@ -27,7 +27,7 @@ namespace RedBolt;
 /// <summary>
 /// Animation trigger point.
 /// </summary>
-public struct AnimationTriggerPoint
+public struct AnimationTriggerPoint : ICloneable, IDisposable
 {
     /// <summary>
     /// Trigger time.
@@ -38,6 +38,29 @@ public struct AnimationTriggerPoint
     /// Trigger data.
     /// </summary>
     public Variant Data;
+
+    /// <summary>
+    /// Copy-construct the trigger point.
+    /// </summary>
+    public readonly AnimationTriggerPoint Clone()
+    {
+        return new AnimationTriggerPoint
+        {
+            Time = Time,
+            Data = Data.Clone()
+        };
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    /// <summary>
+    /// Destruct.
+    /// </summary>
+    public void Dispose()
+    {
+        Data.Dispose();
+        this = default;
+    }
 }
 
 /// <summary>
@@ -52,6 +75,26 @@ public class Animation : ResourceWithMetadata
     public Animation(string name = "")
         : base(name)
     {
+    }
+
+    /// <summary>
+    /// Destruct.
+    /// </summary>
+    public override void Dispose()
+    {
+        for (var i = _triggers.Count - 1; i >= 0; --i)
+        {
+            var trigger = _triggers[i];
+            trigger.Dispose();
+        }
+        _triggers.Clear();
+
+        foreach (var track in _variantTracks.Values)
+            track.Dispose();
+        _variantTracks.Clear();
+        _tracks.Clear();
+
+        base.Dispose();
     }
 
     /// <summary>
@@ -116,7 +159,7 @@ public class Animation : ResourceWithMetadata
 
         if (firstNonWhitespace < data.Length && data[firstNonWhitespace] == '<')
         {
-            var xmlFile = new XMLFile(GetName());
+            using var xmlFile = new XMLFile(GetName());
             if (!xmlFile.BeginLoad(new MemoryStream(data)))
                 return false;
             return LoadXML(xmlFile.GetRoot());
@@ -225,7 +268,7 @@ public class Animation : ResourceWithMetadata
                 var xmlData = new byte[checked((int)xmlSource.Size)];
                 var readBytes = xmlSource.Read(xmlData);
                 xmlSource.Close();
-                var xmlFile = new XMLFile(xmlName);
+                using var xmlFile = new XMLFile(xmlName);
                 if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryStream(xmlData)))
                 {
                     var root = xmlFile.GetRoot();
@@ -282,7 +325,7 @@ public class Animation : ResourceWithMetadata
         {
             var track = item.Value;
             var trackType = track.GetType();
-            var defaultValue = new Variant(trackType);
+            using var defaultValue = new Variant(trackType);
 
             output.WriteString(track.Name);
             output.WriteUByte((byte)trackType);
@@ -320,7 +363,7 @@ public class Animation : ResourceWithMetadata
                 var xmlName = Name;
                 var extensionPosition = xmlName.LastIndexOf('.');
                 xmlName = extensionPosition >= 0 ? xmlName[..extensionPosition] + ".xml" : xmlName + ".xml";
-                var xml = new XMLFile(xmlName);
+                using var xml = new XMLFile(xmlName);
                 var root = xml.CreateRoot("animation");
                 foreach (var trigger in _triggers)
                 {
@@ -408,7 +451,11 @@ public class Animation : ResourceWithMetadata
 
         var nameHash = new StringHash(name);
         var removed = _tracks.Remove(nameHash);
-        removed |= _variantTracks.Remove(nameHash);
+        if (_variantTracks.Remove(nameHash, out var variantTrack))
+        {
+            variantTrack.Dispose();
+            removed = true;
+        }
         return removed;
     }
 
@@ -419,6 +466,8 @@ public class Animation : ResourceWithMetadata
     {
         MarkRevisionUpdated();
         _tracks.Clear();
+        foreach (var track in _variantTracks.Values)
+            track.Dispose();
         _variantTracks.Clear();
     }
 
@@ -431,7 +480,10 @@ public class Animation : ResourceWithMetadata
             AddTrigger(trigger);
         else if (index < _triggers.Count)
         {
-            _triggers[checked((int)index)] = trigger;
+            var replacement = trigger.Clone();
+            var oldTrigger = _triggers[checked((int)index)];
+            oldTrigger.Dispose();
+            _triggers[checked((int)index)] = replacement;
             _triggers.Sort(static (lhs, rhs) => lhs.Time.CompareTo(rhs.Time));
         }
     }
@@ -441,7 +493,7 @@ public class Animation : ResourceWithMetadata
     /// </summary>
     public void AddTrigger(AnimationTriggerPoint trigger)
     {
-        _triggers.Add(trigger);
+        _triggers.Add(trigger.Clone());
         _triggers.Sort(static (lhs, rhs) => lhs.Time.CompareTo(rhs.Time));
     }
 
@@ -453,7 +505,7 @@ public class Animation : ResourceWithMetadata
         var newTrigger = new AnimationTriggerPoint
         {
             Time = timeIsNormalized ? time * _length : time,
-            Data = data
+            Data = data.Clone()
         };
         _triggers.Add(newTrigger);
         _triggers.Sort(static (lhs, rhs) => lhs.Time.CompareTo(rhs.Time));
@@ -465,7 +517,11 @@ public class Animation : ResourceWithMetadata
     public void RemoveTrigger(uint index)
     {
         if (index < _triggers.Count)
+        {
+            var trigger = _triggers[checked((int)index)];
+            trigger.Dispose();
             _triggers.RemoveAt(checked((int)index));
+        }
     }
 
     /// <summary>
@@ -473,6 +529,11 @@ public class Animation : ResourceWithMetadata
     /// </summary>
     public void RemoveAllTriggers()
     {
+        for (var i = _triggers.Count - 1; i >= 0; --i)
+        {
+            var trigger = _triggers[i];
+            trigger.Dispose();
+        }
         _triggers.Clear();
     }
 
@@ -483,7 +544,14 @@ public class Animation : ResourceWithMetadata
     {
         var count = checked((int)num);
         if (count < _triggers.Count)
+        {
+            for (var i = _triggers.Count - 1; i >= count; --i)
+            {
+                var trigger = _triggers[i];
+                trigger.Dispose();
+            }
             _triggers.RemoveRange(count, _triggers.Count - count);
+        }
         else
         {
             while (_triggers.Count < count)
@@ -529,14 +597,24 @@ public class Animation : ResourceWithMetadata
                 SplineTension = sourceTrack.SplineTension,
                 Weight = sourceTrack.Weight
             };
-            track.KeyFrames.AddRange(sourceTrack.KeyFrames);
-            track.InTangents.AddRange(sourceTrack.InTangents);
-            track.OutTangents.AddRange(sourceTrack.OutTangents);
-            track.Commit();
+            foreach (var keyFrame in sourceTrack.KeyFrames)
+            {
+                track.KeyFrames.Add(new VariantCurvePoint
+                {
+                    Time = keyFrame.Time,
+                    Value = keyFrame.Value.Clone()
+                });
+            }
+            foreach (var tangent in sourceTrack.InTangents)
+                track.InTangents.Add(tangent.Clone());
+            foreach (var tangent in sourceTrack.OutTangents)
+                track.OutTangents.Add(tangent.Clone());
+            track.Type = sourceTrack.Type;
             ret._variantTracks.Add(item.Key, track);
         }
 
-        ret._triggers.AddRange(_triggers);
+        foreach (var trigger in _triggers)
+            ret._triggers.Add(trigger.Clone());
         ret.CopyMetadata(this);
         ret.SetMemoryUse(MemoryUse);
         return ret;

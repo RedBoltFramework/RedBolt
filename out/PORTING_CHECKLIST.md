@@ -142,6 +142,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [~] A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
 - [~] `AnimatedModel.h` / `AnimatedModel.cpp` — constructor, factory registration, weak animation-state ownership, animator replacement, and last-model bone-hierarchy destruction reconciled; final lifetime/copy closure depends on pending Skeleton, SoftwareModelAnimator, Model morph, StaticModel, and Node removal audits
+- [~] `Animation.h` / `Animation.cpp` — constructor/factory and owned trigger/track teardown reconciled; trigger and variant-track copies are independent, while final closure depends on ResourceWithMetadata, AnimationTrack, Variant call sites, and AnimationController pointer mapping
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

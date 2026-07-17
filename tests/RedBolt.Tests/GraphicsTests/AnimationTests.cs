@@ -43,6 +43,38 @@ public sealed class AnimationTests
     }
 
     [Fact]
+    public void Animation_copies_reference_backed_track_and_trigger_values()
+    {
+        using var animation = new Animation("animation");
+        using var triggerData = new Variant(new byte[] { 1, 2, 3 });
+        animation.AddTrigger(0.5f, false, triggerData);
+
+        var variantTrack = animation.CreateVariantTrack("buffer");
+        variantTrack.KeyFrames.Add(new VariantCurvePoint
+        {
+            Time = 0.0f,
+            Value = new Variant(new byte[] { 4, 5, 6 })
+        });
+        variantTrack.Commit();
+
+        using var clone = animation.Clone("clone");
+
+        triggerData.GetBuffer()[0] = 9;
+        variantTrack.KeyFrames[0].Value.GetBuffer()[0] = 8;
+
+        Assert.Equal(1, animation.Triggers[0].Data.GetBuffer()[0]);
+        Assert.Equal(1, clone.Triggers[0].Data.GetBuffer()[0]);
+        Assert.Equal(4, clone.GetVariantTrack("buffer")!.KeyFrames[0].Value.GetBuffer()[0]);
+
+        using var replacementData = new Variant(new byte[] { 7, 8, 9 });
+        animation.SetTrigger(0, new AnimationTriggerPoint { Time = 1.0f, Data = replacementData });
+        replacementData.GetBuffer()[0] = 0;
+
+        Assert.Equal(7, animation.Triggers[0].Data.GetBuffer()[0]);
+        Assert.Equal(1, clone.Triggers[0].Data.GetBuffer()[0]);
+    }
+
+    [Fact]
     public void Animation_loads_xml_tracks_variants_triggers_and_metadata()
     {
         var xml = new XMLFile("walk.xml");
