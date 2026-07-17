@@ -39,6 +39,23 @@ public sealed class GeometryTests
     }
 
     [Fact]
+    public void Geometry_vertex_buffer_resize_preserves_existing_streams()
+    {
+        var first = new VertexBuffer();
+        var second = new VertexBuffer();
+        var geometry = new Geometry();
+        Assert.True(geometry.SetVertexBuffer(0, first));
+
+        Assert.True(geometry.SetNumVertexBuffers(2));
+        Assert.Same(first, geometry.GetVertexBuffer(0));
+        Assert.Null(geometry.GetVertexBuffer(1));
+        Assert.True(geometry.SetVertexBuffer(1, second));
+
+        Assert.True(geometry.SetNumVertexBuffers(1));
+        Assert.Same(first, geometry.GetVertexBuffer(0));
+    }
+
+    [Fact]
     public void Geometry_ray_hit_distance_uses_raw_triangle_data()
     {
         var elements = new[] { new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position) };
@@ -87,6 +104,7 @@ public sealed class GeometryTests
         geometry.GetRawData(out _, out _, out var indexData, out var indexSize, out _);
 
         Assert.NotNull(indexData);
+        Assert.Same(indexBuffer.GetRawBuffer()!.GetShadowData(), indexData);
         Assert.Equal(2u, indexSize);
         Assert.Equal(new byte[] { 0, 0, 1, 0, 2, 0 }, indexData);
     }

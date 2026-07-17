@@ -33,10 +33,10 @@ public sealed class Geometry : PipelineStateTracker
     private readonly IDFamily<Geometry> _idFamily = new();
 
     /// <summary>Vertex buffers.</summary>
-    private readonly List<VertexBuffer?> _vertexBuffers = [null];
+    private readonly List<VertexBuffer?> _vertexBuffers = [];
 
     /// <summary>Vertex buffers dependencies.</summary>
-    private readonly List<PipelineStateSubscription> _vertexBuffersDependencies = [new()];
+    private readonly List<PipelineStateSubscription> _vertexBuffersDependencies = [];
 
     /// <summary>Index buffer.</summary>
     public IndexBuffer? IndexBuffer { get; private set; }
@@ -95,6 +95,15 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
+        _rawIndexData = null;
+        _rawVertexData = null;
+        _rawElements.Clear();
+        _indexBufferDependency.Dispose();
+        IndexBuffer = null;
+        for (var i = _vertexBuffersDependencies.Count - 1; i >= 0; --i)
+            _vertexBuffersDependencies[i].Dispose();
+        _vertexBuffersDependencies.Clear();
+        _vertexBuffers.Clear();
         _idFamily.Dispose();
         base.Dispose();
     }
@@ -120,16 +129,20 @@ public sealed class Geometry : PipelineStateTracker
             return false;
         }
 
-        foreach (var dependency in _vertexBuffersDependencies)
-            dependency.Dispose();
-
-        _vertexBuffersDependencies.Clear();
-        _vertexBuffers.Clear();
-        for (var i = 0u; i < count; ++i)
+        var num = (int)count;
+        while (_vertexBuffersDependencies.Count > num)
         {
-            _vertexBuffersDependencies.Add(new PipelineStateSubscription());
-            _vertexBuffers.Add(null);
+            var index = _vertexBuffersDependencies.Count - 1;
+            _vertexBuffersDependencies[index].Dispose();
+            _vertexBuffersDependencies.RemoveAt(index);
         }
+        while (_vertexBuffersDependencies.Count < num)
+            _vertexBuffersDependencies.Add(new PipelineStateSubscription());
+
+        while (_vertexBuffers.Count > num)
+            _vertexBuffers.RemoveAt(_vertexBuffers.Count - 1);
+        while (_vertexBuffers.Count < num)
+            _vertexBuffers.Add(null);
 
         return true;
     }
@@ -158,16 +171,23 @@ public sealed class Geometry : PipelineStateTracker
         ArgumentNullException.ThrowIfNull(buffers);
 
         var newBuffers = buffers.ToList();
-        foreach (var dependency in _vertexBuffersDependencies)
-            dependency.Dispose();
-
-        _vertexBuffersDependencies.Clear();
-        _vertexBuffers.Clear();
-        foreach (var buffer in newBuffers)
+        while (_vertexBuffersDependencies.Count > newBuffers.Count)
         {
-            _vertexBuffersDependencies.Add(CreateDependency(buffer));
-            _vertexBuffers.Add(buffer);
+            var index = _vertexBuffersDependencies.Count - 1;
+            _vertexBuffersDependencies[index].Dispose();
+            _vertexBuffersDependencies.RemoveAt(index);
         }
+        while (_vertexBuffersDependencies.Count < newBuffers.Count)
+            _vertexBuffersDependencies.Add(new PipelineStateSubscription());
+        for (var i = 0; i < newBuffers.Count; ++i)
+        {
+            var dependency = CreateDependency(newBuffers[i]);
+            _vertexBuffersDependencies[i].Dispose();
+            _vertexBuffersDependencies[i] = dependency;
+        }
+
+        _vertexBuffers.Clear();
+        _vertexBuffers.AddRange(newBuffers);
 
         UpdateHeadlessStatus();
     }
@@ -210,9 +230,7 @@ public sealed class Geometry : PipelineStateTracker
         if (indexCount != 0)
         {
             VertexStart = 0;
-            VertexCount = _vertexBuffers.Count != 0 && _vertexBuffers[0] is not null
-                ? _vertexBuffers[0]!.GetVertexCount()
-                : 0;
+            VertexCount = _vertexBuffers[0] is not null ? _vertexBuffers[0]!.GetVertexCount() : 0;
 
             if (getUsedVertexRange && IndexBuffer is not null)
             {
@@ -381,7 +399,8 @@ public sealed class Geometry : PipelineStateTracker
         }
         else if (_vertexBuffers.Count != 0 && _vertexBuffers[0] is not null)
         {
-            vertexData = _vertexBuffers[0]!.GetData();
+            var rawBuffer = _vertexBuffers[0]!.GetRawBuffer();
+            vertexData = rawBuffer?.IsShadowed() == true ? rawBuffer.GetShadowData() : null;
             vertexSize = _vertexBuffers[0]!.GetVertexSize();
             elements = _vertexBuffers[0]!.GetElements();
         }
@@ -399,22 +418,11 @@ public sealed class Geometry : PipelineStateTracker
         }
         else
         {
-            if (IndexBuffer is { Shadowed: true } indexBuffer)
+            var rawBuffer = IndexBuffer?.GetRawBuffer();
+            if (rawBuffer?.IsShadowed() == true)
             {
-                var unpackedData = indexBuffer.GetUnpackedData();
-                indexSize = indexBuffer.GetIndexSize();
-                var packedIndexData = new byte[checked(unpackedData.Count * (int)indexSize)];
-                for (var i = 0; i < unpackedData.Count; ++i)
-                {
-                    var offset = checked(i * (int)indexSize);
-                    if (indexSize == sizeof(ushort))
-                        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-                            packedIndexData.AsSpan(offset, sizeof(ushort)), checked((ushort)unpackedData[i]));
-                    else
-                        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
-                            packedIndexData.AsSpan(offset, sizeof(uint)), unpackedData[i]);
-                }
-                indexData = packedIndexData;
+                indexData = rawBuffer.GetShadowData();
+                indexSize = IndexBuffer!.GetIndexSize();
             }
             else
             {
@@ -475,12 +483,7 @@ public sealed class Geometry : PipelineStateTracker
         }
 
         var indexData = rawIndexDataList as byte[];
-        var unpackedIndices = indexData is null && IndexBuffer is { Shadowed: true }
-            ? IndexBuffer.GetUnpackedData(IndexStart, IndexCount).ToArray()
-            : null;
-        var hasIndexData = indexData is not null || unpackedIndices is not null;
-        if (IndexBuffer is not null && !hasIndexData)
-            return float.PositiveInfinity;
+        var hasIndexData = indexData is not null;
 
         var nearest = float.PositiveInfinity;
         var nearestNormal = Vector3f.Zero;
@@ -505,9 +508,6 @@ public sealed class Geometry : PipelineStateTracker
 
         uint ReadIndex(uint index)
         {
-            if (unpackedIndices is not null)
-                return unpackedIndices[checked((int)index)];
-
             return indexSize == sizeof(ushort)
                 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                     indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(ushort)))
@@ -567,12 +567,7 @@ public sealed class Geometry : PipelineStateTracker
             return false;
 
         var indexData = rawIndexDataList as byte[];
-        var unpackedIndices = indexData is null && IndexBuffer is { Shadowed: true }
-            ? IndexBuffer.GetUnpackedData(IndexStart, IndexCount).ToArray()
-            : null;
-        var hasIndexData = indexData is not null || unpackedIndices is not null;
-        if (IndexBuffer is not null && !hasIndexData)
-            return false;
+        var hasIndexData = indexData is not null;
 
         static float ReadFloat(byte[] data, int offset) =>
             System.Buffers.Binary.BinaryPrimitives.ReadSingleLittleEndian(data.AsSpan(offset, sizeof(float)));
@@ -586,9 +581,6 @@ public sealed class Geometry : PipelineStateTracker
 
         uint ReadIndex(uint index)
         {
-            if (unpackedIndices is not null)
-                return unpackedIndices[checked((int)index)];
-
             return indexSize == sizeof(ushort)
                 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                     indexData!.AsSpan(checked((int)(index * indexSize)), sizeof(ushort)))
@@ -612,13 +604,20 @@ public sealed class Geometry : PipelineStateTracker
             var backFaceDistance = ray.HitDistance(position2, position1, position0, out _, out _);
             currentFrontFace = MathF.Min(frontFaceDistance > 0.0f ? frontFaceDistance : float.PositiveInfinity,
                 currentFrontFace);
+            // A backwards face is just a regular one, with the vertices in the opposite order. This essentially checks backfaces by
+            // checking reversed frontfaces
             currentBackFace = MathF.Min(backFaceDistance > 0.0f ? backFaceDistance : float.PositiveInfinity,
                 currentBackFace);
         }
 
+        // If the closest face is a backface, that means that the ray originates from the inside of the geometry
+        // NOTE: there may be cases where both are equal, as in, no collision to either. This is prevented in the most likely case
+        // (ray doesn't hit either) by this conditional
         if (currentFrontFace != float.PositiveInfinity || currentBackFace != float.PositiveInfinity)
             return currentBackFace < currentFrontFace;
 
+        // It is still possible for two triangles to be equally distant from the triangle, however, this is extremely unlikely.
+        // As such, it is safe to assume they are not
         return false;
     }
 
