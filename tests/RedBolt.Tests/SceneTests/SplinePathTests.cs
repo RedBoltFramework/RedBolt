@@ -35,6 +35,23 @@ public sealed class SplinePathTests
     }
 
     [Fact]
+    public void Knot_vectors_are_copied_on_construction_and_assignment()
+    {
+        var constructorKnots = new VariantVector { new Variant(1.0f) };
+        var spline = new Spline(constructorKnots);
+
+        constructorKnots.Add(new Variant(2.0f));
+        Assert.Single(spline.GetKnots());
+
+        var assignedKnots = new VariantVector { new Variant(3.0f) };
+        spline.SetKnots(assignedKnots);
+        assignedKnots.Clear();
+
+        Assert.Single(spline.GetKnots());
+        Assert.Equal(3.0f, spline.GetKnot(0).GetFloat());
+    }
+
+    [Fact]
     public void Control_point_management_and_move_work()
     {
         var scene = new Scene();

@@ -39,14 +39,14 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     public Spline(VariantVector knots, InterpolationMode mode = InterpolationMode.BezierCurve)
     {
         _interpolationMode = mode;
-        _knots = knots ?? new VariantVector();
+        _knots = knots is not null ? new VariantVector(knots) : new VariantVector();
     }
 
     /// <summary>Return the interpolation mode.</summary>
     public InterpolationMode GetInterpolationMode() => _interpolationMode;
 
     /// <summary>Return the knots of the spline.</summary>
-    public VariantVector GetKnots() => _knots;
+    public IReadOnlyList<Variant> GetKnots() => _knots;
 
     /// <summary>Return the knot at the specific index.</summary>
     public Variant GetKnot(uint index) => _knots[(int)index];
@@ -107,7 +107,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     /// <summary>Set the knots of the spline.</summary>
     public void SetKnots(VariantVector knots)
     {
-        _knots = knots ?? new VariantVector();
+        _knots = knots is not null ? new VariantVector(knots) : new VariantVector();
     }
 
     /// <summary>Set the value of an existing knot.</summary>
@@ -178,7 +178,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
 
     public object Clone()
     {
-        return new Spline(new VariantVector(_knots), _interpolationMode);
+        return new Spline(_knots, _interpolationMode);
     }
 
     public bool Equals(Spline? other)
