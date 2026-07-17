@@ -7,10 +7,10 @@
   },
   "configurePresets": [
     {
-      "name": "dev",
-      "displayName": "Dev",
+      "name": "linux-gcc-x64-dll",
+      "displayName": "Linux GCC x64 DLL",
       "generator": "Ninja Multi-Config",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/cmake-build/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
@@ -18,16 +18,16 @@
   ],
   "buildPresets": [
     {
-      "name": "Debug",
-      "configurePreset": "dev",
+      "name": "linux-gcc-x64-dll-debug",
+      "configurePreset": "linux-gcc-x64-dll",
       "configuration": "Debug",
       "targets": [
         "redbolt-stage0"
       ]
     },
     {
-      "name": "Release",
-      "configurePreset": "dev",
+      "name": "linux-gcc-x64-dll-release",
+      "configurePreset": "linux-gcc-x64-dll",
       "configuration": "Release",
       "targets": [
         "redbolt-stage0"

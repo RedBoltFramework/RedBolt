@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -36,7 +35,7 @@ sealed class SoundEffectsApplication : Application
         parameters.FullScreen = false;
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
-        parameters.ResourcePrefixPaths = FindResourcePrefixPath();
+        parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowHeight = 540;
         parameters.WindowTitle = "RedBolt Sound Effects";
         parameters.WindowWidth = 960;
@@ -197,16 +196,5 @@ sealed class SoundEffectsApplication : Application
         source.SetGain(1.0f);
         source.SetPanning(0.0f);
         source.SetReach(0.0f);
-    }
-
-    private static string FindResourcePrefixPath()
-    {
-        for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
-        {
-            var prefix = Path.Combine(current.FullName, "bin");
-            if (Path.Exists(Path.Combine(prefix, "CoreData")))
-                return prefix;
-        }
-        throw new InvalidOperationException("SoundEffects sample could not locate rbfx resource directories.");
     }
 }

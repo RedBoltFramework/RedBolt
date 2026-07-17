@@ -29,7 +29,7 @@ sealed class RenderToTextureApplication : Application
         parameters.FullScreen = false;
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
-        parameters.ResourcePrefixPaths = FindResourcePrefixPath();
+        parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowHeight = 720;
         parameters.WindowTitle = "RedBolt Render To Texture";
         parameters.WindowWidth = 1280;
@@ -154,36 +154,5 @@ sealed class RenderToTextureApplication : Application
         if (ImGui.Begin("Render To Texture\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
             ImGui.TextUnformatted(_instructionLine.Bytes);
         ImGui.End();
-    }
-
-    private static string FindResourcePrefixPath()
-    {
-        var envRoot = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR");
-        if (TryNormalizeResourcePrefixPath(envRoot, out var normalizedEnvRoot))
-            return normalizedEnvRoot;
-        for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
-        {
-            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "bin"), out var localBinRoot))
-                return localBinRoot;
-            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), out var testDataRoot))
-                return testDataRoot;
-            if (TryNormalizeResourcePrefixPath(Path.Combine(current.FullName, "rbfx", "bin"), out var repoRbfxBinRoot))
-                return repoRbfxBinRoot;
-            if (Directory.Exists(Path.Combine(current.FullName, ".git")))
-                break;
-        }
-        throw new InvalidOperationException("RenderToTexture sample could not locate rbfx CoreData/Data resource directories.");
-    }
-
-    private static bool TryNormalizeResourcePrefixPath(string? root, out string normalizedRoot)
-    {
-        normalizedRoot = string.Empty;
-        if (string.IsNullOrWhiteSpace(root))
-            return false;
-        var candidateRoot = Path.GetFullPath(root);
-        if (!Directory.Exists(Path.Combine(candidateRoot, "CoreData")) || !Directory.Exists(Path.Combine(candidateRoot, "Data")))
-            return false;
-        normalizedRoot = candidateRoot;
-        return true;
     }
 }

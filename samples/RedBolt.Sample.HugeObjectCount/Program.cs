@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -32,7 +31,7 @@ sealed class HugeObjectCountApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.HugeObjectCount";
         parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = FindResourcePrefixPath();
+        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false; parameters.WindowHeight = 720;
         parameters.WindowTitle = "RedBolt Huge Object Count"; parameters.WindowWidth = 1280;
     }
@@ -162,26 +161,5 @@ sealed class HugeObjectCountApplication : Application
             if (ImGui.Button(_useGroups ? "Groups: On\0"u8 : "Groups: Off\0"u8)) { _useGroups = !_useGroups; CreateScene(); }
         }
         ImGui.End();
-    }
-
-    private static string FindResourcePrefixPath()
-    {
-        var envRoot = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR");
-        if (TryNormalizeResourcePrefixPath(envRoot, out var value)) return value;
-        for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
-        {
-            foreach (var root in new[] { Path.Combine(current.FullName, "bin"), Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), Path.Combine(current.FullName, "rbfx", "bin"), Path.Combine(current.FullName, "..", "rbfx", "bin") })
-                if (TryNormalizeResourcePrefixPath(root, out value)) return value;
-            if (Directory.Exists(Path.Combine(current.FullName, ".git"))) break;
-        }
-        throw new InvalidOperationException("HugeObjectCount sample could not locate rbfx CoreData/Data resource directories.");
-    }
-
-    private static bool TryNormalizeResourcePrefixPath(string? root, out string value)
-    {
-        value = string.Empty; if (string.IsNullOrWhiteSpace(root)) return false;
-        var candidate = Path.GetFullPath(root);
-        if (!Directory.Exists(Path.Combine(candidate, "CoreData")) || !Directory.Exists(Path.Combine(candidate, "Data"))) return false;
-        value = candidate; return true;
     }
 }

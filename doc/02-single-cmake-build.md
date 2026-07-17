@@ -11,8 +11,8 @@ RedBolt should have one top-level CMake project that builds every native compone
 | Minimum CMake | `3.28`, matching SharpCpp. |
 | Languages | `C`, `CXX`; managed builds are invoked through `dotnet`. |
 | C++ standard | `C++20` for SharpCpp native support and generated native thunks. rbfx third-party dependencies may keep their own standards. |
-| Output | `out/build/<preset>/bin/<config>` for native libraries and managed binaries. |
-| Generated output | `out/build/<preset>/generated/<module>`. |
+| Output | `cmake-build/<preset>/bin/<config>` for native libraries and managed binaries. |
+| Generated output | `cmake-build/<preset>/generated/<module>`. |
 | Dependency source | Configurable `REDBOLT_RBFX_SOURCE_ROOT`, defaulting to `../rbfx`. |
 | Build type | Multi-config friendly; Debug/Release/RelWithDebInfo mapped to .NET Debug/Release. |
 

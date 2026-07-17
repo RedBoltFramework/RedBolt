@@ -128,6 +128,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+file(GLOB REDBOLT_RESOURCE_DIRECTORIES LIST_DIRECTORIES true CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/bin/*")
+foreach(redbolt_resource_directory IN LISTS REDBOLT_RESOURCE_DIRECTORIES)
+    get_filename_component(redbolt_resource_name "${redbolt_resource_directory}" NAME)
+    set(redbolt_resource_link "${CMAKE_BINARY_DIR}/bin/${redbolt_resource_name}")
+    if(NOT EXISTS "${redbolt_resource_link}")
+        file(CREATE_LINK "${redbolt_resource_directory}" "${redbolt_resource_link}" SYMBOLIC)
+    endif()
+endforeach()
+
 include(cmake/RedBoltDependencies.cmake)
 include(cmake/RedBoltDotNet.cmake)
 include(cmake/RedBoltSharpCpp.cmake)

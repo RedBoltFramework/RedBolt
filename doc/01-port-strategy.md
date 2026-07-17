@@ -108,8 +108,8 @@ RedBolt/
 
 | Requirement | Expected result |
 |---|---|
-| Configure | `cmake --preset dev` configures RedBolt and native dependencies. |
-| Build | `cmake --build --preset Debug --target redbolt-first-cube` builds native and managed outputs. |
+| Configure | `cmake --preset linux-gcc-x64-dll` configures RedBolt and native dependencies. |
+| Build | `cmake --build --preset linux-gcc-x64-dll-debug --target redbolt-first-cube` builds native and managed outputs. |
 | Run | FirstCube opens a desktop window and displays a cube. |
 | Input | Escape or window close exits cleanly. |
 | Architecture | Cube path touches `Core`, `Engine`, `Graphics`, `Resources`, `Scene`, and `Input`. |

@@ -7,9 +7,9 @@ Contributor and coding-session rules now live in `AGENTS.md`.
 ## Build
 
 ```bash
-cmake --preset dev
-cmake --build --preset Debug --target restore
-cmake --build --preset Debug --target RedBolt
+cmake --preset linux-gcc-x64-dll
+cmake --build --preset linux-gcc-x64-dll-debug --target restore
+cmake --build --preset linux-gcc-x64-dll-debug --target RedBolt
 ```
 
 The managed build verifies the native dependency and binding-generation bootstrap, then builds `RedBolt` and dependent managed projects you select by target (for example, `RedBolt.Sample.StaticScene`).

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -29,7 +28,7 @@ sealed class CameraOperatorSampleApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.CameraOperator";
         parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = FindResourcePrefixPath();
+        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false; parameters.WindowHeight = 720;
         parameters.WindowTitle = "RedBolt Camera Operator"; parameters.WindowWidth = 1280;
     }
@@ -115,26 +114,5 @@ sealed class CameraOperatorSampleApplication : Application
                 OrthographicToggled(_orthographic);
         }
         ImGui.End();
-    }
-
-    private static string FindResourcePrefixPath()
-    {
-        var envRoot = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR");
-        if (TryNormalizeResourcePrefixPath(envRoot, out var value)) return value;
-        for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent)
-        {
-            var roots = new[] { Path.Combine(current.FullName, "bin"), Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), Path.Combine(current.FullName, "rbfx", "bin"), Path.Combine(current.FullName, "..", "rbfx", "bin") };
-            foreach (var root in roots) if (TryNormalizeResourcePrefixPath(root, out value)) return value;
-            if (Directory.Exists(Path.Combine(current.FullName, ".git"))) break;
-        }
-        throw new InvalidOperationException("CameraOperator sample could not locate rbfx CoreData/Data resource directories.");
-    }
-
-    private static bool TryNormalizeResourcePrefixPath(string? root, out string value)
-    {
-        value = string.Empty; if (string.IsNullOrWhiteSpace(root)) return false;
-        var candidate = Path.GetFullPath(root);
-        if (!Directory.Exists(Path.Combine(candidate, "CoreData")) || !Directory.Exists(Path.Combine(candidate, "Data"))) return false;
-        value = candidate; return true;
     }
 }

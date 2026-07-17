@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -10,7 +9,7 @@ catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 sealed class LightAnimationApplication : Application
 {
     private Scene? _scene; private Node? _cameraNode; private ContextEventSubscription? _dearImGuiSubscription; private float _uiTime;
-    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.LightAnimation"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = FindResourcePrefixPath(); parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Light Animation"; }
+    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.LightAnimation"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Light Animation"; }
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
@@ -40,6 +39,4 @@ sealed class LightAnimationApplication : Application
         }
         ImGui.End();
     }
-    private static string FindResourcePrefixPath() { var root = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR"); if (Valid(root, out var result)) return result; for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent) { foreach (var path in new[] { Path.Combine(current.FullName, "bin"), Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), Path.Combine(current.FullName, "rbfx", "bin"), Path.Combine(current.FullName, "..", "rbfx", "bin") }) if (Valid(path, out result)) return result; if (Directory.Exists(Path.Combine(current.FullName, ".git"))) break; } throw new InvalidOperationException("LightAnimation sample could not locate rbfx CoreData/Data resource directories."); }
-    private static bool Valid(string? root, out string result) { result = string.Empty; if (string.IsNullOrWhiteSpace(root)) return false; var path = Path.GetFullPath(root); if (!Directory.Exists(Path.Combine(path, "CoreData")) || !Directory.Exists(Path.Combine(path, "Data"))) return false; result = path; return true; }
 }

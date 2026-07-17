@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -10,7 +9,7 @@ catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 sealed class DecalsApplication : Application
 {
     private Scene? _scene; private Node? _cameraNode; private Octree? _octree; private bool _drawDebug; private ContextEventSubscription? _dearImGuiSubscription;
-    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = FindResourcePrefixPath(); parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Decals"; }
+    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Decals"; }
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
@@ -46,6 +45,4 @@ sealed class DecalsApplication : Application
     }
     protected override void Stop() { _dearImGuiSubscription?.Dispose(); }
     private void DrawInstructions() { if (ImGui.Begin("Decals\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }
-    private static string FindResourcePrefixPath() { var root = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR"); if (Valid(root, out var result)) return result; for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent) { foreach (var path in new[] { Path.Combine(current.FullName, "bin"), Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), Path.Combine(current.FullName, "rbfx", "bin"), Path.Combine(current.FullName, "..", "rbfx", "bin") }) if (Valid(path, out result)) return result; if (Directory.Exists(Path.Combine(current.FullName, ".git"))) break; } throw new InvalidOperationException("Decals sample could not locate rbfx CoreData/Data resource directories."); }
-    private static bool Valid(string? root, out string result) { result = string.Empty; if (string.IsNullOrWhiteSpace(root)) return false; var path = Path.GetFullPath(root); if (!Directory.Exists(Path.Combine(path, "CoreData")) || !Directory.Exists(Path.Combine(path, "Data"))) return false; result = path; return true; }
 }

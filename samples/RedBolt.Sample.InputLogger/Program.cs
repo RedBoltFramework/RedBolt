@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
@@ -17,7 +16,7 @@ sealed class InputLoggerApplication : Application
     private readonly List<byte[]> _displayLines = [];
     private ContextEventSubscription? _dearImGuiSubscription;
 
-    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.InputLogger"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = FindResourcePrefixPath(); parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Input Logger"; }
+    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.InputLogger"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Input Logger"; }
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
@@ -73,6 +72,4 @@ sealed class InputLoggerApplication : Application
     private void Draw() { if (ImGui.Begin("Input Logger\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) foreach (var line in _displayLines) ImGui.TextUnformatted(line); ImGui.End(); }
     protected override void Update(float timeStep) { if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit(); UpdateText(); }
     protected override void Stop() { foreach (var value in _subscriptions) value.Dispose(); _subscriptions.Clear(); _dearImGuiSubscription?.Dispose(); Renderer.SetNumViewports(0); }
-    private static string FindResourcePrefixPath() { var root = Environment.GetEnvironmentVariable("REDBOLT_RBFX_BIN_DIR"); if (Valid(root, out var result)) return result; for (var current = new DirectoryInfo(AppContext.BaseDirectory); current is not null; current = current.Parent) { foreach (var path in new[] { Path.Combine(current.FullName, "bin"), Path.Combine(current.FullName, "tests", "RedBolt.Tests", "TestData", "rbfx"), Path.Combine(current.FullName, "rbfx", "bin"), Path.Combine(current.FullName, "..", "rbfx", "bin") }) if (Valid(path, out result)) return result; if (Directory.Exists(Path.Combine(current.FullName, ".git"))) break; } throw new InvalidOperationException("InputLogger sample could not locate rbfx CoreData/Data resource directories."); }
-    private static bool Valid(string? root, out string result) { result = string.Empty; if (string.IsNullOrWhiteSpace(root)) return false; var path = Path.GetFullPath(root); if (!Directory.Exists(Path.Combine(path, "CoreData")) || !Directory.Exists(Path.Combine(path, "Data"))) return false; result = path; return true; }
 }

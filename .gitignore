@@ -11,6 +11,7 @@
 
 # CMake and build outputs.
 .CMakeLast.props
+cmake-build/
 out/
 build/
 CMakeUserPresets.json
