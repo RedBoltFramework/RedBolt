@@ -309,10 +309,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `BillboardSet.h`
   - [x] `struct Billboard` — position, size, UV, color, rotation, direction, enabled, sort distance, and screen-scale factor match C++
   - [x] `BillboardSet : Drawable` — constructor defaults, material/num/relative/scaled/sorted/fixed-screen-size/face-camera/min-angle/animation-LOD API, commit, ray query, batch/geometry updates, buffer size/format rebuilds, default/direction/axis-angle vertex builds, fixed screen-size scaling, world bounds, and billboard attribute serialize/deserialize match C++
-- [ ] `ParticleEffect.h`
-  - [ ] `ParticleEffect : Resource`
-- [ ] `ParticleEmitter.h`
-  - [ ] `ParticleEmitter : BillboardSet`
+- [x] `ParticleEffect.h`
+  - [x] `ParticleEffect : Resource` — defaults, XML load/save, color/texture frames, clone, random helpers, and material async load match C++
+- [x] `ParticleEmitter.h`
+  - [x] `ParticleEmitter : BillboardSet` — effect application, emission/period timers, particle/billboard attribute serialize, scene post-update animation, finished event, and auto-remove match C++
 - [ ] `RibbonTrail.h`
   - [ ] `struct TrailPoint`
   - [ ] `RibbonTrail : Drawable`

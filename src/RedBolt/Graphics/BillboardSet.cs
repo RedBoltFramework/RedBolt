@@ -558,7 +558,7 @@ public class BillboardSet : Drawable
     /// <summary>Mark billboard vertex buffer to need an update.</summary>
     protected void MarkPositionsDirty()
     {
-        if (Node is not null)
+        if (IsAttached)
             OnMarkedDirty(Node);
         _bufferDirty = true;
     }
