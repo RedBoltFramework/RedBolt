@@ -179,6 +179,8 @@ public class DrawableProcessor : Object
     private readonly List<DrawableProcessorPass> _passes = [];
     private readonly List<Light?> _lights = [];
     private readonly List<LightProcessor?> _lightProcessors = [];
+    private readonly List<LightProcessor?> _lightProcessorsByShadowMapSize = [];
+    private readonly List<LightProcessor?> _lightProcessorsByShadowMapTexture = [];
     private readonly List<Drawable?> _geometries = [];
     private readonly List<SortedOccluder> _sortedOccluders = [];
     private readonly Dictionary<uint, LightAccumulator> _geometryLighting = [];
@@ -188,6 +190,17 @@ public class DrawableProcessor : Object
     private readonly WorkQueueVector<Drawable> _queuedDrawableUpdates = new();
     private readonly WorkQueueVector<Drawable> _threadedGeometryUpdates = new();
     private readonly WorkQueueVector<Drawable> _nonThreadedGeometryUpdates = new();
+    private readonly WorkQueueVector<Light> _lightsTemp = new();
+    private readonly WorkQueueVector<FloatRange> _sceneZRangeTemp = new();
+    private readonly LightProcessorCache _lightProcessorCache = new();
+    private readonly List<LightDataForAccumulator> _lightDataForAccumulator = [];
+    private Material? _defaultMaterial;
+    private MaterialQuality _materialQuality = MaterialQuality.High;
+    private GlobalIllumination? _gi;
+    private uint _numShadowedLights;
+    private Vector3f _cullCameraZAxis;
+    private Vector3f _cullCameraZAxisAbs;
+    private Matrix3x4 _cullCameraViewMatrix;
     private DrawableProcessorSettings _settings = new();
     private CommonFrameInfo _frameInfo = new();
     private FloatRange _sceneZRange;
@@ -197,6 +210,7 @@ public class DrawableProcessor : Object
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         _renderPipeline.UpdateBegin += OnUpdateBegin;
         _renderPipeline.CollectStatistics += OnCollectStatistics;
+        _defaultMaterial = GetSubsystem<Renderer>()?.GetDefaultMaterial();
     }
 
     public override void Dispose()
@@ -212,7 +226,12 @@ public class DrawableProcessor : Object
         _passes.AddRange(passes);
     }
 
-    public void SetSettings(DrawableProcessorSettings settings) => _settings = settings;
+    public void SetSettings(DrawableProcessorSettings settings)
+    {
+        _settings = settings;
+        _materialQuality = settings.MaterialQuality;
+        _lightProcessorCache.SetSettings(settings.LightProcessorCache);
+    }
 
     public CommonFrameInfo GetFrameInfo() => _frameInfo;
 
@@ -233,8 +252,12 @@ public class DrawableProcessor : Object
 
     public IReadOnlyList<LightProcessor?> GetLightProcessors() => _lightProcessors;
 
+    public IReadOnlyList<LightProcessor?> GetLightProcessorsByShadowMap() => _lightProcessorsByShadowMapTexture;
+
     public LightProcessor? GetLightProcessor(uint lightIndex) =>
         lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;
+
+    public uint GetNumShadowedLights() => _numShadowedLights;
 
     public LightAccumulator GetGeometryLighting(uint drawableIndex) =>
         _geometryLighting.TryGetValue(drawableIndex, out var lighting) ? lighting : new LightAccumulator();
@@ -280,6 +303,8 @@ public class DrawableProcessor : Object
         _geometries.Clear();
         _lights.Clear();
         _lightProcessors.Clear();
+        _lightProcessorsByShadowMapSize.Clear();
+        _lightProcessorsByShadowMapTexture.Clear();
         _geometryLighting.Clear();
         _geometryRenderFlags.Clear();
         _geometryZRanges.Clear();
@@ -287,7 +312,433 @@ public class DrawableProcessor : Object
         _queuedDrawableUpdates.Clear();
         _threadedGeometryUpdates.Clear();
         _nonThreadedGeometryUpdates.Clear();
+        _lightsTemp.Clear();
+        _sceneZRangeTemp.Clear();
+        _lightDataForAccumulator.Clear();
+        _numShadowedLights = 0;
         _sceneZRange = default;
+        _gi = frameInfo.Scene?.Root.GetComponent<GlobalIllumination>();
+
+        if (frameInfo.Camera is { } camera)
+        {
+            _cullCameraViewMatrix = camera.GetView();
+            _cullCameraZAxis = camera.Node!.GetWorldDirection();
+            _cullCameraZAxisAbs = new Vector3f(
+                MathF.Abs(_cullCameraZAxis.X),
+                MathF.Abs(_cullCameraZAxis.Y),
+                MathF.Abs(_cullCameraZAxis.Z));
+        }
+    }
+
+    public void ProcessVisibleDrawables(IReadOnlyList<Drawable> drawables, OcclusionBuffer[]? occlusionBuffers)
+    {
+        var workQueue = GetSubsystem<WorkQueue>();
+        if (workQueue is not null)
+        {
+            WorkQueue.ForEachParallel(workQueue, drawables, (_, drawable) =>
+            {
+                // do occlusion test for occludees if possible
+                if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
+                {
+                    // check for visible
+                    var anyPass = false;
+                    foreach (var o in occlusionBuffers)
+                        anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
+
+                    if (!anyPass)
+                        return;
+                }
+
+                ProcessVisibleDrawable(drawable);
+            });
+        }
+        else
+        {
+            foreach (var drawable in drawables)
+            {
+                if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
+                {
+                    var anyPass = false;
+                    foreach (var o in occlusionBuffers)
+                        anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
+                    if (!anyPass)
+                        continue;
+                }
+
+                ProcessVisibleDrawable(drawable);
+            }
+        }
+
+        // Sort lights by component ID for stability
+        _lights.Clear();
+        foreach (var light in _lightsTemp)
+            _lights.Add(light);
+        _lights.Sort(static (lhs, rhs) =>
+        {
+            if (lhs is null || rhs is null)
+                return 0;
+            var lhsNegative = lhs.IsNegative();
+            var rhsNegative = rhs.IsNegative();
+            if (lhsNegative != rhsNegative)
+                return lhsNegative.CompareTo(rhsNegative);
+            return lhs.GetID().CompareTo(rhs.GetID());
+        });
+
+        _lightProcessors.Clear();
+        foreach (var light in _lights)
+            _lightProcessors.Add(light is null ? null : _lightProcessorCache.GetLightProcessor(light));
+
+        // Cook lights for forward light evaluation on CPU
+        _lightDataForAccumulator.Clear();
+        foreach (var light in _lights)
+            _lightDataForAccumulator.Add(light is null ? default : new LightDataForAccumulator(light));
+
+        // Expand scene Z range so it's never too small
+        foreach (var range in _sceneZRangeTemp)
+            _sceneZRange |= range;
+
+        const float minSceneZRange = 1.0f;
+        if (_sceneZRange.IsValid() && _sceneZRange.Second - _sceneZRange.First < minSceneZRange)
+            _sceneZRange.Second = _sceneZRange.First + minSceneZRange;
+    }
+
+    public void ProcessLights(LightProcessorCallback callback)
+    {
+        foreach (var lightProcessor in _lightProcessors)
+            lightProcessor?.BeginUpdate(this, callback);
+
+        var workQueue = GetSubsystem<WorkQueue>();
+        if (workQueue is not null)
+        {
+            WorkQueue.ForEachParallel(workQueue, _lightProcessors, (_, lightProcessor) =>
+            {
+                lightProcessor?.Update(this, callback);
+            });
+        }
+        else
+        {
+            foreach (var lightProcessor in _lightProcessors)
+                lightProcessor?.Update(this, callback);
+        }
+
+        SortLightProcessorsByShadowMapSize();
+
+        _numShadowedLights = 0;
+        foreach (var lightProcessor in _lightProcessorsByShadowMapSize)
+        {
+            if (lightProcessor is null)
+                continue;
+            lightProcessor.EndUpdate(this, callback, _settings.PcfKernelSize);
+            if (lightProcessor.HasShadow())
+                ++_numShadowedLights;
+        }
+
+        SortLightProcessorsByShadowMapTexture();
+
+        ProcessShadowCasters();
+    }
+
+    public void ProcessForwardLighting()
+    {
+        var hasForwardLights = false;
+        for (var i = 0; i < _lightProcessors.Count; ++i)
+        {
+            var lightProcessor = _lightProcessors[i];
+            if (lightProcessor is not null && lightProcessor.HasForwardLitGeometries())
+            {
+                ProcessForwardLightingForLight((uint)i, lightProcessor.GetLitGeometries());
+                hasForwardLights = true;
+            }
+        }
+
+        if (hasForwardLights)
+            FinalizeForwardLighting();
+    }
+
+    public void UpdateGeometries()
+    {
+        // Update in worker threads
+        var workQueue = GetSubsystem<WorkQueue>();
+        if (workQueue is not null)
+        {
+            var list = new List<Drawable>();
+            _threadedGeometryUpdates.CopyTo(list);
+            WorkQueue.ForEachParallel(workQueue, list, (_, drawable) =>
+            {
+                if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
+                    _nonThreadedGeometryUpdates.Insert(drawable);
+                else
+                    drawable.UpdateGeometry(_frameInfo);
+            });
+        }
+        else
+        {
+            foreach (var drawable in _threadedGeometryUpdates)
+            {
+                if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
+                    _nonThreadedGeometryUpdates.Insert(drawable);
+                else
+                    drawable.UpdateGeometry(_frameInfo);
+            }
+        }
+
+        // Update in main thread
+        foreach (var drawable in _nonThreadedGeometryUpdates)
+            drawable.UpdateGeometry(_frameInfo);
+
+        _threadedGeometryUpdates.Clear();
+        _nonThreadedGeometryUpdates.Clear();
+    }
+
+    private void ProcessForwardLightingForLight(uint lightIndex, IReadOnlyList<Drawable> litGeometries)
+    {
+        if (lightIndex >= (uint)_lights.Count)
+            return;
+
+        var light = _lights[(int)lightIndex];
+        if (light is null)
+            return;
+
+        var lightType = light.GetLightType();
+        var lightIntensityPenalty = 1.0f / light.GetIntensityDivisor();
+        var hasShadow = _lightProcessors[(int)lightIndex]?.HasShadow() == true;
+        var isNegative = light.IsNegative();
+        var lightImportance = hasShadow ? LightImportance.Important : light.GetLightImportance();
+
+        var ctx = new LightAccumulatorContext(_lightDataForAccumulator, _settings.MaxVertexLights, _settings.MaxPixelLights);
+
+        foreach (var geometry in litGeometries)
+        {
+            var drawableIndex = geometry.GetDrawableIndex();
+
+            // Directional light doesn't filter out e.g. deferred lit geometries for shadow focusing
+            if (lightType == LightType.Directional)
+            {
+                var isForwardLit = (GetGeometryRenderFlags(drawableIndex) & GeometryRenderFlag.ForwardLit) != 0;
+                if (!isForwardLit)
+                    continue;
+            }
+
+            var distance = Math.Max(light.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
+            var penalty = GetDrawableLightPenalty(distance * lightIntensityPenalty,
+                isNegative, lightImportance, lightType);
+            var lighting = GetGeometryLighting(drawableIndex);
+            lighting.AccumulateLight(ctx, geometry, lightImportance, lightIndex, penalty);
+            SetGeometryLighting(drawableIndex, lighting);
+        }
+    }
+
+    private void FinalizeForwardLighting()
+    {
+        foreach (var drawable in _geometries)
+        {
+            if (drawable is null)
+                continue;
+            var drawableIndex = drawable.GetDrawableIndex();
+            var flags = GetGeometryRenderFlags(drawableIndex);
+            if ((flags & GeometryRenderFlag.ForwardLit) != 0)
+            {
+                var lightAccumulator = GetGeometryLighting(drawableIndex);
+                lightAccumulator.Cook();
+                SetGeometryLighting(drawableIndex, lightAccumulator);
+            }
+        }
+    }
+
+    private void SortLightProcessorsByShadowMapSize()
+    {
+        _lightProcessorsByShadowMapSize.Clear();
+        _lightProcessorsByShadowMapSize.AddRange(_lightProcessors);
+        _lightProcessorsByShadowMapSize.Sort(static (lhs, rhs) =>
+        {
+            if (lhs is null || rhs is null)
+                return 0;
+            var lhsSize = lhs.GetShadowMapSize();
+            var rhsSize = rhs.GetShadowMapSize();
+            var lhsLen = (long)lhsSize.X * lhsSize.X + (long)lhsSize.Y * lhsSize.Y;
+            var rhsLen = (long)rhsSize.X * rhsSize.X + (long)rhsSize.Y * rhsSize.Y;
+            if (lhsLen != rhsLen)
+                return rhsLen.CompareTo(lhsLen);
+            return lhs.GetLight().GetID().CompareTo(rhs.GetLight().GetID());
+        });
+    }
+
+    private void SortLightProcessorsByShadowMapTexture()
+    {
+        _lightProcessorsByShadowMapTexture.Clear();
+        _lightProcessorsByShadowMapTexture.AddRange(_lightProcessors);
+        _lightProcessorsByShadowMapTexture.Sort(static (lhs, rhs) =>
+        {
+            if (lhs is null || rhs is null)
+                return 0;
+            return Comparer<Texture2D?>.Default.Compare(lhs.GetShadowMap().Texture, rhs.GetShadowMap().Texture);
+        });
+    }
+
+    private void ProcessVisibleDrawable(Drawable drawable)
+    {
+        var drawableIndex = drawable.GetDrawableIndex();
+
+        drawable.UpdateBatches(_frameInfo);
+
+        _isDrawableUpdated.Add(drawableIndex);
+
+        // Skip if too far
+        var maxDistance = drawable.GetDrawDistance();
+        if (maxDistance > 0.0f && drawable.GetDistance() > maxDistance)
+            return;
+
+        drawable.MarkInView(_frameInfo);
+
+        // For geometries, find zone, clear lights and calculate view space Z range
+        if ((drawable.GetDrawableFlags() & DrawableFlags.Geometry) != 0)
+        {
+            var boundingBox = drawable.GetWorldBoundingBox();
+            var zRange = CalculateBoundingBoxZRange(boundingBox);
+
+            // Update zone
+            UpdateDrawableZone(boundingBox, drawable);
+            // TODO: port UpdateDrawableReflection when ReflectionProbeManager is available
+
+            // Do not add "infinite" objects like skybox to prevent shadow map focusing behaving erroneously
+            if (!zRange.IsValid())
+                SetGeometryZRange(drawableIndex, new FloatRange(MathDefs.LargeValue, MathDefs.LargeValue));
+            else
+            {
+                SetGeometryZRange(drawableIndex, zRange);
+                _sceneZRangeTemp.Insert(zRange);
+            }
+
+            // Always reset lights in case of material change
+            var lightAccumulator = GetGeometryLighting(drawableIndex);
+            lightAccumulator.ResetLights();
+
+            // Collect batches
+            var isForwardLit = false;
+            var needAmbient = false;
+
+            var sourceBatches = drawable.GetBatches();
+            for (var sourceBatchIndex = 0u; sourceBatchIndex < (uint)sourceBatches.Count; ++sourceBatchIndex)
+            {
+                var sourceBatch = sourceBatches[(int)sourceBatchIndex];
+                if (sourceBatch.Geometry is null || sourceBatch.Geometry.IsEmpty || sourceBatch.NumWorldTransforms == 0)
+                    continue;
+
+                // Find current technique
+                var material = sourceBatch.Material ?? _defaultMaterial;
+                if (material is null)
+                    continue;
+                var technique = material.FindTechnique(drawable, _materialQuality);
+                if (technique is null)
+                    continue;
+
+                // Update scene passes
+                foreach (var pass in _passes)
+                {
+                    var result = pass.AddBatch(WorkQueue.GetThreadIndex(), drawable, sourceBatchIndex, technique);
+                    if (result.ForwardLitAdded)
+                        isForwardLit = true;
+                    if (result.Added && pass.IsFlagSet(DrawableProcessorPassFlag.HasAmbientLighting))
+                        needAmbient = true;
+                }
+            }
+
+            // Process lighting
+            if (needAmbient)
+            {
+                var giType = drawable.GetGlobalIlluminationType();
+
+                // Reset SH from GI if possible/needed, reset to zero otherwise
+                if (_gi is not null && giType >= GlobalIlluminationType.BlendLightProbes)
+                {
+                    ref var hint = ref drawable.GetMutableLightProbeTetrahedronHint();
+                    var samplePosition = boundingBox.Center;
+                    lightAccumulator.SphericalHarmonics = _gi.SampleAmbientSH(samplePosition, ref hint);
+                }
+                else
+                    lightAccumulator.SphericalHarmonics = default;
+
+                // Apply ambient from Zone
+                ref var cachedZone = ref drawable.GetMutableCachedZone();
+                if (cachedZone.Zone is { } zone)
+                {
+                    if (!zone.IsBackgroundStatic())
+                        lightAccumulator.SphericalHarmonics += zone.GetAmbientAndBackgroundLighting();
+                    else
+                        lightAccumulator.SphericalHarmonics += zone.GetAmbientLighting();
+
+                    lightAccumulator.ReflectionProbes[0] = zone.GetReflectionProbe();
+                    lightAccumulator.ReflectionProbes[1] = lightAccumulator.ReflectionProbes[0];
+                    lightAccumulator.ReflectionProbesBlendFactor = 0.0f;
+                }
+            }
+
+            SetGeometryLighting(drawableIndex, lightAccumulator);
+
+            // Store geometry
+            _geometries.Add(drawable);
+
+            // Update flags
+            var flag = GeometryRenderFlag.VisibleInCullCamera;
+            if (needAmbient)
+                flag |= GeometryRenderFlag.Lit;
+            if (isForwardLit)
+                flag |= GeometryRenderFlag.ForwardLit;
+            SetGeometryRenderFlags(drawableIndex, flag);
+
+            // Queue geometry update
+            QueueDrawableGeometryUpdate(WorkQueue.GetThreadIndex(), drawable);
+        }
+        else if ((drawable.GetDrawableFlags() & DrawableFlags.Light) != 0)
+        {
+            var light = (Light)drawable;
+            var lightColor = light.GetEffectiveColor();
+
+            // Skip lights with zero brightness or black color, skip baked lights too
+            if (!lightColor.Equals(Color.Black) && light.GetLightMaskEffective() != 0)
+                _lightsTemp.Insert(light);
+        }
+    }
+
+    private FloatRange CalculateBoundingBoxZRange(BoundingBox boundingBox)
+    {
+        var center = boundingBox.Center;
+        var edge = boundingBox.Size * 0.5f;
+
+        // Ignore "infinite" objects
+        if (edge.LengthSquared >= MathDefs.LargeValue * MathDefs.LargeValue)
+            return default;
+
+        var viewCenterZ = _cullCameraZAxis.DotProduct(center) + _cullCameraViewMatrix.M23;
+        var viewEdgeZ = _cullCameraZAxisAbs.DotProduct(edge);
+        var minZ = viewCenterZ - viewEdgeZ;
+        var maxZ = viewCenterZ + viewEdgeZ;
+
+        return new FloatRange(minZ, maxZ);
+    }
+
+    /// <summary>
+    /// Calculate light penalty for drawable for given absolute light penalty and light settings.
+    /// Order of penalties, from lower to higher:
+    /// -2:      Important directional lights;
+    /// -1:      Important point and spot lights;
+    ///  0 .. 2: Automatic lights;
+    ///  3 .. 5: Not important lights.
+    /// </summary>
+    private static float GetDrawableLightPenalty(float intensityPenalty, bool isNegative,
+        LightImportance importance, LightType type)
+    {
+        switch (importance)
+        {
+            case LightImportance.Important:
+                return type == LightType.Directional && !isNegative ? -2 : -1;
+            case LightImportance.Auto:
+                return intensityPenalty <= 1.0f ? intensityPenalty : 2.0f - 1.0f / intensityPenalty;
+            case LightImportance.NotImportant:
+                return intensityPenalty <= 1.0f ? 3.0f + intensityPenalty : 5.0f - 1.0f / intensityPenalty;
+            default:
+                return MathDefs.LargeValue;
+        }
     }
 
     public void PreprocessShadowCasters(List<Drawable> shadowCasters,

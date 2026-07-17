@@ -396,8 +396,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `LightProcessorCache : NonCopyable` — generation-based LRU cleanup with budget/TTL settings and get-or-create match C++
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
-  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries/light-processor/geometry-lighting/Z-range accessors, PreprocessShadowCasters, zone cache update, geometry-update queues, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
-- [~] `BatchCompositor.h` — `PipelineBatch`/`PipelineBatchDesc`, `BatchCompositorPass` scene composition, and `BatchCompositor` shadow/scene/light-volume composition match C++ control flow; full lighting still depends on complete `LightProcessor`/`ShadowSplitProcessor` update paths
+  - [~] `DrawableProcessor : Object` — ProcessVisibleDrawables/ProcessLights/ProcessForwardLighting/UpdateGeometries, PreprocessShadowCasters, zone cache, light-processor cache/sort, and pass batch collection are ported; UpdateDrawableReflection remains TODO pending ReflectionProbeManager
+- [x] `BatchCompositor.h` — `PipelineBatch`/`PipelineBatchDesc`, `BatchCompositorPass` scene composition, and `BatchCompositor` shadow/scene/light-volume composition match C++
   - [x] `BatchCompositorPass : DrawableProcessorPass` — deferred/forward batch composition, delayed pipeline-state resolution, placeholder states, and per-frame cache invalidation match C++
   - [x] `BatchCompositor : Object` — pass filtering, shadow batch composition hooks, scene-pass compose, light-volume batches, and `FillSortKeys` match C++
 - [~] `BatchRenderer.h`
@@ -410,8 +410,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ScenePass : BatchCompositorPass` — forward-lit and unlit constructors plus instancing prepare hook match C++
   - [x] `UnorderedScenePass : ScenePass` — deferred/base/light sort keys, partial negative-light sort, and batch-group flags match C++
   - [x] `BackToFrontScenePass : ScenePass` — distance factoring for additive/subtractive lights, NaN distance validation, refraction detection, and batch-group flags match C++
-- [~] `SceneProcessor.h`
-  - [~] `SceneProcessor : Object, LightProcessorCallback` — public API surface, owned processors/compositor/renderer wiring, pass list, and LightProcessorCallback interface mapping are ported; Update/Define/render bodies remain TODO
+- [x] `SceneProcessor.h`
+  - [x] `SceneProcessor : Object, LightProcessorCallback` — Define/SetPasses/SetSettings, occluder and visible-drawable queries, light-processor callback shadow sizing, Compose scene/shadow/light-volume batches, PrepareInstancingBuffer, RenderShadowMaps/RenderSceneBatches/RenderLightVolumeBatches, and DrawOccluders match C++ (ReflectionProbeManager hook remains TODO)
 - [x] `OutlineScenePass.h`
   - [x] `OutlineScenePass : ScenePass` — outline group filtering, custom deferred batches, pipeline-state creation for outline mask, sort keys, and instancing prepare match C++
 - [x] `RenderPipelineDebugger.h`
