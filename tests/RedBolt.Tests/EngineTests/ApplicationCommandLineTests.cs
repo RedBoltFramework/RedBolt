@@ -7,7 +7,7 @@ public sealed class ApplicationCommandLineTests
     [Fact]
     public void Application_applies_engine_command_line_parameters()
     {
-        var application = new ProbeApplication();
+        using var application = new ProbeApplication();
 
         var exitCode = application.Run(
         [
@@ -40,7 +40,7 @@ public sealed class ApplicationCommandLineTests
     [Fact]
     public void Application_rejects_unknown_command_line_parameters()
     {
-        var application = new ProbeApplication();
+        using var application = new ProbeApplication();
 
         var exitCode = application.Run(["--does-not-exist"]);
 

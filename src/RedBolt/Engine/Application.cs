@@ -14,6 +14,12 @@ public abstract class Application : Object
         SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
     }
 
+    public override void Dispose()
+    {
+        Engine.Dispose();
+        base.Dispose();
+    }
+
     public int ExitCode { get; private set; }
 
     public string ErrorMessage { get; private set; } = string.Empty;
@@ -136,9 +142,6 @@ public abstract class Application : Object
                 SendEvent<EngineEvents.ApplicationStoppedEvent>();
             }
 
-            if (Engine.IsInitialized)
-                Engine.Shutdown();
-            Log.Shutdown();
         }
 
         return ExitCode;
