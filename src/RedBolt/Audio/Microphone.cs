@@ -28,17 +28,16 @@ public sealed class Microphone : Object
         GC.SuppressFinalize(this);
     }
 
-    public short[] GetData()
-    {
-        lock (_lock)
-            return _buffer.ToArray();
-    }
+    public List<short> GetData() => _buffer;
 
-    public void CopyData(short[] dest)
+    public void CopyData(List<short> dest)
     {
         ArgumentNullException.ThrowIfNull(dest);
         lock (_lock)
-            _buffer.CopyTo(dest, 0);
+        {
+            dest.Clear();
+            dest.AddRange(_buffer);
+        }
     }
 
     public void ClearData()
@@ -49,7 +48,7 @@ public sealed class Microphone : Object
 
     public void Update(byte[] rawData, int rawDataLen)
     {
-        if (!_enabled || rawDataLen == 0)
+        if (!_enabled)
             return;
 
         var sampleCount = rawDataLen / sizeof(short);
@@ -87,7 +86,7 @@ public sealed class Microphone : Object
 
     public uint GetFrequency() => _frequency;
     public string GetName() => _name;
-    public bool IsEnabled() => _enabled;
+    public bool IsEnabled() => _enabled && _deviceId != 0;
     public uint GetWakeThreshold() => _wakeThreshold;
     public void SetWakeThreshold(uint value) => _wakeThreshold = value;
     public bool IsSleeping() => _isSleeping;
@@ -97,17 +96,20 @@ public sealed class Microphone : Object
         if (_enabled == enabled)
             return;
 
-        if (enabled)
-            ClearData();
-        _enabled = enabled;
-
-        if (enabled)
+        lock (_lock)
         {
-            var eventData = new AudioEvents.RecordingStartedEvent { Microphone = this };
-            SendEvent(ref eventData);
-        }
+            if (enabled)
+                _buffer.Clear();
+            _enabled = enabled;
 
-        SdlNativeBindings.SdlPauseAudioDevice(_deviceId, enabled ? 0 : 1);
+            if (enabled)
+            {
+                var eventData = new AudioEvents.RecordingStartedEvent { Microphone = this };
+                SendEvent(ref eventData);
+            }
+
+            SdlNativeBindings.SdlPauseAudioDevice(_deviceId, enabled ? 0 : 1);
+        }
     }
 
     public BufferedSoundStream? GetLinked() => _linkedStream;
@@ -123,16 +125,16 @@ public sealed class Microphone : Object
 
     internal void InitializeNative(string name, uint deviceId, int bufferSize, uint frequency, uint which)
     {
-        _name = name;
-        _deviceId = deviceId;
-        _which = which;
-        _frequency = frequency;
-        if (bufferSize > 0)
+        lock (_lock)
         {
-            lock (_lock)
+            _name = name;
+            _deviceId = deviceId;
+            _which = which;
+            _frequency = frequency;
+            if (bufferSize > 0)
                 _buffer.Capacity = Math.Max(_buffer.Capacity, bufferSize);
+            SetEnabled(true);
         }
-        SetEnabled(true);
     }
 
     internal uint GetDeviceIndex() => _which;
@@ -173,7 +175,7 @@ public sealed class Microphone : Object
 
     internal void CheckDirtiness()
     {
-        if (!_enabled || !_isDirty)
+        if (!_enabled)
             return;
 
         lock (_lock)

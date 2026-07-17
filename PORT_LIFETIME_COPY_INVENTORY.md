@@ -81,12 +81,15 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED after fixing the extra stored context alias and the incorrect `interpolation_` construction default. Destructor order is `Release()`, SDL release, then base teardown; C++ weak microphone/listener fields are non-owning under the allowed smart-pointer removal. `EnumerateMicrophones` returns an independent collection and `CreateMicrophone` returns the same object reference under the allowed `SharedPtr` removal. | — | — | — |
 | `src/RedBolt/Audio/AudioDefs.cs` | `Source/Urho3D/Audio/AudioDefs.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/AudioEvents.cs` | `Source/Urho3D/Audio/AudioEvents.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/BufferedSoundStream.cs` | `Source/Urho3D/Audio/BufferedSoundStream.h`<br>`Source/Urho3D/Audio/BufferedSoundStream.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/Microphone.cs` | `Source/Urho3D/Audio/Microphone.h`<br>`Source/Urho3D/Audio/Microphone.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/BufferedSoundStream.cs` | `Source/Urho3D/Audio/BufferedSoundStream.h`<br>`Source/Urho3D/Audio/BufferedSoundStream.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after fixing both shared-array overloads to retain shared input storage instead of deep-copying it. The default destructor owns only managed standard-container mappings and requires no element disposal. | — | — | — |
+| `src/RedBolt/Audio/Microphone.cs` | `Source/Urho3D/Audio/Microphone.h`<br>`Source/Urho3D/Audio/Microphone.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after restoring live `GetData` storage, independent `CopyData`, device-aware `IsEnabled`, and the C++ lock/zero-length update behavior. `Dispose` closes the SDL device before base teardown; the linked stream follows the allowed `SharedPtr` removal. | — | — | — |
 | `src/RedBolt/Audio/OggVorbisSoundStream.cs` | `Source/Urho3D/Audio/OggVorbisSoundStream.h`<br>`Source/Urho3D/Audio/OggVorbisSoundStream.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/Sound.cs` | `Source/Urho3D/Audio/Sound.h`<br>`Source/Urho3D/Audio/Sound.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/SoundListener.cs` | `Source/Urho3D/Audio/SoundListener.h`<br>`Source/Urho3D/Audio/SoundListener.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☑ | ☑ | ☐ |
+| 2026-07-17 partial outcome | Constructor/destructor VERIFIED after restoring the nullable `Audio*` path in construction, update, master-gain refresh, and disposal. Copy-producing expressions remain open. | — | — | — |
 | `src/RedBolt/Audio/SoundSource3D.cs` | `Source/Urho3D/Audio/SoundSource3D.h`<br>`Source/Urho3D/Audio/SoundSource3D.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/SoundStream.cs` | `Source/Urho3D/Audio/SoundStream.h`<br>`Source/Urho3D/Audio/SoundStream.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/Array2D.cs` | `Source/Urho3D/Container/Array2D.h` | ☐ | ☐ | ☐ |

@@ -73,6 +73,34 @@ public sealed class AudioTests
     }
 
     [Fact]
+    public void Buffered_sound_stream_retains_shared_input_storage()
+    {
+        var stream = new BufferedSoundStream();
+        var source = new byte[] { 1, 2, 3, 4 };
+        stream.AddData(source, (uint)source.Length);
+        source[0] = 9;
+        var destination = new sbyte[source.Length];
+
+        Assert.Equal((uint)source.Length, stream.GetData(destination, (uint)destination.Length));
+        Assert.Equal(unchecked((sbyte)9), destination[0]);
+    }
+
+    [Fact]
+    public void Microphone_get_data_is_live_and_copy_data_is_independent()
+    {
+        var microphone = new Microphone();
+        var liveData = microphone.GetData();
+        liveData.Add(42);
+        var copy = new List<short>();
+
+        microphone.CopyData(copy);
+        liveData[0] = 7;
+
+        Assert.Equal(7, microphone.GetData()[0]);
+        Assert.Equal(42, copy[0]);
+    }
+
+    [Fact]
     public void Wav_loader_preserves_sixteen_bit_samples()
     {
         var wav = new byte[]

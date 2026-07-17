@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>Sound stream that supports manual buffering of data from the main thread.</summary>
 public sealed class BufferedSoundStream : SoundStream
 {
-    private readonly List<byte[]> _buffers = [];
+    private readonly List<Array> _buffers = [];
     private readonly List<uint> _bufferSizes = [];
     private uint _position;
     private readonly object _bufferLock = new();
@@ -38,11 +38,9 @@ public sealed class BufferedSoundStream : SoundStream
     public void AddData(byte[] data, uint numBytes)
     {
         if (data is null || numBytes == 0) return;
-        var copy = new byte[numBytes];
-        Buffer.BlockCopy(data, 0, copy, 0, (int)numBytes);
         lock (_bufferLock)
         {
-            _buffers.Add(copy);
+            _buffers.Add(data);
             _bufferSizes.Add(numBytes);
         }
     }
@@ -50,11 +48,9 @@ public sealed class BufferedSoundStream : SoundStream
     public void AddData(short[] data, uint numBytes)
     {
         if (data is null || numBytes == 0) return;
-        var bytes = new byte[numBytes];
-        Buffer.BlockCopy(data, 0, bytes, 0, (int)numBytes);
         lock (_bufferLock)
         {
-            _buffers.Add(bytes);
+            _buffers.Add(data);
             _bufferSizes.Add(numBytes);
         }
     }
