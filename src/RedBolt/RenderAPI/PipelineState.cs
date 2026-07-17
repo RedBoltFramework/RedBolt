@@ -250,7 +250,8 @@ public class PipelineState : DeviceObject
                 GraphicsPipelineRasterizerDescFillMode = ToNative(desc.FillMode),
                 GraphicsPipelineRasterizerDescCullMode = ToNative(desc.CullMode),
                 GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
-                GraphicsPipelineRasterizerDescDepthBias = (int)(desc.ConstantDepthBias * (1 << 24)),
+                // C++: depthBits from DSV (16 if D16 else 24); scaledDepthBias = 0 on OpenGL.
+                GraphicsPipelineRasterizerDescDepthBias = ScaleDepthBias(desc.ConstantDepthBias, desc.Output.DepthStencilFormat),
                 GraphicsPipelineRasterizerDescSlopeScaledDepthBias = desc.SlopeScaledDepthBias,
                 GraphicsPipelineRasterizerDescDepthClipEnable = true,
                 GraphicsPipelineRasterizerDescScissorEnable = desc.ScissorTestEnabled,
@@ -374,6 +375,21 @@ public class PipelineState : DeviceObject
         CompareMode.LessEqual => ComparisonFunction.ComparisonFuncLessEqual, CompareMode.Greater => ComparisonFunction.ComparisonFuncGreater,
         CompareMode.GreaterEqual => ComparisonFunction.ComparisonFuncGreaterEqual, _ => ComparisonFunction.ComparisonFuncUnknown
     };
+
+    /// <summary>
+    /// C++ PipelineState::CreateGPU depth-bias scaling:
+    /// depthBits = 16 if DSV is D16 else 24; scaled = 0 on OpenGL else constantBias * (1 &lt;&lt; depthBits).
+    /// </summary>
+    private int ScaleDepthBias(float constantDepthBias, TextureFormat depthStencilFormat)
+    {
+        if (GetRenderDevice()?.GetBackend() == RenderBackend.OpenGL)
+            return 0;
+
+        var depthBits = MapTextureFormat(depthStencilFormat) == RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
+            ? 16
+            : 24;
+        return (int)(constantDepthBias * (1 << depthBits));
+    }
     private static RedBolt.Bindings.Diligent.StencilOp ToNative(StencilOp value) => value switch
     {
         StencilOp.Keep => RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep, StencilOp.Zero => RedBolt.Bindings.Diligent.StencilOp.StencilOpZero,

@@ -357,25 +357,16 @@ public sealed class RenderBufferManager
     /// </summary>
     public void SetOutputRenderTargets(Graphics graphics, bool readOnlyDepth = false)
     {
+        // C++: SetRenderTargetsRect(ZERO, GetDepthStencilOutput(), { GetColorOutput() }, readOnlyDepth)
         ArgumentNullException.ThrowIfNull(graphics);
-        _lastGraphics = graphics;
-
-        var depthView = readOnlyDepth ? _depthStencilBuffer.GetReadOnlyDepthView() : _depthStencilBuffer.GetView();
-        var viewportRect = _depthStencilBuffer.GetViewportRect();
-        if (viewportRect == IntRect.Zero)
-            viewportRect = _writeableColorBuffer.GetViewportRect();
-        graphics.SetRenderTargets(viewportRect, _writeableColorBuffer.GetView(), depthView);
+        SetRenderTargets(graphics, GetDepthStencilOutput(), [GetColorOutput()], readOnlyDepth);
     }
 
     public void SetOutputRenderTargetsRect(Graphics graphics, IntRect viewportRect, bool readOnlyDepth = false)
     {
         ArgumentNullException.ThrowIfNull(graphics);
-        _lastGraphics = graphics;
-
-        var depthView = readOnlyDepth ? _depthStencilBuffer.GetReadOnlyDepthView() : _depthStencilBuffer.GetView();
-        graphics.SetRenderTargets(
-            viewportRect == IntRect.Zero ? _viewportRect : viewportRect,
-            _writeableColorBuffer.GetView(), depthView);
+        // C++: SetRenderTargetsRect(viewportRect, GetDepthStencilOutput(), { GetColorOutput() }, readOnlyDepth)
+        SetRenderTargetsRect(graphics, viewportRect, GetDepthStencilOutput(), [GetColorOutput()], readOnlyDepth);
     }
 
     /// <summary>
@@ -552,15 +543,8 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(colorBuffer);
-        _lastGraphics = graphics;
-
-        var viewport = colorBuffer.GetViewportRect();
-        var depthView = depthStencilBuffer is null
-            ? (RenderTargetView?)null
-            : readOnlyDepth
-                ? depthStencilBuffer.GetReadOnlyDepthView()
-                : depthStencilBuffer.GetView();
-        graphics.SetRenderTargets(viewport, colorBuffer.GetView(), depthView);
+        // C++: SetRenderTargets(depth, { color }) via renderContext_
+        SetRenderTargets(graphics, depthStencilBuffer, [colorBuffer], readOnlyDepth);
     }
 
     public void SetRenderTargetsRect(Graphics graphics, IntRect viewportRect, RenderBuffer? depthStencilBuffer,
@@ -570,11 +554,15 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(colorBuffers);
         _lastGraphics = graphics;
 
+        // C++ RenderBufferManager::SetRenderTargetsRect — bind via renderContext_, then SetViewport.
+        if (_renderContext is null)
+            return;
+
         IntRect? defaultViewportRect = null;
-        RenderTargetView? depthStencilView = null;
+        OptionalRawTextureRTV depthStencilRef = default;
         if (depthStencilBuffer is not null)
         {
-            depthStencilView = readOnlyDepth
+            depthStencilRef = readOnlyDepth
                 ? depthStencilBuffer.GetReadOnlyDepthView((uint)face)
                 : depthStencilBuffer.GetView((uint)face);
             defaultViewportRect = depthStencilBuffer.GetViewportRect();
@@ -594,9 +582,11 @@ public sealed class RenderBufferManager
             return;
         }
 
-        graphics.SetRenderTargets(
-            viewportRect == IntRect.Zero ? defaultViewportRect.Value : viewportRect,
-            _renderTargetViews.AsSpan(0, colorBuffers.Count), depthStencilView);
+        _renderContext.SetRenderTargets(depthStencilRef, _renderTargetViews.AsSpan(0, colorBuffers.Count));
+        if (viewportRect == IntRect.Zero)
+            _renderContext.SetViewport(defaultViewportRect.Value);
+        else
+            _renderContext.SetViewport(viewportRect);
     }
 
     public void SetRenderTargets(Graphics graphics, RenderBuffer? depthStencilBuffer,
@@ -614,14 +604,13 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(depthStencilBuffer);
+        if (_renderContext is null)
+            return;
 
-        graphics.SetRenderTargets(depthStencilBuffer.GetViewportRect(), colorTarget: null, depthStencilBuffer.GetView((uint)face));
-        graphics.ClearCurrentRenderTargets(
-            clearColorTarget: false,
-            clearDepth: (flags & ClearTarget.Depth) == ClearTarget.Depth,
-            clearStencil: (flags & ClearTarget.Stencil) == ClearTarget.Stencil,
-            depth: depth,
-            stencil: stencil);
+        // C++: SetRenderTargets(depth, {}); SetFullViewport(); ClearDepthStencil(...)
+        _renderContext.SetRenderTargets(depthStencilBuffer.GetView((uint)face), ReadOnlySpan<RenderTargetView>.Empty);
+        _renderContext.SetFullViewport();
+        _renderContext.ClearDepthStencil(flags, depth, stencil);
     }
 
     /// <summary>
@@ -632,9 +621,14 @@ public sealed class RenderBufferManager
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(colorBuffer);
+        if (_renderContext is null)
+            return;
 
-        graphics.SetRenderTargets(colorBuffer.GetViewportRect(), colorBuffer.GetView(), depthStencilTarget: null);
-        graphics.ClearCurrentRenderTargets(color, clearColorTarget: true, clearDepth: false, clearStencil: false);
+        // C++: SetRenderTargets(nullopt, {color}); SetFullViewport(); ClearRenderTarget(0, color)
+        _renderTargetViews[0] = colorBuffer.GetView();
+        _renderContext.SetRenderTargets(default, _renderTargetViews.AsSpan(0, 1));
+        _renderContext.SetFullViewport();
+        _renderContext.ClearRenderTarget(0, color);
     }
 
     /// <summary>
@@ -645,27 +639,26 @@ public sealed class RenderBufferManager
     public void ClearOutputRect(Graphics graphics, IntRect viewportRect, ClearTarget flags, Color color, float depth, byte stencil = 0)
     {
         ArgumentNullException.ThrowIfNull(graphics);
+        if (_renderContext is null)
+            return;
 
+        // C++ ClearOutputRect
         flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
         if (flags == ClearTarget.None)
             return;
 
-        var effectiveViewportRect = viewportRect != IntRect.Zero ? viewportRect : this._viewportRect;
-        var depthView = _depthStencilBuffer.GetView();
-        graphics.SetRenderTargets(effectiveViewportRect, _writeableColorBuffer.GetView(), depthView);
-
-        if (!ShouldUseFullscreenQuadClear(effectiveViewportRect, this._viewportRect))
+        SetRenderTargetsRect(graphics, viewportRect, GetDepthStencilOutput(), [GetColorOutput()]);
+        var fullViewportRect = new IntRect(Vector2i.Zero, _renderContext.GetCurrentRenderTargetSize());
+        if (_renderContext.GetCurrentViewport() == fullViewportRect)
         {
-            graphics.ClearCurrentRenderTargets(
-                color,
-                clearColorTarget: (flags & ClearTarget.Color) == ClearTarget.Color,
-                clearDepth: (flags & ClearTarget.Depth) == ClearTarget.Depth,
-                clearStencil: (flags & ClearTarget.Stencil) == ClearTarget.Stencil,
-                depth: depth,
-                stencil: stencil);
+            if ((flags & ClearTarget.Color) != 0)
+                _renderContext.ClearRenderTarget(0, color);
+            if ((flags & ClearTarget.Depth) != 0 || (flags & ClearTarget.Stencil) != 0)
+                _renderContext.ClearDepthStencil(flags, depth, stencil);
             return;
         }
 
+        // Sub-rect clear via fullscreen quad (matches C++ isOpenGL depth remapping).
         var clearParameters = new ClearFramebufferParameters
         {
             Color = new Vector4f(color.R, color.G, color.B, color.A),
@@ -930,9 +923,13 @@ public sealed class RenderBufferManager
         return texture.GetLinear() || texture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(texture.Format);
     }
 
-    // Fullscreen-quad subrect clears run in the current managed OpenGL backend and therefore
-    // need the same [0, 1] -> [-1, 1] depth remap that rbfx applies before drawing the clear quad.
-    private static float GetFullscreenQuadClearDepth(float depth) => depth * 2.0f - 1.0f;
+    // C++ ClearOutputRect: Depth = isOpenGL ? (depth * 2.0 - 1.0) : depth
+    private float GetFullscreenQuadClearDepth(float depth)
+        => MapFullscreenQuadClearDepth(depth, _renderDevice?.GetBackend() == RenderBackend.OpenGL);
+
+    /// <summary>C++ ClearOutputRect depth remap for fullscreen-quad subrect clears.</summary>
+    private static float MapFullscreenQuadClearDepth(float depth, bool isOpenGl)
+        => isOpenGl ? depth * 2.0f - 1.0f : depth;
 
     private static bool ShouldUseFullscreenQuadClear(IntRect viewportRect, IntRect outputViewportRect) => viewportRect != outputViewportRect;
 

@@ -461,12 +461,18 @@ public sealed class RenderPipelineTests
     [Fact]
     public void Render_buffer_manager_maps_partial_clear_depth_to_opengl_clip_space()
     {
-        var method = typeof(RenderBufferManager).GetMethod("GetFullscreenQuadClearDepth", BindingFlags.NonPublic | BindingFlags.Static);
+        // C++ ClearOutputRect: Depth = isOpenGL ? (depth * 2 - 1) : depth
+        var method = typeof(RenderBufferManager).GetMethod("MapFullscreenQuadClearDepth",
+            BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.NotNull(method);
-        Assert.Equal(-1.0f, Assert.IsType<float>(method!.Invoke(null, [0.0f])!));
-        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.5f])!));
-        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f])!));
+        Assert.Equal(-1.0f, Assert.IsType<float>(method!.Invoke(null, [0.0f, true])!));
+        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.5f, true])!));
+        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f, true])!));
+        // Non-OpenGL keeps [0, 1] depth.
+        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.0f, false])!));
+        Assert.Equal(0.5f, Assert.IsType<float>(method.Invoke(null, [0.5f, false])!));
+        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f, false])!));
     }
 
     [Fact]
@@ -482,13 +488,11 @@ public sealed class RenderPipelineTests
 
         manager.ClearDepthStencil(_fixture.Graphics, manager.GetDepthStencilOutput(), ClearTarget.Depth | ClearTarget.Stencil, 0.5f, 7);
 
-        var currentRenderTargetCountField = typeof(Graphics).GetField("_currentRenderTargetCount", BindingFlags.NonPublic | BindingFlags.Instance);
-        var renderTargetsField = typeof(Graphics).GetField("_renderTargets", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        Assert.NotNull(currentRenderTargetCountField);
-        Assert.NotNull(renderTargetsField);
-        Assert.Equal(0, Assert.IsType<int>(currentRenderTargetCountField!.GetValue(_fixture.Graphics)));
-        Assert.Null(Assert.IsType<ITextureView?[]>(renderTargetsField!.GetValue(_fixture.Graphics))[0]);
+        // C++ ClearDepthStencil binds depth only via RenderContext (no color RTs).
+        var renderContext = _fixture.RenderDevice.GetRenderContext();
+        var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
+        Assert.Equal(0u, outputDesc.NumRenderTargets);
+        Assert.NotEqual(TextureFormat.Unknown, outputDesc.DepthStencilFormat);
     }
 
     [Fact]
