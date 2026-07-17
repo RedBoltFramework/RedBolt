@@ -143,7 +143,8 @@ public static class RenderAPIUtils
         format is TextureFormat.Depth24Stencil8 or TextureFormat.Depth32Stencil8;
 
     public static bool IsColorTextureFormat(TextureFormat format) => format is
-        TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+        TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8
+        or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
 
     public static global::RedBolt.Bindings.Diligent.TextureFormatAttribs GetTextureFormatInfo(
         global::RedBolt.Bindings.Diligent.TextureFormat textureFormat)
@@ -510,6 +511,7 @@ public static class RenderAPIUtils
         TextureFormat.RGB8 => 4u,
         TextureFormat.RGBA8 => 4u,
         TextureFormat.RGBA16F => 8u,
+        TextureFormat.RGBA32F => 16u,
         TextureFormat.Depth16 => 2u,
         TextureFormat.Depth32 => 4u,
         TextureFormat.Depth24Stencil8 => 4u,

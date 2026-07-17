@@ -70,68 +70,68 @@ public class SceneProcessor : Object, LightProcessorCallback
 {
     public const int ShadowMinPixels = 64;
 
-    private readonly Graphics? _graphics;
-    private readonly RenderDevice? _renderDevice;
-    private readonly RenderContext? _renderContext;
-    private readonly IRenderPipelineInterface _renderPipeline;
-    private readonly RenderPipelineDebugger? _debugger;
+    protected readonly Graphics? GraphicsDevice;
+    protected readonly RenderDevice? RenderDevice;
+    protected readonly RenderContext? RenderContext;
+    protected readonly IRenderPipelineInterface RenderPipeline;
+    protected readonly RenderPipelineDebugger? Debugger;
 
-    private readonly ShadowMapAllocator? _shadowMapAllocator;
-    private readonly InstancingBuffer? _instancingBuffer;
-    private readonly DrawCommandQueue? _drawQueue;
+    protected readonly ShadowMapAllocator? ShadowMapAllocator;
+    protected readonly InstancingBuffer? InstancingBuffer;
+    protected readonly DrawCommandQueue? DrawQueue;
 
-    private readonly CameraProcessor _cameraProcessor;
-    private readonly PipelineStateBuilder _pipelineStateBuilder;
-    private readonly DrawableProcessor _drawableProcessor;
-    private readonly BatchCompositor _batchCompositor;
-    private readonly BatchRenderer _batchRenderer;
-    private OcclusionBuffer? _occlusionBuffer;
-    private readonly BatchStateCacheCallback _batchStateCacheCallback;
+    protected readonly CameraProcessor CameraProcessor;
+    protected readonly PipelineStateBuilder PipelineStateBuilder;
+    protected readonly DrawableProcessor DrawableProcessor;
+    protected readonly BatchCompositor BatchCompositor;
+    protected readonly BatchRenderer BatchRenderer;
+    protected OcclusionBuffer? OcclusionBuffer;
+    protected readonly BatchStateCacheCallback BatchStateCacheCallback;
 
-    private SceneProcessorSettings _settings = new();
-    private readonly List<ScenePass> _passes = [];
+    protected SceneProcessorSettings Settings = new();
+    protected readonly List<ScenePass> Passes = [];
 
-    private CommonFrameInfo _frameInfo = new();
-    private bool _flipCameraForRendering;
+    protected CommonFrameInfo FrameInfo = new();
+    protected bool FlipCameraForRendering;
 
-    private OcclusionBuffer? _currentOcclusionBuffer;
-    private readonly List<Drawable> _occluders = [];
-    private readonly List<Drawable> _drawables = [];
+    protected OcclusionBuffer? CurrentOcclusionBuffer;
+    protected readonly List<Drawable> Occluders = [];
+    protected readonly List<Drawable> Drawables = [];
 
     public SceneProcessor(IRenderPipelineInterface renderPipeline, string shadowTechnique,
         ShadowMapAllocator? shadowMapAllocator, InstancingBuffer? instancingBuffer)
     {
         ArgumentNullException.ThrowIfNull(renderPipeline);
-        _renderPipeline = renderPipeline;
-        _graphics = GetSubsystem<Graphics>();
-        _renderDevice = GetSubsystem<RenderDevice>();
-        _renderContext = _renderDevice?.GetRenderContext();
-        _debugger = renderPipeline.GetDebugger();
-        _shadowMapAllocator = shadowMapAllocator;
-        _instancingBuffer = instancingBuffer;
-        _drawQueue = _renderDevice?.GetDefaultQueue();
+        RenderPipeline = renderPipeline;
+        GraphicsDevice = GetSubsystem<Graphics>();
+        RenderDevice = GetSubsystem<RenderDevice>();
+        RenderContext = RenderDevice?.GetRenderContext();
+        Debugger = renderPipeline.GetDebugger();
+        ShadowMapAllocator = shadowMapAllocator;
+        InstancingBuffer = instancingBuffer;
+        DrawQueue = RenderDevice?.GetDefaultQueue();
 
-        _cameraProcessor = new CameraProcessor();
-        _pipelineStateBuilder = new PipelineStateBuilder(this, _cameraProcessor, shadowMapAllocator, instancingBuffer);
-        _drawableProcessor = new DrawableProcessor(renderPipeline);
-        _batchStateCacheCallback = _pipelineStateBuilder;
-        _batchCompositor = new BatchCompositor(renderPipeline, _drawableProcessor, _batchStateCacheCallback,
+        CameraProcessor = new CameraProcessor();
+        PipelineStateBuilder = new PipelineStateBuilder(this, CameraProcessor, shadowMapAllocator, instancingBuffer);
+        DrawableProcessor = new DrawableProcessor(renderPipeline);
+        BatchStateCacheCallback = PipelineStateBuilder;
+        BatchCompositor = new BatchCompositor(renderPipeline, DrawableProcessor, BatchStateCacheCallback,
             Technique.GetPassIndex(string.IsNullOrEmpty(shadowTechnique) ? "shadow" : shadowTechnique));
-        _batchRenderer = new BatchRenderer(renderPipeline, _drawableProcessor, instancingBuffer);
+        BatchRenderer = new BatchRenderer(renderPipeline, DrawableProcessor, instancingBuffer);
 
         renderPipeline.UpdateBegin += OnUpdateBegin;
         renderPipeline.RenderBegin += OnRenderBegin;
         renderPipeline.RenderEnd += OnRenderEnd;
-        _ = _graphics;
-        _ = _flipCameraForRendering;
+        _ = GraphicsDevice;
+        _ = FlipCameraForRendering;
     }
 
     public override void Dispose()
     {
-        _renderPipeline.UpdateBegin -= OnUpdateBegin;
-        _renderPipeline.RenderBegin -= OnRenderBegin;
-        _renderPipeline.RenderEnd -= OnRenderEnd;
-        _occlusionBuffer?.Dispose();
+        RenderPipeline.UpdateBegin -= OnUpdateBegin;
+        RenderPipeline.RenderBegin -= OnRenderBegin;
+        RenderPipeline.RenderEnd -= OnRenderEnd;
+        OcclusionBuffer?.Dispose();
         base.Dispose();
     }
 
@@ -139,33 +139,33 @@ public class SceneProcessor : Object, LightProcessorCallback
     /// <remarks>It's okay to pass null passes in vector.</remarks>
     public void SetPasses(IReadOnlyList<ScenePass?> passes)
     {
-        _passes.Clear();
+        Passes.Clear();
         foreach (var pass in passes)
         {
             if (pass is not null)
-                _passes.Add(pass);
+                Passes.Add(pass);
         }
 
-        _drawableProcessor.SetPasses(_passes.Cast<DrawableProcessorPass>().ToList());
-        _batchCompositor.SetPasses(_passes.Cast<BatchCompositorPass>().ToList());
+        DrawableProcessor.SetPasses(Passes.Cast<DrawableProcessorPass>().ToList());
+        BatchCompositor.SetPasses(Passes.Cast<BatchCompositorPass>().ToList());
     }
 
     public void SetSettings(ShaderProgramCompositorSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        _pipelineStateBuilder.SetSettings(settings);
+        PipelineStateBuilder.SetSettings(settings);
 
-        if (!_settings.Equals(settings.SceneProcessor))
+        if (!Settings.Equals(settings.SceneProcessor))
         {
-            _settings = settings.SceneProcessor;
-            _drawableProcessor.SetSettings(ToDrawableProcessorSettings(_settings));
-            _batchRenderer.SetSettings(new BatchRendererSettings
+            Settings = settings.SceneProcessor;
+            DrawableProcessor.SetSettings(ToDrawableProcessorSettings(Settings));
+            BatchRenderer.SetSettings(new BatchRendererSettings
             {
-                CubemapBoxProjection = _settings.CubemapBoxProjection,
-                AmbientMode = _settings.AmbientMode,
-                VarianceShadowMapParams = _settings.VarianceShadowMapParams
+                CubemapBoxProjection = Settings.CubemapBoxProjection,
+                AmbientMode = Settings.AmbientMode,
+                VarianceShadowMapParams = Settings.VarianceShadowMapParams
             });
-            _batchCompositor.SetShadowMaterialQuality(_settings.MaterialQuality);
+            BatchCompositor.SetShadowMaterialQuality(Settings.MaterialQuality);
         }
     }
 
@@ -178,152 +178,152 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public bool Define(CommonFrameInfo frameInfo)
     {
-        _frameInfo.FrameNumber = 0;
-        _frameInfo.TimeStep = 0.0f;
+        FrameInfo.FrameNumber = 0;
+        FrameInfo.TimeStep = 0.0f;
 
-        _frameInfo.Viewport = frameInfo.Viewport;
-        _frameInfo.RenderTarget = frameInfo.RenderTarget;
-        _frameInfo.ViewportRect = frameInfo.ViewportRect;
-        _frameInfo.ViewportSize = frameInfo.ViewportSize;
+        FrameInfo.Viewport = frameInfo.Viewport;
+        FrameInfo.RenderTarget = frameInfo.RenderTarget;
+        FrameInfo.ViewportRect = frameInfo.ViewportRect;
+        FrameInfo.ViewportSize = frameInfo.ViewportSize;
 
-        _frameInfo.Scene = _frameInfo.Viewport?.GetScene();
-        _frameInfo.Camera = _frameInfo.Viewport?.GetCullCamera()
-            ?? _frameInfo.Viewport?.GetCamera();
-        _frameInfo.ViewReferenceNode = _frameInfo.Camera?.Node;
+        FrameInfo.Scene = FrameInfo.Viewport?.GetScene();
+        FrameInfo.Camera = FrameInfo.Viewport?.GetCullCamera()
+            ?? FrameInfo.Viewport?.GetCamera();
+        FrameInfo.ViewReferenceNode = FrameInfo.Camera?.Node;
 
-        _frameInfo.Octree = _frameInfo.Scene?.Root.GetComponent<Octree>();
-        if (_frameInfo.Octree is not null && _frameInfo.Scene is not null)
-            _frameInfo.Scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        FrameInfo.Octree = FrameInfo.Scene?.Root.GetComponent<Octree>();
+        if (FrameInfo.Octree is not null && FrameInfo.Scene is not null)
+            FrameInfo.Scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
 
-        for (var i = 0; i < frameInfo.Cameras.Length && i < _frameInfo.Cameras.Length; ++i)
-            _frameInfo.Cameras[i] = frameInfo.Cameras[i];
+        for (var i = 0; i < frameInfo.Cameras.Length && i < FrameInfo.Cameras.Length; ++i)
+            FrameInfo.Cameras[i] = frameInfo.Cameras[i];
 
-        return _frameInfo.Octree is not null && _frameInfo.Camera is not null;
+        return FrameInfo.Octree is not null && FrameInfo.Camera is not null;
     }
 
-    public void SetRenderCameras(ReadOnlySpan<Camera?> cameras) => _cameraProcessor.SetCameras(cameras);
+    public void SetRenderCameras(ReadOnlySpan<Camera?> cameras) => CameraProcessor.SetCameras(cameras);
 
     public void SetRenderCamera(Camera? camera)
     {
         Camera?[] cameras = [camera];
-        _cameraProcessor.SetCameras(cameras);
+        CameraProcessor.SetCameras(cameras);
     }
 
     public virtual void Update()
     {
         // Collect occluders
-        _currentOcclusionBuffer = null;
-        var frustum = _frameInfo.Camera!.GetFrustum();
-        if (_settings.MaxOccluderTriangles > 0)
+        CurrentOcclusionBuffer = null;
+        var frustum = FrameInfo.Camera!.GetFrustum();
+        if (Settings.MaxOccluderTriangles > 0)
         {
-            _occluders.Clear();
-            var occluderQuery = new OccluderOctreeQuery(_occluders, frustum, _frameInfo.Camera.GetPrimaryViewMask());
-            _frameInfo.Octree!.GetDrawables(occluderQuery);
-            _drawableProcessor.ProcessOccluders(_occluders, _settings.OccluderSizeThreshold);
+            Occluders.Clear();
+            var occluderQuery = new OccluderOctreeQuery(Occluders, frustum, FrameInfo.Camera.GetPrimaryViewMask());
+            FrameInfo.Octree!.GetDrawables(occluderQuery);
+            DrawableProcessor.ProcessOccluders(Occluders, Settings.OccluderSizeThreshold);
 
-            if (_drawableProcessor.HasOccluders())
+            if (DrawableProcessor.HasOccluders())
             {
-                _occlusionBuffer ??= new OcclusionBuffer();
-                var bufferSize = CalculateOcclusionBufferSize(_settings.OcclusionBufferSize, _frameInfo.Camera);
-                _occlusionBuffer.SetSize(bufferSize.X, bufferSize.Y, _settings.ThreadedOcclusion);
-                _occlusionBuffer.SetView(_frameInfo.Camera);
+                OcclusionBuffer ??= new OcclusionBuffer();
+                var bufferSize = CalculateOcclusionBufferSize(Settings.OcclusionBufferSize, FrameInfo.Camera);
+                OcclusionBuffer.SetSize(bufferSize.X, bufferSize.Y, Settings.ThreadedOcclusion);
+                OcclusionBuffer.SetView(FrameInfo.Camera);
 
                 DrawOccluders();
-                if (_occlusionBuffer.GetNumTriangles() > 0)
-                    _currentOcclusionBuffer = _occlusionBuffer;
+                if (OcclusionBuffer.GetNumTriangles() > 0)
+                    CurrentOcclusionBuffer = OcclusionBuffer;
             }
         }
 
         // Collect visible drawables
-        _drawables.Clear();
-        if (_currentOcclusionBuffer is not null)
+        Drawables.Clear();
+        if (CurrentOcclusionBuffer is not null)
         {
-            var query = new OccludedFrustumOctreeQuery(_drawables, frustum,
-                _currentOcclusionBuffer, DrawableFlags.Geometry | DrawableFlags.Light,
-                _frameInfo.Camera.GetPrimaryViewMask());
-            _frameInfo.Octree!.GetDrawables(query);
+            var query = new OccludedFrustumOctreeQuery(Drawables, frustum,
+                CurrentOcclusionBuffer, DrawableFlags.Geometry | DrawableFlags.Light,
+                FrameInfo.Camera.GetPrimaryViewMask());
+            FrameInfo.Octree!.GetDrawables(query);
         }
         else
         {
-            var drawableQuery = new FrustumOctreeQuery(_drawables, frustum,
-                DrawableFlags.Geometry | DrawableFlags.Light, _frameInfo.Camera.GetPrimaryViewMask());
-            _frameInfo.Octree!.GetDrawables(drawableQuery);
+            var drawableQuery = new FrustumOctreeQuery(Drawables, frustum,
+                DrawableFlags.Geometry | DrawableFlags.Light, FrameInfo.Camera.GetPrimaryViewMask());
+            FrameInfo.Octree!.GetDrawables(drawableQuery);
         }
 
         // Process drawables
-        OcclusionBuffer[]? occlusionSpan = _currentOcclusionBuffer is not null
-            ? [_currentOcclusionBuffer]
+        OcclusionBuffer[]? occlusionSpan = CurrentOcclusionBuffer is not null
+            ? [CurrentOcclusionBuffer]
             : null;
-        _drawableProcessor.ProcessVisibleDrawables(_drawables, occlusionSpan);
-        _drawableProcessor.ProcessLights(this);
-        _drawableProcessor.ProcessForwardLighting();
+        DrawableProcessor.ProcessVisibleDrawables(Drawables, occlusionSpan);
+        DrawableProcessor.ProcessLights(this);
+        DrawableProcessor.ProcessForwardLighting();
 
-        _batchCompositor.ComposeSceneBatches();
-        if (_settings.EnableShadows)
-            _batchCompositor.ComposeShadowBatches();
-        if (_settings.IsDeferredLighting())
-            _batchCompositor.ComposeLightVolumeBatches();
+        BatchCompositor.ComposeSceneBatches();
+        if (Settings.EnableShadows)
+            BatchCompositor.ComposeShadowBatches();
+        if (Settings.IsDeferredLighting())
+            BatchCompositor.ComposeLightVolumeBatches();
     }
 
     public void PrepareInstancingBuffer()
     {
-        if (_instancingBuffer is null || !_instancingBuffer.IsEnabled())
+        if (InstancingBuffer is null || !InstancingBuffer.IsEnabled())
             return;
 
-        _instancingBuffer.Begin();
+        InstancingBuffer.Begin();
 
-        var visibleLights = _drawableProcessor.GetLightProcessors();
+        var visibleLights = DrawableProcessor.GetLightProcessors();
         foreach (var sceneLight in visibleLights)
         {
             if (sceneLight is null)
                 continue;
             foreach (var split in sceneLight.GetMutableSplits())
-                _batchRenderer.PrepareInstancingBuffer(ref split.GetMutableShadowBatches());
+                BatchRenderer.PrepareInstancingBuffer(ref split.GetMutableShadowBatches());
         }
 
-        foreach (var pass in _passes)
+        foreach (var pass in Passes)
         {
             if (pass.IsEnabled())
-                pass.PrepareInstancingBuffer(_batchRenderer);
+                pass.PrepareInstancingBuffer(BatchRenderer);
         }
 
-        _instancingBuffer.End();
+        InstancingBuffer.End();
     }
 
-    public void PrepareDrawablesBeforeRendering() => _drawableProcessor.UpdateGeometries();
+    public void PrepareDrawablesBeforeRendering() => DrawableProcessor.UpdateGeometries();
 
     public void RenderShadowMaps()
     {
-        if (!_settings.EnableShadows || _drawQueue is null || _renderContext is null)
+        if (!Settings.EnableShadows || DrawQueue is null || RenderContext is null)
             return;
 
-        using var renderScope = new RenderScope(_renderContext, "SceneProcessor::RenderShadowMaps");
+        using var renderScope = new RenderScope(RenderContext, "SceneProcessor::RenderShadowMaps");
 
-        var lightsByShadowMap = _drawableProcessor.GetLightProcessorsByShadowMap();
+        var lightsByShadowMap = DrawableProcessor.GetLightProcessorsByShadowMap();
         foreach (var sceneLight in lightsByShadowMap)
         {
             if (sceneLight is null)
                 continue;
-            using var renderScopeLight = new RenderScope(_renderContext, "Light 0x{0} '{1}'",
+            using var renderScopeLight = new RenderScope(RenderContext, "Light 0x{0} '{1}'",
                 sceneLight.GetLight().GetHashCode(), sceneLight.GetLight().Node?.Name ?? string.Empty);
 
             foreach (var split in sceneLight.GetSplits())
             {
-                using var renderScopeSplit = new RenderScope(_renderContext, "Split #{0}", split.GetSplitIndex());
+                using var renderScopeSplit = new RenderScope(RenderContext, "Split #{0}", split.GetSplitIndex());
 
-                if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+                if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
                 {
                     var passName = $"ShadowMap.[{split.GetLight().GetFullNameDebug()}].{split.GetSplitIndex()}";
-                    _debugger!.BeginPass(passName);
+                    Debugger!.BeginPass(passName);
                 }
 
-                _drawQueue.Reset();
-                _batchRenderer.RenderBatches(new BatchRenderingContext(_drawQueue, split), split.GetShadowBatches());
-                _shadowMapAllocator?.BeginShadowMapRendering(split.GetShadowMap());
-                _renderContext.Execute(_drawQueue);
+                DrawQueue.Reset();
+                BatchRenderer.RenderBatches(new BatchRenderingContext(DrawQueue, split), split.GetShadowBatches());
+                ShadowMapAllocator?.BeginShadowMapRendering(split.GetShadowMap());
+                RenderContext.Execute(DrawQueue);
 
-                if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-                    _debugger!.EndPass();
+                if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
+                    Debugger!.EndPass();
             }
         }
     }
@@ -356,17 +356,17 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderParameterDesc> frameParameters = default,
         uint instanceMultiplier = 1u)
     {
-        if (_drawQueue is null || _renderContext is null)
+        if (DrawQueue is null || RenderContext is null)
             return;
 
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.BeginPass(debugName);
+        if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
+            Debugger!.BeginPass(debugName);
 
-        using var renderScope = new RenderScope(_renderContext, debugName);
+        using var renderScope = new RenderScope(RenderContext, debugName);
 
-        _drawQueue.Reset();
+        DrawQueue.Reset();
 
-        var ctx = new BatchRenderingContext(_drawQueue, camera)
+        var ctx = new BatchRenderingContext(DrawQueue, camera)
         {
             InstanceMultiplier = instanceMultiplier,
             GlobalResources = globalResources.ToArray(),
@@ -375,18 +375,18 @@ public class SceneProcessor : Object, LightProcessorCallback
         };
 
         var lightVolumeBatches = GetLightVolumeBatches();
-        _batchRenderer.RenderLightVolumeBatches(ctx,
+        BatchRenderer.RenderLightVolumeBatches(ctx,
             System.Runtime.InteropServices.CollectionsMarshal.AsSpan((List<PipelineBatchByState>)lightVolumeBatches));
 
-        _renderContext.Execute(_drawQueue);
+        RenderContext.Execute(DrawQueue);
 
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.EndPass();
+        if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
+            Debugger!.EndPass();
     }
 
-    public SceneProcessorSettings GetSettings() => _settings;
+    public SceneProcessorSettings GetSettings() => Settings;
 
-    public CommonFrameInfo GetFrameInfo() => _frameInfo;
+    public CommonFrameInfo GetFrameInfo() => FrameInfo;
 
     /// <summary>
     /// Takes pass object from BatchStateCreateContext.
@@ -396,34 +396,34 @@ public class SceneProcessor : Object, LightProcessorCallback
     public BatchCompositorPass? GetUserPass(Object? pass)
     {
         System.Diagnostics.Debug.Assert(pass is not null);
-        if (ReferenceEquals(pass, _batchCompositor))
+        if (ReferenceEquals(pass, BatchCompositor))
             return null;
         return pass as BatchCompositorPass;
     }
 
-    public IReadOnlyList<PipelineBatchByState> GetLightVolumeBatches() => _batchCompositor.GetLightVolumeBatches();
+    public IReadOnlyList<PipelineBatchByState> GetLightVolumeBatches() => BatchCompositor.GetLightVolumeBatches();
 
-    public CameraProcessor GetCameraProcessor() => _cameraProcessor;
+    public CameraProcessor GetCameraProcessor() => CameraProcessor;
 
-    public PipelineStateBuilder GetPipelineStateBuilder() => _pipelineStateBuilder;
+    public PipelineStateBuilder GetPipelineStateBuilder() => PipelineStateBuilder;
 
-    public DrawableProcessor GetDrawableProcessor() => _drawableProcessor;
+    public DrawableProcessor GetDrawableProcessor() => DrawableProcessor;
 
-    public BatchCompositor GetBatchCompositor() => _batchCompositor;
+    public BatchCompositor GetBatchCompositor() => BatchCompositor;
 
-    public BatchRenderer GetBatchRenderer() => _batchRenderer;
+    public BatchRenderer GetBatchRenderer() => BatchRenderer;
 
     protected virtual void DrawOccluders()
     {
-        if (_occlusionBuffer is null)
+        if (OcclusionBuffer is null)
             return;
 
-        var activeOccluders = _drawableProcessor.GetOccluders();
+        var activeOccluders = DrawableProcessor.GetOccluders();
 
-        _occlusionBuffer.SetMaxTriangles(_settings.MaxOccluderTriangles);
-        _occlusionBuffer.Clear();
+        OcclusionBuffer.SetMaxTriangles(Settings.MaxOccluderTriangles);
+        OcclusionBuffer.Clear();
 
-        if (!_occlusionBuffer.IsThreaded())
+        if (!OcclusionBuffer.IsThreaded())
         {
             // If not threaded, draw occluders one by one and test the next occluder against already rasterized depth
             for (var i = 0; i < activeOccluders.Count; ++i)
@@ -434,14 +434,14 @@ public class SceneProcessor : Object, LightProcessorCallback
                 if (i > 0)
                 {
                     // For subsequent occluders, do a test against the pixel-level occlusion buffer to see if rendering is necessary
-                    if (!_occlusionBuffer.IsVisible(occluder.GetWorldBoundingBox()))
+                    if (!OcclusionBuffer.IsVisible(occluder.GetWorldBoundingBox()))
                         continue;
                 }
 
                 // Check for running out of triangles
-                var success = occluder.DrawOcclusion(_occlusionBuffer);
+                var success = occluder.DrawOcclusion(OcclusionBuffer);
                 // Draw triangles submitted by this occluder
-                _occlusionBuffer.DrawTriangles();
+                OcclusionBuffer.DrawTriangles();
                 if (!success)
                     break;
             }
@@ -452,15 +452,15 @@ public class SceneProcessor : Object, LightProcessorCallback
             for (var i = 0; i < activeOccluders.Count; ++i)
             {
                 // Check for running out of triangles
-                if (activeOccluders[i].Drawable is { } drawable && !drawable.DrawOcclusion(_occlusionBuffer))
+                if (activeOccluders[i].Drawable is { } drawable && !drawable.DrawOcclusion(OcclusionBuffer))
                     break;
             }
 
-            _occlusionBuffer.DrawTriangles();
+            OcclusionBuffer.DrawTriangles();
         }
 
         // Finally build the depth mip levels
-        _occlusionBuffer.BuildDepthHierarchy();
+        OcclusionBuffer.BuildDepthHierarchy();
     }
 
     private void RenderBatchesInternal<T>(string debugName, Camera camera,
@@ -470,20 +470,20 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderParameterDesc> frameParameters,
         uint instanceMultiplier)
     {
-        if (_drawQueue is null || _renderContext is null)
+        if (DrawQueue is null || RenderContext is null)
             return;
 
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.BeginPass(debugName);
+        if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
+            Debugger!.BeginPass(debugName);
 
-        using var renderScope = new RenderScope(_renderContext, debugName);
+        using var renderScope = new RenderScope(RenderContext, debugName);
 
-        _drawQueue.Reset();
+        DrawQueue.Reset();
 
-        var needClipping = camera.GetUseClipping() || _frameInfo.Cameras.Length > 1 && _frameInfo.Cameras[1] is not null;
-        _drawQueue.SetClipPlaneMask(needClipping ? 1u << 0 : 0u);
+        var needClipping = camera.GetUseClipping() || FrameInfo.Cameras.Length > 1 && FrameInfo.Cameras[1] is not null;
+        DrawQueue.SetClipPlaneMask(needClipping ? 1u << 0 : 0u);
 
-        var ctx = new BatchRenderingContext(_drawQueue, camera)
+        var ctx = new BatchRenderingContext(DrawQueue, camera)
         {
             InstanceMultiplier = instanceMultiplier,
             GlobalResources = globalResources.ToArray(),
@@ -492,39 +492,39 @@ public class SceneProcessor : Object, LightProcessorCallback
         };
 
         if (batchGroup.ScissorRect != IntRect.Zero)
-            _drawQueue.SetScissorRect(batchGroup.ScissorRect);
+            DrawQueue.SetScissorRect(batchGroup.ScissorRect);
 
         if (typeof(T) == typeof(PipelineBatchByState))
-            _batchRenderer.RenderBatches(ctx, (PipelineBatchGroup<PipelineBatchByState>)(object)batchGroup);
+            BatchRenderer.RenderBatches(ctx, (PipelineBatchGroup<PipelineBatchByState>)(object)batchGroup);
         else if (typeof(T) == typeof(PipelineBatchBackToFront))
-            _batchRenderer.RenderBatches(ctx, (PipelineBatchGroup<PipelineBatchBackToFront>)(object)batchGroup);
+            BatchRenderer.RenderBatches(ctx, (PipelineBatchGroup<PipelineBatchBackToFront>)(object)batchGroup);
 
-        _renderContext.Execute(_drawQueue);
+        RenderContext.Execute(DrawQueue);
 
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.EndPass();
+        if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
+            Debugger!.EndPass();
     }
 
     private void OnUpdateBegin(CommonFrameInfo frameInfo)
     {
-        _frameInfo.FrameNumber = frameInfo.FrameNumber;
-        _frameInfo.TimeStep = frameInfo.TimeStep;
+        FrameInfo.FrameNumber = frameInfo.FrameNumber;
+        FrameInfo.TimeStep = frameInfo.TimeStep;
 
-        _occluders.Clear();
-        _drawables.Clear();
+        Occluders.Clear();
+        Drawables.Clear();
 
-        _cameraProcessor.OnUpdateBegin(_frameInfo);
-        _drawableProcessor.OnUpdateBegin(_frameInfo);
-        _pipelineStateBuilder.UpdateFrameSettings(_renderPipeline.IsLinearColorSpace);
+        CameraProcessor.OnUpdateBegin(FrameInfo);
+        DrawableProcessor.OnUpdateBegin(FrameInfo);
+        PipelineStateBuilder.UpdateFrameSettings(RenderPipeline.IsLinearColorSpace);
     }
 
-    private void OnRenderBegin(CommonFrameInfo frameInfo) => _cameraProcessor.OnRenderBegin(frameInfo);
+    private void OnRenderBegin(CommonFrameInfo frameInfo) => CameraProcessor.OnRenderBegin(frameInfo);
 
-    private void OnRenderEnd(CommonFrameInfo frameInfo) => _cameraProcessor.OnRenderEnd(frameInfo);
+    private void OnRenderEnd(CommonFrameInfo frameInfo) => CameraProcessor.OnRenderEnd(frameInfo);
 
     public bool IsLightShadowed(Light light)
     {
-        var shadowsEnabled = _settings.EnableShadows
+        var shadowsEnabled = Settings.EnableShadows
             && light.GetCastShadows()
             && light.GetLightImportance() != LightImportance.NotImportant
             && light.GetShadowIntensity() < 1.0f;
@@ -543,10 +543,10 @@ public class SceneProcessor : Object, LightProcessorCallback
         _ = numActiveSplits;
         var parameters = light.GetShadowFocus();
         var shadowResolutionScale = light.GetShadowResolution();
-        var pageSize = _shadowMapAllocator?.Settings.ShadowAtlasPageSize ?? 2048u;
-        var maxShadowSize = GetMaxShadowSplitSize(_settings, pageSize, light);
+        var pageSize = ShadowMapAllocator?.Settings.ShadowAtlasPageSize ?? 2048u;
+        var maxShadowSize = GetMaxShadowSplitSize(Settings, pageSize, light);
 
-        var lightSizeInPixels = GetLightSizeInPixels(light, _frameInfo);
+        var lightSizeInPixels = GetLightSizeInPixels(light, FrameInfo);
         var baseShadowSize = parameters.AutoSize ? lightSizeInPixels : maxShadowSize;
         var shadowSize = MathDefs.NextPowerOfTwo((uint)(baseShadowSize * shadowResolutionScale));
 
@@ -554,7 +554,7 @@ public class SceneProcessor : Object, LightProcessorCallback
     }
 
     public ShadowMapRegion AllocateTransientShadowMap(Vector2i size) =>
-        _shadowMapAllocator?.AllocateShadowMap(size) ?? default;
+        ShadowMapAllocator?.AllocateShadowMap(size) ?? default;
 
     private static Vector2i CalculateOcclusionBufferSize(uint size, Camera cullCamera)
     {

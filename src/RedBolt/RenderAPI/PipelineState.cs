@@ -374,6 +374,7 @@ public class PipelineState : DeviceObject
         TextureFormat.BGRA8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
         TextureFormat.BGRA8Srgb => RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
         TextureFormat.RGBA16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
+        TextureFormat.RGBA32F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float,
         TextureFormat.Unknown => RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
     };

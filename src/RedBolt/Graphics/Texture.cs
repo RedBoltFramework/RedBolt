@@ -14,14 +14,15 @@ public enum TextureFormat
     RGBA8Srgb,
     BGRA8,
     BGRA8Srgb,
-    RGBA16F
+    RGBA16F,
+    RGBA32F
 }
 
 internal static class TextureFormatUtility
 {
     public static bool IsFloatColorFormat(TextureFormat format)
     {
-        return format is TextureFormat.RG16F or TextureFormat.RGBA16F;
+        return format is TextureFormat.RG16F or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
     }
 }
 
@@ -226,6 +227,7 @@ public abstract class Texture : ResourceWithMetadata
             TextureFormat.RGB8 => 3u,
             TextureFormat.RGBA8 => 4u,
             TextureFormat.RGBA16F => 8u,
+            TextureFormat.RGBA32F => 16u,
             _ => 0u
         };
     }

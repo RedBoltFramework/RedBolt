@@ -410,7 +410,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `UnorderedScenePass : ScenePass` — deferred/base/light sort keys, partial negative-light sort, and batch-group flags match C++
   - [x] `BackToFrontScenePass : ScenePass` — distance factoring for additive/subtractive lights, NaN distance validation, refraction detection, and batch-group flags match C++
 - [x] `SceneProcessor.h`
-  - [x] `SceneProcessor : Object, LightProcessorCallback` — Define/SetPasses/SetSettings, occluder and visible-drawable queries, light-processor callback shadow sizing, Compose scene/shadow/light-volume batches, PrepareInstancingBuffer, RenderShadowMaps/RenderSceneBatches/RenderLightVolumeBatches, and DrawOccluders match C++ (ReflectionProbeManager hook remains TODO)
+  - [x] `SceneProcessor : Object, LightProcessorCallback` — Define/SetPasses/SetSettings, occluder and visible-drawable queries, light-processor callback shadow sizing, Compose scene/shadow/light-volume batches, PrepareInstancingBuffer, RenderShadowMaps/RenderSceneBatches/RenderLightVolumeBatches, and DrawOccluders match C++; protected C++ fields are exposed as protected for `StereoSceneProcessor` (ReflectionProbeManager hook remains TODO)
 - [x] `OutlineScenePass.h`
   - [x] `OutlineScenePass : ScenePass` — outline group filtering, custom deferred batches, pipeline-state creation for outline mask, sort keys, and instancing prepare match C++
 - [x] `RenderPipelineDebugger.h`
@@ -436,11 +436,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `RenderPipeline : Component` — hash-keyed parameter updates and ResourceRef/VariantVector attribute accessors now match C++; remaining lifecycle and native pipeline integrations are incomplete
 - [~] `DefaultRenderPipeline.h`
   - [~] `DefaultRenderPipelineView` — managed embedded view covers Define/Update/Render and frame/stat access; native debugger, scene-pass graph, output-flag calculation, and debug-draw members remain unported adaptations
-- [ ] `StereoRenderPipeline.h`
-  - [ ] `StereoRenderPipelineView : RenderPipelineView`
-  - [ ] `StereoRenderPipeline : RenderPipeline`
-- [ ] `LightmapRenderPipeline.h` ⤴ pairs with `Glow`
-  - [ ] `LightmapRenderPipelineView`
+- [x] `StereoRenderPipeline.h`
+  - [x] `StereoRenderPipelineView : RenderPipelineView` — stereo octree queries, `StereoSceneProcessor` occluder/drawable collection, forward stereo batch rendering with instance multiplier 2, outline path, render-path hooks, and dual-eye debug geometry match C++; stereo runtime validation remains sample-gated
+  - [x] `StereoRenderPipeline : RenderPipeline` — `Instantiate()` returns `StereoRenderPipelineView`
+- [x] `LightmapRenderPipeline.h` ⤴ pairs with `Glow`
+  - [x] `LightmapRenderPipelineView` — deferred G-buffer pass, RGBA32F color targets, clear/set-render-target path, and geometry-buffer texture accessors match C++; full lightmap bake path depends on remaining Glow/`LightBaker` work
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 

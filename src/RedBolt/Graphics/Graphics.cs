@@ -680,7 +680,8 @@ layout(std140) uniform Material
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
         return format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8
-            or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8 or TextureFormat.RGBA16F;
+            or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8
+            or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
     }
 
     public ShaderVariation? GetShader(ShaderType type, string name, string defines = "")
@@ -3438,6 +3439,7 @@ layout(std140) uniform Material
             TextureFormat.BGRA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
             TextureFormat.BGRA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
             TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
+            TextureFormat.RGBA32F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float,
             _ => default
         };
         return sRgb ? RenderAPIUtils.SetTextureFormatSRGB(nativeFormat) : nativeFormat;
@@ -3507,6 +3509,7 @@ layout(std140) uniform Material
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float => TextureFormat.RGBA16F,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float => TextureFormat.RGBA32F,
             _ => TextureFormat.Unknown
         };
     }
