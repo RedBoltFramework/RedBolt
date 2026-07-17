@@ -18,6 +18,23 @@ public sealed class AnimationStateSourceTests
     }
 
     [Fact]
+    public void Animation_state_source_exposes_live_shared_states_and_releases_them_on_destruction()
+    {
+        var source = new TestAnimationStateSource();
+        using var state = new AnimationState();
+        var states = source.GetAnimationStates();
+
+        source.AddAnimationState(state);
+
+        Assert.Single(states);
+        Assert.Same(state, states[0]);
+
+        source.Dispose();
+
+        Assert.Empty(states);
+    }
+
+    [Fact]
     public void Animation_state_preserves_lifecycle_and_track_dirty_state()
     {
         var animation = new Animation();
@@ -48,6 +65,11 @@ public sealed class AnimationStateSourceTests
     private sealed class TestAnimationStateSource : AnimationStateSource
     {
         public bool MarkedDirty { get; private set; }
+
+        public void AddAnimationState(AnimationState state)
+        {
+            _animationStates.Add(state);
+        }
 
         public override void MarkAnimationStateTracksDirty()
         {

@@ -92,7 +92,6 @@ public class AnimationController : AnimationStateSource
         _pendingTriggers.Clear();
         _tempAnimations.Clear();
         _animations.Clear();
-        _animationStates.Clear();
         base.Dispose();
     }
 
