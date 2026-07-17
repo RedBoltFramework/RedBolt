@@ -101,7 +101,10 @@ public partial class LightProcessor
     {
         _light = light ?? throw new ArgumentNullException(nameof(light));
         _renderBackend = light.GetSubsystem<Graphics>()?.GetRenderBackend() ?? default;
+        _cookedParams.LightShapeMatrix = Matrix4.Identity;
         _cookedParams.LightMatrices = new Matrix4[Light.MaxCascadeSplits];
+        for (var i = 0; i < _cookedParams.LightMatrices.Length; ++i)
+            _cookedParams.LightMatrices[i] = Matrix4.Identity;
         _cookedParams.ShadowNormalBias = new float[Light.MaxLightSplits];
         _cookedParams.ShadowDepthBiasMultiplier = new float[Light.MaxLightSplits];
         for (var i = 0; i < _cookedParams.ShadowDepthBiasMultiplier.Length; ++i)

@@ -330,11 +330,16 @@ public static class RenderAPIUtils
 
     private static void SerializeQueryTypes(Archive archive, uint?[] sizes)
     {
-        sizes[0] = SerializeOptionalUInt(archive, "queryPoolSize_occlusion", sizes[0]);
-        sizes[1] = SerializeOptionalUInt(archive, "queryPoolSize_binaryOcclusion", sizes[1]);
-        sizes[2] = SerializeOptionalUInt(archive, "queryPoolSize_timestamp", sizes[2]);
-        sizes[3] = SerializeOptionalUInt(archive, "queryPoolSize_pipelineStatistics", sizes[3]);
-        sizes[4] = SerializeOptionalUInt(archive, "queryPoolSize_duration", sizes[4]);
+        var occlusion = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion;
+        var binaryOcclusion = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeBinaryOcclusion;
+        var timestamp = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp;
+        var pipelineStatistics = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypePipelineStatistics;
+        var duration = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeDuration;
+        sizes[occlusion] = SerializeOptionalUInt(archive, "queryPoolSize_occlusion", sizes[occlusion]);
+        sizes[binaryOcclusion] = SerializeOptionalUInt(archive, "queryPoolSize_binaryOcclusion", sizes[binaryOcclusion]);
+        sizes[timestamp] = SerializeOptionalUInt(archive, "queryPoolSize_timestamp", sizes[timestamp]);
+        sizes[pipelineStatistics] = SerializeOptionalUInt(archive, "queryPoolSize_pipelineStatistics", sizes[pipelineStatistics]);
+        sizes[duration] = SerializeOptionalUInt(archive, "queryPoolSize_duration", sizes[duration]);
     }
 
     public static void SerializeValue(

@@ -95,8 +95,8 @@ public sealed class RenderAPIUtilsTests
         settings.CpuDescriptorHeapAllocationSize[1] = null;
         settings.GpuDescriptorHeapSize[1] = 256;
         settings.DynamicHeapPageSize = 4096;
-        settings.QueryPoolSizes[0] = 4;
-        settings.QueryPoolSizes[3] = 8;
+        settings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion] = 4;
+        settings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp] = 8;
 
         var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
@@ -114,9 +114,9 @@ public sealed class RenderAPIUtilsTests
         Assert.Null(loadedSettings.CpuDescriptorHeapAllocationSize[1]);
         Assert.Equal((uint?)256, loadedSettings.GpuDescriptorHeapSize[1]);
         Assert.Equal((uint?)4096, loadedSettings.DynamicHeapPageSize);
-        Assert.Equal((uint?)4, loadedSettings.QueryPoolSizes[0]);
-        Assert.Equal((uint?)8, loadedSettings.QueryPoolSizes[3]);
-        Assert.Null(loadedSettings.QueryPoolSizes[1]);
+        Assert.Null(loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeUndefined]);
+        Assert.Equal((uint?)4, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion]);
+        Assert.Equal((uint?)8, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
     }
 
     [Fact]

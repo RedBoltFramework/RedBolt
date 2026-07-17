@@ -11,6 +11,25 @@ public sealed class ShadowSplitProcessorTests
     }
 
     [Fact]
+    public void LightProcessor_InitializesCookedMatricesToIdentity()
+    {
+        using var scene = new Scene();
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
+        var processor = new LightProcessor(light);
+
+        try
+        {
+            ref readonly var parameters = ref processor.GetParams();
+            Assert.Equal(Matrix4.Identity, parameters.LightShapeMatrix);
+            Assert.All(parameters.LightMatrices, matrix => Assert.Equal(Matrix4.Identity, matrix));
+        }
+        finally
+        {
+            processor.Dispose();
+        }
+    }
+
+    [Fact]
     public void InitializeSpot_ConfiguresShadowCameraFromLight()
     {
         using var scene = new Scene();

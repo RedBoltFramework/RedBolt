@@ -14,6 +14,8 @@ public sealed class Engine : Object
     private bool _audioPaused;
     private bool _exitRequired;
     private bool _screenshotCapturedForExit;
+    private int _screenshotIndex;
+    private int _screenshotFrameDelay;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
     private readonly ConfigFile _configFile = new();
@@ -99,6 +101,9 @@ public sealed class Engine : Object
         IsInitialized = true;
         IsExiting = false;
         _exitRequired = false;
+        _screenshotCapturedForExit = false;
+        _screenshotIndex = 0;
+        _screenshotFrameDelay = 0;
         _currentTimeStep = 0.0f;
         _lastTimeSteps.Clear();
         _frameTimer.Reset();
@@ -322,6 +327,8 @@ public sealed class Engine : Object
         _audioPaused = false;
         _exitRequired = false;
         _screenshotCapturedForExit = false;
+        _screenshotIndex = 0;
+        _screenshotFrameDelay = 0;
         _frameTimer.Reset();
     }
 
@@ -418,11 +425,16 @@ public sealed class Engine : Object
 
         graphics.ResetRenderTargets();
 
-        var screenshotPath = _exitRequired ? Parameters.ScreenshotOnExit : null;
-        if (!string.IsNullOrWhiteSpace(screenshotPath))
+        var screenshotPath = _exitRequired && !_screenshotCapturedForExit ? Parameters.ScreenshotOnExit : null;
+        if (!string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
             using var screenshot = new Image("Screenshot");
-            _screenshotCapturedForExit = graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(screenshotPath);
+            if (graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(GetScreenshotPath(screenshotPath)))
+            {
+                ++_screenshotIndex;
+                _screenshotCapturedForExit = _screenshotIndex >= Parameters.ScreenshotCount;
+                _screenshotFrameDelay = Parameters.ScreenshotFrameDelay;
+            }
         }
 
         graphics.EndFrame();
@@ -702,6 +714,16 @@ public sealed class Engine : Object
     {
         if (_exitRequired && (IsHeadless || string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit) || _screenshotCapturedForExit))
             DoExit();
+    }
+
+    private string GetScreenshotPath(string screenshotPath)
+    {
+        if (Parameters.ScreenshotCount == 1)
+            return screenshotPath;
+
+        var directoryName = Path.GetDirectoryName(screenshotPath);
+        var fileName = $"{Path.GetFileNameWithoutExtension(screenshotPath)}-{_screenshotIndex + 1:D4}{Path.GetExtension(screenshotPath)}";
+        return string.IsNullOrEmpty(directoryName) ? fileName : Path.Combine(directoryName, fileName);
     }
 
     private void DoExit()

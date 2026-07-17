@@ -17,6 +17,14 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
+    public void Render_pipeline_enables_instancing_by_default()
+    {
+        var renderPipeline = new RenderPipeline();
+
+        Assert.True(renderPipeline.Settings.InstancingBuffer.EnableInstancing);
+    }
+
+    [Fact]
     public void Render_pipeline_collects_render_path_parameters()
     {
         var scene = new Scene();
@@ -253,7 +261,7 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
-    public void Render_pipeline_publishes_normal_buffer_when_ssao_is_enabled()
+    public void Render_pipeline_does_not_publish_normal_buffer_for_forward_lighting()
     {
         RbfxTestData.AddResourceDirs(_fixture.Resources);
         try
@@ -276,9 +284,7 @@ public sealed class RenderPipelineTests
             view.Update(_fixture.Graphics);
             view.Render(_fixture.Graphics, MaterialQuality.High);
 
-            Assert.True(capturePass.WasBufferPresent);
-            Assert.Equal(TextureFormat.RGBA8, capturePass.CapturedFormat);
-            Assert.Equal(new Vector2i(1, 1), capturePass.CapturedSize);
+            Assert.False(capturePass.WasBufferPresent);
         }
         finally
         {

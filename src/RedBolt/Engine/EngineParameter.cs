@@ -43,6 +43,8 @@ public static class EngineParameter
     public const string ResourcePrefixPaths = "ResourcePrefixPaths";
     public const string ResourceRootFile = "ResourceRootFile";
     public const string SaveShaderCache = "SaveShaderCache";
+    public const string ScreenshotCount = "ScreenshotCount";
+    public const string ScreenshotFrameDelay = "ScreenshotFrameDelay";
     public const string ScreenshotOnExit = "ScreenshotOnExit";
     public const string ShaderCacheDir = "ShaderCacheDir";
     public const string ShaderLogSources = "ShaderLogSource";

@@ -17,6 +17,7 @@ public sealed class ApplicationCommandLineTests
             "--touch",
             "--timeout=7",
             "--screenshot-on-exit=/tmp/redbolt-test.png",
+            "--screenshot-parameters=3,2",
             "--app-name=RedBolt.Tests.Override",
             "--no-load-fonts"
         ]);
@@ -30,6 +31,8 @@ public sealed class ApplicationCommandLineTests
         Assert.True(application.ObservedParameters.TouchEmulation);
         Assert.Equal(7, application.ObservedParameters.TimeOut);
         Assert.Equal("/tmp/redbolt-test.png", application.ObservedParameters.ScreenshotOnExit);
+        Assert.Equal(3, application.ObservedParameters.ScreenshotCount);
+        Assert.Equal(2, application.ObservedParameters.ScreenshotFrameDelay);
         Assert.Equal("RedBolt.Tests.Override", application.ObservedParameters.ApplicationName);
         Assert.False(application.ObservedParameters.LoadFonts);
     }
@@ -66,6 +69,8 @@ public sealed class ApplicationCommandLineTests
                 ApplicationName = Engine.Parameters.ApplicationName,
                 Headless = Engine.Parameters.Headless,
                 LoadFonts = Engine.Parameters.LoadFonts,
+                ScreenshotCount = Engine.Parameters.ScreenshotCount,
+                ScreenshotFrameDelay = Engine.Parameters.ScreenshotFrameDelay,
                 ScreenshotOnExit = Engine.Parameters.ScreenshotOnExit,
                 TimeOut = Engine.Parameters.TimeOut,
                 TouchEmulation = Engine.Parameters.TouchEmulation,

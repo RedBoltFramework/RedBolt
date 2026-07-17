@@ -181,12 +181,12 @@ public class DrawableProcessor : Object
     private readonly List<LightProcessor?> _lightProcessors = [];
     private readonly List<LightProcessor?> _lightProcessorsByShadowMapSize = [];
     private readonly List<LightProcessor?> _lightProcessorsByShadowMapTexture = [];
-    private readonly List<Drawable?> _geometries = [];
+    private readonly WorkQueueVector<Drawable> _geometries = new();
     private readonly List<SortedOccluder> _sortedOccluders = [];
-    private readonly Dictionary<uint, LightAccumulator> _geometryLighting = [];
-    private readonly Dictionary<uint, GeometryRenderFlag> _geometryRenderFlags = [];
-    private readonly Dictionary<uint, FloatRange> _geometryZRanges = [];
-    private readonly HashSet<uint> _isDrawableUpdated = [];
+    private LightAccumulator[] _geometryLighting = [];
+    private GeometryRenderFlag[] _geometryRenderFlags = [];
+    private FloatRange[] _geometryZRanges = [];
+    private int[] _isDrawableUpdated = [];
     private readonly WorkQueueVector<Drawable> _queuedDrawableUpdates = new();
     private readonly WorkQueueVector<Drawable> _threadedGeometryUpdates = new();
     private readonly WorkQueueVector<Drawable> _nonThreadedGeometryUpdates = new();
@@ -241,7 +241,7 @@ public class DrawableProcessor : Object
 
     public IReadOnlyList<SortedOccluder> GetOccluders() => _sortedOccluders;
 
-    public IReadOnlyList<Drawable?> GetGeometries() => _geometries;
+    public IEnumerable<Drawable> GetGeometries() => _geometries;
 
     public FloatRange GetSceneZRange() => _sceneZRange;
 
@@ -259,23 +259,38 @@ public class DrawableProcessor : Object
 
     public uint GetNumShadowedLights() => _numShadowedLights;
 
-    public LightAccumulator GetGeometryLighting(uint drawableIndex) =>
-        _geometryLighting.TryGetValue(drawableIndex, out var lighting) ? lighting : new LightAccumulator();
+    public LightAccumulator GetGeometryLighting(uint drawableIndex) => drawableIndex < (uint)_geometryLighting.Length
+        ? _geometryLighting[(int)drawableIndex]
+        : new LightAccumulator();
 
-    public void SetGeometryLighting(uint drawableIndex, LightAccumulator lighting) =>
-        _geometryLighting[drawableIndex] = lighting;
+    public void SetGeometryLighting(uint drawableIndex, LightAccumulator lighting)
+    {
+        if (drawableIndex >= (uint)_geometryLighting.Length)
+            Array.Resize(ref _geometryLighting, checked((int)drawableIndex + 1));
+        _geometryLighting[(int)drawableIndex] = lighting;
+    }
 
-    public GeometryRenderFlag GetGeometryRenderFlags(uint drawableIndex) =>
-        _geometryRenderFlags.TryGetValue(drawableIndex, out var flags) ? flags : default;
+    public GeometryRenderFlag GetGeometryRenderFlags(uint drawableIndex) => drawableIndex < (uint)_geometryRenderFlags.Length
+        ? _geometryRenderFlags[(int)drawableIndex]
+        : default;
 
-    public void SetGeometryRenderFlags(uint drawableIndex, GeometryRenderFlag flags) =>
-        _geometryRenderFlags[drawableIndex] = flags;
+    public void SetGeometryRenderFlags(uint drawableIndex, GeometryRenderFlag flags)
+    {
+        if (drawableIndex >= (uint)_geometryRenderFlags.Length)
+            Array.Resize(ref _geometryRenderFlags, checked((int)drawableIndex + 1));
+        _geometryRenderFlags[(int)drawableIndex] = flags;
+    }
 
-    public FloatRange GetGeometryZRange(uint drawableIndex) =>
-        _geometryZRanges.TryGetValue(drawableIndex, out var range) ? range : default;
+    public FloatRange GetGeometryZRange(uint drawableIndex) => drawableIndex < (uint)_geometryZRanges.Length
+        ? _geometryZRanges[(int)drawableIndex]
+        : default;
 
-    public void SetGeometryZRange(uint drawableIndex, FloatRange range) =>
-        _geometryZRanges[drawableIndex] = range;
+    public void SetGeometryZRange(uint drawableIndex, FloatRange range)
+    {
+        if (drawableIndex >= (uint)_geometryZRanges.Length)
+            Array.Resize(ref _geometryZRanges, checked((int)drawableIndex + 1));
+        _geometryZRanges[(int)drawableIndex] = range;
+    }
 
     public void SetSceneZRange(FloatRange range) => _sceneZRange = range;
 
@@ -293,7 +308,11 @@ public class DrawableProcessor : Object
     public void SetGeometries(IReadOnlyList<Drawable?> geometries)
     {
         _geometries.Clear();
-        _geometries.AddRange(geometries);
+        foreach (var geometry in geometries)
+        {
+            if (geometry is not null)
+                _geometries.PushBack(0, geometry);
+        }
     }
 
     public void OnUpdateBegin(CommonFrameInfo frameInfo)
@@ -305,10 +324,15 @@ public class DrawableProcessor : Object
         _lightProcessors.Clear();
         _lightProcessorsByShadowMapSize.Clear();
         _lightProcessorsByShadowMapTexture.Clear();
-        _geometryLighting.Clear();
-        _geometryRenderFlags.Clear();
-        _geometryZRanges.Clear();
-        _isDrawableUpdated.Clear();
+        var numDrawables = (int)(frameInfo.Octree?.GetAllDrawables().Count ?? 0);
+        Array.Resize(ref _isDrawableUpdated, numDrawables);
+        Array.Clear(_isDrawableUpdated);
+        Array.Resize(ref _geometryRenderFlags, numDrawables);
+        Array.Clear(_geometryRenderFlags);
+        Array.Resize(ref _geometryZRanges, numDrawables);
+        Array.Resize(ref _geometryLighting, numDrawables);
+        for (var i = 0; i < _geometryLighting.Length; ++i)
+            _geometryLighting[i] ??= new LightAccumulator();
         _queuedDrawableUpdates.Clear();
         _threadedGeometryUpdates.Clear();
         _nonThreadedGeometryUpdates.Clear();
@@ -575,13 +599,49 @@ public class DrawableProcessor : Object
         });
     }
 
+    private void CheckMaterialForAuxiliaryRenderSurfaces(Material? material)
+    {
+        // Skip if already checked or not main viewport
+        if (material is null || material.GetAuxViewFrameNumber() == _frameInfo.FrameNumber || _frameInfo.RenderTarget is not null)
+            return;
+
+        var textures = material.EnumerateTextures();
+        while (textures.MoveNext())
+        {
+            // Skip if not render targets
+            var texture = textures.Current.Value.Texture;
+            if (!texture.IsRenderTarget())
+                continue;
+
+            // Have to check cube & 2D textures separately
+            if (texture is Texture2D texture2D)
+            {
+                var target = texture2D.GetRenderSurface();
+                if (target is not null && target.GetUpdateMode() == RenderSurfaceUpdateMode.UpdateVisible)
+                    target.QueueUpdate();
+            }
+            else if (texture is TextureCube textureCube)
+            {
+                for (var j = CubeMapFace.PositiveX; j < CubeMapFace.MaxCubeMapFaces; ++j)
+                {
+                    var target = textureCube.GetRenderSurface(j);
+                    if (target is not null && target.GetUpdateMode() == RenderSurfaceUpdateMode.UpdateVisible)
+                        target.QueueUpdate();
+                }
+            }
+        }
+
+        // Flag as processed so we can early-out next time we come across this material on the same frame
+        material.MarkForAuxView(_frameInfo.FrameNumber);
+    }
+
     private void ProcessVisibleDrawable(Drawable drawable)
     {
         var drawableIndex = drawable.GetDrawableIndex();
 
         drawable.UpdateBatches(_frameInfo);
 
-        _isDrawableUpdated.Add(drawableIndex);
+        Interlocked.Exchange(ref _isDrawableUpdated[(int)drawableIndex], 1);
 
         // Skip if too far
         var maxDistance = drawable.GetDrawDistance();
@@ -632,6 +692,9 @@ public class DrawableProcessor : Object
                 if (technique is null)
                     continue;
 
+                // Check for aux views
+                CheckMaterialForAuxiliaryRenderSurfaces(sourceBatch.Material);
+
                 // Update scene passes
                 foreach (var pass in _passes)
                 {
@@ -676,7 +739,7 @@ public class DrawableProcessor : Object
             SetGeometryLighting(drawableIndex, lightAccumulator);
 
             // Store geometry
-            _geometries.Add(drawable);
+            _geometries.PushBack(WorkQueue.GetThreadIndex(), drawable);
 
             // Update flags
             var flag = GeometryRenderFlag.VisibleInCullCamera;
@@ -787,7 +850,7 @@ public class DrawableProcessor : Object
     public void QueueDrawableUpdate(Drawable drawable)
     {
         var drawableIndex = drawable.GetDrawableIndex();
-        if (!_isDrawableUpdated.Add(drawableIndex))
+        if (Interlocked.Exchange(ref _isDrawableUpdated[(int)drawableIndex], 1) != 0)
             return;
         _queuedDrawableUpdates.Insert(drawable);
     }
@@ -951,7 +1014,7 @@ public class DrawableProcessor : Object
 
     public void OnCollectStatistics(RenderPipelineStats stats)
     {
-        stats.NumGeometries += (uint)_geometries.Count;
+        stats.NumGeometries += _geometries.Size();
         stats.NumLights += (uint)_lights.Count;
     }
 

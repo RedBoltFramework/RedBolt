@@ -357,8 +357,6 @@ public class RawTexture : DeviceObject
 
     public void Resolve()
     {
-        if (!_resolveDirty)
-            return;
         var context = GetSubsystem<Graphics>()?.GetImmediateContext();
         if (context is not null && _handle is not null && _resolvedHandle is not null)
         {
@@ -662,13 +660,10 @@ public class RawTexture : DeviceObject
     /// <summary>For render target and depth-stencil textures, mark shader resource view dirty.</summary>
     public void MarkDirty()
     {
-        if (_texture is null)
-            return;
-
+        if (_parameters.NumLevels > 1u)
+            _levelsDirty = true;
         if (_parameters.MultiSample > 1u && (_parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve)
             _resolveDirty = true;
-        else if (_parameters.NumLevels > 1u)
-            _levelsDirty = true;
     }
 
     public override void Invalidate()
@@ -832,7 +827,8 @@ public class RawTexture : DeviceObject
             _renderSurfaces = CreateRenderSurfaces(_depthStencilView, TextureViewType.TextureViewDepthStencil);
             if (_depthStencilView is not null)
             {
-                using var readOnlyDesc = _depthStencilView.GetDesc();
+                using var depthStencilDesc = _depthStencilView.GetDesc();
+                using var readOnlyDesc = depthStencilDesc.Clone();
                 readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
                 _handle!.CreateView(readOnlyDesc, out _readOnlyDepthStencilView);
                 if (_readOnlyDepthStencilView is { IsNull: true })

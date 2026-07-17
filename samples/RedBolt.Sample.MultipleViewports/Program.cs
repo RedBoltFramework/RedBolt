@@ -24,6 +24,8 @@ sealed class MultipleViewportsApplication : Application
     private ContextEventSubscription? _dearImGuiSubscription;
     private ContextEventSubscription? _postRenderSubscription;
     private bool _drawDebug;
+    private readonly bool _animateCamera = Environment.GetEnvironmentVariable("REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA") == "1";
+    private float _cameraAnimationDelay = 7.0f;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -174,6 +176,13 @@ sealed class MultipleViewportsApplication : Application
         {
             Exit();
             return;
+        }
+
+        if (_animateCamera)
+        {
+            _cameraAnimationDelay -= timeStep;
+            if (_cameraAnimationDelay <= 0.0f)
+                _cameraNode!.Translate(new Vector3f(0.0f, 0.0f, 0.1f * timeStep));
         }
 
         MoveCamera(timeStep);

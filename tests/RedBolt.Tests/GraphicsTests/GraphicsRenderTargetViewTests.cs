@@ -53,6 +53,24 @@ public sealed class GraphicsRenderTargetViewTests
     }
 
     [Fact]
+    public void Texture_backed_render_target_view_tracks_recreated_raw_texture()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var texture = new Texture2D("Textures/RecreatedRenderTargetView");
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            var renderTargetView = RenderTargetView.Texture(texture);
+            var firstRawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+
+            Assert.True(texture.SetSize(32, 24, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            var secondRawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+
+            Assert.NotSame(firstRawTexture, secondRawTexture);
+            Assert.Same(secondRawTexture.GetHandle(), renderTargetView.GetView().GetTexture());
+        });
+    }
+
+    [Fact]
     public void Render_target_view_mark_dirty_marks_multisampled_resolve_state()
     {
         WithInitializedGraphics(() =>

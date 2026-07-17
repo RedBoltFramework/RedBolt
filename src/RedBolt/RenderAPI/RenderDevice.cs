@@ -10,6 +10,7 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderDevice : Object
 {
+    private readonly RenderDeviceSettings _deviceSettings;
     private bool _defaultTextureParametersDirty;
     private TextureFilterMode _defaultTextureFilterMode = TextureFilterMode.Trilinear;
     private int _defaultTextureAnisotropy = 4;
@@ -37,6 +38,42 @@ public sealed class RenderDevice : Object
 
     public RenderDevice()
     {
+        var engine = GetSubsystem<Engine>();
+        var parameters = engine?.Parameters ?? new EngineParameters();
+
+        var vulkanSettings = new RenderDeviceSettingsVulkan();
+        try
+        {
+            var archive = new JSONInputArchive(Context.Instance, parameters.TweakVulkan);
+            RenderAPIUtils.SerializeValue(archive, "object", vulkanSettings);
+            archive.Flush();
+        }
+        catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
+        {
+            vulkanSettings = new RenderDeviceSettingsVulkan();
+        }
+
+        var d3D12Settings = new RenderDeviceSettingsD3D12();
+        try
+        {
+            var archive = new JSONInputArchive(Context.Instance, parameters.TweakD3D12);
+            RenderAPIUtils.SerializeValue(archive, "object", d3D12Settings);
+            archive.Flush();
+        }
+        catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
+        {
+            d3D12Settings = new RenderDeviceSettingsD3D12();
+        }
+
+        _deviceSettings = new RenderDeviceSettings
+        {
+            Backend = MapRenderBackend(parameters.RenderBackend),
+            ExternalWindowHandle = parameters.ExternalWindow,
+            GpuDebug = parameters.GPUDebug,
+            AdapterId = parameters.RenderAdapterId,
+            Vulkan = vulkanSettings,
+            D3D12 = d3D12Settings
+        };
         _renderPool = new RenderPool(this);
         _renderContext = new RenderContext(this);
         _defaultQueue = new DrawCommandQueue(this);
@@ -469,19 +506,7 @@ public sealed class RenderDevice : Object
 
     public RenderBackend GetBackend() => GetDeviceSettings().Backend;
 
-    public RenderDeviceSettings GetDeviceSettings()
-    {
-        var engine = GetSubsystem<Engine>();
-        var parameters = engine?.Parameters ?? new EngineParameters();
-
-        return new RenderDeviceSettings
-        {
-            Backend = MapRenderBackend(parameters.RenderBackend),
-            ExternalWindowHandle = parameters.ExternalWindow,
-            GpuDebug = parameters.GPUDebug,
-            AdapterId = parameters.RenderAdapterId
-        };
-    }
+    public RenderDeviceSettings GetDeviceSettings() => _deviceSettings;
 
     public WindowSettings GetWindowSettings()
     {

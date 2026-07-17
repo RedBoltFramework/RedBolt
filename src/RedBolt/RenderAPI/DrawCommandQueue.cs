@@ -545,7 +545,7 @@ public class DrawCommandQueue : Object
                     if (texture.GetResolveDirty()) texture.Resolve();
                     if (texture.GetLevelsDirty()) texture.GenerateLevels();
                 }
-                view = texture?.GetHandle()?.GetDefaultView(TextureViewType.TextureViewShaderResource);
+                view = texture?.GetHandles().ShaderResourceView;
             }
 
             _shaderResourceViews[i] = view;
@@ -555,9 +555,9 @@ public class DrawCommandQueue : Object
     private static RawTexture? GetReadableTexture(
         RenderContext renderContext, TextureType type, RawTexture? texture, RawTexture? backupTexture)
     {
-        if (texture is not null && !renderContext.IsBoundAsRenderTarget(texture.GetTexture()!))
+        if (texture is not null && !renderContext.IsBoundAsRenderTarget(texture))
             return texture;
-        if (backupTexture is not null && !renderContext.IsBoundAsRenderTarget(backupTexture.GetTexture()!))
+        if (backupTexture is not null && !renderContext.IsBoundAsRenderTarget(backupTexture))
             return backupTexture;
         return renderContext.GetRenderDevice().GetDefaultTexture(type);
     }

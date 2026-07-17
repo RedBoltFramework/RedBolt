@@ -46,58 +46,65 @@ public enum RenderTargetViewType
 public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTargetViewType Type, uint Slice = 0u)
 {
     private readonly RenderDevice? _renderDevice;
+    private readonly RawTexture? _rawTexture;
 
-    private RenderTargetView(Texture? renderTexture, RenderTargetViewType type, uint slice, RenderDevice? renderDevice)
+    private RenderTargetView(Texture? renderTexture, RawTexture? rawTexture, RenderTargetViewType type, uint slice,
+        RenderDevice? renderDevice)
         : this(renderTexture, type, slice)
     {
+        _rawTexture = rawTexture;
         _renderDevice = renderDevice;
     }
 
     public bool Equals(RenderTargetView other) =>
-        ReferenceEquals(RenderTexture, other.RenderTexture) && Type == other.Type && Slice == other.Slice;
+        ReferenceEquals(RenderTexture, other.RenderTexture) && ReferenceEquals(_rawTexture, other._rawTexture)
+        && Type == other.Type && Slice == other.Slice;
 
-    public override int GetHashCode() => HashCode.Combine(RenderTexture, Type, Slice);
+    public override int GetHashCode() => HashCode.Combine(RenderTexture, _rawTexture, Type, Slice);
 
     public static RenderTargetView SwapChainColor(RenderDevice? renderDevice)
     {
-        return new RenderTargetView(null, RenderTargetViewType.SwapChainColor, 0, renderDevice);
+        return new RenderTargetView(null, null, RenderTargetViewType.SwapChainColor, 0, renderDevice);
     }
 
     public static RenderTargetView SwapChainDepthStencil(RenderDevice? renderDevice)
     {
-        return new RenderTargetView(null, RenderTargetViewType.SwapChainDepthStencil, 0, renderDevice);
+        return new RenderTargetView(null, null, RenderTargetViewType.SwapChainDepthStencil, 0, renderDevice);
     }
 
     public static RenderTargetView Texture(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.Resource, 0, texture.GetSubsystem<RenderDevice>()!);
+        return new RenderTargetView(texture, null, RenderTargetViewType.Resource, 0,
+            texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView Texture(RawTexture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
-            RenderTargetViewType.Resource, 0, texture.GetRenderDevice()!);
+        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.Resource, 0,
+            texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView TextureSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ResourceSlice, slice, texture.GetSubsystem<RenderDevice>()!);
+        return new RenderTargetView(texture, null, RenderTargetViewType.ResourceSlice, slice,
+            texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView TextureSlice(RawTexture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
-            RenderTargetViewType.ResourceSlice, slice, texture.GetRenderDevice()!);
+        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ResourceSlice, slice,
+            texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView ReadOnlyDepth(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResource, 0, texture.GetSubsystem<RenderDevice>()!);
+        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResource, 0,
+            texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView ReadOnlyDepth(RawTexture texture)
@@ -105,14 +112,15 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
-            RenderTargetViewType.ReadOnlyResource, 0, texture.GetRenderDevice()!);
+        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ReadOnlyResource, 0,
+            texture.GetRenderDevice()!);
     }
 
     public static RenderTargetView ReadOnlyDepthSlice(Texture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, RenderTargetViewType.ReadOnlyResourceSlice, slice, texture.GetSubsystem<RenderDevice>()!);
+        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResourceSlice, slice,
+            texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, uint slice)
@@ -120,8 +128,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return new RenderTargetView(texture.GetTexture() ?? throw new InvalidOperationException("Raw texture is not initialized."),
-            RenderTargetViewType.ReadOnlyResourceSlice, slice, texture.GetRenderDevice()!);
+        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ReadOnlyResourceSlice, slice,
+            texture.GetRenderDevice()!);
     }
 
     /// <summary>
@@ -137,7 +145,10 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         if (IsSwapChain)
             return;
 
-        ResolveRenderDevice().MarkRenderTargetDirty(this);
+        if (GetRawTexture() is { } rawTexture)
+            rawTexture.MarkDirty();
+        else
+            ResolveRenderDevice().MarkRenderTargetDirty(this);
     }
 
     /// <summary>
@@ -150,6 +161,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     /// </summary>
     public TextureFormat GetFormat()
     {
+        if (_rawTexture is not null)
+            return _rawTexture.GetParams().Format;
         if (RenderTexture is not null)
             return RenderTexture.Format;
 
@@ -164,6 +177,8 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     /// </summary>
     public int GetMultiSample()
     {
+        if (_rawTexture is not null)
+            return checked((int)_rawTexture.GetParams().MultiSample);
         if (RenderTexture is not null)
             return RenderTexture.MultiSample;
 
@@ -176,4 +191,6 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     }
 
     private RenderDevice ResolveRenderDevice() => _renderDevice!;
+
+    internal RawTexture? GetRawTexture() => _rawTexture;
 }

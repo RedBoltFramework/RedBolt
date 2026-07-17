@@ -84,8 +84,11 @@ STEP 3 - Match every member, one by one
     c. Rename to C# conventions (see section 4).
     d. Match the C# type to the C++ type as closely as possible (see section 5).
     e. Match the method body logic line-by-line to the C++ body.
-    f. Implement copy-constructors as `ICloneable.Clone()`.
-    g. Match member access (do not use `internal` for ported functions ever).
+    f. Audit every construction, copy, assignment, temporary, and destruction
+       operation using the language-semantics rules in section 5A.
+    g. Implement copy-constructors as `ICloneable.Clone()` and port every call
+       site that invokes C++ copy construction with an actual independent clone.
+    h. Match member access (do not use `internal` for ported functions ever).
 
 STEP 3A - Fixes discovered while building or testing
   If a build, test, sample, debugger, or trace reveals a problem:
@@ -125,6 +128,52 @@ Make a note of any accepted deviations.
 - Prefer plain C# constructs over clever ones.
 - A single value that C++ exposes as a getter should be a C# property,
   not a `GetX()` method, UNLESS matching C++ shape is clearer.
+
+## 5A. C++ / C# LANGUAGE SEMANTICS AND LIFETIME (NON-NEGOTIABLE)
+
+C++ syntax that looks like an ordinary assignment or return may invoke a
+constructor, copy constructor, move constructor, assignment operator, or
+destructor. C# reference assignment does not. These operations are part of the
+implementation and MUST be ported explicitly.
+
+- Before porting a constructor, copy/move operation, assignment, or destructor,
+  read its complete C++ declaration and definition, including base classes,
+  field declarations, default member initializers, delegated constructors, and
+  the relevant call sites.
+- Port every C++ constructor overload. Preserve base-constructor calls,
+  delegated-constructor behavior, default values, side effects, and observable
+  initialization ordering. C++ initializes bases first and fields in declaration
+  order, regardless of initializer-list order; the C# port must preserve the
+  resulting behavior.
+- A C++ value copy such as `T copy = source`, pass-by-value, return-by-value, or
+  copy construction MUST produce the same independent value in C#. Never replace
+  it with a C# reference alias.
+- Implement C++ copy constructors as `ICloneable.Clone()` and call `Clone()` at
+  every C# site corresponding to C++ copy construction. Port copy-assignment
+  operator behavior explicitly when C++ uses it.
+- Do NOT clone C++ pointers or references that intentionally alias the same
+  object. Preserve C++ aliasing, ownership, and nullability exactly.
+- Generated native binding wrappers require special care: a getter may return a
+  borrowed wrapper around native storage even when C++ returns a value or the C++
+  call site immediately copies it. If C++ creates a value copy, use the generated
+  copy constructor / `Clone()` before mutating, retaining, or disposing it.
+  Mutating a borrowed wrapper is not equivalent to mutating a C++ copy.
+- C# `struct` assignment is not automatically equivalent to C++ value semantics
+  when the struct contains managed references or native handles. Verify whether
+  the C++ operation is deep, shallow, borrowed, owned, copied, or moved and map
+  that behavior explicitly.
+- Port every C++ destructor as `Dispose()`. Preserve destructor-body actions,
+  teardown ordering, callbacks, unregistering, resource release, and ownership
+  effects. Do not rely on garbage collection or a finalizer as a replacement for
+  deterministic C++ destruction.
+- Reproduce C++ RAII local-variable lifetime with `using`, `try/finally`, or an
+  equivalent deterministic scope. A temporary that dies at the end of a C++
+  statement or scope must not remain alive until a later C# garbage collection,
+  and an owned object must not be disposed while C++ would still keep it alive.
+- Distinguish borrowed wrappers from owned wrappers. Dispose the managed wrapper
+  at the matching C++ lifetime boundary without releasing a native object that
+  C++ does not own, and never mutate or dispose an alias when C++ operates on an
+  independent copy.
 
 ## 6. BUILD AND VERIFY (run these commands)
 
@@ -241,6 +290,9 @@ These are the ONLY places C# is allowed to differ from C++:
 - Built-in rbfx UI (`UI`, `Window`, `Text`, `Sprite`, and related controls/subsystems) is not ported.
 - In samples, replace every use of the built-in rbfx UI with Dear ImGui equivalents.
 - All ported samples are windowed; do not preserve fullscreen defaults from the C++ sample when configuring the managed sample.
+- The MultipleViewports sample may explicitly disable window maximization and configure default window dimensions so `--width` and `--height` control the actual window size.
+- C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.
+- The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
 - All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
 

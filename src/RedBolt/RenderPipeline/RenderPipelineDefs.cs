@@ -890,6 +890,7 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
 
     public void PropagateImpliedSettings()
     {
+        // Deferred rendering expects certain properties from render textures
         if (SceneProcessor.IsDeferredLighting())
         {
             RenderBufferManager.ColorUsableWithMultipleRenderTargets = true;
@@ -898,6 +899,7 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
             RenderBufferManager.InheritMultiSampleLevel = false;
         }
 
+        // Setup instancing buffer format
         if (InstancingBuffer.EnableInstancing)
         {
             InstancingBuffer.FirstInstancingTexCoord = 4;

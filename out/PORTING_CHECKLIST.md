@@ -6,9 +6,9 @@
 - [x] `02_HelloGUI` — control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx
 - [x] `05_AnimatingScene` — scene, zone, static-model, node-logic animation, camera, point-light, viewport, and Dear ImGui instruction sample ported
-- [x] `09_MultipleViewports` — scene, rear camera, dual viewport sample, automatic render pipeline allocation, render-target viewport handling, and Dear ImGui instructions reconciled to rbfx
+- [x] `09_MultipleViewports` — scene, rear camera, dual viewport sample, automatic render pipeline allocation, render-target viewport handling, Dear ImGui instructions, requested window sizing, delayed multi-frame screenshots, and stable Vulkan shadows are runtime-verified against rbfx
 - [x] `34_DynamicGeometry` — cloned dynamic vertex buffers, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
-- [~] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, and Dear ImGui instructions ported; runtime validation is limited by host SDL video-device availability
+- [x] `10_RenderToTexture` — render-to-texture scene, queued RenderSurface viewport, Dear ImGui instructions, render-surface scheduling, and resolved shader-resource sampling are ported and runtime-verified on OpenGL and Vulkan
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; upstream comparison removed the extra C# `RenderPipeline` component and aligned settings reads with `RenderDevice`; runtime now starts successfully, but the 3D box remains absent in the screenshot and requires further engine-level investigation
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership, threaded pose calculation and octree transform commits, component-owned cloned geometry, geometry bone mappings, hardware/software skin matrices, and SoftwareModelAnimator runtime morphing/skinning updates are ported; sample runtime validation remains
@@ -162,7 +162,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `DeviceObject.h`
   - [x] `DeviceObject` — device registration, flags, loss/restore/destroy dispatch, dependencies, debug names, and teardown are ported
 - [x] `RawShader.h`
-  - [x] `RawShader : Object, DeviceObject` — bytecode ownership, native creation, type validation, debug naming, and device loss/restore are ported
+  - [x] `RawShader : Object, DeviceObject` — bytecode ownership, backend-only GLSL/SPIR-V native source selection, native creation, type validation, debug naming, and device loss/restore are ported
 - [x] `ShaderProgramReflection.h`
   - [x] `ShaderProgramReflection : RefCounted` — uniform buffers/parameters, resources/UAVs, hashing, Diligent reflection, and binding connection are ported
 - [x] `RawBuffer.h`
@@ -171,8 +171,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `struct RawTextureParams`
   - [x] `struct RawTextureUAVKey`
   - [x] `struct RawTextureHandles`
-  - [x] `RawTexture : DeviceObject` — validation, native ownership, default and slice views, UAVs, mip generation, resolve, allocation-free updates, staging readback, device recovery hooks, handle wrapping, and generated platform-gated D3D11, D3D12, Vulkan, and OpenGL external imports are ported
-- [x] `RenderTargetView.h`
+  - [x] `RawTexture : DeviceObject` — validation, native ownership, default and slice views, independently dirty resolve/mip state, copied writable/read-only depth-view descriptors, UAVs, mip generation, resolve, allocation-free updates, staging readback, device recovery hooks, handle wrapping, and generated platform-gated D3D11, D3D12, Vulkan, and OpenGL external imports are ported
+- [x] `RenderTargetView.h` — explicit raw-texture identity, resource/slice/read-only/swap-chain selection, dirty propagation, format, and multisample queries match C++; managed Texture overloads preserve owner metadata without replacing the stored raw texture identity
 - [x] `ConstantBufferCollection.h`
   - [x] `ConstantBufferCollection` — aligned block allocation, buffer rollover/sizing, parameter conversion, matrix/array storage, and CPU upload data are ported
 - [x] `PipelineState.h`

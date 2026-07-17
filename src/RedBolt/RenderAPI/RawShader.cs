@@ -89,10 +89,8 @@ public class RawShader : DeviceObject
             LoadConstantBufferReflection = true
         };
 
-        // C++ RawShader::CreateGPU selects source vs bytecode by RenderBackend, not MIME.
         var backend = GetSubsystem<RenderDevice>()?.GetBackend() ?? RenderBackend.OpenGL;
-        if (backend == RenderBackend.OpenGL
-            || string.Equals(_bytecode.Mime, "application/glsl", StringComparison.Ordinal))
+        if (backend == RenderBackend.OpenGL)
         {
             using var source = new CString(Encoding.UTF8.GetString(_bytecode.Bytecode));
             shaderCreateInfo.Source = source.Pointer;

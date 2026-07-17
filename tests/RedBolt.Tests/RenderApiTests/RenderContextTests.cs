@@ -59,8 +59,8 @@ public sealed class RenderContextTests
             renderContext.SetFullViewport();
             Assert.Equal(new IntRect(0, 0, 32, 16), renderContext.GetCurrentViewport());
             // C++ IsBoundAsRenderTarget only checks color RTs, not depth-stencil.
-            Assert.True(renderContext.IsBoundAsRenderTarget(colorTexture));
-            Assert.False(renderContext.IsBoundAsRenderTarget(depthTexture));
+            Assert.True(renderContext.IsBoundAsRenderTarget(colorTexture.GetRawTexture()));
+            Assert.False(renderContext.IsBoundAsRenderTarget(depthTexture.GetRawTexture()));
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
             Assert.Equal<uint>(1u, outputDesc.NumRenderTargets);
@@ -70,7 +70,7 @@ public sealed class RenderContextTests
 
             renderContext.ResetRenderTargets();
 
-            Assert.False(renderContext.IsBoundAsRenderTarget(colorTexture));
+            Assert.False(renderContext.IsBoundAsRenderTarget(colorTexture.GetRawTexture()));
             Assert.Equal(default, renderContext.GetCurrentRenderTargetSize());
             Assert.Equal<uint>(0u, renderContext.GetCurrentRenderTargetsDesc().NumRenderTargets);
         });
@@ -96,8 +96,8 @@ public sealed class RenderContextTests
             Assert.Equal<uint>(2u, outputDesc.NumRenderTargets);
             Assert.Equal(TextureFormat.RGBA8, outputDesc.RenderTargetFormats[0]);
             Assert.Equal(TextureFormat.RG16F, outputDesc.RenderTargetFormats[1]);
-            Assert.True(renderContext.IsBoundAsRenderTarget(firstColor));
-            Assert.True(renderContext.IsBoundAsRenderTarget(secondColor));
+            Assert.True(renderContext.IsBoundAsRenderTarget(firstColor.GetRawTexture()));
+            Assert.True(renderContext.IsBoundAsRenderTarget(secondColor.GetRawTexture()));
             renderContext.ClearRenderTarget(1, Color.Black);
         });
     }

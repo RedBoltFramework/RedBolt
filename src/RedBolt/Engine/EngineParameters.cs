@@ -80,6 +80,10 @@ public sealed class EngineParameters
 
     public bool SaveShaderCache { get; set; } = true;
 
+    public int ScreenshotCount { get; set; } = 1;
+
+    public int ScreenshotFrameDelay { get; set; }
+
     public string? ScreenshotOnExit { get; set; }
 
     public string ShaderCacheDir { get; set; } = "conf://ShaderCache";

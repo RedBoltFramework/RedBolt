@@ -19,6 +19,16 @@ public class RenderPipeline : Component
     [ThreadStatic]
     private static VariantVector? _renderPassesAttributeResult;
 
+    public RenderPipeline()
+    {
+        SetRenderPathAttr(new ResourceRef(new StringHash(nameof(RenderPath)), DefaultRenderPathName));
+
+        // Enable instancing by default for default render pipeline
+        _settings.InstancingBuffer.EnableInstancing = true;
+        _settings.Validate();
+        _settings.AdjustToSupported(GetSubsystem<Graphics>());
+    }
+
     public RenderPipelineSettings Settings => _settings;
 
     public RenderPath? GetRenderPath() => _renderPath;
@@ -27,8 +37,9 @@ public class RenderPipeline : Component
 
     public void SetRenderPathAttr(ResourceRef value)
     {
+        // This function may be called from constructor, check for cache just in case.
         if (GetSubsystem<ResourceCache>() is { } cache)
-            SetRenderPath(cache.GetResource<RenderPath>(value.Name));
+            SetRenderPath(cache.GetResourceOrNull<RenderPath>(value.Name));
     }
 
     public IReadOnlyList<RenderPassToggle> GetRenderPasses() => _renderPasses;
@@ -353,7 +364,6 @@ public class RenderPipeline : Component
         private readonly RenderPipelineStats _stats = new();
         private readonly List<OutlineGroup> _outlineGroups = [];
         private TextureRenderBuffer? _outlineBuffer;
-        private TextureRenderBuffer? _normalBuffer;
         private CommonFrameInfo _frameInfo = new();
         private RenderPath? _renderPath;
         private Viewport? _viewport;
@@ -642,8 +652,6 @@ public class RenderPipeline : Component
                 _renderBufferManager.SetOutputRenderTargets(graphics);
             }
 
-            // Publish normal buffer for SSAO / other paths that read SharedRenderPassState.NormalBufferId.
-            RenderNormalBuffer(graphics, materialQuality);
             _renderPath?.Render(_sharedState);
 
             var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
@@ -674,6 +682,7 @@ public class RenderPipeline : Component
         {
             _renderPipeline.Settings.Validate();
             _renderPipeline.Settings.AdjustToSupported(_renderPipeline.GetSubsystem<Graphics>()!);
+            _renderPipeline.Settings.PropagateImpliedSettings();
             _sceneProcessor?.SetSettings(_renderPipeline.Settings);
             _instancingBuffer?.SetSettings(_renderPipeline.Settings.InstancingBuffer);
             _shadowMapAllocator?.SetSettings(_renderPipeline.Settings.ShadowMapAllocator);
@@ -817,24 +826,6 @@ public class RenderPipeline : Component
             _renderBufferManager.SetOutputRenderTargets(graphics);
         }
 
-        private void RenderNormalBuffer(Graphics graphics, MaterialQuality materialQuality)
-        {
-            if (_viewport is null || _renderPath is null || !HasEnabledNormalBufferPass())
-                return;
-
-            var normalRenderBuffer = EnsureNormalBuffer();
-            _sharedState.RenderBuffers[SharedRenderPassState.NormalBufferId] = normalRenderBuffer;
-
-            _renderBufferManager.SetRenderTargets(
-                graphics,
-                normalRenderBuffer,
-                _renderBufferManager.GetDepthStencilOutput(),
-                readOnlyDepth: true);
-            graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
-            graphics.RenderNormalBuffer(_viewport, materialQuality, _frameInfo.ViewportRect);
-            _renderBufferManager.SetOutputRenderTargets(graphics);
-        }
-
         private bool HasEnabledOutlinePass()
         {
             if (_renderPath is null)
@@ -845,22 +836,6 @@ public class RenderPipeline : Component
             {
                 var pass = passes[passIndex];
                 if (pass is OutlineRenderPass && pass.IsEnabledEffectively())
-                    return true;
-            }
-
-            return false;
-        }
-
-        private bool HasEnabledNormalBufferPass()
-        {
-            if (_renderPath is null)
-                return false;
-
-            var passes = _renderPath.GetPasses();
-            for (var passIndex = 0; passIndex < passes.Count; ++passIndex)
-            {
-                var pass = passes[passIndex];
-                if (pass is AmbientOcclusionPass && pass.IsEnabledEffectively())
                     return true;
             }
 
@@ -910,20 +885,5 @@ public class RenderPipeline : Component
             return _outlineBuffer;
         }
 
-        private TextureRenderBuffer EnsureNormalBuffer()
-        {
-            if (_normalBuffer?.GetTexture() is Texture texture
-                && texture.Width == _frameInfo.ViewportRect.Width
-                && texture.Height == _frameInfo.ViewportRect.Height)
-            {
-                _normalBuffer.SetViewportRect(_frameInfo.ViewportRect);
-                return _normalBuffer;
-            }
-
-            _normalBuffer = _renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8)) as TextureRenderBuffer
-                ?? throw new InvalidOperationException("Normal render buffer must be backed by a TextureRenderBuffer.");
-            _normalBuffer.SetViewportRect(_frameInfo.ViewportRect);
-            return _normalBuffer;
-        }
     }
 }

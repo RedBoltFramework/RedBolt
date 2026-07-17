@@ -162,6 +162,19 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Multisampled_render_target_marks_resolve_and_mip_levels_dirty()
+    {
+        var texture = new RawTexture(new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
+            new Vector3i(16, 16, 1), MultiSample: 4u));
+
+        texture.MarkDirty();
+
+        Assert.True(texture.GetLevelsDirty());
+        Assert.True(texture.GetResolveDirty());
+    }
+
+    [Fact]
     public void Render_pool_recycles_transient_textures_by_params()
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();
@@ -241,6 +254,27 @@ public sealed class RawTextureTests
             var desc = handle.GetDesc();
             Assert.Equal((uint)32, desc.Width);
             Assert.Equal((uint)16, desc.Height);
+        });
+    }
+
+    [Fact]
+    public void Raw_depth_texture_exposes_writable_and_read_only_depth_views()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var rawTexture = new RawTexture(new RawTextureParams(
+                TextureType.Texture2D,
+                TextureFormat.Depth32,
+                TextureFlag.BindDepthStencil,
+                new Vector3i(32, 16, 1)));
+
+            var writableView = Assert.IsAssignableFrom<ITextureView>(rawTexture.GetDepthStencilView());
+            var readOnlyView = Assert.IsAssignableFrom<ITextureView>(rawTexture.GetReadOnlyDepthStencilView());
+
+            Assert.Equal(TextureViewType.TextureViewDepthStencil, writableView.GetDesc().ViewType);
+            Assert.Equal(TextureViewType.TextureViewReadOnlyDepthStencil, readOnlyView.GetDesc().ViewType);
+            Assert.Same(writableView, RenderTargetView.Texture(rawTexture).GetView());
+            Assert.Same(readOnlyView, RenderTargetView.ReadOnlyDepth(rawTexture).GetView());
         });
     }
 

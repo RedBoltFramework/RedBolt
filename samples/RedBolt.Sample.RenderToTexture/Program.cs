@@ -21,8 +21,6 @@ sealed class RenderToTextureApplication : Application
     private Scene? _scene;
     private Scene? _renderToTextureScene;
     private Node? _cameraNode;
-    private RenderSurface? _renderSurface;
-    private Viewport? _renderToTextureViewport;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -52,10 +50,6 @@ sealed class RenderToTextureApplication : Application
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
             Exit();
-
-        _renderSurface?.QueueUpdate();
-        if (_renderSurface is not null && _renderToTextureViewport is not null)
-            Renderer.QueueViewport(_renderSurface, _renderToTextureViewport);
     }
 
     protected override void Stop()
@@ -134,18 +128,18 @@ sealed class RenderToTextureApplication : Application
         var screen = screenNode.CreateComponent<StaticModel>();
         screen.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
 
-        var renderTexture = new Texture2D("Textures/RenderTexture");
+        var renderTexture = new Texture2D("");
         renderTexture.SetSize(1024, 768, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 4);
         renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
-        var renderMaterial = Resources.Get<Material>("Materials/Stone.xml").Clone("Materials/RenderMaterial");
+        var renderMaterial = new Material("");
         renderMaterial.SetTechnique(0, Resources.Get<Technique>("Techniques/DiffUnlit.xml"));
         renderMaterial.SetTexture("Albedo", renderTexture);
         renderMaterial.SetDepthBias(new BiasParameters(-0.001f, 0.0f));
         screen.SetMaterial(renderMaterial);
 
-        _renderSurface = renderTexture.GetRenderSurface();
-        _renderToTextureViewport = new Viewport(_renderToTextureScene, renderCamera);
-        _renderSurface?.SetViewport(0, _renderToTextureViewport);
+        var renderSurface = renderTexture.GetRenderSurface();
+        var renderToTextureViewport = new Viewport(_renderToTextureScene, renderCamera);
+        renderSurface?.SetViewport(0, renderToTextureViewport);
 
         _cameraNode = _scene.CreateChild("Camera");
         _cameraNode.CreateComponent<FreeFlyController>();

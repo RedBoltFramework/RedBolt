@@ -436,6 +436,7 @@ public sealed class RenderDeviceTests
             RenderBackend = GraphicsBackend.OpenGL,
             GPUDebug = true,
             RenderAdapterId = 7,
+            TweakVulkan = "{\"dynamicHeapSize\":33554432,\"queryPoolSize_timestamp\":64}",
             ExternalWindow = (nint)1234,
             FullScreen = true,
             Monitor = 2,
@@ -467,6 +468,8 @@ public sealed class RenderDeviceTests
             Assert.NotNull(deviceSettings.D3D12);
             Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.Vulkan.QueryPoolSizes.Length);
             Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.D3D12.QueryPoolSizes.Length);
+            Assert.Equal((uint?)33554432, deviceSettings.Vulkan.DynamicHeapSize);
+            Assert.Equal((uint?)64, deviceSettings.Vulkan.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
 
             Assert.Equal(WindowMode.Fullscreen, windowSettings.Mode);
             Assert.Equal(new Vector2i(1600, 900), windowSettings.Size);

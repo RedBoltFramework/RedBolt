@@ -325,8 +325,24 @@ internal sealed class DrawCommandCompositor
     {
         var p0 = lightAccumulator.ReflectionProbes[0];
         var p1 = lightAccumulator.ReflectionProbes[1];
-        _dirty.ReflectionProbe = !ReferenceEquals(_current.ReflectionProbes[0], p0)
-            || !ReferenceEquals(_current.ReflectionProbes[1], p1)
+        var currentP0 = _current.ReflectionProbes[0];
+        var currentP1 = _current.ReflectionProbes[1];
+        _dirty.ReflectionProbe = currentP0.HasValue != p0.HasValue
+            || currentP1.HasValue != p1.HasValue
+            || currentP0.HasValue &&
+            (
+                !ReferenceEquals(currentP0.Value.ReflectionMap, p0!.Value.ReflectionMap)
+                || currentP0.Value.RoughnessToLodFactor != p0.Value.RoughnessToLodFactor
+                || !currentP0.Value.CubemapCenter.Equals(p0.Value.CubemapCenter)
+                || !currentP0.Value.ProjectionBox.Equals(p0.Value.ProjectionBox)
+            )
+            || currentP1.HasValue &&
+            (
+                !ReferenceEquals(currentP1.Value.ReflectionMap, p1!.Value.ReflectionMap)
+                || currentP1.Value.RoughnessToLodFactor != p1.Value.RoughnessToLodFactor
+                || !currentP1.Value.CubemapCenter.Equals(p1.Value.CubemapCenter)
+                || !currentP1.Value.ProjectionBox.Equals(p1.Value.ProjectionBox)
+            )
             || _current.ReflectionProbesBlendFactor != lightAccumulator.ReflectionProbesBlendFactor;
         if (!_dirty.ReflectionProbe)
             return;
@@ -396,9 +412,6 @@ internal sealed class DrawCommandCompositor
     private void CheckDirtyLightmap(SourceBatch sourceBatch)
     {
         var prev = _current.LightmapScaleOffset;
-        _dirty.LightmapConstants = prev != sourceBatch.LightmapScaleOffset
-            && !(prev is { } a && sourceBatch.LightmapScaleOffset is { } b && a.Equals(b));
-        // Always assign for next compare
         var lightmapChanged = !Nullable.Equals(prev, sourceBatch.LightmapScaleOffset);
         _dirty.LightmapConstants = lightmapChanged;
         if (!lightmapChanged)

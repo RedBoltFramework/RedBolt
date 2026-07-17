@@ -298,13 +298,16 @@ public class RenderContext : Object
     /// <summary>
     /// Check if the texture is already bound as a render target.
     /// </summary>
-    public bool IsBoundAsRenderTarget(Texture texture)
+    public bool IsBoundAsRenderTarget(RawTexture? texture)
     {
         // C++ only checks color RTs (currentRenderTargets_), not depth-stencil.
-        ArgumentNullException.ThrowIfNull(texture);
+        if (texture is null)
+            return false;
+
+        var handle = texture.GetHandles().Texture;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
         {
-            if (_currentRenderTargets[i].RenderTexture == texture)
+            if (_currentRenderTargetHandles[i]?.GetTexture() == handle)
                 return true;
         }
 
@@ -399,13 +402,19 @@ public class RenderContext : Object
             return _renderDevice.GetSwapChainSize();
         if (colorTargets.Length != 0 && colorTargets[0].RenderTexture is { } colorTexture)
             return new Vector2i(colorTexture.Width, colorTexture.Height);
+        if (colorTargets.Length != 0 && colorTargets[0].GetRawTexture() is { } colorRawTexture)
+            return new Vector2i(colorRawTexture.GetParams().Size.X, colorRawTexture.GetParams().Size.Y);
         if (depthStencilView?.RenderTexture is { } depthTexture)
             return new Vector2i(depthTexture.Width, depthTexture.Height);
+        if (depthStencilView?.GetRawTexture() is { } depthRawTexture)
+            return new Vector2i(depthRawTexture.GetParams().Size.X, depthRawTexture.GetParams().Size.Y);
         return default;
     }
 
     private TextureFormat GetRenderTargetFormat(RenderTargetView view, Graphics graphics)
     {
+        if (view.GetRawTexture() is { } rawTexture)
+            return rawTexture.GetParams().Format;
         if (view.RenderTexture is { } texture)
             return texture.Format;
 
@@ -416,6 +425,8 @@ public class RenderContext : Object
 
     private int GetRenderTargetMultiSample(RenderTargetView view, Graphics graphics)
     {
+        if (view.GetRawTexture() is { } rawTexture)
+            return checked((int)rawTexture.GetParams().MultiSample);
         return view.RenderTexture is { } texture
             ? texture.MultiSample
             : graphics.GetSwapChainMultiSample();
@@ -425,6 +436,8 @@ public class RenderContext : Object
     {
         if (view.IsSwapChain)
             return _renderDevice.GetSwapChainSize();
+        if (view.GetRawTexture() is { } rawTexture)
+            return new Vector2i(rawTexture.GetParams().Size.X, rawTexture.GetParams().Size.Y);
         if (view.RenderTexture is { } texture)
             return new Vector2i(texture.Width, texture.Height);
         return default;

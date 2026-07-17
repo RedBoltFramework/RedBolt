@@ -96,6 +96,7 @@ internal static class EngineCommandLine
         parser.AddFlag(["--engine-auto-load-scripts"], "Enable engine script autoloading", () => parameters.EngineAutoLoadScripts = true);
         parser.AddFlag(["--no-load-fonts"], "Disable automatic font loading", () => parameters.LoadFonts = false);
         parser.AddOption(["--screenshot-on-exit"], "path", "Save a screenshot just before shutdown", value => parameters.ScreenshotOnExit = value);
+        parser.AddOption(["--screenshot-parameters"], "count,delay", "Set screenshot count and frame delay", value => ParseScreenshotParameters(value, parameters));
     }
 
     private static int ParseInt(string value)
@@ -106,6 +107,23 @@ internal static class EngineCommandLine
     private static uint ParseUInt(string value)
     {
         return uint.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+    }
+
+    private static void ParseScreenshotParameters(string value, EngineParameters parameters)
+    {
+        var separator = value.IndexOf(',');
+        if (separator <= 0 || separator == value.Length - 1 || value.IndexOf(',', separator + 1) >= 0)
+            throw new ArgumentException($"Invalid screenshot parameters '{value}'. Expected count,delay.", nameof(value));
+
+        var count = ParseInt(value[..separator]);
+        var frameDelay = ParseInt(value[(separator + 1)..]);
+        if (count < 1)
+            throw new ArgumentException($"Screenshot count '{count}' must be positive.", nameof(value));
+        if (frameDelay < 0)
+            throw new ArgumentException($"Screenshot frame delay '{frameDelay}' cannot be negative.", nameof(value));
+
+        parameters.ScreenshotCount = count;
+        parameters.ScreenshotFrameDelay = frameDelay;
     }
 
     private static string ParseLogLevel(string value)

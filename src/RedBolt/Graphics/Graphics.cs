@@ -946,6 +946,59 @@ layout(std140) uniform Material
     internal int GetSwapChainMultiSample()
         => Math.Max(_configuredMultiSample, 1);
 
+    private static void CopyBackendDeviceSettings(EngineVkCreateInfo createInfo, RenderDeviceSettingsVulkan settings)
+    {
+        if (settings.MainDescriptorPoolSize is not null)
+        {
+            createInfo.MainDescriptorPoolSizeMaxDescriptorSets = settings.MainDescriptorPoolSize.MaxDescriptorSets;
+            createInfo.MainDescriptorPoolSizeNumSeparateSamplerDescriptors = settings.MainDescriptorPoolSize.NumSeparateSamplerDescriptors;
+            createInfo.MainDescriptorPoolSizeNumCombinedSamplerDescriptors = settings.MainDescriptorPoolSize.NumCombinedSamplerDescriptors;
+            createInfo.MainDescriptorPoolSizeNumSampledImageDescriptors = settings.MainDescriptorPoolSize.NumSampledImageDescriptors;
+            createInfo.MainDescriptorPoolSizeNumStorageImageDescriptors = settings.MainDescriptorPoolSize.NumStorageImageDescriptors;
+            createInfo.MainDescriptorPoolSizeNumUniformBufferDescriptors = settings.MainDescriptorPoolSize.NumUniformBufferDescriptors;
+            createInfo.MainDescriptorPoolSizeNumStorageBufferDescriptors = settings.MainDescriptorPoolSize.NumStorageBufferDescriptors;
+            createInfo.MainDescriptorPoolSizeNumUniformTexelBufferDescriptors = settings.MainDescriptorPoolSize.NumUniformTexelBufferDescriptors;
+            createInfo.MainDescriptorPoolSizeNumStorageTexelBufferDescriptors = settings.MainDescriptorPoolSize.NumStorageTexelBufferDescriptors;
+            createInfo.MainDescriptorPoolSizeNumInputAttachmentDescriptors = settings.MainDescriptorPoolSize.NumInputAttachmentDescriptors;
+            createInfo.MainDescriptorPoolSizeNumAccelStructDescriptors = settings.MainDescriptorPoolSize.NumAccelStructDescriptors;
+        }
+        if (settings.DynamicDescriptorPoolSize is not null)
+        {
+            createInfo.DynamicDescriptorPoolSizeMaxDescriptorSets = settings.DynamicDescriptorPoolSize.MaxDescriptorSets;
+            createInfo.DynamicDescriptorPoolSizeNumSeparateSamplerDescriptors = settings.DynamicDescriptorPoolSize.NumSeparateSamplerDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumCombinedSamplerDescriptors = settings.DynamicDescriptorPoolSize.NumCombinedSamplerDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumSampledImageDescriptors = settings.DynamicDescriptorPoolSize.NumSampledImageDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumStorageImageDescriptors = settings.DynamicDescriptorPoolSize.NumStorageImageDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumUniformBufferDescriptors = settings.DynamicDescriptorPoolSize.NumUniformBufferDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumStorageBufferDescriptors = settings.DynamicDescriptorPoolSize.NumStorageBufferDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumUniformTexelBufferDescriptors = settings.DynamicDescriptorPoolSize.NumUniformTexelBufferDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumStorageTexelBufferDescriptors = settings.DynamicDescriptorPoolSize.NumStorageTexelBufferDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumInputAttachmentDescriptors = settings.DynamicDescriptorPoolSize.NumInputAttachmentDescriptors;
+            createInfo.DynamicDescriptorPoolSizeNumAccelStructDescriptors = settings.DynamicDescriptorPoolSize.NumAccelStructDescriptors;
+        }
+        if (settings.DeviceLocalMemoryPageSize.HasValue)
+            createInfo.DeviceLocalMemoryPageSize = settings.DeviceLocalMemoryPageSize.Value;
+        if (settings.HostVisibleMemoryPageSize.HasValue)
+            createInfo.HostVisibleMemoryPageSize = settings.HostVisibleMemoryPageSize.Value;
+        if (settings.DeviceLocalMemoryReserveSize.HasValue)
+            createInfo.DeviceLocalMemoryReserveSize = settings.DeviceLocalMemoryReserveSize.Value;
+        if (settings.HostVisibleMemoryReserveSize.HasValue)
+            createInfo.HostVisibleMemoryReserveSize = settings.HostVisibleMemoryReserveSize.Value;
+        if (settings.UploadHeapPageSize.HasValue)
+            createInfo.UploadHeapPageSize = settings.UploadHeapPageSize.Value;
+        if (settings.DynamicHeapSize.HasValue)
+            createInfo.DynamicHeapSize = settings.DynamicHeapSize.Value;
+        if (settings.DynamicHeapPageSize.HasValue)
+            createInfo.DynamicHeapPageSize = settings.DynamicHeapPageSize.Value;
+
+        var queryPoolSizes = createInfo.QueryPoolSizes;
+        for (var i = 1; i < settings.QueryPoolSizes.Length; ++i)
+        {
+            if (settings.QueryPoolSizes[i].HasValue)
+                queryPoolSizes[i] = settings.QueryPoolSizes[i]!.Value;
+        }
+    }
+
     public void Initialize(EngineParameters parameters, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -1025,56 +1078,61 @@ layout(std140) uniform Material
                 Width = actualWidth;
                 Height = actualHeight;
 
-                using var createInfo = new EngineVkCreateInfo
-                {
-                    FeaturesAsyncShaderCompilation = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesBinaryOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesBindlessResources = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesComputeShaders = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesDepthBiasClamp = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesDepthClamp = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesDualSourceBlend = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesDurationQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesFormattedBuffers = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesGeometryShaders = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesIndependentBlend = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesInstanceDataStepRate = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesMeshShaders = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesMultiViewport = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesMultithreadedResourceCreation = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesNativeFence = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesNativeMultiDraw = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesPipelineStatisticsQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesPixelUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesRayTracing = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesResourceBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesResourceBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderFloat16 = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderInputOutput16 = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderInt8 = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderResourceRuntimeArrays = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesShaderResourceStaticArrays = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesSparseResources = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesSubpassFramebufferFetch = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTessellation = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTextureComponentSwizzle = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTextureCompressionBC = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTextureCompressionETC2 = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTextureSubresourceViews = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTextureUAVExtendedFormats = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTileShaders = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTimestampQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesTransferQueueTimestampQueries = DeviceFeatureState.DeviceFeatureStateDisabled,
-                    FeaturesUniformBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesUniformBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesVariableRateShading = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesVertexPipelineUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesWaveOp = DeviceFeatureState.DeviceFeatureStateOptional,
-                    FeaturesWireframeFill = DeviceFeatureState.DeviceFeatureStateOptional
-                };
+                using var createInfo = new EngineVkCreateInfo();
+                var deviceSettings = GetSubsystem<RenderDevice>()!.GetDeviceSettings();
+                CopyBackendDeviceSettings(createInfo, deviceSettings.Vulkan);
+
+                // TODO: port C++ instanceExtensionsCStr, deviceExtensionsCStr and ppIgnoreDebugMessages when
+                // SharpCpp supports const char* const* fields.
+                createInfo.FeaturesAsyncShaderCompilation = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesBinaryOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesBindlessResources = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesComputeShaders = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesDepthBiasClamp = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesDepthClamp = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesDualSourceBlend = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesDurationQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesFormattedBuffers = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesGeometryShaders = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesIndependentBlend = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesInstanceDataStepRate = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesMeshShaders = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesMultiViewport = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesMultithreadedResourceCreation = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesNativeFence = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesNativeMultiDraw = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesPipelineStatisticsQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesPixelUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesRayTracing = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesResourceBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesResourceBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderFloat16 = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderInputOutput16 = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderInt8 = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderResourceRuntimeArrays = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesShaderResourceStaticArrays = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesSparseResources = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesSubpassFramebufferFetch = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTessellation = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTextureComponentSwizzle = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTextureCompressionBC = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTextureCompressionETC2 = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTextureSubresourceViews = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTextureUAVExtendedFormats = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTileShaders = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTimestampQueries = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesTransferQueueTimestampQueries = DeviceFeatureState.DeviceFeatureStateDisabled;
+                createInfo.FeaturesUniformBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesUniformBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesVariableRateShading = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesVertexPipelineUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesWaveOp = DeviceFeatureState.DeviceFeatureStateOptional;
+                createInfo.FeaturesWireframeFill = DeviceFeatureState.DeviceFeatureStateOptional;
+                if (deviceSettings.AdapterId.HasValue)
+                    createInfo.AdapterId = deviceSettings.AdapterId.Value;
                 var factoryVulkan = DiligentNativeBindings.GetEngineFactoryVk();
                 if (factoryVulkan.IsNull)
                     throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
@@ -2907,6 +2965,16 @@ layout(std140) uniform Material
 
     private ITextureView GetShaderResourceView(Texture2D texture)
     {
+        if (texture.IsRenderTarget() && texture.GetRawTexture() is { } rawTexture)
+        {
+            if (rawTexture.GetResolveDirty())
+                rawTexture.Resolve();
+            if (rawTexture.GetLevelsDirty())
+                rawTexture.GenerateLevels();
+            return rawTexture.GetHandles().ShaderResourceView
+                ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a shader-resource view.");
+        }
+
         var uploaded = GetOrCreateUploadedTexture(texture);
         EnsureUploadedTextureResolved(texture, uploaded);
         return uploaded.ShaderView;
@@ -3293,14 +3361,14 @@ layout(std140) uniform Material
 
     internal void MarkRenderTargetDirty(RenderTargetView? view)
     {
-        if (view is not { } actualView || actualView.RenderTexture is null)
+        if (view is not { RenderTexture: { } renderTexture } actualView)
             return;
-        if (actualView.RenderTexture.GetRawTexture() is { } rawTexture)
+        if (renderTexture.GetRawTexture() is { } rawTexture)
         {
             rawTexture.MarkDirty();
             return;
         }
-        if (!_uploadedTextures.TryGetValue(actualView.RenderTexture, out var uploaded))
+        if (!_uploadedTextures.TryGetValue(renderTexture, out var uploaded))
             return;
 
         uploaded.MarkDirty();
@@ -3324,6 +3392,19 @@ layout(std140) uniform Material
 
     private ITextureView ResolveTextureRenderTargetView(RenderTargetView view)
     {
+        if (view.GetRawTexture() is { } rawTexture)
+        {
+            var handles = rawTexture.GetHandles();
+            if (view.Type == RenderTargetViewType.Resource)
+                return handles.RenderTargetView ?? handles.DepthStencilView
+                    ?? throw new InvalidOperationException("Raw texture was not created with a render-target or depth-stencil view.");
+
+            var surfaces = handles.RenderSurfaces;
+            if (view.Slice >= (uint)surfaces.Length)
+                throw new ArgumentOutOfRangeException(nameof(view), view.Slice, "Invalid raw texture slice index.");
+            return surfaces[(int)view.Slice];
+        }
+
         if (view.RenderTexture is not { } texture)
             throw new InvalidOperationException("Render target view has no texture.");
 
@@ -3343,6 +3424,19 @@ layout(std140) uniform Material
 
     private ITextureView ResolveTextureReadOnlyDepthView(RenderTargetView view)
     {
+        if (view.GetRawTexture() is { } rawTexture)
+        {
+            var handles = rawTexture.GetHandles();
+            if (view.Type == RenderTargetViewType.ReadOnlyResource)
+                return handles.ReadOnlyDepthStencilView
+                    ?? throw new InvalidOperationException("Raw texture was not created with a read-only depth-stencil view.");
+
+            var surfaces = handles.ReadOnlyRenderSurfaces;
+            if (view.Slice >= (uint)surfaces.Length)
+                throw new ArgumentOutOfRangeException(nameof(view), view.Slice, "Invalid raw texture slice index.");
+            return surfaces[(int)view.Slice];
+        }
+
         if (view.RenderTexture is not { } texture)
             throw new InvalidOperationException("Read-only depth view has no texture.");
 
@@ -3408,6 +3502,11 @@ layout(std140) uniform Material
 
     private global::RedBolt.Bindings.Diligent.TextureFormat GetResourceTargetFormat(RenderTargetView view)
     {
+        if (view.GetRawTexture() is { } rawTexture)
+        {
+            var parameters = rawTexture.GetParams();
+            return MapTextureFormat(parameters.Format, parameters.SRGB);
+        }
         if (view.RenderTexture is not { } texture)
             return 0;
 
@@ -3480,8 +3579,12 @@ layout(std140) uniform Material
             return new Vector2i(Width, Height);
         if (colorTargets.Length != 0 && colorTargets[0].RenderTexture is { } colorTexture)
             return new Vector2i(colorTexture.Width, colorTexture.Height);
+        if (colorTargets.Length != 0 && colorTargets[0].GetRawTexture() is { } colorRawTexture)
+            return new Vector2i(colorRawTexture.GetParams().Size.X, colorRawTexture.GetParams().Size.Y);
         if (depthStencilTarget?.RenderTexture is { } depthTexture)
             return new Vector2i(depthTexture.Width, depthTexture.Height);
+        if (depthStencilTarget?.GetRawTexture() is { } depthRawTexture)
+            return new Vector2i(depthRawTexture.GetParams().Size.X, depthRawTexture.GetParams().Size.Y);
         return new Vector2i(viewportRect.Width, viewportRect.Height);
     }
 
