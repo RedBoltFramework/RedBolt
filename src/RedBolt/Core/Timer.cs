@@ -62,15 +62,14 @@ public sealed class HiresTimer
 public sealed class TimedCounter
 {
     private readonly Timer _timer = new();
-    private readonly uint _intervalLengthMs;
+    private readonly int _intervalLength;
     private int _current;
     private float _accumulator;
     private readonly float[] _data;
 
     public TimedCounter(int intervalCount, uint intervalLengthMs)
     {
-        // C++ has no argument validation on intervalCount.
-        _intervalLengthMs = intervalLengthMs;
+        _intervalLength = unchecked((int)intervalLengthMs);
         _current = intervalCount - 1;
         _data = new float[intervalCount];
     }
@@ -103,7 +102,7 @@ public sealed class TimedCounter
 
     private void RotateIfNeeded()
     {
-        if (_timer.GetMSec(false) >= _intervalLengthMs)
+        if (_timer.GetMSec(false) >= unchecked((uint)_intervalLength))
         {
             _timer.Reset();
             _current = (_current + 1) % _data.Length;
