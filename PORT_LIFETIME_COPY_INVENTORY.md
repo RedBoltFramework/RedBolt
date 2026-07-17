@@ -121,8 +121,10 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED. Parser and option construction independently own their managed strings and alias arrays; their delegate closures have no deterministic teardown behavior corresponding to CLI11 callbacks. The parser is not copied, and parse-result record structs contain only scalar flags and an immutable string. `GetUsage` and failure creation return new immutable strings. | — | — | — |
 | `src/RedBolt/Core/Context.cs` | `Source/Urho3D/Core/Context.h`<br>`Source/Urho3D/Core/Context.cpp` | ☑ | ☐ | ☐ |
 | 2026-07-17 partial outcome | Constructor and non-`Variant` teardown VERIFIED after porting deterministic context disposal: `ResourceCache` is cleared first, SDL/render subsystems are removed and disposed in rbfx order (with excluded UI omitted and `SystemUI` mapped to `DearImGui`), remaining context-owned subsystems are disposed after cache detachment, and `PluginManager` is retained until last. Global-variable element destruction and `GetGlobalVar`/`SetGlobalVar` copy semantics remain dependent on the `Variant` audit. | — | — | — |
-| `src/RedBolt/Core/CoreEvents.cs` | `Source/Urho3D/Core/CoreEvents.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Core/CustomVariantValue.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/CoreEvents.cs` | `Source/Urho3D/Core/CoreEvents.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED under the allowed struct-event mapping. All event payloads are default-constructed value structs containing only `uint`/`float` scalars (or no fields), require no deterministic destruction, and copy independently by value during dispatch. | — | — | — |
+| `src/RedBolt/Core/CustomVariantValue.cs` | `Source/Urho3D/Core/Variant.h`<br>`Source/Urho3D/Core/Variant.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after cloning explicitly value-like payloads during construction and `Clone()`, restoring mutable `TypedValue` access by reference, and deterministically disposing owned cloneable/disposable payloads. Non-cloneable references retain pointer-like aliases. Invocation by `Variant` assignment, clearing, and destruction remains tracked by the `Variant` row. | — | — | — |
 | `src/RedBolt/Core/EventHandler.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/Object.cs` | `Source/Urho3D/Core/Object.h`<br>`Source/Urho3D/Core/Object.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/ObjectCategory.cs` | `Source/Urho3D/Core/ObjectCategory.h` | ☐ | ☐ | ☐ |

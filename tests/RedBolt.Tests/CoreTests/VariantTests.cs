@@ -218,6 +218,28 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Custom_values_copy_and_destroy_owned_value_objects()
+    {
+        var source = new CloneableCustomValue(7);
+        var original = new CustomVariantValueImpl<CloneableCustomValue>(source);
+        var clone = Assert.IsType<CustomVariantValueImpl<CloneableCustomValue>>(original.Clone());
+
+        source.Value = 8;
+
+        Assert.Equal(7, original.TypedValue.Value);
+        Assert.NotSame(source, original.TypedValue);
+        Assert.NotSame(original.TypedValue, clone.TypedValue);
+
+        var originalValue = original.TypedValue;
+        var cloneValue = clone.TypedValue;
+        original.Dispose();
+        clone.Dispose();
+
+        Assert.True(originalValue.IsDisposed);
+        Assert.True(cloneValue.IsDisposed);
+    }
+
+    [Fact]
     public void Optional_retrieval_matches_empty_and_value_contracts()
     {
         var empty = default(Variant).GetOptional<int>();
@@ -230,5 +252,15 @@ public sealed class VariantTests
     private readonly record struct CustomValue(int Value)
     {
         public override string ToString() => Value.ToString();
+    }
+
+    private sealed class CloneableCustomValue(int value) : ICloneable, IDisposable
+    {
+        public int Value = value;
+        public bool IsDisposed;
+
+        public object Clone() => new CloneableCustomValue(Value);
+
+        public void Dispose() => IsDisposed = true;
     }
 }

@@ -5,7 +5,7 @@ public interface IArchiveSerializable
     void SerializeInBlock(Archive archive);
 }
 
-public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
+public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable, IDisposable
 {
     public static readonly CustomVariantValue Empty = new();
 
@@ -19,7 +19,7 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
     public CustomVariantValue(object value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        _value = value;
+        _value = value is ICloneable cloneable ? cloneable.Clone() : value;
         Type = value.GetType();
     }
 
@@ -35,6 +35,12 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
     public virtual object Clone()
     {
         return Type == typeof(void) ? new CustomVariantValue() : new CustomVariantValue(Value);
+    }
+
+    public virtual void Dispose()
+    {
+        if (_value is ICloneable && _value is IDisposable disposable)
+            disposable.Dispose();
     }
 
     public bool IsType<T>() => Type == typeof(T);
@@ -85,25 +91,40 @@ public class CustomVariantValue : IEquatable<CustomVariantValue>, ICloneable
 
 public sealed class CustomVariantValueImpl<T> : CustomVariantValue
 {
+    private static readonly bool IsCloneable = typeof(ICloneable).IsAssignableFrom(typeof(T));
+    private static readonly bool IsDisposableValue = IsCloneable && typeof(IDisposable).IsAssignableFrom(typeof(T));
+    private T _typedValue;
+
     public CustomVariantValueImpl(T value)
         : base(typeof(T))
     {
-        TypedValue = value;
+        _typedValue = CopyValue(value);
     }
 
-    public T TypedValue { get; }
+    public ref T TypedValue => ref _typedValue;
 
-    public override object Value => TypedValue!;
+    public override object Value => _typedValue!;
 
-    public override object Clone() => new CustomVariantValueImpl<T>(TypedValue);
+    public override object Clone() => new CustomVariantValueImpl<T>(_typedValue);
 
-    public override bool IsZero() => EqualityComparer<T>.Default.Equals(TypedValue, default!);
+    public override void Dispose()
+    {
+        if (IsDisposableValue)
+            ((IDisposable)(object)_typedValue!).Dispose();
+    }
+
+    public override bool IsZero() => EqualityComparer<T>.Default.Equals(_typedValue, default!);
 
     public override bool Equals(CustomVariantValue? other)
     {
         return other is CustomVariantValueImpl<T> typedOther
-            && EqualityComparer<T>.Default.Equals(TypedValue, typedOther.TypedValue);
+            && EqualityComparer<T>.Default.Equals(_typedValue, typedOther._typedValue);
     }
 
-    public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(TypedValue!);
+    public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(_typedValue!);
+
+    private static T CopyValue(T value)
+    {
+        return IsCloneable ? (T)((ICloneable)(object)value!).Clone() : value;
+    }
 }
