@@ -127,6 +127,62 @@ public sealed class AnimationStateTests
     }
 
     [Fact]
+    public void Animation_state_tracks_static_property_and_animation_revision_changes()
+    {
+        using var animation = new Animation();
+        using var state = new AnimationState();
+
+        state.Initialize(animation, "Root", AnimationBlendMode.Lerp);
+        state.OnTracksReady();
+        Assert.False(state.AreTracksDirty());
+
+        state.Initialize(animation, "Spine", AnimationBlendMode.Lerp);
+        Assert.True(state.AreTracksDirty());
+
+        state.OnTracksReady();
+        state.Initialize(animation, "Spine", AnimationBlendMode.Additive);
+        Assert.True(state.AreTracksDirty());
+
+        state.OnTracksReady();
+        state.ClearAllTracks();
+        Assert.False(state.AreTracksDirty());
+
+        animation.CreateTrack("Node");
+        Assert.True(state.AreTracksDirty());
+    }
+
+    [Fact]
+    public void Animation_state_replaces_owned_attribute_variant_with_an_independent_copy()
+    {
+        using var animation = new Animation();
+        animation.SetLength(1.0f);
+        var track = animation.CreateVariantTrack("Value");
+        using var keyFrameValue = new CString("sample");
+        track.AddKeyFrame(new VariantCurvePoint { Time = 0.0f, Value = new Variant(keyFrameValue) });
+        track.Commit();
+
+        var attribute = new AnimatedAttributeReference { AttributeIndex = 1 };
+        using var state = new AnimationState();
+        state.Initialize(animation, string.Empty, AnimationBlendMode.Lerp);
+        state.Update(false, 0.0f, 1.0f);
+        state.AddAttributeTrack(new AttributeAnimationStateTrack { Track = track, Attribute = attribute });
+
+        using var oldValue = new CString("old");
+        var outputValue = new Variant(oldValue);
+        var disposedOutput = outputValue.GetCString();
+        var output = new Dictionary<AnimatedAttributeReference, Variant> { [attribute] = outputValue };
+
+        state.CalculateAttributeTracks(output);
+
+        Assert.Equal(0, disposedOutput.ByteLength);
+        Assert.Equal("sample", output[attribute].GetCString().ConvertToString());
+        Assert.NotSame(track.KeyFrames[0].Value.GetCString(), output[attribute].GetCString());
+
+        outputValue = output[attribute];
+        outputValue.Dispose();
+    }
+
+    [Fact]
     public void Animated_attribute_reference_sets_animated_model_morph_weight()
     {
         var model = new Model("MorphAnimation");
@@ -144,9 +200,10 @@ public sealed class AnimationStateTests
         {
             Serializable = animatedModel,
             AttributeType = AnimatedAttributeType.AnimatedModelMorphs,
-            SubAttributeKey = new StringHash("Smile")
+            SubAttributeKey = 0
         };
-        attribute.SetValue(new Variant(0.75f));
+        var value = new Variant(0.75f);
+        attribute.SetValue(value);
 
         Assert.Equal(0.75f, animatedModel.GetMorphWeight("Smile"));
     }
