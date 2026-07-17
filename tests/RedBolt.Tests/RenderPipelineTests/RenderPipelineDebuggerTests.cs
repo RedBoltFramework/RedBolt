@@ -2,8 +2,16 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderPipelineDebuggerTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
+    public RenderPipelineDebuggerTests(HeadlessEngineFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     [Fact]
     public void Snapshot_state_machine_preserves_pass_and_item_order()
     {
@@ -66,5 +74,102 @@ public sealed class RenderPipelineDebuggerTests
         firstView.GetDebugger().BeginSnapshot();
         Assert.True(firstView.GetDebugger().IsSnapshotInProgress());
         Assert.False(secondView.GetDebugger().IsSnapshotInProgress());
+    }
+
+    [Fact]
+    public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
+    {
+        var scene = new Scene();
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
+        var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
+
+        var geometry = new Geometry();
+        var material = new Material(string.Empty);
+        var pipelineBatch = new PipelineBatch
+        {
+            Drawable = drawable,
+            Geometry = geometry,
+            Material = material,
+            SourceBatchIndex = 0,
+            PixelLightIndex = 0,
+            Distance = 12.5f
+        };
+
+        var pipeline = new RenderPipeline();
+        var view = pipeline.Instantiate();
+        var processor = new DrawableProcessor(view);
+        processor.SetLights([light]);
+
+        var batch = new DebugFrameSnapshotBatch(processor, pipelineBatch, newInstancingGroup: true);
+        Assert.Same(drawable, batch.Drawable);
+        Assert.Same(geometry, batch.Geometry);
+        Assert.Same(material, batch.Material);
+        Assert.Same(light, batch.Light);
+        Assert.Equal(0u, batch.SourceBatchIndex);
+        Assert.Equal(12.5f, batch.Distance);
+        Assert.True(batch.NewInstancingGroup);
+        Assert.Equal(0u, batch.NumVertices);
+        Assert.Equal(0u, batch.NumPrimitives);
+
+        var text = batch.ToString();
+        Assert.StartsWith("*", text);
+        Assert.Contains("lit with", text);
+    }
+
+    [Fact]
+    public void BatchRenderer_reports_batches_into_active_debugger_snapshot()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
+        var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
+
+        var pipeline = new RenderPipeline();
+        var view = pipeline.Instantiate();
+        var processor = new DrawableProcessor(view);
+        processor.SetLights([light]);
+        var batchRenderer = new BatchRenderer(view, processor, instancingBuffer: null);
+
+        var geometry = new Geometry();
+        var material = new Material(string.Empty);
+        var pipelineBatch = new PipelineBatch
+        {
+            Drawable = drawable,
+            Geometry = geometry,
+            Material = material,
+            SourceBatchIndex = 0,
+            PixelLightIndex = 0,
+            Distance = 3.0f
+        };
+
+        var debugger = view.GetDebugger();
+        debugger.BeginSnapshot();
+        debugger.BeginPass("Forward");
+
+        // Direct ReportSceneBatch path used by BatchRenderer scene-batch reporting.
+        debugger.ReportSceneBatch(new DebugFrameSnapshotBatch(processor, pipelineBatch, true));
+        debugger.EndPass();
+        debugger.EndSnapshot();
+
+        var snapshot = debugger.GetSnapshot();
+        Assert.Single(snapshot.Passes);
+        Assert.Equal("Forward", snapshot.Passes[0].Name);
+        Assert.Single(snapshot.Passes[0].Batches);
+        Assert.Same(drawable, snapshot.Passes[0].Batches[0].Drawable);
+        Assert.Same(light, snapshot.Passes[0].Batches[0].Light);
+        Assert.Same(material, snapshot.Passes[0].Batches[0].Material);
+        Assert.Contains(material, snapshot.SceneMaterials);
+
+        // Empty render path stays quiet without pipeline states.
+        var drawQueue = new DrawCommandQueue(_fixture.RenderDevice);
+        var ctx = new BatchRenderingContext(drawQueue, camera);
+        var emptyGroup = new PipelineBatchGroup<PipelineBatchByState>
+        {
+            Batches = ReadOnlyMemory<PipelineBatchByState>.Empty
+        };
+        debugger.BeginSnapshot();
+        batchRenderer.RenderBatches(ctx, emptyGroup);
+        debugger.EndSnapshot();
+        Assert.Empty(debugger.GetSnapshot().Passes);
     }
 }

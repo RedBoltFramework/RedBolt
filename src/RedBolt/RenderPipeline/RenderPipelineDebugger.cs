@@ -17,6 +17,26 @@ public sealed class DebugFrameSnapshotBatch
     public uint NumPrimitives;
     public bool NewInstancingGroup;
 
+    public DebugFrameSnapshotBatch()
+    {
+    }
+
+    public DebugFrameSnapshotBatch(DrawableProcessor drawableProcessor, PipelineBatch pipelineBatch, bool newInstancingGroup)
+    {
+        Drawable = pipelineBatch.Drawable;
+        Geometry = pipelineBatch.Geometry;
+        Material = pipelineBatch.Material;
+        PipelineState = pipelineBatch.PipelineState;
+        SourceBatchIndex = pipelineBatch.SourceBatchIndex;
+        Distance = pipelineBatch.Distance;
+        NumVertices = Geometry?.GetVertexCount() ?? 0;
+        NumPrimitives = Geometry?.GetPrimitiveCount() ?? 0;
+        NewInstancingGroup = newInstancingGroup;
+
+        var lights = drawableProcessor.GetLights();
+        Light = pipelineBatch.PixelLightIndex < (uint)lights.Count ? lights[(int)pipelineBatch.PixelLightIndex] : null;
+    }
+
     public override string ToString()
     {
         var drawableName = Drawable is not null && SourceBatchIndex != uint.MaxValue
@@ -176,14 +196,21 @@ public sealed class RenderPipelineDebugger
         if (!_passInProgress)
             BeginPass("Unnamed");
         _snapshot.Passes[^1].Batches.Add(sceneBatch);
-        _snapshot.ScenePipelineStates.Add(sceneBatch.PipelineState!);
-        _snapshot.SceneMaterials.Add(sceneBatch.Material!);
+        if (sceneBatch.PipelineState is not null)
+            _snapshot.ScenePipelineStates.Add(sceneBatch.PipelineState);
+        if (sceneBatch.Material is not null)
+            _snapshot.SceneMaterials.Add(sceneBatch.Material);
 
-        var pipelineStateDesc = sceneBatch.PipelineState!.GetDesc();
+        if (sceneBatch.PipelineState is null)
+            return;
+
+        var pipelineStateDesc = sceneBatch.PipelineState.GetDesc();
         if (pipelineStateDesc.AsGraphics() is { } graphicsDesc)
         {
-            _snapshot.SceneShaders.Add(graphicsDesc.VertexShader!);
-            _snapshot.SceneShaders.Add(graphicsDesc.PixelShader!);
+            if (graphicsDesc.VertexShader is not null)
+                _snapshot.SceneShaders.Add(graphicsDesc.VertexShader);
+            if (graphicsDesc.PixelShader is not null)
+                _snapshot.SceneShaders.Add(graphicsDesc.PixelShader);
             if (graphicsDesc.GeometryShader is not null)
                 _snapshot.SceneShaders.Add(graphicsDesc.GeometryShader);
             if (graphicsDesc.HullShader is not null)
@@ -191,8 +218,8 @@ public sealed class RenderPipelineDebugger
             if (graphicsDesc.DomainShader is not null)
                 _snapshot.SceneShaders.Add(graphicsDesc.DomainShader);
         }
-        if (pipelineStateDesc.AsCompute() is { } computeDesc)
-            _snapshot.SceneShaders.Add(computeDesc.ComputeShader!);
+        if (pipelineStateDesc.AsCompute() is { } computeDesc && computeDesc.ComputeShader is not null)
+            _snapshot.SceneShaders.Add(computeDesc.ComputeShader);
     }
 
     /// <summary>Report quad.</summary>

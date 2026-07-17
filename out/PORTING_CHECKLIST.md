@@ -395,12 +395,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `LightProcessorCache : NonCopyable`
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
-  - [~] `DrawableProcessor : Object` — supporting batch data definitions are ported; processor implementation remains pending
+  - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries accessors, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending
 - [~] `BatchCompositor.h` — `PipelineBatchDesc` construction, shadow/lit light state, and batch-state key projection match C++; compositor classes remain pending
   - [ ] `BatchCompositorPass : DrawableProcessorPass`
   - [ ] `BatchCompositor : Object`
-- [ ] `BatchRenderer.h`
-  - [ ] `BatchRenderer : Object`
+- [~] `BatchRenderer.h`
+  - [~] `BatchRenderer : Object` — construction, settings, batch/light-volume render entry points, instancing-buffer prepare hooks, and debugger scene-batch reporting are ported; full DrawCommandCompositor GPU emission path remains
 - [~] `RenderPass.h`
   - [~] `RenderPass` — pass-name and render-buffer connection semantics match C++; initial managed enable behavior, cloning, and render-path serialization remain managed-runtime adaptations
 - [~] `RenderPath.h`
@@ -412,12 +412,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [ ] `SceneProcessor : Object, LightProcessorCallback`
 - [ ] `OutlineScenePass.h`
   - [ ] `OutlineScenePass : ScenePass`
-- [~] `RenderPipelineDebugger.h`
-  - [~] `struct DebugFrameSnapshotBatch` — snapshot fields and formatting are ported; the constructor from native `PipelineBatch` awaits that class
+- [x] `RenderPipelineDebugger.h`
+  - [x] `struct DebugFrameSnapshotBatch` — snapshot fields, formatting, and constructor from `DrawableProcessor` + `PipelineBatch` match C++
   - [x] `struct DebugFrameSnapshotQuad`
   - [x] `struct DebugFrameSnapshotPass`
   - [x] `struct DebugFrameSnapshot`
-  - [~] `RenderPipelineDebugger` — snapshot state machine, pass/quad reporting, default-pipeline capture hotkey, and final logging are ported; scene-batch call sites await `DrawableProcessor` and `BatchRenderer`
+  - [x] `RenderPipelineDebugger` — snapshot state machine, pass/quad/scene-batch reporting, default-pipeline capture hotkey, and final logging match C++; BatchRenderer scene-batch reporting is wired
 - [~] `Passes/FullScreenShaderPass.h`
   - [~] `FullScreenShaderPass : RenderPass` — parameter collection, per-view initialization, default-parameter disabling, render traits, C++ static-pipeline cache invalidation/restoration, fullscreen rendering, and cloning are ported; managed attribute/reflection registration remains adapted
 - [~] `Passes/AmbientOcclusionPass.h`

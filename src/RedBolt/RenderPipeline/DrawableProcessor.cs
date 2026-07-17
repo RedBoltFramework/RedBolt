@@ -171,3 +171,101 @@ public class DrawableProcessorPass : Object
         LinearColorSpace = RenderPipeline.IsLinearColorSpace;
     }
 }
+
+/// <summary>Utility used to update and process visible or shadow caster Drawables.</summary>
+public class DrawableProcessor : Object
+{
+    private readonly IRenderPipelineInterface _renderPipeline;
+    private readonly List<DrawableProcessorPass> _passes = [];
+    private readonly List<Light?> _lights = [];
+    private readonly List<Drawable?> _geometries = [];
+    private readonly List<SortedOccluder> _sortedOccluders = [];
+    private DrawableProcessorSettings _settings = new();
+    private CommonFrameInfo _frameInfo = new();
+    private FloatRange _sceneZRange;
+
+    public DrawableProcessor(IRenderPipelineInterface renderPipeline)
+    {
+        _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+        _renderPipeline.UpdateBegin += OnUpdateBegin;
+        _renderPipeline.CollectStatistics += OnCollectStatistics;
+    }
+
+    public override void Dispose()
+    {
+        _renderPipeline.UpdateBegin -= OnUpdateBegin;
+        _renderPipeline.CollectStatistics -= OnCollectStatistics;
+        base.Dispose();
+    }
+
+    public void SetPasses(IReadOnlyList<DrawableProcessorPass> passes)
+    {
+        _passes.Clear();
+        _passes.AddRange(passes);
+    }
+
+    public void SetSettings(DrawableProcessorSettings settings) => _settings = settings;
+
+    public CommonFrameInfo GetFrameInfo() => _frameInfo;
+
+    public DrawableProcessorSettings GetSettings() => _settings;
+
+    public bool HasOccluders() => _sortedOccluders.Count != 0;
+
+    public IReadOnlyList<SortedOccluder> GetOccluders() => _sortedOccluders;
+
+    public IReadOnlyList<Drawable?> GetGeometries() => _geometries;
+
+    public FloatRange GetSceneZRange() => _sceneZRange;
+
+    public IReadOnlyList<Light?> GetLights() => _lights;
+
+    public Light? GetLight(uint lightIndex) =>
+        lightIndex < (uint)_lights.Count ? _lights[(int)lightIndex] : null;
+
+    /// <summary>Replace the per-frame light list used by pipeline batches and debugger reporting.</summary>
+    public void SetLights(IReadOnlyList<Light?> lights)
+    {
+        _lights.Clear();
+        _lights.AddRange(lights);
+    }
+
+    /// <summary>Replace the per-frame geometry list used by scene processing.</summary>
+    public void SetGeometries(IReadOnlyList<Drawable?> geometries)
+    {
+        _geometries.Clear();
+        _geometries.AddRange(geometries);
+    }
+
+    public void OnUpdateBegin(CommonFrameInfo frameInfo)
+    {
+        _frameInfo = frameInfo;
+        _sortedOccluders.Clear();
+        _geometries.Clear();
+        _lights.Clear();
+        _sceneZRange = default;
+    }
+
+    public void OnCollectStatistics(RenderPipelineStats stats)
+    {
+        stats.NumGeometries += (uint)_geometries.Count;
+        stats.NumLights += (uint)_lights.Count;
+    }
+
+    public void ProcessOccluders(IReadOnlyList<Drawable> occluders, float sizeThreshold)
+    {
+        _sortedOccluders.Clear();
+        foreach (var drawable in occluders)
+        {
+            if (!drawable.Occluder)
+                continue;
+            _sortedOccluders.Add(new SortedOccluder
+            {
+                SortValue = drawable.GetDistance(),
+                Drawable = drawable
+            });
+        }
+        _sortedOccluders.Sort();
+        _ = sizeThreshold;
+    }
+}
