@@ -66,8 +66,30 @@ public sealed class WorkQueue : Object
             _threadIndexCount = 1;
             _workQueue = this;
         }
+    }
 
-        SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent _) => Update());
+    public override void Dispose()
+    {
+        while (Interlocked.CompareExchange(ref _pendingTaskCount, 0, 0) > 0)
+            Thread.Sleep(0);
+
+        if (ReferenceEquals(_workQueue, this))
+        {
+            _threadIndexCount = 0;
+            _workQueue = null;
+        }
+
+        for (var i = _pendingImmediateTasks.Count - 1; i >= 0; --i)
+            _pendingImmediateTasks[i].Clear();
+        _pendingImmediateTasks.Clear();
+        lock (_mainThreadTasksLock)
+        {
+            _mainThreadTasksSwap.Clear();
+            _mainThreadTasks.Clear();
+        }
+        _fallbackTaskQueue.Clear();
+
+        base.Dispose();
     }
 
     public void Initialize(uint numThreads)
