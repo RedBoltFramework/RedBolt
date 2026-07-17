@@ -163,11 +163,14 @@ public sealed class VariantTests
         var variant = new Variant(value);
 
         Assert.Equal(VariantType.CString, variant.Type);
-        Assert.Same(value, variant.GetCString());
-        Assert.Same(value, variant.GetObject());
+        Assert.NotSame(value, variant.GetCString());
+        Assert.Equal(value, variant.GetCString());
+        Assert.NotSame(value, variant.GetObject());
         Assert.Equal("Native text", variant.ToString());
         Assert.Equal(variant, Variant.FromObject(value));
         Assert.Equal(VariantType.CString, VariantTypeUtility.GetVariantType(value));
+
+        variant.Dispose();
     }
 
     [Fact]

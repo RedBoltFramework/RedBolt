@@ -42,7 +42,7 @@ public enum VariantType
     CString
 }
 
-public struct Variant : IEquatable<Variant>
+public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 {
     private static readonly string[] TypeNames =
     [
@@ -308,7 +308,7 @@ public struct Variant : IEquatable<Variant>
     public Variant(ResourceRefList value)
     {
         _type = VariantType.ResourceRefList;
-        _resourceRefListValue = value;
+        _resourceRefListValue = new ResourceRefList(value.Type, value.Names);
     }
 
     public Variant(Matrix3 value)
@@ -332,31 +332,31 @@ public struct Variant : IEquatable<Variant>
     public Variant(VariantVector value)
     {
         _type = VariantType.VariantVector;
-        _variantVectorValue = value ?? new VariantVector();
+        _variantVectorValue = value is null ? new VariantVector() : new VariantVector(value);
     }
 
     public Variant(StringVector value)
     {
         _type = VariantType.StringVector;
-        _stringVectorValue = value ?? new StringVector();
+        _stringVectorValue = value is null ? new StringVector() : new StringVector(value);
     }
 
     public Variant(VariantMap value)
     {
         _type = VariantType.VariantMap;
-        _variantMapValue = value ?? new VariantMap();
+        _variantMapValue = value is null ? new VariantMap() : new VariantMap(value);
     }
 
     public Variant(StringVariantMap value)
     {
         _type = VariantType.StringVariantMap;
-        _stringVariantMapValue = value ?? new StringVariantMap();
+        _stringVariantMapValue = value is null ? new StringVariantMap() : new StringVariantMap(value);
     }
 
     public Variant(VariantCurve value)
     {
         _type = VariantType.VariantCurve;
-        _variantCurveValue = value ?? EmptyVariantCurve;
+        _variantCurveValue = value?.Clone() ?? new VariantCurve();
     }
 
     public Variant(string value)
@@ -371,7 +371,66 @@ public struct Variant : IEquatable<Variant>
     public Variant(CString value)
     {
         _type = VariantType.CString;
-        _cstringValue = value ?? new CString();
+        _cstringValue = value is null ? new CString() : (CString)value.Clone();
+    }
+
+    public Variant Clone()
+    {
+        return _type switch
+        {
+            VariantType.Buffer => new Variant(_bufferValue),
+            VariantType.CString => new Variant(_cstringValue),
+            VariantType.ResourceRefList => new Variant(_resourceRefListValue),
+            VariantType.VariantVector => new Variant(_variantVectorValue),
+            VariantType.StringVector => new Variant(_stringVectorValue),
+            VariantType.VariantMap => new Variant(_variantMapValue),
+            VariantType.StringVariantMap => new Variant(_stringVariantMapValue),
+            VariantType.VariantCurve => new Variant(_variantCurveValue),
+            VariantType.Custom => new Variant((CustomVariantValue)_customValue.Clone()),
+            _ => this
+        };
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        switch (_type)
+        {
+        case VariantType.CString:
+            _cstringValue?.Dispose();
+            break;
+        case VariantType.VariantVector:
+            for (var i = _variantVectorValue.Count - 1; i >= 0; --i)
+            {
+                var copy = _variantVectorValue[i];
+                copy.Dispose();
+            }
+            break;
+        case VariantType.VariantMap:
+            foreach (var value in _variantMapValue.Values)
+            {
+                var copy = value;
+                copy.Dispose();
+            }
+            break;
+        case VariantType.StringVariantMap:
+            foreach (var value in _stringVariantMapValue.Values)
+            {
+                var copy = value;
+                copy.Dispose();
+            }
+            break;
+        case VariantType.Custom:
+            if (!ReferenceEquals(_customValue, CustomVariantValue.Empty))
+                _customValue.Dispose();
+            break;
+        case VariantType.VariantCurve:
+            if (!ReferenceEquals(_variantCurveValue, EmptyVariantCurve))
+                _variantCurveValue.Dispose();
+            break;
+        }
+        this = default;
     }
 
     /// <summary>Reset to empty.</summary>
@@ -598,14 +657,14 @@ public struct Variant : IEquatable<Variant>
         if (type == typeof(Quaternion)) return Reinterpret<Quaternion, T>(GetQuaternion());
         if (type == typeof(Color)) return Reinterpret<Color, T>(GetColor());
         if (type == typeof(string)) return Reinterpret<string, T>(GetString());
-        if (type == typeof(CString)) return Reinterpret<CString, T>(GetCString());
-        if (type == typeof(byte[])) return Reinterpret<byte[], T>(GetBuffer());
+        if (type == typeof(CString)) return Reinterpret<CString, T>((CString)GetCString().Clone());
+        if (type == typeof(byte[])) return Reinterpret<byte[], T>((byte[])GetBuffer().Clone());
         if (type == typeof(IntPtr)) return Reinterpret<IntPtr, T>(GetVoidPtr());
         if (type == typeof(ResourceRef)) return Reinterpret<ResourceRef, T>(GetResourceRef());
-        if (type == typeof(ResourceRefList)) return Reinterpret<ResourceRefList, T>(GetResourceRefList());
-        if (type == typeof(VariantVector)) return Reinterpret<VariantVector, T>(GetVariantVector());
-        if (type == typeof(StringVector)) return Reinterpret<StringVector, T>(GetStringVector());
-        if (type == typeof(VariantMap)) return Reinterpret<VariantMap, T>(GetVariantMap());
+        if (type == typeof(ResourceRefList)) return Reinterpret<ResourceRefList, T>(new ResourceRefList(GetResourceRefList().Type, GetResourceRefList().Names));
+        if (type == typeof(VariantVector)) return Reinterpret<VariantVector, T>(new VariantVector(GetVariantVector()));
+        if (type == typeof(StringVector)) return Reinterpret<StringVector, T>(new StringVector(GetStringVector()));
+        if (type == typeof(VariantMap)) return Reinterpret<VariantMap, T>(new VariantMap(GetVariantMap()));
         if (type == typeof(Rect)) return Reinterpret<Rect, T>(GetRect());
         if (type == typeof(IntRect)) return Reinterpret<IntRect, T>(GetIntRect());
         if (type == typeof(Vector2i)) return Reinterpret<Vector2i, T>(GetIntVector2());
@@ -613,8 +672,8 @@ public struct Variant : IEquatable<Variant>
         if (type == typeof(Matrix3)) return Reinterpret<Matrix3, T>(GetMatrix3());
         if (type == typeof(Matrix3x4)) return Reinterpret<Matrix3x4, T>(GetMatrix3x4());
         if (type == typeof(Matrix4)) return Reinterpret<Matrix4, T>(GetMatrix4());
-        if (type == typeof(StringVariantMap)) return Reinterpret<StringVariantMap, T>(GetStringVariantMap());
-        if (type == typeof(VariantCurve)) return Reinterpret<VariantCurve, T>(GetVariantCurve());
+        if (type == typeof(StringVariantMap)) return Reinterpret<StringVariantMap, T>(new StringVariantMap(GetStringVariantMap()));
+        if (type == typeof(VariantCurve)) return Reinterpret<VariantCurve, T>(GetVariantCurve().Clone());
         if (_type == VariantType.Custom) return GetCustom<T>();
 
         throw new ArgumentException($"Unsupported Variant value type '{type.Name}'.", nameof(T));
@@ -1365,7 +1424,7 @@ public sealed class VariantMap : Dictionary<StringHash, Variant>
     }
 
     public VariantMap(IDictionary<StringHash, Variant> dictionary)
-        : base(dictionary)
+        : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()))
     {
     }
 }
@@ -1377,7 +1436,7 @@ public sealed class VariantVector : List<Variant>
     }
 
     public VariantVector(IEnumerable<Variant> collection)
-        : base(collection)
+        : base(collection.Select(static value => value.Clone()))
     {
     }
 }
@@ -1402,7 +1461,7 @@ public sealed class StringVariantMap : Dictionary<string, Variant>
     }
 
     public StringVariantMap(IDictionary<string, Variant> dictionary)
-        : base(dictionary, StringComparer.Ordinal)
+        : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()), StringComparer.Ordinal)
     {
     }
 }

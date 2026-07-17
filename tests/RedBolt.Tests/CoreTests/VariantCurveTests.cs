@@ -62,9 +62,13 @@ public sealed class VariantCurveTests
         var variant = new Variant(curve);
 
         Assert.Equal(VariantType.VariantCurve, variant.Type);
-        Assert.Same(curve, variant.GetVariantCurve());
-        Assert.Same(curve, variant.Get<VariantCurve>());
-        Assert.Same(curve, variant.GetObject());
+        Assert.NotSame(curve, variant.GetVariantCurve());
+        Assert.Equal(curve, variant.GetVariantCurve());
+        Assert.NotSame(variant.GetVariantCurve(), variant.Get<VariantCurve>());
+        Assert.Equal(curve, variant.Get<VariantCurve>());
         Assert.Equal(variant, Variant.FromObject(curve));
+
+        curve.Name = "Changed";
+        Assert.Equal("Curve", variant.GetVariantCurve().Name);
     }
 }

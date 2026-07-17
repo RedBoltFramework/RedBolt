@@ -31,7 +31,7 @@ public struct VariantCurvePoint : IEquatable<VariantCurvePoint>
     public static bool operator !=(VariantCurvePoint lhs, VariantCurvePoint rhs) => !lhs.Equals(rhs);
 }
 
-public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>
+public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>, ICloneable, IDisposable
 {
     public static readonly VariantCurve Empty = new();
 
@@ -124,7 +124,7 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
                 return keyFrame.Value.Lerp(nextKeyFrame.Value, blendFactor);
         }
 
-        return keyFrame.Value;
+        return keyFrame.Value.Clone();
     }
 
     public Variant Sample(float time)
@@ -213,6 +213,49 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
     public override bool Equals(object? obj) => Equals(obj as VariantCurve);
 
     public override int GetHashCode() => unchecked((int)ToHash());
+
+    public VariantCurve Clone()
+    {
+        var clone = new VariantCurve
+        {
+            Name = Name,
+            NameHash = NameHash,
+            Interpolation = Interpolation,
+            SplineTension = SplineTension,
+            Type = Type
+        };
+        foreach (var keyFrame in KeyFrames)
+            clone.KeyFrames.Add(new VariantCurvePoint { Time = keyFrame.Time, Value = keyFrame.Value.Clone() });
+        foreach (var tangent in InTangents)
+            clone.InTangents.Add(tangent.Clone());
+        foreach (var tangent in OutTangents)
+            clone.OutTangents.Add(tangent.Clone());
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        for (var i = OutTangents.Count - 1; i >= 0; --i)
+        {
+            var value = OutTangents[i];
+            value.Dispose();
+        }
+        for (var i = InTangents.Count - 1; i >= 0; --i)
+        {
+            var value = InTangents[i];
+            value.Dispose();
+        }
+        for (var i = KeyFrames.Count - 1; i >= 0; --i)
+        {
+            var value = KeyFrames[i].Value;
+            value.Dispose();
+        }
+        OutTangents.Clear();
+        InTangents.Clear();
+        KeyFrames.Clear();
+    }
 
     public static bool operator ==(VariantCurve? lhs, VariantCurve? rhs) => ReferenceEquals(lhs, rhs) || lhs?.Equals(rhs) == true;
     public static bool operator !=(VariantCurve? lhs, VariantCurve? rhs) => !(lhs == rhs);
