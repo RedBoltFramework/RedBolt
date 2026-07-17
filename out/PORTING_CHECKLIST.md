@@ -313,9 +313,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ParticleEffect : Resource` — defaults, XML load/save, color/texture frames, clone, random helpers, and material async load match C++
 - [x] `ParticleEmitter.h`
   - [x] `ParticleEmitter : BillboardSet` — effect application, emission/period timers, particle/billboard attribute serialize, scene post-update animation, finished event, and auto-remove match C++
-- [ ] `RibbonTrail.h`
-  - [ ] `struct TrailPoint`
-  - [ ] `RibbonTrail : Drawable`
+- [x] `RibbonTrail.h`
+  - [x] `struct TrailPoint` — position, forward, parent position, elapsed length, lifetime, and sort distance match C++
+  - [x] `RibbonTrail : Drawable` — face-camera/bone trail types, emission/update, buffer rebuilds, sorting, world-origin shifts, and scene post-update match C++
 - [ ] `DecalSet.h`
   - [ ] `struct DecalVertex`
   - [ ] `struct Decal`
