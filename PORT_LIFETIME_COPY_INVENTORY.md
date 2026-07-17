@@ -125,7 +125,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED under the allowed struct-event mapping. All event payloads are default-constructed value structs containing only `uint`/`float` scalars (or no fields), require no deterministic destruction, and copy independently by value during dispatch. | — | — | — |
 | `src/RedBolt/Core/CustomVariantValue.cs` | `Source/Urho3D/Core/Variant.h`<br>`Source/Urho3D/Core/Variant.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after cloning explicitly value-like payloads during construction and `Clone()`, restoring mutable `TypedValue` access by reference, and deterministically disposing owned cloneable/disposable payloads. Non-cloneable references retain pointer-like aliases. Invocation by `Variant` assignment, clearing, and destruction remains tracked by the `Variant` row. | — | — | — |
-| `src/RedBolt/Core/EventHandler.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/EventHandler.cs` | `Source/Urho3D/Core/Object.h` (`EventHandler`) | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED under the allowed struct-event mapping. Construction preserves borrowed receiver/sender aliases and transfers the managed callable into the subscription; scalar/immutable IDs and event types copy independently. The implicit C++ callable destruction maps to releasing the managed delegate reference when its subscription is removed; the delegate target is borrowed and is not owned or disposed by the handler. No EventHandler copy construction or by-value return occurs. | — | — | — |
 | `src/RedBolt/Core/Object.cs` | `Source/Urho3D/Core/Object.h`<br>`Source/Urho3D/Core/Object.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/ObjectCategory.cs` | `Source/Urho3D/Core/ObjectCategory.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/ObjectExtensionMethods.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
