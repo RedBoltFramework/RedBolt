@@ -133,7 +133,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED. This constants-only mapping has no instances or destructor behavior; every C++ `ConstString` global maps to an equal immutable C# string constant, so accesses require no mutable object copy or ownership transfer. | — | — | — |
 | `src/RedBolt/Core/ObjectExtensionMethods.cs` | Allowed C# reflection replacement for `URHO3D_OBJECT` metadata (`Source/Urho3D/Core/Object.h`) | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED under the allowed reflection/type-system facade. The class is static and has no construction or destruction state; methods return newly formatted immutable strings or a scalar `StringHash`, with no mutable object copy or ownership transfer. | — | — | — |
-| `src/RedBolt/Core/ObjectReflection.cs` | `Source/Urho3D/Core/ObjectReflection.h`<br>`Source/Urho3D/Core/ObjectReflection.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Core/ObjectReflection.cs` | `Source/Urho3D/Core/ObjectReflection.h`<br>`Source/Urho3D/Core/ObjectReflection.cpp` | ☑ | ☐ | ☐ |
+| 2026-07-17 partial outcome | Constructor/type/factory setup VERIFIED under the allowed C# reflection facade. `AddAttribute` and `CopyAttributesFrom` already clone C++ by-value `AttributeInfo` entries, while returned attribute/reflection collections preserve borrowed aliases. Deterministic destruction on attribute/metadata removal and deep copy/assignment of attribute defaults and metadata remain dependent on the `AttributeInfo` and `Variant` audits. | — | — | — |
 | `src/RedBolt/Core/ObjectRevisionTracker.cs` | `Source/Urho3D/Core/ObjectRevisionTracker.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/ProcessUtils.cs` | `Source/Urho3D/Core/ProcessUtils.h`<br>`Source/Urho3D/Core/ProcessUtils.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/Profiler.cs` | `Source/Urho3D/Core/Profiler.h`<br>`Source/Urho3D/Core/Profiler.cpp` | ☐ | ☐ | ☐ |
