@@ -295,6 +295,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
 - All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
+- `SystemUI` is renamed to `DearImGui`.
 
 Anything not on this list must match C++.
 
