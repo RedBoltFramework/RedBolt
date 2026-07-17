@@ -198,7 +198,7 @@ public abstract class Drawable : Component
     private float _distance;
     private float _lodDistance;
     private float _sortValue;
-    private readonly System.Collections.Generic.List<Camera?> _viewCameras = [];
+    protected readonly System.Collections.Generic.List<Camera?> _viewCameras = [];
     private readonly DrawablePipelineStateTracker _pipelineStateTracker;
 
     public BoundingBox BoundingBox => _boundingBox;

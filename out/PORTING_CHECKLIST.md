@@ -12,7 +12,7 @@
 - [~] `54_WindowSettingsDemo` — window-settings scene and native fullscreen-mode, DPI, refresh-rate, and MSAA apply semantics ported with Dear ImGui; upstream comparison removed the extra C# `RenderPipeline` component and aligned settings reads with `RenderDevice`; runtime now starts successfully, but the 3D box remains absent in the screenshot and requires further engine-level investigation
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [~] `06_SkeletalAnimation` — AnimatedModel model/skeleton/morph ownership, threaded pose calculation and octree transform commits, component-owned cloned geometry, geometry bone mappings, hardware/software skin matrices, and SoftwareModelAnimator runtime morphing/skinning updates are ported; sample runtime validation remains
-- [ ] `07_Billboards` — requires complete `BillboardSet` parity
+- [~] `07_Billboards` — `BillboardSet` drawable parity and unit tests are ported; sample runtime validation remains
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
 
@@ -97,7 +97,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `Vector2.h` / `Vector3.h` / `Vector4.h` / `Quaternion.h` / `MathDefs.h` — vector constructors, constants, free helpers, and quaternion zero constant reconciled; C++ compound-assignment operators use C#'s built-in compound-assignment lowering
 - [x] `SphericalHarmonics.h` — fixed-size coefficients, directional basis, color evaluation, packed dot representation, accumulation, scaling, and debug color match C++
-- [~] `Ray.h` — object-level ray intersections are ported; raw vertex/index-buffer overloads remain pending because the managed API has no equivalent raw `void*` surface
+- [x] `Ray.h` — object-level ray intersections and raw vertex/index buffer overloads are ported; C++ `void*` buffer surfaces map to `ReadOnlySpan<byte>`
 
 ## [x] A3. Core — depends on Container, Math
 
@@ -306,9 +306,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `SoftwareModelAnimator.h`
   - [x] `VertexBufferAnimationData`
   - [x] `SoftwareModelAnimator : Object` — model geometry and animated-stream cloning, morph reset/application, four-weight extraction and reduction, CPU position/normal/tangent skinning, and GPU commit are ported
-- [ ] `BillboardSet.h`
-  - [ ] `struct Billboard`
-  - [ ] `BillboardSet : Drawable`
+- [x] `BillboardSet.h`
+  - [x] `struct Billboard` — position, size, UV, color, rotation, direction, enabled, sort distance, and screen-scale factor match C++
+  - [x] `BillboardSet : Drawable` — constructor defaults, material/num/relative/scaled/sorted/fixed-screen-size/face-camera/min-angle/animation-LOD API, commit, ray query, batch/geometry updates, buffer size/format rebuilds, default/direction/axis-angle vertex builds, fixed screen-size scaling, world bounds, and billboard attribute serialize/deserialize match C++
 - [ ] `ParticleEffect.h`
   - [ ] `ParticleEffect : Resource`
 - [ ] `ParticleEmitter.h`
