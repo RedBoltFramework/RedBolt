@@ -68,7 +68,7 @@ public sealed class SoundSource3D : SoundSource
     public float GetFarDistance() => _farDistance;
     public float GetInnerAngle() => _innerAngle;
     public float GetOuterAngle() => _outerAngle;
-    public float GetRolloffFactor() => _rolloffFactor;
+    public float RollAngleoffFactor() => _rolloffFactor;
 
     public void CalculateAttenuation()
     {

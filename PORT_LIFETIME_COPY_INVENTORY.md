@@ -88,11 +88,14 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Audio/OggVorbisSoundStream.cs` | `Source/Urho3D/Audio/OggVorbisSoundStream.h`<br>`Source/Urho3D/Audio/OggVorbisSoundStream.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after retaining the compressed-array pin for the decoder lifetime and releasing it after decoder close in `Dispose`. The compressed data remains shared with `Sound`, matching `ea::shared_array` under the allowed smart-pointer removal. | — | — | — |
 | `src/RedBolt/Audio/Sound.cs` | `Source/Urho3D/Audio/Sound.h`<br>`Source/Urho3D/Audio/Sound.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/SoundListener.cs` | `Source/Urho3D/Audio/SoundListener.h`<br>`Source/Urho3D/Audio/SoundListener.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/SoundListener.cs` | `Source/Urho3D/Audio/SoundListener.h`<br>`Source/Urho3D/Audio/SoundListener.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. Construction delegates to `Component`; the default destructor has no fields; there are no value-copy expressions in this class. Reflection metadata uses the allowed C# reflection facade. | — | — | — |
 | `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☑ | ☑ | ☐ |
 | 2026-07-17 partial outcome | Constructor/destructor VERIFIED under the user-approved non-null `GetSubsystem<T>()` deviation recorded in `AGENTS.md`. Copy-producing expressions remain open. | — | — | — |
-| `src/RedBolt/Audio/SoundSource3D.cs` | `Source/Urho3D/Audio/SoundSource3D.h`<br>`Source/Urho3D/Audio/SoundSource3D.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/SoundStream.cs` | `Source/Urho3D/Audio/SoundStream.h`<br>`Source/Urho3D/Audio/SoundStream.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/SoundSource3D.cs` | `Source/Urho3D/Audio/SoundSource3D.h`<br>`Source/Urho3D/Audio/SoundSource3D.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after restoring the rbfx getter name `RollAngleoffFactor`. Constructor defaults and copied math temporaries use independent C# value types; the class adds no owned disposable fields. | — | — | — |
+| `src/RedBolt/Audio/SoundStream.cs` | `Source/Urho3D/Audio/SoundStream.h`<br>`Source/Urho3D/Audio/SoundStream.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. Constructor defaults match, the default destructor owns no disposable fields after the allowed `RefCounted` removal, and all returns are scalar values. | — | — | — |
 | `src/RedBolt/Container/Array2D.cs` | `Source/Urho3D/Container/Array2D.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/CString.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/ConstString.cs` | `Source/Urho3D/Container/ConstString.h` | ☐ | ☐ | ☐ |
