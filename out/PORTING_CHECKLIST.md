@@ -322,10 +322,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `DecalSet : Drawable` — material/limits, AddDecal frustum clip path, buffer rebuild, skinning, attribute serialize, and time-limited cleanup match C++
 - [~] `CustomGeometry.h`
   - [~] `CustomGeometry : Drawable` — dynamic custom-geometry definition, vertex serialization, resource-cache material attributes, C++ LOD-geometry and material-aware occluder triangle accounting, native occlusion-buffer drawing, material assignment, bounds, geometry access, and managed ray-query support are ported; full class-shape and GPU buffer lifecycle parity remain incomplete
-- [ ] `Terrain.h`
-  - [ ] `Terrain : Component`
-- [ ] `TerrainPatch.h`
-  - [ ] `TerrainPatch : Drawable`
+- [~] `Terrain.h`
+  - [~] `Terrain : Component` — factory and UpdatePatchLod stitch-range selection are ported; CreatePatchGeometry and heightmap/neighbor/material lifecycle remain TODO
+- [x] `TerrainPatch.h`
+  - [x] `TerrainPatch : Drawable` — LOD selection with neighbor correction, ray queries, occlusion, lightmap batch helpers, and geometry accessors match C++
 - [ ] `LightProbeGroup.h`
   - [ ] `LightProbeGroup : Component`
 - [ ] `GlobalIllumination.h`
