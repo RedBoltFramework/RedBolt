@@ -22,7 +22,7 @@ public class DebugRenderer : Component
     private readonly RawBuffer?[] _vertexBuffers = new RawBuffer?[1];
     private bool _vertexBufferInitialized;
     private bool _lineAntiAlias;
-    private Camera? _camera;
+    private WeakReference<Camera>? _camera;
 
     private readonly StaticPipelineStateCache _pipelineStates = new();
     private bool _pipelineStatesInitialized;
@@ -41,7 +41,22 @@ public class DebugRenderer : Component
 
     public DebugRenderer()
     {
+        _vertexBuffer.SetDebugName("DebugRenderer");
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => HandleEndFrame());
+    }
+
+    public override void Dispose()
+    {
+        _pipelineStates.Invalidate();
+        _pipelineStates.Dispose();
+        _camera = null;
+        _vertexBuffers[0] = null;
+        _vertexBuffer.GetVertexBuffer().GetRawBuffer()?.Destroy();
+        _noDepthTriangles.Clear();
+        _triangles.Clear();
+        _noDepthLines.Clear();
+        _lines.Clear();
+        base.Dispose();
     }
 
     /// <summary>
@@ -64,8 +79,8 @@ public class DebugRenderer : Component
         _view = camera.GetView();
         _projection = camera.GetProjection();
         _gpuProjection = camera.GetGPUProjection();
-        _frustum = camera.GetFrustum();
-        _camera = camera;
+        _frustum = (Frustum)camera.GetFrustum().Clone();
+        _camera = new WeakReference<Camera>(camera);
     }
 
     /// <summary>
@@ -103,13 +118,13 @@ public class DebugRenderer : Component
     /// </summary>
     public void AddLine2D(Vector2f start, Vector2f end, uint color, bool depthTest = true)
     {
-        if (_camera is null)
+        if (_camera is null || !_camera.TryGetTarget(out var camera))
             return;
 
-        var depth = _camera.GetNearClip() + MathDefs.LargeEpsilon;
+        var depth = camera.GetNearClip() + MathDefs.LargeEpsilon;
         AddLine(
-            _camera.ScreenToWorldPoint(new Vector3f(start.X, start.Y, depth)),
-            _camera.ScreenToWorldPoint(new Vector3f(end.X, end.Y, depth)),
+            camera.ScreenToWorldPoint(new Vector3f(start.X, start.Y, depth)),
+            camera.ScreenToWorldPoint(new Vector3f(end.X, end.Y, depth)),
             color,
             depthTest);
     }

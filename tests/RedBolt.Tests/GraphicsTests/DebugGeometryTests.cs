@@ -93,14 +93,17 @@ public sealed class DebugGeometryTests
 
         Assert.Equal(camera.GetView(), debugRenderer.GetView());
         Assert.Equal(camera.GetProjection(), debugRenderer.GetProjection());
-        Assert.Equal(camera.GetFrustum(), debugRenderer.GetFrustum());
+        Assert.NotSame(camera.GetFrustum(), debugRenderer.GetFrustum());
+        Assert.Equal(camera.GetFrustum().Planes, debugRenderer.GetFrustum().Planes);
+        Assert.Equal(camera.GetFrustum().Vertices, debugRenderer.GetFrustum().Vertices);
     }
 
     [Fact]
     public void DebugRenderer_adds_2d_lines_using_camera()
     {
         var debugRenderer = new DebugRenderer();
-        debugRenderer.SetView(new Camera());
+        var camera = new Camera();
+        debugRenderer.SetView(camera);
 
         debugRenderer.AddLine2D(new Vector2f(0.25f, 0.25f), new Vector2f(0.75f, 0.75f), Color.White);
 

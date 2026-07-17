@@ -3,6 +3,42 @@ namespace RedBolt.Tests;
 public sealed class DebugRendererTests
 {
     [Fact]
+    public void DebugRendererIsNotCopyable()
+    {
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(DebugRenderer)));
+    }
+
+    [Fact]
+    public void SetViewCopiesFrustumValue()
+    {
+        using var renderer = new DebugRenderer();
+        var camera = new Camera();
+        var cameraFrustum = camera.GetFrustum();
+
+        renderer.SetView(camera);
+        var rendererVertex = renderer.GetFrustum().Vertices[0];
+        cameraFrustum.Vertices[0] = new Vector3f(100.0f, 200.0f, 300.0f);
+
+        Assert.NotSame(cameraFrustum, renderer.GetFrustum());
+        Assert.Equal(rendererVertex, renderer.GetFrustum().Vertices[0]);
+    }
+
+    [Fact]
+    public void SetViewDoesNotOwnCamera()
+    {
+        using var renderer = new DebugRenderer();
+        var cameraReference = SetViewAndReleaseCamera(renderer);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(cameraReference.TryGetTarget(out _));
+        renderer.AddLine2D(Vector2f.Zero, Vector2f.One, Color.White);
+        Assert.False(renderer.HasContent());
+    }
+
+    [Fact]
     public void EndFrameClearsAccumulatedGeometry()
     {
         using var renderer = new DebugRenderer();
@@ -40,5 +76,13 @@ public sealed class DebugRendererTests
         Assert.Equal(v2, triangle.VertexB);
         Assert.Equal(v3, triangle.VertexC);
         Assert.Equal(0x87654321u, triangle.Color);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference<Camera> SetViewAndReleaseCamera(DebugRenderer renderer)
+    {
+        var camera = new Camera();
+        renderer.SetView(camera);
+        return new WeakReference<Camera>(camera);
     }
 }
