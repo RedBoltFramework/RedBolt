@@ -323,7 +323,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `CustomGeometry.h`
   - [x] `CustomGeometry : Drawable` — dynamic custom-geometry definition, vertex serialization, resource-cache material attributes, C++ LOD-geometry and material-aware occluder triangle accounting, native occlusion-buffer drawing, material assignment, bounds, geometry access, and managed ray-query support are ported; full class-shape and GPU buffer lifecycle parity remain incomplete
 - [x] `Terrain.h`
-  - [x] `Terrain : Component` — factory and UpdatePatchLod stitch-range selection are ported; CreatePatchGeometry and heightmap/neighbor/material lifecycle remain TODO
+  - [x] `Terrain : Component` — heightmap load/smooth, shared LOD index data with edge stitching, CreatePatchGeometry/UpdatePatchLod, neighbor LOD links, height/normal sampling, lightmap batch props, and TerrainCreated events match C++; focused heightmap tests cover patch creation and LOD draw-range selection
 - [x] `TerrainPatch.h`
   - [x] `TerrainPatch : Drawable` — LOD selection with neighbor correction, ray queries, occlusion, lightmap batch helpers, and geometry accessors match C++
 - [x] `LightProbeGroup.h`
