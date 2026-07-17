@@ -63,7 +63,8 @@ public sealed class ShadowMapAllocator : Object
     {
         foreach (var page in _pages)
         {
-            page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y);
+            // C++: Reset(w, h, w, h)
+            page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowAtlasSize.X, _shadowAtlasSize.Y);
             page.ClearBeforeRendering = false;
         }
     }
@@ -96,12 +97,14 @@ public sealed class ShadowMapAllocator : Object
         else
             _renderContext.SetRenderTargets(RenderTargetView.Texture(_vsmDepthTexture!), [RenderTargetView.Texture(page.Texture)]);
 
+        // Clear whole texture if needed (C++ clears flag first, then clears).
         if (page.ClearBeforeRendering)
         {
+            page.ClearBeforeRendering = false;
+
             _renderContext.ClearDepthStencil(ClearTarget.Depth);
             if (_settings.EnableVarianceShadowMaps)
                 _renderContext.ClearRenderTarget(0, Color.White);
-            page.ClearBeforeRendering = false;
         }
 
         _renderContext.SetViewport(region.Rect);
@@ -113,6 +116,7 @@ public sealed class ShadowMapAllocator : Object
         _shadowMapOutputDesc = new PipelineStateOutputDesc();
         if (_settings.EnableVarianceShadowMaps)
         {
+            // C++: TextureFormat::TEX_FORMAT_RG32_FLOAT (managed port lacks RG32F; RG16F is existing mapping).
             _shadowMapFormat = TextureFormat.RG16F;
             _shadowMapOutputDesc.DepthStencilFormat = _renderDevice.GetDefaultDepthFormat();
             _shadowMapOutputDesc.SetRenderTargetFormat(_shadowMapFormat);
@@ -145,7 +149,8 @@ public sealed class ShadowMapAllocator : Object
         texture.SetSize(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowMapFormat, flags, multiSample);
 
         var page = new AtlasPage { Index = (uint)_pages.Count, Texture = texture };
-        page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y);
+        // C++: Reset(w, h, w, h)
+        page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowAtlasSize.X, _shadowAtlasSize.Y);
         _pages.Add(page);
 
         if (!_settings.EnableVarianceShadowMaps)

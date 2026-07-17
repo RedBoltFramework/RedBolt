@@ -21,6 +21,10 @@ public class RenderContext : Object
     private readonly RenderDeviceStats _stats = new();
     private readonly RenderTargetView[] _swapChainColorTarget;
     private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
+    // C++: currentDepthStencil_ / currentRenderTargets_ store Diligent ITextureView*.
+    private readonly ITextureView?[] _currentRenderTargetHandles = new ITextureView?[RenderApiLimits.MaxRenderTargets];
+    private ITextureView? _currentDepthStencilHandle;
+    private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private int _numCurrentRenderTargets;
     private OptionalRawTextureRTV _currentDepthStencil;
     private PipelineStateOutputDesc _currentOutputDesc = new();
@@ -43,6 +47,10 @@ public class RenderContext : Object
 
     public override void Dispose()
     {
+        _diligentViewport?.Dispose();
+        _diligentViewport = null;
+        Array.Clear(_currentRenderTargetHandles);
+        _currentDepthStencilHandle = null;
         base.Dispose();
     }
 
@@ -61,12 +69,8 @@ public class RenderContext : Object
     /// </summary>
     public void ResetRenderTargets()
     {
-        GetGraphics()?.UnbindRenderTargets();
-        Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
-        _numCurrentRenderTargets = 0;
-        _currentDepthStencil = default;
-        _isSwapChain = false;
-        UpdateCurrentRenderTargetInfo();
+        // C++: SetRenderTargets(ea::nullopt, {});
+        SetRenderTargets(default, ReadOnlySpan<RenderTargetView>.Empty);
     }
 
     /// <summary>
@@ -82,43 +86,57 @@ public class RenderContext : Object
     /// </summary>
     public void SetRenderTargets(OptionalRawTextureRTV depthStencil, ReadOnlySpan<RenderTargetView> renderTargets)
     {
-        var graphics = GetGraphics();
-        if (graphics is null)
-            return;
-
+        // C++ RenderContext::SetRenderTargets — bind via handle_ directly, do not set viewport.
         if (renderTargets.Length > RenderApiLimits.MaxRenderTargets)
             throw new ArgumentOutOfRangeException(nameof(renderTargets));
+
         var isDepthSwapChain = depthStencil.GetValueOrDefault()?.IsSwapChain == true;
         var isColorSwapChain = renderTargets.Length == 1 && renderTargets[0].IsSwapChain;
         var isSingleView = renderTargets.Length + (depthStencil.HasValue ? 1 : 0) == 1;
         if (isDepthSwapChain != isColorSwapChain && !isSingleView)
-            throw new InvalidOperationException("Cannot mix swap chain and non-swap-chain render target views.");
+        {
+            Log.Logger.LogError("Cannot mix swap chain and non-swap chain views");
+            return;
+        }
 
-        var viewportSize = ResolveRenderTargetSize(renderTargets, depthStencil);
-        Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
-        renderTargets.CopyTo(_currentRenderTargets);
-        _numCurrentRenderTargets = renderTargets.Length;
-        _currentDepthStencil = depthStencil;
+        // It's pointless to mark swap chain views as dirty because they cannot be read.
         _isSwapChain = isDepthSwapChain || isColorSwapChain;
         if (!_isSwapChain)
         {
             if (depthStencil.GetValueOrDefault() is { } depthStencilView)
-                _renderDevice.MarkRenderTargetDirty(depthStencilView);
+                depthStencilView.MarkDirty();
             for (var i = 0; i < renderTargets.Length; ++i)
-                _renderDevice.MarkRenderTargetDirty(renderTargets[i]);
+                renderTargets[i].MarkDirty();
         }
+
+        Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
+        Array.Clear(_currentRenderTargetHandles, 0, _currentRenderTargetHandles.Length);
+        renderTargets.CopyTo(_currentRenderTargets);
+        _numCurrentRenderTargets = renderTargets.Length;
+        _currentDepthStencil = depthStencil;
+        _currentDepthStencilHandle = null;
+
         UpdateCurrentRenderTargetInfo();
 
-        if (_numCurrentRenderTargets == 0 && !_currentDepthStencil.HasValue)
-        {
-            graphics.UnbindRenderTargets();
-            _currentViewport = default;
-        }
-        else
-        {
-            graphics.SetRenderTargets(new IntRect(0, 0, viewportSize.X, viewportSize.Y), renderTargets, depthStencil.GetValueOrDefault());
-            _currentViewport = new IntRect(0, 0, viewportSize.X, viewportSize.Y);
-        }
+        // C++ always has a live device context; managed Graphics may be uninitialized
+        // (e.g. Renderer.Render before Graphics.Initialize). Skip GPU bind until ready.
+        var handle = GetHandle();
+        if (handle is null || handle.IsNull)
+            return;
+
+        // C++: currentDepthStencil_ = depthStencil ? depthStencil->GetView() : nullptr;
+        _currentDepthStencilHandle = depthStencil.GetValueOrDefault() is { } depthView
+            ? depthView.GetView()
+            : null;
+        for (var i = 0; i < _numCurrentRenderTargets; ++i)
+            _currentRenderTargetHandles[i] = _currentRenderTargets[i].GetView();
+
+        // C++: handle_->SetRenderTargets(..., TRANSITION); — no viewport change here.
+        handle.SetRenderTargets(
+            (uint)_numCurrentRenderTargets,
+            _currentRenderTargetHandles.AsSpan(0, _numCurrentRenderTargets),
+            _currentDepthStencilHandle!,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
     /// <summary>
@@ -128,7 +146,10 @@ public class RenderContext : Object
     {
         var size = GetCurrentRenderTargetSize();
         if (size.X <= 0 || size.Y <= 0)
+        {
+            Log.Logger.LogError("Depth-stencil buffer or render target must be bound to call SetFullViewport");
             return;
+        }
 
         SetViewport(new IntRect(0, 0, size.X, size.Y));
     }
@@ -138,12 +159,25 @@ public class RenderContext : Object
     /// </summary>
     public void SetViewport(IntRect viewport)
     {
+        // C++ RenderContext::SetViewport — clamp then handle_->SetViewports.
         var viewportMin = viewport.Min;
         var viewportMax = viewport.Max;
         _currentViewport = new IntRect(
             new Vector2i(Math.Max(viewportMin.X, 0), Math.Max(viewportMin.Y, 0)),
             new Vector2i(Math.Min(viewportMax.X, _currentDimensions.X), Math.Min(viewportMax.Y, _currentDimensions.Y)));
-        GetGraphics()?.SetViewport(_currentViewport);
+
+        var handle = GetHandle();
+        if (handle is null || handle.IsNull)
+            return;
+
+        var diligentViewport = _diligentViewport ??= new global::RedBolt.Bindings.Diligent.Viewport();
+        diligentViewport.TopLeftX = _currentViewport.Left;
+        diligentViewport.TopLeftY = _currentViewport.Top;
+        diligentViewport.Width = _currentViewport.Width;
+        diligentViewport.Height = _currentViewport.Height;
+        diligentViewport.MinDepth = 0.0f;
+        diligentViewport.MaxDepth = 1.0f;
+        handle.SetViewports(1, diligentViewport, 0, 0);
     }
 
     /// <summary>
@@ -158,8 +192,7 @@ public class RenderContext : Object
             return;
         }
 
-        var depthStencilView = _currentDepthStencil.GetValueOrDefault();
-        if (depthStencilView is null)
+        if (_currentDepthStencilHandle is null || _currentDepthStencilHandle.IsNull)
         {
             Log.Logger.LogError("Depth-stencil buffer must be bound to call ClearDepthStencil");
             return;
@@ -172,12 +205,12 @@ public class RenderContext : Object
         var internalFlags = ClearDepthStencilFlags.ClearDepthFlagNone;
         if ((flags & ClearTarget.Depth) != 0)
             internalFlags |= ClearDepthStencilFlags.ClearDepthFlag;
-        if ((flags & ClearTarget.Stencil) != 0
-            && RenderAPIUtils.IsDepthStencilTextureFormat(GetRenderTargetFormat(depthStencilView.Value, GetGraphics()!)))
+        // C++: only clear stencil when the bound view format is depth-stencil.
+        if ((flags & ClearTarget.Stencil) != 0 && IsBoundDepthStencilFormat(_currentDepthStencilHandle))
             internalFlags |= ClearDepthStencilFlags.ClearStencilFlag;
 
         handle.ClearDepthStencil(
-            depthStencilView.Value.GetView(),
+            _currentDepthStencilHandle,
             internalFlags,
             depth,
             checked((byte)stencil),
@@ -190,6 +223,13 @@ public class RenderContext : Object
     public void ClearRenderTarget(uint index, Color color)
     {
         if (index >= _numCurrentRenderTargets)
+        {
+            Log.Logger.LogError("Render target must be bound to call ClearRenderTarget");
+            return;
+        }
+
+        var rtHandle = _currentRenderTargetHandles[index];
+        if (rtHandle is null || rtHandle.IsNull)
         {
             Log.Logger.LogError("Render target must be bound to call ClearRenderTarget");
             return;
@@ -210,7 +250,7 @@ public class RenderContext : Object
             fixed (float* pRgba = rgba)
             {
                 handle.ClearRenderTarget(
-                    _currentRenderTargets[index].GetView(),
+                    rtHandle,
                     (nint)pRgba,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
             }
@@ -260,14 +300,11 @@ public class RenderContext : Object
     /// </summary>
     public bool IsBoundAsRenderTarget(Texture texture)
     {
+        // C++ only checks color RTs (currentRenderTargets_), not depth-stencil.
         ArgumentNullException.ThrowIfNull(texture);
-        if (_currentDepthStencil.GetValueOrDefault()?.RenderTexture == texture)
-            return true;
-
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
         {
-            var view = _currentRenderTargets[i];
-            if (view.RenderTexture == texture)
+            if (_currentRenderTargets[i].RenderTexture == texture)
                 return true;
         }
 
@@ -302,6 +339,19 @@ public class RenderContext : Object
         _clipPlaneMask = 0;
         _glEnable = null;
         _glDisable = null;
+    }
+
+    /// <summary>
+    /// C++ IsDepthStencilTextureFormat(currentDepthStencil_->GetTexture()->GetDesc().Format).
+    /// </summary>
+    private static bool IsBoundDepthStencilFormat(ITextureView depthStencilView)
+    {
+        using var texture = depthStencilView.GetTexture();
+        if (texture is null || texture.IsNull)
+            return false;
+        using var desc = texture.GetDesc();
+        return desc.Format is global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint
+            or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint;
     }
 
     private static T? TryLoadOpenGlProcedure<T>(string name)

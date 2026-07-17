@@ -29,6 +29,10 @@ public sealed class RenderDevice : Object
     private RenderDeviceStats _stats = new();
     private RenderDeviceStats _maxStats = new();
     private RenderDeviceStats _previousMaxStats = new();
+    // C++: defaultDepthStencilFormat_ / defaultDepthFormat_ selected at device init.
+    private TextureFormat _defaultDepthStencilFormat = TextureFormat.Depth24Stencil8;
+    private TextureFormat _defaultDepthFormat = TextureFormat.Depth24Stencil8;
+    private bool _defaultDepthFormatsInitialized;
     private const uint StatsPeriodMs = 333;
 
     public RenderDevice()
@@ -51,6 +55,7 @@ public sealed class RenderDevice : Object
 
     public void PostInitialize()
     {
+        InitializeDefaultDepthFormats();
         InitializeDefaultObjects();
     }
 
@@ -553,14 +558,20 @@ public sealed class RenderDevice : Object
 
     public TextureFormat GetDefaultDepthStencilFormat()
     {
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is { IsInitialized: true })
-            return graphics.GetSwapChainOutputTarget().DepthStencilFormat;
-
-        return TextureFormat.Depth24Stencil8;
+        // C++: returns defaultDepthStencilFormat_ selected at device init.
+        if (!_defaultDepthFormatsInitialized)
+            InitializeDefaultDepthFormats();
+        return _defaultDepthStencilFormat;
     }
 
-    public TextureFormat GetDefaultDepthFormat() => GetDefaultDepthStencilFormat();
+    public TextureFormat GetDefaultDepthFormat()
+    {
+        // C++: returns defaultDepthFormat_ = SelectDefaultDepthFormat(device, /*needStencil=*/false).
+        // Shadow maps use this (depth-only preference), not the swap-chain depth-stencil format.
+        if (!_defaultDepthFormatsInitialized)
+            InitializeDefaultDepthFormats();
+        return _defaultDepthFormat;
+    }
 
     public RenderContext GetRenderContext() => _renderContext;
 
@@ -870,7 +881,9 @@ public sealed class RenderDevice : Object
 #endif
     }
 
-#if REDBOLT_VULKAN_SUPPORTED
+    /// <summary>
+    /// C++ SelectDefaultDepthFormat — pick first format with BIND_DEPTH_STENCIL support.
+    /// </summary>
     internal static global::RedBolt.Bindings.Diligent.TextureFormat SelectDefaultDepthFormat(
         IRenderDevice device, bool needStencil)
     {
@@ -899,7 +912,42 @@ public sealed class RenderDevice : Object
         System.Diagnostics.Debug.Assert(false);
         return global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown;
     }
-#endif
+
+    private void InitializeDefaultDepthFormats()
+    {
+        // C++ RenderDevice::InitializeDevice (GL and non-GL paths):
+        //   defaultDepthStencilFormat_ = SelectDefaultDepthFormat(device, true) or swap-chain depth on GL
+        //   defaultDepthFormat_ = SelectDefaultDepthFormat(device, false)
+        var device = GetRenderDevice();
+        if (device is null)
+            return;
+
+        var backend = GetDeviceSettings().Backend;
+        if (backend == RenderBackend.OpenGL)
+        {
+            var graphics = GetSubsystem<Graphics>();
+            if (graphics is { IsInitialized: true })
+                _defaultDepthStencilFormat = graphics.GetSwapChainDepthTextureFormat();
+            else
+                _defaultDepthStencilFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: true));
+        }
+        else
+        {
+            _defaultDepthStencilFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: true));
+        }
+
+        _defaultDepthFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: false));
+        _defaultDepthFormatsInitialized = true;
+    }
+
+    private static TextureFormat UnmapDepthFormat(global::RedBolt.Bindings.Diligent.TextureFormat format) => format switch
+    {
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm => TextureFormat.Depth16,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
+        _ => TextureFormat.Depth24Stencil8
+    };
 
     private static IReadOnlyList<string> ParseOrientations(string orientations)
     {

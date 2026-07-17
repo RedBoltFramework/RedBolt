@@ -23,6 +23,8 @@ public sealed class RenderContextTests
 
             Assert.True(renderContext.IsSwapChainRenderTarget());
             Assert.Equal(new Vector2i(64, 64), renderContext.GetCurrentRenderTargetSize());
+            // C++ SetRenderTargets does not set viewport; callers use SetViewport/SetFullViewport.
+            renderContext.SetFullViewport();
             Assert.Equal(new IntRect(0, 0, 64, 64), renderContext.GetCurrentViewport());
 
             renderContext.SetViewport(new IntRect(4, 8, 16, 24));
@@ -53,9 +55,12 @@ public sealed class RenderContextTests
 
             Assert.False(renderContext.IsSwapChainRenderTarget());
             Assert.Equal(new Vector2i(32, 16), renderContext.GetCurrentRenderTargetSize());
+            // C++ SetRenderTargets does not set viewport; callers use SetFullViewport.
+            renderContext.SetFullViewport();
             Assert.Equal(new IntRect(0, 0, 32, 16), renderContext.GetCurrentViewport());
+            // C++ IsBoundAsRenderTarget only checks color RTs, not depth-stencil.
             Assert.True(renderContext.IsBoundAsRenderTarget(colorTexture));
-            Assert.True(renderContext.IsBoundAsRenderTarget(depthTexture));
+            Assert.False(renderContext.IsBoundAsRenderTarget(depthTexture));
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
             Assert.Equal<uint>(1u, outputDesc.NumRenderTargets);
