@@ -401,25 +401,13 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             _cstringValue?.Dispose();
             break;
         case VariantType.VariantVector:
-            for (var i = _variantVectorValue.Count - 1; i >= 0; --i)
-            {
-                var copy = _variantVectorValue[i];
-                copy.Dispose();
-            }
+            _variantVectorValue.Dispose();
             break;
         case VariantType.VariantMap:
-            foreach (var value in _variantMapValue.Values)
-            {
-                var copy = value;
-                copy.Dispose();
-            }
+            _variantMapValue.Dispose();
             break;
         case VariantType.StringVariantMap:
-            foreach (var value in _stringVariantMapValue.Values)
-            {
-                var copy = value;
-                copy.Dispose();
-            }
+            _stringVariantMapValue.Dispose();
             break;
         case VariantType.Custom:
             if (!ReferenceEquals(_customValue, CustomVariantValue.Empty))
@@ -1429,7 +1417,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     }
 }
 
-public sealed class VariantMap : Dictionary<StringHash, Variant>
+public sealed class VariantMap : Dictionary<StringHash, Variant>, IDisposable
 {
     public VariantMap()
     {
@@ -1439,9 +1427,19 @@ public sealed class VariantMap : Dictionary<StringHash, Variant>
         : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()))
     {
     }
+
+    public void Dispose()
+    {
+        foreach (var value in Values)
+        {
+            var copy = value;
+            copy.Dispose();
+        }
+        Clear();
+    }
 }
 
-public sealed class VariantVector : List<Variant>
+public sealed class VariantVector : List<Variant>, IDisposable
 {
     public VariantVector()
     {
@@ -1450,6 +1448,16 @@ public sealed class VariantVector : List<Variant>
     public VariantVector(IEnumerable<Variant> collection)
         : base(collection.Select(static value => value.Clone()))
     {
+    }
+
+    public void Dispose()
+    {
+        for (var i = Count - 1; i >= 0; --i)
+        {
+            var value = this[i];
+            value.Dispose();
+        }
+        Clear();
     }
 }
 
@@ -1465,7 +1473,7 @@ public sealed class StringVector : List<string>
     }
 }
 
-public sealed class StringVariantMap : Dictionary<string, Variant>
+public sealed class StringVariantMap : Dictionary<string, Variant>, IDisposable
 {
     public StringVariantMap()
         : base(StringComparer.Ordinal)
@@ -1475,6 +1483,16 @@ public sealed class StringVariantMap : Dictionary<string, Variant>
     public StringVariantMap(IDictionary<string, Variant> dictionary)
         : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()), StringComparer.Ordinal)
     {
+    }
+
+    public void Dispose()
+    {
+        foreach (var value in Values)
+        {
+            var copy = value;
+            copy.Dispose();
+        }
+        Clear();
     }
 }
 
