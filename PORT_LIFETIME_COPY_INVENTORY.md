@@ -105,8 +105,10 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED after adding a byte-for-byte independent `Clone()` for the mutable string value and disposing the temporary unmanaged buffer when static `Format` exits by exception. `Dispose` frees heap storage and resets inline storage; successful `Format` returns a distinct owned object. | — | — | — |
 | `src/RedBolt/Container/ConstString.cs` | `Source/Urho3D/Container/ConstString.h` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after mapping the implicit C++ copy constructor to an independent `Clone()` wrapper. The owned C++ string maps to immutable managed `string`, the cached hash is a value type, and neither field requires deterministic disposal. | — | — | — |
-| `src/RedBolt/Container/IndexAllocator.cs` | `Source/Urho3D/Container/IndexAllocator.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Container/KeyFrameSet.cs` | `Source/Urho3D/Container/KeyFrameSet.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Container/IndexAllocator.cs` | `Source/Urho3D/Container/IndexAllocator.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. `IndexAllocator` is non-copyable in C++ because of its mutex/atomic fields; its vector contains only scalar indices. `IDFamily` construction and `Dispose` acquire/release the ID exactly once, and all returned values are scalars. Standard lock primitives use the allowed managed threading mapping. | — | — | — |
+| `src/RedBolt/Container/KeyFrameSet.cs` | `Source/Urho3D/Container/KeyFrameSet.h` | ☑ | ☐ | ☐ |
+| 2026-07-17 partial outcome | Constructor shape and scalar returns VERIFIED; `GetKeyFrame` was fixed to return a nullable reference to stored data instead of a value copy. Element destruction and implicit container copies remain dependent on the `Variant`/derived-track lifetime audits and must be revisited with those rows. | — | — | — |
 | `src/RedBolt/Container/ManagedSequence.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/MultiVector.cs` | `Source/Urho3D/Container/MultiVector.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Container/StringHash.cs` | `Source/Tests/Math/StringHash.cpp`<br>`Source/Urho3D/Math/StringHash.cpp`<br>`Source/Urho3D/Math/StringHash.h` | ☐ | ☐ | ☐ |

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
 public class KeyFrameSet<T>
@@ -34,9 +37,11 @@ public class KeyFrameSet<T>
         KeyFrames.Clear();
     }
 
-    public T? GetKeyFrame(uint index)
+    public ref T GetKeyFrame(uint index)
     {
-        return index < KeyFrames.Count ? KeyFrames[checked((int)index)] : default;
+        if (index < KeyFrames.Count)
+            return ref CollectionsMarshal.AsSpan(KeyFrames)[checked((int)index)];
+        return ref Unsafe.NullRef<T>();
     }
 
     public uint NumKeyFrames => checked((uint)KeyFrames.Count);
