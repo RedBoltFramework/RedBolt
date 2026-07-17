@@ -65,7 +65,7 @@ public sealed class PointOctreeQuery : OctreeQuery
 }
 
 /// <summary>Sphere octree query.</summary>
-public sealed class SphereOctreeQuery : OctreeQuery
+public class SphereOctreeQuery : OctreeQuery
 {
     /// <summary>Construct with sphere and query parameters.</summary>
     public SphereOctreeQuery(List<Drawable> result, Sphere sphere,
@@ -133,7 +133,7 @@ public sealed class BoxOctreeQuery : OctreeQuery
 }
 
 /// <summary>Frustum octree query.</summary>
-public sealed class FrustumOctreeQuery : OctreeQuery
+public class FrustumOctreeQuery : OctreeQuery
 {
     /// <summary>Construct with frustum and query parameters.</summary>
     public FrustumOctreeQuery(List<Drawable> result, Frustum frustum,

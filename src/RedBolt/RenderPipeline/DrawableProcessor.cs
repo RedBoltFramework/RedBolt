@@ -182,6 +182,7 @@ public class DrawableProcessor : Object
     private readonly List<Drawable?> _geometries = [];
     private readonly List<SortedOccluder> _sortedOccluders = [];
     private readonly Dictionary<uint, LightAccumulator> _geometryLighting = [];
+    private readonly Dictionary<uint, GeometryRenderFlag> _geometryRenderFlags = [];
     private DrawableProcessorSettings _settings = new();
     private CommonFrameInfo _frameInfo = new();
     private FloatRange _sceneZRange;
@@ -236,6 +237,12 @@ public class DrawableProcessor : Object
     public void SetGeometryLighting(uint drawableIndex, LightAccumulator lighting) =>
         _geometryLighting[drawableIndex] = lighting;
 
+    public GeometryRenderFlag GetGeometryRenderFlags(uint drawableIndex) =>
+        _geometryRenderFlags.TryGetValue(drawableIndex, out var flags) ? flags : default;
+
+    public void SetGeometryRenderFlags(uint drawableIndex, GeometryRenderFlag flags) =>
+        _geometryRenderFlags[drawableIndex] = flags;
+
     /// <summary>Replace the per-frame light list used by pipeline batches and debugger reporting.</summary>
     public void SetLights(IReadOnlyList<Light?> lights)
     {
@@ -261,6 +268,7 @@ public class DrawableProcessor : Object
         _lights.Clear();
         _lightProcessors.Clear();
         _geometryLighting.Clear();
+        _geometryRenderFlags.Clear();
         _sceneZRange = default;
     }
 

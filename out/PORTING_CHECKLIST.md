@@ -382,10 +382,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `PipelineStateBuilder : Object, BatchStateCacheCallback` — construction, compositor access, input-layout/shader setup helpers, and placeholder pipeline-state creation match C++; full `CreateBatchPipelineState` body remains TODO (depends on complete SceneProcessor)
 - [x] `CameraProcessor.h` — camera-setting validation, zone and automatic-aspect updates, OpenGL render-target projection flipping, render callback restoration, and pipeline-state hashing match C++
   - [x] `CameraProcessor : Object`
-- [ ] `LightProcessorQuery.h`
-  - [ ] `PointLightGeometryQuery : SphereOctreeQuery`
-  - [ ] `SpotLightGeometryQuery : FrustumOctreeQuery`
-  - [ ] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery`
+- [x] `LightProcessorQuery.h`
+  - [x] `LightGeometryQueryResult`
+  - [x] `PointLightGeometryQuery : SphereOctreeQuery` — lit/forward-lit/shadow-caster classification for point lights match C++ (`bool& hasLitGeometries` mapped to post-query property)
+  - [x] `SpotLightGeometryQuery : FrustumOctreeQuery` — same classification for spot lights match C++
+  - [x] `DirectionalLightShadowCasterQuery : FrustumOctreeQuery` — directional shadow-caster filtering match C++
 - [~] `ShadowSplitProcessor.h`
   - [~] `ShadowSplitProcessor` — public API surface, shadow-batch storage, and `FinalizeShadowBatches` match C++; directional/spot/point initialization and caster processing bodies remain TODO
 - [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
