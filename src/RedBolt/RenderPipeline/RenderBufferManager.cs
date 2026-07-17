@@ -100,7 +100,8 @@ public sealed class RenderBufferManager
         var needReadableDepth = _settings.ReadableDepth || _frameSettings.ReadableDepth;
         var needSecondaryBuffer = _frameSettings.SupportColorReadWrite;
         var needSimpleTexture = _frameSettings.ReadableColor || needReadableDepth || _settings.ColorUsableWithMultipleRenderTargets;
-        var isFullRectOutput = renderTarget is null || renderTarget.FullViewportRect == viewportRect;
+        var fullViewportRect = renderTarget?.FullViewportRect ?? graphics.GetSwapChainOutputTarget().FullViewportRect;
+        var isFullRectOutput = viewportRect == IntRect.Zero || viewportRect == fullViewportRect;
         var isSimpleTextureOutput = renderTarget?.ColorTexture is not null && isFullRectOutput;
         var outputMultiSample = renderTarget?.MultiSample ?? _colorOutputParams.MultiSampleLevel;
         var outputHasStencil = renderTarget?.HasStencil ?? true;

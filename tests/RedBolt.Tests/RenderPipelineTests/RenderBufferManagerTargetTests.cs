@@ -29,4 +29,17 @@ public sealed class RenderBufferManagerTargetTests
 
         manager.SetOutputRenderTargetsRect(_fixture.Graphics, new IntRect(0, 0, 160, 100));
     }
+
+    [Fact]
+    public void Backbuffer_subviewport_uses_substitute_output_buffers()
+    {
+        var manager = new RenderBufferManager();
+        manager.SetSettings(new RenderBufferManagerSettings { ReadableDepth = true });
+        var viewportRect = new IntRect(0, 0, 1, 1);
+
+        manager.OnViewportDefined(null, viewportRect);
+
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
+        Assert.IsType<TextureRenderBuffer>(manager.GetDepthStencilOutput());
+    }
 }
