@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace RedBolt;
 
 public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
@@ -35,15 +37,8 @@ public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
 
     public uint Value => _value;
 
-    public uint MutableValue()
-    {
-        return _value;
-    }
-
-    public void SetMutableValue(uint value)
-    {
-        _value = value;
-    }
+    [UnscopedRef]
+    public ref uint MutableValue() => ref _value;
 
     public bool IsEmpty() => _value == EmptyValue;
 

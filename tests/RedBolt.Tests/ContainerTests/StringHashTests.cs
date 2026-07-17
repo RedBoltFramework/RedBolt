@@ -63,7 +63,7 @@ public sealed class StringHashTests
         var hash = new StringHash();
         Assert.False((bool)hash);
 
-        hash.SetMutableValue(123u);
+        hash.MutableValue() = 123u;
 
         Assert.True((bool)hash);
         Assert.Equal(123u, hash.MutableValue());
