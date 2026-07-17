@@ -335,7 +335,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ReflectionProbeManager : TrackedComponentRegistryBase` — tracking, spatial/movable query, power-of-two BVH build/query, bake/update queues, and budgeted `ConsumeUpdateQueue` (dynamic sliced, mixed override, baked save subscription) match C++
   - [x] `ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>` — type/movable/priority/box/texture/settings accessors, dirty marking, debug bounding-box draw, and dynamic/mixed/baked `UpdateCubemapRenderer` lifecycle match C++
 - [x] `CubemapRenderer.h`
-  - [x] `CubemapRenderer` — camera/viewport per face, full and sliced update, queue face render surfaces, EndViewRender completion, DefineTexture, and optional compute FilterCubemap match C++
+  - [x] `CubemapRenderer` — constructor defaults, camera/viewport lifetime per face, full and sliced update, queue face render surfaces, sender-scoped EndViewRender completion, DefineTexture, allocation-free ray-count lookup, and compute FilterCubemap UAVs for every mip match C++; focused tests cover defaults, disposal, and hardware-backed filtering
 - [x] `OutlineGroup.h`
 - [x] `OutlineGroup : Component` — drawable collection, deferred scene-ID attribute resolution, outline material caching, and cached-state updates are ported; remaining renderer integration is incomplete
 - [x] `OcclusionBuffer.h` — software rasterization, clipping, depth hierarchy, visibility queries, threading buffers, and the `CustomGeometry`, `StaticModel`, and `StaticModelGroup` occlusion hooks are ported and covered by focused tests

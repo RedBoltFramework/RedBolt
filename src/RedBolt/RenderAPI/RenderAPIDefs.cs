@@ -277,6 +277,11 @@ public readonly record struct RawTextureUAVKey(
     uint NumSlices = 0u,
     uint NumLevels = 0u)
 {
+    public RawTextureUAVKey()
+        : this(true, true, 0u, 0u, 0u, 0u)
+    {
+    }
+
     public RawTextureUAVKey ReadOnly() => this with { CanWrite = false };
 
     public RawTextureUAVKey WriteOnly() => this with { CanRead = false };

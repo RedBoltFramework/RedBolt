@@ -58,6 +58,15 @@ public struct CubemapUpdateParameters
     public bool FilterResult;
     public TextureCube? OverrideFinalTexture;
 
+    public CubemapUpdateParameters()
+    {
+        Settings = new CubemapRenderingSettings();
+        Position = default;
+        SlicedUpdate = false;
+        FilterResult = false;
+        OverrideFinalTexture = null;
+    }
+
     public readonly bool IsConsistentWith(CubemapUpdateParameters rhs) =>
         Settings == rhs.Settings
         && SlicedUpdate == rhs.SlicedUpdate
@@ -81,16 +90,17 @@ public class CubemapRenderer : Object
         new(0, 180, 0)
     ];
 
+    private static readonly uint[] RayCounts = [1, 8, 16];
+    private static readonly uint[] RayCounts128 = [1, 8, 16, 16, 16, 16, 32, 32];
+    private static readonly uint[] RayCounts256 = [1, 8, 16, 16, 16, 16, 16, 32, 32];
+
     private static ReadOnlySpan<uint> GetRayCounts(uint numLevels)
     {
-        // static const unsigned rayCounts[]{1, 8, 16};
-        // static const unsigned rayCounts128[]{1, 8, 16, 16, 16, 16, 32, 32};
-        // static const unsigned rayCounts256[]{1, 8, 16, 16, 16, 16, 16, 32, 32};
         if (numLevels == 7)
-            return new uint[] { 1, 8, 16, 16, 16, 16, 32, 32 };
+            return RayCounts128;
         if (numLevels == 8)
-            return new uint[] { 1, 8, 16, 16, 16, 16, 16, 32, 32 };
-        return new uint[] { 1, 8, 16 };
+            return RayCounts256;
+        return RayCounts;
     }
 
     private sealed class CachedPipelineStates
@@ -108,7 +118,7 @@ public class CubemapRenderer : Object
     private readonly TextureCube _viewportTexture = new("CubemapRenderer.Viewport");
     private readonly TextureCube _filteredTexture = new("CubemapRenderer.Filtered");
 
-    private CubemapUpdateParameters _currentParams;
+    private CubemapUpdateParameters _currentParams = new();
     private CubemapUpdateStage _updateStage;
     private uint _numFacesToUpdate;
     private uint _numFacesToRender;
@@ -120,7 +130,7 @@ public class CubemapRenderer : Object
 
     public CubemapRenderer(Scene scene)
     {
-        _scene = scene ?? throw new ArgumentNullException(nameof(scene));
+        _scene = scene;
         _renderPipeline = new RenderPipeline();
         InitializeRenderPipeline();
         InitializeCameras();
@@ -128,13 +138,11 @@ public class CubemapRenderer : Object
 
     public override void Dispose()
     {
+        for (var face = (int)CubeMapFace.MaxCubeMapFaces - 1; face >= 0; --face)
+            _renderCameraNodes[face].Remove();
+        CubemapRendered = null;
         _endViewRenderSubscription?.Dispose();
         _endViewRenderSubscription = null;
-        CubemapRendered = null;
-        if (_currentViewportTexture is not null && !ReferenceEquals(_currentViewportTexture, _viewportTexture))
-            DisconnectViewportsFromTexture(_currentViewportTexture);
-        if (_viewportsConnectedToSelf)
-            DisconnectViewportsFromTexture(_viewportTexture);
         base.Dispose();
     }
 
@@ -149,7 +157,7 @@ public class CubemapRenderer : Object
     {
         for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
         {
-            // C++ freestanding Node(context); managed nodes require a scene owner.
+            // TODO: port C++ freestanding Node(context); managed nodes currently require a scene owner.
             var cameraNode = _scene.Root.CreateTemporaryChild($"CubemapCamera_{face}");
             cameraNode.SetWorldRotation(FaceRotations[face]);
             var camera = cameraNode.CreateComponent<Camera>();
@@ -171,12 +179,8 @@ public class CubemapRenderer : Object
         }
 
         _endViewRenderSubscription?.Dispose();
-        _endViewRenderSubscription = SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>(
-            (ref GraphicsEvents.EndViewRenderEvent e) =>
-            {
-                if (ReferenceEquals(e.Texture, texture))
-                    ProcessFaceRendered();
-            });
+        _endViewRenderSubscription = SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>(texture,
+            (ref GraphicsEvents.EndViewRenderEvent _) => ProcessFaceRendered());
     }
 
     private void DisconnectViewportsFromTexture(TextureCube texture)
@@ -191,7 +195,6 @@ public class CubemapRenderer : Object
     public static void DefineTexture(TextureCube texture, CubemapRenderingSettings settings,
         TextureFlag flags = TextureFlag.None)
     {
-        ArgumentNullException.ThrowIfNull(texture);
         texture.SetSize((int)settings.TextureSize, TextureFormat.RGBA8, flags | TextureFlag.BindRenderTarget);
         texture.SetFilterMode(TextureFilterMode.Trilinear);
     }
@@ -276,9 +279,7 @@ public class CubemapRenderer : Object
         for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
         {
             var camera = _renderCameraNodes[face].GetComponent<Camera>();
-            if (camera is null)
-                continue;
-            camera.SetNearClip(updateParameters.Settings.NearClip);
+            camera!.SetNearClip(updateParameters.Settings.NearClip);
             camera.SetFarClip(updateParameters.Settings.FarClip);
             camera.SetViewMask(updateParameters.Settings.ViewMask);
         }
@@ -349,16 +350,14 @@ public class CubemapRenderer : Object
 
     private void ProcessCubemapRendered()
     {
-        if (_currentViewportTexture is not null
-            && !ReferenceEquals(_currentViewportTexture, _viewportTexture))
-            DisconnectViewportsFromTexture(_currentViewportTexture);
+        if (!ReferenceEquals(_currentViewportTexture, _viewportTexture))
+            DisconnectViewportsFromTexture(_currentViewportTexture!);
 
-        if (_currentFilteredTexture is not null && _currentViewportTexture is not null)
-            FilterCubemap(_currentViewportTexture, _currentFilteredTexture);
+        if (_currentFilteredTexture is not null)
+            FilterCubemap(_currentViewportTexture!, _currentFilteredTexture);
 
-        var finalTexture = _currentFilteredTexture ?? _currentViewportTexture;
-        if (finalTexture is not null)
-            CubemapRendered?.Invoke(finalTexture);
+        var finalTexture = _currentFilteredTexture ?? _currentViewportTexture!;
+        CubemapRendered?.Invoke(finalTexture);
 
         _currentViewportTexture = null;
         _currentFilteredTexture = null;
@@ -367,17 +366,17 @@ public class CubemapRenderer : Object
     private void QueueFaceUpdate(CubeMapFace face)
     {
         var renderer = GetSubsystem<Renderer>();
-        if (renderer is null || _currentViewportTexture is null)
+        if (renderer is null)
             return;
 
-        var surface = _currentViewportTexture.GetRenderSurface(face);
+        var surface = _currentViewportTexture!.GetRenderSurface(face);
         renderer.QueueRenderSurface(surface);
     }
 
     private void FilterCubemap(TextureCube sourceTexture, TextureCube destTexture)
     {
         var renderDevice = GetSubsystem<RenderDevice>();
-        if (renderDevice is null || !renderDevice.GetCaps().ComputeShaders)
+        if (!renderDevice!.GetCaps().ComputeShaders)
         {
             Log.Logger.LogError("CubemapRenderer::FilterCubemap cannot be executed without compute shader support");
             return;
@@ -390,15 +389,11 @@ public class CubemapRenderer : Object
 
         var renderContext = renderDevice.GetRenderContext();
         var drawQueue = renderDevice.GetDefaultQueue();
-        if (renderContext is null || drawQueue is null)
-            return;
 
         using var renderScope = new RenderScope(renderContext, "CubemapRenderer::FilterCubemap");
 
-        var sourceRaw = sourceTexture.GetRawTexture();
-        var destRaw = destTexture.GetRawTexture();
-        if (sourceRaw is null || destRaw is null)
-            return;
+        var sourceRaw = sourceTexture.GetRawTexture()!;
+        var destRaw = destTexture.GetRawTexture()!;
 
         for (var i = 0u; i < numLevels; ++i)
             destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(i));
@@ -445,8 +440,8 @@ public class CubemapRenderer : Object
             var levelWidth = (float)(1 << (int)(numLevels - 1 - i));
             var rayCount = rayCounts[(int)Math.Min(i, (uint)(rayCounts.Length - 1))];
 
-            var shaderParams =
-                $"RAY_COUNT={rayCount}u FILTER_RES={(uint)levelWidth}u FILTER_INV_RES={1.0f / levelWidth:F7} ROUGHNESS={roughStep * i:F7}";
+            var shaderParams = FormattableString.Invariant(
+                $"RAY_COUNT={rayCount}u FILTER_RES={(uint)levelWidth}u FILTER_INV_RES={1.0f / levelWidth:F7} ROUGHNESS={roughStep * i:F7}");
 
             var desc = new ComputePipelineStateDesc
             {

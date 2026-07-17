@@ -841,7 +841,7 @@ public class RawTexture : DeviceObject
         {
             _unorderedAccessView = GetDefaultView(_handle!, TextureViewType.TextureViewUnorderedAccess);
             if (_unorderedAccessView is not null)
-                _uavs[default] = _unorderedAccessView;
+                _uavs[new RawTextureUAVKey()] = _unorderedAccessView;
         }
         return _shaderResourceView is not null &&
             ((bindFlags & BindFlags.BindRenderTarget) == 0 || _renderTargetView is not null) &&

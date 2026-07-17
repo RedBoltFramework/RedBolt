@@ -7,6 +7,13 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CubemapRendererTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
+    public CubemapRendererTests(HeadlessEngineFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     private static void ClearQueuedViewports()
     {
         var renderer = Context.Instance?.GetSubsystem<Renderer>();
@@ -15,6 +22,68 @@ public sealed class CubemapRendererTests
         var field = typeof(Renderer).GetField("_queuedViewports", BindingFlags.Instance | BindingFlags.NonPublic);
         if (field?.GetValue(renderer) is IList list)
             list.Clear();
+    }
+
+    [Fact]
+    public void Update_parameters_default_constructor_matches_cpp_member_initializers()
+    {
+        var parameters = new CubemapUpdateParameters();
+
+        Assert.Equal(CubemapRenderingSettings.DefaultTextureSize, parameters.Settings.TextureSize);
+        Assert.Equal(CubemapRenderingSettings.DefaultViewMask, parameters.Settings.ViewMask);
+        Assert.Equal(CubemapRenderingSettings.DefaultNearClip, parameters.Settings.NearClip);
+        Assert.Equal(CubemapRenderingSettings.DefaultFarClip, parameters.Settings.FarClip);
+        Assert.Equal(Vector3f.Zero, parameters.Position);
+        Assert.False(parameters.SlicedUpdate);
+        Assert.False(parameters.FilterResult);
+        Assert.Null(parameters.OverrideFinalTexture);
+    }
+
+    [Fact]
+    public void Dispose_releases_managed_scene_owned_camera_nodes()
+    {
+        var scene = new Scene();
+        var initialChildren = scene.Root.GetNumChildren();
+        var renderer = new CubemapRenderer(scene);
+
+        Assert.Equal(initialChildren + (uint)CubeMapFace.MaxCubeMapFaces, scene.Root.GetNumChildren());
+
+        renderer.Dispose();
+
+        Assert.Equal(initialChildren, scene.Root.GetNumChildren());
+    }
+
+    [Fact]
+    public void FilterCubemap_creates_uav_for_each_mip_when_compute_is_supported()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var renderDevice = Context.Instance!.GetSubsystem<RenderDevice>()!;
+            if (!renderDevice.GetCaps().ComputeShaders)
+                return;
+
+            var scene = new Scene();
+            using var renderer = new CubemapRenderer(scene);
+            using var sourceTexture = new TextureCube("CubemapFilterSource");
+            using var destinationTexture = new TextureCube("CubemapFilterDestination");
+            var settings = new CubemapRenderingSettings { TextureSize = 16 };
+            CubemapRenderer.DefineTexture(sourceTexture, settings);
+            CubemapRenderer.DefineTexture(destinationTexture, settings, TextureFlag.BindUnorderedAccess);
+
+            var filterCubemap = typeof(CubemapRenderer).GetMethod(
+                "FilterCubemap", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CubemapRenderer.FilterCubemap was not found.");
+            filterCubemap.Invoke(renderer, [sourceTexture, destinationTexture]);
+
+            var destinationRaw = Assert.IsType<RawTexture>(destinationTexture.GetRawTexture());
+            for (var level = 0u; level < destinationTexture.GetLevels(); ++level)
+            {
+                var view = destinationRaw.GetUAV(new RawTextureUAVKey().FromLevel(level));
+                Assert.NotNull(view);
+                using var desc = view.GetDesc();
+                Assert.Equal(level, desc.MostDetailedMip);
+            }
+        });
     }
 
     [Fact]
@@ -103,5 +172,30 @@ public sealed class CubemapRendererTests
         Assert.True(result.IsComplete);
         Assert.Equal((uint)CubeMapFace.MaxCubeMapFaces, result.NumRenderedFaces);
         ClearQueuedViewports();
+    }
+
+    private void WithInitializedGraphics(Action action)
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.CubemapRendererTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        try
+        {
+            action();
+        }
+        finally
+        {
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
+        }
     }
 }

@@ -307,6 +307,19 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Raw_texture_uav_key_default_constructor_matches_cpp_member_initializers()
+    {
+        var key = new RawTextureUAVKey();
+
+        Assert.True(key.CanWrite);
+        Assert.True(key.CanRead);
+        Assert.Equal(0u, key.FirstSlice);
+        Assert.Equal(0u, key.FirstLevel);
+        Assert.Equal(0u, key.NumSlices);
+        Assert.Equal(0u, key.NumLevels);
+    }
+
+    [Fact]
     public void Raw_texture_normalizes_uav_key_ranges_before_caching_view()
     {
         WithInitializedGraphics(() =>

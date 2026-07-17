@@ -342,7 +342,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
             if (probe is null)
                 continue;
 
-            var position = probe.Node?.GetWorldPosition() ?? Vector3f.Zero;
+            var position = probe.Node!.GetWorldPosition();
 
             // Skip custom texture probes
             if (probe.GetProbeType() == ReflectionProbeType.CustomTexture)
@@ -374,19 +374,17 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
             if (numStaticProbesRendered >= MaxStaticUpdates)
                 continue;
 
-            if (_cubemapRenderer is null)
-                continue;
-
             // Render mixed probe
             if (probe.GetMixedProbeTexture() is { } probeTexture)
             {
                 // TODO: Create correct texture from the start
-                if (filterCubemapsEffective && !probeTexture.IsUnorderedAccess())
+                var probeFlags = probeTexture.GetRawTexture()!.GetParams().Flags;
+                if (filterCubemapsEffective && (probeFlags & TextureFlag.BindUnorderedAccess) == 0)
                 {
                     probeTexture.SetSize(
                         probeTexture.Width,
                         probeTexture.Format,
-                        TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess);
+                        probeFlags | TextureFlag.BindUnorderedAccess);
                 }
 
                 var parameters = new CubemapUpdateParameters
@@ -397,7 +395,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
                     OverrideFinalTexture = probeTexture
                 };
 
-                var result = _cubemapRenderer.Update(parameters);
+                var result = _cubemapRenderer!.Update(parameters);
                 System.Diagnostics.Debug.Assert(result.IsComplete);
             }
             else
@@ -410,24 +408,18 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
                     FilterResult = filterCubemapsEffective
                 };
 
-                var result = _cubemapRenderer.Update(parameters);
+                var result = _cubemapRenderer!.Update(parameters);
                 System.Diagnostics.Debug.Assert(result.IsComplete);
 
-                // One-shot subscription to save baked texture when faces complete
                 Action<TextureCube>? handler = null;
                 var capturedProbe = probe;
                 handler = texture =>
                 {
-                    if (handler is not null)
-                        _cubemapRenderer.CubemapRendered -= handler;
-                    // File save path depends on scene file name; skip empty path (matches C++ log error)
                     var filePath = GetBakedProbeFilePath();
-                    if (string.IsNullOrEmpty(filePath))
-                        return;
                     var fileName = $"ReflectionProbe-{capturedProbe.Id}";
                     var textureFileName = SaveTextureToFile(texture, filePath, fileName);
-                    if (!string.IsNullOrEmpty(textureFileName))
-                        capturedProbe.SetTextureAttr(new ResourceRef(new StringHash(nameof(TextureCube)), textureFileName));
+                    capturedProbe.SetTextureAttr(new ResourceRef(new StringHash(nameof(TextureCube)), textureFileName));
+                    _cubemapRenderer!.CubemapRendered -= handler;
                 };
                 _cubemapRenderer.CubemapRendered += handler;
             }
