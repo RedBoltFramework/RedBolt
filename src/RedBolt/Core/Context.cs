@@ -140,6 +140,7 @@ public sealed class Context : ObjectReflectionRegistry, IDisposable
         RegisterSubsystem(new PipelineStateCache());
         RegisterSubsystem(new Renderer());
         RegisterSubsystem(new Audio());
+        RegisterSubsystem(new StateManager());
     }
 
     public void RegisterSubsystem(object subsystem)

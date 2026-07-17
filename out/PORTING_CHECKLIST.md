@@ -146,7 +146,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 
-## [x] A12. Engine — top-level orchestration, depends on all Part-A above
+## [~] A12. Engine — top-level orchestration, depends on all Part-A above
+
+- [x] `StateManagerEvents.h` — struct-event payload mapping reconciled
+- [~] `StateManager.h` / `StateManager.cpp` — core application-state lifecycle, queue value copies, weak cache, transitions, viewports, fog, mouse state, and engine registration reconciled; built-in UI is excluded, while compile-gated Actions members remain `TODO: port` until B1 exists
 
 ---
 

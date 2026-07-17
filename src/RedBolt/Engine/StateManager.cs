@@ -2,79 +2,291 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public abstract class ApplicationState : Object
+/// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
+public class ApplicationState : Object
 {
     private bool _active;
+    private readonly List<Viewport?> _viewports = [];
     private bool _mouseVisible = true;
     private bool _mouseGrabbed;
     private MouseMode _mouseMode = MouseMode.Free;
     private Color _fogColor = new(0.0f, 0.0f, 0.0f);
+    private Color _savedFogColor;
     private ContextEventSubscription? _updateSubscription;
+    private ContextEventSubscription? _mouseButtonDownSubscription;
+    private ContextEventSubscription? _mouseModeChangedSubscription;
 
-    public bool IsActive() => _active;
-    public bool IsMouseVisible() => _mouseVisible;
-    public bool IsMouseGrabbed() => _mouseGrabbed;
-    public MouseMode GetMouseMode() => _mouseMode;
-    public Color GetDefaultFogColor() => _fogColor;
-
-    public object? GetUIRoot() => null;
-    public void SetUICustomSize(Vector2i size) { }
-    public void SetUICustomSize(int width, int height) { }
-    public Vector2i GetUICustomSize() => Vector2i.Zero;
-    public object? GetCursor() => null;
-    public object? GetViewport(uint index) => null;
-    public object? GetViewportForScene(object? scene, uint index) => null;
-
-    public void SetMouseVisible(bool enable) { _mouseVisible = enable; if (IsActive()) GetSubsystem<Input>()?.SetMouseVisible(enable); }
-    public void SetMouseGrabbed(bool grab) { _mouseGrabbed = grab; if (IsActive()) GetSubsystem<Input>()?.SetMouseGrabbed(grab); }
-    public void SetMouseMode(MouseMode mode) { _mouseMode = mode; if (IsActive()) GetSubsystem<Input>()?.SetMouseMode(mode); }
-    public void SetCursor(object? cursor) { }
-    public void SetNumViewports(uint num) { }
-    public void SetViewport(uint index, object? viewport) { }
-    public void SetDefaultFogColor(Color color) { _fogColor = color; }
-
-    public virtual void Activate(Dictionary<string, Variant> bundle)
+    /// <summary>Construct.</summary>
+    public ApplicationState()
     {
-        if (_active) return;
-        _active = true;
-        _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
     }
 
-    public virtual void TransitionComplete() { }
-    public virtual bool CanLeaveState() => true;
-    public virtual void TransitionStarted() { }
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _viewports.Clear();
+        base.Dispose();
+    }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        var reflection = context.AddReflection<ApplicationState>();
+        reflection.SetObjectFactory(static () => new ApplicationState());
+    }
+
+    /// <summary>Activate game state. Executed by StateManager.</summary>
+    public virtual void Activate(StringVariantMap bundle)
+    {
+        if (_active)
+            return;
+
+        _active = true;
+
+        // Subscribe HandleUpdate() method for processing update events
+        _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+
+        var input = GetSubsystem<Input>()!;
+        InitMouseMode();
+        input.SetMouseVisible(_mouseVisible);
+        input.SetMouseGrabbed(_mouseGrabbed);
+
+        var renderer = GetSubsystem<Renderer>()!;
+        _savedFogColor = renderer.GetDefaultZone().GetFogColor();
+        renderer.GetDefaultZone().SetFogColor(_fogColor);
+
+        if (_viewports.Count != 0)
+        {
+            renderer.SetNumViewports((uint)_viewports.Count);
+            for (uint i = 0; i < _viewports.Count; ++i)
+                renderer.SetViewport(i, _viewports[(int)i]);
+        }
+    }
+
+    /// <summary>Transition into the state complete. Executed by StateManager.</summary>
+    public virtual void TransitionComplete()
+    {
+    }
+
+    /// <summary>Return true if state is ready to be deactivated. Executed by StateManager.</summary>
+    public virtual bool CanLeaveState() => true;
+
+    /// <summary>Transition out of the state started. Executed by StateManager.</summary>
+    public virtual void TransitionStarted()
+    {
+    }
+
+    /// <summary>Deactivate game state. Executed by StateManager.</summary>
     public virtual void Deactivate()
     {
-        if (!_active) return;
+        if (!_active)
+            return;
         _active = false;
+
+        // Subscribe HandleUpdate() method for processing update events
         _updateSubscription?.Dispose();
         _updateSubscription = null;
+
+        var renderer = GetSubsystem<Renderer>()!;
+        _fogColor = renderer.GetDefaultZone().GetFogColor();
+        renderer.GetDefaultZone().SetFogColor(_savedFogColor);
+
+        if (_viewports.Count != 0)
+            renderer.SetNumViewports(0);
     }
 
-    public virtual void Update(float timeStep) { }
+    /// <summary>Handle the logic update event.</summary>
+    public virtual void Update(float timeStep)
+    {
+    }
 
+    /// <summary>Get activation flag. Returns true if game screen is active.</summary>
+    public bool IsActive() => _active;
+
+    /// <summary>Set whether the operating system mouse cursor is visible.</summary>
+    public void SetMouseVisible(bool enable)
+    {
+        _mouseVisible = enable;
+        if (IsActive())
+            GetSubsystem<Input>()!.SetMouseVisible(enable);
+    }
+
+    /// <summary>Set whether the mouse is currently being grabbed by an operation.</summary>
+    public void SetMouseGrabbed(bool grab)
+    {
+        _mouseGrabbed = grab;
+        if (IsActive())
+            GetSubsystem<Input>()!.SetMouseGrabbed(_mouseGrabbed);
+    }
+
+    /// <summary>Set the mouse mode.</summary>
+    public void SetMouseMode(MouseMode mode)
+    {
+        _mouseMode = mode;
+        if (IsActive())
+            InitMouseMode();
+    }
+
+    /// <summary>Return whether the operating system mouse cursor is visible.</summary>
+    public bool IsMouseVisible() => _mouseVisible;
+
+    /// <summary>Return whether the mouse is currently being grabbed by an operation.</summary>
+    public bool IsMouseGrabbed() => _mouseGrabbed;
+
+    /// <summary>Return the mouse mode.</summary>
+    public MouseMode GetMouseMode() => _mouseMode;
+
+    /// <summary>Set number of backbuffer viewports to render.</summary>
+    public void SetNumViewports(uint num)
+    {
+        while (_viewports.Count < num)
+            _viewports.Add(null);
+        if (_viewports.Count > num)
+            _viewports.RemoveRange((int)num, _viewports.Count - (int)num);
+
+        if (_active)
+            GetSubsystem<Renderer>()!.SetNumViewports(num);
+    }
+
+    /// <summary>Set a backbuffer viewport.</summary>
+    public void SetViewport(uint index, Viewport? viewport)
+    {
+        while (_viewports.Count <= index)
+            _viewports.Add(null);
+
+        _viewports[(int)index] = viewport;
+        if (_active)
+            GetSubsystem<Renderer>()!.SetViewport(index, viewport);
+    }
+
+    /// <summary>Set default zone fog color.</summary>
+    public void SetDefaultFogColor(Color color)
+    {
+        _fogColor = color;
+        if (_active)
+            GetSubsystem<Renderer>()!.GetDefaultZone().SetFogColor(color);
+    }
+
+    /// <summary>Return backbuffer viewport by index.</summary>
+    public Viewport? GetViewport(uint index) => index < _viewports.Count ? _viewports[(int)index] : null;
+
+    /// <summary>Return nth backbuffer viewport associated to a scene. Index 0 returns the first.</summary>
+    public Viewport? GetViewportForScene(Scene? scene, uint index)
+    {
+        for (var i = 0; i < _viewports.Count; ++i)
+        {
+            var viewport = _viewports[i];
+            if (viewport is not null && viewport.GetScene() == scene)
+            {
+                if (index == 0)
+                    return viewport;
+                --index;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Get default zone fog color.</summary>
+    public Color GetDefaultFogColor() => _fogColor;
+
+    // TODO: port URHO3D_ACTIONS when the Actions subsystem is available.
+    // ActionManager* GetActionManager() const { return actionManager_; }
+    // Actions::ActionState* AddAction(Actions::BaseAction* action, Object* target, bool paused = false);
+
+    /// <summary>Initialize mouse mode on non-web platform.</summary>
+    private void InitMouseMode()
+    {
+        var input = GetSubsystem<Input>()!;
+
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            input.SetMouseMode(_mouseMode);
+        }
+        else
+        {
+            input.SetMouseVisible(true);
+            _mouseButtonDownSubscription?.Dispose();
+            _mouseModeChangedSubscription?.Dispose();
+            _mouseButtonDownSubscription = SubscribeToEvent<InputEvents.MouseButtonDownEvent>(HandleMouseModeRequest);
+            _mouseModeChangedSubscription = SubscribeToEvent<InputEvents.MouseModeChangedEvent>(HandleMouseModeChange);
+        }
+    }
+
+    /// <summary>Handle request for mouse mode on web platform.</summary>
+    private void HandleMouseModeRequest(ref InputEvents.MouseButtonDownEvent eventData)
+    {
+        var input = GetSubsystem<Input>()!;
+        if (_mouseMode == MouseMode.Absolute)
+            input.SetMouseVisible(false);
+        else if (_mouseMode == MouseMode.Free)
+            input.SetMouseVisible(true);
+        input.SetMouseMode(_mouseMode);
+    }
+
+    /// <summary>Handle request for mouse mode change on web platform.</summary>
+    private void HandleMouseModeChange(ref InputEvents.MouseModeChangedEvent eventData)
+    {
+        GetSubsystem<Input>()!.SetMouseVisible(!eventData.MouseLocked);
+    }
+
+    /// <summary>Handle the logic update event.</summary>
     private void HandleUpdate(ref CoreEvents.UpdateEvent eventData)
     {
-        if (!_active) return;
-        Update(eventData.TimeStep);
+        // Update can be still executed if Deacivate was called during calling Update subscribers.
+        if (!_active)
+            return;
+
+        // Take the frame time step, which is stored as a float
+        var timeStep = eventData.TimeStep;
+
+        // Move the camera, scale movement with time step
+        Update(timeStep);
+
+        // TODO: port URHO3D_ACTIONS when the Actions subsystem is available.
+        // actionManager_->Update(timeStep);
     }
+
+    // TODO: port URHO3D_ACTIONS when the Actions subsystem is available.
+    // SharedPtr<ActionManager> actionManager_;
 }
 
-public sealed class StateManager : Object, IDisposable
+public class StateManager : Object
 {
-    private struct QueueItem
+    /// <summary>Queue item.</summary>
+    private struct QueueItem : ICloneable, IDisposable
     {
         public ApplicationState? State;
         public StringHash StateType;
-        public Dictionary<string, Variant> Bundle;
+        public StringVariantMap Bundle;
+
+        public QueueItem(ApplicationState? state, StringHash stateType, StringVariantMap bundle)
+        {
+            State = state;
+            StateType = stateType;
+            Bundle = new StringVariantMap(bundle);
+        }
+
+        public readonly QueueItem Clone() => new(State, StateType, Bundle);
+
+        readonly object ICloneable.Clone() => Clone();
+
+        public readonly void Dispose()
+        {
+            Bundle.Dispose();
+        }
     }
 
-    private enum TransitionState { Sustain, FadeOut, FadeIn, WaitToExit }
+    private enum TransitionState
+    {
+        Sustain,
+        FadeOut,
+        FadeIn,
+        WaitToExit,
+    }
 
     private StringHash _originState = StringHash.Empty;
     private StringHash _destinationState = StringHash.Empty;
-    private readonly Dictionary<StringHash, ApplicationState?> _stateCache = [];
+    private readonly Dictionary<StringHash, WeakReference<ApplicationState>> _stateCache = [];
     private readonly Queue<QueueItem> _stateQueue = new();
     private ApplicationState? _activeState;
     private float _fadeTime;
@@ -83,23 +295,39 @@ public sealed class StateManager : Object, IDisposable
     private TransitionState _transitionState = TransitionState.Sustain;
     private ContextEventSubscription? _updateSubscription;
 
+    /// <summary>Construct.</summary>
+    public StateManager()
+    {
+    }
+
     public override void Dispose()
     {
-        _updateSubscription?.Dispose();
         Reset();
+        _updateSubscription?.Dispose();
+        _updateSubscription = null;
+        _stateCache.Clear();
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
+    /// <summary>Hard reset of state manager. Current state will be set to null and the queue is purged.</summary>
     public void Reset()
     {
-        var hasState = _activeState != null;
-        if (hasState) { _destinationState = StringHash.Empty; StartTransition(); DeactivateState(); }
-        _stateQueue.Clear();
+        var hasState = _activeState is not null;
+        if (hasState)
+        {
+            _destinationState = StringHash.Empty;
+            StartTransition();
+            DeactivateState();
+        }
+        while (_stateQueue.TryDequeue(out var queueItem))
+            queueItem.Dispose();
+
         SetTransitionState(TransitionState.Sustain);
-        if (hasState) CompleteTransition();
+        if (hasState)
+            CompleteTransition();
     }
 
+    /// <summary>Update state manager. This is called automatically by the engine every frame.</summary>
     public void Update(float timeStep)
     {
         var iterationCount = 0;
@@ -107,10 +335,13 @@ public sealed class StateManager : Object, IDisposable
         {
             switch (_transitionState)
             {
-                case TransitionState.Sustain: return;
+                case TransitionState.Sustain:
+                    return;
                 case TransitionState.WaitToExit:
-                    if (_activeState != null && _activeState.CanLeaveState()) SetTransitionState(TransitionState.FadeOut);
-                    else return;
+                    if (_activeState is not null && _activeState.CanLeaveState())
+                        SetTransitionState(TransitionState.FadeOut);
+                    else
+                        return;
                     break;
                 case TransitionState.FadeIn:
                     _fadeTime += timeStep;
@@ -118,90 +349,192 @@ public sealed class StateManager : Object, IDisposable
                     {
                         timeStep = _fadeTime - _fadeInDuration;
                         CompleteTransition();
-                        if (_stateQueue.Count == 0) SetTransitionState(TransitionState.Sustain);
-                        else if (_activeState != null && !_activeState.CanLeaveState()) SetTransitionState(TransitionState.WaitToExit);
-                        else SetTransitionState(TransitionState.FadeOut);
+
+                        if (_stateQueue.Count == 0)
+                            SetTransitionState(TransitionState.Sustain);
+                        else if (_activeState is not null && !_activeState.CanLeaveState())
+                            SetTransitionState(TransitionState.WaitToExit);
+                        else
+                            SetTransitionState(TransitionState.FadeOut);
                     }
-                    else return;
+                    else
+                    {
+                        return;
+                    }
                     break;
                 case TransitionState.FadeOut:
                     _fadeTime += timeStep;
-                    if (_fadeTime >= _fadeOutDuration) { timeStep = _fadeTime - _fadeOutDuration; CreateNextState(); }
-                    else return;
+                    if (_fadeTime >= _fadeOutDuration)
+                    {
+                        timeStep = _fadeTime - _fadeInDuration;
+                        CreateNextState();
+                    }
+                    else
+                    {
+                        return;
+                    }
                     break;
             }
+            // Limit number of actions per frame
             ++iterationCount;
         } while (timeStep > 0.0f && iterationCount < 16);
     }
 
+    /// <summary>Cache state without using it.</summary>
     public void CacheState(ApplicationState state)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        _stateCache[state.GetTypeNameHash()] = state;
+        _stateCache[state.GetTypeNameHash()] = new WeakReference<ApplicationState>(state);
     }
 
-    public void EnqueueState(ApplicationState gameScreen, Dictionary<string, Variant>? bundle = null)
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState(ApplicationState? gameScreen, StringVariantMap bundle)
     {
-        ArgumentNullException.ThrowIfNull(gameScreen);
+        if (gameScreen is null)
+        {
+            Log.Logger.Log(LogLevel.Error, default, "No target state provided", null, static (state, _) => state);
+            return;
+        }
         if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
         {
             Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
             return;
         }
-        bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
-        _stateQueue.Enqueue(new QueueItem { State = gameScreen, StateType = gameScreen.GetTypeNameHash(), Bundle = bundle });
+        _stateQueue.Enqueue(new QueueItem(gameScreen, gameScreen.GetTypeNameHash(), bundle));
         InitiateTransition();
     }
 
-    public void EnqueueState(StringHash type, Dictionary<string, Variant>? bundle = null)
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState(ApplicationState? gameScreen)
+    {
+        using var bundle = new StringVariantMap();
+        EnqueueState(gameScreen, bundle);
+    }
+
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState(StringHash type, StringVariantMap bundle)
     {
         if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
         {
             Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
             return;
         }
-        bundle ??= new Dictionary<string, Variant>(StringComparer.Ordinal);
-        _stateQueue.Enqueue(new QueueItem { StateType = type, Bundle = bundle });
+        _stateQueue.Enqueue(new QueueItem(null, type, bundle));
         InitiateTransition();
     }
 
-    public ApplicationState? GetCachedState(StringHash type) { _stateCache.TryGetValue(type, out var s); return s; }
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState(StringHash type)
+    {
+        using var bundle = new StringVariantMap();
+        EnqueueState(type, bundle);
+    }
+
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState<T>(StringVariantMap bundle) where T : ApplicationState
+    {
+        EnqueueState(new StringHash(typeof(T).GetClassName()), bundle);
+    }
+
+    /// <summary>Transition to the application state.</summary>
+    public void EnqueueState<T>() where T : ApplicationState
+    {
+        using var bundle = new StringVariantMap();
+        EnqueueState<T>(bundle);
+    }
+
+    /// <summary>Get cached state if present.</summary>
+    public ApplicationState? GetCachedState(StringHash type)
+    {
+        return _stateCache.TryGetValue(type, out var weakState) && weakState.TryGetTarget(out var state) ? state : null;
+    }
+
+    /// <summary>Get cached state if present.</summary>
+    public T? GetCachedState<T>() where T : ApplicationState
+    {
+        return GetCachedState(new StringHash(typeof(T).GetClassName())) as T;
+    }
+
+    /// <summary>Get current application state.</summary>
     public ApplicationState? GetState() => _activeState;
 
+    /// <summary>Get target application state.</summary>
     public StringHash GetTargetState()
     {
-        if (_stateQueue.Count == 0) return _activeState?.GetTypeNameHash() ?? StringHash.Empty;
-        var array = _stateQueue.ToArray();
-        return array[^1].StateType;
+        if (_stateQueue.Count == 0)
+            return _activeState?.GetTypeNameHash() ?? StringHash.Empty;
+
+        var stateType = StringHash.Empty;
+        foreach (var queueItem in _stateQueue)
+            stateType = queueItem.StateType;
+        return stateType;
     }
 
-    public void SetFadeInDuration(float d) { _fadeInDuration = Math.Max(d, MathDefs.Epsilon); }
-    public void SetFadeOutDuration(float d) { _fadeOutDuration = Math.Max(d, MathDefs.Epsilon); }
+    /// <summary>Set fade in animation duration.</summary>
+    public void SetFadeInDuration(float durationInSeconds)
+    {
+        _fadeInDuration = Math.Clamp(durationInSeconds, MathDefs.Epsilon, float.MaxValue);
+    }
+
+    /// <summary>Set fade out animation duration.</summary>
+    public void SetFadeOutDuration(float durationInSeconds)
+    {
+        _fadeOutDuration = Math.Clamp(durationInSeconds, MathDefs.Epsilon, float.MaxValue);
+    }
+
+    /// <summary>Get fade in animation duration.</summary>
     public float GetFadeInDuration() => _fadeInDuration;
+
+    /// <summary>Get fade out animation duration.</summary>
     public float GetFadeOutDuration() => _fadeOutDuration;
 
+    /// <summary>Initiate state transition if necessary.</summary>
     private void InitiateTransition()
     {
-        if (_stateQueue.Count == 0) { SetTransitionState(TransitionState.Sustain); return; }
+        if (_stateQueue.Count == 0)
+        {
+            SetTransitionState(TransitionState.Sustain);
+            return;
+        }
+
         if (_transitionState == TransitionState.Sustain)
         {
-            if (_activeState != null) SetTransitionState(TransitionState.FadeOut);
-            else CreateNextState();
+            if (_activeState is not null)
+                SetTransitionState(TransitionState.FadeOut);
+            else
+                CreateNextState();
         }
     }
 
-    private void HandleUpdate(ref CoreEvents.UpdateEvent e) => Update(e.TimeStep);
+    /// <summary>Handle update event to animate state transitions.</summary>
+    private void HandleUpdate(ref CoreEvents.UpdateEvent eventData)
+    {
+        Update(eventData.TimeStep);
+    }
 
+    /// <summary>Set current transition state and initialize related values.</summary>
     private void SetTransitionState(TransitionState state)
     {
-        if (_transitionState == state) return;
+        if (_transitionState == state)
+            return;
+
         _transitionState = state;
+
         switch (_transitionState)
         {
-            case TransitionState.Sustain: _updateSubscription?.Dispose(); _updateSubscription = null; break;
+            case TransitionState.Sustain:
+                _updateSubscription?.Dispose();
+                _updateSubscription = null;
+                break;
             case TransitionState.FadeIn:
-            case TransitionState.FadeOut: _fadeTime = 0.0f; _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate); break;
-            case TransitionState.WaitToExit: _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate); break;
+            case TransitionState.FadeOut:
+                _fadeTime = 0.0f;
+                _updateSubscription?.Dispose();
+                _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+                break;
+            case TransitionState.WaitToExit:
+                _updateSubscription?.Dispose();
+                _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+                break;
         }
         if (_transitionState == TransitionState.FadeOut)
         {
@@ -210,53 +543,82 @@ public sealed class StateManager : Object, IDisposable
         }
     }
 
+    /// <summary>Start transition out of the current state.</summary>
     private void StartTransition()
     {
-        _originState = _activeState?.GetTypeNameHash() ?? StringHash.Empty;
-        _activeState?.TransitionStarted();
-        var d = new StateManagerEvents.StateTransitionStartedEvent { From = _originState, To = _destinationState };
-        SendEvent(ref d);
+        if (_activeState is not null)
+        {
+            _originState = _activeState.GetTypeNameHash();
+            _activeState.TransitionStarted();
+        }
+        else
+        {
+            _originState = StringHash.Empty;
+        }
+        var eventData = new StateManagerEvents.StateTransitionStartedEvent { From = _originState, To = _destinationState };
+        SendEvent(ref eventData);
     }
 
+    /// <summary>Complete transition into the current state.</summary>
     private void CompleteTransition()
     {
-        _activeState?.TransitionComplete();
-        var d = new StateManagerEvents.StateTransitionCompleteEvent { From = _originState, To = _destinationState };
-        SendEvent(ref d);
+        if (_activeState is not null)
+            _activeState.TransitionComplete();
+        var eventData = new StateManagerEvents.StateTransitionCompleteEvent { From = _originState, To = _destinationState };
+        SendEvent(ref eventData);
+
         _originState = _destinationState;
         _destinationState = StringHash.Empty;
     }
 
+    /// <summary>Deactivate state.</summary>
     private void DeactivateState()
     {
-        if (_activeState == null) return;
-        var leaving = new StateManagerEvents.LeavingApplicationStateEvent { From = _originState, To = _destinationState };
-        SendEvent(ref leaving);
-        _activeState.Deactivate();
-        _activeState = null;
+        if (_activeState is not null)
+        {
+            var eventData = new StateManagerEvents.LeavingApplicationStateEvent { From = _originState, To = _destinationState };
+            SendEvent(ref eventData);
+
+            _activeState.Deactivate();
+            _activeState = null;
+        }
     }
 
+    /// <summary>Dequeue and set next state as active.</summary>
     private void CreateNextState()
     {
         DeactivateState();
-        while (_stateQueue.Count > 0)
+
+        while (_stateQueue.Count != 0)
         {
-            var nextItem = _stateQueue.Dequeue();
-            var nextState = nextItem.State;
-            if (nextState == null)
+            using var nextQueueItem = _stateQueue.Peek().Clone();
+            var queuedItem = _stateQueue.Dequeue();
+            queuedItem.Dispose();
+            var nextState = nextQueueItem.State;
+            if (nextState is null)
             {
-                _stateCache.TryGetValue(nextItem.StateType, out nextState);
-                nextState ??= (ApplicationState?)Context.CreateObject(nextItem.StateType);
-                if (nextState == null) continue;
+                nextState = GetCachedState(nextQueueItem.StateType);
+                if (nextState is null)
+                {
+                    nextState = Context.CreateObject(nextQueueItem.StateType) as ApplicationState;
+                    if (nextState is null)
+                    {
+                        Log.Logger.Log(LogLevel.Error, default, "Can't create application state object", null, static (state, _) => state);
+                        continue;
+                    }
+                }
             }
             _destinationState = nextState.GetTypeNameHash();
-            _stateCache[_destinationState] = nextState;
-            if (_originState == StringHash.Empty) StartTransition();
+            _stateCache[_destinationState] = new WeakReference<ApplicationState>(nextState);
+
+            if (_originState == StringHash.Empty)
+                StartTransition();
             _activeState = nextState;
-            var entering = new StateManagerEvents.EnteringApplicationStateEvent { From = _originState, To = _destinationState };
-            SendEvent(ref entering);
+            var eventData = new StateManagerEvents.EnteringApplicationStateEvent { From = _originState, To = _destinationState };
+            SendEvent(ref eventData);
+
             SetTransitionState(TransitionState.FadeIn);
-            _activeState.Activate(nextItem.Bundle);
+            _activeState.Activate(nextQueueItem.Bundle);
             return;
         }
         _destinationState = StringHash.Empty;
