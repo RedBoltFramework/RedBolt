@@ -326,10 +326,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [~] `Terrain : Component` — factory and UpdatePatchLod stitch-range selection are ported; CreatePatchGeometry and heightmap/neighbor/material lifecycle remain TODO
 - [x] `TerrainPatch.h`
   - [x] `TerrainPatch : Drawable` — LOD selection with neighbor correction, ray queries, occlusion, lightmap batch helpers, and geometry accessors match C++
-- [ ] `LightProbeGroup.h`
-  - [ ] `LightProbeGroup : Component`
-- [ ] `GlobalIllumination.h`
-  - [ ] `GlobalIllumination : Component`
+- [x] `LightProbeGroup.h`
+  - [x] `LightProbeGroup : Component` — auto placement, collection, baked-data reload hooks, masks, and debug spheres match C++
+- [x] `GlobalIllumination.h`
+  - [x] `GlobalIllumination : Component` — compile/reset probes, SH/ambient sample, file ref, offset, and world-origin shift match C++
 - [~] `ReflectionProbeData.h`
   - [~] reflection probe data struct — cubemap center, projection box, `ReflectionProbeReference.Reset()`, validity, and importance comparison now match C++; manager/probe integration remains unported
 - [ ] `ReflectionProbe.h`
