@@ -69,10 +69,22 @@ public sealed class CStringTests
     [Fact]
     public void Static_Format_returns_formatted_string()
     {
-        var value = CString.Format("value={0}", 12);
+        using var value = CString.Format("value={0}", 12);
 
         Assert.Equal("value=12", value.ConvertToString());
         Assert.Equal((byte)0, value.Bytes[^1]);
+    }
+
+    [Fact]
+    public void Clone_owns_an_independent_utf8_buffer()
+    {
+        using var value = new CString("1234567890123456");
+        using var clone = (CString)value.Clone();
+
+        value.FormatInPlace("changed");
+
+        Assert.Equal("1234567890123456", clone.ConvertToString());
+        Assert.NotEqual(value.Pointer, clone.Pointer);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace RedBolt;
 
-public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposable
+public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneable, IDisposable
 {
     [InlineArray(SmallBufferSize)]
     private struct SmallBuffer
@@ -70,8 +70,16 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     public static CString Format(string format, ReadOnlySpan<object?> args)
     {
         var value = new CString();
-        value.FormatInPlace(format, args);
-        return value;
+        try
+        {
+            value.FormatInPlace(format, args);
+            return value;
+        }
+        catch
+        {
+            value.Dispose();
+            throw;
+        }
     }
 
     public static CString Format(string format, params object?[] args)
@@ -180,6 +188,15 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, IDisposa
     }
 
     public static bool operator !=(CString? left, CString? right) => !(left == right);
+
+    public object Clone()
+    {
+        var result = new CString();
+        result.EnsureCapacity(_byteLength + 1);
+        ContentBytes.CopyTo(result.WritableStorage);
+        result.SetByteLength(_byteLength);
+        return result;
+    }
 
     public void Dispose()
     {
