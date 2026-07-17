@@ -26,7 +26,7 @@ public sealed class WorkQueueVector<T> : MultiVector<T>
 
     public MultiVector<T>.Index Insert(T value) => PushBack(WorkQueue.GetThreadIndex(), value);
 
-    public T Emplace(Func<T> factory) => EmplaceBack(WorkQueue.GetThreadIndex(), factory);
+    public ref T Emplace(Func<T> factory) => ref EmplaceBack(WorkQueue.GetThreadIndex(), factory);
 }
 
 [Obsolete("WorkItem is deprecated. Use TaskFunctionDelegate instead.")]

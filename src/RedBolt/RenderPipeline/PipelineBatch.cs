@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// Self-sufficient batch that can be sorted and rendered by RenderPipeline.
 /// </summary>
-public class PipelineBatch
+public class PipelineBatch : ICloneable
 {
     public Drawable? Drawable;
     public Geometry? Geometry;
@@ -49,6 +49,8 @@ public class PipelineBatch
         Distance = sourceBatch.Distance;
         GeometryType = sourceBatch.GeometryType;
     }
+
+    public object Clone() => MemberwiseClone();
 }
 
 /// <summary>

@@ -109,8 +109,10 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED. `IndexAllocator` is non-copyable in C++ because of its mutex/atomic fields; its vector contains only scalar indices. `IDFamily` construction and `Dispose` acquire/release the ID exactly once, and all returned values are scalars. Standard lock primitives use the allowed managed threading mapping. | — | — | — |
 | `src/RedBolt/Container/KeyFrameSet.cs` | `Source/Urho3D/Container/KeyFrameSet.h` | ☑ | ☐ | ☐ |
 | 2026-07-17 partial outcome | Constructor shape and scalar returns VERIFIED; `GetKeyFrame` was fixed to return a nullable reference to stored data instead of a value copy. Element destruction and implicit container copies remain dependent on the `Variant`/derived-track lifetime audits and must be revisited with those rows. | — | — | — |
-| `src/RedBolt/Container/ManagedSequence.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
-| `src/RedBolt/Container/MultiVector.cs` | `Source/Urho3D/Container/MultiVector.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Container/ManagedSequence.cs` | **ALLOWED C# ADDITION — allocation-free managed sequence comparison** | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. This stateless helper is an allocation-free indexed replacement for the standard managed `Enumerable.SequenceEqual` operation under the allowed standard-container and render-hot-path deviations. It has no constructors, owned fields, destructors, or object-copying expressions. | — | — | — |
+| `src/RedBolt/Container/MultiVector.cs` | `Source/Urho3D/Container/MultiVector.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after preserving inner-vector identity in `Clear`, restoring reference returns from `EmplaceBack` and the indexer, mapping the implicit copy constructor to `Clone()`, cloning explicitly value-like elements in `PushBack` and `CopyTo`, and deterministically disposing owned cloneable values on pop, clear, shrink, replacement, and container disposal. Pointer-like elements remain aliases. `PipelineBatch` now supplies its implicit memberwise value clone, and the nested `PipelineBatchDesc` in delayed-shadow pairs is explicitly copied at its C++ pair-copy call site. | — | — | — |
 | `src/RedBolt/Container/StringHash.cs` | `Source/Tests/Math/StringHash.cpp`<br>`Source/Urho3D/Math/StringHash.cpp`<br>`Source/Urho3D/Math/StringHash.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/Attribute.cs` | `Source/Urho3D/Core/Attribute.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Core/CommandLineParser.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |

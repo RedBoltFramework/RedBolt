@@ -543,7 +543,7 @@ public class BatchCompositor : Object
                     }
                 }
                 else
-                    _delayedShadowBatches.PushBack(threadIndex, (splitProcessor, desc));
+                    _delayedShadowBatches.PushBack(threadIndex, (splitProcessor, (PipelineBatchDesc)desc.Clone()));
             }
         }
     }
