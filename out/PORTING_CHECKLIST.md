@@ -392,8 +392,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `LightAccumulator.h` — light sampling data, pixel/vertex importance partitioning, overflow accumulation into spherical harmonics, deterministic vertex-light sorting and hashing, and reflection-probe state match C++
   - [x] `LightAccumulator`
 - [~] `LightProcessor.h`
-  - [~] `LightProcessor : NonCopyable` — `CookedLightParams`, public hash/split/geometry accessors, and constructor match C++; `BeginUpdate`/`Update`/`EndUpdate` bodies remain TODO
-  - [~] `LightProcessorCache : NonCopyable` — settings, generation-aware get-or-create, and dispose match C++; LRU expiration update body remains TODO
+  - [~] `LightProcessor : NonCopyable` — `CookedLightParams`, `BeginUpdate`/`Update` lit-geometry queries and split setup, `EndUpdate` shadow-map allocation, non-shadow cooking, and pipeline-state hashes match C++; remaining shadow-parameter cooking depends on full `ShadowSplitProcessor` bodies
+  - [x] `LightProcessorCache : NonCopyable` — generation-based LRU cleanup with budget/TTL settings and get-or-create match C++
 - [~] `DrawableProcessor.h` — geometry render flags, sorted occluders, resolved deferred/forward geometry batches, and pass-level batch resolution/update lifecycle match C++; main drawable processing remains pending
   - [x] `DrawableProcessorPass : Object`
   - [~] `DrawableProcessor : Object` — construction, pass/settings hooks, lights/geometries/light-processor/geometry-lighting accessors, occluder pre-sort, and frame statistics collection are ported; full visible-drawable/light processing remains pending

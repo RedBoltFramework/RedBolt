@@ -61,7 +61,7 @@ public partial class LightProcessor
     private readonly Light _light;
     private readonly List<ShadowSplitProcessor> _splits = [];
     private uint _splitRemainingTimeToLive;
-    private RenderBackend _renderBackend;
+    private readonly RenderBackend _renderBackend;
 
     /// <summary>Parameters extracted from light settings.</summary>
     private bool _isShadowRequested;
@@ -100,9 +100,12 @@ public partial class LightProcessor
     public LightProcessor(Light light)
     {
         _light = light ?? throw new ArgumentNullException(nameof(light));
+        _renderBackend = light.GetSubsystem<Graphics>()?.GetRenderBackend() ?? default;
         _cookedParams.LightMatrices = new Matrix4[Light.MaxCascadeSplits];
         _cookedParams.ShadowNormalBias = new float[Light.MaxLightSplits];
         _cookedParams.ShadowDepthBiasMultiplier = new float[Light.MaxLightSplits];
+        for (var i = 0; i < _cookedParams.ShadowDepthBiasMultiplier.Length; ++i)
+            _cookedParams.ShadowDepthBiasMultiplier[i] = 1.0f;
     }
 
     public void Dispose()
@@ -115,32 +118,175 @@ public partial class LightProcessor
     /// <summary>Begin update from main thread.</summary>
     public void BeginUpdate(DrawableProcessor drawableProcessor, LightProcessorCallback callback)
     {
-        // TODO: port complete C++ LightProcessor::BeginUpdate
-        _ = drawableProcessor;
-        _ = callback;
-        _ = _isShadowRequested;
-        _ = _numSplitsRequested;
-        _ = _splitRemainingTimeToLive;
-        _ = _renderBackend;
-        _ = _shadowMapSplitSize;
-        _ = _shadowCasterCandidates;
+        ArgumentNullException.ThrowIfNull(drawableProcessor);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        // Clear temporary containers
+        _litGeometries.Clear();
+        _shadowCasterCandidates.Clear();
+        _shadowMap = default;
+
+        // Initialize shadow
+        _isShadowRequested = callback.IsLightShadowed(_light);
+        _numSplitsRequested = _isShadowRequested ? CalculateNumSplits(_light) : 0;
+
+        // Update splits
+        if ((uint)_splits.Count <= _numSplitsRequested)
+        {
+            // Allocate splits and reset timer immediately
+            _splitRemainingTimeToLive = NumSplitFramesToLive;
+            while ((uint)_splits.Count < _numSplitsRequested)
+                _splits.Add(new ShadowSplitProcessor(this, (uint)_splits.Count));
+        }
+        else
+        {
+            // Deallocate splits by timeout
+            --_splitRemainingTimeToLive;
+            if (_splitRemainingTimeToLive == 0)
+            {
+                while ((uint)_splits.Count > _numSplitsRequested)
+                    _splits.RemoveAt(_splits.Count - 1);
+            }
+        }
     }
 
     /// <summary>Update light in worker thread.</summary>
     public void Update(DrawableProcessor drawableProcessor, LightProcessorCallback callback)
     {
-        // TODO: port complete C++ LightProcessor::Update
-        _ = drawableProcessor;
-        _ = callback;
+        ArgumentNullException.ThrowIfNull(drawableProcessor);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var frameInfo = drawableProcessor.GetFrameInfo();
+        var octree = frameInfo.Octree;
+        var cullCamera = frameInfo.Camera;
+        if (octree is null || cullCamera is null)
+            return;
+
+        var lightType = _light.GetLightType();
+
+        // Check if light volume contains camera
+        _cameraIsInsideLightVolume = EstimateDistanceToCamera(cullCamera, _light) <= cullCamera.GetNearClip() * 2.0f;
+
+        // Query lit geometries (and shadow casters for spot and point lights)
+        switch (lightType)
+        {
+            case LightType.Spot:
+            {
+                var query = new SpotLightGeometryQuery(_litGeometries,
+                    _isShadowRequested ? _shadowCasterCandidates : null,
+                    drawableProcessor, _light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                octree.GetDrawables(query);
+                _hasLitGeometries = query.HasLitGeometries;
+                _hasForwardLitGeometries = _litGeometries.Count > 0;
+                break;
+            }
+            case LightType.Point:
+            {
+                var query = new PointLightGeometryQuery(_litGeometries,
+                    _isShadowRequested ? _shadowCasterCandidates : null,
+                    drawableProcessor, _light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                octree.GetDrawables(query);
+                _hasLitGeometries = query.HasLitGeometries;
+                _hasForwardLitGeometries = _litGeometries.Count > 0;
+                break;
+            }
+            case LightType.Directional:
+            {
+                _cameraIsInsideLightVolume = true;
+                _hasLitGeometries = false;
+                _hasForwardLitGeometries = false;
+                var lightMask = _light.GetLightMask();
+                foreach (var drawable in drawableProcessor.GetGeometries())
+                {
+                    if (drawable is null)
+                        continue;
+                    var drawableIndex = drawable.GetDrawableIndex();
+                    var flags = drawableProcessor.GetGeometryRenderFlags(drawableIndex);
+                    var isLit = (flags & GeometryRenderFlag.Lit) != 0;
+                    var isForwardLit = (flags & GeometryRenderFlag.ForwardLit) != 0;
+
+                    _hasLitGeometries = _hasLitGeometries || isLit;
+                    _hasForwardLitGeometries = _hasForwardLitGeometries || isForwardLit;
+
+                    if (isLit && (drawable.GetLightMaskInZone() & lightMask) != 0)
+                        _litGeometries.Add(drawable);
+                }
+
+                break;
+            }
+        }
+
+        // Update shadows
+        if (!_isShadowRequested)
+        {
+            _numActiveSplits = 0;
+            return;
+        }
+
+        InitializeShadowSplits(drawableProcessor);
+
+        for (var i = 0u; i < _numActiveSplits; ++i)
+        {
+            switch (lightType)
+            {
+                case LightType.Spot:
+                    _splits[(int)i].ProcessSpotShadowCasters(drawableProcessor, _shadowCasterCandidates);
+                    break;
+                case LightType.Point:
+                    _splits[(int)i].ProcessPointShadowCasters(drawableProcessor, _shadowCasterCandidates);
+                    break;
+                case LightType.Directional:
+                    _splits[(int)i].ProcessDirectionalShadowCasters(drawableProcessor, _shadowCasterCandidates);
+                    break;
+            }
+        }
+
+        var hasShadowCaster = false;
+        for (var i = 0; i < (int)_numActiveSplits; ++i)
+        {
+            if (_splits[i].HasShadowCasters())
+            {
+                hasShadowCaster = true;
+                break;
+            }
+        }
+
+        if (!hasShadowCaster)
+        {
+            _numActiveSplits = 0;
+            return;
+        }
+
+        // Evaluate split shadow map size
+        _shadowMapSplitSize = (int)callback.GetShadowMapSize(_light, _numActiveSplits);
+        var grid = GetNumSplitsInGrid();
+        _shadowMapSize = new Vector2i(_shadowMapSplitSize * grid.X, _shadowMapSplitSize * grid.Y);
     }
 
     /// <summary>End update from main thread.</summary>
     public void EndUpdate(DrawableProcessor drawableProcessor, LightProcessorCallback callback, uint pcfKernelSize)
     {
-        // TODO: port complete C++ LightProcessor::EndUpdate
-        _ = drawableProcessor;
-        _ = callback;
-        _ = pcfKernelSize;
+        ArgumentNullException.ThrowIfNull(drawableProcessor);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        // Allocate shadow map
+        if (_numActiveSplits > 0)
+        {
+            _shadowMap = callback.AllocateTransientShadowMap(_shadowMapSize);
+            if (_shadowMap.IsEmpty)
+                _numActiveSplits = 0;
+            else
+            {
+                var grid = GetNumSplitsInGrid();
+                for (var i = 0u; i < _numActiveSplits; ++i)
+                    _splits[(int)i].FinalizeShadow(_shadowMap.GetSplit(i, grid), pcfKernelSize);
+            }
+        }
+
+        var cullCamera = drawableProcessor.GetFrameInfo().Camera;
+        if (cullCamera is not null)
+            CookShaderParameters(cullCamera, drawableProcessor.GetSettings());
+        UpdateHashes();
     }
 
     /// <summary>Return pipeline state hashes.</summary>
@@ -183,6 +329,252 @@ public partial class LightProcessor
     public ShadowMapRegion GetShadowMap() => _shadowMap;
 
     public ref readonly CookedLightParams GetParams() => ref _cookedParams;
+
+    private void InitializeShadowSplits(DrawableProcessor drawableProcessor)
+    {
+        /// Setup splits
+        switch (_light.GetLightType())
+        {
+            case LightType.Directional:
+            {
+                var frameInfo = drawableProcessor.GetFrameInfo();
+                var cullCamera = frameInfo.Camera!;
+                var activeSplits = GetActiveSplits(_light, cullCamera.GetNearClip(), cullCamera.GetFarClip());
+
+                _numActiveSplits = (uint)activeSplits.Count;
+                for (var i = 0; i < activeSplits.Count; ++i)
+                    _splits[i].InitializeDirectional(drawableProcessor, activeSplits[i], _litGeometries);
+                break;
+            }
+            case LightType.Spot:
+            {
+                _numActiveSplits = 1;
+                _splits[0].InitializeSpot();
+                break;
+            }
+            case LightType.Point:
+            {
+                _numActiveSplits = (uint)CubeMapFace.MaxCubeMapFaces;
+                for (var i = 0; i < (int)CubeMapFace.MaxCubeMapFaces; ++i)
+                    _splits[i].InitializePoint((CubeMapFace)i);
+                break;
+            }
+        }
+    }
+
+    private void CookShaderParameters(Camera cullCamera, DrawableProcessorSettings settings)
+    {
+        var lightNode = _light.Node;
+        if (lightNode is null)
+            return;
+
+        var lightType = _light.GetLightType();
+
+        // Setup resources
+        _cookedParams.ShadowMap = _shadowMap.Texture;
+        _cookedParams.LightRamp = _light.GetRampTexture();
+        _cookedParams.LightShape = _light.GetShapeTexture();
+
+        // Setup common shader parameters
+        _cookedParams.Position = lightNode.GetWorldPosition();
+        _cookedParams.Direction = lightNode.GetWorldRotation() * Vector3f.Back;
+        _cookedParams.InverseRange = lightType == LightType.Directional
+            ? 0.0f
+            : 1.0f / Math.Max(_light.GetRange(), MathDefs.Epsilon);
+        _cookedParams.VolumetricRadius = _light.GetRadius();
+        _cookedParams.VolumetricLength = _light.GetLength();
+
+        // Negative lights will use subtract blending, so use absolute RGB values
+        var fade = GetLightFade(_light);
+        var effectiveColor = _light.GetEffectiveColor().Abs();
+        if (_light.GetUsePhysicalValues())
+        {
+            _cookedParams.EffectiveColorInLinearSpace = fade * effectiveColor.ToVector3();
+            _cookedParams.EffectiveColorInGammaSpace = fade * effectiveColor.LinearToGamma().ToVector3();
+        }
+        else
+        {
+            _cookedParams.EffectiveColorInGammaSpace = fade * effectiveColor.ToVector3();
+            _cookedParams.EffectiveColorInLinearSpace = fade * effectiveColor.GammaToLinear().ToVector3();
+        }
+
+        _cookedParams.EffectiveSpecularIntensity = fade * _light.GetEffectiveSpecularIntensity();
+
+        // Setup vertex light parameters
+        var cutoffParams = _light.GetCutoffParams();
+        _cookedParams.SpotCutoff = cutoffParams.Cutoff;
+        _cookedParams.InverseSpotCutoff = cutoffParams.InverseCutoff;
+
+        _cookedParams.NumLightMatrices = 0;
+        if (_cookedParams.LightShape is not null)
+        {
+            switch (lightType)
+            {
+                case LightType.Directional:
+                    _cookedParams.LightShapeMatrix = Matrix4.Identity;
+                    break;
+                case LightType.Spot:
+                    _cookedParams.LightShapeMatrix = CalculateSpotMatrix(_light, _renderBackend);
+                    break;
+                case LightType.Point:
+                    _cookedParams.LightShapeMatrix = lightNode.GetWorldTransform().Inverse.Matrix4;
+                    break;
+            }
+        }
+
+        // Skip the rest if no shadow
+        if (_shadowMap.IsEmpty)
+            return;
+
+        // TODO: port remaining shadow-parameter cooking once ShadowSplitProcessor is fully implemented
+        _ = cullCamera;
+        _ = settings;
+    }
+
+    private void UpdateHashes()
+    {
+        var biasParameters = _light.GetShadowBias();
+
+        uint commonHash = 0;
+        CombineHash(ref commonHash, (uint)_light.GetLightType());
+        CombineHash(ref commonHash, _light.IsNegative() ? 1u : 0u);
+        CombineHash(ref commonHash, HasShadow() ? 1u : 0u);
+        CombineHash(ref commonHash, _light.GetShapeTexture()?.GetSamplerStateDesc().ToHash() ?? 0u);
+        CombineHash(ref commonHash, _light.GetRampTexture()?.GetSamplerStateDesc().ToHash() ?? 0u);
+        CombineHash(ref commonHash, _light.GetEffectiveSpecularIntensity() > 0.0f ? 1u : 0u);
+        CombineHash(ref commonHash, biasParameters.NormalOffset > 0.0f ? 1u : 0u);
+        CombineHash(ref commonHash, MakeHash(biasParameters.ConstantBias));
+        CombineHash(ref commonHash, MakeHash(biasParameters.SlopeScaledBias));
+        CombineHash(ref commonHash, _light.GetLightMaskEffective() & Drawable.PortableLightMask);
+
+        _forwardLitBatchHash = commonHash;
+
+        _lightVolumeBatchHash = commonHash;
+        CombineHash(ref _lightVolumeBatchHash, _cameraIsInsideLightVolume ? 1u : 0u);
+
+        if (_light.GetLightType() != LightType.Directional)
+            Array.Fill(_shadowBatchStateHashes, commonHash);
+        else
+        {
+            for (var i = 0u; i < _numActiveSplits; ++i)
+            {
+                _shadowBatchStateHashes[i] = commonHash;
+                CombineHash(ref _shadowBatchStateHashes[i],
+                    MakeHash(100.0f * _cookedParams.ShadowDepthBiasMultiplier[i]));
+            }
+        }
+    }
+
+    private Vector2i GetNumSplitsInGrid()
+    {
+        if (_numActiveSplits == 1)
+            return new Vector2i(1, 1);
+        if (_numActiveSplits == 2)
+            return new Vector2i(2, 1);
+        if (_numActiveSplits < 6)
+            return new Vector2i(2, 2);
+        return new Vector2i(3, 2);
+    }
+
+    private static float GetLightFade(Light light)
+    {
+        var fadeStart = light.GetFadeDistance();
+        var fadeEnd = light.GetDrawDistance();
+        if (light.GetLightType() != LightType.Directional && fadeEnd > 0.0f && fadeStart > 0.0f && fadeStart < fadeEnd)
+            return Math.Min(1.0f - (light.GetDistance() - fadeStart) / (fadeEnd - fadeStart), 1.0f);
+        return 1.0f;
+    }
+
+    private static Matrix4 CalculateSpotMatrix(Light light, RenderBackend renderBackend)
+    {
+        var lightNode = light.Node!;
+        var spotView = new Matrix3x4(lightNode.GetWorldPosition(), lightNode.GetWorldRotation(), 1.0f).Inverse.Matrix4;
+
+        // Make the projected light slightly smaller than the shadow map to prevent light spill
+        var h = 1.005f / MathF.Tan(light.GetFov() * MathDefs.DegToRad * 0.5f);
+        var w = h / light.GetAspectRatio();
+        var spotProj = new Matrix4(
+            w, 0, 0, 0,
+            0, h, 0, 0,
+            0, 0, 1.0f / Math.Max(light.GetRange(), MathDefs.Epsilon), 0,
+            0, 0, 1.0f, 0);
+
+        Matrix4 texAdjust;
+        if (renderBackend == RenderBackend.OpenGL)
+        {
+            texAdjust = Matrix4.Identity;
+            // Translation then scale via composition matching C++ SetTranslation/SetScale
+            texAdjust = new Matrix4(
+                0.5f, 0, 0, 0.5f,
+                0, -0.5f, 0, 0.5f,
+                0, 0, 0.5f, 0.5f,
+                0, 0, 0, 1.0f);
+        }
+        else
+        {
+            texAdjust = new Matrix4(
+                0.5f, 0, 0, 0.5f,
+                0, -0.5f, 0, 0.5f,
+                0, 0, 1.0f, 0.0f,
+                0, 0, 0, 1.0f);
+        }
+
+        return texAdjust * spotProj * spotView;
+    }
+
+    private static uint CalculateNumSplits(Light light) =>
+        light.GetLightType() switch
+        {
+            LightType.Spot => 1,
+            LightType.Point => (uint)CubeMapFace.MaxCubeMapFaces,
+            LightType.Directional => (uint)light.GetNumShadowSplits(),
+            _ => 0
+        };
+
+    private static List<FloatRange> GetActiveSplits(Light light, float nearClip, float farClip)
+    {
+        var cascade = light.GetShadowCascade();
+        var numSplits = light.GetNumShadowSplits();
+        var result = new List<FloatRange>((int)Light.MaxCascadeSplits);
+
+        var nearSplit = nearClip;
+        for (var i = 0; i < numSplits; ++i)
+        {
+            // Stop if split is completely beyond camera far clip
+            if (nearSplit > farClip)
+                break;
+
+            var farSplit = Math.Min(farClip, cascade.Splits[i]);
+            if (farSplit <= nearSplit)
+                break;
+
+            result.Add(new FloatRange(nearSplit, farSplit));
+            nearSplit = farSplit;
+        }
+
+        return result;
+    }
+
+    private static float EstimateDistanceToCamera(Camera cullCamera, Light light)
+    {
+        var cameraPos = cullCamera.Node!.GetWorldPosition();
+        return light.GetLightType() switch
+        {
+            LightType.Directional => 0.0f,
+            LightType.Point => new Sphere(light.Node!.GetWorldPosition(), light.GetRange() * 1.25f).Distance(cameraPos),
+            LightType.Spot => light.GetFrustum().Distance(cameraPos),
+            _ => 0.0f
+        };
+    }
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
+
+    private static uint MakeHash(float value)
+    {
+        var bits = BitConverter.SingleToUInt32Bits(value);
+        return bits;
+    }
 }
 
 /// <summary>
@@ -216,11 +608,35 @@ public sealed class LightProcessorCache
 
     public void Update(float timeStep)
     {
-        // TODO: port complete C++ LightProcessorCache::Update
+        var generationChanged = false;
         _timeAccumulator += timeStep;
-        _ = _settings;
-        _ = _currentGeneration;
-        _ = _timeAccumulator;
+        while (_timeAccumulator >= 1.0f)
+        {
+            ++_currentGeneration;
+            _timeAccumulator -= 1.0f;
+            generationChanged = true;
+        }
+
+        if (generationChanged)
+        {
+            var maxAge = (uint)_cache.Count <= _settings.Budget
+                ? _settings.NormalTimeToLive
+                : _settings.AggressiveTimeToLive;
+            var toRemove = new List<Light>();
+            foreach (var (light, entry) in _cache)
+            {
+                var age = _currentGeneration - entry.LastUsedGeneration;
+                if (age > maxAge)
+                    toRemove.Add(light);
+            }
+
+            foreach (var light in toRemove)
+            {
+                if (_cache.TryGetValue(light, out var entry))
+                    entry.LightProcessor?.Dispose();
+                _cache.Remove(light);
+            }
+        }
     }
 
     /// <summary>Should be called on every frame to notify LRU cache.</summary>
