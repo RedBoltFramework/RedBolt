@@ -46,10 +46,24 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         _time = new WrappedScalar<float>(0.0f, minTime, maxTime);
     }
 
-    public AnimationParameters(AnimationParameters rhs)
+    private static Animation? GetAnimation(string animationName)
     {
-        ArgumentNullException.ThrowIfNull(rhs);
+        var context = Context.Instance;
+        return context.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName);
+    }
 
+    public AnimationParameters(string animationName)
+        : this(GetAnimation(animationName))
+    {
+    }
+
+    public AnimationParameters(string animationName, float minTime, float maxTime)
+        : this(GetAnimation(animationName), minTime, maxTime)
+    {
+    }
+
+    private AnimationParameters(AnimationParameters rhs)
+    {
         InstanceIndex = rhs.InstanceIndex;
         IsLooped = rhs.IsLooped;
         RemoveOnCompletion = rhs.RemoveOnCompletion;
@@ -69,30 +83,16 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         _time = new WrappedScalar<float>(rhs._time.Value(), rhs._time.Min(), rhs._time.Max());
     }
 
-    public object Clone() => new AnimationParameters(this);
+    public AnimationParameters Clone() => new(this);
 
-    private static Animation? GetAnimation(string animationName)
-    {
-        var context = Context.Instance;
-        return context.GetSubsystem<ResourceCache>()!.GetResource<Animation>(animationName);
-    }
-
-    public AnimationParameters(string animationName)
-        : this(GetAnimation(animationName))
-    {
-    }
-
-    public AnimationParameters(string animationName, float minTime, float maxTime)
-        : this(GetAnimation(animationName), minTime, maxTime)
-    {
-    }
+    object ICloneable.Clone() => Clone();
 
     /// <summary>
     /// Helper utility to fade animation out and remove it later.
     /// </summary>
     public bool RemoveDelayed(float fadeTime)
     {
-        var alreadyRemoved = Math.Abs(TargetWeight) < MathDefs.LargeEpsilon;
+        var alreadyRemoved = MathDefs.Equals(TargetWeight, 0.0f, MathDefs.LargeEpsilon);
         var effectiveDelay = alreadyRemoved ? Math.Min(TargetWeightDelay, fadeTime) : fadeTime;
         var changed = !RemoveOnZeroWeight || TargetWeightDelay != effectiveDelay || TargetWeight != 0.0f;
 
@@ -271,27 +271,44 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         result.TargetWeight = variants[index++].GetFloat();
         result.TargetWeightDelay = variants[index++].GetFloat();
 
+        System.Diagnostics.Debug.Assert(index == NumVariants);
         return result;
     }
 
     public void ToVariantSpan(Span<Variant> variants)
     {
         var index = 0;
+        variants[index].Dispose();
         variants[index++] = new Variant(new ResourceRef(new StringHash("Animation"), _animation?.Name ?? string.Empty));
+        variants[index].Dispose();
         variants[index++] = new Variant(IsLooped);
+        variants[index].Dispose();
         variants[index++] = new Variant(RemoveOnCompletion);
+        variants[index].Dispose();
         variants[index++] = new Variant(LayerIndex);
+        variants[index].Dispose();
         variants[index++] = new Variant((uint)BlendMode);
+        variants[index].Dispose();
         variants[index++] = new Variant(StartBoneName);
+        variants[index].Dispose();
         variants[index++] = new Variant(AutoFadeOutTime);
+        variants[index].Dispose();
         variants[index++] = new Variant(_time.Value());
+        variants[index].Dispose();
         variants[index++] = new Variant(_time.Min());
+        variants[index].Dispose();
         variants[index++] = new Variant(_time.Max());
+        variants[index].Dispose();
         variants[index++] = new Variant(SpeedValue);
+        variants[index].Dispose();
         variants[index++] = new Variant(RemoveOnZeroWeight);
+        variants[index].Dispose();
         variants[index++] = new Variant(WeightValue);
+        variants[index].Dispose();
         variants[index++] = new Variant(TargetWeight);
+        variants[index].Dispose();
         variants[index++] = new Variant(TargetWeightDelay);
+        System.Diagnostics.Debug.Assert(index == NumVariants);
     }
 
     public static AnimationParameters Deserialize(Animation? animation, Deserializer source)

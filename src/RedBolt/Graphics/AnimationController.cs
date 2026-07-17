@@ -21,6 +21,7 @@
 //
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -214,7 +215,7 @@ public class AnimationController : AnimationStateSource
         {
             var instance = new AnimationInstance
             {
-                Params = new AnimationParameters(newAnimations[i]),
+                Params = newAnimations[i].Clone(),
                 State = null
             };
             UpdateInstance(instance.Params, elapsedTime, false);
@@ -299,7 +300,7 @@ public class AnimationController : AnimationStateSource
 
         var instance = new AnimationInstance
         {
-            Params = new AnimationParameters(parameters),
+            Params = parameters.Clone(),
             State = new AnimationState(this)
         };
         instance.Params.InstanceIndex = instanceIndex;
@@ -337,7 +338,7 @@ public class AnimationController : AnimationStateSource
 
         if (!instance.Params.Equals(parameters))
         {
-            instance.Params = new AnimationParameters(parameters);
+            instance.Params = parameters.Clone();
             _revisionDirty = true;
         }
     }
@@ -360,7 +361,7 @@ public class AnimationController : AnimationStateSource
         ArgumentNullException.ThrowIfNull(result);
         result.Clear();
         for (var i = 0; i < _animations.Count; ++i)
-            result.Add(new AnimationParameters(_animations[i].Params));
+            result.Add(_animations[i].Params.Clone());
     }
 
     public List<AnimationParameters> GetAnimationParameters()
@@ -380,8 +381,8 @@ public class AnimationController : AnimationStateSource
     public AnimationParameters GetAnimationParameters(uint index)
     {
         return index < _animations.Count
-            ? new AnimationParameters(_animations[(int)index].Params)
-            : new AnimationParameters(AnimationParameters.Empty);
+            ? _animations[(int)index].Params.Clone()
+            : AnimationParameters.Empty.Clone();
     }
 
     public uint GetRevision() => _revision;
@@ -425,7 +426,7 @@ public class AnimationController : AnimationStateSource
 
     public uint PlayNew(AnimationParameters parameters, float fadeInTime = 0.0f)
     {
-        var adjustedParameters = new AnimationParameters(parameters);
+        var adjustedParameters = parameters.Clone();
         if (fadeInTime > 0.0f)
         {
             adjustedParameters.WeightValue = 0.0f;
@@ -682,12 +683,11 @@ public class AnimationController : AnimationStateSource
         var availableCount = (value.Count - 1) / checked((int)AnimationParameters.NumVariants);
         var loadedCount = Math.Min(requestedCount, availableCount);
 
+        var valueSpan = CollectionsMarshal.AsSpan(value);
         for (var i = 0; i < loadedCount; ++i)
         {
-            var variants = new Variant[AnimationParameters.NumVariants];
             var offset = 1 + i * checked((int)AnimationParameters.NumVariants);
-            for (var j = 0; j < variants.Length; ++j)
-                variants[j] = value[offset + j];
+            var variants = valueSpan.Slice(offset, checked((int)AnimationParameters.NumVariants));
             AddAnimation(AnimationParameters.FromVariantSpan(variants));
         }
 
@@ -700,17 +700,20 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public VariantVector GetAnimationsAttr()
     {
-        var result = new VariantVector
-        {
-            new Variant(checked((uint)_animations.Count))
-        };
+        var numAnimations = _animations.Count;
+        var numVariants = checked((int)AnimationParameters.NumVariants);
+        var resultSize = checked(1 + numAnimations * numVariants);
 
-        for (var i = 0; i < _animations.Count; ++i)
+        var result = new VariantVector();
+        for (var i = 0; i < resultSize; ++i)
+            result.Add(default);
+        result[0] = new Variant(checked((uint)numAnimations));
+
+        var valueSpan = CollectionsMarshal.AsSpan(result);
+        for (var i = 0; i < numAnimations; ++i)
         {
-            var variants = new Variant[AnimationParameters.NumVariants];
+            var variants = valueSpan.Slice(1 + i * numVariants, numVariants);
             _animations[i].Params.ToVariantSpan(variants);
-            for (var j = 0; j < variants.Length; ++j)
-                result.Add(variants[j]);
         }
 
         return result;
@@ -1057,7 +1060,7 @@ public class AnimationController : AnimationStateSource
         {
             return new AnimationInstance
             {
-                Params = new AnimationParameters(Params),
+                Params = Params.Clone(),
                 State = State
             };
         }

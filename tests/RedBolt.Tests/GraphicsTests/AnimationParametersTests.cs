@@ -46,4 +46,62 @@ public sealed class AnimationParametersTests
         Assert.Equal(0.2f, parameters.TargetWeightDelay);
         Assert.False(parameters.RemoveDelayed(0.4f));
     }
+
+    [Fact]
+    public void Animation_parameters_copy_independent_value_state()
+    {
+        var animation = new Animation("Walk");
+        animation.SetLength(2.0f);
+        var parameters = new AnimationParameters(animation, 0.25f, 1.75f)
+            .Looped()
+            .StartBone("Root")
+            .Layer(2)
+            .Time(1.0f)
+            .Weight(0.5f);
+        parameters.InstanceIndex = 3;
+        parameters.Removed = true;
+        parameters.Merged = true;
+
+        var copy = parameters.Clone();
+
+        Assert.NotSame(parameters, copy);
+        Assert.Same(animation, copy.GetAnimation());
+        Assert.NotSame(parameters.GetAnimationTime(), copy.GetAnimationTime());
+        Assert.Equal(parameters, copy);
+        Assert.Equal(parameters.Removed, copy.Removed);
+        Assert.Equal(parameters.Merged, copy.Merged);
+
+        copy.SetTimeRange(0.0f, 2.0f);
+        copy.SetTime(0.5f);
+        copy.StartBoneName = "Other";
+
+        Assert.Equal(1.0f, parameters.GetTime());
+        Assert.Equal(0.25f, parameters.GetAnimationTime().Min());
+        Assert.Equal(1.75f, parameters.GetAnimationTime().Max());
+        Assert.Equal("Root", parameters.StartBoneName);
+    }
+
+    [Fact]
+    public void Animation_parameters_match_removal_epsilon_and_variant_assignment_lifetimes()
+    {
+        var parameters = new AnimationParameters();
+        parameters.RemoveOnZeroWeight = true;
+        parameters.TargetWeight = MathDefs.LargeEpsilon;
+        parameters.TargetWeightDelay = 0.1f;
+
+        Assert.True(parameters.RemoveDelayed(0.4f));
+        Assert.Equal(0.1f, parameters.TargetWeightDelay);
+
+        var variants = new Variant[AnimationParameters.NumVariants];
+        using var source = new CString("This CString is long enough to use owned heap storage.");
+        variants[0] = new Variant(source);
+        var replacedValue = variants[0].GetCString();
+
+        parameters.ToVariantSpan(variants);
+
+        Assert.Equal(0, replacedValue.ByteLength);
+        Assert.Equal(VariantType.ResourceRef, variants[0].Type);
+        for (var i = 0; i < variants.Length; ++i)
+            variants[i].Dispose();
+    }
 }
