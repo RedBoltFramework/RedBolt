@@ -590,74 +590,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `14_SoundEffects` sample — sound effect playback, music control, volume/panning/reach/LFE, microphone controls, and ImGui controls ported; startup WAV playback verified
   - [x] `29_SoundSynthesis` sample — procedural audio synthesis ported with rbfx buffering, degree-based dual oscillators (including the C++ 180-degree second-oscillator start), filter, and ImGui instructions
 
-## B3. UI `OPTIONAL` — retained-mode UI; depends on Graphics, Resource, Input
-
-- [ ] `UIEvents.h`
-  - [ ] UI event definitions
-- [ ] `FontFace.h`
-  - [ ] `struct FontGlyph`
-  - [ ] `FontFace : RefCounted`
-- [ ] `FontFaceBitmap.h`
-  - [ ] `FontFaceBitmap : FontFace`
-- [ ] `FontFaceFreeType.h`
-  - [ ] `FontFaceFreeType : FontFace`
-- [ ] `Font.h`
-  - [ ] `Font : Resource`
-- [ ] `UIBatch.h`
-  - [ ] `UIBatch`
-- [~] `UIElement.h`
-  - [~] `UIElement : Animatable`
-- [ ] `UISelectable.h`
-  - [ ] `UISelectable : UIElement`
-- [ ] `BorderImage.h`
-  - [ ] `BorderImage : UIElement`
-- [ ] `Sprite.h`
-  - [ ] `Sprite : UIElement`
-- [ ] `Cursor.h`
-  - [ ] `struct CursorShapeInfo`
-  - [ ] `Cursor : BorderImage`
-- [ ] `Button.h`
-  - [ ] `Button : BorderImage`
-- [ ] `CheckBox.h`
-  - [ ] `CheckBox : BorderImage`
-- [ ] `Slider.h`
-  - [ ] `Slider : BorderImage`
-- [ ] `ScrollBar.h`
-  - [ ] `ScrollBar : BorderImage`
-- [ ] `ProgressBar.h`
-  - [ ] `ProgressBar : BorderImage`
-- [ ] `LineEdit.h`
-  - [ ] `LineEdit : BorderImage`
-- [ ] `Text.h`
-  - [ ] `Text : UISelectable`
-- [ ] `Text3D.h`
-  - [ ] `Text3D : Drawable`
-- [ ] `TextRenderer3D.h`
-  - [ ] `TextRenderer3D : LogicComponent`
-- [ ] `ScrollView.h`
-  - [ ] `ScrollView : UIElement`
-- [ ] `ListView.h`
-  - [ ] `ListView : ScrollView`
-- [ ] `ToolTip.h`
-  - [ ] `ToolTip : UIElement`
-- [ ] `Menu.h`
-  - [ ] `Menu : Button`
-- [ ] `DropDownList.h`
-  - [ ] `DropDownList : Menu`
-- [ ] `Window.h`
-  - [ ] `Window : BorderImage`
-- [ ] `View3D.h`
-  - [ ] `View3D : Window`
-- [ ] `FileSelector.h`
-  - [ ] `FileSelector : Object`
-- [ ] `MessageBox.h`
-  - [ ] `MessageBox : Object`
-- [ ] `SplashScreen.h` ⤴ needs `Engine/StateManager`
-  - [ ] `SplashScreen : ApplicationState`
-- [ ] `UIComponent.h`
-  - [ ] `UIComponent : Component`
-- [ ] `UI.h`
-  - [ ] `UI : Object`
+## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
 
 ## B4. Physics `OPTIONAL` — Bullet; depends on Scene, Graphics
 
@@ -1106,10 +1039,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B16. Script `OPTIONAL` — managed scripting host; depends on Core
 
-- [~] `Script.h`
-  - [~] `ScriptRuntimeApi`
-  - [ ] `Script : Object`
-  - [ ] `GCHandleRef`
+- [x] `Script.h`
 
 ## B17. XR `OPTIONAL` — OpenXR VR; depends on Graphics, RenderAPI, Scene
 
