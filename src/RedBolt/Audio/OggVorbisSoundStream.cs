@@ -10,6 +10,7 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
     protected readonly sbyte[] _data;
     protected readonly uint _dataSize;
     protected StbVorbis? _decoder;
+    private GCHandle _dataHandle;
 
     public OggVorbisSoundStream(Sound sound)
     {
@@ -21,16 +22,9 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
         _data = sound.GetData() ?? [];
         _dataSize = (uint)_data.Length;
 
-        var handle = GCHandle.Alloc(_data, GCHandleType.Pinned);
-        try
-        {
-            _decoder = StbVorbisNativeBindings.StbVorbisOpenMemory(
-                handle.AddrOfPinnedObject(), checked((int)_dataSize), out _, null!);
-        }
-        finally
-        {
-            handle.Free();
-        }
+        _dataHandle = GCHandle.Alloc(_data, GCHandleType.Pinned);
+        _decoder = StbVorbisNativeBindings.StbVorbisOpenMemory(
+            _dataHandle.AddrOfPinnedObject(), checked((int)_dataSize), out _, null!);
     }
 
     public void Dispose()
@@ -40,6 +34,9 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
             StbVorbisNativeBindings.StbVorbisClose(_decoder);
             _decoder = null;
         }
+
+        if (_dataHandle.IsAllocated)
+            _dataHandle.Free();
 
         GC.SuppressFinalize(this);
     }

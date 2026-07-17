@@ -296,6 +296,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
 - All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
 - `SystemUI` is renamed to `DearImGui`.
+- Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
 
 Anything not on this list must match C++.
 

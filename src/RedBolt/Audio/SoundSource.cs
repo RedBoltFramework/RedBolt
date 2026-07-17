@@ -9,7 +9,7 @@ public static class SoundSourceConstants
 /// <summary>Sound source component with stereo position.</summary>
 public class SoundSource : Component
 {
-    protected Audio? Audio;
+    protected Audio Audio = null!;
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
     internal float Frequency;
@@ -34,14 +34,14 @@ public class SoundSource : Component
 
     public SoundSource()
     {
-        Audio = GetSubsystem<Audio>();
-        Audio?.AddSoundSource(this);
+        Audio = GetSubsystem<Audio>()!;
+        Audio.AddSoundSource(this);
         UpdateMasterGain();
     }
 
     public override void Dispose()
     {
-        Audio?.RemoveSoundSource(this);
+        Audio.RemoveSoundSource(this);
         base.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -182,9 +182,6 @@ public class SoundSource : Component
 
     public virtual void Update(float timeStep)
     {
-        if (Audio == null)
-            return;
-
         var effectiveTimeScale = GetEffectiveTimeScale();
         if (effectiveTimeScale == 0.0f)
             return;
@@ -273,8 +270,7 @@ public class SoundSource : Component
 
     public void UpdateMasterGain()
     {
-        if (Audio != null)
-            MasterGain = Audio.GetSoundSourceMasterGain(SoundTypeHash);
+        MasterGain = Audio.GetSoundSourceMasterGain(SoundTypeHash);
     }
 
     /// <summary>Set sound attribute for serialization.</summary>
