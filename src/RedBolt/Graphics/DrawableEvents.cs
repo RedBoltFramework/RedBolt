@@ -31,7 +31,7 @@ public static class DrawableEvents
     public struct ParticleEffectFinishedEvent
     {
         public Node? Node; // Node pointer
-        public object? Effect; // ParticleEffect pointer
+        public ParticleEffect? Effect; // ParticleEffect pointer
     }
 
     /// <summary>Terrain geometry created.</summary>

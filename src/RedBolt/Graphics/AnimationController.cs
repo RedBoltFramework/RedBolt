@@ -1041,7 +1041,7 @@ public class AnimationController : AnimationStateSource
                 Animation = pendingTrigger.Animation,
                 Name = pendingTrigger.Animation.AnimationName,
                 Time = pendingTrigger.Trigger.Time,
-                Data = pendingTrigger.Trigger.Data
+                Data = pendingTrigger.Trigger.Data.Clone()
             };
             Node.SendEvent(ref eventData);
         }

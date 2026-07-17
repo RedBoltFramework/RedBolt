@@ -9,6 +9,7 @@ public sealed class DrawableEventsTests
     {
         Node node = null!;
         Variant data = new(42);
+        ParticleEffect effect = new();
 
         DrawableEvents.BoneHierarchyCreatedEvent boneHierarchyCreated = new() { Node = node };
         DrawableEvents.AnimationTriggerEvent animationTrigger = new()
@@ -29,7 +30,7 @@ public sealed class DrawableEventsTests
         DrawableEvents.ParticleEffectFinishedEvent particleEffectFinished = new()
         {
             Node = node,
-            Effect = new object()
+            Effect = effect
         };
         DrawableEvents.TerrainCreatedEvent terrainCreated = new() { Node = node };
 
@@ -43,7 +44,7 @@ public sealed class DrawableEventsTests
         Assert.Equal("Walk", animationFinished.Name);
         Assert.True(animationFinished.Looped);
         Assert.Same(node, particleEffectFinished.Node);
-        Assert.NotNull(particleEffectFinished.Effect);
+        Assert.Same(effect, particleEffectFinished.Effect);
         Assert.Same(node, terrainCreated.Node);
     }
 }
