@@ -22,7 +22,7 @@ public readonly struct ContextEventSubscription : IDisposable
     }
 }
 
-public sealed class Context : ObjectReflectionRegistry
+public sealed class Context : ObjectReflectionRegistry, IDisposable
 {
     private sealed class StructEventSubscriptionBucket
     {
@@ -71,12 +71,58 @@ public sealed class Context : ObjectReflectionRegistry
 
     public void Reset()
     {
+        GetSubsystem<ResourceCache>()?.Clear();
+
+        var pluginManager = GetSubsystem("PluginManager");
+
+        var virtualReality = GetSubsystem("VirtualReality");
+        RemoveSubsystem("VirtualReality");
+        (virtualReality as IDisposable)?.Dispose();
+        RemoveSubsystem("PluginManager");
+        var audio = GetSubsystem("Audio");
+        RemoveSubsystem("Audio");
+        (audio as IDisposable)?.Dispose();
+        var dearImGui = GetSubsystem("DearImGui");
+        RemoveSubsystem("DearImGui");
+        (dearImGui as IDisposable)?.Dispose();
+        var resourceCache = GetSubsystem("ResourceCache");
+        RemoveSubsystem("ResourceCache");
+        (resourceCache as IDisposable)?.Dispose();
+        var input = GetSubsystem("Input");
+        RemoveSubsystem("Input");
+        (input as IDisposable)?.Dispose();
+        var renderer = GetSubsystem("Renderer");
+        RemoveSubsystem("Renderer");
+        (renderer as IDisposable)?.Dispose();
+        var graphics = GetSubsystem("Graphics");
+        RemoveSubsystem("Graphics");
+        (graphics as IDisposable)?.Dispose();
+        var stateManager = GetSubsystem("StateManager");
+        RemoveSubsystem("StateManager");
+        (stateManager as IDisposable)?.Dispose();
+
+        var remainingSubsystems = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        foreach (var subsystem in _subsystems.GetContainer().Values)
+        {
+            if (subsystem is not Engine)
+                remainingSubsystems.Add(subsystem);
+        }
+
         _subsystemsByType.Clear();
         _subsystems.Clear();
+        foreach (var subsystem in remainingSubsystems)
+            (subsystem as IDisposable)?.Dispose();
+        (pluginManager as IDisposable)?.Dispose();
+
         _structEventSubscriptions.Clear();
         _activeEventInvocations.Clear();
         _globalVars.Clear();
         _nextSubscriptionId = 1;
+    }
+
+    public void Dispose()
+    {
+        Reset();
     }
 
     public void InitializeEngineSubsystems(Engine engine)

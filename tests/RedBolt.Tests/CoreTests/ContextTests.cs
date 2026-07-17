@@ -535,8 +535,32 @@ public sealed class ContextTests
         }
     }
 
+    [Fact]
+    public void Reset_disposes_owned_subsystems()
+    {
+        var context = new Context();
+        var subsystem = new DisposableSubsystem();
+        context.RegisterSubsystem(subsystem);
+
+        context.Reset();
+
+        Assert.True(subsystem.IsDisposed);
+        Assert.Null(context.GetSubsystem<DisposableSubsystem>());
+    }
+
     private sealed class TestObject : RedBolt.Object
     {
+    }
+
+    private sealed class DisposableSubsystem : RedBolt.Object
+    {
+        public bool IsDisposed { get; private set; }
+
+        public override void Dispose()
+        {
+            IsDisposed = true;
+            base.Dispose();
+        }
     }
 
     private interface ITestInterfaceSubsystem
