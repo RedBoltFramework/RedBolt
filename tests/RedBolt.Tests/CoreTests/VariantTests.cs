@@ -74,6 +74,32 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Variant_copy_boundaries_deep_copy_owned_payloads()
+    {
+        var sourceVector = new VariantVector { new(new byte[] { 1, 2, 3 }) };
+        var variant = new Variant(sourceVector);
+        sourceVector[0].GetBuffer()[0] = 9;
+
+        Assert.Equal(1, variant.GetVariantVector()[0].GetBuffer()[0]);
+
+        var returnedVector = variant.Get<VariantVector>();
+        returnedVector[0].GetBuffer()[0] = 8;
+        Assert.Equal(1, variant.GetVariantVector()[0].GetBuffer()[0]);
+
+        var converted = variant.Convert(VariantType.VariantVector);
+        converted.GetVariantVector()[0].GetBuffer()[0] = 7;
+        Assert.Equal(1, variant.GetVariantVector()[0].GetBuffer()[0]);
+
+        var interpolated = variant.Lerp(default, 0.5f);
+        interpolated.GetVariantVector()[0].GetBuffer()[0] = 6;
+        Assert.Equal(1, variant.GetVariantVector()[0].GetBuffer()[0]);
+
+        var objectVector = Assert.IsType<VariantVector>(variant.GetObject());
+        objectVector[0].GetBuffer()[0] = 5;
+        Assert.Equal(1, variant.GetVariantVector()[0].GetBuffer()[0]);
+    }
+
+    [Fact]
     public void Mutating_methods_match_rbfx_variant_contracts()
     {
         var variant = new Variant(1);

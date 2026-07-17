@@ -704,7 +704,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant Convert(VariantType targetType)
     {
         if (targetType == _type)
-            return this;
+            return Clone();
         if (targetType == VariantType.None)
             return default;
         if (targetType == VariantType.String)
@@ -789,7 +789,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.IntRect => LerpIntRect(rhs, t),
             VariantType.Vector2i => LerpIntVector2(rhs, t),
             VariantType.Vector3i => LerpIntVector3(rhs, t),
-            _ => this
+            _ => Clone()
         };
     }
 
@@ -855,20 +855,20 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Vector2i => _intVector2Value,
             VariantType.Vector3i => _intVector3Value,
             VariantType.String => _stringValue,
-            VariantType.CString => _cstringValue,
-            VariantType.Buffer => _bufferValue,
+            VariantType.CString => _cstringValue.Clone(),
+            VariantType.Buffer => _bufferValue.Clone(),
             VariantType.VoidPtr => _voidPtrValue,
             VariantType.ResourceRef => _resourceRefValue,
-            VariantType.ResourceRefList => _resourceRefListValue,
+            VariantType.ResourceRefList => new ResourceRefList(_resourceRefListValue.Type, _resourceRefListValue.Names),
             VariantType.Matrix3 => _matrix3Value,
             VariantType.Matrix3x4 => _matrix3x4Value,
             VariantType.Matrix4 => _matrix4Value,
-            VariantType.VariantVector => _variantVectorValue,
-            VariantType.StringVector => _stringVectorValue,
-            VariantType.VariantMap => _variantMapValue,
-            VariantType.StringVariantMap => _stringVariantMapValue,
-            VariantType.VariantCurve => _variantCurveValue,
-            VariantType.Custom => _customValue.Value,
+            VariantType.VariantVector => new VariantVector(_variantVectorValue),
+            VariantType.StringVector => new StringVector(_stringVectorValue),
+            VariantType.VariantMap => new VariantMap(_variantMapValue),
+            VariantType.StringVariantMap => new StringVariantMap(_stringVariantMapValue),
+            VariantType.VariantCurve => _variantCurveValue.Clone(),
+            VariantType.Custom => _customValue.Value is ICloneable cloneable ? cloneable.Clone() : _customValue.Value,
             _ => null!
         };
     }
@@ -890,7 +890,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return value switch
         {
             null => default,
-            Variant variant => variant,
+            Variant variant => variant.Clone(),
             bool typedValue => typedValue,
             int typedValue => typedValue,
             uint typedValue => typedValue,
@@ -922,7 +922,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantMap typedValue => typedValue,
             StringVariantMap typedValue => typedValue,
             VariantCurve typedValue => typedValue,
-            CustomVariantValue typedValue => new Variant(typedValue),
+            CustomVariantValue typedValue => new Variant((CustomVariantValue)typedValue.Clone()),
             string typedValue => typedValue,
             CString typedValue => typedValue,
             IntPtr typedValue => typedValue,
