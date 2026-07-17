@@ -46,8 +46,13 @@ public sealed class LightProbeGroupTests
         gi.ResetLightProbes();
         gi.SetEmissionBrightness(1.5f);
         Assert.Equal(1.5f, gi.GetEmissionBrightness());
+        Assert.True(gi.SetAttribute("Emission Brightness", 2.5f));
+        Assert.Equal(2.5f, gi.GetEmissionBrightness());
+        Assert.True(gi.SetAttribute("Offset", Vector3f.One));
+        Assert.Equal(Vector3f.One, gi.GetOffset());
+        Assert.IsType<ResourceRef>(gi.GetAttribute("Data File"));
         uint hint = 0;
         // Empty mesh samples safely through tetrahedral mesh path with empty containers.
-        Assert.Equal(Vector3f.Zero, gi.GetOffset());
+        Assert.Equal(Vector3f.Zero, gi.SampleAverageAmbient(Vector3f.Zero, ref hint));
     }
 }

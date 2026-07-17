@@ -186,6 +186,31 @@ public sealed class ArchiveTests
         Assert.Equal(mesh.Tetrahedrons[0].Matrix, loadedMesh.Tetrahedrons[0].Matrix);
     }
 
+    [Fact]
+    public void Binary_archive_round_trips_light_probe_baked_data()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var data = new LightProbeCollectionBakedData();
+        data.SphericalHarmonics.Add(new SphericalHarmonicsDot9(new Vector3f(1.0f, 2.0f, 3.0f)));
+
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(output, "data", ref data);
+        output.Flush();
+
+        buffer.Seek(0);
+        var loadedData = new LightProbeCollectionBakedData();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(input, "data", ref loadedData);
+        input.Flush();
+
+        Assert.Equal(data.SphericalHarmonics, loadedData.SphericalHarmonics);
+        Assert.Single(loadedData.Ambient);
+        Assert.Equal(data.SphericalHarmonics[0].GetDebugColor().ToVector3(), loadedData.Ambient[0]);
+    }
+
     private sealed class TestArchive : Archive
     {
         private readonly Context _context = new();
