@@ -409,10 +409,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   - [x] `ScenePass : BatchCompositorPass` — forward-lit and unlit constructors plus instancing prepare hook match C++
   - [x] `UnorderedScenePass : ScenePass` — deferred/base/light sort keys, partial negative-light sort, and batch-group flags match C++
   - [x] `BackToFrontScenePass : ScenePass` — distance factoring for additive/subtractive lights, NaN distance validation, refraction detection, and batch-group flags match C++
-- [ ] `SceneProcessor.h`
-  - [ ] `SceneProcessor : Object, LightProcessorCallback`
-- [ ] `OutlineScenePass.h`
-  - [ ] `OutlineScenePass : ScenePass`
+- [~] `SceneProcessor.h`
+  - [~] `SceneProcessor : Object, LightProcessorCallback` — public API surface, owned processors/compositor/renderer wiring, pass list, and LightProcessorCallback interface mapping are ported; Update/Define/render bodies remain TODO
+- [x] `OutlineScenePass.h`
+  - [x] `OutlineScenePass : ScenePass` — outline group filtering, custom deferred batches, pipeline-state creation for outline mask, sort keys, and instancing prepare match C++
 - [x] `RenderPipelineDebugger.h`
   - [x] `struct DebugFrameSnapshotBatch` — snapshot fields, formatting, and constructor from `DrawableProcessor` + `PipelineBatch` match C++
   - [x] `struct DebugFrameSnapshotQuad`
