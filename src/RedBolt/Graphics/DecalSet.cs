@@ -47,8 +47,21 @@ public struct DecalVertex
 }
 
 /// <summary>One decal in a decal set.</summary>
-public sealed class Decal
+public sealed class Decal : ICloneable
 {
+    public Decal()
+    {
+    }
+
+    private Decal(Decal decal)
+    {
+        Timer = decal.Timer;
+        TimeToLive = decal.TimeToLive;
+        BoundingBox = decal.BoundingBox;
+        Vertices.AddRange(decal.Vertices);
+        Indices.AddRange(decal.Indices);
+    }
+
     public float Timer;
     public float TimeToLive;
     public BoundingBox BoundingBox;
@@ -78,6 +91,8 @@ public sealed class Decal
         foreach (var vertex in Vertices)
             BoundingBox.Merge(vertex.Position);
     }
+
+    public object Clone() => new Decal(this);
 }
 
 /// <summary>Decal renderer component.</summary>
@@ -123,6 +138,17 @@ public class DecalSet : Drawable
         });
         _vertexBuffer.SetDebugName("DecalSet Geometry");
         _indexBuffer.SetDebugName("DecalSet Geometry");
+    }
+
+    public override void Dispose()
+    {
+        _skinMatrices = [];
+        _bones.Clear();
+        _decals.Clear();
+        _indexBuffer.Dispose();
+        _vertexBuffer.Dispose();
+        _geometry.Dispose();
+        base.Dispose();
     }
 
     public static void RegisterObject(Context context) =>
@@ -271,7 +297,7 @@ public class DecalSet : Drawable
         MarkDecalsDirty();
     }
 
-    public void MarkDecalsDirty()
+    private void MarkDecalsDirty()
     {
         if (!_boundingBoxDirty)
         {
@@ -475,10 +501,14 @@ public class DecalSet : Drawable
         var decalTransform = Node.GetWorldTransform().Inverse * target.Node.GetWorldTransform();
         TransformVertices(newDecal, _skinned ? Matrix3x4.Identity : decalTransform);
 
-        // Tangents
-        var vertexBytes = new byte[newDecal.Vertices.Count * (uint)Marshal.SizeOf<DecalVertexLayout>()];
-        // Use simplified tangent generation via float layout helper
-        GenerateDecalTangents(newDecal);
+        Tangent.GenerateTangents(
+            MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(newDecal.Vertices)),
+            (uint)Marshal.SizeOf<DecalVertex>(),
+            MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(newDecal.Indices)),
+            sizeof(ushort), 0, (uint)newDecal.Indices.Count,
+            (uint)Marshal.OffsetOf<DecalVertex>(nameof(DecalVertex.Normal)),
+            (uint)Marshal.OffsetOf<DecalVertex>(nameof(DecalVertex.TexCoord)),
+            (uint)Marshal.OffsetOf<DecalVertex>(nameof(DecalVertex.Tangent)));
 
         newDecal.CalculateBoundingBox();
         _numVertices += (uint)newDecal.Vertices.Count;
@@ -494,37 +524,6 @@ public class DecalSet : Drawable
 
         MarkDecalsDirty();
         return true;
-    }
-
-    private struct DecalVertexLayout { }
-
-    private static void GenerateDecalTangents(Decal decal)
-    {
-        // Port of GenerateTangents call: compute simple tangents from triangles if none set.
-        for (var i = 0; i + 2 < decal.Indices.Count; i += 3)
-        {
-            var i0 = decal.Indices[i];
-            var i1 = decal.Indices[i + 1];
-            var i2 = decal.Indices[i + 2];
-            var v0 = decal.Vertices[i0];
-            var v1 = decal.Vertices[i1];
-            var v2 = decal.Vertices[i2];
-            var edge1 = v1.Position - v0.Position;
-            var edge2 = v2.Position - v0.Position;
-            var deltaUV1 = v1.TexCoord - v0.TexCoord;
-            var deltaUV2 = v2.TexCoord - v0.TexCoord;
-            var f = deltaUV1.X * deltaUV2.Y - deltaUV2.X * deltaUV1.Y;
-            if (MathF.Abs(f) < MathDefs.Epsilon)
-                continue;
-            f = 1.0f / f;
-            var tangent = new Vector3f(
-                f * (deltaUV2.Y * edge1.X - deltaUV1.Y * edge2.X),
-                f * (deltaUV2.Y * edge1.Y - deltaUV1.Y * edge2.Y),
-                f * (deltaUV2.Y * edge1.Z - deltaUV1.Y * edge2.Z)).Normalized;
-            var t0 = v0; t0.Tangent = new Vector4f(tangent, 1.0f); decal.Vertices[i0] = t0;
-            var t1 = v1; t1.Tangent = new Vector4f(tangent, 1.0f); decal.Vertices[i1] = t1;
-            var t2 = v2; t2.Tangent = new Vector4f(tangent, 1.0f); decal.Vertices[i2] = t2;
-        }
     }
 
     private static DecalVertex ClipEdge(DecalVertex v0, DecalVertex v1, float d0, float d1, bool skinned)
@@ -594,31 +593,82 @@ public class DecalSet : Drawable
         if (geometry is null || geometry.GetPrimitiveType() != PrimitiveType.TriangleList)
             return;
 
-        geometry.GetRawDataShared(out var vertexData, out var vertexSize, out var indexData, out var indexSize, out _);
-        if (vertexData is null || vertexSize == 0)
+        byte[]? positionData = null;
+        byte[]? normalData = null;
+        byte[]? skinningData = null;
+        byte[]? indexData = null;
+        uint positionOffset = 0;
+        uint normalOffset = 0;
+        uint skinningOffset = 0;
+        uint positionStride = 0;
+        uint normalStride = 0;
+        uint skinningStride = 0;
+        uint indexStride = 0;
+
+        var indexBuffer = geometry.GetIndexBuffer();
+        if (indexBuffer is not null)
         {
-            Log.Logger.LogWarning("Can not add decal, target drawable has no CPU-side geometry data");
-            return;
+            var data = indexBuffer.GetRawBuffer()?.GetShadowData();
+            if (data is { Length: > 0 })
+                indexData = data;
+            indexStride = indexBuffer.GetIndexSize();
         }
 
-        // Position is assumed at offset 0 for raw geometry (C++ also falls back this way).
-        var positionData = vertexData;
-        var positionStride = vertexSize;
-        byte[]? normalData = null;
-        uint normalStride = 0;
+        for (var i = 0u; i < geometry.GetNumVertexBuffers(); ++i)
+        {
+            var vertexBuffer = geometry.GetVertexBuffer(i);
+            if (vertexBuffer is null)
+                continue;
 
-        if (indexData is not null && indexSize != 0)
+            var data = vertexBuffer.GetRawBuffer()?.GetShadowData();
+            if (data is null || data.Length == 0)
+                continue;
+
+            var elementMask = (VertexMask)vertexBuffer.GetElementMask();
+            if ((elementMask & VertexMask.Position) != 0)
+            {
+                positionData = data;
+                positionOffset = 0;
+                positionStride = vertexBuffer.GetVertexSize();
+            }
+            if ((elementMask & VertexMask.Normal) != 0)
+            {
+                normalData = data;
+                normalOffset = vertexBuffer.GetElementOffset(VertexElementSemantic.Normal);
+                normalStride = vertexBuffer.GetVertexSize();
+            }
+            if ((elementMask & VertexMask.BlendWeights) != 0)
+            {
+                skinningData = data;
+                skinningOffset = vertexBuffer.GetElementOffset(VertexElementSemantic.BlendWeights);
+                skinningStride = vertexBuffer.GetVertexSize();
+            }
+        }
+
+        if (positionData is null)
+        {
+            geometry.GetRawDataShared(out positionData, out positionStride, out indexData, out indexStride, out _);
+            positionOffset = 0;
+            if (positionData is null)
+            {
+                Log.Logger.LogWarning("Can not add decal, target drawable has no CPU-side geometry data");
+                return;
+            }
+        }
+
+        if (indexData is not null)
         {
             var indexStart = geometry.GetIndexStart();
             var indexCount = geometry.GetIndexCount();
-            if (indexSize == 2)
+            if (indexStride == sizeof(ushort))
             {
                 for (var i = 0; i + 2 < indexCount; i += 3)
                 {
                     var i0 = BitConverter.ToUInt16(indexData, (int)((indexStart + i) * 2));
                     var i1 = BitConverter.ToUInt16(indexData, (int)((indexStart + i + 1) * 2));
                     var i2 = BitConverter.ToUInt16(indexData, (int)((indexStart + i + 2) * 2));
-                    GetFace(faces, target, batchIndex, i0, i1, i2, positionData, positionStride, normalData, normalStride,
+                    GetFace(faces, target, batchIndex, i0, i1, i2, positionData, normalData, skinningData,
+                        positionOffset, normalOffset, skinningOffset, positionStride, normalStride, skinningStride,
                         frustum, decalNormal, normalCutoff);
                 }
             }
@@ -629,7 +679,8 @@ public class DecalSet : Drawable
                     var i0 = BitConverter.ToUInt32(indexData, (int)((indexStart + i) * 4));
                     var i1 = BitConverter.ToUInt32(indexData, (int)((indexStart + i + 1) * 4));
                     var i2 = BitConverter.ToUInt32(indexData, (int)((indexStart + i + 2) * 4));
-                    GetFace(faces, target, batchIndex, i0, i1, i2, positionData, positionStride, normalData, normalStride,
+                    GetFace(faces, target, batchIndex, i0, i1, i2, positionData, normalData, skinningData,
+                        positionOffset, normalOffset, skinningOffset, positionStride, normalStride, skinningStride,
                         frustum, decalNormal, normalCutoff);
                 }
             }
@@ -640,23 +691,26 @@ public class DecalSet : Drawable
             var indicesEnd = indices + geometry.GetVertexCount();
             while (indices + 2 < indicesEnd)
             {
-                GetFace(faces, target, batchIndex, indices, indices + 1, indices + 2, positionData, positionStride,
-                    normalData, normalStride, frustum, decalNormal, normalCutoff);
+                GetFace(faces, target, batchIndex, indices, indices + 1, indices + 2, positionData, normalData,
+                    skinningData, positionOffset, normalOffset, skinningOffset, positionStride, normalStride,
+                    skinningStride, frustum, decalNormal, normalCutoff);
                 indices += 3;
             }
         }
     }
 
     private void GetFace(List<List<DecalVertex>> faces, Drawable target, uint batchIndex, uint i0, uint i1, uint i2,
-        byte[] positionData, uint positionStride, byte[]? normalData, uint normalStride, Frustum frustum,
+        byte[] positionData, byte[]? normalData, byte[]? skinningData, uint positionOffset, uint normalOffset,
+        uint skinningOffset, uint positionStride, uint normalStride, uint skinningStride, Frustum frustum,
         Vector3f decalNormal, float normalCutoff)
     {
-        var v0 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(i0 * positionStride))));
-        var v1 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(i1 * positionStride))));
-        var v2 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(i2 * positionStride))));
+        var v0 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(positionOffset + i0 * positionStride))));
+        var v1 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(positionOffset + i1 * positionStride))));
+        var v2 = MemoryMarshal.Read<Vector3f>(positionData.AsSpan(checked((int)(positionOffset + i2 * positionStride))));
 
         Vector3f faceNormal = default;
         var hasNormals = normalData is not null && normalStride != 0;
+        var hasSkinning = _skinned && skinningData is not null;
         if (!hasNormals)
         {
             var dist1 = v1 - v0;
@@ -665,13 +719,13 @@ public class DecalSet : Drawable
         }
 
         var n0 = hasNormals
-            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(i0 * normalStride))))
+            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(normalOffset + i0 * normalStride))))
             : faceNormal;
         var n1 = hasNormals
-            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(i1 * normalStride))))
+            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(normalOffset + i1 * normalStride))))
             : faceNormal;
         var n2 = hasNormals
-            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(i2 * normalStride))))
+            ? MemoryMarshal.Read<Vector3f>(normalData!.AsSpan(checked((int)(normalOffset + i2 * normalStride))))
             : faceNormal;
 
         if (decalNormal.DotProduct((n0 + n1 + n2) / 3.0f) < normalCutoff)
@@ -684,7 +738,98 @@ public class DecalSet : Drawable
                 return;
         }
 
-        faces.Add([new DecalVertex(v0, n0), new DecalVertex(v1, n1), new DecalVertex(v2, n2)]);
+        if (!hasSkinning)
+        {
+            faces.Add([new DecalVertex(v0, n0), new DecalVertex(v1, n1), new DecalVertex(v2, n2)]);
+        }
+        else
+        {
+            var s0 = skinningData!.AsSpan(checked((int)(skinningOffset + i0 * skinningStride)));
+            var s1 = skinningData.AsSpan(checked((int)(skinningOffset + i1 * skinningStride)));
+            var s2 = skinningData.AsSpan(checked((int)(skinningOffset + i2 * skinningStride)));
+            var bw0 = MemoryMarshal.Cast<byte, float>(s0[..(4 * sizeof(float))]);
+            var bw1 = MemoryMarshal.Cast<byte, float>(s1[..(4 * sizeof(float))]);
+            var bw2 = MemoryMarshal.Cast<byte, float>(s2[..(4 * sizeof(float))]);
+            var bi0 = s0.Slice(4 * sizeof(float), 4);
+            var bi1 = s1.Slice(4 * sizeof(float), 4);
+            var bi2 = s2.Slice(4 * sizeof(float), 4);
+            Span<byte> nbi0 = stackalloc byte[4];
+            Span<byte> nbi1 = stackalloc byte[4];
+            Span<byte> nbi2 = stackalloc byte[4];
+            if (!GetBones(target, batchIndex, bw0, bi0, nbi0) ||
+                !GetBones(target, batchIndex, bw1, bi1, nbi1) ||
+                !GetBones(target, batchIndex, bw2, bi2, nbi2))
+                return;
+
+            faces.Add([
+                new DecalVertex(v0, n0, bw0, nbi0),
+                new DecalVertex(v1, n1, bw1, nbi1),
+                new DecalVertex(v2, n2, bw2, nbi2)
+            ]);
+        }
+    }
+
+    private bool GetBones(Drawable target, uint batchIndex, ReadOnlySpan<float> blendWeights,
+        ReadOnlySpan<byte> blendIndices, Span<byte> newBlendIndices)
+    {
+        if (target is not AnimatedModel animatedModel)
+            return false;
+
+        var geometrySkinMatrices = animatedModel.GetGeometrySkinMatrices();
+        var geometryBoneMappings = animatedModel.GetGeometryBoneMappings();
+        for (var i = 0; i < 4; ++i)
+        {
+            if (blendWeights[i] > 0.0f)
+            {
+                Bone? bone = null;
+                if (geometrySkinMatrices.Count == 0)
+                    bone = animatedModel.GetSkeleton().GetBone((uint)blendIndices[i]);
+                else if (blendIndices[i] < geometryBoneMappings[(int)batchIndex].Count)
+                    bone = animatedModel.GetSkeleton().GetBone(
+                        geometryBoneMappings[(int)batchIndex][blendIndices[i]]);
+
+                if (bone is null)
+                {
+                    Log.Logger.LogWarning("Out of range bone index for skinned decal");
+                    return false;
+                }
+
+                var found = false;
+                var index = 0;
+                for (; index < _bones.Count; ++index)
+                {
+                    if (ReferenceEquals(_bones[index].Node, bone.Node) &&
+                        _bones[index].OffsetMatrix.Equals(bone.OffsetMatrix))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    if (_bones.Count >= Graphics.GetMaxBones())
+                    {
+                        Log.Logger.LogWarning("Maximum skinned decal bone count reached");
+                        return false;
+                    }
+
+                    index = _bones.Count;
+                    var newBone = (Bone)bone.Clone();
+                    _bones.Add(newBone);
+                    Array.Resize(ref _skinMatrices, _skinMatrices.Length + 1);
+                    _skinningDirty = true;
+                    newBone.Node?.AddListener(this);
+                }
+
+                newBlendIndices[i] = (byte)index;
+            }
+            else
+                newBlendIndices[i] = 0;
+        }
+
+        UpdateBatch();
+        return true;
     }
 
     private static void CalculateUVs(Decal decal, Matrix3x4 view, Matrix4 projection, Vector2f topLeftUV, Vector2f bottomRightUV)
@@ -758,8 +903,6 @@ public class DecalSet : Drawable
                             floats[fi++] = vertex.BlendWeight1;
                             floats[fi++] = vertex.BlendWeight2;
                             floats[fi++] = vertex.BlendWeight3;
-                            MemoryMarshal.Write(MemoryMarshal.AsBytes(floats.Slice(fi, 1)), in vertex.BlendIndex0);
-                            // write 4 blend indices as one float-sized slot (C++ reinterprets)
                             var packed = vertex.BlendIndicesPacked;
                             MemoryMarshal.Write(MemoryMarshal.AsBytes(floats.Slice(fi, 1)), in packed);
                             fi++;

@@ -16,6 +16,39 @@ public sealed class DecalSetTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void DecalVertex_copy_is_independent()
+    {
+        var source = new DecalVertex(Vector3f.One, Vector3f.Up);
+        var copy = source;
+        copy.Position = Vector3f.Zero;
+
+        Assert.Equal(Vector3f.One, source.Position);
+        Assert.Equal(Vector3f.Zero, copy.Position);
+    }
+
+    [Fact]
+    public void Decal_clone_deep_copies_value_containers()
+    {
+        var source = new Decal();
+        source.AddVertex(new DecalVertex(Vector3f.One, Vector3f.Up));
+
+        var copy = (Decal)source.Clone();
+        var copiedVertex = copy.Vertices[0];
+        copiedVertex.Position = Vector3f.Zero;
+        copy.Vertices[0] = copiedVertex;
+        copy.Indices.Clear();
+
+        Assert.Equal(Vector3f.One, source.Vertices[0].Position);
+        Assert.Single(source.Indices);
+    }
+
+    [Fact]
+    public void DecalSet_is_not_copyable()
+    {
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(DecalSet)));
+    }
+
+    [Fact]
     public void Defaults_match_cpp_constructor()
     {
         var decals = new Scene().CreateChild("Decals").CreateComponent<DecalSet>();
@@ -48,7 +81,7 @@ public sealed class DecalSetTests
     }
 
     [Fact]
-    public void AddDecal_on_static_model_creates_geometry()
+    public void AddDecal_without_cpu_geometry_returns_empty_success()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
@@ -62,11 +95,16 @@ public sealed class DecalSetTests
         var decals = decalNode.CreateComponent<DecalSet>();
         decals.SetMaterial(material);
 
+        var geometry = Assert.IsType<Geometry>(target.GetLodGeometry(0, 0));
+        geometry.GetRawData(out var vertexData, out _, out _, out _, out _);
+        Assert.Null(vertexData);
+
         var ok = decals.AddDecal(target, Vector3f.Zero, Quaternion.Identity, 2.0f, 1.0f, 1.0f,
             new Vector2f(0, 0), new Vector2f(1, 1));
         Assert.True(ok);
-        // May succeed with zero triangles if headless geometry raw data path differs; at least API returns.
-        Assert.True(decals.GetNumDecals() <= 1u);
+        Assert.Equal(0u, decals.GetNumDecals());
+        Assert.Equal(0u, decals.GetNumVertices());
+        Assert.Equal(0u, decals.GetNumIndices());
     }
 
     [Fact]
