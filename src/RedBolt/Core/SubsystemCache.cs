@@ -101,7 +101,7 @@ public sealed class SubsystemCache
     /// <summary>
     /// Return all subsystems.
     /// </summary>
-    public Container GetContainer() => _subsystems;
+    public IReadOnlyDictionary<StringHash, object> GetContainer() => _subsystems;
 
     private int GetCacheIndex(StringHash type)
     {
