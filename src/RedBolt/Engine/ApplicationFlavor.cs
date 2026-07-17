@@ -6,20 +6,25 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Application flavor component type.</summary>
-public class ApplicationFlavorComponent : HashSet<string>
+public sealed class ApplicationFlavorComponent : HashSet<string>
 {
     public ApplicationFlavorComponent() : base(StringComparer.Ordinal) { }
     public ApplicationFlavorComponent(IEnumerable<string> collection) : base(collection, StringComparer.Ordinal) { }
 }
 
 /// <summary>Application flavor map type.</summary>
-public class ApplicationFlavorMap : Dictionary<string, ApplicationFlavorComponent>
+public sealed class ApplicationFlavorMap : Dictionary<string, ApplicationFlavorComponent>
 {
     public ApplicationFlavorMap() : base(StringComparer.Ordinal) { }
+    public ApplicationFlavorMap(IDictionary<string, ApplicationFlavorComponent> components)
+        : base(components.ToDictionary(static pair => pair.Key,
+            static pair => new ApplicationFlavorComponent(pair.Value)), StringComparer.Ordinal)
+    {
+    }
 }
 
 /// <summary>Class that represents pattern of flavor components.</summary>
-public struct ApplicationFlavorPattern
+public struct ApplicationFlavorPattern : ICloneable
 {
     private static readonly Regex FlavorComponentRegex = new(
         @"\A\s*([\w\*]*)\s*=\s*((?:[\w\*]+\s*,\s*)*(?:[\w\*]+))\s*\z",
@@ -36,8 +41,12 @@ public struct ApplicationFlavorPattern
 
     internal ApplicationFlavorPattern(ApplicationFlavorMap components)
     {
-        Components = components;
+        Components = new ApplicationFlavorMap(components);
     }
+
+    public readonly ApplicationFlavorPattern Clone() => new(Components);
+
+    readonly object ICloneable.Clone() => Clone();
 
     internal static ApplicationFlavorMap ParseFlavorString(string str)
     {
@@ -72,19 +81,25 @@ public struct ApplicationFlavorPattern
 }
 
 /// <summary>Class that represents specific set of flavor components.</summary>
-public struct ApplicationFlavor
+public struct ApplicationFlavor : ICloneable
 {
     /// <summary>Universal flavor matches any pattern.</summary>
-    public static readonly ApplicationFlavor Universal = new(new ApplicationFlavorMap
+    private static readonly ApplicationFlavor UniversalValue = new(new ApplicationFlavorMap
     {
         ["*"] = new ApplicationFlavorComponent { "*" }
     });
 
+    public static ApplicationFlavor Universal => UniversalValue.Clone();
+
     /// <summary>Empty flavor matches only empty patterns.</summary>
-    public static readonly ApplicationFlavor Empty = new(new ApplicationFlavorMap());
+    private static readonly ApplicationFlavor EmptyValue = new(new ApplicationFlavorMap());
+
+    public static ApplicationFlavor Empty => EmptyValue.Clone();
 
     /// <summary>Flavor of current platform.</summary>
-    public static readonly ApplicationFlavor Platform = CreatePlatformFlavor();
+    private static readonly ApplicationFlavor PlatformValue = CreatePlatformFlavor();
+
+    public static ApplicationFlavor Platform => PlatformValue.Clone();
 
     /// <summary>Flavor components.</summary>
     public ApplicationFlavorMap Components;
@@ -97,13 +112,17 @@ public struct ApplicationFlavor
 
     internal ApplicationFlavor(ApplicationFlavorMap components)
     {
-        Components = components;
+        Components = new ApplicationFlavorMap(components);
     }
+
+    public readonly ApplicationFlavor Clone() => new(Components);
+
+    readonly object ICloneable.Clone() => Clone();
 
     /// <summary>Returns distance (smaller is better) if flavor matches the pattern. Returns null if doesn't match.</summary>
     public readonly uint? Matches(ApplicationFlavorPattern pattern)
     {
-        if (ComponentsEqual(Universal.Components))
+        if (ComponentsEqual(UniversalValue.Components))
             return uint.MaxValue;
 
         uint distance = 0;
@@ -189,6 +208,6 @@ public struct ApplicationFlavor
         else
             platformStr = string.Empty;
 
-        return string.IsNullOrEmpty(platformStr) ? Empty : new ApplicationFlavor(platformStr);
+        return string.IsNullOrEmpty(platformStr) ? EmptyValue.Clone() : new ApplicationFlavor(platformStr);
     }
 }
