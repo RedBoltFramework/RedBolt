@@ -70,6 +70,7 @@ internal static class Program
     {
         "GetEngineFactoryOpenGL",
         "GetEngineFactoryVk",
+        "InstallDebugMessageCallback",
         "CreateTemporaryGLProgram",
         "CreateProxySwapChainGL",
         "CreateSecondaryProxySwapChainGL",

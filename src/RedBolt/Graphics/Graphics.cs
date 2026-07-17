@@ -954,6 +954,10 @@ layout(std140) uniform Material
         if (IsInitialized)
             throw new InvalidOperationException("Graphics system is already initialized.");
 
+        // C++ RenderDevice ctor: Diligent::SetDebugMessageCallback(&DebugMessageCallback)
+        // before factory/device creation (filters noisy shader compiler INFO logs).
+        DiligentNativeBindings.InstallDebugMessageCallback();
+
         GetSubsystem<RenderDevice>()?.ResetWindowSettings();
 
         _window = input.Window;

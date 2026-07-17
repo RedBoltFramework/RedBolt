@@ -43,6 +43,10 @@
 namespace Diligent
 {
 
+/// Install Diligent debug message callback matching rbfx RenderDevice filtering
+/// (skips noisy "Compiler output for shader" / "Failed shader full source" INFO logs).
+void InstallDebugMessageCallback();
+
 const ShaderCodeVariableDesc* GetShaderCodeBufferVariableAt(const ShaderCodeBufferDesc& self, Uint32 index);
 
 void* CreateTemporaryGLProgram(IShader* vertexShader, IShader* pixelShader, IShader* domainShader, IShader* hullShader,

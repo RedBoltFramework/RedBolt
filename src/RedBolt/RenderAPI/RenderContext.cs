@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
@@ -150,13 +151,37 @@ public class RenderContext : Object
     /// </summary>
     public void ClearDepthStencil(ClearTarget flags, float depth = 1.0f, uint stencil = 0)
     {
-        GetGraphics()?.ClearCurrentRenderTargets(
-            color: null,
-            clearColorTarget: false,
-            clearDepth: (flags & ClearTarget.Depth) != 0,
-            clearStencil: (flags & ClearTarget.Stencil) != 0,
-            depth: depth,
-            stencil: checked((byte)stencil));
+        // C++ RenderContext::ClearDepthStencil clears currentDepthStencil_ via handle_ directly.
+        if ((flags & ClearTarget.Depth) == 0 && (flags & ClearTarget.Stencil) == 0)
+        {
+            Log.Logger.LogError("At least one of CLEAR_DEPTH or CLEAR_STENCIL must be set to call ClearDepthStencil");
+            return;
+        }
+
+        var depthStencilView = _currentDepthStencil.GetValueOrDefault();
+        if (depthStencilView is null)
+        {
+            Log.Logger.LogError("Depth-stencil buffer must be bound to call ClearDepthStencil");
+            return;
+        }
+
+        var handle = GetHandle();
+        if (handle is null || handle.IsNull)
+            return;
+
+        var internalFlags = ClearDepthStencilFlags.ClearDepthFlagNone;
+        if ((flags & ClearTarget.Depth) != 0)
+            internalFlags |= ClearDepthStencilFlags.ClearDepthFlag;
+        if ((flags & ClearTarget.Stencil) != 0
+            && RenderAPIUtils.IsDepthStencilTextureFormat(GetRenderTargetFormat(depthStencilView.Value, GetGraphics()!)))
+            internalFlags |= ClearDepthStencilFlags.ClearStencilFlag;
+
+        handle.ClearDepthStencil(
+            depthStencilView.Value.GetView(),
+            internalFlags,
+            depth,
+            checked((byte)stencil),
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
     /// <summary>
@@ -165,9 +190,31 @@ public class RenderContext : Object
     public void ClearRenderTarget(uint index, Color color)
     {
         if (index >= _numCurrentRenderTargets)
-            throw new ArgumentOutOfRangeException(nameof(index));
+        {
+            Log.Logger.LogError("Render target must be bound to call ClearRenderTarget");
+            return;
+        }
 
-        GetGraphics()?.ClearRenderTarget(_currentRenderTargets[index], color);
+        // C++ RenderContext::ClearRenderTarget clears via handle_ directly.
+        var handle = GetHandle();
+        if (handle is null || handle.IsNull)
+            return;
+
+        Span<float> rgba = stackalloc float[4];
+        rgba[0] = color.R;
+        rgba[1] = color.G;
+        rgba[2] = color.B;
+        rgba[3] = color.A;
+        unsafe
+        {
+            fixed (float* pRgba = rgba)
+            {
+                handle.ClearRenderTarget(
+                    _currentRenderTargets[index].GetView(),
+                    (nint)pRgba,
+                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+            }
+        }
     }
 
     /// <summary>

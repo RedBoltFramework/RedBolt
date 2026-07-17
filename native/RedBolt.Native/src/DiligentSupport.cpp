@@ -5,14 +5,63 @@
 #include <SwapChainBase.hpp>
 #include <DefaultRawMemoryAllocator.hpp>
 #include <ObjectBase.hpp>
+#include <DebugOutput.h>
 #include <SDL.h>
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace Diligent
 {
+
+namespace
+{
+
+// Port of rbfx RenderDevice.cpp SkipInfoMessage + DebugMessageCallback.
+// C++ formats as "[diligent] {msg}" then skips messages starting with these prefixes.
+bool SkipInfoMessage(const char* message)
+{
+    if (message == nullptr)
+        return false;
+
+    static const char* skipPrefixes[] = {
+        "Compiler output for shader",
+        "Failed shader full source",
+    };
+    for (const char* prefix : skipPrefixes)
+    {
+        const auto len = std::strlen(prefix);
+        if (std::strncmp(message, prefix, len) == 0)
+            return true;
+    }
+    return false;
+}
+
+DebugMessageCallbackType g_PreviousDebugMessageCallback = nullptr;
+
+void RedBoltDebugMessageCallback(DEBUG_MESSAGE_SEVERITY severity, const Char* message, const Char* function,
+    const Char* file, int line)
+{
+    if (severity == DEBUG_MESSAGE_SEVERITY_INFO && SkipInfoMessage(message))
+        return;
+
+    if (g_PreviousDebugMessageCallback != nullptr)
+        g_PreviousDebugMessageCallback(severity, message, function, file, line);
+}
+
+} // namespace
+
+void InstallDebugMessageCallback()
+{
+    // C++: Diligent::SetDebugMessageCallback(&DebugMessageCallback); in RenderDevice ctor.
+    if (g_PreviousDebugMessageCallback != nullptr)
+        return;
+
+    g_PreviousDebugMessageCallback = DebugMessageCallback;
+    SetDebugMessageCallback(&RedBoltDebugMessageCallback);
+}
 
 const ShaderCodeVariableDesc* GetShaderCodeBufferVariableAt(const ShaderCodeBufferDesc& self, Uint32 index)
 {
