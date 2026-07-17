@@ -142,9 +142,7 @@ public class SoundSource : Component
 
     public void SetSoundAttr(ResourceRef value)
     {
-        var sound = ResourceRef.IsNullOrEmpty(value)
-            ? null
-            : GetSubsystem<ResourceCache>()!.GetResourceOrNull<Sound>(value.Name);
+        var sound = GetSubsystem<ResourceCache>()!.GetResourceOrNull<Sound>(value.Name);
 
         if (IsPlaying())
         {

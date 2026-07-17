@@ -79,8 +79,10 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt.DearImGui/ImGuiDiligentRendererEx.cs` | `Source/Urho3D/SystemUI/ImGuiDiligentRendererEx.cpp`<br>`Source/Urho3D/SystemUI/ImGuiDiligentRendererEx.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Audio/Audio.cs` | `Source/Urho3D/Audio/Audio.h`<br>`Source/Urho3D/Audio/Audio.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after fixing the extra stored context alias and the incorrect `interpolation_` construction default. Destructor order is `Release()`, SDL release, then base teardown; C++ weak microphone/listener fields are non-owning under the allowed smart-pointer removal. `EnumerateMicrophones` returns an independent collection and `CreateMicrophone` returns the same object reference under the allowed `SharedPtr` removal. | — | — | — |
-| `src/RedBolt/Audio/AudioDefs.cs` | `Source/Urho3D/Audio/AudioDefs.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Audio/AudioEvents.cs` | `Source/Urho3D/Audio/AudioEvents.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/AudioDefs.cs` | `Source/Urho3D/Audio/AudioDefs.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. This file contains only string constants and a value enum; it has no constructors, destructors, owned fields, or object-copy expressions to port. | — | — | — |
+| `src/RedBolt/Audio/AudioEvents.cs` | `Source/Urho3D/Audio/AudioEvents.h` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED. The allowed struct-event mapping contains only borrowed object references and scalar values; default value construction, destruction, and copying require no cloning or disposal. | — | — | — |
 | `src/RedBolt/Audio/BufferedSoundStream.cs` | `Source/Urho3D/Audio/BufferedSoundStream.h`<br>`Source/Urho3D/Audio/BufferedSoundStream.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after fixing both shared-array overloads to retain shared input storage instead of deep-copying it. The default destructor owns only managed standard-container mappings and requires no element disposal. | — | — | — |
 | `src/RedBolt/Audio/Microphone.cs` | `Source/Urho3D/Audio/Microphone.h`<br>`Source/Urho3D/Audio/Microphone.cpp` | ☑ | ☑ | ☑ |
@@ -91,8 +93,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED after removing a C#-only missing-subsystem/exception fallback from parameter loading. The sound-data getter preserves shared-array aliasing, decoder-stream creation returns a new stream object, copied XML element values use their managed value mapping, and the default destructor owns no disposable native field. | — | — | — |
 | `src/RedBolt/Audio/SoundListener.cs` | `Source/Urho3D/Audio/SoundListener.h`<br>`Source/Urho3D/Audio/SoundListener.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED. Construction delegates to `Component`; the default destructor has no fields; there are no value-copy expressions in this class. Reflection metadata uses the allowed C# reflection facade. | — | — | — |
-| `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☑ | ☑ | ☐ |
-| 2026-07-17 partial outcome | Constructor/destructor VERIFIED under the user-approved non-null `GetSubsystem<T>()` deviation recorded in `AGENTS.md`. Copy-producing expressions remain open. | — | — | — |
+| `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED under the user-approved non-null `GetSubsystem<T>()` deviation recorded in `AGENTS.md`, after removing the C#-only empty-resource shortcut in `SetSoundAttr`. C++ smart-pointer copies intentionally retain aliases and follow the allowed smart-pointer removal; returned strings are immutable, and `GetSoundAttr` returns the independent `ResourceRef` record-struct value constructed by C++. | — | — | — |
 | `src/RedBolt/Audio/SoundSource3D.cs` | `Source/Urho3D/Audio/SoundSource3D.h`<br>`Source/Urho3D/Audio/SoundSource3D.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after restoring the rbfx getter name `RollAngleoffFactor`. Constructor defaults and copied math temporaries use independent C# value types; the class adds no owned disposable fields. | — | — | — |
 | `src/RedBolt/Audio/SoundStream.cs` | `Source/Urho3D/Audio/SoundStream.h`<br>`Source/Urho3D/Audio/SoundStream.cpp` | ☑ | ☑ | ☑ |
