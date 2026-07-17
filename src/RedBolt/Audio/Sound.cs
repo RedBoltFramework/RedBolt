@@ -275,20 +275,8 @@ public sealed class Sound : ResourceWithMetadata
     private void LoadParameters()
     {
         var cache = GetSubsystem<ResourceCache>();
-        if (cache is null)
-            return;
-
         var xmlName = Path.ChangeExtension(GetName(), ".xml");
-        XMLFile? file;
-        try
-        {
-            file = cache.GetTempResource<XMLFile>(xmlName, false);
-        }
-        catch (InvalidOperationException)
-        {
-            return;
-        }
-
+        var file = cache.GetTempResource<XMLFile>(xmlName, false);
         if (file is null)
             return;
 

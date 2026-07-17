@@ -87,7 +87,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-17 outcome | VERIFIED after restoring live `GetData` storage, independent `CopyData`, device-aware `IsEnabled`, and the C++ lock/zero-length update behavior. `Dispose` closes the SDL device before base teardown; the linked stream follows the allowed `SharedPtr` removal. | — | — | — |
 | `src/RedBolt/Audio/OggVorbisSoundStream.cs` | `Source/Urho3D/Audio/OggVorbisSoundStream.h`<br>`Source/Urho3D/Audio/OggVorbisSoundStream.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED after retaining the compressed-array pin for the decoder lifetime and releasing it after decoder close in `Dispose`. The compressed data remains shared with `Sound`, matching `ea::shared_array` under the allowed smart-pointer removal. | — | — | — |
-| `src/RedBolt/Audio/Sound.cs` | `Source/Urho3D/Audio/Sound.h`<br>`Source/Urho3D/Audio/Sound.cpp` | ☐ | ☐ | ☐ |
+| `src/RedBolt/Audio/Sound.cs` | `Source/Urho3D/Audio/Sound.h`<br>`Source/Urho3D/Audio/Sound.cpp` | ☑ | ☑ | ☑ |
+| 2026-07-17 outcome | VERIFIED after removing a C#-only missing-subsystem/exception fallback from parameter loading. The sound-data getter preserves shared-array aliasing, decoder-stream creation returns a new stream object, copied XML element values use their managed value mapping, and the default destructor owns no disposable native field. | — | — | — |
 | `src/RedBolt/Audio/SoundListener.cs` | `Source/Urho3D/Audio/SoundListener.h`<br>`Source/Urho3D/Audio/SoundListener.cpp` | ☑ | ☑ | ☑ |
 | 2026-07-17 outcome | VERIFIED. Construction delegates to `Component`; the default destructor has no fields; there are no value-copy expressions in this class. Reflection metadata uses the allowed C# reflection facade. | — | — | — |
 | `src/RedBolt/Audio/SoundSource.cs` | `Source/Urho3D/Audio/SoundSource.h`<br>`Source/Urho3D/Audio/SoundSource.cpp` | ☑ | ☑ | ☐ |
