@@ -40,6 +40,53 @@ public sealed class CubemapRendererTests
     }
 
     [Fact]
+    public void Borrowed_dependencies_are_stored_as_weak_references()
+    {
+        var scene = new Scene();
+        var renderer = new CubemapRenderer(scene);
+        var texture = new TextureCube("CubemapRendererTests.Override");
+        var parameters = new CubemapUpdateParameters { OverrideFinalTexture = texture };
+
+        var sceneReference = GetPrivateField<WeakReference<Scene>>(renderer, "_scene");
+        var overrideReference = GetPrivateField<WeakReference<TextureCube>?>(parameters, "_overrideFinalTexture");
+        var viewportReference = GetPrivateField<WeakReference<TextureCube>>(renderer, "_currentViewportTexture");
+        var filteredReference = GetPrivateField<WeakReference<TextureCube>>(renderer, "_currentFilteredTexture");
+
+        Assert.True(sceneReference.TryGetTarget(out var resolvedScene));
+        Assert.Same(scene, resolvedScene);
+        Assert.NotNull(overrideReference);
+        Assert.True(overrideReference.TryGetTarget(out var resolvedTexture));
+        Assert.Same(texture, resolvedTexture);
+        Assert.False(viewportReference.TryGetTarget(out _));
+        Assert.False(filteredReference.TryGetTarget(out _));
+
+        renderer.Dispose();
+    }
+
+    [Fact]
+    public void Parameter_copy_keeps_an_independent_weak_alias()
+    {
+        var texture = new TextureCube("CubemapRendererTests.Copy");
+        var source = new CubemapUpdateParameters { OverrideFinalTexture = texture };
+        var copy = Assert.IsType<CubemapUpdateParameters>(source.Clone());
+        var sourceReference = GetPrivateField<WeakReference<TextureCube>?>(source, "_overrideFinalTexture");
+        var copyReference = GetPrivateField<WeakReference<TextureCube>?>(copy, "_overrideFinalTexture");
+
+        source.OverrideFinalTexture = null;
+
+        Assert.NotSame(sourceReference, copyReference);
+        Assert.Null(source.OverrideFinalTexture);
+        Assert.Same(texture, copy.OverrideFinalTexture);
+        Assert.False(source.IsConsistentWith(copy));
+    }
+
+    [Fact]
+    public void Renderer_is_not_copyable()
+    {
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(CubemapRenderer)));
+    }
+
+    [Fact]
     public void Dispose_releases_managed_scene_owned_camera_nodes()
     {
         var scene = new Scene();
@@ -172,6 +219,13 @@ public sealed class CubemapRendererTests
         Assert.True(result.IsComplete);
         Assert.Equal((uint)CubeMapFace.MaxCubeMapFaces, result.NumRenderedFaces);
         ClearQueuedViewports();
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<T>(field.GetValue(instance));
     }
 
     private void WithInitializedGraphics(Action action)

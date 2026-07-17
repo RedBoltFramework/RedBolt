@@ -50,13 +50,22 @@ public struct CubemapRenderingSettings : IEquatable<CubemapRenderingSettings>
     public static bool operator !=(CubemapRenderingSettings lhs, CubemapRenderingSettings rhs) => !lhs.Equals(rhs);
 }
 
-public struct CubemapUpdateParameters
+public struct CubemapUpdateParameters : ICloneable
 {
     public CubemapRenderingSettings Settings;
     public Vector3f Position;
     public bool SlicedUpdate;
     public bool FilterResult;
-    public TextureCube? OverrideFinalTexture;
+
+    private WeakReference<TextureCube>? _overrideFinalTexture;
+
+    public TextureCube? OverrideFinalTexture
+    {
+        readonly get => _overrideFinalTexture is not null && _overrideFinalTexture.TryGetTarget(out var texture)
+            ? texture
+            : null;
+        set => _overrideFinalTexture = value is not null ? new WeakReference<TextureCube>(value) : null;
+    }
 
     public CubemapUpdateParameters()
     {
@@ -67,7 +76,18 @@ public struct CubemapUpdateParameters
         OverrideFinalTexture = null;
     }
 
-    public readonly bool IsConsistentWith(CubemapUpdateParameters rhs) =>
+    public CubemapUpdateParameters(CubemapUpdateParameters rhs)
+    {
+        Settings = rhs.Settings;
+        Position = rhs.Position;
+        SlicedUpdate = rhs.SlicedUpdate;
+        FilterResult = rhs.FilterResult;
+        OverrideFinalTexture = rhs.OverrideFinalTexture;
+    }
+
+    public readonly object Clone() => new CubemapUpdateParameters(this);
+
+    public readonly bool IsConsistentWith(in CubemapUpdateParameters rhs) =>
         Settings == rhs.Settings
         && SlicedUpdate == rhs.SlicedUpdate
         && FilterResult == rhs.FilterResult
@@ -111,7 +131,7 @@ public class CubemapRenderer : Object
 
     public event Action<TextureCube>? CubemapRendered;
 
-    private readonly Scene _scene;
+    private readonly WeakReference<Scene> _scene;
     private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly RenderPipeline _renderPipeline;
@@ -122,15 +142,15 @@ public class CubemapRenderer : Object
     private CubemapUpdateStage _updateStage;
     private uint _numFacesToUpdate;
     private uint _numFacesToRender;
-    private TextureCube? _currentViewportTexture;
-    private TextureCube? _currentFilteredTexture;
+    private readonly WeakReference<TextureCube> _currentViewportTexture = new(null!);
+    private readonly WeakReference<TextureCube> _currentFilteredTexture = new(null!);
     private bool _viewportsConnectedToSelf;
     private CachedPipelineStates? _cachedPipelineStates;
     private ContextEventSubscription? _endViewRenderSubscription;
 
     public CubemapRenderer(Scene scene)
     {
-        _scene = scene;
+        _scene = new WeakReference<Scene>(scene);
         _renderPipeline = new RenderPipeline();
         InitializeRenderPipeline();
         InitializeCameras();
@@ -155,10 +175,13 @@ public class CubemapRenderer : Object
 
     private void InitializeCameras()
     {
+        _scene.TryGetTarget(out var scene);
+        System.Diagnostics.Debug.Assert(scene is not null);
+
         for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
         {
             // TODO: port C++ freestanding Node(context); managed nodes currently require a scene owner.
-            var cameraNode = _scene.Root.CreateTemporaryChild($"CubemapCamera_{face}");
+            var cameraNode = scene!.Root.CreateTemporaryChild($"CubemapCamera_{face}");
             cameraNode.SetWorldRotation(FaceRotations[face]);
             var camera = cameraNode.CreateComponent<Camera>();
             camera.SetFov(90.0f);
@@ -166,7 +189,7 @@ public class CubemapRenderer : Object
             camera.SetDrawDebugGeometry(false);
             _renderCameraNodes[face] = cameraNode;
 
-            _viewports[face] = new Viewport(_scene, camera, IntRect.Zero, _renderPipeline);
+            _viewports[face] = new Viewport(scene, camera, IntRect.Zero, _renderPipeline);
         }
     }
 
@@ -199,11 +222,11 @@ public class CubemapRenderer : Object
         texture.SetFilterMode(TextureFilterMode.Trilinear);
     }
 
-    public CubemapUpdateResult Update(CubemapUpdateParameters updateParameters)
+    public CubemapUpdateResult Update(in CubemapUpdateParameters updateParameters)
     {
         if (!_currentParams.IsConsistentWith(updateParameters))
         {
-            _currentParams = updateParameters;
+            _currentParams = new CubemapUpdateParameters(updateParameters);
 
             _updateStage = CubemapUpdateStage.Idle;
             _numFacesToUpdate = 0;
@@ -232,43 +255,46 @@ public class CubemapRenderer : Object
         return UpdateSliced();
     }
 
-    private void PrepareForUpdate(CubemapUpdateParameters updateParameters)
+    private void PrepareForUpdate(in CubemapUpdateParameters updateParameters)
     {
         // Assign current textures
         if (updateParameters.FilterResult)
         {
-            _currentViewportTexture = _viewportTexture;
-            _currentFilteredTexture = updateParameters.OverrideFinalTexture ?? _filteredTexture;
+            _currentViewportTexture.SetTarget(_viewportTexture);
+            _currentFilteredTexture.SetTarget(updateParameters.OverrideFinalTexture ?? _filteredTexture);
         }
         else
         {
-            _currentViewportTexture = updateParameters.OverrideFinalTexture ?? _viewportTexture;
-            _currentFilteredTexture = null;
+            _currentViewportTexture.SetTarget(updateParameters.OverrideFinalTexture ?? _viewportTexture);
+            _currentFilteredTexture.SetTarget(null!);
         }
 
+        _currentViewportTexture.TryGetTarget(out var currentViewportTexture);
+        _currentFilteredTexture.TryGetTarget(out var currentFilteredTexture);
+
         // Initialize contents
-        if (ReferenceEquals(_currentViewportTexture, _viewportTexture)
+        if (ReferenceEquals(currentViewportTexture, _viewportTexture)
             && !IsTextureMatching(_viewportTexture, updateParameters.Settings))
         {
             DefineTexture(_viewportTexture, updateParameters.Settings, TextureFlag.None);
             ConnectViewportsToTexture(_viewportTexture);
             _viewportsConnectedToSelf = true;
         }
-        if (ReferenceEquals(_currentFilteredTexture, _filteredTexture)
+        if (ReferenceEquals(currentFilteredTexture, _filteredTexture)
             && !IsTextureMatching(_filteredTexture, updateParameters.Settings))
         {
             DefineTexture(_filteredTexture, updateParameters.Settings, TextureFlag.BindUnorderedAccess);
         }
 
-        if (!ReferenceEquals(_currentViewportTexture, _viewportTexture))
+        if (!ReferenceEquals(currentViewportTexture, _viewportTexture))
         {
             if (_viewportsConnectedToSelf)
             {
                 DisconnectViewportsFromTexture(_viewportTexture);
                 _viewportsConnectedToSelf = false;
             }
-            if (_currentViewportTexture is not null)
-                ConnectViewportsToTexture(_currentViewportTexture);
+            if (currentViewportTexture is not null)
+                ConnectViewportsToTexture(currentViewportTexture);
         }
         else if (!_viewportsConnectedToSelf)
         {
@@ -350,17 +376,20 @@ public class CubemapRenderer : Object
 
     private void ProcessCubemapRendered()
     {
-        if (!ReferenceEquals(_currentViewportTexture, _viewportTexture))
-            DisconnectViewportsFromTexture(_currentViewportTexture!);
+        _currentViewportTexture.TryGetTarget(out var currentViewportTexture);
+        _currentFilteredTexture.TryGetTarget(out var currentFilteredTexture);
 
-        if (_currentFilteredTexture is not null)
-            FilterCubemap(_currentViewportTexture!, _currentFilteredTexture);
+        if (!ReferenceEquals(currentViewportTexture, _viewportTexture))
+            DisconnectViewportsFromTexture(currentViewportTexture!);
 
-        var finalTexture = _currentFilteredTexture ?? _currentViewportTexture!;
+        if (currentFilteredTexture is not null)
+            FilterCubemap(currentViewportTexture!, currentFilteredTexture);
+
+        var finalTexture = currentFilteredTexture ?? currentViewportTexture!;
         CubemapRendered?.Invoke(finalTexture);
 
-        _currentViewportTexture = null;
-        _currentFilteredTexture = null;
+        _currentViewportTexture.SetTarget(null!);
+        _currentFilteredTexture.SetTarget(null!);
     }
 
     private void QueueFaceUpdate(CubeMapFace face)
@@ -369,7 +398,8 @@ public class CubemapRenderer : Object
         if (renderer is null)
             return;
 
-        var surface = _currentViewportTexture!.GetRenderSurface(face);
+        _currentViewportTexture.TryGetTarget(out var currentViewportTexture);
+        var surface = currentViewportTexture!.GetRenderSurface(face);
         renderer.QueueRenderSurface(surface);
     }
 
