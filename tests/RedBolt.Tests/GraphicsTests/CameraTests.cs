@@ -6,6 +6,28 @@ namespace RedBolt.Tests;
 public sealed class CameraTests
 {
     [Fact]
+    public void Borrowed_dependencies_are_stored_as_weak_references()
+    {
+        var camera = new Camera();
+        var zone = new Zone();
+
+        camera.SetZone(zone);
+
+        var graphicsReference = GetPrivateField<WeakReference<Graphics>?>(camera, "_graphics");
+        var zoneReference = GetPrivateField<WeakReference<Zone>?>(camera, "_zone");
+        Assert.NotNull(graphicsReference);
+        Assert.True(graphicsReference.TryGetTarget(out var graphics));
+        Assert.Same(Context.Instance.GetSubsystem<Graphics>(), graphics);
+        Assert.NotNull(zoneReference);
+        Assert.True(zoneReference.TryGetTarget(out var resolvedZone));
+        Assert.Same(zone, resolvedZone);
+        Assert.Same(zone, camera.GetZone());
+
+        camera.SetZone(null);
+        Assert.Null(camera.GetZone());
+    }
+
+    [Fact]
     public void Enabled_attribute_updates_live_property()
     {
         var scene = new Scene();
@@ -219,5 +241,13 @@ public sealed class CameraTests
         Assert.NotNull(secondView);
         Assert.NotSame(firstView, secondView);
         Assert.Same(secondScene.Root.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<T>(field.GetValue(instance));
     }
 }

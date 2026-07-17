@@ -146,6 +146,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `AnimationController.h` / `AnimationController.cpp` — constructor, controller-owned teardown, animation-instance value copies, deferred state synchronization, model/bone track connection, renderer statistics, and attribute subspan serialization reconciled; final lifetime/copy closure depends on AnimationStateSource/AnimationState, Variant, Skeleton/Bone, AnimatedModel, and borrowed trigger-pointer audits
 - [x] `AnimationParameters` in `AnimationController.h` / `AnimationController.cpp` — all constructors, implicit field teardown, independent wrapped-time copies, borrowed animation aliases, fluent helpers, delayed removal, and variant/binary serialization reconciled
 - [~] `BillboardSet.h` / `BillboardSet.cpp` — constructor defaults, billboard value storage and mutable references, derived resource teardown, and non-copyable component semantics reconciled; final ownership closure depends on pending Drawable, Geometry, IndexBuffer, and VertexBuffer audits
+- [x] `Camera.h` / `Camera.cpp` — non-copyable component semantics, value-owned projection/view/frustum caches, weak Graphics observation, borrowed Zone ownership, and default derived destruction reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

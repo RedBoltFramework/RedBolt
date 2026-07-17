@@ -49,12 +49,13 @@ public sealed class Camera : Component
     private Matrix4 _viewProj;
     private Matrix4 _inverseViewProj;
     private readonly Frustum _frustum = new();
-    private readonly RenderDevice? _renderDevice;
-    private Zone? _zone;
+    private readonly WeakReference<Graphics>? _graphics;
+    private WeakReference<Zone>? _zone;
 
     public Camera()
     {
-        _renderDevice = GetSubsystem<RenderDevice>();
+        var graphics = GetSubsystem<Graphics>();
+        _graphics = graphics is not null ? new WeakReference<Graphics>(graphics) : null;
         RegisterAttribute("Near Clip", typeof(float), self => ((Camera)self).GetNearClip(), (self, value) => ((Camera)self).SetNearClip((float)value!), DefaultNearClip);
         RegisterAttribute("Far Clip", typeof(float), self => ((Camera)self).GetFarClip(), (self, value) => ((Camera)self).SetFarClip((float)value!), DefaultFarClip);
         RegisterAttribute("FOV", typeof(float), self => ((Camera)self).GetFov(), (self, value) => ((Camera)self).SetFov((float)value!), DefaultFov);
@@ -152,7 +153,7 @@ public sealed class Camera : Component
 
     public Plane ReflectionPlane => _reflectionPlane;
 
-    public Zone? Zone => _zone;
+    public Zone? Zone => GetZone();
 
     public bool UseClipping { get; set; }
 
@@ -362,7 +363,9 @@ public sealed class Camera : Component
     public Matrix4 GetGPUProjection(bool ignoreFlip = false)
     {
         var projection = GetProjection(ignoreFlip);
-        if (_renderDevice?.GetBackend() != RenderBackend.OpenGL)
+        var isOpenGL = _graphics is not null && _graphics.TryGetTarget(out var graphics)
+            && graphics.GetRenderBackend() == RenderBackend.OpenGL;
+        if (!isOpenGL)
             return projection;
 
         projection.M20 = 2.0f * projection.M20 - projection.M30;
@@ -375,7 +378,9 @@ public sealed class Camera : Component
     public Matrix4 GetEffectiveGPUViewProjection(float constantDepthBias)
     {
         var projection = GetGPUProjection();
-        if (_renderDevice?.GetBackend() == RenderBackend.OpenGL)
+        var isOpenGL = _graphics is not null && _graphics.TryGetTarget(out var graphics)
+            && graphics.GetRenderBackend() == RenderBackend.OpenGL;
+        if (isOpenGL)
         {
             var constantBias = 2.0f * constantDepthBias;
             projection.M22 += projection.M32 * constantBias;
@@ -475,17 +480,17 @@ public sealed class Camera : Component
 
     public Plane GetClipPlane() => _clipPlane;
 
-    public Zone? GetZone() => _zone;
+    public Zone? GetZone() => _zone is not null && _zone.TryGetTarget(out var zone) ? zone : null;
 
-    public Color GetEffectiveAmbientColor() => _zone?.GetAmbientColor() ?? Color.Transparent;
+    public Color GetEffectiveAmbientColor() => GetZone()?.GetAmbientColor() ?? Color.Transparent;
 
-    public float GetEffectiveAmbientBrightness() => _zone?.GetAmbientBrightness() ?? 1.0f;
+    public float GetEffectiveAmbientBrightness() => GetZone()?.GetAmbientBrightness() ?? 1.0f;
 
-    public Color GetEffectiveFogColor() => _zone?.GetFogColor() ?? Color.Transparent;
+    public Color GetEffectiveFogColor() => GetZone()?.GetFogColor() ?? Color.Transparent;
 
-    public float GetEffectiveFogStart() => _zone?.GetFogStart() ?? MathDefs.LargeValue;
+    public float GetEffectiveFogStart() => GetZone()?.GetFogStart() ?? MathDefs.LargeValue;
 
-    public float GetEffectiveFogEnd() => _zone?.GetFogEnd() ?? MathDefs.LargeValue;
+    public float GetEffectiveFogEnd() => GetZone()?.GetFogEnd() ?? MathDefs.LargeValue;
 
     public Quaternion GetFaceCameraRotation(
         Vector3f position, Quaternion rotation, FaceCameraMode mode, float minAngle = 0.0f)
@@ -744,7 +749,7 @@ public sealed class Camera : Component
 
     public void SetZone(Zone? zone)
     {
-        _zone = zone;
+        _zone = zone is not null ? new WeakReference<Zone>(zone) : null;
     }
 
     public void SetProjection(Matrix4 projection)
