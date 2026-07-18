@@ -240,9 +240,9 @@ public sealed class BillboardSetTests
             TimeStep = 1.0f / 60.0f,
             ViewportSize = new Vector2i(1280, 720),
             Camera = camera,
-            Scene = scene
+            Scene = scene,
+            Cameras = (camera, null)
         };
-        frame.Cameras[0] = camera;
 
         set.UpdateBatches(frame);
         set.UpdateBatchesDelayed(frame);

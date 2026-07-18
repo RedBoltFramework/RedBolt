@@ -151,15 +151,15 @@ public class StereoSceneProcessor : SceneProcessor
         CurrentOcclusionBuffer = null;
         _currentOcclusionBuffers = [null, null];
 
-        System.Diagnostics.Debug.Assert(FrameInfo.Cameras[0] is not null);
+        System.Diagnostics.Debug.Assert(FrameInfo.Cameras.First is not null);
 
         // get our frustums
         Frustum[] frustums =
         [
             FrameInfo.Camera!.GetFrustum(),
-            FrameInfo.Cameras[1]!.GetFrustum()
+            FrameInfo.Cameras.Second!.GetFrustum()
         ];
-        Camera[] cameras = [FrameInfo.Camera, FrameInfo.Cameras[1]!];
+        Camera[] cameras = [FrameInfo.Camera, FrameInfo.Cameras.Second!];
 
         if (Settings.MaxOccluderTriangles > 0)
         {
@@ -403,8 +403,8 @@ public class StereoRenderPipelineView : RenderPipelineView
         _frameInfo.Viewport = viewport;
         _frameInfo.ViewportRect = viewport.GetEffectiveRect(renderTarget);
         _frameInfo.ViewportSize = _frameInfo.ViewportRect.Size;
-        _frameInfo.Cameras[0] = viewport.GetEye(0);
-        _frameInfo.Cameras[1] = viewport.GetEye(1);
+        _frameInfo.Cameras.First = viewport.GetEye(0);
+        _frameInfo.Cameras.Second = viewport.GetEye(1);
         _frameInfo.Camera = viewport.GetEye(0);
         _frameInfo.Scene = viewport.GetScene();
 

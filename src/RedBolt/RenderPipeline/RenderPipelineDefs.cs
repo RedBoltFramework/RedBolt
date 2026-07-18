@@ -1026,29 +1026,29 @@ public sealed class RenderOutputTargetInfo
 /// <summary>
 /// Common parameters of rendered frame.
 /// </summary>
-public sealed class CommonFrameInfo
+public struct CommonFrameInfo
 {
-    public uint FrameNumber { get; set; }
+    public uint FrameNumber;
 
-    public float TimeStep { get; set; }
+    public float TimeStep;
 
-    public Vector2i ViewportSize { get; set; }
+    public Vector2i ViewportSize;
 
-    public IntRect ViewportRect { get; set; }
+    public IntRect ViewportRect;
 
-    public Viewport? Viewport { get; set; }
+    public Viewport? Viewport;
 
-    public Scene? Scene { get; set; }
+    public Scene? Scene;
 
-    public Node? ViewReferenceNode { get; set; }
+    public Node? ViewReferenceNode;
 
-    public Camera? Camera { get; set; }
+    public Camera? Camera;
 
-    public Octree? Octree { get; set; }
+    public Octree? Octree;
 
-    public RenderOutputTargetInfo? RenderTarget { get; set; }
+    public RenderOutputTargetInfo? RenderTarget;
 
-    public Camera?[] Cameras { get; } = new Camera?[2];
+    public (Camera? First, Camera? Second) Cameras;
 }
 
 /// <summary>

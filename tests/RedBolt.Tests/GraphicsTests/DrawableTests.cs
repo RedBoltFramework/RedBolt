@@ -46,9 +46,9 @@ public sealed class DrawableTests
         var camera = new Camera();
         var frame = new CommonFrameInfo
         {
-            FrameNumber = 4
+            FrameNumber = 4,
+            Cameras = (camera, null)
         };
-        frame.Cameras[0] = camera;
 
         drawable.MarkInView(frame);
 
@@ -91,14 +91,14 @@ public sealed class DrawableTests
             context.RegisterSubsystem(renderer);
             using var drawable = new CustomGeometry();
             var camera = new Camera();
-            renderer.GetFrameInfo().FrameNumber = 4;
-            drawable.MarkInView(new CommonFrameInfo { FrameNumber = 4, Cameras = { [0] = camera } });
+            var frameNumber = renderer.GetFrameInfo().FrameNumber;
+            drawable.MarkInView(new CommonFrameInfo { FrameNumber = frameNumber, Cameras = (camera, null) });
 
             Assert.True(drawable.IsInView());
             Assert.True(drawable.IsInView(camera));
             Assert.True(drawable.IsInView(null));
 
-            renderer.GetFrameInfo().FrameNumber = 5;
+            drawable.MarkInView(frameNumber + 1);
             Assert.False(drawable.IsInView());
         }
         finally

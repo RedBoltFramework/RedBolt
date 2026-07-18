@@ -195,8 +195,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (FrameInfo.Octree is not null && FrameInfo.Scene is not null)
             FrameInfo.Scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
 
-        for (var i = 0; i < frameInfo.Cameras.Length && i < FrameInfo.Cameras.Length; ++i)
-            FrameInfo.Cameras[i] = frameInfo.Cameras[i];
+        FrameInfo.Cameras = frameInfo.Cameras;
 
         return FrameInfo.Octree is not null && FrameInfo.Camera is not null;
     }
@@ -480,7 +479,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         DrawQueue.Reset();
 
-        var needClipping = camera.GetUseClipping() || FrameInfo.Cameras.Length > 1 && FrameInfo.Cameras[1] is not null;
+        var needClipping = camera.GetUseClipping() || FrameInfo.Cameras.Second is not null;
         DrawQueue.SetClipPlaneMask(needClipping ? 1u << 0 : 0u);
 
         var ctx = new BatchRenderingContext(DrawQueue, camera)

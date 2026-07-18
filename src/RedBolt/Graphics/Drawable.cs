@@ -519,7 +519,7 @@ public abstract class Drawable : Component
     public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
     {
         return _viewFrameNumber == frame.FrameNumber &&
-            (anyCamera || frame.Cameras[0] is { } camera && ContainsViewCamera(camera));
+            (anyCamera || frame.Cameras.First is { } camera && ContainsViewCamera(camera));
     }
 
     public BoundingBox GetWorldBoundingBox()
@@ -566,7 +566,7 @@ public abstract class Drawable : Component
             _numViewCameras = 0;
         }
 
-        SetViewCamera(_numViewCameras++, frame.Cameras[0]);
+        SetViewCamera(_numViewCameras++, frame.Cameras.First);
     }
 
     public void MarkInView(uint frameNumber)

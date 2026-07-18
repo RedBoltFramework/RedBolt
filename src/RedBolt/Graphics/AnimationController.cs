@@ -144,7 +144,7 @@ public class AnimationController : AnimationStateSource
         var renderer = GetSubsystem<Renderer>();
         if (renderer is not null)
         {
-            var stats = renderer.GetMutableFrameStats();
+            ref var stats = ref renderer.GetMutableFrameStats();
             ++stats.Animations;
             if (_revisionDirty)
                 ++stats.ChangedAnimations;

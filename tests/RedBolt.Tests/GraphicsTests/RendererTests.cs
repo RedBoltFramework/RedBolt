@@ -15,6 +15,20 @@ public sealed class RendererTests
     private Renderer Renderer => _fixture.Renderer;
 
     [Fact]
+    public void Renderer_types_match_cpp_value_and_reference_categories()
+    {
+        Assert.False(typeof(Renderer).IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Renderer)));
+        Assert.True(typeof(FrameStatistics).IsValueType);
+        Assert.True(typeof(CommonFrameInfo).IsValueType);
+        Assert.Equal(9, (int)LightVsVariation.MaxLightVsVariations);
+        Assert.Equal(5, (int)VertexLightVsVariation.MaxVertexLightVsVariations);
+        Assert.Equal(16, (int)LightPsVariation.MaxLightPsVariations);
+        Assert.Equal(4, (int)DeferredLightVsVariation.MaxDeferredLightVsVariations);
+        Assert.Equal(48, (int)DeferredLightPsVariation.MaxDeferredLightPsVariations);
+    }
+
+    [Fact]
     public void Viewport_registration_works()
     {
         var scene = new Scene();
@@ -160,7 +174,7 @@ public sealed class RendererTests
     [Fact]
     public void Uninitialized_renderer_does_not_subscribe_to_end_frame()
     {
-        var statistics = Renderer.GetMutableFrameStats();
+        ref var statistics = ref Renderer.GetMutableFrameStats();
         statistics.Animations = 4;
         statistics.ChangedAnimations = 2;
         var initialized = Renderer.GetQuadGeometry() is not null;
@@ -227,25 +241,47 @@ public sealed class RendererTests
     [Fact]
     public void Frame_statistics_expose_mutable_renderer_counters()
     {
-        var stats = Renderer.GetMutableFrameStats();
+        ref var stats = ref Renderer.GetMutableFrameStats();
         stats.Animations = 3;
         stats.ChangedAnimations = 2;
 
-        Assert.Same(stats, Renderer.GetFrameStats());
+        ref readonly var readOnlyStats = ref Renderer.GetFrameStats();
+        Assert.Equal(stats, readOnlyStats);
         Assert.Equal(3u, Renderer.GetFrameStats().Animations);
         Assert.Equal(2u, Renderer.GetFrameStats().ChangedAnimations);
+
+        var copy = readOnlyStats;
+        copy.Animations = 10;
+        Assert.Equal(3u, Renderer.GetFrameStats().Animations);
     }
 
     [Fact]
-    public void Frame_info_exposes_mutable_renderer_frame_state()
+    public void Frame_info_exposes_read_only_value_state()
     {
-        var frameInfo = Renderer.GetFrameInfo();
-        frameInfo.FrameNumber = 7;
-        frameInfo.TimeStep = 0.25f;
+        ref readonly var rendererFrameInfo = ref Renderer.GetFrameInfo();
+        var frameInfo = rendererFrameInfo;
+        frameInfo.FrameNumber = rendererFrameInfo.FrameNumber + 1;
+        frameInfo.TimeStep = rendererFrameInfo.TimeStep + 0.25f;
 
-        Assert.Same(frameInfo, Renderer.GetFrameInfo());
-        Assert.Equal(7u, Renderer.GetFrameInfo().FrameNumber);
-        Assert.Equal(0.25f, Renderer.GetFrameInfo().TimeStep);
+        Assert.NotEqual(frameInfo.FrameNumber, Renderer.GetFrameInfo().FrameNumber);
+        Assert.NotEqual(frameInfo.TimeStep, Renderer.GetFrameInfo().TimeStep);
+    }
+
+    [Fact]
+    public void Common_frame_info_copy_has_independent_camera_slots()
+    {
+        var scene = new Scene();
+        var first = scene.CreateChild("First").CreateComponent<Camera>();
+        var second = scene.CreateChild("Second").CreateComponent<Camera>();
+        var replacement = scene.CreateChild("Replacement").CreateComponent<Camera>();
+        var frameInfo = new CommonFrameInfo { Cameras = (first, second) };
+
+        var copy = frameInfo;
+        copy.Cameras.First = replacement;
+
+        Assert.Same(first, frameInfo.Cameras.First);
+        Assert.Same(second, frameInfo.Cameras.Second);
+        Assert.Same(replacement, copy.Cameras.First);
     }
 
     [Fact]

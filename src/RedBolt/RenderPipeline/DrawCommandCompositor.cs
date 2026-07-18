@@ -573,9 +573,9 @@ internal sealed class DrawCommandCompositor
         foreach (var shaderParameter in _ctx.CameraParameters.Span)
             drawQueue.AddShaderParameter(shaderParameter.Name, shaderParameter.Value);
 
-        if (_ctx.InstanceMultiplier > 1 && _frameInfo.Cameras[0] == camera)
+        if (_ctx.InstanceMultiplier > 1 && _frameInfo.Cameras.First == camera)
         {
-            var cameras = new[] { _frameInfo.Cameras[0]!, _frameInfo.Cameras[1]! };
+            var cameras = new[] { _frameInfo.Cameras.First!, _frameInfo.Cameras.Second! };
             var cameraTransform = new[] { cameras[0].GetEffectiveWorldTransform().Matrix4, cameras[1].GetEffectiveWorldTransform().Matrix4 };
             var cameraPosition = new[] { new Vector4f(cameraTransform[0].Translation, 0.0f), new Vector4f(cameraTransform[1].Translation, 0.0f) };
             var cameraView = new[] { cameras[0].GetView().Matrix4, cameras[1].GetView().Matrix4 };

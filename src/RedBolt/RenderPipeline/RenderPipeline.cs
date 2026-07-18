@@ -442,8 +442,8 @@ public class RenderPipeline : Component
             _frameInfo.ViewportSize = viewportRect.Size;
             _frameInfo.Scene = viewport.Scene;
             _frameInfo.Camera = viewport.Camera;
-            _frameInfo.Cameras[0] = viewport.Camera;
-            _frameInfo.Cameras[1] = viewport.RightEye;
+            _frameInfo.Cameras.First = viewport.Camera;
+            _frameInfo.Cameras.Second = viewport.RightEye;
 
             var colorTexture = renderTarget?.GetParentTexture();
             var depthSurface = renderTarget?.GetLinkedDepthStencil();

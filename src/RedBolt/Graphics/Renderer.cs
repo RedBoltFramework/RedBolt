@@ -2,6 +2,119 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+/// <summary>Light vertex shader variations.</summary>
+public enum LightVsVariation
+{
+    Directional,
+    Spot,
+    Point,
+    Shadow,
+    SpotShadow,
+    PointShadow,
+    ShadowNormalOffset,
+    SpotShadowNormalOffset,
+    PointShadowNormalOffset,
+    MaxLightVsVariations
+}
+
+/// <summary>Per-vertex light vertex shader variations.</summary>
+public enum VertexLightVsVariation
+{
+    NoLights,
+    OneLight,
+    TwoLights,
+    ThreeLights,
+    FourLights,
+    MaxVertexLightVsVariations
+}
+
+/// <summary>Light pixel shader variations.</summary>
+public enum LightPsVariation
+{
+    None,
+    Spot,
+    Point,
+    PointMask,
+    Specular,
+    SpotSpecular,
+    PointSpecular,
+    PointMaskSpecular,
+    Shadow,
+    SpotShadow,
+    PointShadow,
+    PointMaskShadow,
+    ShadowSpecular,
+    SpotShadowSpecular,
+    PointShadowSpecular,
+    PointMaskShadowSpecular,
+    MaxLightPsVariations
+}
+
+/// <summary>Deferred light volume vertex shader variations.</summary>
+public enum DeferredLightVsVariation
+{
+    None,
+    Directional,
+    Ortho,
+    OrthoDirectional,
+    MaxDeferredLightVsVariations
+}
+
+/// <summary>Deferred light volume pixel shader variations.</summary>
+public enum DeferredLightPsVariation
+{
+    None,
+    Spot,
+    Point,
+    PointMask,
+    Specular,
+    SpotSpecular,
+    PointSpecular,
+    PointMaskSpecular,
+    Shadow,
+    SpotShadow,
+    PointShadow,
+    PointMaskShadow,
+    ShadowSpecular,
+    SpotShadowSpecular,
+    PointShadowSpecular,
+    PointMaskShadowSpecular,
+    ShadowNormalOffset,
+    SpotShadowNormalOffset,
+    PointShadowNormalOffset,
+    PointMaskShadowNormalOffset,
+    ShadowSpecularNormalOffset,
+    SpotShadowSpecularNormalOffset,
+    PointShadowSpecularNormalOffset,
+    PointMaskShadowSpecularNormalOffset,
+    Ortho,
+    OrthoSpot,
+    OrthoPoint,
+    OrthoPointMask,
+    OrthoSpecular,
+    OrthoSpotSpecular,
+    OrthoPointSpecular,
+    OrthoPointMaskSpecular,
+    OrthoShadow,
+    OrthoSpotShadow,
+    OrthoPointShadow,
+    OrthoPointMaskShadow,
+    OrthoShadowSpecular,
+    OrthoSpotShadowSpecular,
+    OrthoPointShadowSpecular,
+    OrthoPointMaskShadowSpecular,
+    OrthoShadowNormalOffset,
+    OrthoSpotShadowNormalOffset,
+    OrthoPointShadowNormalOffset,
+    OrthoPointMaskShadowNormalOffset,
+    OrthoShadowSpecularNormalOffset,
+    OrthoSpotShadowSpecularNormalOffset,
+    OrthoPointShadowSpecularNormalOffset,
+    OrthoPointMaskShadowSpecularNormalOffset,
+    MaxDeferredLightPsVariations
+}
+
+/// <summary>Skinning mode.</summary>
 public enum SkinningMode
 {
     Auto,
@@ -9,7 +122,9 @@ public enum SkinningMode
     Software
 }
 
-public sealed class FrameStatistics
+/// <summary>Statistics collected during the last frame.</summary>
+// TODO: Move other metrics here.
+public struct FrameStatistics
 {
     public uint Animations;
     public uint ChangedAnimations;
@@ -20,6 +135,10 @@ public sealed class FrameStatistics
 /// </summary>
 public sealed class Renderer : Object
 {
+    public const int ShadowMinPixels = 64;
+    public const int InstancingBufferDefaultSize = 1024;
+
+    private Graphics? _graphics;
     private RenderSurface? _backbufferSurface;
     private bool _backbufferSurfaceViewportsDirty;
     private Technique? _defaultTechnique;
@@ -36,7 +155,7 @@ public sealed class Renderer : Object
     private readonly List<RenderPipelineView> _renderPipelineViews = [];
     private readonly HashSet<Octree> _updatedOctrees = [];
     private readonly HashSet<Technique> _shaderErrorDisplayed = [];
-    private readonly CommonFrameInfo _frameInfo = new();
+    private CommonFrameInfo _frameInfo;
     private int _textureAnisotropy = 4;
     private TextureFilterMode _textureFilterMode = TextureFilterMode.Trilinear;
     private MaterialQuality _textureQuality = MaterialQuality.High;
@@ -45,7 +164,7 @@ public sealed class Renderer : Object
     private bool _hardwareSkinningSupported = true;
     private SkinningMode _skinningMode;
     private uint _numSoftwareSkinningBones = 4;
-    private readonly FrameStatistics _frameStats = new();
+    private FrameStatistics _frameStats;
 
     public Renderer()
     {
@@ -55,11 +174,40 @@ public sealed class Renderer : Object
         Initialize();
     }
 
-    public FrameStatistics GetFrameStats() => _frameStats;
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _frameStats = default;
+        _frameInfo = default;
+        _shaderErrorDisplayed.Clear();
+        _updatedOctrees.Clear();
+        _renderPipelineViews.Clear();
+        _queuedViewports.Clear();
+        _viewports.Clear();
+        _blackCubeMap?.Dispose();
+        _blackCubeMap = null;
+        _defaultLightSpot = null;
+        _defaultLightRamp = null;
+        _defaultMaterial?.Dispose();
+        _defaultMaterial = null;
+        _pointLightGeometry?.Dispose();
+        _pointLightGeometry = null;
+        _spotLightGeometry?.Dispose();
+        _spotLightGeometry = null;
+        _dirLightGeometry?.Dispose();
+        _dirLightGeometry = null;
+        _defaultZone.Dispose();
+        _defaultTechnique = null;
+        _backbufferSurface = null;
+        _graphics = null;
+        base.Dispose();
+    }
 
-    public FrameStatistics GetMutableFrameStats() => _frameStats;
+    public ref readonly FrameStatistics GetFrameStats() => ref _frameStats;
 
-    public CommonFrameInfo GetFrameInfo() => _frameInfo;
+    public ref FrameStatistics GetMutableFrameStats() => ref _frameStats;
+
+    public ref readonly CommonFrameInfo GetFrameInfo() => ref _frameInfo;
 
     public Zone GetDefaultZone() => _defaultZone;
 
@@ -137,28 +285,16 @@ public sealed class Renderer : Object
     public Technique? GetDefaultTechnique()
     {
         if (_defaultTechnique is null)
-            _defaultTechnique = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>("Techniques/NoTexture.xml");
+            _defaultTechnique = GetSubsystem<ResourceCache>()!.GetResourceOrNull<Technique>("Techniques/NoTexture.xml");
 
         return _defaultTechnique;
     }
 
     public Material? GetDefaultMaterial() => _defaultMaterial;
 
-    public Texture2D? GetDefaultLightRamp()
-    {
-        if (_defaultLightRamp is null)
-            _defaultLightRamp = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Texture2D>("Textures/Ramp.png");
+    public Texture2D? GetDefaultLightRamp() => _defaultLightRamp;
 
-        return _defaultLightRamp;
-    }
-
-    public Texture2D? GetDefaultLightSpot()
-    {
-        if (_defaultLightSpot is null)
-            _defaultLightSpot = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Texture2D>("Textures/Spot.png");
-
-        return _defaultLightSpot;
-    }
+    public Texture2D? GetDefaultLightSpot() => _defaultLightSpot;
 
     public TextureCube? GetBlackCubeMap() => _blackCubeMap;
 
@@ -264,11 +400,10 @@ public sealed class Renderer : Object
     {
         _renderPipelineViews.Clear();
 
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is null || !graphics.IsInitialized)
+        if (_graphics is null || !_graphics.IsInitialized)
             return;
 
-        _frameInfo.FrameNumber = GetSubsystem<Time>()?.FrameNumber ?? 0;
+        _frameInfo.FrameNumber = GetSubsystem<Time>()!.FrameNumber;
         _frameInfo.TimeStep = timeStep;
         _frameInfo.Camera = null;
         _updatedOctrees.Clear();
@@ -290,12 +425,12 @@ public sealed class Renderer : Object
 
         var numMainViewports = _queuedViewports.Count;
         for (var i = 0; i < numMainViewports; ++i)
-            UpdateQueuedViewport(i, graphics);
+            UpdateQueuedViewport(i);
 
         Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
 
         for (var i = numMainViewports; i < _queuedViewports.Count; ++i)
-            UpdateQueuedViewport(i, graphics);
+            UpdateQueuedViewport(i);
 
         _queuedViewports.Clear();
         _resetViews = false;
@@ -303,7 +438,6 @@ public sealed class Renderer : Object
 
     public void Render()
     {
-        var graphics = GetSubsystem<Graphics>()!;
         var renderDevice = GetSubsystem<RenderDevice>()!;
 
         renderDevice.SetDefaultTextureFilterMode(_textureFilterMode);
@@ -321,12 +455,12 @@ public sealed class Renderer : Object
 
         if (!hasBackbufferViews)
         {
-            graphics.ResetRenderTargets();
-            graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
+            _graphics!.ResetRenderTargets();
+            _graphics.Clear(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, _defaultZone.GetFogColor());
         }
 
         for (var i = _renderPipelineViews.Count - 1; i >= 0; --i)
-            _renderPipelineViews[i].Render(graphics, _textureQuality);
+            _renderPipelineViews[i].Render(_graphics!, _textureQuality);
 
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
@@ -334,9 +468,12 @@ public sealed class Renderer : Object
         Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }
 
-    private void UpdateQueuedViewport(int index, Graphics graphics)
+    private void UpdateQueuedViewport(int index)
     {
         var (renderTarget, viewport) = _queuedViewports[index];
+
+        if (viewport.Scene is null)
+            return;
 
         var renderPipelineView = viewport.GetRenderPipelineView();
         if (renderPipelineView is null || _resetViews)
@@ -344,24 +481,32 @@ public sealed class Renderer : Object
             viewport.AllocateView();
             renderPipelineView = viewport.GetRenderPipelineView();
         }
-        if (renderPipelineView is null || !renderPipelineView.Define(renderTarget, viewport, graphics))
+        if (renderPipelineView is null || !renderPipelineView.Define(renderTarget, viewport, _graphics!))
             return;
 
         _renderPipelineViews.Add(renderPipelineView);
 
-        var octree = viewport.Scene?.Root.GetComponent<Octree>();
-        if (octree is not null && _updatedOctrees.Add(octree))
+        var viewRect = viewport.Rect;
+        var scene = viewport.Scene;
+        if (scene is null)
+            return;
+
+        var octree = scene.Root.GetComponent<Octree>()!;
+        if (_updatedOctrees.Add(octree))
         {
             _frameInfo.Camera = viewport.Camera;
-            _frameInfo.ViewportSize = viewport.Rect.Size;
+            _frameInfo.ViewportSize = viewRect.Size;
             if (_frameInfo.ViewportSize == Vector2i.Zero)
-                _frameInfo.ViewportSize = new Vector2i(graphics.Width, graphics.Height);
+                _frameInfo.ViewportSize = new Vector2i(_graphics!.Width, _graphics.Height);
             octree.Update(_frameInfo);
             octree.SetLocked(true);
+
+            var debug = scene.Root.GetComponent<DebugRenderer>();
+            if (debug is not null && viewport.GetDrawDebug())
+                debug.SetView(viewport.Camera);
         }
 
-        renderPipelineView.Update(graphics);
-        renderTarget?.ResetUpdateQueued();
+        renderPipelineView.Update(_graphics!);
     }
 
     public void DrawDebugGeometry(bool depthTest)
@@ -387,6 +532,8 @@ public sealed class Renderer : Object
 
         _hardwareSkinningSupported = true;
 
+        _graphics = graphics;
+
         _defaultLightRamp = cache.GetResourceOrNull<Texture2D>("Textures/Ramp.png");
         _defaultLightSpot = cache.GetResourceOrNull<Texture2D>("Textures/Spot.png");
         _defaultMaterial = new Material(string.Empty);
@@ -401,8 +548,7 @@ public sealed class Renderer : Object
             Update(eventData.TimeStep));
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
         {
-            _frameStats.Animations = 0;
-            _frameStats.ChangedAnimations = 0;
+            _frameStats = new FrameStatistics();
         });
 
         Log.Logger.LogInformation("Initialized renderer");
