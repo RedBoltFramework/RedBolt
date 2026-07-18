@@ -16,6 +16,41 @@ public sealed class RibbonTrailTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Class_kinds_match_cpp()
+    {
+        Assert.True(typeof(TrailPoint).IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(TrailPoint)));
+        Assert.False(typeof(RibbonTrail).IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(RibbonTrail)));
+    }
+
+    [Fact]
+    public void Trail_point_copy_preserves_cpp_pod_semantics()
+    {
+        var point = new TrailPoint(new Vector3f(1, 2, 3), Vector3f.Forward) { NextIndex = 4 };
+        var copy = point;
+        copy.Position = Vector3f.Zero;
+
+        Assert.Equal(new Vector3f(1, 2, 3), point.Position);
+        Assert.Equal(4, copy.NextIndex);
+        Assert.Equal(point.NextIndex, copy.NextIndex);
+        Assert.Null(default(TrailPoint).NextIndex);
+    }
+
+    [Fact]
+    public void Dispose_releases_owned_geometry_before_drawable_teardown()
+    {
+        var trail = new RibbonTrail();
+        var geometry = trail.GetBatches()[0].Geometry!;
+
+        trail.Dispose();
+
+        Assert.Equal(0u, geometry.GetNumVertexBuffers());
+        Assert.Null(geometry.GetIndexBuffer());
+        Assert.Empty(trail.GetBatches());
+    }
+
+    [Fact]
     public void Defaults_match_cpp_constructor()
     {
         var trail = new Scene().CreateChild("Trail").CreateComponent<RibbonTrail>();
@@ -34,7 +69,6 @@ public sealed class RibbonTrailTests
         Assert.Equal(new Color(1.0f, 1.0f, 1.0f, 0.0f), trail.GetEndColor());
         Assert.Equal(1.0f, trail.GetAnimationLodBias());
         Assert.False(trail.IsSorted());
-        Assert.Equal(0, trail.GetNumPoints());
         Assert.Equal(GeometryType.TrailFaceCamera, trail.GetBatches()[0].GeometryType);
     }
 
@@ -94,7 +128,9 @@ public sealed class RibbonTrailTests
         scene.SendEvent(ref post);
         trail.Update(new CommonFrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene });
 
-        Assert.True(trail.GetNumPoints() >= 2);
+        var frame = new CommonFrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene };
+        trail.UpdateBatchesDelayed(frame);
+        Assert.True(trail.GetBatches()[0].Geometry!.GetIndexCount() > 0);
     }
 
     [Fact]

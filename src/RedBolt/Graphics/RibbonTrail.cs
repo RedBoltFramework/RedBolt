@@ -32,8 +32,8 @@ public struct TrailPoint
     public Vector3f ParentPos;
     /// <summary>Elapsed length inside the trail.</summary>
     public float ElapsedLength;
-    /// <summary>Next point index to make a tail (-1 if none). C++ uses TrailPoint*.</summary>
-    public int NextIndex = -1;
+    /// <summary>Next point index to make a tail. C++ uses TrailPoint*.</summary>
+    public int? NextIndex;
     /// <summary>Tail time to live.</summary>
     public float Lifetime;
     /// <summary>Distance for sorting.</summary>
@@ -44,6 +44,11 @@ public struct TrailPoint
 public class RibbonTrail : Drawable
 {
     private const uint MaxTailColumn = 16;
+
+    private readonly struct TrailPointComparer(List<TrailPoint> points) : IComparer<int>
+    {
+        public int Compare(int lhs, int rhs) => points[rhs].SortDistance.CompareTo(points[lhs].SortDistance);
+    }
 
     /// <summary>Tails.</summary>
     protected readonly List<TrailPoint> _points = [];
@@ -88,8 +93,6 @@ public class RibbonTrail : Drawable
     public RibbonTrail()
         : base(DrawableFlags.Geometry)
     {
-        _vertexBuffer.SetShadowed(true);
-        _indexBuffer.SetShadowed(true);
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
 
@@ -100,6 +103,17 @@ public class RibbonTrail : Drawable
             WorldTransform = _transforms,
             NumWorldTransforms = 1
         });
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _sortedPoints.Clear();
+        _geometry.Dispose();
+        _indexBuffer.Dispose();
+        _vertexBuffer.Dispose();
+        _points.Clear();
+        base.Dispose();
     }
 
     public static void RegisterObject(Context context)
@@ -142,8 +156,7 @@ public class RibbonTrail : Drawable
     {
         base.OnSetEnabled();
 
-        if (IsAttached)
-            _previousPosition = Node.GetWorldPosition();
+        _previousPosition = Node.GetWorldPosition();
 
         var scene = Scene;
         if (scene is not null)
@@ -181,8 +194,7 @@ public class RibbonTrail : Drawable
             return;
 
         UpdateTail(frame.TimeStep);
-        if (IsAttached)
-            OnMarkedDirty(Node);
+        OnMarkedDirty(Node);
         _needUpdate = false;
     }
 
@@ -311,8 +323,7 @@ public class RibbonTrail : Drawable
             _bufferSizeDirty = true;
         }
 
-        if (IsAttached)
-            OnMarkedDirty(Node);
+        OnMarkedDirty(Node);
     }
 
     public void SetTailColumn(uint tailColumn)
@@ -327,8 +338,7 @@ public class RibbonTrail : Drawable
         else
             _tailColumn = tailColumn;
 
-        if (IsAttached)
-            OnMarkedDirty(Node);
+        OnMarkedDirty(Node);
         _bufferSizeDirty = true;
     }
 
@@ -437,11 +447,13 @@ public class RibbonTrail : Drawable
             batch.GeometryType = GeometryType.TrailFaceCamera;
             mask = (uint)(VertexMask.Position | VertexMask.Color | VertexMask.TexCoord1 | VertexMask.Tangent);
         }
-        else
+        else if (_trailType == TrailType.Bone)
         {
             batch.GeometryType = GeometryType.TrailBone;
             mask = (uint)(VertexMask.Position | VertexMask.Normal | VertexMask.Color | VertexMask.TexCoord1 | VertexMask.Tangent);
         }
+        else
+            mask = 0;
 
         _bufferSizeDirty = false;
         _bufferDirty = true;
@@ -466,30 +478,33 @@ public class RibbonTrail : Drawable
         batch.Geometry = _geometry;
         _batches[0] = batch;
 
-        var indices = new uint[(_numPoints - 1) * indexPerSegment];
+        var mapped = _indexBuffer.Map();
+        if (mapped.IsEmpty)
+            return;
+        var indices = MemoryMarshal.Cast<byte, ushort>(mapped);
         uint vertexIndex = 0;
         var dest = 0;
         var stripsLen = _numPoints - 1;
 
         while (stripsLen-- > 0)
         {
-            indices[dest + 0] = vertexIndex;
-            indices[dest + 1] = vertexIndex + 2;
-            indices[dest + 2] = vertexIndex + 1;
-            indices[dest + 3] = vertexIndex + 1;
-            indices[dest + 4] = vertexIndex + 2;
-            indices[dest + 5] = vertexIndex + 3;
+            indices[dest + 0] = (ushort)vertexIndex;
+            indices[dest + 1] = (ushort)(vertexIndex + 2);
+            indices[dest + 2] = (ushort)(vertexIndex + 1);
+            indices[dest + 3] = (ushort)(vertexIndex + 1);
+            indices[dest + 4] = (ushort)(vertexIndex + 2);
+            indices[dest + 5] = (ushort)(vertexIndex + 3);
             dest += 6;
             vertexIndex += 2;
 
             for (var i = 0u; i < (_tailColumn - 1); ++i)
             {
-                indices[dest + 0] = vertexIndex;
-                indices[dest + 1] = vertexIndex + 2;
-                indices[dest + 2] = vertexIndex + 1;
-                indices[dest + 3] = vertexIndex + 1;
-                indices[dest + 4] = vertexIndex + 2;
-                indices[dest + 5] = vertexIndex + 3;
+                indices[dest + 0] = (ushort)vertexIndex;
+                indices[dest + 1] = (ushort)(vertexIndex + 2);
+                indices[dest + 2] = (ushort)(vertexIndex + 1);
+                indices[dest + 3] = (ushort)(vertexIndex + 1);
+                indices[dest + 4] = (ushort)(vertexIndex + 2);
+                indices[dest + 5] = (ushort)(vertexIndex + 3);
                 dest += 6;
                 vertexIndex += 2;
             }
@@ -497,8 +512,8 @@ public class RibbonTrail : Drawable
             vertexIndex += 2;
         }
 
-        _indexBuffer.SetUnpackedData(indices);
-        _indexBuffer.GetRawBuffer()?.ClearDataLost();
+        _indexBuffer.Unmap();
+        _indexBuffer.GetRawBuffer().ClearDataLost();
     }
 
     private void UpdateVertexBuffer(CommonFrameInfo frame)
@@ -507,7 +522,7 @@ public class RibbonTrail : Drawable
         {
             _animationLodTimer += _animationLodBias * frame.TimeStep * AnimationLodBaseScale;
             if (_animationLodTimer >= GetLodDistance())
-                _animationLodTimer = MathF.IEEERemainder(_animationLodTimer, GetLodDistance());
+                _animationLodTimer %= GetLodDistance();
             else
             {
                 if (!_forceUpdate)
@@ -531,7 +546,7 @@ public class RibbonTrail : Drawable
         }
 
         if (_sorted)
-            _sortedPoints.Sort((lhs, rhs) => _points[rhs].SortDistance.CompareTo(_points[lhs].SortDistance));
+            CollectionsMarshal.AsSpan(_sortedPoints).Sort(new TrailPointComparer(_points));
 
         var trailLength = 0.0f;
         for (var i = 0; i < _numPoints; ++i)
@@ -540,7 +555,7 @@ public class RibbonTrail : Drawable
             trailLength += length;
             var point = _points[i];
             point.ElapsedLength = trailLength;
-            point.NextIndex = i < _numPoints - 1 ? i + 1 : -1;
+            point.NextIndex = i < _numPoints - 1 ? i + 1 : null;
             _points[i] = point;
         }
 
@@ -561,9 +576,9 @@ public class RibbonTrail : Drawable
                 if (pointIndex == _points.Count - 1)
                     continue;
                 var point = _points[pointIndex];
-                if (point.NextIndex < 0)
+                if (!point.NextIndex.HasValue)
                     continue;
-                var next = _points[point.NextIndex];
+                var next = _points[point.NextIndex.Value];
 
                 var factor = MathDefs.SmoothStep(0.0f, trailLength, point.ElapsedLength);
                 var c = _endColor.Lerp(_startColor, factor).ToUInt();
@@ -573,17 +588,83 @@ public class RibbonTrail : Drawable
                 var nextC = _endColor.Lerp(_startColor, nextFactor).ToUInt();
                 var nextWidth = MathDefs.Lerp(_width * _endScale, _width * _startScale, nextFactor);
 
-                WriteFaceCameraRow(dest, ref offset, point, c, factor, 0.0f, width, next, nextC, nextFactor, 0.0f, nextWidth);
+                dest[offset++] = point.Position.X;
+                dest[offset++] = point.Position.Y;
+                dest[offset++] = point.Position.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                offset++;
+                dest[offset++] = factor;
+                dest[offset++] = 0.0f;
+                dest[offset++] = point.Forward.X;
+                dest[offset++] = point.Forward.Y;
+                dest[offset++] = point.Forward.Z;
+                dest[offset++] = width;
+
+                dest[offset++] = next.Position.X;
+                dest[offset++] = next.Position.Y;
+                dest[offset++] = next.Position.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                offset++;
+                dest[offset++] = nextFactor;
+                dest[offset++] = 0.0f;
+                dest[offset++] = next.Forward.X;
+                dest[offset++] = next.Forward.Y;
+                dest[offset++] = next.Forward.Z;
+                dest[offset++] = nextWidth;
 
                 for (var j = 0u; j < (_tailColumn - 1); ++j)
                 {
                     var elapsed = 1.0f / _tailColumn * (j + 1);
                     var midWidth = width - elapsed * 2.0f * width;
                     var nextMidWidth = nextWidth - elapsed * 2.0f * nextWidth;
-                    WriteFaceCameraRow(dest, ref offset, point, c, factor, elapsed, midWidth, next, nextC, nextFactor, elapsed, nextMidWidth);
+                    dest[offset++] = point.Position.X;
+                    dest[offset++] = point.Position.Y;
+                    dest[offset++] = point.Position.Z;
+                    MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                    offset++;
+                    dest[offset++] = factor;
+                    dest[offset++] = elapsed;
+                    dest[offset++] = point.Forward.X;
+                    dest[offset++] = point.Forward.Y;
+                    dest[offset++] = point.Forward.Z;
+                    dest[offset++] = midWidth;
+
+                    dest[offset++] = next.Position.X;
+                    dest[offset++] = next.Position.Y;
+                    dest[offset++] = next.Position.Z;
+                    MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                    offset++;
+                    dest[offset++] = nextFactor;
+                    dest[offset++] = elapsed;
+                    dest[offset++] = next.Forward.X;
+                    dest[offset++] = next.Forward.Y;
+                    dest[offset++] = next.Forward.Z;
+                    dest[offset++] = nextMidWidth;
                 }
 
-                WriteFaceCameraRow(dest, ref offset, point, c, factor, 1.0f, -width, next, nextC, nextFactor, 1.0f, -nextWidth);
+                dest[offset++] = point.Position.X;
+                dest[offset++] = point.Position.Y;
+                dest[offset++] = point.Position.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                offset++;
+                dest[offset++] = factor;
+                dest[offset++] = 1.0f;
+                dest[offset++] = point.Forward.X;
+                dest[offset++] = point.Forward.Y;
+                dest[offset++] = point.Forward.Z;
+                dest[offset++] = -width;
+
+                dest[offset++] = next.Position.X;
+                dest[offset++] = next.Position.Y;
+                dest[offset++] = next.Position.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                offset++;
+                dest[offset++] = nextFactor;
+                dest[offset++] = 1.0f;
+                dest[offset++] = next.Forward.X;
+                dest[offset++] = next.Forward.Y;
+                dest[offset++] = next.Forward.Z;
+                dest[offset++] = -nextWidth;
             }
         }
         else if (_trailType == TrailType.Bone)
@@ -594,9 +675,9 @@ public class RibbonTrail : Drawable
                 if (pointIndex == _points.Count - 1)
                     continue;
                 var point = _points[pointIndex];
-                if (point.NextIndex < 0)
+                if (!point.NextIndex.HasValue)
                     continue;
-                var next = _points[point.NextIndex];
+                var next = _points[point.NextIndex.Value];
 
                 var factor = MathDefs.SmoothStep(0.0f, trailLength, point.ElapsedLength);
                 var c = _endColor.Lerp(_startColor, factor).ToUInt();
@@ -610,83 +691,104 @@ public class RibbonTrail : Drawable
                 var nextShift = (nextRightScale - 1.0f) / 2.0f;
                 var nextLeftScale = 0.0f - nextShift;
 
-                WriteBoneRow(dest, ref offset, point, c, factor, 0.0f, leftScale, next, nextC, nextFactor, 0.0f, nextLeftScale);
+                dest[offset++] = point.Position.X;
+                dest[offset++] = point.Position.Y;
+                dest[offset++] = point.Position.Z;
+                dest[offset++] = point.Forward.X;
+                dest[offset++] = point.Forward.Y;
+                dest[offset++] = point.Forward.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                offset++;
+                dest[offset++] = factor;
+                dest[offset++] = 0.0f;
+                dest[offset++] = point.ParentPos.X;
+                dest[offset++] = point.ParentPos.Y;
+                dest[offset++] = point.ParentPos.Z;
+                dest[offset++] = leftScale;
+
+                dest[offset++] = next.Position.X;
+                dest[offset++] = next.Position.Y;
+                dest[offset++] = next.Position.Z;
+                dest[offset++] = next.Forward.X;
+                dest[offset++] = next.Forward.Y;
+                dest[offset++] = next.Forward.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                offset++;
+                dest[offset++] = nextFactor;
+                dest[offset++] = 0.0f;
+                dest[offset++] = next.ParentPos.X;
+                dest[offset++] = next.ParentPos.Y;
+                dest[offset++] = next.ParentPos.Z;
+                dest[offset++] = nextLeftScale;
 
                 for (var j = 0u; j < (_tailColumn - 1); ++j)
                 {
                     var elapsed = 1.0f / _tailColumn * (j + 1);
-                    WriteBoneRow(dest, ref offset, point, c, factor, elapsed, MathDefs.Lerp(leftScale, rightScale, elapsed),
-                        next, nextC, nextFactor, elapsed, MathDefs.Lerp(nextLeftScale, nextRightScale, elapsed));
+                    dest[offset++] = point.Position.X;
+                    dest[offset++] = point.Position.Y;
+                    dest[offset++] = point.Position.Z;
+                    dest[offset++] = point.Forward.X;
+                    dest[offset++] = point.Forward.Y;
+                    dest[offset++] = point.Forward.Z;
+                    MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                    offset++;
+                    dest[offset++] = factor;
+                    dest[offset++] = elapsed;
+                    dest[offset++] = point.ParentPos.X;
+                    dest[offset++] = point.ParentPos.Y;
+                    dest[offset++] = point.ParentPos.Z;
+                    dest[offset++] = MathDefs.Lerp(leftScale, rightScale, elapsed);
+
+                    dest[offset++] = next.Position.X;
+                    dest[offset++] = next.Position.Y;
+                    dest[offset++] = next.Position.Z;
+                    dest[offset++] = next.Forward.X;
+                    dest[offset++] = next.Forward.Y;
+                    dest[offset++] = next.Forward.Z;
+                    MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                    offset++;
+                    dest[offset++] = nextFactor;
+                    dest[offset++] = elapsed;
+                    dest[offset++] = next.ParentPos.X;
+                    dest[offset++] = next.ParentPos.Y;
+                    dest[offset++] = next.ParentPos.Z;
+                    dest[offset++] = MathDefs.Lerp(nextLeftScale, nextRightScale, elapsed);
                 }
 
-                WriteBoneRow(dest, ref offset, point, c, factor, 1.0f, rightScale, next, nextC, nextFactor, 1.0f, nextRightScale);
+                dest[offset++] = point.Position.X;
+                dest[offset++] = point.Position.Y;
+                dest[offset++] = point.Position.Z;
+                dest[offset++] = point.Forward.X;
+                dest[offset++] = point.Forward.Y;
+                dest[offset++] = point.Forward.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
+                offset++;
+                dest[offset++] = factor;
+                dest[offset++] = 1.0f;
+                dest[offset++] = point.ParentPos.X;
+                dest[offset++] = point.ParentPos.Y;
+                dest[offset++] = point.ParentPos.Z;
+                dest[offset++] = rightScale;
+
+                dest[offset++] = next.Position.X;
+                dest[offset++] = next.Position.Y;
+                dest[offset++] = next.Position.Z;
+                dest[offset++] = next.Forward.X;
+                dest[offset++] = next.Forward.Y;
+                dest[offset++] = next.Forward.Z;
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
+                offset++;
+                dest[offset++] = nextFactor;
+                dest[offset++] = 1.0f;
+                dest[offset++] = next.ParentPos.X;
+                dest[offset++] = next.ParentPos.Y;
+                dest[offset++] = next.ParentPos.Z;
+                dest[offset++] = nextRightScale;
             }
         }
 
         _vertexBuffer.Unmap();
         _vertexBuffer.GetRawBuffer()?.ClearDataLost();
-    }
-
-    private static void WriteFaceCameraRow(Span<float> dest, ref int offset, TrailPoint point, uint c, float factor, float v, float width,
-        TrailPoint next, uint nextC, float nextFactor, float nextV, float nextWidth)
-    {
-        dest[offset++] = point.Position.X;
-        dest[offset++] = point.Position.Y;
-        dest[offset++] = point.Position.Z;
-        MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
-        offset++;
-        dest[offset++] = factor;
-        dest[offset++] = v;
-        dest[offset++] = point.Forward.X;
-        dest[offset++] = point.Forward.Y;
-        dest[offset++] = point.Forward.Z;
-        dest[offset++] = width;
-
-        dest[offset++] = next.Position.X;
-        dest[offset++] = next.Position.Y;
-        dest[offset++] = next.Position.Z;
-        MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
-        offset++;
-        dest[offset++] = nextFactor;
-        dest[offset++] = nextV;
-        dest[offset++] = next.Forward.X;
-        dest[offset++] = next.Forward.Y;
-        dest[offset++] = next.Forward.Z;
-        dest[offset++] = nextWidth;
-    }
-
-    private static void WriteBoneRow(Span<float> dest, ref int offset, TrailPoint point, uint c, float factor, float v, float scale,
-        TrailPoint next, uint nextC, float nextFactor, float nextV, float nextScale)
-    {
-        dest[offset++] = point.Position.X;
-        dest[offset++] = point.Position.Y;
-        dest[offset++] = point.Position.Z;
-        dest[offset++] = point.Forward.X;
-        dest[offset++] = point.Forward.Y;
-        dest[offset++] = point.Forward.Z;
-        MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in c);
-        offset++;
-        dest[offset++] = factor;
-        dest[offset++] = v;
-        dest[offset++] = point.ParentPos.X;
-        dest[offset++] = point.ParentPos.Y;
-        dest[offset++] = point.ParentPos.Z;
-        dest[offset++] = scale;
-
-        dest[offset++] = next.Position.X;
-        dest[offset++] = next.Position.Y;
-        dest[offset++] = next.Position.Z;
-        dest[offset++] = next.Forward.X;
-        dest[offset++] = next.Forward.Y;
-        dest[offset++] = next.Forward.Z;
-        MemoryMarshal.Write(MemoryMarshal.AsBytes(dest.Slice(offset, 1)), in nextC);
-        offset++;
-        dest[offset++] = nextFactor;
-        dest[offset++] = nextV;
-        dest[offset++] = next.ParentPos.X;
-        dest[offset++] = next.ParentPos.Y;
-        dest[offset++] = next.ParentPos.Z;
-        dest[offset++] = nextScale;
     }
 
     public void SetLifetime(float time) { _lifetime = time; Commit(); }
@@ -707,8 +809,7 @@ public class RibbonTrail : Drawable
         }
 
         _trailType = type;
-        if (IsAttached)
-            OnMarkedDirty(Node);
+        OnMarkedDirty(Node);
         _bufferSizeDirty = true;
     }
 
@@ -717,7 +818,7 @@ public class RibbonTrail : Drawable
     public void SetMaterialAttr(ResourceRef value)
     {
         var cache = GetSubsystem<ResourceCache>();
-        SetMaterial(cache?.GetResourceOrNull<Material>(value.Name));
+        SetMaterial(cache!.GetResourceOrNull<Material>(value.Name));
         Commit();
     }
 
@@ -728,8 +829,7 @@ public class RibbonTrail : Drawable
 
     protected void MarkPositionsDirty()
     {
-        if (IsAttached)
-            OnMarkedDirty(Node);
+        OnMarkedDirty(Node);
         _bufferDirty = true;
     }
 
@@ -749,5 +849,4 @@ public class RibbonTrail : Drawable
     public uint GetTailColumn() => _tailColumn;
     public bool IsEmitting() => _emitting;
     public bool GetUpdateInvisible() => _updateInvisible;
-    public int GetNumPoints() => _points.Count;
 }

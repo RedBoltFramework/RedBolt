@@ -65,6 +65,20 @@ public sealed class IndexBufferTests
     }
 
     [Fact]
+    public void Map_and_unmap_expose_inherited_raw_buffer_api()
+    {
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetShadowed(true);
+        Assert.True(indexBuffer.SetSize(3, largeIndices: false));
+
+        var mapped = indexBuffer.Map();
+        IndexBuffer.PackIndexData(new uint[] { 2, 4, 6 }, mapped, largeIndices: false, start: 0, count: 3);
+        indexBuffer.Unmap();
+
+        Assert.Equal(new uint[] { 2, 4, 6 }, indexBuffer.GetUnpackedData());
+    }
+
+    [Fact]
     public void Dynamic_index_buffer_grows_and_commits()
     {
         var dynamicBuffer = new DynamicIndexBuffer();

@@ -208,6 +208,12 @@ public sealed class IndexBuffer : PipelineStateTracker
     /// <summary>Return the underlying raw buffer.</summary>
     public RawBuffer GetRawBuffer() => _rawBuffer;
 
+    /// <summary>Map buffer contents onto CPU-writeable memory. Old buffer data is discarded.</summary>
+    public Span<byte> Map() => _rawBuffer.Map();
+
+    /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
+    public void Unmap() => _rawBuffer.Unmap();
+
     /// <summary>Update buffer data range without allocating.</summary>
     public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
