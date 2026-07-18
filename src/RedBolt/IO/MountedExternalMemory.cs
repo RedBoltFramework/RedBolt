@@ -13,19 +13,32 @@ public class MountedExternalMemory : MountPoint
         _scheme = scheme;
     }
 
+    public override void Dispose()
+    {
+        foreach (var memory in _files.Values)
+            memory.Dispose();
+        _files.Clear();
+        base.Dispose();
+    }
+
     public void LinkMemory(string fileName, MemoryBuffer memory)
     {
-        _files[fileName] = memory;
+        var copy = (MemoryBuffer)memory.Clone();
+        if (_files.TryGetValue(fileName, out var previous))
+            previous.Dispose();
+        _files[fileName] = copy;
     }
 
     public void LinkMemory(string fileName, string content)
     {
-        LinkMemory(fileName, new MemoryBuffer(content));
+        using var memory = new MemoryBuffer(content);
+        LinkMemory(fileName, memory);
     }
 
     public void UnlinkMemory(string fileName)
     {
-        _files.Remove(fileName);
+        if (_files.Remove(fileName, out var memory))
+            memory.Dispose();
     }
 
     public void SendFileChangedEvent(string fileName)

@@ -3,14 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public sealed unsafe class MemoryBuffer : AbstractFile
+/// <summary>Memory area that can be read and written to as a stream.</summary>
+public unsafe class MemoryBuffer : AbstractFile, ICloneable
 {
-    private readonly byte[] _buffer;
-    private readonly byte* _bufferPtr;
-    private readonly int _bufferOffset;
-    private readonly bool _usesUnmanagedBuffer;
-    private readonly GCHandle _pinnedBuffer;
-
+    /// <summary>Construct with a pointer and size.</summary>
     public MemoryBuffer(nint data, uint size, bool readOnly = false)
         : base(size)
     {
@@ -25,6 +21,7 @@ public sealed unsafe class MemoryBuffer : AbstractFile
             Size = 0;
     }
 
+    /// <summary>Construct from a vector, which must not go out of scope before MemoryBuffer.</summary>
     public MemoryBuffer(byte[] data)
         : base(GetBufferSize(data))
     {
@@ -37,6 +34,7 @@ public sealed unsafe class MemoryBuffer : AbstractFile
         IsReadOnly = false;
     }
 
+    /// <summary>Construct from a read-only vector, which must not go out of scope before MemoryBuffer.</summary>
     public MemoryBuffer(ReadOnlyMemory<byte> data)
         : base((uint)data.Length)
     {
@@ -57,11 +55,13 @@ public sealed unsafe class MemoryBuffer : AbstractFile
         IsReadOnly = true;
     }
 
+    /// <summary>Construct as read-only from string.</summary>
     public MemoryBuffer(string text)
         : this(Encoding.UTF8.GetBytes(text ?? string.Empty).AsMemory())
     {
     }
 
+    /// <summary>Construct from a vector buffer, which must not go out of scope before MemoryBuffer.</summary>
     public MemoryBuffer(VectorBuffer data)
         : base(GetBufferSize(data))
     {
@@ -74,19 +74,42 @@ public sealed unsafe class MemoryBuffer : AbstractFile
         IsReadOnly = false;
     }
 
+    private MemoryBuffer(MemoryBuffer rhs)
+        : base(rhs.Size)
+    {
+        _buffer = rhs._buffer;
+        _bufferOffset = rhs._bufferOffset;
+        _usesUnmanagedBuffer = rhs._usesUnmanagedBuffer;
+        IsReadOnly = rhs.IsReadOnly;
+
+        if (_usesUnmanagedBuffer)
+        {
+            _bufferPtr = rhs._bufferPtr;
+            _pinnedBuffer = default;
+        }
+        else
+        {
+            _pinnedBuffer = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+            _bufferPtr = (byte*)_pinnedBuffer.AddrOfPinnedObject() + _bufferOffset;
+        }
+
+        _position = rhs._position;
+        _name = rhs._name;
+    }
+
+    /// <summary>Destruct.</summary>
     public override void Dispose()
     {
         if (_pinnedBuffer.IsAllocated)
+        {
             _pinnedBuffer.Free();
+            _pinnedBuffer = default;
+        }
 
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
-    public bool IsReadOnly { get; }
-
-    public nint GetData() => (nint)_bufferPtr;
-
+    /// <summary>Read bytes from the memory area. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
         var available = (int)Math.Min((uint)destination.Length, Size - Position);
@@ -103,12 +126,14 @@ public sealed unsafe class MemoryBuffer : AbstractFile
         return (uint)available;
     }
 
+    /// <summary>Set position from the beginning of the memory area. Return actual new position.</summary>
     public override uint Seek(uint position)
     {
         Position = Math.Min(position, Size);
         return Position;
     }
 
+    /// <summary>Write bytes to the memory area. Return number of bytes actually written.</summary>
     public override uint Write(ReadOnlySpan<byte> data)
     {
         var available = (int)Math.Min((uint)data.Length, Size - Position);
@@ -124,6 +149,20 @@ public sealed unsafe class MemoryBuffer : AbstractFile
         Position += (uint)available;
         return (uint)available;
     }
+
+    /// <summary>Return direct pointer to the memory area.</summary>
+    public nint GetData() => (nint)_bufferPtr;
+
+    /// <summary>Return whether the buffer is read-only.</summary>
+    public bool IsReadOnly { get; }
+
+    public object Clone() => new MemoryBuffer(this);
+
+    private readonly byte[] _buffer;
+    private readonly byte* _bufferPtr;
+    private readonly int _bufferOffset;
+    private readonly bool _usesUnmanagedBuffer;
+    private GCHandle _pinnedBuffer;
 
     private static uint GetBufferSize(byte[] data)
     {

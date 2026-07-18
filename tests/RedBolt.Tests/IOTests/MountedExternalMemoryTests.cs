@@ -14,6 +14,7 @@ public sealed class MountedExternalMemoryTests
         var mountPoint = new MountedExternalMemory("memory");
         var linkedMemory = new MemoryBuffer("linked");
         mountPoint.LinkMemory("linked.txt", linkedMemory);
+        linkedMemory.Dispose();
         mountPoint.LinkMemory("content.txt", "content");
 
         Assert.True(mountPoint.AcceptsScheme("memory"));

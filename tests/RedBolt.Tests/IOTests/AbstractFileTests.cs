@@ -104,6 +104,49 @@ public sealed class AbstractFileTests
     }
 
     [Fact]
+    public unsafe void MemoryBuffer_class_kind_and_copy_construction_match_cpp()
+    {
+        Assert.False(typeof(MemoryBuffer).IsValueType);
+        Assert.False(typeof(MemoryBuffer).IsSealed);
+        Assert.Equal(typeof(AbstractFile), typeof(MemoryBuffer).BaseType);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(MemoryBuffer)));
+
+        var bytes = new byte[] { 1, 2, 3, 4 };
+        var source = new MemoryBuffer(bytes);
+        source.SetName("Memory");
+        source.Seek(2);
+
+        var copy = (MemoryBuffer)source.Clone();
+
+        Assert.NotSame(source, copy);
+        Assert.Equal(source.GetData(), copy.GetData());
+        Assert.Equal(source.Size, copy.Size);
+        Assert.Equal(source.Position, copy.Position);
+        Assert.Equal(source.Name, copy.Name);
+        Assert.Equal(source.IsReadOnly, copy.IsReadOnly);
+
+        copy.Seek(1);
+        Assert.True(copy.WriteUByte(9));
+        Assert.Equal(2u, source.Position);
+        Assert.Equal(new byte[] { 1, 9, 3, 4 }, bytes);
+
+        source.Dispose();
+        copy.Seek(0);
+        Assert.Equal(1, copy.ReadUByte());
+        copy.Dispose();
+        copy.Dispose();
+    }
+
+    [Fact]
+    public void MemoryBuffer_copy_preserves_read_only_state()
+    {
+        using var source = new MemoryBuffer(new byte[] { 1, 2, 3 }.AsMemory());
+        using var copy = (MemoryBuffer)source.Clone();
+
+        Assert.True(copy.IsReadOnly);
+    }
+
+    [Fact]
     public unsafe void VectorBuffer_exposes_data_pointers_for_managed_storage()
     {
         var buffer = new VectorBuffer(new byte[] { 42 });
