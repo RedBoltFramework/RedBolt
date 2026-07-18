@@ -1,20 +1,4 @@
 <Solution>
-  <Folder Name="/generators/">
-    <Project Path="generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj" />
-  </Folder>
-  <Folder Name="/src/">
-    <Project Path="src/RedBolt.Bindings.DearImGui/RedBolt.Bindings.DearImGui.csproj" />
-    <Project Path="src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <Project Path="src/RedBolt.Bindings.Glslang/RedBolt.Bindings.Glslang.csproj" />
-    <Project Path="src/RedBolt.Bindings.ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
-    <Project Path="src/RedBolt.Bindings.SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
-    <Project Path="src/RedBolt.Bindings.SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
-    <Project Path="src/RedBolt.Bindings.Stb/RedBolt.Bindings.Stb.csproj" />
-    <Project Path="src/RedBolt.Bindings.Lz4/RedBolt.Bindings.Lz4.csproj" />
-    <Project Path="src/RedBolt.Bindings.WebP/RedBolt.Bindings.WebP.csproj" />
-    <Project Path="src/RedBolt/RedBolt.csproj" />
-    <Project Path="src/RedBolt.DearImGui/RedBolt.DearImGui.csproj" />
-  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/RedBolt.Sample.HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
     <Project Path="samples/RedBolt.Sample.MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />
@@ -38,24 +22,9 @@
     <Project Path="samples/RedBolt.Sample.AggregatedInput/RedBolt.Sample.AggregatedInput.csproj" />
     <Project Path="samples/RedBolt.Sample.InputLogger/RedBolt.Sample.InputLogger.csproj" />
     <Project Path="samples/RedBolt.Sample.VirtualFileSystem/RedBolt.Sample.VirtualFileSystem.csproj" />
+    <Project Path="samples/RedBolt.Sample.Web/RedBolt.Sample.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
-  </Folder>
-  <Folder Name="/SharpCpp/" />
-  <Folder Name="/SharpCpp/src/">
-    <Project Path="SharpCpp/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Model/SharpCpp.Model.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj" />
-    <Project Path="SharpCpp/src/SharpCpp.Tool/SharpCpp.Tool.csproj" />
-  </Folder>
-  <Folder Name="/SharpCpp/tests/">
-    <Project Path="SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
-    <Project Path="SharpCpp/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
-    <Project Path="SharpCpp/tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
-    <Project Path="SharpCpp/tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
   </Folder>
 </Solution>

@@ -84,8 +84,8 @@ sealed class PointerAdapterApplication : Application
         if (query.Result.Count != 0)
             _outlineGroup.AddDrawable(query.Result[0].Drawable!);
     }
-    private static void HandleMouseButtonDown(ref InputEvents.MouseButtonDownEvent value) { }
-    private static void HandleMouseButtonUp(ref InputEvents.MouseButtonUpEvent value) { }
+    private void HandleMouseButtonDown(ref InputEvents.MouseButtonDownEvent value) { _outlineGroup!.SetColor(Color.Red); }
+    private void HandleMouseButtonUp(ref InputEvents.MouseButtonUpEvent value) { _outlineGroup!.SetColor(Color.White); }
 
     protected override void Update(float timeStep) { if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit(); }
     protected override void Stop()

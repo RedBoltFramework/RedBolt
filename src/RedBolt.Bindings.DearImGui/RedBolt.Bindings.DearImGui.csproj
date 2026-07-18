@@ -11,13 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="RedBolt">
-      <HintPath>$(RedBoltOutputDir)/RedBolt.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="SharpCpp.Support">
-      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
+    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
   </ItemGroup>
 </Project>

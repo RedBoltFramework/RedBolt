@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <AssemblyName>RedBolt.Native.Build</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=" />
+  </ItemGroup>
+
+  <Import Project="RedBolt.Native.targets" />
+</Project>

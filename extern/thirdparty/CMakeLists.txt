@@ -1,11 +1,3 @@
-include_guard(GLOBAL)
-
-function(redbolt_require_path path description)
-    if(NOT EXISTS "${path}")
-        message(FATAL_ERROR "${description} does not exist: ${path}")
-    endif()
-endfunction()
-
 redbolt_require_path("${REDBOLT_THIRDPARTY_ROOT}" "REDBOLT_THIRDPARTY_ROOT")
 redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}" "REDBOLT_SHARPCPP_ROOT")
 
@@ -28,29 +20,13 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
-macro(redbolt_add_external_subdirectory source_dir binary_dir)
-    set(_redbolt_saved_c_flags "${CMAKE_C_FLAGS}")
-    set(_redbolt_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
-
-    if(MSVC)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W0")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
-    else()
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
-    endif()
-
-    add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
-
-    set(CMAKE_C_FLAGS "${_redbolt_saved_c_flags}")
-    set(CMAKE_CXX_FLAGS "${_redbolt_saved_cxx_flags}")
-endmacro()
-
 if(EMSCRIPTEN)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
     set(SDL_STATIC ON CACHE BOOL "" FORCE)
     set(_redbolt_desktop_audio OFF)
 else()
+    set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
     set(SDL_SHARED ON CACHE BOOL "" FORCE)
     set(SDL_STATIC OFF CACHE BOOL "" FORCE)
     set(_redbolt_desktop_audio ON)
@@ -181,13 +157,19 @@ include("${REDBOLT_DILIGENT_SOURCE_ROOT}/BuildTools/CMake/BuildUtils.cmake")
 set(SPIRV_CROSS_ENABLE_C_API ON CACHE BOOL "Enable SPIRV-Cross C API" FORCE)
 set(SPIRV_CROSS_ENABLE_HLSL ON CACHE BOOL "Enable SPIRV-Cross HLSL target support" FORCE)
 set(SPIRV-Headers_SOURCE_DIR
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools/external/SPIRV-Headers"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Headers"
     CACHE PATH "SPIR-V headers source directory" FORCE)
 set(SPIRV-Headers_SOURCE_DIR
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools/external/SPIRV-Headers")
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Headers")
 set(ARCHIVER_SUPPORTED TRUE CACHE INTERNAL "Enable Diligent SPIR-V toolchain dependencies" FORCE)
+set(_redbolt_saved_build_shared_libs "${BUILD_SHARED_LIBS}")
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty")
-if(EMSCRIPTEN AND NOT TARGET glslang-default-resource-limits)
+set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}")
+set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}" CACHE BOOL "" FORCE)
+if(NOT TARGET glslang-default-resource-limits)
     add_library(glslang-default-resource-limits STATIC
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang/StandAlone/ResourceLimits.cpp"
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang/StandAlone/resource_limits_c.cpp")
@@ -286,9 +268,10 @@ endif()
 
 add_library(redbolt-native-support INTERFACE)
 target_include_directories(redbolt-native-support INTERFACE
-    "${REDBOLT_SHARPCPP_ROOT}/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/native/RedBolt.Native/include")
-target_link_libraries(redbolt-native-support INTERFACE redbolt-diligent-headers)
+    "${PROJECT_SOURCE_DIR}/native/RedBolt.Native/include")
+target_link_libraries(redbolt-native-support INTERFACE
+    SharpCpp::NativeSupport
+    redbolt-diligent-headers)
 
 set(REDBOLT_BINDING_INCLUDE_DIRS
     "${REDBOLT_SHARPCPP_ROOT}/include"
@@ -314,3 +297,11 @@ redbolt_add_external_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY
 add_custom_target(redbolt-native-dependency-batch
     DEPENDS SDL2 redbolt-diligent-build ImGui
     COMMENT "Building RedBolt initial native dependency batch")
+
+redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/LZ4" "${CMAKE_BINARY_DIR}/deps/LZ4")
+redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/WebP" "${CMAKE_BINARY_DIR}/deps/WebP")
+
+set(REDBOLT_LZ4_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/LZ4/include/LZ4" CACHE INTERNAL "RedBolt LZ4 include directory")
+set(REDBOLT_LZ4_LIBRARY LZ4 CACHE INTERNAL "RedBolt LZ4 target")
+set(REDBOLT_WEBP_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/WebP/src" CACHE INTERNAL "RedBolt WebP include directory")
+set(REDBOLT_WEBP_LIBRARY WebP CACHE INTERNAL "RedBolt WebP target")

@@ -74,8 +74,6 @@ add_dependencies(RedBolt.Native redbolt-generate-native-bindings)
 
 set_target_properties(RedBolt.Native PROPERTIES
     OUTPUT_NAME "RedBolt.Native"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>"
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
     BUILD_RPATH "$ORIGIN"
     INSTALL_RPATH "$ORIGIN"

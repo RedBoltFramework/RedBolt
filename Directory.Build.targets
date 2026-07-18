@@ -1,15 +1,3 @@
 <Project>
-  <PropertyGroup>
-    <RedBoltGlobalAliasesFile>$(MSBuildThisFileDirectory)src/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
-  </PropertyGroup>
-
-  <Target Name="RedBoltIncludeGlobalAliases"
-          BeforeTargets="CoreCompile"
-          Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '')">
-    <ItemGroup>
-      <Compile Include="$(RedBoltGlobalAliasesFile)"
-               Link="GlobalAliases.cs"
-               Visible="false" />
-    </ItemGroup>
-  </Target>
+  <Import Project="$(MSBuildThisFileDirectory)eng/RedBolt.Build.targets" />
 </Project>

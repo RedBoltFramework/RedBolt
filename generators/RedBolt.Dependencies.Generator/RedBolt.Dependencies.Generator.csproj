@@ -1,15 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <UseAppHost>false</UseAppHost>
     <AssemblyName>RedBolt.Dependencies.Generator</AssemblyName>
     <OutputType>Exe</OutputType>
+    <OutputPath>$(SharpCppOutputDir)/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <BuildInParallel>false</BuildInParallel>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Model/SharpCpp.Model.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Model/SharpCpp.Model.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
   </ItemGroup>
 </Project>

@@ -10,10 +10,4 @@
     <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs" LinkBase="Generated" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="SharpCpp.Support">
-      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-  </ItemGroup>
 </Project>

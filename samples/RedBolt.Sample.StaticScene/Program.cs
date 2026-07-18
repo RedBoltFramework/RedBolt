@@ -19,7 +19,6 @@ sealed class StaticSceneApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private readonly Random _random = new();
     private readonly CString _instructionLine = new();
     private ContextEventSubscription? _dearImGuiSubscription;
 
@@ -93,9 +92,9 @@ sealed class StaticSceneApplication : Application
         for (var i = 0; i < numObjects; ++i)
         {
             var mushroomNode = _scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3f(Random(90.0f) - 45.0f, 0.0f, Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, Random(360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + Random(2.0f));
+            mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
+            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f));
+            mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
             var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
             mushroomObject.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
             mushroomObject.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));

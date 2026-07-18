@@ -1,63 +1,4 @@
-include_guard(GLOBAL)
-
-file(GLOB_RECURSE REDBOLT_SHARPCPP_GENERATOR_INPUTS CONFIGURE_DEPENDS
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Model/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Metadata/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Parsing/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Pipeline/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Rendering/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Support/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Tool/*.cs"
-    "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.h"
-    "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.hpp")
-
-file(GLOB REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/*.cs")
-
-set(REDBOLT_DEPENDENCIES_GENERATOR_PROJECT
-    "${CMAKE_CURRENT_SOURCE_DIR}/generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj")
-set(REDBOLT_DEPENDENCIES_GENERATOR_DLL
-    "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/RedBolt.Dependencies.Generator.dll")
-set(REDBOLT_DEPENDENCIES_GENERATOR_STAMP
-    "${CMAKE_BINARY_DIR}/cmake/dotnet/RedBolt.Dependencies.Generator-$<CONFIG>.stamp")
-
-function(redbolt_ensure_native_binding_generator)
-    get_property(generator_initialized GLOBAL PROPERTY REDBOLT_DEPENDENCIES_GENERATOR_INITIALIZED)
-    if(generator_initialized)
-        return()
-    endif()
-
-    set(generator_restore_argument --no-restore)
-    if(REDBOLT_WEB_BUILD)
-        set(generator_restore_argument)
-    endif()
-
-    add_custom_command(
-        OUTPUT "${REDBOLT_DEPENDENCIES_GENERATOR_STAMP}"
-        COMMAND "${DOTNET_EXECUTABLE}" build
-            "${REDBOLT_DEPENDENCIES_GENERATOR_PROJECT}"
-            --configuration $<CONFIG>
-            ${generator_restore_argument}
-            "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-            "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-        COMMAND "${CMAKE_COMMAND}" -E touch "${REDBOLT_DEPENDENCIES_GENERATOR_STAMP}"
-        DEPENDS
-            "${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/Directory.Build.props"
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/dotnet/RedBolt.Build.props"
-            "${REDBOLT_DEPENDENCIES_GENERATOR_PROJECT}"
-            ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
-            ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Building RedBolt native binding generator"
-        VERBATIM)
-
-    set_property(GLOBAL PROPERTY REDBOLT_DEPENDENCIES_GENERATOR_INITIALIZED TRUE)
-endfunction()
-
 function(redbolt_add_native_binding_generation)
-    redbolt_ensure_native_binding_generator()
-
     set(options)
     set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA)
     set(multiValueArgs INCLUDE_DIRS DEFINES OWNED_HEADERS)
@@ -119,15 +60,11 @@ function(redbolt_add_native_binding_generation)
         DEPENDS
             "${ARG_HEADER}"
             ${ARG_OWNED_HEADERS}
-            "${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/Directory.Build.props"
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/dotnet/RedBolt.Build.props"
-            "${REDBOLT_DEPENDENCIES_GENERATOR_PROJECT}"
-            "${REDBOLT_DEPENDENCIES_GENERATOR_STAMP}"
+            "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
             ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Generating RedBolt native bindings"
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+        COMMENT "Generating ${ARG_SURFACE} bindings"
         VERBATIM)
 
     add_custom_target(${ARG_TARGET}

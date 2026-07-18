@@ -14,10 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SharpCpp.Support">
-      <HintPath>$(SharpCppOutputDir)/SharpCpp.Support.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="xunit.runner.json" />
+    <Content Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="TestData\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

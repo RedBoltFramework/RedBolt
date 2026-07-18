@@ -36,8 +36,11 @@ sealed class DecalsApplication : Application
     private void PaintDecal()
     {
         var ray = _cameraNode!.GetComponent<Camera>()!.GetScreenRayFromMouse();
-        var result = _octree!.RaycastSingle(ray, RayQueryLevel.RayTriangle, 250.0f, DrawableFlags.Geometry);
-        if (result?.Drawable is null) return;
+        using var query = new RayOctreeQuery(ray, RayQueryLevel.RayTriangle, 250.0f, DrawableFlags.Geometry);
+        _octree!.RaycastSingle(query);
+        if (query.Result.Count == 0) return;
+        var result = query.Result[0];
+        if (result.Drawable is null) return;
         var targetNode = result.Drawable.Node;
         var decal = targetNode.GetComponent<DecalSet>();
         if (decal is null) { decal = targetNode.CreateComponent<DecalSet>(); decal.SetMaterial(Resources.Get<Material>("Materials/UrhoDecal.xml")); }

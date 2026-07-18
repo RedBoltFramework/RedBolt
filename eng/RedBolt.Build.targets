@@ -1,0 +1,122 @@
+<Project>
+  <PropertyGroup>
+    <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
+    <RedBoltIsBindingProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))</RedBoltIsBindingProject>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltIsBindingProject)' == 'true'">
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+    <ProjectReference Include="$(RedBoltRoot)/native/RedBolt.Native/RedBolt.Native.csproj"
+                      Condition="'$(RedBoltPlatform)' != 'web-emscripten-wasm'"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration)" />
+    <ProjectReference Include="$(RedBoltRoot)/native/RedBolt.Native/RedBolt.Native.Web.csproj"
+                      Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration)" />
+  </ItemGroup>
+
+  <Target Name="RedBoltPropagateProjectReferenceProperties"
+          BeforeTargets="AssignProjectConfiguration;_SplitProjectReferencesByFileExistence">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="'%(ProjectReference.RedBoltProperties)' == ''"
+                        RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltSetProjectReferenceProperties"
+          AfterTargets="_SplitProjectReferencesByFileExistence"
+          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
+    <ItemGroup>
+      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
+                                        Condition="'%(_MSBuildProjectReferenceExistent.RedBoltProperties)' != ''">
+        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);%(_MSBuildProjectReferenceExistent.RedBoltProperties)</SetConfiguration>
+        <GlobalPropertiesToRemove>TargetFramework;RuntimeIdentifier;SelfContained;Platform</GlobalPropertiesToRemove>
+      </_MSBuildProjectReferenceExistent>
+      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
+                                        Condition="'%(_MSBuildProjectReferenceExistent.RedBoltProperties)' == ''">
+        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset)</SetConfiguration>
+        <GlobalPropertiesToRemove>TargetFramework;RuntimeIdentifier;SelfContained;Platform</GlobalPropertiesToRemove>
+      </_MSBuildProjectReferenceExistent>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltConfigureRestoreGraph"
+          BeforeTargets="_GenerateRestoreProjectPathItems;_GenerateProjectRestoreGraphPerFramework">
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties>
+        $(_GenerateRestoreGraphProjectEntryInputProperties);
+        SharpCppOutputDir=$(SharpCppOutputDir);
+        SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);
+        SharpCppBuildRoot=$(RedBoltBuildRoot);
+        SharpCppCMakeSourceDir=$(RedBoltRoot);
+        SharpCppNativePreset=$(RedBoltNativePreset);
+        SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);
+        SharpCppBuildE2E=false;
+        SharpCppBuildRbfx=false
+      </_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="RedBoltIncludeGeneratedBindings"
+          BeforeTargets="CoreCompile"
+          Condition="'$(RedBoltIsBindingProject)' == 'true'">
+    <ItemGroup>
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/sdl/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/stb/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/lz4/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/glslang/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-cross/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs;$(RedBoltGeneratedBindingsDir)/spirv-optimizer/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/shader-compiler/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltIncludeGlobalAliases"
+          BeforeTargets="CoreCompile"
+          Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '')">
+    <ItemGroup>
+      <Compile Include="$(RedBoltGlobalAliasesFile)"
+               Link="GlobalAliases.cs"
+               Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

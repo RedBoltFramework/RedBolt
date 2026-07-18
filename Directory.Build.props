@@ -1,4 +1,3 @@
 <Project>
-  <Import Project="$(MSBuildThisFileDirectory)cmake/dotnet/RedBolt.Build.props"
-          Condition="'$(RedBoltBuildPropsImported)' != 'true' and Exists('$(MSBuildThisFileDirectory)cmake/dotnet/RedBolt.Build.props')" />
+  <Import Project="$(MSBuildThisFileDirectory)eng/RedBolt.Build.props" />
 </Project>
