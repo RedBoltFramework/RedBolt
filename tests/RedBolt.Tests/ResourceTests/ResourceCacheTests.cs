@@ -306,6 +306,20 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Resource_routing_canonicalizes_only_before_routers_and_blocks_reentrancy()
+    {
+        var cache = new ResourceCache();
+        var reentrant = new ReentrantRouter(cache);
+        cache.AddResourceRouter(reentrant);
+        cache.AddResourceRouter(new PrefixRouter("../"));
+
+        var resolved = cache.GetResolvedIdentifier(new FileIdentifier(string.Empty, "Folder/../Data/file.txt"));
+
+        Assert.Equal("../Folder/Data/file.txt", resolved.FileName);
+        Assert.Equal(1, reentrant.NumRoutes);
+    }
+
+    [Fact]
     public void Dependency_reload_scan_and_diagnostics_work()
     {
         var tempDir = CreateTempDir();
@@ -559,6 +573,17 @@ internal sealed class PrefixRouter(string prefix) : ResourceRouter
     public override void Route(ref FileIdentifier name)
     {
         name.FileName = prefix + name.FileName;
+    }
+}
+
+internal sealed class ReentrantRouter(ResourceCache cache) : ResourceRouter
+{
+    public int NumRoutes { get; private set; }
+
+    public override void Route(ref FileIdentifier name)
+    {
+        ++NumRoutes;
+        name = cache.GetResolvedIdentifier(name);
     }
 }
 

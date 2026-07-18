@@ -133,7 +133,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `AbstractFile.h` — extensible abstract non-POD class kind, public base construction, name ownership, explicit virtual destruction, and derived teardown dispatch reconciled
 - [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
-- [~] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, implemented primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, and exception consumption reconciled; generic optional/pair helpers remain
+- [x] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, generic optional/pair value helpers, and exception consumption reconciled
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
 - [x] `Base64Archive.h` / `Base64Archive.cpp` — extensible non-POD class kinds, binary inheritance, owned VectorBuffer construction/reverse teardown, and direct encode/decode behavior reconciled
 - [x] `BinaryArchive.h` / `BinaryArchive.cpp` — extensible non-POD archive/block kinds, input-block copy construction, borrowed streams, owned safe buffers, deterministic teardown, paths, guards, and delayed exceptions reconciled
@@ -141,6 +141,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `VectorBuffer.h` / `VectorBuffer.cpp` — extensible copyable non-POD class kind, deep clone semantics, borrowed byte/pointer views, owned storage teardown, and return-value lifetimes reconciled
 - [x] `Deserializer.h` / `Deserializer.cpp` — extensible abstract non-POD class kind, public construction, scalar field lifetime, virtual disposal, raw and bulk read semantics, independent value returns, pointer/custom Variant handling, and unsigned relative seeking reconciled
 - [x] `File.h` / `File.cpp` — extensible non-POD class kind, standalone POD `FileMode` enum, owned handle and buffer lifetimes, exact close/reset ordering, package metadata copy, deterministic transient-file teardown, and independent binary returns reconciled
+- [x] `FileIdentifier.h` / `FileIdentifier.cpp` — mutable non-POD value-struct kind, owned string copy semantics, exact default/URI/path sanitization, operators, independent value returns, and canonical/resource-routing copies reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop

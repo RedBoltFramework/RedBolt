@@ -21,6 +21,8 @@ public sealed class ResourceCache : Object
     private readonly List<string> _resourceDirs = [];
     private VirtualFileSystem? _standaloneVirtualFileSystem;
     private readonly Dictionary<Type, Delegate> _loaders = new();
+    [ThreadStatic]
+    private static bool _routeResourceNameReentrancyGuard;
     private readonly List<ResourceRouter> _resourceRouters = [];
     private readonly Dictionary<Resource, HashSet<string>> _resourceDependencies = new();
     private readonly HashSet<string> _ignoredReloads = new(StringComparer.OrdinalIgnoreCase);
@@ -245,8 +247,15 @@ public sealed class ResourceCache : Object
 
     public void RouteResourceName(ref FileIdentifier name)
     {
+        name = GetVirtualFileSystem().GetCanonicalIdentifier(name);
+
+        if (_routeResourceNameReentrancyGuard)
+            return;
+
+        _routeResourceNameReentrancyGuard = true;
         foreach (var router in _resourceRouters)
             router.Route(ref name);
+        _routeResourceNameReentrancyGuard = false;
     }
 
     public FileIdentifier GetCanonicalIdentifier(FileIdentifier name)
@@ -256,9 +265,9 @@ public sealed class ResourceCache : Object
 
     public FileIdentifier GetResolvedIdentifier(FileIdentifier name)
     {
-        name = GetCanonicalIdentifier(name);
-        RouteResourceName(ref name);
-        return GetCanonicalIdentifier(name);
+        var result = name;
+        RouteResourceName(ref result);
+        return result;
     }
 
     public Resource? GetResource(StringHash type, string name, bool sendEventOnFailure = true)
