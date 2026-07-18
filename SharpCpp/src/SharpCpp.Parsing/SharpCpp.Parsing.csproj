@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SharpCpp.Parsing</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../SharpCpp.Model/SharpCpp.Model.csproj" />
+    <ProjectReference Include="../SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <PackageReference Include="ClangSharp" />
+    <PackageReference Include="libClang.runtime.linux-x64"
+                      Condition="'$(NETCoreSdkPortableRuntimeIdentifier)' == 'linux-x64'" />
+    <PackageReference Include="libClangSharp.runtime.linux-x64"
+                      Condition="'$(NETCoreSdkPortableRuntimeIdentifier)' == 'linux-x64'" />
+  </ItemGroup>
+</Project>

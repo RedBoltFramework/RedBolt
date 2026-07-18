@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework Condition="'$(SharpCppPackageTargetFramework)' != ''">$(SharpCppPackageTargetFramework)</TargetFramework>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <PackageId>SharpCpp.Rbfx.Bindings.runtime.$(SharpCppRuntimeIdentifier)</PackageId>
+    <Title>SharpCpp.Rbfx.Bindings.runtime.$(SharpCppRuntimeIdentifier)</Title>
+    <Version>$(PackageVersion)</Version>
+    <Authors>rbfx contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rbfx/rbfx</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rbfx/SharpCpp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>Native runtime assets for SharpCpp rbfx bindings ($(SharpCppRuntimeIdentifier)).</Description>
+    <PackageTags>rbfx SharpCpp Urho3D native runtime $(SharpCppRuntimeIdentifier)</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SharpCpp.Rbfx.Bindings" Version="$(PackageVersion)" />
+    <None Include="$(SharpCppNuGetStageRoot)/managed/analyzers/dotnet/cs/*" Pack="true" PackagePath="analyzers/dotnet/cs/%(Filename)%(Extension)" />
+    <None Include="$(SharpCppNuGetStageRoot)/runtime/$(SharpCppRuntimeIdentifier)/native/*" Pack="true" PackagePath="runtimes/$(SharpCppRuntimeIdentifier)/native/%(Filename)%(Extension)" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <Target Name="ValidateSharpCppRuntimePackageInputs" BeforeTargets="Pack">
+    <Error Condition="'$(SharpCppNuGetStageRoot)' == ''" Text="SharpCppNuGetStageRoot must point to staged package files." />
+    <Error Condition="'$(SharpCppRuntimeIdentifier)' == ''" Text="SharpCppRuntimeIdentifier must be set." />
+    <ItemGroup>
+      <SharpCppRuntimeNativeFiles Include="$(SharpCppNuGetStageRoot)/runtime/$(SharpCppRuntimeIdentifier)/native/*" />
+    </ItemGroup>
+    <Error Condition="'@(SharpCppRuntimeNativeFiles)' == ''" Text="No native runtime files were staged for $(SharpCppRuntimeIdentifier)." />
+  </Target>
+</Project>

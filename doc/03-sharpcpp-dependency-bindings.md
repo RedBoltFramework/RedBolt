@@ -53,19 +53,22 @@ RedBolt.Dependencies.Generator
 
 | Input | Source |
 |---|---|
-| SDL headers | All `SDL*.h` headers from `cmake-build/<preset>/deps/SDL/include` after the SDL build target prepares the build include directory. |
+| SDL headers | All `SDL*.h` headers from `build/native/<preset>/deps/SDL/include` after the SDL build target prepares the build include directory. |
 | Diligent headers | `extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/*.h` selected by the generator target. |
-| Parse umbrella headers | Generated under `cmake-build/<preset>/generated/redbolt-native/...` by CMake. |
+| Parse umbrella headers | Generated under `build/native/<preset>/generated/redbolt-native/...` by CMake. |
 | Compile flags | CMake include directories, platform defines, compiler target, and system include discovery. |
-| SharpCpp support headers | `../SharpCpp-v3/include/SharpCpp`. |
-| Output root | `cmake-build/<preset>/generated/redbolt-native`. |
+| SharpCpp support headers | `SharpCpp/include/SharpCpp`. |
+| Output root | `build/native/<preset>/generated/redbolt-native`. |
 
 ## Current Generated Surfaces
 
 | Surface | Parsed dependency headers | Generated output |
 |---|---|---|
 | SDL | All `SDL*.h` headers in the SDL build include directory | `RedBolt.Bindings.Sdl.*` C# and SDL thunk `.g.cpp`. |
-| Diligent | `Constants.h`, `GraphicsTypes.h` | `RedBolt.Bindings.Diligent.*` C# metadata/types. |
+| Diligent | Selected Diligent public engine and platform headers | `RedBolt.Bindings.Diligent.*` C# and native thunks. |
+| Dear ImGui | `imgui.h` | `RedBolt.Bindings.DearImGui.*` C# and native thunks. |
+| STB, LZ4, WebP | Copied dependency headers | Individual binding assemblies and native thunks. |
+| glslang, SPIRV-Cross, SPIRV-Tools | Copied shader-toolchain headers | Individual binding assemblies and native thunks. |
 
 The SDL surface is generated from the SDL build include directory and the SDL binding target depends on the SDL build target. The current Diligent surface validates enum/type generation from real Diligent headers. Expanding Diligent should happen by adding dependency headers or generator shaping rules, not by writing wrappers.
 

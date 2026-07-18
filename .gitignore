@@ -6,9 +6,6 @@
 .opencode/bun.lock
 .slim/deepwork/
 
-# Local dependency checkouts used for inspection/generation.
-/SharpCpp
-
 # CMake and build outputs.
 .CMakeLast.props
 cmake-build/

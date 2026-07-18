@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SharpCpp.Rbfx.Generator</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/SharpCpp.Model/SharpCpp.Model.csproj" />
+    <ProjectReference Include="../../src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <ProjectReference Include="../../src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
+    <ProjectReference Include="../../src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
+    <ProjectReference Include="../../src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
+    <ProjectReference Include="../../src/SharpCpp.Support/SharpCpp.Support.csproj" />
+  </ItemGroup>
+</Project>

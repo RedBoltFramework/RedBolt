@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SharpCpp.Tool</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../SharpCpp.Model/SharpCpp.Model.csproj" />
+    <ProjectReference Include="../SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <ProjectReference Include="../SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
+    <ProjectReference Include="../SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
+    <ProjectReference Include="../SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
+    <ProjectReference Include="../SharpCpp.Support/SharpCpp.Support.csproj" />
+  </ItemGroup>
+</Project>

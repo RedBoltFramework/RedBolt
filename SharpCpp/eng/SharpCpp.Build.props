@@ -1,0 +1,70 @@
+<Project>
+  <PropertyGroup>
+    <SharpCppBuildPropsImported>true</SharpCppBuildPropsImported>
+    <SharpCppRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</SharpCppRoot>
+    <SharpCppPackageRoot Condition="'$(SharpCppPackageRoot)' == ''">$(SharpCppRoot)</SharpCppPackageRoot>
+    <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(SharpCppRoot)/build'))</SharpCppBuildRoot>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+
+    <SharpCppNativePreset Condition="'$(SharpCppNativePreset)' == ''">dev</SharpCppNativePreset>
+    <SharpCppCMakeSourceDir Condition="'$(SharpCppCMakeSourceDir)' == ''">$(SharpCppRoot)</SharpCppCMakeSourceDir>
+    <SharpCppNativeBuildDir Condition="'$(SharpCppNativeBuildDir)' == ''">$(SharpCppBuildRoot)/native/$(SharpCppNativePreset)</SharpCppNativeBuildDir>
+    <SharpCppNativeLockFile Condition="'$(SharpCppNativeLockFile)' == ''">$(SharpCppBuildRoot)/native/sharpcpp-native.lock</SharpCppNativeLockFile>
+    <SharpCppNativeTarget Condition="'$(SharpCppNativeTarget)' == ''">sharpcpp-native</SharpCppNativeTarget>
+    <SharpCppConfigureNative Condition="'$(SharpCppConfigureNative)' == ''">true</SharpCppConfigureNative>
+    <SharpCppBuildE2E Condition="'$(SharpCppBuildE2E)' == ''">true</SharpCppBuildE2E>
+    <SharpCppBuildRbfx Condition="'$(SharpCppBuildRbfx)' == ''">true</SharpCppBuildRbfx>
+    <SharpCppManagedOutputRoot Condition="'$(SharpCppManagedOutputRoot)' == ''">$(SharpCppBuildRoot)/bin</SharpCppManagedOutputRoot>
+    <SharpCppOutputDir Condition="'$(SharpCppOutputDir)' == ''">$(SharpCppManagedOutputRoot)/$(Configuration)</SharpCppOutputDir>
+    <SharpCppNativeOutputRoot Condition="'$(SharpCppNativeOutputRoot)' == ''">$(SharpCppBuildRoot)/bin</SharpCppNativeOutputRoot>
+    <SharpCppIntermediateRoot Condition="'$(SharpCppIntermediateRoot)' == ''">$(SharpCppBuildRoot)/obj/managed/$(Configuration)</SharpCppIntermediateRoot>
+
+    <SharpCppGeneratedRoot>$(SharpCppNativeBuildDir)/generated</SharpCppGeneratedRoot>
+    <SharpCppE2EGeneratedDir>$(SharpCppGeneratedRoot)/sharpcpp-e2e</SharpCppE2EGeneratedDir>
+    <SharpCppRbfxGeneratedDir>$(SharpCppGeneratedRoot)/rbfx</SharpCppRbfxGeneratedDir>
+    <SharpCppUserCodeGeneratedDir>$(SharpCppGeneratedRoot)/rbfx-usercode</SharpCppUserCodeGeneratedDir>
+    <SharpCppE2EGeneratedStamp>$(SharpCppE2EGeneratedDir)/generate.stamp</SharpCppE2EGeneratedStamp>
+    <SharpCppRbfxGeneratedStamp>$(SharpCppRbfxGeneratedDir)/generate.stamp</SharpCppRbfxGeneratedStamp>
+    <SharpCppUserCodeGeneratedStamp>$(SharpCppUserCodeGeneratedDir)/generate.stamp</SharpCppUserCodeGeneratedStamp>
+
+    <SharpCppSharedLibraryPrefix Condition="$([MSBuild]::IsOSPlatform(`Linux`)) or $([MSBuild]::IsOSPlatform(`OSX`))">lib</SharpCppSharedLibraryPrefix>
+    <SharpCppSharedLibrarySuffix Condition="$([MSBuild]::IsOSPlatform(`Linux`))">.so</SharpCppSharedLibrarySuffix>
+    <SharpCppSharedLibrarySuffix Condition="$([MSBuild]::IsOSPlatform(`OSX`))">.dylib</SharpCppSharedLibrarySuffix>
+    <SharpCppSharedLibrarySuffix Condition="$([MSBuild]::IsOSPlatform(`Windows`))">.dll</SharpCppSharedLibrarySuffix>
+    <SharpCppE2ENativeLibraryPath>$(SharpCppOutputDir)/$(SharpCppSharedLibraryPrefix)SharpCppTestsE2E_Native$(SharpCppSharedLibrarySuffix)</SharpCppE2ENativeLibraryPath>
+    <SharpCppRbfxNativeLibraryPath>$(SharpCppOutputDir)/$(SharpCppSharedLibraryPrefix)SharpCpp.Rbfx.Native$(SharpCppSharedLibrarySuffix)</SharpCppRbfxNativeLibraryPath>
+    <SharpCppRbfxUserCodeNativeLibraryPath>$(SharpCppOutputDir)/$(SharpCppSharedLibraryPrefix)SharpCpp.Rbfx.UserCode.Native$(SharpCppSharedLibrarySuffix)</SharpCppRbfxUserCodeNativeLibraryPath>
+    <SharpCppRbfxRunSettingsPath>$(SharpCppOutputDir)/SharpCpp.Rbfx.Tests.runsettings</SharpCppRbfxRunSettingsPath>
+    <SharpCppRbfxUrho3DRuntimeLibraryPath>$(SharpCppOutputDir)/$(SharpCppSharedLibraryPrefix)Urho3D$(SharpCppSharedLibrarySuffix)</SharpCppRbfxUrho3DRuntimeLibraryPath>
+
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Deterministic>true</Deterministic>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NuGetAudit>false</NuGetAudit>
+
+    <SharpCppIsTestProject Condition="$([System.String]::Copy('$(MSBuildProjectName)').Contains('.Tests.'))">true</SharpCppIsTestProject>
+    <OutputPath Condition="'$(SharpCppIsTestProject)' != 'true'">$(SharpCppOutputDir)/</OutputPath>
+    <OutputPath Condition="'$(SharpCppIsTestProject)' == 'true'">$(SharpCppOutputDir)/SharpCpp.Tests/$(MSBuildProjectName)/</OutputPath>
+    <BaseIntermediateOutputPath>$(SharpCppIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(SharpCppBuildRoot)/obj/restore/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SharpCppBuildRoot)/**;$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SharpCpp.Tests.E2E'">
+    <SharpCppGeneratedDir>$(SharpCppE2EGeneratedDir)</SharpCppGeneratedDir>
+    <SharpCppGeneratedStamp>$(SharpCppE2EGeneratedStamp)</SharpCppGeneratedStamp>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'SharpCpp.Rbfx.Bindings' or '$(MSBuildProjectName)' == 'SharpCpp.Rbfx.Tests.E2E'">
+    <SharpCppGeneratedDir>$(SharpCppRbfxGeneratedDir)</SharpCppGeneratedDir>
+    <SharpCppGeneratedStamp>$(SharpCppRbfxGeneratedStamp)</SharpCppGeneratedStamp>
+  </PropertyGroup>
+
+</Project>

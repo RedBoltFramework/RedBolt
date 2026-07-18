@@ -112,3 +112,9 @@ endif()
 if(D3D11_SUPPORTED OR D3D12_SUPPORTED)
     target_link_libraries(RedBolt.Native PRIVATE d3dcompiler)
 endif()
+add_library(redbolt-native-support INTERFACE)
+target_include_directories(redbolt-native-support INTERFACE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(redbolt-native-support INTERFACE
+    SharpCpp::NativeSupport
+    redbolt-diligent-headers)

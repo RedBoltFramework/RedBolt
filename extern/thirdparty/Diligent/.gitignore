@@ -10,11 +10,7 @@
 /media/
 /Tests/
 /ThirdParty/glew/
-/ThirdParty/glslang/
 /ThirdParty/googletest/
-/ThirdParty/SPIRV-Cross/
-/ThirdParty/SPIRV-Headers/
-/ThirdParty/SPIRV-Tools/
 /ThirdParty/volk/test/
 /ThirdParty/Vulkan-Headers/registry/
 /ThirdParty/Vulkan-Headers/tests/

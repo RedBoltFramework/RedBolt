@@ -1,0 +1,9 @@
+<Project>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\content\CoreData\**\*">
+      <Link>CoreData/%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>CoreData/%(RecursiveDir)%(FileName)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+</Project>

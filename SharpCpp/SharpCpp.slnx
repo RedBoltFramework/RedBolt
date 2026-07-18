@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <Project Path="src/SharpCpp.Model/SharpCpp.Model.csproj" />
+    <Project Path="src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
+    <Project Path="src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
+    <Project Path="src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
+    <Project Path="src/SharpCpp.Support/SharpCpp.Support.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
+    <Project Path="tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
+    <Project Path="tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
+    <Project Path="tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
+  </Folder>
+  <Folder Name="/rbfx/">
+    <Project Path="rbfx/Rbfx.Application/Rbfx.Application.csproj" />
+    <Project Path="rbfx/Rbfx.UserCode/Rbfx.UserCode.Bindings/Rbfx.UserCode.Bindings.csproj" />
+    <Project Path="rbfx/SharpCpp.Rbfx.Bindings/SharpCpp.Rbfx.Bindings.csproj" />
+    <Project Path="rbfx/SharpCpp.Rbfx.SourceGenerator/SharpCpp.Rbfx.SourceGenerator.csproj" />
+    <Project Path="rbfx/SharpCpp.Rbfx.Tests.E2E/SharpCpp.Rbfx.Tests.E2E.csproj" />
+  </Folder>
+  <Folder Name="/native/">
+    <Project Path="native/SharpCpp.Native/SharpCpp.Native.csproj" />
+  </Folder>
+</Solution>

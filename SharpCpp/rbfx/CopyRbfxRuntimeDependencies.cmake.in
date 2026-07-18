@@ -1,0 +1,57 @@
+set(sdk_root "@RBFX_SDK_ROOT@")
+
+set(search_directories
+  "${urho_dir}"
+  "${sdk_root}/bin/${config}"
+  "${sdk_root}/lib/${config}")
+
+function(resolve_sdk_runtime_source runtime_dependency resolved_source_var)
+  set(runtime_dependency_source "${runtime_dependency}")
+
+  string(FIND "${runtime_dependency_source}" "${output_dir}/" output_dependency_prefix)
+  if(output_dependency_prefix EQUAL 0)
+    get_filename_component(runtime_dependency_name "${runtime_dependency_source}" NAME)
+
+    foreach(search_directory IN LISTS search_directories)
+      if(EXISTS "${search_directory}/${runtime_dependency_name}")
+        set(runtime_dependency_source "${search_directory}/${runtime_dependency_name}")
+        break()
+      endif()
+    endforeach()
+  endif()
+
+  string(FIND "${runtime_dependency_source}" "${sdk_root}/" sdk_dependency_prefix)
+  if(sdk_dependency_prefix EQUAL 0 OR runtime_dependency_source STREQUAL sdk_root)
+    set(${resolved_source_var} "${runtime_dependency_source}" PARENT_SCOPE)
+  else()
+    set(${resolved_source_var} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(copy_runtime_dependency runtime_dependency_source)
+  if(NOT EXISTS "${runtime_dependency_source}")
+    return()
+  endif()
+
+  get_filename_component(runtime_dependency_name "${runtime_dependency_source}" NAME)
+  file(COPY_FILE "${runtime_dependency_source}" "${output_dir}/${runtime_dependency_name}" ONLY_IF_DIFFERENT)
+endfunction()
+
+file(GET_RUNTIME_DEPENDENCIES
+  LIBRARIES "${target_file}"
+  RESOLVED_DEPENDENCIES_VAR resolved_dependencies
+  UNRESOLVED_DEPENDENCIES_VAR unresolved_dependencies
+  DIRECTORIES ${search_directories})
+
+resolve_sdk_runtime_source("${urho_library_file}" urho_library_source)
+if(NOT urho_library_source STREQUAL "")
+  copy_runtime_dependency("${urho_library_source}")
+endif()
+
+foreach(runtime_dependency IN LISTS resolved_dependencies)
+  resolve_sdk_runtime_source("${runtime_dependency}" runtime_dependency_source)
+
+  if(NOT runtime_dependency_source STREQUAL "")
+    copy_runtime_dependency("${runtime_dependency_source}")
+  endif()
+endforeach()

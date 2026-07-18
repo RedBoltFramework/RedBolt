@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>SharpCpp.Rbfx.Tests.E2E</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RunSettingsFilePath>$(SharpCppRbfxRunSettingsPath)</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../SharpCpp.Rbfx.Bindings/SharpCpp.Rbfx.Bindings.csproj" />
+    <ProjectReference Include="../SharpCpp.Rbfx.SourceGenerator/SharpCpp.Rbfx.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../Rbfx.UserCode/Rbfx.UserCode.Bindings/Rbfx.UserCode.Bindings.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework Condition="'$(SharpCppPackageTargetFramework)' != ''">$(SharpCppPackageTargetFramework)</TargetFramework>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <PackageId>SharpCpp.Rbfx.CoreData</PackageId>
+    <Title>SharpCpp.Rbfx.CoreData</Title>
+    <Version>$(PackageVersion)</Version>
+    <Authors>rbfx contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rbfx/rbfx</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rbfx/SharpCpp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>CoreData resource package for rbfx applications.</Description>
+    <PackageTags>rbfx SharpCpp Urho3D CoreData resources</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(SharpCppNuGetStageRoot)/data/CoreData/**" Pack="true" PackagePath="content/CoreData/%(RecursiveDir)%(FileName)%(Extension)" />
+    <None Include="buildTransitive/SharpCpp.Rbfx.CoreData.targets" Pack="true" PackagePath="buildTransitive/" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
