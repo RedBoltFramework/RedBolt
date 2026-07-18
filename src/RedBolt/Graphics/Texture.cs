@@ -89,17 +89,17 @@ public class Texture : ResourceWithMetadata
 
     public bool Linear => _linear;
 
-    public bool SRGB
-    {
-        get => _requestedSRGB;
-        private set => _requestedSRGB = value;
-    }
+    public bool SRGB => GetSRGB();
 
     public Texture? BackupTexture => _backupTexture;
 
     public RawTexture? GetRawTexture() => _rawTexture;
 
-    public bool IsCompressed() => false;
+    public bool IsCompressed()
+    {
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        return formatInfo.ComponentType == global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed;
+    }
 
     public void SetFilterMode(TextureFilterMode mode)
     {
@@ -179,10 +179,13 @@ public class Texture : ResourceWithMetadata
 
     public void SetSRGB(bool enable)
     {
-        SRGB = enable;
+        _requestedSRGB = enable;
     }
 
-    public bool GetSRGB() => SRGB;
+    public bool GetSRGB()
+    {
+        return RenderAPIUtils.IsTextureFormatSRGB(Graphics.MapTextureFormat(Format, _requestedSRGB));
+    }
 
     public void SetBackupTexture(Texture? texture)
     {
@@ -237,23 +240,14 @@ public class Texture : ResourceWithMetadata
         if (Width == 0 || IsCompressed())
             return 0u;
 
-        return Format switch
-        {
-            TextureFormat.Depth16 => 2u,
-            TextureFormat.Depth32 => 4u,
-            TextureFormat.Depth24Stencil8 => 4u,
-            TextureFormat.Depth32Stencil8 => 8u,
-            TextureFormat.R8 => 1u,
-            TextureFormat.RG16F => 4u,
-            TextureFormat.RGB8 => 3u,
-            TextureFormat.RGBA8 => 4u,
-            TextureFormat.RGBA16F => 8u,
-            TextureFormat.RGBA32F => 16u,
-            _ => 0u
-        };
+        return GetRowDataSize(Width) / (uint)Width;
     }
 
-    public uint GetDataSize(int width, int height) => GetRowDataSize(width) * (uint)height;
+    public uint GetDataSize(int width, int height)
+    {
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        return GetRowDataSize(width) * (((uint)height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight);
+    }
 
     public uint GetDataSize(int width, int height, int depth)
     {
@@ -262,7 +256,8 @@ public class Texture : ResourceWithMetadata
 
     public uint GetRowDataSize(int width)
     {
-        return (uint)width * GetComponents();
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        return formatInfo.GetElementSize() * (((uint)width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth);
     }
 
     public void SetParameters(XMLFile? file)

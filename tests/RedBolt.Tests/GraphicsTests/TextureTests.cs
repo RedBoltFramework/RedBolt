@@ -141,6 +141,10 @@ public sealed class TextureTests
 
         Assert.True(texture.SetSize(8, 4, TextureFormat.Depth32Stencil8));
         Assert.Equal(8u, texture.GetComponents());
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.RGB8));
+        Assert.Equal(4u, texture.GetComponents());
+        Assert.Equal(32u, texture.GetRowDataSize(8));
     }
 
     [Fact]
@@ -216,6 +220,8 @@ public sealed class TextureTests
         Assert.Equal(3, texture.GetMipsToSkip(MaterialQuality.Low));
         Assert.Equal(2, texture.GetMipsToSkip(MaterialQuality.Medium));
         Assert.Equal(1, texture.GetMipsToSkip(MaterialQuality.High));
+        Assert.False(texture.GetSRGB());
+        Assert.True(texture.SetSize(8, 4, TextureFormat.RGBA8));
         Assert.True(texture.GetSRGB());
         Assert.True(texture.GetLinear());
     }
