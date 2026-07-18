@@ -72,10 +72,10 @@ internal static class EngineCommandLine
         parser.AddFlag(["--profile"], "Enable profiling", () => parameters.Profile = true);
         parser.AddFlag(["--no-profile"], "Disable profiling", () => parameters.Profile = false);
 
-        parser.AddFlag(["--d3d11"], "Use the D3D11 backend", () => parameters.RenderBackend = GraphicsBackend.D3D11);
-        parser.AddFlag(["--d3d12"], "Use the D3D12 backend", () => parameters.RenderBackend = GraphicsBackend.D3D12);
-        parser.AddFlag(["--opengl"], "Use the OpenGL backend", () => parameters.RenderBackend = GraphicsBackend.OpenGL);
-        parser.AddFlag(["--vulkan"], "Use the Vulkan backend", () => parameters.RenderBackend = GraphicsBackend.Vulkan);
+        parser.AddFlag(["--d3d11"], "Use the D3D11 backend", () => parameters.RenderBackend = RenderBackend.D3D11);
+        parser.AddFlag(["--d3d12"], "Use the D3D12 backend", () => parameters.RenderBackend = RenderBackend.D3D12);
+        parser.AddFlag(["--opengl"], "Use the OpenGL backend", () => parameters.RenderBackend = RenderBackend.OpenGL);
+        parser.AddFlag(["--vulkan"], "Use the Vulkan backend", () => parameters.RenderBackend = RenderBackend.Vulkan);
 
         parser.AddOption(["--app-name"], "name", "Set the application name", value => parameters.ApplicationName = value);
         parser.AddOption(["--organization"], "name", "Set the organization name", value => parameters.OrganizationName = value);

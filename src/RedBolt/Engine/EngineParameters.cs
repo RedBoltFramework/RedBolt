@@ -68,7 +68,7 @@ public sealed class EngineParameters
 
     public uint? RenderAdapterId { get; set; }
 
-    public GraphicsBackend RenderBackend { get; set; } = GraphicsBackend.Auto;
+    public RenderBackend? RenderBackend { get; set; }
 
     public string ResourcePackages { get; set; } = string.Empty;
 
@@ -143,12 +143,6 @@ public sealed class EngineParameters
     public bool WorkerThreads { get; set; } = true;
 
     public bool XR { get; set; }
-
-    public GraphicsBackend GraphicsBackend
-    {
-        get => RenderBackend;
-        set => RenderBackend = value;
-    }
 
     internal EngineParameters Clone() => (EngineParameters)MemberwiseClone();
 }

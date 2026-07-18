@@ -433,7 +433,7 @@ public sealed class RenderDeviceTests
         {
             ApplicationName = "RenderDeviceTests",
             Headless = true,
-            RenderBackend = GraphicsBackend.OpenGL,
+            RenderBackend = RenderBackend.OpenGL,
             GPUDebug = true,
             RenderAdapterId = 7,
             TweakVulkan = "{\"dynamicHeapSize\":33554432,\"queryPoolSize_timestamp\":64}",
@@ -499,7 +499,7 @@ public sealed class RenderDeviceTests
             {
                 ApplicationName = "RenderDeviceTests",
                 Headless = true,
-                RenderBackend = GraphicsBackend.OpenGL
+                RenderBackend = RenderBackend.OpenGL
             });
 
             var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();
@@ -536,7 +536,7 @@ public sealed class RenderDeviceTests
             {
                 ApplicationName = "RenderDeviceTests",
                 Headless = true,
-                RenderBackend = GraphicsBackend.OpenGL
+                RenderBackend = RenderBackend.OpenGL
             });
 
             var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();

@@ -33,6 +33,7 @@ public sealed class EngineTests
         Assert.Equal("conf://Urho3D.log", parameters.LogName);
         Assert.Equal("Urho3D Rebel Fork", parameters.OrganizationName);
         Assert.Equal("conf://psocache.bin", parameters.PsoCache);
+        Assert.Null(parameters.RenderBackend);
         Assert.Equal("CoreData;Cache;Data", parameters.ResourcePaths);
         Assert.Equal("conf://ShaderCache", parameters.ShaderCacheDir);
         Assert.Equal("{\"gpuDescriptorHeapSize_cvb_srv_uav\":32768,\"gpuDescriptorHeapDynamicSize_cvb_srv_uav\":24576}", parameters.TweakD3D12);
@@ -109,7 +110,7 @@ public sealed class EngineTests
         {
             ApplicationName = "RedBolt.Tests.ScreenshotExit",
             ConfigName = string.Empty,
-            GraphicsBackend = GraphicsBackend.OpenGL,
+            RenderBackend = RenderBackend.OpenGL,
             ScreenshotOnExit = Path.Combine(Path.GetTempPath(), "redbolt-test-screenshot.png"),
             Headless = false
         });

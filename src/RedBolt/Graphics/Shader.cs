@@ -155,7 +155,7 @@ public sealed class Shader : Resource
         return result.ToString();
     }
 
-    public string PrepareSource(ShaderStage stage, string defines, GraphicsBackend backend = GraphicsBackend.OpenGL,
+    public string PrepareSource(ShaderStage stage, string defines, RenderBackend backend = RenderBackend.OpenGL,
         string extraCode = "")
     {
         var (body, extensionDirectives) = ExtractExtensionDirectives(_sourceCode);
@@ -367,11 +367,11 @@ public sealed class Shader : Resource
             .ToArray();
     }
 
-    private static string GetBackendDefine(GraphicsBackend backend)
+    private static string GetBackendDefine(RenderBackend backend)
     {
         return backend switch
         {
-            GraphicsBackend.OpenGL or GraphicsBackend.Auto => "URHO3D_OPENGL",
+            RenderBackend.OpenGL => "URHO3D_OPENGL",
             _ => $"URHO3D_{backend.ToString().ToUpperInvariant()}"
         };
     }
@@ -400,11 +400,11 @@ public sealed class Shader : Resource
         return (directory + includeName).Replace('\\', '/');
     }
 
-    private static string GetDefaultVersionDirective(GraphicsBackend backend)
+    private static string GetDefaultVersionDirective(RenderBackend backend)
     {
         return backend switch
         {
-            GraphicsBackend.OpenGL or GraphicsBackend.Auto => "#version 410",
+            RenderBackend.OpenGL => "#version 410",
             _ => "#version 410"
         };
     }

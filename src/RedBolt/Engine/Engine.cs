@@ -73,7 +73,7 @@ public sealed class Engine : Object
         resources.RegisterDefaultResources();
         Log.Logger.LogInformation(
             "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",
-            applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.GraphicsBackend);
+            applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.RenderBackend);
         ApplyInitializationParameters();
 
         if (!IsHeadless)
@@ -484,7 +484,7 @@ public sealed class Engine : Object
         foreach (var property in typeof(EngineParameters).GetProperties(
                      System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
         {
-            if (!property.CanRead || !property.CanWrite || property.Name == nameof(EngineParameters.GraphicsBackend))
+            if (!property.CanRead || !property.CanWrite)
                 continue;
 
             var definition = _configFile.DefineVariable(

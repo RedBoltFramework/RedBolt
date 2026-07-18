@@ -67,7 +67,7 @@ public sealed class RenderDevice : Object
 
         _deviceSettings = new RenderDeviceSettings
         {
-            Backend = MapRenderBackend(parameters.RenderBackend),
+            Backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend),
             ExternalWindowHandle = parameters.ExternalWindow,
             GpuDebug = parameters.GPUDebug,
             AdapterId = parameters.RenderAdapterId,
@@ -1053,20 +1053,6 @@ public sealed class RenderDevice : Object
         if (parameters.Borderless)
             return WindowMode.Borderless;
         return WindowMode.Windowed;
-    }
-
-    private static RenderBackend MapRenderBackend(GraphicsBackend backend)
-    {
-        var requestedBackend = backend switch
-        {
-            GraphicsBackend.Auto => (RenderBackend?)null,
-            GraphicsBackend.OpenGL => RenderBackend.OpenGL,
-            GraphicsBackend.Vulkan => RenderBackend.Vulkan,
-            GraphicsBackend.D3D11 => RenderBackend.D3D11,
-            GraphicsBackend.D3D12 => RenderBackend.D3D12,
-            _ => throw new ArgumentOutOfRangeException(nameof(backend), backend, null)
-        };
-        return RenderAPIUtils.SelectRenderBackend(requestedBackend);
     }
 
     private static int CompareFullscreenMode(FullscreenMode mode, Vector2i size, int refreshRate)

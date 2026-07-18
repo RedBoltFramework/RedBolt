@@ -37,7 +37,7 @@ public sealed class ShaderVariation : RawShader
     public string GetShaderVariationName() => $"{Name}({Defines})";
 
     /// <summary>Prepare shader source for the managed renderer.</summary>
-    public string PrepareSource(GraphicsBackend backend = GraphicsBackend.OpenGL, string extraCode = "")
+    public string PrepareSource(RenderBackend backend = RenderBackend.OpenGL, string extraCode = "")
     {
         return Shader.PrepareSource(GetStage(ShaderType), Defines, backend, extraCode);
     }

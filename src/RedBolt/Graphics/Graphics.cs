@@ -865,15 +865,6 @@ layout(std140) uniform Material
         return renderDevice?.GetBackend() ?? RenderBackend.OpenGL;
     }
 
-    private GraphicsBackend GetShaderBackend() => GetRenderBackend() switch
-    {
-        RenderBackend.OpenGL => GraphicsBackend.OpenGL,
-        RenderBackend.Vulkan => GraphicsBackend.Vulkan,
-        RenderBackend.D3D11 => GraphicsBackend.D3D11,
-        RenderBackend.D3D12 => GraphicsBackend.D3D12,
-        _ => GraphicsBackend.Auto
-    };
-
     /// <summary>
     /// Return dummy color texture format for shadow maps.
     /// </summary>
@@ -4679,10 +4670,10 @@ layout(std140) uniform Material
             using var rootMount = new MountPointGuard(virtualFileSystem.MountRoot());
             virtualFileSystem.WriteAllText(
                 new FileIdentifier("file", vertexPath),
-                vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+                vertexShaderResource.PrepareSource(ShaderStage.Vertex, vertexDefines, RenderBackend.OpenGL, ShaderExtraCode));
             virtualFileSystem.WriteAllText(
                 new FileIdentifier("file", pixelPath),
-                pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, GraphicsBackend.OpenGL, ShaderExtraCode));
+                pixelShaderResource.PrepareSource(ShaderStage.Pixel, pixelDefines, RenderBackend.OpenGL, ShaderExtraCode));
         }
         catch (Exception error)
         {
