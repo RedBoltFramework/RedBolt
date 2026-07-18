@@ -158,19 +158,12 @@ set(REDBOLT_SPIRV_CROSS_C_HEADER "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}/spirv_cross
 set(REDBOLT_SPIRV_TOOLS_C_HEADER "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include/spirv-tools/libspirv.h")
 
 find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
-if(EMSCRIPTEN)
-    redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/LZ4" "${CMAKE_BINARY_DIR}/deps/LZ4")
-    redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/WebP" "${CMAKE_BINARY_DIR}/deps/WebP")
-    set(REDBOLT_LZ4_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/LZ4/include/LZ4")
-    set(REDBOLT_LZ4_LIBRARY LZ4)
-    set(REDBOLT_WEBP_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/WebP/src")
-    set(REDBOLT_WEBP_LIBRARY WebP)
-else()
-    find_path(REDBOLT_LZ4_INCLUDE_DIR lz4.h REQUIRED)
-    find_library(REDBOLT_LZ4_LIBRARY lz4 REQUIRED)
-    find_path(REDBOLT_WEBP_INCLUDE_DIR webp/encode.h REQUIRED)
-    find_library(REDBOLT_WEBP_LIBRARY webp REQUIRED)
-endif()
+redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/LZ4" "${CMAKE_BINARY_DIR}/deps/LZ4")
+redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/WebP" "${CMAKE_BINARY_DIR}/deps/WebP")
+set(REDBOLT_LZ4_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/LZ4/include/LZ4")
+set(REDBOLT_LZ4_LIBRARY LZ4)
+set(REDBOLT_WEBP_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/WebP/src")
+set(REDBOLT_WEBP_LIBRARY WebP)
 
 redbolt_initialize_dotnet_consumer(
     CONSUMER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}"
