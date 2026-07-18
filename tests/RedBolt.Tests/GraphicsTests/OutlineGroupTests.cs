@@ -17,7 +17,7 @@ public sealed class OutlineGroupTests
     public void Outline_group_caches_outline_material_and_updates_cached_state()
     {
         var referenceMaterial = Resources.Get<Material>("Materials/FirstCube");
-        var outlineGroup = new OutlineGroup();
+        using var outlineGroup = new OutlineGroup();
         outlineGroup.SetColor(new Color(0.2f, 0.4f, 0.6f, 1.0f));
         outlineGroup.SetRenderOrder(17u);
 
@@ -37,21 +37,31 @@ public sealed class OutlineGroupTests
     }
 
     [Fact]
-    public void Outline_group_rewrites_outlineable_passes_to_outline_shader()
+    public void Outline_group_copies_only_shader_parameters_and_textures()
     {
         var referenceMaterial = Resources.Get<Material>("Materials/Mushroom.xml");
-        var outlineMaterial = new OutlineGroup().GetOutlineMaterial(referenceMaterial);
-        var technique = outlineMaterial.FindTechnique(MaterialQuality.High);
-        var pass = technique?.GetPass("base") ?? technique?.GetPass("alpha");
+        using var outlineGroup = new OutlineGroup();
+        var outlineMaterial = outlineGroup.GetOutlineMaterial(referenceMaterial);
 
-        Assert.NotNull(pass);
-        Assert.Equal("M_OutlinePixel", pass!.PixelShader);
-        Assert.Equal(CompareMode.Always, pass.DepthTestMode);
-        Assert.False(pass.DepthWrite);
-        Assert.Equal(BlendMode.Replace, pass.BlendMode);
-        Assert.Equal(CullMode.None, pass.CullMode);
-        Assert.False(outlineMaterial.GetAlphaToCoverage());
-        Assert.Equal(FillMode.Solid, outlineMaterial.GetFillMode());
+        Assert.Single(outlineMaterial.GetTechniques());
+        Assert.NotSame(referenceMaterial.GetTechnique(0), outlineMaterial.GetTechnique(0));
+        Assert.Equal(referenceMaterial.GetShaderParameter("MatDiffColor"), outlineMaterial.GetShaderParameter("MatDiffColor"));
+        Assert.Same(referenceMaterial.GetTexture("Albedo"), outlineMaterial.GetTexture("Albedo"));
+    }
+
+    [Fact]
+    public void Outline_group_uses_pod_material_key_values()
+    {
+        var referenceMaterial = Resources.Get<Material>("Materials/FirstCube");
+        using var equivalentMaterial = referenceMaterial.Clone();
+        using var outlineGroup = new OutlineGroup();
+
+        var outlineMaterial = outlineGroup.GetOutlineMaterial(referenceMaterial);
+        equivalentMaterial.SetShaderParameter("MatDiffColor", Color.Black);
+        Assert.Same(outlineMaterial, outlineGroup.GetOutlineMaterial(equivalentMaterial));
+
+        equivalentMaterial.SetShaderParameter("Roughness", 0.123f);
+        Assert.NotSame(outlineMaterial, outlineGroup.GetOutlineMaterial(equivalentMaterial));
     }
 
     [Fact]
@@ -66,7 +76,6 @@ public sealed class OutlineGroupTests
         Assert.True(outlineGroup.AddDrawable(drawable));
         Assert.True(outlineGroup.HasDrawable(drawable));
         Assert.True(outlineGroup.ContainsDrawable(drawable));
-        Assert.Single(outlineGroup.GetDrawables());
         Assert.True(outlineGroup.RemoveDrawable(drawable));
         Assert.False(outlineGroup.HasDrawables());
     }
@@ -79,12 +88,20 @@ public sealed class OutlineGroupTests
         var drawable = node.CreateComponent<StaticModel>();
         var outlineGroup = scene.CreateChild("Outline").CreateComponent<OutlineGroup>();
 
-        outlineGroup.SetDrawablesAttr([drawable.Id]);
+        using var drawablesAttr = new VariantVector { drawable.Id };
+        outlineGroup.SetDrawablesAttr(drawablesAttr);
+        drawablesAttr.Dispose();
         Assert.False(outlineGroup.HasDrawables());
 
         outlineGroup.ApplyAttributes();
 
         Assert.True(outlineGroup.HasDrawable(drawable));
-        Assert.Equal(new[] { drawable.Id }, outlineGroup.GetDrawablesAttr());
+        var serializedDrawables = outlineGroup.GetDrawablesAttr();
+        Assert.Equal(drawable.Id, Assert.Single(serializedDrawables).GetUInt());
+
+        outlineGroup.SetDrawablesAttr(serializedDrawables);
+        Assert.False(outlineGroup.HasDrawables());
+        outlineGroup.ApplyAttributes();
+        Assert.True(outlineGroup.HasDrawable(drawable));
     }
 }
