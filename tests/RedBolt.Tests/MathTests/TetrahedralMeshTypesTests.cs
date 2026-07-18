@@ -5,6 +5,27 @@ namespace RedBolt.Tests;
 public sealed class TetrahedralMeshTypesTests
 {
     [Fact]
+    public void Tetrahedron_is_pod_and_copies_inline_arrays_independently()
+    {
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Tetrahedron>());
+        Assert.Equal(80, System.Runtime.InteropServices.Marshal.SizeOf<Tetrahedron>());
+
+        var source = new Tetrahedron();
+        Assert.Equal(Matrix3x4.Identity, source.Matrix);
+        source.Indices[0] = 1;
+        source.Neighbors[0] = 2;
+
+        var copy = source;
+        copy.Indices[0] = 3;
+        copy.Neighbors[0] = 4;
+
+        Assert.Equal(1u, source.Indices[0]);
+        Assert.Equal(2u, source.Neighbors[0]);
+        Assert.Equal(3u, copy.Indices[0]);
+        Assert.Equal(4u, copy.Neighbors[0]);
+    }
+
+    [Fact]
     public void Surface_adjacency_links_two_triangles_per_edge()
     {
         var surface = new TetrahedralMeshSurface();

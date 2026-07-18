@@ -6,12 +6,12 @@ public static partial class ArchiveSerialization
 {
     public static void SerializeValue(Archive archive, string name, ref Vector3f value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Vector3, text).GetVector3());
+        SerializePrimitiveArray(archive, name, ref value);
     }
 
     public static void SerializeValue(Archive archive, string name, ref Vector4f value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Vector4, text).GetVector4());
+        SerializePrimitiveArray(archive, name, ref value);
     }
 
     public static void SerializeValue(Archive archive, string name, ref SphericalHarmonicsDot9 value)
@@ -28,15 +28,12 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, ref Matrix3x4 value)
     {
-        SerializePrimitiveArray(archive, name, ref value, static text => ParseVariant(VariantType.Matrix3x4, text).GetMatrix3x4());
+        SerializePrimitiveArray(archive, name, ref value);
     }
 
     public static void SerializeValue(Archive archive, string name, ref Tetrahedron value)
     {
         using var block = archive.OpenUnorderedBlock(name);
-        if (archive.IsInput)
-            value = new Tetrahedron();
-
         SerializeValue(archive, "index0", ref value.Indices[0]);
         SerializeValue(archive, "index1", ref value.Indices[1]);
         SerializeValue(archive, "index2", ref value.Indices[2]);
@@ -57,8 +54,8 @@ public static partial class ArchiveSerialization
         SerializeValue(archive, "numInnerTetrahedrons", ref value.NumInnerTetrahedrons);
     }
 
-    private static void SerializePrimitiveArray<T>(Archive archive, string name, ref T value, Func<string, T> parser)
-        where T : struct
+    private static void SerializePrimitiveArray<T>(Archive archive, string name, ref T value)
+        where T : unmanaged
     {
         if (!archive.IsHumanReadable)
         {
@@ -67,10 +64,34 @@ public static partial class ArchiveSerialization
             return;
         }
 
-        var text = archive.IsInput ? string.Empty : value.ToString()!;
+        var components = MemoryMarshal.Cast<T, float>(MemoryMarshal.CreateSpan(ref value, 1));
+        var text = archive.IsInput ? string.Empty : NumberArrayToString(components);
         archive.Serialize(name, ref text);
         if (archive.IsInput)
-            value = parser(text);
+            StringToNumberArray(text, components);
+    }
+
+    private static string NumberArrayToString(ReadOnlySpan<float> values)
+    {
+        var result = new System.Text.StringBuilder();
+        for (var i = 0; i < values.Length; ++i)
+        {
+            if (i != 0)
+                result.Append(' ');
+            result.Append(values[i].ToString("g6", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
+    }
+
+    private static void StringToNumberArray(string text, Span<float> values)
+    {
+        var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < elements.Length && i < values.Length; ++i)
+        {
+            if (!float.TryParse(elements[i], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out values[i]))
+                values[i] = 0.0f;
+        }
     }
 
     private static void SerializeVector3f(Archive archive, string name, List<Vector3f> values)
@@ -113,6 +134,27 @@ public static partial class ArchiveSerialization
 
     private static void SerializeTetrahedronVector(Archive archive, string name, List<Tetrahedron> values)
     {
+        if (!archive.IsHumanReadable)
+        {
+            using var byteBlock = archive.OpenUnorderedBlock(name);
+            var elementSize = checked((uint)Marshal.SizeOf<Tetrahedron>());
+            var sizeInBytes = archive.IsInput ? 0u : checked((uint)values.Count * elementSize);
+            archive.SerializeVle("size", ref sizeInBytes);
+
+            if (archive.IsInput)
+            {
+                if (sizeInBytes % elementSize != 0)
+                    throw new InvalidDataException($"'{archive.CurrentBlockPath}/{name}' has unexpected size in bytes");
+
+                values.Clear();
+                values.AddRange(new Tetrahedron[checked((int)(sizeInBytes / elementSize))]);
+            }
+
+            var bytes = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(values));
+            archive.SerializeBytes("data", bytes[..checked((int)sizeInBytes)]);
+            return;
+        }
+
         var size = checked((uint)values.Count);
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)

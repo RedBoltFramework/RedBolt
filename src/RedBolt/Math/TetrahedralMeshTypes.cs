@@ -221,28 +221,39 @@ public struct TetrahedralMeshSurface
 }
 
 /// <summary>Tetrahedron with adjacency information.</summary>
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 public struct Tetrahedron
 {
+    [System.Runtime.CompilerServices.InlineArray(4)]
+    public struct UIntArray4
+    {
+        private uint _element0;
+    }
+
     /// <summary>Special index for infinite vertex of outer tetrahedron, cubic equation.</summary>
-    public static readonly uint Infinity3 = uint.MaxValue;
+    public const uint Infinity3 = uint.MaxValue;
 
     /// <summary>Special index for infinite vertex of outer tetrahedron, square equation.</summary>
-    public static readonly uint Infinity2 = uint.MaxValue - 1;
+    public const uint Infinity2 = uint.MaxValue - 1;
 
     /// <summary>Indices of tetrahedron vertices.</summary>
-    public uint[] Indices;
+    public UIntArray4 Indices;
 
     /// <summary>Indices of neighbor tetrahedrons. uint.MaxValue if empty.</summary>
-    public uint[] Neighbors;
+    public UIntArray4 Neighbors;
 
     /// <summary>Pre-computed matrix for calculating barycentric coordinates.</summary>
     public Matrix3x4 Matrix;
 
     public Tetrahedron()
     {
-        Indices = new uint[4];
-        Neighbors = [uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue];
-        Matrix = default;
+        Indices = default;
+        Neighbors = default;
+        Neighbors[0] = uint.MaxValue;
+        Neighbors[1] = uint.MaxValue;
+        Neighbors[2] = uint.MaxValue;
+        Neighbors[3] = uint.MaxValue;
+        Matrix = Matrix3x4.Identity;
     }
 
     /// <summary>Calculate matrix for valid inner tetrahedron.</summary>

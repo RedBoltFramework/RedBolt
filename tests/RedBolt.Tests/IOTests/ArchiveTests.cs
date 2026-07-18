@@ -233,10 +233,16 @@ public sealed class ArchiveTests
         mesh.HullNormals.Add(new Vector3f(0.0f, 1.0f, 0.0f));
         var tetrahedron = new Tetrahedron
         {
-            Indices = [0, 1, 2, 3],
-            Neighbors = [4, 5, 6, 7],
             Matrix = new Matrix3x4(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
         };
+        tetrahedron.Indices[0] = 0;
+        tetrahedron.Indices[1] = 1;
+        tetrahedron.Indices[2] = 2;
+        tetrahedron.Indices[3] = 3;
+        tetrahedron.Neighbors[0] = 4;
+        tetrahedron.Neighbors[1] = 5;
+        tetrahedron.Neighbors[2] = 6;
+        tetrahedron.Neighbors[3] = 7;
         mesh.Tetrahedrons.Add(tetrahedron);
         mesh.NumInnerTetrahedrons = 1;
 
@@ -259,6 +265,34 @@ public sealed class ArchiveTests
         Assert.Equal(mesh.Tetrahedrons[0].Indices, loadedMesh.Tetrahedrons[0].Indices);
         Assert.Equal(mesh.Tetrahedrons[0].Neighbors, loadedMesh.Tetrahedrons[0].Neighbors);
         Assert.Equal(mesh.Tetrahedrons[0].Matrix, loadedMesh.Tetrahedrons[0].Matrix);
+    }
+
+    [Fact]
+    public void Binary_archive_serializes_tetrahedrons_as_pod_bytes()
+    {
+        var archive = new TestArchive();
+        var mesh = new TetrahedralMesh();
+        mesh.Tetrahedrons.Add(new Tetrahedron());
+
+        ArchiveSerialization.SerializeValue(archive, "mesh", ref mesh);
+
+        Assert.Contains(archive.ByteValues, item => item.Value.Length == 80);
+    }
+
+    [Fact]
+    public void Human_readable_primitive_array_input_preserves_unspecified_components()
+    {
+        var output = new JSONOutputArchive();
+        var source = new Vector3f(1.0f, 2.0f, 3.0f);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(output, "value", ref source);
+
+        var input = new JSONInputArchive(output.ToJsonString().Replace("1 2 3", "9"));
+        var destination = new Vector3f(4.0f, 5.0f, 6.0f);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(input, "value", ref destination);
+
+        Assert.Equal(new Vector3f(9.0f, 5.0f, 6.0f), destination);
     }
 
     [Fact]
