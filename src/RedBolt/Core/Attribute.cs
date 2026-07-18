@@ -65,12 +65,26 @@ public abstract class AttributeAccessor
         return result.GetObject();
     }
 
-    public virtual void SetObject(Serializable ptr, object? src) => Set(ptr, Variant.FromObject(src));
+    public virtual void SetObject(Serializable ptr, object? src)
+    {
+        using var value = Variant.FromObject(src);
+        Set(ptr, value);
+    }
 }
 
-public sealed class AttributeInfo : ICloneable
+public sealed class AttributeInfo : ICloneable, IDisposable
 {
     private readonly Dictionary<StringHash, Variant> _metadata = new();
+    private Variant _defaultValue;
+
+    public AttributeInfo()
+    {
+        Name = string.Empty;
+        NameHash = default;
+        ValueType = typeof(object);
+        Mode = AttributeMode.Default;
+        EnumNames = [];
+    }
 
     public AttributeInfo(
         string name,
@@ -88,7 +102,7 @@ public sealed class AttributeInfo : ICloneable
         Name = name;
         NameHash = name;
         ValueType = valueType;
-        DefaultValue = defaultValue;
+        _defaultValue = defaultValue.Clone();
         Mode = mode;
         EnumNames = enumNames?.ToArray() ?? [];
         Accessor = accessor ?? (getter is not null || setter is not null ? new DelegateAttributeAccessor(getter, setter) : null);
@@ -96,7 +110,16 @@ public sealed class AttributeInfo : ICloneable
 
     public AttributeAccessor? Accessor { get; }
 
-    public Variant DefaultValue { get; internal set; }
+    public Variant DefaultValue
+    {
+        get => _defaultValue;
+        internal set
+        {
+            var copy = value.Clone();
+            _defaultValue.Dispose();
+            _defaultValue = copy;
+        }
+    }
 
     public IReadOnlyList<string> EnumNames { get; }
 
@@ -148,7 +171,7 @@ public sealed class AttributeInfo : ICloneable
         return uint.MaxValue;
     }
 
-    public object Clone()
+    public AttributeInfo Clone()
     {
         var result = new AttributeInfo(Name, ValueType, DefaultValue, Mode, EnumNames, Accessor)
         {
@@ -161,9 +184,27 @@ public sealed class AttributeInfo : ICloneable
         return result;
     }
 
+    object ICloneable.Clone() => Clone();
+
     public void SetMetadata(StringHash key, Variant value)
     {
-        _metadata[key] = value;
+        var copy = value.Clone();
+        if (_metadata.Remove(key, out var previousValue))
+            previousValue.Dispose();
+        _metadata[key] = copy;
+    }
+
+    public void Dispose()
+    {
+        foreach (var value in _metadata.Values)
+        {
+            var ownedValue = value;
+            ownedValue.Dispose();
+        }
+        _metadata.Clear();
+        _defaultValue.Dispose();
+        _defaultValue = default;
+        GC.SuppressFinalize(this);
     }
 
     private sealed class DelegateAttributeAccessor : AttributeAccessor
@@ -195,7 +236,7 @@ public sealed class AttributeInfo : ICloneable
 
 public readonly struct AttributeHandle
 {
-    private readonly AttributeInfo _attribute;
+    private readonly AttributeInfo? _attribute;
 
     internal AttributeHandle(AttributeInfo attribute)
     {

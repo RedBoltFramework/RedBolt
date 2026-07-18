@@ -17,14 +17,17 @@ public class StaticModelGroup : StaticModel
         // Initialize the default node IDs attribute
         UpdateNodeIDs();
 
-        RegisterAttribute(
-            "Instance Nodes",
-            typeof(VariantVector),
-            self => ((StaticModelGroup)self).GetNodeIDsAttr(),
-            (self, value) => ((StaticModelGroup)self).SetNodeIDsAttr((VariantVector)value!),
-            new VariantVector(),
-            AttributeMode.Default | AttributeMode.NodeIdVector)
-            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(InstanceNodesStructureElementNames));
+        using (var metadata = new Variant(InstanceNodesStructureElementNames))
+        {
+            RegisterAttribute(
+                "Instance Nodes",
+                typeof(VariantVector),
+                self => ((StaticModelGroup)self).GetNodeIDsAttr(),
+                (self, value) => ((StaticModelGroup)self).SetNodeIDsAttr((VariantVector)value!),
+                new VariantVector(),
+                AttributeMode.Default | AttributeMode.NodeIdVector)
+                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
+        }
     }
 
     /// <summary>Destruct.</summary>

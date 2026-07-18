@@ -18,27 +18,85 @@ public class AttributeTests
     [Fact]
     public void AttributeInfo_matches_rbfx_enum_metadata_and_copy_contract()
     {
-        var attribute = new AttributeInfo("Value", typeof(int), 42, enumNames: ["Zero", "One"]);
-        attribute.SetMetadata("Metadata", new Variant("value"));
+        var defaultValue = new Variant(new CString("default"));
+        var metadataValue = new Variant(new CString("metadata"));
+        using var attribute = new AttributeInfo("Value", typeof(CString), defaultValue, enumNames: ["Zero", "One"]);
+        attribute.SetMetadata("Metadata", metadataValue);
         attribute.ScopeHint = AttributeScopeHint.Scene;
 
         Assert.Equal("One", attribute.ConvertEnumToString(1));
         Assert.Equal(0u, attribute.ConvertEnumToUInt("zero"));
         Assert.Equal(uint.MaxValue, attribute.ConvertEnumToUInt("missing"));
-        Assert.Equal("value", attribute.GetMetadata<string>("Metadata"));
+        Assert.Equal("metadata", attribute.GetMetadata<CString>("Metadata").ToString());
         Assert.Equal(0, attribute.GetMetadata<int>("missing"));
 
-        var copy = Assert.IsType<AttributeInfo>(((ICloneable)attribute).Clone());
+        using var copy = Assert.IsType<AttributeInfo>(((ICloneable)attribute).Clone());
         Assert.Equal(attribute.Name, copy.Name);
         Assert.Equal(attribute.DefaultValue, copy.DefaultValue);
         Assert.Equal(attribute.ScopeHint, copy.ScopeHint);
-        Assert.Equal("value", copy.GetMetadata<string>("Metadata"));
+        Assert.Equal("metadata", copy.GetMetadata<CString>("Metadata").ToString());
+
+        defaultValue.Dispose();
+        metadataValue.Dispose();
+        Assert.Equal("default", attribute.DefaultValue.GetCString().ToString());
+        Assert.Equal("metadata", attribute.GetMetadata<CString>("Metadata").ToString());
+        Assert.Equal("default", copy.DefaultValue.GetCString().ToString());
+        Assert.Equal("metadata", copy.GetMetadata<CString>("Metadata").ToString());
+    }
+
+    [Fact]
+    public void Attribute_class_kinds_match_cpp_value_and_pointer_types()
+    {
+        using var attribute = new AttributeInfo();
+
+        Assert.False(typeof(AttributeInfo).IsValueType);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(AttributeInfo)));
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(AttributeInfo)));
+        Assert.True(typeof(AttributeHandle).IsValueType);
     }
 
     [Fact]
     public void Default_attribute_handle_matches_rbfx_empty_handle_contract()
     {
         default(AttributeHandle).SetMetadata("Metadata", new Variant("value")).SetScopeHint(AttributeScopeHint.Scene);
+    }
+
+    [Fact]
+    public void Serializable_destroys_owned_attribute_values()
+    {
+        var serializable = new CStringDefaultSerializable();
+        var attribute = Assert.Single(serializable.Attributes);
+
+        Assert.Equal("default", attribute.DefaultValue.GetCString().ToString());
+
+        serializable.Dispose();
+
+        Assert.True(attribute.DefaultValue.IsEmpty);
+    }
+
+    [Fact]
+    public void ObjectReflection_destroys_removed_attribute_copies()
+    {
+        using var firstValue = new CString("first");
+        using var secondValue = new CString("second");
+        using var firstVariant = new Variant(firstValue);
+        using var secondVariant = new Variant(secondValue);
+        using var firstSource = new AttributeInfo("First", typeof(CString), firstVariant);
+        using var secondSource = new AttributeInfo("Second", typeof(CString), secondVariant);
+        var reflection = new ObjectReflection(typeof(AccessorSerializable));
+
+        reflection.AddAttribute(firstSource);
+        reflection.AddAttribute(secondSource);
+        var firstCopy = reflection.GetAttribute("First");
+        var secondCopy = reflection.GetAttribute("Second");
+
+        reflection.RemoveAttribute("First");
+        reflection.RemoveAllAttributes();
+
+        Assert.True(firstCopy.DefaultValue.IsEmpty);
+        Assert.True(secondCopy.DefaultValue.IsEmpty);
+        Assert.Equal("first", firstSource.DefaultValue.GetCString().ToString());
+        Assert.Equal("second", secondSource.DefaultValue.GetCString().ToString());
     }
 
     private sealed class AccessorSerializable : Serializable
@@ -61,6 +119,15 @@ public class AttributeTests
             {
                 ((AccessorSerializable)ptr).StoredValue = src.GetInt();
             }
+        }
+    }
+
+    private sealed class CStringDefaultSerializable : Serializable
+    {
+        public CStringDefaultSerializable()
+        {
+            using var defaultValue = new CString("default");
+            RegisterAttribute("Value", typeof(CString), defaultValue: defaultValue);
         }
     }
 }

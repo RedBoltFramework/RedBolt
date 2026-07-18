@@ -62,13 +62,16 @@ public class AnimationController : AnimationStateSource
             self => ((AnimationController)self).IsSkeletonReset(),
             (self, value) => ((AnimationController)self).SetSkeletonReset(value is bool resetSkeleton && resetSkeleton),
             false);
-        RegisterAttribute(
-            "Animations",
-            typeof(VariantVector),
-            self => ((AnimationController)self).GetAnimationsAttr(),
-            (self, value) => ((AnimationController)self).SetAnimationsAttr(value as VariantVector ?? new VariantVector()),
-            new VariantVector())
-            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(AnimationParametersNames));
+        using (var metadata = new Variant(AnimationParametersNames))
+        {
+            RegisterAttribute(
+                "Animations",
+                typeof(VariantVector),
+                self => ((AnimationController)self).GetAnimationsAttr(),
+                (self, value) => ((AnimationController)self).SetAnimationsAttr(value as VariantVector ?? new VariantVector()),
+                new VariantVector())
+                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
+        }
         RegisterAttribute(
             "Update Pose",
             typeof(bool),

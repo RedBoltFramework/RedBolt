@@ -51,12 +51,16 @@ public sealed class ObjectReflection
             Log.Logger.LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
             return;
         }
+        var attribute = _attributes[index];
         _attributes.RemoveAt(index);
+        attribute.Dispose();
         _attributeNames.RemoveAt(index);
     }
 
     public void RemoveAllAttributes()
     {
+        for (var i = _attributes.Count - 1; i >= 0; --i)
+            _attributes[i].Dispose();
         _attributes.Clear();
         _attributeNames.Clear();
     }

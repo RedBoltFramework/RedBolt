@@ -108,6 +108,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A3. Core — depends on Container, Math
 
+- [~] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, and per-instance reflection-facade teardown reconciled; final closure depends on retained ObjectReflection destruction and the repository-wide Variant assignment audit
 - [-] `NonCopyable.h` — **EXCLUDED** · reason: does not map to C# concepts
 - [-] `Macros.h` — **EXCLUDED** · reason: preprocessor macros · replaced-by: attributes + source generators
 - [-] `AssertBase.h` — **EXCLUDED** · reason: assert plumbing · replaced-by: `System.Diagnostics.Debug`

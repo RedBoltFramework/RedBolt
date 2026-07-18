@@ -87,14 +87,17 @@ public class CameraOperator : Component
                 target._boundingBox = box;
             },
             Vector3f.One);
-        RegisterAttribute(
-            "Tracked Nodes",
-            typeof(VariantVector),
-            self => ((CameraOperator)self).GetNodeIDsAttr(),
-            (self, value) => ((CameraOperator)self).SetNodeIDsAttr((VariantVector)value!),
-            new VariantVector(),
-            AttributeMode.Default | AttributeMode.NodeIdVector)
-            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(InstanceNodesStructureElementNames));
+        using (var metadata = new Variant(InstanceNodesStructureElementNames))
+        {
+            RegisterAttribute(
+                "Tracked Nodes",
+                typeof(VariantVector),
+                self => ((CameraOperator)self).GetNodeIDsAttr(),
+                (self, value) => ((CameraOperator)self).SetNodeIDsAttr((VariantVector)value!),
+                new VariantVector(),
+                AttributeMode.Default | AttributeMode.NodeIdVector)
+                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
+        }
         RegisterAttribute(
             "Update Camera",
             typeof(bool),

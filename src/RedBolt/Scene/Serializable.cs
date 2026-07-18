@@ -13,6 +13,14 @@ public abstract class Serializable : Object
 
     public uint NumAttributes => (uint)_attributes.Count;
 
+    public override void Dispose()
+    {
+        for (var i = _attributes.Count - 1; i >= 0; --i)
+            _attributes[i].Dispose();
+        _attributes.Clear();
+        base.Dispose();
+    }
+
     /// <summary>Return reflection used for serialization.</summary>
     public virtual ObjectReflection? GetReflection()
     {
@@ -427,7 +435,8 @@ public abstract class Serializable : Object
         if (existing is not null)
             return new AttributeHandle(existing);
 
-        var attribute = new AttributeInfo(name, valueType, Variant.FromObject(defaultValue), mode, enumNames, accessor);
+        using var defaultVariant = Variant.FromObject(defaultValue);
+        var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor);
         _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
@@ -445,7 +454,8 @@ public abstract class Serializable : Object
         if (existing is not null)
             return new AttributeHandle(existing);
 
-        var attribute = new AttributeInfo(name, valueType, Variant.FromObject(defaultValue), mode, enumNames, accessor: null, getter, setter);
+        using var defaultVariant = Variant.FromObject(defaultValue);
+        var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
         _attributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
