@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace RedBolt;
 
 public enum ArchiveBlockType
@@ -7,10 +9,8 @@ public enum ArchiveBlockType
     Array
 }
 
-public sealed class ArchiveBlock : IDisposable
+public class ArchiveBlock : IDisposable
 {
-    private Archive _archive = null!;
-
     public ArchiveBlock()
     {
     }
@@ -18,12 +18,8 @@ public sealed class ArchiveBlock : IDisposable
     public ArchiveBlock(Archive archive, uint sizeHint = 0)
     {
         _archive = archive;
-        SizeHint = sizeHint;
+        _sizeHint = sizeHint;
     }
-
-    public bool IsValid => _archive is not null;
-
-    public uint SizeHint { get; }
 
     public void Dispose()
     {
@@ -31,23 +27,56 @@ public sealed class ArchiveBlock : IDisposable
             return;
 
         var archive = _archive;
-        _archive = null!;
+        _archive = null;
         archive.EndBlock();
     }
+
+    public ArchiveBlock(ArchiveBlock other)
+    {
+        Swap(other);
+    }
+
+    public ArchiveBlock MoveAssign(ArchiveBlock other)
+    {
+        Swap(other);
+        return this;
+    }
+
+    public void Swap(ArchiveBlock other)
+    {
+        var archive = _archive;
+        _archive = other._archive;
+        other._archive = archive;
+
+        var sizeHint = _sizeHint;
+        _sizeHint = other._sizeHint;
+        other._sizeHint = sizeHint;
+    }
+
+    public bool IsValid => _archive is not null;
+
+    public uint SizeHint => _sizeHint;
+
+    private Archive? _archive;
+    private uint _sizeHint;
 }
 
-public abstract class Archive
+public abstract class Archive : IDisposable
 {
-    public abstract Context Context { get; }
+    public virtual void Dispose()
+    {
+    }
+
+    public abstract Context? Context { get; }
     public abstract string Name { get; }
     public abstract uint Checksum { get; }
     public abstract bool IsInput { get; }
     public abstract bool IsHumanReadable { get; }
     public abstract bool IsUnorderedAccessSupportedInCurrentBlock { get; }
+    public abstract bool HasElementOrBlock(string name);
     public abstract bool IsEof { get; }
     public abstract string CurrentBlockPath { get; }
 
-    public abstract bool HasElementOrBlock(string name);
     public abstract void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type);
     public abstract void EndBlock();
     public abstract void Flush();
@@ -71,7 +100,7 @@ public abstract class Archive
 
     public static bool ValidateName(string name)
     {
-        if (string.IsNullOrEmpty(name))
+        if (name.Length == 0)
             return false;
 
         if (!char.IsAsciiLetter(name[0]) && name[0] != '_')
@@ -101,29 +130,42 @@ public abstract class Archive
 
 public abstract class ArchiveBase : Archive
 {
-    private Exception _delayedException = null!;
-    private bool _isEof;
-
-    protected ArchiveBase(Context context)
-    {
-        Context = context;
-    }
-
-    public sealed override Context Context { get; }
+    public sealed override Context Context => _context;
     public override string Name => string.Empty;
     public override uint Checksum => 0;
     public sealed override bool IsEof => _isEof;
-
-    public override uint SerializeVersion(uint version)
-    {
-        SerializeVle("Version", ref version);
-        return version;
-    }
 
     public sealed override void Flush()
     {
         FlushDelayedException();
     }
+
+    public override uint SerializeVersion(uint version)
+    {
+        SerializeVle(VersionElementName, ref version);
+        return version;
+    }
+
+    public InvalidOperationException IoFailureException(string elementName) => new($"Unspecified I/O failure before '{CurrentBlockPath}/{elementName}'");
+    public InvalidOperationException DuplicateElementException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is serialized several times");
+    public InvalidOperationException ElementNotFoundException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is not found");
+    public InvalidOperationException ElementNotFoundException(string elementName, uint elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found");
+    public InvalidOperationException UnexpectedElementValueException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' has unexpected type");
+    public InvalidOperationException UnexpectedEofException(string elementName) => new($"Unexpected end of file before '{CurrentBlockPath}/{elementName}'");
+
+    protected ArchiveBase(Context context)
+    {
+        _context = context;
+    }
+
+    public override void Dispose()
+    {
+        Debug.Assert(_delayedException is null, "Archive::Flush was not called while having delayed exception");
+        base.Dispose();
+    }
+
+    protected const string RootBlockName = "Root";
+    protected const string VersionElementName = "Version";
 
     protected void SetDelayedException(Exception exception)
     {
@@ -149,8 +191,7 @@ public abstract class ArchiveBase : Archive
 
     protected void CheckBlockOrElementName(string elementName)
     {
-        if (!ValidateName(elementName))
-            throw new ArgumentException($"Invalid archive element name '{elementName}'.", nameof(elementName));
+        Debug.Assert(ValidateName(elementName));
     }
 
     protected void CloseArchive()
@@ -158,27 +199,39 @@ public abstract class ArchiveBase : Archive
         _isEof = true;
     }
 
-    protected InvalidOperationException IoFailureException(string elementName) => new($"Unspecified I/O failure before '{CurrentBlockPath}/{elementName}'.");
-    protected InvalidOperationException DuplicateElementException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is serialized several times.");
-    protected InvalidOperationException ElementNotFoundException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is not found.");
-    protected InvalidOperationException ElementNotFoundException(string elementName, uint elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found.");
-    protected InvalidOperationException UnexpectedElementValueException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' has unexpected type.");
-    protected InvalidOperationException UnexpectedEofException(string elementName) => new($"Unexpected end of file before '{CurrentBlockPath}/{elementName}'.");
+    protected void ReadBytesFromHexString(string elementName, string value, Span<byte> bytes)
+    {
+        byte[] decoded;
+        try
+        {
+            decoded = Convert.FromHexString(value);
+        }
+        catch (FormatException)
+        {
+            throw UnexpectedElementValueException(elementName);
+        }
+
+        if (decoded.Length != bytes.Length)
+            throw UnexpectedElementValueException(elementName);
+
+        decoded.CopyTo(bytes);
+    }
+
+    private readonly Context _context;
+    private Exception? _delayedException;
+    private bool _isEof;
 }
 
 public class ArchiveBlockBase
 {
-    private uint _inlineBlockDepth;
-
     public ArchiveBlockBase(string name, ArchiveBlockType type)
     {
-        Name = name;
-        Type = type;
+        _name = name;
+        _type = type;
     }
 
-    public string Name { get; }
-    public ArchiveBlockType Type { get; }
-    public bool HasOpenInlineBlock => _inlineBlockDepth != 0;
+    public string Name => _name;
+    public ArchiveBlockType Type => _type;
 
     public void OpenInlineBlock()
     {
@@ -187,8 +240,13 @@ public class ArchiveBlockBase
 
     public void CloseInlineBlock()
     {
-        if (_inlineBlockDepth == 0)
-            throw new InvalidOperationException("No inline archive block is open.");
+        Debug.Assert(_inlineBlockDepth > 0);
         --_inlineBlockDepth;
     }
+
+    public bool HasOpenInlineBlock => _inlineBlockDepth != 0;
+
+    protected readonly string _name;
+    protected readonly ArchiveBlockType _type;
+    protected uint _inlineBlockDepth;
 }

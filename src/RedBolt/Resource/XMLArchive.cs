@@ -194,10 +194,7 @@ public sealed class XMLInputArchive : ArchiveBase
     public override void Serialize(string name, ref string value) => value = Read(name);
     public override void SerializeBytes(string name, Span<byte> bytes)
     {
-        var decoded = Convert.FromHexString(Read(name));
-        if (decoded.Length != bytes.Length)
-            throw UnexpectedElementValueException(name);
-        decoded.CopyTo(bytes);
+        ReadBytesFromHexString(name, Read(name), bytes);
     }
     public override void SerializeVle(string name, ref uint value) => value = uint.Parse(Read(name), CultureInfo.InvariantCulture);
 

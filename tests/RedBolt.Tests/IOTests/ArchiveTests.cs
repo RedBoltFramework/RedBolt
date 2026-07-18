@@ -34,6 +34,81 @@ public sealed class ArchiveTests
     }
 
     [Fact]
+    public void Archive_block_is_extensible_noncopyable_reference_class()
+    {
+        Assert.True(typeof(ArchiveBlock).IsClass);
+        Assert.False(typeof(ArchiveBlock).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(ArchiveBlock)));
+    }
+
+    [Fact]
+    public void Archive_block_move_construction_transfers_ownership()
+    {
+        var archive = new TestArchive();
+        var source = archive.OpenArrayBlock("Root", 3);
+
+        using var moved = new ArchiveBlock(source);
+
+        Assert.False(source.IsValid);
+        Assert.True(moved.IsValid);
+        Assert.Equal(3u, moved.SizeHint);
+        source.Dispose();
+        Assert.Equal(0, archive.EndCount);
+    }
+
+    [Fact]
+    public void Archive_block_swap_exchanges_ownership_and_size_hints()
+    {
+        var archive = new TestArchive();
+        using var first = archive.OpenArrayBlock("First", 1);
+        using var second = archive.OpenArrayBlock("Second", 2);
+
+        first.Swap(second);
+
+        Assert.Equal(2u, first.SizeHint);
+        Assert.Equal(1u, second.SizeHint);
+    }
+
+    [Fact]
+    public void Archive_block_move_assignment_swaps_ownership_and_size_hints()
+    {
+        var archive = new TestArchive();
+        using var first = archive.OpenArrayBlock("First", 1);
+        using var second = archive.OpenArrayBlock("Second", 2);
+
+        Assert.Same(first, first.MoveAssign(second));
+
+        Assert.Equal(2u, first.SizeHint);
+        Assert.Equal(1u, second.SizeHint);
+    }
+
+    [Fact]
+    public void Archive_virtual_dispose_dispatches_through_base_reference()
+    {
+        Archive archive = new TestArchive();
+
+        archive.Dispose();
+
+        Assert.True(((TestArchive)archive).IsDisposed);
+    }
+
+    [Fact]
+    public void Human_readable_archive_rejects_invalid_hex_without_mutating_destination()
+    {
+        var output = new JSONOutputArchive();
+        var source = new byte[] { 1, 2, 3 };
+        using (output.OpenUnorderedBlock("Root"))
+            output.SerializeBytes("data", source);
+
+        var input = new JSONInputArchive(output.ToJsonString().Replace("010203", "invalid"));
+        var destination = new byte[] { 4, 5, 6 };
+        using (input.OpenUnorderedBlock("Root"))
+            Assert.Throws<InvalidOperationException>(() => input.SerializeBytes("data", destination));
+
+        Assert.Equal(new byte[] { 4, 5, 6 }, destination);
+    }
+
+    [Fact]
     public void Archive_serializes_cstring_variant_as_string()
     {
         using var cstring = new CString("Native text");
@@ -219,6 +294,7 @@ public sealed class ArchiveTests
         public int EndCount { get; private set; }
         public ArchiveBlockType LastBlockType { get; private set; }
         public uint LastSizeHint { get; private set; }
+        public bool IsDisposed { get; private set; }
         public List<(string Name, string Value)> StringValues { get; } = [];
         public List<(string Name, byte[] Value)> ByteValues { get; } = [];
         public List<(string Name, uint Value)> VleValues { get; } = [];
@@ -233,6 +309,12 @@ public sealed class ArchiveTests
         public override string CurrentBlockPath => string.Empty;
 
         public override bool HasElementOrBlock(string name) => false;
+
+        public override void Dispose()
+        {
+            IsDisposed = true;
+            base.Dispose();
+        }
 
         public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
         {

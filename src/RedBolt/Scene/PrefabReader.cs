@@ -137,7 +137,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         if (blockName is not null)
         {
             var rootBlock = _archive.OpenUnorderedBlock(blockName);
-            _stack.Add((rootBlock, 1));
+            _stack.Add((new ArchiveBlock(rootBlock), 1));
             _hasRootBlock = true;
         }
         Debug.Assert(archive.IsInput);
@@ -162,7 +162,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
             var block = _archive.OpenArrayBlock("components");
             numComponents = block.SizeHint;
             if (numComponents > 0)
-                _stack.Add((block, numComponents));
+                _stack.Add((new ArchiveBlock(block), numComponents));
             else
                 block.Dispose();
         }
@@ -192,7 +192,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
             var block = _archive.OpenArrayBlock("nodes");
             numChildren = block.SizeHint;
             if (numChildren > 0)
-                _stack.Add((block, numChildren));
+                _stack.Add((new ArchiveBlock(block), numChildren));
             else
             {
                 block.Dispose();
@@ -209,7 +209,7 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
         var block = _archive.OpenUnorderedBlock("node");
-        _stack.Add((block, 1));
+        _stack.Add((new ArchiveBlock(block), 1));
     }
 
     public override void EndChild()

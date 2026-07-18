@@ -161,10 +161,7 @@ public sealed class JSONInputArchive : ArchiveBase
     public override void Serialize(string name, ref string value) => value = Read<string>(name);
     public override void SerializeBytes(string name, Span<byte> bytes)
     {
-        var decoded = Convert.FromHexString(Read<string>(name));
-        if (decoded.Length != bytes.Length)
-            throw UnexpectedElementValueException(name);
-        decoded.CopyTo(bytes);
+        ReadBytesFromHexString(name, Read<string>(name), bytes);
     }
     public override void SerializeVle(string name, ref uint value) => value = Read<uint>(name);
 
