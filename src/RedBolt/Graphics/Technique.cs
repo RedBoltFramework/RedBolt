@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum BlendMode
@@ -34,201 +36,153 @@ public enum LightingMode
     PerPixel
 }
 
-public sealed class Pass : PipelineStateTracker
+/// <summary>Material rendering pass, which defines shaders and render state.</summary>
+public class Pass : PipelineStateTracker
 {
-    private static readonly IReadOnlyList<string> DefaultPixelTextureDefines =
-    [
-        "Albedo",
-        "Normal",
-        "Properties",
-        "Emission"
-    ];
-
-    private readonly List<string> _vertexTextureDefines = [];
-    private readonly List<string> _pixelTextureDefines = [];
-    private readonly List<ShaderVariation?> _vertexShaders = [];
-    private readonly List<ShaderVariation?> _pixelShaders = [];
-    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraVertexShaders = [];
-    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraPixelShaders = [];
-
+    /// <summary>Construct.</summary>
     public Pass(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        Name = name.ToLowerInvariant();
-        Index = Technique.GetPassIndex(Name);
-        SetPixelTextureDefines(DefaultPixelTextureDefines);
+        _blendMode = BlendMode.Replace;
+        _cullMode = CullMode.Max;
+        _depthTestMode = CompareMode.LessEqual;
+        _shadersLoadedFrameNumber = 0;
+        _alphaToCoverage = false;
+        _colorWrite = true;
+        _depthWrite = true;
+
+        _name = name.ToLowerInvariant();
+        _index = Technique.GetPassIndex(_name);
+
+        SetPixelTextureDefines(["Albedo", "Normal", "Properties", "Emission"]);
     }
 
-    public string Name { get; }
-
-    public uint Index { get; }
-
-    public BlendMode BlendMode { get; private set; } = BlendMode.Replace;
-
-    public CullMode CullMode { get; private set; } = CullMode.Max;
-
-    public CompareMode DepthTestMode { get; private set; } = CompareMode.LessEqual;
-
-    public uint ShadersLoadedFrameNumber { get; private set; }
-
-    public bool ColorWrite { get; private set; } = true;
-
-    public bool DepthWrite { get; private set; } = true;
-
-    public bool AlphaToCoverage { get; private set; }
-
-    public bool IsAlphaMask { get; private set; }
-
-    public string VertexShader { get; private set; } = string.Empty;
-
-    public string PixelShader { get; private set; } = string.Empty;
-
-    public string VertexShaderDefines { get; private set; } = string.Empty;
-
-    public string PixelShaderDefines { get; private set; } = string.Empty;
-
-    public string VertexShaderDefineExcludes { get; private set; } = string.Empty;
-
-    public string PixelShaderDefineExcludes { get; private set; } = string.Empty;
-
-    public IReadOnlyList<string> VertexTextureDefines => _vertexTextureDefines;
-
-    public IReadOnlyList<string> PixelTextureDefines => _pixelTextureDefines;
-
-    public List<ShaderVariation?> GetVertexShaders() => _vertexShaders;
-
-    public List<ShaderVariation?> GetPixelShaders() => _pixelShaders;
-
-    public List<ShaderVariation?> GetVertexShaders(StringHash extraDefinesHash)
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
-        if (!_extraVertexShaders.TryGetValue(extraDefinesHash, out var shaders))
-        {
-            shaders = [];
-            _extraVertexShaders.Add(extraDefinesHash, shaders);
-        }
-
-        return shaders;
+        _name = string.Empty;
+        _pixelTextureDefines.Clear();
+        _vertexTextureDefines.Clear();
+        _extraPixelShaders.Clear();
+        _extraVertexShaders.Clear();
+        _pixelShaders.Clear();
+        _vertexShaders.Clear();
+        _pixelShaderDefineExcludes = string.Empty;
+        _vertexShaderDefineExcludes = string.Empty;
+        _pixelShaderDefines = string.Empty;
+        _vertexShaderDefines = string.Empty;
+        _pixelShaderName = string.Empty;
+        _vertexShaderName = string.Empty;
+        base.Dispose();
     }
 
-    public List<ShaderVariation?> GetPixelShaders(StringHash extraDefinesHash)
-    {
-        if (!_extraPixelShaders.TryGetValue(extraDefinesHash, out var shaders))
-        {
-            shaders = [];
-            _extraPixelShaders.Add(extraDefinesHash, shaders);
-        }
-
-        return shaders;
-    }
-
+    /// <summary>Set blend mode.</summary>
     public void SetBlendMode(BlendMode mode)
     {
-        BlendMode = mode;
-        RefreshPipelineStateHash();
+        _blendMode = mode;
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set culling mode override. By default culling mode is read from the material instead. Set the illegal culling mode Max to disable override again.</summary>
     public void SetCullMode(CullMode mode)
     {
-        CullMode = mode;
-        RefreshPipelineStateHash();
+        _cullMode = mode;
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set depth compare mode.</summary>
     public void SetDepthTestMode(CompareMode mode)
     {
-        DepthTestMode = mode;
-        RefreshPipelineStateHash();
+        _depthTestMode = mode;
+        MarkPipelineStateHashDirty();
     }
 
-    public void SetColorWrite(bool enable)
-    {
-        ColorWrite = enable;
-        RefreshPipelineStateHash();
-    }
-
+    /// <summary>Set depth write on/off.</summary>
     public void SetDepthWrite(bool enable)
     {
-        DepthWrite = enable;
-        RefreshPipelineStateHash();
+        _depthWrite = enable;
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set color write on/off.</summary>
+    public void SetColorWrite(bool enable)
+    {
+        _colorWrite = enable;
+        MarkPipelineStateHashDirty();
+    }
+
+    /// <summary>Set alpha-to-coverage on/off.</summary>
     public void SetAlphaToCoverage(bool enable)
     {
-        AlphaToCoverage = enable;
-        RefreshPipelineStateHash();
+        _alphaToCoverage = enable;
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set vertex shader name.</summary>
     public void SetVertexShader(string name)
     {
-        VertexShader = name ?? string.Empty;
+        _vertexShaderName = name;
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set pixel shader name.</summary>
     public void SetPixelShader(string name)
     {
-        PixelShader = name ?? string.Empty;
+        _pixelShaderName = name;
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set vertex shader defines. Separate multiple defines with spaces.</summary>
     public void SetVertexShaderDefines(string defines)
     {
-        VertexShaderDefines = NormalizeDefines(defines);
+        _vertexShaderDefines = defines;
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set pixel shader defines. Separate multiple defines with spaces.</summary>
     public void SetPixelShaderDefines(string defines)
     {
-        PixelShaderDefines = NormalizeDefines(defines);
-        var pixelDefines = PixelShaderDefines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var isAlphaMask = false;
-        foreach (var define in pixelDefines)
-        {
-            if (string.Equals(define, "ALPHAMASK", StringComparison.OrdinalIgnoreCase))
-            {
-                isAlphaMask = true;
-                break;
-            }
-        }
-
-        IsAlphaMask = isAlphaMask;
+        _pixelShaderDefines = defines;
+        _isAlphaMask = _pixelShaderDefines.Contains("ALPHAMASK", StringComparison.Ordinal);
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set vertex shader define excludes. Use to mark defines that the shader code will not recognize, to prevent compiling redundant shader variations.</summary>
     public void SetVertexShaderDefineExcludes(string excludes)
     {
-        VertexShaderDefineExcludes = NormalizeDefines(excludes);
+        _vertexShaderDefineExcludes = excludes;
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Set pixel shader define excludes. Use to mark defines that the shader code will not recognize, to prevent compiling redundant shader variations.</summary>
     public void SetPixelShaderDefineExcludes(string excludes)
     {
-        PixelShaderDefineExcludes = NormalizeDefines(excludes);
+        _pixelShaderDefineExcludes = excludes;
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
     public void SetVertexTextureDefines(IEnumerable<string> textures)
     {
-        ArgumentNullException.ThrowIfNull(textures);
         _vertexTextureDefines.Clear();
-        _vertexTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
+        _vertexTextureDefines.AddRange(textures);
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
     public void SetPixelTextureDefines(IEnumerable<string> textures)
     {
-        ArgumentNullException.ThrowIfNull(textures);
         _pixelTextureDefines.Clear();
-        _pixelTextureDefines.AddRange(textures.Where(static value => !string.IsNullOrWhiteSpace(value)).Select(static value => value.Trim()));
+        _pixelTextureDefines.AddRange(textures);
         ReleaseShaders();
-        RefreshPipelineStateHash();
+        MarkPipelineStateHashDirty();
     }
 
+    /// <summary>Reset shader pointers.</summary>
     public void ReleaseShaders()
     {
         _vertexShaders.Clear();
@@ -237,129 +191,240 @@ public sealed class Pass : PipelineStateTracker
         _extraPixelShaders.Clear();
     }
 
+    /// <summary>Mark shaders loaded this frame.</summary>
     public void MarkShadersLoaded(uint frameNumber)
     {
-        ShadersLoadedFrameNumber = frameNumber;
+        _shadersLoadedFrameNumber = frameNumber;
     }
 
-    public string GetEffectiveVertexShaderDefines() => FilterDefines(VertexShaderDefines, VertexShaderDefineExcludes);
+    /// <summary>Return pass name.</summary>
+    public string Name => _name;
 
-    public string GetEffectivePixelShaderDefines() => FilterDefines(PixelShaderDefines, PixelShaderDefineExcludes);
+    /// <summary>Return pass index. This is used for optimal render-time pass queries that avoid map lookups.</summary>
+    public uint Index => _index;
 
-    public Pass Clone()
+    /// <summary>Return blend mode.</summary>
+    public BlendMode BlendMode => _blendMode;
+
+    /// <summary>Return culling mode override. If pass is not overriding culling mode (default), the illegal mode Max is returned.</summary>
+    public CullMode CullMode => _cullMode;
+
+    /// <summary>Return depth compare mode.</summary>
+    public CompareMode DepthTestMode => _depthTestMode;
+
+    /// <summary>Return last shaders loaded frame number.</summary>
+    public uint ShadersLoadedFrameNumber => _shadersLoadedFrameNumber;
+
+    /// <summary>Return color write mode.</summary>
+    public bool ColorWrite => _colorWrite;
+
+    /// <summary>Return depth write mode.</summary>
+    public bool DepthWrite => _depthWrite;
+
+    /// <summary>Return alpha-to-coverage mode.</summary>
+    public bool AlphaToCoverage => _alphaToCoverage;
+
+    /// <summary>Return whether the pass uses cutout transparency via ALPHAMASK.</summary>
+    public bool IsAlphaMask => _isAlphaMask;
+
+    /// <summary>Return vertex shader name.</summary>
+    public string VertexShader => _vertexShaderName;
+
+    /// <summary>Return pixel shader name.</summary>
+    public string PixelShader => _pixelShaderName;
+
+    /// <summary>Return vertex shader defines.</summary>
+    public string VertexShaderDefines => _vertexShaderDefines;
+
+    /// <summary>Return pixel shader defines.</summary>
+    public string PixelShaderDefines => _pixelShaderDefines;
+
+    /// <summary>Return vertex shader define excludes.</summary>
+    public string VertexShaderDefineExcludes => _vertexShaderDefineExcludes;
+
+    /// <summary>Return pixel shader define excludes.</summary>
+    public string PixelShaderDefineExcludes => _pixelShaderDefineExcludes;
+
+    /// <summary>Return vertex shaders.</summary>
+    public List<ShaderVariation?> GetVertexShaders() => _vertexShaders;
+
+    /// <summary>Return pixel shaders.</summary>
+    public List<ShaderVariation?> GetPixelShaders() => _pixelShaders;
+
+    /// <summary>Return names of textures to be reported as defines in vertex shader code.</summary>
+    public IReadOnlyList<string> VertexTextureDefines => _vertexTextureDefines;
+
+    /// <summary>Return names of textures to be reported as defines in pixel shader code.</summary>
+    public IReadOnlyList<string> PixelTextureDefines => _pixelTextureDefines;
+
+    /// <summary>Return vertex shaders with extra defines from the renderpath.</summary>
+    public List<ShaderVariation?> GetVertexShaders(StringHash extraDefinesHash)
     {
-        var clone = new Pass(Name);
-        clone.SetBlendMode(BlendMode);
-        clone.SetCullMode(CullMode);
-        clone.SetDepthTestMode(DepthTestMode);
-        clone.SetColorWrite(ColorWrite);
-        clone.SetDepthWrite(DepthWrite);
-        clone.SetAlphaToCoverage(AlphaToCoverage);
-        clone.SetVertexShader(VertexShader);
-        clone.SetPixelShader(PixelShader);
-        clone.SetVertexShaderDefines(VertexShaderDefines);
-        clone.SetPixelShaderDefines(PixelShaderDefines);
-        clone.SetVertexShaderDefineExcludes(VertexShaderDefineExcludes);
-        clone.SetPixelShaderDefineExcludes(PixelShaderDefineExcludes);
-        clone.SetVertexTextureDefines(_vertexTextureDefines);
-        clone.SetPixelTextureDefines(_pixelTextureDefines);
-        clone.MarkShadersLoaded(ShadersLoadedFrameNumber);
-        return clone;
+        if (!extraDefinesHash.IsEmpty())
+        {
+            if (!_extraVertexShaders.TryGetValue(extraDefinesHash, out var shaders))
+            {
+                shaders = [];
+                _extraVertexShaders.Add(extraDefinesHash, shaders);
+            }
+
+            return shaders;
+        }
+
+        return _vertexShaders;
     }
+
+    /// <summary>Return pixel shaders with extra defines from the renderpath.</summary>
+    public List<ShaderVariation?> GetPixelShaders(StringHash extraDefinesHash)
+    {
+        if (!extraDefinesHash.IsEmpty())
+        {
+            if (!_extraPixelShaders.TryGetValue(extraDefinesHash, out var shaders))
+            {
+                shaders = [];
+                _extraPixelShaders.Add(extraDefinesHash, shaders);
+            }
+
+            return shaders;
+        }
+
+        return _pixelShaders;
+    }
+
+    /// <summary>Return the effective vertex shader defines, accounting for excludes. Called internally by Renderer.</summary>
+    public string GetEffectiveVertexShaderDefines() => FilterDefines(_vertexShaderDefines, _vertexShaderDefineExcludes);
+
+    /// <summary>Return the effective pixel shader defines, accounting for excludes. Called internally by Renderer.</summary>
+    public string GetEffectivePixelShaderDefines() => FilterDefines(_pixelShaderDefines, _pixelShaderDefineExcludes);
 
     private static string FilterDefines(string defines, string excludes)
     {
-        if (string.IsNullOrWhiteSpace(excludes))
+        if (excludes.Length == 0)
             return defines;
 
-        var defineSet = defines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-        foreach (var exclude in excludes.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            defineSet.RemoveAll(define => string.Equals(define, exclude, StringComparison.Ordinal));
+        var defineSet = defines.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+        var excludeSet = excludes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < excludeSet.Length; ++i)
+            defineSet.Remove(excludeSet[i]);
+
         return string.Join(' ', defineSet);
-    }
-
-    private static string NormalizeDefines(string? defines)
-    {
-        return string.IsNullOrWhiteSpace(defines)
-            ? string.Empty
-            : string.Join(' ', defines.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-    }
-
-    private void RefreshPipelineStateHash()
-    {
-        MarkPipelineStateHashDirty();
     }
 
     protected override uint RecalculatePipelineStateHash()
     {
-        var hash = new HashCode();
-        hash.Add(BlendMode);
-        hash.Add(CullMode);
-        hash.Add(DepthTestMode);
-        hash.Add(ColorWrite);
-        hash.Add(DepthWrite);
-        hash.Add(AlphaToCoverage);
-        hash.Add(VertexShader, StringComparer.Ordinal);
-        hash.Add(PixelShader, StringComparer.Ordinal);
-        hash.Add(VertexShaderDefines, StringComparer.Ordinal);
-        hash.Add(PixelShaderDefines, StringComparer.Ordinal);
-        hash.Add(VertexShaderDefineExcludes, StringComparer.Ordinal);
-        hash.Add(PixelShaderDefineExcludes, StringComparer.Ordinal);
-        foreach (var define in _vertexTextureDefines)
-            hash.Add(define, StringComparer.Ordinal);
-        foreach (var define in _pixelTextureDefines)
-            hash.Add(define, StringComparer.Ordinal);
-        return unchecked((uint)hash.ToHashCode());
+        var hash = 0u;
+        CombineHash(ref hash, (uint)_blendMode);
+        CombineHash(ref hash, (uint)_cullMode);
+        CombineHash(ref hash, (uint)_depthTestMode);
+        CombineHash(ref hash, _colorWrite ? 1u : 0u);
+        CombineHash(ref hash, _depthWrite ? 1u : 0u);
+        CombineHash(ref hash, _alphaToCoverage ? 1u : 0u);
+        CombineHash(ref hash, StringHash.Calculate(_vertexShaderName));
+        CombineHash(ref hash, StringHash.Calculate(_pixelShaderName));
+        CombineHash(ref hash, StringHash.Calculate(_vertexShaderDefines));
+        CombineHash(ref hash, StringHash.Calculate(_pixelShaderDefines));
+        CombineHash(ref hash, StringHash.Calculate(_vertexShaderDefineExcludes));
+        CombineHash(ref hash, StringHash.Calculate(_pixelShaderDefineExcludes));
+        CombineHash(ref hash, MakeHash(_vertexTextureDefines));
+        CombineHash(ref hash, MakeHash(_pixelTextureDefines));
+        return hash;
     }
+
+    private static uint MakeHash(IReadOnlyList<string> values)
+    {
+        var hash = 0u;
+        for (var i = 0; i < values.Count; ++i)
+            CombineHash(ref hash, StringHash.Calculate(values[i]));
+        return hash;
+    }
+
+    private static void CombineHash(ref uint hash, uint value)
+    {
+        hash ^= unchecked(value + 0x9e3779b9u + (hash << 6) + (hash >> 2));
+    }
+
+    private uint _index;
+    private BlendMode _blendMode;
+    private CullMode _cullMode;
+    private CompareMode _depthTestMode;
+    private uint _shadersLoadedFrameNumber;
+    private bool _colorWrite;
+    private bool _depthWrite;
+    private bool _alphaToCoverage;
+    private bool _isAlphaMask;
+    private string _vertexShaderName = string.Empty;
+    private string _pixelShaderName = string.Empty;
+    private string _vertexShaderDefines = string.Empty;
+    private string _pixelShaderDefines = string.Empty;
+    private string _vertexShaderDefineExcludes = string.Empty;
+    private string _pixelShaderDefineExcludes = string.Empty;
+    private readonly List<ShaderVariation?> _vertexShaders = [];
+    private readonly List<ShaderVariation?> _pixelShaders = [];
+    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraVertexShaders = [];
+    private readonly Dictionary<StringHash, List<ShaderVariation?>> _extraPixelShaders = [];
+    private readonly List<string> _vertexTextureDefines = [];
+    private readonly List<string> _pixelTextureDefines = [];
+    private string _name = string.Empty;
 }
 
-public sealed class Technique : Resource
+/// <summary>Material technique. Consists of several passes.</summary>
+public class Technique : Resource
 {
-    private static readonly Dictionary<string, uint> PassIndices = new(StringComparer.Ordinal);
-    private readonly List<Pass?> _passes = [];
-    private readonly Dictionary<(uint VertexDefines, uint PixelDefines), Technique> _cloneTechniques = new();
-
-    static Technique()
-    {
-        BasePassIndex = RegisterBuiltInPass("base", 0);
-        AlphaPassIndex = RegisterBuiltInPass("alpha", 1);
-        MaterialPassIndex = RegisterBuiltInPass("material", 2);
-        DeferredPassIndex = RegisterBuiltInPass("deferred", 3);
-        LightPassIndex = RegisterBuiltInPass("light", 4);
-        LitBasePassIndex = RegisterBuiltInPass("litbase", 5);
-        LitAlphaPassIndex = RegisterBuiltInPass("litalpha", 6);
-        ShadowPassIndex = RegisterBuiltInPass("shadow", 7);
-    }
-
+    /// <summary>Construct.</summary>
     public Technique(string name)
         : base(name)
     {
     }
 
-    public static uint BasePassIndex { get; }
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        foreach (var clone in _cloneTechniques.Values)
+            clone.Dispose();
+        _cloneTechniques.Clear();
+        for (var i = _passes.Count - 1; i >= 0; --i)
+            _passes[i]?.Dispose();
+        _passes.Clear();
+        base.Dispose();
+    }
 
-    public static uint AlphaPassIndex { get; }
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        var reflection = context.AddReflection<Technique>();
+        reflection.SetObjectFactory(static () => new Technique(string.Empty));
+    }
 
-    public static uint MaterialPassIndex { get; }
+    /// <summary>Index for base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint BasePassIndex;
+    /// <summary>Index for alpha pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint AlphaPassIndex;
+    /// <summary>Index for prepass material pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint MaterialPassIndex;
+    /// <summary>Index for deferred G-buffer pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint DeferredPassIndex;
+    /// <summary>Index for per-pixel light pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint LightPassIndex;
+    /// <summary>Index for lit base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint LitBasePassIndex;
+    /// <summary>Index for lit alpha pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint LitAlphaPassIndex;
+    /// <summary>Index for shadow pass. Initialized once GetPassIndex() has been called for the first time.</summary>
+    public static uint ShadowPassIndex;
 
-    public static uint DeferredPassIndex { get; }
-
-    public static uint LightPassIndex { get; }
-
-    public static uint LitBasePassIndex { get; }
-
-    public static uint LitAlphaPassIndex { get; }
-
-    public static uint ShadowPassIndex { get; }
-
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
+        for (var i = _passes.Count - 1; i >= 0; --i)
+            _passes[i]?.Dispose();
         _passes.Clear();
+        foreach (var clone in _cloneTechniques.Values)
+            clone.Dispose();
         _cloneTechniques.Clear();
         MemoryUse = 0;
 
-        var xml = new XMLFile(Name);
+        using var xml = new XMLFile(Name);
         if (!xml.Load(source))
             return false;
 
@@ -372,7 +437,10 @@ public sealed class Technique : Resource
         for (var passElement = root.GetChild("pass"); passElement.NotNull; passElement = passElement.GetNext("pass"))
         {
             if (!passElement.HasAttribute("name"))
-                return false;
+            {
+                Log.Logger.LogError("Missing pass name");
+                continue;
+            }
 
             var pass = CreatePass(passElement.GetAttribute("name"));
             if (passElement.HasAttribute("vs"))
@@ -401,10 +469,18 @@ public sealed class Technique : Resource
             pass.SetVertexShaderDefineExcludes(passExcludes + passElement.GetAttribute("vsexcludes"));
             pass.SetPixelShaderDefineExcludes(passExcludes + passElement.GetAttribute("psexcludes"));
 
+            IReadOnlyList<string> passVsTextures = [];
+            IReadOnlyList<string> passPsTextures = [];
+            if (pass.Index != ShadowPassIndex)
+                passPsTextures = ["Albedo", "Normal", "Properties", "Emission"];
+
             if (passElement.HasAttribute("vstextures"))
-                pass.SetVertexTextureDefines(passElement.GetAttribute("vstextures").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                passVsTextures = passElement.GetAttribute("vstextures").Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (passElement.HasAttribute("pstextures"))
-                pass.SetPixelTextureDefines(passElement.GetAttribute("pstextures").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                passPsTextures = passElement.GetAttribute("pstextures").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            pass.SetVertexTextureDefines(passVsTextures);
+            pass.SetPixelTextureDefines(passPsTextures);
 
             if (passElement.HasAttribute("blend"))
                 pass.SetBlendMode(ParseBlendMode(passElement.GetAttribute("blend")));
@@ -424,6 +500,7 @@ public sealed class Technique : Resource
         return true;
     }
 
+    /// <summary>Create a new pass.</summary>
     public Pass CreatePass(string name)
     {
         var existing = GetPass(name);
@@ -442,47 +519,71 @@ public sealed class Technique : Resource
         return pass;
     }
 
+    /// <summary>Remove a pass.</summary>
     public void RemovePass(string name)
     {
-        var index = GetPassIndex(name);
-        if (index < _passes.Count)
+        if (!PassIndices.TryGetValue(name.ToLowerInvariant(), out var index))
+            return;
+        if (index < _passes.Count && _passes[(int)index] is not null)
+        {
+            _passes[(int)index]!.Dispose();
             _passes[(int)index] = null;
-        MemoryUse = (uint)(GetNumPasses() * 128);
+            MemoryUse = (uint)(GetNumPasses() * 128);
+        }
     }
 
+    /// <summary>Reset shader pointers in all passes.</summary>
     public void ReleaseShaders()
     {
         foreach (var pass in _passes)
             pass?.ReleaseShaders();
     }
 
+    /// <summary>Clone the technique. Passes will be deep copied to allow independent modification.</summary>
     public Technique Clone(string cloneName = "")
     {
-        var clone = new Technique(string.IsNullOrEmpty(cloneName) ? Name : cloneName);
+        var clone = new Technique(cloneName);
         foreach (var pass in _passes)
         {
             if (pass is null)
                 continue;
 
             var clonedPass = clone.CreatePass(pass.Name);
-            CopyPass(clonedPass, pass);
+            clonedPass.SetCullMode(pass.CullMode);
+            clonedPass.SetBlendMode(pass.BlendMode);
+            clonedPass.SetDepthTestMode(pass.DepthTestMode);
+            clonedPass.SetColorWrite(pass.ColorWrite);
+            clonedPass.SetDepthWrite(pass.DepthWrite);
+            clonedPass.SetAlphaToCoverage(pass.AlphaToCoverage);
+            clonedPass.SetVertexShader(pass.VertexShader);
+            clonedPass.SetPixelShader(pass.PixelShader);
+            clonedPass.SetVertexShaderDefines(pass.VertexShaderDefines);
+            clonedPass.SetPixelShaderDefines(pass.PixelShaderDefines);
+            clonedPass.SetVertexShaderDefineExcludes(pass.VertexShaderDefineExcludes);
+            clonedPass.SetPixelShaderDefineExcludes(pass.PixelShaderDefineExcludes);
+            clonedPass.SetVertexTextureDefines(pass.VertexTextureDefines);
+            clonedPass.SetPixelTextureDefines(pass.PixelTextureDefines);
         }
 
         return clone;
     }
 
+    /// <summary>Return whether has a pass.</summary>
     public bool HasPass(uint passIndex) => passIndex < _passes.Count && _passes[(int)passIndex] is not null;
 
+    /// <summary>Return whether has a pass by name. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.</summary>
     public bool HasPass(string name) => GetPass(name) is not null;
 
+    /// <summary>Return a pass, or null if not found.</summary>
     public Pass? GetPass(uint passIndex) => passIndex < _passes.Count ? _passes[(int)passIndex] : null;
 
+    /// <summary>Return a pass by name, or null if not found. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.</summary>
     public Pass? GetPass(string name)
     {
-        var index = GetPassIndex(name);
-        return GetPass(index);
+        return PassIndices.TryGetValue(name.ToLowerInvariant(), out var index) ? GetPass(index) : null;
     }
 
+    /// <summary>Return number of passes.</summary>
     public uint GetNumPasses()
     {
         var count = 0u;
@@ -495,38 +596,74 @@ public sealed class Technique : Resource
         return count;
     }
 
-    public IReadOnlyList<string> GetPassNames() => _passes.Where(static pass => pass is not null).Select(static pass => pass!.Name).ToArray();
+    /// <summary>Return all pass names.</summary>
+    public IReadOnlyList<string> GetPassNames()
+    {
+        var result = new List<string>();
+        foreach (var pass in _passes)
+        {
+            if (pass is not null)
+                result.Add(pass.Name);
+        }
 
-    public IReadOnlyList<Pass> GetPasses() => _passes.Where(static pass => pass is not null).Select(static pass => pass!).ToArray();
+        return result;
+    }
 
+    /// <summary>Return all passes.</summary>
+    public IReadOnlyList<Pass> GetPasses()
+    {
+        var result = new List<Pass>();
+        foreach (var pass in _passes)
+        {
+            if (pass is not null)
+                result.Add(pass);
+        }
+
+        return result;
+    }
+
+    /// <summary>Return a clone with added shader compilation defines. Called internally by Material.</summary>
     public Technique CloneWithDefines(string vsDefines, string psDefines)
     {
-        if (string.IsNullOrWhiteSpace(vsDefines) && string.IsNullOrWhiteSpace(psDefines))
+        if (vsDefines.Length == 0 && psDefines.Length == 0)
             return this;
 
-        var key = (StringHash.Calculate(vsDefines ?? string.Empty), StringHash.Calculate(psDefines ?? string.Empty));
+        var key = (new StringHash(vsDefines), new StringHash(psDefines));
         if (_cloneTechniques.TryGetValue(key, out var cached))
             return cached;
 
         var clone = Clone(Name);
         foreach (var pass in clone.GetPasses())
         {
-            if (!string.IsNullOrWhiteSpace(vsDefines))
-                pass.SetVertexShaderDefines(AppendWithSpace(pass.VertexShaderDefines, vsDefines));
-            if (!string.IsNullOrWhiteSpace(psDefines))
-                pass.SetPixelShaderDefines(AppendWithSpace(pass.PixelShaderDefines, psDefines));
+            if (vsDefines.Length != 0)
+                pass.SetVertexShaderDefines(pass.VertexShaderDefines + " " + vsDefines);
+            if (psDefines.Length != 0)
+                pass.SetPixelShaderDefines(pass.PixelShaderDefines + " " + psDefines);
         }
 
         _cloneTechniques[key] = clone;
         return clone;
     }
 
+    /// <summary>Return a pass type index by name. Allocate new if not used yet.</summary>
     public static uint GetPassIndex(string passName)
     {
         // C++ Technique::GetPassIndex returns M_MAX_UNSIGNED for empty pass names
         // (used by ScenePass constructors for unused deferred/light slots).
         if (string.IsNullOrEmpty(passName))
             return uint.MaxValue;
+
+        if (PassIndices.Count == 0)
+        {
+            BasePassIndex = PassIndices["base"] = 0;
+            AlphaPassIndex = PassIndices["alpha"] = 1;
+            MaterialPassIndex = PassIndices["material"] = 2;
+            DeferredPassIndex = PassIndices["deferred"] = 3;
+            LightPassIndex = PassIndices["light"] = 4;
+            LitBasePassIndex = PassIndices["litbase"] = 5;
+            LitAlphaPassIndex = PassIndices["litalpha"] = 6;
+            ShadowPassIndex = PassIndices["shadow"] = 7;
+        }
 
         var lower = passName.ToLowerInvariant();
         if (PassIndices.TryGetValue(lower, out var index))
@@ -539,46 +676,12 @@ public sealed class Technique : Resource
 
     private static string AppendDefineSuffix(string value)
     {
-        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim() + " ";
-    }
-
-    private static string AppendWithSpace(string left, string right)
-    {
-        if (string.IsNullOrWhiteSpace(left))
-            return right.Trim();
-        if (string.IsNullOrWhiteSpace(right))
-            return left.Trim();
-        return left.Trim() + " " + right.Trim();
-    }
-
-    private static void CopyPass(Pass destination, Pass source)
-    {
-        destination.SetBlendMode(source.BlendMode);
-        destination.SetCullMode(source.CullMode);
-        destination.SetDepthTestMode(source.DepthTestMode);
-        destination.SetColorWrite(source.ColorWrite);
-        destination.SetDepthWrite(source.DepthWrite);
-        destination.SetAlphaToCoverage(source.AlphaToCoverage);
-        destination.SetVertexShader(source.VertexShader);
-        destination.SetPixelShader(source.PixelShader);
-        destination.SetVertexShaderDefines(source.VertexShaderDefines);
-        destination.SetPixelShaderDefines(source.PixelShaderDefines);
-        destination.SetVertexShaderDefineExcludes(source.VertexShaderDefineExcludes);
-        destination.SetPixelShaderDefineExcludes(source.PixelShaderDefineExcludes);
-        destination.SetVertexTextureDefines(source.VertexTextureDefines);
-        destination.SetPixelTextureDefines(source.PixelTextureDefines);
-        destination.MarkShadersLoaded(source.ShadersLoadedFrameNumber);
-    }
-
-    private static uint RegisterBuiltInPass(string passName, uint index)
-    {
-        PassIndices[passName] = index;
-        return index;
+        return value.Length == 0 ? string.Empty : value + " ";
     }
 
     private static BlendMode ParseBlendMode(string value)
     {
-        return value.Trim().ToLowerInvariant() switch
+        return value.ToLowerInvariant() switch
         {
             "add" => BlendMode.Add,
             "multiply" => BlendMode.Multiply,
@@ -595,7 +698,7 @@ public sealed class Technique : Resource
 
     private static CompareMode ParseCompareMode(string value)
     {
-        var normalized = value.Trim().ToLowerInvariant();
+        var normalized = value.ToLowerInvariant();
         if (normalized == "false")
             return CompareMode.Always;
 
@@ -614,7 +717,7 @@ public sealed class Technique : Resource
 
     private static CullMode ParseCullMode(string value)
     {
-        return value.Trim().ToLowerInvariant() switch
+        return value.ToLowerInvariant() switch
         {
             "none" => CullMode.None,
             "cw" => CullMode.Clockwise,
@@ -622,4 +725,8 @@ public sealed class Technique : Resource
             _ => CullMode.Max
         };
     }
+
+    private readonly List<Pass?> _passes = [];
+    private readonly Dictionary<(StringHash VertexDefines, StringHash PixelDefines), Technique> _cloneTechniques = new();
+    private static readonly Dictionary<string, uint> PassIndices = new(StringComparer.Ordinal);
 }

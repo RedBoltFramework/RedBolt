@@ -4059,7 +4059,21 @@ layout(std140) uniform Material
         if (_normalBufferPasses.TryGetValue(referencePass, out var cachedPass))
             return cachedPass;
 
-        var normalPass = referencePass.Clone();
+        var normalPass = new Pass(referencePass.Name);
+        normalPass.SetCullMode(referencePass.CullMode);
+        normalPass.SetBlendMode(referencePass.BlendMode);
+        normalPass.SetDepthTestMode(referencePass.DepthTestMode);
+        normalPass.SetColorWrite(referencePass.ColorWrite);
+        normalPass.SetDepthWrite(referencePass.DepthWrite);
+        normalPass.SetAlphaToCoverage(referencePass.AlphaToCoverage);
+        normalPass.SetVertexShader(referencePass.VertexShader);
+        normalPass.SetPixelShader(referencePass.PixelShader);
+        normalPass.SetVertexShaderDefines(referencePass.VertexShaderDefines);
+        normalPass.SetPixelShaderDefines(referencePass.PixelShaderDefines);
+        normalPass.SetVertexShaderDefineExcludes(referencePass.VertexShaderDefineExcludes);
+        normalPass.SetPixelShaderDefineExcludes(referencePass.PixelShaderDefineExcludes);
+        normalPass.SetVertexTextureDefines(referencePass.VertexTextureDefines);
+        normalPass.SetPixelTextureDefines(referencePass.PixelTextureDefines);
         normalPass.SetBlendMode(BlendMode.Replace);
         normalPass.SetColorWrite(true);
         normalPass.SetDepthWrite(false);
