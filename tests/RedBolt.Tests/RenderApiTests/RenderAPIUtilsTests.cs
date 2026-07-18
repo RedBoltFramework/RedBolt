@@ -89,7 +89,7 @@ public sealed class RenderAPIUtilsTests
     public void Render_device_settings_optional_values_round_trip_through_binary_archive()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var settings = new RenderDeviceSettingsD3D12();
         settings.CpuDescriptorHeapAllocationSize[0] = 128;
         settings.CpuDescriptorHeapAllocationSize[1] = null;
@@ -98,14 +98,14 @@ public sealed class RenderAPIUtilsTests
         settings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion] = 4;
         settings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp] = 8;
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             RenderAPIUtils.SerializeValue(output, "settings", settings);
         output.Flush();
 
         buffer.Seek(0);
         var loadedSettings = new RenderDeviceSettingsD3D12();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             RenderAPIUtils.SerializeValue(input, "settings", loadedSettings);
         input.Flush();
@@ -123,7 +123,7 @@ public sealed class RenderAPIUtilsTests
     public void Vulkan_descriptor_pool_size_round_trips_through_binary_archive()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var value = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize
         {
             MaxDescriptorSets = 1,
@@ -139,14 +139,14 @@ public sealed class RenderAPIUtilsTests
             NumAccelStructDescriptors = 11
         };
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             RenderAPIUtils.SerializeValue(output, "pool", value);
         output.Flush();
 
         buffer.Seek(0);
         var loadedValue = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             RenderAPIUtils.SerializeValue(input, "pool", loadedValue);
         input.Flush();

@@ -46,11 +46,14 @@ public sealed class SceneResource : Resource
                 return true;
             }
 
-            Archive archive = _loadFormat switch
+            using var binaryBuffer = _loadFormat == InternalResourceFormat.Binary
+                ? new MemoryBuffer(_pendingData.AsMemory(4))
+                : null;
+            using Archive archive = _loadFormat switch
             {
                 InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
                 InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
-                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, new MemoryBuffer(_pendingData.AsMemory(4))),
+                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, binaryBuffer!),
                 _ => throw new InvalidOperationException("Unknown scene format.")
             };
             using (archive.OpenUnorderedBlock(GetXmlRootName()))
@@ -77,14 +80,14 @@ public sealed class SceneResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    var archive = new JSONOutputArchive(Context.Instance);
+                    using var archive = new JSONOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
                         SerializeScene(archive, Scene, asPrefab);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToJsonString()); destination.Write(bytes); break;
                 }
                 case InternalResourceFormat.Xml:
                 {
-                    var archive = new XMLOutputArchive(Context.Instance);
+                    using var archive = new XMLOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
                         SerializeScene(archive, Scene, asPrefab);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToXmlString()); destination.Write(bytes); break;
@@ -92,7 +95,8 @@ public sealed class SceneResource : Resource
                 case InternalResourceFormat.Binary:
                 {
                     destination.Write(SimpleResource.DefaultBinaryMagic);
-                    var buffer = new VectorBuffer(); var archive = new BinaryOutputArchive(Context.Instance, buffer);
+                    using var buffer = new VectorBuffer();
+                    using var archive = new BinaryOutputArchive(Context.Instance, buffer);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
                         SerializeScene(archive, Scene, asPrefab);
                     archive.Flush(); destination.Write(buffer.Buffer[..checked((int)buffer.Size)]); break;

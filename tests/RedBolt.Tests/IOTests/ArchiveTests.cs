@@ -154,16 +154,16 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_resource_reference()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var source = new ResourceRef("BinaryFile", "Data/dependency.bin");
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(output, "resource", ref source);
         output.Flush();
 
         buffer.Seek(0);
         var destination = ResourceRef.Empty;
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(input, "resource", ref destination);
         input.Flush();
@@ -175,16 +175,16 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_resource_reference_variant()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var source = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"));
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantInBlock(output, ref source);
         output.Flush();
 
         buffer.Seek(0);
         var destination = default(Variant);
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantInBlock(input, ref destination);
         input.Flush();
@@ -196,20 +196,20 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_resource_reference_attribute()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var source = new AttributePrefab
         {
             Name = "Dependency",
             Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
         };
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             source.SerializeInBlock(output);
         output.Flush();
 
         buffer.Seek(0);
         var destination = new AttributePrefab();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             destination.SerializeInBlock(input);
         input.Flush();
@@ -221,7 +221,7 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_nested_resource_reference_attribute()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var source = new NodePrefab();
         var child = new NodePrefab();
         child.Components.Add(new SerializablePrefab
@@ -237,14 +237,14 @@ public sealed class ArchiveTests
             }
         });
         source.Children.Add(child);
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             source.SerializeInBlock(output);
         output.Flush();
 
         buffer.Seek(0);
         var destination = new NodePrefab();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             destination.SerializeInBlock(input);
         input.Flush();
@@ -485,12 +485,12 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_compound_and_cstring_variants()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var vector = new Variant(new Vector3f(1.0f, 2.0f, 3.0f));
         using var cstring = new CString("Native text");
         var nativeString = new Variant(cstring);
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
         {
             ArchiveSerialization.SerializeVariantInBlock(output, ref vector);
@@ -499,7 +499,7 @@ public sealed class ArchiveTests
         output.Flush();
 
         buffer.Seek(0);
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         var loadedVector = default(Variant);
         var loadedNativeString = default(Variant);
         using (input.OpenUnorderedBlock("Root"))
@@ -517,20 +517,20 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_variant_curve()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var curve = new VariantCurve { Name = "Curve", Interpolation = KeyFrameInterpolation.Linear };
         curve.AddKeyFrame(new VariantCurvePoint { Time = 0.0f, Value = 1.0f });
         curve.AddKeyFrame(new VariantCurvePoint { Time = 1.0f, Value = 3.0f });
         curve.Commit();
         var value = new Variant(curve);
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantInBlock(output, ref value);
         output.Flush();
 
         buffer.Seek(0);
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         var loadedValue = default(Variant);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantInBlock(input, ref loadedValue);
@@ -547,7 +547,7 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_tetrahedral_mesh()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var mesh = new TetrahedralMesh();
         mesh.Vertices.Add(new Vector3f(1.0f, 2.0f, 3.0f));
         mesh.Vertices.Add(new Vector3f(4.0f, 5.0f, 6.0f));
@@ -567,14 +567,14 @@ public sealed class ArchiveTests
         mesh.Tetrahedrons.Add(tetrahedron);
         mesh.NumInnerTetrahedrons = 1;
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(output, "mesh", ref mesh);
         output.Flush();
 
         buffer.Seek(0);
         var loadedMesh = new TetrahedralMesh();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(input, "mesh", ref loadedMesh);
         input.Flush();
@@ -620,18 +620,18 @@ public sealed class ArchiveTests
     public void Binary_archive_round_trips_light_probe_baked_data()
     {
         var context = new Context();
-        var buffer = new VectorBuffer();
+        using var buffer = new VectorBuffer();
         var data = new LightProbeCollectionBakedData();
         data.SphericalHarmonics.Add(new SphericalHarmonicsDot9(new Vector3f(1.0f, 2.0f, 3.0f)));
 
-        var output = new BinaryOutputArchive(context, buffer);
+        using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(output, "data", ref data);
         output.Flush();
 
         buffer.Seek(0);
         var loadedData = new LightProbeCollectionBakedData();
-        var input = new BinaryInputArchive(context, buffer);
+        using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(input, "data", ref loadedData);
         input.Flush();

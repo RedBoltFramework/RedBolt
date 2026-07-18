@@ -40,7 +40,7 @@ public abstract class SimpleResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    var jsonFile = new JSONFile(Name);
+                    using var jsonFile = new JSONFile(Name);
                     if (!jsonFile.BeginLoad(new MemoryStream(data, writable: false)))
                         return false;
                     return jsonFile.LoadObjectCallback(archive =>
@@ -53,7 +53,7 @@ public abstract class SimpleResource : Resource
                 case InternalResourceFormat.Xml:
                 {
                     var xmlText = Encoding.UTF8.GetString(data);
-                    var xmlFile = new XMLFile(Name);
+                    using var xmlFile = new XMLFile(Name);
                     if (!xmlFile.FromString(xmlText))
                         return false;
 
@@ -74,7 +74,7 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Binary:
                 {
-                    var binaryFile = new BinaryFile(Name);
+                    using var binaryFile = new BinaryFile(Name);
                     using var payload = new MemoryStream(data, GetBinaryMagic().Length,
                         data.Length - GetBinaryMagic().Length, writable: false);
                     if (!binaryFile.BeginLoad(payload))
@@ -113,7 +113,7 @@ public abstract class SimpleResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    var archive = new JSONOutputArchive(Context.Instance);
+                    using var archive = new JSONOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock(GetRootBlockName()))
                         SerializeInBlock(archive);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToJsonString());
@@ -123,7 +123,7 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Xml:
                 {
-                    var archive = new XMLOutputArchive(Context.Instance);
+                    using var archive = new XMLOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock(GetRootBlockName()))
                         SerializeInBlock(archive);
                     var bytes = Encoding.UTF8.GetBytes(archive.ToXmlString());
@@ -134,8 +134,8 @@ public abstract class SimpleResource : Resource
                 case InternalResourceFormat.Binary:
                 {
                     destination.Write(GetBinaryMagic());
-                    var buffer = new VectorBuffer();
-                    var archive = new BinaryOutputArchive(Context.Instance, buffer);
+                    using var buffer = new VectorBuffer();
+                    using var archive = new BinaryOutputArchive(Context.Instance, buffer);
                     using (archive.OpenUnorderedBlock(GetRootBlockName()))
                         SerializeInBlock(archive);
                     archive.Flush();

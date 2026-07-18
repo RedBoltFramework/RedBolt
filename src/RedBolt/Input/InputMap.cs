@@ -65,11 +65,15 @@ public sealed class InputMap : ResourceWithMetadata
             using var memory = new MemoryStream();
             source.CopyTo(memory);
             var data = memory.ToArray();
-            Archive archive = DetectFormat(data) switch
+            var format = DetectFormat(data);
+            using var binaryBuffer = format == InternalResourceFormat.Binary
+                ? new MemoryBuffer(data.AsMemory(SimpleResource.DefaultBinaryMagic.Length))
+                : null;
+            using Archive archive = format switch
             {
                 InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
                 InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
-                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, new MemoryBuffer(data.AsMemory(SimpleResource.DefaultBinaryMagic.Length))),
+                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, binaryBuffer!),
                 _ => throw new InvalidDataException("Unknown input map format.")
             };
             using (archive.OpenUnorderedBlock("resource"))
@@ -94,14 +98,14 @@ public sealed class InputMap : ResourceWithMetadata
             {
                 case InternalResourceFormat.Json:
                 {
-                    var archive = new JSONOutputArchive(Context.Instance);
+                    using var archive = new JSONOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
                     destination.Write(Encoding.UTF8.GetBytes(archive.ToJsonString()));
                     return true;
                 }
                 case InternalResourceFormat.Xml:
                 {
-                    var archive = new XMLOutputArchive(Context.Instance);
+                    using var archive = new XMLOutputArchive(Context.Instance);
                     using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
                     destination.Write(Encoding.UTF8.GetBytes(archive.ToXmlString()));
                     return true;
@@ -109,8 +113,8 @@ public sealed class InputMap : ResourceWithMetadata
                 case InternalResourceFormat.Binary:
                 {
                     destination.Write(SimpleResource.DefaultBinaryMagic);
-                    var buffer = new VectorBuffer();
-                    var archive = new BinaryOutputArchive(Context.Instance, buffer);
+                    using var buffer = new VectorBuffer();
+                    using var archive = new BinaryOutputArchive(Context.Instance, buffer);
                     using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
                     archive.Flush();
                     destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);

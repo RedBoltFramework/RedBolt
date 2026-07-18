@@ -351,8 +351,8 @@ public class LightProbeGroup : Component
     /// <summary>Set serialized light probes.</summary>
     public void SetSerializedLightProbes(string data)
     {
-        var buffer = new VectorBuffer(Convert.FromBase64String(data));
-        var archive = new BinaryInputArchive(Context.Instance, buffer);
+        using var buffer = new VectorBuffer(Convert.FromBase64String(data));
+        using var archive = new BinaryInputArchive(Context.Instance, buffer);
         SerializeLightProbes(archive);
         _bakedDataDirty = true;
     }
@@ -360,8 +360,8 @@ public class LightProbeGroup : Component
     /// <summary>Return serialized light probes.</summary>
     public string GetSerializedLightProbes()
     {
-        var buffer = new VectorBuffer();
-        var archive = new BinaryOutputArchive(Context.Instance, buffer);
+        using var buffer = new VectorBuffer();
+        using var archive = new BinaryOutputArchive(Context.Instance, buffer);
         SerializeLightProbes(archive);
         return Convert.ToBase64String(buffer.GetBuffer());
     }
