@@ -70,7 +70,7 @@ public sealed class PackageFileTests
     {
         var content = Encoding.UTF8.GetBytes(new string('x', 100));
         var compressed = new byte[128];
-        var compressedSize = Compression.CompressData(compressed, content);
+        var compressedSize = Compression.CompressData(compressed, content, (uint)content.Length);
         Assert.NotEqual(0u, compressedSize);
 
         var packageBytes = new VectorBuffer();

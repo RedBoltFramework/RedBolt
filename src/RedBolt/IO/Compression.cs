@@ -4,129 +4,128 @@ using RedBolt.Bindings.Lz4;
 
 namespace RedBolt;
 
-/// <summary>LZ4 compression helpers.</summary>
 public static class Compression
 {
     /// <summary>Estimate and return worst case LZ4 compressed output size in bytes for given input size.</summary>
-    public static uint EstimateCompressBound(uint sourceSize)
+    public static uint EstimateCompressBound(uint srcSize)
     {
-        return unchecked((uint)Lz4NativeBindings.Lz4CompressBound(unchecked((int)sourceSize)));
+        return unchecked((uint)Lz4NativeBindings.Lz4CompressBound(unchecked((int)srcSize)));
     }
 
     /// <summary>Compress data using the LZ4 algorithm and return the compressed data size. The needed destination buffer worst-case size is given by EstimateCompressBound().</summary>
-    public static uint CompressData(Span<byte> destination, ReadOnlySpan<byte> source)
+    public static uint CompressData(Span<byte> dest, ReadOnlySpan<byte> src, uint srcSize)
     {
-        if (destination.IsEmpty || source.IsEmpty)
+        if (dest.IsEmpty || src.IsEmpty || srcSize == 0)
             return 0;
-
-        ref var sourceReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(source));
-        ref var destinationReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destination));
-        var compressedSize = Lz4NativeBindings.Lz4CompressHc(
-            in sourceReference,
-            out destinationReference,
-            source.Length,
-            Lz4NativeBindings.Lz4CompressBound(source.Length),
-            0);
-        return compressedSize > 0 ? (uint)compressedSize : 0;
+        else
+        {
+            ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(src));
+            ref var destReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(dest));
+            return unchecked((uint)Lz4NativeBindings.Lz4CompressHc(
+                in srcReference,
+                out destReference,
+                unchecked((int)srcSize),
+                Lz4NativeBindings.Lz4CompressBound(unchecked((int)srcSize)),
+                0));
+        }
     }
 
     /// <summary>Uncompress data using the LZ4 algorithm. The uncompressed data size must be known. Return the number of compressed data bytes consumed.</summary>
-    public static uint DecompressData(Span<byte> destination, ReadOnlySpan<byte> source)
+    public static uint DecompressData(Span<byte> dest, ReadOnlySpan<byte> src, uint destSize)
     {
-        if (destination.IsEmpty || source.IsEmpty)
+        if (dest.IsEmpty || src.IsEmpty || destSize == 0)
             return 0;
-
-        ref var sourceReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(source));
-        ref var destinationReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destination));
-        var compressedSize = Lz4NativeBindings.Lz4DecompressFast(
-            in sourceReference,
-            out destinationReference,
-            destination.Length);
-        return compressedSize > 0 ? (uint)compressedSize : 0;
+        else
+        {
+            ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(src));
+            ref var destReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(dest));
+            return unchecked((uint)Lz4NativeBindings.Lz4DecompressFast(
+                in srcReference,
+                out destReference,
+                unchecked((int)destSize)));
+        }
     }
 
     /// <summary>Compress a source stream (from current position to the end) to the destination stream using the LZ4 algorithm. Return true on success.</summary>
-    public static bool CompressStream(Serializer destination, Deserializer source, uint compressionLevel = 0)
+    public static bool CompressStream(Serializer dest, Deserializer src, uint compressionLevel = 0)
     {
-        var sourceSize = source.GetSize() - source.GetPosition();
+        var srcSize = src.GetSize() - src.GetPosition();
         // Prepend the source and dest. data size in the stream so that we know to buffer & uncompress the right amount
-        if (sourceSize == 0)
+        if (srcSize == 0)
         {
-            destination.WriteUInt(0);
-            destination.WriteUInt(0);
+            dest.WriteUInt(0);
+            dest.WriteUInt(0);
             return true;
         }
 
-        var maxDestinationSize = EstimateCompressBound(sourceSize);
-        var sourceBuffer = new byte[checked((int)sourceSize)];
-        var destinationBuffer = new byte[checked((int)maxDestinationSize)];
+        var maxDestSize = EstimateCompressBound(srcSize);
+        var srcBuffer = new byte[checked((int)srcSize)];
+        var destBuffer = new byte[checked((int)maxDestSize)];
 
-        if (source.Read(sourceBuffer) != sourceSize)
+        if (src.Read(srcBuffer) != srcSize)
             return false;
 
-        ref var sourceReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(sourceBuffer.AsSpan()));
-        ref var destinationReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destinationBuffer.AsSpan()));
-        var nativeDestinationSize = Lz4NativeBindings.Lz4CompressHc(
-            in sourceReference,
-            out destinationReference,
-            sourceBuffer.Length,
-            Lz4NativeBindings.Lz4CompressBound(sourceBuffer.Length),
-            unchecked((int)compressionLevel));
-        var destinationSize = nativeDestinationSize > 0 ? (uint)nativeDestinationSize : 0;
+        ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(srcBuffer.AsSpan()));
+        ref var destReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destBuffer.AsSpan()));
+        var destSize = unchecked((uint)Lz4NativeBindings.Lz4CompressHc(
+            in srcReference,
+            out destReference,
+            srcBuffer.Length,
+            Lz4NativeBindings.Lz4CompressBound(srcBuffer.Length),
+            unchecked((int)compressionLevel)));
         var success = true;
-        success &= destination.WriteUInt(sourceSize);
-        success &= destination.WriteUInt(destinationSize);
-        success &= destination.Write(destinationBuffer.AsSpan(0, checked((int)destinationSize))) == destinationSize;
+        success &= dest.WriteUInt(srcSize);
+        success &= dest.WriteUInt(destSize);
+        success &= dest.Write(destBuffer.AsSpan(0, checked((int)destSize))) == destSize;
         return success;
     }
 
     /// <summary>Decompress a compressed source stream produced using CompressStream() to the destination stream. Return true on success.</summary>
-    public static bool DecompressStream(Serializer destination, Deserializer source)
+    public static bool DecompressStream(Serializer dest, Deserializer src)
     {
-        if (source.IsEof())
+        if (src.IsEof())
             return false;
 
-        var destinationSize = source.ReadUInt();
-        var sourceSize = source.ReadUInt();
-        if (sourceSize == 0 || destinationSize == 0)
-            return true;
+        var destSize = src.ReadUInt();
+        var srcSize = src.ReadUInt();
+        if (srcSize == 0 || destSize == 0)
+            return true; // No data
 
-        if (sourceSize > source.GetSize())
+        if (srcSize > src.GetSize())
+            return false; // Illegal source (packed data) size reported, possibly not valid data
+
+        var srcBuffer = new byte[checked((int)srcSize)];
+        var destBuffer = new byte[checked((int)destSize)];
+
+        if (src.Read(srcBuffer) != srcSize)
             return false;
 
-        var sourceBuffer = new byte[checked((int)sourceSize)];
-        var destinationBuffer = new byte[checked((int)destinationSize)];
-
-        if (source.Read(sourceBuffer) != sourceSize)
-            return false;
-
-        ref var sourceReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(sourceBuffer.AsSpan()));
-        ref var destinationReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destinationBuffer.AsSpan()));
+        ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(srcBuffer.AsSpan()));
+        ref var destReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(destBuffer.AsSpan()));
         Lz4NativeBindings.Lz4DecompressFast(
-            in sourceReference,
-            out destinationReference,
-            destinationBuffer.Length);
-        return destination.Write(destinationBuffer) == destinationSize;
+            in srcReference,
+            out destReference,
+            destBuffer.Length);
+        return dest.Write(destBuffer) == destSize;
     }
 
     /// <summary>Compress a VectorBuffer using the LZ4 algorithm and return the compressed result buffer.</summary>
-    public static VectorBuffer CompressVectorBuffer(VectorBuffer source)
+    public static VectorBuffer CompressVectorBuffer(VectorBuffer src)
     {
-        var result = new VectorBuffer();
-        source.Seek(0);
-        CompressStream(result, source);
-        result.Seek(0);
-        return result;
+        var ret = new VectorBuffer();
+        src.Seek(0);
+        CompressStream(ret, src);
+        ret.Seek(0);
+        return ret;
     }
 
     /// <summary>Decompress a VectorBuffer produced using CompressVectorBuffer().</summary>
-    public static VectorBuffer DecompressVectorBuffer(VectorBuffer source)
+    public static VectorBuffer DecompressVectorBuffer(VectorBuffer src)
     {
-        var result = new VectorBuffer();
-        source.Seek(0);
-        DecompressStream(result, source);
-        result.Seek(0);
-        return result;
+        var ret = new VectorBuffer();
+        src.Seek(0);
+        DecompressStream(ret, src);
+        ret.Seek(0);
+        return ret;
     }
-
 }

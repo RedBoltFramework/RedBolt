@@ -156,7 +156,8 @@ public class File : AbstractFile
                     if (!ReadInternal(_inputBuffer.AsSpan(0, packedSize)))
                         return 0;
 
-                    Compression.DecompressData(_readBuffer.AsSpan(0, unpackedSize), _inputBuffer.AsSpan(0, packedSize));
+                    Compression.DecompressData(_readBuffer.AsSpan(0, unpackedSize),
+                        _inputBuffer.AsSpan(0, packedSize), unpackedSize);
                     _readBufferSize = unpackedSize;
                     _readBufferOffset = 0;
                 }
