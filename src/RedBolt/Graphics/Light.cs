@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public enum LightMode
@@ -21,28 +23,101 @@ public enum LightImportance
     NotImportant
 }
 
-public readonly record struct CascadeParameters(Vector4f Splits, float FadeStart, float BiasAutoAdjust = 1.0f)
+/// <summary>Depth bias parameters. Used both by lights (for shadow mapping) and materials.</summary>
+public struct BiasParameters
 {
-    public CascadeParameters(float split1, float split2, float split3, float split4, float fadeStart, float biasAutoAdjust = 1.0f)
-        : this(new Vector4f(split1, split2, split3, split4), fadeStart, biasAutoAdjust)
+    /// <summary>Construct with initial values.</summary>
+    public BiasParameters(float constantBias, float slopeScaledBias, float normalOffset = 0.0f)
     {
+        ConstantBias = constantBias;
+        SlopeScaledBias = slopeScaledBias;
+        NormalOffset = normalOffset;
     }
 
-    public float GetShadowRange() => Math.Max(Math.Max(Splits.X, Splits.Y), Math.Max(Splits.Z, Splits.W));
+    /// <summary>Validate parameters.</summary>
+    public void Validate()
+    {
+        ConstantBias = MathDefs.Clamp(ConstantBias, -1.0f, 1.0f);
+        SlopeScaledBias = MathDefs.Clamp(SlopeScaledBias, -16.0f, 16.0f);
+        NormalOffset = Math.Max(NormalOffset, 0.0f);
+    }
 
-    public CascadeParameters Validated() => new(
-        new Vector4f(Math.Max(Splits.X, 0.0f), Math.Max(Splits.Y, 0.0f), Math.Max(Splits.Z, 0.0f), Math.Max(Splits.W, 0.0f)),
-        MathDefs.Clamp(FadeStart, MathDefs.Epsilon, 1.0f),
-        BiasAutoAdjust);
+    /// <summary>Constant bias.</summary>
+    public float ConstantBias;
+
+    /// <summary>Slope scaled bias.</summary>
+    public float SlopeScaledBias;
+
+    /// <summary>Normal offset multiplier.</summary>
+    public float NormalOffset;
 }
 
-public readonly record struct FocusParameters(bool Focus, bool NonUniform, bool AutoSize, float Quantize, float MinView)
+/// <summary>Cascaded shadow map parameters.</summary>
+public struct CascadeParameters
 {
-    public FocusParameters Validated() => this with
+    /// <summary>Construct with initial values.</summary>
+    public CascadeParameters(float split1, float split2, float split3, float split4, float fadeStart, float biasAutoAdjust = 1.0f)
     {
-        Quantize = Math.Max(Quantize, Light.ShadowMinQuantize),
-        MinView = Math.Max(MinView, Light.ShadowMinView)
-    };
+        Splits = new Vector4f(split1, split2, split3, split4);
+        FadeStart = fadeStart;
+        BiasAutoAdjust = biasAutoAdjust;
+    }
+
+    /// <summary>Validate parameters.</summary>
+    public void Validate()
+    {
+        Splits = new Vector4f(Math.Max(Splits.X, 0.0f), Math.Max(Splits.Y, 0.0f),
+            Math.Max(Splits.Z, 0.0f), Math.Max(Splits.W, 0.0f));
+        FadeStart = MathDefs.Clamp(FadeStart, MathDefs.Epsilon, 1.0f);
+    }
+
+    /// <summary>Return maximum shadow distance.</summary>
+    public readonly float GetShadowRange() => Math.Max(Math.Max(Splits.X, Splits.Y), Math.Max(Splits.Z, Splits.W));
+
+    /// <summary>Cascade split distances.</summary>
+    public Vector4f Splits;
+
+    /// <summary>Start of shadow fade relative to maximum shadow distance.</summary>
+    public float FadeStart;
+
+    /// <summary>Automatic depth bias adjustment strength.</summary>
+    public float BiasAutoAdjust;
+}
+
+/// <summary>Shadow map focusing parameters.</summary>
+public struct FocusParameters
+{
+    /// <summary>Construct with initial values.</summary>
+    public FocusParameters(bool focus, bool nonUniform, bool autoSize, float quantize, float minView)
+    {
+        Focus = focus;
+        NonUniform = nonUniform;
+        AutoSize = autoSize;
+        Quantize = quantize;
+        MinView = minView;
+    }
+
+    /// <summary>Validate parameters.</summary>
+    public void Validate()
+    {
+        Quantize = Math.Max(Quantize, Light.ShadowMinQuantize);
+        MinView = Math.Max(MinView, Light.ShadowMinView);
+    }
+
+    /// <summary>Focus flag.</summary>
+    public bool Focus;
+
+    /// <summary>Non-uniform focusing flag.</summary>
+    public bool NonUniform;
+
+    /// <summary>Auto-size focusing flag.</summary>
+    public bool AutoSize;
+
+    /// <summary>Focus quantization.</summary>
+    public float Quantize;
+
+    /// <summary>Minimum view size.</summary>
+    public float MinView;
 }
 
 /// <summary>Light component.</summary>
@@ -67,6 +142,8 @@ public sealed class Light : Drawable
     public const float DefaultShadowMaxExtrusion = 1000.0f;
     public const float DefaultShadowSplit = 1000.0f;
     public const float DefaultTemperature = 6590.0f;
+    public const LightType DefaultLightType = LightType.Point;
+    public const LightImportance DefaultLightImportance = LightImportance.Auto;
 
     private LightType _lightType = LightType.Point;
     private float _range = DefaultRange;
@@ -79,7 +156,14 @@ public sealed class Light : Drawable
     public Light()
         : base(DrawableFlags.Light)
     {
-        RefreshBoundingBox();
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _shapeTexture = null;
+        _rampTexture = null;
+        base.Dispose();
     }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
@@ -181,7 +265,7 @@ public sealed class Light : Drawable
     public void SetLightType(LightType type)
     {
         _lightType = type;
-        RefreshBoundingBox();
+        OnMarkedDirty(GetNode()!);
     }
 
     public LightType GetLightType() => _lightType;
@@ -206,28 +290,28 @@ public sealed class Light : Drawable
 
     public void SetColor(Color color)
     {
-        Color = color;
+        Color = new Color(color.R, color.G, color.B, 1.0f);
     }
 
     public Color GetColor() => Color;
 
     public void SetTemperature(float temperature)
     {
-        Temperature = temperature;
+        Temperature = MathDefs.Clamp(temperature, 1000.0f, 10000.0f);
     }
 
     public float GetTemperature() => Temperature;
 
     public void SetRadius(float radius)
     {
-        Radius = Math.Max(radius, 0.0f);
+        Radius = radius;
     }
 
     public float GetRadius() => Radius;
 
     public void SetLength(float length)
     {
-        Length = Math.Max(length, 0.0f);
+        Length = length;
     }
 
     public float GetLength() => Length;
@@ -294,7 +378,7 @@ public sealed class Light : Drawable
     public void SetRange(float range)
     {
         this._range = Math.Max(range, 0.0f);
-        RefreshBoundingBox();
+        OnMarkedDirty(GetNode()!);
     }
 
     public float GetRange() => _range;
@@ -302,7 +386,7 @@ public sealed class Light : Drawable
     public void SetFov(float fov)
     {
         this._fov = MathDefs.Clamp(fov, 0.0f, MathDefs.MaxFov);
-        MarkForUpdate();
+        OnMarkedDirty(GetNode()!);
     }
 
     public float GetFov() => _fov;
@@ -310,7 +394,7 @@ public sealed class Light : Drawable
     public void SetAspectRatio(float aspectRatio)
     {
         this._aspectRatio = Math.Max(aspectRatio, MathDefs.Epsilon);
-        MarkForUpdate();
+        OnMarkedDirty(GetNode()!);
     }
 
     public float GetAspectRatio() => _aspectRatio;
@@ -331,24 +415,24 @@ public sealed class Light : Drawable
 
     public void SetShadowBias(BiasParameters parameters)
     {
-        ShadowBias = new BiasParameters(
-            MathDefs.Clamp(parameters.ConstantBias, -1.0f, 1.0f),
-            MathDefs.Clamp(parameters.SlopeScaledBias, -16.0f, 16.0f),
-            Math.Max(parameters.NormalOffset, 0.0f));
+        parameters.Validate();
+        ShadowBias = parameters;
     }
 
     public BiasParameters GetShadowBias() => ShadowBias;
 
     public void SetShadowCascade(CascadeParameters parameters)
     {
-        ShadowCascade = parameters.Validated();
+        parameters.Validate();
+        ShadowCascade = parameters;
     }
 
     public CascadeParameters GetShadowCascade() => ShadowCascade;
 
     public void SetShadowFocus(FocusParameters parameters)
     {
-        ShadowFocus = parameters.Validated();
+        parameters.Validate();
+        ShadowFocus = parameters;
     }
 
     public FocusParameters GetShadowFocus() => ShadowFocus;
@@ -460,16 +544,16 @@ public sealed class Light : Drawable
 
     public void SetRampTextureAttr(ResourceRef value)
     {
-        var cache = GetSubsystem<ResourceCache>();
-        _rampTexture = string.IsNullOrEmpty(value.Name) ? null : cache?.GetResourceOrNull<Texture>(value.Name);
+        var cache = GetSubsystem<ResourceCache>()!;
+        _rampTexture = string.IsNullOrEmpty(value.Name) ? null : cache.GetResource(value.Type, value.Name) as Texture;
     }
 
     public ResourceRef GetRampTextureAttr() => Resource.GetResourceRef(_rampTexture, new StringHash("Texture2D"));
 
     public void SetShapeTextureAttr(ResourceRef value)
     {
-        var cache = GetSubsystem<ResourceCache>();
-        _shapeTexture = string.IsNullOrEmpty(value.Name) ? null : cache?.GetResourceOrNull<Texture>(value.Name);
+        var cache = GetSubsystem<ResourceCache>()!;
+        _shapeTexture = string.IsNullOrEmpty(value.Name) ? null : cache.GetResource(value.Type, value.Name) as Texture;
     }
 
     public ResourceRef GetShapeTextureAttr()
@@ -506,6 +590,10 @@ public sealed class Light : Drawable
 
         return Math.Min(count, (int)MaxCascadeSplits);
     }
+
+    // TODO: port LightBatchQueue before porting the following C++ members:
+    // void SetLightQueue(LightBatchQueue* queue);
+    // LightBatchQueue* GetLightQueue() const { return lightQueue_; }
 
     public bool IsNegative() => GetEffectiveColor().SumRGB() < 0.0f;
 
@@ -597,7 +685,7 @@ public sealed class Light : Drawable
     }
 
     /// <summary>Process octree raycast.</summary>
-    public void ProcessRayQuery(RayOctreeQuery query)
+    public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
     {
         if (_lightType == LightType.Directional)
             return;
@@ -606,24 +694,29 @@ public sealed class Light : Drawable
         switch (query.Level)
         {
             case RayQueryLevel.RayAabb:
-                distance = query.Ray.HitDistance(GetWorldBoundingBox());
-                break;
+                base.ProcessRayQuery(query, results);
+                return;
             case RayQueryLevel.RayObb:
-                distance = HitDistanceObb(query.Ray);
+            {
+                var inverse = Node.GetWorldTransform().Inverse;
+                var localRay = query.Ray.Transformed(inverse);
+                distance = localRay.HitDistance(GetWorldBoundingBox().Transformed(inverse));
                 break;
+            }
             case RayQueryLevel.RayTriangle:
                 distance = _lightType == LightType.Spot
                     ? query.Ray.HitDistance(GetFrustum())
                     : query.Ray.HitDistance(new Sphere(Node.WorldPosition, _range));
                 break;
             case RayQueryLevel.RayTriangleUv:
+                Log.Logger.LogWarning("RAY_TRIANGLE_UV query level is not supported for Light component");
                 return;
         }
 
         if (float.IsPositiveInfinity(distance) || distance >= query.MaxDistance)
             return;
 
-        query.Result.Add(new RayQueryResult
+        results.Add(new RayQueryResult
         {
             Position = query.Ray.Origin + query.Ray.Direction * distance,
             Normal = -query.Ray.Direction,
@@ -632,32 +725,6 @@ public sealed class Light : Drawable
             Node = IsAttached ? Node : null,
             SubObject = uint.MaxValue
         });
-    }
-
-    private void RefreshBoundingBox()
-    {
-        var size = _lightType == LightType.Directional ? MathDefs.LargeValue : _range;
-        SetLocalBoundingBox(new BoundingBox(-size, size));
-    }
-
-    private float HitDistanceObb(Ray ray)
-    {
-        if (!IsAttached)
-            return ray.HitDistance(BoundingBox);
-
-        var localOrigin = Node.WorldToLocal(ray.Origin);
-        var localEnd = Node.WorldToLocal(ray.Origin + ray.Direction);
-        var localDirection = localEnd - localOrigin;
-        if (localDirection.LengthSquared <= MathDefs.Epsilon * MathDefs.Epsilon)
-            return float.PositiveInfinity;
-
-        var localRay = new Ray(localOrigin, localDirection);
-        var localDistance = localRay.HitDistance(BoundingBox);
-        if (float.IsPositiveInfinity(localDistance))
-            return localDistance;
-
-        var localHit = localRay.Origin + localRay.Direction * localDistance;
-        return (Node.LocalToWorld(localHit) - ray.Origin).Length;
     }
 
     protected override void OnWorldBoundingBoxUpdate()

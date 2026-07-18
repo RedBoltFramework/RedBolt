@@ -714,7 +714,7 @@ public abstract class Drawable : Component
         MarkForUpdate();
 
         // Mark zone assignment dirty when transform changes
-        if (ReferenceEquals(node, Node))
+        if (ReferenceEquals(node, GetNode()))
             _zoneDirty = true;
     }
 

@@ -708,7 +708,7 @@ public sealed class Octree : Component
         if (drawable is Light light)
         {
             var results = new List<RayQueryResult>();
-            light.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance));
+            light.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance), results);
             foreach (var result in results)
                 yield return result;
             yield break;

@@ -29,6 +29,9 @@ public abstract class Component : Animatable
 
     public Node Node => _node ?? throw new InvalidOperationException("Component is not attached to a node.");
 
+    /// <summary>Return scene node.</summary>
+    public Node? GetNode() => _node;
+
     public Scene? Scene => _node?.Scene;
 
     public bool IsEnabledEffective => Enabled && (_node?.IsEnabled ?? false);

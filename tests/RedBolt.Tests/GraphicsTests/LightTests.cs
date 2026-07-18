@@ -50,6 +50,49 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Color_temperature_radius_and_length_match_source_validation()
+    {
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+
+        light.SetColor(new Color(0.5f, 0.25f, 0.125f, 0.25f));
+        light.SetTemperature(100.0f);
+        light.SetRadius(-2.0f);
+        light.SetLength(-3.0f);
+
+        Assert.Equal(1.0f, light.GetColor().A);
+        Assert.Equal(1000.0f, light.GetTemperature());
+        Assert.Equal(-2.0f, light.GetRadius());
+        Assert.Equal(-3.0f, light.GetLength());
+
+        light.SetTemperature(20000.0f);
+        Assert.Equal(10000.0f, light.GetTemperature());
+    }
+
+    [Fact]
+    public void Shadow_parameter_values_validate_in_place_and_copy_into_light()
+    {
+        var bias = new BiasParameters(2.0f, 20.0f, -1.0f);
+        bias.Validate();
+        Assert.Equal(new BiasParameters(1.0f, 16.0f, 0.0f), bias);
+
+        var cascade = new CascadeParameters(-1.0f, 5.0f, 10.0f, 0.0f, -1.0f, 2.0f);
+        cascade.Validate();
+        Assert.Equal(new Vector4f(0.0f, 5.0f, 10.0f, 0.0f), cascade.Splits);
+        Assert.Equal(MathDefs.Epsilon, cascade.FadeStart);
+        Assert.Equal(2.0f, cascade.BiasAutoAdjust);
+
+        var focus = new FocusParameters(true, true, true, 0.0f, 0.0f);
+        focus.Validate();
+        Assert.Equal(Light.ShadowMinQuantize, focus.Quantize);
+        Assert.Equal(Light.ShadowMinView, focus.MinView);
+
+        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        light.SetShadowFocus(focus);
+        focus.Quantize = 42.0f;
+        Assert.Equal(Light.ShadowMinQuantize, light.GetShadowFocus().Quantize);
+    }
+
+    [Fact]
     public void Shadow_bias_validation_works()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();
@@ -217,7 +260,7 @@ public sealed class LightTests
         var query = new RayOctreeQuery(results, new Ray(new Vector3f(0, 0, -20), new Vector3f(0, 0, 1)),
             RayQueryLevel.RayTriangle, 100.0f);
 
-        light.ProcessRayQuery(query);
+        light.ProcessRayQuery(query, results);
 
         Assert.Single(results);
         Assert.Same(light, results[0].Drawable);

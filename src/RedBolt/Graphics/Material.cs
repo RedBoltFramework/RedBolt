@@ -26,8 +26,6 @@ public enum MaterialQuality : uint
     Max = 15
 }
 
-public readonly record struct BiasParameters(float ConstantBias, float SlopeScaledBias, float NormalOffset = 0.0f);
-
 public readonly record struct MaterialShaderParameter(object? Value, bool IsCustom = false);
 
 public readonly record struct MaterialTexture(string Name, Texture Texture);
