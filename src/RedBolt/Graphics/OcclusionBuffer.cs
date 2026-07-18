@@ -12,10 +12,10 @@ public struct DepthValue
 }
 
 /// <summary>Per-thread occlusion buffer data.</summary>
-public sealed class OcclusionBufferData
+public struct OcclusionBufferData
 {
     /// <summary>Full buffer data with safety padding.</summary>
-    public int[] DataWithSafety = [];
+    public int[]? DataWithSafety;
     /// <summary>Buffer data offset.</summary>
     public int DataOffset;
     /// <summary>Use flag.</summary>
@@ -28,7 +28,7 @@ public struct OcclusionBatch
     /// <summary>Model matrix.</summary>
     public Matrix3x4 Model;
     /// <summary>Vertex data.</summary>
-    public byte[] VertexData;
+    public byte[]? VertexData;
     /// <summary>Vertex size in bytes.</summary>
     public uint VertexSize;
     /// <summary>Index data. Null if using non-indexed geometry.</summary>
@@ -73,6 +73,20 @@ public sealed class OcclusionBuffer : Object
     private float _offsetY;
     private float _projOffsetScaleX;
     private float _projOffsetScaleY;
+
+    /// <summary>Construct.</summary>
+    public OcclusionBuffer()
+    {
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _batches.Clear();
+        _mipBuffers.Clear();
+        _buffers.Clear();
+        base.Dispose();
+    }
 
     /// <summary>Register object with the engine.</summary>
     public static void RegisterObject(Context context) => context.AddFactoryReflection<OcclusionBuffer>();
@@ -149,11 +163,15 @@ public sealed class OcclusionBuffer : Object
         Reset();
         ClearBuffer(0);
         for (var i = 1; i < _buffers.Count; ++i)
-            _buffers[i].Used = false;
+        {
+            var buffer = _buffers[i];
+            buffer.Used = false;
+            _buffers[i] = buffer;
+        }
         _depthHierarchyDirty = true;
     }
 
-    public bool AddTriangles(Matrix3x4 model, byte[] vertexData, uint vertexSize, uint vertexStart, uint vertexCount)
+    public bool AddTriangles(in Matrix3x4 model, byte[]? vertexData, uint vertexSize, uint vertexStart, uint vertexCount)
     {
         _batches.Add(new OcclusionBatch { Model = model, VertexData = vertexData, VertexSize = vertexSize,
             DrawStart = vertexStart, DrawCount = vertexCount });
@@ -161,7 +179,7 @@ public sealed class OcclusionBuffer : Object
         return _numTriangles <= _maxTriangles;
     }
 
-    public bool AddTriangles(Matrix3x4 model, byte[] vertexData, uint vertexSize, byte[] indexData, uint indexSize,
+    public bool AddTriangles(in Matrix3x4 model, byte[]? vertexData, uint vertexSize, byte[]? indexData, uint indexSize,
         uint indexStart, uint indexCount)
     {
         _batches.Add(new OcclusionBatch { Model = model, VertexData = vertexData, VertexSize = vertexSize,
@@ -228,9 +246,12 @@ public sealed class OcclusionBuffer : Object
     }
 
     public void ResetUseTimer() => _useTimer.Reset();
-    public int[]? GetBuffer() => _buffers.Count != 0 ? _buffers[0].DataWithSafety : null;
-    public Matrix3x4 GetView() => _view;
-    public Matrix4 GetProjection() => _projection;
+    /// <summary>Return highest level depth values.</summary>
+    public ArraySegment<int>? GetBuffer() => _buffers.Count != 0
+        ? new ArraySegment<int>(_buffers[0].DataWithSafety!, _buffers[0].DataOffset, _width * _height)
+        : (ArraySegment<int>?)null;
+    public ref readonly Matrix3x4 GetView() => ref _view;
+    public ref readonly Matrix4 GetProjection() => ref _projection;
     public int GetWidth() => _width;
     public int GetHeight() => _height;
     public uint GetNumTriangles() => _numTriangles;
@@ -239,7 +260,7 @@ public sealed class OcclusionBuffer : Object
     public bool IsThreaded() => _buffers.Count > 1;
     public uint GetUseTimer() => _useTimer.GetMSec(false);
 
-    public bool IsVisible(BoundingBox box)
+    public bool IsVisible(in BoundingBox box)
     {
         if (_buffers.Count == 0) return true;
         Span<Vector3f> corners = stackalloc Vector3f[8] { box.Min,
@@ -285,9 +306,15 @@ public sealed class OcclusionBuffer : Object
         return false;
     }
 
-    public void DrawBatch(OcclusionBatch batch, uint threadIndex)
+    public void DrawBatch(in OcclusionBatch batch, uint threadIndex)
     {
-        if(threadIndex>0&&!_buffers[(int)threadIndex].Used){ClearBuffer(threadIndex);_buffers[(int)threadIndex].Used=true;}
+        if (threadIndex > 0 && !_buffers[(int)threadIndex].Used)
+        {
+            ClearBuffer(threadIndex);
+            var buffer = _buffers[(int)threadIndex];
+            buffer.Used = true;
+            _buffers[(int)threadIndex] = buffer;
+        }
         var transform=_viewProj*batch.Model;
         Span<Vector4f> vertices=stackalloc Vector4f[192];
         for(var i=0u;i+2<batch.DrawCount;i+=3)
@@ -300,9 +327,9 @@ public sealed class OcclusionBuffer : Object
         }
     }
 
-    private int Pixel(int x,int y)=>_buffers[0].DataWithSafety[_buffers[0].DataOffset+y*_width+x];
+    private int Pixel(int x,int y)=>_buffers[0].DataWithSafety![_buffers[0].DataOffset+y*_width+x];
     private static Vector3f ReadPosition(OcclusionBatch b,uint i){var o=checked((int)(i*b.VertexSize));return new(
-        BinaryPrimitives.ReadSingleLittleEndian(b.VertexData.AsSpan(o,4)),BinaryPrimitives.ReadSingleLittleEndian(b.VertexData.AsSpan(o+4,4)),
+        BinaryPrimitives.ReadSingleLittleEndian(b.VertexData!.AsSpan(o,4)),BinaryPrimitives.ReadSingleLittleEndian(b.VertexData.AsSpan(o+4,4)),
         BinaryPrimitives.ReadSingleLittleEndian(b.VertexData.AsSpan(o+8,4)));}
     private static uint ReadIndex(OcclusionBatch b,uint i){var o=checked((int)((b.DrawStart+i)*b.IndexSize));return b.IndexSize==2?
         BinaryPrimitives.ReadUInt16LittleEndian(b.IndexData!.AsSpan(o,2)):BinaryPrimitives.ReadUInt32LittleEndian(b.IndexData!.AsSpan(o,4));}
@@ -359,12 +386,12 @@ public sealed class OcclusionBuffer : Object
     private void RasterHalf(ref Edge longEdge,ref Edge shortEdge,int startY,int endY,bool middleIsRight,Gradients g,uint threadIndex)
     {
         var data=_buffers[(int)threadIndex];for(var y=startY;y<endY;++y){var left=middleIsRight?longEdge:shortEdge;var right=middleIsRight?shortEdge:longEdge;
-            var z=left.InvZ;for(var x=left.X>>16;x<(right.X>>16);++x){var p=data.DataOffset+y*_width+x;if(z<data.DataWithSafety[p])data.DataWithSafety[p]=z;z+=g.DInvZdXInt;}
+            var z=left.InvZ;for(var x=left.X>>16;x<(right.X>>16);++x){var p=data.DataOffset+y*_width+x;if(z<data.DataWithSafety![p])data.DataWithSafety[p]=z;z+=g.DInvZdXInt;}
             longEdge.Step();shortEdge.Step();}
     }
 
-    private void MergeBuffers(){for(var i=1;i<_buffers.Count;++i)if(_buffers[i].Used)for(var p=0;p<_width*_height;++p){var s=_buffers[i].DataWithSafety[_buffers[i].DataOffset+p];var d=_buffers[0].DataOffset+p;if(s<_buffers[0].DataWithSafety[d])_buffers[0].DataWithSafety[d]=s;}}
-    private void ClearBuffer(uint threadIndex){if(threadIndex>=_buffers.Count)return;Array.Fill(_buffers[(int)threadIndex].DataWithSafety,(int)OcclusionZScale,_buffers[(int)threadIndex].DataOffset,_width*_height);}
+    private void MergeBuffers(){for(var i=1;i<_buffers.Count;++i)if(_buffers[i].Used)for(var p=0;p<_width*_height;++p){var s=_buffers[i].DataWithSafety![_buffers[i].DataOffset+p];var d=_buffers[0].DataOffset+p;if(s<_buffers[0].DataWithSafety![d])_buffers[0].DataWithSafety![d]=s;}}
+    private void ClearBuffer(uint threadIndex){if(threadIndex>=_buffers.Count)return;Array.Fill(_buffers[(int)threadIndex].DataWithSafety!,(int)OcclusionZScale,_buffers[(int)threadIndex].DataOffset,_width*_height);}
 
     private readonly struct Gradients
     {
