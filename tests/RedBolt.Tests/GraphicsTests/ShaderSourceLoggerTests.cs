@@ -36,4 +36,17 @@ public sealed class ShaderSourceLoggerTests
             Context.SetInstance(previousContext);
         }
     }
+
+    [Fact]
+    public void Function_container_and_borrowed_identifier_match_cpp_shape()
+    {
+        Assert.True(typeof(ShaderSourceLogger).IsAbstract);
+        Assert.True(typeof(ShaderSourceLogger).IsSealed);
+
+        var method = typeof(ShaderSourceLogger).GetMethod(nameof(ShaderSourceLogger.LogShaderSource));
+        Assert.NotNull(method);
+        var fileName = method.GetParameters()[0];
+        Assert.True(fileName.ParameterType.IsByRef);
+        Assert.True(fileName.IsIn);
+    }
 }
