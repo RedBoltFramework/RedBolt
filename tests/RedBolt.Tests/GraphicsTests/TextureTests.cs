@@ -167,13 +167,32 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture_sampler_state_exists_before_gpu_creation_and_has_value_semantics()
+    {
+        var texture = new Texture("Textures/SamplerState");
+        var source = SamplerStateDesc.Bilinear(TextureAddressMode.Clamp);
+
+        texture.SetSamplerStateDesc(source);
+        source[TextureCoordinate.U] = TextureAddressMode.Mirror;
+        var returned = texture.GetSamplerStateDesc();
+        returned[TextureCoordinate.V] = TextureAddressMode.Mirror;
+
+        Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.U));
+        Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.V));
+        texture.SetAnisotropy(256u);
+        Assert.Equal(0u, texture.GetAnisotropy());
+    }
+
+    [Fact]
     public void Texture_xml_parameters_match_cpp_parser()
     {
         var file = new XMLFile("Textures/SmokeParameters.xml");
         var root = file.CreateRoot("texture");
         root.CreateChild("address").SetAttribute("coord", "V");
         root.GetChild("address").SetAttribute("mode", "CLAMP");
-        root.CreateChild("filter").SetAttribute("mode", "TRILINEAR");
+        root.CreateChild("address").SetAttribute("coord", "U");
+        root.GetChild("address").GetNext("address").SetAttribute("mode", "BORDER");
+        root.CreateChild("filter").SetAttribute("mode", "NEARESTANISOTROPIC");
         root.GetChild("filter").SetUInt("anisotropy", 4u);
         root.CreateChild("mipmap").SetBool("enable", true);
         root.GetChild("mipmap").SetFloat("minlod", 1.0f);
@@ -188,7 +207,8 @@ public sealed class TextureTests
         texture.SetParameters(file);
 
         Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.V));
-        Assert.Equal(TextureFilterMode.Trilinear, texture.GetFilterMode());
+        Assert.Equal(TextureAddressMode.Wrap, texture.GetAddressMode(TextureCoordinate.U));
+        Assert.Equal(TextureFilterMode.NearestAnisotropic, texture.GetFilterMode());
         Assert.Equal(4u, texture.GetAnisotropy());
         Assert.Equal(0u, texture.GetLevels());
         Assert.Equal(1.0f, texture.GetMinLod());

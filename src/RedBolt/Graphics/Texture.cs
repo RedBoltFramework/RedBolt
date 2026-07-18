@@ -31,13 +31,7 @@ internal static class TextureFormatUtility
 /// </remarks>
 public class Texture : ResourceWithMetadata
 {
-    private readonly Dictionary<TextureCoordinate, TextureAddressMode> _addressModes = new()
-    {
-        [TextureCoordinate.U] = TextureAddressMode.Wrap,
-        [TextureCoordinate.V] = TextureAddressMode.Wrap,
-        [TextureCoordinate.W] = TextureAddressMode.Wrap
-    };
-
+    private SamplerStateDesc _samplerStateDesc = new();
     private readonly uint[] _mipsToSkip = [2u, 1u, 0u];
     protected uint _requestedLevels;
     protected bool _requestedSRGB;
@@ -83,15 +77,15 @@ public class Texture : ResourceWithMetadata
 
     public bool NoMultiSampledAutoResolve { get; protected set; }
 
-    public TextureFilterMode FilterMode { get; private set; } = TextureFilterMode.Default;
+    public TextureFilterMode FilterMode => _samplerStateDesc.FilterMode;
 
-    public uint Anisotropy { get; private set; }
+    public uint Anisotropy => _samplerStateDesc.Anisotropy;
 
-    public float MinLod { get; private set; }
+    public float MinLod => _samplerStateDesc.MinLod;
 
-    public float MaxLod { get; private set; } = MathDefs.LargeValue;
+    public float MaxLod => _samplerStateDesc.MaxLod;
 
-    public bool ShadowCompare { get; private set; }
+    public bool ShadowCompare => _samplerStateDesc.ShadowCompare;
 
     public bool Linear => _linear;
 
@@ -109,53 +103,65 @@ public class Texture : ResourceWithMetadata
 
     public void SetFilterMode(TextureFilterMode mode)
     {
-        FilterMode = mode;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc.FilterMode = mode;
+        SetSamplerStateDesc(desc);
     }
 
     public TextureFilterMode GetFilterMode() => FilterMode;
 
     public void SetAddressMode(TextureCoordinate coordinate, TextureAddressMode mode)
     {
-        _addressModes[coordinate] = mode;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc[coordinate] = mode;
+        SetSamplerStateDesc(desc);
     }
 
-    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) => _addressModes.GetValueOrDefault(coordinate, TextureAddressMode.Wrap);
+    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) => _samplerStateDesc[coordinate];
 
     public void SetAnisotropy(uint level)
     {
-        Anisotropy = level;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc.Anisotropy = unchecked((byte)level);
+        SetSamplerStateDesc(desc);
     }
 
     public uint GetAnisotropy() => Anisotropy;
 
     public void SetShadowCompare(bool enable)
     {
-        ShadowCompare = enable;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc.ShadowCompare = enable;
+        SetSamplerStateDesc(desc);
     }
 
     public bool GetShadowCompare() => ShadowCompare;
 
     public void SetMinLod(float minLod)
     {
-        MinLod = minLod;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc.MinLod = minLod;
+        SetSamplerStateDesc(desc);
     }
 
     public float GetMinLod() => MinLod;
 
     public void SetMaxLod(float maxLod)
     {
-        MaxLod = maxLod;
-        ApplyRawSamplerState();
+        var desc = _samplerStateDesc;
+        desc.MaxLod = maxLod;
+        SetSamplerStateDesc(desc);
     }
 
     public float GetMaxLod() => MaxLod;
 
-    public SamplerStateDesc GetSamplerStateDesc() => _rawTexture!.GetSamplerStateDesc();
+    public void SetSamplerStateDesc(SamplerStateDesc desc)
+    {
+        _samplerStateDesc = desc;
+        ApplyRawSamplerState();
+    }
+
+    public SamplerStateDesc GetSamplerStateDesc() => _samplerStateDesc;
 
     public void SetNumLevels(uint levels)
     {
@@ -284,7 +290,6 @@ public class Texture : ResourceWithMetadata
                     {
                         "mirror" => TextureAddressMode.Mirror,
                         "clamp" => TextureAddressMode.Clamp,
-                        "border" => TextureAddressMode.Clamp,
                         _ => TextureAddressMode.Wrap
                     };
                     SetAddressMode(coordinateIndex, mode);
@@ -299,7 +304,7 @@ public class Texture : ResourceWithMetadata
                     "bilinear" => TextureFilterMode.Bilinear,
                     "trilinear" => TextureFilterMode.Trilinear,
                     "anisotropic" => TextureFilterMode.Anisotropic,
-                    "nearest_anisotropic" => TextureFilterMode.NearestAnisotropic,
+                    "nearestanisotropic" => TextureFilterMode.NearestAnisotropic,
                     _ => TextureFilterMode.Default
                 };
                 SetFilterMode(mode);
@@ -511,19 +516,7 @@ public class Texture : ResourceWithMetadata
 
     private void ApplyRawSamplerState()
     {
-        if (_rawTexture is null)
-            return;
-
-        var samplerStateDesc = _rawTexture.GetSamplerStateDesc();
-        samplerStateDesc.FilterMode = FilterMode;
-        samplerStateDesc[TextureCoordinate.U] = GetAddressMode(TextureCoordinate.U);
-        samplerStateDesc[TextureCoordinate.V] = GetAddressMode(TextureCoordinate.V);
-        samplerStateDesc[TextureCoordinate.W] = GetAddressMode(TextureCoordinate.W);
-        samplerStateDesc.Anisotropy = checked((byte)Math.Min(Anisotropy, byte.MaxValue));
-        samplerStateDesc.ShadowCompare = ShadowCompare;
-        samplerStateDesc.MinLod = MinLod;
-        samplerStateDesc.MaxLod = MaxLod;
-        _rawTexture.SetSamplerStateDesc(samplerStateDesc);
+        _rawTexture?.SetSamplerStateDesc(_samplerStateDesc);
     }
 
     protected void SetRenderSurfaceCount(uint count)
