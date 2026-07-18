@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public class ValueAnimationInfo
+public class ValueAnimationInfo : ICloneable
 {
     private static readonly object _emptyTarget = new();
     private readonly WeakReference<object> _target;
@@ -12,7 +12,7 @@ public class ValueAnimationInfo
         _target = new WeakReference<object>(_emptyTarget);
         Animation = animation ?? throw new ArgumentNullException(nameof(animation));
         WrapMode = wrapMode;
-        Speed = speed;
+        Speed = Math.Max(speed, 0.0f);
     }
 
     public ValueAnimationInfo(object target, ValueAnimation animation, WrapMode wrapMode, float speed)
@@ -21,7 +21,17 @@ public class ValueAnimationInfo
         _hasTarget = true;
         Animation = animation ?? throw new ArgumentNullException(nameof(animation));
         WrapMode = wrapMode;
-        Speed = speed;
+        Speed = Math.Max(speed, 0.0f);
+    }
+
+    public ValueAnimationInfo(ValueAnimationInfo rhs)
+    {
+        ArgumentNullException.ThrowIfNull(rhs);
+        _hasTarget = rhs._hasTarget;
+        _target = rhs._target;
+        Animation = rhs.Animation;
+        WrapMode = rhs.WrapMode;
+        Speed = rhs.Speed;
     }
 
     public event Action<VAnimEventFrame>? EventTriggered;
@@ -33,6 +43,8 @@ public class ValueAnimationInfo
     public float Speed { get; private set; }
 
     public float Time { get; private set; }
+
+    public virtual object Clone() => new ValueAnimationInfo(this);
 
     public object GetTarget()
     {
@@ -54,12 +66,12 @@ public class ValueAnimationInfo
 
     public void SetSpeed(float speed)
     {
-        Speed = speed;
+        Speed = Math.Max(speed, 0.0f);
     }
 
     public bool Update(float timeStep)
     {
-        if (_hasTarget && GetTarget() is null)
+        if (!_hasTarget || GetTarget() is null)
             return true;
 
         return SetTime(Time + timeStep * Speed);
@@ -67,7 +79,7 @@ public class ValueAnimationInfo
 
     public bool SetTime(float time)
     {
-        if (_hasTarget && GetTarget() is null)
+        if (!_hasTarget || GetTarget() is null)
             return true;
 
         Time = time;

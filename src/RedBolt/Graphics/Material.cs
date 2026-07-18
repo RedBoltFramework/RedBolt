@@ -26,7 +26,36 @@ public enum MaterialQuality : uint
     Max = 15
 }
 
-public readonly record struct MaterialShaderParameter(object? Value, bool IsCustom = false);
+public sealed class MaterialShaderParameter : ICloneable, IDisposable
+{
+    private Variant _value;
+
+    public MaterialShaderParameter(string name, object? value, bool isCustom = false)
+    {
+        Name = name;
+        _value = Variant.FromObject(value);
+        IsCustom = isCustom;
+    }
+
+    private MaterialShaderParameter(MaterialShaderParameter rhs)
+    {
+        Name = rhs.Name;
+        _value = rhs._value.Clone();
+        IsCustom = rhs.IsCustom;
+    }
+
+    public string Name { get; }
+
+    public object? Value => _value.GetObject();
+
+    public Variant VariantValue => _value;
+
+    public bool IsCustom { get; }
+
+    public object Clone() => new MaterialShaderParameter(this);
+
+    public void Dispose() => _value.Dispose();
+}
 
 public readonly record struct MaterialTexture(string Name, Texture Texture);
 
@@ -35,21 +64,28 @@ public readonly record struct MaterialTexture(string Name, Texture Texture);
 /// </summary>
 public sealed class ShaderParameterAnimationInfo : ValueAnimationInfo
 {
-    private readonly Material _material;
     private readonly string _name;
 
     public ShaderParameterAnimationInfo(Material material, string name, ValueAnimation attributeAnimation, WrapMode wrapMode, float speed)
         : base(material, attributeAnimation, wrapMode, speed)
     {
-        _material = material;
         _name = name;
     }
+
+    private ShaderParameterAnimationInfo(ShaderParameterAnimationInfo rhs)
+        : base(rhs)
+    {
+        _name = rhs._name;
+    }
+
+    public override object Clone() => new ShaderParameterAnimationInfo(this);
 
     public string GetName() => _name;
 
     protected override void ApplyValue(object? newValue)
     {
-        _material.SetShaderParameter(_name, newValue);
+        if (GetTarget() is Material material)
+            material.SetShaderParameter(_name, newValue);
     }
 }
 
@@ -73,7 +109,7 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 
     public int CompareTo(TechniqueEntry other)
     {
-        if (!MathDefs.ApproximatelyEquivalent(LodDistance, other.LodDistance))
+        if (LodDistance != other.LodDistance)
             return other.LodDistance.CompareTo(LodDistance);
 
         return other.QualityLevel.CompareTo(QualityLevel);
@@ -82,14 +118,13 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
     public bool Equals(TechniqueEntry other)
     {
         return ReferenceEquals(Technique, other.Technique)
-            && ReferenceEquals(Original, other.Original)
             && QualityLevel == other.QualityLevel
-            && MathDefs.ApproximatelyEquivalent(LodDistance, other.LodDistance);
+            && LodDistance == other.LodDistance;
     }
 
     public override bool Equals(object? obj) => obj is TechniqueEntry other && Equals(other);
 
-    public override int GetHashCode() => HashCode.Combine(Technique, Original, QualityLevel, LodDistance);
+    public override int GetHashCode() => HashCode.Combine(Technique, QualityLevel, LodDistance);
 
     public static bool operator ==(TechniqueEntry left, TechniqueEntry right) => left.Equals(right);
 
@@ -99,13 +134,28 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 /// <summary>Describes how to render 3D geometries.</summary>
 /// <remarks>
 /// </remarks>
-public sealed class Material : ResourceWithMetadata
+public sealed class Material : Resource
 {
-    private readonly IDFamily<Material> _idFamily = new();
+    private sealed class MaterialPipelineStateTracker : PipelineStateTracker
+    {
+        private readonly Material _owner;
+
+        public MaterialPipelineStateTracker(Material owner)
+        {
+            _owner = owner;
+        }
+
+        protected override uint RecalculatePipelineStateHash() => _owner.RecalculatePipelineStateHash();
+    }
+
+    private readonly MaterialPipelineStateTracker _pipelineStateTracker;
+    private readonly IDFamily<Material> _idFamily;
     private readonly Dictionary<string, MaterialShaderParameter> _shaderParameters = new(StringComparer.Ordinal);
     private readonly Dictionary<StringHash, ShaderParameterAnimationInfo> _shaderParameterAnimationInfos = new();
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
+    private readonly HashSet<Texture> _subscribedTextures = [];
+    private XMLFile? _loadXmlFile;
     private uint _shaderParameterHash;
     private bool _batchedParameterUpdate;
     private uint _auxViewFrameNumber;
@@ -116,38 +166,31 @@ public sealed class Material : ResourceWithMetadata
     public Material(string name)
         : base(name)
     {
+        _pipelineStateTracker = new MaterialPipelineStateTracker(this);
+        _idFamily = new IDFamily<Material>();
         ResetToDefaults();
     }
 
     public override void Dispose()
     {
+        SetScene(null);
+        _loadXmlFile?.Dispose();
+        _loadXmlFile = null;
+        _shaderParameterAnimationInfos.Clear();
+        foreach (var parameter in _shaderParameters.Values)
+            parameter.Dispose();
+        _shaderParameters.Clear();
+        RefreshTextureEventSubscriptions(clear: true);
+        _textures.Clear();
+        _techniques.Clear();
         _idFamily.Dispose();
+        _pipelineStateTracker.Dispose();
         base.Dispose();
     }
 
     public uint GetObjectID() => _idFamily.GetObjectID();
 
-    public uint GetPipelineStateHash()
-    {
-        var hash = 0u;
-        CombineHash(ref hash, new StringHash(VertexShaderDefines).Value);
-        CombineHash(ref hash, new StringHash(PixelShaderDefines).Value);
-        CombineHash(ref hash, (uint)CullMode);
-        CombineHash(ref hash, (uint)ShadowCullMode);
-        CombineHash(ref hash, (uint)FillMode);
-        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.ConstantBias)));
-        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.SlopeScaledBias)));
-        CombineHash(ref hash, AlphaToCoverage ? 1u : 0u);
-        CombineHash(ref hash, _specular ? 1u : 0u);
-        foreach (var (nameHash, info) in _textures)
-        {
-            CombineHash(ref hash, nameHash.Value);
-            CombineHash(ref hash, info.Texture.GetSRGB() ? 1u : 0u);
-            CombineHash(ref hash, info.Texture.GetLinear() ? 1u : 0u);
-            CombineHash(ref hash, info.Texture.GetSamplerStateDesc().ToHash());
-        }
-        return Math.Max(1u, hash);
-    }
+    public uint GetPipelineStateHash() => _pipelineStateTracker.GetPipelineStateHash();
 
     private static void CombineHash(ref uint result, uint hash)
     {
@@ -160,23 +203,23 @@ public sealed class Material : ResourceWithMetadata
 
     public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
 
-    public bool AlphaToCoverage { get; set; }
+    public bool AlphaToCoverage { get; private set; }
 
-    public BiasParameters DepthBias { get; set; }
+    public BiasParameters DepthBias { get; private set; }
 
-    public FillMode FillMode { get; set; } = FillMode.Solid;
+    public FillMode FillMode { get; private set; } = FillMode.Solid;
 
-    public CullMode CullMode { get; set; } = CullMode.CounterClockwise;
+    public CullMode CullMode { get; private set; } = CullMode.CounterClockwise;
 
-    public bool LineAntiAlias { get; set; }
+    public bool LineAntiAlias { get; private set; }
 
-    public bool Occlusion { get; set; } = true;
+    public bool Occlusion { get; private set; } = true;
 
-    public string PixelShaderDefines { get; set; } = string.Empty;
+    public string PixelShaderDefines { get; private set; } = string.Empty;
 
-    public byte RenderOrder { get; set; } = 128;
+    public byte RenderOrder { get; private set; } = 128;
 
-    public CullMode ShadowCullMode { get; set; } = CullMode.CounterClockwise;
+    public CullMode ShadowCullMode { get; private set; } = CullMode.CounterClockwise;
 
     public IReadOnlyDictionary<string, MaterialShaderParameter> ShaderParameters => _shaderParameters;
 
@@ -189,18 +232,13 @@ public sealed class Material : ResourceWithMetadata
 
     public uint ShaderParameterHash => _shaderParameterHash;
 
-    public Vector2f UVOffset { get; private set; }
-
-    public float UVRotation { get; private set; }
-
-    public Vector2f UVRepeat { get; private set; } = Vector2f.One;
-
-    public string VertexShaderDefines { get; set; } = string.Empty;
+    public string VertexShaderDefines { get; private set; } = string.Empty;
 
     public Material Clone(string cloneName = "")
     {
-        var clone = new Material(string.IsNullOrEmpty(cloneName) ? Name : cloneName);
+        var clone = new Material(string.Empty);
         clone.CopyFrom(this);
+        clone.SetName(cloneName);
         return clone;
     }
 
@@ -208,9 +246,7 @@ public sealed class Material : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(material);
 
-        OwnerCache = material.OwnerCache;
-        AbsoluteFileName = material.AbsoluteFileName;
-        MemoryUse = material.MemoryUse;
+        SetName(material.Name);
         AlphaToCoverage = material.AlphaToCoverage;
         CullMode = material.CullMode;
         DepthBias = material.DepthBias;
@@ -220,9 +256,6 @@ public sealed class Material : ResourceWithMetadata
         PixelShaderDefines = material.PixelShaderDefines;
         RenderOrder = material.RenderOrder;
         ShadowCullMode = material.ShadowCullMode;
-        UVOffset = material.UVOffset;
-        UVRotation = material.UVRotation;
-        UVRepeat = material.UVRepeat;
         VertexShaderDefines = material.VertexShaderDefines;
         _specular = material._specular;
 
@@ -234,12 +267,15 @@ public sealed class Material : ResourceWithMetadata
         foreach (var texture in material._textures)
             _textures.Add(texture.Key, texture.Value);
 
+        foreach (var parameter in _shaderParameters.Values)
+            parameter.Dispose();
         _shaderParameters.Clear();
         foreach (var parameter in material._shaderParameters)
-            _shaderParameters.Add(parameter.Key, parameter.Value);
-        ApplyShaderDefinesToTechniques();
-        RefreshShaderParameterHash();
-        CopyMetadata(material);
+            _shaderParameters.Add(parameter.Key, (MaterialShaderParameter)parameter.Value.Clone());
+        _shaderParameterHash = material._shaderParameterHash;
+        RefreshMemoryUse();
+        RefreshTextureEventSubscriptions();
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public bool GetAlphaToCoverage() => AlphaToCoverage;
@@ -354,7 +390,7 @@ public sealed class Material : ResourceWithMetadata
     public Texture? GetTexture(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return GetTexture(new StringHash(NormalizeTextureSlotName(name)));
+        return GetTexture(new StringHash(name));
     }
 
     public IReadOnlyDictionary<StringHash, MaterialTexture> GetTextures() => _textures;
@@ -362,21 +398,26 @@ public sealed class Material : ResourceWithMetadata
     public void SetAlphaToCoverage(bool enable)
     {
         AlphaToCoverage = enable;
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetCullMode(CullMode mode)
     {
         CullMode = mode;
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetDepthBias(BiasParameters parameters)
     {
+        parameters.Validate();
         DepthBias = parameters;
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetFillMode(FillMode mode)
     {
         FillMode = mode;
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetLineAntiAlias(bool enable)
@@ -400,8 +441,12 @@ public sealed class Material : ResourceWithMetadata
 
     public void SetPixelShaderDefines(string defines)
     {
-        PixelShaderDefines = defines ?? string.Empty;
+        defines ??= string.Empty;
+        if (PixelShaderDefines == defines)
+            return;
+        PixelShaderDefines = defines;
         ApplyShaderDefinesToTechniques();
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetRenderOrder(byte order)
@@ -411,27 +456,35 @@ public sealed class Material : ResourceWithMetadata
 
     public void SetRenderOrder(uint order)
     {
-        RenderOrder = checked((byte)order);
+        SetRenderOrder(unchecked((byte)order));
     }
 
     public void SetShadowCullMode(CullMode mode)
     {
         ShadowCullMode = mode;
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SetTexture(string name, Texture? texture)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var normalized = NormalizeTextureSlotName(name);
-        var hash = new StringHash(normalized);
+        SetTextureInternal(name, texture);
+        RefreshTextureEventSubscriptions();
+    }
+
+    private void SetTextureInternal(string name, Texture? texture)
+    {
+        var hash = new StringHash(name);
         if (texture is null)
             _textures.Remove(hash);
         else
-            _textures[hash] = new MaterialTexture(normalized, texture);
+            _textures[hash] = new MaterialTexture(name, texture);
     }
 
     public void SetNumTechniques(uint num)
     {
+        if (num == 0)
+            return;
         while (_techniques.Count < num)
             _techniques.Add(default);
         while (_techniques.Count > num)
@@ -440,17 +493,18 @@ public sealed class Material : ResourceWithMetadata
 
     public void SetTechnique(uint index, Technique? tech, MaterialQuality qualityLevel = MaterialQuality.Low, float lodDistance = 0.0f)
     {
-        SetNumTechniques(index + 1);
+        if (index >= _techniques.Count)
+            return;
         _techniques[(int)index] = new TechniqueEntry(tech, qualityLevel, lodDistance);
-        SortTechniques();
-        ApplyShaderDefinesToTechniques();
+        ApplyShaderDefinesToTechnique(index);
     }
 
     public void SetTechniques(IEnumerable<TechniqueEntry> techniques)
     {
         ArgumentNullException.ThrowIfNull(techniques);
+        var copiedTechniques = techniques.ToArray();
         this._techniques.Clear();
-        this._techniques.AddRange(techniques);
+        this._techniques.AddRange(copiedTechniques);
         SortTechniques();
         ApplyShaderDefinesToTechniques();
     }
@@ -458,10 +512,18 @@ public sealed class Material : ResourceWithMetadata
     public void SetShaderParameter(string name, object? value, bool isCustom = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        _shaderParameters[name] = new MaterialShaderParameter(value, isCustom);
+        if (_shaderParameters.Remove(name, out var previous))
+            previous.Dispose();
+        _shaderParameters[name] = new MaterialShaderParameter(name, value, isCustom);
+        var oldSpecular = _specular;
         UpdateSpecularState(name, value);
+        if (oldSpecular != _specular)
+            _pipelineStateTracker.MarkPipelineStateHashDirty();
         if (!_batchedParameterUpdate)
+        {
             RefreshShaderParameterHash();
+            RefreshMemoryUse();
+        }
     }
 
     public void SetShaderParameterAnimation(string name, ValueAnimation? animation, WrapMode wrapMode = WrapMode.Loop, float speed = 1.0f)
@@ -511,21 +573,23 @@ public sealed class Material : ResourceWithMetadata
 
     public void SetUVTransform(Vector2f offset, float rotation, Vector2f repeat)
     {
-        UVOffset = offset;
-        UVRotation = rotation;
-        UVRepeat = repeat;
-
-        var angle = rotation * MathDefs.DegToRad;
-        var sin = MathF.Sin(angle);
-        var cos = MathF.Cos(angle);
-        SetShaderParameter("UOffset", new Vector4f(repeat.X * cos, repeat.Y * -sin, offset.X, 0.0f));
-        SetShaderParameter("VOffset", new Vector4f(repeat.X * sin, repeat.Y * cos, offset.Y, 0.0f));
+        var transform = Matrix3x4.IDENTITY;
+        transform = Matrix3x4.FromTranslation(new Vector3f(-0.5f, -0.5f, 0.0f)) * transform;
+        transform = Matrix3x4.FromScale(new Vector3f(repeat.X, repeat.Y, 1.0f)) * transform;
+        transform = new Matrix3x4(Vector3f.Zero, new Quaternion(rotation, Vector3f.Forward), Vector3f.One) * transform;
+        transform = Matrix3x4.FromTranslation(new Vector3f(0.5f + offset.X, 0.5f + offset.Y, 0.0f)) * transform;
+        SetShaderParameter("UOffset", new Vector4f(transform.M00, transform.M01, transform.M03, 0.0f));
+        SetShaderParameter("VOffset", new Vector4f(transform.M10, transform.M11, transform.M13, 0.0f));
     }
 
     public void SetVertexShaderDefines(string defines)
     {
-        VertexShaderDefines = defines ?? string.Empty;
+        defines ??= string.Empty;
+        if (VertexShaderDefines == defines)
+            return;
+        VertexShaderDefines = defines;
         ApplyShaderDefinesToTechniques();
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
     public void SortTechniques()
@@ -533,17 +597,20 @@ public sealed class Material : ResourceWithMetadata
         _techniques.Sort();
     }
 
-    public bool RemoveShaderParameter(string name)
+    public void RemoveShaderParameter(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var removed = _shaderParameters.Remove(name);
-        if (removed)
+        var oldSpecular = _specular;
+        if (_shaderParameters.Remove(name, out var parameter))
         {
+            parameter.Dispose();
             if (name == "MatSpecColor")
                 _specular = false;
-            RefreshShaderParameterHash();
         }
-        return removed;
+        if (oldSpecular != _specular)
+            _pipelineStateTracker.MarkPipelineStateHashDirty();
+        RefreshShaderParameterHash();
+        RefreshMemoryUse();
     }
 
     public void ReleaseShaders()
@@ -602,15 +669,44 @@ public sealed class Material : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var xml = new XMLFile(Name);
-        return xml.Load(source) && LoadXML(xml.GetRoot());
+        if (GetSubsystem<Graphics>() is null)
+            return true;
+
+        _loadXmlFile?.Dispose();
+        _loadXmlFile = new XMLFile(Name);
+        if (_loadXmlFile.Load(source))
+            return true;
+
+        _loadXmlFile.Dispose();
+        _loadXmlFile = null;
+        ResetToDefaults();
+        return false;
+    }
+
+    public override bool EndLoad()
+    {
+        if (GetSubsystem<Graphics>() is null)
+            return true;
+
+        if (_loadXmlFile is null)
+            return false;
+
+        try
+        {
+            return LoadXML(_loadXmlFile.GetRoot());
+        }
+        finally
+        {
+            _loadXmlFile.Dispose();
+            _loadXmlFile = null;
+        }
     }
 
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        var xml = new XMLFile(Name);
+        using var xml = new XMLFile(Name);
         var root = xml.CreateRoot("material");
         return SaveXML(root) && xml.Save(destination);
     }
@@ -671,8 +767,9 @@ public sealed class Material : ResourceWithMetadata
 
             var texture = cache.GetResourceOrNull<Texture2D>(resourceName);
             if (texture is not null)
-                SetTexture(slotName, texture);
+                SetTextureInternal(NormalizeTextureSlotName(slotName), texture);
         }
+        RefreshTextureEventSubscriptions();
 
         for (var parameterElement = source.GetChild("parameter"); parameterElement.NotNull; parameterElement = parameterElement.GetNext("parameter"))
         {
@@ -805,16 +902,19 @@ public sealed class Material : ResourceWithMetadata
     private void ApplyShaderDefinesToTechniques()
     {
         for (var i = 0; i < _techniques.Count; ++i)
-        {
-            var entry = _techniques[i];
-            if (entry.Original is null)
-                continue;
+            ApplyShaderDefinesToTechnique((uint)i);
+    }
 
-            entry.Technique = string.IsNullOrWhiteSpace(VertexShaderDefines) && string.IsNullOrWhiteSpace(PixelShaderDefines)
-                ? entry.Original
-                : entry.Original.CloneWithDefines(VertexShaderDefines, PixelShaderDefines);
-            _techniques[i] = entry;
-        }
+    private void ApplyShaderDefinesToTechnique(uint index)
+    {
+        var entry = _techniques[(int)index];
+        if (entry.Original is null)
+            return;
+
+        entry.Technique = string.IsNullOrWhiteSpace(VertexShaderDefines) && string.IsNullOrWhiteSpace(PixelShaderDefines)
+            ? entry.Original
+            : entry.Original.CloneWithDefines(VertexShaderDefines, PixelShaderDefines);
+        _techniques[(int)index] = entry;
     }
 
     private static string NormalizeTextureSlotName(string name)
@@ -848,11 +948,10 @@ public sealed class Material : ResourceWithMetadata
         RenderOrder = 128;
         ShadowCullMode = CullMode.CounterClockwise;
         VertexShaderDefines = string.Empty;
-        UVOffset = Vector2f.Zero;
-        UVRotation = 0.0f;
-        UVRepeat = Vector2f.One;
-
+        foreach (var parameter in _shaderParameters.Values)
+            parameter.Dispose();
         _shaderParameters.Clear();
+        RefreshTextureEventSubscriptions(clear: true);
         _textures.Clear();
         _techniques.Clear();
 
@@ -872,6 +971,7 @@ public sealed class Material : ResourceWithMetadata
         SetShaderParameter("NormalScale", 1.0f);
         SetShaderParameter("AlphaCutoff", 0.5f);
         RefreshShaderParameterHash();
+        RefreshMemoryUse();
     }
 
     private void UpdateEventSubscription()
@@ -925,6 +1025,58 @@ public sealed class Material : ResourceWithMetadata
             Vector4f vector => vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f,
             _ => _specular
         };
+    }
+
+    private void RefreshTextureEventSubscriptions(bool clear = false)
+    {
+        foreach (var texture in _subscribedTextures)
+            texture.ReloadFinished -= HandleTextureReloadFinished;
+        _subscribedTextures.Clear();
+
+        if (!clear)
+        {
+            foreach (var texture in _textures.Values)
+            {
+                if (_subscribedTextures.Add(texture.Texture))
+                    texture.Texture.ReloadFinished += HandleTextureReloadFinished;
+            }
+        }
+
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
+    }
+
+    private void HandleTextureReloadFinished(Resource resource)
+    {
+        _pipelineStateTracker.MarkPipelineStateHashDirty();
+    }
+
+    private void RefreshMemoryUse()
+    {
+        MemoryUse = (uint)(_techniques.Count * 32
+            + _textures.Count * IntPtr.Size
+            + _shaderParameters.Count * 48);
+    }
+
+    private uint RecalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, new StringHash(VertexShaderDefines).Value);
+        CombineHash(ref hash, new StringHash(PixelShaderDefines).Value);
+        CombineHash(ref hash, (uint)CullMode);
+        CombineHash(ref hash, (uint)ShadowCullMode);
+        CombineHash(ref hash, (uint)FillMode);
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.ConstantBias)));
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBias.SlopeScaledBias)));
+        CombineHash(ref hash, AlphaToCoverage ? 1u : 0u);
+        CombineHash(ref hash, _specular ? 1u : 0u);
+        foreach (var (nameHash, info) in _textures)
+        {
+            CombineHash(ref hash, nameHash.Value);
+            CombineHash(ref hash, info.Texture.GetSRGB() ? 1u : 0u);
+            CombineHash(ref hash, info.Texture.GetLinear() ? 1u : 0u);
+            CombineHash(ref hash, info.Texture.GetSamplerStateDesc().ToHash());
+        }
+        return Math.Max(1u, hash);
     }
 
     private static CullMode ParseCullMode(string value, CullMode defaultValue)

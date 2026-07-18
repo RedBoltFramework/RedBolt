@@ -206,7 +206,7 @@ public sealed class OutlineGroup : Component
 
             uint entryHash = 0;
             CombineHash(ref entryHash, parameter.Key);
-            CombineHash(ref entryHash, parameter.Value.Value);
+            CombineHash(ref entryHash, parameter.Value.VariantValue);
             CombineHash(ref entryHash, parameter.Value.IsCustom);
             parametersHash += entryHash;
         }

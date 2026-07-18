@@ -51,8 +51,8 @@ public sealed class PipelineBatchSortKeyTests
     {
         using var firstMaterial = new Material("First");
         using var secondMaterial = new Material("Second");
-        firstMaterial.RenderOrder = 1;
-        secondMaterial.RenderOrder = 2;
+        firstMaterial.SetRenderOrder(1);
+        secondMaterial.SetRenderOrder(2);
         var keys = new[]
         {
             new PipelineBatchBackToFront(new PipelineBatch { Material = firstMaterial, Distance = 2 }),

@@ -78,7 +78,7 @@ public sealed class ValueAnimationTests
         animation.SetKeyFrame(1.0f, 10.0f);
         animation.SetEventFrame(0.5f, new StringHash(77u));
 
-        var info = new TestValueAnimationInfo(animation, WrapMode.Once, 1.0f);
+        var info = new TestValueAnimationInfo(new object(), animation, WrapMode.Once, 1.0f);
         VAnimEventFrame? lastEvent = null;
         info.EventTriggered += frame => lastEvent = frame;
 
@@ -88,7 +88,7 @@ public sealed class ValueAnimationTests
         Assert.True(info.Update(0.6f));
         Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 10.0f));
 
-        var looping = new TestValueAnimationInfo(animation, WrapMode.Loop, 1.0f);
+        var looping = new TestValueAnimationInfo(new object(), animation, WrapMode.Loop, 1.0f);
         looping.SetTime(1.25f);
         Assert.True(MathDefs.ApproximatelyEquivalent((float)looping.LastValue!, 2.5f));
     }
@@ -104,9 +104,19 @@ public sealed class ValueAnimationTests
         Assert.Single(animation.GetEventFrames(0.25f, 0.5f));
 
         var info = new TestValueAnimationInfo(new object(), animation, WrapMode.Clamp, -1.0f);
+        Assert.Equal(0.0f, info.GetSpeed());
         info.SetTime(1.0f);
         info.Update(1.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 0.0f));
+        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 10.0f));
+
+        var targetless = new TestValueAnimationInfo(animation, WrapMode.Clamp, 1.0f);
+        Assert.True(targetless.Update(0.5f));
+        Assert.Null(targetless.LastValue);
+
+        var clone = Assert.IsType<TestValueAnimationInfo>(info.Clone());
+        Assert.Same(animation, clone.GetAnimation());
+        Assert.Equal(WrapMode.Clamp, clone.GetWrapMode());
+        Assert.Equal(0.0f, clone.GetTime());
     }
 
     private sealed class TestValueAnimationInfo : ValueAnimationInfo
@@ -122,6 +132,13 @@ public sealed class ValueAnimationTests
         }
 
         public object? LastValue { get; private set; }
+
+        private TestValueAnimationInfo(TestValueAnimationInfo rhs)
+            : base(rhs)
+        {
+        }
+
+        public override object Clone() => new TestValueAnimationInfo(this);
 
         protected override void ApplyValue(object? newValue)
         {

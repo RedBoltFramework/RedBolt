@@ -82,7 +82,7 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["InputInvSize"] = new(new Vector2f(0.5f, 0.25f), true)
+            ["InputInvSize"] = new("InputInvSize", new Vector2f(0.5f, 0.25f), true)
         };
         object?[] arguments = [field, parameters, null];
 
@@ -109,7 +109,7 @@ public sealed class GraphicsCustomUniformTests
             });
         var parameters = new Dictionary<string, MaterialShaderParameter>(StringComparer.Ordinal)
         {
-            ["InputInvSize"] = new(new Vector2f(0.5f, 0.25f), false)
+            ["InputInvSize"] = new("InputInvSize", new Vector2f(0.5f, 0.25f), false)
         };
         object?[] arguments = [field, parameters, null];
 

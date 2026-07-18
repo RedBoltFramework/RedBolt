@@ -1,5 +1,4 @@
 using RedBolt;
-using System.Reflection;
 
 namespace RedBolt.Tests;
 
@@ -20,6 +19,7 @@ public sealed class MaterialTests
     public void Render_state_helpers_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
+        var originalHash = material.GetPipelineStateHash();
         material.SetCullMode(CullMode.Clockwise);
         material.SetShadowCullMode(CullMode.None);
         material.SetFillMode(FillMode.Wireframe);
@@ -27,6 +27,8 @@ public sealed class MaterialTests
         Assert.Equal(CullMode.Clockwise, material.GetCullMode());
         Assert.Equal(CullMode.None, material.GetShadowCullMode());
         Assert.Equal(FillMode.Wireframe, material.GetFillMode());
+        Assert.NotEqual(originalHash, material.GetPipelineStateHash());
+        Assert.Equal(material.GetPipelineStateHash(), material.GetPipelineStateHash());
     }
 
     [Fact]
@@ -99,13 +101,15 @@ public sealed class MaterialTests
     }
 
     [Fact]
-    public void Uv_transform_metadata_works()
+    public void Uv_transform_sets_shader_parameters()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
         material.SetUVTransform(new Vector2f(0.25f, 0.5f), 90.0f, new Vector2f(2.0f, 4.0f));
 
-        Assert.True(material.UVOffset.ApproximatelyEquivalent(new Vector2f(0.25f, 0.5f)));
-        Assert.True(material.UVRepeat.ApproximatelyEquivalent(new Vector2f(2.0f, 4.0f)));
+        Assert.True(Assert.IsType<Vector4f>(material.GetShaderParameter("UOffset"))
+            .ApproximatelyEquivalent(new Vector4f(0.0f, -4.0f, 2.75f, 0.0f)));
+        Assert.True(Assert.IsType<Vector4f>(material.GetShaderParameter("VOffset"))
+            .ApproximatelyEquivalent(new Vector4f(2.0f, 0.0f, 0.0f, 0.0f)));
     }
 
     [Fact]
@@ -117,8 +121,8 @@ public sealed class MaterialTests
         var reflection = new TextureCube("Textures/Reflection");
         reflection.SetSize(2, TextureFormat.RGBA8);
 
-        material.SetTexture("diffuse", albedo);
-        material.SetTexture("zone", reflection);
+        material.SetTexture("Albedo", albedo);
+        material.SetTexture("Reflection1", reflection);
 
         Assert.Same(albedo, material.GetTexture("Albedo"));
         Assert.Same(reflection, material.GetTexture(new StringHash("Reflection1")));
@@ -127,7 +131,11 @@ public sealed class MaterialTests
         var clone = material.Clone("Materials/TextureClone");
         Assert.Same(albedo, clone.GetTexture("Albedo"));
 
-        material.SetTexture("diffuse", null);
+        material.SetTexture("Albedo", null);
+        Assert.Null(material.GetTexture("Albedo"));
+
+        material.SetTexture("diffuse", albedo);
+        Assert.Same(albedo, material.GetTexture("diffuse"));
         Assert.Null(material.GetTexture("Albedo"));
     }
 
@@ -140,14 +148,23 @@ public sealed class MaterialTests
         var t1 = new Technique("Techniques/Xml");
         t1.CreatePass("base");
 
+        material.SetNumTechniques(2);
         material.SetTechnique(0, t0, MaterialQuality.Low, 0.0f);
         material.SetTechnique(1, t1, MaterialQuality.High, 25.0f);
 
         Assert.Equal(2u, material.GetNumTechniques());
+        Assert.Equal(0.0f, material.GetTechniqueEntry(0).LodDistance);
+        Assert.Equal(MaterialQuality.Low, material.GetTechniqueEntry(0).QualityLevel);
+        Assert.NotNull(material.GetTechnique(0)?.GetPass("alpha"));
+        Assert.NotNull(material.GetTechnique(1)?.GetPass("base"));
+
+        material.SetTechniques(material.GetTechniques());
         Assert.Equal(25.0f, material.GetTechniqueEntry(0).LodDistance);
-        Assert.Equal(MaterialQuality.High, material.GetTechniqueEntry(0).QualityLevel);
-        Assert.NotNull(material.GetTechnique(0)?.GetPass("base"));
-        Assert.NotNull(material.GetTechnique(1)?.GetPass("alpha"));
+
+        var originalVariant = new TechniqueEntry(t0, MaterialQuality.Low, 1.0f) { Original = t0 };
+        var changedOriginal = originalVariant;
+        changedOriginal.Original = t1;
+        Assert.Equal(originalVariant, changedOriginal);
     }
 
     [Fact]
@@ -167,29 +184,29 @@ public sealed class MaterialTests
     }
 
     [Fact]
-    public void ResourceWithMetadata_helpers_work()
+    public void Shader_parameter_values_are_independent()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        material.AddMetadata("Category", "Smoke");
-        Assert.True(material.HasMetadata());
-        Assert.Equal(new Variant("Smoke"), material.GetMetadata("Category"));
-        Assert.Contains("Category", material.GetMetadataKeys());
+        var source = new byte[] { 1, 2, 3 };
+        material.SetShaderParameter("Buffer", source);
+        source[0] = 9;
 
-        var clone = material.Clone("Materials/Clone");
-        Assert.Equal(new Variant("Smoke"), clone.GetMetadata("Category"));
-
-        clone.RemoveMetadata("Category");
-        Assert.False(clone.HasMetadata("Category"));
+        var stored = Assert.IsType<byte[]>(material.GetShaderParameter("Buffer"));
+        Assert.Equal(new byte[] { 1, 2, 3 }, stored);
+        stored[1] = 9;
+        Assert.Equal(new byte[] { 1, 2, 3 }, Assert.IsType<byte[]>(material.GetShaderParameter("Buffer")));
     }
 
     [Fact]
-    public void Clone_preserves_resource_cache_context()
+    public void Clone_uses_requested_name_and_independent_parameter_values()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var clone = material.Clone("Materials/CloneWithCache");
+        material.SetShaderParameter("Buffer", new byte[] { 1, 2, 3 });
+        var clone = material.Clone();
 
-        var ownerCacheProperty = typeof(Resource).GetProperty("OwnerCache", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.NotNull(ownerCacheProperty);
-        Assert.Same(ownerCacheProperty!.GetValue(material), ownerCacheProperty.GetValue(clone));
+        Assert.Equal(string.Empty, clone.Name);
+        var cloneValue = Assert.IsType<byte[]>(clone.GetShaderParameter("Buffer"));
+        cloneValue[0] = 9;
+        Assert.Equal(new byte[] { 1, 2, 3 }, Assert.IsType<byte[]>(material.GetShaderParameter("Buffer")));
     }
 }
