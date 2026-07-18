@@ -5,6 +5,13 @@ namespace RedBolt.Tests;
 public sealed class RenderSurfaceTests
 {
     [Fact]
+    public void Render_surface_matches_cpp_reference_type()
+    {
+        Assert.False(typeof(RenderSurface).IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(RenderSurface)));
+    }
+
+    [Fact]
     public void Render_surface_tracks_texture_views_viewports_links_and_update_state()
     {
         var texture = new Texture2D("Textures/RenderSurface");
@@ -61,5 +68,18 @@ public sealed class RenderSurfaceTests
         Assert.Equal(0u, surface.GetNumViewports());
         Assert.Null(surface.GetLinkedRenderTarget());
         Assert.Null(surface.GetLinkedDepthStencil());
+    }
+
+    [Fact]
+    public void Texture_dispose_destroys_owned_render_surfaces()
+    {
+        var texture = new Texture2D("Textures/OwnedRenderSurface");
+        Assert.True(texture.SetSize(64, 32, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        var surface = texture.GetRenderSurface()!;
+        surface.SetNumViewports(2);
+
+        texture.Dispose();
+
+        Assert.Equal(0u, surface.GetNumViewports());
     }
 }

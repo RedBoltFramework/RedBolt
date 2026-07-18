@@ -54,6 +54,19 @@ public abstract class Texture : ResourceWithMetadata
     {
     }
 
+    public override void Dispose()
+    {
+        for (var i = _renderSurfaces.Length - 1; i >= 0; --i)
+            _renderSurfaces[i]?.Dispose();
+        _renderSurfaces = [];
+        BackupTexture = null;
+        _rawTexture?.Dispose();
+        _rawTexture = null;
+        _renderSurfaceUpdateSubscription?.Dispose();
+        _renderSurfaceUpdateSubscription = null;
+        base.Dispose();
+    }
+
     public TextureFormat Format { get; protected set; } = TextureFormat.Unknown;
 
     public uint Levels { get; protected set; }
@@ -323,6 +336,14 @@ public abstract class Texture : ResourceWithMetadata
 
     private void OnCreateGPU()
     {
+        if (_rawTexture is not null)
+        {
+            var renderSurfaceHandles = _rawTexture.GetRenderSurfaces();
+            SetRenderSurfaceCount(checked((uint)renderSurfaceHandles.Length));
+            for (var i = 0; i < renderSurfaceHandles.Length; ++i)
+                _renderSurfaces[i]!.Restore(renderSurfaceHandles[i]);
+        }
+
         ApplyRawSamplerState();
         if (_rawTexture is not null)
             RefreshMemoryUse((uint)Math.Min(_rawTexture.CalculateMemoryUseGPU(), uint.MaxValue));
@@ -455,6 +476,8 @@ public abstract class Texture : ResourceWithMetadata
             ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
             : Math.Max(_requestedLevels, 1u);
 
+        OnDestroyGPU();
+
         if ((flags & TextureFlag.BindRenderTarget) != 0)
         {
             _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
@@ -470,13 +493,13 @@ public abstract class Texture : ResourceWithMetadata
             ? (uint)Math.Max(Depth, 1)
             : 0u);
 
-        OnDestroyGPU();
         if (!RawTexture.IsCreatingManagedTexture)
         {
             _rawTexture = new RawTexture(new RawTextureParams(
                 GetRawTextureType(), Format, _textureFlags,
                 new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample, SRGB: _requestedSRGB));
-            OnCreateGPU();
+            if (_rawTexture.GetHandle() is { IsNull: false })
+                OnCreateGPU();
         }
     }
 
@@ -506,6 +529,8 @@ public abstract class Texture : ResourceWithMetadata
         if (_renderSurfaces.Length == count)
             return;
 
+        for (var i = _renderSurfaces.Length - 1; i >= 0; --i)
+            _renderSurfaces[i]?.Dispose();
         _renderSurfaces = new RenderSurface?[count];
         for (var i = 0u; i < count; ++i)
             _renderSurfaces[i] = new RenderSurface(this, i);

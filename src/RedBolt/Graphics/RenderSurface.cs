@@ -41,22 +41,32 @@ public sealed class RenderSurface : IDisposable
 
     public void Dispose()
     {
-        _renderTargetView = null;
-        _viewports.Clear();
-        _linkedRenderTarget = null;
         _linkedDepthStencil = null;
-        GC.SuppressFinalize(this);
+        _linkedRenderTarget = null;
+        _viewports.Clear();
+        if (_renderTargetView is { IsNull: false })
+            _ = _renderTargetView.Release();
+        _renderTargetView = null;
     }
 
     /// <summary>Internal. Restore GPU resource.</summary>
     public void Restore(ITextureView? view)
     {
+        if (ReferenceEquals(_renderTargetView, view))
+            return;
+
+        if (view is { IsNull: false })
+            _ = view.AddRef();
+        if (_renderTargetView is { IsNull: false })
+            _ = _renderTargetView.Release();
         _renderTargetView = view;
     }
 
     /// <summary>Internal. Invalidate GPU resource.</summary>
     public void Invalidate()
     {
+        if (_renderTargetView is { IsNull: false })
+            _ = _renderTargetView.Release();
         _renderTargetView = null;
     }
 
@@ -180,7 +190,7 @@ public sealed class RenderSurface : IDisposable
     /// <summary>Property getters that can work with a null RenderSurface corresponding to the main viewport.</summary>
     public static Vector2i GetSize(Graphics graphics, RenderSurface? renderSurface)
     {
-        return renderSurface is not null ? renderSurface.GetSize() : new Vector2i(graphics.Width, graphics.Height);
+        return renderSurface is not null ? renderSurface.GetSize() : graphics.GetSize();
     }
 
     /// <summary>Property getter that can work with a null RenderSurface corresponding to the main viewport.</summary>
@@ -210,7 +220,7 @@ public sealed class RenderSurface : IDisposable
     /// <summary>Return multisampling level for the surface or main viewport.</summary>
     public static int GetMultiSample(Graphics graphics, RenderSurface? renderSurface)
     {
-        return renderSurface is not null ? renderSurface.GetMultiSample() : graphics.GetSwapChainMultiSample();
+        return renderSurface is not null ? renderSurface.GetMultiSample() : graphics.GetMultiSample();
     }
 
     /// <summary>Return sRGB mode for the surface or main viewport.</summary>
