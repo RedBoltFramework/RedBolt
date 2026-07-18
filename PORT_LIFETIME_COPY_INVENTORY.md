@@ -340,7 +340,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/IO/MultiFileWatcher.cs` | `Source/Urho3D/IO/MultiFileWatcher.h`<br>`Source/Urho3D/IO/MultiFileWatcher.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/NamedPipe.cs` | `Source/Urho3D/IO/NamedPipe.h`<br>`Source/Urho3D/IO/NamedPipe.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/PackageFile.cs` | `Source/Urho3D/IO/PackageFile.h`<br>`Source/Urho3D/IO/PackageFile.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/IO/ScanFlags.cs` | `Source/Urho3D/IO/ScanFlags.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/IO/ScanFlags.cs` | `Source/Urho3D/IO/ScanFlags.h` | ☑ | ☑ | ☑ |
+| 2026-07-18 outcome | VERIFIED the complete ScanFlags header. Native `ScanFlag : unsigned char` plus its flag-set wrapper maps to the reference-free managed `[Flags]` byte enum with exact `Files`, `Dirs`, `Hidden`, `Append`, and `Recursive` bit values. Enum construction, combination, assignment, return, and destruction are trivial independent value semantics. Native `FileTime = unsigned` uses the built-in C# `uint` mapping and is intentionally not re-ported. Focused ScanFlags tests pass 1/1. | — | — | — |
 | `src/RedBolt/IO/Serializer.cs` | `Source/Urho3D/IO/Serializer.h`<br>`Source/Urho3D/IO/Serializer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/VectorBuffer.cs` | `Source/Urho3D/IO/VectorBuffer.h`<br>`Source/Urho3D/IO/VectorBuffer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/VirtualFileSystem.cs` | `Source/Urho3D/IO/VirtualFileSystem.h`<br>`Source/Urho3D/IO/VirtualFileSystem.cpp` | ☐ | ☐ | ☐ |
