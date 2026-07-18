@@ -3,7 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public class KeyFrameSet<T>
+/// <summary>Sorted array of keyframes.</summary>
+/// <remarks>T: GetKeyFrameTime(T) must return <see cref="float"/> time to be used for ordering.</remarks>
+public class KeyFrameSet<T> : ICloneable, IDisposable
 {
     private readonly Func<T, float> _getKeyFrameTime;
 
@@ -22,18 +24,23 @@ public class KeyFrameSet<T>
     public void AddKeyFrame(T keyFrame)
     {
         var needSort = KeyFrames.Count > 0 && _getKeyFrameTime(KeyFrames[^1]) > _getKeyFrameTime(keyFrame);
-        KeyFrames.Add(keyFrame);
+        KeyFrames.Add(CopyValue(keyFrame));
         if (needSort)
             SortKeyFrames();
     }
 
     public void RemoveKeyFrame(uint index)
     {
-        KeyFrames.RemoveAt(checked((int)index));
+        var intIndex = checked((int)index);
+        var value = KeyFrames[intIndex];
+        KeyFrames.RemoveAt(intIndex);
+        DisposeValue(value);
     }
 
     public void RemoveAllKeyFrames()
     {
+        for (var i = KeyFrames.Count - 1; i >= 0; --i)
+            DisposeValue(KeyFrames[i]);
         KeyFrames.Clear();
     }
 
@@ -90,5 +97,29 @@ public class KeyFrameSet<T>
             ++index;
 
         return true;
+    }
+
+    public virtual KeyFrameSet<T> Clone()
+    {
+        var clone = new KeyFrameSet<T>(_getKeyFrameTime);
+        foreach (var keyFrame in KeyFrames)
+            clone.KeyFrames.Add(CopyValue(keyFrame));
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    public virtual void Dispose()
+    {
+        RemoveAllKeyFrames();
+        GC.SuppressFinalize(this);
+    }
+
+    private static T CopyValue(T value) => value is ICloneable cloneable ? (T)cloneable.Clone() : value;
+
+    private static void DisposeValue(T value)
+    {
+        if (value is ICloneable && value is IDisposable disposable)
+            disposable.Dispose();
     }
 }

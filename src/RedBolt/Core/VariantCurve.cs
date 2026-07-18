@@ -8,7 +8,7 @@ public enum KeyFrameInterpolation
     TangentSpline
 }
 
-public struct VariantCurvePoint : IEquatable<VariantCurvePoint>
+public struct VariantCurvePoint : IEquatable<VariantCurvePoint>, ICloneable, IDisposable
 {
     public float Time;
     public Variant Value;
@@ -27,11 +27,17 @@ public struct VariantCurvePoint : IEquatable<VariantCurvePoint>
 
     public override readonly int GetHashCode() => HashCode.Combine(Time, Value);
 
+    public readonly VariantCurvePoint Clone() => new() { Time = Time, Value = Value.Clone() };
+
+    readonly object ICloneable.Clone() => Clone();
+
+    public void Dispose() => Value.Dispose();
+
     public static bool operator ==(VariantCurvePoint lhs, VariantCurvePoint rhs) => lhs.Equals(rhs);
     public static bool operator !=(VariantCurvePoint lhs, VariantCurvePoint rhs) => !lhs.Equals(rhs);
 }
 
-public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>, ICloneable, IDisposable
+public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCurve>
 {
     public static readonly VariantCurve Empty = new();
 
@@ -149,7 +155,17 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
         using var block = archive.OpenArrayBlock("keyframes", size);
         if (archive.IsInput)
         {
-            KeyFrames.Clear();
+            RemoveAllKeyFrames();
+            for (var i = InTangents.Count - 1; i >= 0; --i)
+            {
+                var value = InTangents[i];
+                value.Dispose();
+            }
+            for (var i = OutTangents.Count - 1; i >= 0; --i)
+            {
+                var value = OutTangents[i];
+                value.Dispose();
+            }
             InTangents.Clear();
             OutTangents.Clear();
         }
@@ -214,7 +230,7 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
 
     public override int GetHashCode() => unchecked((int)ToHash());
 
-    public VariantCurve Clone()
+    public override VariantCurve Clone()
     {
         var clone = new VariantCurve
         {
@@ -233,9 +249,7 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
         return clone;
     }
 
-    object ICloneable.Clone() => Clone();
-
-    public void Dispose()
+    public override void Dispose()
     {
         for (var i = OutTangents.Count - 1; i >= 0; --i)
         {
@@ -247,14 +261,9 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
             var value = InTangents[i];
             value.Dispose();
         }
-        for (var i = KeyFrames.Count - 1; i >= 0; --i)
-        {
-            var value = KeyFrames[i].Value;
-            value.Dispose();
-        }
         OutTangents.Clear();
         InTangents.Clear();
-        KeyFrames.Clear();
+        base.Dispose();
     }
 
     public static bool operator ==(VariantCurve? lhs, VariantCurve? rhs) => ReferenceEquals(lhs, rhs) || lhs?.Equals(rhs) == true;

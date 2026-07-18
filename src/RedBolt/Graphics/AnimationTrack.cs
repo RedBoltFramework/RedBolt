@@ -44,7 +44,7 @@ public struct AnimationKeyFrame
 }
 
 /// <summary>Skeletal animation track, stores keyframes of a single bone.</summary>
-public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>, ICloneable, IDisposable
+public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
 {
     /// <summary>Bone or scene node name.</summary>
     public string Name = string.Empty;
@@ -64,7 +64,7 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>, ICloneable,
     {
     }
 
-    public AnimationTrack Clone()
+    public override AnimationTrack Clone()
     {
         var clone = new AnimationTrack
         {
@@ -79,12 +79,7 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>, ICloneable,
         return clone;
     }
 
-    object ICloneable.Clone() => Clone();
-
-    public void Dispose()
-    {
-        KeyFrames.Clear();
-    }
+    public override void Dispose() => base.Dispose();
 
     /// <summary>Sample value at given time.</summary>
     public void Sample(float time, float duration, bool isLooped, ref uint frameIndex, ref Transform value)
@@ -333,12 +328,12 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>, ICloneable,
 
 /// <summary>Generic variant animation keyframe.</summary>
 /// <summary>Generic animation track, stores keyframes of single animatable entity.</summary>
-public sealed class VariantAnimationTrack : VariantCurve, ICloneable
+public sealed class VariantAnimationTrack : VariantCurve
 {
     /// <summary>Weight of the track.</summary>
     public float Weight = 1.0f;
 
-    public new VariantAnimationTrack Clone()
+    public override VariantAnimationTrack Clone()
     {
         var clone = new VariantAnimationTrack
         {
@@ -357,8 +352,6 @@ public sealed class VariantAnimationTrack : VariantCurve, ICloneable
             clone.OutTangents.Add(tangent.Clone());
         return clone;
     }
-
-    object ICloneable.Clone() => Clone();
 
     /// <summary>Return whether the track is looped, i.e. the first and the last keyframes have the same value.</summary>
     public bool IsLooped()

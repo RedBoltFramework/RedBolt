@@ -102,6 +102,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `RefCounted.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
+- [x] `KeyFrameSet.h` — non-POD value-container copies, cloned element insertion, deterministic element/vector teardown, derived curve/track copy dispatch, and mutable stored references reconciled
 
 ## [x] A2. Math — depends on Container
 
