@@ -139,8 +139,6 @@ public sealed class Context : ObjectReflectionRegistry, IDisposable
         RegisterSubsystem(new ResourceCache());
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
-        RegisterSubsystem(new RenderDevice());
-        RegisterSubsystem(new PipelineStateCache());
         RegisterSubsystem(new Renderer());
         RegisterSubsystem(new Audio());
         RegisterSubsystem(new StateManager());

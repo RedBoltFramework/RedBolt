@@ -76,6 +76,9 @@ public sealed class Engine : Object
             applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.RenderBackend);
         ApplyInitializationParameters();
 
+        _context.RegisterSubsystem(new RenderDevice());
+        _context.RegisterSubsystem(new PipelineStateCache());
+
         if (!IsHeadless)
         {
             input.Initialize(Parameters);
