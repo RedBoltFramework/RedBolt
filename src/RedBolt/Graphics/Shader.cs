@@ -42,10 +42,7 @@ public sealed class Shader : Resource
         foreach (var variation in _variations.Values)
         {
             if (disposedVariations.Add(variation))
-            {
-                variation.Destroy();
                 variation.Dispose();
-            }
         }
         _variations.Clear();
         _numVariations = 0;

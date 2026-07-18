@@ -7,44 +7,36 @@ namespace RedBolt;
 /// <summary>Vertex or pixel shader on the GPU.</summary>
 public sealed class ShaderVariation : RawShader
 {
-
-    private readonly Graphics? _graphics;
-
+    /// <summary>Cached pointer to Graphics subsystem.</summary>
+    private readonly Graphics _graphics;
     /// <summary>Source shader.</summary>
-    public Shader Shader { get; }
+    private readonly Shader _owner;
+    /// <summary>Defines to use when compiling the shader.</summary>
+    private readonly string _defines;
 
     /// <summary>Defines to use when compiling the shader.</summary>
-    public string Defines { get; }
+    public string Defines => _defines;
 
-    /// <summary>Shader stage.</summary>
-    public ShaderType ShaderType => GetShaderType();
-
-    public ShaderVariation(Shader shader, ShaderType shaderType, string defines = "")
+    public ShaderVariation(Shader shader, ShaderType shaderType, string defines)
         : base(shaderType)
     {
-        Shader = shader ?? throw new ArgumentNullException(nameof(shader));
-        Defines = defines ?? string.Empty;
-        _graphics = GetSubsystem<Graphics>();
+        _graphics = GetSubsystem<Graphics>()!;
+        _owner = shader;
+        _defines = defines;
         SetDebugName(GetShaderVariationName());
-        Shader.OnReloaded += OnReloaded;
         Create();
+        _owner.OnReloaded += OnReloaded;
     }
 
     /// <summary>Return shader name (as used in resources).</summary>
-    public string Name => Shader.GetShaderName();
+    public string Name => _owner.GetShaderName();
 
     /// <summary>Return full shader variation name with defines.</summary>
     public string GetShaderVariationName() => $"{Name}({Defines})";
 
-    /// <summary>Prepare shader source for the managed renderer.</summary>
-    public string PrepareSource(RenderBackend backend = RenderBackend.OpenGL, string extraCode = "")
-    {
-        return Shader.PrepareSource(GetStage(ShaderType), Defines, backend, extraCode);
-    }
-
     private bool CompileFromSource()
     {
-        var originalShaderCode = Shader.SourceCode;
+        var originalShaderCode = _owner.SourceCode;
         var preparedSource = PrepareGLSLShaderCode(originalShaderCode);
         var processed = ProcessShaderSource(
             out var translatedSource, out var translatedSpirv, out var translatedBytecode, preparedSource);
@@ -87,6 +79,8 @@ public sealed class ShaderVariation : RawShader
         if (_graphics is null)
             return false;
 
+        // TODO: port const GraphicsSettings& settings = graphics_->GetSettings();
+        // TODO: port const FileIdentifier& cacheDir = settings.shaderCacheDir_;
         var binaryShaderName = GetShaderCacheFileIdentifier(GetCachedVariationName("bytecode"));
         if (!LoadByteCode(binaryShaderName))
         {
@@ -96,21 +90,22 @@ public sealed class ShaderVariation : RawShader
                 return false;
             }
 
+            // TODO: port settings.cacheShaders_ when GraphicsSettings is available.
             var engine = GetSubsystem<Engine>();
-            if (engine?.Parameters.SaveShaderCache == true && Shader.TimeStamp > DateTime.MinValue)
-                SaveByteCode(binaryShaderName);
+            if (engine?.Parameters.SaveShaderCache == true && _owner.TimeStamp > DateTime.MinValue)
+                SaveByteCode(in binaryShaderName);
         }
 
         return true;
     }
 
-    private bool LoadByteCode(FileIdentifier binaryShaderName)
+    private bool LoadByteCode(in FileIdentifier binaryShaderName)
     {
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         if (virtualFileSystem is null || binaryShaderName.IsEmpty() || !virtualFileSystem.Exists(binaryShaderName))
             return false;
 
-        var sourceTimeStamp = GetUnixTimeStamp(Shader.TimeStamp);
+        var sourceTimeStamp = GetUnixTimeStamp(_owner.TimeStamp);
         if (sourceTimeStamp != 0)
         {
             var bytecodeTimeStamp = virtualFileSystem.GetLastModifiedTime(binaryShaderName, false);
@@ -142,8 +137,12 @@ public sealed class ShaderVariation : RawShader
         }
     }
 
-    private void SaveByteCode(FileIdentifier binaryShaderName)
+    private void SaveByteCode(in FileIdentifier binaryShaderName)
     {
+        // TODO: Enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
+        if (ProcessUtils.GetPlatform() == PlatformId.Web)
+            return;
+
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         if (virtualFileSystem is null || binaryShaderName.IsEmpty())
             return;
@@ -169,7 +168,7 @@ public sealed class ShaderVariation : RawShader
     private string GetCachedVariationName(string extension)
     {
         var backendName = RenderAPIUtils.ToString(GetRenderBackend()).ToLowerInvariant();
-        var shortName = Shader.GetShaderName();
+        var shortName = _owner.GetShaderName();
         var shaderTypeName = RenderAPIUtils.ToString(GetShaderType()).ToLowerInvariant();
         var definesHash = new StringHash(Defines);
         return $"{shortName}_{shaderTypeName}_{definesHash}.{backendName}.{extension}";
@@ -328,6 +327,7 @@ public sealed class ShaderVariation : RawShader
 
     private ShaderTranslationPolicy GetShaderTranslationPolicy()
     {
+        // TODO: port graphics_->GetSettings().shaderTranslationPolicy_ when GraphicsSettings is available.
         var requestedPolicy = GetSubsystem<Engine>()?.Parameters.ShaderPolicy;
         var parsedPolicy = requestedPolicy switch
         {
@@ -346,6 +346,7 @@ public sealed class ShaderVariation : RawShader
 
     private string GetShaderCacheDirectory()
     {
+        // TODO: port graphics_->GetSettings().shaderCacheDir_ when GraphicsSettings is available.
         return GetSubsystem<Engine>()?.Parameters.ShaderCacheDir ?? string.Empty;
     }
 
@@ -367,16 +368,6 @@ public sealed class ShaderVariation : RawShader
 
         var seconds = new DateTimeOffset(timeStamp.ToUniversalTime()).ToUnixTimeSeconds();
         return seconds > 0 ? unchecked((uint)seconds) : 0;
-    }
-
-    private static ShaderStage GetStage(ShaderType shaderType)
-    {
-        return shaderType switch
-        {
-            ShaderType.VS => ShaderStage.Vertex,
-            ShaderType.PS => ShaderStage.Pixel,
-            _ => throw new NotSupportedException($"Shader stage '{shaderType}' is not supported by the current managed shader variation pipeline.")
-        };
     }
 
     private string GetShaderTypeDefine()

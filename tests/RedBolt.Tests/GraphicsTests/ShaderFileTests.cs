@@ -117,7 +117,7 @@ public sealed class ShaderFileTests
             Assert.Same(first, second);
             Assert.NotSame(first, pixel);
             Assert.Equal("A B", first.Defines);
-            Assert.Same(shader, first.Shader);
+            Assert.Equal(shader.GetShaderName(), first.Name);
             Assert.True(shader.TimeStamp > DateTime.MinValue);
             Assert.Contains("Shaders/GLSL/v2/LitSolid.glsl", Shader.GetShaderFileList(), StringComparison.Ordinal);
             Assert.True(shader.GetMemoryUse() > 0);

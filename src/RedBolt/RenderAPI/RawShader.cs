@@ -25,6 +25,12 @@ public class RawShader : DeviceObject
         CreateFromBinary(bytecode);
     }
 
+    public override void Dispose()
+    {
+        DestroyGPU();
+        base.Dispose();
+    }
+
     public override void Invalidate()
     {
         base.Invalidate();

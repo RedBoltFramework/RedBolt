@@ -72,8 +72,8 @@ public sealed class PipelineStateCacheTests
         {
             DebugName = "CloneMe",
             PrimitiveType = PrimitiveType.TriangleList,
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.VS),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.PS)
+            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.PS, string.Empty)
         };
         graphicsDesc.InputLayout.SetElements(
             new InputLayoutElementDesc(0, 16, 0, 0, VertexElementType.Vector4, VertexElementSemantic.Position, 0));
@@ -132,8 +132,8 @@ public sealed class PipelineStateCacheTests
         var desc = new GraphicsPipelineStateDesc
         {
             DebugName = "RestoreState",
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.VS),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.PS)
+            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.PS, string.Empty)
         };
         desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 
@@ -150,8 +150,8 @@ public sealed class PipelineStateCacheTests
         var desc = new GraphicsPipelineStateDesc
         {
             DebugName = "DisposableState",
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.VS),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.PS)
+            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.PS, string.Empty)
         };
         desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 

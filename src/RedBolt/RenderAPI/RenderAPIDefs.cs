@@ -1053,7 +1053,7 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
         if (shader is ShaderVariation shaderVariation)
         {
             hash.Add(shaderVariation.Name, StringComparer.Ordinal);
-            hash.Add(shaderVariation.ShaderType);
+            hash.Add(shaderVariation.GetShaderType());
             hash.Add(shaderVariation.Defines, StringComparer.Ordinal);
             return;
         }
@@ -1070,7 +1070,7 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 
         if (lhs is ShaderVariation lhsVariation && rhs is ShaderVariation rhsVariation)
         {
-            return lhsVariation.ShaderType == rhsVariation.ShaderType
+            return lhsVariation.GetShaderType() == rhsVariation.GetShaderType()
                 && string.Equals(lhsVariation.Name, rhsVariation.Name, StringComparison.Ordinal)
                 && string.Equals(lhsVariation.Defines, rhsVariation.Defines, StringComparison.Ordinal);
         }
