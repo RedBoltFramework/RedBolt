@@ -613,9 +613,9 @@ public sealed class RenderPipelineTests
     public void Render_output_target_info_derives_multisample_from_texture()
     {
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8, 4));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.None, 4));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8, 4));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8, TextureFlag.None, 4));
 
         var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget);
 

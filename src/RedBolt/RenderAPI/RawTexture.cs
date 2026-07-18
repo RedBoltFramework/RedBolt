@@ -987,8 +987,8 @@ public class RawTexture : DeviceObject
                     var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
                     texture2D.SetSRGB(parameters.SRGB);
                     texture2D.SetNumLevels(parameters.NumLevels);
-                    if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, (int)normalizedMultiSample,
-                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                    if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
+                        (int)normalizedMultiSample))
                         return false;
                     textureCandidate = texture2D;
                     break;

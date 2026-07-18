@@ -260,7 +260,8 @@ public sealed class GraphicsRenderTargetViewTests
             if (sampleCount <= 1)
                 return;
             var texture = new Texture2D("Textures/ManualResolveRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount, noMultiSampledAutoResolve: true));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8,
+                TextureFlag.BindRenderTarget | TextureFlag.NoMultiSampledAutoResolve, sampleCount));
 
             var nativeTexture = GetNativeTexture(GetUploadedTexture(texture));
             var shaderResourceTexture = GetShaderResourceTexture(texture);
