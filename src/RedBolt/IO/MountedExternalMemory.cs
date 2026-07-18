@@ -51,9 +51,9 @@ public class MountedExternalMemory : MountPoint
     }
 
     /// <summary>Implement MountPoint.</summary>
-    public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
-        if (mode == File.FileMode.Write || mode == File.FileMode.ReadWrite)
+        if (mode == FileMode.Write || mode == FileMode.ReadWrite)
             return null;
 
         if (!_files.TryGetValue(fileName.FileName, out var memory))

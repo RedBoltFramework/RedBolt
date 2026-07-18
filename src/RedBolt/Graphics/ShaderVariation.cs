@@ -113,7 +113,7 @@ public sealed class ShaderVariation : RawShader
                 return false;
         }
 
-        var file = virtualFileSystem.OpenFile(binaryShaderName, File.FileMode.Read);
+        var file = virtualFileSystem.OpenFile(binaryShaderName, FileMode.Read);
         if (file is null)
             return false;
 
@@ -147,7 +147,7 @@ public sealed class ShaderVariation : RawShader
         if (virtualFileSystem is null || binaryShaderName.IsEmpty())
             return;
 
-        var file = virtualFileSystem.OpenFile(binaryShaderName, File.FileMode.Write);
+        var file = virtualFileSystem.OpenFile(binaryShaderName, FileMode.Write);
         if (file is null)
             return;
 

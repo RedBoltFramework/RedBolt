@@ -140,6 +140,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Compression.h` / `Compression.cpp` — stateless free-function shape, explicit buffer sizes, unsigned LZ4 results, temporary ownership, borrowed streams, and independent VectorBuffer returns reconciled
 - [x] `VectorBuffer.h` / `VectorBuffer.cpp` — extensible copyable non-POD class kind, deep clone semantics, borrowed byte/pointer views, owned storage teardown, and return-value lifetimes reconciled
 - [x] `Deserializer.h` / `Deserializer.cpp` — extensible abstract non-POD class kind, public construction, scalar field lifetime, virtual disposal, raw and bulk read semantics, independent value returns, pointer/custom Variant handling, and unsigned relative seeking reconciled
+- [x] `File.h` / `File.cpp` — extensible non-POD class kind, standalone POD `FileMode` enum, owned handle and buffer lifetimes, exact close/reset ordering, package metadata copy, deterministic transient-file teardown, and independent binary returns reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop

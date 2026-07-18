@@ -33,7 +33,7 @@ public sealed class MountedAliasRootTests
             Assert.Equal("Data", found.Alias);
             Assert.Equal("assets", found.Scheme);
 
-            var input = aliasRoot.OpenFile(identifier, File.FileMode.Read);
+            var input = aliasRoot.OpenFile(identifier, FileMode.Read);
             try
             {
                 Assert.NotNull(input);

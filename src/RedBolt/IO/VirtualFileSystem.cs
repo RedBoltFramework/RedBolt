@@ -235,7 +235,7 @@ public class VirtualFileSystem : Object
     }
 
     /// <summary>Open file in the virtual file system. Returns null if file not found.</summary>
-    public AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
         if (fileName.IsEmpty())
             return null;
@@ -256,7 +256,7 @@ public class VirtualFileSystem : Object
     /// <summary>Read text file from the virtual file system. Returns empty string if file not found.</summary>
     public string ReadAllText(FileIdentifier fileName)
     {
-        var file = OpenFile(fileName, File.FileMode.Read);
+        var file = OpenFile(fileName, FileMode.Read);
         if (file is null)
             return string.Empty;
 
@@ -276,7 +276,7 @@ public class VirtualFileSystem : Object
     /// <summary>Write text file to the virtual file system. Returns true if file is written successfully.</summary>
     public bool WriteAllText(FileIdentifier fileName, string text)
     {
-        var file = OpenFile(fileName, File.FileMode.Write);
+        var file = OpenFile(fileName, FileMode.Write);
         if (file is null)
             return false;
 

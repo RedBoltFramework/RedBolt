@@ -46,7 +46,7 @@ public sealed class MountPointTests
 
         public override bool Exists(FileIdentifier fileName) => fileName.FileName == "existing";
 
-        public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode) => null;
+        public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode) => null;
 
         public override string GetName() => "Test";
 
@@ -64,7 +64,7 @@ public sealed class MountPointTests
 
         public override bool Exists(FileIdentifier fileName) => fileName.FileName == "existing";
 
-        public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode) => null;
+        public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode) => null;
 
         public override string GetName() => "Test";
 

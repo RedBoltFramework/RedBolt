@@ -262,7 +262,7 @@ public class Animation : ResourceWithMetadata
             var xmlName = Name;
             var extensionPosition = xmlName.LastIndexOf('.');
             xmlName = extensionPosition >= 0 ? xmlName[..extensionPosition] + ".xml" : xmlName + ".xml";
-            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), File.FileMode.Read);
+            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), FileMode.Read);
             if (xmlSource is not null)
             {
                 var xmlData = new byte[checked((int)xmlSource.Size)];

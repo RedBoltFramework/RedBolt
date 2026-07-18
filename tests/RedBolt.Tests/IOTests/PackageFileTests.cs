@@ -48,15 +48,15 @@ public sealed class PackageFileTests
             packageFile.Scan(result, "folder", "*.txt", ScanFlags.ScanRecursive);
             Assert.Equal(new[] { "item.txt" }, result);
 
-            var file = packageFile.OpenFile(new FileIdentifier(string.Empty, "folder/item.txt"), File.FileMode.Read);
+            var file = packageFile.OpenFile(new FileIdentifier(string.Empty, "folder/item.txt"), FileMode.Read);
             Assert.NotNull(file);
             var readBuffer = new byte[content.Length];
             Assert.Equal((uint)content.Length, file!.Read(readBuffer));
             Assert.Equal(content, readBuffer);
             file.Close();
 
-            Assert.Null(packageFile.OpenFile(new FileIdentifier(string.Empty, "folder/item.txt"), File.FileMode.Write));
-            Assert.Null(packageFile.OpenFile(new FileIdentifier("other", "folder/item.txt"), File.FileMode.Read));
+            Assert.Null(packageFile.OpenFile(new FileIdentifier(string.Empty, "folder/item.txt"), FileMode.Write));
+            Assert.Null(packageFile.OpenFile(new FileIdentifier("other", "folder/item.txt"), FileMode.Read));
             Assert.NotNull(packageFile.GetLastModifiedTime(new FileIdentifier(string.Empty, "folder/item.txt"), false));
         }
         finally
@@ -92,7 +92,7 @@ public sealed class PackageFileTests
 
             var packageFile = new PackageFile(packagePath);
             Assert.True(packageFile.IsCompressed());
-            var file = packageFile.OpenFile(new FileIdentifier(string.Empty, "compressed.txt"), File.FileMode.Read);
+            var file = packageFile.OpenFile(new FileIdentifier(string.Empty, "compressed.txt"), FileMode.Read);
             Assert.NotNull(file);
             var readBuffer = new byte[content.Length];
             Assert.Equal((uint)content.Length, file!.Read(readBuffer));

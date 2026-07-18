@@ -445,7 +445,7 @@ public sealed class ResourceCache : Object
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var virtualFileSystem = GetVirtualFileSystem();
         var resolvedName = GetResolvedIdentifier(new FileIdentifier(name));
-        var file = virtualFileSystem.OpenFile(resolvedName, File.FileMode.Read);
+        var file = virtualFileSystem.OpenFile(resolvedName, FileMode.Read);
         if (file is null)
         {
             if (sendEventOnFailure)

@@ -71,7 +71,7 @@ public class Resource : Object
         using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
             ? new MountPointGuard(activeFileSystem.MountRoot())
             : null;
-        var file = activeFileSystem.OpenFile(identifier, File.FileMode.Read);
+        var file = activeFileSystem.OpenFile(identifier, FileMode.Read);
         if (file is null)
             return false;
 
@@ -129,7 +129,7 @@ public class Resource : Object
         using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
             ? new MountPointGuard(activeFileSystem.MountRoot())
             : null;
-        var file = activeFileSystem.OpenFile(identifier, File.FileMode.Write);
+        var file = activeFileSystem.OpenFile(identifier, FileMode.Write);
         if (file is null)
             return false;
 

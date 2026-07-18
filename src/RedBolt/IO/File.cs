@@ -7,46 +7,11 @@ using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-/// <summary>File opened through the filesystem.</summary>
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
 public class File : AbstractFile
 {
     private const uint ReadBufferSize = 32768;
-
-    /// <summary>File open mode.</summary>
-    public enum FileMode
-    {
-        Read,
-        Write,
-        ReadWrite
-    }
-
-    /// <summary>Absolute file name.</summary>
-    private string _absoluteFileName = string.Empty;
-    /// <summary>Open mode.</summary>
-    private FileMode _mode;
-    /// <summary>File handle.</summary>
-    private Stream? _handle;
-    /// <summary>Read buffer for Android asset or compressed file loading.</summary>
-    private byte[]? _readBuffer;
-    /// <summary>Decompression input buffer for compressed file loading.</summary>
-    private byte[]? _inputBuffer;
-    /// <summary>Read buffer position.</summary>
-    private uint _readBufferOffset;
-    /// <summary>Bytes in the current read buffer.</summary>
-    private uint _readBufferSize;
-    /// <summary>Start position within a package file, 0 for regular files.</summary>
-    private uint _offset;
-    /// <summary>Content checksum.</summary>
-    private uint _checksum;
-    /// <summary>Compression flag.</summary>
-    private bool _compressed;
-    /// <summary>Synchronization needed before read -flag.</summary>
-    private bool _readSyncNeeded;
-    /// <summary>Synchronization needed before write -flag.</summary>
-    private bool _writeSyncNeeded;
-
-    private SdlRWops? _assetHandle;
+    private const uint SkipBufferSize = 1024;
 
     /// <summary>Construct.</summary>
     public File()
@@ -73,14 +38,16 @@ public class File : AbstractFile
     {
         Close();
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>Read bytes from the file. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
         if (!IsOpen)
+        {
+            // If file not open, do not log the error further here to prevent spamming the stderr stream
             return 0;
+        }
 
         if (_mode == FileMode.Write)
         {
@@ -88,12 +55,15 @@ public class File : AbstractFile
             return 0;
         }
 
-        var size = Math.Min((uint)destination.Length, Size > Position ? Size - Position : 0);
+        var size = (uint)destination.Length;
+        if (unchecked(size + Position) > Size)
+            size = unchecked(Size - Position);
         if (size == 0)
             return 0;
 
         if (_assetHandle is not null && !_compressed)
         {
+            // If not using a compressed package file, buffer file reads on Android for better performance
             if (_readBuffer is null)
             {
                 _readBuffer = new byte[ReadBufferSize];
@@ -109,8 +79,7 @@ public class File : AbstractFile
                 {
                     _readBufferSize = Math.Min(Size - Position, ReadBufferSize);
                     _readBufferOffset = 0;
-                    if (!ReadInternal(_readBuffer.AsSpan(0, checked((int)_readBufferSize))))
-                        return 0;
+                    _ = ReadInternal(_readBuffer.AsSpan(0, checked((int)_readBufferSize)));
                 }
 
                 var copySize = Math.Min(_readBufferSize - _readBufferOffset, sizeLeft);
@@ -125,12 +94,6 @@ public class File : AbstractFile
             return size;
         }
 
-        if (_readSyncNeeded)
-        {
-            SeekInternal(Position + _offset);
-            _readSyncNeeded = false;
-        }
-
         if (_compressed)
         {
             var sizeLeft = size;
@@ -140,21 +103,18 @@ public class File : AbstractFile
             {
                 if (_readBuffer is null || _readBufferOffset >= _readBufferSize)
                 {
-                    if (!ReadInternal(blockHeader))
-                        return 0;
+                    _ = ReadInternal(blockHeader);
 
                     var unpackedSize = BinaryPrimitives.ReadUInt16LittleEndian(blockHeader);
                     var packedSize = BinaryPrimitives.ReadUInt16LittleEndian(blockHeader[2..]);
                     if (_readBuffer is null)
                     {
                         _readBuffer = new byte[unpackedSize];
-                        _inputBuffer = new byte[packedSize];
+                        _inputBuffer = new byte[checked((int)Compression.EstimateCompressBound(unpackedSize))];
                     }
-                    else if (_inputBuffer is null || _inputBuffer.Length < packedSize)
-                        _inputBuffer = new byte[packedSize];
 
-                    if (!ReadInternal(_inputBuffer.AsSpan(0, packedSize)))
-                        return 0;
+                    // TODO: Handle errors
+                    _ = ReadInternal(_inputBuffer!.AsSpan(0, packedSize));
 
                     Compression.DecompressData(_readBuffer.AsSpan(0, unpackedSize),
                         _inputBuffer.AsSpan(0, packedSize), unpackedSize);
@@ -174,8 +134,16 @@ public class File : AbstractFile
             return size;
         }
 
+        // Need to reassign the position due to internal buffering when transitioning from writing to reading
+        if (_readSyncNeeded)
+        {
+            SeekInternal(Position + _offset);
+            _readSyncNeeded = false;
+        }
+
         if (!ReadInternal(destination[..checked((int)size)]))
         {
+            // Return to the position where the read began
             SeekInternal(Position + _offset);
             Log.Logger.LogError("Error while reading from file {Name}", Name);
             return 0;
@@ -190,8 +158,12 @@ public class File : AbstractFile
     public override uint Seek(uint position)
     {
         if (!IsOpen)
+        {
+            // If file not open, do not log the error further here to prevent spamming the stderr stream
             return 0;
+        }
 
+        // Allow sparse seeks if writing
         if (_mode == FileMode.Read && position > Size)
             position = Size;
 
@@ -199,6 +171,7 @@ public class File : AbstractFile
         {
             if (position == 0)
             {
+                // Start over from the beginning
                 Position = 0;
                 _readBufferOffset = 0;
                 _readBufferSize = 0;
@@ -206,7 +179,8 @@ public class File : AbstractFile
             }
             else if (position >= Position)
             {
-                Span<byte> skipBuffer = stackalloc byte[4096];
+                // Skip bytes
+                Span<byte> skipBuffer = stackalloc byte[checked((int)SkipBufferSize)];
                 while (position > Position)
                     Read(skipBuffer[..checked((int)Math.Min(position - Position, (uint)skipBuffer.Length))]);
             }
@@ -226,8 +200,11 @@ public class File : AbstractFile
     /// <summary>Write bytes to the file. Return number of bytes actually written.</summary>
     public override uint Write(ReadOnlySpan<byte> data)
     {
-        if (!IsOpen || data.IsEmpty)
+        if (!IsOpen)
+        {
+            // If file not open, do not log the error further here to prevent spamming the stderr stream
             return 0;
+        }
 
         if (_mode == FileMode.Read)
         {
@@ -235,8 +212,12 @@ public class File : AbstractFile
             return 0;
         }
 
+        if (data.IsEmpty)
+            return 0;
+
         if (_writeSyncNeeded)
         {
+            // Need to reassign the position due to internal buffering when transitioning from reading to writing
             SeekInternal(Position + _offset);
             _writeSyncNeeded = false;
         }
@@ -247,6 +228,7 @@ public class File : AbstractFile
         }
         catch (IOException)
         {
+            // Return to the position where the write began
             SeekInternal(Position + _offset);
             Log.Logger.LogError("Error while writing to file {Name}", Name);
             return 0;
@@ -271,12 +253,12 @@ public class File : AbstractFile
         var oldPosition = Position;
         _checksum = 0;
         Seek(0);
-        var block = new byte[1024];
+        Span<byte> block = stackalloc byte[1024];
         while (!IsEof())
         {
             var readBytes = Read(block);
             for (var i = 0u; i < readBytes; ++i)
-                _checksum = MathDefs.SDBMHash(_checksum, block[i]);
+                _checksum = MathDefs.SDBMHash(_checksum, block[(int)i]);
         }
         Seek(oldPosition);
         return _checksum;
@@ -299,115 +281,42 @@ public class File : AbstractFile
             return false;
 
         if (!OpenInternal(package.GetName(), FileMode.Read, true))
+        {
+            Log.Logger.LogError("Could not open package file {FileName}", fileName);
             return false;
+        }
 
         SetName(fileName);
         _offset = entry.Value.Offset;
         _checksum = entry.Value.Checksum;
         Size = entry.Value.Size;
         _compressed = package.IsCompressed();
+        // Seek to beginning of package entry's file data
         SeekInternal(_offset);
         return true;
-    }
-
-    /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
-    private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
-    {
-        Close();
-        _compressed = false;
-        _readSyncNeeded = false;
-        _writeSyncNeeded = false;
-
-        if (string.IsNullOrEmpty(fileName))
-            return false;
-
-        if (OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal))
-        {
-            if (mode != FileMode.Read)
-                return false;
-
-            using var assetName = new CString(fileName[5..]);
-            using var readMode = new CString("rb");
-            _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
-            if (_assetHandle.IsNull)
-            {
-                _assetHandle = null;
-                return false;
-            }
-
-            _absoluteFileName = fileName;
-            _mode = mode;
-            Position = 0;
-            if (!fromPackage)
-            {
-                var size = SdlNativeBindings.SdlRWsize(_assetHandle);
-                if (size < 0 || size > uint.MaxValue)
-                {
-                    Close();
-                    return false;
-                }
-                Size = (uint)size;
-                _offset = 0;
-            }
-            _checksum = 0;
-            return true;
-        }
-
-        try
-        {
-            var systemMode = mode switch
-            {
-                FileMode.Read => System.IO.FileMode.Open,
-                FileMode.Write => System.IO.FileMode.Create,
-                FileMode.ReadWrite => System.IO.FileMode.OpenOrCreate,
-                _ => System.IO.FileMode.Open
-            };
-            var access = mode == FileMode.Read ? FileAccess.Read : FileAccess.ReadWrite;
-            _handle = new FileStream(fileName, systemMode, access, FileShare.Read);
-            if (!fromPackage && _handle.Length > uint.MaxValue)
-            {
-                Close();
-                return false;
-            }
-            _absoluteFileName = Path.GetFullPath(fileName);
-            _mode = mode;
-            Position = 0;
-            if (!fromPackage)
-            {
-                Size = checked((uint)_handle.Length);
-                _offset = 0;
-            }
-            _checksum = 0;
-            return true;
-        }
-        catch (IOException)
-        {
-            Close();
-            return false;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            Close();
-            return false;
-        }
     }
 
     /// <summary>Close the file.</summary>
     public override void Close()
     {
-        _readBuffer = null;
-        _inputBuffer = null;
         if (_assetHandle is not null)
         {
             SdlNativeBindings.SdlRWclose(_assetHandle);
             _assetHandle = null;
         }
-        _handle?.Dispose();
-        _handle = null;
-        Position = 0;
-        Size = 0;
-        _offset = 0;
-        _checksum = 0;
+
+        _readBuffer = null;
+        _inputBuffer = null;
+
+        if (_handle is not null)
+        {
+            _handle.Dispose();
+            _handle = null;
+            Position = 0;
+            Size = 0;
+            _offset = 0;
+            _checksum = 0;
+        }
     }
 
     /// <summary>Flush any buffered output to the file.</summary>
@@ -428,7 +337,6 @@ public class File : AbstractFile
     /// <summary>Reads a binary file to buffer.</summary>
     public void ReadBinary(List<byte> buffer)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
         buffer.Clear();
         if (Size == 0)
             return;
@@ -447,7 +355,7 @@ public class File : AbstractFile
     }
 
     /// <summary>Reads a text file, ensuring data from file is 0 terminated.</summary>
-    public void ReadText(out string text)
+    public virtual void ReadText(out string text)
     {
         text = string.Empty;
         if (Size == 0)
@@ -459,7 +367,7 @@ public class File : AbstractFile
     }
 
     /// <summary>Reads a text file, ensuring data from file is 0 terminated.</summary>
-    public string ReadText()
+    public virtual string ReadText()
     {
         ReadText(out var text);
         return text;
@@ -479,6 +387,100 @@ public class File : AbstractFile
         var bytesRead = sourceFile.Read(buffer);
         var bytesWritten = Write(buffer);
         return bytesRead == fileSize && bytesWritten == fileSize;
+    }
+
+    /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
+    private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
+    {
+        Close();
+        _compressed = false;
+        _readSyncNeeded = false;
+        _writeSyncNeeded = false;
+
+        if (string.IsNullOrEmpty(fileName))
+        {
+            Log.Logger.LogError("Could not open file with empty name");
+            return false;
+        }
+
+        if (OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal))
+        {
+            if (mode != FileMode.Read)
+            {
+                Log.Logger.LogError("Only read mode is supported for Android asset files");
+                return false;
+            }
+
+            using var assetName = new CString(fileName[5..]);
+            using var readMode = new CString("rb");
+            _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
+            if (_assetHandle.IsNull)
+            {
+                Log.Logger.LogError("Could not open Android asset file {FileName}", fileName);
+                _assetHandle = null;
+                return false;
+            }
+
+            SetName(fileName);
+            _absoluteFileName = fileName;
+            _mode = mode;
+            Position = 0;
+            if (!fromPackage)
+            {
+                Size = unchecked((uint)SdlNativeBindings.SdlRWsize(_assetHandle));
+                _offset = 0;
+            }
+            _checksum = 0;
+            return true;
+        }
+
+        try
+        {
+            var systemMode = mode switch
+            {
+                FileMode.Read => System.IO.FileMode.Open,
+                FileMode.Write => System.IO.FileMode.Create,
+                // If file did not exist in readwrite mode, retry with write-update mode
+                FileMode.ReadWrite => System.IO.FileMode.OpenOrCreate,
+                _ => System.IO.FileMode.Open
+            };
+            var access = mode switch
+            {
+                FileMode.Read => FileAccess.Read,
+                FileMode.Write => FileAccess.Write,
+                _ => FileAccess.ReadWrite
+            };
+            _handle = new FileStream(fileName, systemMode, access, FileShare.Read);
+            if (!fromPackage && _handle.Length > uint.MaxValue)
+            {
+                Log.Logger.LogError("Could not open file {FileName} which is larger than 4GB", fileName);
+                Close();
+                return false;
+            }
+            SetName(fileName);
+            _absoluteFileName = fileName;
+            _mode = mode;
+            Position = 0;
+            if (!fromPackage)
+            {
+                Size = checked((uint)_handle.Length);
+                _offset = 0;
+            }
+            _checksum = 0;
+            return true;
+        }
+        catch (IOException)
+        {
+            Log.Logger.LogError("Could not open file {FileName}", fileName);
+            Close();
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Log.Logger.LogError("Could not open file {FileName}", fileName);
+            Close();
+            return false;
+        }
     }
 
     /// <summary>Perform the file read internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful. This does not handle compressed package file reading.</summary>
@@ -506,8 +508,40 @@ public class File : AbstractFile
     private void SeekInternal(uint newPosition)
     {
         if (_assetHandle is not null)
+        {
             _ = SdlNativeBindings.SdlRWseek(_assetHandle, (nint)newPosition, 0);
+            // Reset buffering after seek
+            _readBufferOffset = 0;
+            _readBufferSize = 0;
+        }
         else if (_handle is not null)
             _handle.Position = newPosition;
     }
+
+    /// <summary>Absolute file name.</summary>
+    private string _absoluteFileName = string.Empty;
+    /// <summary>Open mode.</summary>
+    private FileMode _mode;
+    /// <summary>File handle.</summary>
+    private Stream? _handle;
+    /// <summary>SDL RWops context for Android asset loading.</summary>
+    private SdlRWops? _assetHandle;
+    /// <summary>Read buffer for Android asset or compressed file loading.</summary>
+    private byte[]? _readBuffer;
+    /// <summary>Decompression input buffer for compressed file loading.</summary>
+    private byte[]? _inputBuffer;
+    /// <summary>Read buffer position.</summary>
+    private uint _readBufferOffset;
+    /// <summary>Bytes in the current read buffer.</summary>
+    private uint _readBufferSize;
+    /// <summary>Start position within a package file, 0 for regular files.</summary>
+    private uint _offset;
+    /// <summary>Content checksum.</summary>
+    private uint _checksum;
+    /// <summary>Compression flag.</summary>
+    private bool _compressed;
+    /// <summary>Synchronization needed before read -flag.</summary>
+    private bool _readSyncNeeded;
+    /// <summary>Synchronization needed before write -flag.</summary>
+    private bool _writeSyncNeeded;
 }

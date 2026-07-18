@@ -39,7 +39,7 @@ public class PackageFile : MountPoint
     /// <summary>Open the package file. Return true if successful.</summary>
     public bool Open(string fileName, uint startOffset = 0)
     {
-        var file = new File(fileName);
+        using var file = new File(fileName);
         if (!file.IsOpen)
             return false;
 
@@ -95,7 +95,6 @@ public class PackageFile : MountPoint
             _entries[entryName] = newEntry;
         }
 
-        file.Close();
         return true;
     }
 
@@ -213,9 +212,9 @@ public class PackageFile : MountPoint
     }
 
     /// <summary>Open package file. Returns null if file not found.</summary>
-    public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
-        if (mode != File.FileMode.Read)
+        if (mode != FileMode.Read)
             return null;
 
         if (!string.IsNullOrEmpty(fileName.Scheme) && fileName.Scheme != GetName())

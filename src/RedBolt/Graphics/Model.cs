@@ -380,7 +380,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
         {
             var xmlName = Path.ChangeExtension(Name, ".xml");
-            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), File.FileMode.Read);
+            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), FileMode.Read);
             if (xmlSource is not null)
             {
                 var xmlData = new byte[checked((int)xmlSource.Size)];

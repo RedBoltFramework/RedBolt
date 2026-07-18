@@ -40,14 +40,14 @@ public class MountedDirectory : WatchableMountPoint
     }
 
     /// <summary>Implement MountPoint.</summary>
-    public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
         // File system directory only reacts on specific scheme.
         if (!AcceptsScheme(fileName.Scheme))
             return null;
 
-        var needRead = mode == File.FileMode.Read || mode == File.FileMode.ReadWrite;
-        var needWrite = mode == File.FileMode.Write || mode == File.FileMode.ReadWrite;
+        var needRead = mode == FileMode.Read || mode == FileMode.ReadWrite;
+        var needWrite = mode == FileMode.Write || mode == FileMode.ReadWrite;
         var fullPath = _directory + fileName.FileName;
 
         if (needRead && !System.IO.File.Exists(fullPath))
@@ -75,7 +75,10 @@ public class MountedDirectory : WatchableMountPoint
 
         var file = new File(fullPath, mode);
         if (!file.IsOpen)
+        {
+            file.Dispose();
             return null;
+        }
 
         file.SetName(fileName.ToUri());
         return file;

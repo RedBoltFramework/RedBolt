@@ -237,7 +237,7 @@ public class LightProbeGroup : Component
             }))
             return false;
 
-        var file = context.GetSubsystem<VirtualFileSystem>()!.OpenFile(fileName, File.FileMode.Write);
+        var file = context.GetSubsystem<VirtualFileSystem>()!.OpenFile(fileName, FileMode.Write);
         if (file is null)
             return false;
 

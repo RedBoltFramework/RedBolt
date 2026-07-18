@@ -22,15 +22,15 @@ public sealed class MountedExternalMemoryTests
         Assert.False(mountPoint.Exists(new FileIdentifier("other", "linked.txt")));
         Assert.Equal("memory", mountPoint.GetName());
 
-        var file = mountPoint.OpenFile(new FileIdentifier("other", "linked.txt"), File.FileMode.Read);
+        var file = mountPoint.OpenFile(new FileIdentifier("other", "linked.txt"), FileMode.Read);
         Assert.NotNull(file);
         Span<byte> buffer = stackalloc byte[6];
         Assert.Equal(6u, file!.Read(buffer));
         Assert.Equal("linked", System.Text.Encoding.UTF8.GetString(buffer));
         file.Close();
 
-        Assert.Null(mountPoint.OpenFile(new FileIdentifier("memory", "linked.txt"), File.FileMode.Write));
-        Assert.Null(mountPoint.OpenFile(new FileIdentifier("memory", "linked.txt"), File.FileMode.ReadWrite));
+        Assert.Null(mountPoint.OpenFile(new FileIdentifier("memory", "linked.txt"), FileMode.Write));
+        Assert.Null(mountPoint.OpenFile(new FileIdentifier("memory", "linked.txt"), FileMode.ReadWrite));
 
         mountPoint.UnlinkMemory("linked.txt");
         Assert.False(mountPoint.Exists(new FileIdentifier("memory", "linked.txt")));

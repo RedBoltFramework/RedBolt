@@ -122,7 +122,7 @@ public sealed class SceneResource : Resource
     public bool SaveFile(string fileName, InternalResourceFormat format, bool asPrefab = false)
     {
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), File.FileMode.Write);
+        var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), FileMode.Write);
         if (file is null)
             return false;
 

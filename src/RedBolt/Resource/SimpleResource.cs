@@ -162,7 +162,7 @@ public abstract class SimpleResource : Resource
         using var rootMount = identifier.Scheme == "file"
             ? new MountPointGuard(virtualFileSystem.MountRoot())
             : null;
-        var file = virtualFileSystem.OpenFile(identifier, File.FileMode.Write);
+        var file = virtualFileSystem.OpenFile(identifier, FileMode.Write);
         if (file is not File outputFile || outputFile.Handle is null)
             return false;
 

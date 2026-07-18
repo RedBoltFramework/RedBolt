@@ -70,7 +70,7 @@ internal static class ResourceLoading
 
         var resourceName = ResolveRelativeResourceName(owner, name);
         var virtualFileSystem = owner.GetSubsystem<VirtualFileSystem>()!;
-        var file = virtualFileSystem.OpenFile(new FileIdentifier(resourceName), File.FileMode.Read);
+        var file = virtualFileSystem.OpenFile(new FileIdentifier(resourceName), FileMode.Read);
         if (file is null)
             return null;
 

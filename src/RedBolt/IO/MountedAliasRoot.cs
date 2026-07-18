@@ -76,7 +76,7 @@ public class MountedAliasRoot : MountPoint
     }
 
     /// <summary>Implement MountPoint.</summary>
-    public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
         if (!AcceptsScheme(fileName.Scheme))
             return null;

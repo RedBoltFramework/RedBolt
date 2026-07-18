@@ -287,7 +287,7 @@ public sealed class Image : Resource
         using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
             ? new MountPointGuard(virtualFileSystem.MountRoot())
             : null;
-        var file = virtualFileSystem.OpenFile(identifier, File.FileMode.Write);
+        var file = virtualFileSystem.OpenFile(identifier, FileMode.Write);
         if (file is null)
             return false;
 

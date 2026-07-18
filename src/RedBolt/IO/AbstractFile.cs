@@ -1,5 +1,13 @@
 namespace RedBolt;
 
+/// <summary>File open mode.</summary>
+public enum FileMode
+{
+    Read = 0,
+    Write,
+    ReadWrite
+}
+
 /// <summary>A common root class for objects that implement both Serializer and Deserializer.</summary>
 public abstract class AbstractFile : Deserializer
 {

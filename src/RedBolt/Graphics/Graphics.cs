@@ -377,7 +377,7 @@ layout(std140) uniform Material
 
         var cachedData = pipelineStateCache.GetCachedData();
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var file = virtualFileSystem.OpenFile(fileName, File.FileMode.Write);
+        var file = virtualFileSystem.OpenFile(fileName, FileMode.Write);
         if (file is null)
             return;
 
@@ -404,7 +404,7 @@ layout(std140) uniform Material
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         if (!fileName.IsEmpty() && virtualFileSystem?.Exists(fileName) == true)
         {
-            var file = virtualFileSystem.OpenFile(fileName, File.FileMode.Read);
+            var file = virtualFileSystem.OpenFile(fileName, FileMode.Read);
             if (file is not null)
             {
                 try

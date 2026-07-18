@@ -29,7 +29,7 @@ public class MountedRoot : MountPoint
     }
 
     /// <summary>Implement MountPoint.</summary>
-    public override AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode)
+    public override AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode)
     {
         if (!AcceptsScheme(fileName.Scheme))
             return null;
@@ -37,8 +37,8 @@ public class MountedRoot : MountPoint
         if (!Path.IsPathFullyQualified(fileName.FileName))
             return null;
 
-        var needRead = mode == File.FileMode.Read || mode == File.FileMode.ReadWrite;
-        var needWrite = mode == File.FileMode.Write || mode == File.FileMode.ReadWrite;
+        var needRead = mode == FileMode.Read || mode == FileMode.ReadWrite;
+        var needWrite = mode == FileMode.Write || mode == FileMode.ReadWrite;
 
         if (needRead && !System.IO.File.Exists(fileName.FileName))
             return null;
@@ -65,7 +65,10 @@ public class MountedRoot : MountPoint
 
         var file = new File(fileName.FileName, mode);
         if (!file.IsOpen)
+        {
+            file.Dispose();
             return null;
+        }
 
         file.SetName(fileName.ToUri());
         return file;

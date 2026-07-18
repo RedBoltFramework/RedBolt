@@ -29,7 +29,7 @@ public abstract class MountPoint : Object
     /// Open file in a virtual file system. Returns null if file not found.
     /// The file name may be be case-insensitive on Windows and case-sensitive on other platforms.
     /// </summary>
-    public abstract AbstractFile? OpenFile(FileIdentifier fileName, File.FileMode mode);
+    public abstract AbstractFile? OpenFile(FileIdentifier fileName, FileMode mode);
 
     /// <summary>
     /// Return modification time, or 0 if not supported.

@@ -46,9 +46,9 @@ public sealed class MountedRootTests
             var mountPoint = new MountedRoot();
             var identifier = new FileIdentifier("file", fileName);
 
-            Assert.Null(mountPoint.OpenFile(identifier, File.FileMode.Read));
+            Assert.Null(mountPoint.OpenFile(identifier, FileMode.Read));
 
-            var output = mountPoint.OpenFile(identifier, File.FileMode.Write);
+            var output = mountPoint.OpenFile(identifier, FileMode.Write);
             try
             {
                 Assert.NotNull(output);
@@ -60,7 +60,7 @@ public sealed class MountedRootTests
                 output?.Close();
             }
 
-            var input = mountPoint.OpenFile(identifier, File.FileMode.Read);
+            var input = mountPoint.OpenFile(identifier, FileMode.Read);
             try
             {
                 Assert.NotNull(input);

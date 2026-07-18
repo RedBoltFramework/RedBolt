@@ -11,7 +11,7 @@ public static class ShaderSourceLogger
         if (!engine.Parameters.ShaderLogSources)
             return;
         var virtualFileSystem = context.GetSubsystem<VirtualFileSystem>()!;
-        var sourceFile = virtualFileSystem.OpenFile(fileName, File.FileMode.Write);
+        var sourceFile = virtualFileSystem.OpenFile(fileName, FileMode.Write);
         if (sourceFile is not null)
         {
             try

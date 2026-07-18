@@ -43,7 +43,7 @@ sealed class VirtualFileSystemApplication : Application
         var canonicalForm = vfs.GetCanonicalIdentifier(fileIdentifier);
         var exists = vfs.Exists(fileIdentifier);
         var absoluteFileName = vfs.GetAbsoluteNameFromIdentifier(fileIdentifier);
-        var readOnlyFile = vfs.OpenFile(fileIdentifier, RedBolt.File.FileMode.Read);
+        var readOnlyFile = vfs.OpenFile(fileIdentifier, RedBolt.FileMode.Read);
         var modificationTime = vfs.GetLastModifiedTime(fileIdentifier, true);
         var reversedUri = vfs.GetIdentifierFromAbsoluteName(absoluteFileName).ToUri();
         Add("URI: Models/Box.mdl"); Add("scheme: " + fileIdentifier.Scheme); Add("path: " + fileIdentifier.FileName);
