@@ -50,6 +50,7 @@ public sealed class ModelFileTests
         sourceBone.Name = "Root";
         sourceBone.NameHash = new StringHash("Root");
         sourceBone.ParentIndex = 0;
+        sourceBone.Node = new Scene().CreateChild("Root");
 
         model.SetSkeleton(skeleton);
 
@@ -57,7 +58,13 @@ public sealed class ModelFileTests
         Assert.NotNull(modelBone);
         Assert.NotSame(sourceBone, modelBone);
         Assert.Equal("Root", modelBone!.Name);
+        Assert.Same(sourceBone.Node, modelBone.Node);
         Assert.Equal(1u, model.GetSkeleton().GetNumBones());
+
+        var clone = model.Clone("SkeletonClone");
+        var cloneBone = clone.GetSkeleton().GetBone(0u);
+        Assert.NotSame(modelBone, cloneBone);
+        Assert.Same(modelBone.Node, cloneBone!.Node);
     }
 
     [Fact]

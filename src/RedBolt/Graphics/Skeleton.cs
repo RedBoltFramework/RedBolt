@@ -91,16 +91,34 @@ public sealed class Bone : ICloneable
 }
 
 /// <summary>Hierarchical collection of bones.</summary>
-public sealed class Skeleton
+public sealed class Skeleton : ICloneable, IDisposable
 {
-    private readonly List<Bone> _bones = [];
-    private readonly List<uint> _bonesOrder = [];
-    private uint _rootBoneIndex = uint.MaxValue;
-
     /// <summary>Construct an empty skeleton.</summary>
     public Skeleton()
     {
     }
+
+    /// <summary>Destruct.</summary>
+    public void Dispose()
+    {
+        _bones.Clear();
+        _bonesOrder.Clear();
+        _rootBoneIndex = uint.MaxValue;
+    }
+
+    public Skeleton Clone()
+    {
+        var clone = new Skeleton
+        {
+            _rootBoneIndex = _rootBoneIndex
+        };
+        foreach (var bone in _bones)
+            clone._bones.Add((Bone)bone.Clone());
+        clone._bonesOrder.AddRange(_bonesOrder);
+        return clone;
+    }
+
+    object ICloneable.Clone() => Clone();
 
     /// <summary>Read from a stream. Return true if successful.</summary>
     public bool Load(Deserializer source)
@@ -346,4 +364,11 @@ public sealed class Skeleton
                 bone.Node.SetTransformSilent(bone.InitialPosition, bone.InitialRotation, bone.InitialScale);
         }
     }
+
+    /// <summary>Bones.</summary>
+    private readonly List<Bone> _bones = [];
+    /// <summary>Indices of bones ordered from root to children.</summary>
+    private readonly List<uint> _bonesOrder = [];
+    /// <summary>Root bone index.</summary>
+    private uint _rootBoneIndex = uint.MaxValue;
 }

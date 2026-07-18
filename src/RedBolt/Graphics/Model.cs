@@ -151,7 +151,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     private const uint CurrentVersion = 2;
 
     private BoundingBox _boundingBox = new(-0.5f, 0.5f);
-    private readonly Skeleton _skeleton = new();
+    private Skeleton _skeleton = new();
     private readonly List<VertexBuffer> _vertexBuffers = [];
     private readonly List<IndexBuffer> _indexBuffers = [];
     private readonly List<List<Geometry?>> _geometries = [];
@@ -167,6 +167,13 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     public Model(string name)
         : base(name)
     {
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _skeleton.Dispose();
+        base.Dispose();
     }
 
     public override bool BeginLoad(Stream source)
@@ -629,7 +636,9 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
     public void SetSkeleton(Skeleton skeleton)
     {
-        _skeleton.Define(skeleton);
+        var replacement = skeleton.Clone();
+        _skeleton.Dispose();
+        _skeleton = replacement;
     }
 
     public Skeleton GetSkeleton() => _skeleton;
@@ -656,7 +665,8 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         {
             _boundingBox = _boundingBox
         };
-        clone._skeleton.Define(_skeleton);
+        clone._skeleton.Dispose();
+        clone._skeleton = _skeleton.Clone();
         foreach (var mapping in _geometryBoneMappings)
             clone._geometryBoneMappings.Add([.. mapping]);
         clone._geometryCenters.AddRange(_geometryCenters);

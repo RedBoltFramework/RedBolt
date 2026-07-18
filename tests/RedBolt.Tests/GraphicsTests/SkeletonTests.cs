@@ -40,6 +40,7 @@ public sealed class SkeletonTests
         sourceBone.Name = "Root";
         sourceBone.NameHash = new StringHash("Root");
         sourceBone.ParentIndex = 0;
+        sourceBone.Node = new Scene().CreateChild("Root");
 
         var destination = new Skeleton();
         destination.Define(source);
@@ -49,5 +50,30 @@ public sealed class SkeletonTests
         Assert.NotSame(sourceBone, destinationBone);
         Assert.Equal("Root", destinationBone!.Name);
         Assert.Null(destinationBone.Node);
+    }
+
+    [Fact]
+    public void Bone_and_skeleton_copy_semantics_match_cpp_types()
+    {
+        Assert.False(typeof(Bone).IsValueType);
+        Assert.False(typeof(Skeleton).IsValueType);
+
+        var source = new Skeleton();
+        source.SetNumBones(1);
+        var sourceBone = source.GetModifiableBones()[0];
+        sourceBone.Name = "Root";
+        sourceBone.NameHash = new StringHash("Root");
+        sourceBone.ParentIndex = 0;
+        sourceBone.Node = new Scene().CreateChild("CopyRoot");
+
+        var boneCopy = (Bone)sourceBone.Clone();
+        boneCopy.Name = "Copy";
+        Assert.Equal("Root", sourceBone.Name);
+
+        var skeletonCopy = source.Clone();
+        skeletonCopy.GetModifiableBones()[0].Name = "SkeletonCopy";
+        Assert.Equal("Root", source.GetBone(0u)!.Name);
+        Assert.Equal("SkeletonCopy", skeletonCopy.GetBone(0u)!.Name);
+        Assert.Same(sourceBone.Node, skeletonCopy.GetBone(0u)!.Node);
     }
 }

@@ -62,7 +62,7 @@ public class AnimatedModel : StaticModel
         _modelAnimator = null;
         _animationStateSource = null;
         _skeletonData.Clear();
-        _skeleton.ClearBones();
+        _skeleton.Dispose();
         base.Dispose();
     }
 
