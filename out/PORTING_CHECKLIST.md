@@ -158,6 +158,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `DrawableEvents.h` — all five struct event payloads preserve declaration order and borrowed object pointers; ParticleEffect typing and independent Variant trigger-data assignment reconciled
 - [x] `Geometry.h` / `Geometry.cpp` — retained stream/dependency resize semantics, shared buffer and raw-array ownership, deterministic subscription and ID teardown, allocation-free shadow-data access, and non-indexed ray fallback reconciled
 - [~] `GlobalIllumination.h` / `GlobalIllumination.cpp` — owned mesh/baked-data reset semantics, world-origin mutation, debug geometry, reflected attributes, nullable resource loading, binary-compatible GI serialization, and default destruction reconciled; the reload editor action remains `TODO: port` until ObjectReflection supports actions
+- [x] `Graphics.h` / `Graphics.cpp` — construction-context and SDL ownership, device-before-window close/destruction, frame and resize events, cached shader observation, independent window-settings copies, and managed native COM/unmanaged-storage teardown reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

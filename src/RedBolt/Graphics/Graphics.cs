@@ -14,6 +14,9 @@ namespace RedBolt;
     /// </summary>
 public sealed class Graphics : Object
     {
+    private const uint SdlInitVideo = 0x00000020u;
+    private const int SdlWindowposUndefined = 0x1FFF0000;
+    private readonly Context _ownerContext;
     private static uint _maxBonesHWSkinned;
 
     private const int CameraBufferSize = 368;
@@ -132,6 +135,22 @@ layout(std140) uniform Material
     private Image? _windowIcon;
     private WindowSettings _primaryWindowSettings = new();
     private WindowSettings _secondaryWindowSettings = new();
+    private Shader? _lastShader;
+    private string _lastShaderName = string.Empty;
+
+    public Graphics()
+    {
+        _ownerContext = Context.Instance;
+        _windowPosition = new Vector2i(SdlWindowposUndefined, SdlWindowposUndefined);
+        _ownerContext.RequireSdl(SdlInitVideo);
+    }
+
+    public override void Dispose()
+    {
+        Close();
+        _ownerContext.ReleaseSdl();
+        base.Dispose();
+    }
 
     public bool IsInitialized { get; private set; }
 
@@ -142,7 +161,7 @@ layout(std140) uniform Material
     public WindowSettings GetWindowSettings()
     {
         var renderDevice = GetSubsystem<RenderDevice>();
-        return renderDevice?.GetWindowSettings() ?? new WindowSettings();
+        return renderDevice?.GetWindowSettings() ?? _primaryWindowSettings;
     }
 
     public string GetWindowTitle()
@@ -410,6 +429,12 @@ layout(std140) uniform Material
     /// </summary>
     public void Close()
     {
+        if (ReferenceEquals(_ownerContext.GetSubsystem<Graphics>(), this))
+        {
+            var renderDevice = _ownerContext.GetSubsystem<RenderDevice>();
+            _ownerContext.RemoveSubsystem<RenderDevice>();
+            renderDevice?.Dispose();
+        }
         Shutdown();
     }
 
@@ -428,6 +453,7 @@ layout(std140) uniform Material
                 return false;
         }
 
+        SendEvent<GraphicsEvents.BeginRenderingEvent>();
         return true;
     }
 
@@ -439,7 +465,8 @@ layout(std140) uniform Material
         if (!IsInitialized)
             return;
 
-        GetSubsystem<RenderDevice>()?.Present();
+        SendEvent<GraphicsEvents.EndRenderingEvent>();
+        GetSubsystem<RenderDevice>()!.Present();
     }
 
     /// <summary>
@@ -492,7 +519,21 @@ layout(std140) uniform Material
     /// </summary>
     public void OnWindowResized()
     {
-        GetSubsystem<RenderDevice>()?.UpdateSwapChainSize();
+        var renderDevice = GetSubsystem<RenderDevice>();
+        if (renderDevice is null)
+            return;
+
+        renderDevice.UpdateSwapChainSize();
+
+        var screenModeEvent = new GraphicsEvents.ScreenModeEvent
+        {
+            Width = Width,
+            Height = Width,
+            Fullscreen = GetFullscreen(),
+            Borderless = GetBorderless(),
+            Resizable = GetResizable()
+        };
+        SendEvent(ref screenModeEvent);
     }
 
     /// <summary>
@@ -688,14 +729,25 @@ layout(std140) uniform Material
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var cache = GetSubsystem<ResourceCache>();
+        if (_lastShaderName == name && _lastShader is not null)
+            return _lastShader.GetVariation(type, defines);
+
+        var cache = GetSubsystem<ResourceCache>()!;
+        _lastShader = null;
         var shaderResourceName = Shader.GetResourceName(name);
-        var shader = name.StartsWith("v2/", StringComparison.Ordinal)
-            ? cache?.Exists(shaderResourceName) == true
-                ? cache.GetResourceOrNull<Shader>(shaderResourceName)
-                : null
-            : cache?.GetResourceOrNull<Shader>(shaderResourceName);
-        return shader?.GetVariation(type, defines);
+        if (name.StartsWith("v2/", StringComparison.Ordinal) && cache.Exists(shaderResourceName))
+        {
+            _lastShader = cache.GetResourceOrNull<Shader>(shaderResourceName);
+            _lastShaderName = name;
+        }
+
+        if (_lastShader is null && (_lastShaderName != name || cache.Exists(shaderResourceName)))
+        {
+            _lastShader = cache.GetResourceOrNull<Shader>(shaderResourceName);
+            _lastShaderName = name;
+        }
+
+        return _lastShader?.GetVariation(type, defines);
     }
 
     public IRenderDevice? GetNativeRenderDevice() => _device;
@@ -5023,7 +5075,7 @@ layout(std140) uniform Material
             for (var i = 0; i < Count; ++i)
             {
                 var ptr = _memory + i * layoutElementSize;
-                var element = LayoutElement.CreateManagedWrapper(ptr, ownsHandle: false);
+                using var element = LayoutElement.CreateManagedWrapper(ptr, ownsHandle: false);
                 var spec = elements[i];
                 element.HLSLSemantic = _semantic.Pointer;
                 element.InputIndex = spec.InputIndex;
@@ -5046,6 +5098,7 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
+            First.Dispose();
             _semantic.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
@@ -5069,6 +5122,7 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
+            Desc.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
         }
@@ -5091,6 +5145,7 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
+            Desc.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
         }
@@ -5126,6 +5181,7 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
+            Attribs.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
         }
@@ -5360,8 +5416,19 @@ layout(std140) uniform Material
 
         public void Dispose()
         {
+            foreach (var view in _uavs.Values)
+                ReleaseIfNotNull(view);
+            _uavs.Clear();
+            foreach (var view in _sliceViews.Values)
+                ReleaseIfNotNull(view);
+            _sliceViews.Clear();
+
             if (_ownsResources)
             {
+                ReleaseIfNotNull(ReadOnlyDepthView);
+                ReleaseIfNotNull(DepthStencilView);
+                ReleaseIfNotNull(RenderTargetView);
+                ReleaseIfNotNull(ShaderView);
                 ReleaseIfNotNull(ResolvedTexture);
                 ReleaseIfNotNull(Texture);
             }

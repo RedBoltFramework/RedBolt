@@ -318,7 +318,7 @@ public sealed class Engine : Object
     {
         if (IsInitialized)
         {
-            GetSubsystem<RenderDevice>()!.OnEngineShutdown();
+            GetSubsystem<RenderDevice>()?.OnEngineShutdown();
             GetSubsystem<Graphics>()!.Shutdown();
             GetSubsystem<Renderer>()!.SetNumViewports(0);
             GetSubsystem<Input>()!.Shutdown();

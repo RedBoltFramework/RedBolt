@@ -94,6 +94,9 @@ public sealed class Context : ObjectReflectionRegistry, IDisposable
         var renderer = GetSubsystem("Renderer");
         RemoveSubsystem("Renderer");
         (renderer as IDisposable)?.Dispose();
+        var renderDevice = GetSubsystem("RenderDevice");
+        RemoveSubsystem("RenderDevice");
+        (renderDevice as IDisposable)?.Dispose();
         var graphics = GetSubsystem("Graphics");
         RemoveSubsystem("Graphics");
         (graphics as IDisposable)?.Dispose();
