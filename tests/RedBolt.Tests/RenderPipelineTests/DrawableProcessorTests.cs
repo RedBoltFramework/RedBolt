@@ -1,5 +1,6 @@
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class DrawableProcessorTests
 {
     [Fact]

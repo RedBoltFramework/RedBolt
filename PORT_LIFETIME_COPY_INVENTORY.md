@@ -330,7 +330,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/IO/File.cs` | `Source/Urho3D/IO/File.h`<br>`Source/Urho3D/IO/File.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/FileIdentifier.cs` | `Source/Urho3D/IO/FileIdentifier.h`<br>`Source/Urho3D/IO/FileIdentifier.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/FileWatcher.cs` | `Source/Urho3D/IO/FileWatcher.h`<br>`Source/Urho3D/IO/FileWatcher.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/IO/IODefs.cs` | `Source/Urho3D/IO/IODefs.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/IO/IODefs.cs` | `Source/Urho3D/IO/IODefs.h` | ☑ | ☑ | ☑ |
+| 2026-07-18 outcome | VERIFIED the complete IODefs header and packed-vector/quaternion serializer and deserializer call paths. Native `VectorBinaryEncoding` maps to the reference-free managed int-backed enum with exact `Float`, `Double`, `Int32`, `Int16`, and `Count` ordinal values. Construction, parameter passing, switch dispatch, assignment, return, and destruction all retain trivial independent value semantics. Focused IODefs tests pass 1/1. | — | — | — |
 | `src/RedBolt/IO/IOEvents.cs` | `Source/Urho3D/IO/IOEvents.h` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/MemoryBuffer.cs` | `Source/Urho3D/IO/MemoryBuffer.h`<br>`Source/Urho3D/IO/MemoryBuffer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/MountPoint.cs` | `Source/Urho3D/IO/MountPoint.h`<br>`Source/Urho3D/IO/MountPoint.cpp` | ☐ | ☐ | ☐ |
