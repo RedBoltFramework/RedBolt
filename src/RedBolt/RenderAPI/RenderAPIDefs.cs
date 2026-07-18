@@ -438,9 +438,20 @@ public enum TextureCoordinate
 public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);
 
 /// <summary>Description of immutable texture sampler bound to the pipeline.</summary>
-public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
+public struct SamplerStateDesc : IEquatable<SamplerStateDesc>
 {
-    private readonly TextureAddressMode[] _addressModes = [TextureAddressMode.Wrap, TextureAddressMode.Wrap, TextureAddressMode.Wrap];
+    private TextureAddressMode _addressModeU;
+    private TextureAddressMode _addressModeV;
+    private TextureAddressMode _addressModeW;
+
+    public SamplerStateDesc()
+    {
+        FilterMode = TextureFilterMode.Default;
+        _addressModeU = TextureAddressMode.Wrap;
+        _addressModeV = TextureAddressMode.Wrap;
+        _addressModeW = TextureAddressMode.Wrap;
+        MaxLod = MathDefs.LargeValue;
+    }
 
     public TextureFilterMode FilterMode { get; set; } = TextureFilterMode.Default;
 
@@ -450,12 +461,34 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
 
     public float MinLod { get; set; }
 
-    public float MaxLod { get; set; } = float.MaxValue;
+    public float MaxLod { get; set; }
 
     public TextureAddressMode this[TextureCoordinate coordinate]
     {
-        get => _addressModes[(int)coordinate];
-        set => _addressModes[(int)coordinate] = value;
+        readonly get => coordinate switch
+        {
+            TextureCoordinate.U => _addressModeU,
+            TextureCoordinate.V => _addressModeV,
+            TextureCoordinate.W => _addressModeW,
+            _ => throw new ArgumentOutOfRangeException(nameof(coordinate))
+        };
+        set
+        {
+            switch (coordinate)
+            {
+                case TextureCoordinate.U:
+                    _addressModeU = value;
+                    break;
+                case TextureCoordinate.V:
+                    _addressModeV = value;
+                    break;
+                case TextureCoordinate.W:
+                    _addressModeW = value;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(coordinate));
+            }
+        }
     }
 
     public static SamplerStateDesc Default(TextureAddressMode addressMode = TextureAddressMode.Clamp) => Create(TextureFilterMode.Default, addressMode);
@@ -466,43 +499,43 @@ public sealed class SamplerStateDesc : IEquatable<SamplerStateDesc>
 
     public static SamplerStateDesc Trilinear(TextureAddressMode addressMode = TextureAddressMode.Clamp) => Create(TextureFilterMode.Trilinear, addressMode);
 
-    public bool Equals(SamplerStateDesc? other)
+    public readonly bool Equals(SamplerStateDesc other)
     {
-        if (other is null)
-            return false;
-
         return FilterMode == other.FilterMode
             && Anisotropy == other.Anisotropy
             && ShadowCompare == other.ShadowCompare
-            && ManagedSequence.Equal(_addressModes, other._addressModes)
+            && _addressModeU == other._addressModeU
+            && _addressModeV == other._addressModeV
+            && _addressModeW == other._addressModeW
             && MinLod.Equals(other.MinLod)
             && MaxLod.Equals(other.MaxLod);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as SamplerStateDesc);
+    public override readonly bool Equals(object? obj) => obj is SamplerStateDesc other && Equals(other);
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(FilterMode);
         hash.Add(Anisotropy);
         hash.Add(ShadowCompare);
-        foreach (var addressMode in _addressModes)
-            hash.Add(addressMode);
+        hash.Add(_addressModeU);
+        hash.Add(_addressModeV);
+        hash.Add(_addressModeW);
         hash.Add(MinLod);
         hash.Add(MaxLod);
         return hash.ToHashCode();
     }
 
-    public uint ToHash()
+    public readonly uint ToHash()
     {
         var hash = 0u;
         CombineHash(ref hash, (uint)FilterMode);
         CombineHash(ref hash, Anisotropy);
         CombineHash(ref hash, ShadowCompare ? 1u : 0u);
-        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.U]);
-        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.V]);
-        CombineHash(ref hash, (uint)_addressModes[(int)TextureCoordinate.W]);
+        CombineHash(ref hash, (uint)_addressModeU);
+        CombineHash(ref hash, (uint)_addressModeV);
+        CombineHash(ref hash, (uint)_addressModeW);
         CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(MinLod)));
         CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(MaxLod)));
         return hash;
@@ -700,12 +733,11 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
     /// <summary>Add sampler to collection.</summary>
     public void Add(StringHash name, SamplerStateDesc samplerDesc)
     {
-        ArgumentNullException.ThrowIfNull(samplerDesc);
         if (Size >= RenderApiLimits.MaxNumImmutableSamplers)
             throw new InvalidOperationException("Too many immutable samplers.");
 
         _names[Size] = name;
-        _desc[Size] = CloneSamplerStateDesc(samplerDesc);
+        _desc[Size] = samplerDesc;
         ++Size;
     }
 
@@ -741,22 +773,6 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
         }
 
         return hash.ToHashCode();
-    }
-
-    private static SamplerStateDesc CloneSamplerStateDesc(SamplerStateDesc source)
-    {
-        var result = new SamplerStateDesc
-        {
-            FilterMode = source.FilterMode,
-            Anisotropy = source.Anisotropy,
-            ShadowCompare = source.ShadowCompare,
-            MinLod = source.MinLod,
-            MaxLod = source.MaxLod
-        };
-        result[TextureCoordinate.U] = source[TextureCoordinate.U];
-        result[TextureCoordinate.V] = source[TextureCoordinate.V];
-        result[TextureCoordinate.W] = source[TextureCoordinate.W];
-        return result;
     }
 }
 

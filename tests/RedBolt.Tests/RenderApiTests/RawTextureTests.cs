@@ -86,6 +86,25 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Raw_texture_copies_sampler_state_on_assignment_and_return()
+    {
+        using var rawTexture = new RawTexture(new RawTextureParams(
+            TextureType.Texture2D,
+            TextureFormat.RGBA8,
+            TextureFlag.None,
+            new Vector3i(4, 4, 1)));
+        var source = SamplerStateDesc.Bilinear(TextureAddressMode.Clamp);
+
+        rawTexture.SetSamplerStateDesc(source);
+        source[TextureCoordinate.U] = TextureAddressMode.Mirror;
+        var returned = rawTexture.GetSamplerStateDesc();
+        returned[TextureCoordinate.V] = TextureAddressMode.Mirror;
+
+        Assert.Equal(TextureAddressMode.Clamp, rawTexture.GetSamplerStateDesc()[TextureCoordinate.U]);
+        Assert.Equal(TextureAddressMode.Clamp, rawTexture.GetSamplerStateDesc()[TextureCoordinate.V]);
+    }
+
+    [Fact]
     public void Raw_texture_preserves_srgb_color_space()
     {
         var rawTexture = new RawTexture(new RawTextureParams(

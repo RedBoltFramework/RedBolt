@@ -41,8 +41,10 @@ public class Texture : ResourceWithMetadata
     private readonly uint[] _mipsToSkip = [2u, 1u, 0u];
     protected uint _requestedLevels;
     protected bool _requestedSRGB;
+    private bool _linear;
     protected bool _resolveDirty;
     protected bool _levelsDirty;
+    private Texture? _backupTexture;
     protected TextureFlag _textureFlags;
     protected RenderSurface?[] _renderSurfaces = [];
     protected uint _mostDetailedLevel;
@@ -59,7 +61,7 @@ public class Texture : ResourceWithMetadata
         for (var i = _renderSurfaces.Length - 1; i >= 0; --i)
             _renderSurfaces[i]?.Dispose();
         _renderSurfaces = [];
-        BackupTexture = null;
+        _backupTexture = null;
         _rawTexture?.Dispose();
         _rawTexture = null;
         _renderSurfaceUpdateSubscription?.Dispose();
@@ -87,11 +89,11 @@ public class Texture : ResourceWithMetadata
 
     public float MinLod { get; private set; }
 
-    public float MaxLod { get; private set; } = float.MaxValue;
+    public float MaxLod { get; private set; } = MathDefs.LargeValue;
 
     public bool ShadowCompare { get; private set; }
 
-    public bool Linear { get; private set; }
+    public bool Linear => _linear;
 
     public bool SRGB
     {
@@ -99,7 +101,7 @@ public class Texture : ResourceWithMetadata
         private set => _requestedSRGB = value;
     }
 
-    public Texture? BackupTexture { get; private set; }
+    public Texture? BackupTexture => _backupTexture;
 
     public RawTexture? GetRawTexture() => _rawTexture;
 
@@ -164,7 +166,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetLinear(bool linear)
     {
-        Linear = linear;
+        _linear = linear;
     }
 
     public bool GetLinear() => Linear;
@@ -178,7 +180,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetBackupTexture(Texture? texture)
     {
-        BackupTexture = texture;
+        _backupTexture = texture;
     }
 
     public Texture? GetBackupTexture() => BackupTexture;

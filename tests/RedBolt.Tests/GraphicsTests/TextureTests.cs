@@ -5,6 +5,39 @@ namespace RedBolt.Tests;
 public sealed class TextureTests
 {
     [Fact]
+    public void Sampler_state_matches_cpp_independent_value_semantics()
+    {
+        Assert.True(typeof(SamplerStateDesc).IsValueType);
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<SamplerStateDesc>());
+
+        var source = SamplerStateDesc.Bilinear(TextureAddressMode.Clamp);
+        var copy = source;
+        copy[TextureCoordinate.U] = TextureAddressMode.Mirror;
+        copy.MaxLod = 4.0f;
+
+        Assert.Equal(TextureAddressMode.Clamp, source[TextureCoordinate.U]);
+        Assert.Equal(MathDefs.LargeValue, source.MaxLod);
+        Assert.Equal(TextureAddressMode.Mirror, copy[TextureCoordinate.U]);
+        Assert.Equal(4.0f, copy.MaxLod);
+
+        using var texture = new Texture(string.Empty);
+        Assert.Equal(MathDefs.LargeValue, texture.GetMaxLod());
+    }
+
+    [Fact]
+    public void Texture_dispose_releases_shared_backup_reference_without_disposing_alias()
+    {
+        using var backup = new Texture("Textures/Backup");
+        var texture = new Texture("Textures/Primary");
+        texture.SetBackupTexture(backup);
+
+        texture.Dispose();
+
+        Assert.Null(texture.GetBackupTexture());
+        Assert.Equal("Textures/Backup", backup.Name);
+    }
+
+    [Fact]
     public void Texture2D_registers_empty_named_factory()
     {
         var context = new Context();

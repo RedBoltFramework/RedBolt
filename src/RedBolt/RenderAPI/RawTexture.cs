@@ -95,7 +95,7 @@ public class RawTexture : DeviceObject
     /// <summary>Set default sampler to be used for this texture.</summary>
     public void SetSamplerStateDesc(SamplerStateDesc desc)
     {
-        _samplerStateDesc = desc ?? throw new ArgumentNullException(nameof(desc));
+        _samplerStateDesc = desc;
         ApplySamplerState();
     }
 
