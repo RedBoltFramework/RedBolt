@@ -458,14 +458,29 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
             return false;
         }
 
-        var index = internalName.IndexOf('c');
-        if (index < 0 || index + 1 >= internalName.Length)
+        var subscriptIndex = internalName.IndexOf('[');
+        if (subscriptIndex >= 0)
+        {
+            if (internalName.IndexOf("[0]", subscriptIndex, StringComparison.Ordinal) < 0)
+            {
+                name = string.Empty;
+                return false;
+            }
+
+            internalName = internalName[..subscriptIndex];
+        }
+
+        var dotIndex = internalName.IndexOf('.');
+        if (dotIndex >= 0)
+            internalName = internalName[(dotIndex + 1)..];
+
+        if (internalName.Length == 0 || internalName[0] != 'c')
         {
             name = string.Empty;
             return false;
         }
 
-        name = internalName[(index + 1)..];
+        name = internalName[1..];
         return true;
     }
 

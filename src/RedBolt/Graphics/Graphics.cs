@@ -91,6 +91,11 @@ layout(std140) uniform Material
     private readonly ITextureView?[] _renderTargets = new ITextureView?[RenderApiLimits.MaxRenderTargets];
     private readonly RenderTargetView[] _singleRenderTargetView = new RenderTargetView[1];
     private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
+#if REDBOLT_PLATFORM_WEB
+    private readonly ulong[] _singleVertexBufferOffset = new ulong[1];
+#else
+    private readonly nuint[] _singleVertexBufferOffset = new nuint[1];
+#endif
     private readonly Dictionary<Geometry, UploadedGeometry> _uploadedGeometries = new();
     private readonly Dictionary<Texture, UploadedTexture> _uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> _pipelines = new();
@@ -2144,13 +2149,8 @@ layout(std140) uniform Material
         _immediateContext.SetPipelineState(pipeline.PipelineState);
         _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
-#if REDBOLT_PLATFORM_WEB
-        ulong vertexOffset = 0;
-#else
-        nuint vertexOffset = 0;
-#endif
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
+        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, _singleVertexBufferOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
         _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
@@ -2193,21 +2193,51 @@ layout(std140) uniform Material
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
             return null;
 
-        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
-        var customLayout = CreateCustomUniformLayout(reflection);
-        var samplerOverrides = new ImmutableSamplersDesc();
-        var textureEnumerator = material.EnumerateTextures();
-        while (textureEnumerator.MoveNext())
-        {
-            var pair = textureEnumerator.Current;
-            samplerOverrides.Add(pair.Key, pair.Value.Texture.GetSamplerStateDesc());
-        }
-
         TemporaryLayoutArray? layoutArray = null;
+        nint temporaryGlProgram = 0;
         try
         {
+            var isOpenGl = GetSubsystem<RenderDevice>()?.GetBackend() == RenderBackend.OpenGL;
+            var hasSeparableShaderPrograms = _device.GetDeviceInfo().FeaturesSeparablePrograms
+                != DeviceFeatureState.DeviceFeatureStateDisabled;
+            var vertexAttributes = vertexVariation.GetBytecode().VertexAttributes;
+            if (isOpenGl)
+            {
+                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
+                    vertexShader, pixelShader, null!, null!, null!, hasSeparableShaderPrograms);
+                vertexAttributes = [];
+                var numAttributes = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
+                for (var i = 0u; i < numAttributes; ++i)
+                {
+                    var attributeName = System.Text.Encoding.UTF8.GetString(
+                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, i));
+                    var attribute = RenderAPIUtils.ParseVertexAttribute(attributeName);
+                    if (attribute is not null)
+                    {
+                        vertexAttributes.Add(attribute.Value with
+                        {
+                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                                temporaryGlProgram, i)
+                        });
+                    }
+                }
+
+            }
+
+            var reflection = isOpenGl && !hasSeparableShaderPrograms
+                ? new ShaderProgramReflection(temporaryGlProgram)
+                : new ShaderProgramReflection([vertexVariation, pixelVariation]);
+            var customLayout = CreateCustomUniformLayout(reflection);
+            var samplerOverrides = new ImmutableSamplersDesc();
+            var textureEnumerator = material.EnumerateTextures();
+            while (textureEnumerator.MoveNext())
+            {
+                var pair = textureEnumerator.Current;
+                samplerOverrides.Add(pair.Key, pair.Value.Texture.GetSamplerStateDesc());
+            }
+
             var layoutElements = BuildLayoutElements(vertexBuffer);
-            ApplyVertexAttributeLocations(layoutElements, vertexVariation.GetBytecode().VertexAttributes);
+            layoutElements = ApplyVertexAttributeLocations(layoutElements, vertexAttributes);
             layoutArray = new TemporaryLayoutArray(layoutElements);
             using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
                 GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
@@ -2245,6 +2275,9 @@ layout(std140) uniform Material
             _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create pipeline state for {pass.VertexShader}/{pass.PixelShader}.");
+            if (isOpenGl &&
+                !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, pipelineState))
+                throw new InvalidOperationException($"Failed to bind OpenGL vertex attributes for {pass.VertexShader}/{pass.PixelShader}.");
 
             var cameraBuffer = CreateUniformBuffer(_device, "Camera", CameraBufferSize);
             var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
@@ -2263,7 +2296,8 @@ layout(std140) uniform Material
             _ = vertexShader.AddRef();
             _ = pixelShader.AddRef();
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
-                customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources, BuildShaderVariableLookup(shaderResources), layoutArray);
+                customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources,
+                BuildShaderVariableLookup(shaderResources, reflection), layoutArray);
             layoutArray = null;
             _pipelines[key] = cached;
             return cached;
@@ -2271,6 +2305,8 @@ layout(std140) uniform Material
         finally
         {
             layoutArray?.Dispose();
+            if (temporaryGlProgram != 0)
+                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
         }
     }
 
@@ -2376,7 +2412,7 @@ layout(std140) uniform Material
                 vertexShader,
                 pixelShader,
                 shaderResources,
-                BuildShaderVariableLookup(shaderResources),
+                BuildShaderVariableLookup(shaderResources, reflection),
                 frameBuffer,
                 cameraBuffer,
                 objectBuffer,
@@ -2418,7 +2454,8 @@ layout(std140) uniform Material
         var pixelShader = pixelVariation.GetHandle();
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
             return null;
-        var customLayout = CreateCustomUniformLayout(new ShaderProgramReflection([vertexVariation, pixelVariation]));
+        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
+        var customLayout = CreateCustomUniformLayout(reflection);
         var settings = GetClearFramebufferPipelineSettings(flags);
 
         TemporaryLayoutArray? layoutArray = null;
@@ -2489,7 +2526,7 @@ layout(std140) uniform Material
                 vertexShader,
                 pixelShader,
                 shaderResources,
-                BuildShaderVariableLookup(shaderResources),
+                BuildShaderVariableLookup(shaderResources, reflection),
                 frameBuffer,
                 cameraBuffer,
                 objectBuffer,
@@ -2606,13 +2643,8 @@ layout(std140) uniform Material
         _immediateContext.SetPipelineState(pipeline.PipelineState);
         _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
-#if REDBOLT_PLATFORM_WEB
-        ulong vertexOffset = 0;
-#else
-        nuint vertexOffset = 0;
-#endif
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
+        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, _singleVertexBufferOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
         _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
@@ -4114,26 +4146,38 @@ layout(std140) uniform Material
     /// Map layout InputIndex values to SPIR-V/HLSL locations from vertex shader reflection.
     /// Matches C++ InitializeInputLayout attribute location binding used for Vulkan/D3D.
     /// </summary>
-    private static void ApplyVertexAttributeLocations(LayoutElementSpec[] layoutElements,
+    private static LayoutElementSpec[] ApplyVertexAttributeLocations(LayoutElementSpec[] layoutElements,
         IReadOnlyList<VertexShaderAttribute> vertexAttributes)
     {
-        if (vertexAttributes.Count == 0)
-            return;
-
-        for (var i = 0; i < layoutElements.Length; ++i)
+        var inputIndices = new uint[layoutElements.Length];
+        Array.Fill(inputIndices, uint.MaxValue);
+        foreach (var attribute in vertexAttributes)
         {
-            var semantic = layoutElements[i].Semantic;
-            var semanticIndex = layoutElements[i].SemanticIndex;
-            for (var attributeIndex = 0; attributeIndex < vertexAttributes.Count; ++attributeIndex)
+            // For each attribute, find the latest element in the layout that matches the attribute.
+            // This is needed because the layout may contain multiple elements with the same semantic.
+            var elementIndex = layoutElements.Length - 1;
+            for (; elementIndex >= 0; --elementIndex)
             {
-                var attribute = vertexAttributes[attributeIndex];
-                if (attribute.Semantic == semantic && attribute.SemanticIndex == semanticIndex)
+                var element = layoutElements[elementIndex];
+                if (attribute.Semantic == element.Semantic && attribute.SemanticIndex == element.SemanticIndex)
                 {
-                    layoutElements[i] = layoutElements[i] with { InputIndex = attribute.InputIndex };
+                    inputIndices[elementIndex] = attribute.InputIndex;
                     break;
                 }
             }
+
+            if (elementIndex < 0)
+                Log.Logger.LogError("Attribute #{InputIndex} with semantics '{Semantic}{SemanticIndex}' is not found in the vertex layout",
+                    attribute.InputIndex, RenderAPIUtils.ToShaderInputName(attribute.Semantic), attribute.SemanticIndex);
         }
+
+        var result = new List<LayoutElementSpec>(layoutElements.Length);
+        for (var i = 0; i < layoutElements.Length; ++i)
+        {
+            if (inputIndices[i] != uint.MaxValue)
+                result.Add(layoutElements[i] with { InputIndex = inputIndices[i] });
+        }
+        return result.ToArray();
     }
 
     private static void AddLayoutElement(List<LayoutElementSpec> target, VertexBuffer vertexBuffer,
@@ -4524,8 +4568,8 @@ layout(std140) uniform Material
         bufferDesc.Name = nativeName.Pointer;
         bufferDesc.Size = (nuint)size;
         bufferDesc.BindFlags = BindFlags.BindUniformBuffer;
-        bufferDesc.Usage = Usage.UsageDynamic;
-        bufferDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessWrite;
+        bufferDesc.Usage = Usage.UsageDefault;
+        bufferDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessNone;
         device.CreateBuffer(bufferDesc, null!, out var buffer);
         if (buffer.IsNull)
             throw new InvalidOperationException($"CreateBuffer returned null for uniform buffer {name}.");
@@ -4791,25 +4835,45 @@ layout(std140) uniform Material
         });
     }
 
-    private static Dictionary<PipelineVariableKey, IShaderResourceVariable> BuildShaderVariableLookup(IShaderResourceBinding shaderResources)
+    private static Dictionary<PipelineVariableKey, IShaderResourceVariable> BuildShaderVariableLookup(
+        IShaderResourceBinding shaderResources, ShaderProgramReflection reflection)
     {
         var result = new Dictionary<PipelineVariableKey, IShaderResourceVariable>();
-        AddShaderVariableLookupEntries(result, shaderResources, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex);
-        AddShaderVariableLookupEntries(result, shaderResources, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel);
+
+        for (var groupIndex = 0; groupIndex < RenderApiLimits.MaxShaderParameterGroups; ++groupIndex)
+        {
+            var uniformBuffer = reflection.GetUniformBuffer((ShaderParameterGroup)groupIndex);
+            if (uniformBuffer is not null && uniformBuffer.Size != 0)
+                AddShaderVariableLookupEntries(result, shaderResources, uniformBuffer.InternalName);
+        }
+
+        foreach (var resource in reflection.GetShaderResources().Values)
+            AddShaderVariableLookupEntries(result, shaderResources, resource.InternalName);
+
+        foreach (var resource in reflection.GetUnorderedAccessViews().Values)
+            AddShaderVariableLookupEntries(result, shaderResources, resource.InternalName);
+
         return result;
     }
 
     private static void AddShaderVariableLookupEntries(Dictionary<PipelineVariableKey, IShaderResourceVariable> result,
-        IShaderResourceBinding shaderResources, global::RedBolt.Bindings.Diligent.ShaderType shaderType)
+        IShaderResourceBinding shaderResources, string name)
     {
-        var count = shaderResources.GetVariableCount(shaderType);
-        for (uint index = 0; index < count; ++index)
+        AddShaderVariableLookupEntry(result, shaderResources,
+            global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, name);
+        AddShaderVariableLookupEntry(result, shaderResources,
+            global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, name);
+    }
+
+    private static void AddShaderVariableLookupEntry(Dictionary<PipelineVariableKey, IShaderResourceVariable> result,
+        IShaderResourceBinding shaderResources, global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name)
+    {
+        using var internalName = new CString(name);
+        unsafe
         {
-            var variable = shaderResources.GetVariableByIndex(shaderType, index);
-            using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
-            variable.GetResourceDesc(resourceDesc);
-            var name = PtrToUtf8String(resourceDesc.Name);
-            if (!string.IsNullOrWhiteSpace(name))
+            ref var internalNameRef = ref System.Runtime.CompilerServices.Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+            var variable = shaderResources.GetVariableByName(shaderType, in internalNameRef);
+            if (variable is not null && !variable.IsNull)
                 result[new PipelineVariableKey(shaderType, name)] = variable;
         }
     }

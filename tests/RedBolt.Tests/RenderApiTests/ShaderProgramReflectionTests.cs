@@ -13,6 +13,27 @@ public sealed class ShaderProgramReflectionTests
         this._fixture = fixture;
     }
 
+    [Theory]
+    [InlineData("cLightMatrices[0]", true, "LightMatrices")]
+    [InlineData("Light.cLightMatrices[0]", true, "LightMatrices")]
+    [InlineData("cLightMatrices[1]", false, "")]
+    public void OpenGL_uniform_names_match_cpp_sanitization(string internalName, bool expectedResult, string expectedName)
+    {
+        var method = typeof(ShaderProgramReflection).GetMethod(
+            "TrySanitizeUniformName",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+            binder: null,
+            [typeof(string), typeof(string).MakeByRefType()],
+            modifiers: null)
+            ?? throw new InvalidOperationException("ShaderProgramReflection.TrySanitizeUniformName was not found.");
+        object?[] arguments = [internalName, null];
+
+        var result = Assert.IsType<bool>(method.Invoke(null, arguments));
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedName, arguments[1]);
+    }
+
     [Fact]
     public void Shader_program_reflection_discovers_native_shader_resources_from_compiled_shader_variations()
     {

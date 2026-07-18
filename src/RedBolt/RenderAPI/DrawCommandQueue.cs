@@ -466,7 +466,7 @@ public class DrawCommandQueue : Object
                     : 0u;
         }
         deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _nativeVertexBuffers,
-            in _nativeVertexBufferOffsets[0], ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            _nativeVertexBufferOffsets, ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             (SetVertexBuffersFlags)0);
     }
 
