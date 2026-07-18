@@ -39,7 +39,7 @@ file sealed class OccludedFrustumOctreeQuery : FrustumOctreeQuery
     }
 
     /// <summary>Intersection test for an octant.</summary>
-    public override Intersection TestOctant(BoundingBox box, bool inside)
+    public override Intersection TestOctant(in BoundingBox box, bool inside)
     {
         if (inside)
             return _buffer.IsVisible(box) ? Intersection.Inside : Intersection.Outside;

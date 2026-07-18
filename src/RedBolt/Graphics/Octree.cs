@@ -1,45 +1,5 @@
 namespace RedBolt;
 
-public enum RayQueryLevel
-{
-    RayAabb,
-    RayObb,
-    RayTriangle,
-    RayTriangleUv
-}
-
-public sealed class RayQueryResult
-{
-    public Vector3f Position { get; set; }
-
-    public Vector3f Normal { get; set; }
-
-    public Vector2f TextureUV { get; set; }
-
-    public float Distance { get; set; }
-
-    public Drawable? Drawable { get; set; }
-
-    public Node? Node { get; set; }
-
-    public uint SubObject { get; set; }
-
-    public bool Equals(RayQueryResult? other)
-    {
-        return other is not null && Position == other.Position && Normal == other.Normal && TextureUV == other.TextureUV &&
-            Distance == other.Distance && ReferenceEquals(Drawable, other.Drawable) && ReferenceEquals(Node, other.Node) &&
-            SubObject == other.SubObject;
-    }
-
-    public override bool Equals(object? obj) => obj is RayQueryResult other && Equals(other);
-
-    public override int GetHashCode() => HashCode.Combine(Position, Normal, TextureUV, Distance, Drawable, Node, SubObject);
-
-    public static bool operator !=(RayQueryResult? left, RayQueryResult? right) => !(left?.Equals(right) ?? right is null);
-
-    public static bool operator ==(RayQueryResult? left, RayQueryResult? right) => left?.Equals(right) ?? right is null;
-}
-
 /// <summary>Octree octant.</summary>
 public class Octant : IDisposable
 {

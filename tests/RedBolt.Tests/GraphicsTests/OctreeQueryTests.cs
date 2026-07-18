@@ -80,4 +80,61 @@ public sealed class OctreeQueryTests
         raySecond.Distance = 2.0f;
         Assert.NotEqual(rayFirst, raySecond);
     }
+
+    [Fact]
+    public void Ray_query_result_copies_values_and_preserves_borrowed_pointers()
+    {
+        var drawable = new StaticModel();
+        var node = new Scene().CreateChild("Node");
+        var original = new RayQueryResult
+        {
+            Position = Vector3f.One,
+            Distance = 1.0f,
+            Drawable = drawable,
+            Node = node
+        };
+
+        var copy = original;
+        copy.Position = Vector3f.Zero;
+        copy.Distance = 2.0f;
+
+        Assert.Equal(Vector3f.One, original.Position);
+        Assert.Equal(1.0f, original.Distance);
+        Assert.Same(drawable, copy.Drawable);
+        Assert.Same(node, copy.Node);
+    }
+
+    [Fact]
+    public void Frustum_query_copies_constructor_value()
+    {
+        var frustum = new Frustum();
+        frustum.Define(new BoundingBox(-2.0f, 2.0f));
+
+        var query = new FrustumOctreeQuery([], frustum);
+
+        Assert.NotSame(frustum, query.Frustum);
+        var copiedVertex = query.Frustum.Vertices[0];
+        frustum.Define(new BoundingBox(10.0f, 20.0f));
+        Assert.Equal(copiedVertex, query.Frustum.Vertices[0]);
+    }
+
+    [Fact]
+    public void Query_disposal_destroys_only_builtin_storage()
+    {
+        var drawable = new StaticModel();
+        var drawableResults = new List<Drawable> { drawable };
+        var drawableQuery = new PointOctreeQuery(drawableResults, Vector3f.Zero);
+        drawableQuery.Dispose();
+        Assert.Same(drawable, Assert.Single(drawableResults));
+
+        var externalResults = new List<RayQueryResult> { new() { Drawable = drawable } };
+        var externalQuery = new RayOctreeQuery(externalResults, new Ray());
+        externalQuery.Dispose();
+        Assert.Same(drawable, Assert.Single(externalResults).Drawable);
+
+        var builtinQuery = new RayOctreeQuery(new Ray());
+        builtinQuery.Result.Add(new RayQueryResult { Drawable = drawable });
+        builtinQuery.Dispose();
+        Assert.Empty(builtinQuery.Result);
+    }
 }

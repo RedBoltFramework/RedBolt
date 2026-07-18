@@ -10,14 +10,11 @@ public class StereoFrustumOctreeQuery : OctreeQuery
         List<Drawable> result, Frustum[] frustums, DrawableFlags drawableFlags, uint viewMask)
         : base(result, drawableFlags, viewMask)
     {
-        ArgumentNullException.ThrowIfNull(frustums);
-        if (frustums.Length < 2)
-            throw new ArgumentException("Stereo query requires two frustums.", nameof(frustums));
-        Frustums[0] = frustums[0];
-        Frustums[1] = frustums[1];
+        Frustums[0] = new Frustum(frustums[0]);
+        Frustums[1] = new Frustum(frustums[1]);
     }
 
-    public override Intersection TestOctant(BoundingBox box, bool inside)
+    public override Intersection TestOctant(in BoundingBox box, bool inside)
     {
         if (inside)
             return Intersection.Inside;
@@ -93,7 +90,7 @@ public class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
     }
 
     /// <summary>Intersection test for an octant.</summary>
-    public override Intersection TestOctant(BoundingBox box, bool inside)
+    public override Intersection TestOctant(in BoundingBox box, bool inside)
     {
         if (inside)
         {
