@@ -440,28 +440,26 @@ public readonly record struct VertexShaderAttribute(VertexElementSemantic Semant
 /// <summary>Description of immutable texture sampler bound to the pipeline.</summary>
 public struct SamplerStateDesc : IEquatable<SamplerStateDesc>
 {
+    public TextureFilterMode FilterMode;
+    public byte Anisotropy;
+    public bool ShadowCompare;
     private TextureAddressMode _addressModeU;
     private TextureAddressMode _addressModeV;
     private TextureAddressMode _addressModeW;
+    public float MinLod;
+    public float MaxLod;
 
     public SamplerStateDesc()
     {
         FilterMode = TextureFilterMode.Default;
+        Anisotropy = 0;
+        ShadowCompare = false;
         _addressModeU = TextureAddressMode.Wrap;
         _addressModeV = TextureAddressMode.Wrap;
         _addressModeW = TextureAddressMode.Wrap;
+        MinLod = 0.0f;
         MaxLod = MathDefs.LargeValue;
     }
-
-    public TextureFilterMode FilterMode { get; set; } = TextureFilterMode.Default;
-
-    public byte Anisotropy { get; set; }
-
-    public bool ShadowCompare { get; set; }
-
-    public float MinLod { get; set; }
-
-    public float MaxLod { get; set; }
 
     public TextureAddressMode this[TextureCoordinate coordinate]
     {

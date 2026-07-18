@@ -143,6 +143,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 
 - [~] `DeviceObject.h` / `DeviceObject.cpp` — destructor unregisters from `RenderDevice` deterministically; complete class-wide lifetime/copy audit remains pending
+- [~] `RawTexture.h` / `RawTexture.cpp` and `RenderAPIDefs.h` — SamplerStateDesc inline value type, native field order/defaults, independent assignment/return, and immutable-sampler value insertion reconciled; complete class-wide audits remain pending
 
 ## [x] A8. Shader — depends on Core, IO (feeds Graphics)
 

@@ -404,7 +404,9 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/RenderAPI/RawBuffer.cs` | `Source/Urho3D/RenderAPI/RawBuffer.h`<br>`Source/Urho3D/RenderAPI/RawBuffer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderAPI/RawShader.cs` | `Source/Urho3D/RenderAPI/RawShader.h`<br>`Source/Urho3D/RenderAPI/RawShader.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderAPI/RawTexture.cs` | `Source/Urho3D/RenderAPI/RawTexture.h`<br>`Source/Urho3D/RenderAPI/RawTexture.cpp` | ☐ | ☐ | ☐ |
+| 2026-07-18 partial outcome | The complete RawTexture declaration and destructor path were read while tracing Texture. Sampler-state assignment and return now use independent inline value copies, matching native `SamplerStateDesc` assignment rather than managed reference aliasing. Complete RawTexture implementation, handle ownership, device-loss, and lifetime review remains pending. | — | — | — |
 | `src/RedBolt/RenderAPI/RenderAPIDefs.cs` | `Source/Urho3D/RenderAPI/RenderAPIDefs.h` | ☐ | ☐ | ☐ |
+| 2026-07-18 partial outcome | The complete native SamplerStateDesc and ImmutableSamplersDesc declarations were reviewed. SamplerStateDesc now maps to a C# struct with no managed references, native field order and defaults, independent assignment/return semantics, and inline address-mode storage. Immutable sampler insertion uses direct value assignment exactly like the native fixed array. Complete RenderAPIDefs declaration-wide type and copy audit remains pending. | — | — | — |
 | `src/RedBolt/RenderAPI/RenderAPIUtils.cs` | `Source/Urho3D/RenderAPI/RenderAPIUtils.h`<br>`Source/Urho3D/RenderAPI/RenderAPIUtils.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderAPI/RenderContext.cs` | `Source/Urho3D/RenderAPI/RenderContext.h`<br>`Source/Urho3D/RenderAPI/RenderContext.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderAPI/RenderDevice.cs` | `Source/Urho3D/RenderAPI/RenderDevice.h`<br>`Source/Urho3D/RenderAPI/RenderDevice.cpp` | ☐ | ☐ | ☐ |
