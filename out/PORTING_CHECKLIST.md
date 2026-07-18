@@ -133,7 +133,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `AbstractFile.h` — extensible abstract non-POD class kind, public base construction, name ownership, explicit virtual destruction, and derived teardown dispatch reconciled
 - [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
-- [~] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, implemented primitive/compound Variant formats, replacement lifetimes, container ownership, and ResourceRef/List paths reconciled; generic optional/pair/exception helpers remain
+- [~] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, implemented primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, and exception consumption reconciled; generic optional/pair helpers remain
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`

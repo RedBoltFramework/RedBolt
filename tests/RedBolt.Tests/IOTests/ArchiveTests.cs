@@ -419,6 +419,16 @@ public sealed class ArchiveTests
     }
 
     [Fact]
+    public void Consume_archive_exception_returns_serialization_status()
+    {
+        Assert.True(ArchiveSerialization.ConsumeArchiveException(() => { }));
+        Assert.False(ArchiveSerialization.ConsumeArchiveException(
+            () => throw new InvalidOperationException("serialization failure"), false));
+        Assert.Throws<NotSupportedException>(() => ArchiveSerialization.ConsumeArchiveException(
+            () => throw new NotSupportedException("unrelated failure"), false));
+    }
+
+    [Fact]
     public void Serialize_value_opens_variant_block()
     {
         var archive = new TestArchive();

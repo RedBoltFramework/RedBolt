@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -776,6 +777,26 @@ public static partial class ArchiveSerialization
         else
         {
             throw new NotSupportedException($"Archive serialization for '{typeof(T).Name}' is not implemented.");
+        }
+    }
+
+    /// <summary>
+    /// Wrapper that consumes ArchiveException and converts it to boolean status.
+    /// </summary>
+    public static bool ConsumeArchiveException(Action action, bool errorOnException = true)
+    {
+        try
+        {
+            action();
+            return true;
+        }
+        catch (InvalidOperationException exception)
+        {
+            if (errorOnException)
+                Log.Logger.LogError("Serialization error: {Message}", exception.Message);
+            else
+                Log.Logger.LogDebug("Archive cannot be serialization: {Message}", exception.Message);
+            return false;
         }
     }
 
