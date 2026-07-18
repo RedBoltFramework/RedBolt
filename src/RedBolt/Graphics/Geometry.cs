@@ -12,17 +12,19 @@ public enum PrimitiveType
     TriangleFan
 }
 
+/// <summary>Geometry type for vertex shader geometry variations.</summary>
 public enum GeometryType
 {
-    Static,
-    Skinned,
-    Instanced,
-    Billboard,
-    DirectionalBillboard,
-    TrailFaceCamera,
-    TrailBone,
-    MaxGeometryTypes,
-    StaticNoInstancing
+    Static = 0,
+    Skinned = 1,
+    Instanced = 2,
+    Billboard = 3,
+    DirectionalBillboard = 4,
+    TrailFaceCamera = 5,
+    TrailBone = 6,
+    MaxGeometryTypes = 7,
+    // This is not a real geometry type for VS, but used to mark objects that do not desire to be instanced
+    StaticNoInstancing = 7
 }
 
 /// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>

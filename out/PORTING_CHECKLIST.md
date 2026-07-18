@@ -160,6 +160,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `GlobalIllumination.h` / `GlobalIllumination.cpp` — owned mesh/baked-data reset semantics, world-origin mutation, debug geometry, reflected attributes, nullable resource loading, binary-compatible GI serialization, and default destruction reconciled; the reload editor action remains `TODO: port` until ObjectReflection supports actions
 - [x] `Graphics.h` / `Graphics.cpp` — construction-context and SDL ownership, device-before-window close/destruction, frame and resize events, cached shader observation, independent window-settings copies, and managed native COM/unmanaged-storage teardown reconciled
 - [x] `RenderBackend` in `RenderAPIDefs.h` — duplicate `GraphicsBackend` removed; exact enum values are used directly and the automatic backend request preserves C++ optional-value semantics through nullable `RenderBackend`
+- [x] `GraphicsDefs.h` / `GraphicsDefs.cpp` — enum values and aliases, `VertexElement` default/parameterized construction and independent value copies, immutable shader hashes/vector constant, and const legacy-element/type-size tables reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

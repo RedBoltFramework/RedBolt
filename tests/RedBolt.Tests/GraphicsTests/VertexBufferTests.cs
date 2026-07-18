@@ -52,7 +52,7 @@ public sealed class VertexBufferTests
     [Fact]
     public void Static_pack_unpack_and_shuffle_handle_strides_and_missing_elements()
     {
-        var element = new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position, offset: 4);
+        var element = new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position) { Offset = 4 };
         var packed = new byte[28];
         VertexBuffer.PackVertexData(new[] { new Vector4f(1, 2, 3, 1), new Vector4f(4, 5, 6, 1) },
             sourceStride: 16, packed, destStride: 12, element, start: 0, count: 2);

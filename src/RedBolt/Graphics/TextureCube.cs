@@ -1,5 +1,6 @@
 namespace RedBolt;
 
+/// <summary>Cube map faces.</summary>
 public enum CubeMapFace
 {
     PositiveX,

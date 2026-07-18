@@ -1,5 +1,6 @@
 namespace RedBolt;
 
+/// <summary>Legacy vertex element bitmasks.</summary>
 [Flags]
 public enum VertexMask : uint
 {
@@ -17,40 +18,51 @@ public enum VertexMask : uint
     InstanceMatrix1 = 0x400,
     InstanceMatrix2 = 0x800,
     InstanceMatrix3 = 0x1000,
+    // Custom 32-bit integer object index. Due to API limitations, not supported on D3D9
     ObjectIndex = 0x2000
 }
 
+/// <summary>Vertex element description for arbitrary vertex declarations.</summary>
 public struct VertexElement : IEquatable<VertexElement>
 {
+    /// <summary>Default-construct.</summary>
+    public VertexElement()
+    {
+        Type = VertexElementType.Vector3;
+        Semantic = VertexElementSemantic.Position;
+        Index = 0;
+        StepRate = 0;
+        Offset = 0;
+    }
+
     /// <summary>Construct with type, semantic, index and whether is per-instance data.</summary>
     public VertexElement(
         VertexElementType type,
         VertexElementSemantic semantic,
         byte index = 0,
-        uint stepRate = 0,
-        uint offset = 0)
+        uint stepRate = 0)
     {
         Type = type;
         Semantic = semantic;
         Index = index;
         StepRate = stepRate;
-        Offset = offset;
+        Offset = 0;
     }
 
     /// <summary>Data type of element.</summary>
-    public VertexElementType Type { get; set; } = VertexElementType.Vector3;
+    public VertexElementType Type;
 
     /// <summary>Semantic of element.</summary>
-    public VertexElementSemantic Semantic { get; set; } = VertexElementSemantic.Position;
+    public VertexElementSemantic Semantic;
 
     /// <summary>Semantic index of element, for example multi-texcoords.</summary>
-    public byte Index { get; set; }
+    public byte Index;
 
     /// <summary>Instancing data steprate.</summary>
-    public uint StepRate { get; set; }
+    public uint StepRate;
 
     /// <summary>Offset of element from vertex start. Filled by VertexBuffer once the vertex declaration is built.</summary>
-    public uint Offset { get; set; }
+    public uint Offset;
 
     /// <summary>Test for equality with another vertex element. Offset is intentionally not compared, as it's relevant only when an element exists within a vertex buffer.</summary>
     public readonly bool Equals(VertexElement other)

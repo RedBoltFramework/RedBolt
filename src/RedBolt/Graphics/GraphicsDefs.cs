@@ -156,7 +156,7 @@ public static class GraphicsDefs
     public const int MaxRenderTargets = (int)RenderApiLimits.MaxRenderTargets;
     public const int MaxVertexStreams = (int)RenderApiLimits.MaxVertexStreams;
 
-    public static readonly VertexElement[] LegacyVertexElements =
+    private static readonly VertexElement[] LegacyVertexElementsStorage =
     [
         new(VertexElementType.Vector3, VertexElementSemantic.Position),
         new(VertexElementType.Vector3, VertexElementSemantic.Normal),
@@ -174,7 +174,10 @@ public static class GraphicsDefs
         new(VertexElementType.Int, VertexElementSemantic.ObjectIndex)
     ];
 
-    public static readonly uint[] ElementTypeSizes =
+    /// <summary>Vertex element definitions for the legacy elements.</summary>
+    public static ReadOnlySpan<VertexElement> LegacyVertexElements => LegacyVertexElementsStorage;
+
+    private static readonly uint[] ElementTypeSizesStorage =
     [
         sizeof(int),
         sizeof(float),
@@ -184,4 +187,7 @@ public static class GraphicsDefs
         sizeof(uint),
         sizeof(uint)
     ];
+
+    /// <summary>Sizes of vertex element types.</summary>
+    public static ReadOnlySpan<uint> ElementTypeSizes => ElementTypeSizesStorage;
 }
