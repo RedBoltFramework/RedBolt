@@ -401,7 +401,8 @@ public enum VertexElementType : byte
     Vector3,
     Vector4,
     UByte4,
-    UByte4Norm
+    UByte4Norm,
+    MaxVertexElementTypes
 }
 
 /// <summary>Texture filtering mode.</summary>

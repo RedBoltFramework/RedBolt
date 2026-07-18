@@ -8,6 +8,11 @@ public sealed class VertexBuffer : PipelineStateTracker
 {
     private sealed class VertexRawBuffer : RawBuffer
     {
+        public VertexRawBuffer(DeviceObjectFlag flags)
+            : base(flags)
+        {
+        }
+
         public bool CreateBuffer(RawBufferParams parameters) => Create(parameters);
     }
 
@@ -29,6 +34,12 @@ public sealed class VertexBuffer : PipelineStateTracker
     private string? _layoutSignature;
     private bool _shadowedPending;
     private string _debugName = string.Empty;
+    private readonly DeviceObjectFlag _flags;
+
+    public VertexBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
+    {
+        _flags = flags;
+    }
 
     /// <summary>Whether is dynamic.</summary>
     public bool IsDynamic { get; private set; }
@@ -309,8 +320,12 @@ public sealed class VertexBuffer : PipelineStateTracker
             _data = new byte[size];
         MarkPipelineStateHashDirty();
 
-        _rawBuffer?.Destroy();
-        _rawBuffer = new VertexRawBuffer();
+        if (_rawBuffer is not null)
+        {
+            _rawBuffer.Destroy();
+            _rawBuffer.Dispose();
+        }
+        _rawBuffer = new VertexRawBuffer(_flags);
         var flags = (_shadowedPending ? BufferFlag.Shadowed : BufferFlag.None)
             | (dynamic ? BufferFlag.Dynamic : BufferFlag.None);
         if (elementList.Count != 0 && elementList[0].StepRate != 0)
@@ -534,6 +549,17 @@ public sealed class VertexBuffer : PipelineStateTracker
     }
 
     public string GetDebugName() => _debugName;
+
+    public override void Dispose()
+    {
+        if (_rawBuffer is not null)
+        {
+            _rawBuffer.Destroy();
+            _rawBuffer.Dispose();
+            _rawBuffer = null;
+        }
+        base.Dispose();
+    }
 
     private static void CombineHash(ref uint result, uint hash)
     {

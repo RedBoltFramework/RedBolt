@@ -5,6 +5,120 @@ namespace RedBolt.Tests;
 public sealed class ModelViewTests
 {
     [Fact]
+    public void Model_view_value_clones_are_independent()
+    {
+        var vertex = new ModelVertex();
+        vertex.Color[0] = Vector4f.One;
+        vertex.Uv[0] = Vector4f.One;
+        var vertexClone = vertex.Clone();
+        vertex.Color[0] = Vector4f.Zero;
+        vertex.Uv[0] = Vector4f.Zero;
+
+        Assert.Equal(Vector4f.One, vertexClone.Color[0]);
+        Assert.Equal(Vector4f.One, vertexClone.Uv[0]);
+
+        var lod = new GeometryLODView();
+        lod.Vertices.Add(vertexClone);
+        lod.Indices.Add(0);
+        lod.VertexFormat.Position = VertexElementType.Vector3;
+        lod.Morphs[0] = [new ModelVertexMorph { Index = 0, PositionDelta = Vector3f.One }];
+        var geometry = new GeometryView();
+        geometry.Lods.Add(lod);
+        var geometryClone = geometry.Clone();
+
+        geometry.Lods[0].Vertices[0].Color[0] = Vector4f.Zero;
+        geometry.Lods[0].Indices[0] = 1;
+        geometry.Lods[0].VertexFormat.Color[0] = VertexElementType.Vector4;
+        geometry.Lods[0].Morphs[0][0] = new ModelVertexMorph();
+
+        Assert.Equal(Vector4f.One, geometryClone.Lods[0].Vertices[0].Color[0]);
+        Assert.Equal(0u, geometryClone.Lods[0].Indices[0]);
+        Assert.Equal(ModelVertexFormat.Undefined, geometryClone.Lods[0].VertexFormat.Color[0]);
+        Assert.Equal(Vector3f.One, geometryClone.Lods[0].Morphs[0][0].PositionDelta);
+    }
+
+    [Fact]
+    public void Set_contents_copies_cpp_values()
+    {
+        using var view = new ModelView();
+        var lod = new GeometryLODView();
+        lod.Vertices.Add(new ModelVertex());
+        var geometry = new GeometryView();
+        geometry.Lods.Add(lod);
+        var geometries = new List<GeometryView> { geometry };
+        var bones = new List<BoneView> { new() { Name = "Bone" } };
+        var morphs = new List<ModelMorphView> { new() { Name = "Morph" } };
+
+        view.SetGeometries(geometries);
+        view.SetBones(bones);
+        view.SetMorphs(morphs);
+        geometries[0].Lods[0].Vertices[0].Color[0] = Vector4f.One;
+        geometries.Clear();
+        bones[0] = new BoneView();
+        morphs[0] = new ModelMorphView();
+
+        Assert.Single(view.GetGeometries());
+        Assert.Equal(Vector4f.Zero, view.GetGeometries()[0].Lods[0].Vertices[0].Color[0]);
+        Assert.Equal("Bone", view.GetBones()[0].Name);
+        Assert.Equal("Morph", view.GetMorphs()[0].Name);
+    }
+
+    [Fact]
+    public void Clear_preserves_name_and_morphs_but_releases_other_contents()
+    {
+        using var view = new ModelView();
+        view.SetName("Model");
+        view.SetGeometries([new GeometryView()]);
+        view.SetBones([new BoneView()]);
+        view.SetMorphs([new ModelMorphView { Name = "Morph" }]);
+        view.AddMetadata("Value", new Variant(42));
+
+        view.Clear();
+
+        Assert.Equal("Model", view.GetName());
+        Assert.Equal("Morph", view.GetMorphs()[0].Name);
+        Assert.Empty(view.GetGeometries());
+        Assert.Empty(view.GetBones());
+        Assert.True(view.GetMetadata("Value").IsEmpty);
+    }
+
+    [Fact]
+    public void Metadata_is_copied_on_assignment()
+    {
+        using var view = new ModelView();
+        var values = new VariantVector { new Variant("Value") };
+        var value = new Variant(values);
+        values.Dispose();
+
+        view.AddMetadata("Value", value);
+        value.Dispose();
+
+        Assert.Equal("Value", view.GetMetadata("Value").GetVariantVector()[0].GetString());
+    }
+
+    [Fact]
+    public void Flat_normals_duplicate_morphs_for_split_vertices()
+    {
+        var lod = new GeometryLODView();
+        foreach (var position in new[]
+                 {
+                     Vector3f.Zero, Vector3f.Right, Vector3f.Up,
+                     Vector3f.Zero, Vector3f.Up, Vector3f.Forward
+                 })
+        {
+            var vertex = new ModelVertex();
+            vertex.SetPosition(position);
+            lod.Vertices.Add(vertex);
+        }
+        lod.Indices.AddRange([0, 1, 2, 0, 2, 5]);
+        lod.Morphs[0] = [new ModelVertexMorph { Index = 0, PositionDelta = Vector3f.One }];
+
+        lod.RecalculateFlatNormals();
+
+        Assert.Equal([0u, 3u], lod.Morphs[0].Select(static morph => morph.Index));
+    }
+
+    [Fact]
     public void Model_view_cpu_data_and_geometry_transforms_work()
     {
         var format = new ModelVertexFormat

@@ -8,9 +8,9 @@ namespace RedBolt;
 using ModelVertexMorphVector = List<ModelVertexMorph>;
 
 /// <summary>Model vertex format, unpacked for easy editing.</summary>
-public struct ModelVertexFormat : IEquatable<ModelVertexFormat>
+public struct ModelVertexFormat : IEquatable<ModelVertexFormat>, ICloneable
 {
-    public static readonly VertexElementType Undefined = (VertexElementType)byte.MaxValue;
+    public static readonly VertexElementType Undefined = VertexElementType.MaxVertexElementTypes;
     public const int MaxColors = 4;
     public const int MaxUVs = 4;
 
@@ -35,6 +35,16 @@ public struct ModelVertexFormat : IEquatable<ModelVertexFormat>
         Color = [Undefined, Undefined, Undefined, Undefined];
         Uv = [Undefined, Undefined, Undefined, Undefined];
     }
+
+    public readonly ModelVertexFormat Clone()
+    {
+        var clone = this;
+        clone.Color = (VertexElementType[])Color.Clone();
+        clone.Uv = (VertexElementType[])Uv.Clone();
+        return clone;
+    }
+
+    readonly object ICloneable.Clone() => Clone();
 
     /// <summary>Convert to vertex elements.</summary>
     public List<VertexElement> ToVertexElements()
@@ -74,18 +84,18 @@ public struct ModelVertexFormat : IEquatable<ModelVertexFormat>
     /// <summary>Return format hash.</summary>
     public uint ToHash()
     {
-        var hash = new HashCode();
-        hash.Add(Position);
-        hash.Add(Normal);
-        hash.Add(Tangent);
-        hash.Add(Binormal);
-        hash.Add(BlendIndices);
-        hash.Add(BlendWeights);
+        uint hash = 0;
+        CombineHash(ref hash, (uint)Position);
+        CombineHash(ref hash, (uint)Normal);
+        CombineHash(ref hash, (uint)Tangent);
+        CombineHash(ref hash, (uint)Binormal);
+        CombineHash(ref hash, (uint)BlendIndices);
+        CombineHash(ref hash, (uint)BlendWeights);
         foreach (var type in Color)
-            hash.Add(type);
+            CombineHash(ref hash, (uint)type);
         foreach (var type in Uv)
-            hash.Add(type);
-        return unchecked((uint)hash.ToHashCode());
+            CombineHash(ref hash, (uint)type);
+        return hash;
     }
 
     public bool Equals(ModelVertexFormat rhs)
@@ -120,10 +130,15 @@ public struct ModelVertexFormat : IEquatable<ModelVertexFormat>
         if (rhs != Undefined)
             lhs = rhs;
     }
+
+    private static void CombineHash(ref uint result, uint hash)
+    {
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
+    }
 }
 
 /// <summary>Model vertex, unpacked for easy editing.</summary>
-public struct ModelVertex : IEquatable<ModelVertex>
+public struct ModelVertex : IEquatable<ModelVertex>, ICloneable
 {
     public const int MaxBones = 4;
     public const int MaxColors = ModelVertexFormat.MaxColors;
@@ -168,6 +183,16 @@ public struct ModelVertex : IEquatable<ModelVertex>
         Color = new Vector4f[MaxColors];
         Uv = new Vector4f[MaxUVs];
     }
+
+    public readonly ModelVertex Clone()
+    {
+        var clone = this;
+        clone.Color = (Vector4f[])Color.Clone();
+        clone.Uv = (Vector4f[])Uv.Clone();
+        return clone;
+    }
+
+    readonly object ICloneable.Clone() => Clone();
 
     /// <summary>Set position from 3-vector.</summary>
     public void SetPosition(Vector3f position) => Position = position.ToVector4(1.0f);
@@ -304,6 +329,7 @@ public struct ModelVertex : IEquatable<ModelVertex>
         if (format.Binormal == ModelVertexFormat.Undefined) Binormal = Vector4f.ZERO;
         if (format.BlendIndices == ModelVertexFormat.Undefined) BlendIndices = Vector4f.ZERO;
         if (format.BlendWeights == ModelVertexFormat.Undefined) BlendWeights = Vector4f.ZERO;
+        if (format.Position == ModelVertexFormat.Undefined) Position = Vector4f.ZERO;
         for (var i = 0; i < MaxColors; ++i)
         {
             if (format.Color[i] == ModelVertexFormat.Undefined)
@@ -318,14 +344,26 @@ public struct ModelVertex : IEquatable<ModelVertex>
 
     public bool Equals(ModelVertex rhs)
     {
-        return Position == rhs.Position && Normal == rhs.Normal && Tangent == rhs.Tangent
-            && Binormal == rhs.Binormal && BlendIndices == rhs.BlendIndices && BlendWeights == rhs.BlendWeights
-            && Color.SequenceEqual(rhs.Color) && Uv.SequenceEqual(rhs.Uv);
+        for (var i = 0; i < MaxColors; ++i)
+        {
+            if (!Color[i].ApproximatelyEquivalent(rhs.Color[i]))
+                return false;
+        }
+        for (var i = 0; i < MaxUVs; ++i)
+        {
+            if (!Uv[i].ApproximatelyEquivalent(rhs.Uv[i]))
+                return false;
+        }
+        return Position.ApproximatelyEquivalent(rhs.Position) && Normal.ApproximatelyEquivalent(rhs.Normal)
+            && Tangent.ApproximatelyEquivalent(rhs.Tangent)
+            && BlendIndices.ApproximatelyEquivalent(rhs.BlendIndices)
+            && BlendWeights.ApproximatelyEquivalent(rhs.BlendWeights)
+            && Binormal.ApproximatelyEquivalent(rhs.Binormal);
     }
 
     public override bool Equals(object? obj) => obj is ModelVertex rhs && Equals(rhs);
 
-    public override int GetHashCode() => HashCode.Combine(Position, Normal, Tangent, Binormal, BlendIndices, BlendWeights);
+    public override int GetHashCode() => 0;
 
     public static bool operator ==(ModelVertex lhs, ModelVertex rhs) => lhs.Equals(rhs);
 
@@ -345,12 +383,13 @@ public struct ModelVertexMorph : IEquatable<ModelVertexMorph>
     public bool HasTangent() => TangentDelta != Vector3f.ZERO;
     public bool IsEmpty() => !HasPosition() && !HasNormal() && !HasTangent();
 
-    public bool Equals(ModelVertexMorph rhs) => PositionDelta == rhs.PositionDelta
-        && NormalDelta == rhs.NormalDelta && TangentDelta == rhs.TangentDelta;
+    public bool Equals(ModelVertexMorph rhs) => PositionDelta.ApproximatelyEquivalent(rhs.PositionDelta)
+        && NormalDelta.ApproximatelyEquivalent(rhs.NormalDelta)
+        && TangentDelta.ApproximatelyEquivalent(rhs.TangentDelta);
 
     public override bool Equals(object? obj) => obj is ModelVertexMorph rhs && Equals(rhs);
 
-    public override int GetHashCode() => HashCode.Combine(PositionDelta, NormalDelta, TangentDelta);
+    public override int GetHashCode() => 0;
 
     public static bool operator ==(ModelVertexMorph lhs, ModelVertexMorph rhs) => lhs.Equals(rhs);
 
@@ -373,7 +412,7 @@ public static class ModelViewFunctions
 }
 
 /// <summary>Level of detail of Model geometry, unpacked for easy editing.</summary>
-public struct GeometryLODView : IEquatable<GeometryLODView>
+public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
 {
     public PrimitiveType PrimitiveType;
     public List<ModelVertex> Vertices;
@@ -391,6 +430,19 @@ public struct GeometryLODView : IEquatable<GeometryLODView>
         VertexFormat = new ModelVertexFormat();
         Morphs = [];
     }
+
+    public readonly GeometryLODView Clone()
+    {
+        var clone = this;
+        clone.Vertices = Vertices.Select(static vertex => vertex.Clone()).ToList();
+        clone.Indices = [.. Indices];
+        clone.VertexFormat = VertexFormat.Clone();
+        clone.Morphs = Morphs.ToDictionary(static pair => pair.Key,
+            static pair => new ModelVertexMorphVector(pair.Value));
+        return clone;
+    }
+
+    readonly object ICloneable.Clone() => Clone();
 
     /// <summary>Return number of primitives.</summary>
     public uint GetNumPrimitives() => PrimitiveType switch
@@ -469,26 +521,59 @@ public struct GeometryLODView : IEquatable<GeometryLODView>
     public void RecalculateFlatNormals()
     {
         if (!IsTriangleGeometry())
+        {
+            System.Diagnostics.Debug.Assert(false);
             return;
+        }
         InvalidateNormalsAndTangents();
         var newVertices = new List<ModelVertex>();
+        var oldToNewVertex = new Dictionary<uint, List<uint>>();
         var sourceVertices = Vertices;
         ForEachTriangle((i0, i1, i2) =>
         {
-            var v0 = sourceVertices[(int)i0];
-            var v1 = sourceVertices[(int)i1];
-            var v2 = sourceVertices[(int)i2];
+            var v0 = sourceVertices[(int)i0].Clone();
+            var v1 = sourceVertices[(int)i1].Clone();
+            var v2 = sourceVertices[(int)i2].Clone();
             var normal = (v1.GetPosition() - v0.GetPosition()).CrossProduct(v2.GetPosition() - v0.GetPosition()).Normalized;
             v0.Normal = normal.ToVector4();
             v1.Normal = normal.ToVector4();
             v2.Normal = normal.ToVector4();
+            var newIndex = (uint)newVertices.Count;
             newVertices.Add(v0);
             newVertices.Add(v1);
             newVertices.Add(v2);
+            if (!oldToNewVertex.TryGetValue(i0, out var newIndices0))
+                oldToNewVertex.Add(i0, newIndices0 = []);
+            newIndices0.Add(newIndex);
+            if (!oldToNewVertex.TryGetValue(i1, out var newIndices1))
+                oldToNewVertex.Add(i1, newIndices1 = []);
+            newIndices1.Add(newIndex + 1);
+            if (!oldToNewVertex.TryGetValue(i2, out var newIndices2))
+                oldToNewVertex.Add(i2, newIndices2 = []);
+            newIndices2.Add(newIndex + 2);
         });
         PrimitiveType = PrimitiveType.TriangleList;
         Vertices = newVertices;
-        Indices = Enumerable.Range(0, Vertices.Count).Select(static index => (uint)index).ToList();
+        Indices = new List<uint>(Vertices.Count);
+        for (uint i = 0; i < Vertices.Count; ++i)
+            Indices.Add(i);
+
+        foreach (var morphIndex in Morphs.Keys.ToArray())
+        {
+            var newMorphVector = new ModelVertexMorphVector();
+            foreach (var vertexMorph in Morphs[morphIndex])
+            {
+                if (!oldToNewVertex.TryGetValue(vertexMorph.Index, out var newIndices))
+                    continue;
+                foreach (var newIndex in newIndices)
+                {
+                    var newVertexMorph = vertexMorph;
+                    newVertexMorph.Index = newIndex;
+                    newMorphVector.Add(newVertexMorph);
+                }
+            }
+            Morphs[morphIndex] = newMorphVector;
+        }
     }
 
     public void RecalculateSmoothNormals()
@@ -530,7 +615,7 @@ public struct GeometryLODView : IEquatable<GeometryLODView>
         for (var i = 0; i < Vertices.Count; ++i)
             Vertices[i].Data().CopyTo(unpackedData, i * elementCount);
 
-        var vertexBuffer = new VertexBuffer();
+        using var vertexBuffer = new VertexBuffer(DeviceObjectFlag.Headless);
         vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize((uint)Vertices.Count, vertexElements);
         vertexBuffer.SetUnpackedData(unpackedData);
@@ -589,19 +674,19 @@ public struct GeometryLODView : IEquatable<GeometryLODView>
         }
     }
 
-    public bool Equals(GeometryLODView rhs) => PrimitiveType == rhs.PrimitiveType
-        && Vertices.SequenceEqual(rhs.Vertices) && Indices.SequenceEqual(rhs.Indices)
+    public bool Equals(GeometryLODView rhs) => Vertices.SequenceEqual(rhs.Vertices) && Indices.SequenceEqual(rhs.Indices)
         && LodDistance == rhs.LodDistance && VertexFormat == rhs.VertexFormat
         && Morphs.Count == rhs.Morphs.Count && Morphs.All(pair => rhs.Morphs.TryGetValue(pair.Key, out var value) && pair.Value.SequenceEqual(value));
 
     public override bool Equals(object? obj) => obj is GeometryLODView rhs && Equals(rhs);
-    public override int GetHashCode() => HashCode.Combine(PrimitiveType, LodDistance, VertexFormat);
+    public override int GetHashCode() => HashCode.Combine(LodDistance, VertexFormat);
     public static bool operator ==(GeometryLODView lhs, GeometryLODView rhs) => lhs.Equals(rhs);
     public static bool operator !=(GeometryLODView lhs, GeometryLODView rhs) => !lhs.Equals(rhs);
+
 }
 
 /// <summary>Model geometry, unpacked for easy editing.</summary>
-public struct GeometryView : IEquatable<GeometryView>
+public struct GeometryView : IEquatable<GeometryView>, ICloneable
 {
     public List<GeometryLODView> Lods;
     public string Material;
@@ -613,6 +698,15 @@ public struct GeometryView : IEquatable<GeometryView>
         Material = string.Empty;
         Exported = true;
     }
+
+    public readonly GeometryView Clone()
+    {
+        var clone = this;
+        clone.Lods = Lods.Select(static lod => lod.Clone()).ToList();
+        return clone;
+    }
+
+    readonly object ICloneable.Clone() => Clone();
 
     public uint CalculateNumMorphs()
     {
@@ -694,12 +788,14 @@ public struct BoneView : IEquatable<BoneView>
     }
 
     public bool Equals(BoneView rhs) => Name == rhs.Name && ParentIndex == rhs.ParentIndex
-        && Position == rhs.Position && Rotation == rhs.Rotation && Scale == rhs.Scale
-        && OffsetMatrix == rhs.OffsetMatrix && ShapeFlags == rhs.ShapeFlags
+        && Position.ApproximatelyEquivalent(rhs.Position) && Rotation.ApproximatelyEquivalent(rhs.Rotation)
+        && Scale.ApproximatelyEquivalent(rhs.Scale) && OffsetMatrix.ApproximatelyEquivalent(rhs.OffsetMatrix)
+        && ShapeFlags == rhs.ShapeFlags
         && MathDefs.Equals(BoundingSphereRadius, rhs.BoundingSphereRadius)
-        && LocalBoundingBox.Equals(rhs.LocalBoundingBox);
+        && LocalBoundingBox.Min.ApproximatelyEquivalent(rhs.LocalBoundingBox.Min)
+        && LocalBoundingBox.Max.ApproximatelyEquivalent(rhs.LocalBoundingBox.Max);
     public override bool Equals(object? obj) => obj is BoneView rhs && Equals(rhs);
-    public override int GetHashCode() => HashCode.Combine(Name, ParentIndex, Position, Rotation, Scale);
+    public override int GetHashCode() => HashCode.Combine(Name, ParentIndex, ShapeFlags);
     public static bool operator ==(BoneView lhs, BoneView rhs) => lhs.Equals(rhs);
     public static bool operator !=(BoneView lhs, BoneView rhs) => !lhs.Equals(rhs);
 }
@@ -760,11 +856,22 @@ public sealed class ModelView : Object
 
     public void Clear()
     {
-        _name = string.Empty;
         _geometries.Clear();
         _bones.Clear();
-        _morphs.Clear();
+        foreach (var value in _metadata.Values)
+            value.Dispose();
         _metadata.Clear();
+    }
+
+    public override void Dispose()
+    {
+        foreach (var value in _metadata.Values)
+            value.Dispose();
+        _metadata.Clear();
+        _morphs.Clear();
+        _bones.Clear();
+        _geometries.Clear();
+        base.Dispose();
     }
 
     /// <summary>Import and export from/to native Model.</summary>
@@ -777,20 +884,24 @@ public sealed class ModelView : Object
 
         // Read metadata
         foreach (var key in model.GetMetadataKeys())
-            _metadata.Add(key, model.GetMetadata(key));
+            _metadata.Add(key, model.GetMetadata(key).Clone());
 
         var modelVertexBuffers = model.GetVertexBuffers();
         var modelGeometries = model.GetGeometries();
         var modelMorphs = model.GetMorphs();
 
         // Read morphs metadata
+        if (_morphs.Count > modelMorphs.Count)
+            _morphs.RemoveRange(modelMorphs.Count, _morphs.Count - modelMorphs.Count);
+        while (_morphs.Count < modelMorphs.Count)
+            _morphs.Add(new ModelMorphView());
         for (var morphIndex = 0; morphIndex < modelMorphs.Count; ++morphIndex)
         {
-            _morphs.Add(new ModelMorphView
+            _morphs[morphIndex] = new ModelMorphView
             {
                 Name = modelMorphs[morphIndex].Name,
                 InitialWeight = modelMorphs[morphIndex].Weight
-            });
+            };
         }
 
         // Read geometries
@@ -983,7 +1094,8 @@ public sealed class ModelView : Object
         if (inplace)
             ConnectToModelBuffers(model, vertexBufferBuilders, indexBufferBuilder);
         else
-            AllocateNewBuffers(vertexBufferBuilders, indexBufferBuilder);
+            AllocateNewBuffers(vertexBufferBuilders, indexBufferBuilder,
+                (flags & ModelViewExportFlag.Headless) != 0);
 
         for (var i = 0; i < vertexBufferBuilders.Count; ++i)
             vertexBufferBuilders[i].Buffer?.SetDebugName($"Model '{_name}' Vertex Buffer {i}");
@@ -1557,7 +1669,7 @@ public sealed class ModelView : Object
             if (vertexBuffers[i].VertexFormat == vertexFormat)
                 return (uint)i;
         }
-        vertexBuffers.Add(new VertexBufferBuilder { VertexFormat = vertexFormat });
+        vertexBuffers.Add(new VertexBufferBuilder { VertexFormat = vertexFormat.Clone() });
         return (uint)vertexBuffers.Count - 1;
     }
 
@@ -1654,7 +1766,7 @@ public sealed class ModelView : Object
     }
 
     private static void AllocateNewBuffers(List<VertexBufferBuilder> vertexBufferBuilders,
-        IndexBufferBuilder indexBufferBuilder)
+        IndexBufferBuilder indexBufferBuilder, bool headless)
     {
         foreach (var builder in vertexBufferBuilders)
         {
@@ -1664,7 +1776,7 @@ public sealed class ModelView : Object
                 Log.Logger.LogError("No vertex elements in vertex buffer");
                 continue;
             }
-            var vertexBuffer = new VertexBuffer();
+            var vertexBuffer = new VertexBuffer(headless ? DeviceObjectFlag.Headless : DeviceObjectFlag.None);
             vertexBuffer.SetShadowed(true);
             vertexBuffer.SetSize(builder.NumVertices, vertexElements);
             builder.Buffer = vertexBuffer;
@@ -1672,7 +1784,7 @@ public sealed class ModelView : Object
 
         if (indexBufferBuilder.NumIndices != 0)
         {
-            var indexBuffer = new IndexBuffer();
+            var indexBuffer = new IndexBuffer(headless ? DeviceObjectFlag.Headless : DeviceObjectFlag.None);
             indexBuffer.SetShadowed(true);
             indexBuffer.SetSize(indexBufferBuilder.NumIndices, indexBufferBuilder.LargeIndices);
             indexBufferBuilder.Buffer = indexBuffer;
@@ -1757,9 +1869,10 @@ public sealed class ModelView : Object
 
     /// <summary>Set contents.</summary>
     public void SetName(string name) => _name = name;
-    public void SetGeometries(List<GeometryView> geometries) => _geometries = geometries;
-    public void SetBones(List<BoneView> bones) => _bones = bones;
-    public void SetMorphs(List<ModelMorphView> morphs) => _morphs = morphs;
+    public void SetGeometries(List<GeometryView> geometries) =>
+        _geometries = geometries.Select(static geometry => geometry.Clone()).ToList();
+    public void SetBones(List<BoneView> bones) => _bones = [.. bones];
+    public void SetMorphs(List<ModelMorphView> morphs) => _morphs = [.. morphs];
     public void SetMorph(uint index, ModelMorphView morph)
     {
         while (_morphs.Count <= index)
@@ -1767,12 +1880,18 @@ public sealed class ModelView : Object
         _morphs[(int)index] = morph;
     }
 
-    public void AddMetadata(string key, Variant variant) => _metadata[key] = variant;
+    public void AddMetadata(string key, Variant variant)
+    {
+        var replacement = variant.Clone();
+        if (_metadata.TryGetValue(key, out var previous))
+            previous.Dispose();
+        _metadata[key] = replacement;
+    }
 
     /// <summary>Return contents.</summary>
     public string GetName() => _name;
     public List<GeometryView> GetGeometries() => _geometries;
     public List<BoneView> GetBones() => _bones;
     public List<ModelMorphView> GetMorphs() => _morphs;
-    public Variant GetMetadata(string key) => _metadata.TryGetValue(key, out var value) ? value : new Variant(VariantType.None);
+    public Variant GetMetadata(string key) => _metadata.TryGetValue(key, out var value) ? value : default;
 }
