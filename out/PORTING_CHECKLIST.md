@@ -110,6 +110,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [~] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, retained ObjectReflection destruction, and per-instance reflection-facade teardown reconciled; final closure depends on the repository-wide Variant assignment audit
 - [x] `ObjectReflection.h` / `ObjectReflection.cpp` — noncopyable class kinds, independent attribute/metadata value copies, borrowed reflection APIs, signal-before-destruction removal lifetime, registry ownership, and Context base teardown reconciled
+- [x] `Spline.h` / `Spline.cpp` — extensible copyable non-POD class kind, independent owned-Variant construction/copy/return semantics, replacement/removal/clear destruction, allocation-free temporary lifetimes, and embedded SplinePath teardown reconciled
 - [-] `NonCopyable.h` — **EXCLUDED** · reason: does not map to C# concepts
 - [-] `Macros.h` — **EXCLUDED** · reason: preprocessor macros · replaced-by: attributes + source generators
 - [-] `AssertBase.h` — **EXCLUDED** · reason: assert plumbing · replaced-by: `System.Diagnostics.Debug`

@@ -5,6 +5,41 @@ namespace RedBolt.Tests;
 public sealed class SplinePathTests
 {
     [Fact]
+    public void Spline_class_kind_and_owned_knot_lifetimes_match_cpp()
+    {
+        Assert.False(typeof(Spline).IsSealed);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(Spline)));
+
+        using var text = new CString("owned");
+        using var value = new Variant(text);
+        using var source = new VariantVector([value]);
+        using var spline = new Spline(source);
+        using var clone = (Spline)spline.Clone();
+        var borrowedKnot = spline.GetKnots()[0];
+        using var copiedKnot = spline.GetKnot(0);
+
+        source.Dispose();
+        spline.Clear();
+
+        Assert.Equal(string.Empty, borrowedKnot.GetCString().ToString());
+        Assert.Equal("owned", copiedKnot.GetCString().ToString());
+        using var cloneKnot = clone.GetKnot(0);
+        Assert.Equal("owned", cloneKnot.GetCString().ToString());
+    }
+
+    [Fact]
+    public void Bezier_spline_reduces_all_knot_levels()
+    {
+        using var spline = new Spline(
+            [new Variant(0.0f), new Variant(10.0f), new Variant(20.0f)],
+            InterpolationMode.BezierCurve);
+
+        using var point = spline.GetPoint(0.5f);
+
+        Assert.Equal(10.0f, point.GetFloat());
+    }
+
+    [Fact]
     public void Linear_spline_interpolation_works()
     {
         var spline = new Spline([new Variant(new Vector3f(0.0f, 0.0f, 0.0f)), new Variant(new Vector3f(10.0f, 0.0f, 0.0f))], InterpolationMode.LinearCurve);

@@ -56,6 +56,12 @@ public sealed class SplinePath : Component
         UpdateNodeIds();
     }
 
+    public override void Dispose()
+    {
+        _spline.Dispose();
+        base.Dispose();
+    }
+
     public override void ApplyAttributes()
     {
         if (!_dirty)
@@ -267,4 +273,5 @@ public sealed class SplinePath : Component
                 _spline.AddKnot(controlPoint.GetWorldPosition());
         }
     }
+
 }

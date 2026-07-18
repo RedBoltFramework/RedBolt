@@ -15,7 +15,7 @@ public enum InterpolationMode
 }
 
 /// <summary>Spline class to get a point on it based off the interpolation mode.</summary>
-public sealed class Spline : ICloneable, IEquatable<Spline>
+public class Spline : ICloneable, IDisposable, IEquatable<Spline>
 {
     private InterpolationMode _interpolationMode;
     private VariantVector _knots = new();
@@ -39,7 +39,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     public Spline(VariantVector knots, InterpolationMode mode = InterpolationMode.BezierCurve)
     {
         _interpolationMode = mode;
-        _knots = knots is not null ? new VariantVector(knots) : new VariantVector();
+        _knots = new VariantVector(knots);
     }
 
     /// <summary>Return the interpolation mode.</summary>
@@ -49,13 +49,13 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     public IReadOnlyList<Variant> GetKnots() => _knots;
 
     /// <summary>Return the knot at the specific index.</summary>
-    public Variant GetKnot(uint index) => _knots[(int)index];
+    public Variant GetKnot(uint index) => _knots[(int)index].Clone();
 
     /// <summary>Return the T of the point of the spline at f from 0.f - 1.f.</summary>
     public Variant GetPoint(float f)
     {
         if (_knots.Count < 2)
-            return _knots.Count == 1 ? _knots[0] : default;
+            return _knots.Count == 1 ? _knots[0].Clone() : default;
 
         if (f > 1.0f)
             f = 1.0f;
@@ -72,25 +72,34 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
             return LinearInterpolation(_knots, f);
         case InterpolationMode.CatmullRomFullCurve:
         {
-            _fullKnotsScratch.Clear();
-            if (_knots.Count > 1)
+            _fullKnotsScratch.Dispose();
+            try
             {
-                // Non-cyclic case: duplicate start and end
-                if (!_knots[0].Equals(_knots[^1]))
+                if (_knots.Count > 1)
                 {
-                    _fullKnotsScratch.Add(_knots[0]);
-                    _fullKnotsScratch.AddRange(_knots);
-                    _fullKnotsScratch.Add(_knots[^1]);
+                    // Non-cyclic case: duplicate start and end
+                    if (!_knots[0].Equals(_knots[^1]))
+                    {
+                        _fullKnotsScratch.Add(_knots[0].Clone());
+                        foreach (var knot in _knots)
+                            _fullKnotsScratch.Add(knot.Clone());
+                        _fullKnotsScratch.Add(_knots[^1].Clone());
+                    }
+                    // Cyclic case: smooth the tangents
+                    else
+                    {
+                        _fullKnotsScratch.Add(_knots[^2].Clone());
+                        foreach (var knot in _knots)
+                            _fullKnotsScratch.Add(knot.Clone());
+                        _fullKnotsScratch.Add(_knots[1].Clone());
+                    }
                 }
-                // Cyclic case: smooth the tangents
-                else
-                {
-                    _fullKnotsScratch.Add(_knots[^2]);
-                    _fullKnotsScratch.AddRange(_knots);
-                    _fullKnotsScratch.Add(_knots[1]);
-                }
+                return CatmullRomInterpolation(_fullKnotsScratch, f);
             }
-            return CatmullRomInterpolation(_fullKnotsScratch, f);
+            finally
+            {
+                _fullKnotsScratch.Dispose();
+            }
         }
         default:
             Log.Logger.LogError("Unsupported interpolation mode");
@@ -107,7 +116,9 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     /// <summary>Set the knots of the spline.</summary>
     public void SetKnots(VariantVector knots)
     {
-        _knots = knots is not null ? new VariantVector(knots) : new VariantVector();
+        var copy = new VariantVector(knots);
+        _knots.Dispose();
+        _knots = copy;
     }
 
     /// <summary>Set the value of an existing knot.</summary>
@@ -116,9 +127,14 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
         if (index < _knots.Count)
         {
             if (_knots.Count > 0 && _knots[0].Type == knot.Type)
-                _knots[(int)index] = knot;
+            {
+                var copy = knot.Clone();
+                var previousValue = _knots[(int)index];
+                previousValue.Dispose();
+                _knots[(int)index] = copy;
+            }
             else if (_knots.Count == 0)
-                _knots.Add(knot);
+                _knots.Add(knot.Clone());
             else
                 Log.Logger.LogError(
                     "Attempted to set a Spline's Knot value of type {KnotType} where elements are already using {ExistingType}",
@@ -131,9 +147,9 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     public void AddKnot(Variant knot)
     {
         if (_knots.Count > 0 && _knots[0].Type == knot.Type)
-            _knots.Add(knot);
+            _knots.Add(knot.Clone());
         else if (_knots.Count == 0)
-            _knots.Add(knot);
+            _knots.Add(knot.Clone());
         else
             Log.Logger.LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
@@ -148,9 +164,9 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
             index = (uint)_knots.Count;
 
         if (_knots.Count > 0 && _knots[0].Type == knot.Type)
-            _knots.Insert((int)index, knot);
+            _knots.Insert((int)index, knot.Clone());
         else if (_knots.Count == 0)
-            _knots.Add(knot);
+            _knots.Add(knot.Clone());
         else
             Log.Logger.LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
@@ -161,24 +177,37 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
     /// <summary>Remove the last knot on the spline.</summary>
     public void RemoveKnot()
     {
+        var knot = _knots[^1];
+        knot.Dispose();
         _knots.RemoveAt(_knots.Count - 1);
     }
 
     /// <summary>Remove the knot at the specific index.</summary>
     public void RemoveKnot(uint index)
     {
+        var knot = _knots[(int)index];
+        knot.Dispose();
         _knots.RemoveAt((int)index);
     }
 
     /// <summary>Clear the spline.</summary>
     public void Clear()
     {
-        _knots.Clear();
+        _knots.Dispose();
     }
 
     public object Clone()
     {
         return new Spline(_knots, _interpolationMode);
+    }
+
+    public void Dispose()
+    {
+        _bezierScratchB.Dispose();
+        _bezierScratchA.Dispose();
+        _fullKnotsScratch.Dispose();
+        _knots.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public bool Equals(Spline? other)
@@ -224,30 +253,39 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
         }
         else
         {
+            _bezierScratchB.Dispose();
+            _bezierScratchA.Dispose();
             var source = knots;
             var destination = _bezierScratchA;
-            while (source.Count > 2)
+            try
             {
-                destination.Clear();
-                switch (knots[0].Type)
+                while (source.Count > 2)
                 {
-                case VariantType.Float:
-                case VariantType.Vector2:
-                case VariantType.Vector3:
-                case VariantType.Vector4:
-                case VariantType.Color:
-                case VariantType.Double:
-                    for (var i = 1; i < source.Count; ++i)
-                        destination.Add(LinearInterpolation(source[i - 1], source[i], t));
-                    break;
-                default:
-                    return default;
+                    destination.Dispose();
+                    switch (knots[0].Type)
+                    {
+                    case VariantType.Float:
+                    case VariantType.Vector2:
+                    case VariantType.Vector3:
+                    case VariantType.Vector4:
+                    case VariantType.Color:
+                    case VariantType.Double:
+                        for (var i = 1; i < source.Count; ++i)
+                            destination.Add(LinearInterpolation(source[i - 1], source[i], t));
+                        break;
+                    default:
+                        return default;
+                    }
+                    source = destination;
+                    destination = ReferenceEquals(destination, _bezierScratchA) ? _bezierScratchB : _bezierScratchA;
                 }
-                var previousSource = source;
-                source = destination;
-                destination = ReferenceEquals(previousSource, _bezierScratchA) ? _bezierScratchB : _bezierScratchA;
+                return LinearInterpolation(source[0], source[1], t);
             }
-            return LinearInterpolation(source[0], source[1], t);
+            finally
+            {
+                _bezierScratchB.Dispose();
+                _bezierScratchA.Dispose();
+            }
         }
     }
 
@@ -258,7 +296,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
             return default;
 
         if (t >= 1.0f)
-            return knots[^2];
+            return knots[^2].Clone();
 
         var originIndex = (int)(t * (knots.Count - 3));
         t %= 1.0f / (knots.Count - 3);
@@ -334,7 +372,7 @@ public sealed class Spline : ICloneable, IEquatable<Spline>
             return default;
 
         if (t >= 1.0f)
-            return knots[^1];
+            return knots[^1].Clone();
 
         var originIndex = Math.Clamp((int)(t * (knots.Count - 1)), 0, knots.Count - 2);
         t %= 1.0f / (knots.Count - 1);
