@@ -56,7 +56,8 @@ public sealed class OctreeQueryTests
         Assert.Same(drawable, Assert.Single(drawableResults));
 
         var rayResults = new List<RayQueryResult> { new() };
-        var query = new RayOctreeQuery(rayResults, new Ray(new Vector3f(0.0f, 0.0f, -10.0f), Vector3f.Forward), maxDistance: 100.0f);
+        var query = new RayOctreeQuery(rayResults, new Ray(new Vector3f(0.0f, 0.0f, -10.0f), Vector3f.Forward),
+            RayQueryLevel.RayAabb, maxDistance: 100.0f);
         octree.RaycastSingle(query);
         Assert.Single(rayResults);
         Assert.Same(drawable, rayResults[0].Drawable);

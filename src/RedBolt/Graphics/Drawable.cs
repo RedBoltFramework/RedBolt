@@ -630,7 +630,7 @@ public abstract class Drawable : Component
             _occludee = enable;
             // Reinsert to octree to make sure octant occlusion does not erroneously hide this drawable
             if (_octant is not null && !_updateQueued)
-                _octant.GetOctree().QueueUpdate(this);
+                _octant.GetOctree()!.QueueUpdate(this);
         }
     }
 
@@ -663,7 +663,7 @@ public abstract class Drawable : Component
     public void MarkForUpdate()
     {
         if (!_updateQueued && _octant is not null)
-            _octant.GetOctree().QueueUpdate(this);
+            _octant.GetOctree()!.QueueUpdate(this);
     }
 
     /// <summary>Request UpdateBatchesDelayed call from the main thread.</summary>
@@ -766,7 +766,7 @@ public abstract class Drawable : Component
         if (_octant is null)
             return;
 
-        var octree = _octant.GetOctree();
+        var octree = _octant.GetOctree()!;
         if (_updateQueued)
             octree.CancelUpdate(this);
         OnRemoveFromOctree();

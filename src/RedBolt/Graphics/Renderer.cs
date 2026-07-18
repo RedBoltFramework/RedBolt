@@ -356,7 +356,7 @@ public sealed class Renderer : Object
             _frameInfo.ViewportSize = viewport.Rect.Size;
             if (_frameInfo.ViewportSize == Vector2i.Zero)
                 _frameInfo.ViewportSize = new Vector2i(graphics.Width, graphics.Height);
-            octree.Update(Context.GetSubsystem<Time>()?.TimeStep ?? 0.0f);
+            octree.Update(_frameInfo);
             octree.SetLocked(true);
         }
 

@@ -61,7 +61,7 @@ public sealed class OctreeTests
         var cube = scene.CreateChild("Cube").CreateComponent<StaticModel>();
         cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
-        octree.Update();
+        octree.Update(new CommonFrameInfo());
 
         Assert.Contains(cube, octree.GetAllDrawables());
     }
@@ -77,9 +77,12 @@ public sealed class OctreeTests
         cube.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
         cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
-        octree.Update();
+        octree.Update(new CommonFrameInfo());
 
-        Assert.Contains(cube, octree.GetDrawables(cube.GetWorldBoundingBox()));
+        var result = new List<Drawable>();
+        using var query = new BoxOctreeQuery(result, cube.GetWorldBoundingBox());
+        octree.GetDrawables(query);
+        Assert.Contains(cube, result);
     }
 
     [Fact]
@@ -93,13 +96,14 @@ public sealed class OctreeTests
         cubeNode.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         var cube = cubeNode.CreateComponent<StaticModel>();
         octree.QueueUpdate(cube);
-        octree.Update();
+        octree.Update(new CommonFrameInfo());
 
         var ray = new Ray(cube.GetWorldBoundingBox().Center - Vector3f.Forward * 10.0f, Vector3f.Forward);
-        var hit = octree.RaycastSingle(ray, maxDistance: 100.0f);
-        Assert.NotNull(hit);
-        Assert.Same(cube, hit.Drawable);
-        Assert.Same(cubeNode, hit.Node);
+        using var query = new RayOctreeQuery(ray, RayQueryLevel.RayAabb, maxDistance: 100.0f);
+        octree.RaycastSingle(query);
+        Assert.Single(query.Result);
+        Assert.Same(cube, query.Result[0].Drawable);
+        Assert.Same(cubeNode, query.Result[0].Node);
     }
 
     [Fact]
@@ -133,7 +137,6 @@ public sealed class OctreeTests
         var manual = new StaticModel();
         octree.AddManualDrawable(manual);
         Assert.DoesNotContain(manual, octree.GetAllDrawables());
-        Assert.True(octree.GetLocked());
         octree.SetLocked(false);
     }
 
@@ -146,7 +149,7 @@ public sealed class OctreeTests
         var drawable = node.CreateComponent<StaticModel>();
 
         Assert.Contains(drawable, octree.GetAllDrawables());
-        octree.RemoveDrawable(drawable);
+        octree.RemoveDrawable(drawable, drawable.GetOctant()!);
         Assert.DoesNotContain(drawable, octree.GetAllDrawables());
     }
 
@@ -176,6 +179,51 @@ public sealed class OctreeTests
     }
 
     [Fact]
+    public void Resizing_octree_moves_child_drawables_to_root_and_queues_reinsertion()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        var box = new BoundingBox(-100.0f, 100.0f);
+        octree.SetSize(box, 4u);
+
+        var manualNode = new Scene().CreateChild("Manual");
+        var manual = manualNode.CreateComponent<StaticModel>();
+        manualNode.Remove();
+        manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
+        octree.AddManualDrawable(manual);
+        Assert.NotSame(octree.GetRootOctant(), manual.GetOctant());
+
+        octree.SetSize(box, 4u);
+
+        Assert.Same(octree.GetRootOctant(), manual.GetOctant());
+        Assert.Equal(1u, octree.GetRootOctant().GetNumDrawables());
+
+        octree.Update(new CommonFrameInfo());
+        Assert.NotNull(manual.GetOctant());
+        Assert.NotEqual(uint.MaxValue, manual.GetDrawableIndex());
+    }
+
+    [Fact]
+    public void Disposing_octree_detaches_drawables_recursively()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
+
+        var manualNode = new Scene().CreateChild("Manual");
+        var manual = manualNode.CreateComponent<StaticModel>();
+        manualNode.Remove();
+        manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
+        octree.AddManualDrawable(manual);
+        Assert.NotSame(octree.GetRootOctant(), manual.GetOctant());
+
+        octree.Dispose();
+
+        Assert.Null(manual.GetOctant());
+        Assert.Equal(uint.MaxValue, manual.GetDrawableIndex());
+    }
+
+    [Fact]
     public void Update_sends_drawable_update_finished_event()
     {
         var scene = new Scene();
@@ -183,7 +231,7 @@ public sealed class OctreeTests
         SceneEvents.SceneDrawableUpdateFinishedEvent? received = null;
         scene.SubscribeToEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>((ref SceneEvents.SceneDrawableUpdateFinishedEvent eventData) => received = eventData);
 
-        octree.Update(0.25f);
+        octree.Update(new CommonFrameInfo { TimeStep = 0.25f });
 
         Assert.True(received.HasValue);
         Assert.Same(scene, received.Value.Scene);
@@ -199,7 +247,7 @@ public sealed class OctreeTests
         debugRenderer.SetView(new Camera());
 
         octree.SetSize(new BoundingBox(-1.0f, 1.0f), 1u);
-        octree.DrawDebugGeometry(depthTest: false);
+        octree.DrawDebugGeometry(debugRenderer, depthTest: false);
 
         Assert.True(debugRenderer.HasContent());
     }

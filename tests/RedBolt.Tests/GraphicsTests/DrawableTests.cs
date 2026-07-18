@@ -144,7 +144,7 @@ public sealed class DrawableTests
         octree.QueueUpdate(drawable);
 
         drawable.Dispose();
-        octree.Update();
+        octree.Update(new CommonFrameInfo());
 
         Assert.Equal(0, drawable.NumUpdates);
         Assert.Equal(0, drawable.NumBoundingBoxUpdates);

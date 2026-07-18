@@ -404,7 +404,7 @@ public class AnimatedModel : StaticModel
 
             if (transformsDirty)
             {
-                var octree = GetOctant()!.GetOctree();
+                var octree = GetOctant()!.GetOctree()!;
                 for (var boneIndex = 0; boneIndex < _skeleton.GetNumBones(); ++boneIndex)
                 {
                     var node = _skeleton.GetBone((uint)boneIndex)!.Node;

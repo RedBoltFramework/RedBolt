@@ -40,201 +40,327 @@ public sealed class RayQueryResult
     public static bool operator ==(RayQueryResult? left, RayQueryResult? right) => left?.Equals(right) ?? right is null;
 }
 
-/// <summary>Octree component. Should be added only to the root scene node.</summary>
-public sealed class Octant
+/// <summary>Octree octant.</summary>
+public class Octant : IDisposable
 {
-    private readonly Octant?[] _children = new Octant?[8];
+    private BoundingBox _worldBoundingBox;
+    private BoundingBox _cullingBox;
     private readonly List<Drawable> _drawables = [];
+    private readonly Octant?[] _children = new Octant?[8];
     private Vector3f _center;
     private Vector3f _halfSize;
+    private readonly uint _level;
     private uint _numDrawables;
+    private readonly Octant? _parent;
+    private Octree? _octree;
+    private readonly uint _index;
 
-    internal Octant(BoundingBox box, uint level, Octant? parent, Octree octree)
+    /// <summary>Construct.</summary>
+    public Octant(in BoundingBox box, uint level, Octant? parent, Octree? octree, uint index = uint.MaxValue)
     {
-        WorldBoundingBox = box;
-        CullingBox = box;
-        Level = level;
-        Parent = parent;
-        Octree = octree;
+        _level = level;
+        _parent = parent;
+        _octree = octree;
+        _index = index;
         Initialize(box);
     }
 
-    public BoundingBox WorldBoundingBox { get; private set; }
-
-    public BoundingBox CullingBox { get; private set; }
-
-    public uint Level { get; }
-
-    public Octant? Parent { get; }
-
-    public Octree Octree { get; }
-
-    public uint NumDrawables => _numDrawables;
-
-    public bool IsEmpty() => NumDrawables == 0;
-
-    public BoundingBox GetWorldBoundingBox() => WorldBoundingBox;
-
-    public BoundingBox GetCullingBox() => CullingBox;
-
-    public uint GetLevel() => Level;
-
-    public Octant? GetParent() => Parent;
-
-    public Octree GetOctree() => Octree;
-
-    public uint GetNumDrawables() => NumDrawables;
-
-    internal void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    /// <summary>Destruct. Move drawables to root if available (detach if not) and free child octants.</summary>
+    public virtual void Dispose()
     {
-        if (debug is null || !debug.IsInside(WorldBoundingBox))
-            return;
+        if (_octree is not null)
+        {
+            var rootOctant = _octree.GetRootOctant();
 
-        debug.AddBoundingBox(WorldBoundingBox, new Color(0.25f, 0.25f, 0.25f), depthTest);
+            // Remove the drawables (if any) from this octant to the root octant
+            foreach (var drawable in _drawables)
+            {
+                drawable.SetOctant(rootOctant);
+                rootOctant._drawables.Add(drawable);
+                _octree.QueueUpdate(drawable);
+            }
+            _drawables.Clear();
+            _numDrawables = 0;
+        }
 
-        foreach (var child in _children)
-            child?.DrawDebugGeometry(debug, depthTest);
+        for (var i = 0u; i < _children.Length; ++i)
+            DeleteChild(i);
+
+        _drawables.Clear();
+        GC.SuppressFinalize(this);
     }
 
+    /// <summary>Return or create a child octant.</summary>
     public Octant GetOrCreateChild(uint index)
     {
-        if (index >= _children.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
         if (_children[index] is not null)
             return _children[index]!;
 
-        var newMin = WorldBoundingBox.Min;
-        var newMax = WorldBoundingBox.Max;
-        var oldCenter = WorldBoundingBox.Center;
+        var newMin = _worldBoundingBox.Min;
+        var newMax = _worldBoundingBox.Max;
+        var oldCenter = _worldBoundingBox.Center;
 
         if ((index & 1u) != 0)
             newMin.X = oldCenter.X;
         else
             newMax.X = oldCenter.X;
+
         if ((index & 2u) != 0)
             newMin.Y = oldCenter.Y;
         else
             newMax.Y = oldCenter.Y;
+
         if ((index & 4u) != 0)
             newMin.Z = oldCenter.Z;
         else
             newMax.Z = oldCenter.Z;
 
-        return _children[index] = new Octant(new BoundingBox(newMin, newMax), Level + 1, this, Octree);
+        _children[index] = new Octant(new BoundingBox(newMin, newMax), _level + 1, this, _octree, index);
+        return _children[index]!;
     }
 
+    /// <summary>Delete child octant.</summary>
     public void DeleteChild(uint index)
     {
-        if (index >= _children.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
+        System.Diagnostics.Debug.Assert(index < _children.Length);
+        _children[index]?.Dispose();
         _children[index] = null;
     }
 
-    public void AddDrawable(Drawable drawable)
-    {
-        ArgumentNullException.ThrowIfNull(drawable);
-        if (_drawables.Contains(drawable))
-            return;
-        drawable.SetOctant(this);
-        _drawables.Add(drawable);
-        IncDrawableCount();
-    }
-
-    public void RemoveDrawable(Drawable drawable, bool resetOctant = true)
-    {
-        ArgumentNullException.ThrowIfNull(drawable);
-        if (!_drawables.Remove(drawable))
-            return;
-        if (resetOctant)
-            drawable.SetOctant(null);
-        DecDrawableCount();
-    }
-
-    public bool CheckDrawableFit(BoundingBox box)
-    {
-        var boxSize = box.Size;
-        if (Level >= Octree.GetNumLevels() || boxSize.X >= _halfSize.X || boxSize.Y >= _halfSize.Y || boxSize.Z >= _halfSize.Z)
-            return true;
-
-        if (box.Min.X <= WorldBoundingBox.Min.X - 0.5f * _halfSize.X
-            || box.Max.X >= WorldBoundingBox.Max.X + 0.5f * _halfSize.X
-            || box.Min.Y <= WorldBoundingBox.Min.Y - 0.5f * _halfSize.Y
-            || box.Max.Y >= WorldBoundingBox.Max.Y + 0.5f * _halfSize.Y
-            || box.Min.Z <= WorldBoundingBox.Min.Z - 0.5f * _halfSize.Z
-            || box.Max.Z >= WorldBoundingBox.Max.Z + 0.5f * _halfSize.Z)
-            return true;
-
-        return false;
-    }
-
+    /// <summary>Insert a drawable object by checking for fit recursively.</summary>
     public void InsertDrawable(Drawable drawable)
     {
-        ArgumentNullException.ThrowIfNull(drawable);
         var box = drawable.GetWorldBoundingBox();
-        var insertHere = ReferenceEquals(this, Octree.GetRootOctant())
-            ? (!drawable.IsOccludee() || CullingBox.IsInside(box) != Intersection.Inside || CheckDrawableFit(box))
-            : CheckDrawableFit(box);
+
+        // If root octant, insert all non-occludees here, so that octant occlusion does not hide the drawable.
+        // Also if drawable is outside the root octant bounds, insert to root
+        bool insertHere;
+        if (ReferenceEquals(this, _octree!.GetRootOctant()))
+            insertHere = !drawable.IsOccludee() || _cullingBox.IsInside(box) != Intersection.Inside || CheckDrawableFit(box);
+        else
+            insertHere = CheckDrawableFit(box);
 
         if (insertHere)
         {
             var oldOctant = drawable.GetOctant();
             if (!ReferenceEquals(oldOctant, this))
             {
+                // Add first, then remove, because drawable count going to zero deletes the octree branch in question
                 AddDrawable(drawable);
-                oldOctant?.RemoveDrawable(drawable, resetOctant: false);
+                oldOctant?.RemoveDrawable(drawable, false);
             }
-            return;
         }
+        else
+        {
+            var boxCenter = box.Center;
+            var x = boxCenter.X < _center.X ? 0u : 1u;
+            var y = boxCenter.Y < _center.Y ? 0u : 2u;
+            var z = boxCenter.Z < _center.Z ? 0u : 4u;
 
-        var boxCenter = box.Center;
-        var x = boxCenter.X < _center.X ? 0u : 1u;
-        var y = boxCenter.Y < _center.Y ? 0u : 2u;
-        var z = boxCenter.Z < _center.Z ? 0u : 4u;
-        GetOrCreateChild(x + y + z).InsertDrawable(drawable);
+            GetOrCreateChild(x + y + z).InsertDrawable(drawable);
+        }
     }
 
-    internal void SetRootSize(BoundingBox box)
+    /// <summary>Check if a drawable object fits.</summary>
+    public bool CheckDrawableFit(in BoundingBox box)
     {
-        for (uint i = 0; i < _children.Length; ++i)
+        var boxSize = box.Size;
+
+        // If max split level, size always OK, otherwise check that box is at least half size of octant
+        if (_level >= _octree!.GetNumLevels() || boxSize.X >= _halfSize.X || boxSize.Y >= _halfSize.Y ||
+            boxSize.Z >= _halfSize.Z)
+            return true;
+        // Also check if the box can not fit a child octant's culling box, in that case size OK (must insert here)
+        else
+        {
+            if (box.Min.X <= _worldBoundingBox.Min.X - 0.5f * _halfSize.X ||
+                box.Max.X >= _worldBoundingBox.Max.X + 0.5f * _halfSize.X ||
+                box.Min.Y <= _worldBoundingBox.Min.Y - 0.5f * _halfSize.Y ||
+                box.Max.Y >= _worldBoundingBox.Max.Y + 0.5f * _halfSize.Y ||
+                box.Min.Z <= _worldBoundingBox.Min.Z - 0.5f * _halfSize.Z ||
+                box.Max.Z >= _worldBoundingBox.Max.Z + 0.5f * _halfSize.Z)
+                return true;
+        }
+
+        // Bounding box too small, should create a child octant
+        return false;
+    }
+
+    /// <summary>Add a drawable object to this octant.</summary>
+    public void AddDrawable(Drawable drawable)
+    {
+        drawable.SetOctant(this);
+        _drawables.Add(drawable);
+        IncDrawableCount();
+    }
+
+    /// <summary>Remove a drawable object from this octant.</summary>
+    public void RemoveDrawable(Drawable drawable, bool resetOctant = true)
+    {
+        var index = _drawables.IndexOf(drawable);
+        if (index != -1)
+        {
+            _drawables.RemoveAt(index);
+            if (resetOctant)
+                drawable.SetOctant(null);
+            DecDrawableCount();
+        }
+    }
+
+    /// <summary>Return world-space bounding box.</summary>
+    public ref readonly BoundingBox GetWorldBoundingBox() => ref _worldBoundingBox;
+
+    /// <summary>Return bounding box used for fitting drawable objects.</summary>
+    public ref readonly BoundingBox GetCullingBox() => ref _cullingBox;
+
+    /// <summary>Return subdivision level.</summary>
+    public uint GetLevel() => _level;
+
+    /// <summary>Return parent octant.</summary>
+    public Octant? GetParent() => _parent;
+
+    /// <summary>Return octree.</summary>
+    public Octree? GetOctree() => _octree;
+
+    /// <summary>Return number of drawables.</summary>
+    public uint GetNumDrawables() => _numDrawables;
+
+    /// <summary>Return true if there are no drawable objects in this octant and child octants.</summary>
+    public bool IsEmpty() => _numDrawables == 0;
+
+    /// <summary>Set size for the root octant. If octree is not empty, drawable objects will be temporarily moved to the root.</summary>
+    public void SetRootSize(in BoundingBox box)
+    {
+        // If drawables exist, they are temporarily moved to the root
+        for (var i = 0u; i < _children.Length; ++i)
             DeleteChild(i);
-        WorldBoundingBox = box;
+
         Initialize(box);
         _numDrawables = (uint)_drawables.Count;
     }
 
-    private void Initialize(BoundingBox box)
+    /// <summary>Reset octree pointer recursively. Called when the whole octree is being destroyed.</summary>
+    public void ResetOctree()
     {
-        WorldBoundingBox = box;
-        _center = box.Center;
-        _halfSize = box.Size * 0.5f;
-        CullingBox = new BoundingBox(WorldBoundingBox.Min - _halfSize, WorldBoundingBox.Max + _halfSize);
+        _octree = null;
+
+        // The whole octree is being destroyed, just detach the drawables
+        foreach (var drawable in _drawables)
+        {
+            drawable.SetOctant(null);
+            drawable.SetDrawableIndex(uint.MaxValue);
+        }
+
+        foreach (var child in _children)
+            child?.ResetOctree();
     }
 
-    private void IncDrawableCount()
+    /// <summary>Draw bounds to the debug graphics recursively.</summary>
+    public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is not null && debug.IsInside(_worldBoundingBox))
+        {
+            debug.AddBoundingBox(_worldBoundingBox, new Color(0.25f, 0.25f, 0.25f), depthTest);
+
+            foreach (var child in _children)
+                child?.DrawDebugGeometry(debug, depthTest);
+        }
+    }
+
+    /// <summary>Return drawable objects by a ray query, called internally.</summary>
+    internal void GetDrawablesInternal(OctreeQuery query, bool inside)
+    {
+        if (!ReferenceEquals(this, _octree!.GetRootOctant()))
+        {
+            var result = query.TestOctant(_cullingBox, inside);
+            if (result == Intersection.Inside)
+                inside = true;
+            else if (result == Intersection.Outside)
+            {
+                // Fully outside, so cull this octant, its children & drawables
+                return;
+            }
+        }
+
+        if (_drawables.Count != 0)
+            query.TestDrawables(_drawables, inside);
+
+        foreach (var child in _children)
+            child?.GetDrawablesInternal(query, inside);
+    }
+
+    /// <summary>Return drawable objects by a ray query, called internally.</summary>
+    internal void GetDrawablesInternal(RayOctreeQuery query)
+    {
+        var octantDistance = query.Ray.HitDistance(_cullingBox);
+        if (octantDistance >= query.MaxDistance)
+            return;
+
+        foreach (var drawable in _drawables)
+        {
+            if ((drawable.GetDrawableFlags() & query.DrawableFlags) != 0 &&
+                (drawable.GetViewMask() & query.ViewMask) != 0)
+                drawable.ProcessRayQuery(query, query.Result);
+        }
+
+        foreach (var child in _children)
+            child?.GetDrawablesInternal(query);
+    }
+
+    /// <summary>Return drawable objects only for a threaded ray query, called internally.</summary>
+    internal void GetDrawablesOnlyInternal(RayOctreeQuery query, List<Drawable> drawables)
+    {
+        var octantDistance = query.Ray.HitDistance(_cullingBox);
+        if (octantDistance >= query.MaxDistance)
+            return;
+
+        foreach (var drawable in _drawables)
+        {
+            if ((drawable.GetDrawableFlags() & query.DrawableFlags) != 0 &&
+                (drawable.GetViewMask() & query.ViewMask) != 0)
+                drawables.Add(drawable);
+        }
+
+        foreach (var child in _children)
+            child?.GetDrawablesOnlyInternal(query, drawables);
+    }
+
+    /// <summary>Initialize bounding box.</summary>
+    protected void Initialize(in BoundingBox box)
+    {
+        _worldBoundingBox = box;
+        _center = box.Center;
+        _halfSize = 0.5f * box.Size;
+        _cullingBox = new BoundingBox(_worldBoundingBox.Min - _halfSize, _worldBoundingBox.Max + _halfSize);
+    }
+
+    /// <summary>Increase drawable object count recursively.</summary>
+    protected void IncDrawableCount()
     {
         ++_numDrawables;
-        Parent?.IncDrawableCount();
+        _parent?.IncDrawableCount();
     }
 
-    private void DecDrawableCount()
+    /// <summary>Decrease drawable object count recursively and remove octant if it becomes empty.</summary>
+    protected void DecDrawableCount()
     {
-        var parent = Parent;
+        var parent = _parent;
+
         --_numDrawables;
-        if (_numDrawables == 0 && parent is not null)
+        if (_numDrawables == 0)
         {
-            var index = (uint)((_center.X >= parent._center.X ? 1 : 0)
-                | (_center.Y >= parent._center.Y ? 2 : 0)
-                | (_center.Z >= parent._center.Z ? 4 : 0));
-            parent.DeleteChild(index);
+            if (parent is not null)
+                parent.DeleteChild(_index);
         }
+
         parent?.DecDrawableCount();
     }
 }
 
 /// <summary>Acceleration structure for zone search.</summary>
-public sealed class ZoneLookupIndex
+public sealed class ZoneLookupIndex : IDisposable
 {
-    private sealed class ZoneData
+    private struct ZoneData
     {
         public BoundingBox BoundingBox;
         public Matrix3x4 InverseWorldTransform;
@@ -251,6 +377,13 @@ public sealed class ZoneLookupIndex
         var context = Context.Instance;
         var renderer = context.GetSubsystem<Renderer>();
         _defaultZone = renderer?.GetDefaultZone();
+    }
+
+    public void Dispose()
+    {
+        _zonesData.Clear();
+        _zones.Clear();
+        GC.SuppressFinalize(this);
     }
 
     public void AddZone(Zone zone)
@@ -343,27 +476,38 @@ public sealed class ZoneLookupIndex
 
 public sealed class Octree : Component
 {
-    public const float DefaultOctreeSize = 1000.0f;
-    public const uint DefaultOctreeLevels = 8;
+    private const float DefaultOctreeSize = 1000.0f;
+    private const uint DefaultOctreeLevels = 8;
 
-    private readonly HashSet<Drawable> _manualDrawables = [];
-    private readonly List<Drawable> _drawables = [];
-    private readonly HashSet<Drawable> _drawableUpdates = [];
-    private readonly Dictionary<Node, Transform> _pendingNodeTransforms = [];
-    private readonly ZoneLookupIndex _zones;
-    private BoundingBox _worldBoundingBox = new(-DefaultOctreeSize, DefaultOctreeSize);
     private readonly Octant _rootOctant;
-    private uint _numLevels = DefaultOctreeLevels;
+    private readonly List<Drawable?> _drawableUpdates;
+    private readonly List<Drawable?> _threadedDrawableUpdates;
+    private readonly WorkQueueVector<KeyValuePair<Node, Transform>> _pendingNodeTransforms;
+    private readonly List<Drawable> _drawables;
+    private readonly object _octreeMutex;
+    private readonly List<Drawable> _rayQueryDrawables;
+    private uint _numLevels;
+    private BoundingBox _worldBoundingBox;
+    private readonly ZoneLookupIndex _zones;
     private bool _locked;
 
     public Octree()
     {
-        _rootOctant = new Octant(_worldBoundingBox, 0, parent: null, this);
+        var rootBox = new BoundingBox(-DefaultOctreeSize, DefaultOctreeSize);
+        _rootOctant = new Octant(rootBox, 0, null, this);
+        _drawableUpdates = [];
+        _threadedDrawableUpdates = [];
+        _pendingNodeTransforms = new WorkQueueVector<KeyValuePair<Node, Transform>>();
+        _drawables = [];
+        _octreeMutex = new object();
+        _rayQueryDrawables = [];
+        _numLevels = DefaultOctreeLevels;
+        _worldBoundingBox = _rootOctant.GetWorldBoundingBox();
         _zones = new ZoneLookupIndex();
 
         // If the engine is running headless, subscribe to RenderUpdate events for manually updating the octree
-        // to allow raycasts and animation update.
-        if (Context.Instance.GetSubsystem<Graphics>() is null)
+        // to allow raycasts and animation update
+        if (GetSubsystem<Graphics>() is null)
             SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
 
         RegisterAttribute(
@@ -386,27 +530,39 @@ public sealed class Octree : Component
             DefaultOctreeLevels);
     }
 
-    public BoundingBox WorldBoundingBox => _worldBoundingBox;
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Octree>(ObjectCategory.Category_Subsystem);
+    }
 
-    public uint NumLevels => _numLevels;
+    public override void Dispose()
+    {
+        // Reset root pointer from all child octants now so that they do not move their drawables to root
+        _drawableUpdates.Clear();
+        _rootOctant.ResetOctree();
 
-    public bool Locked => _locked;
+        _zones.Dispose();
+        _rayQueryDrawables.Clear();
+        _drawables.Clear();
+        _pendingNodeTransforms.Clear();
+        _threadedDrawableUpdates.Clear();
+        _drawableUpdates.Clear();
+        _rootOctant.Dispose();
+        base.Dispose();
+    }
 
     public Octant GetRootOctant() => _rootOctant;
 
     public uint GetNumLevels() => _numLevels;
 
-    public BoundingBox GetWorldBoundingBox() => _worldBoundingBox;
-
     public IReadOnlyList<Drawable> GetAllDrawables() => _drawables;
-
-    public uint GetNumDrawables() => (uint)GetAllDrawables().Count;
 
     public void SetSize(BoundingBox box, uint numLevels)
     {
         _worldBoundingBox = box;
-        this._numLevels = Math.Max(numLevels, 1u);
         _rootOctant.SetRootSize(box);
+        _numLevels = Math.Max(numLevels, 1u);
     }
 
     public void SetLocked(bool locked)
@@ -414,16 +570,12 @@ public sealed class Octree : Component
         this._locked = locked;
     }
 
-    public bool GetLocked() => _locked;
-
     public void AddManualDrawable(Drawable? drawable)
     {
         if (drawable is null || drawable.GetOctant() is not null)
             return;
 
         AddDrawable(drawable);
-        if (drawable.GetOctant() is { } octant && ReferenceEquals(octant.GetOctree(), this))
-            _manualDrawables.Add(drawable);
     }
 
     public void RemoveManualDrawable(Drawable? drawable)
@@ -431,15 +583,20 @@ public sealed class Octree : Component
         if (drawable is null)
             return;
 
-        CancelUpdate(drawable);
         var octant = drawable.GetOctant();
-        if (octant is not null && ReferenceEquals(octant.Octree, this))
+        if (octant is not null && ReferenceEquals(octant.GetOctree(), this))
+        {
+            CancelUpdate(drawable);
             RemoveDrawable(drawable, octant);
+        }
     }
 
-    public void AddDrawable(Drawable? drawable)
+    public void AddDrawable(Drawable drawable)
     {
-        if (drawable is null || _locked || drawable.GetDrawableIndex() != uint.MaxValue)
+        if (_locked)
+            return;
+
+        if (drawable.GetDrawableIndex() != uint.MaxValue)
             return;
 
         var index = (uint)_drawables.Count;
@@ -447,45 +604,39 @@ public sealed class Octree : Component
         drawable.SetDrawableIndex(index);
         _rootOctant.InsertDrawable(drawable);
 
-        if (drawable is Zone zone)
+        if ((drawable.GetDrawableFlags() & DrawableFlags.Zone) != 0)
         {
+            var zone = (Zone)drawable;
             _zones.AddZone(zone);
             zone.ClearDrawablesZone();
         }
     }
 
-    public void RemoveDrawable(Drawable? drawable)
+    public void QueueUpdate(Drawable drawable)
     {
-        if (drawable is null)
-            return;
-
-        CancelUpdate(drawable);
-        var octant = drawable.GetOctant();
-        if (octant is not null && ReferenceEquals(octant.GetOctree(), this))
-            RemoveDrawable(drawable, octant);
-    }
-
-    public void QueueUpdate(Drawable? drawable)
-    {
-        if (drawable is not null)
+        var scene = Scene;
+        if (scene is not null && scene.IsThreadedUpdate())
         {
+            lock (_octreeMutex)
+                _threadedDrawableUpdates.Add(drawable);
+        }
+        else
             _drawableUpdates.Add(drawable);
-            drawable._updateQueued = true;
-        }
+
+        drawable._updateQueued = true;
     }
 
-    public void QueueNodeTransformUpdate(Node node, Transform transform)
+    public void QueueNodeTransformUpdate(Node node, in Transform transform)
     {
-        _pendingNodeTransforms[node] = transform;
+        _pendingNodeTransforms.Insert(new KeyValuePair<Node, Transform>(node, transform));
     }
 
-    public void CancelUpdate(Drawable? drawable)
+    public void CancelUpdate(Drawable drawable)
     {
-        if (drawable is not null)
-        {
-            _drawableUpdates.Remove(drawable);
-            drawable._updateQueued = false;
-        }
+        // This doesn't have to take into account scene being in threaded update, because it is called only
+        // when removing a drawable from octree, which should only ever happen from the main thread.
+        _drawableUpdates.Remove(drawable);
+        drawable._updateQueued = false;
     }
 
     public void MarkZoneDirty(Zone zone)
@@ -494,142 +645,174 @@ public sealed class Octree : Component
         _zones.UpdateZone(zone);
     }
 
-    public void Update(float timeStep = 0.0f)
+    public void Update(CommonFrameInfo frame)
     {
-        foreach (var drawable in _drawableUpdates)
+        // Let drawables update themselves before reinsertion. This can be used for animation
+        if (_drawableUpdates.Count != 0)
         {
-            drawable._updateQueued = false;
-            var octant = drawable.GetOctant();
-            if (octant is null || !ReferenceEquals(octant.GetOctree(), this))
-                continue;
+            // Perform updates in worker threads. Notify the scene that a threaded update is going on and components
+            // (for example physics objects) should not perform non-threadsafe work when marked dirty
+            var scene = Scene!;
+            var queue = GetSubsystem<WorkQueue>()!;
+            scene.BeginThreadedUpdate();
 
-            var box = drawable.GetWorldBoundingBox();
-            if (drawable.IsOccludee()
-                && octant.GetCullingBox().IsInside(box) == Intersection.Inside
-                && octant.CheckDrawableFit(box))
-                continue;
+            _pendingNodeTransforms.Clear();
 
-            _rootOctant.InsertDrawable(drawable);
+            WorkQueue.ForEachParallel(queue, _drawableUpdates, (_, drawable) =>
+            {
+                if (drawable is not null)
+                    drawable.Update(frame);
+            });
+
+            scene.EndThreadedUpdate();
         }
-        _drawableUpdates.Clear();
 
-        foreach (var pair in _pendingNodeTransforms)
+        // If any drawables were inserted during threaded update, update them now from the main thread
+        if (_threadedDrawableUpdates.Count != 0)
         {
-            var transform = pair.Value;
-            pair.Key.SetTransform(transform.Position, transform.Rotation, transform.Scale);
-        }
-        _pendingNodeTransforms.Clear();
+            foreach (var drawable in _threadedDrawableUpdates)
+            {
+                if (drawable is not null)
+                {
+                    drawable.Update(frame);
+                    _drawableUpdates.Add(drawable);
+                }
+            }
 
-        if (Scene is { } scene)
+            _threadedDrawableUpdates.Clear();
+        }
+
+        // Commit delayed Node transforms
+        if (_drawableUpdates.Count != 0)
+        {
+            foreach (var pair in _pendingNodeTransforms)
+            {
+                var transform = pair.Value;
+                pair.Key.SetTransform(transform.Position, transform.Rotation, transform.Scale);
+            }
+        }
+
+        // Notify drawable update being finished. Custom animation (eg. IK) can be done at this point
+        var currentScene = Scene;
+        if (currentScene is not null)
         {
             var eventData = new SceneEvents.SceneDrawableUpdateFinishedEvent
             {
-                Scene = scene,
-                TimeStep = timeStep
+                Scene = currentScene,
+                TimeStep = frame.TimeStep
             };
-            Context.Instance.SendEvent(ref eventData);
+            currentScene.SendEvent(ref eventData);
         }
 
+        // Reinsert drawables that have been moved or resized, or that have been newly added to the octree and do not sit inside
+        // the proper octant yet
+        if (_drawableUpdates.Count != 0)
+        {
+            foreach (var queuedDrawable in _drawableUpdates)
+            {
+                var drawable = queuedDrawable!;
+                drawable._updateQueued = false;
+                var octant = drawable.GetOctant();
+                var box = drawable.GetWorldBoundingBox();
+
+                // Skip if no octant or does not belong to this octree anymore
+                if (octant is null || !ReferenceEquals(octant.GetOctree(), this))
+                    continue;
+                // Skip if still fits the current octant
+                if (drawable.IsOccludee() && octant.GetCullingBox().IsInside(box) == Intersection.Inside &&
+                    octant.CheckDrawableFit(box))
+                    continue;
+
+                _rootOctant.InsertDrawable(drawable);
+            }
+        }
+
+        _drawableUpdates.Clear();
+
+        // Update other singletons.
+        // TODO: Refactor it, maybe split Octree?
         _zones.Commit();
+
+        if (currentScene is not null)
+            currentScene.Root.GetComponent<ReflectionProbeManager>()?.Update();
     }
 
     public void RemoveDrawable(Drawable drawable, Octant octant)
     {
-        ArgumentNullException.ThrowIfNull(drawable);
-        ArgumentNullException.ThrowIfNull(octant);
-        octant.RemoveDrawable(drawable);
-        if (drawable is Zone zone)
-            _zones.RemoveZone(zone);
+        if (_locked)
+            return;
 
         var index = drawable.GetDrawableIndex();
-        if (index < _drawables.Count && ReferenceEquals(_drawables[(int)index], drawable))
-        {
-            var lastIndex = _drawables.Count - 1;
-            var lastDrawable = _drawables[lastIndex];
-            _drawables.RemoveAt(lastIndex);
-            if (index < lastIndex)
-            {
-                _drawables[(int)index] = lastDrawable;
-                lastDrawable.SetDrawableIndex(index);
-            }
-        }
+        if (index >= _drawables.Count || !ReferenceEquals(_drawables[(int)index], drawable))
+            return;
 
-        _manualDrawables.Remove(drawable);
+        // Remove drawable from Octree
+        octant.RemoveDrawable(drawable);
+
+        // Remove drawable from Zone index
+        if ((drawable.GetDrawableFlags() & DrawableFlags.Zone) != 0)
+            _zones.RemoveZone((Zone)drawable);
+
+        // Remove drawable from index
+        if (_drawables.Count > 1)
+        {
+            var replacement = _drawables[^1];
+            _drawables[(int)index] = replacement;
+            replacement.SetDrawableIndex(index);
+        }
+        _drawables.RemoveAt(_drawables.Count - 1);
+
         drawable.SetDrawableIndex(uint.MaxValue);
         drawable._updateQueued = false;
         drawable.GetMutableCachedZone() = new CachedDrawableZone();
         drawable.GetMutableCachedReflection() = new CachedDrawableReflection();
     }
 
-    public IReadOnlyList<Drawable> GetDrawables(DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        return _drawables
-            .Where(drawable => Matches(drawable, drawableFlags, viewMask))
-            .ToArray();
-    }
-
     public void GetDrawables(OctreeQuery query)
     {
-        ArgumentNullException.ThrowIfNull(query);
         query.Result.Clear();
-        var intersection = query.TestOctant(_worldBoundingBox, inside: false);
-        if (intersection != Intersection.Outside)
-            query.TestDrawables(GetAllDrawables(), intersection == Intersection.Inside);
-    }
-
-    public IReadOnlyList<Drawable> GetDrawables(Vector3f point, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        return GetDrawables(drawableFlags, viewMask)
-            .Where(drawable => drawable.GetWorldBoundingBox().IsInside(point) != Intersection.Outside)
-            .ToArray();
-    }
-
-    public IReadOnlyList<Drawable> GetDrawables(BoundingBox box, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        return GetDrawables(drawableFlags, viewMask)
-            .Where(drawable => drawable.GetWorldBoundingBox().IsInside(box) != Intersection.Outside)
-            .ToArray();
-    }
-
-    public IReadOnlyList<Drawable> GetDrawables(Sphere sphere, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        return GetDrawables(drawableFlags, viewMask)
-            .Where(drawable => drawable.GetWorldBoundingBox().IsInside(sphere) != Intersection.Outside)
-            .ToArray();
-    }
-
-    public IReadOnlyList<RayQueryResult> Raycast(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        return GetDrawables(drawableFlags, viewMask)
-            .SelectMany(drawable => CreateRayQueryResults(ray, level, drawable, maxDistance))
-            .OrderBy(static result => result.Distance)
-            .ToArray();
+        _rootOctant.GetDrawablesInternal(query, false);
     }
 
     public void Raycast(RayOctreeQuery query)
     {
-        ArgumentNullException.ThrowIfNull(query);
         query.Result.Clear();
-        foreach (var drawable in GetDrawables(query.DrawableFlags, query.ViewMask))
-        {
-            foreach (var result in CreateRayQueryResults(query.Ray, query.Level, drawable, query.MaxDistance))
-                query.Result.Add(result);
-        }
-
+        _rootOctant.GetDrawablesInternal(query);
         query.Result.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
-    }
-
-    public RayQueryResult? RaycastSingle(Ray ray, RayQueryLevel level = RayQueryLevel.RayAabb, float maxDistance = float.PositiveInfinity, DrawableFlags drawableFlags = DrawableFlags.Any, uint viewMask = Drawable.DefaultViewMask)
-    {
-        var results = Raycast(ray, level, maxDistance, drawableFlags, viewMask);
-        return results.Count > 0 ? results[0] : null;
     }
 
     public void RaycastSingle(RayOctreeQuery query)
     {
-        Raycast(query);
-        while (query.Result.Count > 1)
-            query.Result.RemoveAt(query.Result.Count - 1);
+        query.Result.Clear();
+        _rayQueryDrawables.Clear();
+        _rootOctant.GetDrawablesOnlyInternal(query, _rayQueryDrawables);
+
+        // Sort by increasing hit distance to AABB
+        foreach (var drawable in _rayQueryDrawables)
+            drawable.SetSortValue(query.Ray.HitDistance(drawable.GetWorldBoundingBox()));
+
+        _rayQueryDrawables.Sort(static (left, right) => left.GetSortValue().CompareTo(right.GetSortValue()));
+
+        // Then do the actual test according to the query, and early-out as possible
+        var closestHit = float.PositiveInfinity;
+        foreach (var drawable in _rayQueryDrawables)
+        {
+            if (drawable.GetSortValue() < MathF.Min(closestHit, query.MaxDistance))
+            {
+                var oldSize = query.Result.Count;
+                drawable.ProcessRayQuery(query, query.Result);
+                if (query.Result.Count > oldSize)
+                    closestHit = MathF.Min(closestHit, query.Result[^1].Distance);
+            }
+            else
+                break;
+        }
+
+        if (query.Result.Count > 1)
+        {
+            query.Result.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
+            query.Result.RemoveRange(1, query.Result.Count - 1);
+        }
     }
 
     public CachedDrawableZone QueryZone(Drawable drawable)
@@ -645,10 +828,17 @@ public sealed class Octree : Component
 
     public Zone? GetBackgroundZone() => _zones.GetBackgroundZone();
 
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        if (debug is not null)
+            _rootOctant.DrawDebugGeometry(debug, depthTest);
+    }
+
+    /// <summary>Visualize the component as debug geometry.</summary>
     public void DrawDebugGeometry(bool depthTest)
     {
         var debug = GetComponent<DebugRenderer>();
-        _rootOctant.DrawDebugGeometry(debug, depthTest);
+        DrawDebugGeometry(debug, depthTest);
     }
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
@@ -667,11 +857,6 @@ public sealed class Octree : Component
             SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene, HandleWorldOriginPostUpdate);
         }
 
-        if (scene is null)
-        {
-            _manualDrawables.Clear();
-            _drawableUpdates.Clear();
-        }
     }
 
     private void HandleWorldOriginUpdate(ref SceneEvents.WorldOriginUpdateEvent eventData)
@@ -692,59 +877,20 @@ public sealed class Octree : Component
         if (scene is null || !scene.IsUpdateEnabled())
             return;
 
-        Update(eventData.TimeStep);
-    }
-
-    private static bool Matches(Drawable drawable, DrawableFlags drawableFlags, uint viewMask)
-    {
-        return (drawable.GetDrawableFlags() & drawableFlags) != 0 && (drawable.GetViewMask() & viewMask) != 0;
-    }
-
-    private static IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, Drawable drawable, float maxDistance)
-    {
-        if (drawable is Skybox)
-            yield break;
-
-        if (drawable is Light light)
+        var frame = new CommonFrameInfo
         {
-            var results = new List<RayQueryResult>();
-            light.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance), results);
-            foreach (var result in results)
-                yield return result;
-            yield break;
-        }
-
-        if (drawable is CustomGeometry customGeometry)
-        {
-            var results = new List<RayQueryResult>();
-            customGeometry.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance), results);
-            foreach (var result in results)
-                yield return result;
-            yield break;
-        }
-
-        if (drawable is StaticModelGroup group)
-        {
-            var results = new List<RayQueryResult>();
-            group.ProcessRayQuery(new RayOctreeQuery(results, ray, level, maxDistance));
-            foreach (var result in results)
-                yield return result;
-            yield break;
-        }
-
-        var distance = ray.HitDistance(drawable.GetWorldBoundingBox());
-        if (float.IsPositiveInfinity(distance) || distance > maxDistance)
-            yield break;
-
-        yield return new RayQueryResult
-        {
-            Drawable = drawable,
-            Node = drawable.IsAttached ? drawable.Node : null,
-            Distance = distance,
-            Position = ray.Origin + ray.Direction * distance,
-            Normal = -ray.Direction,
-            TextureUV = Vector2f.Zero,
-            SubObject = 0
+            FrameNumber = GetSubsystem<Time>()!.GetFrameNumber(),
+            TimeStep = eventData.TimeStep,
+            Camera = null
         };
+
+        Update(frame);
     }
+
+    /// <summary>Update octree size.</summary>
+    private void UpdateOctreeSize()
+    {
+        SetSize(_worldBoundingBox, _numLevels);
+    }
+
 }

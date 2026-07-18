@@ -243,15 +243,20 @@ public sealed class Zone : Drawable
         _lastAmbientStartZone = this;
         _lastAmbientEndZone = this;
 
-        if (!IsAttached || Scene?.Root.GetComponent<Octree>() is not { } octree)
+        var octant = GetOctant();
+        if (octant is null)
             return;
+
+        var octree = octant.GetOctree()!;
 
         var worldTransform = Node.GetWorldTransform();
         var center = BoundingBox.Center;
         var minZPosition = worldTransform * new Vector3f(center.X, center.Y, BoundingBox.Min.Z);
         var maxZPosition = worldTransform * new Vector3f(center.X, center.Y, BoundingBox.Max.Z);
 
-        var result = octree.GetDrawables(minZPosition, DrawableFlags.Zone);
+        var result = new List<Drawable>();
+        using (var query = new PointOctreeQuery(result, minZPosition, DrawableFlags.Zone))
+            octree.GetDrawables(query);
 
         // Gradient start position: get the highest priority zone that is not this zone
         var bestPriority = int.MinValue;
@@ -274,7 +279,8 @@ public sealed class Zone : Drawable
         }
 
         // Do the same for gradient end position
-        result = octree.GetDrawables(maxZPosition, DrawableFlags.Zone);
+        using (var query = new PointOctreeQuery(result, maxZPosition, DrawableFlags.Zone))
+            octree.GetDrawables(query);
         bestPriority = int.MinValue;
         bestZone = null;
 
@@ -365,7 +371,7 @@ public sealed class Zone : Drawable
         _ambientStartColor = AmbientColor;
         _ambientEndColor = AmbientColor;
         if (GetOctant() is { } octant)
-            octant.GetOctree().MarkZoneDirty(this);
+            octant.GetOctree()!.MarkZoneDirty(this);
     }
 
     private void MarkCachedAmbientDirty()
@@ -396,15 +402,21 @@ public sealed class Zone : Drawable
     {
         var currentWorldBoundingBox = GetWorldBoundingBox();
         var dirtyWorldBoundingBox = currentWorldBoundingBox.Merged(_lastWorldBoundingBox);
-        if (Scene?.Root.GetComponent<Octree>() is { } octree)
+        if (GetOctant() is { } octant)
         {
-            foreach (var drawable in octree.GetDrawables(dirtyWorldBoundingBox, DrawableFlags.Geometry | DrawableFlags.Zone))
+            var octree = octant.GetOctree()!;
+            var result = new List<Drawable>();
+            using var query = new BoxOctreeQuery(result, dirtyWorldBoundingBox, DrawableFlags.Geometry | DrawableFlags.Zone);
+            octree.GetDrawables(query);
+
+            foreach (var drawable in result)
             {
                 var drawableFlags = drawable.GetDrawableFlags();
                 if ((drawableFlags & DrawableFlags.Geometry) != 0)
                     drawable.SetZone(null);
-                else if ((drawableFlags & DrawableFlags.Zone) != 0 && drawable is Zone zone)
+                else if ((drawableFlags & DrawableFlags.Zone) != 0)
                 {
+                    var zone = (Zone)drawable;
                     zone._lastAmbientStartZone = null;
                     zone._lastAmbientEndZone = null;
                 }
