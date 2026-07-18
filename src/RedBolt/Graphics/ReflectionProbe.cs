@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>Cached internal structure for reflection probe search.</summary>
-public class InternalReflectionProbeData
+public class InternalReflectionProbeData : ICloneable
 {
     private Matrix3x4 _worldToLocal;
     private BoundingBox _localBoundingBox;
@@ -9,29 +9,35 @@ public class InternalReflectionProbeData
 
     public InternalReflectionProbeData(ReflectionProbe probe)
     {
-        Probe = probe ?? throw new ArgumentNullException(nameof(probe));
-        Data = probe.GetProbeData();
+        Probe = probe;
         Priority = probe.GetPriority();
         Update();
     }
 
+    private InternalReflectionProbeData(InternalReflectionProbeData rhs)
+    {
+        Probe = rhs.Probe;
+        Priority = rhs.Priority;
+        _worldToLocal = rhs._worldToLocal;
+        _localBoundingBox = rhs._localBoundingBox;
+        _worldBoundingBox = rhs._worldBoundingBox;
+    }
+
+    public object Clone() => new InternalReflectionProbeData(this);
+
     public ReflectionProbe Probe { get; }
 
-    public ReflectionProbeData Data { get; private set; }
+    public ReflectionProbeData Data => Probe.GetProbeData();
 
     public int Priority { get; }
 
     public void Update()
     {
-        var node = Probe.Node;
-        if (node is null)
-            return;
-
+        var node = Probe.Node!;
         var worldTransform = node.GetWorldTransform();
         _worldToLocal = worldTransform.Inverse;
         _localBoundingBox = Probe.GetBoundingBox();
         _worldBoundingBox = Probe.GetBoundingBox().Transformed(worldTransform);
-        Data = Probe.GetProbeData();
     }
 
     public float? GetIntersectionVolume(BoundingBox worldBoundingBox)
@@ -90,28 +96,57 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         public List<ReflectionProbe> RealtimeProbes;
     }
 
-    private SpatialCache _spatial = new()
-    {
-        MovableProbes = [],
-        ImmovableProbes = [],
-        ImmovableProbesBvh = []
-    };
-
-    private AutoQueueCache _autoQueue = new() { RealtimeProbes = [] };
-
     private CubemapRenderer? _cubemapRenderer;
     private float _queryPadding = DefaultQueryPadding;
     private uint _renderBudget = DefaultRenderBudget;
     private bool _filterCubemaps = true;
     private readonly HashSet<ReflectionProbe> _probesToUpdate = [];
     private readonly List<QueuedReflectionProbe> _updateQueue = [];
+    private readonly List<QueuedReflectionProbe> _frameUpdates = [];
+    private SpatialCache _spatial = new()
+    {
+        MovableProbes = [],
+        ImmovableProbes = [],
+        ImmovableProbesBvh = []
+    };
+    private AutoQueueCache _autoQueue = new() { RealtimeProbes = [] };
+    private static readonly ThreadLocal<List<ReflectionProbeBVH>> TempIntersectedProbes = new(() => []);
+    private ContextEventSubscription? _deviceResetSubscription;
 
     public ReflectionProbeManager()
         : base(typeof(ReflectionProbe).GetClassName())
     {
+        _deviceResetSubscription = SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(
+            (ref GraphicsEvents.DeviceResetEvent _) => RestoreCubemaps());
+        // TODO: port URHO3D_ACTION_STATIC_LABEL("Bake!", QueueBakeAll, "Renders all baked reflection probes");
+        RegisterAttribute("Query Padding", typeof(float), self => ((ReflectionProbeManager)self)._queryPadding,
+            (self, value) => ((ReflectionProbeManager)self)._queryPadding = (float)value!, DefaultQueryPadding);
+        RegisterAttribute("Render Budget", typeof(uint), self => ((ReflectionProbeManager)self)._renderBudget,
+            (self, value) => ((ReflectionProbeManager)self)._renderBudget = (uint)value!, DefaultRenderBudget);
+        RegisterAttribute("Filter Cubemaps", typeof(bool), self => ((ReflectionProbeManager)self)._filterCubemaps,
+            (self, value) => ((ReflectionProbeManager)self)._filterCubemaps = value is bool enabled && enabled, true);
+    }
+
+    public override void Dispose()
+    {
+        _autoQueue.RealtimeProbes.Clear();
+        _spatial.ImmovableProbesBvh.Clear();
+        _spatial.ImmovableProbes.Clear();
+        _spatial.MovableProbes.Clear();
+        _frameUpdates.Clear();
+        _updateQueue.Clear();
+        _probesToUpdate.Clear();
+        _cubemapRenderer?.Dispose();
+        _cubemapRenderer = null;
+        _deviceResetSubscription?.Dispose();
+        _deviceResetSubscription = null;
+        base.Dispose();
     }
 
     public override bool IsOnlyEnabledTracked => true;
+
+    public static void RegisterObject(Context context) =>
+        context.AddFactoryReflection<ReflectionProbeManager>(ObjectCategory.Category_Subsystem);
 
     public float QueryPadding
     {
@@ -184,15 +219,15 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         ConsumeUpdateQueue();
     }
 
+    public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
+    {
+        foreach (var reflectionProbe in GetReflectionProbes())
+            reflectionProbe.DrawDebugGeometry(debug, depthTest, compact: true);
+    }
+
     /// <summary>Query two most important reflection probes.</summary>
     public void QueryDynamicProbes(BoundingBox worldBoundingBox, Span<ReflectionProbeReference> probes)
     {
-        if (probes.Length < 2)
-            return;
-
-        if (_spatial.Dirty)
-            UpdateSpatialCache();
-
         foreach (var probeData in _spatial.MovableProbes)
         {
             var volume = probeData.GetIntersectionVolume(worldBoundingBox);
@@ -210,33 +245,40 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
     public void QueryStaticProbes(BoundingBox worldBoundingBox, Span<ReflectionProbeReference> probes,
         ref float cacheDistanceSquared)
     {
-        if (probes.Length < 2)
-            return;
+        var intersections = TempIntersectedProbes.Value!;
+        intersections.Clear();
 
-        if (_spatial.Dirty)
-            UpdateSpatialCache();
+        probes[0].Reset();
+        probes[1].Reset();
 
-        cacheDistanceSquared = MathDefs.LargeValue;
-        var intersections = new List<ReflectionProbeBVH>();
-        QueryBvh(intersections, _spatial.ImmovableProbesBvh, worldBoundingBox);
+        var padding = Vector3f.One * _queryPadding;
+        var paddedBoundingBox = new BoundingBox(worldBoundingBox.Min - padding, worldBoundingBox.Max + padding);
+        QueryBvh(intersections, _spatial.ImmovableProbesBvh, paddedBoundingBox);
 
+        var cacheDistance = _queryPadding;
         foreach (var node in intersections)
         {
-            if (node.Data is null)
-                continue;
-            var volume = node.Data.GetIntersectionVolume(worldBoundingBox);
-            if (volume is null)
-                continue;
-            AppendReference(probes, new ReflectionProbeReference
+            var signedDistance = node.WorldBoundingBox.SignedDistanceToBoundingBox(worldBoundingBox);
+            if (signedDistance > 0.0f)
+                cacheDistance = Math.Min(cacheDistance, signedDistance);
+            else
             {
-                Data = node.Data.Data,
-                Priority = node.Data.Priority,
-                Volume = volume.Value
-            });
-        }
+                var probeData = node.Data!;
+                var volume = probeData.GetIntersectionVolume(worldBoundingBox);
+                if (volume is not null)
+                {
+                    AppendReference(probes, new ReflectionProbeReference
+                    {
+                        Data = probeData.Data,
+                        Priority = probeData.Priority,
+                        Volume = volume.Value
+                    });
+                }
 
-        // Cache invalidation distance is half of query padding so probes re-query when moving far enough
-        cacheDistanceSquared = _queryPadding * _queryPadding * 0.25f;
+                cacheDistance = Math.Min(cacheDistance, -signedDistance);
+            }
+        }
+        cacheDistanceSquared = cacheDistance * cacheDistance;
     }
 
     public IEnumerable<ReflectionProbe> GetReflectionProbes()
@@ -432,6 +474,15 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         _updateQueue.RemoveAll(queued => queued.Probe is null);
     }
 
+    private void RestoreCubemaps()
+    {
+        foreach (var reflectionProbe in GetReflectionProbes())
+        {
+            if (reflectionProbe.IsRenderOnWake())
+                QueueProbeUpdate(reflectionProbe);
+        }
+    }
+
     private string GetBakedProbeFilePath()
     {
         var scene = Scene;
@@ -534,7 +585,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
         if (probesCount == 1)
         {
-            var leaf = probes[probesOffset];
+            var leaf = (InternalReflectionProbeData)probes[probesOffset].Clone();
             result[resultOffset] = new ReflectionProbeBVH
             {
                 Data = leaf,
@@ -609,6 +660,8 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 /// <summary>Reflection probe component that specifies reflection applied within a region.</summary>
 public class ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>
 {
+    private static readonly string[] ReflectionProbeTypeNames = ["Baked", "Mixed", "Dynamic", "Custom Texture"];
+
     private bool _movable;
     private ReflectionProbeType _probeType;
     private bool _realtimeUpdate;
@@ -625,8 +678,83 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public ReflectionProbe()
     {
-        _data.ProjectionBox = _projectionBox;
+        // TODO: port URHO3D_ACTION_STATIC_LABEL("Render!", QueueRender, "Renders cubemap for reflection probe");
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((ReflectionProbe)self).Enabled,
+            (self, value) => ((ReflectionProbe)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Is Movable", typeof(bool), self => ((ReflectionProbe)self).IsMovable(),
+            (self, value) => ((ReflectionProbe)self).SetMovable(value is bool movable && movable), false);
+        RegisterAttribute("Probe Type", typeof(ReflectionProbeType), self => ((ReflectionProbe)self).GetProbeType(),
+            (self, value) => ((ReflectionProbe)self).SetProbeType((ReflectionProbeType)value!),
+            ReflectionProbeType.Baked, enumNames: ReflectionProbeTypeNames);
+        RegisterAttribute("Is Realtime Update", typeof(bool), self => ((ReflectionProbe)self).IsRealtimeUpdate(),
+            (self, value) => ((ReflectionProbe)self).SetRealtimeUpdate(value is bool realtime && realtime), false);
+        RegisterAttribute("Is Sliced Update", typeof(bool), self => ((ReflectionProbe)self).IsSlicedUpdate(),
+            (self, value) => ((ReflectionProbe)self).SetSlicedUpdate(value is bool sliced && sliced), false);
+        RegisterAttribute("Bounding Box Min", typeof(Vector3f), self => ((ReflectionProbe)self)._boundingBox.Min,
+            (self, value) =>
+            {
+                var probe = (ReflectionProbe)self;
+                probe._boundingBox.Min = (Vector3f)value!;
+                probe.MarkTransformDirty();
+            }, -Vector3f.One);
+        RegisterAttribute("Bounding Box Max", typeof(Vector3f), self => ((ReflectionProbe)self)._boundingBox.Max,
+            (self, value) =>
+            {
+                var probe = (ReflectionProbe)self;
+                probe._boundingBox.Max = (Vector3f)value!;
+                probe.MarkTransformDirty();
+            }, Vector3f.One);
+        RegisterAttribute("Priority", typeof(int), self => ((ReflectionProbe)self).GetPriority(),
+            (self, value) => ((ReflectionProbe)self).SetPriority((int)value!), 0);
+        RegisterAttribute("Texture", typeof(ResourceRef), self => ((ReflectionProbe)self).GetTextureAttr(),
+            (self, value) => ((ReflectionProbe)self).SetTextureAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(TextureCube))));
+        RegisterAttribute("Use Box Projection", typeof(bool), self => ((ReflectionProbe)self).IsBoxProjectionUsed(),
+            (self, value) => ((ReflectionProbe)self).SetBoxProjectionUsed(value is bool enabled && enabled), false);
+        RegisterAttribute("Projection Box Min", typeof(Vector3f), self => ((ReflectionProbe)self)._projectionBox.Min,
+            (self, value) =>
+            {
+                var probe = (ReflectionProbe)self;
+                probe._projectionBox.Min = (Vector3f)value!;
+                probe.UpdateProbeBoxData();
+            }, -Vector3f.One);
+        RegisterAttribute("Projection Box Max", typeof(Vector3f), self => ((ReflectionProbe)self)._projectionBox.Max,
+            (self, value) =>
+            {
+                var probe = (ReflectionProbe)self;
+                probe._projectionBox.Max = (Vector3f)value!;
+                probe.UpdateProbeBoxData();
+            }, Vector3f.One);
+        RegisterAttribute("Texture Size", typeof(uint), self => ((ReflectionProbe)self).GetTextureSize(),
+            (self, value) => ((ReflectionProbe)self).SetTextureSize((uint)value!),
+            CubemapRenderingSettings.DefaultTextureSize);
+        RegisterAttribute("View Mask", typeof(uint), self => ((ReflectionProbe)self).GetViewMask(),
+            (self, value) => ((ReflectionProbe)self).SetViewMask((uint)value!),
+            CubemapRenderingSettings.DefaultViewMask);
+        RegisterAttribute("Near Clip", typeof(float), self => ((ReflectionProbe)self).GetNearClip(),
+            (self, value) => ((ReflectionProbe)self).SetNearClip((float)value!),
+            CubemapRenderingSettings.DefaultNearClip);
+        RegisterAttribute("Far Clip", typeof(float), self => ((ReflectionProbe)self).GetFarClip(),
+            (self, value) => ((ReflectionProbe)self).SetFarClip((float)value!),
+            CubemapRenderingSettings.DefaultFarClip);
     }
+
+    public override void Dispose()
+    {
+        _mixedProbeTexture?.Dispose();
+        _mixedProbeTexture = null;
+        if (_dynamicProbeRenderer is not null)
+        {
+            _dynamicProbeRenderer.CubemapRendered -= OnDynamicCubemapRendered;
+            _dynamicProbeRenderer.Dispose();
+            _dynamicProbeRenderer = null;
+        }
+        _texture = null;
+        base.Dispose();
+    }
+
+    public static void RegisterObject(Context context) =>
+        context.AddFactoryReflection<ReflectionProbe>(ObjectCategory.Category_Scene);
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest) =>
         DrawDebugGeometry(debug, depthTest, compact: false);
@@ -666,7 +794,9 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
             return;
         _probeType = probeType;
         UpdateCubemapRenderer();
-        MarkComponentDirty();
+
+        if (IsRenderOnWake())
+            QueueRender();
     }
 
     public ReflectionProbeType GetProbeType() => _probeType;
@@ -687,6 +817,8 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public void SetBoundingBox(BoundingBox box)
     {
+        if (_boundingBox.Equals(box))
+            return;
         _boundingBox = box;
         MarkTransformDirty();
     }
@@ -706,8 +838,8 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
     public void SetTexture(TextureCube? texture)
     {
         _texture = texture;
-        UpdateProbeTextureData(texture);
-        MarkComponentDirty();
+        if (_probeType is ReflectionProbeType.Baked or ReflectionProbeType.CustomTexture)
+            UpdateProbeTextureData(texture);
     }
 
     public TextureCube? GetTexture() => _texture;
@@ -723,9 +855,10 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public void SetBoxProjectionUsed(bool useBoxProjection)
     {
+        if (_useBoxProjection == useBoxProjection)
+            return;
         _useBoxProjection = useBoxProjection;
         UpdateProbeBoxData();
-        MarkComponentDirty();
     }
 
     public bool IsBoxProjectionUsed() => _useBoxProjection;
@@ -733,7 +866,6 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
     public void SetProjectionBox(BoundingBox box)
     {
         _projectionBox = box;
-        UpdateProbeBoxData();
     }
 
     public BoundingBox GetProjectionBox() => _projectionBox;
@@ -742,21 +874,39 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public void SetTextureSize(uint value)
     {
+        if (_cubemapRenderingSettings.TextureSize == value)
+            return;
         _cubemapRenderingSettings.TextureSize = value;
-        UpdateCubemapRenderer();
+        if (_mixedProbeTexture is not null)
+        {
+            CubemapRenderer.DefineTexture(_mixedProbeTexture, _cubemapRenderingSettings);
+            UpdateProbeTextureData(_mixedProbeTexture);
+        }
     }
 
     public uint GetTextureSize() => _cubemapRenderingSettings.TextureSize;
 
-    public void SetViewMask(uint value) => _cubemapRenderingSettings.ViewMask = value;
+    public void SetViewMask(uint value)
+    {
+        if (_cubemapRenderingSettings.ViewMask != value)
+            _cubemapRenderingSettings.ViewMask = value;
+    }
 
     public uint GetViewMask() => _cubemapRenderingSettings.ViewMask;
 
-    public void SetNearClip(float value) => _cubemapRenderingSettings.NearClip = value;
+    public void SetNearClip(float value)
+    {
+        if (_cubemapRenderingSettings.NearClip != value)
+            _cubemapRenderingSettings.NearClip = value;
+    }
 
     public float GetNearClip() => _cubemapRenderingSettings.NearClip;
 
-    public void SetFarClip(float value) => _cubemapRenderingSettings.FarClip = value;
+    public void SetFarClip(float value)
+    {
+        if (_cubemapRenderingSettings.FarClip != value)
+            _cubemapRenderingSettings.FarClip = value;
+    }
 
     public float GetFarClip() => _cubemapRenderingSettings.FarClip;
 
@@ -767,20 +917,27 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
-        base.OnNodeSet(previousNode, currentNode);
+        if (currentNode is not null)
+        {
+            currentNode.AddListener(this);
+            MarkTransformDirty();
+        }
+
         UpdateCubemapRenderer();
-        MarkTransformDirty();
     }
 
     protected internal override void OnMarkedDirty(Node node)
     {
-        base.OnMarkedDirty(node);
         MarkTransformDirty();
     }
 
     private void MarkComponentDirty() => GetRegistry()?.MarkProbeDirty(this);
 
-    private void MarkTransformDirty() => GetRegistry()?.MarkProbeTransformDirty(this);
+    private void MarkTransformDirty()
+    {
+        GetRegistry()?.MarkProbeTransformDirty(this);
+        UpdateProbeBoxData();
+    }
 
     private void MarkRealtimeDirty() => GetRegistry()?.MarkProbeRealtimeDirty(this);
 

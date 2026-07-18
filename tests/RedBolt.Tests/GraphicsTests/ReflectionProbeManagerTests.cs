@@ -18,6 +18,38 @@ public sealed class ReflectionProbeManagerTests
     }
 
     [Fact]
+    public void Reflection_probe_cache_types_match_cpp_class_and_pod_shapes()
+    {
+        Assert.False(typeof(InternalReflectionProbeData).IsValueType);
+        Assert.True(typeof(ReflectionProbeBVH).IsValueType);
+
+        var managerType = typeof(ReflectionProbeManager);
+        Assert.True(managerType.GetNestedType("QueuedReflectionProbe", BindingFlags.NonPublic)!.IsValueType);
+        Assert.True(managerType.GetNestedType("SpatialCache", BindingFlags.NonPublic)!.IsValueType);
+        Assert.True(managerType.GetNestedType("AutoQueueCache", BindingFlags.NonPublic)!.IsValueType);
+    }
+
+    [Fact]
+    public void Internal_reflection_probe_data_clone_is_an_independent_cpp_value_copy()
+    {
+        var scene = new Scene();
+        scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        var node = scene.CreateChild("Probe");
+        var probe = node.CreateComponent<ReflectionProbe>();
+        probe.SetBoxProjectionUsed(true);
+        var source = new InternalReflectionProbeData(probe);
+        var copy = (InternalReflectionProbeData)source.Clone();
+
+        node.SetWorldPosition(new Vector3f(10.0f, 0.0f, 0.0f));
+        source.Update();
+
+        Assert.NotEqual(source.GetWorldBoundingBox(), copy.GetWorldBoundingBox());
+        Assert.Same(source.Probe, copy.Probe);
+        Assert.Equal(10.0f, source.Data.CubemapCenter.X);
+        Assert.Equal(10.0f, copy.Data.CubemapCenter.X);
+    }
+
+    [Fact]
     public void UpdateCubemapRenderer_dynamic_creates_renderer()
     {
         var scene = new Scene();
