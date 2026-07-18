@@ -14,6 +14,18 @@
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
+    },
+    {
+      "name": "web-emscripten-wasm",
+      "displayName": "Web Emscripten WASM",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/DotNetEmscripten.cmake",
+        "REDBOLT_WEB_BUILD": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -31,6 +43,13 @@
       "configuration": "Release",
       "targets": [
         "redbolt-stage0"
+      ]
+    },
+    {
+      "name": "web-emscripten-wasm-release",
+      "configurePreset": "web-emscripten-wasm",
+      "targets": [
+        "redbolt-wasm"
       ]
     }
   ]

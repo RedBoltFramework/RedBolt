@@ -16,15 +16,7 @@ add_library(redbolt-imgui-backend STATIC
     thirdparty/ImGuiDiligentRenderer.cpp)
 target_compile_definitions(redbolt-imgui-backend PRIVATE
     REDBOLT_NATIVE_BUILD
-    PLATFORM_LINUX=1
-    D3D11_SUPPORTED=0
-    D3D12_SUPPORTED=0
-    GL_SUPPORTED=1
-    GLES_SUPPORTED=0
-    VULKAN_SUPPORTED=1
-    METAL_SUPPORTED=0
-    WEBGPU_SUPPORTED=0
-    DILIGENT_NO_HLSL=1)
+    ${REDBOLT_DILIGENT_BINDING_DEFINES})
 target_include_directories(redbolt-imgui-backend PRIVATE
     include
     thirdparty
@@ -33,13 +25,20 @@ target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
-        Diligent-GraphicsEngineVk-static
         ImGui
         ImGuiSdl2)
+if(NOT EMSCRIPTEN)
+    target_link_libraries(redbolt-imgui-backend PUBLIC Diligent-GraphicsEngineVk-static)
+endif()
 set_target_properties(redbolt-imgui-backend PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-add_library(RedBolt.Native SHARED
+if(EMSCRIPTEN)
+    set(_redbolt_native_library_type STATIC)
+else()
+    set(_redbolt_native_library_type SHARED)
+endif()
+add_library(RedBolt.Native ${_redbolt_native_library_type}
     "${REDBOLT_SDL_BINDINGS_CPP}"
     "${REDBOLT_DILIGENT_BINDINGS_CPP}"
     "${REDBOLT_IMGUI_BINDINGS_CPP}"
@@ -94,7 +93,6 @@ target_link_libraries(RedBolt.Native
         redbolt-sdl2-image
         Diligent-GraphicsEngine
         Diligent-GraphicsEngineOpenGL-static
-        Diligent-GraphicsEngineVk-static
         ImGui
         ImGuiSdl2
         redbolt-native-support
@@ -108,6 +106,10 @@ target_link_libraries(RedBolt.Native
         SPIRV-Tools
         SPIRV-Tools-opt
         -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)
+
+if(NOT EMSCRIPTEN)
+    target_link_libraries(RedBolt.Native PRIVATE Diligent-GraphicsEngineVk-static)
+endif()
 
 if(D3D11_SUPPORTED OR D3D12_SUPPORTED)
     target_link_libraries(RedBolt.Native PRIVATE d3dcompiler)

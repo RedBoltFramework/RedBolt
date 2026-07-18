@@ -27,12 +27,17 @@ function(redbolt_ensure_native_binding_generator)
         return()
     endif()
 
+    set(generator_restore_argument --no-restore)
+    if(REDBOLT_WEB_BUILD)
+        set(generator_restore_argument)
+    endif()
+
     add_custom_command(
         OUTPUT "${REDBOLT_DEPENDENCIES_GENERATOR_STAMP}"
         COMMAND "${DOTNET_EXECUTABLE}" build
             "${REDBOLT_DEPENDENCIES_GENERATOR_PROJECT}"
             --configuration $<CONFIG>
-            --no-restore
+            ${generator_restore_argument}
             "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
             "-p:SharpCppCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
         COMMAND "${CMAKE_COMMAND}" -E touch "${REDBOLT_DEPENDENCIES_GENERATOR_STAMP}"
@@ -87,13 +92,19 @@ function(redbolt_add_native_binding_generation)
         endif()
     endforeach()
 
+    set(binding_generator_command
+        "${DOTNET_EXECUTABLE}" "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}")
+    if(EMSCRIPTEN)
+        list(PREPEND binding_generator_command "${_redbolt_emscripten_environment}")
+    endif()
+
     add_custom_command(
         OUTPUT
             "${ARG_OUTPUT_CS}"
             "${ARG_OUTPUT_CPP}"
             "${generated_aliases}"
             "${ARG_OUTPUT_METADATA}"
-        COMMAND "${DOTNET_EXECUTABLE}" "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
+        COMMAND ${binding_generator_command}
             --surface "${ARG_SURFACE}"
             --header "${ARG_HEADER}"
             --include-name "${ARG_HEADER_INCLUDE_PATH}"

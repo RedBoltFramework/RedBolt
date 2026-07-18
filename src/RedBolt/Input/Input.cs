@@ -249,9 +249,15 @@ public sealed class Input : Object
             if (backend == RenderBackend.OpenGL)
             {
                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
+#if REDBOLT_PLATFORM_WEB
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 3), "SDL_GL_SetAttribute major version");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 0), "SDL_GL_SetAttribute minor version");
+                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileEs), "SDL_GL_SetAttribute profile mask");
+#else
                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
+#endif
             }
 
             using var title = new CString(parameters.WindowTitle);
@@ -1341,6 +1347,7 @@ public sealed class Input : Object
 
     public bool GetFocus() => HasFocus;
 
+#if REDBOLT_PLATFORM_LINUX
     internal NativeWindowInfo GetNativeWindowInfo()
     {
         using var wmInfo = CreateInitializedWmInfo();
@@ -1355,6 +1362,7 @@ public sealed class Input : Object
 
         return new NativeWindowInfo(wmInfo.InfoX11Display, checked((uint)wmInfo.InfoX11Window));
     }
+#endif
 
     public void Shutdown()
     {

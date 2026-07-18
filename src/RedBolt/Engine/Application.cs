@@ -1,16 +1,27 @@
 using Microsoft.Extensions.Logging;
+#if REDBOLT_PLATFORM_WEB
+using System.Runtime.InteropServices.JavaScript;
+#endif
 
 namespace RedBolt;
 
-public abstract class Application : Object
+public abstract partial class Application : Object
 {
     public const int FailureExitCode = 1;
 
     private string _startupErrors = string.Empty;
+    private readonly Action<float> _updateAction;
+#if REDBOLT_PLATFORM_WEB
+    private readonly Action _runFrameAction;
+#endif
 
     protected Application()
     {
         Engine = new Engine();
+        _updateAction = Update;
+#if REDBOLT_PLATFORM_WEB
+        _runFrameAction = RunFrame;
+#endif
         SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
     }
 
@@ -98,6 +109,9 @@ public abstract class Application : Object
             return ExitCode;
 
         var started = false;
+#if REDBOLT_PLATFORM_WEB
+        var mainLoopStarted = false;
+#endif
         try
         {
             if (!Engine.Initialize(parameters))
@@ -113,8 +127,11 @@ public abstract class Application : Object
 
             if (!ShouldStopAfterStart())
             {
+#if REDBOLT_PLATFORM_WEB
+                SetMainLoop(_runFrameAction);
+                mainLoopStarted = true;
+#else
                 var frameCount = 0;
-                Action<float> updateAction = Update;
                 while (!Engine.IsExiting)
                 {
                     if (frameCount >= MaxFrameCount)
@@ -123,9 +140,10 @@ public abstract class Application : Object
                         break;
                     }
 
-                    Engine.RunFrame(updateAction);
+                    Engine.RunFrame(_updateAction);
                     ++frameCount;
                 }
+#endif
             }
 
         }
@@ -136,7 +154,11 @@ public abstract class Application : Object
         }
         finally
         {
-            if (started)
+            if (started
+#if REDBOLT_PLATFORM_WEB
+                && !mainLoopStarted
+#endif
+               )
             {
                 Stop();
                 SendEvent<EngineEvents.ApplicationStoppedEvent>();
@@ -185,5 +207,16 @@ public abstract class Application : Object
     {
         return ExitCode != 0 || Engine.IsExiting;
     }
+
+#if REDBOLT_PLATFORM_WEB
+    private void RunFrame()
+    {
+        Engine.RunFrame(_updateAction);
+    }
+
+    [JSImport("mainLoop.set", "main.js")]
+    private static partial void SetMainLoop(
+        [JSMarshalAs<JSType.Function>] Action callback);
+#endif
 
 }

@@ -77,6 +77,7 @@ public:
     Uint32 programObject_{};
     std::vector<std::string> vertexAttributeNames_;
     std::vector<Uint32> vertexAttributeLocations_;
+    std::string uniformName_;
     TemporaryGLProgram(IShader* vertexShader, IShader* pixelShader, IShader* domainShader, IShader* hullShader,
         IShader* geometryShader, bool separablePrograms)
     {
@@ -174,6 +175,109 @@ bool BindTemporaryGLProgramVertexAttributes(const void* program, IPipelineState*
         glBindAttribLocation(programObject, temporaryProgram->vertexAttributeLocations_[i],
             temporaryProgram->vertexAttributeNames_[i].c_str());
     return true;
+}
+
+Uint32 GetTemporaryGLProgramUniformBlockCount(const void* program)
+{
+    GLint count = 0;
+    glGetProgramiv(static_cast<const TemporaryGLProgram*>(program)->programObject_, GL_ACTIVE_UNIFORM_BLOCKS, &count);
+    return static_cast<Uint32>(count);
+}
+
+const char* GetTemporaryGLProgramUniformBlockName(void* program, Uint32 index)
+{
+    auto* temporaryProgram = static_cast<TemporaryGLProgram*>(program);
+    char name[256]{};
+    glGetActiveUniformBlockName(temporaryProgram->programObject_, index, sizeof(name), nullptr, name);
+    temporaryProgram->uniformName_ = name;
+    return temporaryProgram->uniformName_.c_str();
+}
+
+Uint32 GetTemporaryGLProgramUniformBlockDataSize(const void* program, Uint32 index)
+{
+    GLint size = 0;
+    glGetActiveUniformBlockiv(static_cast<const TemporaryGLProgram*>(program)->programObject_, index,
+        GL_UNIFORM_BLOCK_DATA_SIZE, &size);
+    return static_cast<Uint32>(size);
+}
+
+Uint32 GetTemporaryGLProgramUniformBlockIndex(const void* program, const char* name)
+{
+    return glGetUniformBlockIndex(static_cast<const TemporaryGLProgram*>(program)->programObject_, name);
+}
+
+Uint32 GetTemporaryGLProgramUniformCount(const void* program)
+{
+    GLint count = 0;
+    glGetProgramiv(static_cast<const TemporaryGLProgram*>(program)->programObject_, GL_ACTIVE_UNIFORMS, &count);
+    return static_cast<Uint32>(count);
+}
+
+const char* GetTemporaryGLProgramUniformName(void* program, Uint32 index)
+{
+    auto* temporaryProgram = static_cast<TemporaryGLProgram*>(program);
+    char name[256]{};
+    glGetActiveUniform(temporaryProgram->programObject_, index, sizeof(name), nullptr, nullptr, nullptr, name);
+    temporaryProgram->uniformName_ = name;
+    return temporaryProgram->uniformName_.c_str();
+}
+
+Int32 GetTemporaryGLProgramUniformBlockIndex(const void* program, Uint32 index)
+{
+    GLint blockIndex = 0;
+    glGetActiveUniformsiv(static_cast<const TemporaryGLProgram*>(program)->programObject_, 1, &index,
+        GL_UNIFORM_BLOCK_INDEX, &blockIndex);
+    return blockIndex;
+}
+
+Int32 GetTemporaryGLProgramUniformBlockOffset(const void* program, Uint32 index)
+{
+    GLint blockOffset = 0;
+    glGetActiveUniformsiv(static_cast<const TemporaryGLProgram*>(program)->programObject_, 1, &index,
+        GL_UNIFORM_OFFSET, &blockOffset);
+    return blockOffset;
+}
+
+Uint32 GetTemporaryGLProgramUniformSize(const void* program, Uint32 index)
+{
+    GLint elementCount = 0;
+    GLenum type = 0;
+    char name[256]{};
+    glGetActiveUniform(static_cast<const TemporaryGLProgram*>(program)->programObject_, index, sizeof(name), nullptr,
+        &elementCount, &type, name);
+
+    Uint32 numElements = 0;
+    Uint32 numVectors = 1;
+    switch (type)
+    {
+    case GL_BOOL:
+    case GL_INT:
+    case GL_FLOAT: numElements = 1; break;
+    case GL_FLOAT_VEC2: numElements = 2; break;
+    case GL_FLOAT_VEC3: numElements = 3; break;
+    case GL_FLOAT_VEC4: numElements = 4; break;
+    case GL_FLOAT_MAT3:
+        numElements = 3;
+        numVectors = 3;
+        break;
+    case GL_FLOAT_MAT3x4:
+        numElements = 4;
+        numVectors = 3;
+        break;
+    case GL_FLOAT_MAT4:
+        numElements = 4;
+        numVectors = 4;
+        break;
+    default: return 0;
+    }
+
+    if (elementCount > 1 || numVectors > 1)
+    {
+        const Uint32 alignment = 4 * sizeof(float);
+        const Uint32 elementSize = numElements * sizeof(float);
+        return elementCount * numVectors * ((elementSize + alignment - 1) / alignment) * alignment;
+    }
+    return numElements * sizeof(float);
 }
 
 class ProxySwapChainGL : public SwapChainBase<ISwapChainGL>

@@ -111,7 +111,9 @@ layout(std140) uniform Material
     private IEngineFactory? _factory;
     private IRenderDevice? _device;
     private ISwapChain? _swapChain;
+#if REDBOLT_VULKAN_SUPPORTED
     private ISwapChainVk? _swapChainVulkan;
+#endif
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private RenderOutputTargetInfo? _swapChainOutputTarget;
     private ITextureView? _renderTargetView;
@@ -1070,7 +1072,9 @@ layout(std140) uniform Material
             if (backend == RenderBackend.OpenGL)
             {
                 CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(_window, _glContext), "SDL_GL_MakeCurrent");
+#if !REDBOLT_PLATFORM_WEB
                 _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
+#endif
                 SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
             Width = actualWidth;
             Height = actualHeight;
@@ -1080,13 +1084,15 @@ layout(std140) uniform Material
             var effectiveSrgb = 0;
             _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, out effectiveSrgb);
 
-            var nativeWindowInfo = input.GetNativeWindowInfo();
             using var engineCreateInfo = new EngineGLCreateInfo
             {
                 FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
-                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                WindowPDisplay = nativeWindowInfo.Display,
-                WindowWindowId = nativeWindowInfo.WindowId
+                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
+#if REDBOLT_PLATFORM_LINUX
+                ,
+                WindowPDisplay = input.GetNativeWindowInfo().Display,
+                WindowWindowId = input.GetNativeWindowInfo().WindowId
+#endif
             };
             using var swapChainDesc = new SwapChainDesc
             {
@@ -1115,6 +1121,7 @@ layout(std140) uniform Material
                 deviceContextGL.SetSwapChain(swapChainGL);
                 _swapChain = swapChainGL;
             }
+#if REDBOLT_VULKAN_SUPPORTED
             else if (backend == RenderBackend.Vulkan)
             {
                 SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
@@ -1215,6 +1222,7 @@ layout(std140) uniform Material
                 if (_swapChain.IsNull)
                     throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
             }
+#endif
             else
                 throw new InvalidOperationException("Unsupported render backend.");
 
@@ -1716,7 +1724,9 @@ layout(std140) uniform Material
         if (!IsInitialized)
             return;
 
+#if !REDBOLT_PLATFORM_WEB
         _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
+#endif
     }
 
     /// <summary>
@@ -1749,8 +1759,8 @@ layout(std140) uniform Material
                 _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
                 break;
 
+#if REDBOLT_VULKAN_SUPPORTED
             case RenderBackend.Vulkan:
-            {
             {
                 using var renderDeviceVulkan = IRenderDeviceVk.QueryManagedWrapper(_device!)
                     ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
@@ -1763,8 +1773,7 @@ layout(std140) uniform Material
                     Log.Logger.LogError("Cannot resize Vulkan swap chain");
                 break;
             }
-
-            }
+#endif
             default:
                 throw new InvalidOperationException("Unsupported render backend.");
         }
@@ -1826,8 +1835,10 @@ layout(std140) uniform Material
         if (oldSettings.Resizable != newSettings.Resizable)
             SdlNativeBindings.SdlSetWindowResizable(_window, newSettings.Resizable ? SdlBool.SdlTrue : SdlBool.SdlFalse);
 
+#if !REDBOLT_PLATFORM_WEB
         if (oldSettings.VSync != newSettings.VSync)
             _ = SdlNativeBindings.SdlGlSetSwapInterval(newSettings.VSync ? 1 : 0);
+#endif
     }
 
     public void Shutdown()
@@ -1871,8 +1882,10 @@ layout(std140) uniform Material
         _diligentViewport?.Dispose();
         _diligentViewport = null;
 
+#if REDBOLT_VULKAN_SUPPORTED
         ReleaseIfNotNull(_swapChainVulkan);
         _swapChainVulkan = null;
+#endif
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         _factory = null;
@@ -2131,7 +2144,11 @@ layout(std140) uniform Material
         _immediateContext.SetPipelineState(pipeline.PipelineState);
         _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
+#if REDBOLT_PLATFORM_WEB
+        ulong vertexOffset = 0;
+#else
         nuint vertexOffset = 0;
+#endif
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
         _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
@@ -2589,7 +2606,11 @@ layout(std140) uniform Material
         _immediateContext.SetPipelineState(pipeline.PipelineState);
         _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
+#if REDBOLT_PLATFORM_WEB
+        ulong vertexOffset = 0;
+#else
         nuint vertexOffset = 0;
+#endif
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
         _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, in vertexOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,

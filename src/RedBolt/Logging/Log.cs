@@ -25,11 +25,15 @@ internal static class Log
 
             if (!parameters.LogQuiet)
             {
+#if REDBOLT_PLATFORM_WEB
+                builder.AddProvider(new WebConsoleLoggerProvider());
+#else
                 builder.AddSimpleConsole(options =>
                 {
                     options.TimestampFormat = "HH:mm:ss.fff ";
                     options.SingleLine = true;
                 });
+#endif
             }
 
             if (!string.IsNullOrEmpty(logPath))
@@ -73,6 +77,55 @@ internal static class Log
             _ => throw new ArgumentException($"Unsupported log level '{logLevel}'.", nameof(logLevel))
         };
     }
+
+#if REDBOLT_PLATFORM_WEB
+    private sealed class WebConsoleLoggerProvider : ILoggerProvider
+    {
+        public void Dispose()
+        {
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new WebConsoleLogger(categoryName);
+        }
+
+        private sealed class WebConsoleLogger(string categoryName) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+            {
+                return null;
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return logLevel is not LogLevel.None;
+            }
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                if (!IsEnabled(logLevel))
+                    return;
+
+                ArgumentNullException.ThrowIfNull(formatter);
+                var message = formatter(state, exception);
+                if (string.IsNullOrWhiteSpace(message))
+                    return;
+
+                Console.Write(DateTime.Now.ToString("HH:mm:ss.fff "));
+                Console.Write(logLevel);
+                Console.Write(": ");
+                Console.Write(categoryName);
+                Console.Write(" ");
+                Console.WriteLine(message);
+
+                if (exception is not null)
+                    Console.WriteLine(exception);
+            }
+        }
+    }
+#endif
 
     private sealed class FileLoggerProvider(string path) : ILoggerProvider
     {

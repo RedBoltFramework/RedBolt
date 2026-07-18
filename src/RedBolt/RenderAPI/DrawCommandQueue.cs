@@ -25,7 +25,11 @@ public class DrawCommandQueue : Object
     private ShaderResourceRange _currentShaderResourceGroup;
     private ShaderResourceRange _currentUnorderedAccessViewGroup;
     private readonly IBuffer?[] _nativeVertexBuffers = new IBuffer?[RenderApiLimits.MaxVertexStreams];
+#if REDBOLT_PLATFORM_WEB
+    private readonly ulong[] _nativeVertexBufferOffsets = new ulong[RenderApiLimits.MaxVertexStreams];
+#else
     private readonly nuint[] _nativeVertexBufferOffsets = new nuint[RenderApiLimits.MaxVertexStreams];
+#endif
     private readonly RawBuffer?[] _currentVertexBuffers = new RawBuffer?[RenderApiLimits.MaxVertexStreams];
 
     private readonly record struct ShaderResourceData(
@@ -604,10 +608,9 @@ public class DrawCommandQueue : Object
         {
             var bufferReflection = reflection.GetUniformBuffer((ShaderParameterGroup)i);
             var bufferRef = command.ConstantBuffers[i];
-            if (bufferReflection is null || bufferRef.Size == 0 || bufferRef.Index >= uniformBuffers.Length)
+            if (bufferReflection is null)
                 continue;
-            var handle = uniformBuffers[(int)bufferRef.Index]?.GetHandle();
-            if (handle is null) continue;
+            var handle = uniformBuffers[(int)bufferRef.Index]!.GetHandle()!;
             foreach (var variable in bufferReflection.Variables)
                 variable.SetBufferRange(handle, bufferRef.Offset, bufferRef.Size);
         }

@@ -81,6 +81,14 @@ internal static class Program
         "GetTemporaryGLProgramVertexAttributeName",
         "GetTemporaryGLProgramVertexAttributeLocation",
         "BindTemporaryGLProgramVertexAttributes",
+        "GetTemporaryGLProgramUniformBlockCount",
+        "GetTemporaryGLProgramUniformBlockName",
+        "GetTemporaryGLProgramUniformBlockDataSize",
+        "GetTemporaryGLProgramUniformBlockIndex",
+        "GetTemporaryGLProgramUniformCount",
+        "GetTemporaryGLProgramUniformName",
+        "GetTemporaryGLProgramUniformBlockOffset",
+        "GetTemporaryGLProgramUniformSize",
         "GetShaderCodeBufferVariableAt",
         "GetTextureFormatAttribs"
     };
@@ -220,9 +228,10 @@ internal static class Program
         if (!clangArguments.Contains($"-I{sharpCppIncludeRoot}", StringComparer.Ordinal))
             clangArguments.Add($"-I{sharpCppIncludeRoot}");
 
-        clangArguments.AddRange(ParseSimdDisableArguments);
-
         var toolchainInfo = CompilerToolchainDiscovery.Discover(options.CompilerPath);
+        if (toolchainInfo.TargetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) != true)
+            clangArguments.AddRange(ParseSimdDisableArguments);
+
         if (!string.IsNullOrWhiteSpace(toolchainInfo.TargetTriple) &&
             !clangArguments.Any(static argument => argument.StartsWith("--target=", StringComparison.Ordinal) || argument == "-target"))
         {

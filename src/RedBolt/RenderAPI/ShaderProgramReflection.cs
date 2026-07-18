@@ -1,4 +1,5 @@
 using RedBolt.Bindings.Diligent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
@@ -98,6 +99,63 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
         RecalculateUniformHash();
     }
 
+    internal ShaderProgramReflection(nint temporaryGlProgram)
+    {
+        var indexToGroup = new List<ShaderParameterGroup>();
+        var numUniformBlocks = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
+        for (var uniformBlockIndex = 0u; uniformBlockIndex < numUniformBlocks; ++uniformBlockIndex)
+        {
+            var internalName = System.Text.Encoding.UTF8.GetString(
+                DiligentNativeBindings.GetTemporaryGLProgramUniformBlockName(temporaryGlProgram, uniformBlockIndex));
+            if (!TryParseConstantBufferName(internalName, out var group))
+                continue;
+
+            AddUniformBuffer(group, internalName,
+                DiligentNativeBindings.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, uniformBlockIndex));
+
+            var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                temporaryGlProgram, System.Text.Encoding.UTF8.GetBytes(internalName));
+            while (indexToGroup.Count <= blockIndex)
+                indexToGroup.Add((ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups);
+            indexToGroup[(int)blockIndex] = group;
+        }
+
+        var numUniforms = DiligentNativeBindings.GetTemporaryGLProgramUniformCount(temporaryGlProgram);
+        for (var uniformIndex = 0u; uniformIndex < numUniforms; ++uniformIndex)
+        {
+            var internalName = System.Text.Encoding.UTF8.GetString(
+                DiligentNativeBindings.GetTemporaryGLProgramUniformName(temporaryGlProgram, uniformIndex));
+            if (TrySanitizeSrvName(internalName, out var resourceName))
+            {
+                AddShaderResource(resourceName, internalName);
+                continue;
+            }
+            if (TrySanitizeUavName(internalName, out var unorderedAccessViewName))
+            {
+                AddUnorderedAccessView(unorderedAccessViewName, internalName);
+                continue;
+            }
+            if (!TrySanitizeUniformName(internalName, out var uniformName))
+                continue;
+
+            var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                temporaryGlProgram, uniformIndex);
+            var blockOffset = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockOffset(
+                temporaryGlProgram, uniformIndex);
+            if (blockIndex >= 0 && blockIndex < indexToGroup.Count)
+            {
+                var group = indexToGroup[blockIndex];
+                if (group != (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups)
+                {
+                    AddUniform(new UniformReflection(uniformName, group, (uint)blockOffset,
+                        DiligentNativeBindings.GetTemporaryGLProgramUniformSize(temporaryGlProgram, uniformIndex),
+                        default, default, 0, 0, 0));
+                }
+            }
+        }
+        RecalculateUniformHash();
+    }
+
     public UniformBufferReflection? GetUniformBuffer(ShaderParameterGroup group)
     {
         var index = (int)group;
@@ -129,20 +187,60 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     {
         ArgumentNullException.ThrowIfNull(binding);
 
-        foreach (var shaderType in GetShaderTypes(pipelineType))
+        var shaderTypes = GetShaderTypes(pipelineType);
+
+        foreach (var uniformBuffer in _uniformBuffers)
         {
-            var variables = GetShaderVariables(binding, shaderType);
-            foreach (var uniformBuffer in _uniformBuffers)
+            if (uniformBuffer is null || uniformBuffer.Size == 0)
+                continue;
+
+            using var internalName = new CString(uniformBuffer.InternalName);
+            unsafe
             {
-                if (uniformBuffer is null || string.IsNullOrWhiteSpace(uniformBuffer.InternalName))
-                    continue;
-
-                if (variables.TryGetValue(uniformBuffer.InternalName, out var variable))
-                    uniformBuffer.AddVariable(variable);
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                foreach (var shaderType in shaderTypes)
+                {
+                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    if (shaderVariable is not null && !shaderVariable.IsNull)
+                        uniformBuffer.AddVariable(shaderVariable);
+                }
             }
+        }
 
-            ConnectResources(_shaderResources, variables);
-            ConnectResources(_unorderedAccessViews, variables);
+        foreach (var resource in _shaderResources.Values)
+        {
+            using var internalName = new CString(resource.InternalName);
+            unsafe
+            {
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                foreach (var shaderType in shaderTypes)
+                {
+                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    if (shaderVariable is not null && !shaderVariable.IsNull)
+                    {
+                        resource.Variable = shaderVariable;
+                        break;
+                    }
+                }
+            }
+        }
+
+        foreach (var resource in _unorderedAccessViews.Values)
+        {
+            using var internalName = new CString(resource.InternalName);
+            unsafe
+            {
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                foreach (var shaderType in shaderTypes)
+                {
+                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    if (shaderVariable is not null && !shaderVariable.IsNull)
+                    {
+                        resource.Variable = shaderVariable;
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -319,41 +417,6 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
         _ => throw new ArgumentOutOfRangeException(nameof(pipelineType), pipelineType, null)
     };
 
-    private static Dictionary<string, IShaderResourceVariable> GetShaderVariables(IShaderResourceBinding binding, ShaderType shaderType)
-    {
-        var result = new Dictionary<string, IShaderResourceVariable>(StringComparer.Ordinal);
-        var nativeShaderType = ToNativeShaderType(shaderType);
-        var numVariables = binding.GetVariableCount(nativeShaderType);
-        for (uint variableIndex = 0; variableIndex < numVariables; ++variableIndex)
-        {
-            var variable = binding.GetVariableByIndex(nativeShaderType, variableIndex);
-            if (variable is null || variable.IsNull)
-                continue;
-
-            using var resourceDesc = new RedBolt.Bindings.Diligent.ShaderResourceDesc();
-            variable.GetResourceDesc(resourceDesc);
-            var internalName = Marshal.PtrToStringUTF8(resourceDesc.Name);
-            if (!string.IsNullOrWhiteSpace(internalName) && !result.ContainsKey(internalName))
-                result[internalName] = variable;
-        }
-
-        return result;
-    }
-
-    private static void ConnectResources(
-        Dictionary<StringHash, ShaderResourceReflection> resources,
-        IReadOnlyDictionary<string, IShaderResourceVariable> variables)
-    {
-        foreach (var resource in resources.Values)
-        {
-            if (resource.Variable is not null || string.IsNullOrWhiteSpace(resource.InternalName))
-                continue;
-
-            if (variables.TryGetValue(resource.InternalName, out var variable))
-                resource.Variable = variable;
-        }
-    }
-
     private static RedBolt.Bindings.Diligent.ShaderType ToNativeShaderType(ShaderType shaderType) => shaderType switch
     {
         ShaderType.VS => RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
@@ -384,6 +447,11 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     private static bool TrySanitizeUniformName(nint namePointer, out string name)
     {
         var internalName = Marshal.PtrToStringUTF8(namePointer) ?? string.Empty;
+        return TrySanitizeUniformName(internalName, out name);
+    }
+
+    private static bool TrySanitizeUniformName(string internalName, out string name)
+    {
         if (string.IsNullOrEmpty(internalName))
         {
             name = string.Empty;

@@ -2,6 +2,7 @@ using System;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     var exitCode = new MultipleViewportsApplication().Run();
@@ -14,8 +15,9 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
-sealed class MultipleViewportsApplication : Application
+public sealed class MultipleViewportsApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;

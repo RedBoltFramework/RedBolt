@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.28)
 
 project(RedBoltFramework VERSION 0.1.0 LANGUAGES C CXX)
 
+option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
+if(EMSCRIPTEN)
+    add_compile_options(-pthread -mbulk-memory)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${_redbolt_emscripten_environment}")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -152,10 +158,19 @@ set(REDBOLT_SPIRV_CROSS_C_HEADER "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}/spirv_cross
 set(REDBOLT_SPIRV_TOOLS_C_HEADER "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include/spirv-tools/libspirv.h")
 
 find_program(DOTNET_EXECUTABLE dotnet REQUIRED)
-find_path(REDBOLT_LZ4_INCLUDE_DIR lz4.h REQUIRED)
-find_library(REDBOLT_LZ4_LIBRARY lz4 REQUIRED)
-find_path(REDBOLT_WEBP_INCLUDE_DIR webp/encode.h REQUIRED)
-find_library(REDBOLT_WEBP_LIBRARY webp REQUIRED)
+if(EMSCRIPTEN)
+    redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/LZ4" "${CMAKE_BINARY_DIR}/deps/LZ4")
+    redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/WebP" "${CMAKE_BINARY_DIR}/deps/WebP")
+    set(REDBOLT_LZ4_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/LZ4/include/LZ4")
+    set(REDBOLT_LZ4_LIBRARY LZ4)
+    set(REDBOLT_WEBP_INCLUDE_DIR "${REDBOLT_THIRDPARTY_ROOT}/WebP/src")
+    set(REDBOLT_WEBP_LIBRARY WebP)
+else()
+    find_path(REDBOLT_LZ4_INCLUDE_DIR lz4.h REQUIRED)
+    find_library(REDBOLT_LZ4_LIBRARY lz4 REQUIRED)
+    find_path(REDBOLT_WEBP_INCLUDE_DIR webp/encode.h REQUIRED)
+    find_library(REDBOLT_WEBP_LIBRARY webp REQUIRED)
+endif()
 
 redbolt_initialize_dotnet_consumer(
     CONSUMER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -254,9 +269,10 @@ file(WRITE "${REDBOLT_IMGUI_PARSE_SOURCE}" [=[
 #include <RedBolt/ImGuiBackend.hpp>
 ]=])
 
-set(REDBOLT_SDL_OWNED_HEADERS
-    "${REDBOLT_SDL_BUILD_INCLUDE_DIR}"
-    "${REDBOLT_SDL_IMAGE_HEADER}")
+set(REDBOLT_SDL_OWNED_HEADERS "${REDBOLT_SDL_BUILD_INCLUDE_DIR}")
+if(REDBOLT_SDL_IMAGE_HEADER)
+    list(APPEND REDBOLT_SDL_OWNED_HEADERS "${REDBOLT_SDL_IMAGE_HEADER}")
+endif()
 
 set(REDBOLT_DILIGENT_OWNED_HEADERS
     ${REDBOLT_DILIGENT_INCLUDE_DIRS}
@@ -439,6 +455,7 @@ add_custom_target(redbolt-generate-native-bindings
 
 add_subdirectory(native/RedBolt.Native)
 
+if(NOT REDBOLT_WEB_BUILD)
 add_custom_target(restore
     COMMAND "${DOTNET_EXECUTABLE}" restore "${REDBOLT_DOTNET_SOLUTION}"
         --nologo
@@ -603,6 +620,97 @@ add_custom_target(redbolt-first-cube
     WORKING_DIRECTORY "${REDBOLT_BIN_DIR}"
     COMMENT "Running visible first cube through generated SDL/Diligent bindings"
     VERBATIM)
+else()
+    function(redbolt_collect_static_targets root_target output_variable)
+        set(queue "${root_target}")
+        set(visited)
+        set(static_targets)
+        while(queue)
+            list(POP_FRONT queue target)
+            if(target IN_LIST visited OR NOT TARGET "${target}")
+                continue()
+            endif()
+            list(APPEND visited "${target}")
+            get_target_property(aliased_target "${target}" ALIASED_TARGET)
+            if(aliased_target)
+                list(APPEND queue "${aliased_target}")
+                continue()
+            endif()
+            get_target_property(target_type "${target}" TYPE)
+            if(target_type STREQUAL "STATIC_LIBRARY")
+                list(APPEND static_targets "${target}")
+            endif()
+            get_target_property(link_libraries "${target}" LINK_LIBRARIES)
+            get_target_property(interface_link_libraries "${target}" INTERFACE_LINK_LIBRARIES)
+            foreach(link_item IN LISTS link_libraries interface_link_libraries)
+                if(TARGET "${link_item}")
+                    list(APPEND queue "${link_item}")
+                endif()
+            endforeach()
+        endwhile()
+        list(REMOVE_DUPLICATES static_targets)
+        set("${output_variable}" "${static_targets}" PARENT_SCOPE)
+    endfunction()
+
+    redbolt_collect_static_targets(RedBolt.Native redbolt_wasm_static_targets)
+    set(REDBOLT_WASM_ENGINE_ARCHIVE "${CMAKE_BINARY_DIR}/lib/Release/wasm/RedBolt.Native.a")
+    set(REDBOLT_WASM_MRI_FILE "${CMAKE_BINARY_DIR}/redbolt-wasm-archives.mri")
+    set(redbolt_wasm_mri "create ${REDBOLT_WASM_ENGINE_ARCHIVE}\n")
+    foreach(target IN LISTS redbolt_wasm_static_targets)
+        string(APPEND redbolt_wasm_mri "addlib $<TARGET_FILE:${target}>\n")
+    endforeach()
+    string(APPEND redbolt_wasm_mri "save\nend\n")
+    file(GENERATE OUTPUT "${REDBOLT_WASM_MRI_FILE}" CONTENT "${redbolt_wasm_mri}")
+
+    file(GLOB_RECURSE redbolt_wasm_resource_files CONFIGURE_DEPENDS
+        RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/bin/CoreData/*"
+        "${CMAKE_CURRENT_SOURCE_DIR}/bin/Data/*")
+    set(REDBOLT_WASM_RESOURCE_MANIFEST "${CMAKE_BINARY_DIR}/generated/web/resources.manifest.json")
+    set(redbolt_wasm_resource_manifest "[\n")
+    set(redbolt_wasm_resource_separator "")
+    foreach(resource_file IN LISTS redbolt_wasm_resource_files)
+        string(APPEND redbolt_wasm_resource_manifest
+            "${redbolt_wasm_resource_separator}  {\"name\":\"../resources/${resource_file}\",\"virtualPath\":\"${resource_file}\"}")
+        set(redbolt_wasm_resource_separator ",\n")
+    endforeach()
+    string(APPEND redbolt_wasm_resource_manifest "\n]\n")
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/web")
+    file(WRITE "${REDBOLT_WASM_RESOURCE_MANIFEST}" "${redbolt_wasm_resource_manifest}")
+
+    add_custom_command(
+        OUTPUT "${REDBOLT_WASM_ENGINE_ARCHIVE}"
+        COMMAND "${CMAKE_COMMAND}"
+            "-DREDBOLT_EMSCRIPTEN_ENV=${_redbolt_emscripten_environment}"
+            "-DREDBOLT_ARCHIVER=${CMAKE_AR}"
+            "-DREDBOLT_MRI_FILE=${REDBOLT_WASM_MRI_FILE}"
+            "-DREDBOLT_OUTPUT_ARCHIVE=${REDBOLT_WASM_ENGINE_ARCHIVE}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/MergeStaticArchives.cmake"
+        DEPENDS ${redbolt_wasm_static_targets}
+        COMMENT "Merging RedBolt WebAssembly engine archive"
+        VERBATIM)
+    add_custom_target(redbolt-wasm-native DEPENDS "${REDBOLT_WASM_ENGINE_ARCHIVE}")
+    add_custom_target(redbolt-wasm
+        COMMAND "${DOTNET_EXECUTABLE}" publish
+            "${CMAKE_CURRENT_SOURCE_DIR}/samples/RedBolt.Sample.Web/RedBolt.Sample.Web.csproj"
+            --configuration Release
+            "-p:RedBoltCMakePropsPath=${REDBOLT_DOTNET_CMAKE_PROPS_FILE}"
+            "-p:RedBoltWebEngineArchive=${REDBOLT_WASM_ENGINE_ARCHIVE}"
+            "-p:RedBoltWebResourcesManifest=${REDBOLT_WASM_RESOURCE_MANIFEST}"
+        DEPENDS redbolt-wasm-native
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Publishing framework-free RedBolt WebAssembly host"
+        VERBATIM)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_custom_target(redbolt-wasm-serve
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ServeWebAssembly.py"
+            --directory "${CMAKE_BINARY_DIR}/bin/Release/publish/wwwroot"
+            --port 8000
+        DEPENDS redbolt-wasm
+        USES_TERMINAL
+        VERBATIM)
+endif()
 
 add_custom_target(redbolt-verify-config
     COMMAND "${CMAKE_COMMAND}"

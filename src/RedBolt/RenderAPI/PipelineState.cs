@@ -214,7 +214,9 @@ public class PipelineState : DeviceObject
                 layout = new TemporaryLayoutArray(desc.InputLayout.Elements, vertexAttributes);
 
             var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
-            var reflection = new ShaderProgramReflection(shaders);
+            var reflection = isOpenGl && !hasSeparableShaderPrograms
+                ? new ShaderProgramReflection(temporaryGlProgram)
+                : new ShaderProgramReflection(shaders);
             using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, GetRenderDevice(),
                 RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var name = new CString(GetDebugName());

@@ -2,6 +2,7 @@
 
 ## Samples
 
+- [~] WebAssembly host — dedicated CMake/Emscripten preset, generated native bindings, full managed engine publish, pthread-capable WebGL 2 host, virtual filesystem staging, and a framework-free C#-to-C++ rendering prototype build successfully; browser rendering awaits user verification
 - [x] `01_HelloWorld` — Hello World sample ported with Dear ImGui replacing the rbfx Text control
 - [x] `02_HelloGUI` — control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets
 - [x] `04_StaticScene` — plane, directional light, randomized mushroom field, camera/viewport lifecycle, and Dear ImGui instruction sample reconciled to rbfx

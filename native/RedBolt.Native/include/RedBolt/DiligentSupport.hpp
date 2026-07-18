@@ -56,6 +56,15 @@ Uint32 GetTemporaryGLProgramVertexAttributeCount(const void* program);
 const char* GetTemporaryGLProgramVertexAttributeName(const void* program, Uint32 index);
 Uint32 GetTemporaryGLProgramVertexAttributeLocation(const void* program, Uint32 index);
 bool BindTemporaryGLProgramVertexAttributes(const void* program, IPipelineState* pipelineState);
+Uint32 GetTemporaryGLProgramUniformBlockCount(const void* program);
+const char* GetTemporaryGLProgramUniformBlockName(void* program, Uint32 index);
+Uint32 GetTemporaryGLProgramUniformBlockDataSize(const void* program, Uint32 index);
+Uint32 GetTemporaryGLProgramUniformBlockIndex(const void* program, const char* name);
+Uint32 GetTemporaryGLProgramUniformCount(const void* program);
+const char* GetTemporaryGLProgramUniformName(void* program, Uint32 index);
+Int32 GetTemporaryGLProgramUniformBlockIndex(const void* program, Uint32 index);
+Int32 GetTemporaryGLProgramUniformBlockOffset(const void* program, Uint32 index);
+Uint32 GetTemporaryGLProgramUniformSize(const void* program, Uint32 index);
 ISwapChainGL* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window);
 ISwapChainGL* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,

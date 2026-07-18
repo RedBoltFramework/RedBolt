@@ -46,21 +46,28 @@ macro(redbolt_add_external_subdirectory source_dir binary_dir)
     set(CMAKE_CXX_FLAGS "${_redbolt_saved_cxx_flags}")
 endmacro()
 
-set(SDL_SHARED ON CACHE BOOL "" FORCE)
-set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+if(EMSCRIPTEN)
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(_redbolt_desktop_audio OFF)
+else()
+    set(SDL_SHARED ON CACHE BOOL "" FORCE)
+    set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+    set(_redbolt_desktop_audio ON)
+endif()
 set(SDL2_DISABLE_SDL2MAIN ON CACHE BOOL "" FORCE)
 set(SDL2_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_AUDIO ON CACHE BOOL "" FORCE)
-set(SDL_ALSA ON CACHE BOOL "" FORCE)
-set(SDL_ALSA_SHARED ON CACHE BOOL "" FORCE)
+set(SDL_ALSA ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
+set(SDL_ALSA_SHARED ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
 set(SDL_DISKAUDIO ON CACHE BOOL "" FORCE)
 set(SDL_DUMMYAUDIO ON CACHE BOOL "" FORCE)
-set(SDL_PIPEWIRE ON CACHE BOOL "" FORCE)
-set(SDL_PIPEWIRE_SHARED ON CACHE BOOL "" FORCE)
-set(SDL_PULSEAUDIO ON CACHE BOOL "" FORCE)
-set(SDL_PULSEAUDIO_SHARED ON CACHE BOOL "" FORCE)
+set(SDL_PIPEWIRE ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
+set(SDL_PIPEWIRE_SHARED ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
+set(SDL_PULSEAUDIO ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
+set(SDL_PULSEAUDIO_SHARED ${_redbolt_desktop_audio} CACHE BOOL "" FORCE)
 set(SDL_RENDER OFF CACHE BOOL "" FORCE)
 set(SDL_JOYSTICK ON CACHE BOOL "" FORCE)
 set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
@@ -68,29 +75,57 @@ set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
 
 redbolt_add_external_subdirectory("${REDBOLT_SDL_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL")
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(REDBOLT_SDL2_IMAGE REQUIRED SDL2_image)
-
-set(REDBOLT_SDL2_IMAGE_LIBS ${REDBOLT_SDL2_IMAGE_LIBRARIES})
-list(REMOVE_ITEM REDBOLT_SDL2_IMAGE_LIBS SDL2)
-if(NOT REDBOLT_SDL2_IMAGE_LIBS)
-    message(FATAL_ERROR "SDL2_image package was found, but usable link targets were missing")
-endif()
-
 add_library(redbolt-sdl2-image INTERFACE)
-target_include_directories(redbolt-sdl2-image SYSTEM INTERFACE
-    ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS})
-target_link_libraries(redbolt-sdl2-image INTERFACE
-    ${REDBOLT_SDL2_IMAGE_LIBS})
+if(EMSCRIPTEN)
+    if(TARGET SDL2 AND NOT TARGET SDL2::SDL2)
+        add_library(SDL2::SDL2 ALIAS SDL2)
+    endif()
+    if(TARGET SDL2 AND NOT TARGET SDL2::SDL2-static)
+        add_library(SDL2::SDL2-static ALIAS SDL2)
+    endif()
+    set(SDL2IMAGE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_SAMPLES OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_TESTS OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_DEPS_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_BACKEND_STB ON CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_AVIF OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_JXL OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_TIF OFF CACHE BOOL "" FORCE)
+    set(SDL2IMAGE_WEBP OFF CACHE BOOL "" FORCE)
+    redbolt_add_external_subdirectory("${REDBOLT_THIRDPARTY_ROOT}/SDL_image" "${CMAKE_BINARY_DIR}/deps/SDL_image")
+    target_link_libraries(redbolt-sdl2-image INTERFACE SDL2_image)
+    target_include_directories(redbolt-sdl2-image SYSTEM INTERFACE
+        "${REDBOLT_THIRDPARTY_ROOT}/SDL_image/include")
+    set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
+        "${REDBOLT_THIRDPARTY_ROOT}/SDL_image/include"
+        CACHE INTERNAL "SDL_image include directories used by RedBolt")
+    set(REDBOLT_SDL_IMAGE_HEADER
+        "${REDBOLT_THIRDPARTY_ROOT}/SDL_image/include/SDL_image.h"
+        CACHE INTERNAL "Primary SDL_image header used by RedBolt")
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(REDBOLT_SDL2_IMAGE REQUIRED SDL2_image)
 
-set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
-    ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS}
-    CACHE INTERNAL "SDL_image include directories used by RedBolt")
-list(GET REDBOLT_SDL2_IMAGE_INCLUDE_DIRS 0 REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR)
-set(REDBOLT_SDL_IMAGE_HEADER
-    "${REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR}/SDL_image.h"
-    CACHE INTERNAL "Primary SDL_image header used by RedBolt")
-redbolt_require_path("${REDBOLT_SDL_IMAGE_HEADER}" "SDL_image header")
+    set(REDBOLT_SDL2_IMAGE_LIBS ${REDBOLT_SDL2_IMAGE_LIBRARIES})
+    list(REMOVE_ITEM REDBOLT_SDL2_IMAGE_LIBS SDL2)
+    if(NOT REDBOLT_SDL2_IMAGE_LIBS)
+        message(FATAL_ERROR "SDL2_image package was found, but usable link targets were missing")
+    endif()
+
+    target_include_directories(redbolt-sdl2-image SYSTEM INTERFACE
+        ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS})
+    target_link_libraries(redbolt-sdl2-image INTERFACE
+        ${REDBOLT_SDL2_IMAGE_LIBS})
+
+    set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
+        ${REDBOLT_SDL2_IMAGE_INCLUDE_DIRS}
+        CACHE INTERNAL "SDL_image include directories used by RedBolt")
+    list(GET REDBOLT_SDL2_IMAGE_INCLUDE_DIRS 0 REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR)
+    set(REDBOLT_SDL_IMAGE_HEADER
+        "${REDBOLT_SDL_IMAGE_PRIMARY_INCLUDE_DIR}/SDL_image.h"
+        CACHE INTERNAL "Primary SDL_image header used by RedBolt")
+    redbolt_require_path("${REDBOLT_SDL_IMAGE_HEADER}" "SDL_image header")
+endif()
 
 set(DEBUG_CONFIGURATIONS DEBUG CACHE INTERNAL "Debug configurations")
 set(RELEASE_CONFIGURATIONS RELEASE RELWITHDEBINFO MINSIZEREL CACHE INTERNAL "Release configurations")
@@ -121,34 +156,44 @@ set(METAL_SUPPORTED FALSE CACHE INTERNAL "Metal is not supported")
 set(WEBGPU_SUPPORTED FALSE CACHE INTERNAL "WebGPU is not supported")
 set(ARCHIVER_SUPPORTED FALSE CACHE INTERNAL "Archiver is not supported")
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    set(PLATFORM_EMSCRIPTEN TRUE CACHE INTERNAL "Target platform: Emscripten")
+    set(GL_SUPPORTED FALSE CACHE INTERNAL "Desktop OpenGL is not supported on Emscripten" FORCE)
+    set(GLES_SUPPORTED TRUE CACHE INTERNAL "OpenGLES is supported on Emscripten" FORCE)
+    set(VULKAN_SUPPORTED FALSE CACHE INTERNAL "Vulkan is not supported on Emscripten" FORCE)
+    set(WEBGPU_SUPPORTED FALSE CACHE INTERNAL "WebGPU is not enabled by the RedBolt web build" FORCE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(PLATFORM_LINUX TRUE CACHE INTERNAL "Target platform: Linux")
 else()
     message(FATAL_ERROR "RedBolt has not mapped Diligent platform selection for ${CMAKE_SYSTEM_NAME}")
 endif()
 
-find_package(GLEW QUIET)
-if(TARGET GLEW::glew)
-    # Diligent already has the target name it expects.
-elseif(TARGET GLEW::GLEW)
-    add_library(GLEW::glew ALIAS GLEW::GLEW)
-else()
-    pkg_check_modules(REDBOLT_GLEW REQUIRED IMPORTED_TARGET glew)
-    add_library(redbolt-system-glew INTERFACE)
-    target_link_libraries(redbolt-system-glew INTERFACE PkgConfig::REDBOLT_GLEW)
-    add_library(GLEW::glew ALIAS redbolt-system-glew)
+if(NOT EMSCRIPTEN)
+    find_package(GLEW QUIET)
+    if(TARGET GLEW::glew)
+        # Diligent already has the target name it expects.
+    elseif(TARGET GLEW::GLEW)
+        add_library(GLEW::glew ALIAS GLEW::GLEW)
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(REDBOLT_GLEW REQUIRED IMPORTED_TARGET glew)
+        add_library(redbolt-system-glew INTERFACE)
+        target_link_libraries(redbolt-system-glew INTERFACE PkgConfig::REDBOLT_GLEW)
+        add_library(GLEW::glew ALIAS redbolt-system-glew)
+    endif()
 endif()
 
 add_library(Diligent-PublicBuildSettings INTERFACE)
 target_compile_definitions(Diligent-PublicBuildSettings INTERFACE
-    PLATFORM_LINUX=1
+    "$<$<BOOL:${PLATFORM_LINUX}>:PLATFORM_LINUX=1>"
+    "$<$<BOOL:${PLATFORM_EMSCRIPTEN}>:PLATFORM_EMSCRIPTEN=1>"
     D3D11_SUPPORTED=0
     D3D12_SUPPORTED=0
-    GL_SUPPORTED=1
-    GLES_SUPPORTED=0
-    VULKAN_SUPPORTED=1
+    "GL_SUPPORTED=$<BOOL:${GL_SUPPORTED}>"
+    "GLES_SUPPORTED=$<BOOL:${GLES_SUPPORTED}>"
+    "VULKAN_SUPPORTED=$<BOOL:${VULKAN_SUPPORTED}>"
     METAL_SUPPORTED=0
-    WEBGPU_SUPPORTED=0)
+    "WEBGPU_SUPPORTED=$<BOOL:${WEBGPU_SUPPORTED}>")
 
 add_library(Diligent-BuildSettings INTERFACE)
 target_link_libraries(Diligent-BuildSettings INTERFACE Diligent-PublicBuildSettings)
@@ -160,8 +205,23 @@ target_compile_definitions(Diligent-BuildSettings INTERFACE
 include("${REDBOLT_DILIGENT_SOURCE_ROOT}/BuildTools/CMake/BuildUtils.cmake")
 set(SPIRV_CROSS_ENABLE_C_API ON CACHE BOOL "Enable SPIRV-Cross C API" FORCE)
 set(SPIRV_CROSS_ENABLE_HLSL ON CACHE BOOL "Enable SPIRV-Cross HLSL target support" FORCE)
+set(SPIRV-Headers_SOURCE_DIR
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools/external/SPIRV-Headers"
+    CACHE PATH "SPIR-V headers source directory" FORCE)
+set(SPIRV-Headers_SOURCE_DIR
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Tools/external/SPIRV-Headers")
 set(ARCHIVER_SUPPORTED TRUE CACHE INTERNAL "Enable Diligent SPIR-V toolchain dependencies" FORCE)
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty" "${CMAKE_BINARY_DIR}/deps/Diligent/ThirdParty")
+if(EMSCRIPTEN AND NOT TARGET glslang-default-resource-limits)
+    add_library(glslang-default-resource-limits STATIC
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang/StandAlone/ResourceLimits.cpp"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang/StandAlone/resource_limits_c.cpp")
+    set_target_properties(glslang-default-resource-limits PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(glslang-default-resource-limits PUBLIC
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang/StandAlone"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang")
+endif()
 set(ARCHIVER_SUPPORTED FALSE CACHE INTERNAL "Archiver is not supported" FORCE)
 if(TARGET SPIRV-Tools-opt)
     add_dependencies(SPIRV-Tools-opt
@@ -185,32 +245,46 @@ redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/Grap
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/ShaderTools" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/ShaderTools")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineNextGenBase" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineNextGenBase")
 redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineOpenGL")
-redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineVulkan")
+if(NOT EMSCRIPTEN)
+    redbolt_add_external_subdirectory("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan" "${CMAKE_BINARY_DIR}/deps/Diligent/Graphics/GraphicsEngineVulkan")
+endif()
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Basic/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Linux/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Common/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/Vulkan-Headers/include"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/volk"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface")
+
+if(EMSCRIPTEN)
+    list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Emscripten/interface")
+else()
+    list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Linux/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/Vulkan-Headers/include"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/volk")
+endif()
+set(REDBOLT_DILIGENT_INCLUDE_DIRS ${REDBOLT_DILIGENT_INCLUDE_DIRS}
     CACHE INTERNAL "Diligent include directories used by RedBolt")
 
+if(EMSCRIPTEN)
+    set(_redbolt_platform_defines "PLATFORM_EMSCRIPTEN=1" "PLATFORM_LINUX=0")
+    set(_redbolt_graphics_defines "GL_SUPPORTED=0" "GLES_SUPPORTED=1" "VULKAN_SUPPORTED=0" "WEBGPU_SUPPORTED=0")
+else()
+    set(_redbolt_platform_defines "PLATFORM_EMSCRIPTEN=0" "PLATFORM_LINUX=1")
+    set(_redbolt_graphics_defines "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
+endif()
 set(REDBOLT_DILIGENT_BINDING_DEFINES
-    "PLATFORM_LINUX=1"
+    ${_redbolt_platform_defines}
     "D3D11_SUPPORTED=0"
     "D3D12_SUPPORTED=0"
-    "GL_SUPPORTED=1"
-    "GLES_SUPPORTED=0"
-    "VULKAN_SUPPORTED=1"
+    ${_redbolt_graphics_defines}
     "METAL_SUPPORTED=0"
-    "WEBGPU_SUPPORTED=0"
     "DILIGENT_NO_HLSL=1"
     CACHE INTERNAL "Diligent compile definitions used by RedBolt")
 
@@ -218,7 +292,7 @@ add_library(redbolt-diligent-headers INTERFACE)
 target_include_directories(redbolt-diligent-headers SYSTEM INTERFACE
     ${REDBOLT_DILIGENT_INCLUDE_DIRS})
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     target_compile_definitions(redbolt-diligent-headers INTERFACE ${REDBOLT_DILIGENT_BINDING_DEFINES})
 elseif(WIN32)
     target_compile_definitions(redbolt-diligent-headers INTERFACE PLATFORM_WIN32=1)
@@ -230,8 +304,10 @@ endif()
 target_link_libraries(redbolt-diligent-headers INTERFACE
     Diligent-GraphicsEngineInterface
     Diligent-GraphicsEngineOpenGLInterface
-    Diligent-GraphicsEngineVkInterface
     Diligent-TargetPlatform)
+if(NOT EMSCRIPTEN)
+    target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineVkInterface)
+endif()
 
 add_library(redbolt-native-support INTERFACE)
 target_include_directories(redbolt-native-support INTERFACE
@@ -248,11 +324,14 @@ set(REDBOLT_BINDING_DEFINES
     ${REDBOLT_DILIGENT_BINDING_DEFINES}
     CACHE INTERNAL "Compile definitions used by RedBolt SharpCpp dependency generation")
 
+set(REDBOLT_DILIGENT_ENGINE_TARGETS
+    Diligent-GraphicsEngine
+    Diligent-GraphicsEngineOpenGL-static)
+if(NOT EMSCRIPTEN)
+    list(APPEND REDBOLT_DILIGENT_ENGINE_TARGETS Diligent-GraphicsEngineVk-static)
+endif()
 add_custom_target(redbolt-diligent-build
-    DEPENDS
-        Diligent-GraphicsEngine
-        Diligent-GraphicsEngineOpenGL-static
-        Diligent-GraphicsEngineVk-static
+    DEPENDS ${REDBOLT_DILIGENT_ENGINE_TARGETS}
     COMMENT "Building RedBolt Diligent dependency targets")
 
 redbolt_add_external_subdirectory("${REDBOLT_IMGUI_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/ImGui")
