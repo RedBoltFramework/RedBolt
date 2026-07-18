@@ -163,7 +163,6 @@ internal static class Program
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
             FixCDependencyTypes(compilation, descriptor);
             FixDiligentBlendFactors(compilation, descriptor);
-            FixDiligentVertexBufferOffsets(compilation, descriptor);
             FixDiligentTextureFormatFunction(compilation, descriptor);
             FixDiligentVulkanImageHandle(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
@@ -360,23 +359,6 @@ internal static class Program
         blendFactors.Type = BindingType.CreateConfigured(
             cppTypeName: "const float*",
             publicTypeName: "global::RedBolt.Bindings.Diligent.BlendFactors");
-    }
-
-    private static void FixDiligentVertexBufferOffsets(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
-    {
-        if (descriptor.Surface != "diligent")
-            return;
-
-        var deviceContext = compilation.Records.FirstOrDefault(static record =>
-            string.Equals(record.CppQualifiedName, "Diligent::IDeviceContext", StringComparison.Ordinal));
-        var setVertexBuffers = deviceContext?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
-            string.Equals(method.NativeName, "SetVertexBuffers", StringComparison.Ordinal));
-        var offsets = setVertexBuffers?.Parameters.FirstOrDefault(static parameter =>
-            string.Equals(parameter.NativeName, "pOffsets", StringComparison.Ordinal));
-        if (offsets is null)
-            return;
-
-        offsets.SetMetadata(MetadataKeys.InputPointerArray, true);
     }
 
     private static void FixCDependencyTypes(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
