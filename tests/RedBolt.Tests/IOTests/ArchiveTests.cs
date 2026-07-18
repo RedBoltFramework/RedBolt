@@ -348,6 +348,77 @@ public sealed class ArchiveTests
     }
 
     [Fact]
+    public void Human_readable_archive_round_trips_direct_compound_values()
+    {
+        var vector2 = new Vector2f(1.0f, 2.0f);
+        var doubleVector2 = new Vector2d(3.0, 4.0);
+        var doubleVector3 = new Vector3d(5.0, 6.0, 7.0);
+        var matrix3 = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var matrix4 = Matrix4.IDENTITY;
+        var rect = new Rect(1.0f, 2.0f, 3.0f, 4.0f);
+        var quaternion = new Quaternion(10.0f, 20.0f, 30.0f);
+        var color = new Color(0.1f, 0.2f, 0.3f, 0.4f);
+        var intVector2 = new Vector2i(11, 12);
+        var intVector3 = new Vector3i(13, 14, 15);
+        var intRect = new IntRect(16, 17, 18, 19);
+
+        var output = new JSONOutputArchive();
+        using (output.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeValue(output, "vector2", ref vector2);
+            ArchiveSerialization.SerializeValue(output, "doubleVector2", ref doubleVector2);
+            ArchiveSerialization.SerializeValue(output, "doubleVector3", ref doubleVector3);
+            ArchiveSerialization.SerializeValue(output, "matrix3", ref matrix3);
+            ArchiveSerialization.SerializeValue(output, "matrix4", ref matrix4);
+            ArchiveSerialization.SerializeValue(output, "rect", ref rect);
+            ArchiveSerialization.SerializeValue(output, "quaternion", ref quaternion);
+            ArchiveSerialization.SerializeValue(output, "color", ref color);
+            ArchiveSerialization.SerializeValue(output, "intVector2", ref intVector2);
+            ArchiveSerialization.SerializeValue(output, "intVector3", ref intVector3);
+            ArchiveSerialization.SerializeValue(output, "intRect", ref intRect);
+        }
+
+        var loadedVector2 = default(Vector2f);
+        var loadedDoubleVector2 = default(Vector2d);
+        var loadedDoubleVector3 = default(Vector3d);
+        var loadedMatrix3 = default(Matrix3);
+        var loadedMatrix4 = default(Matrix4);
+        var loadedRect = default(Rect);
+        var loadedQuaternion = default(Quaternion);
+        var loadedColor = default(Color);
+        var loadedIntVector2 = default(Vector2i);
+        var loadedIntVector3 = default(Vector3i);
+        var loadedIntRect = default(IntRect);
+        var input = new JSONInputArchive(output.ToJsonString());
+        using (input.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeValue(input, "vector2", ref loadedVector2);
+            ArchiveSerialization.SerializeValue(input, "doubleVector2", ref loadedDoubleVector2);
+            ArchiveSerialization.SerializeValue(input, "doubleVector3", ref loadedDoubleVector3);
+            ArchiveSerialization.SerializeValue(input, "matrix3", ref loadedMatrix3);
+            ArchiveSerialization.SerializeValue(input, "matrix4", ref loadedMatrix4);
+            ArchiveSerialization.SerializeValue(input, "rect", ref loadedRect);
+            ArchiveSerialization.SerializeValue(input, "quaternion", ref loadedQuaternion);
+            ArchiveSerialization.SerializeValue(input, "color", ref loadedColor);
+            ArchiveSerialization.SerializeValue(input, "intVector2", ref loadedIntVector2);
+            ArchiveSerialization.SerializeValue(input, "intVector3", ref loadedIntVector3);
+            ArchiveSerialization.SerializeValue(input, "intRect", ref loadedIntRect);
+        }
+
+        Assert.Equal(vector2, loadedVector2);
+        Assert.Equal(doubleVector2, loadedDoubleVector2);
+        Assert.Equal(doubleVector3, loadedDoubleVector3);
+        Assert.Equal(matrix3, loadedMatrix3);
+        Assert.Equal(matrix4, loadedMatrix4);
+        Assert.Equal(rect, loadedRect);
+        Assert.True(quaternion.ApproximatelyEquivalent(loadedQuaternion, 0.00001f));
+        Assert.Equal(color, loadedColor);
+        Assert.Equal(intVector2, loadedIntVector2);
+        Assert.Equal(intVector3, loadedIntVector3);
+        Assert.Equal(intRect, loadedIntRect);
+    }
+
+    [Fact]
     public void Serialize_value_opens_variant_block()
     {
         var archive = new TestArchive();

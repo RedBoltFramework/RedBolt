@@ -39,6 +39,39 @@ public static partial class ArchiveSerialization
             value = new StringHash(rawValue);
     }
 
+    public static void SerializeValue(Archive archive, string name, ref Vector2f value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Vector2d value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Vector3d value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Matrix3 value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Matrix4 value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Rect value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Quaternion value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Color value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Vector2i value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref Vector3i value) =>
+        SerializeCompound(archive, name, ref value);
+
+    public static void SerializeValue(Archive archive, string name, ref IntRect value) =>
+        SerializeCompound(archive, name, ref value);
+
     private static string NumberArrayToString(ReadOnlySpan<float> values)
     {
         var result = new StringBuilder();
