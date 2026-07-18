@@ -16,6 +16,50 @@ public sealed class StaticModelGroupTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Class_type_and_instance_storage_match_cpp()
+    {
+        Assert.False(typeof(StaticModelGroup).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(StaticModelGroup)));
+        var instanceNodes = typeof(StaticModelGroup).GetField("_instanceNodes",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.Equal(typeof(List<WeakReference<Node>>), instanceNodes.FieldType);
+        Assert.Equal(typeof(VariantVector), typeof(StaticModelGroup).GetMethod(nameof(StaticModelGroup.GetNodeIDsAttr))!.ReturnType);
+    }
+
+    [Fact]
+    public void Constructor_initializes_node_ids_and_factory()
+    {
+        using var group = new StaticModelGroup();
+        Assert.Equal(0u, Assert.Single(group.GetNodeIDsAttr()).GetUInt());
+
+        StaticModelGroup.RegisterObject(Context.Instance);
+        using var reflected = Assert.IsType<StaticModelGroup>(
+            Context.Instance.CreateObject(ObjectReflection<StaticModelGroup>.TypeId));
+    }
+
+    [Fact]
+    public void Node_ids_attribute_returns_cached_container()
+    {
+        using var group = new StaticModelGroup();
+
+        Assert.Same(group.GetNodeIDsAttr(), group.GetNodeIDsAttr());
+    }
+
+    [Fact]
+    public void Dispose_removes_instance_listener_without_disposing_node()
+    {
+        var scene = new Scene();
+        var instance = scene.CreateChild("Instance");
+        var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
+        group.AddInstanceNode(instance);
+
+        group.Dispose();
+
+        Assert.DoesNotContain(group, instance.GetListeners());
+        Assert.Equal("Instance", instance.Name);
+    }
+
+    [Fact]
     public void Instance_nodes_work()
     {
         var scene = new Scene();
@@ -48,7 +92,8 @@ public sealed class StaticModelGroupTests
         var a = scene.CreateChild("A");
         var b = scene.CreateChild("B");
 
-        group.SetNodeIDsAttr([2u, a.Id, b.Id]);
+        using var nodeIds = new VariantVector { 2u, a.Id, b.Id };
+        group.SetNodeIDsAttr(nodeIds);
         group.ApplyAttributes();
 
         Assert.Equal(2u, group.GetNumInstanceNodes());
@@ -64,11 +109,13 @@ public sealed class StaticModelGroupTests
         var second = scene.CreateChild("Second");
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
 
-        group.SetNodeIDsAttr([1u, first.Id]);
+        using var firstNodeIds = new VariantVector { 1u, first.Id };
+        group.SetNodeIDsAttr(firstNodeIds);
         group.ApplyAttributes();
         Assert.Contains(group, first.GetListeners());
 
-        group.SetNodeIDsAttr([1u, second.Id]);
+        using var secondNodeIds = new VariantVector { 1u, second.Id };
+        group.SetNodeIDsAttr(secondNodeIds);
         group.ApplyAttributes();
 
         Assert.DoesNotContain(group, first.GetListeners());
@@ -89,7 +136,9 @@ public sealed class StaticModelGroupTests
 
         group.RemoveInstanceNode(b);
         Assert.Equal(1u, group.GetNumInstanceNodes());
-        Assert.True(group.GetNodeIDsAttr().SequenceEqual([1u, a.Id]));
+        var nodeIds = group.GetNodeIDsAttr();
+        Assert.Equal(1u, nodeIds[0].GetUInt());
+        Assert.Equal(a.Id, nodeIds[1].GetUInt());
         Assert.DoesNotContain(group, b.GetListeners());
     }
 
@@ -103,11 +152,12 @@ public sealed class StaticModelGroupTests
         group.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
         var instance = scene.CreateChild("Instance");
         group.AddInstanceNode(instance);
-        Assert.Equal(1u, group.GetNumWorldTransforms());
+        _ = group.GetWorldBoundingBox();
 
         var ray = new Ray(group.GetBoundingBox().Center - Vector3f.Forward * 10.0f, Vector3f.Forward);
         var results = new List<RayQueryResult>();
-        group.ProcessRayQuery(new RayOctreeQuery(results, ray, RayQueryLevel.RayObb, 100.0f));
+        using var query = new RayOctreeQuery(results, ray, RayQueryLevel.RayObb, 100.0f);
+        group.ProcessRayQuery(query, results);
         var result = results.Single();
 
         Assert.Same(group, result.Drawable);

@@ -1,173 +1,209 @@
 namespace RedBolt;
 
-public sealed class StaticModelGroup : StaticModel
+/// <summary>Renders several object instances while culling and receiving light as one unit. Can be used as a CPU-side optimization, but note that also regular StaticModels will use instanced rendering if possible.</summary>
+public class StaticModelGroup : StaticModel
 {
-    private static readonly Matrix3x4[] _identityWorldTransform = [Matrix3x4.Identity];
-    private readonly List<Node> _instanceNodes = [];
-    private readonly List<Matrix3x4> _worldTransforms = [];
-    private Matrix3x4[] _worldTransformsArray = [];
-    private readonly List<uint> _nodeIdsAttribute = [0u];
-    private uint _numWorldTransforms;
-    private bool _nodesDirty;
-    private bool _nodeIdsDirty;
-
-    public void AddInstanceNode(Node? node)
+    private static readonly StringVector InstanceNodesStructureElementNames = new()
     {
-        if (node is null || _instanceNodes.Contains(node))
-            return;
+        "Instance Count",
+        "   NodeID"
+    };
 
-        node.AddListener(this);
-        _instanceNodes.Add(node);
-        UpdateNumTransforms();
+    private static readonly Matrix3x4[] IdentityWorldTransform = [Matrix3x4.Identity];
+
+    /// <summary>Construct.</summary>
+    public StaticModelGroup()
+    {
+        // Initialize the default node IDs attribute
+        UpdateNodeIDs();
+
+        RegisterAttribute(
+            "Instance Nodes",
+            typeof(VariantVector),
+            self => ((StaticModelGroup)self).GetNodeIDsAttr(),
+            (self, value) => ((StaticModelGroup)self).SetNodeIDsAttr((VariantVector)value!),
+            new VariantVector(),
+            AttributeMode.Default | AttributeMode.NodeIdVector)
+            .SetMetadata(AttributeMetadata.VectorStructElements, new Variant(InstanceNodesStructureElementNames));
     }
 
-    public void RemoveInstanceNode(Node? node)
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
-        if (node is null || !_instanceNodes.Remove(node))
-            return;
-
-        node.RemoveListener(this);
-        UpdateNumTransforms();
-    }
-
-    public void RemoveAllInstanceNodes()
-    {
-        foreach (var node in _instanceNodes)
-            node.RemoveListener(this);
+        _nodeIdsAttr.Dispose();
+        _worldTransforms = [];
+        for (var i = 0; i < _instanceNodes.Count; ++i)
+        {
+            if (_instanceNodes[i].TryGetTarget(out var instanceNode))
+                instanceNode.RemoveListener(this);
+        }
         _instanceNodes.Clear();
-        UpdateNumTransforms();
+        base.Dispose();
     }
 
-    public uint GetNumInstanceNodes() => (uint)_instanceNodes.Count;
-
-    public Node? GetInstanceNode(uint index) => index < _instanceNodes.Count ? _instanceNodes[(int)index] : null;
-
-    public IReadOnlyList<Matrix3x4> GetWorldTransforms()
+    /// <summary>Register object factory. StaticModel must be registered first.</summary>
+    public new static void RegisterObject(Context context)
     {
-        _ = GetWorldBoundingBox();
-        return _worldTransforms.Take((int)_numWorldTransforms).ToArray();
+        context.AddFactoryReflection<StaticModelGroup>(ObjectCategory.Category_Geometry);
     }
 
-    public uint GetNumWorldTransforms()
-    {
-        _ = GetWorldBoundingBox();
-        return _numWorldTransforms;
-    }
-
-    public void SetNodeIDsAttr(IEnumerable<uint>? values)
-    {
-        _nodeIdsAttribute.Clear();
-        var source = values?.ToArray() ?? [];
-        if (source.Length == 0)
-        {
-            _nodeIdsAttribute.Add(0u);
-        }
-        else
-        {
-            var count = source[0] > int.MaxValue ? 0u : source[0];
-            _nodeIdsAttribute.Add(count);
-            for (var i = 0u; i < count; ++i)
-            {
-                var sourceIndex = i + 1u;
-                _nodeIdsAttribute.Add(sourceIndex < source.Length ? source[(int)sourceIndex] : 0u);
-            }
-        }
-
-        _nodesDirty = true;
-        _nodeIdsDirty = false;
-    }
-
-    public IReadOnlyList<uint> GetNodeIDsAttr()
-    {
-        if (_nodeIdsDirty)
-            UpdateNodeIDs();
-
-        return _nodeIdsAttribute.ToArray();
-    }
-
+    /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
     public override void ApplyAttributes()
     {
         if (!_nodesDirty)
             return;
 
-        foreach (var node in _instanceNodes)
-            node.RemoveListener(this);
-        _instanceNodes.Clear();
-        if (Scene is { } scene)
+        // Remove all old instance nodes before searching for new
+        for (var i = 0; i < _instanceNodes.Count; ++i)
         {
-            for (var i = 1; i < _nodeIdsAttribute.Count; ++i)
+            if (_instanceNodes[i].TryGetTarget(out var instanceNode))
+                instanceNode.RemoveListener(this);
+        }
+
+        _instanceNodes.Clear();
+
+        var scene = Scene;
+        if (scene is not null)
+        {
+            // The first index stores the number of IDs redundantly. This is for editing
+            for (var i = 1; i < _nodeIdsAttr.Count; ++i)
             {
-                var node = scene.GetNode(_nodeIdsAttribute[i]);
+                var node = scene.GetNode(_nodeIdsAttr[i].GetUInt());
                 if (node is not null)
                 {
                     node.AddListener(this);
-                    _instanceNodes.Add(node);
+                    _instanceNodes.Add(new WeakReference<Node>(node));
                 }
             }
         }
 
+        _worldTransforms = new Matrix3x4[_instanceNodes.Count];
+        _numWorldTransforms = 0; // Correct amount will be found during world bounding box update
         _nodesDirty = false;
-        UpdateNumTransforms(markNodeIdsDirty: false);
+
+        OnMarkedDirty(Node);
     }
 
-    protected internal override void OnMarkedDirty(Node node)
+    /// <summary>Process octree raycast. May be called from a worker thread.</summary>
+    public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
     {
-        base.OnMarkedDirty(node);
-        MarkForUpdate();
-    }
-
-    protected internal override void OnNodeSetEnabled(Node node)
-    {
-        base.OnMarkedDirty(node);
-    }
-
-    protected override void OnWorldBoundingBoxUpdate()
-    {
-        var index = 0u;
-        var worldBox = new BoundingBox();
-        var hasWorldBox = false;
-        foreach (var node in _instanceNodes)
+        // If no bones or no bone-level testing, use the Drawable test
+        var level = query.Level;
+        if (level < RayQueryLevel.RayAabb)
         {
-            if (!node.IsEnabled)
-                continue;
-
-            var transform = node.GetWorldTransform();
-            _worldTransforms[(int)index++] = transform;
-            var instanceBox = GetBoundingBox().Transformed(transform);
-            if (!hasWorldBox)
-            {
-                worldBox = instanceBox;
-                hasWorldBox = true;
-            }
-            else
-            {
-                worldBox.Merge(instanceBox);
-            }
+            base.ProcessRayQuery(query, results);
+            return;
         }
 
-        _numWorldTransforms = index;
-        for (var i = 0u; i < index; ++i)
-            _worldTransformsArray[(int)i] = _worldTransforms[(int)i];
-        SetWorldBoundingBox(worldBox);
+        // Check ray hit distance to AABB before proceeding with more accurate tests
+        // GetWorldBoundingBox() updates the world transforms
+        if (query.Ray.HitDistance(GetWorldBoundingBox()) >= query.MaxDistance)
+            return;
+
+        for (var i = 0u; i < _numWorldTransforms; ++i)
+        {
+            // Initial test using AABB
+            var distanceAndNormal = query.Ray.HitDistanceAndNormal(GetBoundingBox().Transformed(_worldTransforms[i]));
+            var distance = distanceAndNormal.Distance;
+            var normal = distanceAndNormal.Normal;
+
+            // Then proceed to OBB and triangle-level tests if necessary
+            if (level >= RayQueryLevel.RayObb && distance < query.MaxDistance)
+            {
+                var inverse = _worldTransforms[i].Inverse;
+                var localRay = query.Ray.Transformed(inverse);
+                distance = localRay.HitDistance(GetBoundingBox());
+
+                if (level == RayQueryLevel.RayTriangle && distance < query.MaxDistance)
+                {
+                    distance = float.PositiveInfinity;
+
+                    for (var j = 0; j < _batches.Count; ++j)
+                    {
+                        var geometry = _batches[j].Geometry;
+                        if (geometry is not null)
+                        {
+                            var geometryDistance = geometry.GetHitDistance(localRay, out var geometryNormal);
+                            if (geometryDistance < query.MaxDistance && geometryDistance < distance)
+                            {
+                                distance = geometryDistance;
+                                normal = (_worldTransforms[i].Matrix3 * geometryNormal).Normalized;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (distance < query.MaxDistance)
+            {
+                results.Add(new RayQueryResult
+                {
+                    Position = query.Ray.Origin + distance * query.Ray.Direction,
+                    Normal = normal,
+                    Distance = distance,
+                    Drawable = this,
+                    Node = Node,
+                    SubObject = i
+                });
+            }
+        }
     }
 
-    public void ProcessRayQuery(RayOctreeQuery query)
+    /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
+    public override void UpdateBatches(CommonFrameInfo frame)
     {
-        foreach (var result in CreateRayQueryResults(query.Ray, query.Level, query.MaxDistance))
-            query.Result.Add(result);
+        // Getting the world bounding box ensures the transforms are updated
+        var worldBoundingBox = GetWorldBoundingBox();
+        var worldTransform = Node.GetWorldTransform();
+        var camera = frame.Camera!;
+        SetDistance(camera.GetDistance(worldBoundingBox.Center));
+
+        if (_batches.Count > 1)
+        {
+            for (var i = 0; i < _batches.Count; ++i)
+            {
+                var batch = _batches[i];
+                batch.Distance = camera.GetDistance(worldTransform * _geometryData[i].Center);
+                batch.WorldTransform = _numWorldTransforms != 0 ? _worldTransforms : IdentityWorldTransform;
+                batch.NumWorldTransforms = _numWorldTransforms;
+                _batches[i] = batch;
+            }
+        }
+        else if (_batches.Count == 1)
+        {
+            var batch = _batches[0];
+            batch.Distance = GetDistance();
+            batch.WorldTransform = _numWorldTransforms != 0 ? _worldTransforms : IdentityWorldTransform;
+            batch.NumWorldTransforms = _numWorldTransforms;
+            _batches[0] = batch;
+        }
+
+        var scale = worldBoundingBox.Size.DotProduct(GraphicsDefs.DotScale);
+        var newLodDistance = camera.GetLodDistance(GetDistance(), scale, LodBias);
+
+        if (newLodDistance != GetLodDistance())
+        {
+            SetLodDistance(newLodDistance);
+            CalculateLodLevels();
+        }
     }
 
+    /// <summary>Return number of occlusion geometry triangles.</summary>
     public override uint GetNumOccluderTriangles()
     {
+        // Make sure instance transforms are up-to-date
         _ = GetWorldBoundingBox();
+
         var triangles = 0u;
-        for (var i = 0u; i < NumGeometries; ++i)
+
+        for (var i = 0; i < _batches.Count; ++i)
         {
-            var geometry = GetLodGeometry(i, OcclusionLodLevel);
+            var geometry = GetLodGeometry((uint)i, _occlusionLodLevel);
             if (geometry is null)
                 continue;
 
-            var material = GetMaterial(i);
+            // Check that the material is suitable for occlusion (default material always is)
+            var material = _batches[i].Material;
             if (material is not null && !material.GetOcclusion())
                 continue;
 
@@ -180,16 +216,18 @@ public sealed class StaticModelGroup : StaticModel
     /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
     public override bool DrawOcclusion(OcclusionBuffer buffer)
     {
+        // Make sure instance transforms are up-to-date
         _ = GetWorldBoundingBox();
 
         for (var i = 0u; i < _numWorldTransforms; ++i)
         {
             for (var j = 0; j < _batches.Count; ++j)
             {
-                var geometry = GetLodGeometry((uint)j, OcclusionLodLevel);
+                var geometry = GetLodGeometry((uint)j, _occlusionLodLevel);
                 if (geometry is null)
                     continue;
 
+                // Check that the material is suitable for occlusion (default material always is) and set culling mode
                 var material = _batches[j].Material;
                 if (material is not null)
                 {
@@ -202,6 +240,7 @@ public sealed class StaticModelGroup : StaticModel
 
                 geometry.GetRawDataShared(out var vertexData, out var vertexSize, out var indexData, out var indexSize,
                     out var elements);
+                // Check for valid geometry data
                 if (vertexData is null || indexData is null || elements is null)
                     continue;
                 var positionElement = VertexBuffer.GetElement(elements, VertexElementType.Vector3,
@@ -209,8 +248,12 @@ public sealed class StaticModelGroup : StaticModel
                 if (positionElement is null || positionElement.Value.Offset != 0)
                     continue;
 
-                if (!buffer.AddTriangles(_worldTransforms[(int)i], vertexData, vertexSize, indexData, indexSize,
-                        geometry.GetIndexStart(), geometry.GetIndexCount()))
+                var indexStart = geometry.GetIndexStart();
+                var indexCount = geometry.GetIndexCount();
+
+                // Draw and check for running out of triangles
+                if (!buffer.AddTriangles(_worldTransforms[i], vertexData, vertexSize, indexData, indexSize, indexStart,
+                        indexCount))
                     return false;
             }
         }
@@ -218,105 +261,181 @@ public sealed class StaticModelGroup : StaticModel
         return true;
     }
 
-    public override void UpdateBatches(CommonFrameInfo frame)
+    /// <summary>Add an instance scene node. It does not need any drawable components of its own.</summary>
+    public void AddInstanceNode(Node? node)
     {
-        var worldBoundingBox = GetWorldBoundingBox();
-        var worldTransform = Node.GetWorldTransform();
-        SetDistance(frame.Camera!.GetDistance(worldBoundingBox.Center));
+        if (node is null)
+            return;
 
-        if (_batches.Count > 1)
+        for (var i = 0; i < _instanceNodes.Count; ++i)
         {
-            var model = Model;
-            for (var i = 0; i < _batches.Count; ++i)
+            if (_instanceNodes[i].TryGetTarget(out var instanceNode) && ReferenceEquals(instanceNode, node))
+                return;
+        }
+
+        // Add as a listener for the instance node, so that we know to dirty the transforms when the node moves or is enabled/disabled
+        node.AddListener(this);
+        _instanceNodes.Add(new WeakReference<Node>(node));
+        UpdateNumTransforms();
+    }
+
+    /// <summary>Remove an instance scene node.</summary>
+    public void RemoveInstanceNode(Node? node)
+    {
+        if (node is null)
+            return;
+
+        for (var i = 0; i < _instanceNodes.Count; ++i)
+        {
+            if (_instanceNodes[i].TryGetTarget(out var instanceNode) && ReferenceEquals(instanceNode, node))
             {
-                var batch = _batches[i];
-                var center = model?.GetGeometryCenter((uint)i) ?? Vector3f.Zero;
-                batch.Distance = frame.Camera.GetDistance(worldTransform * center);
-                batch.WorldTransform = _numWorldTransforms > 0 ? _worldTransformsArray : _identityWorldTransform;
-                batch.NumWorldTransforms = _numWorldTransforms;
-                _batches[i] = batch;
+                node.RemoveListener(this);
+                _instanceNodes.RemoveAt(i);
+                UpdateNumTransforms();
+                return;
             }
         }
-        else if (_batches.Count == 1)
-        {
-            var batch = _batches[0];
-            batch.Distance = GetDistance();
-            batch.WorldTransform = _numWorldTransforms > 0 ? _worldTransformsArray : _identityWorldTransform;
-            batch.NumWorldTransforms = _numWorldTransforms;
-            _batches[0] = batch;
-        }
-
-        var size = worldBoundingBox.Size;
-        var scale = (size.X + size.Y + size.Z) / 3.0f;
-        var newLodDistance = frame.Camera.GetLodDistance(GetDistance(), scale, LodBias);
-        if (newLodDistance != GetLodDistance())
-            SetLodDistance(newLodDistance);
     }
 
-    internal IEnumerable<RayQueryResult> CreateRayQueryResults(Ray ray, RayQueryLevel level, float maxDistance)
+    /// <summary>Remove all instance scene nodes.</summary>
+    public void RemoveAllInstanceNodes()
     {
-        _ = GetWorldBoundingBox();
-        for (var i = 0; i < _numWorldTransforms; ++i)
+        for (var i = 0; i < _instanceNodes.Count; ++i)
         {
-            var distance = ray.HitDistance(GetBoundingBox().Transformed(_worldTransforms[i]));
-            if (level >= RayQueryLevel.RayObb && distance < maxDistance)
+            if (_instanceNodes[i].TryGetTarget(out var instanceNode))
+                instanceNode.RemoveListener(this);
+        }
+
+        _instanceNodes.Clear();
+        UpdateNumTransforms();
+    }
+
+    /// <summary>Return number of instance nodes.</summary>
+    public uint GetNumInstanceNodes() => checked((uint)_instanceNodes.Count);
+
+    /// <summary>Return instance node by index.</summary>
+    public Node? GetInstanceNode(uint index)
+    {
+        return index < _instanceNodes.Count && _instanceNodes[(int)index].TryGetTarget(out var node) ? node : null;
+    }
+
+    /// <summary>Set node IDs attribute.</summary>
+    public void SetNodeIDsAttr(VariantVector value)
+    {
+        // Just remember the node IDs. They need to go through the SceneResolver, and we actually find the nodes during
+        // ApplyAttributes()
+        if (value.Count != 0)
+        {
+            _nodeIdsAttr.Clear();
+
+            var index = 0;
+            var numInstances = value[index++].GetUInt();
+            // Prevent crash on entering negative value in the editor
+            if (numInstances > (uint)MathDefs.MaxInt)
+                numInstances = 0;
+
+            _nodeIdsAttr.Add(numInstances);
+            while (numInstances-- != 0)
             {
-                var localRay = ray.Transformed(_worldTransforms[i].Inverse);
-                distance = localRay.HitDistance(GetBoundingBox());
-
-                if (level == RayQueryLevel.RayTriangle && distance < maxDistance)
-                {
-                    distance = float.PositiveInfinity;
-                    for (var j = 0u; j < NumGeometries; ++j)
-                    {
-                        var geometry = GetLodGeometry(j, 0);
-                        if (geometry is null)
-                            continue;
-
-                        var geometryDistance = geometry.GetHitDistance(localRay);
-                        if (geometryDistance < maxDistance && geometryDistance < distance)
-                            distance = geometryDistance;
-                    }
-                }
+                // If vector contains less IDs than should, fill the rest with zeroes
+                if (index < value.Count)
+                    _nodeIdsAttr.Add(value[index++].GetUInt());
+                else
+                    _nodeIdsAttr.Add(0u);
             }
-
-            if (float.IsPositiveInfinity(distance) || distance >= maxDistance)
-                continue;
-
-            yield return new RayQueryResult
-            {
-                Drawable = this,
-                Node = IsAttached ? Node : null,
-                Distance = distance,
-                Position = ray.Origin + ray.Direction * distance,
-                Normal = -ray.Direction,
-                TextureUV = Vector2f.Zero,
-                SubObject = (uint)i
-            };
         }
-    }
+        else
+        {
+            _nodeIdsAttr.Clear();
+            _nodeIdsAttr.Add(0u);
+        }
 
-    private void UpdateNumTransforms(bool markNodeIdsDirty = true)
-    {
-        while (_worldTransforms.Count < _instanceNodes.Count)
-            _worldTransforms.Add(Matrix3x4.Identity);
-        while (_worldTransforms.Count > _instanceNodes.Count)
-            _worldTransforms.RemoveAt(_worldTransforms.Count - 1);
-
-        if (_worldTransformsArray.Length != _worldTransforms.Count)
-            _worldTransformsArray = new Matrix3x4[_worldTransforms.Count];
-
-        _numWorldTransforms = 0;
-        _nodeIdsDirty = markNodeIdsDirty;
-        MarkForUpdate();
-    }
-
-    private void UpdateNodeIDs()
-    {
-        _nodeIdsAttribute.Clear();
-        _nodeIdsAttribute.Add((uint)_instanceNodes.Count);
-        foreach (var node in _instanceNodes)
-            _nodeIdsAttribute.Add(node.Id);
+        _nodesDirty = true;
         _nodeIdsDirty = false;
     }
+
+    /// <summary>Return node IDs attribute.</summary>
+    public VariantVector GetNodeIDsAttr()
+    {
+        if (_nodeIdsDirty)
+            UpdateNodeIDs();
+
+        return _nodeIdsAttr;
+    }
+
+    /// <summary>Handle scene node enabled status changing.</summary>
+    protected internal override void OnNodeSetEnabled(Node node)
+    {
+        base.OnMarkedDirty(node);
+    }
+
+    /// <summary>Recalculate the world-space bounding box.</summary>
+    protected override void OnWorldBoundingBoxUpdate()
+    {
+        // Update transforms and bounding box at the same time to have to go through the objects only once
+        var index = 0u;
+
+        var worldBox = new BoundingBox();
+        var hasWorldBox = false;
+
+        for (var i = 0; i < _instanceNodes.Count; ++i)
+        {
+            if (!_instanceNodes[i].TryGetTarget(out var node) || !node.IsEnabled)
+                continue;
+
+            var worldTransform = node.GetWorldTransform();
+            _worldTransforms[index++] = worldTransform;
+            var instanceBox = GetBoundingBox().Transformed(worldTransform);
+            if (!hasWorldBox)
+            {
+                worldBox = instanceBox;
+                hasWorldBox = true;
+            }
+            else
+                worldBox.Merge(instanceBox);
+        }
+
+        SetWorldBoundingBox(worldBox);
+
+        // Store the amount of valid instances we found instead of resizing worldTransforms_. This is because this function may be
+        // called from multiple worker threads simultaneously
+        _numWorldTransforms = index;
+    }
+
+    /// <summary>Ensure proper size of world transforms when nodes are added/removed. Also mark node IDs dirty.</summary>
+    private void UpdateNumTransforms()
+    {
+        _worldTransforms = new Matrix3x4[_instanceNodes.Count];
+        _numWorldTransforms = 0; // Correct amount will be during world bounding box update
+        _nodeIdsDirty = true;
+
+        OnMarkedDirty(Node);
+    }
+
+    /// <summary>Update node IDs attribute from the actual nodes.</summary>
+    private void UpdateNodeIDs()
+    {
+        var numInstances = checked((uint)_instanceNodes.Count);
+
+        _nodeIdsAttr.Clear();
+        _nodeIdsAttr.Add(numInstances);
+
+        for (var i = 0u; i < numInstances; ++i)
+            _nodeIdsAttr.Add(_instanceNodes[(int)i].TryGetTarget(out var node) ? node.Id : 0u);
+
+        _nodeIdsDirty = false;
+    }
+
+    /// <summary>Instance nodes.</summary>
+    private readonly List<WeakReference<Node>> _instanceNodes = [];
+    /// <summary>World transforms of valid (existing and visible) instances.</summary>
+    private Matrix3x4[] _worldTransforms = [];
+    /// <summary>IDs of instance nodes for serialization.</summary>
+    private readonly VariantVector _nodeIdsAttr = [];
+    /// <summary>Number of valid instance node transforms.</summary>
+    private uint _numWorldTransforms;
+    /// <summary>Whether node IDs have been set and nodes should be searched for during ApplyAttributes.</summary>
+    private bool _nodesDirty;
+    /// <summary>Whether nodes have been manipulated by the API and node ID attribute should be refreshed.</summary>
+    private bool _nodeIdsDirty;
 }
