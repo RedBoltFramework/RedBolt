@@ -6,6 +6,22 @@ namespace RedBolt.Tests;
 public sealed class TerrainPatchTests
 {
     [Fact]
+    public void TerrainPatch_is_extensible_noncopyable_reference_class_with_weak_observations()
+    {
+        var type = typeof(TerrainPatch);
+
+        Assert.True(type.IsClass);
+        Assert.False(type.IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+        Assert.Equal(typeof(WeakReference<Terrain>), type.GetField("_owner", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<TerrainPatch>), type.GetField("_north", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<TerrainPatch>), type.GetField("_south", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<TerrainPatch>), type.GetField("_west", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<TerrainPatch>), type.GetField("_east", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Null(type.GetField("_worldTransform", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly));
+    }
+
+    [Fact]
     public void Defaults_match_cpp_constructor()
     {
         var patch = new Scene().CreateChild("Patch").CreateComponent<TerrainPatch>();
@@ -76,5 +92,30 @@ public sealed class TerrainPatchTests
         var patch = new Scene().CreateChild("Patch").CreateComponent<TerrainPatch>();
         Assert.Same(patch.GetMaxLodGeometry(), patch.GetLodGeometry(0, 0));
         Assert.Same(patch.GetGeometry(), patch.GetLodGeometry(0, 1));
+    }
+
+    [Fact]
+    public void Dispose_releases_derived_state_before_drawable_state()
+    {
+        var scene = new Scene();
+        var patch = scene.CreateChild("Patch").CreateComponent<TerrainPatch>();
+        var owner = scene.CreateChild("Terrain").CreateComponent<Terrain>();
+        var north = scene.CreateChild("North").CreateComponent<TerrainPatch>();
+        patch.SetOwner(owner);
+        patch.SetNeighbors(north, null, null, null);
+        patch.GetLodErrors().Add(1.0f);
+        var geometry = patch.GetGeometry();
+        var vertexBuffer = patch.GetVertexBuffer();
+
+        patch.Dispose();
+
+        Assert.Null(patch.GetOwner());
+        Assert.Null(patch.GetNorthPatch());
+        Assert.Empty(patch.GetLodErrors());
+        Assert.Empty(patch.GetBatches());
+        Assert.NotNull(geometry);
+        Assert.NotNull(vertexBuffer);
+        Assert.Null(typeof(TerrainPatch).GetField("_geometry", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(patch));
+        Assert.Null(typeof(TerrainPatch).GetField("_vertexBuffer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(patch));
     }
 }
