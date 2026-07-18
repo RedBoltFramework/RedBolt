@@ -9,7 +9,7 @@ namespace RedBolt;
 
 /// <summary>File opened through the filesystem.</summary>
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
-public class File : AbstractFile, IDisposable
+public class File : AbstractFile
 {
     private const uint ReadBufferSize = 32768;
 
@@ -69,9 +69,10 @@ public class File : AbstractFile, IDisposable
     }
 
     /// <summary>Destruct. Close the file if open.</summary>
-    public void Dispose()
+    public override void Dispose()
     {
         Close();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

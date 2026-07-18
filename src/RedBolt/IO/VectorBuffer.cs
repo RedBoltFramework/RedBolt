@@ -32,6 +32,14 @@ public sealed class VectorBuffer : AbstractFile
 
     public override string Name => base.Name.Length != 0 ? base.Name : VectorBufferName;
 
+    public override string GetName()
+    {
+        var baseName = base.GetName();
+        if (baseName.Length != 0)
+            return baseName;
+        return VectorBufferName;
+    }
+
     public byte[] GetBuffer()
     {
         return _buffer;
@@ -131,6 +139,13 @@ public sealed class VectorBuffer : AbstractFile
         data.CopyTo(_buffer.AsSpan(checked((int)Position), data.Length));
         Position = end;
         return (uint)data.Length;
+    }
+
+    public override void Dispose()
+    {
+        ReleaseBuffer();
+        base.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     ~VectorBuffer()

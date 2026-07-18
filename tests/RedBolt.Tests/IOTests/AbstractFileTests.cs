@@ -5,6 +5,51 @@ namespace RedBolt.Tests;
 public sealed class AbstractFileTests
 {
     [Fact]
+    public void Class_kind_construction_and_destruction_match_cpp()
+    {
+        Assert.True(typeof(AbstractFile).IsAbstract);
+        Assert.False(typeof(AbstractFile).IsSealed);
+        Assert.Equal(typeof(Deserializer), typeof(AbstractFile).BaseType);
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(AbstractFile)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(AbstractFile)));
+
+        var constructors = typeof(AbstractFile).GetConstructors();
+        Assert.Equal(2, constructors.Length);
+        Assert.All(constructors, constructor => Assert.True(constructor.IsPublic));
+
+        var dispose = typeof(AbstractFile).GetMethod(nameof(IDisposable.Dispose));
+        Assert.NotNull(dispose);
+        Assert.True(dispose.IsVirtual);
+        Assert.False(dispose.IsFinal);
+        Assert.Equal(typeof(AbstractFile), dispose.DeclaringType);
+
+        Assert.Equal(typeof(RedBolt.File), typeof(RedBolt.File).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.Equal(typeof(MemoryBuffer), typeof(MemoryBuffer).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.Equal(typeof(NamedPipe), typeof(NamedPipe).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.Equal(typeof(VectorBuffer), typeof(VectorBuffer).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+    }
+
+    [Fact]
+    public void Constructors_and_default_operations_match_cpp()
+    {
+        var emptyFile = new TestAbstractFile();
+        var sizedFile = new TestAbstractFile(42);
+
+        Assert.Equal(string.Empty, emptyFile.Name);
+        Assert.Equal(string.Empty, emptyFile.GetName());
+        Assert.Equal(string.Empty, emptyFile.AbsoluteName);
+        Assert.True(emptyFile.IsOpen);
+        Assert.Equal(0u, emptyFile.Size);
+        Assert.Equal(42u, sizedFile.Size);
+
+        emptyFile.SetName("Test");
+        Assert.Equal("Test", emptyFile.Name);
+        Assert.Equal("Test", emptyFile.GetName());
+        Assert.Equal("Test", emptyFile.AbsoluteName);
+        emptyFile.Close();
+    }
+
+    [Fact]
     public void VectorBuffer_uses_rbfx_default_name_until_explicitly_set()
     {
         var buffer = new VectorBuffer();
@@ -73,5 +118,23 @@ public sealed class AbstractFileTests
         buffer.Clear();
         Assert.Equal(nint.Zero, buffer.GetData());
         Assert.Equal(nint.Zero, buffer.GetModifiableData());
+    }
+
+    private sealed class TestAbstractFile : AbstractFile
+    {
+        public TestAbstractFile()
+        {
+        }
+
+        public TestAbstractFile(uint size)
+            : base(size)
+        {
+        }
+
+        public override uint Read(Span<byte> destination) => 0;
+
+        public override uint Seek(uint position) => Position;
+
+        public override uint Write(ReadOnlySpan<byte> data) => 0;
     }
 }

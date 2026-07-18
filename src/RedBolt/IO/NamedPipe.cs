@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Named pipe for interprocess communication.</summary>
-public sealed class NamedPipe : AbstractFile, IDisposable
+public sealed class NamedPipe : AbstractFile
 {
     /// <summary>Construct.</summary>
     public NamedPipe()
@@ -165,9 +165,10 @@ public sealed class NamedPipe : AbstractFile, IDisposable
         return _isServer;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         Close();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 

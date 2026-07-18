@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
+public sealed unsafe class MemoryBuffer : AbstractFile
 {
     private readonly byte[] _buffer;
     private readonly byte* _bufferPtr;
@@ -74,11 +74,12 @@ public sealed unsafe class MemoryBuffer : AbstractFile, IDisposable
         IsReadOnly = false;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         if (_pinnedBuffer.IsAllocated)
             _pinnedBuffer.Free();
 
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 
