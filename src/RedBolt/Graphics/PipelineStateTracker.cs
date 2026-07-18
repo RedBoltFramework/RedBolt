@@ -3,14 +3,8 @@ using System.Threading;
 namespace RedBolt;
 
 /// <summary>Holds subscription from one PipelineStateTracker to another. Neither checks nor affects objects lifetime.</summary>
-public sealed class PipelineStateSubscription : IDisposable, ICloneable
+public class PipelineStateSubscription : IDisposable, ICloneable
 {
-    /// <summary>Owned pointer.</summary>
-    private PipelineStateTracker? _sender;
-
-    /// <summary>Owner.</summary>
-    private PipelineStateTracker? _subscriber;
-
     /// <summary>Construct default.</summary>
     public PipelineStateSubscription()
     {
@@ -28,12 +22,25 @@ public sealed class PipelineStateSubscription : IDisposable, ICloneable
         return new PipelineStateSubscription(_sender, _subscriber);
     }
 
-
     /// <summary>Destruct.</summary>
     public void Dispose()
     {
         Reset(null, null);
-        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Assign.</summary>
+    public PipelineStateSubscription CopyAssign(PipelineStateSubscription other)
+    {
+        Reset(other._sender, other._subscriber);
+        return this;
+    }
+
+    /// <summary>Move-assign.</summary>
+    public PipelineStateSubscription MoveAssign(PipelineStateSubscription other)
+    {
+        (_sender, other._sender) = (other._sender, _sender);
+        (_subscriber, other._subscriber) = (other._subscriber, _subscriber);
+        return this;
     }
 
     /// <summary>Reset and update dependency.</summary>
@@ -51,28 +58,23 @@ public sealed class PipelineStateSubscription : IDisposable, ICloneable
         _subscriber = subscriber;
         _sender = sender;
     }
+
+    /// <summary>Owned pointer.</summary>
+    private PipelineStateTracker? _sender;
+
+    /// <summary>Owner.</summary>
+    private PipelineStateTracker? _subscriber;
 }
 
 /// <summary>Helper class to track pipeline state changes caused by derived class.</summary>
 public abstract class PipelineStateTracker : Object
 {
-    private sealed class SubscriberReference
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
-        public SubscriberReference(PipelineStateTracker subscriber)
-        {
-            Subscriber = subscriber;
-            Count = 1;
-        }
-
-        public PipelineStateTracker Subscriber;
-        public uint Count;
+        _subscribers.Clear();
+        base.Dispose();
     }
-
-    /// <summary>Cached hash.</summary>
-    private uint _pipelineStateHash;
-
-    /// <summary>Other pipeline state trackers depending on this tracker.</summary>
-    private readonly List<SubscriberReference> _subscribers = [];
 
     /// <summary>Return (partial) pipeline state hash. Save to call from multiple threads as long as the object is not changing.</summary>
     public uint GetPipelineStateHash()
@@ -111,7 +113,11 @@ public abstract class PipelineStateTracker : Object
 
         var index = FindSubscriberIndex(subscriber);
         if (index >= 0)
-            ++_subscribers[index].Count;
+        {
+            var item = _subscribers[index];
+            ++item.Count;
+            _subscribers[index] = item;
+        }
         else
             _subscribers.Add(new SubscriberReference(subscriber));
 
@@ -129,6 +135,8 @@ public abstract class PipelineStateTracker : Object
         --item.Count;
         if (item.Count == 0)
             _subscribers.RemoveAt(index);
+        else
+            _subscribers[index] = item;
 
         subscriber.MarkPipelineStateHashDirty();
     }
@@ -147,4 +155,22 @@ public abstract class PipelineStateTracker : Object
 
         return -1;
     }
+
+    private struct SubscriberReference
+    {
+        public SubscriberReference(PipelineStateTracker subscriber)
+        {
+            Subscriber = subscriber;
+            Count = 1;
+        }
+
+        public PipelineStateTracker Subscriber;
+        public uint Count;
+    }
+
+    /// <summary>Cached hash.</summary>
+    private uint _pipelineStateHash;
+
+    /// <summary>Other pipeline state trackers depending on this tracker.</summary>
+    private readonly List<SubscriberReference> _subscribers = [];
 }

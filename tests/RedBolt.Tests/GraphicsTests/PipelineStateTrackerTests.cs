@@ -5,6 +5,19 @@ namespace RedBolt.Tests;
 public sealed class PipelineStateTrackerTests
 {
     [Fact]
+    public void Tracker_and_subscription_preserve_cpp_class_types_and_value_subscriber_record()
+    {
+        Assert.False(typeof(PipelineStateTracker).IsValueType);
+        Assert.False(typeof(PipelineStateSubscription).IsValueType);
+        Assert.False(typeof(PipelineStateSubscription).IsSealed);
+
+        var subscriberReference = typeof(PipelineStateTracker).GetNestedType("SubscriberReference",
+            System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(subscriberReference);
+        Assert.True(subscriberReference.IsValueType);
+    }
+
+    [Fact]
     public void Pipeline_state_hash_is_cached_and_dependencies_invalidate_it()
     {
         var dependency = new TestTracker(11);
@@ -36,6 +49,56 @@ public sealed class PipelineStateTrackerTests
         var recalcCount = subscriber.RecalculationCount;
         dependency.MarkPipelineStateHashDirty();
 
+        subscriber.GetPipelineStateHash();
+        Assert.Equal(recalcCount + 1, subscriber.RecalculationCount);
+    }
+
+    [Fact]
+    public void Pipeline_state_subscription_copy_assignment_relinks_reference_counts()
+    {
+        var firstDependency = new TestTracker(23);
+        var secondDependency = new TestTracker(29);
+        var subscriber = new TestTracker(31);
+        using var firstSubscription = subscriber.AddDependency(firstDependency);
+        using var secondSubscription = subscriber.AddDependency(secondDependency);
+
+        firstDependency.GetPipelineStateHash();
+        secondDependency.GetPipelineStateHash();
+        subscriber.GetPipelineStateHash();
+        secondSubscription.CopyAssign(firstSubscription);
+        subscriber.GetPipelineStateHash();
+        var recalcCount = subscriber.RecalculationCount;
+
+        secondDependency.MarkPipelineStateHashDirty();
+        subscriber.GetPipelineStateHash();
+        Assert.Equal(recalcCount, subscriber.RecalculationCount);
+
+        firstDependency.MarkPipelineStateHashDirty();
+        subscriber.GetPipelineStateHash();
+        Assert.Equal(recalcCount + 1, subscriber.RecalculationCount);
+    }
+
+    [Fact]
+    public void Pipeline_state_subscription_move_assignment_swaps_and_releases_old_reference()
+    {
+        var firstDependency = new TestTracker(37);
+        var secondDependency = new TestTracker(41);
+        var subscriber = new TestTracker(43);
+        using var target = subscriber.AddDependency(firstDependency);
+        var source = subscriber.AddDependency(secondDependency);
+
+        target.MoveAssign(source);
+        source.Dispose();
+        firstDependency.GetPipelineStateHash();
+        secondDependency.GetPipelineStateHash();
+        subscriber.GetPipelineStateHash();
+        var recalcCount = subscriber.RecalculationCount;
+
+        firstDependency.MarkPipelineStateHashDirty();
+        subscriber.GetPipelineStateHash();
+        Assert.Equal(recalcCount, subscriber.RecalculationCount);
+
+        secondDependency.MarkPipelineStateHashDirty();
         subscriber.GetPipelineStateHash();
         Assert.Equal(recalcCount + 1, subscriber.RecalculationCount);
     }

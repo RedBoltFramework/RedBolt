@@ -111,9 +111,9 @@ public class BillboardSet : Drawable
     public override void Dispose()
     {
         _sortedBillboards.Clear();
+        _geometry.Dispose();
         _indexBuffer.Dispose();
         _vertexBuffer.Dispose();
-        _geometry.Dispose();
         _billboards.Clear();
         base.Dispose();
     }

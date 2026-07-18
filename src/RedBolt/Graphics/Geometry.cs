@@ -44,7 +44,7 @@ public sealed class Geometry : PipelineStateTracker
     public IndexBuffer? IndexBuffer { get; private set; }
 
     /// <summary>Index buffer dependency.</summary>
-    private PipelineStateSubscription _indexBufferDependency = new();
+    private readonly PipelineStateSubscription _indexBufferDependency = new();
 
     /// <summary>Primitive type.</summary>
     public PrimitiveType PrimitiveType { get; private set; } = PrimitiveType.TriangleList;
@@ -158,9 +158,8 @@ public sealed class Geometry : PipelineStateTracker
             return false;
         }
 
-        var dependency = CreateDependency(buffer);
-        _vertexBuffersDependencies[(int)index].Dispose();
-        _vertexBuffersDependencies[(int)index] = dependency;
+        using (var dependency = CreateDependency(buffer))
+            _vertexBuffersDependencies[(int)index].MoveAssign(dependency);
         _vertexBuffers[(int)index] = buffer;
 
         UpdateHeadlessStatus();
@@ -183,9 +182,8 @@ public sealed class Geometry : PipelineStateTracker
             _vertexBuffersDependencies.Add(new PipelineStateSubscription());
         for (var i = 0; i < newBuffers.Count; ++i)
         {
-            var dependency = CreateDependency(newBuffers[i]);
-            _vertexBuffersDependencies[i].Dispose();
-            _vertexBuffersDependencies[i] = dependency;
+            using (var dependency = CreateDependency(newBuffers[i]))
+                _vertexBuffersDependencies[i].MoveAssign(dependency);
         }
 
         _vertexBuffers.Clear();
@@ -197,9 +195,8 @@ public sealed class Geometry : PipelineStateTracker
     /// <summary>Set the index buffer.</summary>
     public void SetIndexBuffer(IndexBuffer? buffer)
     {
-        var dependency = CreateDependency(IndexBuffer);
-        _indexBufferDependency.Dispose();
-        _indexBufferDependency = dependency;
+        using (var dependency = CreateDependency(IndexBuffer))
+            _indexBufferDependency.MoveAssign(dependency);
         IndexBuffer = buffer;
 
         UpdateHeadlessStatus();
