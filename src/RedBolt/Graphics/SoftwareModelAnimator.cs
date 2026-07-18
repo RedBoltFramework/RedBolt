@@ -4,8 +4,14 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Container for vertex buffer animation data.</summary>
-public sealed class VertexBufferAnimationData
+public struct VertexBufferAnimationData : ICloneable
 {
+    public VertexBufferAnimationData()
+    {
+        BlendWeights = [];
+        BlendIndices = [];
+    }
+
     /// <summary>Whether the buffer is animated by skeleton.</summary>
     public bool HasSkeletalAnimation;
     /// <summary>Whether the buffer has normals affected by skeletal animation.</summary>
@@ -16,30 +22,44 @@ public sealed class VertexBufferAnimationData
     public float[] BlendWeights = [];
     /// <summary>Blend indices.</summary>
     public byte[] BlendIndices = [];
+
+    public readonly object Clone()
+    {
+        var clone = this;
+        clone.BlendWeights = (float[])BlendWeights.Clone();
+        clone.BlendIndices = (byte[])BlendIndices.Clone();
+        return clone;
+    }
 }
 
 /// <summary>Class for software model animation (morphing and skinning).</summary>
-public sealed class SoftwareModelAnimator : Object
+public class SoftwareModelAnimator : Object
 {
-    private struct BoneWeight
-    {
-        public float Weight;
-        public byte Index;
-    }
-
     /// <summary>Max number of bones.</summary>
     public const uint MaxBones = 4;
-
-    private Model? _originalModel;
-    private readonly List<VertexBuffer?> _vertexBuffers = [];
-    private readonly List<List<Geometry?>> _geometries = [];
-    private bool _skinned;
-    private uint _numBones;
-    private readonly List<VertexBufferAnimationData> _vertexBuffersData = [];
 
     /// <summary>Construct.</summary>
     public SoftwareModelAnimator()
     {
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _vertexBuffersData.Clear();
+        for (var i = _geometries.Count - 1; i >= 0; --i)
+        {
+            var geometryLods = _geometries[i];
+            for (var j = geometryLods.Count - 1; j >= 0; --j)
+                geometryLods[j]?.Dispose();
+            geometryLods.Clear();
+        }
+        _geometries.Clear();
+        for (var i = _vertexBuffers.Count - 1; i >= 0; --i)
+            _vertexBuffers[i]?.Dispose();
+        _vertexBuffers.Clear();
+        _originalModel = null;
+        base.Dispose();
     }
 
     /// <summary>Register object factory.</summary>
@@ -58,7 +78,7 @@ public sealed class SoftwareModelAnimator : Object
         InitializeAnimationData();
     }
 
-    /// <summary>Reset morph and/or skeletal animation. Safe to call from worker thread.</summary>
+    /// <summary>Reset morph and/or skeletal animation.</summary>
     public void ResetAnimation()
     {
         var originalModel = _originalModel!;
@@ -76,7 +96,7 @@ public sealed class SoftwareModelAnimator : Object
         }
     }
 
-    /// <summary>Apply morphs. Safe to call from worker thread.</summary>
+    /// <summary>Apply morphs.</summary>
     public void ApplyMorphs(ReadOnlySpan<ModelMorph> morphs)
     {
         foreach (var morph in morphs)
@@ -104,11 +124,11 @@ public sealed class SoftwareModelAnimator : Object
         for (var bufferIndex = 0; bufferIndex < _vertexBuffers.Count; ++bufferIndex)
         {
             var clonedBuffer = _vertexBuffers[bufferIndex];
-            var animationData = _vertexBuffersData[bufferIndex];
+            ref readonly var animationData = ref CollectionsMarshal.AsSpan(_vertexBuffersData)[bufferIndex];
             if (clonedBuffer is null || !animationData.HasSkeletalAnimation)
                 continue;
 
-            ApplyVertexBufferSkinning(clonedBuffer, animationData, worldTransforms,
+            ApplyVertexBufferSkinning(clonedBuffer, in animationData, worldTransforms,
                 animationData.SkinNormals, animationData.SkinTangents);
         }
     }
@@ -149,7 +169,10 @@ public sealed class SoftwareModelAnimator : Object
         var originalToClonedMapping = new Dictionary<VertexBuffer, VertexBuffer>();
         var morphElementMask = GetMorphElementMask();
         var originalVertexBuffers = originalModel.GetVertexBuffers();
-        ResizeList(_vertexBuffers, originalVertexBuffers.Count);
+        while (_vertexBuffers.Count < originalVertexBuffers.Count)
+            _vertexBuffers.Add(null);
+        if (_vertexBuffers.Count > originalVertexBuffers.Count)
+            _vertexBuffers.RemoveRange(originalVertexBuffers.Count, _vertexBuffers.Count - originalVertexBuffers.Count);
 
         for (var i = 0; i < originalVertexBuffers.Count; ++i)
         {
@@ -245,9 +268,13 @@ public sealed class SoftwareModelAnimator : Object
 
     private void InitializeAnimationData()
     {
-        ResizeList(_vertexBuffersData, _vertexBuffers.Count);
-        foreach (var animationData in _vertexBuffersData)
+        while (_vertexBuffersData.Count < _vertexBuffers.Count)
+            _vertexBuffersData.Add(new VertexBufferAnimationData());
+        if (_vertexBuffersData.Count > _vertexBuffers.Count)
+            _vertexBuffersData.RemoveRange(_vertexBuffers.Count, _vertexBuffersData.Count - _vertexBuffers.Count);
+        for (var i = 0; i < _vertexBuffersData.Count; ++i)
         {
+            ref var animationData = ref CollectionsMarshal.AsSpan(_vertexBuffersData)[i];
             animationData.HasSkeletalAnimation = false;
             animationData.BlendIndices = [];
             animationData.BlendWeights = [];
@@ -257,7 +284,8 @@ public sealed class SoftwareModelAnimator : Object
             return;
 
         var originalVertexBuffers = _originalModel!.GetVertexBuffers();
-        Span<BoneWeight> bones = stackalloc BoneWeight[(int)MaxBones];
+        Span<(float Weight, byte Index)> bones = stackalloc (float Weight, byte Index)[(int)MaxBones];
+        Span<byte> weightBytes = stackalloc byte[sizeof(float)];
         for (var bufferIndex = 0; bufferIndex < _vertexBuffers.Count; ++bufferIndex)
         {
             var originalBuffer = originalVertexBuffers[bufferIndex];
@@ -271,7 +299,7 @@ public sealed class SoftwareModelAnimator : Object
                 continue;
 
             var numVertices = originalBuffer.GetVertexCount();
-            var animationData = _vertexBuffersData[bufferIndex];
+            ref var animationData = ref CollectionsMarshal.AsSpan(_vertexBuffersData)[bufferIndex];
             animationData.HasSkeletalAnimation = true;
             animationData.SkinNormals = clonedBuffer!.HasElement(VertexElementSemantic.Normal);
             animationData.SkinTangents = clonedBuffer.HasElement(VertexElementSemantic.Tangent);
@@ -285,9 +313,15 @@ public sealed class SoftwareModelAnimator : Object
                 for (var boneIndex = 0; boneIndex < MaxBones; ++boneIndex)
                 {
                     bones[boneIndex].Index = originalBufferData[vertexOffset + checked((int)indicesOffset) + boneIndex];
-                    bones[boneIndex].Weight = vector4WeightsOffset != uint.MaxValue
-                        ? ReadFloat(originalBufferData, vertexOffset + checked((int)weightsOffset) + boneIndex * sizeof(float))
-                        : originalBufferData[vertexOffset + checked((int)weightsOffset) + boneIndex] / 255.0f;
+                    if (vector4WeightsOffset != uint.MaxValue)
+                    {
+                        var weightOffset = vertexOffset + checked((int)weightsOffset) + boneIndex * sizeof(float);
+                        for (var i = 0; i < weightBytes.Length; ++i)
+                            weightBytes[i] = originalBufferData[weightOffset + i];
+                        bones[boneIndex].Weight = MemoryMarshal.Read<float>(weightBytes);
+                    }
+                    else
+                        bones[boneIndex].Weight = originalBufferData[vertexOffset + checked((int)weightsOffset) + boneIndex] / 255.0f;
                 }
 
                 if (_numBones != MaxBones)
@@ -296,7 +330,8 @@ public sealed class SoftwareModelAnimator : Object
                     {
                         for (var j = i + 1; j < MaxBones; ++j)
                         {
-                            if (bones[j].Weight > bones[i].Weight)
+                            if (bones[j].Weight > bones[i].Weight
+                                || bones[j].Weight == bones[i].Weight && bones[j].Index > bones[i].Index)
                                 (bones[i], bones[j]) = (bones[j], bones[i]);
                         }
                     }
@@ -335,16 +370,21 @@ public sealed class SoftwareModelAnimator : Object
             var destOffset = checked((int)((vertexStart + i) * destVertexSize));
             if ((mask & VertexMask.Position) != 0)
             {
-                CopyBytes(srcVertexData, sourceOffset, destVertexData, destOffset, 3 * sizeof(float));
+                for (var j = 0; j < 3 * sizeof(float); ++j)
+                    destVertexData[destOffset + j] = srcVertexData[sourceOffset + j];
                 destOffset += 3 * sizeof(float);
             }
             if ((mask & VertexMask.Normal) != 0)
             {
-                CopyBytes(srcVertexData, sourceOffset + checked((int)normalOffset), destVertexData, destOffset, 3 * sizeof(float));
+                for (var j = 0; j < 3 * sizeof(float); ++j)
+                    destVertexData[destOffset + j] = srcVertexData[sourceOffset + checked((int)normalOffset) + j];
                 destOffset += 3 * sizeof(float);
             }
             if ((mask & VertexMask.Tangent) != 0)
-                CopyBytes(srcVertexData, sourceOffset + checked((int)tangentOffset), destVertexData, destOffset, 4 * sizeof(float));
+            {
+                for (var j = 0; j < 4 * sizeof(float); ++j)
+                    destVertexData[destOffset + j] = srcVertexData[sourceOffset + checked((int)tangentOffset) + j];
+            }
         }
     }
 
@@ -363,15 +403,36 @@ public sealed class SoftwareModelAnimator : Object
             var vertexIndex = MemoryMarshal.Read<uint>(sourceData[sourceOffset..]);
             sourceOffset += sizeof(uint);
             if ((elementMask & VertexMask.Position) != 0)
-                AddVector3(destData, checked((int)(vertexIndex * vertexSize)), sourceData, ref sourceOffset, weight);
+            {
+                var destinationOffset = checked((int)(vertexIndex * vertexSize));
+                var destination = MemoryMarshal.Read<Vector3f>(destData[destinationOffset..]);
+                var source = MemoryMarshal.Read<Vector3f>(sourceData[sourceOffset..]);
+                var result = destination + source * weight;
+                MemoryMarshal.Write(destData[destinationOffset..], in result);
+                sourceOffset += 3 * sizeof(float);
+            }
             if ((elementMask & VertexMask.Normal) != 0)
-                AddVector3(destData, checked((int)(vertexIndex * vertexSize + normalOffset)), sourceData, ref sourceOffset, weight);
+            {
+                var destinationOffset = checked((int)(vertexIndex * vertexSize + normalOffset));
+                var destination = MemoryMarshal.Read<Vector3f>(destData[destinationOffset..]);
+                var source = MemoryMarshal.Read<Vector3f>(sourceData[sourceOffset..]);
+                var result = destination + source * weight;
+                MemoryMarshal.Write(destData[destinationOffset..], in result);
+                sourceOffset += 3 * sizeof(float);
+            }
             if ((elementMask & VertexMask.Tangent) != 0)
-                AddVector3(destData, checked((int)(vertexIndex * vertexSize + tangentOffset)), sourceData, ref sourceOffset, weight);
+            {
+                var destinationOffset = checked((int)(vertexIndex * vertexSize + tangentOffset));
+                var destination = MemoryMarshal.Read<Vector3f>(destData[destinationOffset..]);
+                var source = MemoryMarshal.Read<Vector3f>(sourceData[sourceOffset..]);
+                var result = destination + source * weight;
+                MemoryMarshal.Write(destData[destinationOffset..], in result);
+                sourceOffset += 3 * sizeof(float);
+            }
         }
     }
 
-    private void ApplyVertexBufferSkinning(VertexBuffer clonedBuffer, VertexBufferAnimationData animationData,
+    private void ApplyVertexBufferSkinning(VertexBuffer clonedBuffer, in VertexBufferAnimationData animationData,
         ReadOnlySpan<Matrix3x4> worldTransforms, bool skinNormals, bool skinTangents)
     {
         var vertexSize = clonedBuffer.GetVertexSize();
@@ -387,12 +448,23 @@ public sealed class SoftwareModelAnimator : Object
                 matrix += worldTransforms[animationData.BlendIndices[influenceOffset + (int)boneIndex]] * animationData.BlendWeights[influenceOffset + (int)boneIndex];
 
             var baseOffset = checked((int)(vertexIndex * vertexSize));
-            var position = ReadVector3(data, baseOffset);
-            WriteVector3(data, baseOffset, matrix * position);
+            var position = MemoryMarshal.Read<Vector3f>(data[baseOffset..]);
+            var transformedPosition = matrix * position;
+            MemoryMarshal.Write(data[baseOffset..], in transformedPosition);
             if (skinNormals)
-                WriteVector3(data, baseOffset + checked((int)normalOffset), TransformNormal(matrix, ReadVector3(data, baseOffset + checked((int)normalOffset))));
+            {
+                var destinationOffset = baseOffset + checked((int)normalOffset);
+                var normal = MemoryMarshal.Read<Vector3f>(data[destinationOffset..]);
+                var transformedNormal = TransformNormal(matrix, normal);
+                MemoryMarshal.Write(data[destinationOffset..], in transformedNormal);
+            }
             if (skinTangents)
-                WriteVector3(data, baseOffset + checked((int)tangentOffset), TransformNormal(matrix, ReadVector3(data, baseOffset + checked((int)tangentOffset))));
+            {
+                var destinationOffset = baseOffset + checked((int)tangentOffset);
+                var tangent = MemoryMarshal.Read<Vector3f>(data[destinationOffset..]);
+                var transformedTangent = TransformNormal(matrix, tangent);
+                MemoryMarshal.Write(data[destinationOffset..], in transformedTangent);
+            }
         }
     }
 
@@ -401,46 +473,16 @@ public sealed class SoftwareModelAnimator : Object
         matrix.M10 * value.X + matrix.M11 * value.Y + matrix.M12 * value.Z,
         matrix.M20 * value.X + matrix.M21 * value.Y + matrix.M22 * value.Z);
 
-    private static void AddVector3(Span<byte> destination, int destinationOffset, ReadOnlySpan<byte> source,
-        ref int sourceOffset, float weight)
-    {
-        var dest = ReadVector3(destination, destinationOffset);
-        var delta = ReadVector3(source, sourceOffset);
-        WriteVector3(destination, destinationOffset, dest + delta * weight);
-        sourceOffset += 3 * sizeof(float);
-    }
-
-    private static Vector3f ReadVector3(ReadOnlySpan<byte> data, int offset) => MemoryMarshal.Read<Vector3f>(data[offset..]);
-    private static void WriteVector3(Span<byte> data, int offset, Vector3f value) => MemoryMarshal.Write(data[offset..], in value);
-
-    private static float ReadFloat(IReadOnlyList<byte> data, int offset)
-    {
-        Span<byte> bytes = stackalloc byte[sizeof(float)];
-        for (var i = 0; i < bytes.Length; ++i)
-            bytes[i] = data[offset + i];
-        return MemoryMarshal.Read<float>(bytes);
-    }
-
-    private static void CopyBytes(IReadOnlyList<byte> source, int sourceOffset, Span<byte> destination,
-        int destinationOffset, int count)
-    {
-        for (var i = 0; i < count; ++i)
-            destination[destinationOffset + i] = source[sourceOffset + i];
-    }
-
-    private static void ResizeList<T>(List<T?> values, int size) where T : class
-    {
-        while (values.Count < size)
-            values.Add(null);
-        if (values.Count > size)
-            values.RemoveRange(size, values.Count - size);
-    }
-
-    private static void ResizeList(List<VertexBufferAnimationData> values, int size)
-    {
-        while (values.Count < size)
-            values.Add(new VertexBufferAnimationData());
-        if (values.Count > size)
-            values.RemoveRange(size, values.Count - size);
-    }
+    /// <summary>Original model.</summary>
+    private Model? _originalModel;
+    /// <summary>Animated model vertex buffers.</summary>
+    private readonly List<VertexBuffer?> _vertexBuffers = [];
+    /// <summary>Animated model geometries.</summary>
+    private readonly List<List<Geometry?>> _geometries = [];
+    /// <summary>Whether CPU skinning is applied.</summary>
+    private bool _skinned;
+    /// <summary>Number of bones used for skeletal animation.</summary>
+    private uint _numBones;
+    /// <summary>Animation data for vertex buffers.</summary>
+    private readonly List<VertexBufferAnimationData> _vertexBuffersData = [];
 }

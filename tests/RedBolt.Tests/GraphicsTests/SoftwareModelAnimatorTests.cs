@@ -6,6 +6,28 @@ namespace RedBolt.Tests;
 public sealed class SoftwareModelAnimatorTests
 {
     [Fact]
+    public void Class_shapes_registration_and_animation_data_copy_match_cpp()
+    {
+        Assert.True(typeof(VertexBufferAnimationData).IsValueType);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(VertexBufferAnimationData)));
+        Assert.False(typeof(SoftwareModelAnimator).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(SoftwareModelAnimator)));
+
+        var animationData = new VertexBufferAnimationData
+        {
+            BlendWeights = [0.25f],
+            BlendIndices = [3]
+        };
+        var clone = Assert.IsType<VertexBufferAnimationData>(animationData.Clone());
+        Assert.NotSame(animationData.BlendWeights, clone.BlendWeights);
+        Assert.NotSame(animationData.BlendIndices, clone.BlendIndices);
+
+        SoftwareModelAnimator.RegisterObject(Context.Instance);
+        using var reflected = Assert.IsType<SoftwareModelAnimator>(
+            Context.Instance.CreateObject(ObjectReflection<SoftwareModelAnimator>.TypeId));
+    }
+
+    [Fact]
     public void Morph_animation_clones_resets_applies_and_commits_vertex_data()
     {
         var originalBuffer = CreateVertexBuffer(VertexMask.Position, new Vector3f(1.0f, 2.0f, 3.0f));
@@ -33,6 +55,11 @@ public sealed class SoftwareModelAnimatorTests
         var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
         Assert.NotSame(originalBuffer, clonedBuffer);
         Assert.Equal(new Vector3f(2.0f, 1.5f, 5.0f), Read<Vector3f>(clonedBuffer.Data, 0));
+
+        animator.Dispose();
+        Assert.Empty(animator.GetGeometries());
+        Assert.Empty(animator.GetVertexBuffers());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Read<Vector3f>(originalBuffer.Data, 0));
     }
 
     [Fact]
@@ -51,7 +78,7 @@ public sealed class SoftwareModelAnimatorTests
         originalBuffer.SetData(data);
         var model = new Model("Skinning");
         Assert.True(model.SetVertexBuffers([originalBuffer]));
-        var animator = new SoftwareModelAnimator();
+        using var animator = new SoftwareModelAnimator();
 
         animator.Initialize(model, true, SoftwareModelAnimator.MaxBones);
         animator.ResetAnimation();
@@ -65,6 +92,41 @@ public sealed class SoftwareModelAnimatorTests
 
         var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
         Assert.Equal(new Vector3f(3.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.Data, 0));
+    }
+
+    [Fact]
+    public void Reduced_bone_count_sorts_equal_weights_like_cpp_pair()
+    {
+        var elements = VertexBuffer.GetElements((uint)(VertexMask.Position | VertexMask.BlendWeights | VertexMask.BlendIndices));
+        var originalBuffer = new VertexBuffer();
+        originalBuffer.SetShadowed(true);
+        Assert.True(originalBuffer.SetSize(1, elements));
+        var data = new byte[checked((int)originalBuffer.GetVertexSize())];
+        Write(data, 0, Vector3f.Zero);
+        var weightsOffset = checked((int)originalBuffer.GetElementOffset(VertexElementSemantic.BlendWeights));
+        Write(data, weightsOffset, new Vector4f(0.25f, 0.25f, 0.25f, 0.25f));
+        var indicesOffset = checked((int)originalBuffer.GetElementOffset(VertexElementSemantic.BlendIndices));
+        data[indicesOffset] = 0;
+        data[indicesOffset + 1] = 1;
+        data[indicesOffset + 2] = 2;
+        data[indicesOffset + 3] = 3;
+        originalBuffer.SetData(data);
+        var model = new Model("ReducedSkinning");
+        Assert.True(model.SetVertexBuffers([originalBuffer]));
+        using var animator = new SoftwareModelAnimator();
+
+        animator.Initialize(model, true, 2);
+        animator.ResetAnimation();
+        animator.ApplySkinning([
+            Matrix3x4.Identity,
+            Matrix3x4.FromTranslation(new Vector3f(10.0f, 0.0f, 0.0f)),
+            Matrix3x4.FromTranslation(new Vector3f(20.0f, 0.0f, 0.0f)),
+            Matrix3x4.FromTranslation(new Vector3f(30.0f, 0.0f, 0.0f))
+        ]);
+        animator.Commit();
+
+        var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
+        Assert.Equal(new Vector3f(25.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.Data, 0));
     }
 
     [Fact]
@@ -87,7 +149,7 @@ public sealed class SoftwareModelAnimatorTests
         var morph = new ModelMorph();
         morph.Buffers[0] = new VertexBufferMorph { ElementMask = VertexMask.Position };
         model.SetMorphs([morph]);
-        var animator = new SoftwareModelAnimator();
+        using var animator = new SoftwareModelAnimator();
 
         animator.Initialize(model, false, SoftwareModelAnimator.MaxBones);
 
