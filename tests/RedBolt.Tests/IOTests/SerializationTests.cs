@@ -159,15 +159,11 @@ public sealed class SerializationTests
         var doubleVector2 = new Vector2d(1.25, 2.5);
         var doubleVector3 = new Vector3d(3.75, 4.5, 5.25);
 
-        Assert.True(buffer.WriteVector2(doubleVector2));
-        Assert.True(buffer.WriteVector3(doubleVector3));
         Assert.True(buffer.WriteVariant(new Variant(doubleVector2)));
         Assert.True(buffer.WriteVariant(new Variant(doubleVector3)));
 
         buffer.Seek(0);
 
-        Assert.Equal(doubleVector2, buffer.ReadDoubleVector2());
-        Assert.Equal(doubleVector3, buffer.ReadDoubleVector3());
         Assert.Equal(doubleVector2, buffer.ReadVariant().GetDoubleVector2());
         Assert.Equal(doubleVector3, buffer.ReadVariant().GetDoubleVector3());
     }

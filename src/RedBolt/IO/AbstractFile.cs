@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>A common root class for objects that implement both Serializer and Deserializer.</summary>
-public abstract class AbstractFile : Deserializer, IDisposable
+public abstract class AbstractFile : Deserializer
 {
     /// <summary>Construct.</summary>
     public AbstractFile()
@@ -15,8 +15,9 @@ public abstract class AbstractFile : Deserializer, IDisposable
     }
 
     /// <summary>Destruct.</summary>
-    public virtual void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
     }
 
     /// <summary>Change the file name. Used by the resource system.</summary>
