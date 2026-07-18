@@ -27,6 +27,42 @@ public sealed class ShaderTranslatorTests
     }
 
     [Fact]
+    public void Class_kinds_and_borrowed_parameters_match_cpp_types()
+    {
+        Assert.True(typeof(TargetShader).IsValueType);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(TargetShader)));
+        Assert.False(default(TargetShader).IsValid());
+
+        var original = new TargetShader
+        {
+            Language = TargetShaderLanguage.Glsl41,
+            SourceCode = "source",
+            CompilerOutput = "output"
+        };
+        var clone = (TargetShader)((ICloneable)original).Clone();
+        clone.SourceCode = "changed";
+        Assert.Equal("source", original.SourceCode);
+        Assert.Equal(original.Language, clone.Language);
+        Assert.Equal(original.CompilerOutput, clone.CompilerOutput);
+
+        var guardian = typeof(ShaderTranslator).GetNestedType(
+            "GlslangGuardian", System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(guardian);
+        Assert.True(guardian.IsValueType);
+        Assert.True(typeof(IDisposable).IsAssignableFrom(guardian));
+
+        var parse = typeof(ShaderTranslator).GetMethod(nameof(ShaderTranslator.ParseUniversalShader));
+        Assert.NotNull(parse);
+        Assert.True(parse.GetParameters()[3].IsIn);
+        var translate = typeof(ShaderTranslator).GetMethod(nameof(ShaderTranslator.TranslateSpirVShader));
+        Assert.NotNull(translate);
+        Assert.True(translate.GetParameters()[1].IsIn);
+        var attributes = typeof(ShaderTranslator).GetMethod(nameof(ShaderTranslator.GetVertexAttributesFromSpirV));
+        Assert.NotNull(attributes);
+        Assert.True(attributes.GetParameters()[0].IsIn);
+    }
+
+    [Fact]
     public void Universal_shader_is_compiled_to_spirv()
     {
         var shader = new SpirVShader();

@@ -8,7 +8,7 @@ namespace RedBolt;
 /// <summary>
 /// Shader translated to the target language.
 /// </summary>
-public struct TargetShader
+public struct TargetShader : ICloneable
 {
     public TargetShaderLanguage Language;
     public string SourceCode = string.Empty;
@@ -18,9 +18,19 @@ public struct TargetShader
     {
     }
 
-    public bool IsValid() => SourceCode.Length != 0;
+    public bool IsValid() => !string.IsNullOrEmpty(SourceCode);
 
     public static implicit operator bool(TargetShader value) => value.IsValid();
+
+    public readonly object Clone()
+    {
+        return new TargetShader
+        {
+            Language = Language,
+            SourceCode = SourceCode,
+            CompilerOutput = CompilerOutput
+        };
+    }
 }
 
 public static class ShaderTranslator
@@ -35,11 +45,32 @@ public static class ShaderTranslator
         return end < 0 ? ((uint)start, (uint)shaderCode.Length) : ((uint)start, (uint)end);
     }
 
+    /// <summary>Utility to de/initialize glslang library.</summary>
+    private readonly struct GlslangGuardian : IDisposable
+    {
+        public GlslangGuardian()
+        {
+            GlslangNativeBindings.GlslangInitializeProcess();
+        }
+
+        public void Dispose()
+        {
+            GlslangNativeBindings.GlslangFinalizeProcess();
+        }
+    }
+
+    private static readonly GlslangGuardian _glslangGuardian = new();
+
+    static ShaderTranslator()
+    {
+        AppDomain.CurrentDomain.ProcessExit += static (_, _) => _glslangGuardian.Dispose();
+    }
+
     /// <summary>Convert universal GLSL shader to SPIR-V.</summary>
     public static void ParseUniversalShader(ref SpirVShader output, ShaderType shaderType, string sourceCode,
-        ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
+        in ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
     {
-        CompileSpirV(ref output, ConvertShaderType(shaderType), sourceCode, shaderDefines, targetLanguage);
+        CompileSpirV(ref output, ConvertShaderType(shaderType), sourceCode, in shaderDefines, targetLanguage);
     }
 
     private static GlslangStageT ConvertShaderType(ShaderType shaderType)
@@ -73,7 +104,7 @@ public static class ShaderTranslator
 
     /// <summary>Compile SpirV shader.</summary>
     private static void CompileSpirV(ref SpirVShader outputShader, GlslangStageT stage, string sourceCode,
-        ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
+        in ShaderDefineArray shaderDefines, TargetShaderLanguage targetLanguage)
     {
         outputShader.Bytecode.Clear();
         outputShader.CompilerOutput = string.Empty;
@@ -84,7 +115,6 @@ public static class ShaderTranslator
             shaderCode.Append("#define ").Append(define.Name).Append(' ').Append(define.Value).Append('\n');
         AppendWithoutVersion(shaderCode, sourceCode);
 
-        GlslangGuardian.EnsureInitialized();
         var source = Marshal.StringToCoTaskMemUTF8(shaderCode.ToString());
         GlslangShaderS? shader = null;
         GlslangProgramS? program = null;
@@ -168,40 +198,23 @@ public static class ShaderTranslator
         }
     }
 
-    private static class GlslangGuardian
-    {
-        private static readonly bool Initialized = Initialize();
-
-        public static void EnsureInitialized()
-        {
-            _ = Initialized;
-        }
-
-        private static bool Initialize()
-        {
-            var initialized = GlslangNativeBindings.GlslangInitializeProcess() != 0;
-            AppDomain.CurrentDomain.ProcessExit += static (_, _) => GlslangNativeBindings.GlslangFinalizeProcess();
-            return initialized;
-        }
-    }
-
     /// <summary>Convert SPIR-V shader to target shader language.</summary>
-    public static void TranslateSpirVShader(ref TargetShader output, SpirVShader shader,
+    public static void TranslateSpirVShader(ref TargetShader output, in SpirVShader shader,
         TargetShaderLanguage targetLanguage)
     {
         output.Language = targetLanguage;
         switch (targetLanguage)
         {
             case TargetShaderLanguage.Hlsl50:
-                ConvertToHlsl5(ref output, shader);
+                ConvertToHlsl5(ref output, in shader);
                 break;
 
             case TargetShaderLanguage.Glsl41:
-                ConvertToGlsl(ref output, shader, 410, false);
+                ConvertToGlsl(ref output, in shader, 410, false);
                 break;
 
             case TargetShaderLanguage.GlslEs30:
-                ConvertToGlsl(ref output, shader, 300, true);
+                ConvertToGlsl(ref output, in shader, 300, true);
                 break;
 
             default:
@@ -210,13 +223,15 @@ public static class ShaderTranslator
         }
     }
 
+    // TODO: port class RemappingCompilerHLSL : public spirv_cross::CompilerHLSL when generated bindings support subclassing.
+
     /// <summary>Convert SpirV to HLSL5</summary>
-    private static void ConvertToHlsl5(ref TargetShader output, SpirVShader shader)
+    private static void ConvertToHlsl5(ref TargetShader output, in SpirVShader shader)
     {
         output.SourceCode = string.Empty;
         output.CompilerOutput = string.Empty;
 
-        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendHlsl, out var context);
+        using var compiler = CreateCompiler(in shader, SpvcBackend.SpvcBackendHlsl, out var context);
         try
         {
             var samplers = new List<string>();
@@ -313,12 +328,12 @@ public static class ShaderTranslator
             shaderCode = shaderCode.Insert(index, "// Workaround for GLSL ES:\n// ");
     }
 
-    private static void ConvertToGlsl(ref TargetShader output, SpirVShader shader, uint version, bool es)
+    private static void ConvertToGlsl(ref TargetShader output, in SpirVShader shader, uint version, bool es)
     {
         output.SourceCode = string.Empty;
         output.CompilerOutput = string.Empty;
 
-        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendGlsl, out var context);
+        using var compiler = CreateCompiler(in shader, SpvcBackend.SpvcBackendGlsl, out var context);
         try
         {
             CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
@@ -341,7 +356,7 @@ public static class ShaderTranslator
         }
     }
 
-    private static SpvcCompilerS CreateCompiler(SpirVShader shader, SpvcBackend backend, out SpvcContextS context)
+    private static SpvcCompilerS CreateCompiler(in SpirVShader shader, SpvcBackend backend, out SpvcContextS context)
     {
         CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreate(out context), context: null);
         try
@@ -389,10 +404,10 @@ public static class ShaderTranslator
         throw new InvalidOperationException(message);
     }
 
-    public static List<VertexShaderAttribute> GetVertexAttributesFromSpirV(SpirVShader shader)
+    public static List<VertexShaderAttribute> GetVertexAttributesFromSpirV(in SpirVShader shader)
     {
         var result = new List<VertexShaderAttribute>();
-        using var compiler = CreateCompiler(shader, SpvcBackend.SpvcBackendNone, out var context);
+        using var compiler = CreateCompiler(in shader, SpvcBackend.SpvcBackendNone, out var context);
         try
         {
             CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
