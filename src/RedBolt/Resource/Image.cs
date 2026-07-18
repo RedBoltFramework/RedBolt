@@ -79,15 +79,39 @@ public sealed class Image : Resource
         }
     }
 
-    public override bool Save(Stream destination)
+    public override unsafe bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        var rgba = Components == 4 ? this : ConvertToRGBA();
-        ImageFileWriter.Save(destination, ".png", rgba.Width, rgba.Height, rgba.GetData());
-        return true;
+
+        if (IsCompressed())
+        {
+            Log.Logger.LogError("Can not save compressed image {Name}", Name);
+            return false;
+        }
+
+        if (_data.Length == 0)
+        {
+            Log.Logger.LogError("Can not save zero-sized image {Name}", Name);
+            return false;
+        }
+
+        fixed (byte* data = _data)
+        {
+            var png = RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWritePngToMem(
+                (nint)data, 0, Width, Height, (int)Components, out var length);
+            try
+            {
+                destination.Write(new ReadOnlySpan<byte>((void*)png, length));
+                return true;
+            }
+            finally
+            {
+                NativeMemory.Free((void*)png);
+            }
+        }
     }
 
-    public bool SavePNG(string fileName) => SaveEncodedFile(fileName, ".png");
+    public bool SavePNG(string fileName) => SaveEncodedFile(fileName);
 
     public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
 
@@ -201,10 +225,25 @@ public sealed class Image : Resource
         return WriteFile(fileName, stream.ToArray());
     }
 
-    public bool SaveBMP(string fileName)
+    public unsafe bool SaveBMP(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        return SaveEncodedFile(fileName, ".bmp");
+
+        if (IsCompressed())
+        {
+            Log.Logger.LogError("Can not save compressed image to BMP");
+            return false;
+        }
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteBmp(
+                nativeFileName, Width, Height, (int)Components, (nint)data) != 0;
+        }
     }
 
     public bool SaveTGA(string fileName)
@@ -225,12 +264,12 @@ public sealed class Image : Resource
         return WriteFile(fileName, stream.ToArray());
     }
 
-    private bool SaveEncodedFile(string fileName, string extension)
+    private bool SaveEncodedFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        var rgba = Components == 4 ? this : ConvertToRGBA();
         using var stream = new MemoryStream();
-        ImageFileWriter.Save(stream, extension, rgba.Width, rgba.Height, rgba.GetData());
+        if (!Save(stream))
+            return false;
         return WriteFile(fileName, stream.ToArray());
     }
 
