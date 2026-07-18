@@ -29,7 +29,7 @@ internal static class TextureFormatUtility
 /// <summary>Base class for texture resources.</summary>
 /// <remarks>
 /// </remarks>
-public abstract class Texture : ResourceWithMetadata
+public class Texture : ResourceWithMetadata
 {
     private readonly Dictionary<TextureCoordinate, TextureAddressMode> _addressModes = new()
     {
@@ -49,7 +49,7 @@ public abstract class Texture : ResourceWithMetadata
     private ContextEventSubscription? _renderSurfaceUpdateSubscription;
     private RawTexture? _rawTexture;
 
-    protected Texture(string name)
+    public Texture(string name)
         : base(name)
     {
     }

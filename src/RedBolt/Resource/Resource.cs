@@ -1,10 +1,10 @@
 namespace RedBolt;
 
-public abstract class Resource : Object
+public class Resource : Object
 {
     private readonly System.Diagnostics.Stopwatch _useTimer = System.Diagnostics.Stopwatch.StartNew();
 
-    protected Resource(string name) : base()
+    public Resource(string name) : base()
     {
         SetName(name);
     }

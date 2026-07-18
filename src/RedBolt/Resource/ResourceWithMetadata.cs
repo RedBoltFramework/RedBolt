@@ -1,11 +1,11 @@
 namespace RedBolt;
 
-public abstract class ResourceWithMetadata : Resource
+public class ResourceWithMetadata : Resource
 {
     private readonly Dictionary<string, Variant> _metadata = new(StringComparer.Ordinal);
     private readonly List<string> _metadataKeys = [];
 
-    protected ResourceWithMetadata(string name)
+    public ResourceWithMetadata(string name)
         : base(name)
     {
     }
