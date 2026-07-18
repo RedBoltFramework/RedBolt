@@ -42,7 +42,25 @@ public static partial class MathDefs
 
     public static float Atan2(float y, float x) => MathF.Atan2(y, x) * RadToDeg;
 
-    public static float Clamp(float value, float min, float max) => Math.Min(Math.Max(value, min), max);
+    public static float Clamp(float value, float min, float max)
+    {
+        if (value < min)
+            return min;
+        else if (value > max)
+            return max;
+        else
+            return value;
+    }
+
+    public static int Clamp(int value, int min, int max)
+    {
+        if (value < min)
+            return min;
+        else if (value > max)
+            return max;
+        else
+            return value;
+    }
 
     public static uint ClosestPowerOfTwo(uint value)
     {

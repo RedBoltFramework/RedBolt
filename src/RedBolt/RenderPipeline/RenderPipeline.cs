@@ -388,7 +388,7 @@ public class RenderPipeline : Component
             ArgumentNullException.ThrowIfNull(viewport);
             ArgumentNullException.ThrowIfNull(graphics);
 
-            if (!_renderPipeline.IsAttached || !ReferenceEquals(_renderPipeline.Scene, viewport.Scene))
+            if (!_renderPipeline.IsAttached || !ReferenceEquals(_renderPipeline.Scene, viewport.GetScene()))
                 return false;
 
             this._viewport = viewport;
@@ -440,10 +440,10 @@ public class RenderPipeline : Component
             _frameInfo.Viewport = viewport;
             _frameInfo.ViewportRect = viewportRect;
             _frameInfo.ViewportSize = viewportRect.Size;
-            _frameInfo.Scene = viewport.Scene;
-            _frameInfo.Camera = viewport.Camera;
-            _frameInfo.Cameras.First = viewport.Camera;
-            _frameInfo.Cameras.Second = viewport.RightEye;
+            _frameInfo.Scene = viewport.GetScene();
+            _frameInfo.Camera = viewport.GetCamera();
+            _frameInfo.Cameras.First = viewport.GetCamera();
+            _frameInfo.Cameras.Second = viewport.IsStereo() ? viewport.GetEye(1) : null;
 
             var colorTexture = renderTarget?.GetParentTexture();
             var depthSurface = renderTarget?.GetLinkedDepthStencil();
@@ -470,8 +470,8 @@ public class RenderPipeline : Component
             if (!_sceneProcessor!.Define(_frameInfo))
                 return false;
 
-            _sceneProcessor.SetRenderCamera(viewport.Camera);
-            _sharedState.RenderCamera = viewport.Camera;
+            _sceneProcessor.SetRenderCamera(viewport.GetCamera()!);
+            _sharedState.RenderCamera = viewport.GetCamera();
 
             if (_settingsDirty)
             {
@@ -543,7 +543,7 @@ public class RenderPipeline : Component
                 RaisePipelineStatesInvalidated();
             }
 
-            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
+            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.GetCamera()!.GetDrawDebugGeometry();
             _outlineScenePass?.SetOutlineGroups(_sceneProcessor.GetFrameInfo().Scene!, drawDebugGeometry);
 
             _sceneProcessor.Update();
@@ -552,7 +552,7 @@ public class RenderPipeline : Component
                 _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches());
 
             _sharedState.RenderPipelineInterface = this;
-            _sharedState.RenderCamera = _viewport.Camera;
+            _sharedState.RenderCamera = _viewport.GetCamera();
             _sharedState.Graphics = graphics;
             _sharedState.RenderBuffers.Clear();
             _renderBufferManager?.PopulateSharedState(_sharedState);
@@ -599,7 +599,7 @@ public class RenderPipeline : Component
             _sceneProcessor.PrepareInstancingBuffer();
             _sceneProcessor.RenderShadowMaps();
 
-            var camera = _sceneProcessor.GetFrameInfo().Camera ?? _viewport.Camera;
+            var camera = _sceneProcessor.GetFrameInfo().Camera ?? _viewport.GetCamera()!;
             var fogColorInGammaSpace = camera.GetEffectiveFogColor();
             var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
 
@@ -655,12 +655,12 @@ public class RenderPipeline : Component
 
             _renderPath?.Render(_sharedState);
 
-            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.Camera.GetDrawDebugGeometry();
-            var debug = _viewport.Scene.Root.GetComponent<DebugRenderer>();
+            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.GetCamera()!.GetDrawDebugGeometry();
+            var debug = _viewport.GetScene()!.Root.GetComponent<DebugRenderer>();
             if (drawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
             {
                 _renderBufferManager.SetOutputRenderTargets(graphics);
-                debug.SetView(_viewport.Camera);
+                debug.SetView(_viewport.GetCamera()!);
                 debug.Render();
             }
 
@@ -817,7 +817,7 @@ public class RenderPipeline : Component
             if (_viewport is null || _renderPath is null || !HasEnabledOutlinePass())
                 return;
 
-            CollectOutlineGroups(_viewport.Scene);
+            CollectOutlineGroups(_viewport.GetScene()!);
             if (_outlineGroups.Count == 0)
                 return;
 
@@ -850,7 +850,7 @@ public class RenderPipeline : Component
         {
             scene.GetComponents(_outlineGroups);
 
-            var drawDebugGeometry = _viewport!.Camera.GetDrawDebugGeometry();
+            var drawDebugGeometry = _viewport!.GetCamera()!.GetDrawDebugGeometry();
             for (var i = _outlineGroups.Count - 1; i >= 0; --i)
             {
                 var outlineGroup = _outlineGroups[i];

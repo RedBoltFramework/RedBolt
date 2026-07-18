@@ -202,6 +202,42 @@ public sealed class CameraTests
     }
 
     [Fact]
+    public void Viewport_type_and_pointer_ownership_match_cpp()
+    {
+        Assert.False(typeof(Viewport).IsSealed);
+        Assert.True(typeof(Object).IsAssignableFrom(typeof(Viewport)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Viewport)));
+
+        Assert.Equal(typeof(WeakReference<Scene>), GetPrivateFieldInfo("_scene").FieldType);
+        Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_camera").FieldType);
+        Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_rightEye").FieldType);
+        Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_cullCamera").FieldType);
+        Assert.Equal(typeof(WeakReference<RenderPipeline>), GetPrivateFieldInfo("_renderPipeline").FieldType);
+        Assert.Equal(typeof(RenderPipelineView), GetPrivateFieldInfo("_renderPipelineView").FieldType);
+    }
+
+    [Fact]
+    public void Viewport_accepts_and_releases_nullable_cpp_pointer_state()
+    {
+        using var viewport = new Viewport(null, null);
+
+        Assert.Null(viewport.GetScene());
+        Assert.Null(viewport.GetCamera());
+        Assert.Null(viewport.GetCullCamera());
+        Assert.False(viewport.IsStereo());
+
+        viewport.SetScene(null);
+        viewport.SetCamera(null);
+        viewport.SetCullCamera(null);
+        viewport.SetEye(null, 1);
+
+        Assert.Null(viewport.GetScene());
+        Assert.Null(viewport.GetCamera());
+        Assert.Null(viewport.GetCullCamera());
+        Assert.False(viewport.IsStereo());
+    }
+
+    [Fact]
     public void Viewport_managed_state_helpers_work()
     {
         var scene = new Scene();
@@ -235,6 +271,7 @@ public sealed class CameraTests
         Assert.NotNull(firstView);
 
         viewport.SetScene(secondScene);
+        Assert.Same(firstView, GetPrivateField<RenderPipelineView>(viewport, "_renderPipelineView"));
         viewport.AllocateView();
         var secondView = viewport.GetRenderPipelineView();
 
@@ -248,6 +285,14 @@ public sealed class CameraTests
         var field = instance.GetType().GetField(fieldName,
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(field);
-        return Assert.IsType<T>(field.GetValue(instance));
+        return Assert.IsAssignableFrom<T>(field.GetValue(instance));
+    }
+
+    private static System.Reflection.FieldInfo GetPrivateFieldInfo(string fieldName)
+    {
+        var field = typeof(Viewport).GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return field;
     }
 }

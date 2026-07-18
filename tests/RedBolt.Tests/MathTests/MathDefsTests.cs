@@ -48,6 +48,15 @@ public sealed class MathDefsTests
     }
 
     [Fact]
+    public void Clamp_preserves_cpp_branch_order_for_inverted_bounds()
+    {
+        Assert.Equal(0, MathDefs.Clamp(-1, 0, -1));
+        Assert.Equal(-1, MathDefs.Clamp(0, 0, -1));
+        Assert.Equal(0.0f, MathDefs.Clamp(-1.0f, 0.0f, -1.0f));
+        Assert.Equal(-1.0f, MathDefs.Clamp(0.0f, 0.0f, -1.0f));
+    }
+
+    [Fact]
     public void Half_float_conversion_roundtrips()
     {
         Assert.Equal(0x3c00, MathDefs.FloatToHalf(1.0f));

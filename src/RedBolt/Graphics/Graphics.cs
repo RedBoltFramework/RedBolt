@@ -1268,8 +1268,10 @@ layout(std140) uniform Material
 
         var viewportRect = GetEffectiveViewportRect(viewport);
         SetSwapChainRenderTargets(viewportRect);
-        var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
-        var fogColorGamma = FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black;
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        var fogColorGamma = FindZone(scene, cameraPosition)?.GetFogColor() ?? Color.Black;
         var effectiveFogColor = GetSwapChainOutputTarget().LinearColorSpace
             ? fogColorGamma.GammaToLinear()
             : fogColorGamma;
@@ -1296,8 +1298,10 @@ layout(std140) uniform Material
         var colorTarget = renderSurface.GetView();
         var depthStencil = renderSurface.GetLinkedDepthStencil()?.GetView();
         SetRenderTargets(viewportRect, colorTarget, depthStencil);
-        var cameraPosition = viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero;
-        var fogColorGamma = FindZone(viewport.Scene, cameraPosition)?.GetFogColor() ?? Color.Black;
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        var fogColorGamma = FindZone(scene, cameraPosition)?.GetFogColor() ?? Color.Black;
         var outputTexture = renderSurface.GetParentTexture()!;
         var linearColorSpace = outputTexture.GetLinear() || outputTexture.GetSRGB()
             || TextureFormatUtility.IsFloatColorFormat(outputTexture.Format);
@@ -1452,13 +1456,15 @@ layout(std140) uniform Material
             return;
 
         var effectiveViewportRect = viewportRect ?? GetEffectiveViewportRect(viewport);
-        if (viewport.Camera.GetAutoAspectRatio())
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        if (camera.GetAutoAspectRatio())
         {
             var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
-            viewport.Camera.SetAspectRatioInternal(aspectRatio);
+            camera.SetAspectRatioInternal(aspectRatio);
         }
 
-        viewport.Scene.GetComponents(_lightsScratch);
+        scene.GetComponents(_lightsScratch);
         Light? directionalLight = null;
         for (var i = 0; i < _lightsScratch.Count; ++i)
         {
@@ -1472,7 +1478,7 @@ layout(std140) uniform Material
 
         uint submittedDrawCalls = 0;
         uint submittedPrimitives = 0;
-        var staticModels = viewport.Scene.StaticModels;
+        var staticModels = scene.StaticModels;
         for (var staticModelIndex = 0; staticModelIndex < staticModels.Count; ++staticModelIndex)
         {
             var staticModel = staticModels[staticModelIndex];
@@ -1484,7 +1490,7 @@ layout(std140) uniform Material
         if (RenderDiagnosticsEnabled)
             Log.Logger.LogDebug(
                 "Render diagnostics: drawCalls={DrawCalls}, primitives={Primitives}, staticModels={StaticModels}.",
-                submittedDrawCalls, submittedPrimitives, viewport.Scene.StaticModels.Count);
+                submittedDrawCalls, submittedPrimitives, scene.StaticModels.Count);
     }
 
     internal void RenderOutlineGroups(Viewport viewport, MaterialQuality materialQuality, IReadOnlyList<OutlineGroup> outlineGroups, IntRect? viewportRect = null)
@@ -1496,10 +1502,12 @@ layout(std140) uniform Material
             return;
 
         var effectiveViewportRect = viewportRect ?? GetEffectiveViewportRect(viewport);
-        if (viewport.Camera.GetAutoAspectRatio())
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        if (camera.GetAutoAspectRatio())
         {
             var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
-            viewport.Camera.SetAspectRatioInternal(aspectRatio);
+            camera.SetAspectRatioInternal(aspectRatio);
         }
 
         for (var groupIndex = 0; groupIndex < outlineGroups.Count; ++groupIndex)
@@ -1526,7 +1534,8 @@ layout(std140) uniform Material
 
         var targetRect = viewportRect ?? new IntRect(0, 0, Width, Height);
         ApplyDiligentViewport(_immediateContext, targetRect);
-        var staticModels = viewport.Scene.StaticModels;
+        var scene = viewport.GetScene()!;
+        var staticModels = scene.StaticModels;
         for (var staticModelIndex = 0; staticModelIndex < staticModels.Count; ++staticModelIndex)
         {
             var staticModel = staticModels[staticModelIndex];
@@ -1921,8 +1930,10 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
-        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
@@ -2004,8 +2015,10 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
-        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
         {
@@ -2053,8 +2066,10 @@ layout(std140) uniform Material
 
         uint drawCalls = 0;
         uint primitives = 0;
-        var cameraZone = FindZone(viewport.Scene, viewport.Camera.IsAttached ? viewport.Camera.Node.WorldPosition : Vector3f.Zero);
-        var drawableZone = FindZone(viewport.Scene, staticModel.Node.WorldPosition);
+        var camera = viewport.GetCamera()!;
+        var scene = viewport.GetScene()!;
+        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
 
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
@@ -2103,12 +2118,13 @@ layout(std140) uniform Material
         Vector4f drawableAmbient, Light? light)
     {
         var linearColorSpace = viewport.GetRenderPipelineView()?.IsLinearColorSpace ?? false;
-        var pipeline = GetOrCreatePipeline(resourceCache, viewport.Camera, material, pass, vertexBuffer, light, linearColorSpace);
+        var camera = viewport.GetCamera()!;
+        var pipeline = GetOrCreatePipeline(resourceCache, camera, material, pass, vertexBuffer, light, linearColorSpace);
         var uploadedGeometry = GetOrCreateUploadedGeometry(geometry);
         if (pipeline is null || uploadedGeometry is null || _immediateContext is null)
             return default;
 
-        UpdateCameraBuffer(pipeline.CameraBuffer, viewport.Camera, cameraZone, linearColorSpace);
+        UpdateCameraBuffer(pipeline.CameraBuffer, camera, cameraZone, linearColorSpace);
         var effectiveAmbient = linearColorSpace
             ? drawableAmbient
             : new Color(drawableAmbient.X, drawableAmbient.Y, drawableAmbient.Z, drawableAmbient.W).LinearToGamma().ToVector4();

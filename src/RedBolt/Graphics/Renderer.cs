@@ -272,7 +272,7 @@ public sealed class Renderer : Object
         var matchIndex = 0u;
         foreach (var viewport in _viewports)
         {
-            if (viewport is null || !ReferenceEquals(viewport.Scene, scene))
+            if (viewport is null || !ReferenceEquals(viewport.GetScene(), scene))
                 continue;
             if (matchIndex == index)
                 return viewport;
@@ -472,7 +472,7 @@ public sealed class Renderer : Object
     {
         var (renderTarget, viewport) = _queuedViewports[index];
 
-        if (viewport.Scene is null)
+        if (viewport.GetScene() is null)
             return;
 
         var renderPipelineView = viewport.GetRenderPipelineView();
@@ -486,15 +486,15 @@ public sealed class Renderer : Object
 
         _renderPipelineViews.Add(renderPipelineView);
 
-        var viewRect = viewport.Rect;
-        var scene = viewport.Scene;
+        var viewRect = viewport.GetRect();
+        var scene = viewport.GetScene();
         if (scene is null)
             return;
 
         var octree = scene.Root.GetComponent<Octree>()!;
         if (_updatedOctrees.Add(octree))
         {
-            _frameInfo.Camera = viewport.Camera;
+            _frameInfo.Camera = viewport.GetCamera();
             _frameInfo.ViewportSize = viewRect.Size;
             if (_frameInfo.ViewportSize == Vector2i.Zero)
                 _frameInfo.ViewportSize = new Vector2i(_graphics!.Width, _graphics.Height);
@@ -503,7 +503,7 @@ public sealed class Renderer : Object
 
             var debug = scene.Root.GetComponent<DebugRenderer>();
             if (debug is not null && viewport.GetDrawDebug())
-                debug.SetView(viewport.Camera);
+                debug.SetView(viewport.GetCamera()!);
         }
 
         renderPipelineView.Update(_graphics!);
