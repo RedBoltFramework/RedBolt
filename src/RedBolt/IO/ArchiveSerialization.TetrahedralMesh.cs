@@ -71,29 +71,6 @@ public static partial class ArchiveSerialization
             StringToNumberArray(text, components);
     }
 
-    private static string NumberArrayToString(ReadOnlySpan<float> values)
-    {
-        var result = new System.Text.StringBuilder();
-        for (var i = 0; i < values.Length; ++i)
-        {
-            if (i != 0)
-                result.Append(' ');
-            result.Append(values[i].ToString("g6", System.Globalization.CultureInfo.InvariantCulture));
-        }
-        return result.ToString();
-    }
-
-    private static void StringToNumberArray(string text, Span<float> values)
-    {
-        var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        for (var i = 0; i < elements.Length && i < values.Length; ++i)
-        {
-            if (!float.TryParse(elements[i], System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out values[i]))
-                values[i] = 0.0f;
-        }
-    }
-
     private static void SerializeVector3f(Archive archive, string name, List<Vector3f> values)
     {
         if (!archive.IsHumanReadable)

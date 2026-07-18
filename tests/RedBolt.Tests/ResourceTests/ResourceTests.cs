@@ -107,6 +107,10 @@ public sealed class ResourceTests
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class BinaryFileTests
 {
+    private sealed class DerivedBinaryFile : BinaryFile
+    {
+    }
+
     public BinaryFileTests(HeadlessEngineFixture fixture)
     {
         _ = fixture;
@@ -140,5 +144,21 @@ public sealed class BinaryFileTests
         file.SetText("first\nsecond\n");
 
         Assert.Equal(["first", "second"], file.ReadLines());
+    }
+
+    [Fact]
+    public void Class_kind_and_owned_buffer_lifetime_match_native()
+    {
+        var file = new DerivedBinaryFile();
+        file.SetData([1]);
+        var buffer = file.GetMutableBuffer();
+        Assert.NotEqual(nint.Zero, buffer.GetData());
+
+        file.Dispose();
+
+        var pinnedBufferField = typeof(VectorBuffer).GetField("_pinnedBuffer",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var pinnedBuffer = (System.Runtime.InteropServices.GCHandle)pinnedBufferField.GetValue(buffer)!;
+        Assert.False(pinnedBuffer.IsAllocated);
     }
 }

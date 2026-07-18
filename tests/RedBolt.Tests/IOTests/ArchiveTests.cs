@@ -5,6 +5,11 @@ namespace RedBolt.Tests;
 
 public sealed class ArchiveTests
 {
+    private enum UnsignedLongEnum : ulong
+    {
+        Zero
+    }
+
     [Theory]
     [InlineData("Root", true)]
     [InlineData("_private.Item:1", true)]
@@ -118,6 +123,241 @@ public sealed class ArchiveTests
         ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, VariantType.CString);
 
         Assert.Equal(("value", "Native text"), Assert.Single(archive.StringValues));
+    }
+
+    [Fact]
+    public void Human_readable_archive_round_trips_resource_references_as_strings()
+    {
+        var output = new JSONOutputArchive();
+        var resourceRef = new ResourceRef(StringHash.Empty, "Texture.xml");
+        var resourceRefList = new ResourceRefList(StringHash.Empty, ["One.xml", "Two.xml"]);
+        using (output.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeValue(output, "resource", ref resourceRef);
+            ArchiveSerialization.SerializeValue(output, "resources", ref resourceRefList);
+        }
+
+        var input = new JSONInputArchive(output.ToJsonString());
+        var loadedResourceRef = ResourceRef.Empty;
+        var loadedResourceRefList = ResourceRefList.Empty;
+        using (input.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeValue(input, "resource", ref loadedResourceRef);
+            ArchiveSerialization.SerializeValue(input, "resources", ref loadedResourceRefList);
+        }
+
+        Assert.Equal(resourceRef, loadedResourceRef);
+        Assert.Equal(resourceRefList, loadedResourceRefList);
+    }
+
+    [Fact]
+    public void Binary_archive_round_trips_resource_reference()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var source = new ResourceRef("BinaryFile", "Data/dependency.bin");
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(output, "resource", ref source);
+        output.Flush();
+
+        buffer.Seek(0);
+        var destination = ResourceRef.Empty;
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeValue(input, "resource", ref destination);
+        input.Flush();
+
+        Assert.Equal(source, destination);
+    }
+
+    [Fact]
+    public void Binary_archive_round_trips_resource_reference_variant()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var source = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"));
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeVariantInBlock(output, ref source);
+        output.Flush();
+
+        buffer.Seek(0);
+        var destination = default(Variant);
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeVariantInBlock(input, ref destination);
+        input.Flush();
+
+        Assert.Equal(source, destination);
+    }
+
+    [Fact]
+    public void Binary_archive_round_trips_resource_reference_attribute()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var source = new AttributePrefab
+        {
+            Name = "Dependency",
+            Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
+        };
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            source.SerializeInBlock(output);
+        output.Flush();
+
+        buffer.Seek(0);
+        var destination = new AttributePrefab();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            destination.SerializeInBlock(input);
+        input.Flush();
+
+        Assert.Equal(source, destination);
+    }
+
+    [Fact]
+    public void Binary_archive_round_trips_nested_resource_reference_attribute()
+    {
+        var context = new Context();
+        var buffer = new VectorBuffer();
+        var source = new NodePrefab();
+        var child = new NodePrefab();
+        child.Components.Add(new SerializablePrefab
+        {
+            TypeName = "Node",
+            Attributes =
+            {
+                new AttributePrefab
+                {
+                    Name = "Dependency",
+                    Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
+                }
+            }
+        });
+        source.Children.Add(child);
+        var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+            source.SerializeInBlock(output);
+        output.Flush();
+
+        buffer.Seek(0);
+        var destination = new NodePrefab();
+        var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+            destination.SerializeInBlock(input);
+        input.Flush();
+
+        Assert.Equal(source, destination);
+    }
+
+    [Fact]
+    public void Binary_file_round_trips_nested_resource_reference_attribute()
+    {
+        var source = new NodePrefab();
+        var child = new NodePrefab();
+        child.Components.Add(new SerializablePrefab
+        {
+            TypeName = "Node",
+            Attributes =
+            {
+                new AttributePrefab
+                {
+                    Name = "Dependency",
+                    Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
+                }
+            }
+        });
+        source.Children.Add(child);
+        var file = new BinaryFile();
+        Assert.True(file.SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("Root");
+            source.SerializeInBlock(archive);
+        }));
+
+        var destination = new NodePrefab();
+        Assert.True(file.LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock("Root");
+            destination.SerializeInBlock(archive);
+        }));
+
+        Assert.Equal(source, destination);
+    }
+
+    [Fact]
+    public void Binary_file_preserves_native_extensible_class_kind()
+    {
+        Assert.False(typeof(BinaryFile).IsSealed);
+    }
+
+    [Fact]
+    public void Human_readable_archive_preserves_unknown_enum_as_number()
+    {
+        var output = new JSONOutputArchive();
+        var value = (VariantType)123;
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeEnum(output, "type", ref value, Variant.GetTypeNameList());
+
+        var input = new JSONInputArchive(output.ToJsonString());
+        var loadedValue = VariantType.None;
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeEnum(input, "type", ref loadedValue, Variant.GetTypeNameList());
+
+        Assert.Equal((VariantType)123, loadedValue);
+    }
+
+    [Fact]
+    public void Human_readable_archive_preserves_unsigned_long_enum_as_number()
+    {
+        var output = new JSONOutputArchive();
+        var value = (UnsignedLongEnum)(ulong.MaxValue - 1);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeEnum(output, "type", ref value, ["Zero"]);
+
+        var input = new JSONInputArchive(output.ToJsonString());
+        var loadedValue = UnsignedLongEnum.Zero;
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeEnum(input, "type", ref loadedValue, ["Zero"]);
+
+        Assert.Equal(value, loadedValue);
+    }
+
+    [Fact]
+    public void Variant_type_uses_native_unsigned_char_storage()
+    {
+        Assert.Equal(typeof(byte), Enum.GetUnderlyingType(typeof(VariantType)));
+    }
+
+    [Fact]
+    public void Human_readable_variant_input_default_constructs_compound_value()
+    {
+        var output = new JSONOutputArchive();
+        var source = new Variant(Matrix3.IDENTITY);
+        using (output.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeVariantAsType(output, "value", ref source, VariantType.Matrix3);
+
+        var input = new JSONInputArchive(output.ToJsonString().Replace("1 0 0 0 1 0 0 0 1", "9"));
+        var destination = new Variant(42);
+        using (input.OpenUnorderedBlock("Root"))
+            ArchiveSerialization.SerializeVariantAsType(input, "value", ref destination, VariantType.Matrix3);
+
+        Assert.Equal(new Matrix3(9, 0, 0, 0, 1, 0, 0, 0, 1), destination.GetMatrix3());
+    }
+
+    [Fact]
+    public void Serialize_value_opens_variant_block()
+    {
+        var archive = new TestArchive();
+        var value = new Variant(42);
+
+        ArchiveSerialization.SerializeValue(archive, "variant", ref value);
+
+        Assert.Equal(1, archive.BeginCount);
+        Assert.Equal(1, archive.EndCount);
+        Assert.Equal(ArchiveBlockType.Unordered, archive.LastBlockType);
     }
 
     [Fact]

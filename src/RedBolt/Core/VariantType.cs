@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace RedBolt;
 
-public enum VariantType
+public enum VariantType : byte
 {
     None = 0,
     Int,

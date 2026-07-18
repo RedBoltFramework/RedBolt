@@ -108,11 +108,16 @@ public sealed class PrefabResourceTests
 
             using var stream = new MemoryStream();
             Assert.True(sourceResource.Save(stream));
+            Assert.Equal(new ResourceRef("BinaryFile", "Data/dependency.bin"),
+                Assert.Single(Assert.Single(sourceResource.GetNodePrefab().Components).Attributes).Value.GetResourceRef());
             stream.Position = 0;
 
             var loadedResource = new PrefabResource("Tree.prefab");
             loadedResource.SetAsyncLoadState(AsyncLoadState.Loading);
             Assert.True(loadedResource.BeginLoad(stream));
+            var loadedValue = Assert.Single(Assert.Single(loadedResource.GetNodePrefab().Components).Attributes).Value;
+            Assert.Equal(VariantType.ResourceRef, loadedValue.Type);
+            Assert.Equal(new ResourceRef("BinaryFile", "Data/dependency.bin"), loadedValue.GetResourceRef());
             resources.FinishBackgroundResources(1000);
 
             var dependency = resources.GetExistingResource<BinaryFile>("Data/dependency.bin");

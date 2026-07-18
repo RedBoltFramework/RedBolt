@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace RedBolt;
 
@@ -37,28 +39,177 @@ public static partial class ArchiveSerialization
             value = new StringHash(rawValue);
     }
 
+    private static string NumberArrayToString(ReadOnlySpan<float> values)
+    {
+        var result = new StringBuilder();
+        for (var i = 0; i < values.Length; ++i)
+        {
+            if (i > 0)
+                result.Append(' ');
+            result.Append(values[i].ToString("g6", CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
+    }
+
+    private static string NumberArrayToString(ReadOnlySpan<double> values)
+    {
+        var result = new StringBuilder();
+        for (var i = 0; i < values.Length; ++i)
+        {
+            if (i > 0)
+                result.Append(' ');
+            result.Append(values[i].ToString("g15", CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
+    }
+
+    private static string NumberArrayToString(ReadOnlySpan<int> values)
+    {
+        var result = new StringBuilder();
+        for (var i = 0; i < values.Length; ++i)
+        {
+            if (i > 0)
+                result.Append(' ');
+            result.Append(values[i].ToString(CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
+    }
+
+    private static int StringToNumberArray(string text, Span<float> values)
+    {
+        var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var size = Math.Min(elements.Length, values.Length);
+        for (var i = 0; i < size; ++i)
+        {
+            if (!float.TryParse(elements[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
+                values[i] = 0.0f;
+        }
+        return elements.Length;
+    }
+
+    private static int StringToNumberArray(string text, Span<double> values)
+    {
+        var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var size = Math.Min(elements.Length, values.Length);
+        for (var i = 0; i < size; ++i)
+        {
+            if (!double.TryParse(elements[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
+                values[i] = 0.0;
+        }
+        return elements.Length;
+    }
+
+    private static int StringToNumberArray(string text, Span<int> values)
+    {
+        var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var size = Math.Min(elements.Length, values.Length);
+        for (var i = 0; i < size; ++i)
+        {
+            if (!int.TryParse(elements[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
+                values[i] = 0;
+        }
+        return elements.Length;
+    }
+
     public static void SerializeEnum<T>(Archive archive, string name, ref T value, IReadOnlyList<string> names)
         where T : struct, Enum
     {
         if (archive.IsHumanReadable)
         {
-            var stringValue = archive.IsInput ? string.Empty : names[Convert.ToInt32(value)];
+            var underlyingType = Enum.GetUnderlyingType(typeof(T));
+            var isSigned = underlyingType == typeof(sbyte) || underlyingType == typeof(short)
+                || underlyingType == typeof(int) || underlyingType == typeof(long);
+            var signedValue = isSigned ? Convert.ToInt64(value, CultureInfo.InvariantCulture) : 0;
+            var unsignedValue = isSigned ? 0 : Convert.ToUInt64(value, CultureInfo.InvariantCulture);
+            var stringValue = string.Empty;
+            if (!archive.IsInput)
+            {
+                if (isSigned)
+                    stringValue = signedValue < 0 || signedValue >= names.Count
+                        ? signedValue.ToString(CultureInfo.InvariantCulture)
+                        : names[(int)signedValue];
+                else
+                    stringValue = unsignedValue >= (ulong)names.Count
+                        ? unsignedValue.ToString(CultureInfo.InvariantCulture)
+                        : names[(int)unsignedValue];
+            }
             archive.Serialize(name, ref stringValue);
             if (archive.IsInput)
             {
                 var index = 0;
                 while (index < names.Count && !string.Equals(names[index], stringValue, StringComparison.Ordinal))
                     ++index;
-                value = (T)Enum.ToObject(typeof(T), index >= names.Count ? 0 : index);
+                if (index < names.Count)
+                    value = (T)Enum.ToObject(typeof(T), index);
+                else
+                {
+                    var parsedValue = ulong.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                        out var result) && result != ulong.MaxValue ? result : 0;
+                    value = (T)Enum.ToObject(typeof(T), parsedValue);
+                }
             }
         }
         else
         {
-            var integerValue = Convert.ToInt32(value);
-            archive.Serialize(name, ref integerValue);
+            object integerValue;
+            var underlyingType = Enum.GetUnderlyingType(typeof(T));
+            if (underlyingType == typeof(sbyte))
+            {
+                var convertedValue = Convert.ToSByte(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(byte))
+            {
+                var convertedValue = Convert.ToByte(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(short))
+            {
+                var convertedValue = Convert.ToInt16(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(ushort))
+            {
+                var convertedValue = Convert.ToUInt16(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(int))
+            {
+                var convertedValue = Convert.ToInt32(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(uint))
+            {
+                var convertedValue = Convert.ToUInt32(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else if (underlyingType == typeof(long))
+            {
+                var convertedValue = Convert.ToInt64(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+            else
+            {
+                var convertedValue = Convert.ToUInt64(value);
+                archive.Serialize(name, ref convertedValue);
+                integerValue = convertedValue;
+            }
+
             if (archive.IsInput)
                 value = (T)Enum.ToObject(typeof(T), integerValue);
         }
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref VariantType value)
+    {
+        SerializeEnum(archive, name, ref value, Variant.GetTypeNameList());
     }
 
     public static void SerializeVariantInBlock(Archive archive, ref Variant value)
@@ -66,6 +217,60 @@ public static partial class ArchiveSerialization
         var type = value.Type;
         SerializeEnum(archive, "type", ref type, Variant.GetTypeNameList());
         SerializeVariantAsType(archive, "value", ref value, type);
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref Variant value)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        SerializeVariantInBlock(archive, ref value);
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref ResourceRef value)
+    {
+        if (!archive.IsHumanReadable)
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            SerializeValue(archive, "type", ref value.Type);
+            archive.Serialize("name", ref value.Name);
+            return;
+        }
+
+        var stringValue = archive.IsInput ? string.Empty : value.ToString(archive.Context!);
+        archive.Serialize(name, ref stringValue);
+        if (archive.IsInput)
+        {
+            var chunks = stringValue.Split(';', StringSplitOptions.None);
+            if (chunks.Length != 2)
+                throw new InvalidOperationException($"Unexpected format of ResourceRef '{archive.CurrentBlockPath}/{name}'");
+            value = new ResourceRef(new StringHash(chunks[0]), chunks[1]);
+        }
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref ResourceRefList value)
+    {
+        if (!archive.IsHumanReadable)
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            SerializeValue(archive, "type", ref value.Type);
+            SerializeStringVector(archive, "names", value.Names);
+            return;
+        }
+
+        var stringValue = archive.IsInput ? string.Empty : value.ToString(archive.Context!);
+        archive.Serialize(name, ref stringValue);
+        if (archive.IsInput)
+        {
+            if (stringValue.Length == 0)
+                throw new InvalidOperationException($"Unexpected format of ResourceRefList '{archive.CurrentBlockPath}/{name}'");
+
+            var chunks = stringValue.Split(';', StringSplitOptions.None);
+            var names = new List<string>(chunks.Length - 1);
+            for (var i = 1; i < chunks.Length; ++i)
+                names.Add(chunks[i]);
+            if (names.Count == 1 && names[0].Length == 0)
+                names.Clear();
+            value = new ResourceRefList(new StringHash(chunks[0]), names);
+        }
     }
 
     public static void SerializeVariantAsType(Archive archive, string name, ref Variant value, VariantType type)
@@ -102,46 +307,46 @@ public static partial class ArchiveSerialization
             SerializeResourceRefList(archive, name, ref value);
             return;
         case VariantType.Vector2:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector2, text).GetVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector2(), static item => new Variant(item));
             return;
         case VariantType.DoubleVector2:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.DoubleVector2, text).GetDoubleVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector2(), static item => new Variant(item));
             return;
         case VariantType.Vector3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector3, text).GetVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector3(), static item => new Variant(item));
             return;
         case VariantType.DoubleVector3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.DoubleVector3, text).GetDoubleVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetDoubleVector3(), static item => new Variant(item));
             return;
         case VariantType.Vector4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector4(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector4, text).GetVector4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetVector4(), static item => new Variant(item));
             return;
         case VariantType.Quaternion:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetQuaternion(), static item => new Variant(item), static text => ParseVariant(VariantType.Quaternion, text).GetQuaternion());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetQuaternion(), static item => new Variant(item));
             return;
         case VariantType.Color:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetColor(), static item => new Variant(item), static text => ParseVariant(VariantType.Color, text).GetColor());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetColor(), static item => new Variant(item));
             return;
         case VariantType.Rect:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetRect(), static item => new Variant(item), static text => ParseVariant(VariantType.Rect, text).GetRect());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetRect(), static item => new Variant(item));
             return;
         case VariantType.IntRect:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntRect(), static item => new Variant(item), static text => ParseVariant(VariantType.IntRect, text).GetIntRect());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntRect(), static item => new Variant(item));
             return;
         case VariantType.Vector2i:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector2(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector2i, text).GetIntVector2());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector2(), static item => new Variant(item));
             return;
         case VariantType.Vector3i:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector3(), static item => new Variant(item), static text => ParseVariant(VariantType.Vector3i, text).GetIntVector3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetIntVector3(), static item => new Variant(item));
             return;
         case VariantType.Matrix3:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix3, text).GetMatrix3());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3(), static item => new Variant(item));
             return;
         case VariantType.Matrix3x4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3x4(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix3x4, text).GetMatrix3x4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix3x4(), static item => new Variant(item));
             return;
         case VariantType.Matrix4:
-            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix4(), static item => new Variant(item), static text => ParseVariant(VariantType.Matrix4, text).GetMatrix4());
+            SerializeVariantCompound(archive, name, ref value, static variant => variant.GetMatrix4(), static item => new Variant(item));
             return;
         case VariantType.VariantCurve:
             SerializeVariantCurve(archive, name, ref value);
@@ -162,67 +367,169 @@ public static partial class ArchiveSerialization
             SerializeStringVariantMap(archive, name, ref value);
             return;
         case VariantType.Custom:
+            if (value.Type != VariantType.Custom)
+                throw new InvalidOperationException("Cannot serialize CustomVariant of unknown type");
             value.GetCustomVariantValue().Serialize(archive, name);
             return;
+        case VariantType.VoidPtr:
+        case VariantType.Ptr:
+            throw new InvalidOperationException($"'{archive.CurrentBlockPath}/{name}' has unsupported variant type");
         default:
-            throw new NotSupportedException($"Archive serialization for Variant type '{type}' is not implemented.");
+            throw new InvalidOperationException($"Archive serialization for Variant type '{type}' is not implemented.");
         }
     }
 
-    public static void SerializeResourceRef(Archive archive, string name, ref Variant value)
+    private static void SerializeResourceRef(Archive archive, string name, ref Variant value)
     {
         var resourceRef = archive.IsInput ? ResourceRef.Empty : value.GetResourceRef();
-        using var block = archive.OpenUnorderedBlock(name);
-        var type = resourceRef.Type;
-        var resourceName = resourceRef.Name;
-        SerializeValue(archive, "type", ref type);
-        archive.Serialize("name", ref resourceName);
+        SerializeValue(archive, name, ref resourceRef);
         if (archive.IsInput)
-            value = new Variant(new ResourceRef(type, resourceName));
+        {
+            var replacement = new Variant(resourceRef);
+            value.Dispose();
+            value = replacement;
+        }
     }
 
-    public static void SerializeVariantCurve(Archive archive, string name, ref Variant value)
+    private static void SerializeVariantCurve(Archive archive, string name, ref Variant value)
     {
-        var curve = archive.IsInput ? new VariantCurve() : value.GetVariantCurve();
-        using var block = archive.OpenUnorderedBlock(name);
-        curve.SerializeInBlock(archive);
         if (archive.IsInput)
-            value = new Variant(curve);
+        {
+            using var curve = new VariantCurve();
+            using var block = archive.OpenUnorderedBlock(name);
+            curve.SerializeInBlock(archive);
+            var replacement = new Variant(curve);
+            value.Dispose();
+            value = replacement;
+        }
+        else
+        {
+            var curve = value.GetVariantCurve();
+            using var block = archive.OpenUnorderedBlock(name);
+            curve.SerializeInBlock(archive);
+        }
     }
 
-    public static void SerializeBuffer(Archive archive, string name, ref Variant value)
+    private static void SerializeBuffer(Archive archive, string name, ref Variant value)
     {
         using var block = archive.OpenUnorderedBlock(name);
-        var buffer = archive.IsInput ? Array.Empty<byte>() : value.GetBuffer();
+        var replaceBuffer = archive.IsInput && value.Type != VariantType.Buffer;
+        var buffer = replaceBuffer ? Array.Empty<byte>() : value.GetBuffer();
         var size = archive.IsInput ? 0u : checked((uint)buffer.Length);
         archive.SerializeVle("size", ref size);
-        if (archive.IsInput)
+        if (archive.IsInput && buffer.Length != checked((int)size))
+        {
             buffer = new byte[checked((int)size)];
+            replaceBuffer = true;
+        }
         archive.SerializeBytes("data", buffer);
-        if (archive.IsInput)
-            value = new Variant(buffer);
+        if (replaceBuffer)
+        {
+            var replacement = new Variant(buffer);
+            value.Dispose();
+            value = replacement;
+        }
     }
 
-    public static void SerializeVariantVector(Archive archive, string name, ref Variant value)
+    private static void SerializeVariantVector(Archive archive, string name, ref Variant value)
     {
-        var vector = archive.IsInput ? new VariantVector() : value.GetVariantVector();
-        var size = checked((uint)vector.Count);
+        if (archive.IsInput && value.Type != VariantType.VariantVector)
+        {
+            using var empty = new VariantVector();
+            var replacement = new Variant(empty);
+            value.Dispose();
+            value = replacement;
+        }
+
+        SerializeValue(archive, name, value.GetVariantVector());
+    }
+
+    private static void SerializeVariantStringVector(Archive archive, string name, ref Variant value)
+    {
+        if (archive.IsInput && value.Type != VariantType.StringVector)
+        {
+            var replacement = new Variant(new StringVector());
+            value.Dispose();
+            value = replacement;
+        }
+
+        SerializeValue(archive, name, value.GetStringVector());
+    }
+
+    private static void SerializeVariantMap(Archive archive, string name, ref Variant value)
+    {
+        if (archive.IsInput && value.Type != VariantType.VariantMap)
+        {
+            using var empty = new VariantMap();
+            var replacement = new Variant(empty);
+            value.Dispose();
+            value = replacement;
+        }
+
+        SerializeValue(archive, name, value.GetVariantMap());
+    }
+
+    private static void SerializeStringVariantMap(Archive archive, string name, ref Variant value)
+    {
+        if (archive.IsInput && value.Type != VariantType.StringVariantMap)
+        {
+            using var empty = new StringVariantMap();
+            var replacement = new Variant(empty);
+            value.Dispose();
+            value = replacement;
+        }
+
+        SerializeValue(archive, name, value.GetStringVariantMap());
+    }
+
+    private static void SerializeCString(Archive archive, string name, ref Variant value)
+    {
+        var stringValue = archive.IsInput ? string.Empty : value.GetCString().ConvertToString();
+        archive.Serialize(name, ref stringValue);
+        if (archive.IsInput)
+        {
+            using var cstring = new CString(stringValue);
+            var replacement = new Variant(cstring);
+            value.Dispose();
+            value = replacement;
+        }
+    }
+
+    private static void SerializeResourceRefList(Archive archive, string name, ref Variant value)
+    {
+        var resourceRefList = archive.IsInput ? ResourceRefList.Empty : value.GetResourceRefList();
+        SerializeValue(archive, name, ref resourceRefList);
+        if (archive.IsInput)
+        {
+            var replacement = new Variant(resourceRefList);
+            value.Dispose();
+            value = replacement;
+        }
+    }
+
+    public static void SerializeValue(Archive archive, string name, StringVector value)
+    {
+        SerializeStringVector(archive, name, value);
+    }
+
+    public static void SerializeValue(Archive archive, string name, VariantVector value)
+    {
+        var size = checked((uint)value.Count);
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
-            vector.Clear();
+            value.Dispose();
             for (var index = 0u; index < block.SizeHint; ++index)
             {
                 var item = default(Variant);
                 using var itemBlock = archive.OpenUnorderedBlock("element");
                 SerializeVariantInBlock(archive, ref item);
-                vector.Add(item);
+                value.Add(item);
             }
-            value = new Variant(vector);
         }
         else
         {
-            foreach (var item in vector)
+            foreach (var item in value)
             {
                 var itemCopy = item;
                 using var itemBlock = archive.OpenUnorderedBlock("element");
@@ -231,22 +538,13 @@ public static partial class ArchiveSerialization
         }
     }
 
-    public static void SerializeVariantStringVector(Archive archive, string name, ref Variant value)
+    public static void SerializeValue(Archive archive, string name, VariantMap value)
     {
-        var vector = archive.IsInput ? new StringVector() : value.GetStringVector();
-        SerializeStringVector(archive, name, vector);
-        if (archive.IsInput)
-            value = new Variant(vector);
-    }
-
-    public static void SerializeVariantMap(Archive archive, string name, ref Variant value)
-    {
-        var map = archive.IsInput ? new VariantMap() : value.GetVariantMap();
-        var size = checked((uint)map.Count);
+        var size = checked((uint)value.Count);
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
-            map.Clear();
+            value.Dispose();
             for (var index = 0u; index < block.SizeHint; ++index)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
@@ -254,13 +552,14 @@ public static partial class ArchiveSerialization
                 var item = default(Variant);
                 SerializeValue(archive, "key", ref key);
                 SerializeVariantInBlock(archive, ref item);
-                map[key] = item;
+                if (value.TryGetValue(key, out var previous))
+                    previous.Dispose();
+                value[key] = item;
             }
-            value = new Variant(map);
         }
         else
         {
-            foreach (var (key, item) in map)
+            foreach (var (key, item) in value)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
                 var keyCopy = key;
@@ -271,14 +570,13 @@ public static partial class ArchiveSerialization
         }
     }
 
-    public static void SerializeStringVariantMap(Archive archive, string name, ref Variant value)
+    public static void SerializeValue(Archive archive, string name, StringVariantMap value)
     {
-        var map = archive.IsInput ? new StringVariantMap() : value.GetStringVariantMap();
-        var size = checked((uint)map.Count);
+        var size = checked((uint)value.Count);
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
-            map.Clear();
+            value.Dispose();
             for (var index = 0u; index < block.SizeHint; ++index)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
@@ -286,13 +584,14 @@ public static partial class ArchiveSerialization
                 var item = default(Variant);
                 archive.Serialize("key", ref key);
                 SerializeVariantInBlock(archive, ref item);
-                map[key] = item;
+                if (value.TryGetValue(key, out var previous))
+                    previous.Dispose();
+                value[key] = item;
             }
-            value = new Variant(map);
         }
         else
         {
-            foreach (var (key, item) in map)
+            foreach (var (key, item) in value)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
                 var keyCopy = key;
@@ -301,26 +600,6 @@ public static partial class ArchiveSerialization
                 SerializeVariantInBlock(archive, ref itemCopy);
             }
         }
-    }
-
-    public static void SerializeCString(Archive archive, string name, ref Variant value)
-    {
-        var stringValue = archive.IsInput ? string.Empty : value.GetCString().ConvertToString();
-        archive.Serialize(name, ref stringValue);
-        if (archive.IsInput)
-            value = new Variant(new CString(stringValue));
-    }
-
-    public static void SerializeResourceRefList(Archive archive, string name, ref Variant value)
-    {
-        var resourceRefList = archive.IsInput ? ResourceRefList.Empty : value.GetResourceRefList();
-        using var block = archive.OpenUnorderedBlock(name);
-        var type = resourceRefList.Type;
-        SerializeValue(archive, "type", ref type);
-        var names = archive.IsInput ? new List<string>() : resourceRefList.Names.ToList();
-        SerializeStringVector(archive, "names", names);
-        if (archive.IsInput)
-            value = new Variant(new ResourceRefList(type, names));
     }
 
     public static void SerializeStringVector(Archive archive, string name, List<string> values)
@@ -350,23 +629,48 @@ public static partial class ArchiveSerialization
     private static void SerializeVariantPrimitive<T>(Archive archive, string name, ref Variant variant,
         Func<Variant, T> getter, Func<T, Variant> constructor)
     {
-        var value = archive.IsInput ? default! : getter(variant);
+        var value = archive.IsInput
+            ? typeof(T) == typeof(string) ? (T)(object)string.Empty : default!
+            : getter(variant);
         SerializePrimitive(archive, name, ref value);
         if (archive.IsInput)
-            variant = constructor(value);
+        {
+            var replacement = constructor(value);
+            variant.Dispose();
+            variant = replacement;
+        }
     }
 
     private static void SerializeVariantCompound<T>(Archive archive, string name, ref Variant variant,
-        Func<Variant, T> getter, Func<T, Variant> constructor, Func<string, T> parser)
+        Func<Variant, T> getter, Func<T, Variant> constructor)
         where T : unmanaged
     {
-        var value = archive.IsInput ? default : getter(variant);
-        SerializeCompound(archive, name, ref value, parser);
+        T value;
+        if (!archive.IsInput)
+            value = getter(variant);
+        else if (typeof(T) == typeof(Quaternion))
+            value = (T)(object)Quaternion.IDENTITY;
+        else if (typeof(T) == typeof(Color))
+            value = (T)(object)Color.White;
+        else if (typeof(T) == typeof(Matrix3))
+            value = (T)(object)Matrix3.IDENTITY;
+        else if (typeof(T) == typeof(Matrix3x4))
+            value = (T)(object)Matrix3x4.IDENTITY;
+        else if (typeof(T) == typeof(Matrix4))
+            value = (T)(object)Matrix4.IDENTITY;
+        else
+            value = default;
+
+        SerializeCompound(archive, name, ref value);
         if (archive.IsInput)
-            variant = constructor(value);
+        {
+            var replacement = constructor(value);
+            variant.Dispose();
+            variant = replacement;
+        }
     }
 
-    private static void SerializeCompound<T>(Archive archive, string name, ref T value, Func<string, T> parser)
+    private static void SerializeCompound<T>(Archive archive, string name, ref T value)
         where T : unmanaged
     {
         if (!archive.IsHumanReadable)
@@ -375,10 +679,27 @@ public static partial class ArchiveSerialization
             return;
         }
 
-        var stringValue = archive.IsInput ? string.Empty : value.ToString()!;
+        var values = MemoryMarshal.CreateSpan(ref value, 1);
+        var stringValue = string.Empty;
+        if (!archive.IsInput)
+        {
+            if (typeof(T) == typeof(Vector2d) || typeof(T) == typeof(Vector3d))
+                stringValue = NumberArrayToString(MemoryMarshal.Cast<T, double>(values));
+            else if (typeof(T) == typeof(Vector2i) || typeof(T) == typeof(Vector3i) || typeof(T) == typeof(IntRect))
+                stringValue = NumberArrayToString(MemoryMarshal.Cast<T, int>(values));
+            else
+                stringValue = NumberArrayToString(MemoryMarshal.Cast<T, float>(values));
+        }
         archive.Serialize(name, ref stringValue);
         if (archive.IsInput)
-            value = parser(stringValue);
+        {
+            if (typeof(T) == typeof(Vector2d) || typeof(T) == typeof(Vector3d))
+                StringToNumberArray(stringValue, MemoryMarshal.Cast<T, double>(values));
+            else if (typeof(T) == typeof(Vector2i) || typeof(T) == typeof(Vector3i) || typeof(T) == typeof(IntRect))
+                StringToNumberArray(stringValue, MemoryMarshal.Cast<T, int>(values));
+            else
+                StringToNumberArray(stringValue, MemoryMarshal.Cast<T, float>(values));
+        }
     }
 
     private static void SerializePrimitive<T>(Archive archive, string name, ref T value)
@@ -425,10 +746,4 @@ public static partial class ArchiveSerialization
         }
     }
 
-    private static Variant ParseVariant(VariantType type, string text)
-    {
-        var result = default(Variant);
-        result.FromString(type, text);
-        return result;
-    }
 }

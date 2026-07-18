@@ -70,6 +70,7 @@ public sealed class Engine : Object
         var graphics = GetSubsystem<Graphics>()!;
         var renderer = GetSubsystem<Renderer>()!;
 
+        BinaryFile.RegisterObject(_context);
         resources.RegisterDefaultResources();
         Log.Logger.LogInformation(
             "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",

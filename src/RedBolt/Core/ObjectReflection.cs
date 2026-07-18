@@ -199,7 +199,7 @@ public class ObjectReflectionRegistry : IDisposable
     public ObjectReflection AddReflection<T>(string category = "") where T : Object
     {
         if (IsReflected<T>())
-            throw new InvalidOperationException($"Object {ObjectReflection<T>.ClassName} is reflected multiple times.");
+            throw new InvalidOperationException($"Object {typeof(T).GetClassName()} is reflected multiple times.");
 
         var reflection = Reflect<T>();
         SetReflectionCategory(typeof(T), category);

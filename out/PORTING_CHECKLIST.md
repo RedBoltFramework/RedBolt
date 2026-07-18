@@ -133,6 +133,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `AbstractFile.h` — extensible abstract non-POD class kind, public base construction, name ownership, explicit virtual destruction, and derived teardown dispatch reconciled
 - [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
+- [~] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, implemented primitive/compound Variant formats, replacement lifetimes, container ownership, and ResourceRef/List paths reconciled; generic optional/pair/exception helpers and direct compound overloads remain
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
@@ -140,6 +141,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A5. Resource — depends on IO, Core
 
+- [x] `BinaryFile.h` / `BinaryFile.cpp` — extensible non-POD class kind, factory construction, owned VectorBuffer teardown, callback/archive RAII, byte-copy semantics, borrowed stream views, and reflection registration reconciled
 - [~] `Resource.h` / `Resource.cpp` — concrete Resource and ResourceWithMetadata class kinds and public constructor access synchronized; complete class-wide lifetime/copy audits remain pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
 
