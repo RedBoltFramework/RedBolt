@@ -333,7 +333,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/IO/FileWatcher.cs` | `Source/Urho3D/IO/FileWatcher.h`<br>`Source/Urho3D/IO/FileWatcher.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/IODefs.cs` | `Source/Urho3D/IO/IODefs.h` | ☑ | ☑ | ☑ |
 | 2026-07-18 outcome | VERIFIED the complete IODefs header and packed-vector/quaternion serializer and deserializer call paths. Native `VectorBinaryEncoding` maps to the reference-free managed int-backed enum with exact `Float`, `Double`, `Int32`, `Int16`, and `Count` ordinal values. Construction, parameter passing, switch dispatch, assignment, return, and destruction all retain trivial independent value semantics. Focused IODefs tests pass 1/1. | — | — | — |
-| `src/RedBolt/IO/IOEvents.cs` | `Source/Urho3D/IO/IOEvents.h` | ☐ | ☐ | ☐ |
+| `src/RedBolt/IO/IOEvents.cs` | `Source/Urho3D/IO/IOEvents.h` | ☑ | ☑ | ☑ |
+| 2026-07-18 outcome | VERIFIED the complete IOEvents header plus native log-message and asynchronous-execution send paths and the application log subscriber. Native `LogMessage` and `AsyncExecFinished` parameter sets map to managed POD-style structs with exact field order and `string`, `int`, and `uint` mappings. Construction, assignment, parameter passing, and copies retain independent value-type payload semantics; neither native event owns disposable resources. Focused IOEvents tests pass 2/2. | — | — | — |
 | `src/RedBolt/IO/MemoryBuffer.cs` | `Source/Urho3D/IO/MemoryBuffer.h`<br>`Source/Urho3D/IO/MemoryBuffer.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/MountPoint.cs` | `Source/Urho3D/IO/MountPoint.h`<br>`Source/Urho3D/IO/MountPoint.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/MountedAliasRoot.cs` | `Source/Urho3D/IO/MountedAliasRoot.h`<br>`Source/Urho3D/IO/MountedAliasRoot.cpp` | ☐ | ☐ | ☐ |
