@@ -38,7 +38,7 @@ public class Terrain : Component
         }
     }
 
-    private readonly IndexBuffer _indexBuffer = new();
+    private IndexBuffer? _indexBuffer = new();
     private Image? _heightMap;
     private float[]? _heightData;
     private float[]? _sourceHeightData;
@@ -47,12 +47,12 @@ public class Terrain : Component
     private float _scaleInLightmap = 1.0f;
     private uint _lightmapIndex;
     private Vector4f _lightmapScaleOffset = new(1.0f, 1.0f, 0.0f, 0.0f);
-    private readonly List<TerrainPatch?> _patches = [];
+    private readonly List<WeakReference<TerrainPatch>> _patches = [];
     private readonly List<(uint Start, uint Count)> _drawRanges = [];
-    private Terrain? _north;
-    private Terrain? _south;
-    private Terrain? _west;
-    private Terrain? _east;
+    private WeakReference<Terrain>? _north;
+    private WeakReference<Terrain>? _south;
+    private WeakReference<Terrain>? _west;
+    private WeakReference<Terrain>? _east;
     private Vector3f _spacing = DefaultSpacing;
     private Vector3f _lastSpacing = Vector3f.Zero;
     private Vector2f _patchWorldOrigin = Vector2f.Zero;
@@ -91,6 +91,25 @@ public class Terrain : Component
         _indexBuffer.SetShadowed(true);
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _east = null;
+        _west = null;
+        _south = null;
+        _north = null;
+        _drawRanges.Clear();
+        _patches.Clear();
+        _material = null;
+        _sourceHeightData = null;
+        _heightData = null;
+        if (_heightMap is not null)
+            _heightMap.ReloadFinished -= HandleHeightMapReloadFinished;
+        _heightMap = null;
+        _indexBuffer = null;
+        base.Dispose();
+    }
+
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context) =>
         context.AddFactoryReflection<Terrain>(ObjectCategory.Category_Geometry);
@@ -123,7 +142,7 @@ public class Terrain : Component
         var enabled = IsEnabledEffective;
         for (var i = 0; i < _patches.Count; ++i)
         {
-            if (_patches[i] is { } patch)
+            if (_patches[i].TryGetTarget(out var patch))
                 patch.SetEnabled(enabled);
         }
     }
@@ -193,7 +212,7 @@ public class Terrain : Component
         _material = material;
         for (var i = 0; i < _patches.Count; ++i)
         {
-            if (_patches[i] is { } patch)
+            if (_patches[i].TryGetTarget(out var patch))
                 patch.SetMaterial(material);
         }
     }
@@ -202,14 +221,16 @@ public class Terrain : Component
     /// <summary>Set north (positive Z) neighbor terrain.</summary>
     public void SetNorthNeighbor(Terrain? north)
     {
-        if (ReferenceEquals(north, _north))
+        Terrain? oldNorth = null;
+        _north?.TryGetTarget(out oldNorth);
+        if (ReferenceEquals(north, oldNorth))
             return;
 
-        if (_north?.Node is { } oldNode)
+        if (oldNorth?.GetNode() is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
-        _north = north;
-        if (_north?.Node is { } node)
+        _north = north is null ? null : new WeakReference<Terrain>(north);
+        if (north?.GetNode() is { } node)
         {
             _northID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -221,14 +242,16 @@ public class Terrain : Component
     /// <summary>Set south (negative Z) neighbor terrain.</summary>
     public void SetSouthNeighbor(Terrain? south)
     {
-        if (ReferenceEquals(south, _south))
+        Terrain? oldSouth = null;
+        _south?.TryGetTarget(out oldSouth);
+        if (ReferenceEquals(south, oldSouth))
             return;
 
-        if (_south?.Node is { } oldNode)
+        if (oldSouth?.GetNode() is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
-        _south = south;
-        if (_south?.Node is { } node)
+        _south = south is null ? null : new WeakReference<Terrain>(south);
+        if (south?.GetNode() is { } node)
         {
             _southID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -240,14 +263,16 @@ public class Terrain : Component
     /// <summary>Set west (negative X) neighbor terrain.</summary>
     public void SetWestNeighbor(Terrain? west)
     {
-        if (ReferenceEquals(west, _west))
+        Terrain? oldWest = null;
+        _west?.TryGetTarget(out oldWest);
+        if (ReferenceEquals(west, oldWest))
             return;
 
-        if (_west?.Node is { } oldNode)
+        if (oldWest?.GetNode() is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
-        _west = west;
-        if (_west?.Node is { } node)
+        _west = west is null ? null : new WeakReference<Terrain>(west);
+        if (west?.GetNode() is { } node)
         {
             _westID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -259,14 +284,16 @@ public class Terrain : Component
     /// <summary>Set east (positive X) neighbor terrain.</summary>
     public void SetEastNeighbor(Terrain? east)
     {
-        if (ReferenceEquals(east, _east))
+        Terrain? oldEast = null;
+        _east?.TryGetTarget(out oldEast);
+        if (ReferenceEquals(east, oldEast))
             return;
 
-        if (_east?.Node is { } oldNode)
+        if (oldEast?.GetNode() is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
-        _east = east;
-        if (_east?.Node is { } node)
+        _east = east is null ? null : new WeakReference<Terrain>(east);
+        if (east?.GetNode() is { } node)
         {
             _eastID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -278,35 +305,35 @@ public class Terrain : Component
     /// <summary>Set all neighbor terrains at once.</summary>
     public void SetNeighbors(Terrain? north, Terrain? south, Terrain? west, Terrain? east)
     {
-        if (_north?.Node is { } n)
+        if (_north is not null && _north.TryGetTarget(out var oldNorth) && oldNorth.GetNode() is { } n)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(n);
-        if (_south?.Node is { } s)
+        if (_south is not null && _south.TryGetTarget(out var oldSouth) && oldSouth.GetNode() is { } s)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(s);
-        if (_west?.Node is { } w)
+        if (_west is not null && _west.TryGetTarget(out var oldWest) && oldWest.GetNode() is { } w)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(w);
-        if (_east?.Node is { } e)
+        if (_east is not null && _east.TryGetTarget(out var oldEast) && oldEast.GetNode() is { } e)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(e);
 
-        _north = north;
-        if (_north?.Node is { } nn)
+        _north = north is null ? null : new WeakReference<Terrain>(north);
+        if (north?.GetNode() is { } nn)
         {
             _northID = nn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(nn, HandleNeighborTerrainCreated);
         }
-        _south = south;
-        if (_south?.Node is { } sn)
+        _south = south is null ? null : new WeakReference<Terrain>(south);
+        if (south?.GetNode() is { } sn)
         {
             _southID = sn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(sn, HandleNeighborTerrainCreated);
         }
-        _west = west;
-        if (_west?.Node is { } wn)
+        _west = west is null ? null : new WeakReference<Terrain>(west);
+        if (west?.GetNode() is { } wn)
         {
             _westID = wn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(wn, HandleNeighborTerrainCreated);
         }
-        _east = east;
-        if (_east?.Node is { } en)
+        _east = east is null ? null : new WeakReference<Terrain>(east);
+        if (east?.GetNode() is { } en)
         {
             _eastID = en.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(en, HandleNeighborTerrainCreated);
@@ -315,73 +342,104 @@ public class Terrain : Component
         UpdateEdgePatchNeighbors();
     }
 
-    private void ForEachPatch(Action<TerrainPatch> action)
-    {
-        for (var i = 0; i < _patches.Count; ++i)
-        {
-            if (_patches[i] is { } patch)
-                action(patch);
-        }
-    }
-
     public void SetDrawDistance(float distance)
     {
         _drawDistance = distance;
-        ForEachPatch(p => p.SetDrawDistance(distance));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetDrawDistance(distance);
+        }
     }
 
     public void SetShadowDistance(float distance)
     {
         _shadowDistance = distance;
-        ForEachPatch(p => p.SetShadowDistance(distance));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetShadowDistance(distance);
+        }
     }
 
     public void SetLodBias(float bias)
     {
         _lodBias = bias;
-        ForEachPatch(p => p.SetLodBias(bias));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetLodBias(bias);
+        }
     }
 
     public void SetViewMask(uint mask)
     {
         _viewMask = mask;
-        ForEachPatch(p => p.SetViewMask(mask));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetViewMask(mask);
+        }
     }
 
     public void SetLightMask(uint mask)
     {
         _lightMask = mask;
-        ForEachPatch(p => p.SetLightMask(mask));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetLightMask(mask);
+        }
     }
 
     public void SetShadowMask(uint mask)
     {
         _shadowMask = mask;
-        ForEachPatch(p => p.SetShadowMask(mask));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetShadowMask(mask);
+        }
     }
 
     public void SetZoneMask(uint mask)
     {
         _zoneMask = mask;
-        ForEachPatch(p => p.SetZoneMask(mask));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetZoneMask(mask);
+        }
     }
 
     public void SetCastShadows(bool enable)
     {
         _castShadows = enable;
-        ForEachPatch(p => p.SetCastShadows(enable));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetCastShadows(enable);
+        }
     }
 
     public void SetOccluder(bool enable)
     {
         _occluder = enable;
-        ForEachPatch(p => p.SetOccluder(enable));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetOccluder(enable);
+        }
     }
 
     public void SetOccludee(bool enable)
     {
         _occludee = enable;
-        ForEachPatch(p => p.SetOccludee(enable));
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.SetOccludee(enable);
+        }
     }
 
     /// <summary>Enable drawing debug information. Set this before applying heightmap.</summary>
@@ -397,8 +455,10 @@ public class Terrain : Component
     public Image? GetHeightMap() => _heightMap;
     public Material? GetMaterial() => _material;
 
-    public TerrainPatch? GetPatch(uint index) =>
-        index < (uint)_patches.Count ? _patches[(int)index] : null;
+    public TerrainPatch? GetPatch(uint index)
+    {
+        return index < (uint)_patches.Count && _patches[(int)index].TryGetTarget(out var patch) ? patch : null;
+    }
 
     public TerrainPatch? GetPatch(int x, int z)
     {
@@ -409,23 +469,24 @@ public class Terrain : Component
 
     public TerrainPatch? GetNeighborPatch(int x, int z)
     {
-        if (z >= _numPatches.Y && _north is not null)
-            return _north.GetPatch(x, z - _numPatches.Y);
-        if (z < 0 && _south is not null)
-            return _south.GetPatch(x, z + _south.GetNumPatches().Y);
-        if (x < 0 && _west is not null)
-            return _west.GetPatch(x + _west.GetNumPatches().X, z);
-        if (x >= _numPatches.X && _east is not null)
-            return _east.GetPatch(x - _numPatches.X, z);
+        if (z >= _numPatches.Y && _north is not null && _north.TryGetTarget(out var north))
+            return north.GetPatch(x, z - _numPatches.Y);
+        if (z < 0 && _south is not null && _south.TryGetTarget(out var south))
+            return south.GetPatch(x, z + south.GetNumPatches().Y);
+        if (x < 0 && _west is not null && _west.TryGetTarget(out var west))
+            return west.GetPatch(x + west.GetNumPatches().X, z);
+        if (x >= _numPatches.X && _east is not null && _east.TryGetTarget(out var east))
+            return east.GetPatch(x - _numPatches.X, z);
         return GetPatch(x, z);
     }
 
     public float GetHeight(Vector3f worldPosition)
     {
-        if (Node is null)
+        var node = GetNode();
+        if (node is null)
             return 0.0f;
 
-        var position = Node.GetWorldTransform().Inverse * worldPosition;
+        var position = node.GetWorldTransform().Inverse * worldPosition;
         var xPos = (position.X - _patchWorldOrigin.X) / _spacing.X;
         var zPos = (position.Z - _patchWorldOrigin.Y) / _spacing.Z;
         var xFrac = MathDefs.Fract(xPos);
@@ -449,15 +510,16 @@ public class Terrain : Component
 
         var h = h1 * (1.0f - xFrac - zFrac) + h2 * xFrac + h3 * zFrac;
         /// \todo This assumes that the terrain scene node is upright
-        return Node.GetWorldScale().Y * h + Node.GetWorldPosition().Y;
+        return node.GetWorldScale().Y * h + node.GetWorldPosition().Y;
     }
 
     public Vector3f GetNormal(Vector3f worldPosition)
     {
-        if (Node is null)
+        var node = GetNode();
+        if (node is null)
             return Vector3f.Up;
 
-        var position = Node.GetWorldTransform().Inverse * worldPosition;
+        var position = node.GetWorldTransform().Inverse * worldPosition;
         var xPos = (position.X - _patchWorldOrigin.X) / _spacing.X;
         var zPos = (position.Z - _patchWorldOrigin.Y) / _spacing.Z;
         var xFrac = MathDefs.Fract(xPos);
@@ -480,15 +542,16 @@ public class Terrain : Component
         }
 
         var n = (n1 * (1.0f - xFrac - zFrac) + n2 * xFrac + n3 * zFrac).Normalized;
-        return Node.GetWorldRotation() * n;
+        return node.GetWorldRotation() * n;
     }
 
     public Vector2i WorldToHeightMap(Vector3f worldPosition)
     {
-        if (Node is null)
+        var node = GetNode();
+        if (node is null)
             return Vector2i.Zero;
 
-        var position = Node.GetWorldTransform().Inverse * worldPosition;
+        var position = node.GetWorldTransform().Inverse * worldPosition;
         var xPos = MathDefs.RoundToInt((position.X - _patchWorldOrigin.X) / _spacing.X);
         var zPos = MathDefs.RoundToInt((position.Z - _patchWorldOrigin.Y) / _spacing.Z);
         xPos = Math.Clamp(xPos, 0, _numVertices.X - 1);
@@ -498,14 +561,15 @@ public class Terrain : Component
 
     public Vector3f HeightMapToWorld(Vector2i pixelPosition)
     {
-        if (Node is null)
+        var node = GetNode();
+        if (node is null)
             return Vector3f.Zero;
 
         var pos = new Vector2i(pixelPosition.X, _numVertices.Y - 1 - pixelPosition.Y);
         var xPos = pos.X * _spacing.X + _patchWorldOrigin.X;
         var zPos = pos.Y * _spacing.Z + _patchWorldOrigin.Y;
         var lPos = new Vector3f(xPos, 0.0f, zPos);
-        var wPos = Node.GetWorldTransform() * lPos;
+        var wPos = node.GetWorldTransform() * lPos;
         wPos = new Vector3f(wPos.X, GetHeight(wPos), wPos.Z);
         return wPos;
     }
@@ -521,8 +585,6 @@ public class Terrain : Component
     /// <summary>Regenerate patch geometry.</summary>
     public void CreatePatchGeometry(TerrainPatch patch)
     {
-        ArgumentNullException.ThrowIfNull(patch);
-
         var row = (uint)(_patchSize + 1);
         var vertexBuffer = patch.GetVertexBuffer();
         var geometry = patch.GetGeometry();
@@ -536,7 +598,6 @@ public class Terrain : Component
         if (_bakeLightmap)
             vertexMask |= VertexMask.TexCoord2;
 
-        vertexBuffer.SetShadowed(true);
         if (vertexBuffer.GetVertexCount() != row * row || vertexBuffer.GetElementMask() != (uint)vertexMask)
             vertexBuffer.SetSize(row * row, vertexMask);
 
@@ -624,7 +685,7 @@ public class Terrain : Component
                 }
             }
 
-            var vertexBytes = MemoryMarshal.AsBytes(floatBuffer.AsSpan()).ToArray();
+            var vertexBytes = MemoryMarshal.AsBytes(floatBuffer.AsSpan());
             var mapped = vertexBuffer.Map();
             if (!mapped.IsEmpty)
             {
@@ -632,8 +693,6 @@ public class Terrain : Component
                 vertexBuffer.Unmap();
                 vertexBuffer.GetRawBuffer()?.ClearDataLost();
             }
-            else
-                vertexBuffer.SetData(vertexBytes);
 
             MemoryMarshal.AsBytes(posFloats.AsSpan()).CopyTo(cpuVertexData);
             MemoryMarshal.AsBytes(occFloats.AsSpan()).CopyTo(occlusionCpuVertexData);
@@ -662,7 +721,6 @@ public class Terrain : Component
     /// <summary>Update patch based on LOD and neighbor LOD.</summary>
     public void UpdatePatchLod(TerrainPatch patch)
     {
-        ArgumentNullException.ThrowIfNull(patch);
         var geometry = patch.GetGeometry();
 
         // All LOD levels except the coarsest have 16 versions for stitching
@@ -694,14 +752,14 @@ public class Terrain : Component
 
     public void SetMaterialAttr(ResourceRef value)
     {
-        var cache = GetSubsystem<ResourceCache>();
-        SetMaterial(cache?.GetResourceOrNull<Material>(value.Name));
+        var cache = GetSubsystem<ResourceCache>()!;
+        SetMaterial(cache.GetResourceOrNull<Material>(value.Name));
     }
 
     public void SetHeightMapAttr(ResourceRef value)
     {
-        var cache = GetSubsystem<ResourceCache>();
-        var image = cache?.GetResourceOrNull<Image>(value.Name);
+        var cache = GetSubsystem<ResourceCache>()!;
+        var image = cache.GetResourceOrNull<Image>(value.Name);
         SetHeightMapInternal(image, false);
     }
 
@@ -744,9 +802,9 @@ public class Terrain : Component
     public BoundingBox CalculateWorldBoundingBox()
     {
         var boundingBox = new BoundingBox();
-        foreach (var patch in _patches)
+        for (var i = 0; i < _patches.Count; ++i)
         {
-            if (patch is not null)
+            if (_patches[i].TryGetTarget(out var patch))
                 boundingBox.Merge(patch.GetWorldBoundingBox());
         }
         return boundingBox;
@@ -795,7 +853,8 @@ public class Terrain : Component
     {
         _recreateTerrain = false;
 
-        if (Node is null)
+        var node = GetNode();
+        if (node is null)
             return;
 
         var prevNumPatches = _patches.Count;
@@ -854,7 +913,7 @@ public class Terrain : Component
         if (updateAll)
         {
             var oldPatchNodes = new List<Node>();
-            Node.GetChildrenWithComponent<TerrainPatch>(oldPatchNodes);
+            node.GetChildrenWithComponent<TerrainPatch>(oldPatchNodes);
             foreach (var child in oldPatchNodes)
             {
                 var nodeOk = false;
@@ -872,7 +931,7 @@ public class Terrain : Component
                 }
 
                 if (!nodeOk)
-                    Node.RemoveChild(child);
+                    node.RemoveChild(child);
             }
         }
 
@@ -972,12 +1031,12 @@ public class Terrain : Component
                 for (var x = 0; x < _numPatches.X; ++x)
                 {
                     var nodeName = $"Patch_{x}_{z}";
-                    var patchNode = Node.GetChild(nodeName);
+                    var patchNode = node.GetChild(nodeName);
 
                     if (patchNode is null)
                     {
                         // Create the patch scene node as local and temporary so that it is not unnecessarily serialized
-                        patchNode = Node.CreateTemporaryChild(nodeName);
+                        patchNode = node.CreateTemporaryChild(nodeName);
                     }
 
                     patchNode.SetPosition(new Vector3f(
@@ -1016,7 +1075,7 @@ public class Terrain : Component
                     patch.SetLightmapIndex(_lightmapIndex);
                     patch.SetLightmapScaleOffset(_lightmapScaleOffset);
 
-                    _patches.Add(patch);
+                    _patches.Add(new WeakReference<TerrainPatch>(patch));
                 }
             }
 
@@ -1032,7 +1091,8 @@ public class Terrain : Component
                     if (!dirtyPatches[i])
                         continue;
 
-                    var patch = _patches[i]!;
+                    if (!_patches[i].TryGetTarget(out var patch))
+                        continue;
                     var coords = patch.GetCoordinates();
                     var startX = coords.X * _patchSize;
                     var endX = startX + _patchSize;
@@ -1057,7 +1117,8 @@ public class Terrain : Component
 
             for (var i = 0; i < _patches.Count; ++i)
             {
-                var patch = _patches[i]!;
+                if (!_patches[i].TryGetTarget(out var patch))
+                    continue;
 
                 if (dirtyPatches[i])
                 {
@@ -1072,8 +1133,8 @@ public class Terrain : Component
         // Send event only if new geometry was generated, or the old was cleared
         if (_patches.Count != 0 || prevNumPatches != 0)
         {
-            var eventData = new DrawableEvents.TerrainCreatedEvent { Node = Node };
-            Node.SendEvent(ref eventData);
+            var eventData = new DrawableEvents.TerrainCreatedEvent { Node = node };
+            node.SendEvent(ref eventData);
         }
     }
 
@@ -1233,7 +1294,7 @@ public class Terrain : Component
             }
         }
 
-        _indexBuffer.SetSize((uint)indices.Count, largeIndices: false);
+        _indexBuffer!.SetSize((uint)indices.Count, largeIndices: false);
         var bytes = new byte[indices.Count * 2];
         for (var i = 0; i < indices.Count; ++i)
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(i * 2), indices[i]);
@@ -1418,9 +1479,9 @@ public class Terrain : Component
     /// <summary>Update lightmap settings in patches.</summary>
     private void UpdatePatchesLightmaps()
     {
-        foreach (var patch in _patches)
+        for (var i = 0; i < _patches.Count; ++i)
         {
-            if (patch is null)
+            if (!_patches[i].TryGetTarget(out var patch))
                 continue;
             var bakeLightmap = GetBakeLightmapEffective();
             patch.SetBakeLightmap(bakeLightmap);
@@ -1433,8 +1494,11 @@ public class Terrain : Component
     /// <inheritdoc />
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
-        foreach (var patch in _patches)
-            patch?.DrawDebugGeometry(debug, depthTest);
+        for (var i = 0; i < _patches.Count; ++i)
+        {
+            if (_patches[i].TryGetTarget(out var patch))
+                patch.DrawDebugGeometry(debug, depthTest);
+        }
     }
 
     public int GetPatchSize() => _patchSize;
@@ -1444,10 +1508,10 @@ public class Terrain : Component
     public uint GetMaxLodLevels() => _maxLodLevels;
     public uint GetOcclusionLodLevel() => _occlusionLodLevel;
     public bool GetSmoothing() => _smoothing;
-    public Terrain? GetNorthNeighbor() => _north;
-    public Terrain? GetSouthNeighbor() => _south;
-    public Terrain? GetWestNeighbor() => _west;
-    public Terrain? GetEastNeighbor() => _east;
+    public Terrain? GetNorthNeighbor() => _north is not null && _north.TryGetTarget(out var terrain) ? terrain : null;
+    public Terrain? GetSouthNeighbor() => _south is not null && _south.TryGetTarget(out var terrain) ? terrain : null;
+    public Terrain? GetWestNeighbor() => _west is not null && _west.TryGetTarget(out var terrain) ? terrain : null;
+    public Terrain? GetEastNeighbor() => _east is not null && _east.TryGetTarget(out var terrain) ? terrain : null;
     public float[]? GetHeightData() => _heightData;
     public float GetDrawDistance() => _drawDistance;
     public float GetShadowDistance() => _shadowDistance;

@@ -6,6 +6,21 @@ namespace RedBolt.Tests;
 public sealed class TerrainTests
 {
     [Fact]
+    public void Terrain_is_extensible_noncopyable_reference_class_with_weak_observations()
+    {
+        var type = typeof(Terrain);
+
+        Assert.True(type.IsClass);
+        Assert.False(type.IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+        Assert.Equal(typeof(List<WeakReference<TerrainPatch>>), type.GetField("_patches", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<Terrain>), type.GetField("_north", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<Terrain>), type.GetField("_south", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<Terrain>), type.GetField("_west", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+        Assert.Equal(typeof(WeakReference<Terrain>), type.GetField("_east", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.FieldType);
+    }
+
+    [Fact]
     public void SetHeightMap_creates_patch_geometry_and_height_samples()
     {
         var scene = new Scene();
@@ -58,5 +73,32 @@ public sealed class TerrainTests
         Assert.Equal(32, terrain.GetPatchSize());
         terrain.SetPatchSize(16);
         Assert.Equal(16, terrain.GetPatchSize());
+    }
+
+    [Fact]
+    public void Dispose_releases_owned_state_without_disposing_borrowed_resources()
+    {
+        var scene = new Scene();
+        var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
+        var neighbor = scene.CreateChild("Neighbor").CreateComponent<Terrain>();
+        var image = new Image("HeightMap");
+        Assert.True(image.SetSize(33, 33, 1));
+        terrain.SetNorthNeighbor(neighbor);
+        Assert.True(terrain.SetHeightMap(image));
+        var geometry = terrain.GetPatch(0)!.GetGeometry();
+        var sharedIndexBuffer = geometry.GetIndexBuffer();
+        Assert.NotNull(sharedIndexBuffer);
+
+        terrain.Dispose();
+
+        Assert.Null(terrain.GetHeightMap());
+        Assert.Null(terrain.GetHeightData());
+        Assert.Null(terrain.GetMaterial());
+        Assert.Null(terrain.GetNorthNeighbor());
+        Assert.Null(terrain.GetPatch(0));
+        Assert.Null(typeof(Terrain).GetField("_indexBuffer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(terrain));
+        Assert.Same(sharedIndexBuffer, geometry.GetIndexBuffer());
+        Assert.True(sharedIndexBuffer!.GetIndexCount() > 0);
+        Assert.Equal(33, image.GetWidth());
     }
 }
