@@ -125,7 +125,7 @@ public sealed class LightAccumulator
     [InlineArray(2)]
     public struct ReflectionProbeContainer
     {
-        private ReflectionProbeData? _element0;
+        private StrongBox<ReflectionProbeData>? _element0;
     }
 
     /// <summary>

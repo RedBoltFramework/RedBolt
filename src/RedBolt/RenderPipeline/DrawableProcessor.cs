@@ -733,6 +733,30 @@ public class DrawableProcessor : Object
                     lightAccumulator.ReflectionProbes[0] = zone.GetReflectionProbe();
                     lightAccumulator.ReflectionProbes[1] = lightAccumulator.ReflectionProbes[0];
                     lightAccumulator.ReflectionProbesBlendFactor = 0.0f;
+
+                    // Apply reflection probe
+                    var reflectionMode = drawable.GetReflectionMode();
+                    if (reflectionMode != ReflectionMode.Zone)
+                    {
+                        ref var reflection = ref drawable.GetMutableCachedReflection();
+                        var probe0 = reflection.Probes[0];
+                        var probe1 = reflection.Probes[1];
+
+                        if (probe0.Data is not null)
+                        {
+                            lightAccumulator.ReflectionProbes[0] = probe0.Data;
+
+                            if (reflectionMode >= ReflectionMode.BlendProbes && probe1.Data is not null)
+                            {
+                                lightAccumulator.ReflectionProbes[1] = probe1.Data;
+                                lightAccumulator.ReflectionProbesBlendFactor = probe0.Priority != probe1.Priority
+                                    ? 1.0f - probe0.Volume
+                                    : probe1.Volume / (probe0.Volume + probe1.Volume);
+                            }
+                            if (reflectionMode == ReflectionMode.BlendProbesAndZone && probe1.Data is null)
+                                lightAccumulator.ReflectionProbesBlendFactor = 1.0f - probe0.Volume;
+                        }
+                    }
                 }
             }
 

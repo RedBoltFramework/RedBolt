@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace RedBolt;
@@ -37,7 +38,7 @@ public class ThreadSafeCache<T>
         {
             if (Volatile.Read(ref _dirty) != 0)
             {
-                _object = obj;
+                _object.Value = obj;
                 Volatile.Write(ref _dirty, 0);
             }
         }
@@ -46,12 +47,14 @@ public class ThreadSafeCache<T>
     /// <summary>
     /// Return object value. Intentionally unchecked, caller must ensure that cache is valid.
     /// </summary>
-    public T Get()
+    public ref readonly T Get()
     {
-        return _object;
+        return ref _object.Value;
     }
+
+    internal StrongBox<T> GetStorage() => _object;
 
     private int _dirty = 1;
     private readonly object _mutex = new();
-    private T _object = default!;
+    private readonly StrongBox<T> _object = new();
 }

@@ -21,6 +21,8 @@ public sealed class ReflectionProbeManagerTests
     public void Reflection_probe_cache_types_match_cpp_class_and_pod_shapes()
     {
         Assert.False(typeof(InternalReflectionProbeData).IsValueType);
+        Assert.True(typeof(ReflectionProbeData).IsValueType);
+        Assert.True(typeof(ReflectionProbeReference).IsValueType);
         Assert.True(typeof(ReflectionProbeBVH).IsValueType);
 
         var managerType = typeof(ReflectionProbeManager);
@@ -45,8 +47,8 @@ public sealed class ReflectionProbeManagerTests
 
         Assert.NotEqual(source.GetWorldBoundingBox(), copy.GetWorldBoundingBox());
         Assert.Same(source.Probe, copy.Probe);
-        Assert.Equal(10.0f, source.Data.CubemapCenter.X);
-        Assert.Equal(10.0f, copy.Data.CubemapCenter.X);
+        Assert.Equal(10.0f, source.Data.Value.CubemapCenter.X);
+        Assert.Equal(10.0f, copy.Data.Value.CubemapCenter.X);
     }
 
     [Fact]

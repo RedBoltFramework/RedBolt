@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt.Tests;
 
 public sealed class ReflectionProbeDataTests
@@ -7,11 +9,11 @@ public sealed class ReflectionProbeDataTests
     {
         var reference = new ReflectionProbeReference
         {
-            Data = new ReflectionProbeData
+            Data = new StrongBox<ReflectionProbeData>(new ReflectionProbeData
             {
                 CubemapCenter = new Vector4f(1.0f, 2.0f, 3.0f, 1.0f),
                 RoughnessToLodFactor = 4.0f
-            },
+            }),
             Priority = 7,
             Volume = 12.5f
         };
@@ -37,7 +39,8 @@ public sealed class ReflectionProbeDataTests
     public void Cached_drawable_reflection_copy_has_independent_probe_arrays()
     {
         var cache = new CachedDrawableReflection();
-        cache.StaticProbes[0] = new ReflectionProbeReference { Data = new ReflectionProbeData() };
+        cache.StaticProbes[0] = new ReflectionProbeReference
+            { Data = new StrongBox<ReflectionProbeData>(new ReflectionProbeData()) };
 
         var copy = cache;
         copy.StaticProbes[0].Reset();
@@ -49,7 +52,7 @@ public sealed class ReflectionProbeDataTests
     [Fact]
     public void Reflection_probe_reference_orders_by_priority_or_volume()
     {
-        var data = new ReflectionProbeData();
+        var data = new StrongBox<ReflectionProbeData>(new ReflectionProbeData());
         var important = new ReflectionProbeReference
         {
             Data = data,
@@ -67,5 +70,18 @@ public sealed class ReflectionProbeDataTests
         Assert.False(new ReflectionProbeReference().IsValid);
         Assert.True(important.IsMoreImportantThan(other));
         Assert.True(other.IsMoreImportantThan(important));
+    }
+
+    [Fact]
+    public void Reflection_probe_reference_copy_preserves_borrowed_data()
+    {
+        var data = new StrongBox<ReflectionProbeData>(new ReflectionProbeData());
+        var reference = new ReflectionProbeReference { Data = data };
+
+        var copy = reference;
+        data.Value.RoughnessToLodFactor = 4.0f;
+
+        Assert.Same(data, copy.Data);
+        Assert.Equal(4.0f, copy.Data!.Value.RoughnessToLodFactor);
     }
 }

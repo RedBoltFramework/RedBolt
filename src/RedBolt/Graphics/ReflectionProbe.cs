@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt;
 
 /// <summary>Cached internal structure for reflection probe search.</summary>
@@ -10,6 +12,7 @@ public class InternalReflectionProbeData : ICloneable
     public InternalReflectionProbeData(ReflectionProbe probe)
     {
         Probe = probe;
+        Data = probe.GetProbeDataStorage();
         Priority = probe.GetPriority();
         Update();
     }
@@ -17,6 +20,7 @@ public class InternalReflectionProbeData : ICloneable
     private InternalReflectionProbeData(InternalReflectionProbeData rhs)
     {
         Probe = rhs.Probe;
+        Data = rhs.Data;
         Priority = rhs.Priority;
         _worldToLocal = rhs._worldToLocal;
         _localBoundingBox = rhs._localBoundingBox;
@@ -27,7 +31,7 @@ public class InternalReflectionProbeData : ICloneable
 
     public ReflectionProbe Probe { get; }
 
-    public ReflectionProbeData Data => Probe.GetProbeData();
+    public StrongBox<ReflectionProbeData> Data { get; }
 
     public int Priority { get; }
 
@@ -672,7 +676,7 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
     private BoundingBox _projectionBox = new(-Vector3f.One, Vector3f.One);
     private TextureCube? _texture;
     private CubemapRenderingSettings _cubemapRenderingSettings = new();
-    private ReflectionProbeData _data;
+    private readonly StrongBox<ReflectionProbeData> _data = new();
     private CubemapRenderer? _dynamicProbeRenderer;
     private TextureCube? _mixedProbeTexture;
 
@@ -765,7 +769,7 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
         {
             debug.AddBoundingBox(_boundingBox, Node.GetWorldTransform(), Color.Blue, depthTest);
             if (!compact && _useBoxProjection)
-                debug.AddBoundingBox(_data.ProjectionBox, Matrix3x4.Identity, Color.Magenta, depthTest);
+                debug.AddBoundingBox(_data.Value.ProjectionBox, Matrix3x4.Identity, Color.Magenta, depthTest);
         }
     }
 
@@ -910,7 +914,9 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     public float GetFarClip() => _cubemapRenderingSettings.FarClip;
 
-    public ReflectionProbeData GetProbeData() => _data;
+    public ref readonly ReflectionProbeData GetProbeData() => ref _data.Value;
+
+    internal StrongBox<ReflectionProbeData> GetProbeDataStorage() => _data;
 
     public bool IsRenderOnWake() =>
         _probeType is ReflectionProbeType.Mixed or ReflectionProbeType.Dynamic;
@@ -988,21 +994,21 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
 
     private void UpdateProbeTextureData(TextureCube? texture)
     {
-        _data.ReflectionMap = texture;
+        _data.Value.ReflectionMap = texture;
         // C++: LogBaseTwo(texture->GetWidth()) when texture present
-        _data.RoughnessToLodFactor = texture is not null ? MathF.Log2(texture.Width) : 1.0f;
+        _data.Value.RoughnessToLodFactor = texture is not null ? MathF.Log2(texture.Width) : 1.0f;
     }
 
     private void UpdateProbeBoxData()
     {
         if (!_useBoxProjection || Node is null)
         {
-            _data.CubemapCenter = Vector4f.Zero;
+            _data.Value.CubemapCenter = Vector4f.Zero;
             return;
         }
 
         var position = Node.GetWorldPosition();
-        _data.CubemapCenter = position.ToVector4(1.0f);
-        _data.ProjectionBox = new BoundingBox(position + _projectionBox.Min, position + _projectionBox.Max);
+        _data.Value.CubemapCenter = position.ToVector4(1.0f);
+        _data.Value.ProjectionBox = new BoundingBox(position + _projectionBox.Min, position + _projectionBox.Max);
     }
 }

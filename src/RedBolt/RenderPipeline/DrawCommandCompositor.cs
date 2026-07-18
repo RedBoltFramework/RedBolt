@@ -325,31 +325,15 @@ internal sealed class DrawCommandCompositor
     {
         var p0 = lightAccumulator.ReflectionProbes[0];
         var p1 = lightAccumulator.ReflectionProbes[1];
-        var currentP0 = _current.ReflectionProbes[0];
-        var currentP1 = _current.ReflectionProbes[1];
-        _dirty.ReflectionProbe = currentP0.HasValue != p0.HasValue
-            || currentP1.HasValue != p1.HasValue
-            || currentP0.HasValue &&
-            (
-                !ReferenceEquals(currentP0.Value.ReflectionMap, p0!.Value.ReflectionMap)
-                || currentP0.Value.RoughnessToLodFactor != p0.Value.RoughnessToLodFactor
-                || !currentP0.Value.CubemapCenter.Equals(p0.Value.CubemapCenter)
-                || !currentP0.Value.ProjectionBox.Equals(p0.Value.ProjectionBox)
-            )
-            || currentP1.HasValue &&
-            (
-                !ReferenceEquals(currentP1.Value.ReflectionMap, p1!.Value.ReflectionMap)
-                || currentP1.Value.RoughnessToLodFactor != p1.Value.RoughnessToLodFactor
-                || !currentP1.Value.CubemapCenter.Equals(p1.Value.CubemapCenter)
-                || !currentP1.Value.ProjectionBox.Equals(p1.Value.ProjectionBox)
-            )
+        _dirty.ReflectionProbe = !ReferenceEquals(_current.ReflectionProbes[0], p0)
+            || !ReferenceEquals(_current.ReflectionProbes[1], p1)
             || _current.ReflectionProbesBlendFactor != lightAccumulator.ReflectionProbesBlendFactor;
         if (!_dirty.ReflectionProbe)
             return;
         _current.ReflectionProbes[0] = p0;
         _current.ReflectionProbes[1] = p1;
-        _current.ReflectionProbeTextures[0] = p0?.ReflectionMap;
-        _current.ReflectionProbeTextures[1] = p1?.ReflectionMap;
+        _current.ReflectionProbeTextures[0] = p0?.Value.ReflectionMap;
+        _current.ReflectionProbeTextures[1] = p1?.Value.ReflectionMap;
         _current.ReflectionProbesBlendFactor = lightAccumulator.ReflectionProbesBlendFactor;
     }
 
@@ -819,7 +803,7 @@ internal sealed class DrawCommandCompositor
     {
         public PipelineState? PipelineState;
         public float ConstantDepthBias;
-        public ReflectionProbeData?[] ReflectionProbes;
+        public StrongBox<ReflectionProbeData>?[] ReflectionProbes;
         public TextureCube?[] ReflectionProbeTextures;
         public float ReflectionProbesBlendFactor;
         public uint PixelLightIndex;
@@ -837,7 +821,7 @@ internal sealed class DrawCommandCompositor
 
         public CachedSharedState()
         {
-            ReflectionProbes = new ReflectionProbeData?[2];
+            ReflectionProbes = new StrongBox<ReflectionProbeData>?[2];
             ReflectionProbeTextures = new TextureCube?[2];
             PixelLightIndex = uint.MaxValue;
         }

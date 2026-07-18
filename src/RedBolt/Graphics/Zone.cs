@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt;
 
 /// <summary>Component that describes global rendering properties.</summary>
@@ -197,7 +199,7 @@ public sealed class Zone : Drawable
 
     public ResourceRef GetZoneTextureAttr() => _zoneTextureAttribute;
 
-    public ReflectionProbeData GetReflectionProbe() => _reflectionProbeData.Get();
+    public StrongBox<ReflectionProbeData> GetReflectionProbe() => _reflectionProbeData.GetStorage();
 
     public Matrix3x4 GetInverseWorldTransform()
     {

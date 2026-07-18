@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt;
 
 /// <summary>
@@ -8,22 +10,22 @@ public struct ReflectionProbeData
     /// <summary>
     /// Reflection map, should never be null.
     /// </summary>
-    public TextureCube? ReflectionMap { get; set; }
+    public TextureCube? ReflectionMap;
 
     /// <summary>
     /// Roughness to LOD factor. Should be equal to log2(NumLODs - 1).
     /// </summary>
-    public float RoughnessToLodFactor { get; set; }
+    public float RoughnessToLodFactor;
 
     /// <summary>
     /// Position of cubemap center. W component indicates whether it is initialized.
     /// </summary>
-    public Vector4f CubemapCenter { get; set; }
+    public Vector4f CubemapCenter;
 
     /// <summary>
     /// World-space bounding box used for cubemap box projection.
     /// </summary>
-    public BoundingBox ProjectionBox { get; set; }
+    public BoundingBox ProjectionBox;
 }
 
 /// <summary>
@@ -31,11 +33,11 @@ public struct ReflectionProbeData
 /// </summary>
 public struct ReflectionProbeReference
 {
-    public ReflectionProbeData? Data { get; set; }
+    public StrongBox<ReflectionProbeData>? Data;
 
-    public int Priority { get; set; }
+    public int Priority;
 
-    public float Volume { get; set; }
+    public float Volume;
 
     public void Reset() => Data = null;
 
