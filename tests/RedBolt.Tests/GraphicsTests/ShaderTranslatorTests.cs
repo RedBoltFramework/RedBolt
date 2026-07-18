@@ -123,12 +123,14 @@ public sealed class ShaderTranslatorTests
             "layout(location = 0) in vec3 iPos;\nvoid main() { gl_Position = vec4(iPos, 1.0); }",
             new ShaderDefineArray(), language);
         Assert.True(shader.IsValid(), shader.CompilerOutput);
+        var originalBytecode = shader.Bytecode;
         var optimizerOutput = string.Empty;
 
         var result = ShaderOptimizer.OptimizeSpirVShader(ref shader, ref optimizerOutput, language);
 
         Assert.True(result, optimizerOutput);
         Assert.True(shader.IsValid());
+        Assert.NotSame(originalBytecode, shader.Bytecode);
         Assert.Equal(0x07230203u, shader.Bytecode[0]);
     }
 

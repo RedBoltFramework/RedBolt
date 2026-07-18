@@ -107,7 +107,7 @@ bool SpirVOptimizerSupport::Optimize(
 
     std::vector<std::uint32_t> optimizedSpirV;
     if (!spirvOptimizer.Run(bytecode, size, &optimizedSpirV, optimizerOptions))
-        return !isVulkan;
+        return false;
 
     if (isVulkan)
     {

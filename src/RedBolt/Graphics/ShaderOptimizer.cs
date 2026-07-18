@@ -30,16 +30,13 @@ public static class ShaderOptimizer
         optimizerOutput += Encoding.UTF8.GetString(spirvOptimizer.GetOutput());
 
         if (!result)
-            return false;
+            return !isVulkan;
 
         var optimizedSize = spirvOptimizer.GetBytecodeSize();
-        if (optimizedSize != 0)
-        {
-            var optimizedBytecode = new List<uint>(checked((int)optimizedSize));
-            for (nuint i = 0; i < optimizedSize; ++i)
-                optimizedBytecode.Add(spirvOptimizer.GetBytecodeWord(i));
-            shader.Bytecode = optimizedBytecode;
-        }
+        var optimizedBytecode = new List<uint>(checked((int)optimizedSize));
+        for (nuint i = 0; i < optimizedSize; ++i)
+            optimizedBytecode.Add(spirvOptimizer.GetBytecodeWord(i));
+        shader.Bytecode = optimizedBytecode;
 
         return true;
     }
