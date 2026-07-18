@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+public delegate void ArchiveValueSerializer<T>(Archive archive, string name, ref T value);
+
 public static partial class ArchiveSerialization
 {
     public static void SerializeValue(Archive archive, string name, ref bool value) => archive.Serialize(name, ref value);
@@ -238,6 +240,94 @@ public static partial class ArchiveSerialization
 
             if (archive.IsInput)
                 value = (T)Enum.ToObject(typeof(T), integerValue);
+        }
+    }
+
+    /// <summary>Serialize optional element or block.</summary>
+    public static void SerializeStrictlyOptionalValue<T>(Archive archive, string name, ref T value,
+        T defaultValue, ArchiveValueSerializer<T> serializeValue)
+    {
+        var loading = archive.IsInput;
+
+        if (!archive.IsUnorderedAccessSupportedInCurrentBlock)
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+
+            var initialized = !loading && !EqualityComparer<T>.Default.Equals(defaultValue, value);
+            SerializeValue(archive, "initialized", ref initialized);
+
+            if (initialized)
+                serializeValue(archive, "value", ref value);
+            else if (loading)
+                value = defaultValue;
+        }
+        else
+        {
+            var initialized = loading
+                ? archive.HasElementOrBlock(name)
+                : !EqualityComparer<T>.Default.Equals(defaultValue, value);
+            if (initialized)
+                serializeValue(archive, name, ref value);
+            else if (loading)
+                value = defaultValue;
+        }
+    }
+
+    /// <summary>Serialize element or block that's optional if archive type supports it.</summary>
+    /// <remarks>There's no overhead on optionality if Archive doesn't support optional blocks.</remarks>
+    public static void SerializeOptionalValue<T>(Archive archive, string name, ref T value,
+        T defaultValue, ArchiveValueSerializer<T> serializeValue)
+    {
+        if (!archive.IsUnorderedAccessSupportedInCurrentBlock)
+        {
+            serializeValue(archive, name, ref value);
+            return;
+        }
+
+        var loading = archive.IsInput;
+        var initialized = loading
+            ? archive.HasElementOrBlock(name)
+            : !EqualityComparer<T>.Default.Equals(defaultValue, value);
+        if (initialized)
+            serializeValue(archive, name, ref value);
+        else if (loading)
+            value = defaultValue;
+    }
+
+    /// <summary>Serialize pair type.</summary>
+    public static void SerializeValue<T, U>(Archive archive, string name, ref (T First, U Second) value,
+        ArchiveValueSerializer<T> serializeFirst, ArchiveValueSerializer<U> serializeSecond)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        serializeFirst(archive, "first", ref value.First);
+        serializeSecond(archive, "second", ref value.Second);
+    }
+
+    /// <summary>Serialize optional value.</summary>
+    public static void SerializeValue<T>(Archive archive, string name, ref T? value,
+        ArchiveValueSerializer<T> serializeValue)
+        where T : struct
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+
+        var hasValue = value.HasValue;
+        SerializeValue(archive, "hasValue", ref hasValue);
+
+        if (archive.IsInput)
+        {
+            if (hasValue)
+            {
+                var serializedValue = value.GetValueOrDefault();
+                serializeValue(archive, "value", ref serializedValue);
+                value = serializedValue;
+            }
+            else
+                value = null;
+        }
+        else if (hasValue)
+        {
+            var serializedValue = value.GetValueOrDefault();
+            serializeValue(archive, "value", ref serializedValue);
         }
     }
 

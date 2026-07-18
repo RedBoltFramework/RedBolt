@@ -294,15 +294,42 @@ public static class RenderAPIUtils
         ArgumentNullException.ThrowIfNull(value);
 
         using var block = archive.OpenUnorderedBlock(name);
-        value.MainDescriptorPoolSize = SerializeOptionalVulkanDescriptorPoolSize(archive, "mainDescriptorPoolSize", value.MainDescriptorPoolSize);
-        value.DynamicDescriptorPoolSize = SerializeOptionalVulkanDescriptorPoolSize(archive, "dynamicDescriptorPoolSize", value.DynamicDescriptorPoolSize);
-        value.DeviceLocalMemoryPageSize = SerializeOptionalUInt(archive, "deviceLocalMemoryPageSize", value.DeviceLocalMemoryPageSize);
-        value.HostVisibleMemoryPageSize = SerializeOptionalUInt(archive, "hostVisibleMemoryPageSize", value.HostVisibleMemoryPageSize);
-        value.DeviceLocalMemoryReserveSize = SerializeOptionalUInt(archive, "deviceLocalMemoryReserveSize", value.DeviceLocalMemoryReserveSize);
-        value.HostVisibleMemoryReserveSize = SerializeOptionalUInt(archive, "hostVisibleMemoryReserveSize", value.HostVisibleMemoryReserveSize);
-        value.UploadHeapPageSize = SerializeOptionalUInt(archive, "uploadHeapPageSize", value.UploadHeapPageSize);
-        value.DynamicHeapSize = SerializeOptionalUInt(archive, "dynamicHeapSize", value.DynamicHeapSize);
-        value.DynamicHeapPageSize = SerializeOptionalUInt(archive, "dynamicHeapPageSize", value.DynamicHeapPageSize);
+        var mainDescriptorPoolSize = value.MainDescriptorPoolSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize",
+            ref mainDescriptorPoolSize, null, SerializeOptionalVulkanDescriptorPoolSize);
+        value.MainDescriptorPoolSize = mainDescriptorPoolSize;
+        var dynamicDescriptorPoolSize = value.DynamicDescriptorPoolSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicDescriptorPoolSize",
+            ref dynamicDescriptorPoolSize, null, SerializeOptionalVulkanDescriptorPoolSize);
+        value.DynamicDescriptorPoolSize = dynamicDescriptorPoolSize;
+        var deviceLocalMemoryPageSize = value.DeviceLocalMemoryPageSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "deviceLocalMemoryPageSize",
+            ref deviceLocalMemoryPageSize, null, SerializeOptionalUInt);
+        value.DeviceLocalMemoryPageSize = deviceLocalMemoryPageSize;
+        var hostVisibleMemoryPageSize = value.HostVisibleMemoryPageSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "hostVisibleMemoryPageSize",
+            ref hostVisibleMemoryPageSize, null, SerializeOptionalUInt);
+        value.HostVisibleMemoryPageSize = hostVisibleMemoryPageSize;
+        var deviceLocalMemoryReserveSize = value.DeviceLocalMemoryReserveSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "deviceLocalMemoryReserveSize",
+            ref deviceLocalMemoryReserveSize, null, SerializeOptionalUInt);
+        value.DeviceLocalMemoryReserveSize = deviceLocalMemoryReserveSize;
+        var hostVisibleMemoryReserveSize = value.HostVisibleMemoryReserveSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "hostVisibleMemoryReserveSize",
+            ref hostVisibleMemoryReserveSize, null, SerializeOptionalUInt);
+        value.HostVisibleMemoryReserveSize = hostVisibleMemoryReserveSize;
+        var uploadHeapPageSize = value.UploadHeapPageSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "uploadHeapPageSize",
+            ref uploadHeapPageSize, null, SerializeOptionalUInt);
+        value.UploadHeapPageSize = uploadHeapPageSize;
+        var dynamicHeapSize = value.DynamicHeapSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapSize",
+            ref dynamicHeapSize, null, SerializeOptionalUInt);
+        value.DynamicHeapSize = dynamicHeapSize;
+        var dynamicHeapPageSize = value.DynamicHeapPageSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapPageSize",
+            ref dynamicHeapPageSize, null, SerializeOptionalUInt);
+        value.DynamicHeapPageSize = dynamicHeapPageSize;
         SerializeQueryTypes(archive, value.QueryPoolSizes);
     }
 
@@ -313,18 +340,34 @@ public static class RenderAPIUtils
         ArgumentNullException.ThrowIfNull(value);
 
         using var block = archive.OpenUnorderedBlock(name);
-        value.CpuDescriptorHeapAllocationSize[0] = SerializeOptionalUInt(archive, "mainDescriptorPoolSize_cvb_srv_uav", value.CpuDescriptorHeapAllocationSize[0]);
-        value.CpuDescriptorHeapAllocationSize[1] = SerializeOptionalUInt(archive, "mainDescriptorPoolSize_sampler", value.CpuDescriptorHeapAllocationSize[1]);
-        value.CpuDescriptorHeapAllocationSize[2] = SerializeOptionalUInt(archive, "mainDescriptorPoolSize_rtv", value.CpuDescriptorHeapAllocationSize[2]);
-        value.CpuDescriptorHeapAllocationSize[3] = SerializeOptionalUInt(archive, "mainDescriptorPoolSize_dsv", value.CpuDescriptorHeapAllocationSize[3]);
-        value.GpuDescriptorHeapSize[0] = SerializeOptionalUInt(archive, "gpuDescriptorHeapSize_cvb_srv_uav", value.GpuDescriptorHeapSize[0]);
-        value.GpuDescriptorHeapSize[1] = SerializeOptionalUInt(archive, "gpuDescriptorHeapSize_sampler", value.GpuDescriptorHeapSize[1]);
-        value.GpuDescriptorHeapDynamicSize[0] = SerializeOptionalUInt(archive, "gpuDescriptorHeapDynamicSize_cvb_srv_uav", value.GpuDescriptorHeapDynamicSize[0]);
-        value.GpuDescriptorHeapDynamicSize[1] = SerializeOptionalUInt(archive, "gpuDescriptorHeapDynamicSize_sampler", value.GpuDescriptorHeapDynamicSize[1]);
-        value.DynamicDescriptorAllocationChunkSize[0] = SerializeOptionalUInt(archive, "dynamicDescriptorAllocationChunkSize_cvb_srv_uav", value.DynamicDescriptorAllocationChunkSize[0]);
-        value.DynamicDescriptorAllocationChunkSize[1] = SerializeOptionalUInt(archive, "dynamicDescriptorAllocationChunkSize_sampler", value.DynamicDescriptorAllocationChunkSize[1]);
-        value.DynamicHeapPageSize = SerializeOptionalUInt(archive, "dynamicHeapPageSize", value.DynamicHeapPageSize);
-        value.NumDynamicHeapPagesToReserve = SerializeOptionalUInt(archive, "numDynamicHeapPagesToReserve", value.NumDynamicHeapPagesToReserve);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_cvb_srv_uav",
+            ref value.CpuDescriptorHeapAllocationSize[0], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_sampler",
+            ref value.CpuDescriptorHeapAllocationSize[1], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_rtv",
+            ref value.CpuDescriptorHeapAllocationSize[2], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_dsv",
+            ref value.CpuDescriptorHeapAllocationSize[3], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapSize_cvb_srv_uav",
+            ref value.GpuDescriptorHeapSize[0], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapSize_sampler",
+            ref value.GpuDescriptorHeapSize[1], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapDynamicSize_cvb_srv_uav",
+            ref value.GpuDescriptorHeapDynamicSize[0], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapDynamicSize_sampler",
+            ref value.GpuDescriptorHeapDynamicSize[1], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicDescriptorAllocationChunkSize_cvb_srv_uav",
+            ref value.DynamicDescriptorAllocationChunkSize[0], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicDescriptorAllocationChunkSize_sampler",
+            ref value.DynamicDescriptorAllocationChunkSize[1], null, SerializeOptionalUInt);
+        var dynamicHeapPageSize = value.DynamicHeapPageSize;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapPageSize",
+            ref dynamicHeapPageSize, null, SerializeOptionalUInt);
+        value.DynamicHeapPageSize = dynamicHeapPageSize;
+        var numDynamicHeapPagesToReserve = value.NumDynamicHeapPagesToReserve;
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "numDynamicHeapPagesToReserve",
+            ref numDynamicHeapPagesToReserve, null, SerializeOptionalUInt);
+        value.NumDynamicHeapPagesToReserve = numDynamicHeapPagesToReserve;
         SerializeQueryTypes(archive, value.QueryPoolSizes);
     }
 
@@ -335,11 +378,16 @@ public static class RenderAPIUtils
         var timestamp = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp;
         var pipelineStatistics = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypePipelineStatistics;
         var duration = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeDuration;
-        sizes[occlusion] = SerializeOptionalUInt(archive, "queryPoolSize_occlusion", sizes[occlusion]);
-        sizes[binaryOcclusion] = SerializeOptionalUInt(archive, "queryPoolSize_binaryOcclusion", sizes[binaryOcclusion]);
-        sizes[timestamp] = SerializeOptionalUInt(archive, "queryPoolSize_timestamp", sizes[timestamp]);
-        sizes[pipelineStatistics] = SerializeOptionalUInt(archive, "queryPoolSize_pipelineStatistics", sizes[pipelineStatistics]);
-        sizes[duration] = SerializeOptionalUInt(archive, "queryPoolSize_duration", sizes[duration]);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_occlusion",
+            ref sizes[occlusion], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_binaryOcclusion",
+            ref sizes[binaryOcclusion], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_timestamp",
+            ref sizes[timestamp], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_pipelineStatistics",
+            ref sizes[pipelineStatistics], null, SerializeOptionalUInt);
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_duration",
+            ref sizes[duration], null, SerializeOptionalUInt);
     }
 
     public static void SerializeValue(
@@ -353,76 +401,27 @@ public static class RenderAPIUtils
         SerializeVulkanDescriptorPoolSizeFields(archive, value);
     }
 
-    private static uint? SerializeOptionalUInt(Archive archive, string name, uint? value)
+    private static void SerializeOptionalUInt(Archive archive, string name, ref uint? value)
     {
-        if (!archive.IsUnorderedAccessSupportedInCurrentBlock)
+        if (!value.HasValue)
         {
-            using var block = archive.OpenUnorderedBlock(name);
-            var initialized = archive.IsInput ? false : value.HasValue;
-            archive.Serialize("initialized", ref initialized);
-
-            if (initialized)
-            {
-                var serializedValue = archive.IsInput ? 0u : value!.Value;
-                archive.Serialize("value", ref serializedValue);
-                if (archive.IsInput)
-                    value = serializedValue;
-            }
-            else if (archive.IsInput)
-                value = null;
+            System.Diagnostics.Debug.Assert(archive.IsInput);
+            value = 0;
         }
-        else
-        {
-            var initialized = archive.IsInput ? archive.HasElementOrBlock(name) : value.HasValue;
-            if (initialized)
-            {
-                var serializedValue = archive.IsInput ? 0u : value!.Value;
-                archive.Serialize(name, ref serializedValue);
-                if (archive.IsInput)
-                    value = serializedValue;
-            }
-            else if (archive.IsInput)
-                value = null;
-        }
-
-        return value;
+        var serializedValue = value.Value;
+        ArchiveSerialization.SerializeValue(archive, name, ref serializedValue);
+        value = serializedValue;
     }
 
-    private static global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize? SerializeOptionalVulkanDescriptorPoolSize(
-        Archive archive, string name, global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize? value)
+    private static void SerializeOptionalVulkanDescriptorPoolSize(Archive archive, string name,
+        ref global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize? value)
     {
-        if (!archive.IsUnorderedAccessSupportedInCurrentBlock)
+        if (value is null)
         {
-            using var block = archive.OpenUnorderedBlock(name);
-            var initialized = archive.IsInput ? false : value is not null;
-            archive.Serialize("initialized", ref initialized);
-
-            if (initialized)
-            {
-                var serializedValue = archive.IsInput ? new global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize() : value!;
-                SerializeVulkanDescriptorPoolSizeFields(archive, serializedValue);
-                if (archive.IsInput)
-                    value = serializedValue;
-            }
-            else if (archive.IsInput)
-                value = null;
+            System.Diagnostics.Debug.Assert(archive.IsInput);
+            value = new global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize();
         }
-        else
-        {
-            var initialized = archive.IsInput ? archive.HasElementOrBlock(name) : value is not null;
-            if (initialized)
-            {
-                using var block = archive.OpenUnorderedBlock(name);
-                var serializedValue = archive.IsInput ? new global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize() : value!;
-                SerializeVulkanDescriptorPoolSizeFields(archive, serializedValue);
-                if (archive.IsInput)
-                    value = serializedValue;
-            }
-            else if (archive.IsInput)
-                value = null;
-        }
-
-        return value;
+        SerializeValue(archive, name, value);
     }
 
     private static void SerializeVulkanDescriptorPoolSizeFields(

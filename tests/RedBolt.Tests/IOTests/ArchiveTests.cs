@@ -641,6 +641,95 @@ public sealed class ArchiveTests
         Assert.Equal(data.SphericalHarmonics[0].GetDebugColor().ToVector3(), loadedData.Ambient[0]);
     }
 
+    [Fact]
+    public void Binary_archive_round_trips_optional_and_pair_helpers()
+    {
+        var context = new Context();
+        using var buffer = new VectorBuffer();
+        uint? strictlyOptional = 42;
+        uint? optional = 7;
+        var pair = (First: 11u, Second: "pair");
+
+        using var output = new BinaryOutputArchive(context, buffer);
+        using (output.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeStrictlyOptionalValue(output, "strict", ref strictlyOptional, null,
+                SerializeNullableUInt);
+            ArchiveSerialization.SerializeValue(output, "optional", ref optional, SerializeUInt);
+            ArchiveSerialization.SerializeValue(output, "pair", ref pair, SerializeUInt, SerializeString);
+        }
+        output.Flush();
+
+        buffer.Seek(0);
+        strictlyOptional = null;
+        optional = null;
+        pair = default;
+        using var input = new BinaryInputArchive(context, buffer);
+        using (input.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeStrictlyOptionalValue(input, "strict", ref strictlyOptional, null,
+                SerializeNullableUInt);
+            ArchiveSerialization.SerializeValue(input, "optional", ref optional, SerializeUInt);
+            ArchiveSerialization.SerializeValue(input, "pair", ref pair, SerializeUInt, SerializeString);
+        }
+        input.Flush();
+
+        Assert.Equal((uint?)42, strictlyOptional);
+        Assert.Equal((uint?)7, optional);
+        Assert.Equal((11u, "pair"), pair);
+        Assert.True(pair.GetType().IsValueType);
+    }
+
+    [Fact]
+    public void Unordered_archive_omits_and_restores_default_optional_values()
+    {
+        var output = new JSONOutputArchive();
+        var value = 0u;
+        uint? strictlyOptional = null;
+        using (output.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeOptionalValue(output, "value", ref value, 0u, SerializeUInt);
+            ArchiveSerialization.SerializeStrictlyOptionalValue(output, "strict", ref strictlyOptional, null,
+                SerializeNullableUInt);
+        }
+
+        var json = output.ToJsonString();
+        Assert.DoesNotContain("value", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("strict", json, StringComparison.Ordinal);
+
+        value = 9;
+        strictlyOptional = 10;
+        var input = new JSONInputArchive(json);
+        using (input.OpenUnorderedBlock("Root"))
+        {
+            ArchiveSerialization.SerializeOptionalValue(input, "value", ref value, 0u, SerializeUInt);
+            ArchiveSerialization.SerializeStrictlyOptionalValue(input, "strict", ref strictlyOptional, null,
+                SerializeNullableUInt);
+        }
+
+        Assert.Equal(0u, value);
+        Assert.Null(strictlyOptional);
+    }
+
+    private static void SerializeUInt(Archive archive, string name, ref uint value)
+    {
+        ArchiveSerialization.SerializeValue(archive, name, ref value);
+    }
+
+    private static void SerializeString(Archive archive, string name, ref string value)
+    {
+        ArchiveSerialization.SerializeValue(archive, name, ref value);
+    }
+
+    private static void SerializeNullableUInt(Archive archive, string name, ref uint? value)
+    {
+        if (!value.HasValue)
+            value = 0;
+        var serializedValue = value.Value;
+        ArchiveSerialization.SerializeValue(archive, name, ref serializedValue);
+        value = serializedValue;
+    }
+
     private sealed class TestArchive : Archive
     {
         private readonly Context _context = new();
