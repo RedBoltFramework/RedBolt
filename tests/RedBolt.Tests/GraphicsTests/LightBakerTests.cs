@@ -12,7 +12,6 @@ public sealed class LightBakerTests
         baker.SetQuality(LightBakingQuality.Low);
 
         Assert.Equal(LightBakingQuality.Low, baker.GetQuality());
-        Assert.Equal("Baking is disabled in build options.", baker.GetBakeLabel());
     }
 
     [Fact]
@@ -20,8 +19,7 @@ public sealed class LightBakerTests
     {
         var baker = new LightBaker();
         baker.Bake();
-        // Glow is not enabled; bake path logs and resets to NotStarted.
-        Assert.Equal("Baking is disabled in build options.", baker.GetBakeLabel());
+        baker.Dispose();
     }
 
     [Fact]

@@ -248,21 +248,24 @@ public class LightBaker : Component
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        lock (_stateLock)
+        if (_state != InternalState.NotStarted)
         {
-            if (_state != InternalState.NotStarted && _taskData is not null)
-            {
-                _taskData.StopToken.Stop();
-                _task?.Wait();
-            }
+            _taskData!.StopToken.Stop();
+            ((IAsyncResult)_task!).AsyncWaitHandle.WaitOne();
         }
 
+        _taskData = null;
+        _task?.Dispose();
+        _task = null;
         base.Dispose();
     }
 
     /// <summary>Register object factory. Drawable must be registered first.</summary>
-    public static void RegisterObject(Context context) =>
+    public static void RegisterObject(Context context)
+    {
         context.AddFactoryReflection<LightBaker>(ObjectCategory.Category_Subsystem);
+        // TODO: port URHO3D_ACTION_DYNAMIC_LABEL("Bake", BakeAsync, GetBakeLabel);
+    }
 
     /// <summary>Set baking quality.</summary>
     public void SetQuality(LightBakingQuality quality)
@@ -353,11 +356,10 @@ public class LightBaker : Component
     /// <summary>Update settings before baking.</summary>
     private bool UpdateSettings()
     {
-        var scene = Scene;
-        if (scene is null)
-            return false;
-
+        var scene = Scene!;
+        var octree = scene.Root.GetComponent<Octree>()!;
         var gi = scene.Root.GetComponent<GlobalIllumination>();
+        var zone = octree.GetBackgroundZone();
 
         if (gi is null)
         {
@@ -420,17 +422,18 @@ public class LightBaker : Component
             if (_task is not null)
             {
                 _task.Wait();
+                _task.Dispose();
                 _task = null;
             }
 
             // TODO: port URHO3D_GLOW taskData_->baker_.CommitScene()
 
             // Compile light probes
-            var gi = Scene?.Root.GetComponent<GlobalIllumination>();
-            gi?.CompileLightProbes();
+            var gi = Scene!.Root.GetComponent<GlobalIllumination>()!;
+            gi.CompileLightProbes();
 
             // Log overall time
-            var totalMSec = _taskData?.Timer.GetMSec(true) ?? 0;
+            var totalMSec = _taskData!.Timer.GetMSec(true);
             Log.Logger.LogInformation("Light baking is finished in {Seconds} seconds", totalMSec / 1000);
 
             // Reset
@@ -443,7 +446,7 @@ public class LightBaker : Component
     }
 
     /// <summary>Return baking status.</summary>
-    public string GetBakeLabel()
+    private string GetBakeLabel()
     {
         // TODO: port URHO3D_GLOW IncrementalLightBakerStatus.ToString()
         return "Baking is disabled in build options.";

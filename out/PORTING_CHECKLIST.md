@@ -168,6 +168,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Image::Save`, `Image::SavePNG`, and `Image::SaveBMP` in `Image.h` / `Image.cpp` — non-source `ImageFileWriter` removed; generated stb encoding, original component count, compressed/empty guards, and deterministic native PNG-buffer release reconciled (complete `Image` class audit remains pending)
 - [x] `IndexBuffer.h` / `IndexBuffer.cpp` — stable composed RawBuffer identity, device flags, pending shadow state, raw shadow-data access, offset-correct pack/update flow, pipeline hash, dynamic growth/commit behavior, and deterministic owned-buffer teardown reconciled
 - [~] `Light.h` / `Light.cpp` — parameter POD value copies, constructor defaults, shared texture ownership, setter validation, dirty propagation, resource attributes, and virtual ray queries reconciled; the borrowed `LightBatchQueue` API remains `TODO: port` until that dependency exists
+- [~] `LightBaker.h` / `LightBaker.cpp` — non-GLOW construction, settings value semantics, update subscription, task-data ownership, future waiting/release, and disabled-build control flow reconciled; GLOW baking fields and the dynamic reflection action remain `TODO: port`
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
