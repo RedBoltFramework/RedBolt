@@ -282,11 +282,15 @@ public sealed class ResourceCache : Object
 
     public Resource? GetTempResource(StringHash type, string name, bool sendEventOnFailure = true)
     {
+        var sanitatedName = SanitateResourceName(name);
+        if (string.IsNullOrEmpty(sanitatedName))
+            return null;
+
         var resourceType = ResolveResourceType(type);
         if (resourceType is null)
             return null;
 
-        return TryLoadResource(resourceType, SanitateResourceName(name));
+        return TryLoadResource(resourceType, sanitatedName);
     }
 
     public bool BackgroundLoadResource<T>(string name, bool sendEventOnFailure = true, Resource? caller = null)
@@ -414,13 +418,14 @@ public sealed class ResourceCache : Object
             : Array.Empty<Resource>();
     }
 
-    public T GetTempResource<T>(string name, bool sendEventOnFailure = true)
+    public T? GetTempResource<T>(string name, bool sendEventOnFailure = true)
         where T : Resource
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var sanitatedName = SanitateResourceName(name);
+        if (string.IsNullOrEmpty(sanitatedName))
+            return null;
 
-        return TryLoadResource<T>(name)
-            ?? LoadFailure<T>(name, sendEventOnFailure);
+        return TryLoadResource<T>(sanitatedName);
     }
 
     public bool Exists<T>(string name)
@@ -488,27 +493,7 @@ public sealed class ResourceCache : Object
 
     public string SanitateResourceName(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        var normalized = name.Trim().Replace('\\', '/');
-        while (normalized.StartsWith("./", StringComparison.Ordinal))
-            normalized = normalized[2..];
-
-        while (normalized.Contains("//", StringComparison.Ordinal))
-            normalized = normalized.Replace("//", "/", StringComparison.Ordinal);
-
-        if (!Path.IsPathFullyQualified(normalized))
-            return normalized.TrimStart('/');
-
-        var fullName = Path.GetFullPath(normalized).Replace('\\', '/');
-        foreach (var resourceDir in _resourceDirs)
-        {
-            var fullDir = Path.GetFullPath(resourceDir).Replace('\\', '/').TrimEnd('/') + "/";
-            if (fullName.StartsWith(fullDir, StringComparison.Ordinal))
-                return fullName[fullDir.Length..];
-        }
-
-        return fullName;
+        return GetCanonicalIdentifier(FileIdentifier.FromUri(name)).ToUri();
     }
 
     public void ReleaseResource<T>(string name)

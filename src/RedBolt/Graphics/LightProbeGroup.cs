@@ -10,16 +10,29 @@ public struct LightProbe
 }
 
 /// <summary>Light probe baked data.</summary>
-public sealed class LightProbeCollectionBakedData
+public sealed class LightProbeCollectionBakedData : ICloneable
 {
     /// <summary>Incoming light baked into spherical harmonics.</summary>
     public readonly List<SphericalHarmonicsDot9> SphericalHarmonics = [];
     /// <summary>Baked ambient light.</summary>
     public readonly List<Vector3f> Ambient = [];
 
+    private LightProbeCollectionBakedData(LightProbeCollectionBakedData source)
+    {
+        SphericalHarmonics.AddRange(source.SphericalHarmonics);
+        Ambient.AddRange(source.Ambient);
+    }
+
+    public LightProbeCollectionBakedData()
+    {
+    }
+
+    /// <summary>Return whether the collection is empty.</summary>
     public bool Empty => SphericalHarmonics.Count == 0;
+    /// <summary>Return total size.</summary>
     public uint Size => (uint)SphericalHarmonics.Count;
 
+    /// <summary>Resize collection.</summary>
     public void Resize(uint size)
     {
         while (SphericalHarmonics.Count < size)
@@ -32,15 +45,18 @@ public sealed class LightProbeCollectionBakedData
             Ambient.RemoveRange((int)size, Ambient.Count - (int)size);
     }
 
+    /// <summary>Clear collection.</summary>
     public void Clear()
     {
         SphericalHarmonics.Clear();
         Ambient.Clear();
     }
+
+    public object Clone() => new LightProbeCollectionBakedData(this);
 }
 
 /// <summary>Light probes from multiple light probe groups.</summary>
-public sealed class LightProbeCollection
+public sealed class LightProbeCollection : ICloneable
 {
     /// <summary>World-space positions of light probes.</summary>
     public readonly List<Vector3f> WorldPositions = [];
@@ -51,10 +67,26 @@ public sealed class LightProbeCollection
     /// <summary>Group names.</summary>
     public readonly List<string> Names = [];
 
+    private LightProbeCollection(LightProbeCollection source)
+    {
+        WorldPositions.AddRange(source.WorldPositions);
+        Offsets.AddRange(source.Offsets);
+        Counts.AddRange(source.Counts);
+        Names.AddRange(source.Names);
+    }
+
+    public LightProbeCollection()
+    {
+    }
+
+    /// <summary>Return whether the collection is empty.</summary>
     public bool Empty => WorldPositions.Count == 0;
+    /// <summary>Return total number of probes.</summary>
     public uint GetNumProbes() => (uint)WorldPositions.Count;
+    /// <summary>Return number of groups.</summary>
     public uint GetNumGroups() => (uint)Offsets.Count;
 
+    /// <summary>Calculate padded bounding box.</summary>
     public BoundingBox CalculateBoundingBox(Vector3f padding = default)
     {
         var boundingBox = default(BoundingBox);
@@ -66,6 +98,7 @@ public sealed class LightProbeCollection
         return boundingBox;
     }
 
+    /// <summary>Clear collection.</summary>
     public void Clear()
     {
         WorldPositions.Clear();
@@ -73,6 +106,8 @@ public sealed class LightProbeCollection
         Counts.Clear();
         Names.Clear();
     }
+
+    public object Clone() => new LightProbeCollection(this);
 }
 
 /// <summary>Light probe group.</summary>
@@ -83,48 +118,59 @@ public class LightProbeGroup : Component
     /// <summary>Auto placement limit: max total number of probes generated.</summary>
     public const uint MaxAutoProbes = 65536;
 
-    private readonly List<LightProbe> _lightProbes = [];
-    private BoundingBox _localBoundingBox;
-    private uint _lightMask = Drawable.DefaultLightMask;
-    private uint _zoneMask = Drawable.DefaultZoneMask;
-    private bool _autoPlacementEnabled = true;
-    private float _autoPlacementStep = 1.0f;
-    private Vector3f _lastNodeScale;
-    private ResourceRef _bakedDataRef = new(new StringHash(nameof(BinaryFile)));
-    private bool _bakedDataDirty = true;
-    private readonly LightProbeCollectionBakedData _bakedData = new();
-
+    /// <summary>Construct.</summary>
     public LightProbeGroup()
     {
+        RegisterAttribute("Light Mask", typeof(uint), self => ((LightProbeGroup)self)._lightMask,
+            (self, value) => ((LightProbeGroup)self)._lightMask = (uint)value!, Drawable.DefaultLightMask);
+        RegisterAttribute("Zone Mask", typeof(uint), self => ((LightProbeGroup)self)._zoneMask,
+            (self, value) => ((LightProbeGroup)self)._zoneMask = (uint)value!, Drawable.DefaultZoneMask);
+        RegisterAttribute("Auto Placement", typeof(bool), self => ((LightProbeGroup)self).GetAutoPlacementEnabled(),
+            (self, value) => ((LightProbeGroup)self).SetAutoPlacementEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Auto Placement Step", typeof(float), self => ((LightProbeGroup)self).GetAutoPlacementStep(),
+            (self, value) => ((LightProbeGroup)self).SetAutoPlacementStep((float)value!), 1.0f);
+        RegisterAttribute("Local Bounding Box Min", typeof(Vector3f), self => ((LightProbeGroup)self)._localBoundingBox.Min,
+            (self, value) => ((LightProbeGroup)self)._localBoundingBox.Min = (Vector3f)value!, Vector3f.Zero,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Local Bounding Box Max", typeof(Vector3f), self => ((LightProbeGroup)self)._localBoundingBox.Max,
+            (self, value) => ((LightProbeGroup)self)._localBoundingBox.Max = (Vector3f)value!, Vector3f.Zero,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Serialized Light Probes", typeof(string), self => ((LightProbeGroup)self).GetSerializedLightProbes(),
+            (self, value) => ((LightProbeGroup)self).SetSerializedLightProbes(value as string ?? string.Empty), string.Empty,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Baked Data File", typeof(ResourceRef), self => ((LightProbeGroup)self).GetBakedDataFileRef(),
+            (self, value) => ((LightProbeGroup)self).SetBakedDataFileRef((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(BinaryFile))), AttributeMode.Default | AttributeMode.NoEdit);
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        base.Dispose();
+    }
+
+    /// <summary>Register object factory. Drawable must be registered first.</summary>
     public static void RegisterObject(Context context) =>
         context.AddFactoryReflection<LightProbeGroup>(ObjectCategory.Category_Scene);
 
+    /// <summary>Visualize the component as debug geometry.</summary>
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
-        if (debug is null || !IsAttached)
-            return;
-
         UpdateBakedData();
 
         var boundingBox = new BoundingBox(-Vector3f.One * 0.5f, Vector3f.One * 0.5f);
-        debug.AddBoundingBox(boundingBox, Node.GetWorldTransform(), Color.Green, depthTest);
+        debug!.AddBoundingBox(boundingBox, Node.GetWorldTransform(), Color.Green);
 
         for (var i = 0; i < _lightProbes.Count; ++i)
         {
-            var worldPosition = Node.LocalToWorld(_lightProbes[i].Position);
-            var color = i < _bakedData.Ambient.Count
-                ? new Color(_bakedData.Ambient[i].X, _bakedData.Ambient[i].Y, _bakedData.Ambient[i].Z)
-                : Color.White;
-            debug.AddSphere(new Sphere(worldPosition, 0.1f), color, depthTest);
+            var probe = _lightProbes[i];
+            var worldPosition = Node.LocalToWorld(probe.Position);
+            var ambient = _bakedData.Ambient[i];
+            debug.AddSphere(new Sphere(worldPosition, 0.1f), new Color(ambient.X, ambient.Y, ambient.Z));
         }
     }
 
-    public BoundingBox GetLocalBoundingBox() => _localBoundingBox;
-    public BoundingBox GetWorldBoundingBox() =>
-        IsAttached ? _localBoundingBox.Transformed(Node.GetWorldTransform()) : _localBoundingBox;
-
+    /// <summary>Collect all light probes from specified groups.</summary>
     public static void CollectLightProbes(IReadOnlyList<LightProbeGroup> lightProbeGroups,
         LightProbeCollection collection, LightProbeCollectionBakedData? bakedData, bool reload = false)
     {
@@ -156,6 +202,7 @@ public class LightProbeGroup : Component
         }
     }
 
+    /// <summary>Collect all light probes from all enabled groups in the scene.</summary>
     public static void CollectLightProbes(Scene scene, LightProbeCollection collection,
         LightProbeCollectionBakedData? bakedData, bool reload = false)
     {
@@ -165,11 +212,61 @@ public class LightProbeGroup : Component
         CollectLightProbes(lightProbeGroups, collection, bakedData, reload);
     }
 
+    /// <summary>Save light probes baked data for specific element. Return false if failed.</summary>
+    public static bool SaveLightProbesBakedData(Context context, FileIdentifier fileName,
+        LightProbeCollection collection, LightProbeCollectionBakedData bakedData, uint index)
+    {
+        if (index >= collection.GetNumGroups())
+            return false;
+
+        var offset = collection.Offsets[(int)index];
+        var count = collection.Counts[(int)index];
+        if (offset + count > bakedData.Size)
+            return false;
+
+        var copy = new LightProbeCollectionBakedData();
+        copy.SphericalHarmonics.AddRange(bakedData.SphericalHarmonics.GetRange((int)offset, (int)count));
+        copy.Ambient.AddRange(bakedData.Ambient.GetRange((int)offset, (int)count));
+
+        using var bakedDataFile = new BinaryFile();
+
+        if (!bakedDataFile.SaveObjectCallback(archive =>
+            {
+                var value = bakedData;
+                ArchiveSerialization.SerializeValue(archive, "LightProbesBakedData", ref value);
+            }))
+            return false;
+
+        var file = context.GetSubsystem<VirtualFileSystem>()!.OpenFile(fileName, File.FileMode.Write);
+        if (file is null)
+            return false;
+
+        try
+        {
+            var data = bakedDataFile.GetMutableBuffer().Buffer;
+            if (file.Write(data) != data.Length)
+                return false;
+        }
+        finally
+        {
+            file.Close();
+        }
+
+        return true;
+    }
+
+    /// <summary>Return bounding box in local space.</summary>
+    public BoundingBox GetLocalBoundingBox() => _localBoundingBox;
+
+    /// <summary>Return bounding box in world space.</summary>
+    public BoundingBox GetWorldBoundingBox() => _localBoundingBox.Transformed(Node.GetWorldTransform());
+
+    /// <summary>Arrange light probes in scale.x*scale.y*scale.z volume around the node.</summary>
     public void ArrangeLightProbesInVolume()
     {
         _bakedDataDirty = true;
         _lightProbes.Clear();
-        if (_autoPlacementStep <= MathDefs.LargeEpsilon || !IsAttached)
+        if (_autoPlacementStep <= MathDefs.LargeEpsilon)
             return;
 
         var volumeSize = Node.GetScale().Abs;
@@ -200,6 +297,7 @@ public class LightProbeGroup : Component
         _localBoundingBox = new BoundingBox(-Vector3f.One / 2, Vector3f.One / 2);
     }
 
+    /// <summary>Reload baked light probes data.</summary>
     public void ReloadBakedData()
     {
         _bakedDataDirty = true;
@@ -228,6 +326,7 @@ public class LightProbeGroup : Component
     public void SetZoneMask(uint zoneMask) => _zoneMask = zoneMask;
     public uint GetZoneMask() => _zoneMask;
 
+    /// <summary>Set light probes.</summary>
     public void SetLightProbes(IReadOnlyList<LightProbe> lightProbes)
     {
         _lightProbes.Clear();
@@ -236,8 +335,38 @@ public class LightProbeGroup : Component
         UpdateLocalBoundingBox();
     }
 
+    /// <summary>Return light probes.</summary>
     public IReadOnlyList<LightProbe> GetLightProbes() => _lightProbes;
 
+    /// <summary>Serialize light probes.</summary>
+    public void SerializeLightProbes(Archive archive)
+    {
+        using var block = archive.OpenUnorderedBlock("LightProbesData");
+        const uint currentVersion = 2;
+        var version = archive.SerializeVersion(currentVersion);
+        if (version == currentVersion)
+            ArchiveSerialization.SerializeValue(archive, "lightProbes", _lightProbes);
+    }
+
+    /// <summary>Set serialized light probes.</summary>
+    public void SetSerializedLightProbes(string data)
+    {
+        var buffer = new VectorBuffer(Convert.FromBase64String(data));
+        var archive = new BinaryInputArchive(Context.Instance, buffer);
+        SerializeLightProbes(archive);
+        _bakedDataDirty = true;
+    }
+
+    /// <summary>Return serialized light probes.</summary>
+    public string GetSerializedLightProbes()
+    {
+        var buffer = new VectorBuffer();
+        var archive = new BinaryOutputArchive(Context.Instance, buffer);
+        SerializeLightProbes(archive);
+        return Convert.ToBase64String(buffer.GetBuffer());
+    }
+
+    /// <summary>Set reference on file with baked data.</summary>
     public void SetBakedDataFileRef(ResourceRef fileRef)
     {
         if (_bakedDataRef != fileRef)
@@ -247,13 +376,16 @@ public class LightProbeGroup : Component
         }
     }
 
+    /// <summary>Return reference on file with baked data.</summary>
     public ResourceRef GetBakedDataFileRef() => _bakedDataRef;
 
+    /// <summary>Handle scene node being assigned at creation.</summary>
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         currentNode?.AddListener(this);
     }
 
+    /// <summary>Handle scene node transform dirtied.</summary>
     protected internal override void OnMarkedDirty(Node node)
     {
         if (_autoPlacementEnabled && _lastNodeScale != node.GetScale())
@@ -263,7 +395,8 @@ public class LightProbeGroup : Component
         }
     }
 
-    private void UpdateLocalBoundingBox()
+    /// <summary>Update local bounding box.</summary>
+    protected void UpdateLocalBoundingBox()
     {
         _localBoundingBox = default;
         _localBoundingBox.Clear();
@@ -271,32 +404,24 @@ public class LightProbeGroup : Component
             _localBoundingBox.Merge(probe.Position);
     }
 
-    private void UpdateBakedData()
+    /// <summary>Update baked data.</summary>
+    protected void UpdateBakedData()
     {
         if (!_bakedDataDirty)
             return;
 
         _bakedDataDirty = false;
-        var cache = GetSubsystem<ResourceCache>();
-        BinaryFile? bakedDataFile = null;
-        if (!string.IsNullOrEmpty(_bakedDataRef.Name) && cache is not null)
-        {
-            try
-            {
-                bakedDataFile = cache.GetTempResource<BinaryFile>(_bakedDataRef.Name, false);
-            }
-            catch (InvalidOperationException)
-            {
-                bakedDataFile = null;
-            }
-        }
+        var cache = GetSubsystem<ResourceCache>()!;
+        var bakedDataFile = cache.GetTempResource<BinaryFile>(_bakedDataRef.Name, false);
 
         var success = false;
         if (bakedDataFile is not null)
         {
-            // Load via callback serializing SH list when present; fall back to empty.
-            // Full C++ named-block LoadObject("LightProbesBakedData") maps to callback serialization.
-            success = false;
+            success = bakedDataFile.LoadObjectCallback(archive =>
+            {
+                var value = _bakedData;
+                ArchiveSerialization.SerializeValue(archive, "LightProbesBakedData", ref value);
+            }) && _bakedData.SphericalHarmonics.Count == _lightProbes.Count;
         }
 
         if (!success)
@@ -309,4 +434,27 @@ public class LightProbeGroup : Component
             }
         }
     }
+
+    /// <summary>Light probes.</summary>
+    protected readonly List<LightProbe> _lightProbes = [];
+    /// <summary>Bounding box in local space.</summary>
+    protected BoundingBox _localBoundingBox;
+
+    /// <summary>Light mask of light probe group.</summary>
+    protected uint _lightMask = Drawable.DefaultLightMask;
+    /// <summary>Zone mask of light probe group.</summary>
+    protected uint _zoneMask = Drawable.DefaultZoneMask;
+    /// <summary>Whether the auto placement is enabled.</summary>
+    protected bool _autoPlacementEnabled = true;
+    /// <summary>Automatic placement step.</summary>
+    protected float _autoPlacementStep = 1.0f;
+    /// <summary>Last node scale used during auto placement.</summary>
+    protected Vector3f _lastNodeScale;
+
+    /// <summary>Reference on file with baked data.</summary>
+    protected ResourceRef _bakedDataRef = new(new StringHash(nameof(BinaryFile)));
+    /// <summary>Whether the baked data is dirty.</summary>
+    protected bool _bakedDataDirty;
+    /// <summary>Baked data.</summary>
+    protected readonly LightProbeCollectionBakedData _bakedData = new();
 }

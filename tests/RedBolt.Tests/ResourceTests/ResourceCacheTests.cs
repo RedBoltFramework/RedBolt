@@ -143,6 +143,12 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void TempResource_with_empty_name_returns_null()
+    {
+        Assert.Null(_fixture.Resources.GetTempResource<BinaryFile>(string.Empty, false));
+    }
+
+    [Fact]
     public void ExistingResource_finds_cached()
     {
         var tempDir = CreateTempDir();

@@ -4,6 +4,13 @@ namespace RedBolt;
 
 public static partial class ArchiveSerialization
 {
+    /// <summary>Serialize light probe.</summary>
+    public static void SerializeValue(Archive archive, string name, ref LightProbe value)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        SerializeValue(archive, "position", ref value.Position);
+    }
+
     /// <summary>Serialize light probe baked data.</summary>
     public static void SerializeValue(Archive archive, string name, ref LightProbeCollectionBakedData value)
     {
@@ -22,6 +29,25 @@ public static partial class ArchiveSerialization
                 for (var i = 0u; i < numLightProbes; ++i)
                     value.Ambient[(int)i] = value.SphericalHarmonics[(int)i].GetDebugColor().ToVector3();
             }
+        }
+    }
+
+    public static void SerializeValue(Archive archive, string name, List<LightProbe> values)
+    {
+        var size = checked((uint)values.Count);
+        using var block = archive.OpenArrayBlock(name, size);
+        if (archive.IsInput)
+        {
+            values.Clear();
+            for (var index = 0u; index < block.SizeHint; ++index)
+                values.Add(default);
+        }
+
+        for (var index = 0u; index < (archive.IsInput ? block.SizeHint : size); ++index)
+        {
+            var value = values[checked((int)index)];
+            SerializeValue(archive, "element", ref value);
+            values[checked((int)index)] = value;
         }
     }
 

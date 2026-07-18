@@ -40,6 +40,48 @@ public sealed class LightProbeGroupTests
     }
 
     [Fact]
+    public void Light_probes_are_copied_and_round_trip_through_serialized_attribute()
+    {
+        var source = new List<LightProbe>
+        {
+            new() { Position = new Vector3f(1.0f, 2.0f, 3.0f) },
+            new() { Position = new Vector3f(4.0f, 5.0f, 6.0f) }
+        };
+        var group = new LightProbeGroup();
+        group.SetLightProbes(source);
+
+        source[0] = new LightProbe { Position = Vector3f.Zero };
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), group.GetLightProbes()[0].Position);
+
+        var restored = new LightProbeGroup();
+        restored.SetSerializedLightProbes(group.GetSerializedLightProbes());
+
+        Assert.Equal(group.GetLightProbes(), restored.GetLightProbes());
+    }
+
+    [Fact]
+    public void Light_probe_collections_clone_independently()
+    {
+        var collection = new LightProbeCollection();
+        collection.WorldPositions.Add(Vector3f.One);
+        collection.Offsets.Add(0);
+        collection.Counts.Add(1);
+        collection.Names.Add("Probes");
+        var collectionCopy = (LightProbeCollection)collection.Clone();
+
+        var bakedData = new LightProbeCollectionBakedData();
+        bakedData.SphericalHarmonics.Add(new SphericalHarmonicsDot9(Vector3f.One));
+        bakedData.Ambient.Add(Vector3f.One);
+        var bakedDataCopy = (LightProbeCollectionBakedData)bakedData.Clone();
+
+        collectionCopy.Clear();
+        bakedDataCopy.Clear();
+
+        Assert.Equal(1u, collection.GetNumProbes());
+        Assert.Equal(1u, bakedData.Size);
+    }
+
+    [Fact]
     public void GlobalIllumination_reset_and_sample_empty()
     {
         var gi = new Scene().CreateChild("GI").CreateComponent<GlobalIllumination>();
