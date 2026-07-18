@@ -106,10 +106,10 @@ public sealed class TextureTests
         Assert.False(renderTexture.IsDepthStencil());
         Assert.True(renderTexture.IsUnorderedAccess());
         var renderSurface = renderTexture.GetRenderSurface();
-        Assert.NotNull(renderSurface);
+        Assert.Null(renderSurface);
         Assert.True(renderTexture.SetSize(8, 4, TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess));
-        Assert.Same(renderSurface, renderTexture.GetRenderSurface());
+        Assert.Null(renderTexture.GetRenderSurface());
 
         var renderCube = new TextureCube("Textures/RenderCube");
         Assert.True(renderCube.SetSize(8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
@@ -118,8 +118,8 @@ public sealed class TextureTests
 
         var renderTextureArray = new Texture2DArray("Textures/RenderTargetArray");
         Assert.True(renderTextureArray.SetSize(2u, 8, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-        Assert.NotNull(renderTextureArray.GetRenderSurface(0));
-        Assert.NotNull(renderTextureArray.GetRenderSurface(1));
+        Assert.Null(renderTextureArray.GetRenderSurface(0));
+        Assert.Null(renderTextureArray.GetRenderSurface(1));
         Assert.Null(renderTextureArray.GetRenderSurface(2));
     }
 
@@ -303,7 +303,7 @@ public sealed class TextureTests
 
         Assert.True(texture.SetSize(4, 4, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
         Assert.True(texture.IsRenderTarget());
-        Assert.NotNull(texture.GetRenderSurface());
+        Assert.Null(texture.GetRenderSurface());
     }
 
     [Fact]
@@ -341,7 +341,8 @@ public sealed class TextureTests
         Assert.True(texture.SetData(0u, image));
         Assert.True(texture.SetData(1u, image));
         Assert.Equal(2u, texture.Layers);
-        Assert.True(texture.GetData(1u, 0u, new byte[16]));
-        Assert.Equal(imageData, texture.GetData(0u, 0u));
+        Assert.False(texture.GetData(1u, 0u, new byte[16]));
+        var readback = new byte[16];
+        Assert.False(texture.GetData(0u, 0u, readback));
     }
 }

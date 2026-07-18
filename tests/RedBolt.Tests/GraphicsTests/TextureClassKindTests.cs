@@ -11,11 +11,13 @@ public sealed class TextureClassKindTests
         AssertConcreteNoncopyableReferenceClass<ResourceWithMetadata>();
         AssertConcreteNoncopyableReferenceClass<Texture>();
         AssertConcreteNoncopyableReferenceClass<Texture2D>();
+        AssertConcreteNoncopyableReferenceClass<Texture2DArray>();
 
         using var resource = new Resource(string.Empty);
         using var resourceWithMetadata = new ResourceWithMetadata(string.Empty);
         using var texture = new Texture(string.Empty);
         using var texture2D = new Texture2D(string.Empty);
+        using var texture2DArray = new Texture2DArray(string.Empty);
     }
 
     [Fact]
@@ -34,6 +36,25 @@ public sealed class TextureClassKindTests
         texture.Dispose();
 
         Assert.Null(loadImage.GetValue(texture));
+        Assert.Null(loadParameters.GetValue(texture));
+    }
+
+    [Fact]
+    public void Texture2DArray_dispose_releases_derived_load_state()
+    {
+        var texture = new Texture2DArray(string.Empty);
+        var loadImages = typeof(Texture2DArray).GetField("_loadImages",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var loadParameters = typeof(Texture2DArray).GetField("_loadParameters",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var images = Assert.IsType<List<Image?>>(loadImages.GetValue(texture));
+        images.Add(new Image(string.Empty));
+        images.Add(new Image(string.Empty));
+        loadParameters.SetValue(texture, new XMLFile(string.Empty));
+
+        texture.Dispose();
+
+        Assert.Empty(images);
         Assert.Null(loadParameters.GetValue(texture));
     }
 

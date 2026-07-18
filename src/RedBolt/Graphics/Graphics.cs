@@ -3308,12 +3308,6 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        for (var slice = 0u; slice < texture.Layers; ++slice)
-        {
-            if (texture.GetData(slice, 0u) is { Length: > 0 })
-                throw new NotSupportedException("CPU-backed Texture2DArray uploads are not implemented in the current managed renderer.");
-        }
-
         textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil

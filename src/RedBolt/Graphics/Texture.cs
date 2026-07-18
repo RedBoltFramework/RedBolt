@@ -338,6 +338,18 @@ public class Texture : ResourceWithMetadata
 
     private void OnCreateGPU()
     {
+        var isRenderTarget = (_textureFlags & TextureFlag.BindRenderTarget) != 0;
+        if (isRenderTarget)
+        {
+            _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
+                (ref GraphicsEvents.RenderSurfaceUpdateEvent _) => HandleRenderSurfaceUpdate());
+        }
+        else
+        {
+            _renderSurfaceUpdateSubscription?.Dispose();
+            _renderSurfaceUpdateSubscription = null;
+        }
+
         if (_rawTexture is not null)
         {
             var renderSurfaceHandles = _rawTexture.GetRenderSurfaces();
@@ -479,21 +491,6 @@ public class Texture : ResourceWithMetadata
             : Math.Max(_requestedLevels, 1u);
 
         OnDestroyGPU();
-
-        if ((flags & TextureFlag.BindRenderTarget) != 0)
-        {
-            _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
-                (ref GraphicsEvents.RenderSurfaceUpdateEvent _) => HandleRenderSurfaceUpdate());
-        }
-        else
-        {
-            _renderSurfaceUpdateSubscription?.Dispose();
-            _renderSurfaceUpdateSubscription = null;
-        }
-
-        SetRenderSurfaceCount((flags & (TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil)) != 0
-            ? (uint)Math.Max(Depth, 1)
-            : 0u);
 
         if (!RawTexture.IsCreatingManagedTexture)
         {

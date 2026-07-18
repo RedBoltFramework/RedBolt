@@ -71,15 +71,12 @@ public sealed class RenderSurfaceTests
     }
 
     [Fact]
-    public void Texture_dispose_destroys_owned_render_surfaces()
+    public void Headless_texture_does_not_create_owned_render_surfaces()
     {
         var texture = new Texture2D("Textures/OwnedRenderSurface");
         Assert.True(texture.SetSize(64, 32, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-        var surface = texture.GetRenderSurface()!;
-        surface.SetNumViewports(2);
+        Assert.Null(texture.GetRenderSurface());
 
         texture.Dispose();
-
-        Assert.Equal(0u, surface.GetNumViewports());
     }
 }

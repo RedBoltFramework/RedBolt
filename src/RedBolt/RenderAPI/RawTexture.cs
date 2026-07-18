@@ -1013,9 +1013,8 @@ public class RawTexture : DeviceObject
                     var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
                     textureArray.SetSRGB(parameters.SRGB);
                     textureArray.SetNumLevels(parameters.NumLevels);
-                    if (!textureArray.SetLayers(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
-                        (int)normalizedMultiSample,
-                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                    if (!textureArray.SetSize(normalizedArraySize, normalizedSize.X, normalizedSize.Y, parameters.Format,
+                        parameters.Flags))
                         return false;
                     textureCandidate = textureArray;
                     break;
@@ -1047,9 +1046,9 @@ public class RawTexture : DeviceObject
             parameters.Format,
             parameters.Flags,
             new Vector3i(textureCandidate.Width, textureCandidate.Height, textureCandidate.Depth),
-            parameters.Type == TextureType.Texture2DArray ? (uint)textureCandidate.Depth : normalizedArraySize,
+            normalizedArraySize,
             textureCandidate.Levels,
-            (uint)textureCandidate.MultiSample,
+            parameters.Type == TextureType.Texture2DArray ? normalizedMultiSample : (uint)textureCandidate.MultiSample,
             CalculateNumLevelsRtv(textureCandidate, parameters),
             parameters.SRGB);
         return true;
