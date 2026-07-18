@@ -7,7 +7,7 @@
   <ItemGroup Condition="'$(RedBoltIsBindingProject)' == 'true'">
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltRoot)/native/RedBolt.Native/RedBolt.Native.csproj"
                       Condition="'$(RedBoltPlatform)' != 'web-emscripten-wasm'"
                       ReferenceOutputAssembly="false"
@@ -51,14 +51,9 @@
     <PropertyGroup>
       <_GenerateRestoreGraphProjectEntryInputProperties>
         $(_GenerateRestoreGraphProjectEntryInputProperties);
-        SharpCppOutputDir=$(SharpCppOutputDir);
-        SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);
         SharpCppBuildRoot=$(RedBoltBuildRoot);
-        SharpCppCMakeSourceDir=$(RedBoltRoot);
-        SharpCppNativePreset=$(RedBoltNativePreset);
-        SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);
-        SharpCppBuildE2E=false;
-        SharpCppBuildRbfx=false
+        SharpCppOutputDir=$(SharpCppOutputDir);
+        SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)
       </_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
   </Target>

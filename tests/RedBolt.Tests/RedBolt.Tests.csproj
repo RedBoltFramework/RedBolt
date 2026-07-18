@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 
   <ItemGroup>

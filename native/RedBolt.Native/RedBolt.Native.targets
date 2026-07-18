@@ -1,11 +1,4 @@
 <Project>
-  <ItemGroup>
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/native/SharpCpp.Native/SharpCpp.Native.csproj"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=true;SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltBuildRoot)/bin/tools/$(RedBoltPlatform);SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)" />
-  </ItemGroup>
-
   <PropertyGroup>
     <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">RedBolt.Native</RedBoltCMakeTarget>
     <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">redbolt-wasm-native</RedBoltCMakeTarget>

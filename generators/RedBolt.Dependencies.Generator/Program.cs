@@ -303,8 +303,7 @@ internal static class Program
         if (descriptor.Surface == "dearimgui")
         {
             marshallerHeaders.Add(Path.Combine(
-                options.SharpCppRoot,
-                "..",
+                options.RedBoltRoot,
                 "native",
                 "RedBolt.Native",
                 "include",
@@ -1116,6 +1115,7 @@ internal static class Program
         public required string FileStem { get; init; }
         public required string MetadataPath { get; init; }
         public required string SharpCppRoot { get; init; }
+        public required string RedBoltRoot { get; init; }
         public required string CompilerPath { get; init; }
         public required IReadOnlyList<string> IncludeDirectories { get; init; }
         public required IReadOnlyList<string> Defines { get; init; }
@@ -1136,6 +1136,7 @@ internal static class Program
                 FileStem = RequireOption(args, "--file-stem"),
                 MetadataPath = Path.GetFullPath(RequireOption(args, "--metadata")),
                 SharpCppRoot = Path.GetFullPath(RequireOption(args, "--sharpcpp-root")),
+                RedBoltRoot = Path.GetFullPath(RequireOption(args, "--redbolt-root")),
                 CompilerPath = Path.GetFullPath(RequireOption(args, "--compiler")),
                 IncludeDirectories = includes,
                 Defines = defines,

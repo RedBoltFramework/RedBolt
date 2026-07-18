@@ -53,6 +53,7 @@ function(redbolt_add_native_binding_generation)
             --file-stem "${ARG_FILE_STEM}"
             --metadata "${ARG_OUTPUT_METADATA}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
+            --redbolt-root "${CMAKE_SOURCE_DIR}"
             --compiler "${CMAKE_CXX_COMPILER}"
             ${include_args}
             ${define_args}
