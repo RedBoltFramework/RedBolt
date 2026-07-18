@@ -19,9 +19,47 @@ public sealed class ZoneTests
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         Assert.Equal(DrawableFlags.Zone, zone.GetDrawableFlags());
-        Assert.Equal(Zone.DefaultAmbientColor, zone.GetAmbientColor());
-        Assert.Equal(Zone.DefaultFogColor, zone.GetFogColor());
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), Zone.DefaultFogStart));
+        Assert.Equal(new Color(0.1f, 0.1f, 0.1f), zone.GetAmbientColor());
+        Assert.Equal(Color.Black, zone.GetFogColor());
+        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), 250.0f));
+    }
+
+    [Fact]
+    public void Class_kind_and_pointer_ownership_match_cpp()
+    {
+        Assert.False(typeof(Zone).IsSealed);
+        Assert.True(typeof(Drawable).IsAssignableFrom(typeof(Zone)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Zone)));
+        Assert.True(typeof(ReflectionProbeData).IsValueType);
+        Assert.Equal(typeof(WeakReference<Zone>), GetPrivateField("_lastAmbientStartZone").FieldType);
+        Assert.Equal(typeof(WeakReference<Zone>), GetPrivateField("_lastAmbientEndZone").FieldType);
+        Assert.Equal(typeof(Texture), GetPrivateField("_zoneTexture").FieldType);
+    }
+
+    [Fact]
+    public void Ambient_color_does_not_rewrite_valid_gradient_cache()
+    {
+        var zone = new Zone();
+        var firstColor = new Color(0.2f, 0.3f, 0.4f);
+        zone.SetAmbientColor(firstColor);
+        zone.UpdateAmbientGradient();
+        zone.SetAmbientGradient(true);
+
+        zone.SetAmbientColor(new Color(0.7f, 0.8f, 0.9f));
+
+        Assert.Equal(firstColor, zone.GetAmbientStartColor());
+        Assert.Equal(firstColor, zone.GetAmbientEndColor());
+    }
+
+    [Fact]
+    public void Zone_texture_attribute_is_derived_from_loaded_resource()
+    {
+        var zone = new Zone();
+
+        zone.SetZoneTextureAttr(new ResourceRef(ObjectReflection<TextureCube>.TypeId, "Missing.xml"));
+
+        Assert.Null(zone.GetZoneTexture());
+        Assert.Equal(string.Empty, zone.GetZoneTextureAttr().Name);
     }
 
     [Fact]
@@ -159,10 +197,11 @@ public sealed class ZoneTests
     public void Zone_lookup_selects_priority_and_background_zones()
     {
         var index = new ZoneLookupIndex();
-        var lowPriorityZone = new Zone();
+        var scene = new Scene();
+        var lowPriorityZone = scene.CreateChild("LowPriorityZone").CreateComponent<Zone>();
         lowPriorityZone.SetBoundingBox(new BoundingBox(new Vector3f(-10.0f, -10.0f, -10.0f), new Vector3f(10.0f, 10.0f, 10.0f)));
         lowPriorityZone.SetPriority(0);
-        var highPriorityZone = new Zone();
+        var highPriorityZone = scene.CreateChild("HighPriorityZone").CreateComponent<Zone>();
         highPriorityZone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
         highPriorityZone.SetPriority(5);
 
@@ -180,7 +219,8 @@ public sealed class ZoneTests
     public void Zone_lookup_returns_default_zone_outside_matching_zones()
     {
         var index = new ZoneLookupIndex();
-        var zone = new Zone();
+        var scene = new Scene();
+        var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
         index.AddZone(zone);
         index.Commit();
@@ -203,5 +243,13 @@ public sealed class ZoneTests
         zone.DrawDebugGeometry(debugRenderer, depthTest: false);
 
         Assert.True(debugRenderer.HasContent());
+    }
+
+    private static System.Reflection.FieldInfo GetPrivateField(string fieldName)
+    {
+        var field = typeof(Zone).GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return field;
     }
 }

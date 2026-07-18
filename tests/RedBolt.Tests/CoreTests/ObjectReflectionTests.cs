@@ -88,6 +88,55 @@ public sealed class ObjectReflectionTests
     }
 
     [Fact]
+    public void Reflection_metadata_and_registry_teardown_match_owned_value_lifetimes()
+    {
+        using var metadataText = new CString("metadata");
+        var metadata = new Variant(metadataText);
+        using var defaultText = new CString("default");
+        using var defaultValue = new Variant(defaultText);
+        using var source = new AttributeInfo("Value", typeof(CString), defaultValue);
+        using var registry = new ObjectReflectionRegistry();
+        var reflection = registry.AddReflection<FactoryObject>();
+        reflection.SetMetadata("Metadata", metadata);
+        reflection.AddAttribute(source);
+        var storedAttribute = reflection.GetAttribute("Value");
+        var replacedMetadata = reflection.GetMetadata("Metadata");
+        using var replacementText = new CString("replacement");
+        var replacement = new Variant(replacementText);
+        reflection.SetMetadata("Metadata", replacement);
+        var storedMetadata = reflection.GetMetadata("Metadata");
+        var metadataWasLiveDuringRemoval = false;
+        registry.ReflectionRemoved += removed =>
+            metadataWasLiveDuringRemoval = removed.GetMetadata<CString>("Metadata").ToString() == "replacement";
+
+        metadata.Dispose();
+        replacement.Dispose();
+        Assert.Equal(string.Empty, replacedMetadata.GetCString().ToString());
+        registry.RemoveReflection<FactoryObject>();
+
+        Assert.True(metadataWasLiveDuringRemoval);
+        Assert.Equal(string.Empty, storedMetadata.GetCString().ToString());
+        Assert.True(storedAttribute.DefaultValue.IsEmpty);
+        Assert.Equal("default", source.DefaultValue.GetCString().ToString());
+    }
+
+    [Fact]
+    public void Context_destroys_retained_reflections_after_context_teardown()
+    {
+        using var defaultText = new CString("default");
+        using var defaultValue = new Variant(defaultText);
+        using var source = new AttributeInfo("Value", typeof(CString), defaultValue);
+        var context = new Context();
+        var reflection = context.AddReflection<FactoryObject>();
+        reflection.AddAttribute(source);
+        var storedAttribute = reflection.GetAttribute("Value");
+
+        context.Dispose();
+
+        Assert.True(storedAttribute.DefaultValue.IsEmpty);
+    }
+
+    [Fact]
     public void Object_reads_type_and_category_from_managed_reflection()
     {
         var context = new Context();

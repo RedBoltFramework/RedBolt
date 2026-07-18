@@ -108,7 +108,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A3. Core — depends on Container, Math
 
-- [~] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, and per-instance reflection-facade teardown reconciled; final closure depends on retained ObjectReflection destruction and the repository-wide Variant assignment audit
+- [~] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, retained ObjectReflection destruction, and per-instance reflection-facade teardown reconciled; final closure depends on the repository-wide Variant assignment audit
+- [x] `ObjectReflection.h` / `ObjectReflection.cpp` — noncopyable class kinds, independent attribute/metadata value copies, borrowed reflection APIs, signal-before-destruction removal lifetime, registry ownership, and Context base teardown reconciled
 - [-] `NonCopyable.h` — **EXCLUDED** · reason: does not map to C# concepts
 - [-] `Macros.h` — **EXCLUDED** · reason: preprocessor macros · replaced-by: attributes + source generators
 - [-] `AssertBase.h` — **EXCLUDED** · reason: assert plumbing · replaced-by: `System.Diagnostics.Debug`
@@ -203,6 +204,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `RibbonTrail.h` / `RibbonTrail.cpp` — POD TrailPoint value semantics, noncopyable Drawable identity, nullable point-link mapping, deterministic owned-buffer teardown, and allocation-free index-buffer mapping reconciled
 - [x] `VertexBuffer.h` / `VertexBuffer.cpp` — complete VertexBuffer and DynamicVertexBuffer class shapes, extensible noncopyable identity, RawBuffer/DeviceObject composition forwarding, owned buffer replacement/destruction, shadow-data ownership, typed element-mask state, dynamic staging ownership, and affected call paths reconciled
 - [x] `Viewport.h` / `Viewport.cpp` — extensible noncopyable reference-class kind, weak scene/camera/eye/cull/pipeline observations, retained pipeline-view ownership, nullable pointer APIs, automatic derived-pipeline selection, and deterministic teardown reconciled
+- [x] `Zone.h` / `Zone.cpp` — extensible noncopyable reference-class kind, POD reflection-probe mapping, retained texture and weak gradient-zone ownership, cache storage/copies, resource subscription, octree invalidation, and deterministic teardown reconciled
 - [~] `GlobalIllumination.h` / `GlobalIllumination.cpp` — owned mesh/baked-data reset semantics, world-origin mutation, debug geometry, reflected attributes, nullable resource loading, binary-compatible GI serialization, and default destruction reconciled; the reload editor action remains `TODO: port` until ObjectReflection supports actions
 - [x] `Graphics.h` / `Graphics.cpp` — construction-context and SDL ownership, device-before-window close/destruction, frame and resize events, cached shader observation, independent window-settings copies, and managed native COM/unmanaged-storage teardown reconciled
 - [x] `RenderBackend` in `RenderAPIDefs.h` — duplicate `GraphicsBackend` removed; exact enum values are used directly and the automatic backend request preserves C++ optional-value semantics through nullable `RenderBackend`

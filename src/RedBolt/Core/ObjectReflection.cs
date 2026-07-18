@@ -11,7 +11,7 @@ public static class ObjectReflection<T>
     public static StringHash TypeId { get; } = ClassName;
 }
 
-public sealed class ObjectReflection
+public sealed class ObjectReflection : IDisposable
 {
     private readonly List<AttributeInfo> _attributes = [];
     private readonly List<StringHash> _attributeNames = [];
@@ -122,7 +122,15 @@ public sealed class ObjectReflection
 
     public Variant GetMetadata(StringHash key) => _metadata.GetValueOrDefault(key);
 
-    public void SetMetadata(StringHash key, Variant value) => _metadata[key] = value;
+    public T GetMetadata<T>(StringHash key) => GetMetadata(key).Get<T>();
+
+    public void SetMetadata(StringHash key, Variant value)
+    {
+        var copy = value.Clone();
+        if (_metadata.Remove(key, out var previousValue))
+            previousValue.Dispose();
+        _metadata[key] = copy;
+    }
 
     public void SetScopeHint(AttributeScopeHint hint) => ScopeHint = hint;
 
@@ -142,6 +150,22 @@ public sealed class ObjectReflection
 
     public bool HasObjectFactory() => _factory is not null;
 
+    public void Dispose()
+    {
+        _attributeNames.Clear();
+        for (var i = _attributes.Count - 1; i >= 0; --i)
+            _attributes[i].Dispose();
+        _attributes.Clear();
+        foreach (var value in _metadata.Values)
+        {
+            var ownedValue = value;
+            ownedValue.Dispose();
+        }
+        _metadata.Clear();
+        _factory = null;
+        GC.SuppressFinalize(this);
+    }
+
     private static string GetClassName(Type type)
     {
         return type.GetClassName();
@@ -153,7 +177,7 @@ public sealed class ObjectReflection
     }
 }
 
-public class ObjectReflectionRegistry
+public class ObjectReflectionRegistry : IDisposable
 {
     private readonly Dictionary<StringHash, ObjectReflection> _reflections = [];
     private readonly Dictionary<string, List<StringHash>> _categories = new(StringComparer.Ordinal);
@@ -225,6 +249,7 @@ public class ObjectReflectionRegistry
         {
             RemoveReflectionFromCategory(reflection);
             ReflectionRemoved?.Invoke(reflection);
+            reflection.Dispose();
         }
         else
             Log.Logger.LogWarning("Reflection of object {TypeName} is not found", typeNameHash.ToDebugString());
@@ -242,6 +267,15 @@ public class ObjectReflectionRegistry
     public IReadOnlyDictionary<StringHash, ObjectReflection> GetObjectReflections() => _reflections;
 
     public IReadOnlyDictionary<string, List<StringHash>> GetObjectCategories() => _categories;
+
+    public virtual void Dispose()
+    {
+        _categories.Clear();
+        foreach (var reflection in _reflections.Values)
+            reflection.Dispose();
+        _reflections.Clear();
+        GC.SuppressFinalize(this);
+    }
 
     private void AddReflectionToCategory(ObjectReflection reflection)
     {

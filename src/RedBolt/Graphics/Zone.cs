@@ -1,40 +1,108 @@
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
 /// <summary>Component that describes global rendering properties.</summary>
 /// <remarks>
 /// </remarks>
-public sealed class Zone : Drawable
+public class Zone : Drawable
 {
-    public const float DefaultFogStart = 250.0f;
-    public const float DefaultFogEnd = 1000.0f;
-    public const float DefaultFogHeight = 0.0f;
-    public const float DefaultFogHeightScale = 0.5f;
+    private const float DefaultFogStart = 250.0f;
+    private const float DefaultFogEnd = 1000.0f;
+    private const float DefaultFogHeight = 0.0f;
+    private const float DefaultFogHeightScale = 0.5f;
 
-    public static readonly Vector3f DefaultBoundingBoxMin = new(-10.0f, -10.0f, -10.0f);
-    public static readonly Vector3f DefaultBoundingBoxMax = new(10.0f, 10.0f, 10.0f);
-    public static readonly Color DefaultAmbientColor = new(0.1f, 0.1f, 0.1f);
-    public static readonly Color DefaultFogColor = Color.Black;
+    private static readonly Vector3f DefaultBoundingBoxMin = new(-10.0f, -10.0f, -10.0f);
+    private static readonly Vector3f DefaultBoundingBoxMax = new(10.0f, 10.0f, 10.0f);
+    private static readonly Color DefaultAmbientColor = new(0.1f, 0.1f, 0.1f);
+    private static readonly Color DefaultFogColor = Color.Black;
 
-    private Texture? _zoneTexture;
-    private ResourceRef _zoneTextureAttribute = new(StringHash.Calculate("TextureCube"), string.Empty);
     private Matrix3x4 _inverseWorld = Matrix3x4.Identity;
     private bool _inverseWorldDirty = true;
-    private Color _ambientStartColor = DefaultAmbientColor;
-    private Color _ambientEndColor = DefaultAmbientColor;
+    private bool _heightFog;
+    private bool _override;
+    private bool _ambientGradient;
     private BoundingBox _lastWorldBoundingBox;
-    private Zone? _lastAmbientStartZone;
-    private Zone? _lastAmbientEndZone;
-    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedTextureLighting = new();
-    private readonly ThreadSafeCache<Vector3f> _cachedAmbientLighting = new();
-    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedAmbientAndBackgroundLighting = new();
+    private Color _ambientColor = DefaultAmbientColor;
+    private float _ambientBrightness = 1.0f;
+    private float _backgroundBrightness;
+    private bool _backgroundStatic;
+    private Color _ambientStartColor;
+    private Color _ambientEndColor;
+    private Color _fogColor = DefaultFogColor;
+    private float _fogStart = DefaultFogStart;
+    private float _fogEnd = DefaultFogEnd;
+    private float _fogHeight = DefaultFogHeight;
+    private float _fogHeightScale = DefaultFogHeightScale;
+    private int _priority;
+    private Texture? _zoneTexture;
+    private readonly WeakReference<Zone> _lastAmbientStartZone = new(null!);
+    private readonly WeakReference<Zone> _lastAmbientEndZone = new(null!);
     private readonly ThreadSafeCache<ReflectionProbeData> _reflectionProbeData = new();
+    private readonly ThreadSafeCache<Vector3f> _cachedAmbientLighting = new();
+    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedTextureLighting = new();
+    private readonly ThreadSafeCache<SphericalHarmonicsDot9> _cachedAmbientAndBackgroundLighting = new();
 
     public Zone()
         : base(DrawableFlags.Zone)
     {
-        SetLocalBoundingBox(new BoundingBox(DefaultBoundingBoxMin, DefaultBoundingBoxMax));
+        _boundingBox = new BoundingBox(DefaultBoundingBoxMin, DefaultBoundingBoxMax);
+
+        RegisterAttribute("Bounding Box Min", typeof(Vector3f), self => ((Zone)self)._boundingBox.Min,
+            (self, value) =>
+            {
+                var zone = (Zone)self;
+                zone._boundingBox.Min = (Vector3f)value!;
+                zone.MarkNodeDirty();
+            }, DefaultBoundingBoxMin);
+        RegisterAttribute("Bounding Box Max", typeof(Vector3f), self => ((Zone)self)._boundingBox.Max,
+            (self, value) =>
+            {
+                var zone = (Zone)self;
+                zone._boundingBox.Max = (Vector3f)value!;
+                zone.MarkNodeDirty();
+            }, DefaultBoundingBoxMax);
+        RegisterAttribute("Ambient Color", typeof(Color), self => ((Zone)self)._ambientColor,
+            (self, value) => ((Zone)self).SetAmbientColor((Color)value!), DefaultAmbientColor);
+        RegisterAttribute("Ambient Brightness", typeof(float), self => ((Zone)self)._ambientBrightness,
+            (self, value) => ((Zone)self).SetAmbientBrightness((float)value!), 1.0f);
+        RegisterAttribute("Background Brightness", typeof(float), self => ((Zone)self)._backgroundBrightness,
+            (self, value) => ((Zone)self).SetBackgroundBrightness((float)value!), 0.0f);
+        RegisterAttribute("Is Background Static", typeof(bool), self => ((Zone)self)._backgroundStatic,
+            (self, value) => ((Zone)self).SetBackgroundStatic(value is bool isStatic && isStatic), false);
+        RegisterAttribute("Fog Color", typeof(Color), self => ((Zone)self)._fogColor,
+            (self, value) => ((Zone)self).SetFogColor((Color)value!), DefaultFogColor);
+        RegisterAttribute("Fog Start", typeof(float), self => ((Zone)self)._fogStart,
+            (self, value) => ((Zone)self)._fogStart = (float)value!, DefaultFogStart);
+        RegisterAttribute("Fog End", typeof(float), self => ((Zone)self)._fogEnd,
+            (self, value) => ((Zone)self)._fogEnd = (float)value!, DefaultFogEnd);
+        RegisterAttribute("Fog Height", typeof(float), self => ((Zone)self)._fogHeight,
+            (self, value) => ((Zone)self)._fogHeight = (float)value!, DefaultFogHeight);
+        RegisterAttribute("Fog Height Scale", typeof(float), self => ((Zone)self)._fogHeightScale,
+            (self, value) => ((Zone)self)._fogHeightScale = (float)value!, DefaultFogHeightScale);
+        RegisterAttribute("Height Fog Mode", typeof(bool), self => ((Zone)self)._heightFog,
+            (self, value) => ((Zone)self)._heightFog = value is bool enabled && enabled, false);
+        RegisterAttribute("Override Mode", typeof(bool), self => ((Zone)self)._override,
+            (self, value) => ((Zone)self)._override = value is bool enabled && enabled, false);
+        RegisterAttribute("Ambient Gradient", typeof(bool), self => ((Zone)self)._ambientGradient,
+            (self, value) => ((Zone)self)._ambientGradient = value is bool enabled && enabled, false);
+        RegisterAttribute("Priority", typeof(int), self => ((Zone)self)._priority,
+            (self, value) =>
+            {
+                var zone = (Zone)self;
+                zone._priority = (int)value!;
+                zone.MarkNodeDirty();
+            }, 0);
+        RegisterAttribute("Zone Texture", typeof(ResourceRef), self => ((Zone)self).GetZoneTextureAttr(),
+            (self, value) => ((Zone)self).SetZoneTextureAttr((ResourceRef)value!),
+            new ResourceRef(ObjectReflection<TextureCube>.TypeId, string.Empty));
+        RegisterAttribute("Light Mask", typeof(uint), self => ((Zone)self).GetLightMask(),
+            (self, value) => ((Zone)self).SetLightMask((uint)value!), DefaultLightMask);
+        RegisterAttribute("Shadow Mask", typeof(uint), self => ((Zone)self).GetShadowMask(),
+            (self, value) => ((Zone)self).SetShadowMask((uint)value!), DefaultShadowMask);
+        RegisterAttribute("Zone Mask", typeof(uint), self => ((Zone)self).GetZoneMask(),
+            (self, value) => ((Zone)self).SetZoneMask((uint)value!), DefaultZoneMask);
     }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
@@ -43,134 +111,112 @@ public sealed class Zone : Drawable
             debug.AddBoundingBox(BoundingBox, Node.GetWorldTransform(), new Color(0.0f, 1.0f, 0.0f), depthTest);
     }
 
-    public Color AmbientColor { get; private set; } = DefaultAmbientColor;
-
-    public float AmbientBrightness { get; private set; } = 1.0f;
-
-    public float BackgroundBrightness { get; private set; }
-
-    public bool BackgroundStatic { get; private set; }
-
-    public Color FogColor { get; private set; } = DefaultFogColor;
-
-    public float FogStart { get; private set; } = DefaultFogStart;
-
-    public float FogEnd { get; private set; } = DefaultFogEnd;
-
-    public float FogHeight { get; private set; } = DefaultFogHeight;
-
-    public float FogHeightScale { get; private set; } = DefaultFogHeightScale;
-
-    public int Priority { get; private set; }
-
-    public bool HeightFog { get; private set; }
-
-    public bool Override { get; private set; }
-
-    public bool AmbientGradient { get; private set; }
-
     public void SetBoundingBox(BoundingBox box)
     {
-        SetLocalBoundingBox(box);
-        MarkZoneDirty();
+        _boundingBox = box;
+        OnMarkedDirty(GetNode()!);
     }
 
     public void SetAmbientColor(Color color)
     {
-        AmbientColor = color;
-        _ambientStartColor = color;
-        _ambientEndColor = color;
+        _ambientColor = color;
         MarkCachedAmbientDirty();
     }
 
-    public Color GetAmbientColor() => AmbientColor;
+    public Color GetAmbientColor() => _ambientColor;
 
     public void SetAmbientBrightness(float brightness)
     {
-        AmbientBrightness = brightness;
+        _ambientBrightness = brightness;
         MarkCachedAmbientDirty();
     }
 
-    public float GetAmbientBrightness() => AmbientBrightness;
+    public float GetAmbientBrightness() => _ambientBrightness;
 
     public void SetBackgroundBrightness(float brightness)
     {
-        BackgroundBrightness = brightness;
+        _backgroundBrightness = brightness;
         MarkCachedAmbientDirty();
     }
 
-    public float GetBackgroundBrightness() => BackgroundBrightness;
+    public float GetBackgroundBrightness() => _backgroundBrightness;
 
     public void SetBackgroundStatic(bool isStatic)
     {
-        BackgroundStatic = isStatic;
+        _backgroundStatic = isStatic;
     }
 
-    public bool IsBackgroundStatic() => BackgroundStatic;
+    public bool IsBackgroundStatic() => _backgroundStatic;
 
     public void SetFogColor(Color color)
     {
-        FogColor = color;
+        _fogColor = color;
         MarkCachedAmbientDirty();
     }
 
-    public Color GetFogColor() => FogColor;
+    public Color GetFogColor() => _fogColor;
 
     public void SetFogStart(float start)
     {
-        FogStart = Math.Max(start, 0.0f);
+        if (start < 0.0f)
+            start = 0.0f;
+
+        _fogStart = start;
     }
 
-    public float GetFogStart() => FogStart;
+    public float GetFogStart() => _fogStart;
 
     public void SetFogEnd(float end)
     {
-        FogEnd = Math.Max(end, 0.0f);
+        if (end < 0.0f)
+            end = 0.0f;
+
+        _fogEnd = end;
     }
 
-    public float GetFogEnd() => FogEnd;
+    public float GetFogEnd() => _fogEnd;
 
     public void SetFogHeight(float height)
     {
-        FogHeight = height;
+        _fogHeight = height;
     }
 
-    public float GetFogHeight() => FogHeight;
+    public float GetFogHeight() => _fogHeight;
 
     public void SetFogHeightScale(float scale)
     {
-        FogHeightScale = scale;
+        _fogHeightScale = scale;
     }
 
-    public float GetFogHeightScale() => FogHeightScale;
+    public float GetFogHeightScale() => _fogHeightScale;
 
     public void SetPriority(int priority)
     {
-        Priority = priority;
+        _priority = priority;
     }
 
-    public int GetPriority() => Priority;
+    public int GetPriority() => _priority;
 
     public void SetHeightFog(bool enable)
     {
-        HeightFog = enable;
+        _heightFog = enable;
     }
 
-    public bool GetHeightFog() => HeightFog;
+    public bool GetHeightFog() => _heightFog;
 
     public void SetOverride(bool enable)
     {
-        Override = enable;
+        _override = enable;
     }
 
-    public bool GetOverride() => Override;
+    public bool GetOverride() => _override;
 
     public void SetAmbientGradient(bool enable)
     {
-        AmbientGradient = enable;
+        _ambientGradient = enable;
     }
 
-    public bool GetAmbientGradient() => AmbientGradient;
+    public bool GetAmbientGradient() => _ambientGradient;
 
     public void SetZoneTexture(Texture? texture)
     {
@@ -186,18 +232,17 @@ public sealed class Zone : Drawable
 
     public void SetZoneTextureAttr(ResourceRef value)
     {
-        _zoneTextureAttribute = value;
         if (_zoneTexture is not null)
             _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
 
         var cache = GetSubsystem<ResourceCache>()!;
-        _zoneTexture = cache.GetResourceOrNull<Texture>(value.Name);
+        _zoneTexture = cache.GetResource(value.Type, value.Name) as Texture;
         UpdateZoneTextureSubscription();
         MarkCachedTextureDirty();
         MarkCachedAmbientDirty();
     }
 
-    public ResourceRef GetZoneTextureAttr() => _zoneTextureAttribute;
+    public ResourceRef GetZoneTextureAttr() => Resource.GetResourceRef(_zoneTexture, ObjectReflection<TextureCube>.TypeId);
 
     public StrongBox<ReflectionProbeData> GetReflectionProbe() => _reflectionProbeData.GetStorage();
 
@@ -205,7 +250,7 @@ public sealed class Zone : Drawable
     {
         if (_inverseWorldDirty)
         {
-            _inverseWorld = IsAttached ? BuildInverseWorldTransform() : Matrix3x4.Identity;
+            _inverseWorld = IsAttached ? Node.GetWorldTransform().Inverse : Matrix3x4.Identity;
             _inverseWorldDirty = false;
         }
 
@@ -214,10 +259,10 @@ public sealed class Zone : Drawable
 
     public Color GetAmbientStartColor()
     {
-        if (!AmbientGradient)
-            return AmbientColor;
+        if (!_ambientGradient)
+            return _ambientColor;
 
-        if (_lastAmbientStartZone is null)
+        if (!_lastAmbientStartZone.TryGetTarget(out _) || !_lastAmbientEndZone.TryGetTarget(out _))
             UpdateAmbientGradient();
 
         return _ambientStartColor;
@@ -225,10 +270,10 @@ public sealed class Zone : Drawable
 
     public Color GetAmbientEndColor()
     {
-        if (!AmbientGradient)
-            return AmbientColor;
+        if (!_ambientGradient)
+            return _ambientColor;
 
-        if (_lastAmbientEndZone is null)
+        if (!_lastAmbientStartZone.TryGetTarget(out _) || !_lastAmbientEndZone.TryGetTarget(out _))
             UpdateAmbientGradient();
 
         return _ambientEndColor;
@@ -240,10 +285,10 @@ public sealed class Zone : Drawable
     public void UpdateAmbientGradient()
     {
         // In case no neighbor zones are found, reset ambient start/end with own ambient color
-        _ambientStartColor = AmbientColor;
-        _ambientEndColor = AmbientColor;
-        _lastAmbientStartZone = this;
-        _lastAmbientEndZone = this;
+        _ambientStartColor = _ambientColor;
+        _ambientEndColor = _ambientColor;
+        _lastAmbientStartZone.SetTarget(this);
+        _lastAmbientEndZone.SetTarget(this);
 
         var octant = GetOctant();
         if (octant is null)
@@ -277,7 +322,7 @@ public sealed class Zone : Drawable
         if (bestZone is not null)
         {
             _ambientStartColor = bestZone.GetAmbientColor();
-            _lastAmbientStartZone = bestZone;
+            _lastAmbientStartZone.SetTarget(bestZone);
         }
 
         // Do the same for gradient end position
@@ -300,7 +345,7 @@ public sealed class Zone : Drawable
         if (bestZone is not null)
         {
             _ambientEndColor = bestZone.GetAmbientColor();
-            _lastAmbientEndZone = bestZone;
+            _lastAmbientEndZone.SetTarget(bestZone);
         }
     }
 
@@ -315,51 +360,71 @@ public sealed class Zone : Drawable
             var sh = new SphericalHarmonicsDot9();
             if (_zoneTexture is not null)
             {
-                var zoneImage = GetSubsystem<ResourceCache>()?.GetTempResource<ImageCube>(_zoneTexture.Name, false);
+                var zoneTextureName = _zoneTexture.Name;
+                var cache = GetSubsystem<ResourceCache>();
+                var zoneImage = !string.IsNullOrEmpty(zoneTextureName)
+                    ? cache?.GetTempResource<ImageCube>(zoneTextureName, false)
+                    : null;
                 if (zoneImage is not null)
                     sh = zoneImage.GetOrCreateSphericalHarmonics();
+                else
+                    Log.Logger.LogWarning(
+                        "Cannot extract spherical harmonics from Zone texture without corresponding resource in cache");
             }
 
             _cachedTextureLighting.Restore(sh);
         }
 
         if (_cachedAmbientLighting.IsInvalidated())
-            _cachedAmbientLighting.Restore((AmbientColor * AmbientBrightness).GammaToLinear().ToVector3());
+            _cachedAmbientLighting.Restore((_ambientColor * _ambientBrightness).GammaToLinear().ToVector3());
 
         if (_cachedAmbientAndBackgroundLighting.IsInvalidated())
         {
             var sh = _zoneTexture is not null
                 ? _cachedTextureLighting.Get()
-                : new SphericalHarmonicsDot9(FogColor.GammaToLinear());
-            sh *= BackgroundBrightness;
+                : new SphericalHarmonicsDot9(_fogColor.GammaToLinear());
+            sh *= _backgroundBrightness;
             sh += GetAmbientLighting();
             _cachedAmbientAndBackgroundLighting.Restore(sh);
         }
 
         if (_reflectionProbeData.IsInvalidated())
         {
-            var data = new ReflectionProbeData
-            {
-                ReflectionMap = _zoneTexture as TextureCube,
-                RoughnessToLodFactor = _zoneTexture is TextureCube textureCube
-                    ? MathF.Log2(textureCube.Width)
-                    : 1.0f
-            };
+            var data = new ReflectionProbeData();
+            data.ReflectionMap = _zoneTexture as TextureCube;
+            var renderer = GetSubsystem<Renderer>();
+            if (data.ReflectionMap is null && renderer is not null)
+                data.ReflectionMap = renderer.GetBlackCubeMap();
+            data.RoughnessToLodFactor = data.ReflectionMap is not null
+                ? MathF.Log2(data.ReflectionMap.Width)
+                : 1.0f;
             _reflectionProbeData.Restore(data);
         }
     }
 
     public bool IsInside(Vector3f point)
     {
-        var localPoint = IsAttached ? Node.WorldToLocal(point) : point;
+        var localPoint = GetInverseWorldTransform() * point;
         return BoundingBox.IsInside(localPoint) != Intersection.Outside;
     }
 
     protected internal override void OnMarkedDirty(Node node)
     {
+        var scene = Scene;
+        if (scene is not null && scene.IsThreadedUpdate())
+        {
+            scene.DelayedMarkedDirty(this);
+            return;
+        }
+
         base.OnMarkedDirty(node);
+
+        if (GetOctant() is { } octant)
+            octant.GetOctree()!.MarkZoneDirty(this);
+
         ClearDrawablesZone();
-        MarkZoneDirty();
+
+        _inverseWorldDirty = true;
     }
 
     protected override void OnWorldBoundingBoxUpdate()
@@ -367,14 +432,7 @@ public sealed class Zone : Drawable
         SetWorldBoundingBox(BoundingBox.Transformed(Node.GetWorldTransform()));
     }
 
-    private void MarkZoneDirty()
-    {
-        _inverseWorldDirty = true;
-        _ambientStartColor = AmbientColor;
-        _ambientEndColor = AmbientColor;
-        if (GetOctant() is { } octant)
-            octant.GetOctree()!.MarkZoneDirty(this);
-    }
+    private void MarkNodeDirty() => OnMarkedDirty(GetNode()!);
 
     private void MarkCachedAmbientDirty()
     {
@@ -419,15 +477,15 @@ public sealed class Zone : Drawable
                 else if ((drawableFlags & DrawableFlags.Zone) != 0)
                 {
                     var zone = (Zone)drawable;
-                    zone._lastAmbientStartZone = null;
-                    zone._lastAmbientEndZone = null;
+                    zone._lastAmbientStartZone.SetTarget(null!);
+                    zone._lastAmbientEndZone.SetTarget(null!);
                 }
             }
         }
 
         _lastWorldBoundingBox = currentWorldBoundingBox;
-        _lastAmbientStartZone = null;
-        _lastAmbientEndZone = null;
+        _lastAmbientStartZone.SetTarget(null!);
+        _lastAmbientEndZone.SetTarget(null!);
     }
 
     protected override void OnRemoveFromOctree()
@@ -437,21 +495,13 @@ public sealed class Zone : Drawable
 
     public override void Dispose()
     {
+        _reflectionProbeData.GetStorage().Value = default;
+        _lastAmbientEndZone.SetTarget(null!);
+        _lastAmbientStartZone.SetTarget(null!);
         if (_zoneTexture is not null)
             _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
+        _zoneTexture = null;
 
         base.Dispose();
-    }
-
-    private Matrix3x4 BuildInverseWorldTransform()
-    {
-        var origin = Node.WorldToLocal(Vector3f.Zero);
-        var xAxis = Node.WorldToLocal(Vector3f.Right) - origin;
-        var yAxis = Node.WorldToLocal(Vector3f.Up) - origin;
-        var zAxis = Node.WorldToLocal(Vector3f.Forward) - origin;
-        return new Matrix3x4(
-            xAxis.X, yAxis.X, zAxis.X, origin.X,
-            xAxis.Y, yAxis.Y, zAxis.Y, origin.Y,
-            xAxis.Z, yAxis.Z, zAxis.Z, origin.Z);
     }
 }

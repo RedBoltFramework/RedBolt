@@ -22,7 +22,7 @@ public readonly struct ContextEventSubscription : IDisposable
     }
 }
 
-public sealed class Context : ObjectReflectionRegistry, IDisposable
+public sealed class Context : ObjectReflectionRegistry
 {
     private sealed class StructEventSubscriptionBucket
     {
@@ -123,9 +123,10 @@ public sealed class Context : ObjectReflectionRegistry, IDisposable
         _nextSubscriptionId = 1;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         Reset();
+        base.Dispose();
     }
 
     public void InitializeEngineSubsystems(Engine engine)
