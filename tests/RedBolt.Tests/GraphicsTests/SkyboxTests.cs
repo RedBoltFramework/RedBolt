@@ -29,5 +29,51 @@ public sealed class SkyboxTests
         Assert.Null(skybox.GetImage());
         Assert.Equal(Intersection.Inside,
             skybox.GetWorldBoundingBox().IsInside(new Vector3f(50_000.0f, 0.0f, 0.0f)));
+        Assert.False(typeof(Skybox).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Skybox)));
+    }
+
+    [Fact]
+    public void Registration_and_camera_transform_lifetime_match_cpp()
+    {
+        var context = Context.Instance;
+        Skybox.RegisterObject(context);
+        using var reflected = Assert.IsType<Skybox>(context.CreateObject(ObjectReflection<Skybox>.TypeId));
+        Assert.Equal(ObjectCategory.Category_Geometry, context.GetReflection<Skybox>().Category);
+
+        var scene = new Scene();
+        var skyboxNode = scene.CreateChild("Skybox");
+        skyboxNode.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
+        var skybox = skyboxNode.CreateComponent<TestSkybox>();
+        skybox.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
+        skybox.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(10.0f, 20.0f, 30.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        var frame = new CommonFrameInfo { FrameNumber = 1, Camera = camera };
+
+        skybox.UpdateBatches(frame);
+
+        var firstTransform = skybox.GetBatches()[0].WorldTransform;
+        Assert.Equal(new Vector3f(11.0f, 22.0f, 33.0f), firstTransform[0].Translation);
+        Assert.Equal(1, skybox.NumCustomWorldTransforms);
+
+        skyboxNode.SetPosition(new Vector3f(2.0f, 3.0f, 4.0f));
+        skybox.UpdateBatches(frame);
+        Assert.Same(firstTransform, skybox.GetBatches()[0].WorldTransform);
+        Assert.Equal(new Vector3f(11.0f, 22.0f, 33.0f), firstTransform[0].Translation);
+
+        frame.FrameNumber = 2;
+        skybox.UpdateBatches(frame);
+        Assert.NotSame(firstTransform, skybox.GetBatches()[0].WorldTransform);
+        Assert.Equal(new Vector3f(12.0f, 23.0f, 34.0f), skybox.GetBatches()[0].WorldTransform[0].Translation);
+
+        skybox.Dispose();
+        Assert.Equal(0, skybox.NumCustomWorldTransforms);
+    }
+
+    private sealed class TestSkybox : Skybox
+    {
+        public int NumCustomWorldTransforms => _customWorldTransforms.Count;
     }
 }
