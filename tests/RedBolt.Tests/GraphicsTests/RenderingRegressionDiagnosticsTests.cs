@@ -111,7 +111,7 @@ public sealed class RenderingRegressionDiagnosticsTests
         var positionOffset = vertexBuffer.GetElementOffset(VertexElementSemantic.Position);
         Assert.NotEqual(uint.MaxValue, positionOffset);
 
-        var rawData = vertexBuffer.GetData().ToArray();
+        var rawData = vertexBuffer.GetShadowData().ToArray();
         var vertexSize = checked((int)vertexBuffer.GetVertexSize());
         var vertexCount = checked((int)vertexBuffer.GetVertexCount());
         var positions = new Vector3f[vertexCount];

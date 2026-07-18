@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Hardware vertex buffer.</summary>
-public sealed class VertexBuffer : PipelineStateTracker
+public class VertexBuffer : PipelineStateTracker
 {
     private sealed class VertexRawBuffer : RawBuffer
     {
@@ -27,14 +27,17 @@ public sealed class VertexBuffer : PipelineStateTracker
         sizeof(uint)
     ];
 
-    private byte[] _data = [];
     private VertexRawBuffer? _rawBuffer;
-    private List<VertexElement> _elements = [];
-    private uint _elementMask;
-    private string? _layoutSignature;
-    private bool _shadowedPending;
-    private string _debugName = string.Empty;
     private readonly DeviceObjectFlag _flags;
+    private string _debugName = string.Empty;
+    private string? _layoutSignature;
+
+    private uint _vertexCount;
+    private uint _vertexSize;
+    private List<VertexElement> _elements = [];
+    private ulong _elementHash;
+    private VertexMask _elementMask;
+    private bool _shadowedPending;
 
     public VertexBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
     {
@@ -42,40 +45,19 @@ public sealed class VertexBuffer : PipelineStateTracker
     }
 
     /// <summary>Whether is dynamic.</summary>
-    public bool IsDynamic { get; private set; }
-
-    /// <summary>Whether the buffer has CPU shadow data.</summary>
-    public bool Shadowed { get; private set; }
-
-    /// <summary>CPU-side buffer data.</summary>
-    public IReadOnlyList<byte> Data => _data;
-
-    /// <summary>Vertex elements.</summary>
-    public IReadOnlyList<VertexElement> Elements => _elements;
-
-    /// <summary>Legacy vertex element mask.</summary>
-    public uint ElementMask => _elementMask;
-
-    /// <summary>Number of vertices.</summary>
-    public uint VertexCount { get; private set; }
-
-    /// <summary>Vertex size.</summary>
-    public uint VertexSize { get; private set; }
-
-    /// <summary>Return buffer data.</summary>
-    public IReadOnlyList<byte> GetData() => _data;
+    public bool IsDynamic => (_rawBuffer?.GetFlags() & BufferFlag.Dynamic) != 0;
 
     /// <summary>Return vertex elements.</summary>
     public IReadOnlyList<VertexElement> GetElements() => _elements;
 
     /// <summary>Return legacy vertex element mask.</summary>
-    public uint GetElementMask() => _elementMask;
+    public VertexMask GetElementMask() => _elementMask;
 
     /// <summary>Return number of vertices.</summary>
-    public uint GetVertexCount() => VertexCount;
+    public uint GetVertexCount() => _vertexCount;
 
     /// <summary>Return vertex size in bytes.</summary>
-    public uint GetVertexSize() => VertexSize;
+    public uint GetVertexSize() => _vertexSize;
 
     /// <summary>Return vertex element, or null if it does not exist.</summary>
     public VertexElement? GetElement(VertexElementSemantic semantic, byte index = 0)
@@ -119,19 +101,20 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Return unpacked buffer data as count times element-count values, grouped by vertices.</summary>
     public IReadOnlyList<Vector4f> GetUnpackedData(uint start = 0, uint count = uint.MaxValue)
     {
-        if (start >= VertexCount || count == 0 || !Shadowed)
+        if (start >= _vertexCount || count == 0 || _rawBuffer?.IsShadowed() != true)
             return Array.Empty<Vector4f>();
 
         // Clamp count to vertex buffer size.
-        if (count == uint.MaxValue || unchecked(start + count) > VertexCount)
-            count = VertexCount - start;
+        if (count == uint.MaxValue || unchecked(start + count) > _vertexCount)
+            count = _vertexCount - start;
 
         var elementCount = _elements.Count;
         var result = new Vector4f[checked((int)(count * (uint)elementCount))];
         var destinationStride = checked((uint)(elementCount * Marshal.SizeOf<Vector4f>()));
         for (var i = 0; i < elementCount; ++i)
         {
-            UnpackVertexData(_data, VertexSize, _elements[i], start, count, result.AsSpan(i), destinationStride);
+            UnpackVertexData(_rawBuffer.GetShadowData(), _vertexSize, _elements[i], start, count,
+                result.AsSpan(i), destinationStride);
         }
 
         return result;
@@ -140,28 +123,20 @@ public sealed class VertexBuffer : PipelineStateTracker
     /// <summary>Set data in the buffer from unpacked data.</summary>
     public void SetUnpackedData(ReadOnlySpan<Vector4f> data, uint start = 0, uint count = uint.MaxValue)
     {
-        if (start >= VertexCount || count == 0)
+        if (start >= _vertexCount || count == 0)
             return;
 
         // Clamp count to vertex buffer size.
-        if (count == uint.MaxValue || unchecked(start + count) > VertexCount)
-            count = VertexCount - start;
+        if (count == uint.MaxValue || unchecked(start + count) > _vertexCount)
+            count = _vertexCount - start;
 
         var elementCount = _elements.Count;
         var sourceStride = checked((uint)(elementCount * Marshal.SizeOf<Vector4f>()));
-        var buffer = new byte[checked((int)(count * VertexSize))];
+        var buffer = new byte[checked((int)(count * _vertexSize))];
         for (var i = 0; i < elementCount; ++i)
-            PackVertexData(data[i..], sourceStride, buffer, VertexSize, _elements[i], 0, count);
+            PackVertexData(data[i..], sourceStride, buffer, _vertexSize, _elements[i], 0, count);
 
-        buffer.AsSpan().CopyTo(_data.AsSpan(checked((int)(start * VertexSize)), checked((int)(count * VertexSize))));
-        _rawBuffer?.UpdateRange(buffer, start * VertexSize, count * VertexSize);
-    }
-
-    /// <summary>Set data in the buffer from unpacked data.</summary>
-    public void SetUnpackedData(IEnumerable<Vector4f> data, uint start = 0, uint count = uint.MaxValue)
-    {
-        ArgumentNullException.ThrowIfNull(data);
-        SetUnpackedData(data.ToArray().AsSpan(), start, count);
+        _rawBuffer?.UpdateRange(buffer, start * _vertexSize, count * _vertexSize);
     }
 
     /// <summary>Return element with specified type and semantic from a vertex element list, or null if it does not exist.</summary>
@@ -299,7 +274,6 @@ public sealed class VertexBuffer : PipelineStateTracker
     public void SetShadowed(bool enable)
     {
         _shadowedPending = enable;
-        Shadowed = enable;
     }
 
     /// <summary>Set size and vertex elements and dynamic mode. Previous data will be lost.</summary>
@@ -308,16 +282,11 @@ public sealed class VertexBuffer : PipelineStateTracker
         ArgumentNullException.ThrowIfNull(elements);
 
         var elementList = elements.ToList();
-        UpdateOffsets(elementList);
-        VertexCount = vertexCount;
+        _vertexCount = vertexCount;
         _elements = elementList;
-        _elementMask = CalculateElementMask(elementList);
+        UpdateOffsets();
         _layoutSignature = null;
-        VertexSize = GetVertexSize(elementList);
-        IsDynamic = dynamic;
-        var size = checked((int)(vertexCount * VertexSize));
-        if (_data.Length != size)
-            _data = new byte[size];
+        var size = checked((int)(vertexCount * _vertexSize));
         MarkPipelineStateHashDirty();
 
         if (_rawBuffer is not null)
@@ -330,11 +299,13 @@ public sealed class VertexBuffer : PipelineStateTracker
             | (dynamic ? BufferFlag.Dynamic : BufferFlag.None);
         if (elementList.Count != 0 && elementList[0].StepRate != 0)
             flags |= BufferFlag.PerInstanceData;
-        return _rawBuffer.CreateBuffer(new RawBufferParams(
+        var success = _rawBuffer.CreateBuffer(new RawBufferParams(
             BufferType.Vertex,
             checked((uint)size),
-            VertexSize,
+            _vertexSize,
             flags));
+        _rawBuffer.SetDebugName(_debugName);
+        return success;
     }
 
     /// <summary>Set size and vertex elements and dynamic mode using a legacy element bitmask.</summary>
@@ -345,45 +316,66 @@ public sealed class VertexBuffer : PipelineStateTracker
     public bool SetSize(uint vertexCount, VertexMask elementMask, bool dynamic = false) =>
         SetSize(vertexCount, (uint)elementMask, dynamic);
 
-    /// <summary>Return whether is dynamic.</summary>
-    public bool IsDynamicBuffer() => IsDynamic;
-
     /// <summary>Return the underlying raw buffer.</summary>
     public RawBuffer? GetRawBuffer() => _rawBuffer;
 
+    /// <summary>Invalidate GPU data.</summary>
+    public virtual void Invalidate() => _rawBuffer?.Invalidate();
+
+    /// <summary>Restore GPU data if possible.</summary>
+    public virtual void Restore() => _rawBuffer?.Restore();
+
+    /// <summary>Destroy all GPU data on RenderDevice shutdown.</summary>
+    public virtual void Destroy() => _rawBuffer?.Destroy();
+
+    public RenderDevice? GetRenderDevice() => _rawBuffer?.GetRenderDevice();
+
+    public bool IsDataLost() => _rawBuffer?.IsDataLost() == true;
+
+    public void ClearDataLost() => _rawBuffer?.ClearDataLost();
+
+    /// <summary>Return CPU shadow data.</summary>
+    public byte[] GetShadowData() => _rawBuffer?.GetShadowData() ?? [];
+
+    public byte[] GetShadowDataShared() => _rawBuffer?.GetShadowData() ?? [];
+
     /// <summary>Map the buffer into CPU memory.</summary>
-    public Span<byte> Map() => Shadowed ? _data : Span<byte>.Empty;
+    public Span<byte> Map()
+    {
+        return _rawBuffer is not null ? _rawBuffer.Map() : Span<byte>.Empty;
+    }
 
     /// <summary>Unmap the buffer and upload modified data.</summary>
-    public void Unmap() => _rawBuffer?.Update(_data);
+    public void Unmap() => _rawBuffer?.Unmap();
 
     /// <summary>Update buffer data range without allocating.</summary>
     public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
-        data[..checked((int)size)].CopyTo(_data.AsSpan(checked((int)offset), checked((int)size)));
         _rawBuffer?.UpdateRange(data, offset, size);
     }
 
-    /// <summary>Set raw buffer data.</summary>
-    public void SetData(IEnumerable<byte> data)
+    /// <summary>Update buffer data.</summary>
+    public void Update(ReadOnlySpan<byte> data, uint size = 0)
     {
-        ArgumentNullException.ThrowIfNull(data);
-        SetData(data.ToArray().AsSpan());
+        _rawBuffer?.Update(data, size);
     }
 
-    /// <summary>Set raw buffer data.</summary>
-    public void SetData(ReadOnlySpan<byte> data)
-    {
-        _data = data.ToArray();
-        _rawBuffer?.Update(_data);
-    }
+    /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.</summary>
+    public void Resolve() => _rawBuffer?.Resolve();
 
-    /// <summary>Set raw buffer data.</summary>
-    public void SetData(byte[] data)
-    {
-        ArgumentNullException.ThrowIfNull(data);
-        SetData(data.AsSpan());
-    }
+    public BufferType GetBufferType() => _rawBuffer?.GetBufferType() ?? BufferType.Vertex;
+
+    public uint GetSize() => _rawBuffer?.GetSize() ?? 0;
+
+    public uint GetStride() => _rawBuffer?.GetStride() ?? 0;
+
+    public BufferFlag GetFlags() => _rawBuffer?.GetFlags() ?? BufferFlag.None;
+
+    public bool IsLocked() => _rawBuffer?.IsLocked() == true;
+
+    public bool IsShadowed() => _rawBuffer?.IsShadowed() == true;
+
+    public RedBolt.Bindings.Diligent.IBuffer? GetHandle() => _rawBuffer?.GetHandle();
 
     /// <summary>Return the managed input-layout signature.</summary>
     internal string GetLayoutSignature()
@@ -417,25 +409,33 @@ public sealed class VertexBuffer : PipelineStateTracker
 
     private void UpdateOffsets()
     {
-        UpdateOffsets(_elements);
-        VertexSize = GetVertexSize(_elements);
-        _elementMask = CalculateElementMask(_elements);
-    }
+        var elementOffset = 0u;
+        _elementHash = 0;
+        _elementMask = VertexMask.None;
 
-    private static uint CalculateElementMask(IEnumerable<VertexElement> elements)
-    {
-        var mask = 0u;
-        foreach (var element in elements)
+        var lowerHash = 0u;
+        var upperHash = 0u;
+        for (var i = 0; i < _elements.Count; ++i)
         {
-            for (var i = 0; i < GraphicsDefs.LegacyVertexElements.Length; ++i)
+            var element = _elements[i];
+            element.Offset = elementOffset;
+            _elements[i] = element;
+            elementOffset += TypeSizes[(int)element.Type];
+            CombineHash(ref upperHash, (uint)element.Type + 1u);
+            CombineHash(ref upperHash, (uint)element.Semantic + 1u);
+            CombineHash(ref lowerHash, element.Index);
+            CombineHash(ref lowerHash, element.StepRate);
+
+            for (var j = 0; j < GraphicsDefs.LegacyVertexElements.Length; ++j)
             {
-                var legacy = GraphicsDefs.LegacyVertexElements[i];
-                if (legacy.Type == element.Type && legacy.Semantic == element.Semantic && legacy.Index == element.Index)
-                    mask |= 1u << i;
+                var legacy = GraphicsDefs.LegacyVertexElements[j];
+                if (element.Type == legacy.Type && element.Semantic == legacy.Semantic && element.Index == legacy.Index)
+                    _elementMask |= (VertexMask)(1u << j);
             }
         }
 
-        return mask;
+        _elementHash = ((ulong)upperHash << 32) | lowerHash;
+        _vertexSize = elementOffset;
     }
 
     private static Vector4f ReadElement(ReadOnlySpan<byte> source, int offset, VertexElement element)
@@ -568,7 +568,7 @@ public sealed class VertexBuffer : PipelineStateTracker
 }
 
 /// <summary>Vertex Buffer of dynamic size. Resize policy is similar to standard vector.</summary>
-public sealed class DynamicVertexBuffer
+public class DynamicVertexBuffer : Object
 {
     private readonly VertexBuffer _vertexBuffer = new();
     private byte[] _shadowData = [];
@@ -577,6 +577,19 @@ public sealed class DynamicVertexBuffer
     private uint _vertexSize;
     private uint _numVertices;
     private uint _maxNumVertices;
+
+    /// <summary>Construct.</summary>
+    public DynamicVertexBuffer()
+    {
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _shadowData = [];
+        _vertexBuffer.Dispose();
+        base.Dispose();
+    }
 
     /// <summary>Initialize dynamic vertex buffer.</summary>
     public bool Initialize(uint vertexCount, IEnumerable<VertexElement> elements)

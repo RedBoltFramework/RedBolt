@@ -658,7 +658,7 @@ public sealed class Renderer : Object
         vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize((uint)(vertexData.Length / 3),
             [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
-        vertexBuffer.SetData(ToBytes(vertexData));
+        vertexBuffer.Update(ToBytes(vertexData));
 
         var indexBuffer = new IndexBuffer();
         indexBuffer.SetDebugName(name);

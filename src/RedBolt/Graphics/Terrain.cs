@@ -598,7 +598,7 @@ public class Terrain : Component
         if (_bakeLightmap)
             vertexMask |= VertexMask.TexCoord2;
 
-        if (vertexBuffer.GetVertexCount() != row * row || vertexBuffer.GetElementMask() != (uint)vertexMask)
+        if (vertexBuffer.GetVertexCount() != row * row || vertexBuffer.GetElementMask() != vertexMask)
             vertexBuffer.SetSize(row * row, vertexMask);
 
         var vertexStride = VertexBuffer.GetVertexSize(vertexMask);

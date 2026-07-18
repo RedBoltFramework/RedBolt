@@ -2066,7 +2066,7 @@ layout(std140) uniform Material
             if (geometry is null || vertexBuffer is null || material is null)
                 continue;
 
-            if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) == 0)
+            if ((vertexBuffer.GetElementMask() & VertexMask.Normal) == 0)
                 continue;
 
             var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
@@ -3954,7 +3954,7 @@ layout(std140) uniform Material
         var textureDefines = ComposeTextureDefines(material,
             stage == ShaderStage.Vertex ? pass.VertexTextureDefines : pass.PixelTextureDefines);
         var key = new ShaderDefinesKey(
-            vertexBuffer.GetElementMask(),
+            (uint)vertexBuffer.GetElementMask(),
             textureDefines,
             passDefines,
             usesAmbient,
@@ -3979,21 +3979,21 @@ layout(std140) uniform Material
         if (usesLighting && light is not null)
             AddLightDefines(defines, light);
 
-        if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Normal) != 0)
+        if ((vertexBuffer.GetElementMask() & VertexMask.Normal) != 0)
         {
             defines.Add("URHO3D_VERTEX_HAS_NORMAL");
             defines.Add("URHO3D_VERTEX_NORMAL_AVAILABLE");
         }
-        if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Tangent) != 0)
+        if ((vertexBuffer.GetElementMask() & VertexMask.Tangent) != 0)
         {
             defines.Add("URHO3D_VERTEX_HAS_TANGENT");
             defines.Add("URHO3D_VERTEX_TANGENT_AVAILABLE");
         }
-        if ((vertexBuffer.GetElementMask() & (uint)VertexMask.TexCoord1) != 0)
+        if ((vertexBuffer.GetElementMask() & VertexMask.TexCoord1) != 0)
             defines.Add("URHO3D_VERTEX_HAS_TEXCOORD0");
-        if ((vertexBuffer.GetElementMask() & (uint)VertexMask.TexCoord2) != 0)
+        if ((vertexBuffer.GetElementMask() & VertexMask.TexCoord2) != 0)
             defines.Add("URHO3D_VERTEX_HAS_TEXCOORD1");
-        if ((vertexBuffer.GetElementMask() & (uint)VertexMask.Color) != 0)
+        if ((vertexBuffer.GetElementMask() & VertexMask.Color) != 0)
             defines.Add("URHO3D_VERTEX_HAS_COLOR");
 
         if (!string.IsNullOrEmpty(textureDefines))

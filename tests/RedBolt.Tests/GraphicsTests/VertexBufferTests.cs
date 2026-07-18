@@ -3,6 +3,16 @@ namespace RedBolt.Tests.GraphicsTests;
 public sealed class VertexBufferTests
 {
     [Fact]
+    public void Buffer_types_match_cpp_noncopyable_reference_classes()
+    {
+        Assert.False(typeof(VertexBuffer).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(VertexBuffer)));
+        Assert.False(typeof(DynamicVertexBuffer).IsSealed);
+        Assert.True(typeof(Object).IsAssignableFrom(typeof(DynamicVertexBuffer)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(DynamicVertexBuffer)));
+    }
+
+    [Fact]
     public void Vertex_elements_are_layouted_and_unpacked_in_vertex_order()
     {
         var elements = new[]
@@ -12,9 +22,9 @@ public sealed class VertexBufferTests
             new VertexElement(VertexElementType.Vector2, VertexElementSemantic.TexCoord)
         };
         var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize(2, elements);
         Assert.NotNull(vertexBuffer.GetRawBuffer());
-        vertexBuffer.SetShadowed(true);
 
         vertexBuffer.SetUnpackedData(new[]
         {
@@ -27,7 +37,7 @@ public sealed class VertexBufferTests
         Assert.Equal(12u, vertexBuffer.GetElementOffset(VertexElementSemantic.Color));
         Assert.Equal(16u, vertexBuffer.GetElementOffset(VertexElementSemantic.TexCoord));
         Assert.True(vertexBuffer.HasElement(VertexElementType.Vector3, VertexElementSemantic.Position));
-        Assert.Equal(48, vertexBuffer.GetData().Count);
+        Assert.Equal(48, vertexBuffer.GetShadowData().Length);
 
         var unpacked = vertexBuffer.GetUnpackedData();
         Assert.Equal(6, unpacked.Count);
@@ -47,6 +57,47 @@ public sealed class VertexBufferTests
         Assert.True(VertexBuffer.HasElement(elements, VertexElementType.Vector3, VertexElementSemantic.Normal));
         Assert.Equal(12u, VertexBuffer.GetElementOffset(elements, VertexElementType.Vector3, VertexElementSemantic.Normal));
         Assert.Null(VertexBuffer.GetElement(elements, VertexElementType.Vector2, VertexElementSemantic.Normal));
+    }
+
+    [Fact]
+    public void SetSize_replaces_same_sized_shadow_storage_like_cpp_create()
+    {
+        using var vertexBuffer = new VertexBuffer(DeviceObjectFlag.Headless);
+        vertexBuffer.SetShadowed(true);
+        Assert.True(vertexBuffer.SetSize(1, VertexMask.Position));
+        var original = vertexBuffer.GetShadowData();
+
+        Assert.True(vertexBuffer.SetSize(1, VertexMask.Position));
+
+        Assert.NotSame(original, vertexBuffer.GetShadowData());
+    }
+
+    [Fact]
+    public void Raw_buffer_inheritance_is_forwarded_through_the_managed_composition()
+    {
+        using var vertexBuffer = new VertexBuffer(DeviceObjectFlag.Headless);
+        vertexBuffer.SetShadowed(true);
+        Assert.True(vertexBuffer.SetSize(2, VertexMask.Position));
+        var rawBuffer = vertexBuffer.GetRawBuffer()!;
+
+        Assert.Equal(rawBuffer.GetBufferType(), vertexBuffer.GetBufferType());
+        Assert.Equal(rawBuffer.GetSize(), vertexBuffer.GetSize());
+        Assert.Equal(rawBuffer.GetStride(), vertexBuffer.GetStride());
+        Assert.Equal(rawBuffer.GetFlags(), vertexBuffer.GetFlags());
+        Assert.Equal(rawBuffer.IsLocked(), vertexBuffer.IsLocked());
+        Assert.Equal(rawBuffer.IsShadowed(), vertexBuffer.IsShadowed());
+        Assert.Same(rawBuffer.GetShadowData(), vertexBuffer.GetShadowDataShared());
+        Assert.Same(rawBuffer.GetHandle(), vertexBuffer.GetHandle());
+        Assert.Same(rawBuffer.GetRenderDevice(), vertexBuffer.GetRenderDevice());
+
+        vertexBuffer.Resolve();
+        vertexBuffer.Invalidate();
+        Assert.Equal(rawBuffer.IsDataLost(), vertexBuffer.IsDataLost());
+        vertexBuffer.ClearDataLost();
+        Assert.False(vertexBuffer.IsDataLost());
+        vertexBuffer.Restore();
+        vertexBuffer.Destroy();
+        Assert.Empty(vertexBuffer.GetShadowData());
     }
 
     [Fact]
@@ -94,6 +145,6 @@ public sealed class VertexBufferTests
 
         Assert.Equal(0u, first.StartVertex);
         Assert.Equal(3u, dynamicBuffer.GetVertexCount());
-        Assert.Equal(36, dynamicBuffer.GetVertexBuffer().GetData().Count);
+        Assert.Equal(36, dynamicBuffer.GetVertexBuffer().GetShadowData().Length);
     }
 }

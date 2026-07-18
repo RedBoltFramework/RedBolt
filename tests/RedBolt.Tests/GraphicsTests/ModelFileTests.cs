@@ -141,7 +141,7 @@ public sealed class ModelFileTests
         var vertexBuffer = new VertexBuffer();
         vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize(3u, VertexMask.Position);
-        vertexBuffer.SetData(new byte[36]);
+        vertexBuffer.Update(new byte[36]);
         var indexBuffer = new IndexBuffer();
         indexBuffer.SetShadowed(true);
         indexBuffer.SetSize(3u);

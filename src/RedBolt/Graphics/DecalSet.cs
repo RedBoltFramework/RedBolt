@@ -863,7 +863,7 @@ public class DecalSet : Drawable
         var newVbSize = _optimizeBufferSize ? _numVertices : _maxVertices;
         var newIbSize = _optimizeBufferSize ? _numIndices : _maxIndices;
 
-        if (_vertexBuffer.GetElementMask() != (uint)newElementMask || _vertexBuffer.GetVertexCount() != newVbSize)
+        if (_vertexBuffer.GetElementMask() != newElementMask || _vertexBuffer.GetVertexCount() != newVbSize)
             _vertexBuffer.SetSize(newVbSize, newElementMask);
         if (_indexBuffer.GetIndexCount() != newIbSize)
             _indexBuffer.SetSize(newIbSize, false);

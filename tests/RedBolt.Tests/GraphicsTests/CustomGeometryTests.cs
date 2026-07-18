@@ -105,7 +105,7 @@ public sealed class CustomGeometryTests
         var vertexBuffer = custom.GetLodGeometry(0u, 0u)!.GetVertexBuffer(0u)!;
         Assert.Equal(5u, vertexBuffer.GetVertexCount());
         Assert.Equal(12u, vertexBuffer.GetVertexSize());
-        Assert.Equal(60, vertexBuffer.GetData().Count);
+        Assert.Equal(60, vertexBuffer.GetShadowData().Length);
     }
 
     [Fact]

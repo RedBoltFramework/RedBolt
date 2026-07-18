@@ -210,8 +210,8 @@ public sealed class CustomGeometry : Drawable
         }
 
         SetLocalBoundingBox(box);
-        if (_vertexBuffer.GetVertexCount() != totalVertices || _vertexBuffer.GetElementMask() != _elementMask ||
-            _vertexBuffer.IsDynamicBuffer() != _dynamic)
+        if (_vertexBuffer.GetVertexCount() != totalVertices || (uint)_vertexBuffer.GetElementMask() != _elementMask ||
+            _vertexBuffer.IsDynamic != _dynamic)
             _vertexBuffer.SetSize(totalVertices, _elementMask, _dynamic);
 
         if (totalVertices != 0)
@@ -237,7 +237,7 @@ public sealed class CustomGeometry : Drawable
                 }
             }
         }
-        // TODO: port _vertexBuffer.ClearDataLost() when VertexBuffer exposes DeviceObject data-loss state.
+        _vertexBuffer.ClearDataLost();
         SetNumGeometries((uint)_geometries.Count);
     }
 

@@ -620,9 +620,7 @@ public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
         vertexBuffer.SetSize((uint)Vertices.Count, vertexElements);
         vertexBuffer.SetUnpackedData(unpackedData);
 
-        var vertexData = vertexBuffer.GetData() as byte[];
-        if (vertexData is null)
-            return;
+        var vertexData = vertexBuffer.GetShadowData();
 
         var indexData = new byte[checked(Indices.Count * sizeof(uint))];
         Buffer.BlockCopy(Indices.ToArray(), 0, indexData, 0, indexData.Length);

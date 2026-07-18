@@ -20,14 +20,14 @@ public sealed class GeometryGpuTests
     public void VertexBuffer_cpu_metadata_works()
     {
         var vb = new VertexBuffer();
-        vb.SetSize(4, 12, dynamic: true);
         vb.SetShadowed(true);
-        vb.SetData(Enumerable.Range(0, 48).Select(v => (byte)v));
+        vb.SetSize(4, 12, dynamic: true);
+        vb.Update(Enumerable.Range(0, 48).Select(v => (byte)v).ToArray());
 
         Assert.Equal(4u, vb.GetVertexCount());
         Assert.Equal(12u, vb.GetVertexSize());
-        Assert.True(vb.Shadowed);
-        Assert.Equal(48, vb.GetData().Count);
+        Assert.True(vb.IsShadowed());
+        Assert.Equal(48, vb.GetShadowData().Length);
     }
 
     [Fact]

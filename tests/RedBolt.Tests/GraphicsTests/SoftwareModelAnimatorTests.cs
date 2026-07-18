@@ -54,12 +54,12 @@ public sealed class SoftwareModelAnimatorTests
 
         var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
         Assert.NotSame(originalBuffer, clonedBuffer);
-        Assert.Equal(new Vector3f(2.0f, 1.5f, 5.0f), Read<Vector3f>(clonedBuffer.Data, 0));
+        Assert.Equal(new Vector3f(2.0f, 1.5f, 5.0f), Read<Vector3f>(clonedBuffer.GetShadowData(), 0));
 
         animator.Dispose();
         Assert.Empty(animator.GetGeometries());
         Assert.Empty(animator.GetVertexBuffers());
-        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Read<Vector3f>(originalBuffer.Data, 0));
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Read<Vector3f>(originalBuffer.GetShadowData(), 0));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class SoftwareModelAnimatorTests
         Write(data, weightsOffset, new Vector4f(1.0f, 0.0f, 0.0f, 0.0f));
         var indicesOffset = checked((int)originalBuffer.GetElementOffset(VertexElementSemantic.BlendIndices));
         data[indicesOffset] = 0;
-        originalBuffer.SetData(data);
+        originalBuffer.Update(data);
         var model = new Model("Skinning");
         Assert.True(model.SetVertexBuffers([originalBuffer]));
         using var animator = new SoftwareModelAnimator();
@@ -91,7 +91,7 @@ public sealed class SoftwareModelAnimatorTests
         animator.Commit();
 
         var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
-        Assert.Equal(new Vector3f(3.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.Data, 0));
+        Assert.Equal(new Vector3f(3.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.GetShadowData(), 0));
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class SoftwareModelAnimatorTests
         data[indicesOffset + 1] = 1;
         data[indicesOffset + 2] = 2;
         data[indicesOffset + 3] = 3;
-        originalBuffer.SetData(data);
+        originalBuffer.Update(data);
         var model = new Model("ReducedSkinning");
         Assert.True(model.SetVertexBuffers([originalBuffer]));
         using var animator = new SoftwareModelAnimator();
@@ -126,7 +126,7 @@ public sealed class SoftwareModelAnimatorTests
         animator.Commit();
 
         var clonedBuffer = Assert.IsType<VertexBuffer>(Assert.Single(animator.GetVertexBuffers()));
-        Assert.Equal(new Vector3f(25.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.Data, 0));
+        Assert.Equal(new Vector3f(25.0f, 0.0f, 0.0f), Read<Vector3f>(clonedBuffer.GetShadowData(), 0));
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class SoftwareModelAnimatorTests
         Assert.True(buffer.SetSize(1, mask));
         var data = new byte[checked((int)buffer.GetVertexSize())];
         Write(data, 0, position);
-        buffer.SetData(data);
+        buffer.Update(data);
         return buffer;
     }
 

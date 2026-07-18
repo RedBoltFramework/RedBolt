@@ -92,7 +92,8 @@ public class SoftwareModelAnimator : Object
             var originalBuffer = originalVertexBuffers[i];
             var vertexStart = _skinned ? 0u : originalModel.GetMorphRangeStart((uint)i);
             var vertexCount = _skinned ? originalBuffer.GetVertexCount() : originalModel.GetMorphRangeCount((uint)i);
-            CopyMorphVertices(clonedBuffer.Map(), originalBuffer.Data, vertexStart, vertexCount, clonedBuffer, originalBuffer);
+            CopyMorphVertices(clonedBuffer.GetShadowData(), originalBuffer.GetShadowData(), vertexStart, vertexCount,
+                clonedBuffer, originalBuffer);
         }
     }
 
@@ -139,7 +140,7 @@ public class SoftwareModelAnimator : Object
         foreach (var clonedVertexBuffer in _vertexBuffers)
         {
             if (clonedVertexBuffer is not null)
-                clonedVertexBuffer.Unmap();
+                clonedVertexBuffer.Update(clonedVertexBuffer.GetShadowData());
         }
     }
 
@@ -231,9 +232,9 @@ public class SoftwareModelAnimator : Object
             clonedVertexBuffer.SetDebugName($"{originalVertexBuffer.GetDebugName()}: Animated Copy");
             clonedVertexBuffer.SetShadowed(true);
             clonedVertexBuffer.SetSize(originalVertexBuffer.GetVertexCount(), clonedBufferMask, true);
-            CopyMorphVertices(clonedVertexBuffer.Map(), originalVertexBuffer.Data, 0,
+            CopyMorphVertices(clonedVertexBuffer.GetShadowData(), originalVertexBuffer.GetShadowData(), 0,
                 originalVertexBuffer.GetVertexCount(), clonedVertexBuffer, originalVertexBuffer);
-            clonedVertexBuffer.Unmap();
+            clonedVertexBuffer.Update(clonedVertexBuffer.GetShadowData());
             originalToClonedMapping[originalVertexBuffer] = clonedVertexBuffer;
             _vertexBuffers[i] = clonedVertexBuffer;
         }
@@ -305,7 +306,7 @@ public class SoftwareModelAnimator : Object
             animationData.SkinTangents = clonedBuffer.HasElement(VertexElementSemantic.Tangent);
             animationData.BlendIndices = new byte[checked((int)(numVertices * _numBones))];
             animationData.BlendWeights = new float[checked((int)(numVertices * _numBones))];
-            var originalBufferData = originalBuffer.Data;
+            var originalBufferData = originalBuffer.GetShadowData();
 
             for (var vertexIndex = 0u; vertexIndex < numVertices; ++vertexIndex)
             {
@@ -395,7 +396,7 @@ public class SoftwareModelAnimator : Object
         var tangentOffset = buffer.GetElementOffset(VertexElementSemantic.Tangent);
         var vertexSize = buffer.GetVertexSize();
         var sourceData = morph.MorphData.AsSpan();
-        var destData = buffer.Map();
+        var destData = buffer.GetShadowData().AsSpan();
         var sourceOffset = 0;
 
         for (var i = 0u; i < morph.VertexCount; ++i)
@@ -438,7 +439,7 @@ public class SoftwareModelAnimator : Object
         var vertexSize = clonedBuffer.GetVertexSize();
         var normalOffset = clonedBuffer.GetElementOffset(VertexElementType.Vector3, VertexElementSemantic.Normal);
         var tangentOffset = clonedBuffer.GetElementOffset(VertexElementType.Vector4, VertexElementSemantic.Tangent);
-        var data = clonedBuffer.Map();
+        var data = clonedBuffer.GetShadowData().AsSpan();
 
         for (var vertexIndex = 0u; vertexIndex < clonedBuffer.GetVertexCount(); ++vertexIndex)
         {

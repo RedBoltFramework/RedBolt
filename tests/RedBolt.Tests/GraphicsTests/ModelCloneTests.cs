@@ -12,7 +12,7 @@ public sealed class ModelCloneTests
         vertexBuffer.SetDebugName("Vertices");
         vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize(3u, [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
-        vertexBuffer.SetData(new byte[36]);
+        vertexBuffer.Update(new byte[36]);
 
         var indexBuffer = new IndexBuffer();
         indexBuffer.SetDebugName("Indices");

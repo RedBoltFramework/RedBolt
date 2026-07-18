@@ -49,7 +49,7 @@ public sealed class AnimatedModelTests
         var vertexBuffer = new VertexBuffer();
         vertexBuffer.SetShadowed(true);
         Assert.True(vertexBuffer.SetSize(1, VertexMask.Position));
-        vertexBuffer.SetData(new byte[vertexBuffer.GetVertexSize()]);
+        vertexBuffer.Update(new byte[vertexBuffer.GetVertexSize()]);
         var model = new Model("Morph");
         Assert.True(model.SetVertexBuffers([vertexBuffer], [0u], [1u]));
         var morph = new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") };

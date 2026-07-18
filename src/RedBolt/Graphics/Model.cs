@@ -585,7 +585,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 Log.Logger.LogError("Null model vertex buffers specified");
                 return false;
             }
-            if (!buffer.Shadowed)
+            if (!buffer.IsShadowed())
             {
                 Log.Logger.LogError("Model vertex buffers must be shadowed");
                 return false;
@@ -699,10 +699,10 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         {
             var cloneBuffer = new VertexBuffer();
             cloneBuffer.SetDebugName(originalBuffer.GetDebugName());
-            cloneBuffer.SetShadowed(originalBuffer.Shadowed);
-            cloneBuffer.SetSize(originalBuffer.VertexCount, originalBuffer.Elements, originalBuffer.IsDynamic);
-            if (originalBuffer.Shadowed)
-                cloneBuffer.SetData(originalBuffer.GetRawBuffer()!.GetShadowData());
+            cloneBuffer.SetShadowed(originalBuffer.IsShadowed());
+            cloneBuffer.SetSize(originalBuffer.GetVertexCount(), originalBuffer.GetElements(), originalBuffer.IsDynamic);
+            if (originalBuffer.IsShadowed())
+                cloneBuffer.Update(originalBuffer.GetShadowData());
             else
                 Log.Logger.LogError("Failed to read original vertex buffer");
             vertexBufferMapping[originalBuffer] = cloneBuffer;
