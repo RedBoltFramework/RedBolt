@@ -2977,7 +2977,7 @@ layout(std140) uniform Material
         var gpuVertexBuffer = GetVertexBufferHandle(vertexBuffer);
         var gpuIndexBuffer = GetIndexBufferHandle(indexBuffer);
         var drawIndexedAttribs = new DrawIndexedAttribs(geometry.GetIndexCount(),
-            indexBuffer.LargeIndices ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32 : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
+            indexBuffer.GetIndexSize() == 4 ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32 : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
             DrawFlags.DrawFlagVerifyAll,
             _FirstIndexLocation: geometry.GetIndexStart());
 
@@ -4532,7 +4532,7 @@ layout(std140) uniform Material
     private static IBuffer CreateIndexBuffer(IRenderDevice device, IDeviceContext immediateContext, IndexBuffer indexBuffer, uint[] indices)
     {
         byte[] data;
-        if (indexBuffer.LargeIndices)
+        if (indexBuffer.GetIndexSize() == 4)
         {
             data = new byte[indices.Length * sizeof(uint)];
             Buffer.BlockCopy(indices, 0, data, 0, data.Length);

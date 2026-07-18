@@ -25,6 +25,13 @@ public abstract class DeviceObject : Object
         }
     }
 
+    public override void Dispose()
+    {
+        _renderDevice?.RemoveDeviceObject(this);
+        _renderDevice = null;
+        base.Dispose();
+    }
+
     public DeviceObjectFlag Flags { get; }
 
     /// <summary>

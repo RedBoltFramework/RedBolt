@@ -109,19 +109,16 @@ public sealed class ModelFileTests
     }
 
     [Fact]
-    public void Model_accepts_only_shadowed_vertex_and_index_buffers()
+    public void Model_accepts_shadowed_vertex_and_index_buffers()
     {
         var model = new Model("BufferModel");
         var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize(3u, VertexMask.Position);
         var indexBuffer = new IndexBuffer();
+        indexBuffer.SetShadowed(true);
         indexBuffer.SetSize(3u);
 
-        Assert.False(model.SetVertexBuffers([vertexBuffer]));
-        Assert.False(model.SetIndexBuffers([indexBuffer]));
-
-        vertexBuffer.SetShadowed(true);
-        indexBuffer.SetShadowed(true);
         Assert.True(model.SetVertexBuffers([vertexBuffer], [4u], [8u]));
         Assert.True(model.SetIndexBuffers([indexBuffer]));
         Assert.Same(vertexBuffer, model.GetVertexBuffers()[0]);

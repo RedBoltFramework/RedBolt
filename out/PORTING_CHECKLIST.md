@@ -138,6 +138,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 
+- [~] `DeviceObject.h` / `DeviceObject.cpp` — destructor unregisters from `RenderDevice` deterministically; complete class-wide lifetime/copy audit remains pending
+
 ## [x] A8. Shader — depends on Core, IO (feeds Graphics)
 
 ## [~] A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
@@ -146,7 +148,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `Animation.h` / `Animation.cpp` — constructor/factory and owned trigger/track teardown reconciled; trigger, transform-track, and variant-track copies are independent, while final closure depends on ResourceWithMetadata, Variant call sites, and AnimationController pointer mapping
 - [~] `AnimationController.h` / `AnimationController.cpp` — constructor, controller-owned teardown, animation-instance value copies, deferred state synchronization, model/bone track connection, renderer statistics, and attribute subspan serialization reconciled; final lifetime/copy closure depends on AnimationStateSource/AnimationState, Variant, Skeleton/Bone, AnimatedModel, and borrowed trigger-pointer audits
 - [x] `AnimationParameters` in `AnimationController.h` / `AnimationController.cpp` — all constructors, implicit field teardown, independent wrapped-time copies, borrowed animation aliases, fluent helpers, delayed removal, and variant/binary serialization reconciled
-- [~] `BillboardSet.h` / `BillboardSet.cpp` — constructor defaults, billboard value storage and mutable references, derived resource teardown, and non-copyable component semantics reconciled; final ownership closure depends on pending IndexBuffer and VertexBuffer audits
+- [~] `BillboardSet.h` / `BillboardSet.cpp` — constructor defaults, billboard value storage and mutable references, derived resource teardown, and non-copyable component semantics reconciled; final ownership closure depends on the pending VertexBuffer audit
 - [x] `Camera.h` / `Camera.cpp` — non-copyable component semantics, value-owned projection/view/frustum caches, weak Graphics observation, borrowed Zone ownership, and default derived destruction reconciled
 - [x] `CameraOperator.h` / `CameraOperator.cpp` — weak tracked-node ownership, value-owned serialization and point caches, listener registration/removal, and default derived destruction reconciled
 - [x] `CubemapRenderer.h` / `CubemapRenderer.cpp` — weak scene and texture observations, independent parameter value copies, shared pipeline-state aliases, non-copyable object semantics, and managed temporary-camera teardown reconciled
@@ -164,7 +166,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `GraphicsEvents.h` — all 16 event payload shapes and value/borrowed-pointer semantics, render-surface/texture sender selection, default and stereo view event ordering, and frame-level versus per-view rendering boundaries reconciled
 - [x] `GraphicsUtils.h` / `GraphicsUtils.cpp` — fixed-capacity vertex-buffer/input-layout temporaries, borrowed geometry and resource aliases, draw-queue binding, backup-texture propagation, and null-texture diagnostics reconciled
 - [x] `Image::Save`, `Image::SavePNG`, and `Image::SaveBMP` in `Image.h` / `Image.cpp` — non-source `ImageFileWriter` removed; generated stb encoding, original component count, compressed/empty guards, and deterministic native PNG-buffer release reconciled (complete `Image` class audit remains pending)
-
+- [x] `IndexBuffer.h` / `IndexBuffer.cpp` — stable composed RawBuffer identity, device flags, pending shadow state, raw shadow-data access, offset-correct pack/update flow, pipeline hash, dynamic growth/commit behavior, and deterministic owned-buffer teardown reconciled
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 

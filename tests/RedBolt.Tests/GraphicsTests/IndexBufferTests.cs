@@ -37,9 +37,8 @@ public sealed class IndexBufferTests
     public void Shadow_data_supports_partial_updates_and_used_vertex_range()
     {
         var indexBuffer = new IndexBuffer();
-        indexBuffer.SetSize(5, largeIndices: false);
-        Assert.NotNull(indexBuffer.GetRawBuffer());
         indexBuffer.SetShadowed(true);
+        indexBuffer.SetSize(5, largeIndices: false);
         indexBuffer.SetUnpackedData(new uint[] { 4, 7 }, start: 1, count: 2);
 
         Assert.Equal(new uint[] { 0, 4, 7, 0, 0 }, indexBuffer.GetUnpackedData());
@@ -47,6 +46,22 @@ public sealed class IndexBufferTests
         Assert.Equal(4u, minVertex);
         Assert.Equal(4u, vertexCount);
         Assert.False(indexBuffer.GetUsedVertexRange(4, 2, out _, out _));
+    }
+
+    [Fact]
+    public void Set_size_recreates_the_same_raw_buffer()
+    {
+        var indexBuffer = new IndexBuffer();
+        var rawBuffer = indexBuffer.GetRawBuffer();
+
+        Assert.True(indexBuffer.SetSize(3, largeIndices: false));
+        Assert.True(indexBuffer.SetSize(6, largeIndices: true, dynamic: true));
+
+        Assert.Same(rawBuffer, indexBuffer.GetRawBuffer());
+        Assert.Equal(6u, indexBuffer.GetIndexCount());
+        Assert.Equal(4u, indexBuffer.GetIndexSize());
+        Assert.Equal((uint)BufferFlag.Shadowed,
+            (uint)(indexBuffer.GetRawBuffer().GetFlags() & BufferFlag.Shadowed));
     }
 
     [Fact]

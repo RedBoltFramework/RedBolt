@@ -65,7 +65,7 @@ public sealed class GeometryGpuTests
     }
 
     [Fact]
-    public void Geometry_draw_range_preserves_vertex_fallback_without_index_shadow_data()
+    public void Geometry_draw_range_uses_forced_headless_index_shadow_data()
     {
         var vb = new VertexBuffer();
         vb.SetSize(4, 12, dynamic: true);
@@ -78,7 +78,7 @@ public sealed class GeometryGpuTests
 
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 6));
         Assert.Equal(0u, geometry.GetVertexStart());
-        Assert.Equal(4u, geometry.GetVertexCount());
+        Assert.Equal(1u, geometry.GetVertexCount());
     }
 
     [Fact]

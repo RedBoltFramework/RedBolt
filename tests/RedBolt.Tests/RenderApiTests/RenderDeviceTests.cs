@@ -524,6 +524,34 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void Device_object_dispose_unregisters_from_render_device()
+    {
+        var previousContext = Context.Instance;
+        var deviceObject = default(TrackingDeviceObject);
+
+        try
+        {
+            using var engine = new EngineHandle();
+            engine.Engine.Initialize(new EngineParameters
+            {
+                ApplicationName = "RenderDeviceTests",
+                Headless = true,
+                RenderBackend = RenderBackend.OpenGL
+            });
+
+            deviceObject = new TrackingDeviceObject();
+            deviceObject.Dispose();
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+
+        Assert.NotNull(deviceObject);
+        Assert.Equal(0, deviceObject.DestroyCalls);
+    }
+
+    [Fact]
     public void Render_device_exposes_separate_device_state_lifecycle()
     {
         var previousContext = Context.Instance;
