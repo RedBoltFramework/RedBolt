@@ -33,4 +33,19 @@ public sealed class LightBakingSettingsTests
         Assert.Equal(6u, indirect.MaxBounces);
         Assert.Equal(8u, IndirectLightTracingSettings.MaximumBounces);
     }
+
+    [Fact]
+    public void Aggregated_settings_copy_independently()
+    {
+        var source = new LightBakingSettings();
+        var copy = source;
+
+        copy.Charting.LightmapSize = 1024;
+        copy.Incremental.OutputDirectory = "Baked";
+
+        Assert.Equal(512u, source.Charting.LightmapSize);
+        Assert.Equal(string.Empty, source.Incremental.OutputDirectory);
+        Assert.Equal(1024u, copy.Charting.LightmapSize);
+        Assert.Equal("Baked", copy.Incremental.OutputDirectory);
+    }
 }

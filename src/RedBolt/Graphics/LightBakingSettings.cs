@@ -10,6 +10,8 @@ public struct LightmapChartingSettings
     /// <summary>Texel density in texels per Scene unit.</summary>
     public float TexelDensity = 10.0f;
     /// <summary>Minimal scale of object lightmaps.</summary>
+    /// <remarks>Values below 1 may cause lightmap bleeding due to insufficient padding.
+    /// Values above 0 may cause inconsistent lightmap density if object scale is too small.</remarks>
     public float MinObjectScale = 1.0f;
     /// <summary>Default chart size for models w/o metadata. Don't rely on it.</summary>
     public uint DefaultChartSize = 16;
@@ -72,10 +74,12 @@ public struct DirectLightTracingSettings
     /// <summary>Max number of samples per element.</summary>
     public uint MaxSamples = 10;
 
+    /// <summary>Construct default.</summary>
     public DirectLightTracingSettings()
     {
     }
 
+    /// <summary>Construct for given max samples.</summary>
     public DirectLightTracingSettings(uint maxSamples)
         : this()
     {
@@ -100,10 +104,12 @@ public struct IndirectLightTracingSettings
     /// <summary>Constant position bias in direction of face normal after hit.</summary>
     public float ConstPositionBounceBias = 0.0f;
 
+    /// <summary>Construct default.</summary>
     public IndirectLightTracingSettings()
     {
     }
 
+    /// <summary>Construct for given max samples and bounces.</summary>
     public IndirectLightTracingSettings(uint maxSamples, uint maxBounces)
         : this()
     {
