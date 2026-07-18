@@ -229,7 +229,8 @@ public sealed class RendererTests
             Assert.NotNull(blackCubeMap);
             Assert.Equal(new Vector2i(1, 1), blackCubeMap.GetSize());
             Assert.Equal(TextureFilterMode.Nearest, blackCubeMap.GetFilterMode());
-            Assert.Equal(new byte[] { 0, 0, 0, 255 }, blackCubeMap.GetData(CubeMapFace.PositiveX, 0));
+            var data = new byte[4];
+            Assert.False(blackCubeMap.GetData(CubeMapFace.PositiveX, 0, data));
         }
     }
 

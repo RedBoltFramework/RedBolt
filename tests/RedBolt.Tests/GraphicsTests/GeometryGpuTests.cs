@@ -127,7 +127,7 @@ public sealed class GeometryGpuTests
         Assert.True(tex.SetSize(2, TextureFormat.RGBA8));
         Assert.True(tex.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2,
             Enumerable.Repeat((byte)7, 16).ToArray()));
-        Assert.Equal(16, tex.GetData(CubeMapFace.PositiveX, 0u)?.Length);
+        Assert.False(tex.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
     }
 
     [Fact]

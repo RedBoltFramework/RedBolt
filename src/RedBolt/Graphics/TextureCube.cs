@@ -15,18 +15,28 @@ public enum CubeMapFace
 /// <summary>
 /// Cube texture resource.
 /// </summary>
-public sealed class TextureCube : Texture
+public class TextureCube : Texture
 {
-    private readonly Dictionary<(CubeMapFace Face, uint Level), byte[]> _faceData = new();
+    // Face image files acquired during BeginLoad.
     private ImageCube? _loadImageCube;
 
+    /// <summary>
+    /// Construct.
+    /// </summary>
     public TextureCube(string name)
         : base(name)
     {
-        SetFilterMode(TextureFilterMode.Bilinear);
-        SetAddressMode(TextureCoordinate.U, TextureAddressMode.Clamp);
-        SetAddressMode(TextureCoordinate.V, TextureAddressMode.Clamp);
-        SetAddressMode(TextureCoordinate.W, TextureAddressMode.Clamp);
+        SetSamplerStateDesc(SamplerStateDesc.Bilinear(TextureAddressMode.Clamp));
+    }
+
+    /// <summary>
+    /// Destruct.
+    /// </summary>
+    public override void Dispose()
+    {
+        _loadImageCube?.Dispose();
+        _loadImageCube = null;
+        base.Dispose();
     }
 
     protected override TextureType GetRawTextureType() => TextureType.TextureCube;
@@ -45,22 +55,26 @@ public sealed class TextureCube : Texture
     /// </summary>
     public override bool BeginLoad(Stream source)
     {
-        ArgumentNullException.ThrowIfNull(source);
-
+        var cache = GetSubsystem<ResourceCache>()!;
         var graphics = GetSubsystem<Graphics>();
+
         // In headless mode, do not actually load the texture, just return success.
         if (graphics?.GetNativeRenderDevice() is null)
             return true;
 
-        _loadImageCube = new ImageCube(Name)
-        {
-            OwnerCache = OwnerCache
-        };
-        _loadImageCube.SetAbsoluteFileName(AbsoluteFileName);
-        if (!_loadImageCube.Load(source))
-        {
-            _loadImageCube = null;
+        cache.ResetDependencies(this);
+
+        // Load resource.
+        _loadImageCube?.Dispose();
+        _loadImageCube = cache.GetTempResource<ImageCube>(Name);
+        if (_loadImageCube is null)
             return false;
+
+        // Update dependencies.
+        foreach (var image in _loadImageCube.GetImages())
+        {
+            if (image is not null && !string.IsNullOrEmpty(image.Name))
+                cache.StoreResourceDependency(this, image.Name);
         }
 
         return true;
@@ -75,40 +89,31 @@ public sealed class TextureCube : Texture
         if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
             return true;
 
-        if (_loadImageCube is null)
-            return false;
+        // If over the texture budget, see if materials can be freed to allow textures to be freed.
+        CheckTextureBudget(typeof(TextureCube).GetTypeId());
 
-        SetParameters(_loadImageCube.GetParametersXML());
+        SetParameters(_loadImageCube!.GetParametersXML());
+
         var images = _loadImageCube.GetImages();
         for (var i = 0; i < images.Count && i < (int)CubeMapFace.MaxCubeMapFaces; ++i)
             SetData((CubeMapFace)i, images[i]);
 
+        _loadImageCube.Dispose();
         _loadImageCube = null;
+
         return true;
     }
 
     /// <summary>
     /// Set size, format, usage and multisampling parameter for rendertargets. Note that cube textures always use autoresolve when multisampled due to lacking support (on all APIs) to multisample them in a shader. Return true if successful.
     /// </summary>
-    public bool SetSize(int size, TextureFormat format, int multiSample = 1)
-    {
-        return SetSize(size, format, TextureFlag.None, multiSample);
-    }
-
-    public bool SetSize(int size, TextureFormat format, int multiSample, bool noMultiSampledAutoResolve)
-    {
-        _ = noMultiSampledAutoResolve;
-        return SetSize(size, format, TextureFlag.None, multiSample);
-    }
-
-    public bool SetSize(int size, TextureFormat format, TextureFlag flags, int multiSample = 1)
+    public bool SetSize(int size, TextureFormat format, TextureFlag flags = TextureFlag.None, int multiSample = 1)
     {
         if (size <= 0)
             return false;
 
-        SetDimensions(size, size, 1, format, multiSample, false, flags);
-        _faceData.Clear();
-        RefreshTotalMemoryUse();
+        SetDimensions(size, size, 1, format, multiSample,
+            (flags & TextureFlag.NoMultiSampledAutoResolve) != 0, flags);
         return true;
     }
 
@@ -117,55 +122,20 @@ public sealed class TextureCube : Texture
     /// </summary>
     public bool SetData(CubeMapFace face, uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        if (face >= CubeMapFace.MaxCubeMapFaces || level >= Levels || x < 0 || y < 0 || width <= 0 || height <= 0)
-            return false;
-
-        var levelSize = GetLevelWidth(level);
-        if (x + width > levelSize || y + height > levelSize)
-            return false;
-
-        var bytesPerPixel = (int)GetComponents();
-        if (bytesPerPixel == 0)
-            return false;
-
-        var expected = checked(width * height * bytesPerPixel);
-        if (data.Length != expected)
-            return false;
-
-        var key = (face, level);
-        if (!_faceData.TryGetValue(key, out var levelBytes))
-        {
-            levelBytes = new byte[checked(levelSize * levelSize * bytesPerPixel)];
-            _faceData[key] = levelBytes;
-        }
-
-        for (var row = 0; row < height; ++row)
-        {
-            var sourceOffset = row * width * bytesPerPixel;
-            var destinationOffset = ((y + row) * levelSize + x) * bytesPerPixel;
-            data.Slice(sourceOffset, width * bytesPerPixel).CopyTo(levelBytes.AsSpan(destinationOffset, width * bytesPerPixel));
-        }
-
         GetRawTexture()?.Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), (uint)face, data);
-
-        RefreshTotalMemoryUse();
         return true;
     }
-
-    public bool SetData(CubeMapFace face, uint level, int x, int y, int width, int height, byte[] data) => SetData(face, level, x, y, width, height, data.AsSpan());
 
     /// <summary>
     /// Set data of one face from a stream. Return true if successful.
     /// </summary>
     public bool SetData(CubeMapFace face, Stream source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        using var image = new Image($"{Name}#{face}");
+        if (!image.Load(source))
+            return false;
 
-        var image = new Image($"{Name}#{face}")
-        {
-            OwnerCache = OwnerCache
-        };
-        return image.Load(source) && SetData(face, image);
+        return SetData(face, image);
     }
 
     /// <summary>
@@ -173,63 +143,24 @@ public sealed class TextureCube : Texture
     /// </summary>
     public bool SetData(CubeMapFace face, Image? image)
     {
-        if (face >= CubeMapFace.MaxCubeMapFaces || image is null)
-            return false;
-
         if (face == CubeMapFace.PositiveX)
         {
-            var maxLevels = image.IsCompressed()
-                ? Math.Max(image.NumCompressedLevels, 1u)
-                : CalculateFullMipChainLength(Math.Max(image.Width, image.Height));
-            _mostDetailedLevel = Math.Min((uint)GetMipsToSkip(MaterialQuality.High), maxLevels - 1u);
-            var levels = _requestedLevels == 0
-                ? maxLevels - _mostDetailedLevel
-                : Math.Min(_requestedLevels, maxLevels - _mostDetailedLevel);
-            var baseLevel = image.GetDecompressedImageLevel(_mostDetailedLevel);
-            if (baseLevel is null)
-                return false;
-
-            if (!SetSize(baseLevel.Width, TextureFormat.RGBA8))
-                return false;
-            Levels = levels;
-        }
-        else if (Width == 0)
-            return false;
-
-        for (var level = 0u; level < Levels; ++level)
-        {
-            var mipImage = image.GetDecompressedImageLevel(_mostDetailedLevel + level);
-            if (mipImage is null)
-                return false;
-
-            if (!SetData(face, level, 0, 0, mipImage.Width, mipImage.Height, mipImage.GetData()))
+            var parameters = new RawTextureParams(
+                TextureType.TextureCube, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+                NumLevels: _requestedLevels);
+            if (!CreateForImage(parameters, image))
                 return false;
         }
 
-        return true;
+        return UpdateFromImage((uint)face, image);
     }
 
     /// <summary>
     /// Get data from a face's mip level. The destination buffer must be big enough. Return true if successful.
     /// </summary>
-    public byte[]? GetData(CubeMapFace face, uint level)
-    {
-        return _faceData.TryGetValue((face, level), out var bytes) ? bytes.ToArray() : null;
-    }
-
     public bool GetData(CubeMapFace face, uint level, Span<byte> destination)
     {
-        if (!_faceData.TryGetValue((face, level), out var bytes) || destination.Length < bytes.Length)
-            return false;
-
-        bytes.AsSpan().CopyTo(destination);
-        return true;
-    }
-
-    public bool GetData(CubeMapFace face, uint level, byte[] destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        return GetData(face, level, destination.AsSpan());
+        return GetRawTexture()?.Read((uint)face, level, destination) == true;
     }
 
     /// <summary>
@@ -237,62 +168,16 @@ public sealed class TextureCube : Texture
     /// </summary>
     public Image? GetImage(CubeMapFace face)
     {
-        if (face >= CubeMapFace.MaxCubeMapFaces || Format is not (TextureFormat.RGB8 or TextureFormat.RGBA8))
-            return null;
-
-        if (!_faceData.TryGetValue((face, 0u), out var faceBytes))
-            return null;
-
         var image = new Image($"{Name}#{face}");
-        var width = GetLevelWidth(0u);
-        if (!image.SetSize(width, width, 4u))
-            return null;
-
-        if (Format == TextureFormat.RGBA8)
-        {
-            if (faceBytes.Length != width * width * 4)
-                return null;
-            image.SetData(faceBytes);
+        if (ReadToImage((uint)face, 0, image))
             return image;
-        }
 
-        var rgba = new byte[checked(width * width * 4)];
-        for (var i = 0; i < width * width; ++i)
-        {
-            rgba[i * 4] = faceBytes[i * 3];
-            rgba[i * 4 + 1] = faceBytes[i * 3 + 1];
-            rgba[i * 4 + 2] = faceBytes[i * 3 + 2];
-            rgba[i * 4 + 3] = 255;
-        }
-        image.SetData(rgba);
-        return image;
+        image.Dispose();
+        return null;
     }
 
     /// <summary>
     /// Return render surface for one face.
     /// </summary>
     public RenderSurface? GetRenderSurface(CubeMapFace face) => GetRenderSurface((uint)face);
-
-    private void RefreshTotalMemoryUse()
-    {
-        var total = 0;
-        foreach (var item in _faceData)
-            total += item.Value.Length;
-        RefreshMemoryUse((uint)total);
-    }
-
-    private static uint CalculateFullMipChainLength(int largestDimension)
-    {
-        if (largestDimension <= 0)
-            return 1u;
-
-        var levels = 1u;
-        while (largestDimension > 1)
-        {
-            largestDimension = Math.Max(largestDimension / 2, 1);
-            ++levels;
-        }
-
-        return levels;
-    }
 }

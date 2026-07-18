@@ -321,8 +321,8 @@ public sealed class TextureTests
         Assert.Equal(TextureFilterMode.Bilinear, texture.GetFilterMode());
         Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.U));
         Assert.True(texture.GetAutoResolve());
-        Assert.True(texture.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
-        Assert.Equal(imageData, texture.GetImage(CubeMapFace.PositiveX)?.GetData());
+        Assert.False(texture.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
+        Assert.Null(texture.GetImage(CubeMapFace.PositiveX));
         Assert.Null(texture.GetRenderSurface(CubeMapFace.MaxCubeMapFaces));
     }
 

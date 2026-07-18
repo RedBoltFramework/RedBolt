@@ -1000,8 +1000,7 @@ public class RawTexture : DeviceObject
                     textureCube.SetSRGB(parameters.SRGB);
                     textureCube.SetNumLevels(parameters.NumLevels);
                     var edge = normalizedSize.X;
-                    if (!textureCube.SetSize(edge, parameters.Format, (int)normalizedMultiSample,
-                        (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+                    if (!textureCube.SetSize(edge, parameters.Format, parameters.Flags, (int)normalizedMultiSample))
                         return false;
                     normalizedSize = new Vector3i(edge, edge, 1);
                     textureCandidate = textureCube;

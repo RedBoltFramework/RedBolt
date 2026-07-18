@@ -13,6 +13,7 @@ public sealed class TextureClassKindTests
         AssertConcreteNoncopyableReferenceClass<Texture2D>();
         AssertConcreteNoncopyableReferenceClass<Texture2DArray>();
         AssertConcreteNoncopyableReferenceClass<Texture3D>();
+        AssertConcreteNoncopyableReferenceClass<TextureCube>();
 
         using var resource = new Resource(string.Empty);
         using var resourceWithMetadata = new ResourceWithMetadata(string.Empty);
@@ -20,6 +21,7 @@ public sealed class TextureClassKindTests
         using var texture2D = new Texture2D(string.Empty);
         using var texture2DArray = new Texture2DArray(string.Empty);
         using var texture3D = new Texture3D(string.Empty);
+        using var textureCube = new TextureCube(string.Empty);
     }
 
     [Fact]
@@ -75,6 +77,19 @@ public sealed class TextureClassKindTests
 
         Assert.Null(loadImage.GetValue(texture));
         Assert.Null(loadParameters.GetValue(texture));
+    }
+
+    [Fact]
+    public void TextureCube_dispose_releases_derived_load_state()
+    {
+        var texture = new TextureCube(string.Empty);
+        var loadImageCube = typeof(TextureCube).GetField("_loadImageCube",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        loadImageCube.SetValue(texture, new ImageCube(string.Empty));
+
+        texture.Dispose();
+
+        Assert.Null(loadImageCube.GetValue(texture));
     }
 
     private static void AssertConcreteNoncopyableReferenceClass<T>()

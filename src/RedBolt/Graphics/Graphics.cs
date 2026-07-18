@@ -3250,12 +3250,6 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; ++face)
-        {
-            if (texture.GetData(face, 0u) is { Length: > 0 })
-                throw new NotSupportedException("CPU-backed TextureCube uploads are not implemented in the current managed renderer.");
-        }
-
         textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
