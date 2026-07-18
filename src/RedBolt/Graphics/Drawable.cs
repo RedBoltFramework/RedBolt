@@ -210,7 +210,7 @@ public abstract class Drawable : Component
     private CachedDrawableReflection _cachedReflection = new();
     private uint _lightProbeTetrahedronHint = uint.MaxValue;
     protected readonly System.Collections.Generic.List<SourceBatch> _batches = [];
-    private readonly Matrix3x4[] _worldTransform = [Matrix3x4.Identity];
+    protected readonly Matrix3x4[] _worldTransform = [Matrix3x4.Identity];
     protected uint _viewFrameNumber;
     private float _distance;
     private float _lodDistance;

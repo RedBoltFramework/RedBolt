@@ -16,6 +16,27 @@ public sealed class StaticModelTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Class_types_match_cpp()
+    {
+        Assert.True(typeof(StaticModelGeometryData).IsValueType);
+        Assert.False(typeof(StaticModel).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(StaticModel)));
+        Assert.True(typeof(StaticModel).GetMethod(nameof(StaticModel.SetMaterial), [typeof(Material)])!.IsVirtual);
+        Assert.True(typeof(StaticModel).GetMethod(nameof(StaticModel.SetMaterial), [typeof(uint), typeof(Material)])!.IsVirtual);
+        Assert.True(typeof(StaticModel).GetMethod(nameof(StaticModel.GetMaterial), Type.EmptyTypes)!.IsVirtual);
+        Assert.True(typeof(StaticModel).GetMethod(nameof(StaticModel.GetMaterial), [typeof(uint)])!.IsVirtual);
+    }
+
+    [Fact]
+    public void RegisterObject_registers_factory()
+    {
+        StaticModel.RegisterObject(Context.Instance);
+
+        using var reflected = Assert.IsType<StaticModel>(
+            Context.Instance.CreateObject(ObjectReflection<StaticModel>.TypeId));
+    }
+
+    [Fact]
     public void Model_and_material_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
@@ -46,6 +67,38 @@ public sealed class StaticModelTests
         cube.SetMaterialsAttr(materialsAttribute);
         Assert.Same(model, cube.GetModel());
         Assert.Same(material, cube.GetMaterial());
+    }
+
+    [Fact]
+    public void Materials_attribute_reuses_cached_storage()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var material = Resources.Get<Material>("Materials/FirstCube");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+        cube.SetMaterial(material);
+
+        var first = cube.GetMaterialsAttr();
+        var second = cube.GetMaterialsAttr();
+
+        Assert.Same(first.Names, second.Names);
+        Assert.Equal(material.Name, second.Names[0]);
+    }
+
+    [Fact]
+    public void Dispose_releases_owned_state_without_disposing_borrowed_model()
+    {
+        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
+        cube.SetModel(model);
+        _ = cube.GetMaterialsAttr();
+
+        cube.Dispose();
+
+        Assert.Null(cube.GetModel());
+        Assert.Equal(0u, cube.GetNumGeometries());
+        Assert.Empty(cube.GetMaterialsAttr().Names);
+        Assert.Equal(1u, model.GetNumGeometries());
     }
 
     [Fact]

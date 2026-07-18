@@ -12,17 +12,29 @@ public struct StaticModelGeometryData
 /// <summary>Static model component.</summary>
 public class StaticModel : Drawable
 {
-    private static readonly uint ModelType = StringHash.Calculate("Model");
-    /// <summary>Extra per-geometry data.</summary>
-    protected readonly List<StaticModelGeometryData> _geometryData = [];
-    /// <summary>All geometries.</summary>
-    protected readonly List<List<Geometry?>> _geometries = [];
-    /// <summary>Model.</summary>
-    protected Model? _model;
-
+    /// <summary>Construct.</summary>
     public StaticModel()
         : base(DrawableFlags.Geometry)
     {
+        _materialsAttr = new ResourceRefList(nameof(Material));
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        if (_model is not null)
+            _model.ReloadFinished -= HandleModelReloadFinished;
+        _materialsAttr.Names.Clear();
+        _model = null;
+        _geometries.Clear();
+        _geometryData.Clear();
+        base.Dispose();
+    }
+
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<StaticModel>(ObjectCategory.Category_Geometry);
     }
 
     public Material? Material
@@ -35,15 +47,35 @@ public class StaticModel : Drawable
 
     public uint NumGeometries => (uint)_geometries.Count;
 
-    public uint OcclusionLodLevel { get; set; } = uint.MaxValue;
+    public uint OcclusionLodLevel
+    {
+        get => _occlusionLodLevel;
+        set => SetOcclusionLodLevel(value);
+    }
 
-    public bool BakeLightmap { get; set; }
+    public bool BakeLightmap
+    {
+        get => _bakeLightmap;
+        set => SetBakeLightmap(value);
+    }
 
-    public float ScaleInLightmap { get; set; } = 1.0f;
+    public float ScaleInLightmap
+    {
+        get => _scaleInLightmap;
+        set => SetScaleInLightmap(value);
+    }
 
-    public uint LightmapIndex { get; set; }
+    public uint LightmapIndex
+    {
+        get => _lightmapIndex;
+        set => SetLightmapIndex(value);
+    }
 
-    public Vector4f LightmapScaleOffset { get; set; } = new(1.0f, 1.0f, 0.0f, 0.0f);
+    public Vector4f LightmapScaleOffset
+    {
+        get => _lightmapScaleOffset;
+        set => SetLightmapScaleOffset(value);
+    }
 
     public virtual void SetModel(Model? model)
     {
@@ -67,11 +99,11 @@ public class StaticModel : Drawable
 
             SetNumGeometries(model.GetNumGeometries());
             var geometries = model.GetGeometries();
-            var worldTransform = new[] { Node.GetWorldTransform() };
+            _worldTransform[0] = Node.GetWorldTransform();
             for (var i = 0; i < geometries.Count; ++i)
             {
                 var batch = _batches[i];
-                batch.WorldTransform = worldTransform;
+                batch.WorldTransform = _worldTransform;
                 _batches[i] = batch;
                 _geometries[i].Clear();
                 _geometries[i].AddRange(geometries[i]);
@@ -93,7 +125,7 @@ public class StaticModel : Drawable
         SetLocalBoundingBox(box);
     }
 
-    public void SetMaterial(Material? material)
+    public virtual void SetMaterial(Material? material)
     {
         for (var i = 0; i < _batches.Count; ++i)
         {
@@ -103,10 +135,14 @@ public class StaticModel : Drawable
         }
     }
 
-    public bool SetMaterial(uint index, Material? material)
+    public virtual bool SetMaterial(uint index, Material? material)
     {
         if (index >= _batches.Count)
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogError(
+                Log.Logger, "Material index {Index} is out of bounds", index);
             return false;
+        }
 
         var batch = _batches[(int)index];
         batch.Material = material;
@@ -116,7 +152,7 @@ public class StaticModel : Drawable
 
     public void SetOcclusionLodLevel(uint level)
     {
-        OcclusionLodLevel = level;
+        _occlusionLodLevel = level;
     }
 
     public void ApplyMaterialList(string fileName = "")
@@ -125,20 +161,8 @@ public class StaticModel : Drawable
         if (string.IsNullOrEmpty(useFileName) && Model is not null)
             useFileName = Path.ChangeExtension(Model.Name, ".txt");
 
-        if (string.IsNullOrEmpty(useFileName))
-            return;
-
         var cache = GetSubsystem<ResourceCache>()!;
-        BinaryFile? file;
-        try
-        {
-            file = cache.GetTempResource<BinaryFile>(useFileName, false);
-        }
-        catch (InvalidOperationException)
-        {
-            file = null;
-        }
-
+        using var file = cache.GetTempResource<BinaryFile>(useFileName, false);
         if (file is null)
             return;
 
@@ -289,20 +313,23 @@ public class StaticModel : Drawable
     public override void UpdateBatches(CommonFrameInfo frame)
     {
         var worldBoundingBox = GetWorldBoundingBox();
-        var camera = frame.Camera;
-        if (camera is null)
-            return;
+        var camera = frame.Camera!;
+        _worldTransform[0] = Node.GetWorldTransform();
 
         SetDistance(camera.GetDistance(worldBoundingBox.Center));
         if (_batches.Count == 1)
-            _batches[0] = UpdateBatchDistance(_batches[0], GetDistance());
+        {
+            var batch = _batches[0];
+            batch.Distance = GetDistance();
+            _batches[0] = batch;
+        }
         else
         {
-            var worldTransform = Node.GetWorldTransform();
             for (var i = 0; i < _batches.Count; ++i)
             {
-                _batches[i] = UpdateBatchDistance(_batches[i],
-                    camera.GetDistance(worldTransform * _geometryData[i].Center));
+                var batch = _batches[i];
+                batch.Distance = camera.GetDistance(_worldTransform[0] * _geometryData[i].Center);
+                _batches[i] = batch;
             }
         }
 
@@ -315,10 +342,14 @@ public class StaticModel : Drawable
             CalculateLodLevels();
         }
 
-        UpdateBatchesLightmaps();
     }
 
-    public Material? GetMaterial(uint index = 0)
+    public virtual Material? GetMaterial()
+    {
+        return GetMaterial(0);
+    }
+
+    public virtual Material? GetMaterial(uint index)
     {
         return index < _batches.Count ? _batches[(int)index].Material : null;
     }
@@ -327,7 +358,7 @@ public class StaticModel : Drawable
 
     public void SetBakeLightmap(bool bakeLightmap)
     {
-        BakeLightmap = bakeLightmap;
+        _bakeLightmap = bakeLightmap;
         UpdateBatchesLightmaps();
     }
 
@@ -337,14 +368,14 @@ public class StaticModel : Drawable
 
     public void SetScaleInLightmap(float scale)
     {
-        ScaleInLightmap = scale;
+        _scaleInLightmap = scale;
     }
 
     public float GetScaleInLightmap() => ScaleInLightmap;
 
     public void SetLightmapIndex(uint index)
     {
-        LightmapIndex = index;
+        _lightmapIndex = index;
         UpdateBatchesLightmaps();
     }
 
@@ -352,7 +383,7 @@ public class StaticModel : Drawable
 
     public void SetLightmapScaleOffset(Vector4f scaleOffset)
     {
-        LightmapScaleOffset = scaleOffset;
+        _lightmapScaleOffset = scaleOffset;
         UpdateBatchesLightmaps();
     }
 
@@ -364,7 +395,7 @@ public class StaticModel : Drawable
         SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name));
     }
 
-    public ResourceRef GetModelAttr() => Resource.GetResourceRef(Model, new StringHash(ModelType));
+    public ResourceRef GetModelAttr() => Resource.GetResourceRef(Model, ObjectReflection<Model>.TypeId);
 
     public void SetMaterialsAttr(ResourceRefList value)
     {
@@ -388,10 +419,13 @@ public class StaticModel : Drawable
 
     public ResourceRefList GetMaterialsAttr()
     {
-        var materials = new List<Material?>(_batches.Count);
+        while (_materialsAttr.Names.Count < _batches.Count)
+            _materialsAttr.Names.Add(string.Empty);
+        while (_materialsAttr.Names.Count > _batches.Count)
+            _materialsAttr.Names.RemoveAt(_materialsAttr.Names.Count - 1);
         for (var i = 0; i < _batches.Count; ++i)
-            materials.Add(GetMaterial((uint)i));
-        return Resource.GetResourceRefList(materials);
+            _materialsAttr.Names[i] = GetMaterial((uint)i)?.Name ?? string.Empty;
+        return _materialsAttr;
     }
 
     protected override void OnWorldBoundingBoxUpdate()
@@ -425,7 +459,7 @@ public class StaticModel : Drawable
         var localRay = new Ray(point, new Vector3f(1.0f, -1.0f, 1.0f));
         for (var index = 0u; index < NumGeometries; ++index)
         {
-            var geometry = GetLodGeometry(index, 0);
+            var geometry = _batches[(int)index].Geometry;
             if (geometry is not null && geometry.IsInside(localRay))
                 return true;
         }
@@ -489,7 +523,7 @@ public class StaticModel : Drawable
         }
     }
 
-    private void UpdateBatchesLightmaps()
+    protected void UpdateBatchesLightmaps()
     {
         var useLightmap = GetBakeLightmapEffective();
         for (var i = 0; i < _batches.Count; ++i)
@@ -511,9 +545,22 @@ public class StaticModel : Drawable
         }
     }
 
-    private static SourceBatch UpdateBatchDistance(SourceBatch batch, float distance)
-    {
-        batch.Distance = distance;
-        return batch;
-    }
+    /// <summary>Extra per-geometry data.</summary>
+    protected readonly List<StaticModelGeometryData> _geometryData = [];
+    /// <summary>All geometries.</summary>
+    protected readonly List<List<Geometry?>> _geometries = [];
+    /// <summary>Model.</summary>
+    protected Model? _model;
+    /// <summary>Occlusion geometry LOD level.</summary>
+    protected uint _occlusionLodLevel = uint.MaxValue;
+    /// <summary>Material resource attribute.</summary>
+    protected ResourceRefList _materialsAttr;
+    /// <summary>Whether to bake lightmap.</summary>
+    protected bool _bakeLightmap;
+    /// <summary>Scale in lightmap.</summary>
+    protected float _scaleInLightmap = 1.0f;
+    /// <summary>Lightmap index.</summary>
+    protected uint _lightmapIndex;
+    /// <summary>Lightmap scale and offset.</summary>
+    protected Vector4f _lightmapScaleOffset = new(1.0f, 1.0f, 0.0f, 0.0f);
 }
