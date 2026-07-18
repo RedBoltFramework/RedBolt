@@ -1,12 +1,9 @@
 using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace RedBolt;
 
 /// <summary>Vertex buffer morph data.</summary>
-public sealed class VertexBufferMorph
+public sealed class VertexBufferMorph : ICloneable
 {
     /// <summary>Vertex elements present in the packed data.</summary>
     public VertexMask ElementMask;
@@ -19,10 +16,21 @@ public sealed class VertexBufferMorph
 
     /// <summary>Packed index and vertex-element data.</summary>
     public byte[] MorphData = [];
+
+    public object Clone()
+    {
+        return new VertexBufferMorph
+        {
+            ElementMask = ElementMask,
+            VertexCount = VertexCount,
+            DataSize = DataSize,
+            MorphData = MorphData
+        };
+    }
 }
 
 /// <summary>Definition of a model vertex morph.</summary>
-public sealed class ModelMorph
+public sealed class ModelMorph : ICloneable
 {
     /// <summary>Morph name.</summary>
     public string Name = string.Empty;
@@ -35,60 +43,131 @@ public sealed class ModelMorph
 
     /// <summary>Morph data per vertex buffer.</summary>
     public Dictionary<uint, VertexBufferMorph> Buffers = [];
+
+    public object Clone()
+    {
+        var clone = new ModelMorph
+        {
+            Name = Name,
+            NameHash = NameHash,
+            Weight = Weight
+        };
+        foreach (var (bufferIndex, buffer) in Buffers)
+            clone.Buffers[bufferIndex] = (VertexBufferMorph)buffer.Clone();
+        return clone;
+    }
+}
+
+/// <summary>Description of vertex buffer data for asynchronous loading.</summary>
+public sealed class VertexBufferDesc : ICloneable
+{
+    /// <summary>Vertex count.</summary>
+    public uint VertexCount;
+
+    /// <summary>Vertex declaration.</summary>
+    public List<VertexElement> VertexElements = [];
+
+    /// <summary>Vertex data size.</summary>
+    public uint DataSize;
+
+    /// <summary>Vertex data.</summary>
+    public byte[]? Data;
+
+    public object Clone()
+    {
+        return new VertexBufferDesc
+        {
+            VertexCount = VertexCount,
+            VertexElements = [.. VertexElements],
+            DataSize = DataSize,
+            Data = Data
+        };
+    }
+}
+
+/// <summary>Description of index buffer data for asynchronous loading.</summary>
+public sealed class IndexBufferDesc : ICloneable
+{
+    /// <summary>Index count.</summary>
+    public uint IndexCount;
+
+    /// <summary>Index size.</summary>
+    public uint IndexSize;
+
+    /// <summary>Index data size.</summary>
+    public uint DataSize;
+
+    /// <summary>Index data.</summary>
+    public byte[]? Data;
+
+    public object Clone()
+    {
+        return new IndexBufferDesc
+        {
+            IndexCount = IndexCount,
+            IndexSize = IndexSize,
+            DataSize = DataSize,
+            Data = Data
+        };
+    }
+}
+
+/// <summary>Description of a geometry for asynchronous loading.</summary>
+public sealed class GeometryDesc : ICloneable
+{
+    /// <summary>Primitive type.</summary>
+    public PrimitiveType Type;
+
+    /// <summary>Vertex buffer ref.</summary>
+    public uint VertexBufferRef;
+
+    /// <summary>Index buffer ref.</summary>
+    public uint IndexBufferRef;
+
+    /// <summary>Index start.</summary>
+    public uint IndexStart;
+
+    /// <summary>Index count.</summary>
+    public uint IndexCount;
+
+    public object Clone()
+    {
+        return new GeometryDesc
+        {
+            Type = Type,
+            VertexBufferRef = VertexBufferRef,
+            IndexBufferRef = IndexBufferRef,
+            IndexStart = IndexStart,
+            IndexCount = IndexCount
+        };
+    }
 }
 
 /// <summary>3D model resource.</summary>
 public sealed class Model : ResourceWithMetadata, ICloneable
 {
+    private const uint LegacyVersion = 1;
+    private const uint MorphWeightVersion = 2;
+    private const uint CurrentVersion = 2;
+
+    private BoundingBox _boundingBox = new(-0.5f, 0.5f);
+    private readonly Skeleton _skeleton = new();
     private readonly List<VertexBuffer> _vertexBuffers = [];
     private readonly List<IndexBuffer> _indexBuffers = [];
     private readonly List<List<Geometry?>> _geometries = [];
-    private readonly List<Vector3f> _geometryCenters = [];
     private readonly List<List<uint>> _geometryBoneMappings = [];
+    private readonly List<Vector3f> _geometryCenters = [];
     private readonly List<ModelMorph> _morphs = [];
     private readonly List<uint> _morphRangeStarts = [];
     private readonly List<uint> _morphRangeCounts = [];
-    private readonly Skeleton _skeleton = new();
-    private BoundingBox _boundingBox = new(-0.5f, 0.5f);
-
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        IncludeFields = true,
-        IgnoreReadOnlyProperties = true
-    };
-
-    private const uint LegacyVersion = 1;
-    private const uint MorphWeightVersion = 2;
-
-    static Model()
-    {
-        SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    }
+    private readonly List<VertexBufferDesc> _loadVertexBuffers = [];
+    private readonly List<IndexBufferDesc> _loadIndexBuffers = [];
+    private readonly List<List<GeometryDesc>> _loadGeometries = [];
 
     public Model(string name)
         : base(name)
     {
     }
-
-    internal Model(string name, uint vertexCount)
-        : this(name)
-    {
-        SetNumGeometries(1);
-        SetNumGeometryLodLevels(0, 1);
-        var geometry = new Geometry();
-        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, vertexCount, 0, vertexCount);
-        SetGeometry(0, 0, geometry);
-    }
-
-    public IReadOnlyList<IReadOnlyList<Geometry?>> Geometries => _geometries;
-
-    public IReadOnlyList<Vector3f> GeometryCenters => _geometryCenters;
-
-    public BoundingBox BoundingBox => _boundingBox;
-
-    public uint NumGeometries => (uint)_geometries.Count;
-
-    public uint VertexCount => _geometries.Count == 0 || _geometries[0].Count == 0 ? 0u : _geometries[0][0]?.VertexCount ?? 0u;
 
     public override bool BeginLoad(Stream source)
     {
@@ -96,68 +175,23 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
         using var memory = new MemoryStream();
         source.CopyTo(memory);
-        var bytes = memory.ToArray();
-        if (bytes.Length >= 4)
-        {
-            var fileId = Encoding.ASCII.GetString(bytes, 0, 4);
-            if (fileId is "UMDL" or "UMD2" or "UMD3")
-                return LoadUrhoModel(new MemoryBuffer(bytes));
-        }
-
-        return LoadSerializedModel(bytes);
-    }
-
-    private bool LoadSerializedModel(byte[] bytes)
-    {
-        var modelData = JsonSerializer.Deserialize<SerializedModel>(bytes, SerializerOptions);
-        if (modelData?.Geometries is null || modelData.Geometries.Count == 0)
-            return false;
-
-        _geometries.Clear();
-        _geometryCenters.Clear();
-
-        SetNumGeometries((uint)modelData.Geometries.Count);
-        _boundingBox = modelData.BoundingBox ?? new BoundingBox();
-
-        for (var i = 0; i < modelData.Geometries.Count; ++i)
-        {
-            var geometryData = modelData.Geometries[i];
-            if (geometryData.Positions is null || geometryData.Positions.Count == 0 || geometryData.Indices is null || geometryData.Indices.Count == 0)
-                return false;
-
-            var vertexBuffer = new VertexBuffer();
-            vertexBuffer.SetSize((uint)geometryData.Positions.Count, 12u);
-            vertexBuffer.SetShadowed(true);
-            vertexBuffer.SetData(ToVertexBytes(geometryData.Positions));
-            _vertexBuffers.Add(vertexBuffer);
-
-            var indexBuffer = new IndexBuffer();
-            indexBuffer.SetSize((uint)geometryData.Indices.Count, geometryData.Positions.Count > ushort.MaxValue, dynamic: false);
-            indexBuffer.SetShadowed(true);
-            indexBuffer.SetUnpackedData(geometryData.Indices);
-            _indexBuffers.Add(indexBuffer);
-
-            var geometry = new Geometry();
-            geometry.SetVertexBuffers([vertexBuffer]);
-            geometry.SetIndexBuffer(indexBuffer);
-            geometry.SetDrawRange(geometryData.PrimitiveType, 0u, (uint)geometryData.Indices.Count, 0u, (uint)geometryData.Positions.Count);
-            SetNumGeometryLodLevels((uint)i, 1u);
-            SetGeometry((uint)i, 0u, geometry);
-            SetGeometryCenter((uint)i, geometryData.Center ?? CalculateCenter(geometryData.Positions));
-
-            if (!_boundingBox.Defined)
-                _boundingBox = new BoundingBox(geometryData.Positions);
-        }
-
-        if (!_boundingBox.Defined)
-            _boundingBox = new BoundingBox(modelData.Geometries.SelectMany(static item => item.Positions ?? (IEnumerable<Vector3f>)Array.Empty<Vector3f>()).ToArray());
-
-        MemoryUse = (uint)modelData.Geometries.Sum(static item => ((item.Positions?.Count ?? 0) * 12) + ((item.Indices?.Count ?? 0) * 4));
-        return true;
+        return LoadUrhoModel(new MemoryBuffer(memory.ToArray()));
     }
 
     private bool LoadUrhoModel(Deserializer source)
     {
+        // Check ID
+        var fileId = source.ReadFileID();
+        if (fileId is not ("UMDL" or "UMD2" or "UMD3"))
+        {
+            Log.Logger.LogError("{ModelName} is not a valid model file", Name);
+            return false;
+        }
+
+        // Read version
+        var version = fileId == "UMD3" ? source.ReadUInt() : LegacyVersion;
+        var hasVertexDeclarations = fileId != "UMDL";
+
         _geometries.Clear();
         _geometryCenters.Clear();
         _geometryBoneMappings.Clear();
@@ -166,57 +200,72 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         _morphs.Clear();
         _morphRangeStarts.Clear();
         _morphRangeCounts.Clear();
-        _skeleton.ClearBones();
-        _boundingBox = new BoundingBox();
+        _loadVertexBuffers.Clear();
+        _loadIndexBuffers.Clear();
+        _loadGeometries.Clear();
 
-        var fileId = source.ReadFileID();
-        if (fileId is not ("UMDL" or "UMD2" or "UMD3"))
-            return false;
-
-        var version = fileId == "UMD3" ? source.ReadUInt() : LegacyVersion;
-        var hasVertexDeclarations = fileId != "UMDL";
-
-        var vertexBuffers = new List<VertexBuffer>();
+        var async = AsyncLoadState == AsyncLoadState.Loading;
         var numVertexBuffers = source.ReadUInt();
         for (var i = 0u; i < numVertexBuffers; ++i)
         {
-            var vertexCount = source.ReadUInt();
-            var elements = hasVertexDeclarations
-                ? ReadVertexElements(source)
-                : VertexBuffer.GetElements(source.ReadUInt());
+            var desc = new VertexBufferDesc
+            {
+                VertexCount = source.ReadUInt(),
+                VertexElements = hasVertexDeclarations
+                    ? ReadVertexElements(source)
+                    : VertexBuffer.GetElements(source.ReadUInt())
+            };
 
             _morphRangeStarts.Add(source.ReadUInt());
             _morphRangeCounts.Add(source.ReadUInt());
 
             var vertexBuffer = new VertexBuffer();
-            vertexBuffer.SetShadowed(true);
-            vertexBuffer.SetSize(vertexCount, elements);
-            var dataSize = checked((int)(vertexCount * vertexBuffer.GetVertexSize()));
-            var data = new byte[dataSize];
-            _ = source.Read(data);
-            vertexBuffer.SetData(data);
-            vertexBuffers.Add(vertexBuffer);
+            vertexBuffer.SetDebugName($"Model '{Name}' Vertex Buffer #{i}");
+            desc.DataSize = desc.VertexCount * VertexBuffer.GetVertexSize(desc.VertexElements);
+            var dataSize = checked((int)desc.DataSize);
+            if (async)
+            {
+                desc.Data = new byte[dataSize];
+                _ = source.Read(desc.Data);
+            }
+            else
+            {
+                vertexBuffer.SetShadowed(true);
+                vertexBuffer.SetSize(desc.VertexCount, desc.VertexElements);
+                _ = source.Read(vertexBuffer.Map());
+                vertexBuffer.Unmap();
+            }
+            _vertexBuffers.Add(vertexBuffer);
+            _loadVertexBuffers.Add(desc);
         }
 
-        var indexBuffers = new List<IndexBuffer>();
         var numIndexBuffers = source.ReadUInt();
         for (var i = 0u; i < numIndexBuffers; ++i)
         {
-            var indexCount = source.ReadUInt();
-            var indexSize = source.ReadUInt();
-            if (indexSize is not (2u or 4u))
-                return false;
+            var desc = new IndexBufferDesc
+            {
+                IndexCount = source.ReadUInt(),
+                IndexSize = source.ReadUInt()
+            };
 
             var indexBuffer = new IndexBuffer();
-            indexBuffer.SetShadowed(true);
-            indexBuffer.SetSize(indexCount, indexSize > sizeof(ushort), dynamic: false);
-
-            var indices = new uint[indexCount];
-            for (var index = 0u; index < indexCount; ++index)
-                indices[index] = indexSize == 2u ? source.ReadUShort() : source.ReadUInt();
-
-            indexBuffer.SetUnpackedData(indices);
-            indexBuffers.Add(indexBuffer);
+            indexBuffer.SetDebugName($"Model '{Name}' Index Buffer #{i}");
+            desc.DataSize = desc.IndexCount * desc.IndexSize;
+            var dataSize = checked((int)desc.DataSize);
+            if (async)
+            {
+                desc.Data = new byte[dataSize];
+                _ = source.Read(desc.Data);
+            }
+            else
+            {
+                indexBuffer.SetShadowed(true);
+                indexBuffer.SetSize(desc.IndexCount, desc.IndexSize > sizeof(ushort), dynamic: false);
+                _ = source.Read(indexBuffer.GetRawBuffer().Map());
+                indexBuffer.GetRawBuffer().Unmap();
+            }
+            _indexBuffers.Add(indexBuffer);
+            _loadIndexBuffers.Add(desc);
         }
 
         var numGeometries = source.ReadUInt();
@@ -227,42 +276,51 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             var boneMapping = new List<uint>(checked((int)boneMappingCount));
             for (var mappingIndex = 0u; mappingIndex < boneMappingCount; ++mappingIndex)
                 boneMapping.Add(source.ReadUInt());
-            _geometryBoneMappings.Add(boneMapping);
+            _geometryBoneMappings[(int)geometryIndex] = boneMapping;
 
             var numLodLevels = source.ReadUInt();
-            if (!SetNumGeometryLodLevels(geometryIndex, numLodLevels))
-                return false;
+            var lodLevels = _geometries[(int)geometryIndex];
+            lodLevels.Clear();
+            for (var lodLevel = 0u; lodLevel < numLodLevels; ++lodLevel)
+                lodLevels.Add(null);
 
+            var geometryDescs = new List<GeometryDesc>(checked((int)numLodLevels));
             for (var lodLevel = 0u; lodLevel < numLodLevels; ++lodLevel)
             {
                 var lodDistance = source.ReadFloat();
-                var primitiveType = (PrimitiveType)source.ReadUInt();
-                var vertexBufferRef = source.ReadUInt();
-                var indexBufferRef = source.ReadUInt();
-                var indexStart = source.ReadUInt();
-                var indexCount = source.ReadUInt();
-
-                if (vertexBufferRef >= vertexBuffers.Count || indexBufferRef >= indexBuffers.Count)
-                    return false;
-
-                var vertexBuffer = vertexBuffers[(int)vertexBufferRef];
-                var indexBuffer = indexBuffers[(int)indexBufferRef];
-                uint vertexStart = 0;
-                var vertexCount = vertexBuffer.GetVertexCount();
-                if (indexBuffer.GetUsedVertexRange(indexStart, indexCount, out var minVertex, out var usedVertexCount))
+                var desc = new GeometryDesc
                 {
-                    vertexStart = minVertex;
-                    vertexCount = usedVertexCount;
+                    Type = (PrimitiveType)source.ReadUInt(),
+                    VertexBufferRef = source.ReadUInt(),
+                    IndexBufferRef = source.ReadUInt(),
+                    IndexStart = source.ReadUInt(),
+                    IndexCount = source.ReadUInt()
+                };
+
+                if (desc.VertexBufferRef >= _vertexBuffers.Count)
+                {
+                    Log.Logger.LogError("Vertex buffer index out of bounds");
+                    _loadVertexBuffers.Clear();
+                    _loadIndexBuffers.Clear();
+                    _loadGeometries.Clear();
+                    return false;
+                }
+                if (desc.IndexBufferRef >= _indexBuffers.Count)
+                {
+                    Log.Logger.LogError("Index buffer index out of bounds");
+                    _loadVertexBuffers.Clear();
+                    _loadIndexBuffers.Clear();
+                    _loadGeometries.Clear();
+                    return false;
                 }
 
                 var geometry = new Geometry();
-                geometry.SetVertexBuffers([vertexBuffer]);
-                geometry.SetIndexBuffer(indexBuffer);
                 geometry.SetLodDistance(lodDistance);
-                geometry.SetDrawRange(primitiveType, indexStart, indexCount, vertexStart, vertexCount);
                 if (!SetGeometry(geometryIndex, lodLevel, geometry))
                     return false;
+                geometryDescs.Add(desc);
             }
+            _loadGeometries.Add(geometryDescs);
         }
 
         var numMorphs = source.ReadUInt();
@@ -311,14 +369,73 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         while (_geometryCenters.Count < _geometries.Count)
             _geometryCenters.Add(Vector3f.Zero);
 
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+        if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
+        {
+            var xmlName = Path.ChangeExtension(Name, ".xml");
+            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), File.FileMode.Read);
+            if (xmlSource is not null)
+            {
+                var xmlData = new byte[checked((int)xmlSource.Size)];
+                var readBytes = xmlSource.Read(xmlData);
+                xmlSource.Close();
+                using var xmlFile = new XMLFile(xmlName);
+                if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryStream(xmlData)))
+                    LoadMetadataFromXML(xmlFile.GetRoot());
+            }
+        }
+
         long totalBytes = 0;
-        foreach (var buffer in vertexBuffers)
-            totalBytes += buffer.GetData().Count;
-        foreach (var buffer in indexBuffers)
-            totalBytes += buffer.GetIndexCount() * buffer.GetIndexSize();
-        _vertexBuffers.AddRange(vertexBuffers);
-        _indexBuffers.AddRange(indexBuffers);
+        foreach (var desc in _loadVertexBuffers)
+            totalBytes += desc.DataSize;
+        foreach (var desc in _loadIndexBuffers)
+            totalBytes += desc.DataSize;
         MemoryUse = (uint)totalBytes;
+        return true;
+    }
+
+    public override bool EndLoad()
+    {
+        for (var i = 0; i < _loadVertexBuffers.Count; ++i)
+        {
+            var desc = _loadVertexBuffers[i];
+            if (desc.Data is not null)
+            {
+                var buffer = _vertexBuffers[i];
+                buffer.SetShadowed(true);
+                buffer.SetSize(desc.VertexCount, desc.VertexElements);
+                desc.Data.AsSpan().CopyTo(buffer.Map());
+                buffer.Unmap();
+            }
+        }
+
+        for (var i = 0; i < _loadIndexBuffers.Count; ++i)
+        {
+            var desc = _loadIndexBuffers[i];
+            if (desc.Data is not null)
+            {
+                var buffer = _indexBuffers[i];
+                buffer.SetShadowed(true);
+                buffer.SetSize(desc.IndexCount, desc.IndexSize > sizeof(ushort), dynamic: false);
+                buffer.Update(desc.Data);
+            }
+        }
+
+        for (var geometryIndex = 0; geometryIndex < _loadGeometries.Count; ++geometryIndex)
+        {
+            for (var lodLevel = 0; lodLevel < _loadGeometries[geometryIndex].Count; ++lodLevel)
+            {
+                var desc = _loadGeometries[geometryIndex][lodLevel];
+                var geometry = _geometries[geometryIndex][lodLevel]!;
+                geometry.SetVertexBuffer(0, _vertexBuffers[(int)desc.VertexBufferRef]);
+                geometry.SetIndexBuffer(_indexBuffers[(int)desc.IndexBufferRef]);
+                geometry.SetDrawRange(desc.Type, desc.IndexStart, desc.IndexCount);
+            }
+        }
+
+        _loadVertexBuffers.Clear();
+        _loadIndexBuffers.Clear();
+        _loadGeometries.Clear();
         return true;
     }
 
@@ -336,6 +453,111 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         }
 
         return result;
+    }
+
+    public override bool Save(Stream destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        var output = new VectorBuffer();
+        if (!output.WriteFileID("UMD3"))
+            return false;
+        output.WriteUInt(CurrentVersion);
+
+        output.WriteUInt(checked((uint)_vertexBuffers.Count));
+        for (var i = 0; i < _vertexBuffers.Count; ++i)
+        {
+            var buffer = _vertexBuffers[i];
+            output.WriteUInt(buffer.GetVertexCount());
+            var elements = buffer.GetElements();
+            output.WriteUInt(checked((uint)elements.Count));
+            foreach (var element in elements)
+            {
+                var elementDesc = (uint)element.Type | ((uint)element.Semantic << 8) | ((uint)element.Index << 16);
+                output.WriteUInt(elementDesc);
+            }
+            output.WriteUInt(_morphRangeStarts[i]);
+            output.WriteUInt(_morphRangeCounts[i]);
+            output.Write(buffer.GetRawBuffer()!.GetShadowData());
+        }
+
+        output.WriteUInt(checked((uint)_indexBuffers.Count));
+        foreach (var buffer in _indexBuffers)
+        {
+            output.WriteUInt(buffer.GetIndexCount());
+            output.WriteUInt(buffer.GetIndexSize());
+            output.Write(buffer.GetShadowData());
+        }
+
+        output.WriteUInt(checked((uint)_geometries.Count));
+        for (var i = 0; i < _geometries.Count; ++i)
+        {
+            output.WriteUInt(checked((uint)_geometryBoneMappings[i].Count));
+            foreach (var boneIndex in _geometryBoneMappings[i])
+                output.WriteUInt(boneIndex);
+
+            output.WriteUInt(checked((uint)_geometries[i].Count));
+            foreach (var geometry in _geometries[i])
+            {
+                output.WriteFloat(geometry!.GetLodDistance());
+                output.WriteUInt((uint)geometry.GetPrimitiveType());
+                output.WriteUInt(LookupVertexBuffer(geometry.GetVertexBuffer(0)));
+                output.WriteUInt(LookupIndexBuffer(geometry.GetIndexBuffer()));
+                output.WriteUInt(geometry.GetIndexStart());
+                output.WriteUInt(geometry.GetIndexCount());
+            }
+        }
+
+        output.WriteUInt(checked((uint)_morphs.Count));
+        foreach (var morph in _morphs)
+        {
+            output.WriteString(morph.Name);
+            output.WriteFloat(morph.Weight);
+            output.WriteUInt(checked((uint)morph.Buffers.Count));
+            foreach (var (bufferIndex, buffer) in morph.Buffers)
+            {
+                output.WriteUInt(bufferIndex);
+                output.WriteUInt((uint)buffer.ElementMask);
+                output.WriteUInt(buffer.VertexCount);
+                output.Write(buffer.MorphData);
+            }
+        }
+
+        _skeleton.Save(output);
+        output.WriteBoundingBox(_boundingBox);
+        foreach (var center in _geometryCenters)
+            output.WriteVector3(center);
+
+        destination.Write(output.Buffer);
+
+        if (HasMetadata())
+        {
+            var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
+            if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
+            {
+                var xmlName = Path.ChangeExtension(Name, ".xml");
+                using var xml = new XMLFile(xmlName);
+                var root = xml.CreateRoot("model");
+                SaveMetadataToXML(root);
+                virtualFileSystem.WriteAllText(new FileIdentifier(xmlName), xml.ToString());
+            }
+            else
+                Log.Logger.LogWarning("Can not save model metadata when not saving into a file");
+        }
+
+        return true;
+    }
+
+    private uint LookupVertexBuffer(VertexBuffer? buffer)
+    {
+        var index = buffer is null ? -1 : _vertexBuffers.IndexOf(buffer);
+        return index >= 0 ? checked((uint)index) : 0u;
+    }
+
+    private uint LookupIndexBuffer(IndexBuffer? buffer)
+    {
+        var index = buffer is null ? -1 : _indexBuffers.IndexOf(buffer);
+        return index >= 0 ? checked((uint)index) : 0u;
     }
 
     public void SetBoundingBox(BoundingBox box)
@@ -424,7 +646,8 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     public void SetMorphs(IReadOnlyList<ModelMorph> morphs)
     {
         _morphs.Clear();
-        _morphs.AddRange(morphs);
+        foreach (var morph in morphs)
+            _morphs.Add((ModelMorph)morph.Clone());
     }
 
     public Model Clone(string cloneName = "")
@@ -549,31 +772,54 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
     public uint GetMorphRangeCount(uint bufferIndex) => bufferIndex < _morphRangeCounts.Count ? _morphRangeCounts[(int)bufferIndex] : 0u;
 
-    public IReadOnlyList<IReadOnlyList<Geometry?>> GetGeometries() => Geometries;
+    /// <summary>Return morph range starts for each vertex buffer.</summary>
+    public IReadOnlyList<uint> GetMorphRangeStarts() => _morphRangeStarts;
 
-    public IReadOnlyList<Vector3f> GetGeometryCenters() => GeometryCenters;
+    /// <summary>Return morph range vertex counts for each vertex buffer.</summary>
+    public IReadOnlyList<uint> GetMorphRangeCounts() => _morphRangeCounts;
 
-    public uint GetNumGeometries() => NumGeometries;
+    public IReadOnlyList<IReadOnlyList<Geometry?>> GetGeometries() => _geometries;
+
+    public IReadOnlyList<Vector3f> GetGeometryCenters() => _geometryCenters;
+
+    public uint GetNumGeometries() => (uint)_geometries.Count;
 
     public void SetNumGeometries(uint num)
     {
         while (_geometries.Count < num)
         {
             _geometries.Add([null]);
+            _geometryBoneMappings.Add([]);
             _geometryCenters.Add(Vector3f.Zero);
         }
 
         while (_geometries.Count > num)
         {
             _geometries.RemoveAt(_geometries.Count - 1);
+            _geometryBoneMappings.RemoveAt(_geometryBoneMappings.Count - 1);
             _geometryCenters.RemoveAt(_geometryCenters.Count - 1);
+        }
+
+        // For easier creation of from-scratch geometry, ensure that all geometries start with at least 1 LOD level (0 makes no sense)
+        foreach (var geometry in _geometries)
+        {
+            if (geometry.Count == 0)
+                geometry.Add(null);
         }
     }
 
     public bool SetNumGeometryLodLevels(uint index, uint num)
     {
         if (index >= _geometries.Count)
+        {
+            Log.Logger.LogError("Geometry index out of bounds");
             return false;
+        }
+        if (num == 0)
+        {
+            Log.Logger.LogError("Zero LOD levels not allowed");
+            return false;
+        }
 
         var lodLevels = _geometries[(int)index];
         while (lodLevels.Count < num)
@@ -585,16 +831,20 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         return true;
     }
 
-    public bool SetGeometry(uint index, uint lodLevel, Geometry geometry)
+    public bool SetGeometry(uint index, uint lodLevel, Geometry? geometry)
     {
-        ArgumentNullException.ThrowIfNull(geometry);
-
         if (index >= _geometries.Count)
+        {
+            Log.Logger.LogError("Geometry index out of bounds");
             return false;
+        }
 
         var lodLevels = _geometries[(int)index];
         if (lodLevel >= lodLevels.Count)
+        {
+            Log.Logger.LogError("LOD level index out of bounds");
             return false;
+        }
 
         lodLevels[(int)lodLevel] = geometry;
         return true;
@@ -620,7 +870,10 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     public bool SetGeometryCenter(uint index, Vector3f center)
     {
         if (index >= _geometryCenters.Count)
+        {
+            Log.Logger.LogError("Geometry index out of bounds");
             return false;
+        }
 
         _geometryCenters[(int)index] = center;
         return true;
@@ -631,43 +884,4 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         return index < _geometryCenters.Count ? _geometryCenters[(int)index] : Vector3f.Zero;
     }
 
-    private static Vector3f CalculateCenter(IReadOnlyList<Vector3f> positions)
-    {
-        if (positions.Count == 0)
-            return Vector3f.Zero;
-
-        var sum = Vector3f.Zero;
-        foreach (var position in positions)
-            sum += position;
-        return sum / positions.Count;
-    }
-
-    private static byte[] ToVertexBytes(IReadOnlyList<Vector3f> positions)
-    {
-        var data = new byte[positions.Count * 12];
-        var offset = 0;
-        foreach (var position in positions)
-        {
-            BitConverter.GetBytes(position.X).CopyTo(data, offset + 0);
-            BitConverter.GetBytes(position.Y).CopyTo(data, offset + 4);
-            BitConverter.GetBytes(position.Z).CopyTo(data, offset + 8);
-            offset += 12;
-        }
-
-        return data;
-    }
-
-    private sealed class SerializedModel
-    {
-        public BoundingBox? BoundingBox { get; set; }
-        public List<SerializedGeometry>? Geometries { get; set; }
-    }
-
-    private sealed class SerializedGeometry
-    {
-        public PrimitiveType PrimitiveType { get; set; } = PrimitiveType.TriangleList;
-        public List<Vector3f>? Positions { get; set; }
-        public List<uint>? Indices { get; set; }
-        public Vector3f? Center { get; set; }
-    }
 }

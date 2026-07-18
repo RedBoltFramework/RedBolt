@@ -100,9 +100,10 @@ public sealed class ModelFileTests
         model.SetMorphs([morph]);
 
         Assert.Equal(1u, model.GetNumMorphs());
-        Assert.Same(morph, model.GetMorph(0u));
-        Assert.Same(morph, model.GetMorph("Smile"));
-        Assert.Same(morphBuffer, model.GetMorph(new StringHash("Smile"))!.Buffers[1u]);
+        Assert.NotSame(morph, model.GetMorph(0u));
+        Assert.Same(model.GetMorph(0u), model.GetMorph("Smile"));
+        Assert.NotSame(morphBuffer, model.GetMorph(new StringHash("Smile"))!.Buffers[1u]);
+        Assert.Same(morphBuffer.MorphData, model.GetMorph(0u)!.Buffers[1u].MorphData);
         Assert.Null(model.GetMorph(1u));
         Assert.Equal(0u, model.GetMorphRangeStart(0u));
         Assert.Equal(0u, model.GetMorphRangeCount(0u));
@@ -125,5 +126,50 @@ public sealed class ModelFileTests
         Assert.Same(indexBuffer, model.GetIndexBuffers()[0]);
         Assert.Equal(4u, model.GetMorphRangeStart(0u));
         Assert.Equal(8u, model.GetMorphRangeCount(0u));
+    }
+
+    [Fact]
+    public void Model_saves_and_loads_umd3_data()
+    {
+        var vertexBuffer = new VertexBuffer();
+        vertexBuffer.SetShadowed(true);
+        vertexBuffer.SetSize(3u, VertexMask.Position);
+        vertexBuffer.SetData(new byte[36]);
+        var indexBuffer = new IndexBuffer();
+        indexBuffer.SetShadowed(true);
+        indexBuffer.SetSize(3u);
+        indexBuffer.SetUnpackedData(new uint[] { 0u, 1u, 2u });
+        var geometry = new Geometry();
+        geometry.SetVertexBuffer(0, vertexBuffer);
+        geometry.SetIndexBuffer(indexBuffer);
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3);
+
+        var source = new Model("Source");
+        source.SetVertexBuffers([vertexBuffer]);
+        source.SetIndexBuffers([indexBuffer]);
+        source.SetNumGeometries(1);
+        source.SetGeometry(0, 0, geometry);
+
+        using var stream = new MemoryStream();
+        Assert.True(source.Save(stream));
+        stream.Position = 0;
+
+        var loaded = new Model("Loaded");
+        Assert.True(loaded.Load(stream));
+        Assert.Equal(1u, loaded.GetNumGeometries());
+        Assert.NotNull(loaded.GetGeometry(0));
+        Assert.Equal(3u, loaded.GetGeometry(0)!.GetIndexCount());
+        Assert.Equal(3u, loaded.GetVertexBuffers()[0].GetVertexCount());
+        Assert.Equal(3u, loaded.GetIndexBuffers()[0].GetIndexCount());
+
+        stream.Position = 0;
+        var staged = new Model("Staged");
+        staged.SetAsyncLoadState(AsyncLoadState.Loading);
+        Assert.True(staged.BeginLoad(stream));
+        Assert.Equal(0u, staged.GetVertexBuffers()[0].GetVertexCount());
+        Assert.Equal(0u, staged.GetIndexBuffers()[0].GetIndexCount());
+        Assert.True(staged.EndLoad());
+        Assert.Equal(3u, staged.GetVertexBuffers()[0].GetVertexCount());
+        Assert.Equal(3u, staged.GetIndexBuffers()[0].GetIndexCount());
     }
 }

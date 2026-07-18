@@ -22,6 +22,13 @@ public sealed class HeadlessEngineFixture : IDisposable
             WindowHeight = 720
         };
         Engine.Initialize(parameters);
+
+        var model = new Model("Models/ProceduralBox");
+        model.SetNumGeometries(1);
+        var geometry = new Geometry();
+        geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 36, 0, 36);
+        model.SetGeometry(0, 0, geometry);
+        Resources.AddManualResource(model);
     }
 
     public Engine Engine { get; }

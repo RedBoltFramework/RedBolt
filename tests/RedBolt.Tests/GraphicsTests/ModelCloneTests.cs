@@ -31,6 +31,16 @@ public sealed class ModelCloneTests
         model.SetNumGeometries(1u);
         model.SetNumGeometryLodLevels(0u, 1u);
         model.SetGeometry(0u, 0u, geometry);
+        var morphData = new byte[16];
+        model.SetMorphs([new ModelMorph
+        {
+            Name = "Morph",
+            NameHash = new StringHash("Morph"),
+            Buffers = new Dictionary<uint, VertexBufferMorph>
+            {
+                [0] = new VertexBufferMorph { DataSize = 16, MorphData = morphData }
+            }
+        }]);
 
         var clone = model.Clone("Clone");
 
@@ -41,5 +51,8 @@ public sealed class ModelCloneTests
         Assert.Same(clone.GetIndexBuffers()[0], clone.GetGeometry(0u)!.GetIndexBuffer());
         Assert.Equal("Vertices", clone.GetVertexBuffers()[0].GetDebugName());
         Assert.Equal("Indices", clone.GetIndexBuffers()[0].GetDebugName());
+        Assert.NotSame(model.GetMorph(0u), clone.GetMorph(0u));
+        Assert.NotSame(model.GetMorph(0u)!.Buffers[0], clone.GetMorph(0u)!.Buffers[0]);
+        Assert.NotSame(model.GetMorph(0u)!.Buffers[0].MorphData, clone.GetMorph(0u)!.Buffers[0].MorphData);
     }
 }

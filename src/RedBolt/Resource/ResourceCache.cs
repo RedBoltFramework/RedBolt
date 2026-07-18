@@ -49,9 +49,7 @@ public sealed class ResourceCache : Object
     {
         RegisterLoader<Shader>(name => LoadFileBackedResource(Shader.GetResourceName(name), static resourceName => new Shader(resourceName)));
 
-        RegisterLoader<Model>(name => string.Equals(name, "Models/ProceduralBox", StringComparison.Ordinal)
-            ? new Model(name, 36u)
-            : LoadFileBackedResource(name, static resourceName => new Model(resourceName)));
+        RegisterLoader<Model>(name => LoadFileBackedResource(name, static resourceName => new Model(resourceName)));
 
         RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
             static resourceName => new Material(resourceName)));

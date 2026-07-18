@@ -83,7 +83,11 @@ public sealed class DecalSetTests
     [Fact]
     public void AddDecal_without_cpu_geometry_returns_empty_success()
     {
-        var model = Resources.Get<Model>("Models/ProceduralBox");
+        var model = new Model("ModelWithoutCpuGeometry");
+        model.SetNumGeometries(1);
+        var modelGeometry = new Geometry();
+        modelGeometry.SetDrawRange(PrimitiveType.TriangleList, 0, 36, 0, 36);
+        model.SetGeometry(0, 0, modelGeometry);
         var material = Resources.Get<Material>("Materials/FirstCube");
         var scene = new Scene();
         var targetNode = scene.CreateChild("Target");
