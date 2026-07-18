@@ -1,24 +1,60 @@
 namespace RedBolt;
 
-public sealed class BinaryOutputArchive : ArchiveBase
+/// <summary>Binary output archive block.</summary>
+public class BinaryOutputArchiveBlock : ArchiveBlockBase, IDisposable
 {
-    private sealed class Frame : ArchiveBlockBase
+    public BinaryOutputArchiveBlock(string name, ArchiveBlockType type, Serializer parentSerializer, bool safe)
+        : base(name, type)
     {
-        public Frame(string name, ArchiveBlockType type, Serializer parentSerializer, bool safe)
-            : base(name, type)
-        {
-            ParentSerializer = parentSerializer;
-            if (safe)
-                OutputBuffer = new VectorBuffer();
-        }
-
-        public Serializer ParentSerializer { get; }
-        public VectorBuffer OutputBuffer { get; } = null!;
-        public Serializer Serializer => OutputBuffer is null ? ParentSerializer : OutputBuffer;
+        _parentSerializer = parentSerializer;
+        if (safe)
+            _outputBuffer = new VectorBuffer();
     }
 
+    public Serializer GetSerializer()
+    {
+        return _outputBuffer ?? _parentSerializer;
+    }
+
+    public bool IsUnorderedAccessSupported() => false;
+
+    public bool HasElementOrBlock(string name) => false;
+
+    public void Close(ArchiveBase archive)
+    {
+        if (_outputBuffer is null)
+        {
+            System.Diagnostics.Debug.Assert(!HasOpenInlineBlock);
+            return;
+        }
+
+        var size = _outputBuffer.Size;
+        if (_parentSerializer.WriteVLE(size)
+            && _parentSerializer.Write(_outputBuffer.GetBuffer().AsSpan(0, checked((int)size))) == size)
+        {
+            return;
+        }
+
+        throw archive.IoFailureException("<block guard>");
+    }
+
+    public void Dispose()
+    {
+        _outputBuffer?.Dispose();
+    }
+
+    /// <summary>For safe blocks only.</summary>
+    private readonly VectorBuffer? _outputBuffer;
+    private readonly Serializer _parentSerializer;
+}
+
+/// <summary>Binary output archive.</summary>
+public class BinaryOutputArchive : ArchiveBase
+{
+    private readonly List<BinaryOutputArchiveBlock> _stack = [];
     private readonly Serializer _serializer;
-    private readonly List<Frame> _stack = [];
+    /// <summary>Serializer used within currently open block.</summary>
+    private Serializer? _currentBlockSerializer;
 
     public BinaryOutputArchive(Context context, Serializer serializer)
         : base(context)
@@ -26,32 +62,59 @@ public sealed class BinaryOutputArchive : ArchiveBase
         _serializer = serializer;
     }
 
-    public override string Name => _serializer.Name;
-    public override uint Checksum => _serializer is Deserializer deserializer ? deserializer.GetChecksum() : 0;
-    public override bool IsInput => false;
-    public override bool IsHumanReadable => false;
-    public override bool IsUnorderedAccessSupportedInCurrentBlock => false;
-    public override string CurrentBlockPath => string.Join('/', _stack.Select(static frame => frame.Name));
-    public override bool HasElementOrBlock(string name) => false;
-
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void Dispose()
     {
-        CheckBlockOrElementName(name);
+        for (var i = _stack.Count - 1; i >= 0; --i)
+            _stack[i].Dispose();
+        _stack.Clear();
+        _currentBlockSerializer = null;
+        base.Dispose();
+    }
+
+    public sealed override string Name => _serializer is Deserializer deserializer ? deserializer.Name : string.Empty;
+    public sealed override uint Checksum => _serializer is Deserializer deserializer ? deserializer.GetChecksum() : 0;
+    public sealed override bool IsInput => false;
+    public sealed override bool IsHumanReadable => false;
+    public sealed override bool IsUnorderedAccessSupportedInCurrentBlock =>
+        _stack.Count != 0 && _stack[^1].IsUnorderedAccessSupported();
+    public sealed override string CurrentBlockPath => GetCurrentBlockPath();
+    public sealed override bool HasElementOrBlock(string name)
+    {
+        System.Diagnostics.Debug.Assert(false, "Archive::HasElementOrBlock is not supported for Output Archive");
+        return false;
+    }
+
+    public sealed override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    {
+        FlushDelayedException();
         CheckIfNotEof(name);
 
-        if (_stack.Count == 0 || safe)
-            _stack.Add(new Frame(name, type, _stack.Count == 0 ? _serializer : _stack[^1].Serializer, safe));
+        if (_stack.Count == 0)
+        {
+            _stack.Add(new BinaryOutputArchiveBlock(name, type, _serializer, safe));
+            _currentBlockSerializer = _stack[^1].GetSerializer();
+        }
+        else if (safe)
+        {
+            _stack.Add(new BinaryOutputArchiveBlock(name, type, _stack[^1].GetSerializer(), true));
+            _currentBlockSerializer = _stack[^1].GetSerializer();
+        }
         else
             _stack[^1].OpenInlineBlock();
 
         if (type == ArchiveBlockType.Array)
-            WriteResult(CurrentSerializer.WriteVLE(sizeHint), "<block guard>");
+        {
+            if (!_currentBlockSerializer!.WriteVLE(sizeHint))
+            {
+                EndBlock();
+                throw IoFailureException("<block guard>");
+            }
+        }
     }
 
-    public override void EndBlock()
+    public sealed override void EndBlock()
     {
-        if (_stack.Count == 0)
-            throw new InvalidOperationException("No archive block is open.");
+        System.Diagnostics.Debug.Assert(_stack.Count != 0);
 
         var frame = _stack[^1];
         if (frame.HasOpenInlineBlock)
@@ -60,67 +123,66 @@ public sealed class BinaryOutputArchive : ArchiveBase
             return;
         }
 
-        _stack.RemoveAt(_stack.Count - 1);
-        if (frame.OutputBuffer is not null)
+        try
         {
-            try
-            {
-                var size = frame.OutputBuffer.Size;
-                if (!frame.ParentSerializer.WriteVLE(size)
-                    || frame.ParentSerializer.Write(frame.OutputBuffer.GetBuffer().AsSpan(0, checked((int)size))) != size)
-                {
-                    throw IoFailureException("<block guard>");
-                }
-            }
-            catch (Exception exception)
-            {
-                SetDelayedException(exception);
-            }
+            frame.Close(this);
+        }
+        catch (InvalidOperationException exception)
+        {
+            SetDelayedException(exception);
         }
 
+        _stack.RemoveAt(_stack.Count - 1);
+        frame.Dispose();
         if (_stack.Count == 0)
             CloseArchive();
+        _currentBlockSerializer = _stack.Count == 0 ? null : _stack[^1].GetSerializer();
     }
 
-    public override void Serialize(string name, ref bool value) => Write(name, CurrentSerializer.WriteBool(value));
-    public override void Serialize(string name, ref sbyte value) => Write(name, CurrentSerializer.WriteByte(value));
-    public override void Serialize(string name, ref byte value) => Write(name, CurrentSerializer.WriteUByte(value));
-    public override void Serialize(string name, ref short value) => Write(name, CurrentSerializer.WriteShort(value));
-    public override void Serialize(string name, ref ushort value) => Write(name, CurrentSerializer.WriteUShort(value));
-    public override void Serialize(string name, ref int value) => Write(name, CurrentSerializer.WriteInt(value));
-    public override void Serialize(string name, ref uint value) => Write(name, CurrentSerializer.WriteUInt(value));
-    public override void Serialize(string name, ref long value) => Write(name, CurrentSerializer.WriteInt64(value));
-    public override void Serialize(string name, ref ulong value) => Write(name, CurrentSerializer.WriteUInt64(value));
-    public override void Serialize(string name, ref float value) => Write(name, CurrentSerializer.WriteFloat(value));
-    public override void Serialize(string name, ref double value) => Write(name, CurrentSerializer.WriteDouble(value));
-    public override void Serialize(string name, ref string value) => Write(name, CurrentSerializer.WriteString(value));
+    public sealed override void Serialize(string name, ref bool value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteBool(value), name); }
+    public sealed override void Serialize(string name, ref sbyte value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteByte(value), name); }
+    public sealed override void Serialize(string name, ref byte value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteUByte(value), name); }
+    public sealed override void Serialize(string name, ref short value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteShort(value), name); }
+    public sealed override void Serialize(string name, ref ushort value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteUShort(value), name); }
+    public sealed override void Serialize(string name, ref int value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteInt(value), name); }
+    public sealed override void Serialize(string name, ref uint value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteUInt(value), name); }
+    public sealed override void Serialize(string name, ref long value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteInt64(value), name); }
+    public sealed override void Serialize(string name, ref ulong value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteUInt64(value), name); }
+    public sealed override void Serialize(string name, ref float value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteFloat(value), name); }
+    public sealed override void Serialize(string name, ref double value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteDouble(value), name); }
+    public sealed override void Serialize(string name, ref string value) { CheckElement(name); WriteResult(_currentBlockSerializer!.WriteString(value), name); }
 
-    public override void SerializeBytes(string name, Span<byte> bytes)
+    public sealed override void SerializeBytes(string name, Span<byte> bytes)
     {
         CheckElement(name);
-        WriteResult(CurrentSerializer.Write(bytes) == bytes.Length, name);
+        WriteResult(_currentBlockSerializer!.Write(bytes) == bytes.Length, name);
     }
 
-    public override void SerializeVle(string name, ref uint value)
+    public sealed override void SerializeVle(string name, ref uint value)
     {
         CheckElement(name);
-        WriteResult(CurrentSerializer.WriteVLE(value), name);
+        WriteResult(_currentBlockSerializer!.WriteVLE(value), name);
     }
 
-    private Serializer CurrentSerializer => _stack.Count == 0 ? throw new InvalidOperationException("Root archive block is not open.") : _stack[^1].Serializer;
+    private string GetCurrentBlockPath()
+    {
+        var result = new System.Text.StringBuilder();
+        foreach (var frame in _stack)
+        {
+            if (result.Length != 0)
+                result.Append('/');
+            result.Append(frame.Name);
+            if (frame.HasOpenInlineBlock)
+                result.Append("/?");
+        }
+        return result.ToString();
+    }
 
     private void CheckElement(string name)
     {
-        CheckBlockOrElementName(name);
+        FlushDelayedException();
         CheckIfNotEof(name);
-        if (_stack.Count == 0)
-            throw new InvalidOperationException("Root archive block must be open before serialization.");
-    }
-
-    private void Write(string name, bool result)
-    {
-        CheckElement(name);
-        WriteResult(result, name);
+        System.Diagnostics.Debug.Assert(_stack.Count != 0, "Root block must be opened before serialization");
     }
 
     private void WriteResult(bool result, string name)
@@ -130,23 +192,69 @@ public sealed class BinaryOutputArchive : ArchiveBase
     }
 }
 
-public sealed class BinaryInputArchive : ArchiveBase
+/// <summary>Binary input archive block.</summary>
+public class BinaryInputArchiveBlock : ArchiveBlockBase, ICloneable
 {
-    private sealed class Frame : ArchiveBlockBase
+    public BinaryInputArchiveBlock(string name, ArchiveBlockType type, Deserializer deserializer, bool safe,
+        uint nextElementPosition)
+        : base(name, type)
     {
-        public Frame(string name, ArchiveBlockType type, bool safe, uint nextElementPosition)
-            : base(name, type)
+        _deserializer = deserializer;
+        _safe = safe;
+        _nextElementPosition = nextElementPosition;
+        if (_safe)
         {
-            Safe = safe;
-            NextElementPosition = nextElementPosition;
+            _blockSize = _deserializer.ReadVLE();
+            _blockOffset = _deserializer.Position;
+            _nextElementPosition = Math.Min(_blockOffset + _blockSize, _deserializer.Size);
         }
+    }
 
-        public bool Safe { get; }
-        public uint NextElementPosition { get; set; }
+    private BinaryInputArchiveBlock(BinaryInputArchiveBlock other)
+        : base(other.Name, other.Type)
+    {
+        _inlineBlockDepth = other._inlineBlockDepth;
+        _deserializer = other._deserializer;
+        _safe = other._safe;
+        _blockOffset = other._blockOffset;
+        _blockSize = other._blockSize;
+        _nextElementPosition = other._nextElementPosition;
+    }
+
+    public object Clone() => new BinaryInputArchiveBlock(this);
+
+    public uint GetNextElementPosition() => _nextElementPosition;
+
+    public bool IsUnorderedAccessSupported() => false;
+
+    public bool HasElementOrBlock(string name) => false;
+
+    public void Close(ArchiveBase archive)
+    {
+        if (_safe)
+        {
+            System.Diagnostics.Debug.Assert(_nextElementPosition != uint.MaxValue);
+            if (_nextElementPosition != _deserializer.Position)
+                _deserializer.Seek(_nextElementPosition);
+        }
     }
 
     private readonly Deserializer _deserializer;
-    private readonly List<Frame> _stack = [];
+    /// <summary>Whether the block is safe.</summary>
+    private readonly bool _safe;
+
+    /// <summary>For safe blocks only.</summary>
+    private readonly uint _blockOffset;
+    private readonly uint _blockSize;
+    private readonly uint _nextElementPosition;
+}
+
+/// <summary>Binary input archive.</summary>
+public class BinaryInputArchive : ArchiveBase
+{
+    private readonly List<BinaryInputArchiveBlock> _stack = [];
+    /// <summary>Deserializer.</summary>
+    private readonly Deserializer _deserializer;
 
     public BinaryInputArchive(Context context, Deserializer deserializer)
         : base(context)
@@ -154,34 +262,40 @@ public sealed class BinaryInputArchive : ArchiveBase
         _deserializer = deserializer;
     }
 
-    public override string Name => _deserializer.Name;
-    public override uint Checksum => _deserializer.GetChecksum();
-    public override bool IsInput => true;
-    public override bool IsHumanReadable => false;
-    public override bool IsUnorderedAccessSupportedInCurrentBlock => false;
-    public override string CurrentBlockPath => string.Join('/', _stack.Select(static frame => frame.Name));
-    public override bool HasElementOrBlock(string name) => false;
-
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void Dispose()
     {
-        CheckBlockOrElementName(name);
+        _stack.Clear();
+        base.Dispose();
+    }
+
+    public sealed override string Name => _deserializer.Name;
+    public sealed override uint Checksum => _deserializer.GetChecksum();
+    public sealed override bool IsInput => true;
+    public sealed override bool IsHumanReadable => false;
+    public sealed override bool IsUnorderedAccessSupportedInCurrentBlock =>
+        _stack.Count != 0 && _stack[^1].IsUnorderedAccessSupported();
+    public sealed override string CurrentBlockPath => GetCurrentBlockPath();
+    public sealed override bool HasElementOrBlock(string name)
+    {
+        System.Diagnostics.Debug.Assert(_stack.Count != 0, "Root block must be opened before serialization");
+        return _stack[^1].HasElementOrBlock(name);
+    }
+
+    public sealed override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    {
+        FlushDelayedException();
         CheckIfNotEof(name);
 
         if (_stack.Count == 0)
         {
-            var nextElementPosition = uint.MaxValue;
-            if (safe)
-            {
-                var size = _deserializer.ReadVLE();
-                nextElementPosition = Math.Min(_deserializer.Position + size, _deserializer.Size);
-            }
-            _stack.Add(new Frame(name, type, safe, nextElementPosition));
+            var frame = new BinaryInputArchiveBlock(name, type, _deserializer, safe, uint.MaxValue);
+            _stack.Add((BinaryInputArchiveBlock)frame.Clone());
         }
         else if (safe)
         {
-            var size = _deserializer.ReadVLE();
-            var nextElementPosition = Math.Min(_deserializer.Position + size, _deserializer.Size);
-            _stack.Add(new Frame(name, type, true, nextElementPosition));
+            var blockFrame = new BinaryInputArchiveBlock(name, type, _deserializer, true,
+                _stack[^1].GetNextElementPosition());
+            _stack.Add((BinaryInputArchiveBlock)blockFrame.Clone());
         }
         else
             _stack[^1].OpenInlineBlock();
@@ -192,15 +306,14 @@ public sealed class BinaryInputArchive : ArchiveBase
             if (_deserializer.IsEof() && sizeHint != 0)
             {
                 EndBlock();
-                throw IoFailureException(name);
+                throw IoFailureException("<block guard>");
             }
         }
     }
 
-    public override void EndBlock()
+    public sealed override void EndBlock()
     {
-        if (_stack.Count == 0)
-            throw new InvalidOperationException("No archive block is open.");
+        System.Diagnostics.Debug.Assert(_stack.Count != 0);
 
         var frame = _stack[^1];
         if (frame.HasOpenInlineBlock)
@@ -209,51 +322,64 @@ public sealed class BinaryInputArchive : ArchiveBase
             return;
         }
 
+        try
+        {
+            frame.Close(this);
+        }
+        catch (InvalidOperationException exception)
+        {
+            SetDelayedException(exception);
+        }
         _stack.RemoveAt(_stack.Count - 1);
-        if (frame.Safe && frame.NextElementPosition != uint.MaxValue && _deserializer.Position != frame.NextElementPosition)
-            _deserializer.Seek(frame.NextElementPosition);
 
         if (_stack.Count == 0)
             CloseArchive();
     }
 
-    public override void Serialize(string name, ref bool value) => Read(name, () => _deserializer.ReadBool(), out value);
-    public override void Serialize(string name, ref sbyte value) => Read(name, () => _deserializer.ReadByte(), out value);
-    public override void Serialize(string name, ref byte value) => Read(name, () => _deserializer.ReadUByte(), out value);
-    public override void Serialize(string name, ref short value) => Read(name, () => _deserializer.ReadShort(), out value);
-    public override void Serialize(string name, ref ushort value) => Read(name, () => _deserializer.ReadUShort(), out value);
-    public override void Serialize(string name, ref int value) => Read(name, () => _deserializer.ReadInt(), out value);
-    public override void Serialize(string name, ref uint value) => Read(name, () => _deserializer.ReadUInt(), out value);
-    public override void Serialize(string name, ref long value) => Read(name, () => _deserializer.ReadInt64(), out value);
-    public override void Serialize(string name, ref ulong value) => Read(name, () => _deserializer.ReadUInt64(), out value);
-    public override void Serialize(string name, ref float value) => Read(name, () => _deserializer.ReadFloat(), out value);
-    public override void Serialize(string name, ref double value) => Read(name, () => _deserializer.ReadDouble(), out value);
-    public override void Serialize(string name, ref string value) => Read(name, () => _deserializer.ReadString(), out value);
+    public sealed override void Serialize(string name, ref bool value) { CheckElement(name); value = _deserializer.ReadBool(); }
+    public sealed override void Serialize(string name, ref sbyte value) { CheckElement(name); value = _deserializer.ReadByte(); }
+    public sealed override void Serialize(string name, ref byte value) { CheckElement(name); value = _deserializer.ReadUByte(); }
+    public sealed override void Serialize(string name, ref short value) { CheckElement(name); value = _deserializer.ReadShort(); }
+    public sealed override void Serialize(string name, ref ushort value) { CheckElement(name); value = _deserializer.ReadUShort(); }
+    public sealed override void Serialize(string name, ref int value) { CheckElement(name); value = _deserializer.ReadInt(); }
+    public sealed override void Serialize(string name, ref uint value) { CheckElement(name); value = _deserializer.ReadUInt(); }
+    public sealed override void Serialize(string name, ref long value) { CheckElement(name); value = _deserializer.ReadInt64(); }
+    public sealed override void Serialize(string name, ref ulong value) { CheckElement(name); value = _deserializer.ReadUInt64(); }
+    public sealed override void Serialize(string name, ref float value) { CheckElement(name); value = _deserializer.ReadFloat(); }
+    public sealed override void Serialize(string name, ref double value) { CheckElement(name); value = _deserializer.ReadDouble(); }
+    public sealed override void Serialize(string name, ref string value) { CheckElement(name); value = _deserializer.ReadString(); }
 
-    public override void SerializeBytes(string name, Span<byte> bytes)
+    public sealed override void SerializeBytes(string name, Span<byte> bytes)
     {
         CheckElement(name);
         if (_deserializer.Read(bytes) != bytes.Length)
             throw IoFailureException(name);
     }
 
-    public override void SerializeVle(string name, ref uint value)
+    public sealed override void SerializeVle(string name, ref uint value)
     {
         CheckElement(name);
         value = _deserializer.ReadVLE();
     }
 
-    private void CheckElement(string name)
+    private string GetCurrentBlockPath()
     {
-        CheckBlockOrElementName(name);
-        CheckIfNotEof(name);
-        if (_stack.Count == 0)
-            throw new InvalidOperationException("Root archive block must be open before serialization.");
+        var result = new System.Text.StringBuilder();
+        foreach (var frame in _stack)
+        {
+            if (result.Length != 0)
+                result.Append('/');
+            result.Append(frame.Name);
+            if (frame.HasOpenInlineBlock)
+                result.Append("/?");
+        }
+        return result.ToString();
     }
 
-    private void Read<T>(string name, Func<T> reader, out T value)
+    private void CheckElement(string name)
     {
-        CheckElement(name);
-        value = reader();
+        FlushDelayedException();
+        CheckIfNotEof(name);
+        System.Diagnostics.Debug.Assert(_stack.Count != 0, "Root block must be opened before serialization");
     }
 }

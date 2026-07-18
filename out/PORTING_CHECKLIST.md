@@ -135,6 +135,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
 - [~] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, implemented primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, and exception consumption reconciled; generic optional/pair helpers remain
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
+- [x] `Base64Archive.h` / `Base64Archive.cpp` — extensible non-POD class kinds, binary inheritance, owned VectorBuffer construction/reverse teardown, and direct encode/decode behavior reconciled
+- [x] `BinaryArchive.h` / `BinaryArchive.cpp` — extensible non-POD archive/block kinds, input-block copy construction, borrowed streams, owned safe buffers, deterministic teardown, paths, guards, and delayed exceptions reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
