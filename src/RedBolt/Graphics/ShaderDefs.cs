@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// SPIR-V shader.
 /// </summary>
-public struct SpirVShader
+public struct SpirVShader : ICloneable
 {
     public List<uint> Bytecode = new();
     public string CompilerOutput = string.Empty;
@@ -15,6 +15,12 @@ public struct SpirVShader
     public bool IsValid() => Bytecode.Count != 0;
 
     public static implicit operator bool(SpirVShader value) => value.IsValid();
+
+    public object Clone() => new SpirVShader
+    {
+        Bytecode = new List<uint>(Bytecode),
+        CompilerOutput = CompilerOutput
+    };
 }
 
 /// <summary>
@@ -31,7 +37,7 @@ public enum TargetShaderLanguage
 /// <summary>
 /// Array of shader defines: pairs of name and value.
 /// </summary>
-public struct ShaderDefineArray
+public struct ShaderDefineArray : ICloneable
 {
     /// <summary>
     /// Vector of defines.
@@ -90,4 +96,9 @@ public struct ShaderDefineArray
         }
         return unusedDefines;
     }
+
+    public object Clone() => new ShaderDefineArray
+    {
+        Defines = new List<(string Name, string Value)>(Defines)
+    };
 }
