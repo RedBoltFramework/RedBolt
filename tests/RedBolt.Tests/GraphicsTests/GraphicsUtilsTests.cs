@@ -72,4 +72,12 @@ public sealed class GraphicsUtilsTests
         Assert.Equal(1u, desc.InputLayout.Elements[1].BufferIndex);
         Assert.Equal(1u, desc.InputLayout.Elements[1].InstanceStepRate);
     }
+
+    [Fact]
+    public void Initialize_input_layout_accepts_empty_fixed_buffer_array()
+    {
+        var inputLayout = new InputLayoutDesc();
+
+        GraphicsUtils.InitializeInputLayout(inputLayout, ReadOnlySpan<VertexBuffer?>.Empty);
+    }
 }

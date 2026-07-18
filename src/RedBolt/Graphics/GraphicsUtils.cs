@@ -5,16 +5,17 @@ namespace RedBolt;
 
 public static class GraphicsUtils
 {
-    private static VertexBuffer?[] ToVertexBufferArray(Geometry geometry, VertexBuffer? instancingBuffer)
+    private static void ToVertexBufferArray(
+        Geometry geometry, VertexBuffer? instancingBuffer, Span<VertexBuffer?> vertexBuffers)
     {
-        var vertexBuffers = new VertexBuffer?[RenderApiLimits.MaxVertexStreams];
+        vertexBuffers.Clear();
         var numVertexBuffers = geometry.GetNumVertexBuffers() + (instancingBuffer is null ? 0u : 1u);
         if (numVertexBuffers > RenderApiLimits.MaxVertexStreams)
         {
             Log.Logger.LogError(
                 "Too many vertex buffers: PipelineState cannot handle more than {MaxVertexStreams}",
                 RenderApiLimits.MaxVertexStreams);
-            return vertexBuffers;
+            return;
         }
 
         for (var index = 0u; index < geometry.GetNumVertexBuffers(); ++index)
@@ -23,15 +24,14 @@ public static class GraphicsUtils
         if (instancingBuffer is not null)
             vertexBuffers[checked((int)(numVertexBuffers - 1))] = instancingBuffer;
 
-        return vertexBuffers;
     }
 
-    public static void InitializeInputLayout(InputLayoutDesc desc, IReadOnlyList<VertexBuffer?> vertexBuffers)
+    public static void InitializeInputLayout(InputLayoutDesc desc, ReadOnlySpan<VertexBuffer?> vertexBuffers)
     {
         Span<InputLayoutElementDesc> layoutElements = stackalloc InputLayoutElementDesc[(int)RenderApiLimits.MaxNumVertexElements];
         uint size = 0;
 
-        for (uint bufferIndex = 0; bufferIndex < RenderApiLimits.MaxVertexStreams && bufferIndex < vertexBuffers.Count; ++bufferIndex)
+        for (uint bufferIndex = 0; bufferIndex < RenderApiLimits.MaxVertexStreams && bufferIndex < vertexBuffers.Length; ++bufferIndex)
         {
             VertexBuffer? vertexBuffer = vertexBuffers[(int)bufferIndex];
             if (vertexBuffer is null)
@@ -70,10 +70,19 @@ public static class GraphicsUtils
     public static void InitializeInputLayoutAndPrimitiveType(
         GraphicsPipelineStateDesc desc, Geometry geometry, VertexBuffer? instancingBuffer = null)
     {
-        var vertexBuffers = ToVertexBufferArray(geometry, instancingBuffer);
-
-        InitializeInputLayout(desc.InputLayout, vertexBuffers);
-        desc.PrimitiveType = geometry.GetPrimitiveType();
+        var vertexBuffers = ArrayPool<VertexBuffer?>.Shared.Rent((int)RenderApiLimits.MaxVertexStreams);
+        try
+        {
+            var vertexBufferSpan = vertexBuffers.AsSpan(0, (int)RenderApiLimits.MaxVertexStreams);
+            ToVertexBufferArray(geometry, instancingBuffer, vertexBufferSpan);
+            InitializeInputLayout(desc.InputLayout, vertexBufferSpan);
+            desc.PrimitiveType = geometry.GetPrimitiveType();
+        }
+        finally
+        {
+            Array.Clear(vertexBuffers, 0, (int)RenderApiLimits.MaxVertexStreams);
+            ArrayPool<VertexBuffer?>.Shared.Return(vertexBuffers);
+        }
     }
 
     public static void SetBuffersFromGeometry(
@@ -107,9 +116,11 @@ public static class GraphicsUtils
 
     public static void AddShaderResource(DrawCommandQueue drawQueue, StringHash name, Texture? texture)
     {
-        ArgumentNullException.ThrowIfNull(drawQueue);
         if (texture is null)
+        {
+            Log.Logger.LogError("Trying to add null texture to DrawCommandQueue");
             return;
+        }
 
         drawQueue.AddShaderResource(
             name,
@@ -120,8 +131,6 @@ public static class GraphicsUtils
     public static void AddNullableShaderResource(
         DrawCommandQueue drawQueue, StringHash name, TextureType type, Texture? texture)
     {
-        ArgumentNullException.ThrowIfNull(drawQueue);
-
         drawQueue.AddNullableShaderResource(
             name,
             type,
