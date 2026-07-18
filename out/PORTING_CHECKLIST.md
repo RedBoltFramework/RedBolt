@@ -161,6 +161,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Graphics.h` / `Graphics.cpp` — construction-context and SDL ownership, device-before-window close/destruction, frame and resize events, cached shader observation, independent window-settings copies, and managed native COM/unmanaged-storage teardown reconciled
 - [x] `RenderBackend` in `RenderAPIDefs.h` — duplicate `GraphicsBackend` removed; exact enum values are used directly and the automatic backend request preserves C++ optional-value semantics through nullable `RenderBackend`
 - [x] `GraphicsDefs.h` / `GraphicsDefs.cpp` — enum values and aliases, `VertexElement` default/parameterized construction and independent value copies, immutable shader hashes/vector constant, and const legacy-element/type-size tables reconciled
+- [x] `GraphicsEvents.h` — all 16 event payload shapes and value/borrowed-pointer semantics, render-surface/texture sender selection, default and stereo view event ordering, and frame-level versus per-view rendering boundaries reconciled
 
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)

@@ -16,12 +16,18 @@ public sealed class GraphicsEventsTests
             RefreshRate = 60
         };
         var windowPos = new GraphicsEvents.WindowPosEvent { X = 12, Y = 34 };
+        var defaultRenderPath = new GraphicsEvents.RenderPathEvent();
         var renderPath = new GraphicsEvents.RenderPathEvent { Name = "Default" };
+        var gpuResourceReleased = new GraphicsEvents.GpuResourceReleasedEvent { Object = 1234 };
+        var gpuResourceReleasedCopy = gpuResourceReleased;
 
         Assert.Equal(1280, screenMode.Width);
         Assert.True(screenMode.Fullscreen);
         Assert.Equal(12, windowPos.X);
+        Assert.Equal(string.Empty, defaultRenderPath.Name);
         Assert.Equal("Default", renderPath.Name);
+        Assert.Equal((nint)1234, gpuResourceReleased.Object);
+        Assert.Equal(gpuResourceReleased.Object, gpuResourceReleasedCopy.Object);
     }
 
     [Fact]

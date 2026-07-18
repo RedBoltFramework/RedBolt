@@ -287,6 +287,7 @@ public class StereoRenderPipelineView : RenderPipelineView
     private RenderPipelineSettings _settings = new();
 
     private CommonFrameInfo _frameInfo = new();
+    private RenderSurface? _renderTarget;
     private RenderOutputFlag _renderOutputFlags;
 
     private readonly RenderPipelineStats _stats = new();
@@ -355,6 +356,8 @@ public class StereoRenderPipelineView : RenderPipelineView
 
         if (viewport.GetScene() is null || !viewport.IsStereo())
             return false;
+
+        _renderTarget = renderTarget;
 
         // Ensure that render path is ready
         if (_renderPath is null && _originalRenderPath is not null)
@@ -500,6 +503,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         // Begin update. Should happen before pipeline state hash check.
         _shadowMapAllocator?.ResetAllShadowMaps();
         RaiseUpdateBegin(_frameInfo);
+        SendBeginViewUpdateEvent();
 
         // Invalidate pipeline states if necessary
         var pipelineStateHash = _settings.CalculatePipelineStateHash();
@@ -521,6 +525,7 @@ public class StereoRenderPipelineView : RenderPipelineView
 
         UpdateFrameParameters();
 
+        SendEndViewUpdateEvent();
         RaiseUpdateEnd(_frameInfo);
     }
 
@@ -541,6 +546,8 @@ public class StereoRenderPipelineView : RenderPipelineView
         _renderBufferManager.SetFrameSettings(frameSettings);
 
         RaiseRenderBegin(_frameInfo);
+        SendBeginViewRenderEvent();
+        SendViewBuffersReadyEvent();
 
         _sceneProcessor.PrepareDrawablesBeforeRendering();
         _sceneProcessor.PrepareInstancingBuffer();
@@ -639,6 +646,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         }
 
         RaiseRenderEnd(_frameInfo);
+        SendEndViewRenderEvent();
 
         // Update statistics
         // stats_ = {};  — C# reuses instance; OnCollectStatistics fills it
@@ -650,6 +658,76 @@ public class StereoRenderPipelineView : RenderPipelineView
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 Log.Logger, "RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
         }
+    }
+
+    private void SendBeginViewUpdateEvent()
+    {
+        var eventData = new GraphicsEvents.BeginViewUpdateEvent
+        {
+            RenderPipelineView = this,
+            Texture = _renderTarget?.GetParentTexture(),
+            Surface = _renderTarget,
+            Scene = _sceneProcessor!.GetFrameInfo().Scene,
+            Camera = _sceneProcessor.GetFrameInfo().Camera
+        };
+        var sender = (Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        sender.SendEvent(ref eventData);
+    }
+
+    private void SendEndViewUpdateEvent()
+    {
+        var eventData = new GraphicsEvents.EndViewUpdateEvent
+        {
+            RenderPipelineView = this,
+            Texture = _renderTarget?.GetParentTexture(),
+            Surface = _renderTarget,
+            Scene = _sceneProcessor!.GetFrameInfo().Scene,
+            Camera = _sceneProcessor.GetFrameInfo().Camera
+        };
+        var sender = (Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        sender.SendEvent(ref eventData);
+    }
+
+    private void SendBeginViewRenderEvent()
+    {
+        var eventData = new GraphicsEvents.BeginViewRenderEvent
+        {
+            RenderPipelineView = this,
+            Texture = _renderTarget?.GetParentTexture(),
+            Surface = _renderTarget,
+            Scene = _sceneProcessor!.GetFrameInfo().Scene,
+            Camera = _sceneProcessor.GetFrameInfo().Camera
+        };
+        var sender = (Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        sender.SendEvent(ref eventData);
+    }
+
+    private void SendViewBuffersReadyEvent()
+    {
+        var eventData = new GraphicsEvents.ViewBuffersReadyEvent
+        {
+            RenderPipelineView = this,
+            Texture = _renderTarget?.GetParentTexture(),
+            Surface = _renderTarget,
+            Scene = _sceneProcessor!.GetFrameInfo().Scene,
+            Camera = _sceneProcessor.GetFrameInfo().Camera
+        };
+        var sender = (Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        sender.SendEvent(ref eventData);
+    }
+
+    private void SendEndViewRenderEvent()
+    {
+        var eventData = new GraphicsEvents.EndViewRenderEvent
+        {
+            RenderPipelineView = this,
+            Texture = _renderTarget?.GetParentTexture(),
+            Surface = _renderTarget,
+            Scene = _sceneProcessor!.GetFrameInfo().Scene,
+            Camera = _sceneProcessor.GetFrameInfo().Camera
+        };
+        var sender = (Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        sender.SendEvent(ref eventData);
     }
 
     public override CommonFrameInfo GetFrameInfo() => _frameInfo;

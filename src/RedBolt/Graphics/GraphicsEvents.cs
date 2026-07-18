@@ -104,7 +104,9 @@ public static class GraphicsEvents
     /// <summary>A render path event has occurred.</summary>
     public struct RenderPathEvent
     {
-        public string Name; // String
+        public string Name = string.Empty; // String
+
+        public RenderPathEvent() { }
     }
 
     /// <summary>Graphics context has been lost. Some or all (depending on the API) GPU objects have lost their contents.</summary>
@@ -119,6 +121,6 @@ public static class GraphicsEvents
 
     public struct GpuResourceReleasedEvent
     {
-        public Object? Object; // Ptr
+        public nint Object; // Ptr
     }
 }
