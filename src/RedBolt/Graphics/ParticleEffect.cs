@@ -152,7 +152,7 @@ public class ParticleEffect : Resource
         // Apply the material now
         if (!string.IsNullOrEmpty(_loadMaterialName))
         {
-            SetMaterial(GetSubsystem<ResourceCache>()!.GetResource<Material>(_loadMaterialName));
+            SetMaterial(GetSubsystem<ResourceCache>()!.GetResourceOrNull<Material>(_loadMaterialName));
             _loadMaterialName = string.Empty;
         }
 

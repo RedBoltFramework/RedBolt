@@ -25,34 +25,74 @@ public struct Particle
 public class ParticleEmitter : BillboardSet
 {
     private const uint MaxParticlesInFrame = 100;
-
-    /// <summary>Particle effect.</summary>
-    private ParticleEffect? _effect;
-    /// <summary>Particles.</summary>
-    private readonly List<Particle> _particles = [];
-    /// <summary>Active/inactive period timer.</summary>
-    private float _periodTimer;
-    /// <summary>New particle emission timer.</summary>
-    private float _emissionTimer;
-    /// <summary>Last scene timestep.</summary>
-    private float _lastTimeStep;
-    /// <summary>Rendering framenumber on which was last updated.</summary>
-    private uint _lastUpdateFrameNumber = MathDefs.MaxUnsigned;
-    /// <summary>Currently emitting flag.</summary>
-    private bool _emitting = true;
-    /// <summary>Need update flag.</summary>
-    private bool _needUpdate;
-    /// <summary>Serialize particles flag.</summary>
-    private bool _serializeParticles = true;
-    /// <summary>Ready to send effect finish event flag.</summary>
-    private bool _sendFinishedEvent = true;
-    /// <summary>Automatic removal mode.</summary>
-    private AutoRemoveMode _autoRemove = AutoRemoveMode.Disabled;
+    private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
+    private static readonly string[] GlobalIlluminationTypeNames = ["None", "Use LightMap", "Blend Light Probes"];
+    private static readonly string[] ReflectionModeNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"];
 
     /// <summary>Construct.</summary>
     public ParticleEmitter()
     {
         SetNumParticles(ParticleEffect.DefaultNumParticles);
+
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((ParticleEmitter)self).Enabled,
+            (self, value) => ((ParticleEmitter)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Effect", typeof(ResourceRef), self => ((ParticleEmitter)self).GetEffectAttr(),
+            (self, value) => ((ParticleEmitter)self).SetEffectAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(ParticleEffect))));
+        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((ParticleEmitter)self).IsOccludee(),
+            (self, value) => ((ParticleEmitter)self).SetOccludee(value is bool enabled && enabled), true);
+        RegisterAttribute("Cast Shadows", typeof(bool), self => ((ParticleEmitter)self).GetCastShadows(),
+            (self, value) => ((ParticleEmitter)self).SetCastShadows(value is bool enabled && enabled), false);
+        RegisterAttribute("Draw Distance", typeof(float), self => ((ParticleEmitter)self).GetDrawDistance(),
+            (self, value) => ((ParticleEmitter)self).SetDrawDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Distance", typeof(float), self => ((ParticleEmitter)self).GetShadowDistance(),
+            (self, value) => ((ParticleEmitter)self).SetShadowDistance((float)value!), 0.0f);
+        RegisterAttribute("Animation LOD Bias", typeof(float), self => ((ParticleEmitter)self).GetAnimationLodBias(),
+            (self, value) => ((ParticleEmitter)self).SetAnimationLodBias((float)value!), 1.0f);
+        RegisterAttribute("Is Emitting", typeof(bool), self => ((ParticleEmitter)self)._emitting,
+            (self, value) => ((ParticleEmitter)self)._emitting = value is bool enabled && enabled, true);
+        RegisterAttribute("Period Timer", typeof(float), self => ((ParticleEmitter)self)._periodTimer,
+            (self, value) => ((ParticleEmitter)self)._periodTimer = (float)value!, 0.0f,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Emission Timer", typeof(float), self => ((ParticleEmitter)self)._emissionTimer,
+            (self, value) => ((ParticleEmitter)self)._emissionTimer = (float)value!, 0.0f,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Autoremove Mode", typeof(AutoRemoveMode), self => ((ParticleEmitter)self)._autoRemove,
+            (self, value) => ((ParticleEmitter)self)._autoRemove = (AutoRemoveMode)value!, AutoRemoveMode.Disabled,
+            enumNames: AutoRemoveModeNames);
+        RegisterAttribute("View Mask", typeof(uint), self => ((ParticleEmitter)self).GetViewMask(),
+            (self, value) => ((ParticleEmitter)self).SetViewMask((uint)value!), DefaultViewMask);
+        RegisterAttribute("Light Mask", typeof(uint), self => ((ParticleEmitter)self).GetLightMask(),
+            (self, value) => ((ParticleEmitter)self).SetLightMask((uint)value!), DefaultLightMask);
+        RegisterAttribute("Shadow Mask", typeof(uint), self => ((ParticleEmitter)self).GetShadowMask(),
+            (self, value) => ((ParticleEmitter)self).SetShadowMask((uint)value!), DefaultShadowMask);
+        RegisterAttribute("Zone Mask", typeof(uint), self => ((ParticleEmitter)self).GetZoneMask(),
+            (self, value) => ((ParticleEmitter)self).SetZoneMask((uint)value!), DefaultZoneMask);
+        RegisterAttribute("Global Illumination", typeof(GlobalIlluminationType),
+            self => ((ParticleEmitter)self).GetGlobalIlluminationType(),
+            (self, value) => ((ParticleEmitter)self).SetGlobalIlluminationType((GlobalIlluminationType)value!),
+            GlobalIlluminationType.None, enumNames: GlobalIlluminationTypeNames);
+        RegisterAttribute("Reflection Mode", typeof(ReflectionMode), self => ((ParticleEmitter)self).GetReflectionMode(),
+            (self, value) => ((ParticleEmitter)self).SetReflectionMode((ReflectionMode)value!),
+            ReflectionMode.BlendProbesAndZone, enumNames: ReflectionModeNames);
+        RegisterAttribute("Particles", typeof(VariantVector), self => ((ParticleEmitter)self).GetParticlesAttr(),
+            (self, value) => ((ParticleEmitter)self).SetParticlesAttr((VariantVector)value!), new VariantVector(),
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Billboards", typeof(VariantVector), self => ((ParticleEmitter)self).GetParticleBillboardsAttr(),
+            (self, value) => ((ParticleEmitter)self).SetBillboardsAttr((VariantVector)value!), new VariantVector(),
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Serialize Particles", typeof(bool), self => ((ParticleEmitter)self)._serializeParticles,
+            (self, value) => ((ParticleEmitter)self)._serializeParticles = value is bool enabled && enabled, true);
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _particles.Clear();
+        if (_effect is not null)
+            _effect.ReloadFinished -= HandleEffectReloadFinished;
+        _effect = null;
+        base.Dispose();
     }
 
     /// <summary>Register object factory.</summary>
@@ -366,10 +406,10 @@ public class ParticleEmitter : BillboardSet
     public AutoRemoveMode GetAutoRemoveMode() => _autoRemove;
 
     /// <summary>Set particles effect attribute.</summary>
-    public void SetEffectAttr(ResourceRef value)
+    public void SetEffectAttr(in ResourceRef value)
     {
-        var cache = GetSubsystem<ResourceCache>();
-        SetEffect(cache?.GetResourceOrNull<ParticleEffect>(value.Name));
+        var cache = GetSubsystem<ResourceCache>()!;
+        SetEffect(cache.GetResourceOrNull<ParticleEffect>(value.Name));
     }
 
     /// <summary>Set particles effect attribute.</summary>
@@ -474,7 +514,7 @@ public class ParticleEmitter : BillboardSet
         var startDir = _effect!.GetRandomDirection();
         startDir = startDir.Normalized;
 
-        Vector3f startPos;
+        Vector3f startPos = default;
         switch (_effect.GetEmitterType())
         {
             case EmitterType.Sphere:
@@ -522,9 +562,6 @@ public class ParticleEmitter : BillboardSet
                 startPos = new Vector3f(MathDefs.Cos(angle), MathDefs.Random(2.0f) - 1.0f, MathDefs.Sin(angle)) * _effect.GetEmitterSize() * 0.5f;
                 break;
             }
-            default:
-                startPos = Vector3f.Zero;
-                break;
         }
 
         particle.Size = _effect.GetRandomSize();
@@ -554,7 +591,7 @@ public class ParticleEmitter : BillboardSet
         billboard.Uv = textureFrames.Count != 0 ? textureFrames[0].Uv : Rect.Positive;
         billboard.Rotation = _effect.GetRandomRotation();
         var colorFrames = _effect.GetColorFrames();
-        billboard.Color = colorFrames.Count != 0 ? colorFrames[0].Color : default;
+        billboard.Color = colorFrames.Count != 0 ? colorFrames[0].Color : Color.White;
         billboard.Enabled = true;
         billboard.Direction = startDir;
 
@@ -606,19 +643,12 @@ public class ParticleEmitter : BillboardSet
         {
             _sendFinishedEvent = false;
 
-            // Make a weak reference to self to check for destruction during event handling
-            var selfAlive = true;
-            // C# GC means we cannot WeakPtr-check destruction during event; dispose flag via auto-remove path.
-
             var finished = new DrawableEvents.ParticleEffectFinishedEvent
             {
                 Node = Node,
                 Effect = _effect
             };
             Node.SendEvent(ref finished);
-
-            if (!selfAlive)
-                return;
 
             DoAutoRemove(_autoRemove);
         }
@@ -631,4 +661,27 @@ public class ParticleEmitter : BillboardSet
         Reset();
         ApplyEffect();
     }
+
+    /// <summary>Particle effect.</summary>
+    private ParticleEffect? _effect;
+    /// <summary>Particles.</summary>
+    private readonly List<Particle> _particles = [];
+    /// <summary>Active/inactive period timer.</summary>
+    private float _periodTimer;
+    /// <summary>New particle emission timer.</summary>
+    private float _emissionTimer;
+    /// <summary>Last scene timestep.</summary>
+    private float _lastTimeStep;
+    /// <summary>Rendering framenumber on which was last updated.</summary>
+    private uint _lastUpdateFrameNumber = MathDefs.MaxUnsigned;
+    /// <summary>Currently emitting flag.</summary>
+    private bool _emitting = true;
+    /// <summary>Need update flag.</summary>
+    private bool _needUpdate;
+    /// <summary>Serialize particles flag.</summary>
+    private bool _serializeParticles = true;
+    /// <summary>Ready to send effect finish event flag.</summary>
+    private bool _sendFinishedEvent = true;
+    /// <summary>Automatic removal mode.</summary>
+    private AutoRemoveMode _autoRemove = AutoRemoveMode.Disabled;
 }

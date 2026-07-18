@@ -233,6 +233,118 @@ public sealed class ParticleEmitterTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Particle_preserves_cpp_pod_value_semantics()
+    {
+        Assert.True(typeof(Particle).IsValueType);
+
+        var particle = new Particle
+        {
+            Velocity = new Vector3f(1.0f, 2.0f, 3.0f),
+            Size = new Vector2f(4.0f, 5.0f),
+            Timer = 6.0f,
+            TimeToLive = 7.0f,
+            Scale = 8.0f,
+            RotationSpeed = 9.0f,
+            ColorIndex = 10,
+            TexIndex = 11
+        };
+        var copy = particle;
+        copy.Velocity = Vector3f.Zero;
+        copy.Size = Vector2f.Zero;
+        copy.Timer = 0.0f;
+        copy.ColorIndex = 0;
+
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), particle.Velocity);
+        Assert.Equal(new Vector2f(4.0f, 5.0f), particle.Size);
+        Assert.Equal(6.0f, particle.Timer);
+        Assert.Equal(10u, particle.ColorIndex);
+    }
+
+    [Fact]
+    public void Constructor_registers_cpp_attributes_in_order()
+    {
+        var emitter = new ParticleEmitter();
+        var expectedNames = new[]
+        {
+            "Is Enabled", "Effect", "Can Be Occluded", "Cast Shadows", "Draw Distance", "Shadow Distance",
+            "Animation LOD Bias", "Is Emitting", "Period Timer", "Emission Timer", "Autoremove Mode",
+            "View Mask", "Light Mask", "Shadow Mask", "Zone Mask", "Global Illumination", "Reflection Mode",
+            "Particles", "Billboards", "Serialize Particles"
+        };
+
+        var attributeIndex = 0;
+        for (var i = 0; i < emitter.Attributes.Count && attributeIndex < expectedNames.Length; ++i)
+        {
+            if (emitter.Attributes[i].Name == expectedNames[attributeIndex])
+                ++attributeIndex;
+        }
+        Assert.Equal(expectedNames.Length, attributeIndex);
+    }
+
+    [Fact]
+    public void Particle_resize_value_initializes_cpp_pod_fields()
+    {
+        var emitter = new ParticleEmitter();
+        emitter.SetNumParticles(1);
+
+        var values = emitter.GetParticlesAttr();
+        Assert.Equal(9, values.Count);
+        Assert.Equal(Vector3f.Zero, values[1].GetVector3());
+        Assert.Equal(Vector2f.Zero, values[2].GetVector2());
+        Assert.Equal(0.0f, values[3].GetFloat());
+        Assert.Equal(0.0f, values[4].GetFloat());
+        Assert.Equal(0.0f, values[5].GetFloat());
+        Assert.Equal(0.0f, values[6].GetFloat());
+        Assert.Equal(0, values[7].GetInt());
+        Assert.Equal(0, values[8].GetInt());
+    }
+
+    [Fact]
+    public void Empty_effect_attribute_maps_cpp_null_resource_result()
+    {
+        var emitter = new ParticleEmitter();
+        emitter.SetEffectAttr(new ResourceRef(new StringHash(nameof(ParticleEffect))));
+        Assert.Null(emitter.GetEffect());
+    }
+
+    [Fact]
+    public void Dispose_releases_particles_and_effect_reference_without_disposing_effect()
+    {
+        var effect = new ParticleEffect();
+        effect.SetNumParticles(3);
+        var emitter = new ParticleEmitter();
+        emitter.SetEffect(effect);
+
+        emitter.Dispose();
+
+        Assert.Null(emitter.GetEffect());
+        Assert.Equal(0u, emitter.GetNumParticles());
+        effect.SetNumParticles(4);
+        Assert.Equal(4u, effect.GetNumParticles());
+    }
+
+    [Fact]
+    public void Emitted_particle_without_color_frames_uses_cpp_default_white()
+    {
+        var scene = new Scene();
+        var emitter = scene.CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        var effect = new ParticleEffect();
+        effect.SetNumParticles(1);
+        effect.SetMinEmissionRate(1000.0f);
+        effect.SetMaxEmissionRate(1000.0f);
+        effect.SetUpdateInvisible(true);
+        emitter.SetEffect(effect);
+
+        var postUpdate = new SceneEvents.ScenePostUpdateEvent { Scene = scene, TimeStep = 0.1f };
+        scene.SendEvent(ref postUpdate);
+        emitter.Update(new CommonFrameInfo { Scene = scene });
+
+        ref var billboard = ref emitter.GetBillboard(0);
+        Assert.True(billboard.Enabled);
+        Assert.Equal(Color.White, billboard.Color);
+    }
+
+    [Fact]
     public void ApplyEffect_copies_billboard_and_particle_settings()
     {
         var effect = new ParticleEffect();

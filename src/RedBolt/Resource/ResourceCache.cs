@@ -366,7 +366,9 @@ public sealed class ResourceCache : Object
     public T? GetResourceOrNull<T>(string name)
         where T : Resource
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(name);
+        if (name.Length == 0)
+            return null;
 
         _backgroundLoader.WaitForResource(typeof(T), name);
 
