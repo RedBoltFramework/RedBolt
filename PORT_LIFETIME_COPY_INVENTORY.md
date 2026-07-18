@@ -312,7 +312,8 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Graphics/Texture3D.cs` | `Source/Urho3D/Graphics/Texture3D.h`<br>`Source/Urho3D/Graphics/Texture3D.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Graphics/TextureCube.cs` | `Source/Urho3D/Graphics/TextureCube.h`<br>`Source/Urho3D/Graphics/TextureCube.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Graphics/VertexBuffer.cs` | `Source/Urho3D/Graphics/VertexBuffer.h`<br>`Source/Urho3D/Graphics/VertexBuffer.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Graphics/VertexElement.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
+| `src/RedBolt/Graphics/VertexElement.cs` | `Source/Urho3D/Graphics/GraphicsDefs.h` (`VertexElement`) | ☑ | ☑ | ☑ |
+| 2026-07-18 outcome | VERIFIED the complete native `VertexElement` declaration and managed mapping. The C++ POD aggregate remains a reference-free C# struct with public fields in the same `Type`, `Semantic`, `Index`, `StepRate`, `Offset` order; both constructors preserve native defaults and initialization order. Assignment produces an independent value copy, equality intentionally ignores buffer-specific offset, hashing includes every field, and destruction is trivial. Focused GraphicsDefs tests pass 6/6. | — | — | — |
 | `src/RedBolt/Graphics/Viewport.cs` | `Source/Urho3D/Graphics/Viewport.h`<br>`Source/Urho3D/Graphics/Viewport.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Graphics/Zone.cs` | `Source/Urho3D/Graphics/Zone.h`<br>`Source/Urho3D/Graphics/Zone.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/IO/AbstractFile.cs` | `Source/Urho3D/IO/AbstractFile.h` | ☐ | ☐ | ☐ |

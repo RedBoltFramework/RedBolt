@@ -68,4 +68,11 @@ public sealed class GraphicsDefsTests
         Assert.Equal(16u, source.Offset);
         Assert.Equal(32u, copy.Offset);
     }
+
+    [Fact]
+    public void Vertex_element_is_reference_free_value_type()
+    {
+        Assert.True(typeof(VertexElement).IsValueType);
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<VertexElement>());
+    }
 }
