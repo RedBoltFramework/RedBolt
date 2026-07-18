@@ -33,6 +33,28 @@ public sealed class Shader : Resource
         RefreshMemoryUse();
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        OwnerCache?.ResetDependencies(this);
+
+        var disposedVariations = new HashSet<ShaderVariation>();
+        foreach (var variation in _variations.Values)
+        {
+            if (disposedVariations.Add(variation))
+            {
+                variation.Destroy();
+                variation.Dispose();
+            }
+        }
+        _variations.Clear();
+        _numVariations = 0;
+        _timeStamp = default;
+        _sourceCode = string.Empty;
+        OnReloaded = null;
+        base.Dispose();
+    }
+
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
