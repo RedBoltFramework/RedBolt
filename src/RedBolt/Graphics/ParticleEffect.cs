@@ -18,7 +18,7 @@ public struct ColorFrame
     /// <summary>Construct with default values.</summary>
     public ColorFrame()
     {
-        Color = default;
+        Color = Color.White;
         Time = 0.0f;
     }
 
@@ -37,7 +37,7 @@ public struct ColorFrame
     }
 
     /// <summary>Return interpolated value with another color-time pair at the time specified.</summary>
-    public Color Interpolate(ColorFrame next, float time)
+    public readonly Color Interpolate(in ColorFrame next, float time)
     {
         var timeInterval = next.Time - Time;
         if (timeInterval > 0.0f)
@@ -66,7 +66,7 @@ public struct TextureFrame : IEquatable<TextureFrame>
     }
 
     /// <summary>Equality operator.</summary>
-    public bool Equals(TextureFrame other) => Uv == other.Uv && MathDefs.Equals(Time, other.Time);
+    public readonly bool Equals(TextureFrame other) => Uv == other.Uv && MathDefs.Equals(Time, other.Time);
 
     public override bool Equals(object? obj) => obj is TextureFrame other && Equals(other);
 
@@ -74,7 +74,8 @@ public struct TextureFrame : IEquatable<TextureFrame>
 
     public static bool operator ==(TextureFrame left, TextureFrame right) => left.Equals(right);
 
-    public static bool operator !=(TextureFrame left, TextureFrame right) => !left.Equals(right);
+    public static bool operator !=(TextureFrame left, TextureFrame right) =>
+        left.Uv != right.Uv && MathDefs.Equals(left.Time, right.Time);
 
     /// <summary>UV coordinates.</summary>
     public Rect Uv;
@@ -104,91 +105,26 @@ public class ParticleEffect : Resource
     private static readonly Vector3f DefaultDirectionMin = new(-1.0f, -1.0f, -1.0f);
     private static readonly Vector3f DefaultDirectionMax = new(1.0f, 1.0f, 1.0f);
 
-    /// <summary>Material.</summary>
-    private Material? _material;
-    /// <summary>Number of particles.</summary>
-    private uint _numParticles = DefaultNumParticles;
-    /// <summary>Update when invisible flag.</summary>
-    private bool _updateInvisible;
-    /// <summary>Billboards relative flag.</summary>
-    private bool _relative = true;
-    /// <summary>Scale affects billboard scale flag.</summary>
-    private bool _scaled = true;
-    /// <summary>Billboards sorted flag.</summary>
-    private bool _sorted;
-    /// <summary>Billboards fixed screen size flag.</summary>
-    private bool _fixedScreenSize;
-    /// <summary>Animation LOD bias.</summary>
-    private float _animationLodBias;
-    /// <summary>Emitter shape.</summary>
-    private EmitterType _emitterType = EmitterType.Sphere;
-    /// <summary>Emitter size.</summary>
-    private Vector3f _emitterSize;
-    /// <summary>Particle direction minimum.</summary>
-    private Vector3f _directionMin = DefaultDirectionMin;
-    /// <summary>Particle direction maximum.</summary>
-    private Vector3f _directionMax = DefaultDirectionMax;
-    /// <summary>Particle constant force.</summary>
-    private Vector3f _constantForce;
-    /// <summary>Particle velocity damping force.</summary>
-    private float _dampingForce;
-    /// <summary>Active period.</summary>
-    private float _activeTime;
-    /// <summary>Inactive period.</summary>
-    private float _inactiveTime;
-    /// <summary>Particles per second minimum.</summary>
-    private float _emissionRateMin = DefaultEmissionRate;
-    /// <summary>Particles per second maximum.</summary>
-    private float _emissionRateMax = DefaultEmissionRate;
-    /// <summary>Particle size minimum.</summary>
-    private Vector2f _sizeMin = DefaultParticleSize;
-    /// <summary>Particle size maximum.</summary>
-    private Vector2f _sizeMax = DefaultParticleSize;
-    /// <summary>Particle time to live minimum.</summary>
-    private float _timeToLiveMin = DefaultTimeToLive;
-    /// <summary>Particle time to live maximum.</summary>
-    private float _timeToLiveMax = DefaultTimeToLive;
-    /// <summary>Particle velocity minimum.</summary>
-    private float _velocityMin = DefaultVelocity;
-    /// <summary>Particle velocity maximum.</summary>
-    private float _velocityMax = DefaultVelocity;
-    /// <summary>Particle rotation angle minimum.</summary>
-    private float _rotationMin;
-    /// <summary>Particle rotation angle maximum.</summary>
-    private float _rotationMax;
-    /// <summary>Particle rotation speed minimum.</summary>
-    private float _rotationSpeedMin;
-    /// <summary>Particle rotation speed maximum.</summary>
-    private float _rotationSpeedMax;
-    /// <summary>Particle size additive parameter.</summary>
-    private float _sizeAdd;
-    /// <summary>Particle size multiplicative parameter.</summary>
-    private float _sizeMul = 1.0f;
-    /// <summary>Particle color animation frames.</summary>
-    private readonly List<ColorFrame> _colorFrames = [];
-    /// <summary>Texture animation frames.</summary>
-    private readonly List<TextureFrame> _textureFrames = [];
-    /// <summary>Material name acquired during BeginLoad().</summary>
-    private string _loadMaterialName = string.Empty;
-    /// <summary>Particle rotation mode in relation to the camera.</summary>
-    private FaceCameraMode _faceCameraMode = FaceCameraMode.RotateXyz;
-
     /// <summary>Construct.</summary>
     public ParticleEffect()
         : base(string.Empty)
     {
     }
 
-    /// <summary>Construct with name.</summary>
-    public ParticleEffect(string name)
-        : base(name)
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
+        _loadMaterialName = string.Empty;
+        _textureFrames.Clear();
+        _colorFrames.Clear();
+        _material = null;
+        base.Dispose();
     }
 
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        var reflection = context.AddFactoryReflection<ParticleEffect>();
+        context.AddFactoryReflection<ParticleEffect>();
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
@@ -196,8 +132,8 @@ public class ParticleEffect : Resource
     {
         _loadMaterialName = string.Empty;
 
-        var file = new XMLFile(string.Empty);
-        if (!file.BeginLoad(source))
+        using var file = new XMLFile(string.Empty);
+        if (!file.Load(source))
         {
             Log.Logger.LogError("Load particle effect file failed");
             return false;
@@ -216,7 +152,7 @@ public class ParticleEffect : Resource
         // Apply the material now
         if (!string.IsNullOrEmpty(_loadMaterialName))
         {
-            SetMaterial(GetSubsystem<ResourceCache>()?.GetResourceOrNull<Material>(_loadMaterialName));
+            SetMaterial(GetSubsystem<ResourceCache>()!.GetResource<Material>(_loadMaterialName));
             _loadMaterialName = string.Empty;
         }
 
@@ -226,7 +162,7 @@ public class ParticleEffect : Resource
     /// <summary>Save resource. Return true if successful.</summary>
     public override bool Save(Stream dest)
     {
-        var xml = new XMLFile(string.Empty);
+        using var xml = new XMLFile(string.Empty);
         var materialElem = xml.CreateRoot("particleeffect");
         Save(materialElem);
         return xml.Save(dest);
@@ -393,7 +329,7 @@ public class ParticleEffect : Resource
             _loadMaterialName = source.GetChild("material").GetAttribute("name");
             // If async loading, can not GetResource() the material. But can do a background request for it
             if (AsyncLoadState == AsyncLoadState.Loading)
-                GetSubsystem<ResourceCache>()?.BackgroundLoadResource<Material>(_loadMaterialName, true, this);
+                GetSubsystem<ResourceCache>()!.BackgroundLoadResource<Material>(_loadMaterialName, true, this);
         }
 
         if (source.HasChild("numparticles"))
@@ -547,17 +483,17 @@ public class ParticleEffect : Resource
     public void SetFixedScreenSize(bool enable) => _fixedScreenSize = enable;
     public void SetAnimationLodBias(float lodBias) => _animationLodBias = lodBias;
     public void SetEmitterType(EmitterType type) => _emitterType = type;
-    public void SetEmitterSize(Vector3f size) => _emitterSize = size;
-    public void SetMinDirection(Vector3f direction) => _directionMin = direction;
-    public void SetMaxDirection(Vector3f direction) => _directionMax = direction;
-    public void SetConstantForce(Vector3f force) => _constantForce = force;
+    public void SetEmitterSize(in Vector3f size) => _emitterSize = size;
+    public void SetMinDirection(in Vector3f direction) => _directionMin = direction;
+    public void SetMaxDirection(in Vector3f direction) => _directionMax = direction;
+    public void SetConstantForce(in Vector3f force) => _constantForce = force;
     public void SetDampingForce(float force) => _dampingForce = force;
     public void SetActiveTime(float time) => _activeTime = time;
     public void SetInactiveTime(float time) => _inactiveTime = time;
     public void SetMinEmissionRate(float rate) => _emissionRateMin = Math.Max(rate, MinEmissionRate);
     public void SetMaxEmissionRate(float rate) => _emissionRateMax = Math.Max(rate, MinEmissionRate);
-    public void SetMinParticleSize(Vector2f size) => _sizeMin = size;
-    public void SetMaxParticleSize(Vector2f size) => _sizeMax = size;
+    public void SetMinParticleSize(in Vector2f size) => _sizeMin = size;
+    public void SetMaxParticleSize(in Vector2f size) => _sizeMax = size;
     public void SetMinTimeToLive(float time) => _timeToLiveMin = Math.Max(time, 0.0f);
     public void SetMaxTimeToLive(float time) => _timeToLiveMax = Math.Max(time, 0.0f);
     public void SetMinVelocity(float velocity) => _velocityMin = velocity;
@@ -568,13 +504,12 @@ public class ParticleEffect : Resource
     public void SetMaxRotationSpeed(float speed) => _rotationSpeedMax = speed;
     public void SetSizeAdd(float sizeAdd) => _sizeAdd = sizeAdd;
     public void SetSizeMul(float sizeMul) => _sizeMul = sizeMul;
-    public void SetFaceCameraMode(FaceCameraMode mode) => _faceCameraMode = mode;
 
     /// <summary>Add a color frame sorted in the correct position based on time.</summary>
-    public void AddColorTime(Color color, float time)
+    public void AddColorTime(in Color color, float time)
     {
         var s = _colorFrames.Count;
-        _colorFrames.Add(default);
+        _colorFrames.Add(new ColorFrame());
 
         for (var i = 0; i < s; i++)
         {
@@ -591,7 +526,7 @@ public class ParticleEffect : Resource
         _colorFrames[s] = new ColorFrame(color, time);
     }
 
-    public void AddColorFrame(ColorFrame colorFrame) => AddColorTime(colorFrame.Color, colorFrame.Time);
+    public void AddColorFrame(in ColorFrame colorFrame) => AddColorTime(colorFrame.Color, colorFrame.Time);
 
     public void RemoveColorFrame(uint index)
     {
@@ -603,14 +538,17 @@ public class ParticleEffect : Resource
 
     public void SetColorFrames(IReadOnlyList<ColorFrame> colorFrames)
     {
+        if (ReferenceEquals(colorFrames, _colorFrames))
+            return;
+
         _colorFrames.Clear();
         _colorFrames.AddRange(colorFrames);
     }
 
-    public void SetColorFrame(uint index, ColorFrame colorFrame)
+    public void SetColorFrame(uint index, in ColorFrame colorFrame)
     {
         while (_colorFrames.Count < index + 1)
-            _colorFrames.Add(default);
+            _colorFrames.Add(new ColorFrame());
         _colorFrames[(int)index] = colorFrame;
     }
 
@@ -623,10 +561,12 @@ public class ParticleEffect : Resource
             else
             {
                 while (_colorFrames.Count < number)
-                    _colorFrames.Add(default);
+                    _colorFrames.Add(new ColorFrame());
             }
         }
     }
+
+    public void SetFaceCameraMode(FaceCameraMode mode) => _faceCameraMode = mode;
 
     public void SortColorFrames()
     {
@@ -636,10 +576,10 @@ public class ParticleEffect : Resource
             AddColorFrame(frame);
     }
 
-    public void AddTextureTime(Rect uv, float time)
+    public void AddTextureTime(in Rect uv, float time)
     {
         var s = _textureFrames.Count;
-        _textureFrames.Add(default);
+        _textureFrames.Add(new TextureFrame());
 
         for (var i = 0; i < s; i++)
         {
@@ -656,7 +596,7 @@ public class ParticleEffect : Resource
         _textureFrames[s] = new TextureFrame { Uv = uv, Time = time };
     }
 
-    public void AddTextureFrame(TextureFrame textureFrame) => AddTextureTime(textureFrame.Uv, textureFrame.Time);
+    public void AddTextureFrame(in TextureFrame textureFrame) => AddTextureTime(textureFrame.Uv, textureFrame.Time);
 
     public void RemoveTextureFrame(uint index)
     {
@@ -668,14 +608,17 @@ public class ParticleEffect : Resource
 
     public void SetTextureFrames(IReadOnlyList<TextureFrame> textureFrames)
     {
+        if (ReferenceEquals(textureFrames, _textureFrames))
+            return;
+
         _textureFrames.Clear();
         _textureFrames.AddRange(textureFrames);
     }
 
-    public void SetTextureFrame(uint index, TextureFrame textureFrame)
+    public void SetTextureFrame(uint index, in TextureFrame textureFrame)
     {
         while (_textureFrames.Count < index + 1)
-            _textureFrames.Add(default);
+            _textureFrames.Add(new TextureFrame());
         _textureFrames[(int)index] = textureFrame;
     }
 
@@ -688,7 +631,7 @@ public class ParticleEffect : Resource
             else
             {
                 while (_textureFrames.Count < number)
-                    _textureFrames.Add(default);
+                    _textureFrames.Add(new TextureFrame());
             }
         }
     }
@@ -704,7 +647,7 @@ public class ParticleEffect : Resource
     /// <summary>Clone the particle effect.</summary>
     public ParticleEffect Clone(string cloneName = "")
     {
-        var ret = new ParticleEffect(cloneName)
+        var ret = new ParticleEffect
         {
             _material = _material,
             _numParticles = _numParticles,
@@ -738,6 +681,7 @@ public class ParticleEffect : Resource
             _sizeMul = _sizeMul,
             _faceCameraMode = _faceCameraMode
         };
+        ret.SetName(cloneName);
         ret._colorFrames.AddRange(_colorFrames);
         ret._textureFrames.AddRange(_textureFrames);
         /// \todo Zero if source was created programmatically
@@ -794,7 +738,7 @@ public class ParticleEffect : Resource
     public float GetRandomRotationSpeed() => MathDefs.Lerp(_rotationSpeedMin, _rotationSpeedMax, MathDefs.Random(1.0f));
     public float GetRandomRotation() => MathDefs.Lerp(_rotationMin, _rotationMax, MathDefs.Random(1.0f));
 
-    private static void GetFloatMinMax(XMLElement element, ref float minValue, ref float maxValue)
+    private void GetFloatMinMax(XMLElement element, ref float minValue, ref float maxValue)
     {
         if (element.IsNull)
             return;
@@ -809,7 +753,7 @@ public class ParticleEffect : Resource
         }
     }
 
-    private static void GetVector2MinMax(XMLElement element, ref Vector2f minValue, ref Vector2f maxValue)
+    private void GetVector2MinMax(XMLElement element, ref Vector2f minValue, ref Vector2f maxValue)
     {
         if (element.IsNull)
             return;
@@ -824,7 +768,7 @@ public class ParticleEffect : Resource
         }
     }
 
-    private static void GetVector3MinMax(XMLElement element, ref Vector3f minValue, ref Vector3f maxValue)
+    private void GetVector3MinMax(XMLElement element, ref Vector3f minValue, ref Vector3f maxValue)
     {
         if (element.IsNull)
             return;
@@ -849,4 +793,73 @@ public class ParticleEffect : Resource
 
         return defaultIndex;
     }
+
+    /// <summary>Material.</summary>
+    private Material? _material;
+    /// <summary>Number of particles.</summary>
+    private uint _numParticles = DefaultNumParticles;
+    /// <summary>Update when invisible flag.</summary>
+    private bool _updateInvisible;
+    /// <summary>Billboards relative flag.</summary>
+    private bool _relative = true;
+    /// <summary>Scale affects billboard scale flag.</summary>
+    private bool _scaled = true;
+    /// <summary>Billboards sorted flag.</summary>
+    private bool _sorted;
+    /// <summary>Billboards fixed screen size flag.</summary>
+    private bool _fixedScreenSize;
+    /// <summary>Animation LOD bias.</summary>
+    private float _animationLodBias;
+    /// <summary>Emitter shape.</summary>
+    private EmitterType _emitterType = EmitterType.Sphere;
+    /// <summary>Emitter size.</summary>
+    private Vector3f _emitterSize;
+    /// <summary>Particle direction minimum.</summary>
+    private Vector3f _directionMin = DefaultDirectionMin;
+    /// <summary>Particle direction maximum.</summary>
+    private Vector3f _directionMax = DefaultDirectionMax;
+    /// <summary>Particle constant force.</summary>
+    private Vector3f _constantForce;
+    /// <summary>Particle velocity damping force.</summary>
+    private float _dampingForce;
+    /// <summary>Active period.</summary>
+    private float _activeTime;
+    /// <summary>Inactive period.</summary>
+    private float _inactiveTime;
+    /// <summary>Particles per second minimum.</summary>
+    private float _emissionRateMin = DefaultEmissionRate;
+    /// <summary>Particles per second maximum.</summary>
+    private float _emissionRateMax = DefaultEmissionRate;
+    /// <summary>Particle size minimum.</summary>
+    private Vector2f _sizeMin = DefaultParticleSize;
+    /// <summary>Particle size maximum.</summary>
+    private Vector2f _sizeMax = DefaultParticleSize;
+    /// <summary>Particle time to live minimum.</summary>
+    private float _timeToLiveMin = DefaultTimeToLive;
+    /// <summary>Particle time to live maximum.</summary>
+    private float _timeToLiveMax = DefaultTimeToLive;
+    /// <summary>Particle velocity minimum.</summary>
+    private float _velocityMin = DefaultVelocity;
+    /// <summary>Particle velocity maximum.</summary>
+    private float _velocityMax = DefaultVelocity;
+    /// <summary>Particle rotation angle minimum.</summary>
+    private float _rotationMin;
+    /// <summary>Particle rotation angle maximum.</summary>
+    private float _rotationMax;
+    /// <summary>Particle rotation speed minimum.</summary>
+    private float _rotationSpeedMin;
+    /// <summary>Particle rotation speed maximum.</summary>
+    private float _rotationSpeedMax;
+    /// <summary>Particle size additive parameter.</summary>
+    private float _sizeAdd;
+    /// <summary>Particle size multiplicative parameter.</summary>
+    private float _sizeMul = 1.0f;
+    /// <summary>Particle color animation frames.</summary>
+    private readonly List<ColorFrame> _colorFrames = [];
+    /// <summary>Texture animation frames.</summary>
+    private readonly List<TextureFrame> _textureFrames = [];
+    /// <summary>Material name acquired during BeginLoad().</summary>
+    private string _loadMaterialName = string.Empty;
+    /// <summary>Particle rotation mode in relation to the camera.</summary>
+    private FaceCameraMode _faceCameraMode = FaceCameraMode.RotateXyz;
 }

@@ -42,6 +42,60 @@ public sealed class ParticleEffectTests
     }
 
     [Fact]
+    public void Frame_types_preserve_cpp_pod_value_semantics()
+    {
+        Assert.True(typeof(ColorFrame).IsValueType);
+        Assert.True(typeof(TextureFrame).IsValueType);
+
+        var colorFrame = new ColorFrame();
+        Assert.Equal(Color.White, colorFrame.Color);
+        Assert.Equal(0.0f, colorFrame.Time);
+
+        var textureFrame = new TextureFrame();
+        Assert.Equal(Rect.Positive, textureFrame.Uv);
+        Assert.Equal(0.0f, textureFrame.Time);
+
+        var colorCopy = colorFrame;
+        colorCopy.Color = Color.Red;
+        Assert.Equal(Color.White, colorFrame.Color);
+
+        var textureCopy = textureFrame;
+        textureCopy.Uv = Rect.Zero;
+        Assert.Equal(Rect.Positive, textureFrame.Uv);
+    }
+
+    [Fact]
+    public void Texture_frame_operators_match_cpp_implementation()
+    {
+        var frame = new TextureFrame { Uv = Rect.Positive, Time = 1.0f };
+        var sameUvDifferentTime = new TextureFrame { Uv = Rect.Positive, Time = 2.0f };
+        var differentUvSameTime = new TextureFrame { Uv = Rect.Zero, Time = 1.0f };
+
+        Assert.False(frame == sameUvDifferentTime);
+        Assert.False(frame != sameUvDifferentTime);
+        Assert.True(frame != differentUvSameTime);
+    }
+
+    [Fact]
+    public void Frame_vector_operations_preserve_default_construction_and_self_assignment()
+    {
+        var effect = new ParticleEffect();
+        effect.SetNumColorFrames(2);
+        effect.SetNumTextureFrames(2);
+
+        Assert.Equal(Color.White, effect.GetColorFrame(1)!.Value.Color);
+        Assert.Equal(Rect.Positive, effect.GetTextureFrame(1)!.Value.Uv);
+
+        var colorFrames = effect.GetColorFrames();
+        var textureFrames = effect.GetTextureFrames();
+        effect.SetColorFrames(colorFrames);
+        effect.SetTextureFrames(textureFrames);
+
+        Assert.Equal(2u, effect.GetNumColorFrames());
+        Assert.Equal(2u, effect.GetNumTextureFrames());
+    }
+
+    [Fact]
     public void Xml_load_save_roundtrip_preserves_core_parameters()
     {
         const string xml = """
@@ -157,6 +211,11 @@ public sealed class ParticleEffectTests
         Assert.Equal(2.0f, clone.GetSizeMul());
         Assert.Equal(1u, clone.GetNumColorFrames());
         Assert.Equal(1u, clone.GetNumTextureFrames());
+
+        clone.SetColorFrame(0, new ColorFrame(Color.Red, 1.0f));
+        clone.SetTextureFrame(0, new TextureFrame { Uv = Rect.Zero, Time = 1.0f });
+        Assert.Equal(Color.White, effect.GetColorFrame(0)!.Value.Color);
+        Assert.Equal(Rect.Positive, effect.GetTextureFrame(0)!.Value.Uv);
     }
 }
 
