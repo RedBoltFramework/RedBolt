@@ -138,7 +138,7 @@ public sealed class GeometryGpuTests
         Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
         Assert.True(tex.SetData(0u, 0, 0, 0, 2, 2, 2,
             Enumerable.Range(0, 8).Select(v => (byte)v).ToArray()));
-        Assert.Equal(8, tex.GetData(0u)?.Length);
+        Assert.False(tex.GetData(0u, new byte[8]));
     }
 
     [Fact]

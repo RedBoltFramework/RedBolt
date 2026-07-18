@@ -12,12 +12,14 @@ public sealed class TextureClassKindTests
         AssertConcreteNoncopyableReferenceClass<Texture>();
         AssertConcreteNoncopyableReferenceClass<Texture2D>();
         AssertConcreteNoncopyableReferenceClass<Texture2DArray>();
+        AssertConcreteNoncopyableReferenceClass<Texture3D>();
 
         using var resource = new Resource(string.Empty);
         using var resourceWithMetadata = new ResourceWithMetadata(string.Empty);
         using var texture = new Texture(string.Empty);
         using var texture2D = new Texture2D(string.Empty);
         using var texture2DArray = new Texture2DArray(string.Empty);
+        using var texture3D = new Texture3D(string.Empty);
     }
 
     [Fact]
@@ -55,6 +57,23 @@ public sealed class TextureClassKindTests
         texture.Dispose();
 
         Assert.Empty(images);
+        Assert.Null(loadParameters.GetValue(texture));
+    }
+
+    [Fact]
+    public void Texture3D_dispose_releases_derived_load_state()
+    {
+        var texture = new Texture3D(string.Empty);
+        var loadImage = typeof(Texture3D).GetField("_loadImage",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var loadParameters = typeof(Texture3D).GetField("_loadParameters",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        loadImage.SetValue(texture, new Image(string.Empty));
+        loadParameters.SetValue(texture, new XMLFile(string.Empty));
+
+        texture.Dispose();
+
+        Assert.Null(loadImage.GetValue(texture));
         Assert.Null(loadParameters.GetValue(texture));
     }
 

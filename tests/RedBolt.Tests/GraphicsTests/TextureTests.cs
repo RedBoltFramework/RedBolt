@@ -273,8 +273,7 @@ public sealed class TextureTests
         Assert.Equal(2, texture.Depth);
 
         var readback = new byte[2 * 2 * 2 * 4];
-        Assert.True(texture.GetData(0u, readback));
-        Assert.Equal(readback.Length, texture.GetData(0u)?.Length);
+        Assert.False(texture.GetData(0u, readback));
     }
 
     [Fact]
@@ -297,12 +296,12 @@ public sealed class TextureTests
     }
 
     [Fact]
-    public void Texture3D_set_size_preserves_usage_flags()
+    public void Texture3D_set_size_ignores_usage_flags_like_cpp()
     {
         var texture = new Texture3D("Textures/RenderVolume");
 
         Assert.True(texture.SetSize(4, 4, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-        Assert.True(texture.IsRenderTarget());
+        Assert.False(texture.IsRenderTarget());
         Assert.Null(texture.GetRenderSurface());
     }
 

@@ -126,7 +126,7 @@ public sealed class TextureFileTests
             Assert.Equal(0, texture.Height);
             Assert.Equal(1, texture.Depth);
             Assert.Equal(TextureFormat.Unknown, texture.Format);
-            Assert.Null(texture.GetData(0u));
+            Assert.False(texture.GetData(0u, Span<byte>.Empty));
         }
         finally
         {
