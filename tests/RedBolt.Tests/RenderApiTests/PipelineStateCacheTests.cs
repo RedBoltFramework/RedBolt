@@ -19,6 +19,32 @@ public sealed class PipelineStateCacheTests
     }
 
     [Fact]
+    public void Pipeline_state_cache_matches_native_reference_class_and_weak_owner_lifetime()
+    {
+        Assert.False(typeof(PipelineStateCache).IsSealed);
+
+        var cache = new PipelineStateCache();
+        var graphicsDesc = new GraphicsPipelineStateDesc
+        {
+            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
+        };
+        var pipelineState = cache.GetGraphicsPipelineState(graphicsDesc);
+        Assert.NotNull(pipelineState);
+
+        var ownerField = typeof(PipelineState).GetField(
+            "_owner", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var owner = Assert.IsType<WeakReference<PipelineStateCache>>(ownerField!.GetValue(pipelineState));
+        Assert.True(owner.TryGetTarget(out var ownerBeforeDispose));
+        Assert.Same(cache, ownerBeforeDispose);
+
+        cache.Dispose();
+
+        Assert.False(owner.TryGetTarget(out _));
+        pipelineState!.Dispose();
+    }
+
+    [Fact]
     public void Graphics_pipeline_state_desc_supports_value_semantics_and_initialization()
     {
         var vertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/UnitTest.glsl"), ShaderType.VS, "FOO");

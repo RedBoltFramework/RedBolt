@@ -46,6 +46,15 @@ public class PipelineState : DeviceObject
 
     public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
 
+    internal void ReleaseOwner(PipelineStateCache owner)
+    {
+        if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache) &&
+            ReferenceEquals(owner, pipelineStateCache))
+        {
+            _owner.SetTarget(null!);
+        }
+    }
+
     public bool IsValid => _reflection is not null;
 
     public PipelineStateType GetPipelineType() => _desc.GetPipelineType();
