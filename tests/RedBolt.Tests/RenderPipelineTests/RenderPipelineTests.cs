@@ -689,7 +689,7 @@ public sealed class RenderPipelineTests
         buffer.RefreshForViewport(new IntRect(0, 0, 320, 200));
 
         Assert.Equal(4, buffer.Texture.MultiSample);
-        Assert.True(buffer.Texture.NoMultiSampledAutoResolve);
+        Assert.False(buffer.Texture.GetAutoResolve());
     }
 
     [Fact]

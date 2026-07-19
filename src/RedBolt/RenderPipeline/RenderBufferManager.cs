@@ -859,7 +859,7 @@ public sealed class RenderBufferManager
         return colorSpace switch
         {
             RenderPipelineColorSpace.LinearHDR => TextureFormat.RGBA16F,
-            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8,
+            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8Srgb,
             RenderPipelineColorSpace.GammaLDR => TextureFormat.RGBA8,
             RenderPipelineColorSpace.Optimized => outputTextureFormat,
             _ => TextureFormat.RGBA8
@@ -883,9 +883,7 @@ public sealed class RenderBufferManager
         ArgumentNullException.ThrowIfNull(texture);
 
         var useLinearMetadata = _hdr || TextureFormatUtility.IsFloatColorFormat(textureFormat);
-        var useSrgbMetadata = _linearColorSpace && !useLinearMetadata && textureFormat == TextureFormat.RGBA8;
         texture.SetLinear(useLinearMetadata);
-        texture.SetSRGB(useSrgbMetadata);
     }
 
     private void ResetCachedRenderBuffers()

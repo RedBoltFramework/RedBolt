@@ -148,6 +148,29 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Texture_formats_preserve_cpp_rg8_compression_and_srgb_semantics()
+    {
+        Assert.True(typeof(TextureFormat).IsValueType);
+
+        using var texture = new Texture2D("Textures/Formats");
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.RG8));
+        Assert.Equal(TextureFormat.RG8, texture.Format);
+        Assert.Equal(2, texture.GetComponents());
+        Assert.Equal(16, texture.GetRowDataSize(8));
+
+        Assert.True(texture.SetSize(8, 4, TextureFormat.BC1));
+        Assert.Equal(TextureFormat.BC1, texture.Format);
+        Assert.True(texture.IsCompressed());
+        Assert.Equal(16, texture.GetDataSize(8, 4));
+
+        texture.SetSRGB(true);
+        Assert.True(texture.SetSize(8, 4, TextureFormat.RGBA8));
+        Assert.Equal(TextureFormat.RGBA8Srgb, texture.Format);
+        Assert.True(texture.GetSRGB());
+    }
+
+    [Fact]
     public void Texture_sampler_mutators_update_raw_texture_sampler_state()
     {
         var texture = new Texture2D("Textures/SamplerState");

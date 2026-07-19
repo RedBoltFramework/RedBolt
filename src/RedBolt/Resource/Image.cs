@@ -574,23 +574,25 @@ public sealed class Image : Resource
 
     public TextureFormat GetGPUFormat()
     {
-        if (IsCompressed())
+        if (!IsCompressed())
         {
-            // TODO: port `return GetCompressedFormat() < TextureFormat::TEX_FORMAT_NUM_FORMATS
-            //     ? GetCompressedFormat() : TextureFormat::TEX_FORMAT_UNKNOWN;`
-            // Managed TextureFormat does not contain compressed formats yet.
-            return TextureFormat.Unknown;
+            return Components switch
+            {
+                1 => TextureFormat.R8,
+                2 => TextureFormat.RG8,
+                3 => TextureFormat.Unknown,
+                4 => TextureFormat.RGBA8,
+                _ => TextureFormat.Unknown
+            };
         }
 
-        return Components switch
-        {
-            1 => TextureFormat.R8,
-            // TODO: port `TextureFormat::TEX_FORMAT_RG8_UNORM` when managed TextureFormat contains it.
-            2 => TextureFormat.Unknown,
-            3 => TextureFormat.Unknown,
-            4 => TextureFormat.RGBA8,
-            _ => TextureFormat.Unknown
-        };
+        var compressedFormat = GetCompressedFormat();
+        return compressedFormat == EmulatedTextureFormat.PvrtcRgb2Bpp
+            || compressedFormat == EmulatedTextureFormat.PvrtcRgba2Bpp
+            || compressedFormat == EmulatedTextureFormat.PvrtcRgb4Bpp
+            || compressedFormat == EmulatedTextureFormat.PvrtcRgba4Bpp
+                ? TextureFormat.Unknown
+                : compressedFormat;
     }
 
     public int GetWidth() => Width;
@@ -606,6 +608,23 @@ public sealed class Image : Resource
     public byte[] GetData() => _data;
 
     public bool IsCompressed() => _compressedFormat != CompressedFormat.None;
+
+    public TextureFormat GetCompressedFormat() => _compressedFormat switch
+    {
+        CompressedFormat.None => TextureFormat.Unknown,
+        CompressedFormat.Rgba => TextureFormat.RGBA8,
+        CompressedFormat.Dxt1 => TextureFormat.BC1,
+        CompressedFormat.Dxt3 => TextureFormat.BC2,
+        CompressedFormat.Dxt5 => TextureFormat.BC3,
+        CompressedFormat.Etc1 => TextureFormat.ETC2Rgb8,
+        CompressedFormat.Etc2Rgb => TextureFormat.ETC2Rgb8,
+        CompressedFormat.Etc2Rgba => TextureFormat.ETC2Rgba8,
+        CompressedFormat.PvrtcRgb2Bpp => EmulatedTextureFormat.PvrtcRgb2Bpp,
+        CompressedFormat.PvrtcRgba2Bpp => EmulatedTextureFormat.PvrtcRgba2Bpp,
+        CompressedFormat.PvrtcRgb4Bpp => EmulatedTextureFormat.PvrtcRgb4Bpp,
+        CompressedFormat.PvrtcRgba4Bpp => EmulatedTextureFormat.PvrtcRgba4Bpp,
+        _ => TextureFormat.Unknown
+    };
 
     public bool IsCubemap() => Cubemap;
 

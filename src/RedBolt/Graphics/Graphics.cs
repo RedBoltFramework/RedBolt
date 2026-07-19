@@ -3616,14 +3616,26 @@ layout(std140) uniform Material
             TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
             TextureFormat.Depth32Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
             TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
+            TextureFormat.RG8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg8Unorm,
             TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
             TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
             TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
             TextureFormat.RGBA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
             TextureFormat.BGRA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
             TextureFormat.BGRA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
+            TextureFormat.BGRX8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm,
             TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
             TextureFormat.RGBA32F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float,
+            TextureFormat.BC1 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm,
+            TextureFormat.BC1Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb,
+            TextureFormat.BC2 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm,
+            TextureFormat.BC2Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb,
+            TextureFormat.BC3 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm,
+            TextureFormat.BC3Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb,
+            TextureFormat.ETC2Rgb8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm,
+            TextureFormat.ETC2Rgb8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb,
+            TextureFormat.ETC2Rgba8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm,
+            TextureFormat.ETC2Rgba8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb,
             _ => default
         };
         return sRgb ? RenderAPIUtils.SetTextureFormatSRGB(nativeFormat) : nativeFormat;
@@ -3691,13 +3703,25 @@ layout(std140) uniform Material
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm => TextureFormat.R8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg8Unorm => TextureFormat.RG8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float => TextureFormat.RG16F,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.RGBA8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => MarkSrgb(TextureFormat.BGRA8, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm => TextureFormat.BGRX8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float => TextureFormat.RGBA16F,
             global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float => TextureFormat.RGBA32F,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm => TextureFormat.BC1,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb => MarkSrgb(TextureFormat.BC1, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm => TextureFormat.BC2,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb => MarkSrgb(TextureFormat.BC2, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm => TextureFormat.BC3,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => MarkSrgb(TextureFormat.BC3, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm => TextureFormat.ETC2Rgb8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => MarkSrgb(TextureFormat.ETC2Rgb8, out isSrgb),
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm => TextureFormat.ETC2Rgba8,
+            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb => MarkSrgb(TextureFormat.ETC2Rgba8, out isSrgb),
             _ => TextureFormat.Unknown
         };
     }
@@ -3706,7 +3730,13 @@ layout(std140) uniform Material
     {
         global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
         global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => TextureFormat.BGRA8Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm => TextureFormat.BGRX8,
         global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => TextureFormat.RGBA8Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb => TextureFormat.BC1Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb => TextureFormat.BC2Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => TextureFormat.BC3Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => TextureFormat.ETC2Rgb8Srgb,
+        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb => TextureFormat.ETC2Rgba8Srgb,
         _ => UnmapTextureFormat(format, out _)
     };
 
@@ -3742,7 +3772,7 @@ layout(std140) uniform Material
     private static bool NeedsResolvedTexture(Texture texture)
     {
         return texture.MultiSample > 1
-            && !texture.NoMultiSampledAutoResolve
+            && texture.GetAutoResolve()
             && !IsDepthTextureFormat(texture.Format);
     }
 

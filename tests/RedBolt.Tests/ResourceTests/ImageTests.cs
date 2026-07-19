@@ -26,7 +26,7 @@ public sealed class ImageTests
         Assert.Equal(TextureFormat.R8, image.GetGPUFormat());
 
         Assert.True(image.SetSize(2, 2, 2));
-        Assert.Equal(TextureFormat.Unknown, image.GetGPUFormat());
+        Assert.Equal(TextureFormat.RG8, image.GetGPUFormat());
 
         Assert.True(image.SetSize(2, 2, 3));
         Assert.Equal(TextureFormat.Unknown, image.GetGPUFormat());
@@ -182,6 +182,8 @@ public sealed class ImageTests
         Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
         Assert.True(image.IsCompressed());
         Assert.Equal(CompressedFormat.Dxt1, image.CompressedFormat);
+        Assert.Equal(TextureFormat.BC1, image.GetCompressedFormat());
+        Assert.Equal(TextureFormat.BC1, image.GetGPUFormat());
         Assert.Equal(1024, image.Width);
         Assert.Equal(1024, image.Height);
         Assert.Equal(11u, image.NumCompressedLevels);

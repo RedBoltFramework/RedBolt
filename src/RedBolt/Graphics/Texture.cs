@@ -12,14 +12,26 @@ public enum TextureFormat
     Depth24Stencil8,
     Depth32Stencil8,
     R8,
+    RG8,
     RG16F,
     RGB8,
     RGBA8,
     RGBA8Srgb,
     BGRA8,
     BGRA8Srgb,
+    BGRX8,
     RGBA16F,
-    RGBA32F
+    RGBA32F,
+    BC1,
+    BC1Srgb,
+    BC2,
+    BC2Srgb,
+    BC3,
+    BC3Srgb,
+    ETC2Rgb8,
+    ETC2Rgb8Srgb,
+    ETC2Rgba8,
+    ETC2Rgba8Srgb
 }
 
 internal static class TextureFormatUtility
@@ -35,17 +47,6 @@ internal static class TextureFormatUtility
 /// </remarks>
 public class Texture : ResourceWithMetadata
 {
-    protected int _requestedLevels;
-    protected bool _requestedSRGB;
-    private MipsToSkipArray _mipsToSkip;
-    private bool _linear;
-    private Texture? _backupTexture;
-    protected RenderSurface[] _renderSurfaces = [];
-    protected int _mostDetailedLevel;
-
-    private readonly TextureRawTexture _rawTexture;
-    private ContextEventSubscription? _renderSurfaceUpdateSubscription;
-
     public Texture(string name)
         : base(name)
     {
@@ -66,7 +67,14 @@ public class Texture : ResourceWithMetadata
         base.Dispose();
     }
 
-    public TextureFormat Format => _rawTexture.GetParams().Format;
+    public TextureFormat Format
+    {
+        get
+        {
+            var parameters = _rawTexture.GetParams();
+            return Graphics.UnmapPipelineTextureFormat(Graphics.MapTextureFormat(parameters.Format, parameters.SRGB));
+        }
+    }
 
     public int Levels => _rawTexture.GetParams().NumLevels;
 
@@ -77,9 +85,6 @@ public class Texture : ResourceWithMetadata
     public int Depth => _rawTexture.GetParams().Size.Z;
 
     public int MultiSample => _rawTexture.GetParams().MultiSample;
-
-    public bool NoMultiSampledAutoResolve =>
-        (_rawTexture.GetParams().Flags & TextureFlag.NoMultiSampledAutoResolve) != 0;
 
     public TextureFilterMode FilterMode => _rawTexture.GetSamplerStateDesc().FilterMode;
 
@@ -188,8 +193,7 @@ public class Texture : ResourceWithMetadata
 
     public bool GetSRGB()
     {
-        return RenderAPIUtils.IsTextureFormatSRGB(
-            Graphics.MapTextureFormat(Format, _rawTexture.GetParams().SRGB));
+        return RenderAPIUtils.IsTextureFormatSRGB(Graphics.MapTextureFormat(Format));
     }
 
     public void SetBackupTexture(Texture? texture)
@@ -224,9 +228,8 @@ public class Texture : ResourceWithMetadata
 
     public int GetMultiSample() => MultiSample;
 
-    public bool GetNoMultiSampledAutoResolve() => NoMultiSampledAutoResolve;
-
-    public bool GetAutoResolve() => !NoMultiSampledAutoResolve;
+    public bool GetAutoResolve() =>
+        (_rawTexture.GetParams().Flags & TextureFlag.NoMultiSampledAutoResolve) == 0;
 
     public Vector2i GetSize() => new(Width, Height);
 
@@ -490,7 +493,7 @@ public class Texture : ResourceWithMetadata
 
             for (var level = 0; level < Levels; ++level)
             {
-                var decompressedLevel = image.GetDecompressedImageLevel(
+                using var decompressedLevel = image.GetDecompressedImageLevel(
                     checked((uint)(_mostDetailedLevel + level)));
                 if (decompressedLevel is null)
                     return false;
@@ -524,9 +527,14 @@ public class Texture : ResourceWithMetadata
         {
             TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
             TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
+            TextureFormat.BC1Srgb => TextureFormat.BC1,
+            TextureFormat.BC2Srgb => TextureFormat.BC2,
+            TextureFormat.BC3Srgb => TextureFormat.BC3,
+            TextureFormat.ETC2Rgb8Srgb => TextureFormat.ETC2Rgb8,
+            TextureFormat.ETC2Rgba8Srgb => TextureFormat.ETC2Rgba8,
             _ => Format
         };
-        if (imageFormat is not TextureFormat.RGBA8 and not TextureFormat.BGRA8)
+        if (imageFormat is not TextureFormat.RGBA8 and not TextureFormat.BGRA8 and not TextureFormat.BGRX8)
         {
             Log.GetLogger().LogWarning("Unsupported texture format, can not convert to Image");
             return false;
@@ -540,29 +548,20 @@ public class Texture : ResourceWithMetadata
         if (!_rawTexture.Read(arraySlice, level, imageData))
             return false;
 
-        if (imageFormat == TextureFormat.BGRA8)
+        if (imageFormat is TextureFormat.BGRA8 or TextureFormat.BGRX8)
         {
             var numTexels = checked(size.X * size.Y * size.Z);
             for (var i = 0; i < numTexels; ++i)
                 (imageData[i * 4], imageData[i * 4 + 2]) = (imageData[i * 4 + 2], imageData[i * 4]);
         }
+        if (imageFormat == TextureFormat.BGRX8)
+        {
+            var numTexels = checked(size.X * size.Y * size.Z);
+            for (var i = 0; i < numTexels; ++i)
+                imageData[i * 4 + 3] = 255;
+        }
         return true;
     }
-
-    protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
-        bool noMultiSampledAutoResolve = false, TextureFlag flags = TextureFlag.None)
-    {
-        var effectiveFlags = flags |
-            (noMultiSampledAutoResolve ? TextureFlag.NoMultiSampledAutoResolve : TextureFlag.None);
-        _rawTexture.CreateTexture(new RawTextureParams(
-            GetRawTextureType(), format, effectiveFlags,
-            new Vector3i(width, height, depth), checked((int)GetRawTextureArraySize()), _requestedLevels,
-            multiSample, SRGB: _requestedSRGB));
-    }
-
-    protected virtual TextureType GetRawTextureType() => TextureType.Texture2D;
-
-    protected virtual uint GetRawTextureArraySize() => 1u;
 
     private static (int MostDetailedLevel, int NumLevels) GetLevelsOffsetAndCount(
         Image image, int numLevels, int mostDetailedMip)
@@ -601,6 +600,11 @@ public class Texture : ResourceWithMetadata
         {
             TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
             TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
+            TextureFormat.BC1Srgb => TextureFormat.BC1,
+            TextureFormat.BC2Srgb => TextureFormat.BC2,
+            TextureFormat.BC3Srgb => TextureFormat.BC3,
+            TextureFormat.ETC2Rgb8Srgb => TextureFormat.ETC2Rgb8,
+            TextureFormat.ETC2Rgba8Srgb => TextureFormat.ETC2Rgba8,
             _ => format
         };
     }
@@ -634,6 +638,19 @@ public class Texture : ResourceWithMetadata
 
         protected override bool TryRestore() => _owner.TryRestore();
     }
+
+    protected int _requestedLevels;
+    protected bool _requestedSRGB;
+    private MipsToSkipArray _mipsToSkip;
+    private bool _linear;
+    protected bool _resolveDirty;
+    protected bool _levelsDirty;
+    private Texture? _backupTexture;
+    protected RenderSurface[] _renderSurfaces = [];
+    protected int _mostDetailedLevel;
+
+    private readonly TextureRawTexture _rawTexture;
+    private ContextEventSubscription? _renderSurfaceUpdateSubscription;
 
     private const int MaxTextureQualityLevels = 3;
 }

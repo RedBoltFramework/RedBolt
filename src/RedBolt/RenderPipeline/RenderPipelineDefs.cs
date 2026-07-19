@@ -130,7 +130,7 @@ internal static class RenderPipelineColorSpaceUtility
         return colorSpace switch
         {
             RenderPipelineColorSpace.GammaLDR => TextureFormat.RGBA8,
-            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8,
+            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8Srgb,
             RenderPipelineColorSpace.LinearHDR => TextureFormat.RGBA16F,
             _ => TextureFormat.RGBA8
         };
