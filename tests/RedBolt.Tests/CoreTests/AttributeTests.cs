@@ -25,8 +25,8 @@ public class AttributeTests
         attribute.ScopeHint = AttributeScopeHint.Scene;
 
         Assert.Equal("One", attribute.ConvertEnumToString(1));
-        Assert.Equal(0u, attribute.ConvertEnumToUInt("zero"));
-        Assert.Equal(uint.MaxValue, attribute.ConvertEnumToUInt("missing"));
+        Assert.Equal(0, attribute.ConvertEnumToUInt("zero"));
+        Assert.Equal(-1, attribute.ConvertEnumToUInt("missing"));
         Assert.Equal("metadata", attribute.GetMetadata<CString>("Metadata").ToString());
         Assert.Equal(0, attribute.GetMetadata<int>("missing"));
 
@@ -53,6 +53,13 @@ public class AttributeTests
         Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(AttributeInfo)));
         Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(AttributeInfo)));
         Assert.True(typeof(AttributeHandle).IsValueType);
+
+        using var handleSource = new AttributeInfo("Value", typeof(int), new Variant(0));
+        using var reflection = new ObjectReflection(typeof(AccessorSerializable));
+        var handle = reflection.AddAttribute(handleSource);
+        var handleCopy = handle;
+        handleCopy.SetScopeHint(AttributeScopeHint.Scene);
+        Assert.Equal(AttributeScopeHint.Scene, reflection.GetAttribute("Value").ScopeHint);
     }
 
     [Fact]

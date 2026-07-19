@@ -266,7 +266,7 @@ public sealed class SerializablePrefab : ICloneable, IEquatable<SerializablePref
                 ? new AttributePrefab { NameHash = attribute.NameHash }
                 : new AttributePrefab { Name = attribute.Name };
             if ((flags & PrefabSaveFlag.EnumsAsStrings) != 0 && attribute.EnumNames.Count != 0)
-                value = new Variant(attribute.ConvertEnumToString(value.GetUInt()));
+                value = new Variant(attribute.ConvertEnumToString(checked((int)value.GetUInt())));
 
             attributePrefab.Value = value;
             Attributes.Add(attributePrefab);

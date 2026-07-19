@@ -152,23 +152,23 @@ public sealed class AttributeInfo : ICloneable, IDisposable
     /// <summary>
     /// Convert enum value to string.
     /// </summary>
-    public string ConvertEnumToString(uint value)
+    public string ConvertEnumToString(int value)
     {
-        return EnumNames[(int)value];
+        return EnumNames[value];
     }
 
     /// <summary>
     /// Convert enum value to integer.
     /// </summary>
-    public uint ConvertEnumToUInt(string value)
+    public int ConvertEnumToUInt(string value)
     {
         for (var index = 0; index < EnumNames.Count; ++index)
         {
             if (string.Equals(EnumNames[index], value, StringComparison.OrdinalIgnoreCase))
-                return (uint)index;
+                return index;
         }
 
-        return uint.MaxValue;
+        return -1;
     }
 
     public AttributeInfo Clone()
