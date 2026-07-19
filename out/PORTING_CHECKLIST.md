@@ -129,6 +129,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Ray.h` / `Ray.cpp` — sequential reference-free value kinds, mutable DistanceAndNormal defaults, explicit independent Ray copy construction, member/type order, exact intersection and indexed-geometry branches, non-normalizing transformed direction, comments, and automatic lifetime reconciled
 - [x] `Rect.h` / `Rect.cpp` — sequential four-float Rect value kind, explicit independent copy construction, undefined defaults, native member order, geometry operations, allocation-free contiguous data, hash, documentation, and automatic lifetime reconciled
 - [x] `Sphere.h` / `Sphere.cpp` — sequential reference-free Circle and Sphere value kinds, native defaults and member order, explicit independent Sphere copy construction, exact definition/merge/classification/intersection behavior, documentation, and automatic lifetime reconciled
+- [x] `SphericalHarmonics.h` / `SphericalHarmonics.cpp` — three sequential POD-style fixed-storage value kinds, independent inline-array and pass-by-value copies, native constructors/member order/operators/evaluation/repacking, serialization documentation, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

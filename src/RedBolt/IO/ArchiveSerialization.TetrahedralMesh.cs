@@ -14,6 +14,7 @@ public static partial class ArchiveSerialization
         SerializePrimitiveArray(archive, name, ref value);
     }
 
+    /// <summary>Serialize SH to archive.</summary>
     public static void SerializeValue(Archive archive, string name, ref SphericalHarmonicsDot9 value)
     {
         using var block = archive.OpenUnorderedBlock(name);
