@@ -1,150 +1,192 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 /// <summary>Reference to the region in constant buffer within collection. Plain old data.</summary>
-/// <param name="Index">Index of buffer in collection.</param>
-/// <param name="Offset">Offset in the buffer.</param>
-/// <param name="Size">Size of the chunk.</param>
-public readonly record struct ConstantBufferCollectionRef(uint Index, uint Offset, uint Size);
+public struct ConstantBufferCollectionRef
+{
+    /// <summary>Index of buffer in collection.</summary>
+    public int Index;
+    /// <summary>Offset in the buffer.</summary>
+    public int Offset;
+    /// <summary>Size of the chunk.</summary>
+    public int Size;
+}
 
 /// <summary>Buffer of shader parameters ready to be uploaded.</summary>
-public sealed class ConstantBufferCollection
+public class ConstantBufferCollection
 {
-    private sealed class BufferEntry
-    {
-        public byte[] Data = [];
-        public uint Used;
-    }
-
-    /// <summary>Buffers.</summary>
-    private readonly List<BufferEntry> _buffers = [];
-    /// <summary>Current buffer index.</summary>
-    private uint _currentBufferIndex;
-    /// <summary>Alignment of each block.</summary>
-    private uint _alignment = 1;
-    /// <summary>Size of buffers.</summary>
-    private uint _bufferSize = 16384;
-
     /// <summary>Clear and/or initialize for work.</summary>
-    public void ClearAndInitialize(uint alignment)
+    public void ClearAndInitialize(int alignment)
     {
-        this._alignment = Math.Max(alignment, 1u);
+        _alignment = alignment;
         _currentBufferIndex = 0;
-        foreach (var buffer in _buffers)
+        for (var i = 0; i < _buffers.Count; ++i)
+        {
+            var buffer = _buffers[i];
             buffer.Used = 0;
+            _buffers[i] = buffer;
+        }
 
         if (_buffers.Count == 0)
             AllocateBuffer();
     }
 
     /// <summary>Allocate new block.</summary>
-    public (ConstantBufferCollectionRef Ref, Memory<byte> Data) AddBlock(uint size)
+    public (ConstantBufferCollectionRef Ref, Memory<byte> Data) AddBlock(int size)
     {
-        if (size > _bufferSize)
-            throw new ArgumentOutOfRangeException(nameof(size), "Requested block exceeds buffer capacity.");
+        Debug.Assert(size <= _bufferSize);
+        var alignedSize = (size + _alignment - 1) / _alignment * _alignment;
 
-        var alignedSize = Align(size, _alignment);
-        if (_bufferSize - _buffers[(int)_currentBufferIndex].Used < alignedSize)
+        if (_bufferSize - _buffers[_currentBufferIndex].Used < alignedSize)
         {
             ++_currentBufferIndex;
             if (_buffers.Count <= _currentBufferIndex)
                 AllocateBuffer();
         }
 
-        var currentBuffer = _buffers[(int)_currentBufferIndex];
+        var currentBuffer = _buffers[_currentBufferIndex];
         var offset = currentBuffer.Used;
         currentBuffer.Used += alignedSize;
+        _buffers[_currentBufferIndex] = currentBuffer;
 
-        var memory = currentBuffer.Data.AsMemory((int)offset, (int)size);
-        return (new ConstantBufferCollectionRef(_currentBufferIndex, offset, size), memory);
+        var data = currentBuffer.Data.AsMemory(offset, size);
+        return (new ConstantBufferCollectionRef { Index = _currentBufferIndex, Offset = offset, Size = size }, data);
     }
 
     /// <summary>Return number of buffers.</summary>
-    public uint GetNumBuffers() => _currentBufferIndex + 1;
+    public int GetNumBuffers() => _currentBufferIndex + 1;
 
     /// <summary>Return used size of the CPU buffer.</summary>
-    public uint GetBufferSize(uint index) => _buffers[(int)index].Used;
+    public int GetBufferSize(int index) => _buffers[index].Used;
 
     /// <summary>Return best size of GPU buffer. Round up to next power of two.</summary>
-    public uint GetGPUBufferSize(uint index) => Math.Max(512u, MathDefs.NextPowerOfTwo(GetBufferSize(index)));
+    public int GetGPUBufferSize(int index) => Math.Max(512, checked((int)MathDefs.NextPowerOfTwo((uint)GetBufferSize(index))));
 
     /// <summary>Return buffer data.</summary>
-    public ReadOnlyMemory<byte> GetBufferData(uint index) => _buffers[(int)index].Data.AsMemory(0, (int)GetBufferSize(index));
+    public ReadOnlyMemory<byte> GetBufferData(int index) => _buffers[index].Data;
 
     /// <summary>Copy variant parameter into storage.</summary>
-    public static bool StoreParameter(Span<byte> destination, Variant value)
+    public static bool StoreParameter(Span<byte> destination, in Variant value)
     {
-        return value.Type switch
+        switch (value.Type)
         {
-            VariantType.Bool => StoreParameter(destination, value.GetBool() ? 1 : 0),
-            VariantType.Int => StoreParameter(destination, value.GetInt()),
-            VariantType.Float => StoreParameter(destination, value.GetFloat()),
-            VariantType.Vector2 => StoreParameter(destination, value.GetVector2()),
-            VariantType.Vector3 => StoreParameter(destination, value.GetVector3()),
-            VariantType.Vector4 => StoreParameter(destination, value.GetVector4()),
-            VariantType.Color => StoreParameter(destination, value.GetColor()),
-            _ => false
-        };
+            case VariantType.Bool:
+                return StoreParameter(destination, value.GetBool() ? 1 : 0);
+
+            case VariantType.Int:
+                return StoreParameter(destination, value.GetInt());
+
+            case VariantType.Float:
+            case VariantType.Double:
+                return StoreParameter(destination, value.GetFloat());
+
+            case VariantType.Vector2:
+                return StoreParameter(destination, value.GetVector2());
+
+            case VariantType.Vector3:
+                return StoreParameter(destination, value.GetVector3());
+
+            case VariantType.Vector4:
+                return StoreParameter(destination, value.GetVector4());
+
+            case VariantType.Color:
+                return StoreParameter(destination, value.GetColor());
+
+            case VariantType.Matrix3:
+                return StoreParameter(destination, value.GetMatrix3());
+
+            case VariantType.Matrix3x4:
+                return StoreParameter(destination, value.GetMatrix3x4());
+
+            case VariantType.Matrix4:
+                return StoreParameter(destination, value.GetMatrix4());
+
+            default:
+                // Unsupported parameter type, do nothing
+                return false;
+        }
     }
 
     /// <summary>Copy new simple parameter into storage. Trim if too much data provided.</summary>
-    public static bool StoreParameter<T>(Span<byte> destination, T value)
+    public static bool StoreParameter<T>(Span<byte> destination, in T value)
         where T : unmanaged
     {
-        var valueSize = (uint)Unsafe.SizeOf<T>();
-        if (destination.Length > valueSize)
+        if (destination.Length > Unsafe.SizeOf<T>())
             return false;
 
-        Span<byte> source = stackalloc byte[(int)valueSize];
-        MemoryMarshal.Write(source, in value);
+        var source = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in value), 1));
         source[..destination.Length].CopyTo(destination);
         return true;
     }
 
     /// <summary>Copy new Matrix3 parameter into storage.</summary>
-    public static bool StoreParameter(Span<byte> destination, Matrix3 value)
+    public static bool StoreParameter(Span<byte> destination, in Matrix3 value)
     {
+        if (destination.Length < Unsafe.SizeOf<Matrix3>())
+            return false;
+
         var data = new Matrix3x4(value);
-        return StoreParameter(destination, data);
+        MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref data, 1)).CopyTo(destination);
+        return true;
     }
 
     /// <summary>Copy new Matrix3x4 parameter into storage.</summary>
-    public static bool StoreParameter(Span<byte> destination, Matrix3x4 value)
+    public static bool StoreParameter(Span<byte> destination, in Matrix3x4 value)
     {
+        if (destination.Length != 12 * sizeof(float) && destination.Length != 16 * sizeof(float))
+            return false;
+
         var matrix = value.Matrix4;
-        return StoreParameter(destination, matrix);
+        var source = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref matrix, 1));
+        source[..destination.Length].CopyTo(destination);
+        return true;
     }
 
     /// <summary>Add new Vector4f array parameter.</summary>
-    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Vector4f> values) => StoreSpan(destination, values);
+    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Vector4f> values)
+    {
+        if (destination.Length < 4 * sizeof(float) * values.Length)
+            return false;
+
+        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        return true;
+    }
 
     /// <summary>Add new Matrix3x4 array parameter.</summary>
-    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix3x4> values) => StoreSpan(destination, values);
+    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix3x4> values)
+    {
+        if (destination.Length < 12 * sizeof(float) * values.Length)
+            return false;
+
+        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        return true;
+    }
 
     /// <summary>Add new Matrix4 array parameter.</summary>
-    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix4> values) => StoreSpan(destination, values);
+    public static bool StoreParameter(Span<byte> destination, ReadOnlySpan<Matrix4> values)
+    {
+        if (destination.Length < 16 * sizeof(float) * values.Length)
+            return false;
+
+        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        return true;
+    }
 
     /// <summary>Allocate one more buffer.</summary>
     private void AllocateBuffer()
     {
-        _buffers.Add(new BufferEntry
-        {
-            Data = new byte[_bufferSize]
-        });
+        _buffers.Add((new byte[_bufferSize], 0));
     }
 
-    private static uint Align(uint size, uint alignment) => ((size + alignment - 1) / alignment) * alignment;
-
-    private static bool StoreSpan<T>(Span<byte> destination, ReadOnlySpan<T> values)
-        where T : unmanaged
-    {
-        var bytes = MemoryMarshal.AsBytes(values);
-        if (destination.Length < bytes.Length)
-            return false;
-
-        bytes.CopyTo(destination);
-        return true;
-    }
+    /// <summary>Size of buffers.</summary>
+    private int _bufferSize = 16384;
+    /// <summary>Alignment of each block.</summary>
+    private int _alignment = 1;
+    /// <summary>Buffers.</summary>
+    private readonly List<(byte[] Data, int Used)> _buffers = [];
+    /// <summary>Current buffer index.</summary>
+    private int _currentBufferIndex;
 }

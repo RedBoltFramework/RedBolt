@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -15,14 +16,17 @@ public sealed class ConstantBufferCollectionTests
         var second = collection.AddBlock(7);
         var third = collection.AddBlock(16353);
 
-        Assert.Equal(new ConstantBufferCollectionRef(0, 0, 5), first.Ref);
-        Assert.Equal(new ConstantBufferCollectionRef(0, 16, 7), second.Ref);
-        Assert.Equal(new ConstantBufferCollectionRef(1, 0, 16353), third.Ref);
-        Assert.Equal<uint>(2u, collection.GetNumBuffers());
-        Assert.Equal<uint>(32u, collection.GetBufferSize(0));
-        Assert.Equal<uint>(512u, collection.GetGPUBufferSize(0));
-        Assert.Equal(32, collection.GetBufferData(0).Length);
-        Assert.Equal<uint>(16368u, collection.GetBufferSize(1));
+        Assert.Equal(new ConstantBufferCollectionRef { Index = 0, Offset = 0, Size = 5 }, first.Ref);
+        Assert.Equal(new ConstantBufferCollectionRef { Index = 0, Offset = 16, Size = 7 }, second.Ref);
+        Assert.Equal(new ConstantBufferCollectionRef { Index = 1, Offset = 0, Size = 16353 }, third.Ref);
+        Assert.Equal(2, collection.GetNumBuffers());
+        Assert.Equal(32, collection.GetBufferSize(0));
+        Assert.Equal(512, collection.GetGPUBufferSize(0));
+        Assert.Equal(16384, collection.GetBufferData(0).Length);
+        Assert.Equal(16368, collection.GetBufferSize(1));
+        Assert.Equal(12, Unsafe.SizeOf<ConstantBufferCollectionRef>());
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<ConstantBufferCollectionRef>());
+        Assert.False(typeof(ConstantBufferCollection).IsSealed);
     }
 
     [Fact]
@@ -38,9 +42,26 @@ public sealed class ConstantBufferCollectionTests
             5.0f, 6.0f, 7.0f, 8.0f,
             9.0f, 10.0f, 11.0f, 12.0f);
 
-        Assert.True(ConstantBufferCollection.StoreParameter(matrixBytes, matrix));
+        Assert.True(ConstantBufferCollection.StoreParameter(matrixBytes, new Variant(matrix)));
         Assert.Equal(
             [1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 0.0f, 0.0f, 0.0f, 1.0f],
             MemoryMarshal.Cast<byte, float>(matrixBytes).ToArray());
+
+        var matrix3Bytes = new byte[48];
+        Assert.True(ConstantBufferCollection.StoreParameter(matrix3Bytes, new Variant(Matrix3.IDENTITY)));
+        Assert.Equal(
+            [1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f],
+            MemoryMarshal.Cast<byte, float>(matrix3Bytes).ToArray());
+
+        var matrix4Bytes = new byte[64];
+        Assert.True(ConstantBufferCollection.StoreParameter(matrix4Bytes, new Variant(Matrix4.IDENTITY)));
+        Assert.Equal(Matrix4.IDENTITY.Data, MemoryMarshal.Cast<byte, float>(matrix4Bytes).ToArray());
+
+        var doubleBytes = new byte[sizeof(float)];
+        Assert.True(ConstantBufferCollection.StoreParameter(doubleBytes, new Variant(2.5)));
+        Assert.Equal(2.5f, MemoryMarshal.Cast<byte, float>(doubleBytes)[0]);
+
+        Assert.False(ConstantBufferCollection.StoreParameter(new byte[44], matrix));
+        Assert.False(ConstantBufferCollection.StoreParameter(new byte[16], new Variant("unsupported")));
     }
 }

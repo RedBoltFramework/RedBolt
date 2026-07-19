@@ -48,7 +48,7 @@ public class DrawCommandQueue : Object
         _currentShaderParameterGroup = null;
         _currentConstantBufferData = default;
         Array.Clear(_constantBufferHashes);
-        _constantBufferCollection.ClearAndInitialize(Math.Max(1u, _renderDevice.GetCaps().ConstantBufferOffsetAlignment));
+        _constantBufferCollection.ClearAndInitialize(checked((int)_renderDevice.GetCaps().ConstantBufferOffsetAlignment));
         _shaderResources.Clear();
         _unorderedAccessViews.Clear();
         _currentShaderResourceGroup = default;
@@ -85,7 +85,7 @@ public class DrawCommandQueue : Object
         if (!differentFromPrevious && uniformBuffer.Hash == _constantBufferHashes[index])
             return false;
 
-        var block = _constantBufferCollection.AddBlock(uniformBuffer.Size);
+        var block = _constantBufferCollection.AddBlock(checked((int)uniformBuffer.Size));
         _currentDrawCommand.ConstantBuffers[index] = block.Ref;
         _currentConstantBufferData = block.Data;
         _constantBufferHashes[index] = uniformBuffer.Hash;
@@ -586,13 +586,13 @@ public class DrawCommandQueue : Object
     private RawBuffer?[] UploadConstantBuffers(RenderPool renderPool)
     {
         var result = new RawBuffer?[_constantBufferCollection.GetNumBuffers()];
-        for (var i = 0u; i < (uint)result.Length; ++i)
+        for (var i = 0; i < result.Length; ++i)
         {
             var usedSize = _constantBufferCollection.GetBufferSize(i);
             if (usedSize == 0) continue;
-            var buffer = renderPool.GetUniformBuffer(i, _constantBufferCollection.GetGPUBufferSize(i));
-            buffer.Update(_constantBufferCollection.GetBufferData(i).Span, usedSize);
-            result[(int)i] = buffer;
+            var buffer = renderPool.GetUniformBuffer(checked((uint)i), checked((uint)_constantBufferCollection.GetGPUBufferSize(i)));
+            buffer.Update(_constantBufferCollection.GetBufferData(i).Span);
+            result[i] = buffer;
         }
         return result;
     }
@@ -606,9 +606,9 @@ public class DrawCommandQueue : Object
             var bufferRef = command.ConstantBuffers[i];
             if (bufferReflection is null)
                 continue;
-            var handle = uniformBuffers[(int)bufferRef.Index]!.GetHandle()!;
+            var handle = uniformBuffers[bufferRef.Index]!.GetHandle()!;
             foreach (var variable in bufferReflection.Variables)
-                variable.SetBufferRange(handle, bufferRef.Offset, bufferRef.Size);
+                variable.SetBufferRange(handle, checked((nuint)bufferRef.Offset), checked((nuint)bufferRef.Size));
         }
     }
 
