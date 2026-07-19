@@ -131,6 +131,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Sphere.h` / `Sphere.cpp` — sequential reference-free Circle and Sphere value kinds, native defaults and member order, explicit independent Sphere copy construction, exact definition/merge/classification/intersection behavior, documentation, and automatic lifetime reconciled
 - [x] `SphericalHarmonics.h` / `SphericalHarmonics.cpp` — three sequential POD-style fixed-storage value kinds, independent inline-array and pass-by-value copies, native constructors/member order/operators/evaluation/repacking, serialization documentation, and automatic lifetime reconciled
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` implementation internals — extensible mesh class kind, POD 20-byte edge storage, non-POD value context, independent tetrahedron compaction, scratch initialization, warning gate, and automatic container lifetime reconciled
+- [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` public class — implicit default construction and independent copy/clone semantics for all owned containers, native field order, statically typed sampling instantiations, and automatic container lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

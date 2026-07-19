@@ -8,6 +8,48 @@ namespace RedBolt.Tests;
 public sealed class TetrahedralMeshTests
 {
     [Fact]
+    public void Copy_constructor_and_clone_copy_all_owned_containers_independently()
+    {
+        var tetrahedron = new Tetrahedron();
+        tetrahedron.Indices[0] = 3;
+        var source = new TetrahedralMesh
+        {
+            NumInnerTetrahedrons = 5
+        };
+        source.Vertices.Add(Vector3f.One);
+        source.Tetrahedrons.Add(tetrahedron);
+        source.HullNormals.Add(Vector3f.Up);
+        source.IgnoredVertices.Add(7);
+        source.DebugHighlightEdges.Add((11, 13));
+
+        var copy = new TetrahedralMesh(source);
+        var clone = (TetrahedralMesh)source.Clone();
+
+        Assert.IsAssignableFrom<ICloneable>(source);
+        Assert.NotSame(source.Vertices, copy.Vertices);
+        Assert.NotSame(source.Tetrahedrons, copy.Tetrahedrons);
+        Assert.NotSame(source.HullNormals, copy.HullNormals);
+        Assert.NotSame(source.IgnoredVertices, copy.IgnoredVertices);
+        Assert.NotSame(source.DebugHighlightEdges, copy.DebugHighlightEdges);
+        Assert.Equal(source.NumInnerTetrahedrons, copy.NumInnerTetrahedrons);
+        Assert.Equal(source.Vertices, copy.Vertices);
+        Assert.Equal(source.Tetrahedrons, copy.Tetrahedrons);
+        Assert.Equal(source.HullNormals, copy.HullNormals);
+        Assert.Equal(source.IgnoredVertices, copy.IgnoredVertices);
+        Assert.Equal(source.DebugHighlightEdges, copy.DebugHighlightEdges);
+
+        copy.Vertices[0] = Vector3f.Zero;
+        var copiedTetrahedron = copy.Tetrahedrons[0];
+        copiedTetrahedron.Indices[0] = 17;
+        copy.Tetrahedrons[0] = copiedTetrahedron;
+        clone.IgnoredVertices[0] = 19;
+
+        Assert.Equal(Vector3f.One, source.Vertices[0]);
+        Assert.Equal(3u, source.Tetrahedrons[0].Indices[0]);
+        Assert.Equal(7u, source.IgnoredVertices[0]);
+    }
+
+    [Fact]
     public void Implementation_helpers_match_native_value_and_reference_semantics()
     {
         Assert.True(typeof(TetrahedralMesh).IsClass);
@@ -120,5 +162,38 @@ public sealed class TetrahedralMeshTests
         var result = mesh.Sample(values, new Vector3f(0.25f, 0.25f, 0.25f), ref hint);
 
         Assert.True(result.ApproximatelyEquivalent(new Vector3f(0.25f, 0.25f, 0.25f), 1e-5f));
+    }
+
+    [Fact]
+    public void Sample_interpolates_per_vertex_spherical_harmonics()
+    {
+        var mesh = new TetrahedralMesh();
+        mesh.Vertices.AddRange(
+        [
+            Vector3f.Zero,
+            Vector3f.Right,
+            Vector3f.Up,
+            Vector3f.Forward
+        ]);
+        var tetrahedron = new Tetrahedron();
+        tetrahedron.Indices[0] = 0;
+        tetrahedron.Indices[1] = 1;
+        tetrahedron.Indices[2] = 2;
+        tetrahedron.Indices[3] = 3;
+        tetrahedron.CalculateInnerMatrix(mesh.Vertices);
+        mesh.Tetrahedrons.Add(tetrahedron);
+        mesh.NumInnerTetrahedrons = 1;
+        var values = new List<SphericalHarmonicsDot9>
+        {
+            new() { C = new Vector4f(0.0f, 0.0f, 0.0f, 0.0f) },
+            new() { C = new Vector4f(4.0f, 8.0f, 12.0f, 16.0f) },
+            new() { C = new Vector4f(8.0f, 12.0f, 16.0f, 20.0f) },
+            new() { C = new Vector4f(12.0f, 16.0f, 20.0f, 24.0f) }
+        };
+        var hint = 0u;
+
+        var result = mesh.Sample(values, new Vector3f(0.25f, 0.25f, 0.25f), ref hint);
+
+        Assert.Equal(new Vector4f(6.0f, 9.0f, 12.0f, 15.0f), result.C);
     }
 }

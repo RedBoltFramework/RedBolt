@@ -4,8 +4,30 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Tetrahedral mesh.</summary>
-public partial class TetrahedralMesh
+public partial class TetrahedralMesh : ICloneable
 {
+    public TetrahedralMesh()
+    {
+        Vertices = [];
+        Tetrahedrons = [];
+        HullNormals = [];
+        IgnoredVertices = [];
+        NumInnerTetrahedrons = 0;
+        DebugHighlightEdges = [];
+    }
+
+    public TetrahedralMesh(TetrahedralMesh mesh)
+    {
+        Vertices = new List<Vector3f>(mesh.Vertices);
+        Tetrahedrons = new List<Tetrahedron>(mesh.Tetrahedrons);
+        HullNormals = new List<Vector3f>(mesh.HullNormals);
+        IgnoredVertices = new List<uint>(mesh.IgnoredVertices);
+        NumInnerTetrahedrons = mesh.NumInnerTetrahedrons;
+        DebugHighlightEdges = new List<(uint First, uint Second)>(mesh.DebugHighlightEdges);
+    }
+
+    public object Clone() => new TetrahedralMesh(this);
+
     /// <summary>Define mesh from vertices.</summary>
     public void Define(IReadOnlyList<Vector3f> positions)
     {
@@ -91,7 +113,7 @@ public partial class TetrahedralMesh
         var center = p0 + radiusNum * (1.0 / radiusDen);
 
         // Radius is the minimum distance
-        var squaredDistances = new[]
+        Span<double> squaredDistances = stackalloc double[4]
         {
             (p0 - center).LengthSquared,
             (p1 - center).LengthSquared,
@@ -174,38 +196,56 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Sample value at given position from the arbitrary container of per-vertex data.</summary>
-    public T Sample<T>(IReadOnlyList<T> container, Vector3f position, ref uint tetIndexHint)
+    public Vector3f Sample(IReadOnlyList<Vector3f> container, Vector3f position, ref uint tetIndexHint)
     {
-        dynamic result = default(T)!;
+        var result = Vector3f.Zero;
         var weights = GetInterpolationFactors(position, ref tetIndexHint);
         if (tetIndexHint < Tetrahedrons.Count)
         {
             var tetrahedron = Tetrahedrons[(int)tetIndexHint];
             for (var i = 0; i < 3; ++i)
-                result += (dynamic)container[(int)tetrahedron.Indices[i]] * weights[i];
+                result += container[(int)tetrahedron.Indices[i]] * weights[i];
             if (tetIndexHint < NumInnerTetrahedrons)
-                result += (dynamic)container[(int)tetrahedron.Indices[3]] * weights[3];
+                result += container[(int)tetrahedron.Indices[3]] * weights[3];
         }
 
-        return (T)result;
+        return result;
+    }
+
+    /// <summary>Sample value at given position from the arbitrary container of per-vertex data.</summary>
+    public SphericalHarmonicsDot9 Sample(
+        IReadOnlyList<SphericalHarmonicsDot9> container, Vector3f position, ref uint tetIndexHint)
+    {
+        var result = SphericalHarmonicsDot9.Zero;
+        var weights = GetInterpolationFactors(position, ref tetIndexHint);
+        if (tetIndexHint < Tetrahedrons.Count)
+        {
+            var tetrahedron = Tetrahedrons[(int)tetIndexHint];
+            for (var i = 0; i < 3; ++i)
+                result += container[(int)tetrahedron.Indices[i]] * weights[i];
+            if (tetIndexHint < NumInnerTetrahedrons)
+                result += container[(int)tetrahedron.Indices[3]] * weights[3];
+        }
+
+        return result;
     }
 
     /// <summary>Vertices.</summary>
-    public List<Vector3f> Vertices = [];
+    public List<Vector3f> Vertices;
 
     /// <summary>Tetrahedrons.</summary>
-    public List<Tetrahedron> Tetrahedrons = [];
+    public List<Tetrahedron> Tetrahedrons;
 
     /// <summary>Hull normals.</summary>
-    public List<Vector3f> HullNormals = [];
+    public List<Vector3f> HullNormals;
 
     /// <summary>Array of ignored vertices.</summary>
-    public List<uint> IgnoredVertices = [];
+    public List<uint> IgnoredVertices;
 
     /// <summary>Number of inner tetrahedrons.</summary>
     public uint NumInnerTetrahedrons;
 
     /// <summary>Debug array of edges related to errors in generation.</summary>
-    public List<(uint First, uint Second)> DebugHighlightEdges = [];
+    public List<(uint First, uint Second)> DebugHighlightEdges;
 
 }
