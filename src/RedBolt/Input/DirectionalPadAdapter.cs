@@ -178,13 +178,13 @@ public class DirectionalPadAdapter : Object
     /// <summary>Set repeat delay in seconds.</summary>
     public void SetRepeatDelay(float delayInSeconds)
     {
-        _repeatDelay = Math.Max(delayInSeconds, MathDefs.Epsilon);
+        _repeatDelay = Math.Max(delayInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
     }
 
     /// <summary>Set repeat interval in seconds.</summary>
     public void SetRepeatInterval(float intervalInSeconds)
     {
-        _repeatInterval = Math.Max(intervalInSeconds, MathDefs.Epsilon);
+        _repeatInterval = Math.Max(intervalInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
     }
 
     /// <summary>Get enabled flag.</summary>

@@ -119,8 +119,8 @@ public sealed class DirectionalPadAdapterTests
 
         adapter.SetRepeatDelay(0.0f);
         adapter.SetRepeatInterval(0.0f);
-        Assert.Equal(MathDefs.Epsilon, adapter.GetRepeatDelay());
-        Assert.Equal(MathDefs.Epsilon, adapter.GetRepeatInterval());
+        Assert.Equal(MathF.BitIncrement(1.0f) - 1.0f, adapter.GetRepeatDelay());
+        Assert.Equal(MathF.BitIncrement(1.0f) - 1.0f, adapter.GetRepeatInterval());
     }
 
     [Fact]
