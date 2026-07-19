@@ -53,7 +53,7 @@ public sealed class RenderDeviceTests
 
                 var texture = _fixture.RenderDevice.GetDefaultTexture(type);
                 Assert.NotNull(texture);
-                Assert.True(texture!.IsValid());
+                Assert.True(texture!.GetHandles().IsValid());
                 Assert.NotNull(texture.GetHandles().ShaderResourceView);
             }
         }
@@ -434,7 +434,7 @@ public sealed class RenderDeviceTests
             Assert.NotSame(oldTexture, newTexture);
             Assert.NotSame(oldUniformBuffer, newUniformBuffer);
             Assert.NotNull(newTexture);
-            Assert.True(newTexture!.IsValid());
+            Assert.True(newTexture!.GetHandles().IsValid());
             var clipPlaneMask = (uint)typeof(RenderContext)
                 .GetField("_clipPlaneMask", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.NonPublic)!
                 .GetValue(_fixture.RenderContext)!;

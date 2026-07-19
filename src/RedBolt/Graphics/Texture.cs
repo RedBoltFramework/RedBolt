@@ -352,7 +352,7 @@ public class Texture : ResourceWithMetadata
 
         if (_rawTexture is not null)
         {
-            var renderSurfaceHandles = _rawTexture.GetRenderSurfaces();
+            var renderSurfaceHandles = _rawTexture.GetHandles().RenderSurfaces;
             SetRenderSurfaceCount(checked((uint)renderSurfaceHandles.Length));
             for (var i = 0; i < renderSurfaceHandles.Length; ++i)
                 _renderSurfaces[i]!.Restore(renderSurfaceHandles[i]);
@@ -492,15 +492,12 @@ public class Texture : ResourceWithMetadata
 
         OnDestroyGPU();
 
-        if (!RawTexture.IsCreatingManagedTexture)
-        {
-            _rawTexture = new RawTexture(new RawTextureParams(
-                GetRawTextureType(), Format, _textureFlags,
-                new Vector3i(Width, Height, Depth), checked((int)GetRawTextureArraySize()), checked((int)Levels),
-                MultiSample, SRGB: _requestedSRGB));
-            if (_rawTexture.GetHandle() is { IsNull: false })
-                OnCreateGPU();
-        }
+        _rawTexture = new RawTexture(new RawTextureParams(
+            GetRawTextureType(), Format, _textureFlags,
+            new Vector3i(Width, Height, Depth), checked((int)GetRawTextureArraySize()), checked((int)Levels),
+            MultiSample, SRGB: _requestedSRGB));
+        if (_rawTexture.GetHandles().Texture is { IsNull: false })
+            OnCreateGPU();
     }
 
     protected virtual TextureType GetRawTextureType() => TextureType.Texture2D;

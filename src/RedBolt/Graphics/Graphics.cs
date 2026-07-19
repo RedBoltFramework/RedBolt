@@ -899,42 +899,6 @@ layout(std140) uniform Material
         return !IsInitialized ? null : GetOrCreateUploadedTexture(texture).Texture;
     }
 
-    internal ITextureView? CreateTextureUnorderedAccessView(RawTexture rawTexture, RawTextureUAVKey key)
-    {
-        ArgumentNullException.ThrowIfNull(rawTexture);
-        if (!IsInitialized)
-            return null;
-
-        var texture = rawTexture.GetTexture();
-        if (texture is null)
-            return null;
-
-        var uploaded = GetOrCreateUploadedTexture(texture, bindUnorderedAccess: true);
-        if (uploaded.TryGetUav(key, out var cachedView))
-            return cachedView;
-
-        using var textureViewDescOwner = CreateTextureViewDesc();
-        var textureViewDesc = textureViewDescOwner.Desc;
-        textureViewDesc.ViewType = TextureViewType.TextureViewUnorderedAccess;
-        textureViewDesc.TextureDim = GetViewResourceDimension(texture);
-        textureViewDesc.Format = MapTextureFormat(texture.Format);
-        textureViewDesc.MostDetailedMip = checked((uint)key.FirstLevel);
-        textureViewDesc.NumMipLevels = checked((uint)key.NumLevels);
-        textureViewDesc.FirstArraySlice = checked((uint)key.FirstSlice);
-        textureViewDesc.NumArraySlices = checked((uint)key.NumSlices);
-        textureViewDesc.AccessFlags = key.CanRead && key.CanWrite
-            ? UavAccessFlag.UavAccessFlagReadWrite
-            : key.CanRead
-                ? UavAccessFlag.UavAccessFlagRead
-                : UavAccessFlag.UavAccessFlagWrite;
-        uploaded.Texture.CreateView(textureViewDesc, out var createdView);
-        if (createdView.IsNull)
-            return null;
-
-        uploaded.CacheUav(key, createdView);
-        return createdView;
-    }
-
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
         var colorFormat = GetSwapChainColorTextureFormat(out var colorIsSrgb);
@@ -3337,21 +3301,20 @@ layout(std140) uniform Material
     {
         uploaded = null!;
         var rawTexture = texture.GetRawTexture();
-        if (rawTexture is null || !rawTexture.IsValid())
+        if (rawTexture is null || !rawTexture.GetHandles().IsValid())
             return false;
         var parameters = rawTexture.GetParams();
         if (bindUnorderedAccess && (parameters.Flags & TextureFlag.BindUnorderedAccess) == 0)
             return false;
-        rawTexture.Resolve();
-        rawTexture.GenerateLevels();
-        var textureHandle = rawTexture.GetHandle();
-        var shaderResourceView = rawTexture.GetShaderResourceView();
+        ref readonly var handles = ref rawTexture.GetHandles();
+        var textureHandle = handles.Texture;
+        var shaderResourceView = handles.ShaderResourceView;
         if (textureHandle is null || shaderResourceView is null)
             return false;
 
         uploaded = new UploadedTexture(texture, textureHandle, shaderResourceView,
-            rawTexture.GetRenderTargetView(), rawTexture.GetDepthStencilView(), rawTexture.GetReadOnlyDepthStencilView(),
-            rawTexture.GetResolvedHandle(), bindUnorderedAccess, ownsResources: false);
+            handles.RenderTargetView, handles.DepthStencilView, handles.ReadOnlyDepthStencilView,
+            handles.ResolvedTexture, bindUnorderedAccess, ownsResources: false);
         return true;
     }
 
@@ -3430,7 +3393,7 @@ layout(std140) uniform Material
     private void EnsureUploadedTextureResolved(Texture texture, UploadedTexture uploaded)
     {
         var rawTexture = texture.GetRawTexture();
-        if (rawTexture is not null && ReferenceEquals(rawTexture.GetHandle(), uploaded.Texture))
+        if (rawTexture is not null && ReferenceEquals(rawTexture.GetHandles().Texture, uploaded.Texture))
         {
             rawTexture.Resolve();
             rawTexture.GenerateLevels();

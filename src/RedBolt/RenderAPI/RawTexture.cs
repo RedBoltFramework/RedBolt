@@ -3,57 +3,47 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
-public readonly struct RawTextureHandles
+public struct RawTextureHandles
 {
-    private readonly RawTexture _owner;
+    public ITexture? Texture;
+    public ITexture? ResolvedTexture;
+    public ITextureView? ShaderResourceView;
+    public ITextureView? RenderTargetView;
+    public ITextureView? DepthStencilView;
+    public ITextureView? ReadOnlyDepthStencilView;
+    public ITextureView? UnorderedAccessView;
+    public ITextureView[] RenderSurfaces;
+    public ITextureView[] ReadOnlyRenderSurfaces;
+    public Dictionary<RawTextureUAVKey, ITextureView> UnorderedAccessViews;
 
-    internal RawTextureHandles(RawTexture owner) => _owner = owner;
+    public RawTextureHandles()
+    {
+        RenderSurfaces = [];
+        ReadOnlyRenderSurfaces = [];
+        UnorderedAccessViews = [];
+    }
 
-    public ITexture? Texture => _owner.GetHandle();
-    public ITexture? ResolvedTexture => _owner.GetResolvedHandle();
-    public ITextureView? ShaderResourceView => _owner.GetShaderResourceView();
-    public ITextureView? RenderTargetView => _owner.GetRenderTargetView();
-    public ITextureView? DepthStencilView => _owner.GetDepthStencilView();
-    public ITextureView? ReadOnlyDepthStencilView => _owner.GetReadOnlyDepthStencilView();
-    public ITextureView? UnorderedAccessView => _owner.GetDefaultUnorderedAccessView();
-    public ReadOnlySpan<ITextureView> RenderSurfaces => _owner.GetRenderSurfaces();
-    public ReadOnlySpan<ITextureView> ReadOnlyRenderSurfaces => _owner.GetReadOnlyRenderSurfaces();
-    public IReadOnlyDictionary<RawTextureUAVKey, ITextureView> UnorderedAccessViews => _owner.GetUnorderedAccessViews();
-    public bool IsValid => Texture is { IsNull: false };
+    public readonly bool IsValid() => Texture is { IsNull: false };
 }
 
 /// <summary>Common class for all GPU textures.
 /// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
 public class RawTexture : DeviceObject
 {
-    internal static bool IsCreatingManagedTexture { get; private set; }
-
     private RawTextureParams _parameters;
-    private int _formatBlockWidth;
-    private int _formatBlockHeight;
-    private int _formatElementSize;
     private SamplerStateDesc _samplerStateDesc = new();
-    private Texture? _texture;
-    private ITexture? _handle;
-    private ITexture? _resolvedHandle;
-    private ITextureView? _shaderResourceView;
-    private ITextureView? _renderTargetView;
-    private ITextureView? _depthStencilView;
-    private ITextureView? _readOnlyDepthStencilView;
-    private ITextureView? _unorderedAccessView;
-    private ITextureView[] _renderSurfaces = [];
-    private ITextureView[] _readOnlyRenderSurfaces = [];
-    private readonly List<ITextureView> _ownedUavs = [];
-    private readonly Box _updateBox = new();
-    private readonly TextureSubResData _updateSubresource = new();
-    private readonly RawTextureHandles _handles;
-    private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
+    private RawTextureHandles _handles = new();
     private bool _levelsDirty;
     private bool _resolveDirty;
 
+    private int _formatBlockWidth;
+    private int _formatBlockHeight;
+    private int _formatElementSize;
+    private readonly Box _updateBox = new();
+    private readonly TextureSubResData _updateSubresource = new();
+
     protected RawTexture()
     {
-        _handles = new RawTextureHandles(this);
     }
 
     public RawTexture(RawTextureParams parameters)
@@ -65,17 +55,23 @@ public class RawTexture : DeviceObject
     /// <summary>Validate parameters and create GPU texture.</summary>
     protected bool Create(RawTextureParams parameters)
     {
-        if (parameters == _parameters && IsValid())
+        if (parameters == _parameters && _handles.IsValid())
             return true;
-        if (!TryCreateManagedTexture(parameters, out var createdTexture, out var finalizedParameters))
-        {
-            _texture = null;
-            this._parameters = default;
-            return false;
-        }
 
-        _texture = createdTexture;
-        this._parameters = finalizedParameters;
+        Destroy();
+        _parameters = parameters;
+
+        if (!ValidateBindings(ref _parameters))
+            return false;
+        if (!ValidateDimensions(ref _parameters))
+            return false;
+        if (!ValidateMultiSample(ref _parameters))
+            return false;
+        if (!ValidateLevels(ref _parameters))
+            return false;
+        if (!ValidateCaps(ref _parameters, _renderDevice))
+            return false;
+
         var nativeFormat = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB);
         using (var formatInfo = TextureFormatAttribs.CreateManagedWrapper(
                    DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat), false))
@@ -84,49 +80,25 @@ public class RawTexture : DeviceObject
             _formatBlockHeight = checked((int)formatInfo.BlockHeight);
             _formatElementSize = checked((int)formatInfo.GetElementSize());
         }
-        SetDebugName($"RawTexture #{parameters.GetHashCode():X8}");
-        DestroyGPU();
+        if (_renderDevice?.GetRenderDevice() is null)
+            return true;
+
         if (!CreateGPU())
-            return GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null;
-        ApplySamplerState();
+        {
+            ReleaseHandles();
+            return false;
+        }
         return true;
     }
 
     /// <summary>Set default sampler to be used for this texture.</summary>
-    public void SetSamplerStateDesc(SamplerStateDesc desc)
-    {
-        _samplerStateDesc = desc;
-        ApplySamplerState();
-    }
+    public void SetSamplerStateDesc(SamplerStateDesc desc) => _samplerStateDesc = desc;
 
     public RawTextureParams GetParams() => _parameters;
 
     public SamplerStateDesc GetSamplerStateDesc() => _samplerStateDesc;
 
-    public RawTextureHandles GetHandles() => _handles;
-
-    public Texture? GetTexture() => _texture;
-
-    public ITexture? GetHandle()
-        => _handle;
-
-    public ITexture? GetResolvedHandle() => _resolvedHandle;
-
-    public ITextureView? GetShaderResourceView() => _shaderResourceView;
-
-    public ITextureView? GetRenderTargetView() => _renderTargetView;
-
-    public ITextureView? GetDepthStencilView() => _depthStencilView;
-
-    public ITextureView? GetReadOnlyDepthStencilView() => _readOnlyDepthStencilView;
-
-    public ITextureView? GetDefaultUnorderedAccessView() => _unorderedAccessView;
-
-    public ReadOnlySpan<ITextureView> GetRenderSurfaces() => _renderSurfaces;
-
-    public ReadOnlySpan<ITextureView> GetReadOnlyRenderSurfaces() => _readOnlyRenderSurfaces;
-
-    internal IReadOnlyDictionary<RawTextureUAVKey, ITextureView> GetUnorderedAccessViews() => _uavs;
+    public ref readonly RawTextureHandles GetHandles() => ref _handles;
 
     public bool CreateFromHandle(ITexture texture, TextureFormat format = TextureFormat.Unknown, int msaaLevel = 1)
     {
@@ -173,14 +145,8 @@ public class RawTexture : DeviceObject
             checked((int)desc.MipLevels),
             isSrgb);
         _ = texture.AddRef();
-        _handle = texture;
-        if (!InitializeDefaultViews(desc.BindFlags))
-        {
-            DestroyGPU();
-            return false;
-        }
-        OnCreateGPU();
-        return true;
+        _handles.Texture = texture;
+        return InitializeDefaultViews(desc.BindFlags);
     }
 
     public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel)
@@ -337,29 +303,26 @@ public class RawTexture : DeviceObject
         }
     }
 
-    public bool IsValid() => GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null
-        ? _parameters.Size != default
-        : _handle is { IsNull: false };
-
     public bool GetLevelsDirty() => _levelsDirty;
 
     public bool GetResolveDirty() => _resolveDirty;
 
     public void GenerateLevels()
     {
-        if (!_levelsDirty || _texture is null || _parameters.NumLevels <= 1u)
-            return;
-        var context = GetSubsystem<Graphics>()?.GetImmediateContext();
-        if (context is not null && _shaderResourceView is not null)
-            context.GenerateMips(_shaderResourceView);
+        if (_parameters.NumLevels > 1)
+        {
+            if (_handles.ShaderResourceView is null)
+                return;
+            _renderDevice!.GetImmediateContext()!.GenerateMips(_handles.ShaderResourceView);
+        }
         _levelsDirty = false;
     }
 
     public void Resolve()
     {
-        var context = GetSubsystem<Graphics>()?.GetImmediateContext();
-        if (context is not null && _handle is not null && _resolvedHandle is not null)
+        if (_handles.ResolvedTexture is not null)
         {
+            var context = _renderDevice!.GetImmediateContext()!;
             using var attributes = new ResolveTextureSubresourceAttribs
             {
                 SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
@@ -369,7 +332,7 @@ public class RawTexture : DeviceObject
             {
                 attributes.SrcSlice = checked((uint)slice);
                 attributes.DstSlice = checked((uint)slice);
-                context.ResolveTextureSubresource(_handle, _resolvedHandle, attributes);
+                context.ResolveTextureSubresource(_handles.Texture!, _handles.ResolvedTexture, attributes);
             }
             MarkDirty();
         }
@@ -397,13 +360,15 @@ public class RawTexture : DeviceObject
             throw new ArgumentOutOfRangeException(nameof(rowStride));
         if (sliceStride < rowStride * heightInBlocks)
             throw new ArgumentOutOfRangeException(nameof(sliceStride));
-        var requiredDataSize = checked(sliceStride * (size.Z - 1) + rowStride * size.Y);
+        var requiredDataSize = checked(sliceStride * (size.Z - 1) + rowStride * heightInBlocks);
         if (data.Length < requiredDataSize)
             throw new ArgumentException("Texture update data is smaller than the specified region and strides.", nameof(data));
 
-        var context = GetSubsystem<Graphics>()?.GetImmediateContext();
-        if (context is null || _handle is null)
+        if (_renderDevice is null)
             return;
+        if (!_handles.IsValid())
+            return;
+        var context = _renderDevice.GetImmediateContext()!;
 
         _updateBox.MinX = checked((uint)offset.X);
         _updateBox.MaxX = checked((uint)(offset.X + size.X));
@@ -421,7 +386,7 @@ public class RawTexture : DeviceObject
                 if ((rowStride & 3) != 0 || (sliceStride & 3) != 0)
                 {
                     var alignedRowStride = (rowStride + 3) & ~3;
-                    var alignedSliceStride = checked(alignedRowStride * size.Y);
+                    var alignedSliceStride = checked(alignedRowStride * heightInBlocks);
                     scratchBuffer = GetRenderDevice()?.GetRenderPool().AllocateScratchBuffer(
                         checked((uint)(alignedSliceStride * size.Z))) ?? 0;
                     if (scratchBuffer == 0)
@@ -429,7 +394,7 @@ public class RawTexture : DeviceObject
                     var destination = (byte*)scratchBuffer;
                     for (var z = 0; z < size.Z; ++z)
                     {
-                        for (var y = 0; y < size.Y; ++y)
+                        for (var y = 0; y < heightInBlocks; ++y)
                         {
                             Buffer.MemoryCopy(sourceData + z * sliceStride + y * rowStride,
                                 destination + z * alignedSliceStride + y * alignedRowStride,
@@ -444,7 +409,7 @@ public class RawTexture : DeviceObject
                 _updateSubresource.PData = (nint)uploadData;
                 _updateSubresource.Stride = checked((ulong)rowStride);
                 _updateSubresource.DepthStride = checked((ulong)sliceStride);
-                context.UpdateTexture(_handle, checked((uint)level), checked((uint)arraySlice), _updateBox, _updateSubresource,
+                context.UpdateTexture(_handles.Texture!, checked((uint)level), checked((uint)arraySlice), _updateBox, _updateSubresource,
                     ResourceStateTransitionMode.ResourceStateTransitionModeNone,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 _updateSubresource.PData = 0;
@@ -475,18 +440,15 @@ public class RawTexture : DeviceObject
         var requiredSize = checked(rowSize * heightInBlocks * levelSize.Z);
         if (buffer.Length < requiredSize)
             return false;
-        if (_handle is null)
+        if (!_handles.IsValid())
             return false;
         if (_resolveDirty)
             Resolve();
         if (_levelsDirty)
             GenerateLevels();
 
-        var graphics = GetSubsystem<Graphics>();
-        var device = graphics?.GetNativeRenderDevice();
-        var context = graphics?.GetImmediateContext();
-        if (device is null || context is null)
-            return false;
+        var device = _renderDevice!.GetRenderDevice()!;
+        var context = _renderDevice.GetImmediateContext()!;
 
         using var stagingName = new CString("RawTexture::Read staging texture");
         using var stagingDesc = new TextureDesc
@@ -514,7 +476,7 @@ public class RawTexture : DeviceObject
         try
         {
             using var copy = new CopyTextureAttribs(
-                _resolvedHandle ?? _handle,
+                _handles.ResolvedTexture ?? _handles.Texture!,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
                 stagingTexture,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition)
@@ -568,10 +530,10 @@ public class RawTexture : DeviceObject
 
     public ulong CalculateMemoryUseGPU()
     {
-        if (_handle is null)
+        if (!_handles.IsValid())
             return 0;
         ulong sliceMemory = 0;
-        if (_resolvedHandle is not null)
+        if (_handles.ResolvedTexture is not null)
         {
             sliceMemory += checked((ulong)_parameters.MultiSample) * GetMipLevelSizeInBytes(0);
         }
@@ -591,9 +553,7 @@ public class RawTexture : DeviceObject
     /// <summary>Create UAV for given array slices and mip levels.</summary>
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
-        if (_texture is null || (_parameters.Flags & TextureFlag.BindUnorderedAccess) != TextureFlag.BindUnorderedAccess)
-            return null;
-        if (!GetRenderDevice()?.IsUnorderedAccessFormatSupported(_parameters.Format) ?? true)
+        if (!_handles.IsValid())
             return null;
 
         if (GetUAV(key) is { } cachedView)
@@ -605,7 +565,8 @@ public class RawTexture : DeviceObject
 
         if (GetUAV(effectiveKey) is { } normalizedView)
         {
-            _uavs[key] = normalizedView;
+            _ = normalizedView.AddRef();
+            _handles.UnorderedAccessViews[key] = normalizedView;
             return normalizedView;
         }
 
@@ -613,14 +574,18 @@ public class RawTexture : DeviceObject
         if (createdView is null || createdView.IsNull)
             return null;
 
-        _uavs[key] = createdView;
-        _uavs[effectiveKey] = createdView;
+        _handles.UnorderedAccessViews[key] = createdView;
+        if (key != effectiveKey)
+        {
+            _ = createdView.AddRef();
+            _handles.UnorderedAccessViews[effectiveKey] = createdView;
+        }
         return createdView;
     }
 
     private ITextureView? CreateUnorderedAccessView(RawTextureUAVKey key)
     {
-        if (_handle is null)
+        if (_handles.Texture is null)
             return null;
 
         using var viewDesc = new TextureViewDesc
@@ -643,16 +608,15 @@ public class RawTexture : DeviceObject
             viewDesc.FirstArraySlice = checked((uint)key.FirstSlice);
             viewDesc.NumArraySlices = checked((uint)key.NumSlices);
         }
-        _handle.CreateView(viewDesc, out var view);
+        _handles.Texture.CreateView(viewDesc, out var view);
         if (view is null || view.IsNull)
             return null;
-        _ownedUavs.Add(view);
         return view;
     }
 
     public ITextureView? GetUAV(RawTextureUAVKey key)
     {
-        return _uavs.TryGetValue(key, out var view) ? view : null;
+        return _handles.UnorderedAccessViews.TryGetValue(key, out var view) ? view : null;
     }
 
     /// <summary>For render target and depth-stencil textures, mark shader resource view dirty.</summary>
@@ -666,36 +630,31 @@ public class RawTexture : DeviceObject
 
     public override void Invalidate()
     {
-        base.Invalidate();
         DestroyGPU();
-        _levelsDirty = false;
-        _resolveDirty = false;
     }
 
     public override void Restore()
     {
-        base.Restore();
-        DestroyGPU();
         if (_parameters.Size == default)
-            ClearDataLost();
+            _dataLost = false;
         else if (TryRestore())
-            ClearDataLost();
+            _dataLost = false;
         else
         {
             CreateGPU();
             _dataLost = true;
         }
-        _levelsDirty = false;
-        _resolveDirty = false;
     }
 
     public override void Destroy()
     {
-        base.Destroy();
         DestroyGPU();
-        _texture = null;
-        _levelsDirty = false;
-        _resolveDirty = false;
+    }
+
+    public override void Dispose()
+    {
+        DestroyGPU();
+        base.Dispose();
     }
 
     protected virtual void OnCreateGPU()
@@ -710,10 +669,7 @@ public class RawTexture : DeviceObject
 
     protected bool CreateGPU()
     {
-        var graphics = GetSubsystem<Graphics>();
-        var device = graphics?.GetNativeRenderDevice();
-        if (device is null || device.IsNull)
-            return true;
+        var device = _renderDevice!.GetRenderDevice()!;
 
         using var nativeName = new CString(GetDebugName());
         using var textureDesc = new TextureDesc
@@ -743,10 +699,10 @@ public class RawTexture : DeviceObject
         if (_parameters.MultiSample == 1u && (_parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget && _parameters.NumLevelsRtv != 1u)
             textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
 
-        device.CreateTexture(textureDesc, null!, out _handle);
-        if (_handle is null || _handle.IsNull)
+        device.CreateTexture(textureDesc, null!, out _handles.Texture);
+        if (_handles.Texture is null || _handles.Texture.IsNull)
         {
-            _handle = null;
+            _handles.Texture = null;
             return false;
         }
 
@@ -756,95 +712,88 @@ public class RawTexture : DeviceObject
             textureDesc.SampleCount = 1u;
             if (_parameters.NumLevels != 1u)
                 textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
-            device.CreateTexture(textureDesc, null!, out _resolvedHandle);
-            if (_resolvedHandle is null || _resolvedHandle.IsNull)
-            {
-                DestroyGPU();
+            device.CreateTexture(textureDesc, null!, out _handles.ResolvedTexture);
+            if (_handles.ResolvedTexture is null || _handles.ResolvedTexture.IsNull)
                 return false;
-            }
         }
 
         if (!InitializeDefaultViews(textureDesc.BindFlags))
-        {
-            DestroyGPU();
             return false;
-        }
-
-        OnCreateGPU();
         return true;
     }
 
     protected void DestroyGPU()
     {
         OnDestroyGPU();
-        foreach (var view in _ownedUavs)
+        ReleaseHandles();
+    }
+
+    private void ReleaseHandles()
+    {
+        foreach (var view in _handles.UnorderedAccessViews.Values)
             Release(view);
-        _ownedUavs.Clear();
-        foreach (var view in _renderSurfaces)
+        foreach (var view in _handles.RenderSurfaces)
         {
-            if (!ReferenceEquals(view, _renderTargetView) && !ReferenceEquals(view, _depthStencilView))
+            if (!ReferenceEquals(view, _handles.RenderTargetView) && !ReferenceEquals(view, _handles.DepthStencilView))
                 Release(view);
         }
-        foreach (var view in _readOnlyRenderSurfaces)
+        foreach (var view in _handles.ReadOnlyRenderSurfaces)
         {
-            if (!ReferenceEquals(view, _readOnlyDepthStencilView))
+            if (!ReferenceEquals(view, _handles.ReadOnlyDepthStencilView))
                 Release(view);
         }
-        _renderSurfaces = [];
-        _readOnlyRenderSurfaces = [];
-        _uavs.Clear();
-        Release(_unorderedAccessView);
-        Release(_readOnlyDepthStencilView);
-        Release(_depthStencilView);
-        Release(_renderTargetView);
-        Release(_shaderResourceView);
-        Release(_resolvedHandle);
-        Release(_handle);
-        _unorderedAccessView = null;
-        _readOnlyDepthStencilView = null;
-        _depthStencilView = null;
-        _renderTargetView = null;
-        _shaderResourceView = null;
-        _resolvedHandle = null;
-        _handle = null;
+        Release(_handles.UnorderedAccessView);
+        Release(_handles.ReadOnlyDepthStencilView);
+        Release(_handles.DepthStencilView);
+        Release(_handles.RenderTargetView);
+        Release(_handles.ShaderResourceView);
+        Release(_handles.ResolvedTexture);
+        Release(_handles.Texture);
+        _handles = new RawTextureHandles();
     }
 
     private bool InitializeDefaultViews(BindFlags bindFlags)
     {
-        var shaderTexture = _resolvedHandle ?? _handle!;
+        var shaderTexture = _handles.ResolvedTexture ?? _handles.Texture!;
         if ((bindFlags & BindFlags.BindShaderResource) != 0)
-            _shaderResourceView = GetDefaultView(shaderTexture, TextureViewType.TextureViewShaderResource);
+            _handles.ShaderResourceView = GetDefaultView(shaderTexture, TextureViewType.TextureViewShaderResource);
         if ((bindFlags & BindFlags.BindRenderTarget) != 0)
         {
-            _renderTargetView = GetDefaultView(_handle!, TextureViewType.TextureViewRenderTarget);
-            _renderSurfaces = CreateRenderSurfaces(_renderTargetView, TextureViewType.TextureViewRenderTarget);
+            _handles.RenderTargetView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewRenderTarget);
+            _handles.RenderSurfaces = CreateRenderSurfaces(_handles.RenderTargetView, TextureViewType.TextureViewRenderTarget);
         }
         if ((bindFlags & BindFlags.BindDepthStencil) != 0)
         {
-            _depthStencilView = GetDefaultView(_handle!, TextureViewType.TextureViewDepthStencil);
-            _renderSurfaces = CreateRenderSurfaces(_depthStencilView, TextureViewType.TextureViewDepthStencil);
-            if (_depthStencilView is not null)
+            _handles.DepthStencilView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewDepthStencil);
+            _handles.RenderSurfaces = CreateRenderSurfaces(_handles.DepthStencilView, TextureViewType.TextureViewDepthStencil);
+            if (_handles.DepthStencilView is not null)
             {
-                using var depthStencilDesc = _depthStencilView.GetDesc();
+                using var depthStencilDesc = _handles.DepthStencilView.GetDesc();
                 using var readOnlyDesc = depthStencilDesc.Clone();
                 readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
-                _handle!.CreateView(readOnlyDesc, out _readOnlyDepthStencilView);
-                if (_readOnlyDepthStencilView is { IsNull: true })
-                    _readOnlyDepthStencilView = null;
+                _handles.Texture!.CreateView(readOnlyDesc, out _handles.ReadOnlyDepthStencilView);
+                if (_handles.ReadOnlyDepthStencilView is { IsNull: true })
+                    _handles.ReadOnlyDepthStencilView = null;
             }
-            _readOnlyRenderSurfaces = CreateRenderSurfaces(_readOnlyDepthStencilView,
+            _handles.ReadOnlyRenderSurfaces = CreateRenderSurfaces(_handles.ReadOnlyDepthStencilView,
                 TextureViewType.TextureViewReadOnlyDepthStencil);
         }
         if ((bindFlags & BindFlags.BindUnorderedAccess) != 0)
         {
-            _unorderedAccessView = GetDefaultView(_handle!, TextureViewType.TextureViewUnorderedAccess);
-            if (_unorderedAccessView is not null)
-                _uavs[new RawTextureUAVKey()] = _unorderedAccessView;
+            _handles.UnorderedAccessView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewUnorderedAccess);
+            if (_handles.UnorderedAccessView is not null)
+            {
+                _ = _handles.UnorderedAccessView.AddRef();
+                _handles.UnorderedAccessViews[new RawTextureUAVKey()] = _handles.UnorderedAccessView;
+            }
         }
-        return _shaderResourceView is not null &&
-            ((bindFlags & BindFlags.BindRenderTarget) == 0 || _renderTargetView is not null) &&
-            ((bindFlags & BindFlags.BindDepthStencil) == 0 || _depthStencilView is not null && _readOnlyDepthStencilView is not null) &&
-            ((bindFlags & BindFlags.BindUnorderedAccess) == 0 || _unorderedAccessView is not null);
+        var result = _handles.ShaderResourceView is not null &&
+            ((bindFlags & BindFlags.BindRenderTarget) == 0 || _handles.RenderTargetView is not null) &&
+            ((bindFlags & BindFlags.BindDepthStencil) == 0 || _handles.DepthStencilView is not null && _handles.ReadOnlyDepthStencilView is not null) &&
+            ((bindFlags & BindFlags.BindUnorderedAccess) == 0 || _handles.UnorderedAccessView is not null);
+        if (result)
+            OnCreateGPU();
+        return result;
     }
 
     private ITextureView? GetDefaultView(ITexture texture, TextureViewType viewType)
@@ -893,7 +842,7 @@ public class RawTexture : DeviceObject
 
         var surfaces = new ITextureView[_parameters.ArraySize];
         for (var slice = 0; slice < _parameters.ArraySize; ++slice)
-            surfaces[slice] = CreateView(_handle!, viewType, slice, 1)
+            surfaces[slice] = CreateView(_handles.Texture!, viewType, slice, 1)
                 ?? throw new InvalidOperationException("Failed to create texture render surface.");
         return surfaces;
     }
@@ -922,132 +871,99 @@ public class RawTexture : DeviceObject
             _ = value.Release();
     }
 
-    private void ApplySamplerState()
+    private static bool ValidateBindings(ref RawTextureParams parameters)
     {
-        if (_texture is null)
-            return;
-
-        _texture.SetFilterMode(_samplerStateDesc.FilterMode);
-        _texture.SetAddressMode(TextureCoordinate.U, _samplerStateDesc[TextureCoordinate.U]);
-        _texture.SetAddressMode(TextureCoordinate.V, _samplerStateDesc[TextureCoordinate.V]);
-        _texture.SetAddressMode(TextureCoordinate.W, _samplerStateDesc[TextureCoordinate.W]);
-        _texture.SetAnisotropy(_samplerStateDesc.Anisotropy);
-        _texture.SetShadowCompare(_samplerStateDesc.ShadowCompare);
-    }
-
-    private static bool TryCreateManagedTexture(RawTextureParams parameters, out Texture createdTexture, out RawTextureParams finalizedParameters)
-    {
-        createdTexture = null!;
-        finalizedParameters = default;
-
-        if (parameters.Format == TextureFormat.Unknown)
-            return false;
-
-        var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget;
-        var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) == TextureFlag.BindDepthStencil;
+        var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) != 0;
+        var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) != 0;
         if (isRenderTarget && isDepthStencil)
             return false;
 
-        if (!ValidateDimensions(ref parameters))
+        return true;
+    }
+
+    private static bool ValidateMultiSample(ref RawTextureParams parameters)
+    {
+        parameters = parameters with { MultiSample = Math.Clamp(parameters.MultiSample, 1, 16) };
+        if (parameters.MultiSample == 1)
+            parameters = parameters with { Flags = parameters.Flags | TextureFlag.NoMultiSampledAutoResolve };
+
+        var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) != 0;
+        var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) != 0;
+        if (parameters.MultiSample != 1 && !(isRenderTarget || isDepthStencil))
             return false;
 
-        var multiSample = Math.Clamp(parameters.MultiSample, 1, 16);
-        var flags = parameters.Flags;
-        if (multiSample == 1)
-            flags |= TextureFlag.NoMultiSampledAutoResolve;
-        if (multiSample != 1 && !isRenderTarget && !isDepthStencil)
-            return false;
+        return true;
+    }
 
+    private static bool ValidateLevels(ref RawTextureParams parameters)
+    {
         var maxLevels = CalculateMipLevelCount(parameters.Size);
-        var numLevels = parameters.NumLevels == 0 ? maxLevels : Math.Min(parameters.NumLevels, maxLevels);
-        if (isDepthStencil || (multiSample != 1u && (flags & TextureFlag.NoMultiSampledAutoResolve) == TextureFlag.NoMultiSampledAutoResolve))
+        var numLevels = parameters.NumLevels != 0 ? Math.Min(parameters.NumLevels, maxLevels) : maxLevels;
+
+        if (numLevels > 1 && (parameters.Flags & TextureFlag.BindDepthStencil) != 0)
             numLevels = 1;
+
+        if (numLevels > 1 && parameters.MultiSample != 1
+            && (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != 0)
+        {
+            numLevels = 1;
+        }
+
         parameters = parameters with
         {
-            Flags = flags,
-            MultiSample = multiSample,
             NumLevels = numLevels,
-            NumLevelsRtv = multiSample != 1 ? 1 : numLevels
+            NumLevelsRtv = parameters.MultiSample != 1 ? 1 : numLevels
         };
+        return true;
+    }
 
-        var normalizedArraySize = parameters.ArraySize;
-        var normalizedMultiSample = parameters.MultiSample;
-        var normalizedSize = parameters.Size;
+    private static bool ValidateCaps(ref RawTextureParams parameters, RenderDevice? renderDevice)
+    {
+        var device = renderDevice?.GetRenderDevice();
+        if (device is null)
+            return true;
+        var nativeFormat = Graphics.MapTextureFormat(parameters.Format, parameters.SRGB);
 
-        Texture textureCandidate;
-        IsCreatingManagedTexture = true;
-        try
+        if (parameters.Format == TextureFormat.Depth24Stencil8)
         {
-            switch (parameters.Type)
+            using var depth24Info = device.GetTextureFormatInfoExt(nativeFormat);
+            if ((depth24Info.BindFlags & BindFlags.BindDepthStencil) == 0)
             {
-                case TextureType.Texture2D:
-                {
-                    var texture2D = new Texture2D($"RawTexture2D.{Guid.NewGuid():N}");
-                    texture2D.SetSRGB(parameters.SRGB);
-                    texture2D.SetNumLevels(checked((uint)parameters.NumLevels));
-                    if (!texture2D.SetSize(normalizedSize.X, normalizedSize.Y, parameters.Format, parameters.Flags,
-                        (int)normalizedMultiSample))
-                        return false;
-                    textureCandidate = texture2D;
-                    break;
-                }
-
-                case TextureType.TextureCube:
-                {
-                    var textureCube = new TextureCube($"RawTextureCube.{Guid.NewGuid():N}");
-                    textureCube.SetSRGB(parameters.SRGB);
-                    textureCube.SetNumLevels(checked((uint)parameters.NumLevels));
-                    var edge = normalizedSize.X;
-                    if (!textureCube.SetSize(edge, parameters.Format, parameters.Flags, (int)normalizedMultiSample))
-                        return false;
-                    normalizedSize = new Vector3i(edge, edge, 1);
-                    textureCandidate = textureCube;
-                    break;
-                }
-
-                case TextureType.Texture2DArray:
-                {
-                    var textureArray = new Texture2DArray($"RawTextureArray.{Guid.NewGuid():N}");
-                    textureArray.SetSRGB(parameters.SRGB);
-                    textureArray.SetNumLevels(checked((uint)parameters.NumLevels));
-                    if (!textureArray.SetSize(checked((uint)normalizedArraySize), normalizedSize.X, normalizedSize.Y, parameters.Format,
-                        parameters.Flags))
-                        return false;
-                    textureCandidate = textureArray;
-                    break;
-                }
-
-                case TextureType.Texture3D:
-                {
-                    var texture3D = new Texture3D($"RawTexture3D.{Guid.NewGuid():N}");
-                    texture3D.SetSRGB(parameters.SRGB);
-                    texture3D.SetNumLevels(checked((uint)parameters.NumLevels));
-                    if (!texture3D.SetSize(normalizedSize.X, normalizedSize.Y, normalizedSize.Z, parameters.Format))
-                        return false;
-                    textureCandidate = texture3D;
-                    break;
-                }
-
-                default:
-                    return false;
+                parameters = parameters with { Format = TextureFormat.Depth32Stencil8 };
+                nativeFormat = Graphics.MapTextureFormat(parameters.Format, parameters.SRGB);
             }
         }
-        finally
+
+        using var formatInfo = device.GetTextureFormatInfoExt(nativeFormat);
+        var allowedFlags = formatInfo.BindFlags;
+
+        if (parameters.MultiSample != 1 && ((int)formatInfo.SampleCounts & parameters.MultiSample) == 0)
         {
-            IsCreatingManagedTexture = false;
+            parameters = parameters with
+            {
+                MultiSample = 1,
+                Flags = parameters.Flags | TextureFlag.NoMultiSampledAutoResolve
+            };
         }
 
-        createdTexture = textureCandidate;
-        finalizedParameters = new RawTextureParams(
-            parameters.Type,
-            parameters.Format,
-            parameters.Flags,
-            new Vector3i(textureCandidate.Width, textureCandidate.Height, textureCandidate.Depth),
-            normalizedArraySize,
-            checked((int)textureCandidate.Levels),
-            parameters.Type == TextureType.Texture2DArray ? normalizedMultiSample : textureCandidate.MultiSample,
-            CalculateNumLevelsRtv(textureCandidate, parameters),
-            parameters.SRGB);
+        if ((parameters.Flags & TextureFlag.BindRenderTarget) != 0
+            && (allowedFlags & BindFlags.BindRenderTarget) == 0)
+        {
+            return false;
+        }
+
+        if ((parameters.Flags & TextureFlag.BindDepthStencil) != 0
+            && (allowedFlags & BindFlags.BindDepthStencil) == 0)
+        {
+            return false;
+        }
+
+        if ((parameters.Flags & TextureFlag.BindUnorderedAccess) != 0
+            && (allowedFlags & BindFlags.BindUnorderedAccess) == 0)
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -1088,16 +1004,6 @@ public class RawTexture : DeviceObject
         Math.Max(size.X >> level, 1),
         Math.Max(size.Y >> level, 1),
         Math.Max(size.Z >> level, 1));
-
-    private static int CalculateNumLevelsRtv(Texture texture, RawTextureParams parameters)
-    {
-        if (parameters.NumLevelsRtv != 0)
-            return parameters.NumLevelsRtv;
-
-        return texture.MultiSample > 1 && (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve
-            ? 1
-            : checked((int)texture.Levels);
-    }
 
     private bool ValidateUavKey(ref RawTextureUAVKey key)
     {

@@ -66,7 +66,7 @@ public sealed class GraphicsRenderTargetViewTests
             var secondRawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
 
             Assert.NotSame(firstRawTexture, secondRawTexture);
-            Assert.Same(secondRawTexture.GetHandle(), renderTargetView.GetView().GetTexture());
+            Assert.Same(secondRawTexture.GetHandles().Texture, renderTargetView.GetView().GetTexture());
         });
     }
 
@@ -170,7 +170,7 @@ public sealed class GraphicsRenderTargetViewTests
             var uploadedTexture = GetUploadedTexture(texture);
             var nativeTexture = GetNativeTexture(uploadedTexture);
 
-            Assert.Same(rawTexture.GetHandle(), nativeTexture);
+            Assert.Same(rawTexture.GetHandles().Texture, nativeTexture);
             Assert.Equal(texture.Levels, nativeTexture.GetDesc().MipLevels);
             Assert.True(nativeTexture.GetDesc().MipLevels > 1u);
         });

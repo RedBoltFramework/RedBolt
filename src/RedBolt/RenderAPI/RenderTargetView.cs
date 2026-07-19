@@ -82,7 +82,7 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     public static RenderTargetView Texture(RawTexture texture)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.Resource, 0,
+        return new RenderTargetView(null, texture, RenderTargetViewType.Resource, 0,
             texture.GetRenderDevice()!);
     }
 
@@ -96,7 +96,7 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     public static RenderTargetView TextureSlice(RawTexture texture, uint slice)
     {
         ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ResourceSlice, slice,
+        return new RenderTargetView(null, texture, RenderTargetViewType.ResourceSlice, slice,
             texture.GetRenderDevice()!);
     }
 
@@ -112,7 +112,7 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ReadOnlyResource, 0,
+        return new RenderTargetView(null, texture, RenderTargetViewType.ReadOnlyResource, 0,
             texture.GetRenderDevice()!);
     }
 
@@ -128,7 +128,7 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
         ArgumentNullException.ThrowIfNull(texture);
         if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
             throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
-        return new RenderTargetView(texture.GetTexture(), texture, RenderTargetViewType.ReadOnlyResourceSlice, slice,
+        return new RenderTargetView(null, texture, RenderTargetViewType.ReadOnlyResourceSlice, slice,
             texture.GetRenderDevice()!);
     }
 

@@ -726,13 +726,6 @@ public sealed class RenderDevice : Object
         return graphics?.GetTextureHandle(texture);
     }
 
-    internal ITextureView? CreateTextureUnorderedAccessView(RawTexture texture, RawTextureUAVKey key)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-        var graphics = GetSubsystem<Graphics>();
-        return graphics?.CreateTextureUnorderedAccessView(texture, key);
-    }
-
     internal void MarkRenderTargetDirty(RenderTargetView view)
     {
         var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
@@ -799,7 +792,7 @@ public sealed class RenderDevice : Object
     private void InitializeDefaultTexture(TextureType type, ReadOnlySpan<byte> data)
     {
         var texture = new RawTexture(new RawTextureParams(type, TextureFormat.RGBA8, TextureFlag.None, Vector3i.One));
-        if (!texture.IsValid())
+        if (!texture.GetHandles().IsValid())
         {
             texture.Dispose();
             return;
