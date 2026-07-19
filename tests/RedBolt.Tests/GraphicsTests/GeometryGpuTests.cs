@@ -129,9 +129,12 @@ public sealed class GeometryGpuTests
         var tex = new TextureCube("Textures/SmokeCube");
         tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, TextureFormat.RGBA8));
-        Assert.True(tex.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2,
+        Assert.True(tex.SetData(CubeMapFace.PositiveX, 0, 0, 0, 2, 2,
             Enumerable.Repeat((byte)7, 16).ToArray()));
-        Assert.False(tex.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
+        Assert.False(tex.GetData(CubeMapFace.PositiveX, 0, new byte[16]));
+
+        Assert.False(tex.SetSize(0, TextureFormat.RGBA8));
+        Assert.Equal(0, tex.Width);
     }
 
     [Fact]

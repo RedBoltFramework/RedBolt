@@ -286,7 +286,7 @@ public sealed class TextureTests
 
         var cube = new TextureCube("Textures/Cube");
         Assert.True(cube.SetSize(2, TextureFormat.RGBA8));
-        Assert.True(cube.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2, new byte[2 * 2 * 4]));
+        Assert.True(cube.SetData(CubeMapFace.PositiveX, 0, 0, 0, 2, 2, new byte[2 * 2 * 4]));
         Assert.Equal(TextureType.TextureCube, cube.GetRawTexture()!.GetParams().Type);
 
         var array = new Texture2DArray("Textures/Array");
@@ -321,7 +321,7 @@ public sealed class TextureTests
         Assert.Equal(TextureFilterMode.Bilinear, texture.GetFilterMode());
         Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.U));
         Assert.False(texture.GetAutoResolve());
-        Assert.False(texture.GetData(CubeMapFace.PositiveX, 0u, new byte[16]));
+        Assert.False(texture.GetData(CubeMapFace.PositiveX, 0, new byte[16]));
         Assert.Null(texture.GetImage(CubeMapFace.PositiveX));
         Assert.Null(texture.GetRenderSurface(CubeMapFace.MaxCubeMapFaces));
     }

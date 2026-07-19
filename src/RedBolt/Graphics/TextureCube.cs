@@ -17,9 +17,6 @@ public enum CubeMapFace
 /// </summary>
 public class TextureCube : Texture
 {
-    // Face image files acquired during BeginLoad.
-    private ImageCube? _loadImageCube;
-
     /// <summary>
     /// Construct.
     /// </summary>
@@ -39,8 +36,6 @@ public class TextureCube : Texture
         base.Dispose();
     }
 
-    protected override TextureType GetRawTextureType() => TextureType.TextureCube;
-
     /// <summary>
     /// Register object factory.
     /// </summary>
@@ -58,19 +53,19 @@ public class TextureCube : Texture
         var cache = GetSubsystem<ResourceCache>()!;
         var graphics = GetSubsystem<Graphics>();
 
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (graphics?.GetNativeRenderDevice() is null)
             return true;
 
         cache.ResetDependencies(this);
 
-        // Load resource.
+        // Load resource
         _loadImageCube?.Dispose();
         _loadImageCube = cache.GetTempResource<ImageCube>(Name);
         if (_loadImageCube is null)
             return false;
 
-        // Update dependencies.
+        // Update dependencies
         foreach (var image in _loadImageCube.GetImages())
         {
             if (image is not null && !string.IsNullOrEmpty(image.Name))
@@ -85,11 +80,11 @@ public class TextureCube : Texture
     /// </summary>
     public override bool EndLoad()
     {
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
             return true;
 
-        // If over the texture budget, see if materials can be freed to allow textures to be freed.
+        // If over the texture budget, see if materials can be freed to allow textures to be freed
         CheckTextureBudget(typeof(TextureCube).GetTypeId());
 
         SetParameters(_loadImageCube!.GetParametersXML());
@@ -109,20 +104,18 @@ public class TextureCube : Texture
     /// </summary>
     public bool SetSize(int size, TextureFormat format, TextureFlag flags = TextureFlag.None, int multiSample = 1)
     {
-        if (size <= 0)
-            return false;
-
-        SetDimensions(size, size, 1, format, multiSample,
-            (flags & TextureFlag.NoMultiSampledAutoResolve) != 0, flags);
-        return true;
+        var parameters = new RawTextureParams(
+            TextureType.TextureCube, format, flags, new Vector3i(size, size, 1),
+            NumLevels: _requestedLevels, MultiSample: multiSample, SRGB: _requestedSRGB);
+        return Create(parameters);
     }
 
     /// <summary>
     /// Set data either partially or fully on a face's mip level. Return true if successful.
     /// </summary>
-    public bool SetData(CubeMapFace face, uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
+    public bool SetData(CubeMapFace face, int level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, 0), new Vector3i(width, height, 1), (int)face, data);
+        GetRawTexture().Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), (int)face, data);
         return true;
     }
 
@@ -147,7 +140,7 @@ public class TextureCube : Texture
         {
             var parameters = new RawTextureParams(
                 TextureType.TextureCube, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-                NumLevels: checked((int)_requestedLevels));
+                NumLevels: _requestedLevels);
             if (!CreateForImage(parameters, image))
                 return false;
         }
@@ -158,9 +151,9 @@ public class TextureCube : Texture
     /// <summary>
     /// Get data from a face's mip level. The destination buffer must be big enough. Return true if successful.
     /// </summary>
-    public bool GetData(CubeMapFace face, uint level, Span<byte> destination)
+    public bool GetData(CubeMapFace face, int level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read((int)face, checked((int)level), destination) == true;
+        return GetRawTexture().Read((int)face, level, destination);
     }
 
     /// <summary>
@@ -180,4 +173,9 @@ public class TextureCube : Texture
     /// Return render surface for one face.
     /// </summary>
     public RenderSurface? GetRenderSurface(CubeMapFace face) => GetRenderSurface((int)face);
+
+    /// <summary>
+    /// Face image files acquired during BeginLoad.
+    /// </summary>
+    private ImageCube? _loadImageCube;
 }
