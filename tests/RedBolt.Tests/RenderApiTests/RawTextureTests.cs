@@ -487,6 +487,22 @@ public sealed class RawTextureTests
         });
     }
 
+    [Fact]
+    public void Raw_texture_external_imports_assert_on_unsupported_backend()
+    {
+        var texture = new TestRawTexture();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            texture.CreateFromD3D11Texture2D(0, TextureFormat.RGBA8, 1));
+        Assert.Throws<InvalidOperationException>(() =>
+            texture.CreateFromD3D12Resource(0, TextureFormat.RGBA8, 1));
+        Assert.Throws<InvalidOperationException>(() =>
+            texture.CreateFromVulkanImage(0, new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, Vector3i.One)));
+        Assert.Throws<InvalidOperationException>(() =>
+            texture.CreateFromGLTexture(0, TextureType.Texture2D, TextureFlag.None, TextureFormat.RGBA8, 1, 1));
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters
