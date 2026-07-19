@@ -750,8 +750,8 @@ public sealed class RenderPipelineTests
     public void Render_output_target_info_treats_srgb_texture_as_linear_color_space_output()
     {
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
         colorTarget.SetSRGB(true);
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
 
         var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200));
 
@@ -806,8 +806,8 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
         colorTarget.SetSRGB(true);
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
 

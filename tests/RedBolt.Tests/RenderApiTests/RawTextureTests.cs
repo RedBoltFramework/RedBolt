@@ -17,7 +17,7 @@ public sealed class RawTextureTests
             image.SetData(imageData);
 
             var texture = new Texture2D("Textures/RawTexture2D");
-            texture.SetNumLevels(1u);
+            texture.SetNumLevels(1);
             Assert.True(texture.SetData(image));
 
             var readback = new byte[16];

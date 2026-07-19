@@ -114,7 +114,7 @@ public class CubemapRenderer : Object
     private static readonly uint[] RayCounts128 = [1, 8, 16, 16, 16, 16, 32, 32];
     private static readonly uint[] RayCounts256 = [1, 8, 16, 16, 16, 16, 16, 32, 32];
 
-    private static ReadOnlySpan<uint> GetRayCounts(uint numLevels)
+    private static ReadOnlySpan<uint> GetRayCounts(int numLevels)
     {
         if (numLevels == 7)
             return RayCounts128;
@@ -125,7 +125,7 @@ public class CubemapRenderer : Object
 
     private sealed class CachedPipelineStates
     {
-        public uint NumLevels;
+        public int NumLevels;
         public readonly List<PipelineState> PipelineStates = [];
     }
 
@@ -425,12 +425,12 @@ public class CubemapRenderer : Object
         var sourceRaw = sourceTexture.GetRawTexture()!;
         var destRaw = destTexture.GetRawTexture()!;
 
-        for (var i = 0u; i < numLevels; ++i)
-            destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(checked((int)i)));
+        for (var i = 0; i < numLevels; ++i)
+            destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(i));
 
         drawQueue.Reset();
 
-        for (var i = 0u; i < numLevels; ++i)
+        for (var i = 0; i < numLevels; ++i)
         {
             var pipelineState = _cachedPipelineStates.PipelineStates[(int)i];
             drawQueue.SetPipelineState(pipelineState);
@@ -439,7 +439,7 @@ public class CubemapRenderer : Object
             drawQueue.CommitShaderResources();
 
             drawQueue.AddUnorderedAccessView(new StringHash("OutputTexture"), destRaw,
-                new RawTextureUAVKey().FromLevel(checked((int)i)));
+                new RawTextureUAVKey().FromLevel(i));
             drawQueue.CommitUnorderedAccessViews();
 
             // Calculate number of threadgroups to dispatch
@@ -452,7 +452,7 @@ public class CubemapRenderer : Object
         renderContext.Execute(drawQueue);
     }
 
-    private void EnsurePipelineStates(uint numLevels)
+    private void EnsurePipelineStates(int numLevels)
     {
         if (_cachedPipelineStates is not null && _cachedPipelineStates.NumLevels == numLevels)
             return;
@@ -466,10 +466,10 @@ public class CubemapRenderer : Object
 
         var rayCounts = GetRayCounts(numLevels);
         var roughStep = 1.0f / (numLevels - 1);
-        for (var i = 0u; i < numLevels; ++i)
+        for (var i = 0; i < numLevels; ++i)
         {
-            var levelWidth = (float)(1 << (int)(numLevels - 1 - i));
-            var rayCount = rayCounts[(int)Math.Min(i, (uint)(rayCounts.Length - 1))];
+            var levelWidth = (float)(1 << (numLevels - 1 - i));
+            var rayCount = rayCounts[Math.Min(i, rayCounts.Length - 1)];
 
             var shaderParams = FormattableString.Invariant(
                 $"RAY_COUNT={rayCount}u FILTER_RES={(uint)levelWidth}u FILTER_INV_RES={1.0f / levelWidth:F7} ROUGHNESS={roughStep * i:F7}");

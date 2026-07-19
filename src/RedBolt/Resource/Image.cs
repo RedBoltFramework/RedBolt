@@ -575,12 +575,19 @@ public sealed class Image : Resource
     public TextureFormat GetGPUFormat()
     {
         if (IsCompressed())
+        {
+            // TODO: port `return GetCompressedFormat() < TextureFormat::TEX_FORMAT_NUM_FORMATS
+            //     ? GetCompressedFormat() : TextureFormat::TEX_FORMAT_UNKNOWN;`
+            // Managed TextureFormat does not contain compressed formats yet.
             return TextureFormat.Unknown;
+        }
 
         return Components switch
         {
             1 => TextureFormat.R8,
-            3 => TextureFormat.RGB8,
+            // TODO: port `TextureFormat::TEX_FORMAT_RG8_UNORM` when managed TextureFormat contains it.
+            2 => TextureFormat.Unknown,
+            3 => TextureFormat.Unknown,
             4 => TextureFormat.RGBA8,
             _ => TextureFormat.Unknown
         };

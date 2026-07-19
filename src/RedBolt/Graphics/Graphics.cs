@@ -3169,7 +3169,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)Math.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3226,7 +3226,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : Math.Max(texture.Levels, 1u);
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)Math.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3278,7 +3278,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = Math.Max(texture.Levels, 1u);
+        textureDesc.MipLevels = checked((uint)Math.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3790,7 +3790,7 @@ layout(std140) uniform Material
         return texture switch
         {
             { MultiSample: > 1 } => 1u,
-            _ => Math.Max(texture.Levels, 1u)
+            _ => checked((uint)Math.Max(texture.Levels, 1))
         };
     }
 

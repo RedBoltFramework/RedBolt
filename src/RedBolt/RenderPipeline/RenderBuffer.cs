@@ -141,6 +141,8 @@ public sealed class TextureRenderBuffer : RenderBuffer
             : TextureFlag.BindRenderTarget;
         if ((_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0)
             textureFlags |= TextureFlag.NoMultiSampledAutoResolve;
+        if (!RenderAPIUtils.IsDepthTextureFormat(nextFormat))
+            configureTexture?.Invoke(Texture, nextFormat);
         if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat || Texture.MultiSample != _bufferParams.MultiSampleLevel)
         {
             switch (Texture)
@@ -164,7 +166,6 @@ public sealed class TextureRenderBuffer : RenderBuffer
             Texture.SetFilterMode((_bufferParams.Flags & RenderBufferFlag.BilinearFiltering) != 0
                 ? TextureFilterMode.Bilinear
                 : TextureFilterMode.Nearest);
-            configureTexture?.Invoke(Texture, nextFormat);
         }
 
         ViewportRect = new IntRect(0, 0, nextSize.X, nextSize.Y);

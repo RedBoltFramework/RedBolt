@@ -18,6 +18,24 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Gpu_format_matches_native_component_mapping()
+    {
+        using var image = new Image("Images/GpuFormat");
+
+        Assert.True(image.SetSize(2, 2, 1));
+        Assert.Equal(TextureFormat.R8, image.GetGPUFormat());
+
+        Assert.True(image.SetSize(2, 2, 2));
+        Assert.Equal(TextureFormat.Unknown, image.GetGPUFormat());
+
+        Assert.True(image.SetSize(2, 2, 3));
+        Assert.Equal(TextureFormat.Unknown, image.GetGPUFormat());
+
+        Assert.True(image.SetSize(2, 2, 4));
+        Assert.Equal(TextureFormat.RGBA8, image.GetGPUFormat());
+    }
+
+    [Fact]
     public void Bilinear_resize_and_mip_helpers_work()
     {
         var image = new Image("Images/Test");

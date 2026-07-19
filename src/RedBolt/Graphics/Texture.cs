@@ -1,3 +1,7 @@
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+using RedBolt.Bindings.Diligent;
+
 namespace RedBolt;
 
 public enum TextureFormat
@@ -31,23 +35,23 @@ internal static class TextureFormatUtility
 /// </remarks>
 public class Texture : ResourceWithMetadata
 {
-    private SamplerStateDesc _samplerStateDesc = new();
-    private readonly uint[] _mipsToSkip = [2u, 1u, 0u];
-    protected uint _requestedLevels;
+    protected int _requestedLevels;
     protected bool _requestedSRGB;
+    private MipsToSkipArray _mipsToSkip;
     private bool _linear;
-    protected bool _resolveDirty;
-    protected bool _levelsDirty;
     private Texture? _backupTexture;
-    protected TextureFlag _textureFlags;
-    protected RenderSurface?[] _renderSurfaces = [];
-    protected uint _mostDetailedLevel;
+    protected RenderSurface[] _renderSurfaces = [];
+    protected int _mostDetailedLevel;
+
+    private readonly TextureRawTexture _rawTexture;
     private ContextEventSubscription? _renderSurfaceUpdateSubscription;
-    private RawTexture? _rawTexture;
 
     public Texture(string name)
         : base(name)
     {
+        _rawTexture = new TextureRawTexture(this);
+        _mipsToSkip[0] = 2;
+        _mipsToSkip[1] = 1;
     }
 
     public override void Dispose()
@@ -56,36 +60,36 @@ public class Texture : ResourceWithMetadata
             _renderSurfaces[i]?.Dispose();
         _renderSurfaces = [];
         _backupTexture = null;
-        _rawTexture?.Dispose();
-        _rawTexture = null;
+        _rawTexture.Dispose();
         _renderSurfaceUpdateSubscription?.Dispose();
         _renderSurfaceUpdateSubscription = null;
         base.Dispose();
     }
 
-    public TextureFormat Format { get; protected set; } = TextureFormat.Unknown;
+    public TextureFormat Format => _rawTexture.GetParams().Format;
 
-    public uint Levels { get; protected set; }
+    public int Levels => _rawTexture.GetParams().NumLevels;
 
-    public int Width { get; protected set; }
+    public int Width => _rawTexture.GetParams().Size.X;
 
-    public int Height { get; protected set; }
+    public int Height => _rawTexture.GetParams().Size.Y;
 
-    public int Depth { get; protected set; } = 1;
+    public int Depth => _rawTexture.GetParams().Size.Z;
 
-    public int MultiSample { get; protected set; } = 1;
+    public int MultiSample => _rawTexture.GetParams().MultiSample;
 
-    public bool NoMultiSampledAutoResolve { get; protected set; }
+    public bool NoMultiSampledAutoResolve =>
+        (_rawTexture.GetParams().Flags & TextureFlag.NoMultiSampledAutoResolve) != 0;
 
-    public TextureFilterMode FilterMode => _samplerStateDesc.FilterMode;
+    public TextureFilterMode FilterMode => _rawTexture.GetSamplerStateDesc().FilterMode;
 
-    public uint Anisotropy => _samplerStateDesc.Anisotropy;
+    public uint Anisotropy => _rawTexture.GetSamplerStateDesc().Anisotropy;
 
-    public float MinLod => _samplerStateDesc.MinLod;
+    public float MinLod => _rawTexture.GetSamplerStateDesc().MinLod;
 
-    public float MaxLod => _samplerStateDesc.MaxLod;
+    public float MaxLod => _rawTexture.GetSamplerStateDesc().MaxLod;
 
-    public bool ShadowCompare => _samplerStateDesc.ShadowCompare;
+    public bool ShadowCompare => _rawTexture.GetSamplerStateDesc().ShadowCompare;
 
     public bool Linear => _linear;
 
@@ -93,7 +97,7 @@ public class Texture : ResourceWithMetadata
 
     public Texture? BackupTexture => _backupTexture;
 
-    public RawTexture? GetRawTexture() => _rawTexture;
+    public RawTexture GetRawTexture() => _rawTexture;
 
     public bool IsCompressed()
     {
@@ -103,7 +107,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetFilterMode(TextureFilterMode mode)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc.FilterMode = mode;
         SetSamplerStateDesc(desc);
     }
@@ -112,16 +116,17 @@ public class Texture : ResourceWithMetadata
 
     public void SetAddressMode(TextureCoordinate coordinate, TextureAddressMode mode)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc[coordinate] = mode;
         SetSamplerStateDesc(desc);
     }
 
-    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) => _samplerStateDesc[coordinate];
+    public TextureAddressMode GetAddressMode(TextureCoordinate coordinate) =>
+        _rawTexture.GetSamplerStateDesc()[coordinate];
 
     public void SetAnisotropy(uint level)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc.Anisotropy = unchecked((byte)level);
         SetSamplerStateDesc(desc);
     }
@@ -130,7 +135,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetShadowCompare(bool enable)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc.ShadowCompare = enable;
         SetSamplerStateDesc(desc);
     }
@@ -139,7 +144,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetMinLod(float minLod)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc.MinLod = minLod;
         SetSamplerStateDesc(desc);
     }
@@ -148,7 +153,7 @@ public class Texture : ResourceWithMetadata
 
     public void SetMaxLod(float maxLod)
     {
-        var desc = _samplerStateDesc;
+        var desc = _rawTexture.GetSamplerStateDesc();
         desc.MaxLod = maxLod;
         SetSamplerStateDesc(desc);
     }
@@ -157,18 +162,17 @@ public class Texture : ResourceWithMetadata
 
     public void SetSamplerStateDesc(SamplerStateDesc desc)
     {
-        _samplerStateDesc = desc;
-        ApplyRawSamplerState();
+        _rawTexture.SetSamplerStateDesc(desc);
     }
 
-    public SamplerStateDesc GetSamplerStateDesc() => _samplerStateDesc;
+    public SamplerStateDesc GetSamplerStateDesc() => _rawTexture.GetSamplerStateDesc();
 
-    public void SetNumLevels(uint levels)
+    public void SetNumLevels(int levels)
     {
         _requestedLevels = levels;
     }
 
-    public uint GetLevels() => Levels;
+    public int GetLevels() => Levels;
 
     public void SetLinear(bool linear)
     {
@@ -184,7 +188,8 @@ public class Texture : ResourceWithMetadata
 
     public bool GetSRGB()
     {
-        return RenderAPIUtils.IsTextureFormatSRGB(Graphics.MapTextureFormat(Format, _requestedSRGB));
+        return RenderAPIUtils.IsTextureFormatSRGB(
+            Graphics.MapTextureFormat(Format, _rawTexture.GetParams().SRGB));
     }
 
     public void SetBackupTexture(Texture? texture)
@@ -196,26 +201,26 @@ public class Texture : ResourceWithMetadata
 
     public void SetMipsToSkip(MaterialQuality quality, int toSkip)
     {
-        var index = (uint)quality;
-        if (index >= _mipsToSkip.Length)
-            return;
-
-        _mipsToSkip[index] = (uint)toSkip;
-        for (var i = 1; i < _mipsToSkip.Length; ++i)
-            _mipsToSkip[i] = Math.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
+        var index = (int)quality;
+        if (index >= (int)MaterialQuality.Low && index < MaxTextureQualityLevels)
+        {
+            _mipsToSkip[index] = toSkip;
+            for (var i = 1; i < MaxTextureQualityLevels; ++i)
+                _mipsToSkip[i] = Math.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
+        }
     }
 
     public int GetMipsToSkip(MaterialQuality quality)
     {
-        var index = (uint)quality;
-        return index < _mipsToSkip.Length ? (int)_mipsToSkip[index] : 0;
+        var index = (int)quality;
+        return index >= (int)MaterialQuality.Low && index < MaxTextureQualityLevels ? _mipsToSkip[index] : 0;
     }
 
-    public int GetLevelWidth(uint level) => level > Levels ? 0 : GetLevelDimension(Width, level);
+    public int GetLevelWidth(int level) => level > Levels ? 0 : Math.Max(Width >> level, 1);
 
-    public int GetLevelHeight(uint level) => level > Levels ? 0 : GetLevelDimension(Height, level);
+    public int GetLevelHeight(int level) => level > Levels ? 0 : Math.Max(Height >> level, 1);
 
-    public int GetLevelDepth(uint level) => level > Levels ? 0 : GetLevelDimension(Depth, level);
+    public int GetLevelDepth(int level) => level > Levels ? 0 : Math.Max(Depth >> level, 1);
 
     public int GetMultiSample() => MultiSample;
 
@@ -227,37 +232,39 @@ public class Texture : ResourceWithMetadata
 
     public IntRect GetRect() => new(0, 0, Width, Height);
 
-    public RenderSurface? GetRenderSurface(uint index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
+    public RenderSurface? GetRenderSurface(int index = 0) => index < _renderSurfaces.Length ? _renderSurfaces[index] : null;
 
-    public bool IsRenderTarget() => (_textureFlags & TextureFlag.BindRenderTarget) != 0;
+    public bool IsRenderTarget() => (_rawTexture.GetParams().Flags & TextureFlag.BindRenderTarget) != 0;
 
-    public bool IsDepthStencil() => (_textureFlags & TextureFlag.BindDepthStencil) != 0;
+    public bool IsDepthStencil() => (_rawTexture.GetParams().Flags & TextureFlag.BindDepthStencil) != 0;
 
-    public bool IsUnorderedAccess() => (_textureFlags & TextureFlag.BindUnorderedAccess) != 0;
+    public bool IsUnorderedAccess() => (_rawTexture.GetParams().Flags & TextureFlag.BindUnorderedAccess) != 0;
 
-    public uint GetComponents()
+    public int GetComponents()
     {
         if (Width == 0 || IsCompressed())
-            return 0u;
+            return 0;
 
-        return GetRowDataSize(Width) / (uint)Width;
+        return GetRowDataSize(Width) / Width;
     }
 
-    public uint GetDataSize(int width, int height)
+    public int GetDataSize(int width, int height)
     {
         var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
-        return GetRowDataSize(width) * (((uint)height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight);
+        return checked(GetRowDataSize(width) *
+            ((height + checked((int)formatInfo.BlockHeight) - 1) / checked((int)formatInfo.BlockHeight)));
     }
 
-    public uint GetDataSize(int width, int height, int depth)
+    public int GetDataSize(int width, int height, int depth)
     {
-        return (uint)depth * GetDataSize(width, height);
+        return checked(depth * GetDataSize(width, height));
     }
 
-    public uint GetRowDataSize(int width)
+    public int GetRowDataSize(int width)
     {
         var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
-        return formatInfo.GetElementSize() * (((uint)width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth);
+        return checked((int)formatInfo.GetElementSize() *
+            ((width + checked((int)formatInfo.BlockWidth) - 1) / checked((int)formatInfo.BlockWidth)));
     }
 
     public void SetParameters(XMLFile? file)
@@ -309,7 +316,7 @@ public class Texture : ResourceWithMetadata
 
             if (name == "mipmap")
             {
-                SetNumLevels(paramElement.GetBool("enable") ? 0u : 1u);
+                SetNumLevels(paramElement.GetBool("enable") ? 0 : 1);
                 if (paramElement.HasAttribute("minlod"))
                     SetMinLod(paramElement.GetFloat("minlod"));
                 if (paramElement.HasAttribute("maxlod"))
@@ -338,7 +345,9 @@ public class Texture : ResourceWithMetadata
 
     private void OnCreateGPU()
     {
-        var isRenderTarget = (_textureFlags & TextureFlag.BindRenderTarget) != 0;
+        var isRenderTarget = (_rawTexture.GetParams().Flags & TextureFlag.BindRenderTarget) != 0;
+        var isDepthStencil = (_rawTexture.GetParams().Flags & TextureFlag.BindDepthStencil) != 0;
+
         if (isRenderTarget)
         {
             _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
@@ -350,25 +359,44 @@ public class Texture : ResourceWithMetadata
             _renderSurfaceUpdateSubscription = null;
         }
 
-        if (_rawTexture is not null)
+        if (isRenderTarget || isDepthStencil)
         {
-            var renderSurfaceHandles = _rawTexture.GetHandles().RenderSurfaces;
-            SetRenderSurfaceCount(checked((uint)renderSurfaceHandles.Length));
-            for (var i = 0; i < renderSurfaceHandles.Length; ++i)
-                _renderSurfaces[i]!.Restore(renderSurfaceHandles[i]);
+            var sourceHandles = _rawTexture.GetHandles().RenderSurfaces;
+            var renderSurfaceHandles = new ITextureView[sourceHandles.Length];
+            for (var i = 0; i < sourceHandles.Length; ++i)
+            {
+                renderSurfaceHandles[i] = sourceHandles[i];
+                _ = renderSurfaceHandles[i].AddRef();
+            }
+
+            try
+            {
+                if (_renderSurfaces.Length != renderSurfaceHandles.Length)
+                {
+                    for (var i = _renderSurfaces.Length - 1; i >= 0; --i)
+                        _renderSurfaces[i].Dispose();
+                    _renderSurfaces = new RenderSurface[renderSurfaceHandles.Length];
+                    for (var i = 0; i < renderSurfaceHandles.Length; ++i)
+                        _renderSurfaces[i] = new RenderSurface(this, checked((uint)i));
+                }
+
+                for (var i = 0; i < renderSurfaceHandles.Length; ++i)
+                    _renderSurfaces[i].Restore(renderSurfaceHandles[i]);
+            }
+            finally
+            {
+                foreach (var renderSurfaceHandle in renderSurfaceHandles)
+                    Release(renderSurfaceHandle);
+            }
         }
 
-        ApplyRawSamplerState();
-        if (_rawTexture is not null)
-            RefreshMemoryUse((uint)Math.Min(_rawTexture.CalculateMemoryUseGPU(), uint.MaxValue));
+        MemoryUse = unchecked((uint)_rawTexture.CalculateMemoryUseGPU());
     }
 
     private void OnDestroyGPU()
     {
         foreach (var renderSurface in _renderSurfaces)
-            renderSurface?.Invalidate();
-        _rawTexture?.Dispose();
-        _rawTexture = null;
+            renderSurface.Invalidate();
     }
 
     private bool TryRestore()
@@ -381,15 +409,12 @@ public class Texture : ResourceWithMetadata
 
     private void HandleRenderSurfaceUpdate()
     {
-        var renderer = GetSubsystem<Renderer>();
+        var renderer = GetSubsystem<Renderer>()!;
         foreach (var renderSurface in _renderSurfaces)
         {
-            if (renderSurface is null)
-                continue;
-
             if (renderSurface.GetUpdateMode() == RenderSurfaceUpdateMode.UpdateAlways || renderSurface.IsUpdateQueued())
             {
-                renderer?.QueueRenderSurface(renderSurface);
+                renderer.QueueRenderSurface(renderSurface);
                 renderSurface.ResetUpdateQueued();
             }
         }
@@ -412,137 +437,198 @@ public class Texture : ResourceWithMetadata
         if (image is null)
             return false;
 
-        var quality = GetSubsystem<Renderer>()?.GetTextureQuality() ?? MaterialQuality.High;
-        var maxLevels = image.IsCompressed()
-            ? Math.Max(image.NumCompressedLevels, 1u)
-            : CalculateFullMipChainLength(Math.Max(image.Width, Math.Max(image.Height, image.Depth)));
-        var mostDetailedLevel = Math.Min((uint)GetMipsToSkip(quality), maxLevels - 1u);
-        var numLevels = baseParams.NumLevels == 0
-            ? maxLevels - mostDetailedLevel
-            : Math.Min(baseParams.NumLevels, maxLevels - mostDetailedLevel);
-        var baseImage = image.GetDecompressedImageLevel(mostDetailedLevel);
-        if (baseImage is null)
-            return false;
+        var renderDevice = GetSubsystem<RenderDevice>();
+        var renderer = GetSubsystem<Renderer>();
+
+        var quality = renderer is not null ? renderer.GetTextureQuality() : MaterialQuality.High;
+        var (mostDetailedLevel, numLevels) =
+            GetLevelsOffsetAndCount(image, baseParams.NumLevels, GetMipsToSkip(quality));
 
         _mostDetailedLevel = mostDetailedLevel;
         var parameters = baseParams with
         {
-            Size = new Vector3i(baseImage.Width, baseImage.Height, baseImage.Depth),
-            NumLevels = checked((int)numLevels),
-            Format = baseImage.GetGPUFormat(),
+            Size = RenderAPIUtils.GetMipLevelSize(image.GetSize(), checked((uint)mostDetailedLevel)),
+            NumLevels = numLevels,
+            Format = ToHardwareFormat(image.GetGPUFormat(), renderDevice),
             SRGB = _requestedSRGB
         };
-
-        OnDestroyGPU();
-        _rawTexture = new RawTexture(parameters);
-        Format = parameters.Format;
-        Width = parameters.Size.X;
-        Height = parameters.Size.Y;
-        Depth = parameters.Size.Z;
-        Levels = checked((uint)parameters.NumLevels);
-        MultiSample = (int)parameters.MultiSample;
-        _textureFlags = parameters.Flags;
-        return true;
+        return _rawTexture.CreateTexture(parameters);
     }
 
     protected bool UpdateFromImage(int arraySlice, Image? image)
     {
-        if (image is null || _rawTexture is null)
+        if (image is null)
             return false;
 
-        for (var level = 0u; level < Levels; ++level)
-        {
-            var mipImage = image.GetDecompressedImageLevel(_mostDetailedLevel + level);
-            if (mipImage is null)
-                return false;
+        var internalFormat = GetLinearFormat(Format);
+        var imageFormat = image.GetGPUFormat();
 
-            var size = new Vector3i(mipImage.Width, mipImage.Height, mipImage.Depth);
-            _rawTexture.Update(checked((int)level), Vector3i.Zero, size, arraySlice, mipImage.GetData());
+        if (!image.IsCompressed() && internalFormat == imageFormat)
+        {
+            var currentLevel = image;
+            for (var level = 0; level < _mostDetailedLevel; ++level)
+                currentLevel = currentLevel.GetNextLevel();
+
+            for (var level = 0; level < Levels; ++level)
+            {
+                _rawTexture.Update(level, Vector3i.Zero, currentLevel.GetSize(), arraySlice, currentLevel.GetData());
+                currentLevel = currentLevel.GetNextLevel();
+            }
+        }
+        else if (internalFormat == TextureFormat.RGBA8 && image.CompressedFormat != CompressedFormat.Rgba)
+        {
+            var isRgb8 = !image.IsCompressed() && image.Components == 3;
+            if (isRgb8)
+                Log.GetLogger().LogDebug("Image '{Name}' is converted from RGB8 to RGBA8 format on upload to GPU", Name);
+            else
+                Log.GetLogger().LogWarning("Image '{Name}' is converted to RGBA8 format on upload to GPU", Name);
+
+            for (var level = 0; level < Levels; ++level)
+            {
+                var decompressedLevel = image.GetDecompressedImageLevel(
+                    checked((uint)(_mostDetailedLevel + level)));
+                if (decompressedLevel is null)
+                    return false;
+
+                _rawTexture.Update(level, Vector3i.Zero, decompressedLevel.GetSize(), arraySlice,
+                    decompressedLevel.GetData());
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.Assert(image.IsCompressed());
+
+            // TODO: port this reachable compressed upload branch once managed TextureFormat contains compressed formats.
+            for (var level = 0; level < Levels; ++level)
+            {
+                var imageLevel = image.GetCompressedLevel(checked((uint)(_mostDetailedLevel + level)));
+                var levelSize = new Vector3i(imageLevel.Width, imageLevel.Height, imageLevel.Depth);
+                _rawTexture.Update(level, Vector3i.Zero, levelSize, arraySlice, imageLevel.Data.Span);
+            }
         }
 
         return true;
     }
 
-    protected bool ReadToImage(uint arraySlice, uint level, Image? image)
+    protected bool ReadToImage(int arraySlice, int level, Image? image)
     {
-        if (image is null || _rawTexture is null || Format != TextureFormat.RGBA8)
+        if (image is null)
             return false;
+
+        var imageFormat = Format switch
+        {
+            TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
+            TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
+            _ => Format
+        };
+        if (imageFormat is not TextureFormat.RGBA8 and not TextureFormat.BGRA8)
+        {
+            Log.GetLogger().LogWarning("Unsupported texture format, can not convert to Image");
+            return false;
+        }
 
         var size = new Vector3i(GetLevelWidth(level), GetLevelHeight(level), GetLevelDepth(level));
         if (!image.SetSize(size.X, size.Y, size.Z, 4u))
             return false;
 
-        return _rawTexture.Read(checked((int)arraySlice), checked((int)level), image.GetData());
+        var imageData = image.GetData();
+        if (!_rawTexture.Read(arraySlice, level, imageData))
+            return false;
+
+        if (imageFormat == TextureFormat.BGRA8)
+        {
+            var numTexels = checked(size.X * size.Y * size.Z);
+            for (var i = 0; i < numTexels; ++i)
+                (imageData[i * 4], imageData[i * 4 + 2]) = (imageData[i * 4 + 2], imageData[i * 4]);
+        }
+        return true;
     }
 
     protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
         bool noMultiSampledAutoResolve = false, TextureFlag flags = TextureFlag.None)
     {
-        Width = Math.Max(width, 0);
-        Height = Math.Max(height, 0);
-        Depth = Math.Max(depth, 1);
-        MultiSample = Math.Max(multiSample, 1);
-        NoMultiSampledAutoResolve = noMultiSampledAutoResolve ||
-            (flags & TextureFlag.NoMultiSampledAutoResolve) != 0;
-        _textureFlags = flags | (noMultiSampledAutoResolve ? TextureFlag.NoMultiSampledAutoResolve : TextureFlag.None);
-        Format = format;
-        Levels = _requestedLevels == 0
-            ? CalculateFullMipChainLength(Math.Max(Width, Math.Max(Height, Depth)))
-            : Math.Max(_requestedLevels, 1u);
-
-        OnDestroyGPU();
-
-        _rawTexture = new RawTexture(new RawTextureParams(
-            GetRawTextureType(), Format, _textureFlags,
-            new Vector3i(Width, Height, Depth), checked((int)GetRawTextureArraySize()), checked((int)Levels),
-            MultiSample, SRGB: _requestedSRGB));
-        if (_rawTexture.GetHandles().Texture is { IsNull: false })
-            OnCreateGPU();
+        var effectiveFlags = flags |
+            (noMultiSampledAutoResolve ? TextureFlag.NoMultiSampledAutoResolve : TextureFlag.None);
+        _rawTexture.CreateTexture(new RawTextureParams(
+            GetRawTextureType(), format, effectiveFlags,
+            new Vector3i(width, height, depth), checked((int)GetRawTextureArraySize()), _requestedLevels,
+            multiSample, SRGB: _requestedSRGB));
     }
 
     protected virtual TextureType GetRawTextureType() => TextureType.Texture2D;
 
     protected virtual uint GetRawTextureArraySize() => 1u;
 
-    private void ApplyRawSamplerState()
+    private static (int MostDetailedLevel, int NumLevels) GetLevelsOffsetAndCount(
+        Image image, int numLevels, int mostDetailedMip)
     {
-        _rawTexture?.SetSamplerStateDesc(_samplerStateDesc);
+        var maxNumLevels = image.IsCompressed()
+            ? checked((int)image.NumCompressedLevels)
+            : checked((int)RenderAPIUtils.GetMipLevelCount(image.GetSize()));
+        var effectiveMostDetailedMip = Math.Min(mostDetailedMip, maxNumLevels - 1);
+        var effectiveNumLevels = numLevels == 0
+            ? maxNumLevels - effectiveMostDetailedMip
+            : Math.Min(numLevels, maxNumLevels - effectiveMostDetailedMip);
+        return (effectiveMostDetailedMip, effectiveNumLevels);
     }
 
-    protected void SetRenderSurfaceCount(uint count)
+    private static TextureFormat ToHardwareFormat(TextureFormat format, RenderDevice? renderDevice)
     {
-        if (_renderSurfaces.Length == count)
-            return;
+        if (format == TextureFormat.Unknown)
+            return TextureFormat.RGBA8;
 
-        for (var i = _renderSurfaces.Length - 1; i >= 0; --i)
-            _renderSurfaces[i]?.Dispose();
-        _renderSurfaces = new RenderSurface?[count];
-        for (var i = 0u; i < count; ++i)
-            _renderSurfaces[i] = new RenderSurface(this, i);
+        if (renderDevice?.GetRenderDevice() is not null && !renderDevice.IsTextureFormatSupported(format))
+            return TextureFormat.RGBA8;
+
+        return format;
     }
 
-    protected void RefreshMemoryUse(uint totalBytes)
+    private static bool IsCompressedEffective(Image image, RenderDevice? renderDevice)
     {
-        MemoryUse = totalBytes;
+        if (!image.IsCompressed())
+            return false;
+        return renderDevice?.GetRenderDevice() is null || renderDevice.IsTextureFormatSupported(image.GetGPUFormat());
     }
 
-    private static int GetLevelDimension(int size, uint level)
+    private static TextureFormat GetLinearFormat(TextureFormat format)
     {
-        return Math.Max(size >> (int)level, 1);
-    }
-
-    private static uint CalculateFullMipChainLength(int largestDimension)
-    {
-        if (largestDimension <= 0)
-            return 1u;
-
-        var levels = 1u;
-        while (largestDimension > 1)
+        return format switch
         {
-            largestDimension = Math.Max(largestDimension / 2, 1);
-            ++levels;
+            TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
+            TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
+            _ => format
+        };
+    }
+
+    private static void Release(IObject? value)
+    {
+        if (value is { IsNull: false })
+            _ = value.Release();
+    }
+
+    [InlineArray(MaxTextureQualityLevels)]
+    private struct MipsToSkipArray
+    {
+        private int _element0;
+    }
+
+    private sealed class TextureRawTexture : RawTexture
+    {
+        private readonly Texture _owner;
+
+        public TextureRawTexture(Texture owner)
+        {
+            _owner = owner;
         }
 
-        return levels;
+        public bool CreateTexture(RawTextureParams parameters) => Create(parameters);
+
+        protected override void OnCreateGPU() => _owner.OnCreateGPU();
+
+        protected override void OnDestroyGPU() => _owner.OnDestroyGPU();
+
+        protected override bool TryRestore() => _owner.TryRestore();
     }
+
+    private const int MaxTextureQualityLevels = 3;
 }

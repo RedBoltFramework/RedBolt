@@ -53,19 +53,19 @@ public sealed class GraphicsRenderTargetViewTests
     }
 
     [Fact]
-    public void Texture_backed_render_target_view_tracks_recreated_raw_texture()
+    public void Texture_backed_render_target_view_tracks_stable_raw_texture()
     {
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/RecreatedRenderTargetView");
             Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
             var renderTargetView = RenderTargetView.Texture(texture);
-            var firstRawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+            var firstRawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
 
             Assert.True(texture.SetSize(32, 24, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-            var secondRawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+            var secondRawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
 
-            Assert.NotSame(firstRawTexture, secondRawTexture);
+            Assert.Same(firstRawTexture, secondRawTexture);
             Assert.Same(secondRawTexture.GetHandles().Texture, renderTargetView.GetView().GetTexture());
         });
     }
@@ -166,12 +166,12 @@ public sealed class GraphicsRenderTargetViewTests
             Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
             Assert.True(texture.SetData(0, 0, 0, 16, 16, new byte[16 * 16 * 4]));
 
-            var rawTexture = Assert.IsType<RawTexture>(texture.GetRawTexture());
+            var rawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
             var uploadedTexture = GetUploadedTexture(texture);
             var nativeTexture = GetNativeTexture(uploadedTexture);
 
             Assert.Same(rawTexture.GetHandles().Texture, nativeTexture);
-            Assert.Equal(texture.Levels, nativeTexture.GetDesc().MipLevels);
+            Assert.Equal(checked((uint)texture.Levels), nativeTexture.GetDesc().MipLevels);
             Assert.True(nativeTexture.GetDesc().MipLevels > 1u);
         });
     }

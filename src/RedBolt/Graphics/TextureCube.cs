@@ -169,7 +169,7 @@ public class TextureCube : Texture
     public Image? GetImage(CubeMapFace face)
     {
         var image = new Image($"{Name}#{face}");
-        if (ReadToImage((uint)face, 0, image))
+        if (ReadToImage((int)face, 0, image))
             return image;
 
         image.Dispose();
@@ -179,5 +179,5 @@ public class TextureCube : Texture
     /// <summary>
     /// Return render surface for one face.
     /// </summary>
-    public RenderSurface? GetRenderSurface(CubeMapFace face) => GetRenderSurface((uint)face);
+    public RenderSurface? GetRenderSurface(CubeMapFace face) => GetRenderSurface((int)face);
 }

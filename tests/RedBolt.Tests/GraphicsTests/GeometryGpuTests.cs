@@ -86,15 +86,15 @@ public sealed class GeometryGpuTests
     {
         var tex = new Texture2D("Textures/Smoke2D");
         tex.SetNumLevels(0);
+        tex.SetSRGB(true);
         Assert.True(tex.SetSize(4, 4, TextureFormat.RGBA8));
-        Assert.Equal(3u, tex.GetLevels());
+        Assert.Equal(3, tex.GetLevels());
 
         tex.SetFilterMode(TextureFilterMode.Bilinear);
         tex.SetAddressMode(TextureCoordinate.U, TextureAddressMode.Clamp);
         tex.SetAnisotropy(8u);
         tex.SetShadowCompare(true);
         tex.SetLinear(true);
-        tex.SetSRGB(true);
         tex.SetMipsToSkip(MaterialQuality.Low, 3);
         tex.SetMipsToSkip(MaterialQuality.Medium, 1);
 
@@ -115,15 +115,15 @@ public sealed class GeometryGpuTests
         tex.SetSize(4, 4, TextureFormat.RGBA8);
         var data = Enumerable.Range(0, 64).Select(v => (byte)v).ToArray();
         Assert.True(tex.SetData(0u, 0, 0, 4, 4, data));
-        Assert.Equal(4u, tex.GetComponents());
-        Assert.Equal(64u, tex.GetDataSize(4, 4));
+        Assert.Equal(4, tex.GetComponents());
+        Assert.Equal(64, tex.GetDataSize(4, 4));
     }
 
     [Fact]
     public void TextureCube_face_data_works()
     {
         var tex = new TextureCube("Textures/SmokeCube");
-        tex.SetNumLevels(1u);
+        tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, TextureFormat.RGBA8));
         Assert.True(tex.SetData(CubeMapFace.PositiveX, 0u, 0, 0, 2, 2,
             Enumerable.Repeat((byte)7, 16).ToArray()));
@@ -134,7 +134,7 @@ public sealed class GeometryGpuTests
     public void Texture3D_volume_data_works()
     {
         var tex = new Texture3D("Textures/Smoke3D");
-        tex.SetNumLevels(1u);
+        tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
         Assert.True(tex.SetData(0u, 0, 0, 0, 2, 2, 2,
             Enumerable.Range(0, 8).Select(v => (byte)v).ToArray()));
@@ -145,7 +145,7 @@ public sealed class GeometryGpuTests
     public void Texture2DArray_layered_data_works()
     {
         var tex = new Texture2DArray("Textures/SmokeArray");
-        tex.SetNumLevels(1u);
+        tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2u, 2, 2, TextureFormat.R8));
         Assert.True(tex.SetData(1u, 0u, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));
         Assert.False(tex.GetData(1u, 0u, new byte[4]));
