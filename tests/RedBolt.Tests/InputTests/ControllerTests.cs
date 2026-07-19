@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Reflection;
 
 namespace RedBolt.Tests;
 
@@ -14,17 +15,51 @@ public sealed class ControllerTests
 
     private RedBolt.Input Input => _fixture.Input;
 
+    private static void SendUpdate(float timeStep)
+    {
+        var update = new CoreEvents.UpdateEvent { TimeStep = timeStep };
+        Context.Instance.SendEvent(ref update);
+    }
+
+    [Fact]
+    public void FreeFlyController_matches_native_class_and_value_shape()
+    {
+        var type = typeof(FreeFlyController);
+        Assert.Equal(typeof(Component), type.BaseType);
+        Assert.False(type.IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+
+        var movementType = type.GetNestedType("Movement", BindingFlags.NonPublic);
+        Assert.NotNull(movementType);
+        Assert.True(movementType.IsValueType);
+
+        FreeFlyController.RegisterObject(Context.Instance);
+        using var reflected = Assert.IsType<FreeFlyController>(
+            Context.Instance.CreateObject(ObjectReflection<FreeFlyController>.TypeId));
+    }
+
+    [Fact]
+    public void FreeFlyController_speed_attributes_preserve_raw_values()
+    {
+        using var controller = new FreeFlyController();
+        controller.SetSpeed(-20.0f);
+        controller.SetAcceleratedSpeed(-100.0f);
+
+        Assert.Equal(-20.0f, controller.GetSpeed());
+        Assert.Equal(-100.0f, controller.GetAcceleratedSpeed());
+    }
+
     [Fact]
     public void FreeFlyController_keyboard_translation_works()
     {
         var scene = new Scene();
         var node = scene.CreateChild("FreeFly");
-        var freeFly = node.CreateComponent<FreeFlyController>();
+        using var freeFly = node.CreateComponent<FreeFlyController>();
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Relative);
         Input.SetKey(Key.W, Scancode.W, true);
-        scene.Update(0.5f);
+        SendUpdate(0.5f);
         Input.SetKey(Key.W, Scancode.W, false);
 
         Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(0.0f, 0.0f, 10.0f)));
@@ -34,13 +69,13 @@ public sealed class ControllerTests
     public void FreeFlyController_activation_hides_and_locks_mouse()
     {
         var scene = new Scene();
-        var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
+        using var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
         Input.SetMouseButton(MouseButton.Right, true);
-        scene.Update(0.1f);
+        SendUpdate(0.1f);
 
         Assert.False(Input.IsMouseVisible());
         Assert.Equal(MouseMode.Relative, Input.MouseMode);
@@ -50,17 +85,17 @@ public sealed class ControllerTests
     public void FreeFlyController_deactivation_restores_mouse()
     {
         var scene = new Scene();
-        var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
+        using var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
 
         Input.BeginFrame();
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
         Input.SetMouseButton(MouseButton.Right, true);
-        scene.Update(0.1f);
+        SendUpdate(0.1f);
 
         Input.BeginFrame();
         Input.SetMouseButton(MouseButton.Right, false);
-        scene.Update(0.1f);
+        SendUpdate(0.1f);
 
         Assert.True(Input.IsMouseVisible());
         Assert.Equal(MouseMode.Free, Input.MouseMode);
@@ -120,14 +155,14 @@ public sealed class ControllerTests
     {
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyControllerAxes");
-        var controller = node.CreateComponent<FreeFlyController>();
+        using var controller = node.CreateComponent<FreeFlyController>();
         Input.SetMouseMode(MouseMode.Absolute);
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.5f);
         Input.SetControllerAxis(ControllerAxis.LeftY, 0.0f);
         Input.SetControllerAxis(ControllerAxis.RightX, 0.5f);
         Input.SetControllerAxis(ControllerAxis.RightY, 0.0f);
 
-        scene.Update(0.5f);
+        SendUpdate(0.5f);
 
         var transformedAxis = new AxisAdapter().Transform(0.5f);
         Assert.True(MathDefs.ApproximatelyEquivalent(node.Position.Length, transformedAxis * 10.0f, 0.01f));
@@ -141,16 +176,17 @@ public sealed class ControllerTests
     {
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyTouch");
-        node.CreateComponent<FreeFlyController>();
-        var rotate = new InputEvents.MultitouchEvent { EventType = 2, NumFingers = 1, DX = 12, DY = -6 };
+        using var controller = node.CreateComponent<FreeFlyController>();
+        var firstTouch = new InputEvents.TouchBeginEvent { TouchID = 1, X = 100, Y = 100 };
+        Context.Instance.SendEvent(ref firstTouch);
+        var rotate = new InputEvents.TouchMoveEvent { TouchID = 1, X = 112, Y = 94, DX = 12, DY = -6 };
         Context.Instance.SendEvent(ref rotate);
         Assert.False(node.Rotation.Equals(Quaternion.Identity));
 
         var previousPosition = node.Position;
-        var pan = new InputEvents.MultitouchEvent
-        {
-            EventType = 2, NumFingers = 2, DX = 10, DY = 5, DSize = new Vector2i(2, 3)
-        };
+        var secondTouch = new InputEvents.TouchBeginEvent { TouchID = 2, X = 130, Y = 120 };
+        Context.Instance.SendEvent(ref secondTouch);
+        var pan = new InputEvents.TouchMoveEvent { TouchID = 1, X = 122, Y = 99, DX = 10, DY = 5 };
         Context.Instance.SendEvent(ref pan);
         Assert.False(node.Position.ApproximatelyEquivalent(previousPosition));
     }
