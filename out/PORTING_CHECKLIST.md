@@ -107,6 +107,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A2. Math — depends on Container
 
 - [-] `ApproximateEqualityComparer.cs` — **REMOVED** · reason: unused C#-only generic comparer with no rbfx counterpart
+- [x] `AreaAllocator.h` / `AreaAllocator.cpp` — extensible copyable class kind, independent free-rectangle container copies, POD rectangle values, constructors, allocation paths, and automatic field lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Rectangular area allocator.</summary>
-public class AreaAllocator
+public class AreaAllocator : ICloneable
 {
     /// <summary>Default construct with empty size.</summary>
     public AreaAllocator()
@@ -21,6 +21,13 @@ public class AreaAllocator
     public AreaAllocator(int width, int height, int maxWidth, int maxHeight, bool fastMode = true)
     {
         Reset(width, height, maxWidth, maxHeight, fastMode);
+    }
+
+    public object Clone()
+    {
+        var clone = (AreaAllocator)MemberwiseClone();
+        clone._freeAreas = [.. _freeAreas];
+        return clone;
     }
 
     /// <summary>Reset to given width and height and remove all previous allocations.</summary>
@@ -235,7 +242,7 @@ public class AreaAllocator
     }
 
     /// <summary>Free rectangles.</summary>
-    private readonly List<IntRect> _freeAreas = [];
+    private List<IntRect> _freeAreas = [];
 
     /// <summary>Current size.</summary>
     private Vector2i _size;

@@ -21,6 +21,24 @@ public sealed class AreaAllocatorTests
     }
 
     [Fact]
+    public void Clone_copies_allocator_state_independently()
+    {
+        var allocator = new AreaAllocator(4, 4, false);
+        var x = 0;
+        var y = 0;
+        Assert.True(allocator.Allocate(2, 2, ref x, ref y));
+
+        var clone = Assert.IsType<AreaAllocator>(((ICloneable)allocator).Clone());
+
+        Assert.True(clone.Allocate(2, 2, ref x, ref y));
+        Assert.Equal(2, x);
+        Assert.Equal(0, y);
+        Assert.True(allocator.Allocate(2, 2, ref x, ref y));
+        Assert.Equal(2, x);
+        Assert.Equal(0, y);
+    }
+
+    [Fact]
     public void Fast_allocator_returns_non_overlapping_coordinates()
     {
         var allocator = new AreaAllocator(8, 8);
