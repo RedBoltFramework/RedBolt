@@ -1,33 +1,108 @@
-using System.Numerics;
-using System.Text;
+using System.Runtime.InteropServices;
+
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class InputMap : ResourceWithMetadata
+public class InputMap : SimpleResource
 {
-    public const float DefaultDeadZone = 0.1f;
+    private static readonly string[] ScancodeNames =
+    [
+        "", // 0
+        "Ctrl", "Shift", "Alt", "A", // 4
+        "B", "C", "D", "E", "F", "G", // 10
+        "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", // 20
+        "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "1", // 30
+        "2", "3", "4", "5", "6", "7", "8", "9", "0", "Return", // 40
+        "Escape", "Backspace", "Tab", "Space", "-", "=", "[", "]", "\\", "#", // 50
+        ";", "'", "`", ",", ".", "/", "CapsLock", "F1", "F2", "F3", // 60
+        "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "PrintScreen", // 70
+        "ScrollLock", "Pause", "Insert", "Home", "PageUp", "Delete", "End", "PageDown", "Right", "Left", // 80
+        "Down", "Up", "Numlock", "Keypad /", "Keypad *", "Keypad -", "Keypad +", "Keypad Enter", "Keypad 1", "Keypad 2", // 90
+        "Keypad 3", "Keypad 4", "Keypad 5", "Keypad 6", "Keypad 7", "Keypad 8", "Keypad 9", "Keypad 0", "Keypad .", "Non US Backslash", // 100
+        "Application", "Power", "Keypad =", "F13", "F14", "F15", "F16", "F17", "F18", "F19", // 110
+        "F20", "F21", "F22", "F23", "F24", // 115
+        "Execute", "Help", "Menu", "Select", "Stop", // 120
+        "Again", "Undo", "Cut", "Copy", "Paste", "Find", "Mute", "Volume Up", "Volume Down", "Locking Caps Lock", // 130
+        "Locking Num Lock", "Locking Scroll Lock", "KP Comma", // 133
+        "KP EQUALSAS400", "International1", // 135
+        "International2", "International3", "International4", "International5", "International6", // 140
+        "International7", "International8", "International9", "Lang1", "Lang2", "Lang3", "Lang4", "Lang5", "Lang6", "Lang7", // 150
+        "Lang8", "Lang9", "AltErase", "SysReq", "Cancel", "Clear", "Prior", "Return", "Separator", "Out", // 160
+        "Oper", "Clear / Again", "CrSel", "ExSel", // 164
+        "165", "166", "167", "168", "169", "170", // 170
+        "171", "172", "173", "174", "175", "Keypad 00", // 176
+        "Keypad 000", "ThousandsSeparator", "DecimalSeparator", "CurrencyUnit", // 180
+        "CurrencySubUnit", "Keypad (", "Keypad )", "Keypad {", "Keypad }", "Keypad Tab", "Keypad Backspace", "Keypad A", "Keypad B", "Keypad C", // 190
+        "Keypad D", "Keypad E", "Keypad F", "Keypad XOR", "Keypad ^", "Keypad %", "Keypad <", "Keypad >", "Keypad &", "Keypad &&", // 200
+        "Keypad |", "Keypad ||", "Keypad :", "Keypad #", "Keypad Space", "Keypad @", "Keypad !", "Keypad MemStore", "Keypad MemRecall", "Keypad MemClear", // 210
+        "Keypad MemAdd", "Keypad MemSubtract", "Keypad MemMultiply", "Keypad MemDivide", "Keypad +/-", "Keypad Clear", "Keypad ClearEntry", "Keypad Binary", "Keypad Octal", "Keypad Decimal", // 220
+        "Keypad Hexadecimal", "222", "223", "Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", // 230
+        "Right GUI", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242", "243", "244", "245", "246", "247", "248", "249", "250", "251", "252", "253", "254", "255", "256",
+        "ModeSwitch", // 257
+        "AudioNext", "AudioPrev", "AudioStop", // 260
+        "AudioPlay", "AudioMute", "MediaSelect", "WWW", "Mail", "Calculator", "Computer", "AC Search", "AC Home", "AC Back", // 270
+        "AC Forward", "AC Stop", "AC Refresh", "AC Bookmarks", "BrightnessDown", "BrightnessUp", "DisplaySwitch", "KBDIllumToggle", "KBDIllumDown", "KBDIllumUp", // 280
+        "Eject", "Sleep", "App1", "App2", "AudioRewind", "AudioFastForward", "SoftLeft", "SoftRight", "Call", "EndCall" // 290
+    ];
+
+    private static readonly string[] ControllerButtonNames =
+    [
+        "A", "B", "X", "Y", "Back", "Guide", "Start", "LeftStick", "RightStick", "LeftShoulder", "RightShoulder", "Up",
+        "Down", "Left", "Right", "Misc1", "Paddle1", "Paddle2", "Paddle3", "Paddle4", "Touchpad"
+    ];
+
+    private static readonly string[] ControllerHatNames = ["Up", "Right", "Down", "Left"];
+    private static readonly string[] MouseButtonNames = ["Left", "Middle", "Right", "X1", "X2"];
+
+    public readonly float DefaultDeadZone = 0.1f;
 
     private static readonly ActionMapping EmptyMapping = new();
+    /// <summary>All mapped actions.</summary>
     private readonly Dictionary<string, ActionMapping> _actions = new(StringComparer.Ordinal);
-    private float _deadZone = DefaultDeadZone;
+    /// <summary>Extra data: sensitivity, controller axis dead zone, etc.</summary>
+    private readonly StringVariantMap _metadata = new();
+    /// <summary>Axis dead zone.</summary>
+    private float _deadZone = 0.1f;
+    /// <summary>Joystick to ignore (SDL gyroscope virtual joystick).</summary>
     private readonly int _ignoreJoystickId;
 
-    public InputMap(string name, Input? input = null)
+    /// <summary>Construct.</summary>
+    public InputMap(string name)
         : base(name)
     {
-        Input = input;
-        _ignoreJoystickId = input?.FindAccelerometerJoystickId() ?? -1;
+        _ignoreJoystickId = this.GetSubsystem<Input>()!.FindAccelerometerJoystickId();
     }
 
-    public Input? Input { get; private set; }
+    public override void Dispose()
+    {
+        _metadata.Dispose();
+        _actions.Clear();
+        base.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
-    public IReadOnlyDictionary<string, ActionMapping> Mappings => _actions;
+    /// <summary>Register object factory and attributes.</summary>
+    public static void RegisterObject(Context context)
+    {
+        var reflection = context.AddReflection<InputMap>();
+        reflection.SetObjectFactory(static () => new InputMap(string.Empty));
+    }
 
+    /// <summary>Force override of SerializeInBlock.</summary>
     public override void SerializeInBlock(Archive archive)
     {
-        ArgumentNullException.ThrowIfNull(archive);
-        ArchiveSerialization.SerializeValue(archive, "deadZone", ref _deadZone);
-        SerializeMetadata(archive);
+        if (!archive.IsUnorderedAccessSupportedInCurrentBlock
+            || (archive.IsInput ? archive.HasElementOrBlock("metadata") : _metadata.Count != 0))
+        {
+            ArchiveSerialization.SerializeValue(archive, "metadata", _metadata);
+        }
+        else if (archive.IsInput)
+        {
+            _metadata.Dispose();
+        }
+        ArchiveSerialization.SerializeOptionalValue(archive, "deadzone", ref _deadZone, DefaultDeadZone,
+            ArchiveSerialization.SerializeValue);
 
         var count = archive.IsInput ? 0u : (uint)_actions.Count;
         using var actionsBlock = archive.OpenArrayBlock("actions", count);
@@ -41,8 +116,7 @@ public sealed class InputMap : ResourceWithMetadata
                 ArchiveSerialization.SerializeValue(archive, "name", ref name);
                 var mapping = new ActionMapping();
                 mapping.SerializeInBlock(archive);
-                if (!string.IsNullOrEmpty(name))
-                    _actions[name] = mapping;
+                _actions[name] = mapping;
             }
         }
         else
@@ -57,172 +131,146 @@ public sealed class InputMap : ResourceWithMetadata
         }
     }
 
-    public override bool BeginLoad(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        try
-        {
-            using var memory = new MemoryStream();
-            source.CopyTo(memory);
-            var data = memory.ToArray();
-            var format = DetectFormat(data);
-            using var binaryBuffer = format == InternalResourceFormat.Binary
-                ? new MemoryBuffer(data.AsMemory(SimpleResource.DefaultBinaryMagic.Length))
-                : null;
-            using Archive archive = format switch
-            {
-                InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
-                InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(data)),
-                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, binaryBuffer!),
-                _ => throw new InvalidDataException("Unknown input map format.")
-            };
-            using (archive.OpenUnorderedBlock("resource"))
-                SerializeInBlock(archive);
-            archive.Flush();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public override bool Save(Stream destination) => Save(destination, InternalResourceFormat.Json);
-
-    public bool Save(Stream destination, InternalResourceFormat format)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        try
-        {
-            switch (format)
-            {
-                case InternalResourceFormat.Json:
-                {
-                    using var archive = new JSONOutputArchive(Context.Instance);
-                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
-                    destination.Write(Encoding.UTF8.GetBytes(archive.ToJsonString()));
-                    return true;
-                }
-                case InternalResourceFormat.Xml:
-                {
-                    using var archive = new XMLOutputArchive(Context.Instance);
-                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
-                    destination.Write(Encoding.UTF8.GetBytes(archive.ToXmlString()));
-                    return true;
-                }
-                case InternalResourceFormat.Binary:
-                {
-                    destination.Write(SimpleResource.DefaultBinaryMagic);
-                    using var buffer = new VectorBuffer();
-                    using var archive = new BinaryOutputArchive(Context.Instance, buffer);
-                    using (archive.OpenUnorderedBlock("resource")) SerializeInBlock(archive);
-                    archive.Flush();
-                    destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
-                    return true;
-                }
-                default:
-                    return false;
-            }
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public void SetInput(Input? input)
-    {
-        Input = input;
-    }
-
+    /// <summary>Set dead zone half-width to mitigate axis drift.</summary>
     public void SetDeadZone(float deadZone)
     {
-        this._deadZone = Math.Max(deadZone, 0.0f);
+        _deadZone = Math.Max(0.0f, deadZone);
     }
 
+    /// <summary>Get dead zone half-width.</summary>
     public float GetDeadZone() => _deadZone;
 
+    /// <summary>Map keyboard key to the action.</summary>
     public void MapKeyboardKey(string action, Scancode scancode)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveKeyboardKey(scancode);
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.KeyboardKeys.RemoveAll(value => value.Scancode == scancode);
+        }
 
-        GetOrAddMapping(action).AddKeyboardKey(scancode);
+        GetOrAddMapping(action).KeyboardKeys.Add(new KeyboardKeyMapping(scancode));
     }
 
-    public void MapMouseButton(string action, MouseButton mouseButton)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveMouseButton(mouseButton);
-
-        GetOrAddMapping(action).AddMouseButton(mouseButton);
-    }
-
+    /// <summary>Map controller button to the action.</summary>
     public void MapControllerButton(string action, ControllerButton button)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveControllerButton(button);
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.ControllerButtons.RemoveAll(
+                value => value.Controller && value.Button == (uint)button);
+        }
 
-        GetOrAddMapping(action).AddControllerButton(button);
+        GetOrAddMapping(action).ControllerButtons.Add(new ControllerButtonMapping(button));
     }
 
+    /// <summary>Map generic joystick button to the action.</summary>
     public void MapJoystickButton(string action, uint buttonIndex)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveJoystickButton(buttonIndex);
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.ControllerButtons.RemoveAll(
+                value => !value.Controller && value.Button == buttonIndex);
+        }
 
-        GetOrAddMapping(action).AddJoystickButton(buttonIndex);
+        GetOrAddMapping(action).ControllerButtons.Add(new ControllerButtonMapping(buttonIndex));
     }
 
+    /// <summary>Map controller axis to the action.</summary>
     public void MapControllerAxis(string action, ControllerAxis axis, float neutral, float pressed)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        var mapping = ControllerAxisMapping.ForController(axis, neutral, pressed);
-        foreach (var actionMapping in _actions.Values)
-            actionMapping.RemoveControllerAxis(mapping);
+        var mapping = new ControllerAxisMapping(axis, neutral, pressed);
+        foreach (var keyValue in _actions)
+        {
+            var actionMapping = keyValue.Value.Clone();
+            actionMapping.ControllerAxes.RemoveAll(value => value.OverlapsWith(mapping));
+        }
 
-        GetOrAddMapping(action).AddControllerAxis(mapping);
+        GetOrAddMapping(action).ControllerAxes.Add(mapping);
     }
 
+    /// <summary>Map generic joystick axis to the action.</summary>
     public void MapJoystickAxis(string action, uint axis, float neutral, float pressed)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        var mapping = ControllerAxisMapping.ForJoystick(axis, neutral, pressed);
-        foreach (var actionMapping in _actions.Values)
-            actionMapping.RemoveControllerAxis(mapping);
+        var mapping = new ControllerAxisMapping(axis, neutral, pressed);
+        foreach (var keyValue in _actions)
+        {
+            var actionMapping = keyValue.Value.Clone();
+            actionMapping.ControllerAxes.RemoveAll(value => value.OverlapsWith(mapping));
+        }
 
-        GetOrAddMapping(action).AddControllerAxis(mapping);
+        GetOrAddMapping(action).ControllerAxes.Add(mapping);
     }
 
+    /// <summary>Map controller hat to the action.</summary>
     public void MapHat(string action, HatPosition hatPosition)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveHat(hatPosition);
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.ControllerHats.RemoveAll(value => value.HatPosition == (uint)hatPosition);
+        }
 
-        GetOrAddMapping(action).AddHat(hatPosition);
+        GetOrAddMapping(action).ControllerHats.Add(new ControllerHatMapping((uint)hatPosition));
     }
 
+    /// <summary>Map mouse button to the action.</summary>
+    public void MapMouseButton(string action, MouseButton mouseButton)
+    {
+        uint value;
+        switch (mouseButton)
+        {
+            case MouseButton.Left:
+                value = 0;
+                break;
+            case MouseButton.Right:
+                value = 2;
+                break;
+            case MouseButton.Middle:
+                value = 1;
+                break;
+            case MouseButton.X1:
+                value = 3;
+                break;
+            case MouseButton.X2:
+                value = 4;
+                break;
+            default:
+                Log.Logger.LogError("Can't map mouse button. Invalid MouseButton value.");
+                return;
+        }
+        _ = value;
+
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.MouseButtons.RemoveAll(item => item.MouseButton == (uint)mouseButton);
+        }
+        GetOrAddMapping(action).MouseButtons.Add(new MouseButtonMapping((uint)mouseButton));
+    }
+
+    /// <summary>Map screen button to the action.</summary>
     public void MapScreenButton(string action, string elementName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
-        foreach (var mapping in _actions.Values)
-            mapping.RemoveScreenButton(elementName);
+        foreach (var keyValue in _actions)
+        {
+            var mapping = keyValue.Value.Clone();
+            mapping.ScreenButtons.RemoveAll(
+                value => string.Equals(value.ElementName, elementName, StringComparison.Ordinal));
+        }
 
-        GetOrAddMapping(action).AddScreenButton(elementName);
+        GetOrAddMapping(action).ScreenButtons.Add(new ScreenButtonMapping(elementName));
     }
 
+    /// <summary>Get mapping for the action.</summary>
     public ActionMapping GetMapping(string action)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        return _actions.GetValueOrDefault(action) ?? EmptyMapping;
+        return _actions.TryGetValue(action, out var mapping) ? mapping : EmptyMapping;
     }
 
+    /// <summary>Get mapping for the action.</summary>
     public ActionMapping GetMappingByHash(StringHash actionHash)
     {
         foreach (var action in _actions)
@@ -234,124 +282,178 @@ public sealed class InputMap : ResourceWithMetadata
         return EmptyMapping;
     }
 
-    public IReadOnlyDictionary<string, ActionMapping> GetMappings() => Mappings;
-
-    public float Evaluate(string action) => Input is not null ? Evaluate(action, Input) : 0.0f;
-
-    public float Evaluate(string action, Input input)
+    /// <summary>Add new metadata variable or overwrite old value.</summary>
+    public void AddMetadata(string name, Variant value)
     {
-        ArgumentNullException.ThrowIfNull(input);
-        return GetMapping(action).Evaluate(input, _deadZone, _ignoreJoystickId);
+        var copy = value.Clone();
+        if (_metadata.Remove(name, out var previous))
+            previous.Dispose();
+        _metadata[name] = copy;
     }
 
-    public float EvaluateByHash(StringHash actionHash) => Input is not null ? EvaluateByHash(actionHash, Input) : 0.0f;
-
-    public float EvaluateByHash(StringHash actionHash, Input input)
+    public void AddMetadata(string name, object? value)
     {
-        ArgumentNullException.ThrowIfNull(input);
-        return GetMappingByHash(actionHash).Evaluate(input, _deadZone, _ignoreJoystickId);
+        using var variant = Variant.FromObject(value);
+        AddMetadata(name, variant);
     }
 
-    public static IReadOnlyList<string> GetScanCodeNames() => Enum.GetNames<Scancode>();
+    /// <summary>Remove metadata variable.</summary>
+    public void RemoveMetadata(string name)
+    {
+        if (_metadata.Remove(name, out var value))
+            value.Dispose();
+    }
 
-    public static IReadOnlyList<string> GetControllerButtonNames() => Enum.GetNames<ControllerButton>();
+    /// <summary>Remove all metadata variables.</summary>
+    public void RemoveAllMetadata()
+    {
+        _metadata.Dispose();
+    }
 
-    public static IReadOnlyList<string> GetControllerHatNames() => Enum.GetNames<HatPosition>();
+    /// <summary>Return metadata variable.</summary>
+    public Variant GetMetadata(string name)
+    {
+        return _metadata.GetValueOrDefault(name);
+    }
 
-    public static IReadOnlyList<string> GetMouseButtonNames() => Enum.GetNames<MouseButton>();
+    /// <summary>Return whether the resource has metadata.</summary>
+    public bool HasMetadata()
+    {
+        return _metadata.Count != 0;
+    }
 
-    private ActionMapping GetOrAddMapping(string action)
+    /// <summary>Get all action mappings.</summary>
+    public IReadOnlyDictionary<string, ActionMapping> GetMappings() => _actions;
+
+    /// <summary>Evaluate action state.</summary>
+    public float Evaluate(string action)
     {
         if (!_actions.TryGetValue(action, out var mapping))
+            return 0.0f;
+        var input = this.GetSubsystem<Input>()!;
+        return mapping.Evaluate(input, _deadZone, _ignoreJoystickId);
+    }
+
+    /// <summary>Evaluate action state by action string hash.</summary>
+    public float EvaluateByHash(StringHash actionHash)
+    {
+        foreach (var action in _actions)
         {
+            if (new StringHash(action.Key) == actionHash)
+                return 0.0f;
+        }
+        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<Input>()!, _deadZone, _ignoreJoystickId);
+    }
+
+    /// <summary>Get scancode names.</summary>
+    public static IReadOnlyList<string> GetScanCodeNames() => ScancodeNames;
+
+    /// <summary>Get controller button names.</summary>
+    public static IReadOnlyList<string> GetControllerButtonNames() => ControllerButtonNames;
+
+    /// <summary>Get controller directional pad (hat) names.</summary>
+    public static IReadOnlyList<string> GetControllerHatNames() => ControllerHatNames;
+
+    /// <summary>Get mouse button names.</summary>
+    public static IReadOnlyList<string> GetMouseButtonNames() => MouseButtonNames;
+
+    /// <summary>Load input map from config or resources.</summary>
+    public static InputMap? Load(string name)
+    {
+        InputMap? result = null;
+        if (name.Length == 0)
+            return result;
+
+        var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
+        var virtualFileSystem = Context.Instance.GetSubsystem<VirtualFileSystem>()!;
+
+        var configFileId = new FileIdentifier("config", name);
+        if (virtualFileSystem.Exists(configFileId))
+        {
+            result = new InputMap(name);
+            if (result.LoadFile(configFileId.ToUri()))
+                return result;
+            result.Dispose();
+        }
+        return cache.GetResourceOrNull<InputMap>(name);
+    }
+
+    private ref ActionMapping GetOrAddMapping(string action)
+    {
+        ref var mapping = ref CollectionsMarshal.GetValueRefOrAddDefault(_actions, action, out var exists);
+        if (!exists)
             mapping = new ActionMapping();
-            _actions.Add(action, mapping);
-        }
-
-        return mapping;
+        return ref mapping;
     }
 
-    private void SerializeMetadata(Archive archive)
+    public struct ActionMapping : ICloneable
     {
-        var count = archive.IsInput ? 0u : (uint)MetadataKeys.Count;
-        using var metadataBlock = archive.OpenArrayBlock("metadata", count);
-        if (archive.IsInput)
+        public List<KeyboardKeyMapping> KeyboardKeys;
+        public List<MouseButtonMapping> MouseButtons;
+        public List<ControllerButtonMapping> ControllerButtons;
+        public List<ControllerAxisMapping> ControllerAxes;
+        public List<ControllerHatMapping> ControllerHats;
+        public List<ScreenButtonMapping> ScreenButtons;
+
+        public ActionMapping()
         {
-            RemoveAllMetadata();
-            for (var i = 0u; i < metadataBlock.SizeHint; ++i)
-            {
-                using var itemBlock = archive.OpenUnorderedBlock("item");
-                var name = string.Empty;
-                var value = default(Variant);
-                ArchiveSerialization.SerializeValue(archive, "name", ref name);
-                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                if (!string.IsNullOrEmpty(name)) AddMetadata(name, value);
-            }
+            KeyboardKeys = [];
+            MouseButtons = [];
+            ControllerButtons = [];
+            ControllerAxes = [];
+            ControllerHats = [];
+            ScreenButtons = [];
         }
-        else
+
+        private ActionMapping(in ActionMapping source)
         {
-            foreach (var keyValue in MetadataKeys)
-            {
-                using var itemBlock = archive.OpenUnorderedBlock("item");
-                var name = keyValue;
-                var value = GetMetadata(keyValue);
-                ArchiveSerialization.SerializeValue(archive, "name", ref name);
-                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-            }
+            KeyboardKeys = new List<KeyboardKeyMapping>(source.KeyboardKeys);
+            MouseButtons = new List<MouseButtonMapping>(source.MouseButtons);
+            ControllerButtons = new List<ControllerButtonMapping>(source.ControllerButtons);
+            ControllerAxes = new List<ControllerAxisMapping>(source.ControllerAxes);
+            ControllerHats = new List<ControllerHatMapping>(source.ControllerHats);
+            ScreenButtons = new List<ScreenButtonMapping>(source.ScreenButtons);
         }
-    }
 
-    private static InternalResourceFormat DetectFormat(ReadOnlySpan<byte> data)
-    {
-        if (data.StartsWith(SimpleResource.DefaultBinaryMagic)) return InternalResourceFormat.Binary;
-        foreach (var value in data)
-        {
-            if (char.IsWhiteSpace((char)value)) continue;
-            return value switch { (byte)'{' => InternalResourceFormat.Json, (byte)'<' => InternalResourceFormat.Xml, _ => InternalResourceFormat.Unknown };
-        }
-        return InternalResourceFormat.Unknown;
-    }
+        public readonly ActionMapping Clone() => new(in this);
 
-    public sealed class ActionMapping
-    {
-        private readonly List<KeyboardKeyMapping> _keyboardKeys = [];
-        private readonly List<MouseButtonMapping> _mouseButtons = [];
-        private readonly List<ControllerButtonMapping> _controllerButtons = [];
-        private readonly List<ControllerAxisMapping> _controllerAxes = [];
-        private readonly List<ControllerHatMapping> _controllerHats = [];
-        private readonly List<ScreenButtonMapping> _screenButtons = [];
+        readonly object ICloneable.Clone() => Clone();
 
-        public IReadOnlyList<KeyboardKeyMapping> KeyboardKeys => _keyboardKeys;
-
-        public IReadOnlyList<MouseButtonMapping> MouseButtons => _mouseButtons;
-
-        public IReadOnlyList<ControllerButtonMapping> ControllerButtons => _controllerButtons;
-
-        public IReadOnlyList<ControllerAxisMapping> ControllerAxes => _controllerAxes;
-
-        public IReadOnlyList<ControllerHatMapping> ControllerHats => _controllerHats;
-
-        public IReadOnlyList<ScreenButtonMapping> ScreenButtons => _screenButtons;
-
+        /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
         public void SerializeInBlock(Archive archive)
         {
-            SerializeStructList(archive, "keys", "key", _keyboardKeys,
+            SerializeOptionalStructList(archive, "keys", "key", KeyboardKeys,
                 static (Archive ar, ref KeyboardKeyMapping v) => v.SerializeInBlock(ar));
-            SerializeStructList(archive, "mouseButtons", "button", _mouseButtons,
-                static (Archive ar, ref MouseButtonMapping v) => v.SerializeInBlock(ar));
-            SerializeStructList(archive, "buttons", "button", _controllerButtons,
+            SerializeOptionalStructList(archive, "buttons", "button", ControllerButtons,
                 static (Archive ar, ref ControllerButtonMapping v) => v.SerializeInBlock(ar));
-            SerializeStructList(archive, "axes", "axis", _controllerAxes,
+            SerializeOptionalStructList(archive, "axes", "axis", ControllerAxes,
                 static (Archive ar, ref ControllerAxisMapping v) => v.SerializeInBlock(ar));
-            SerializeStructList(archive, "hats", "hat", _controllerHats,
+            SerializeOptionalStructList(archive, "hats", "hat", ControllerHats,
                 static (Archive ar, ref ControllerHatMapping v) => v.SerializeInBlock(ar));
-            SerializeStructList(archive, "screenButtons", "element", _screenButtons,
+            SerializeOptionalStructList(archive, "mouseButtons", "button", MouseButtons,
+                static (Archive ar, ref MouseButtonMapping v) => v.SerializeInBlock(ar));
+            SerializeOptionalStructList(archive, "screenButtons", "element", ScreenButtons,
                 static (Archive ar, ref ScreenButtonMapping v) => v.SerializeInBlock(ar));
         }
 
         private delegate void SerializeItem<T>(Archive archive, ref T value);
 
-        private static void SerializeStructList<T>(Archive archive, string blockName, string itemName, List<T> values, SerializeItem<T> serialize) where T : new()
+        private static void SerializeOptionalStructList<T>(Archive archive, string blockName, string itemName,
+            List<T> values, SerializeItem<T> serialize) where T : new()
+        {
+            if (!archive.IsUnorderedAccessSupportedInCurrentBlock
+                || (archive.IsInput ? archive.HasElementOrBlock(blockName) : values.Count != 0))
+            {
+                SerializeStructList(archive, blockName, itemName, values, serialize);
+            }
+            else if (archive.IsInput)
+            {
+                values.Clear();
+            }
+        }
+
+        private static void SerializeStructList<T>(Archive archive, string blockName, string itemName,
+            List<T> values, SerializeItem<T> serialize) where T : new()
         {
             var count = archive.IsInput ? 0u : (uint)values.Count;
             using var arrayBlock = archive.OpenArrayBlock(blockName, count);
@@ -374,21 +476,42 @@ public sealed class InputMap : ResourceWithMetadata
             }
         }
 
-        public float Evaluate(Input input, float deadZone, int ignoreJoystickId)
+        /// <summary>Evaluate action state based on current input.</summary>
+        public readonly float Evaluate(Input input, float deadZone, int ignoreJoystickId)
         {
-            ArgumentNullException.ThrowIfNull(input);
-            foreach (var key in _keyboardKeys)
+            foreach (var key in KeyboardKeys)
             {
                 var scancode = key.Scancode;
                 if (IsModifierScancode(scancode, input) || input.GetScancodeDown(scancode))
                     return 1.0f;
             }
 
-            foreach (var mouseButton in _mouseButtons)
+            foreach (var mouseButton in MouseButtons)
             {
                 if (input.GetMouseButtonDown(mouseButton.GetMask()))
                     return 1.0f;
             }
+
+            if (ControllerAxes.Count == 0 && ControllerButtons.Count == 0 && ControllerHats.Count == 0)
+                return 0.0f;
+
+            // TODO: port UI-backed screen button evaluation when built-in rbfx UI is ported.
+            // if (ui != nullptr && !screenButtons_.empty())
+            // {
+            //     const unsigned numTouches = input->GetNumTouches();
+            //     for (unsigned i = 0; i < numTouches; ++i)
+            //     {
+            //         const auto touch = input->GetTouch(i);
+            //         if (touch && touch->GetTouchedElement())
+            //         {
+            //             for (auto& screenButton : screenButtons_)
+            //             {
+            //                 if (screenButton.elementName_ == touch->GetTouchedElement()->GetName())
+            //                     return 1.0f;
+            //             }
+            //         }
+            //     }
+            // }
 
             var totalSum = 0.0f;
             for (uint joystickIndex = 0; joystickIndex < input.GetNumJoysticks(); ++joystickIndex)
@@ -401,128 +524,51 @@ public sealed class InputMap : ResourceWithMetadata
                     continue;
 
                 var isController = joystickState.IsController();
-                foreach (var controllerButton in _controllerButtons)
+                foreach (var controllerButton in ControllerButtons)
                 {
-                    var matches = controllerButton.IsController == isController;
-                    var pressed = controllerButton.IsController
-                        ? joystickState.GetButtonDown((uint)controllerButton.GetControllerButton())
-                        : joystickState.GetButtonDown(controllerButton.GetGenericButton());
-                    if (matches && pressed)
+                    if (controllerButton.Controller == isController
+                        && joystickState.GetButtonDown(controllerButton.Button))
                         return 1.0f;
-                }
-
-                foreach (var controllerAxis in _controllerAxes)
-                {
-                    if (controllerAxis.IsController != isController)
-                        continue;
-                    var axis = controllerAxis.IsController ? (uint)controllerAxis.GetControllerAxis() : controllerAxis.GetGenericAxis();
-                    if (joystickState.HasAxisPosition(axis))
-                        totalSum += controllerAxis.Translate(joystickState.GetAxisPosition(axis), deadZone);
                 }
 
                 if (joystickState.GetNumHats() > 0)
                 {
                     var hatPosition = joystickState.GetHatPosition(0);
-                    foreach (var controllerHat in _controllerHats)
+                    foreach (var controllerHat in ControllerHats)
                     {
                         if ((hatPosition & (1 << (int)controllerHat.HatPosition)) != 0)
                             return 1.0f;
                     }
                 }
-            }
 
-            foreach (var screenButton in _screenButtons)
-            {
-                if (input.GetScreenButtonDown(screenButton.ElementName))
-                    return 1.0f;
+                foreach (var controllerAxis in ControllerAxes)
+                {
+                    if (controllerAxis.Controller == isController
+                        && joystickState.HasAxisPosition(controllerAxis.Axis))
+                    {
+                        totalSum += controllerAxis.Translate(
+                            joystickState.GetAxisPosition(controllerAxis.Axis), deadZone);
+                    }
+                }
             }
 
             return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
         }
 
-        internal void AddKeyboardKey(Scancode scancode)
-        {
-            var mapping = new KeyboardKeyMapping(scancode);
-            if (!_keyboardKeys.Contains(mapping))
-                _keyboardKeys.Add(mapping);
-        }
-
-        internal void RemoveKeyboardKey(Scancode scancode) => _keyboardKeys.RemoveAll(m => m.Scancode == scancode);
-
-        internal void AddMouseButton(MouseButton mouseButton)
-        {
-            if (mouseButton == MouseButton.None)
-                return;
-
-            var btnIndex = (uint)BitOperations.TrailingZeroCount((uint)mouseButton);
-            var mapping = new MouseButtonMapping(btnIndex);
-            if (!_mouseButtons.Contains(mapping))
-                _mouseButtons.Add(mapping);
-        }
-
-        internal void RemoveMouseButton(MouseButton mouseButton) => _mouseButtons.RemoveAll(m => m.MouseButton == (uint)BitOperations.TrailingZeroCount((uint)mouseButton));
-
-        internal void AddControllerButton(ControllerButton button)
-        {
-            var mapping = ControllerButtonMapping.ForController(button);
-            if (!_controllerButtons.Contains(mapping))
-                _controllerButtons.Add(mapping);
-        }
-
-        internal void RemoveControllerButton(ControllerButton button) => _controllerButtons.RemoveAll(mapping => mapping.IsController && mapping.Button == (uint)button);
-
-        internal void AddJoystickButton(uint buttonIndex)
-        {
-            var mapping = ControllerButtonMapping.ForJoystick(buttonIndex);
-            if (!_controllerButtons.Contains(mapping))
-                _controllerButtons.Add(mapping);
-        }
-
-        internal void RemoveJoystickButton(uint buttonIndex) => _controllerButtons.RemoveAll(mapping => !mapping.IsController && mapping.Button == buttonIndex);
-
-        internal void AddControllerAxis(ControllerAxisMapping mapping) => _controllerAxes.Add(mapping);
-
-        internal void RemoveControllerAxis(ControllerAxisMapping mapping) => _controllerAxes.RemoveAll(existing => existing.OverlapsWith(mapping));
-
-        internal void AddHat(HatPosition hatPosition)
-        {
-            var mapping = new ControllerHatMapping((uint)hatPosition);
-            if (!_controllerHats.Contains(mapping))
-                _controllerHats.Add(mapping);
-        }
-
-        internal void RemoveHat(HatPosition hatPosition) => _controllerHats.RemoveAll(m => m.HatPosition == (uint)hatPosition);
-
-        internal void AddScreenButton(string elementName)
-        {
-            if (string.IsNullOrEmpty(elementName))
-                return;
-
-            foreach (var screenButton in _screenButtons)
-            {
-                if (string.Equals(screenButton.ElementName, elementName, StringComparison.Ordinal))
-                    return;
-            }
-
-            _screenButtons.Add(new ScreenButtonMapping(elementName));
-        }
-
-        internal void RemoveScreenButton(string elementName) => _screenButtons.RemoveAll(screenButton => string.Equals(screenButton.ElementName, elementName, StringComparison.Ordinal));
-
         private static bool IsModifierScancode(Scancode scancode, Input input)
         {
             return scancode switch
             {
-                Scancode.LeftCtrl => input.GetKeyDown(Key.LeftCtrl) || input.GetKeyDown(Key.RightCtrl),
-                Scancode.LeftShift => input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift),
-                Scancode.LeftAlt => input.GetKeyDown(Key.LeftAlt) || input.GetKeyDown(Key.RightAlt),
+                Scancode.Ctrl => input.GetKeyDown(Key.LeftCtrl) || input.GetKeyDown(Key.RightCtrl),
+                Scancode.Shift => input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift),
+                Scancode.Alt => input.GetKeyDown(Key.LeftAlt) || input.GetKeyDown(Key.RightAlt),
                 _ => false
             };
         }
     }
 }
 
-/// <summary>Helper struct to translate keyboard keys.</summary>
+/// <summary>Helper class to translate keyboard keys.</summary>
 public struct KeyboardKeyMapping
 {
     /// <summary>Construct.</summary>
@@ -534,16 +580,16 @@ public struct KeyboardKeyMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var rawValue = (uint)Scancode;
-        ArchiveSerialization.SerializeValue(archive, "scancode", ref rawValue);
-        Scancode = (Scancode)rawValue;
+        ArchiveSerialization.SerializeOptionalValue(archive, "scancode", ref Scancode, RedBolt.Scancode.Unknown,
+            static (Archive ar, string name, ref Scancode value) =>
+                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetScanCodeNames()));
     }
 
     /// <summary>Scancode.</summary>
     public Scancode Scancode;
 }
 
-/// <summary>Helper struct to translate mouse button.</summary>
+/// <summary>Helper class to translate mouse button.</summary>
 public struct MouseButtonMapping
 {
     /// <summary>Construct.</summary>
@@ -558,16 +604,18 @@ public struct MouseButtonMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var rawValue = MouseButton;
-        ArchiveSerialization.SerializeValue(archive, "mouseButton", ref rawValue);
-        MouseButton = rawValue;
+        var button = (RedBolt.MouseButton)MouseButton;
+        ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
+            static (Archive ar, string name, ref RedBolt.MouseButton value) =>
+                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetMouseButtonNames()));
+        MouseButton = (uint)button;
     }
 
     /// <summary>Mouse button.</summary>
     public uint MouseButton;
 }
 
-/// <summary>Helper struct to translate controller hat position.</summary>
+/// <summary>Helper class to translate controller hat position.</summary>
 public struct ControllerHatMapping
 {
     /// <summary>Construct.</summary>
@@ -579,16 +627,18 @@ public struct ControllerHatMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var rawValue = HatPosition;
-        ArchiveSerialization.SerializeValue(archive, "hatPosition", ref rawValue);
-        HatPosition = rawValue;
+        var hatPosition = (RedBolt.HatPosition)HatPosition;
+        ArchiveSerialization.SerializeOptionalValue(archive, "hat", ref hatPosition, default,
+            static (Archive ar, string name, ref RedBolt.HatPosition value) =>
+                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetControllerHatNames()));
+        HatPosition = (uint)hatPosition;
     }
 
     /// <summary>Hat position.</summary>
     public uint HatPosition;
 }
 
-/// <summary>Helper struct to translate UI button to input value.</summary>
+/// <summary>Helper class to translate UI button to input value.</summary>
 public struct ScreenButtonMapping
 {
     /// <summary>Construct.</summary>
@@ -601,7 +651,8 @@ public struct ScreenButtonMapping
     public void SerializeInBlock(Archive archive)
     {
         var name = ElementName;
-        ArchiveSerialization.SerializeValue(archive, "elementName", ref name);
+        ArchiveSerialization.SerializeOptionalValue(archive, "elementName", ref name, string.Empty,
+            ArchiveSerialization.SerializeValue);
         ElementName = name;
     }
 
@@ -609,52 +660,105 @@ public struct ScreenButtonMapping
     public string ElementName;
 }
 
-public record struct ControllerButtonMapping(bool IsController, uint Button)
+/// <summary>Helper class to translate controller buttons.</summary>
+public struct ControllerButtonMapping
 {
-    public static ControllerButtonMapping ForController(ControllerButton button) => new(true, (uint)button);
+    public ControllerButtonMapping()
+    {
+    }
 
-    public static ControllerButtonMapping ForJoystick(uint buttonIndex) => new(false, buttonIndex);
+    /// <summary>Construct.</summary>
+    public ControllerButtonMapping(ControllerButton controllerButton)
+    {
+        Controller = true;
+        Button = (uint)controllerButton;
+    }
 
+    /// <summary>Construct.</summary>
+    public ControllerButtonMapping(uint buttonIndex)
+    {
+        Controller = false;
+        Button = buttonIndex;
+    }
+
+    /// <summary>Get controller button.</summary>
     public ControllerButton GetControllerButton() => (ControllerButton)Button;
 
+    /// <summary>Get generic button.</summary>
     public uint GetGenericButton() => Button;
 
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var controller = IsController;
-        var button = Button;
-        ArchiveSerialization.SerializeValue(archive, "controller", ref controller);
-        ArchiveSerialization.SerializeValue(archive, "button", ref button);
-        this = new ControllerButtonMapping(controller, button);
+        ArchiveSerialization.SerializeOptionalValue(archive, "controller", ref Controller, false,
+            ArchiveSerialization.SerializeValue);
+        if (Controller)
+        {
+            var button = (ControllerButton)Button;
+            ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
+                static (Archive ar, string name, ref ControllerButton value) =>
+                    ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetControllerButtonNames()));
+            Button = (uint)button;
+        }
+        else
+        {
+            ArchiveSerialization.SerializeOptionalValue(archive, "button", ref Button, 0u,
+                ArchiveSerialization.SerializeValue);
+        }
     }
+
+    public bool Controller;
+    public uint Button;
 }
 
-public record struct ControllerAxisMapping(bool IsController, uint Axis, float Neutral, float Pressed)
+/// <summary>Helper class to translate controller axis.</summary>
+public struct ControllerAxisMapping
 {
-    public static ControllerAxisMapping ForController(ControllerAxis axis, float neutral = 0.0f, float pressed = 1.0f) => new(true, (uint)axis, neutral, pressed);
-
-    public static ControllerAxisMapping ForJoystick(uint axis, float neutral = 0.0f, float pressed = 1.0f) => new(false, axis, neutral, pressed);
-
-    public ControllerAxis GetControllerAxis() => (ControllerAxis)Axis;
-
-    public uint GetGenericAxis() => Axis;
-
-    public void SerializeInBlock(Archive archive)
+    public ControllerAxisMapping()
     {
-        var controller = IsController;
-        var axis = Axis;
-        var neutral = Neutral;
-        var pressed = Pressed;
-        ArchiveSerialization.SerializeValue(archive, "controller", ref controller);
-        ArchiveSerialization.SerializeValue(archive, "axis", ref axis);
-        ArchiveSerialization.SerializeValue(archive, "neutral", ref neutral);
-        ArchiveSerialization.SerializeValue(archive, "pressed", ref pressed);
-        this = new ControllerAxisMapping(controller, axis, neutral, pressed);
+        Neutral = 0.0f;
+        Pressed = 1.0f;
     }
 
+    public ControllerAxisMapping(ControllerAxis controllerAxis, float neutral = 0.0f, float pressed = 1.0f)
+    {
+        Controller = true;
+        Axis = (uint)controllerAxis;
+        Neutral = neutral;
+        Pressed = pressed;
+    }
+
+    public ControllerAxisMapping(uint axisIndex, float neutral = 0.0f, float pressed = 1.0f)
+    {
+        Controller = false;
+        Axis = axisIndex;
+        Neutral = neutral;
+        Pressed = pressed;
+    }
+
+    /// <summary>Get controller button.</summary>
+    public ControllerAxis GetControllerAxis() => (ControllerAxis)Axis;
+
+    /// <summary>Get generic button.</summary>
+    public uint GetGenericAxis() => Axis;
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        ArchiveSerialization.SerializeOptionalValue(archive, "controller", ref Controller, false,
+            ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "axis", ref Axis, 0u,
+            ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "neutral", ref Neutral, 0.0f,
+            ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "pressed", ref Pressed, 1.0f,
+            ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Check if the mapping overlaps with the other one, including matching axis index and controller type.</summary>
     public bool OverlapsWith(ControllerAxisMapping mapping)
     {
-        if (mapping.IsController != IsController || mapping.Axis != Axis)
+        if (mapping.Controller != Controller || mapping.Axis != Axis)
             return false;
 
         var min = Math.Min(Neutral, Pressed);
@@ -664,6 +768,7 @@ public record struct ControllerAxisMapping(bool IsController, uint Axis, float N
         return !(max <= otherMin || otherMax <= min);
     }
 
+    /// <summary>Translate axis value into 0..1 range. Returns 0 if the value is outside of the range.</summary>
     public float Translate(float position, float deadZone)
     {
         if (MathDefs.ApproximatelyEquivalent(position, Pressed))
@@ -679,4 +784,9 @@ public record struct ControllerAxisMapping(bool IsController, uint Axis, float N
         var range = Math.Max(max - min, MathDefs.Epsilon);
         return positive ? (position - min) / range : (max - position) / range;
     }
+
+    public bool Controller;
+    public uint Axis;
+    public float Neutral;
+    public float Pressed;
 }

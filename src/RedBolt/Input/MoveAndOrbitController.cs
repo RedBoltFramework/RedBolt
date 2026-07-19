@@ -46,8 +46,6 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     public void SetInput(Input? input)
     {
         this._input = input;
-        if (_inputMap is not null)
-            _inputMap.SetInput(input);
     }
 
     public Input? GetInput() => _input;
@@ -55,8 +53,6 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     public void SetInputMap(InputMap? inputMap)
     {
         this._inputMap = inputMap;
-        if (this._inputMap is not null)
-            this._inputMap.SetInput(_input);
     }
 
     public InputMap? GetInputMap() => _inputMap;
@@ -69,9 +65,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
             return;
         }
 
-        var cache = GetSubsystem<ResourceCache>()!;
-        _inputMap = cache.GetResourceOrNull<InputMap>(value.Name) ?? new InputMap(value.Name, _input);
-        _inputMap.SetInput(_input);
+        _inputMap = InputMap.Load(value.Name);
     }
 
     public ResourceRef GetInputMapAttr()
@@ -98,8 +92,6 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
     {
         base.OnSceneSet(previousScene, scene);
         _input = scene is not null ? GetSubsystem<Input>() : null;
-        if (_inputMap is not null)
-            _inputMap.SetInput(_input);
     }
 
     void ISceneUpdateListener.OnSceneUpdate(float timeStep)
@@ -158,7 +150,7 @@ public sealed class MoveAndOrbitController : Component, ISceneUpdateListener
 
     private float Evaluate(string action)
     {
-        return _input is not null && _inputMap is not null ? _inputMap.Evaluate(action, _input) : 0.0f;
+        return _input is not null && _inputMap is not null ? _inputMap.Evaluate(action) : 0.0f;
     }
 
     private float GetSensitivity(string key, float defaultValue)
