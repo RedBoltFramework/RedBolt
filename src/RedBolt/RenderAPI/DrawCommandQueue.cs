@@ -25,11 +25,7 @@ public class DrawCommandQueue : Object
     private ShaderResourceRange _currentShaderResourceGroup;
     private ShaderResourceRange _currentUnorderedAccessViewGroup;
     private readonly IBuffer?[] _nativeVertexBuffers = new IBuffer?[RenderApiLimits.MaxVertexStreams];
-#if REDBOLT_PLATFORM_WEB
     private readonly ulong[] _nativeVertexBufferOffsets = new ulong[RenderApiLimits.MaxVertexStreams];
-#else
-    private readonly nuint[] _nativeVertexBufferOffsets = new nuint[RenderApiLimits.MaxVertexStreams];
-#endif
     private readonly RawBuffer?[] _currentVertexBuffers = new RawBuffer?[RenderApiLimits.MaxVertexStreams];
 
     private readonly record struct ShaderResourceData(

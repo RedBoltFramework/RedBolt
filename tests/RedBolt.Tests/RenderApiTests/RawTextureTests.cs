@@ -350,8 +350,8 @@ public sealed class RawTextureTests
                 new Vector3i(8, 8, 1),
                 ArraySize: 4u,
                 NumLevels: 3u));
-            var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstSlice: 1u, FirstLevel: 1u);
-            var normalizedKey = requestedKey with { NumSlices = 3u, NumLevels = 2u };
+            var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstLevel: 1u);
+            var normalizedKey = requestedKey with { NumSlices = 4u, NumLevels = 2u };
 
             var firstView = rawTexture.CreateUAV(requestedKey);
             var secondView = rawTexture.GetUAV(normalizedKey);
@@ -362,8 +362,8 @@ public sealed class RawTextureTests
             var desc = firstView!.GetDesc();
             Assert.Equal(TextureViewType.TextureViewUnorderedAccess, desc.ViewType);
             Assert.Equal(ResourceDimension.ResourceDimTex2dArray, desc.TextureDim);
-            Assert.Equal((uint)1, desc.FirstArraySlice);
-            Assert.Equal((uint)3, desc.NumArraySlices);
+            Assert.Equal((uint)0, desc.FirstArraySlice);
+            Assert.Equal((uint)4, desc.NumArraySlices);
             Assert.Equal((uint)1, desc.MostDetailedMip);
             Assert.Equal((uint)2, desc.NumMipLevels);
             Assert.Equal(UavAccessFlag.UavAccessFlagWrite, desc.AccessFlags);
@@ -458,12 +458,14 @@ public sealed class RawTextureTests
         RbfxTestData.AddResourceDirs(_fixture.Resources);
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             action();
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);

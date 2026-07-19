@@ -456,7 +456,6 @@ public class RawTexture : DeviceObject
             if (scratchBuffer != 0)
                 GetRenderDevice()?.GetRenderPool().ReleaseScratchBuffer(scratchBuffer);
         }
-        MarkDirty();
     }
 
     public void Update(uint level, Vector3i offset, Vector3i size, uint arraySlice, byte[] data,

@@ -40,7 +40,9 @@ internal static class Program
         "-mno-avx512bw",
         "-mno-avx512cd",
         "-mno-avx512dq",
-        "-mno-avx512vl"
+        "-mno-avx512vl",
+        "-U__SSE__",
+        "-U__x86_64__"
     ];
 
     private static readonly string[] ParseWarningDisableArguments =
@@ -98,6 +100,11 @@ internal static class Program
         "WebPEncodeLosslessRGBA",
         "WebPEncodeLosslessRGB",
         "WebPFree"
+    };
+
+    private static readonly HashSet<string> UnsupportedGlslangFunctions = new(StringComparer.Ordinal)
+    {
+        "glslang_shader_set_resource_set_binding"
     };
 
     private static readonly HashSet<string> RetainedDiligentBaseInterfaceMethods = new(StringComparer.Ordinal)
@@ -556,7 +563,26 @@ internal static class Program
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
-        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "glslang" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
+        if (descriptor.Surface == "glslang")
+        {
+            var glslangPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                if (compilation.Members[index] is not FunctionBinding function ||
+                    !UnsupportedGlslangFunctions.Contains(function.NativeName))
+                {
+                    continue;
+                }
+
+                compilation.Members.RemoveAt(index);
+                glslangPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return glslangPrunedCount;
+        }
+
+        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
             return 0;
 
         if (descriptor.Surface == "webp")

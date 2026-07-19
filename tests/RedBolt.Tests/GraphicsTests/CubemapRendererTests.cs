@@ -241,12 +241,14 @@ public sealed class CubemapRendererTests
         RbfxTestData.AddResourceDirs(_fixture.Resources);
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             action();
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);

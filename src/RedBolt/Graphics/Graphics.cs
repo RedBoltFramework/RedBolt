@@ -91,11 +91,7 @@ layout(std140) uniform Material
     private readonly ITextureView?[] _renderTargets = new ITextureView?[RenderApiLimits.MaxRenderTargets];
     private readonly RenderTargetView[] _singleRenderTargetView = new RenderTargetView[1];
     private readonly IBuffer?[] _singleVertexBuffer = new IBuffer?[1];
-#if REDBOLT_PLATFORM_WEB
     private readonly ulong[] _singleVertexBufferOffset = new ulong[1];
-#else
-    private readonly nuint[] _singleVertexBufferOffset = new nuint[1];
-#endif
     private readonly Dictionary<Geometry, UploadedGeometry> _uploadedGeometries = new();
     private readonly Dictionary<Texture, UploadedTexture> _uploadedTextures = new();
     private readonly Dictionary<PipelineKey, PipelineResources> _pipelines = new();

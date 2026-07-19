@@ -1,3 +1,6 @@
 [submodule "extern/thirdparty/SharpCpp"]
 	path = extern/thirdparty/SharpCpp
 	url = git@github.com:RedBoltFramework/SharpCpp.git
+[submodule "extern/thirdparty/Diligent"]
+	path = extern/thirdparty/Diligent
+	url = https://github.com/DiligentGraphics/DiligentCore.git

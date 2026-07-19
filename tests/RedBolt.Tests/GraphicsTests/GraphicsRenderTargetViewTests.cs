@@ -23,7 +23,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new TextureCube("Textures/RenderTargetCube");
-            Assert.True(texture.SetSize(16, TextureFormat.RGBA8));
+            Assert.True(texture.SetSize(16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
 
             var firstView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
             var secondView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
@@ -116,7 +116,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2DArray("Textures/RenderTargetArray");
-            Assert.True(texture.SetSize(4u, 16, 16, TextureFormat.Depth24Stencil8));
+            Assert.True(texture.SetLayers(4u, 16, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
 
             var firstView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
             var secondView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
@@ -471,12 +471,14 @@ public sealed class GraphicsRenderTargetViewTests
         RbfxTestData.AddResourceDirs(_fixture.Resources);
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             action();
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);

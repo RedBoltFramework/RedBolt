@@ -155,6 +155,11 @@ file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
 ]=])
 file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
 #pragma once
+#include <cstdint>
+#if !PLATFORM_WEB
+#undef UINTPTR_MAX
+#define UINTPTR_MAX UINT64_MAX
+#endif
 #include <EngineFactoryOpenGL.h>
 #include <GraphicsAccessories.hpp>
 #include <RedBolt/DiligentSupport.hpp>

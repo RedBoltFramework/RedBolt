@@ -38,6 +38,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             Assert.Equal(_fixture.RenderDevice.GetCaps().MaxTextureSize,
@@ -55,6 +56,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -103,6 +105,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             var stats = _fixture.RenderContext.GetMutableStats();
@@ -118,6 +121,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -136,6 +140,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             var firstFrame = _fixture.RenderDevice.GetFrameIndex();
@@ -146,6 +151,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -165,6 +171,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             using var description = _fixture.RenderDevice.GetSwapChain()!.GetDesc();
@@ -179,6 +186,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -197,6 +205,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
@@ -209,6 +218,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -227,6 +237,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
@@ -240,6 +251,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -259,6 +271,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             var settings = _fixture.RenderDevice.GetWindowSettings();
@@ -278,6 +291,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -296,6 +310,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         var originalTitle = _fixture.Graphics.GetWindowTitle();
         var originalPosition = _fixture.Graphics.GetWindowPosition();
         try
@@ -351,6 +366,7 @@ public sealed class RenderDeviceTests
         {
             _fixture.Graphics.SetWindowTitle(originalTitle);
             _fixture.Graphics.SetWindowPosition(originalPosition);
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -369,6 +385,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             _fixture.RenderDevice.PostInitialize();
@@ -380,6 +397,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
@@ -398,6 +416,7 @@ public sealed class RenderDeviceTests
 
         _fixture.Input.Initialize(parameters);
         _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             _fixture.RenderDevice.PostInitialize();
@@ -420,6 +439,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
             _fixture.Graphics.Shutdown();
             _fixture.Input.Shutdown();
         }
