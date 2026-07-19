@@ -3,7 +3,7 @@
     <RedBoltBuildPropsImported>true</RedBoltBuildPropsImported>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
     <RedBoltBuildRoot>$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltBuildRoot>
-    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/SharpCpp'))</RedBoltSharpCppRoot>
+    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/extern/thirdparty/SharpCpp'))</RedBoltSharpCppRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
 
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Dependencies.Generator'">tools</RedBoltPlatform>

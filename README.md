@@ -7,6 +7,7 @@ Contributor and coding-session rules now live in `AGENTS.md`.
 ## Build
 
 ```bash
+git submodule update --init --recursive
 dotnet build RedBolt.slnx --configuration Debug
 ```
 

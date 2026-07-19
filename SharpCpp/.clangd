@@ -1,6 +1,0 @@
-CompileFlags:
-  Remove:
-    - -fmodules-ts
-    - -fmodule-mapper
-    - -fdeps-format
-  Add: [-std=c++20]

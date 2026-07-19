@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>SharpCpp.Metadata</AssemblyName>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="../SharpCpp.Model/SharpCpp.Model.csproj" />
-  </ItemGroup>
-</Project>

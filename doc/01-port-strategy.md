@@ -48,7 +48,6 @@ RedBolt/
   Directory.Build.props
   Directory.Packages.props
   RedBolt.slnx
-  SharpCpp/
   cmake/
     RedBoltSharpCpp.cmake
   extern/
@@ -57,6 +56,7 @@ RedBolt/
     ImGui/
     Compression/
     thirdparty/
+      SharpCpp/                         # git submodule
   native/
     RedBolt.Native/
       CMakeLists.txt
