@@ -684,7 +684,7 @@ public class RawTexture : DeviceObject
         else
         {
             CreateGPU();
-            SetDataLost(true);
+            _dataLost = true;
         }
         _levelsDirty = false;
         _resolveDirty = false;

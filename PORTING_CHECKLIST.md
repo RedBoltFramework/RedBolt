@@ -206,7 +206,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 
 - [x] `ConstantBufferCollection.h` — extensible collection class, mutable 12-byte POD block reference, native field/default order, reusable owned buffer storage, exact block allocation and parameter copies, full GPU-buffer upload range, approved managed `int` indices/sizes, and automatic lifetime reconciled
-- [~] `DeviceObject.h` / `DeviceObject.cpp` — destructor unregisters from `RenderDevice` deterministically; complete class-wide lifetime/copy audit remains pending
+- [x] `DeviceObject.h` / `DeviceObject.cpp` — complete concrete class shape, construction/registration, deterministic teardown, device-event state transitions, protected state, debug name, dependency restore, implicit copy semantics, and affected shutdown/reload call paths reconciled
 - [~] `RawTexture.h` / `RawTexture.cpp` and `RenderAPIDefs.h` — SamplerStateDesc inline value type, native field order/defaults, independent assignment/return, and immutable-sampler value insertion reconciled; complete class-wide audits remain pending
 
 ## [x] A8. Shader — depends on Core, IO (feeds Graphics)

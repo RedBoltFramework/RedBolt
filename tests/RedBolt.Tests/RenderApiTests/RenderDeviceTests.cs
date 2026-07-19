@@ -532,6 +532,8 @@ public sealed class RenderDeviceTests
             Assert.Equal(1, deviceObject.InvalidateCalls);
             Assert.Equal(1, deviceObject.RestoreCalls);
             Assert.Equal(0, deviceObject.DestroyCalls);
+            Assert.True(deviceObject.IsDataLost());
+            deviceObject.ClearDataLost();
             Assert.False(deviceObject.IsDataLost());
         }
         finally
@@ -541,6 +543,7 @@ public sealed class RenderDeviceTests
 
         Assert.NotNull(deviceObject);
         Assert.Equal(1, deviceObject!.DestroyCalls);
+        Assert.Null(deviceObject.GetRenderDevice());
     }
 
     [Fact]
@@ -597,7 +600,7 @@ public sealed class RenderDeviceTests
 
             renderDevice.RestoreDeviceState();
             Assert.Equal(1, deviceObject.RestoreCalls);
-            Assert.False(deviceObject.IsDataLost());
+            Assert.True(deviceObject.IsDataLost());
         }
         finally
         {

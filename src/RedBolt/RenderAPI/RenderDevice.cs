@@ -767,6 +767,8 @@ public sealed class RenderDevice : Object
     internal void OnEngineShutdown()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
+        lock (_deviceObjectsLock)
+            _deviceObjects.Clear();
         _renderPool.Invalidate();
     }
 

@@ -60,7 +60,7 @@ public class RawBuffer : DeviceObject
         if (!ShouldCreateWithInitialData() && _shadowData.Length != 0)
             UploadRange(_shadowData, 0, _parameters.Size);
 
-        SetDataLost(_shadowData.Length == 0);
+        _dataLost = _shadowData.Length == 0;
     }
 
     public override void Destroy()

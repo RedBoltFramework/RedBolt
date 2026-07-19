@@ -203,7 +203,7 @@ public sealed class PipelineStateCacheTests
             var vertexBytecode = desc.VertexShader!.GetBytecode();
             desc.VertexShader.CreateFromBinary(vertexBytecode);
             Assert.False(state.IsValid);
-            Assert.True(state.IsDataLost());
+            Assert.False(state.IsDataLost());
 
             _fixture.RenderDevice.Present();
             Assert.True(state.IsValid);
