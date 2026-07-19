@@ -6,9 +6,23 @@ namespace RedBolt.Tests;
 public sealed class MountPointTests
 {
     [Fact]
+    public void MountPoint_types_are_extensible_noncopyable_classes()
+    {
+        Assert.True(typeof(MountPoint).IsClass);
+        Assert.True(typeof(MountPoint).IsAbstract);
+        Assert.False(typeof(MountPoint).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(MountPoint)));
+
+        Assert.True(typeof(WatchableMountPoint).IsClass);
+        Assert.True(typeof(WatchableMountPoint).IsAbstract);
+        Assert.False(typeof(WatchableMountPoint).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(WatchableMountPoint)));
+    }
+
+    [Fact]
     public void MountPoint_default_implementations_match_rbfx()
     {
-        var mountPoint = new TestMountPoint();
+        using var mountPoint = new TestMountPoint();
         var existing = new FileIdentifier(string.Empty, "existing");
         var missing = new FileIdentifier(string.Empty, "missing");
 
@@ -25,7 +39,7 @@ public sealed class MountPointTests
     [Fact]
     public void WatchableMountPoint_starts_and_stops_only_on_state_changes()
     {
-        var mountPoint = new TestWatchableMountPoint();
+        using var mountPoint = new TestWatchableMountPoint();
 
         mountPoint.SetWatching(true);
         mountPoint.SetWatching(true);
