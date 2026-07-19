@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Named pipe for interprocess communication.</summary>
-public sealed class NamedPipe : AbstractFile
+public class NamedPipe : AbstractFile
 {
     /// <summary>Construct.</summary>
     public NamedPipe()
@@ -87,6 +87,7 @@ public sealed class NamedPipe : AbstractFile
         Close();
 
         _isServer = false;
+        _cancellation = new CancellationTokenSource();
 
         try
         {
@@ -138,7 +139,7 @@ public sealed class NamedPipe : AbstractFile
     /// <summary>Close the pipe. Note that once a client has disconnected, the server needs to close and reopen the pipe so that another client can connect.</summary>
     public override void Close()
     {
-        _cancellation.Cancel();
+        _cancellation?.Cancel();
         _connected = false;
 
         if (_pipe is not null)
@@ -147,11 +148,17 @@ public sealed class NamedPipe : AbstractFile
             _pipe = null;
         }
 
+        if (_readTask is not null)
+        {
+            _readTask.GetAwaiter().GetResult();
+            _readTask = null;
+        }
+
         lock (_readMutex)
             _readBuffer.Clear();
 
-        _cancellation.Dispose();
-        _cancellation = new CancellationTokenSource();
+        _cancellation?.Dispose();
+        _cancellation = null;
         _isServer = false;
         _name = string.Empty;
     }
@@ -214,6 +221,6 @@ public sealed class NamedPipe : AbstractFile
     private bool _connected;
     private readonly Queue<byte> _readBuffer = new();
     private readonly object _readMutex = new();
-    private CancellationTokenSource _cancellation = new();
+    private CancellationTokenSource? _cancellation;
     private Task? _readTask;
 }

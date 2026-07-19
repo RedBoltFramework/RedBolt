@@ -7,6 +7,14 @@ namespace RedBolt.Tests;
 public sealed class NamedPipeTests
 {
     [Fact]
+    public void NamedPipe_is_an_extensible_noncopyable_class()
+    {
+        Assert.True(typeof(NamedPipe).IsClass);
+        Assert.False(typeof(NamedPipe).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(NamedPipe)));
+    }
+
+    [Fact]
     public void NamedPipe_server_and_client_exchange_bytes()
     {
         var name = "RedBoltNamedPipe-" + Guid.NewGuid().ToString("N");
@@ -41,6 +49,25 @@ public sealed class NamedPipeTests
         Assert.False(pipe.IsOpen);
         Assert.False(pipe.IsServer());
         Assert.True(pipe.IsEof());
+    }
+
+    [Fact]
+    public void NamedPipe_can_close_and_reopen_after_read_loop_teardown()
+    {
+        var firstName = "RedBoltNamedPipe-" + Guid.NewGuid().ToString("N");
+        var secondName = "RedBoltNamedPipe-" + Guid.NewGuid().ToString("N");
+        using var server = new NamedPipe(firstName, true);
+        using var client = new NamedPipe(firstName, false);
+
+        Assert.True(server.IsOpen);
+        server.Close();
+        client.Close();
+
+        Assert.True(server.Open(secondName, true));
+        Assert.True(client.Open(secondName, false));
+        Assert.Equal(1u, client.Write(new byte[] { 42 }));
+        Assert.True(TryRead(server, 1, out var received));
+        Assert.Equal(new byte[] { 42 }, received);
     }
 
     private static bool TryRead(NamedPipe pipe, int size, out byte[] result)
