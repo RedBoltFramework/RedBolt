@@ -437,7 +437,7 @@ public enum TextureCoordinate
 }
 
 /// <summary>Description of the single input required by the vertex shader.</summary>
-public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, uint SemanticIndex, uint InputIndex);
+public readonly record struct VertexShaderAttribute(VertexElementSemantic Semantic, int SemanticIndex, int InputIndex);
 
 /// <summary>Description of immutable texture sampler bound to the pipeline.</summary>
 public struct SamplerStateDesc : IEquatable<SamplerStateDesc>
@@ -1066,33 +1066,12 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 
     internal static void AddRawShaderHash(ref HashCode hash, RawShader? shader)
     {
-        if (shader is ShaderVariation shaderVariation)
-        {
-            hash.Add(shaderVariation.Name, StringComparer.Ordinal);
-            hash.Add(shaderVariation.GetShaderType());
-            hash.Add(shaderVariation.Defines, StringComparer.Ordinal);
-            return;
-        }
-
-        hash.Add(shader?.GetShaderType());
-        if (shader is not null)
-            hash.Add(shader.GetBytecode());
+        hash.Add(shader is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(shader));
     }
 
     internal static bool RawShaderEquals(RawShader? lhs, RawShader? rhs)
     {
-        if (lhs is null || rhs is null)
-            return lhs is null && rhs is null;
-
-        if (lhs is ShaderVariation lhsVariation && rhs is ShaderVariation rhsVariation)
-        {
-            return lhsVariation.GetShaderType() == rhsVariation.GetShaderType()
-                && string.Equals(lhsVariation.Name, rhsVariation.Name, StringComparison.Ordinal)
-                && string.Equals(lhsVariation.Defines, rhsVariation.Defines, StringComparison.Ordinal);
-        }
-
-        return lhs.GetShaderType() == rhs.GetShaderType()
-            && lhs.GetBytecode().Equals(rhs.GetBytecode());
+        return ReferenceEquals(lhs, rhs);
     }
 }
 

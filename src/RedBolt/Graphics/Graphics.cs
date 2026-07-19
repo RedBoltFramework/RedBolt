@@ -2228,8 +2228,8 @@ layout(std140) uniform Material
                     {
                         vertexAttributes.Add(attribute.Value with
                         {
-                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
-                                temporaryGlProgram, i)
+                            InputIndex = checked((int)DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                                temporaryGlProgram, i))
                         });
                     }
                 }
@@ -4163,8 +4163,8 @@ layout(std140) uniform Material
     private static LayoutElementSpec[] ApplyVertexAttributeLocations(LayoutElementSpec[] layoutElements,
         IReadOnlyList<VertexShaderAttribute> vertexAttributes)
     {
-        var inputIndices = new uint[layoutElements.Length];
-        Array.Fill(inputIndices, uint.MaxValue);
+        var inputIndices = new int[layoutElements.Length];
+        Array.Fill(inputIndices, -1);
         foreach (var attribute in vertexAttributes)
         {
             // For each attribute, find the latest element in the layout that matches the attribute.
@@ -4188,14 +4188,14 @@ layout(std140) uniform Material
         var result = new List<LayoutElementSpec>(layoutElements.Length);
         for (var i = 0; i < layoutElements.Length; ++i)
         {
-            if (inputIndices[i] != uint.MaxValue)
+            if (inputIndices[i] != -1)
                 result.Add(layoutElements[i] with { InputIndex = inputIndices[i] });
         }
         return result.ToArray();
     }
 
     private static void AddLayoutElement(List<LayoutElementSpec> target, VertexBuffer vertexBuffer,
-        VertexElementSemantic semantic, byte index, uint inputIndex)
+        VertexElementSemantic semantic, byte index, int inputIndex)
     {
         var elements = vertexBuffer.GetElements();
         var element = default(VertexElement);
@@ -4940,7 +4940,7 @@ layout(std140) uniform Material
     }
 
     private readonly record struct LayoutElementSpec(
-        uint InputIndex,
+        int InputIndex,
         uint BufferSlot,
         uint NumComponents,
         global::RedBolt.Bindings.Diligent.ValueType ValueType,
@@ -4950,7 +4950,7 @@ layout(std140) uniform Material
         InputElementFrequency Frequency,
         uint InstanceDataStepRate,
         VertexElementSemantic Semantic = VertexElementSemantic.Position,
-        uint SemanticIndex = 0)
+        int SemanticIndex = 0)
     {
         public LayoutElementSpec()
             : this(0, 0, 0, global::RedBolt.Bindings.Diligent.ValueType.VtFloat32, false, 0, 0,
@@ -5168,7 +5168,7 @@ layout(std140) uniform Material
                 using var element = LayoutElement.CreateManagedWrapper(ptr, ownsHandle: false);
                 var spec = elements[i];
                 element.HLSLSemantic = _semantic.Pointer;
-                element.InputIndex = spec.InputIndex;
+                element.InputIndex = checked((uint)spec.InputIndex);
                 element.BufferSlot = spec.BufferSlot;
                 element.NumComponents = spec.NumComponents;
                 element.ValueType = spec.ValueType;

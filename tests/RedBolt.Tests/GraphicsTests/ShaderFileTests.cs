@@ -97,6 +97,16 @@ public sealed class ShaderFileTests
     public void Shader_reload_caches_normalized_variations_and_indexes_files()
     {
         RbfxTestData.AddResourceDirs(Resources);
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.ShaderFileTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             var shader = Resources.GetResource<Shader>("LitSolid");
@@ -105,7 +115,7 @@ public sealed class ShaderFileTests
 
             var first = shader.GetVariation(ShaderType.VS, "A B");
             var variationReloadCount = 0;
-            first.Reloaded += () => ++variationReloadCount;
+            first.OnReloaded += () => ++variationReloadCount;
 
             Assert.True(shader.Reload());
             Assert.Equal(1, reloadCount);
@@ -124,6 +134,9 @@ public sealed class ShaderFileTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(Resources);
         }
     }

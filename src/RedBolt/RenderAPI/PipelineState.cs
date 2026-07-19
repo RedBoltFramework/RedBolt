@@ -119,7 +119,7 @@ public class PipelineState : DeviceObject
         {
             if (shader is null)
                 continue;
-            shader.Reloaded += OnShaderReloaded;
+            shader.OnReloaded += OnShaderReloaded;
             _subscribedShaders.Add(shader);
         }
     }
@@ -127,7 +127,7 @@ public class PipelineState : DeviceObject
     private void UnsubscribeFromShaders()
     {
         foreach (var shader in _subscribedShaders)
-            shader.Reloaded -= OnShaderReloaded;
+            shader.OnReloaded -= OnShaderReloaded;
         _subscribedShaders.Clear();
     }
 
@@ -242,8 +242,8 @@ public class PipelineState : DeviceObject
                     {
                         vertexAttributes.Add(attribute.Value with
                         {
-                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
-                                temporaryGlProgram, (uint)i)
+                            InputIndex = checked((int)DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                                temporaryGlProgram, (uint)i))
                         });
                     }
                     else
@@ -453,8 +453,8 @@ public class PipelineState : DeviceObject
         public TemporaryLayoutArray(ReadOnlySpan<InputLayoutElementDesc> elements,
             IReadOnlyList<VertexShaderAttribute> attributes)
         {
-            var inputIndices = new uint[elements.Length];
-            Array.Fill(inputIndices, uint.MaxValue);
+            var inputIndices = new int[elements.Length];
+            Array.Fill(inputIndices, -1);
             foreach (var attribute in attributes)
             {
                 var isFound = false;
@@ -480,7 +480,7 @@ public class PipelineState : DeviceObject
             Count = 0;
             foreach (var inputIndex in inputIndices)
             {
-                if (inputIndex != uint.MaxValue)
+                if (inputIndex != -1)
                     ++Count;
             }
             var elementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
@@ -488,12 +488,12 @@ public class PipelineState : DeviceObject
             var destinationIndex = 0;
             for (var i = 0; i < elements.Length; ++i)
             {
-                if (inputIndices[i] == uint.MaxValue)
+                if (inputIndices[i] == -1)
                     continue;
                 var native = LayoutElement.CreateManagedWrapper(_memory + destinationIndex++ * elementSize, false);
                 var source = elements[i];
                 var type = GetElementType(source.ElementType);
-                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = inputIndices[i]; native.BufferSlot = source.BufferIndex;
+                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = checked((uint)inputIndices[i]); native.BufferSlot = source.BufferIndex;
                 native.NumComponents = type.Components; native.ValueType = type.Type; native.IsNormalized = type.Normalized;
                 native.RelativeOffset = source.ElementOffset; native.Stride = source.BufferStride;
                 native.Frequency = source.InstanceStepRate != 0 ? InputElementFrequency.InputElementFrequencyPerInstance : InputElementFrequency.InputElementFrequencyPerVertex;

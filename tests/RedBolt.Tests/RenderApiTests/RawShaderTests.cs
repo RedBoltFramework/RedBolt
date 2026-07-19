@@ -23,14 +23,14 @@ public sealed class RawShaderTests
         original.VertexAttributes.Add(new VertexShaderAttribute(VertexElementSemantic.Position, 0, 0));
         original.VertexAttributes.Add(new VertexShaderAttribute(VertexElementSemantic.Normal, 0, 0));
 
-        using var stream = new MemoryStream();
-        Assert.True(original.SaveToFile(stream));
+        using var buffer = new VectorBuffer();
+        Assert.True(original.SaveToFile(buffer));
 
-        stream.Position = 0;
+        buffer.Seek(0);
         var restored = new ShaderBytecode();
 
-        Assert.True(restored.LoadFromFile(stream));
-        Assert.Equal(original, restored);
+        Assert.True(restored.LoadFromFile(buffer));
+        AssertShaderBytecodeEqual(original, restored);
     }
 
     [Fact]
@@ -49,7 +49,30 @@ public sealed class RawShaderTests
         var input = new JSONInputArchive(output.ToJsonString());
         using (input.OpenUnorderedBlock("shader")) restored.SerializeInBlock(input);
 
-        Assert.Equal(original, restored);
+        AssertShaderBytecodeEqual(original, restored);
+    }
+
+    [Fact]
+    public void Shader_bytecode_and_vertex_attributes_match_native_value_types()
+    {
+        Assert.True(typeof(ShaderBytecode).IsValueType);
+        Assert.True(typeof(VertexShaderAttribute).IsValueType);
+        Assert.Equal(typeof(int), typeof(VertexShaderAttribute).GetProperty(nameof(VertexShaderAttribute.SemanticIndex))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(VertexShaderAttribute).GetProperty(nameof(VertexShaderAttribute.InputIndex))!.PropertyType);
+
+        var original = new ShaderBytecode(ShaderType.VS)
+        {
+            Mime = "application/spirv",
+            Bytecode = [1, 2, 3]
+        };
+        original.VertexAttributes.Add(new VertexShaderAttribute(VertexElementSemantic.Position, 0, 2));
+
+        var copy = (ShaderBytecode)original.Clone();
+        copy.Bytecode[0] = 9;
+        copy.VertexAttributes[0] = new VertexShaderAttribute(VertexElementSemantic.Normal, 1, 4);
+
+        Assert.Equal((byte)1, original.Bytecode[0]);
+        Assert.Equal(new VertexShaderAttribute(VertexElementSemantic.Position, 0, 2), original.VertexAttributes[0]);
     }
 
     [Fact]
@@ -58,7 +81,7 @@ public sealed class RawShaderTests
         var bytecode = new ShaderBytecode(ShaderType.CS)
         {
             Mime = "application/spirv",
-            Bytecode = [7, 8, 9]
+            Bytecode = []
         };
 
         var first = new ComputePipelineStateDesc
@@ -154,5 +177,13 @@ public sealed class RawShaderTests
             _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
+    }
+
+    private static void AssertShaderBytecodeEqual(in ShaderBytecode expected, in ShaderBytecode actual)
+    {
+        Assert.Equal(expected.Type, actual.Type);
+        Assert.Equal(expected.Mime, actual.Mime);
+        Assert.Equal(expected.Bytecode, actual.Bytecode);
+        Assert.Equal(expected.VertexAttributes, actual.VertexAttributes);
     }
 }

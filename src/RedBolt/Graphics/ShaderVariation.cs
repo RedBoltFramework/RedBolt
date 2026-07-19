@@ -67,7 +67,7 @@ public sealed class ShaderVariation : RawShader
         return true;
     }
 
-    private void OnReloaded()
+    private new void OnReloaded()
     {
         Create();
     }
@@ -119,13 +119,8 @@ public sealed class ShaderVariation : RawShader
 
         try
         {
-            var data = new byte[checked((int)file.Size)];
-            if (file.Read(data) != (uint)data.Length)
-                return false;
-
-            using var stream = new MemoryStream(data, writable: false);
             var bytecode = new ShaderBytecode();
-            if (!bytecode.LoadFromFile(stream) || bytecode.Mime != GetCompiledShaderMime(GetRenderBackend()))
+            if (!bytecode.LoadFromFile(file) || bytecode.Mime != GetCompiledShaderMime(GetRenderBackend()))
                 return false;
 
             CreateFromBinary(bytecode);
@@ -153,11 +148,7 @@ public sealed class ShaderVariation : RawShader
 
         try
         {
-            using var stream = new MemoryStream();
-            if (!GetBytecode().SaveToFile(stream))
-                return;
-
-            _ = file.Write(stream.GetBuffer().AsSpan(0, checked((int)stream.Length)));
+            _ = GetBytecode().SaveToFile(file);
         }
         finally
         {

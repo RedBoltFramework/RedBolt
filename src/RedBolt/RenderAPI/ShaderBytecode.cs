@@ -1,178 +1,117 @@
-using System.Text;
-
 namespace RedBolt;
 
-public sealed class ShaderBytecode : IEquatable<ShaderBytecode>
+public struct ShaderBytecode : ICloneable
 {
-    /// <summary>
-    /// Version of the shader bytecode format. Increment when serialization format changes.
-    /// </summary>
     public const uint Version = 1;
+
+    public ShaderType Type;
+    public string Mime;
+    public byte[] Bytecode;
+    public List<VertexShaderAttribute> VertexAttributes;
 
     public ShaderBytecode()
     {
+        Mime = string.Empty;
+        Bytecode = [];
+        VertexAttributes = [];
     }
 
     public ShaderBytecode(ShaderType type)
+        : this()
     {
         Type = type;
     }
 
-    public ShaderBytecode(ShaderBytecode? other)
+    private ShaderBytecode(in ShaderBytecode other)
     {
-        if (other is null)
-            return;
-
         Type = other.Type;
-        Mime = other.Mime;
-        Bytecode = [.. other.Bytecode];
-        VertexAttributes.AddRange(other.VertexAttributes);
+        Mime = other.Mime ?? string.Empty;
+        Bytecode = [.. other.Bytecode ?? []];
+        VertexAttributes = [.. other.VertexAttributes ?? []];
     }
-
-    public ShaderType Type { get; set; }
-
-    public string Mime { get; set; } = string.Empty;
-
-    public byte[] Bytecode { get; set; } = [];
-
-    /// <summary>
-    /// Vertex input layout, if applicable.
-    /// </summary>
-    public List<VertexShaderAttribute> VertexAttributes { get; } = [];
-
-    public bool IsEmpty() => Bytecode.Length == 0;
 
     public void SerializeInBlock(Archive archive)
     {
         ArgumentNullException.ThrowIfNull(archive);
-        var type = Type;
-        var mime = Mime;
-        ArchiveSerialization.SerializeEnum(archive, "type", ref type, Enum.GetNames<ShaderType>());
-        ArchiveSerialization.SerializeValue(archive, "mime", ref mime);
-        var bytecode = new Variant(Bytecode);
-        ArchiveSerialization.SerializeVariantAsType(archive, "bytecode", ref bytecode, VariantType.Buffer);
+        Mime ??= string.Empty;
+        Bytecode ??= [];
+        VertexAttributes ??= [];
 
-        var count = archive.IsInput ? 0u : (uint)VertexAttributes.Count;
+        var version = archive.SerializeVersion(Version);
+        if (version != Version)
+            throw new InvalidOperationException("Compiled shader version is outdated, cached shader is ignored");
+
+        ArchiveSerialization.SerializeEnum(archive, "type", ref Type, Enum.GetNames<ShaderType>());
+        ArchiveSerialization.SerializeValue(archive, "mime", ref Mime);
+
+        var bytecode = new Variant(Bytecode);
+        try
+        {
+            ArchiveSerialization.SerializeVariantAsType(archive, "bytecode", ref bytecode, VariantType.Buffer);
+            if (archive.IsInput)
+                Bytecode = bytecode.GetBuffer();
+        }
+        finally
+        {
+            bytecode.Dispose();
+        }
+
+        var count = archive.IsInput ? 0u : checked((uint)VertexAttributes.Count);
         using var attributesBlock = archive.OpenArrayBlock("vertexAttributes", count);
         if (archive.IsInput)
-        {
-            Type = type;
-            Mime = mime;
-            Bytecode = bytecode.GetBuffer();
             VertexAttributes.Clear();
-            for (var i = 0u; i < attributesBlock.SizeHint; ++i)
-            {
-                using var itemBlock = archive.OpenUnorderedBlock("attribute");
-                VertexAttributes.Add(SerializeAttribute(archive, default));
-            }
-        }
-        else
+
+        for (var i = 0; i < checked((int)attributesBlock.SizeHint); ++i)
         {
-            foreach (var attribute in VertexAttributes)
-            {
-                using var itemBlock = archive.OpenUnorderedBlock("attribute");
-                SerializeAttribute(archive, attribute);
-            }
+            var attribute = archive.IsInput ? default : VertexAttributes[i];
+            using var itemBlock = archive.OpenUnorderedBlock("vertexAttribute");
+            SerializeAttribute(archive, ref attribute);
+            if (archive.IsInput)
+                VertexAttributes.Add(attribute);
         }
     }
 
-    private static VertexShaderAttribute SerializeAttribute(Archive archive, VertexShaderAttribute value)
+    public bool SaveToFile(Serializer destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        var value = this;
+        return ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var archive = new BinaryOutputArchive(Context.Instance, destination);
+            using (archive.OpenUnorderedBlock("compiledShaderVariation"))
+                value.SerializeInBlock(archive);
+            archive.Flush();
+        }, false);
+    }
+
+    public bool LoadFromFile(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var value = this;
+        var loaded = ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var archive = new BinaryInputArchive(Context.Instance, source);
+            using (archive.OpenUnorderedBlock("compiledShaderVariation"))
+                value.SerializeInBlock(archive);
+        }, false);
+
+        this = loaded ? value : new ShaderBytecode();
+        return loaded;
+    }
+
+    public bool IsEmpty() => Bytecode is null || Bytecode.Length == 0;
+
+    public object Clone() => new ShaderBytecode(this);
+
+    private static void SerializeAttribute(Archive archive, ref VertexShaderAttribute value)
     {
         var semantic = value.Semantic;
-        var semanticIndex = value.SemanticIndex;
-        var inputIndex = value.InputIndex;
+        var semanticIndex = archive.IsInput ? 0u : checked((uint)value.SemanticIndex);
+        var inputIndex = archive.IsInput ? 0u : checked((uint)value.InputIndex);
         ArchiveSerialization.SerializeEnum(archive, "semantic", ref semantic, Enum.GetNames<VertexElementSemantic>());
         ArchiveSerialization.SerializeValue(archive, "semanticIndex", ref semanticIndex);
         ArchiveSerialization.SerializeValue(archive, "inputIndex", ref inputIndex);
-        return new VertexShaderAttribute(semantic, semanticIndex, inputIndex);
-    }
-
-    public bool SaveToFile(Stream destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        try
-        {
-            using var writer = new BinaryWriter(destination, Encoding.UTF8, leaveOpen: true);
-            writer.Write(Version);
-            writer.Write((int)Type);
-            writer.Write(Mime);
-            writer.Write(Bytecode.Length);
-            writer.Write(Bytecode);
-            writer.Write(VertexAttributes.Count);
-            foreach (var attribute in VertexAttributes)
-            {
-                writer.Write((byte)attribute.Semantic);
-                writer.Write(attribute.SemanticIndex);
-                writer.Write(attribute.InputIndex);
-            }
-
-            writer.Flush();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public bool LoadFromFile(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        try
-        {
-            using var reader = new BinaryReader(source, Encoding.UTF8, leaveOpen: true);
-            var version = reader.ReadUInt32();
-            if (version != Version)
-                throw new InvalidDataException("Compiled shader version is outdated.");
-
-            Type = (ShaderType)reader.ReadInt32();
-            Mime = reader.ReadString();
-            Bytecode = reader.ReadBytes(reader.ReadInt32());
-
-            VertexAttributes.Clear();
-            var attributeCount = reader.ReadInt32();
-            for (var i = 0; i < attributeCount; ++i)
-            {
-                VertexAttributes.Add(new VertexShaderAttribute(
-                    (VertexElementSemantic)reader.ReadByte(),
-                    reader.ReadUInt32(),
-                    reader.ReadUInt32()));
-            }
-
-            return true;
-        }
-        catch
-        {
-            Type = default;
-            Mime = string.Empty;
-            Bytecode = [];
-            VertexAttributes.Clear();
-            return false;
-        }
-    }
-
-    public bool Equals(ShaderBytecode? other)
-    {
-        if (other is null)
-            return false;
-
-        return Type == other.Type
-            && string.Equals(Mime, other.Mime, StringComparison.Ordinal)
-            && Bytecode.AsSpan().SequenceEqual(other.Bytecode)
-            && ManagedSequence.Equal(VertexAttributes, other.VertexAttributes);
-    }
-
-    public override bool Equals(object? obj) => Equals(obj as ShaderBytecode);
-
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(Type);
-        hash.Add(Mime, StringComparer.Ordinal);
-        foreach (var value in Bytecode)
-            hash.Add(value);
-        foreach (var attribute in VertexAttributes)
-            hash.Add(attribute);
-        return hash.ToHashCode();
+        if (archive.IsInput)
+            value = new VertexShaderAttribute(semantic, checked((int)semanticIndex), checked((int)inputIndex));
     }
 }

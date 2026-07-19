@@ -5,9 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ShaderTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
     public ShaderTests(HeadlessEngineFixture fixture)
     {
-        _ = fixture;
+        _fixture = fixture;
     }
 
     [Fact]
@@ -20,13 +22,34 @@ public sealed class ShaderTests
     [Fact]
     public void Dispose_releases_aliased_variations_once()
     {
-        var shader = new Shader("Shaders/GLSL/v2/UnitTest.glsl");
-        var variation = shader.GetVariation(ShaderType.VS, "BAR FOO");
-        var alias = shader.GetVariation(ShaderType.VS, "foo bar");
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.ShaderTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
+        try
+        {
+            var shader = new Shader("Shaders/GLSL/v2/UnitTest.glsl");
+            var variation = shader.GetVariation(ShaderType.VS, "BAR FOO");
+            var alias = shader.GetVariation(ShaderType.VS, "foo bar");
 
-        Assert.Same(variation, alias);
+            Assert.Same(variation, alias);
 
-        shader.Dispose();
-        shader.Dispose();
+            shader.Dispose();
+            shader.Dispose();
+        }
+        finally
+        {
+            _fixture.RenderDevice.InvalidateDeviceState();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
+        }
     }
 }

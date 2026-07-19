@@ -425,7 +425,7 @@ public static class ShaderTranslator
                 var name = Marshal.PtrToStringUTF8(input.Name) ?? string.Empty;
                 var vertexInput = RenderAPIUtils.ParseVertexAttribute(name);
                 if (vertexInput is not null)
-                    result.Add(vertexInput.Value with { InputIndex = location });
+                    result.Add(vertexInput.Value with { InputIndex = checked((int)location) });
             }
             return result;
         }

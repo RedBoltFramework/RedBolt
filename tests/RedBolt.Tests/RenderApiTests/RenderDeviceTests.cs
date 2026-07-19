@@ -619,8 +619,8 @@ public sealed class RenderDeviceTests
     {
         var desc = new GraphicsPipelineStateDesc
         {
-            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
-            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
+            VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
+            PixelShader = new RawShader(new ShaderBytecode(ShaderType.PS))
         };
         using var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc(desc));
         pipelineState.SetDebugName("TestPipeline");

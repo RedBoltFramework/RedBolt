@@ -26,8 +26,8 @@ public sealed class PipelineStateCacheTests
         var cache = new PipelineStateCache();
         var graphicsDesc = new GraphicsPipelineStateDesc
         {
-            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
-            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
+            VertexShader = CreateRawShader(ShaderType.VS),
+            PixelShader = CreateRawShader(ShaderType.PS)
         };
         var pipelineState = cache.GetGraphicsPipelineState(graphicsDesc);
         Assert.NotNull(pipelineState);
@@ -47,8 +47,8 @@ public sealed class PipelineStateCacheTests
     [Fact]
     public void Graphics_pipeline_state_desc_supports_value_semantics_and_initialization()
     {
-        var vertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/UnitTest.glsl"), ShaderType.VS, "FOO");
-        var pixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/UnitTest.glsl"), ShaderType.PS, "BAR");
+        var vertexShader = CreateRawShader(ShaderType.VS);
+        var pixelShader = CreateRawShader(ShaderType.PS);
 
         var first = new GraphicsPipelineStateDesc
         {
@@ -98,8 +98,8 @@ public sealed class PipelineStateCacheTests
         {
             DebugName = "CloneMe",
             PrimitiveType = PrimitiveType.TriangleList,
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.VS, string.Empty),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Clone.glsl"), ShaderType.PS, string.Empty)
+            VertexShader = CreateRawShader(ShaderType.VS),
+            PixelShader = CreateRawShader(ShaderType.PS)
         };
         graphicsDesc.InputLayout.SetElements(
             new InputLayoutElementDesc(0, 16, 0, 0, VertexElementType.Vector4, VertexElementSemantic.Position, 0));
@@ -127,8 +127,8 @@ public sealed class PipelineStateCacheTests
         var first = new GraphicsPipelineStateDesc
         {
             DebugName = "SharedState",
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Shared.glsl"), ShaderType.VS, "UNIT"),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Shared.glsl"), ShaderType.PS, "UNIT")
+            VertexShader = CreateRawShader(ShaderType.VS),
+            PixelShader = CreateRawShader(ShaderType.PS)
         };
         first.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 
@@ -158,8 +158,8 @@ public sealed class PipelineStateCacheTests
         var desc = new GraphicsPipelineStateDesc
         {
             DebugName = "RestoreState",
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.VS, string.Empty),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Restore.glsl"), ShaderType.PS, string.Empty)
+            VertexShader = CreateRawShader(ShaderType.VS),
+            PixelShader = CreateRawShader(ShaderType.PS)
         };
         desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 
@@ -176,8 +176,8 @@ public sealed class PipelineStateCacheTests
         var desc = new GraphicsPipelineStateDesc
         {
             DebugName = "DisposableState",
-            VertexShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.VS, string.Empty),
-            PixelShader = new ShaderVariation(new Shader("Shaders/GLSL/v2/Disposable.glsl"), ShaderType.PS, string.Empty)
+            VertexShader = CreateRawShader(ShaderType.VS),
+            PixelShader = CreateRawShader(ShaderType.PS)
         };
         desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
 
@@ -210,7 +210,7 @@ public sealed class PipelineStateCacheTests
                 ColorWriteEnabled = true,
                 DepthCompareFunction = CompareMode.Always,
                 PrimitiveType = PrimitiveType.TriangleList,
-                VertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture"),
+                VertexShader = new TestRawShader(_fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture")!.GetBytecode()),
                 PixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture")
             };
             desc.InputLayout.SetElements(new InputLayoutElementDesc(
@@ -227,7 +227,7 @@ public sealed class PipelineStateCacheTests
             Assert.NotNull(state.GetReflection());
 
             var vertexBytecode = desc.VertexShader!.GetBytecode();
-            desc.VertexShader.CreateFromBinary(vertexBytecode);
+            ((TestRawShader)desc.VertexShader).Reload(vertexBytecode);
             Assert.False(state.IsValid);
             Assert.False(state.IsDataLost());
 
@@ -236,6 +236,13 @@ public sealed class PipelineStateCacheTests
             Assert.False(state.IsDataLost());
         });
     }
+
+    private sealed class TestRawShader(ShaderBytecode bytecode) : RawShader(bytecode)
+    {
+        public void Reload(ShaderBytecode value) => CreateFromBinary(value);
+    }
+
+    private static RawShader CreateRawShader(ShaderType type) => new(new ShaderBytecode(type));
 
     private void WithInitializedGraphics(Action action)
     {

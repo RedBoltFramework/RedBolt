@@ -214,84 +214,96 @@ public sealed class RenderPipelineTests
     [Fact]
     public void Render_pipeline_view_updates_and_renders_enabled_passes()
     {
-        var scene = new Scene();
-        scene.CreateComponent<Octree>();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
-        var trackingPass = new TrackingRenderPass("Tracking");
-        renderPath.AddPass(trackingPass);
-        renderPipeline.SetRenderPath(renderPath);
-
-        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
-        var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
-        var view = renderPipeline.Instantiate();
-
-        var beginUpdateCalls = 0;
-        var endUpdateCalls = 0;
-        var beginRenderCalls = 0;
-        var buffersReadyCalls = 0;
-        var endRenderCalls = 0;
-        var beginRenderingCalls = 0;
-        var endRenderingCalls = 0;
-        var lifecycle = new List<string>();
-        view.UpdateBegin += _ => lifecycle.Add("UpdateBeginSignal");
-        view.UpdateEnd += _ => lifecycle.Add("UpdateEndSignal");
-        view.RenderBegin += _ => lifecycle.Add("RenderBeginSignal");
-        view.RenderEnd += _ => lifecycle.Add("RenderEndSignal");
-        using var beginUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewUpdateEvent>((ref GraphicsEvents.BeginViewUpdateEvent eventData) =>
+        var parameters = new EngineParameters
         {
-            ++beginUpdateCalls;
-            lifecycle.Add("BeginViewUpdateEvent");
-            Assert.Same(view, eventData.RenderPipelineView);
-            Assert.Null(eventData.Texture);
-            Assert.Null(eventData.Surface);
-            Assert.Same(scene, eventData.Scene);
-            Assert.Same(camera, eventData.Camera);
-            Assert.Same(_fixture.Renderer, scene.GetEventSender());
-        });
-        using var endUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewUpdateEvent>((ref GraphicsEvents.EndViewUpdateEvent _) =>
+            ApplicationName = "RedBolt.Tests.RenderPipelineTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
+        try
         {
-            ++endUpdateCalls;
-            lifecycle.Add("EndViewUpdateEvent");
-        });
-        using var beginRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewRenderEvent>((ref GraphicsEvents.BeginViewRenderEvent _) =>
-        {
-            ++beginRenderCalls;
-            lifecycle.Add("BeginViewRenderEvent");
-        });
-        using var buffersReadySubscription = scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) =>
-        {
-            ++buffersReadyCalls;
-            lifecycle.Add("ViewBuffersReadyEvent");
-        });
-        using var endRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) =>
-        {
-            ++endRenderCalls;
-            lifecycle.Add("EndViewRenderEvent");
-        });
-        using var beginRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginRenderingEvent>((ref GraphicsEvents.BeginRenderingEvent _) => ++beginRenderingCalls);
-        using var endRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => ++endRenderingCalls);
+            var scene = new Scene();
+            scene.CreateComponent<Octree>();
+            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPath = new RenderPath("RenderPaths/Test.xml");
+            var trackingPass = new TrackingRenderPass("Tracking");
+            renderPath.AddPass(trackingPass);
+            renderPipeline.SetRenderPath(renderPath);
 
-        Assert.True(view.Define(null, viewport, _fixture.Graphics));
+            var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+            var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+            var view = renderPipeline.Instantiate();
 
-        view.Update(_fixture.Graphics);
-        view.Render(_fixture.Graphics, MaterialQuality.High);
+            var beginUpdateCalls = 0;
+            var endUpdateCalls = 0;
+            var beginRenderCalls = 0;
+            var buffersReadyCalls = 0;
+            var endRenderCalls = 0;
+            var beginRenderingCalls = 0;
+            var endRenderingCalls = 0;
+            var lifecycle = new List<string>();
+            view.UpdateBegin += _ => lifecycle.Add("UpdateBeginSignal");
+            view.UpdateEnd += _ => lifecycle.Add("UpdateEndSignal");
+            view.RenderBegin += _ => lifecycle.Add("RenderBeginSignal");
+            view.RenderEnd += _ => lifecycle.Add("RenderEndSignal");
+            using var beginUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewUpdateEvent>((ref GraphicsEvents.BeginViewUpdateEvent eventData) =>
+            {
+                ++beginUpdateCalls;
+                lifecycle.Add("BeginViewUpdateEvent");
+                Assert.Same(view, eventData.RenderPipelineView);
+                Assert.Null(eventData.Texture);
+                Assert.Null(eventData.Surface);
+                Assert.Same(scene, eventData.Scene);
+                Assert.Same(camera, eventData.Camera);
+                Assert.Same(_fixture.Renderer, scene.GetEventSender());
+            });
+            using var endUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewUpdateEvent>((ref GraphicsEvents.EndViewUpdateEvent _) =>
+            {
+                ++endUpdateCalls;
+                lifecycle.Add("EndViewUpdateEvent");
+            });
+            using var beginRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewRenderEvent>((ref GraphicsEvents.BeginViewRenderEvent _) =>
+            {
+                ++beginRenderCalls;
+                lifecycle.Add("BeginViewRenderEvent");
+            });
+            using var buffersReadySubscription = scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) =>
+            {
+                ++buffersReadyCalls;
+                lifecycle.Add("ViewBuffersReadyEvent");
+            });
+            using var endRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) =>
+            {
+                ++endRenderCalls;
+                lifecycle.Add("EndViewRenderEvent");
+            });
+            using var beginRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginRenderingEvent>((ref GraphicsEvents.BeginRenderingEvent _) => ++beginRenderingCalls);
+            using var endRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => ++endRenderingCalls);
 
-        Assert.Equal(1, trackingPass.UpdateCalls);
-        Assert.Equal(1, trackingPass.RenderCalls);
-        // Effective rect falls back to swap-chain / 1x1 when render target is null in the fixture.
-        Assert.Equal(new Vector2i(1, 1), view.GetFrameInfo().ViewportSize);
-        Assert.Equal(0u, view.GetStats().NumGeometries);
-        Assert.Equal(1, beginUpdateCalls);
-        Assert.Equal(1, endUpdateCalls);
-        Assert.Equal(1, beginRenderCalls);
-        Assert.Equal(1, buffersReadyCalls);
-        Assert.Equal(1, endRenderCalls);
-        Assert.Equal(0, beginRenderingCalls);
-        Assert.Equal(0, endRenderingCalls);
-        Assert.Equal(
-        [
-            "UpdateBeginSignal",
+            Assert.True(view.Define(null, viewport, _fixture.Graphics));
+
+            view.Update(_fixture.Graphics);
+            view.Render(_fixture.Graphics, MaterialQuality.High);
+
+            Assert.Equal(1, trackingPass.UpdateCalls);
+            Assert.Equal(1, trackingPass.RenderCalls);
+            Assert.Equal(new Vector2i(64, 64), view.GetFrameInfo().ViewportSize);
+            Assert.Equal(0u, view.GetStats().NumGeometries);
+            Assert.Equal(1, beginUpdateCalls);
+            Assert.Equal(1, endUpdateCalls);
+            Assert.Equal(1, beginRenderCalls);
+            Assert.Equal(1, buffersReadyCalls);
+            Assert.Equal(1, endRenderCalls);
+            Assert.Equal(0, beginRenderingCalls);
+            Assert.Equal(0, endRenderingCalls);
+            Assert.Equal(
+            [
+                "UpdateBeginSignal",
             "BeginViewUpdateEvent",
             "EndViewUpdateEvent",
             "UpdateEndSignal",
@@ -300,13 +312,31 @@ public sealed class RenderPipelineTests
             "ViewBuffersReadyEvent",
             "RenderEndSignal",
             "EndViewRenderEvent"
-        ], lifecycle);
+            ], lifecycle);
+        }
+        finally
+        {
+            _fixture.RenderDevice.InvalidateDeviceState();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
+        }
     }
 
     [Fact]
     public void Render_pipeline_does_not_publish_normal_buffer_for_forward_lighting()
     {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.RenderPipelineTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
         try
         {
             var scene = new Scene();
@@ -331,6 +361,9 @@ public sealed class RenderPipelineTests
         }
         finally
         {
+            _fixture.RenderDevice.InvalidateDeviceState();
+            _fixture.Graphics.Shutdown();
+            _fixture.Input.Shutdown();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }

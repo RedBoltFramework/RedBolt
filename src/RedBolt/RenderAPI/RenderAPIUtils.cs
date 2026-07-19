@@ -82,14 +82,14 @@ public static class RenderAPIUtils
                 continue;
 
             var semanticIndexPosition = semanticPosition + semanticName.Length;
-            var semanticIndex = 0u;
+            var semanticIndex = 0;
             while (semanticIndexPosition < name.Length)
             {
                 var digit = name[semanticIndexPosition] - '0';
                 if (digit is < 0 or > 9)
                     break;
 
-                semanticIndex = semanticIndex * 10u + (uint)digit;
+                semanticIndex = semanticIndex * 10 + digit;
                 ++semanticIndexPosition;
             }
 
