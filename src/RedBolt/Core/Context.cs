@@ -117,9 +117,9 @@ public class Context : ObjectReflectionRegistry
             (subsystem as IDisposable)?.Dispose();
         (pluginManager as IDisposable)?.Dispose();
 
-        _structEventSubscriptions.Clear();
-        _activeEventInvocations.Clear();
         _globalVars.Dispose();
+        _activeEventInvocations.Clear();
+        _structEventSubscriptions.Clear();
         _nextSubscriptionId = 1;
     }
 

@@ -445,6 +445,8 @@ public sealed class ContextTests
         Assert.True(context.GetGlobalVar(key).IsEmpty);
         Assert.False(typeof(Context).IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Context)));
+        Assert.Equal(typeof(IReadOnlyDictionary<StringHash, Variant>), typeof(Context).GetMethod(nameof(Context.GetGlobalVars))!.ReturnType);
+        Assert.Equal(typeof(IReadOnlyDictionary<StringHash, Variant>), typeof(RedBolt.Object).GetMethod(nameof(RedBolt.Object.GetGlobalVars))!.ReturnType);
     }
 
     [Fact]
