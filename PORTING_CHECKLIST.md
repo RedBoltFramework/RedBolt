@@ -143,6 +143,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A3. Core — depends on Container, Math
 
 - [x] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind and borrowed alias copies, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, retained ObjectReflection destruction, per-instance reflection-facade teardown, and approved managed `int` enum indices reconciled
+- [x] `Context.h` / `Context.cpp` — extensible noncopyable class kind, independent owned global-Variant assignment, borrowed read-only global access, replacement/reset destruction, subsystem/event teardown, and inherited reflection-registry lifetime reconciled
 - [x] `ObjectReflection.h` / `ObjectReflection.cpp` — noncopyable class kinds, independent attribute/metadata value copies, borrowed reflection APIs, signal-before-destruction removal lifetime, registry ownership, and Context base teardown reconciled
 - [x] `Spline.h` / `Spline.cpp` — extensible copyable non-POD class kind, independent owned-Variant construction/copy/return semantics, replacement/removal/clear destruction, allocation-free temporary lifetimes, and embedded SplinePath teardown reconciled
 - [-] `NonCopyable.h` — **EXCLUDED** · reason: does not map to C# concepts

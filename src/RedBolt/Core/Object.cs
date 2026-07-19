@@ -124,7 +124,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         return Context.GetGlobalVar(key);
     }
 
-    public VariantMap GetGlobalVars() => Context.GetGlobalVars();
+    public IReadOnlyDictionary<StringHash, Variant> GetGlobalVars() => Context.GetGlobalVars();
 
     public void SetGlobalVar(StringHash key, Variant value)
     {

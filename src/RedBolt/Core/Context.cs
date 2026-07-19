@@ -22,7 +22,7 @@ public readonly struct ContextEventSubscription : IDisposable
     }
 }
 
-public sealed class Context : ObjectReflectionRegistry
+public class Context : ObjectReflectionRegistry
 {
     private sealed class StructEventSubscriptionBucket
     {
@@ -119,7 +119,7 @@ public sealed class Context : ObjectReflectionRegistry
 
         _structEventSubscriptions.Clear();
         _activeEventInvocations.Clear();
-        _globalVars.Clear();
+        _globalVars.Dispose();
         _nextSubscriptionId = 1;
     }
 
@@ -472,11 +472,14 @@ public sealed class Context : ObjectReflectionRegistry
         return _globalVars.TryGetValue(key, out var value) ? value : default;
     }
 
-    public VariantMap GetGlobalVars() => _globalVars;
+    public IReadOnlyDictionary<StringHash, Variant> GetGlobalVars() => _globalVars;
 
     public void SetGlobalVar(StringHash key, Variant value)
     {
-        _globalVars[key] = value;
+        var copy = value.Clone();
+        if (_globalVars.Remove(key, out var previousValue))
+            previousValue.Dispose();
+        _globalVars[key] = copy;
     }
 
     public void SendEvent<T>() where T : struct

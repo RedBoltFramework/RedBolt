@@ -417,6 +417,37 @@ public sealed class ContextTests
     }
 
     [Fact]
+    public void Context_clones_replaces_and_destroys_global_vars()
+    {
+        using var context = new Context();
+        var key = new StringHash("Owned");
+        using var firstText = new CString("first");
+        var firstValue = new Variant(firstText);
+
+        context.SetGlobalVar(key, firstValue);
+        var firstStoredValue = context.GetGlobalVar(key);
+        firstValue.Dispose();
+
+        Assert.Equal("first", firstStoredValue.GetCString().ToString());
+
+        using var secondText = new CString("second");
+        var secondValue = new Variant(secondText);
+        context.SetGlobalVar(key, secondValue);
+        var secondStoredValue = context.GetGlobalVar(key);
+        secondValue.Dispose();
+
+        Assert.Equal(string.Empty, firstStoredValue.GetCString().ToString());
+        Assert.Equal("second", secondStoredValue.GetCString().ToString());
+
+        context.Reset();
+
+        Assert.Equal(string.Empty, secondStoredValue.GetCString().ToString());
+        Assert.True(context.GetGlobalVar(key).IsEmpty);
+        Assert.False(typeof(Context).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Context)));
+    }
+
+    [Fact]
     public void Context_reports_event_handler_queries()
     {
         var previousContext = Context.Instance;
