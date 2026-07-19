@@ -4,7 +4,8 @@ using RedBolt.Bindings.DearImGui;
 
 try
 {
-    var exitCode = new HelloWorldApplication().Run();
+    using var application = new HelloWorld();
+    var exitCode = application.Run();
     if (exitCode == 0)
         Console.WriteLine("RedBolt HelloWorld sample finished.");
     return exitCode;
@@ -15,41 +16,35 @@ catch (Exception ex)
     return 1;
 }
 
-sealed class HelloWorldApplication : Application
+/// <summary>
+/// This first example, maintaining tradition, prints a "Hello World" message.
+/// Furthermore it shows:
+///     - Using the Sample / Application classes, which initialize the Urho3D engine and run the main loop
+///     - Adding a Text element to the graphical user interface
+///     - Subscribing to and handling of update events
+/// </summary>
+public class HelloWorld : Application
 {
-    private readonly CString _helloText = new();
-    private ContextEventSubscription? _dearImGuiSubscription;
-
-    protected override void Setup(EngineParameters parameters)
+    /// <summary>
+    /// Construct.
+    /// </summary>
+    public HelloWorld()
     {
-        parameters.ApplicationName = "RedBolt.Sample.HelloWorld";
-        parameters.Borderless = false;
-        parameters.FullScreen = false;
-        parameters.WindowMaximize = false;
-        parameters.ResourcePaths = "CoreData;Data";
-        parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowMaximize = false;
-        parameters.WindowHeight = 720;
-        parameters.WindowTitle = "RedBolt Hello World";
-        parameters.WindowWidth = 1280;
     }
 
+    /// <summary>
+    /// Setup after engine initialization and before running the main loop.
+    /// </summary>
     protected override void Start()
     {
         // Set the mouse mode to use in the sample
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
 
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
-
         // Execute base class startup
-        var scene = new Scene();
-        scene.CreateComponent<RenderPipeline>();
-        scene.CreateComponent<Octree>();
-        var cameraNode = scene.CreateChild("Camera");
-        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
-        var camera = cameraNode.CreateComponent<Camera>();
-        Renderer.SetViewport(0, new Viewport(scene, camera));
+        base.Start();
+
+        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
 
         // Create "Hello World" Text
         CreateText();
@@ -60,6 +55,9 @@ sealed class HelloWorldApplication : Application
         SubscribeToEvents();
     }
 
+    /// <summary>
+    /// Construct a new Text instance, containing the 'Hello World' String, and add it to the UI root element.
+    /// </summary>
     private void CreateText()
     {
         // Construct new Text object
@@ -72,21 +70,20 @@ sealed class HelloWorldApplication : Application
         // The rbfx Text control is replaced by the allowed Dear ImGui sample UI surface.
     }
 
+    /// <summary>
+    /// Subscribe to application-wide logic update events.
+    /// </summary>
     private void SubscribeToEvents()
     {
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawText());
     }
 
+    /// <summary>
+    /// Handle the logic update event.
+    /// </summary>
     protected override void Update(float timeStep)
     {
         // Do nothing for now, could be extended to eg. animate the display
-    }
-
-    protected override void Stop()
-    {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
-        _helloText.Dispose();
     }
 
     private void DrawText()
@@ -95,4 +92,36 @@ sealed class HelloWorldApplication : Application
             ImGui.TextUnformatted(_helloText.Bytes);
         ImGui.End();
     }
+
+    protected override void Setup(EngineParameters parameters)
+    {
+        parameters.ApplicationName = "RedBolt.Sample.HelloWorld";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
+        parameters.WindowMaximize = false;
+        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePrefixPaths = ".;..";
+        parameters.WindowHeight = 720;
+        parameters.WindowTitle = "RedBolt Hello World";
+        parameters.WindowWidth = 1280;
+    }
+
+    protected override void Stop()
+    {
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+        _helloText.Dispose();
+        base.Stop();
+    }
+
+    public override void Dispose()
+    {
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+        _helloText.Dispose();
+        base.Dispose();
+    }
+
+    private readonly CString _helloText = new();
+    private ContextEventSubscription? _dearImGuiSubscription;
 }
