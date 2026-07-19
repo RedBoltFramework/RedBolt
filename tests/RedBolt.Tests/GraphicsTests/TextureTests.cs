@@ -117,7 +117,7 @@ public sealed class TextureTests
         Assert.False(renderCube.GetAutoResolve());
 
         var renderTextureArray = new Texture2DArray("Textures/RenderTargetArray");
-        Assert.True(renderTextureArray.SetSize(2u, 8, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(renderTextureArray.SetSize(2, 8, 4, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
         Assert.Null(renderTextureArray.GetRenderSurface(0));
         Assert.Null(renderTextureArray.GetRenderSurface(1));
         Assert.Null(renderTextureArray.GetRenderSurface(2));
@@ -290,8 +290,8 @@ public sealed class TextureTests
         Assert.Equal(TextureType.TextureCube, cube.GetRawTexture()!.GetParams().Type);
 
         var array = new Texture2DArray("Textures/Array");
-        Assert.True(array.SetSize(2u, 2, 2, TextureFormat.RGBA8));
-        Assert.True(array.SetData(1u, 0u, 0, 0, 2, 2, new byte[2 * 2 * 4]));
+        Assert.True(array.SetSize(2, 2, 2, TextureFormat.RGBA8));
+        Assert.True(array.SetData(1, 0, 0, 0, 2, 2, new byte[2 * 2 * 4]));
         Assert.Equal(TextureType.Texture2DArray, array.GetRawTexture()!.GetParams().Type);
     }
 
@@ -335,13 +335,13 @@ public sealed class TextureTests
         image.SetData(imageData);
 
         var texture = new Texture2DArray("Textures/SmokeArray");
-        texture.SetLayers(2u);
+        texture.SetLayers(2);
         texture.SetNumLevels(1);
-        Assert.True(texture.SetData(0u, image));
-        Assert.True(texture.SetData(1u, image));
-        Assert.Equal(2u, texture.Layers);
-        Assert.False(texture.GetData(1u, 0u, new byte[16]));
+        Assert.True(texture.SetData(0, image));
+        Assert.True(texture.SetData(1, image));
+        Assert.Equal(2, texture.Layers);
+        Assert.False(texture.GetData(1, 0, new byte[16]));
         var readback = new byte[16];
-        Assert.False(texture.GetData(0u, 0u, readback));
+        Assert.False(texture.GetData(0, 0, readback));
     }
 }

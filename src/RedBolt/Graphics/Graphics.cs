@@ -3272,7 +3272,7 @@ layout(std140) uniform Material
         textureDesc.Type = ResourceDimension.ResourceDimTex2dArray;
         textureDesc.Width = (uint)texture.Width;
         textureDesc.Height = (uint)texture.Height;
-        textureDesc.ArraySize = texture.Layers;
+        textureDesc.ArraySize = checked((uint)texture.Layers);
         textureDesc.SampleCount = (uint)texture.MultiSample;
         textureDesc.Format = MapTextureFormat(texture);
         if (textureDesc.Format == 0)
@@ -3779,7 +3779,7 @@ layout(std140) uniform Material
         return texture switch
         {
             TextureCube => 6u,
-            Texture2DArray textureArray => textureArray.Layers,
+            Texture2DArray textureArray => checked((uint)textureArray.Layers),
             Texture3D texture3D => (uint)texture3D.Depth,
             _ => 1u
         };

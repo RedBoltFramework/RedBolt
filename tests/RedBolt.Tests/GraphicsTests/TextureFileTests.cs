@@ -92,11 +92,11 @@ public sealed class TextureFileTests
 
             var texture = Resources.GetResource<Texture2DArray>("Textures/Array.xml");
 
-            Assert.Equal(0u, texture.Layers);
+            Assert.Equal(0, texture.Layers);
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
             Assert.Equal(TextureFormat.Unknown, texture.Format);
-            Assert.False(texture.GetData(0u, 0u, Span<byte>.Empty));
+            Assert.False(texture.GetData(0, 0, Span<byte>.Empty));
         }
         finally
         {

@@ -116,7 +116,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2DArray("Textures/RenderTargetArray");
-            Assert.True(texture.SetSize(4u, 16, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
+            Assert.True(texture.SetSize(4, 16, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
 
             var firstView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
             var secondView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));

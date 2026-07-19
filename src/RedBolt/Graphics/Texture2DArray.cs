@@ -5,13 +5,6 @@ namespace RedBolt;
 /// </summary>
 public class Texture2DArray : Texture
 {
-    // Texture array layers number.
-    private uint _layers;
-    // Layer image files acquired during BeginLoad.
-    private readonly List<Image?> _loadImages = [];
-    // Parameter file acquired during BeginLoad.
-    private XMLFile? _loadParameters;
-
     /// <summary>
     /// Construct.
     /// </summary>
@@ -33,10 +26,6 @@ public class Texture2DArray : Texture
         base.Dispose();
     }
 
-    protected override TextureType GetRawTextureType() => TextureType.Texture2DArray;
-
-    protected override uint GetRawTextureArraySize() => _layers;
-
     /// <summary>
     /// Register object factory.
     /// </summary>
@@ -54,7 +43,7 @@ public class Texture2DArray : Texture
         var graphics = GetSubsystem<Graphics>();
         var cache = GetSubsystem<ResourceCache>()!;
 
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (graphics?.GetNativeRenderDevice() is null)
             return true;
 
@@ -79,12 +68,13 @@ public class Texture2DArray : Texture
         for (var layerElement = _loadParameters.Root.GetChild("layer"); layerElement.NotNull;
              layerElement = layerElement.GetNext("layer"))
         {
+            // If path is empty, add the XML file path
             var name = ResourceLoading.ResolveRelativeResourceName(this, layerElement.GetAttribute("name"));
             _loadImages.Add(cache.GetTempResource<Image>(name));
             cache.StoreResourceDependency(this, name);
         }
 
-        // Precalculate mip levels if async loading.
+        // Precalculate mip levels if async loading
         if (AsyncLoadState == AsyncLoadState.Loading)
         {
             for (var i = 0; i < _loadImages.Count; ++i)
@@ -102,18 +92,18 @@ public class Texture2DArray : Texture
     /// </summary>
     public override bool EndLoad()
     {
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
             return true;
 
-        // If over the texture budget, see if materials can be freed to allow textures to be freed.
+        // If over the texture budget, see if materials can be freed to allow textures to be freed
         CheckTextureBudget(typeof(Texture2DArray).GetTypeId());
 
         SetParameters(_loadParameters);
-        SetLayers((uint)_loadImages.Count);
+        SetLayers(_loadImages.Count);
 
         for (var i = 0; i < _loadImages.Count; ++i)
-            SetData((uint)i, _loadImages[i]);
+            SetData(i, _loadImages[i]);
 
         for (var i = _loadImages.Count - 1; i >= 0; --i)
             _loadImages[i]?.Dispose();
@@ -127,7 +117,7 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Set the number of layers in the texture. To be used before SetData.
     /// </summary>
-    public void SetLayers(uint layers)
+    public void SetLayers(int layers)
     {
         _layers = layers;
     }
@@ -135,31 +125,29 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Set layers, size, format and usage. Set layers to zero to leave them unchanged. Return true if successful.
     /// </summary>
-    public bool SetSize(uint layers, int width, int height, TextureFormat format,
+    public bool SetSize(int layers, int width, int height, TextureFormat format,
         TextureFlag flags = TextureFlag.None)
     {
         _layers = layers != 0 ? layers : _layers;
-        if (_layers == 0 || width <= 0 || height <= 0)
-            return false;
-
-        SetDimensions(width, height, 1, format, flags: flags);
-        return true;
+        var parameters = new RawTextureParams(
+            TextureType.Texture2DArray, format, flags, new Vector3i(width, height, 1),
+            ArraySize: _layers, NumLevels: _requestedLevels, SRGB: _requestedSRGB);
+        return Create(parameters);
     }
 
     /// <summary>
     /// Set data either partially or fully on a layer's mip level. Return true if successful.
     /// </summary>
-    public bool SetData(uint layer, uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
+    public bool SetData(int layer, int level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, 0), new Vector3i(width, height, 1),
-            checked((int)layer), data);
+        GetRawTexture().Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), layer, data);
         return true;
     }
 
     /// <summary>
     /// Set data of one layer from a stream. Return true if successful.
     /// </summary>
-    public bool SetData(uint layer, Stream source)
+    public bool SetData(int layer, Stream source)
     {
         using var image = new Image($"{Name}#layer{layer}")
         {
@@ -174,30 +162,43 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Set data of one layer from an image. Return true if successful. Optionally make a single channel image alpha-only.
     /// </summary>
-    public bool SetData(uint layer, Image? image)
+    public bool SetData(int layer, Image? image)
     {
         if (layer == 0)
         {
             var parameters = new RawTextureParams(
                 TextureType.Texture2DArray, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-                ArraySize: checked((int)_layers), NumLevels: checked((int)_requestedLevels));
+                ArraySize: _layers, NumLevels: _requestedLevels);
             if (!CreateForImage(parameters, image))
                 return false;
         }
 
-        return UpdateFromImage(checked((int)layer), image);
+        return UpdateFromImage(layer, image);
     }
 
     /// <summary>
     /// Return number of layers in the texture.
     /// </summary>
-    public uint Layers => _layers;
+    public int Layers => _layers;
 
     /// <summary>
     /// Get data from a mip level. The destination buffer must be big enough. Return true if successful.
     /// </summary>
-    public bool GetData(uint layer, uint level, Span<byte> destination)
+    public bool GetData(int layer, int level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read(checked((int)layer), checked((int)level), destination) == true;
+        return GetRawTexture().Read(layer, level, destination);
     }
+
+    /// <summary>
+    /// Texture array layers number.
+    /// </summary>
+    private int _layers;
+    /// <summary>
+    /// Layer image files acquired during BeginLoad.
+    /// </summary>
+    private readonly List<Image?> _loadImages = [];
+    /// <summary>
+    /// Parameter file acquired during BeginLoad.
+    /// </summary>
+    private XMLFile? _loadParameters;
 }

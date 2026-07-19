@@ -150,10 +150,14 @@ public sealed class GeometryGpuTests
     {
         var tex = new Texture2DArray("Textures/SmokeArray");
         tex.SetNumLevels(1);
-        Assert.True(tex.SetSize(2u, 2, 2, TextureFormat.R8));
-        Assert.True(tex.SetData(1u, 0u, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));
-        Assert.False(tex.GetData(1u, 0u, new byte[4]));
+        Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
+        Assert.True(tex.SetData(1, 0, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));
+        Assert.False(tex.GetData(1, 0, new byte[4]));
         Assert.Equal(2, tex.GetRawTexture()!.GetParams().ArraySize);
-        Assert.Equal(2u, tex.Layers);
+        Assert.Equal(2, tex.Layers);
+
+        Assert.False(tex.SetSize(0, 0, 2, TextureFormat.R8));
+        Assert.Equal(0, tex.Width);
+        Assert.Equal(2, tex.Layers);
     }
 }
