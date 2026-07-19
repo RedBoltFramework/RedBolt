@@ -617,13 +617,15 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Pipeline_state_uses_device_object_debug_name_surface()
     {
-        var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc())
+        var desc = new GraphicsPipelineStateDesc
         {
-            DebugName = "TestPipeline"
+            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
         };
+        using var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc(desc));
+        pipelineState.SetDebugName("TestPipeline");
 
         Assert.IsAssignableFrom<DeviceObject>(pipelineState);
-        Assert.Equal("TestPipeline", pipelineState.DebugName);
         Assert.Equal("TestPipeline", pipelineState.GetDebugName());
         Assert.False(pipelineState.IsValid);
     }

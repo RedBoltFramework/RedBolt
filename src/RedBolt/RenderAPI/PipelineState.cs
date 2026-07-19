@@ -28,13 +28,12 @@ public class PipelineState : DeviceObject
         if (Thread.CurrentThread.ManagedThreadId != WorkQueue.GetMainThreadId())
         {
             Log.GetLogger().LogWarning("Pipeline state should be released only from main thread");
-            return;
         }
-
-        DestroyGPU();
-        UnsubscribeFromShaders();
-        if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
+        else if (_owner is not null && _owner.TryGetTarget(out var pipelineStateCache))
             pipelineStateCache.ReleasePipelineState(_desc);
+
+        UnsubscribeFromShaders();
+        DestroyGPU();
         _idFamily.Dispose();
         base.Dispose();
     }
@@ -46,12 +45,6 @@ public class PipelineState : DeviceObject
     public void AcquireObjectID() => _idFamily.AcquireObjectID();
 
     public void ReleaseObjectID() => _idFamily.ReleaseObjectID();
-
-    public string DebugName
-    {
-        get => GetDebugName();
-        set => SetDebugName(value);
-    }
 
     public bool IsValid => _reflection is not null;
 
@@ -67,9 +60,10 @@ public class PipelineState : DeviceObject
 
     public override void Invalidate()
     {
-        base.Invalidate();
         DestroyGPU();
-        GetRenderDevice()?.QueuePipelineStateReload(this);
+
+        if (_renderDevice is not null)
+            _renderDevice.QueuePipelineStateReload(this);
     }
 
     public override void Restore()
@@ -96,22 +90,15 @@ public class PipelineState : DeviceObject
 
     public override void Destroy()
     {
-        base.Destroy();
         DestroyGPU();
     }
 
     private void CreateGPU()
     {
-        DestroyGPU();
-        var graphics = GetSubsystem<Graphics>();
-        var device = graphics?.GetNativeRenderDevice();
-        if (device is null || device.IsNull)
-            return;
-
         if (_desc.AsGraphics() is { } graphicsDesc)
-            CreateGPU(device, graphicsDesc);
+            CreateGPU(graphicsDesc);
         else if (_desc.AsCompute() is { } computeDesc)
-            CreateGPU(device, computeDesc);
+            CreateGPU(computeDesc);
     }
 
     private void SubscribeToShaders()
@@ -121,7 +108,7 @@ public class PipelineState : DeviceObject
             : new RawShader?[] { _desc.AsCompute()?.ComputeShader };
         foreach (var shader in shaders)
         {
-            if (shader is null || _subscribedShaders.Contains(shader))
+            if (shader is null)
                 continue;
             shader.Reloaded += OnShaderReloaded;
             _subscribedShaders.Add(shader);
@@ -137,33 +124,75 @@ public class PipelineState : DeviceObject
 
     private void OnShaderReloaded() => Invalidate();
 
-    private void CreateGPU(IRenderDevice device, ComputePipelineStateDesc desc)
+    private void CreateGPU(ComputePipelineStateDesc desc)
     {
-        var shader = desc.ComputeShader?.GetHandle();
-        if (shader is null || shader.IsNull)
+        DestroyGPU();
+
+        if (desc.ComputeShader is not null &&
+            (desc.ComputeShader.GetHandle() is null || desc.ComputeShader.GetHandle()!.IsNull))
+        {
+            Log.GetLogger().LogError(
+                "Failed to create PipelineState '{Name}' due to failed {Type} shader compilation",
+                GetDebugName(), desc.ComputeShader.GetShaderType());
             return;
+        }
+
+        var device = _renderDevice!.GetRenderDevice()!;
+        var isOpenGl = _renderDevice.GetBackend() == RenderBackend.OpenGL;
+        var hasSeparableShaderPrograms =
+            device.GetDeviceInfo().FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
+        System.Diagnostics.Debug.Assert(isOpenGl || hasSeparableShaderPrograms);
+        var shader = desc.ComputeShader!.GetHandle()!;
 
         SubscribeToShaders();
-        var reflection = new ShaderProgramReflection([desc.ComputeShader]);
-        using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice: GetRenderDevice(),
-            RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute);
-        using var name = new CString(GetDebugName());
-        using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
+        nint temporaryGlProgram = 0;
+        try
         {
-            Name = name.Pointer,
-            PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
-            ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
-            ResourceLayoutImmutableSamplers = samplers.First!,
-            ResourceLayoutNumImmutableSamplers = samplers.Count
-        };
-        using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
-        device.CreateComputePipelineState(createInfo, out _handle);
-        FinishCreation(reflection);
+            ShaderProgramReflection reflection;
+            if (hasSeparableShaderPrograms)
+                reflection = new ShaderProgramReflection([desc.ComputeShader]);
+            else
+            {
+                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
+                    shader, null!, null!, null!, null!, false);
+                reflection = new ShaderProgramReflection(temporaryGlProgram);
+            }
+
+            _reflection = reflection;
+            using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice,
+                RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute);
+            using var name = new CString(GetDebugName());
+            using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
+            {
+                Name = name.Pointer,
+                PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
+                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                ResourceLayoutImmutableSamplers = samplers.First!,
+                ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
+            };
+            using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
+            createInfo.PPSOCache = GetSubsystem<PipelineStateCache>()!.GetHandle()!;
+            device.CreateComputePipelineState(createInfo, out _handle);
+            if (_handle is null || _handle.IsNull)
+            {
+                DestroyGPU();
+                Log.GetLogger().LogError("Failed to create PipelineState '{Name}'", GetDebugName());
+                return;
+            }
+
+            FinishCreation();
+        }
+        finally
+        {
+            if (temporaryGlProgram != 0)
+                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
+        }
     }
 
-    private void CreateGPU(IRenderDevice device, GraphicsPipelineStateDesc desc)
+    private void CreateGPU(GraphicsPipelineStateDesc desc)
     {
-        // C++ PipelineState::CreateGPU logs and aborts when any attached shader failed to compile.
+        DestroyGPU();
+
         foreach (var shader in new RawShader?[]
                  { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader })
         {
@@ -176,38 +205,40 @@ public class PipelineState : DeviceObject
             }
         }
 
+        var device = _renderDevice!.GetRenderDevice()!;
         var vertexShader = desc.VertexShader?.GetHandle();
         var pixelShader = desc.PixelShader?.GetHandle();
-        if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
-            return;
-
         SubscribeToShaders();
         TemporaryLayoutArray? layout = null;
         nint temporaryGlProgram = 0;
         try
         {
-            var isOpenGl = GetRenderDevice()?.GetBackend() == RenderBackend.OpenGL;
+            var isOpenGl = _renderDevice.GetBackend() == RenderBackend.OpenGL;
             var hasSeparableShaderPrograms = device.GetDeviceInfo().FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
+            System.Diagnostics.Debug.Assert(isOpenGl || hasSeparableShaderPrograms);
             var vertexAttributes = desc.VertexShader!.GetBytecode().VertexAttributes;
             if (isOpenGl)
             {
-                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(vertexShader, pixelShader,
+                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(vertexShader!, pixelShader!,
                     desc.DomainShader?.GetHandle()!, desc.HullShader?.GetHandle()!, desc.GeometryShader?.GetHandle()!,
                     hasSeparableShaderPrograms);
                 vertexAttributes = [];
                 var numAttributes = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
-                for (var i = 0u; i < numAttributes; ++i)
+                for (var i = 0; i < (int)numAttributes; ++i)
                 {
                     var attributeName = System.Text.Encoding.UTF8.GetString(
-                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, i));
+                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, (uint)i));
                     var attribute = RenderAPIUtils.ParseVertexAttribute(attributeName);
                     if (attribute is not null)
                     {
                         vertexAttributes.Add(attribute.Value with
                         {
-                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(temporaryGlProgram, i)
+                            InputIndex = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                                temporaryGlProgram, (uint)i)
                         });
                     }
+                    else
+                        Log.GetLogger().LogWarning("Unknown vertex element semantic: {Name}", attributeName);
                 }
             }
             if (desc.InputLayout.Size != 0u)
@@ -217,7 +248,8 @@ public class PipelineState : DeviceObject
             var reflection = isOpenGl && !hasSeparableShaderPrograms
                 ? new ShaderProgramReflection(temporaryGlProgram)
                 : new ShaderProgramReflection(shaders);
-            using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, GetRenderDevice(),
+            _reflection = reflection;
+            using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice!,
                 RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var name = new CString(GetDebugName());
             using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
@@ -226,13 +258,16 @@ public class PipelineState : DeviceObject
                 PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeGraphics,
                 ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
                 ResourceLayoutImmutableSamplers = samplers.First!,
-                ResourceLayoutNumImmutableSamplers = samplers.Count
+                ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
             };
+            var depthBits = MapTextureFormat(desc.Output.DepthStencilFormat) ==
+                RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm ? 16 : 24;
+            var scaledDepthBias = isOpenGl ? 0 : (int)(desc.ConstantDepthBias * (1 << depthBits));
             using var createInfo = new GraphicsPipelineStateCreateInfo
             {
                 PSODesc = nativeDesc,
-                PVS = vertexShader,
-                PPS = pixelShader,
+                PVS = vertexShader!,
+                PPS = pixelShader!,
                 PDS = desc.DomainShader?.GetHandle()!,
                 PHS = desc.HullShader?.GetHandle()!,
                 PGS = desc.GeometryShader?.GetHandle()!,
@@ -240,7 +275,7 @@ public class PipelineState : DeviceObject
                 GraphicsPipelineNumViewports = 1,
                 GraphicsPipelinePrimitiveTopology = ToNative(desc.PrimitiveType),
                 GraphicsPipelineDSVFormat = MapTextureFormat(desc.Output.DepthStencilFormat),
-                GraphicsPipelineSmplDescCount = (byte)Math.Max(desc.Output.MultiSample, 1u),
+                GraphicsPipelineSmplDescCount = (byte)desc.Output.MultiSample,
                 GraphicsPipelineReadOnlyDSV = desc.ReadOnlyDepth,
                 GraphicsPipelineBlendDescAlphaToCoverageEnable = desc.AlphaToCoverageEnabled,
                 GraphicsPipelineDepthStencilDescDepthEnable = true,
@@ -252,27 +287,23 @@ public class PipelineState : DeviceObject
                 GraphicsPipelineRasterizerDescFillMode = ToNative(desc.FillMode),
                 GraphicsPipelineRasterizerDescCullMode = ToNative(desc.CullMode),
                 GraphicsPipelineRasterizerDescFrontCounterClockwise = false,
-                // C++: depthBits from DSV (16 if D16 else 24); scaledDepthBias = 0 on OpenGL.
-                GraphicsPipelineRasterizerDescDepthBias = ScaleDepthBias(desc.ConstantDepthBias, desc.Output.DepthStencilFormat),
+                GraphicsPipelineRasterizerDescDepthBias = scaledDepthBias,
                 GraphicsPipelineRasterizerDescSlopeScaledDepthBias = desc.SlopeScaledDepthBias,
                 GraphicsPipelineRasterizerDescDepthClipEnable = true,
                 GraphicsPipelineRasterizerDescScissorEnable = desc.ScissorTestEnabled,
-                GraphicsPipelineRasterizerDescAntialiasedLineEnable = GetRenderDevice()?.GetBackend() != RenderBackend.OpenGL && desc.LineAntiAlias
+                GraphicsPipelineRasterizerDescAntialiasedLineEnable = !isOpenGl && desc.LineAntiAlias
             };
             if (layout is not null)
             {
                 createInfo.GraphicsPipelineInputLayoutLayoutElements = layout.First;
-                createInfo.GraphicsPipelineInputLayoutNumElements = layout.Count;
+                createInfo.GraphicsPipelineInputLayoutNumElements = (uint)layout.Count;
             }
-            for (var i = 0u; i < desc.Output.NumRenderTargets; ++i)
-                createInfo.GraphicsPipelineRTVFormats[(int)i] = MapTextureFormat(desc.Output.RenderTargetFormats[(int)i]);
+            for (var i = 0; i < (int)desc.Output.NumRenderTargets; ++i)
+                createInfo.GraphicsPipelineRTVFormats[i] = MapTextureFormat(desc.Output.RenderTargetFormats[i]);
 
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
-            // C++ also wires the Diligent PSO cache handle when available.
-            var psoCache = GetSubsystem<PipelineStateCache>()?.GetHandle();
-            if (psoCache is { IsNull: false })
-                createInfo.PPSOCache = psoCache;
+            createInfo.PPSOCache = GetSubsystem<PipelineStateCache>()!.GetHandle()!;
             device.CreateGraphicsPipelineState(createInfo, out _handle);
             if (_handle is null || _handle.IsNull)
             {
@@ -289,7 +320,7 @@ public class PipelineState : DeviceObject
                     GetDebugName());
                 return;
             }
-            FinishCreation(reflection);
+            FinishCreation();
         }
         finally
         {
@@ -299,30 +330,18 @@ public class PipelineState : DeviceObject
         }
     }
 
-    private void FinishCreation(ShaderProgramReflection reflection)
+    private void FinishCreation()
     {
-        if (_handle is null || _handle.IsNull)
-        {
-            DestroyGPU();
-            return;
-        }
-        _handle.CreateShaderResourceBinding(out _shaderResourceBinding, true);
-        if (_shaderResourceBinding is null || _shaderResourceBinding.IsNull)
-        {
-            DestroyGPU();
-            return;
-        }
-        _reflection = reflection;
-        _reflection.ConnectToShaderVariables(GetPipelineType(), _shaderResourceBinding);
-        ClearDataLost();
+        _handle!.CreateShaderResourceBinding(out _shaderResourceBinding, true);
+        _reflection!.ConnectToShaderVariables(GetPipelineType(), _shaderResourceBinding!);
     }
 
     private void DestroyGPU()
     {
-        ReleaseIfNotNull(_shaderResourceBinding);
         ReleaseIfNotNull(_handle);
-        _shaderResourceBinding = null;
+        ReleaseIfNotNull(_shaderResourceBinding);
         _handle = null;
+        _shaderResourceBinding = null;
         _reflection = null;
     }
 
@@ -378,20 +397,6 @@ public class PipelineState : DeviceObject
         CompareMode.GreaterEqual => ComparisonFunction.ComparisonFuncGreaterEqual, _ => ComparisonFunction.ComparisonFuncUnknown
     };
 
-    /// <summary>
-    /// C++ PipelineState::CreateGPU depth-bias scaling:
-    /// depthBits = 16 if DSV is D16 else 24; scaled = 0 on OpenGL else constantBias * (1 &lt;&lt; depthBits).
-    /// </summary>
-    private int ScaleDepthBias(float constantDepthBias, TextureFormat depthStencilFormat)
-    {
-        if (GetRenderDevice()?.GetBackend() == RenderBackend.OpenGL)
-            return 0;
-
-        var depthBits = MapTextureFormat(depthStencilFormat) == RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm
-            ? 16
-            : 24;
-        return (int)(constantDepthBias * (1 << depthBits));
-    }
     private static RedBolt.Bindings.Diligent.StencilOp ToNative(StencilOp value) => value switch
     {
         StencilOp.Keep => RedBolt.Bindings.Diligent.StencilOp.StencilOpKeep, StencilOp.Zero => RedBolt.Bindings.Diligent.StencilOp.StencilOpZero,
@@ -407,6 +412,7 @@ public class PipelineState : DeviceObject
 
     private static RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat value) => value switch
     {
+        TextureFormat.Depth16 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm,
         TextureFormat.Depth32 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
         TextureFormat.Depth32Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
         TextureFormat.Depth24Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
@@ -442,14 +448,24 @@ public class PipelineState : DeviceObject
             Array.Fill(inputIndices, uint.MaxValue);
             foreach (var attribute in attributes)
             {
+                var isFound = false;
                 for (var i = elements.Length - 1; i >= 0; --i)
                 {
                     if (elements[i].ElementSemantic == attribute.Semantic &&
                         elements[i].ElementSemanticIndex == attribute.SemanticIndex)
                     {
                         inputIndices[i] = attribute.InputIndex;
+                        isFound = true;
                         break;
                     }
+                }
+
+                if (!isFound)
+                {
+                    Log.GetLogger().LogError(
+                        "Attribute #{Index} with semantics '{Semantic}{SemanticIndex}' is not found in the vertex layout",
+                        attribute.InputIndex, RenderAPIUtils.ToShaderInputName(attribute.Semantic),
+                        attribute.SemanticIndex);
                 }
             }
             Count = 0;
@@ -477,7 +493,7 @@ public class PipelineState : DeviceObject
             First = LayoutElement.CreateManagedWrapper(_memory, false);
         }
         public LayoutElement First { get; }
-        public uint Count { get; }
+        public int Count { get; }
         public void Dispose() { _semantic.Dispose(); Marshal.FreeHGlobal(_memory); }
     }
 
@@ -489,10 +505,10 @@ public class PipelineState : DeviceObject
         private readonly IntPtr _memory;
 
         public TemporaryImmutableSamplers(ImmutableSamplersDesc overrides, ShaderProgramReflection reflection,
-            RenderDevice? _renderDevice, RedBolt.Bindings.Diligent.ShaderType stages)
+            RenderDevice renderDevice, RedBolt.Bindings.Diligent.ShaderType stages)
         {
             var resources = reflection.GetShaderResources().ToArray();
-            Count = (uint)resources.Length;
+            Count = resources.Length;
             _names = new CString[resources.Length];
             _descriptions = new SamplerDesc[resources.Length];
             _samplers = new ImmutableSamplerDesc[resources.Length];
@@ -504,9 +520,15 @@ public class PipelineState : DeviceObject
             for (var i = 0; i < resources.Length; ++i)
             {
                 var pair = resources[i];
-                var source = FindSampler(overrides, pair.Key) ?? SamplerStateDesc.Bilinear();
+                var source = FindSampler(overrides, pair.Key);
+                if (source is null)
+                {
+                    source = SamplerStateDesc.Bilinear();
+                    Log.GetLogger().LogWarning(
+                        "Default sampler is used for resource '{Name}'", pair.Value.InternalName);
+                }
                 _names[i] = new CString(pair.Value.InternalName);
-                _descriptions[i] = CreateSamplerDesc(source, _renderDevice);
+                _descriptions[i] = CreateSamplerDesc(source.Value, renderDevice);
                 _samplers[i] = ImmutableSamplerDesc.CreateManagedWrapper(
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
                 _samplers[i].ShaderStages = stages;
@@ -517,7 +539,7 @@ public class PipelineState : DeviceObject
         }
 
         public ImmutableSamplerDesc? First { get; }
-        public uint Count { get; }
+        public int Count { get; }
 
         public void Dispose()
         {
@@ -538,10 +560,10 @@ public class PipelineState : DeviceObject
             return null;
         }
 
-        private static SamplerDesc CreateSamplerDesc(SamplerStateDesc source, RenderDevice? renderDevice)
+        private static SamplerDesc CreateSamplerDesc(SamplerStateDesc source, RenderDevice renderDevice)
         {
             var filter = source.FilterMode == TextureFilterMode.Default
-                ? renderDevice?.GetDefaultTextureFilterMode() ?? TextureFilterMode.Trilinear
+                ? renderDevice.GetDefaultTextureFilterMode()
                 : source.FilterMode;
             var compareIndex = source.ShadowCompare ? 1 : 0;
             var minMag = filter switch
@@ -564,12 +586,15 @@ public class PipelineState : DeviceObject
                     FilterType.FilterTypeAnisotropic => FilterType.FilterTypeComparisonAnisotropic,
                     _ => FilterType.FilterTypeComparisonLinear
                 };
-                mip = mip switch
+                if (filter != TextureFilterMode.NearestAnisotropic)
                 {
-                    FilterType.FilterTypePoint => FilterType.FilterTypeComparisonPoint,
-                    FilterType.FilterTypeAnisotropic => FilterType.FilterTypeComparisonAnisotropic,
-                    _ => FilterType.FilterTypeComparisonLinear
-                };
+                    mip = mip switch
+                    {
+                        FilterType.FilterTypePoint => FilterType.FilterTypeComparisonPoint,
+                        FilterType.FilterTypeAnisotropic => FilterType.FilterTypeComparisonAnisotropic,
+                        _ => FilterType.FilterTypeComparisonLinear
+                    };
+                }
             }
             return new SamplerDesc
             {
@@ -579,7 +604,9 @@ public class PipelineState : DeviceObject
                 AddressU = ToNative(source[TextureCoordinate.U]),
                 AddressV = ToNative(source[TextureCoordinate.V]),
                 AddressW = ToNative(source[TextureCoordinate.W]),
-                MaxAnisotropy = source.Anisotropy != 0 ? source.Anisotropy : (uint)(renderDevice?.GetDefaultTextureAnisotropy() ?? 1),
+                MaxAnisotropy = source.Anisotropy != 0
+                    ? source.Anisotropy
+                    : (uint)renderDevice.GetDefaultTextureAnisotropy(),
                 ComparisonFunc = ComparisonFunction.ComparisonFuncLessEqual,
                 MinLOD = source.MinLod,
                 MaxLOD = source.MaxLod

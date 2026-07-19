@@ -17,7 +17,13 @@ public sealed class PipelineBatchSortKeyTests
     {
         using var material = new Material("Sort Material");
         using var geometry = new Geometry();
-        using var pipelineState = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc());
+        var pipelineStateDesc = new GraphicsPipelineStateDesc
+        {
+            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
+        };
+        using var pipelineState = new PipelineState(
+            _fixture.PipelineStateCache, new PipelineStateDesc(pipelineStateDesc));
         material.SetRenderOrder(7);
         var batch = new PipelineBatch
         {

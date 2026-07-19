@@ -40,7 +40,7 @@ public sealed class BatchStateCacheTests
         using var material = new Material("Cache Material");
         using var technique = new Technique("Cache Technique");
         var pass = technique.CreatePass("base");
-        using var state = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc());
+        using var state = new PipelineState(_fixture.PipelineStateCache, CreateUnavailablePipelineStateDesc());
         var callback = new BatchCallback { State = state };
         var cache = new BatchStateCache();
         cache.SetOutputDesc(new PipelineStateOutputDesc());
@@ -64,7 +64,7 @@ public sealed class BatchStateCacheTests
     [Fact]
     public void Placeholder_cache_keeps_invalid_state_without_recreating_it()
     {
-        using var state = new PipelineState(_fixture.PipelineStateCache, new PipelineStateDesc());
+        using var state = new PipelineState(_fixture.PipelineStateCache, CreateUnavailablePipelineStateDesc());
         var callback = new BatchCallback { State = state };
         var cache = new BatchStateCache();
         cache.SetOutputDesc(new PipelineStateOutputDesc());
@@ -72,6 +72,15 @@ public sealed class BatchStateCacheTests
         Assert.Null(cache.GetOrCreatePlaceholderPipelineState(24, callback));
         Assert.Null(cache.GetOrCreatePlaceholderPipelineState(24, callback));
         Assert.Equal(1, callback.PlaceholderCount);
+    }
+
+    private static PipelineStateDesc CreateUnavailablePipelineStateDesc()
+    {
+        return new PipelineStateDesc(new GraphicsPipelineStateDesc
+        {
+            VertexShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.VS, string.Empty),
+            PixelShader = new ShaderVariation(new Shader("Unavailable"), ShaderType.PS, string.Empty)
+        });
     }
 
 }
