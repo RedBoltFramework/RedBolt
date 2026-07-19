@@ -35,6 +35,9 @@ public static partial class MathDefs
     public static float Lerp(float lhs, float rhs, float t) =>
         (float)(lhs * (1.0 - t) + rhs * t);
 
+    /// <summary>Linear interpolation between two values.</summary>
+    public static double Lerp(double lhs, double rhs, double t) => lhs * (1.0 - t) + rhs * t;
+
     /// <summary>Inverse linear interpolation between two values.</summary>
     public static float InverseLerp(float lhs, float rhs, float value) => (value - lhs) / (rhs - lhs);
 

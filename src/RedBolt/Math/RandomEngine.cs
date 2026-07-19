@@ -89,10 +89,11 @@ public sealed class RandomEngine
         return (int)((long)GetUInt(range) + min);
     }
 
-    public void Shuffle<T>(IList<T> values)
+    /// <summary>Shuffle range in random order.</summary>
+    public void Shuffle<T>(Span<T> values)
     {
-        ArgumentNullException.ThrowIfNull(values);
-        for (var i = values.Count - 1; i > 0; --i)
+        var n = values.Length;
+        for (var i = n - 1; i > 0; --i)
         {
             var j = (int)GetUInt((uint)(i + 1));
             (values[i], values[j]) = (values[j], values[i]);
