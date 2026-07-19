@@ -247,7 +247,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 
-- [x] `Input.h` / `Input.cpp` — extensible noncopyable subsystem and nested value-struct kinds reconciled; joystick initialization now performs the native reset, joystick container copies are independent, and deterministic disposal releases the managed SDL resources corresponding to native destructor and automatic field teardown
+- [x] `Input.h` / `Input.cpp` — extensible noncopyable subsystem and nested value-struct kinds reconciled; joystick initialization now performs the native reset, borrowed joystick wrappers have native temporary scope, joystick container copies are independent, acquired SDL state is release-safe across later initialization failure, and deterministic disposal releases the managed SDL resources corresponding to native destructor and automatic field teardown
 - [x] `AxisAdapter.h` / `AxisAdapter.cpp` — extensible copyable non-POD class kind, independent scalar cloning at every native copy-construction site, optional archive defaults, and pedal/trigger local-copy flow reconciled
 - [x] `DirectionAggregator.h` / `DirectionAggregator.cpp` — extensible noncopyable class and nested value-struct kinds, subsystem construction, incremental subscriptions, input aggregation, joystick filtering, touch filtering, and unsorted axis-state lifetime semantics reconciled
 - [x] `DirectionalPadAdapter.h` / `DirectionalPadAdapter.cpp` — extensible noncopyable outer class, copyable non-POD aggregated-state cloning, exact source ordinals, subsystem construction, incremental subscriptions, and synthesized directional event lifetimes reconciled

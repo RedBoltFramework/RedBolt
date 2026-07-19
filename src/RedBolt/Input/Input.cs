@@ -75,7 +75,7 @@ public struct JoystickState : ICloneable
         Hats ??= [];
         Array.Fill(Buttons, false);
         Array.Fill(ButtonPress, false);
-        var joystick = Joystick != IntPtr.Zero && Controller == IntPtr.Zero
+        using var joystick = Joystick != IntPtr.Zero && Controller == IntPtr.Zero
             ? SdlJoystick.CreateManagedWrapper(Joystick, ownsHandle: false)
             : null;
         for (var i = 0; i < Axes.Length; i++)
@@ -261,6 +261,8 @@ public class Input : Object
             Context.Instance.ReleaseSdl();
             throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
         }
+
+        IsInitialized = true;
 
         try
         {
