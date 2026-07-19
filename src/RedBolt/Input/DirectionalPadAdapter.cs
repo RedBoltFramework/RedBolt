@@ -4,244 +4,527 @@ namespace RedBolt;
 public enum DirectionalPadAdapterMask : uint
 {
     None = 0,
-    Keyboard = 1u << 0,
-    Joystick = 1u << 1,
-    KeyRepeat = 1u << 2,
-    All = Keyboard | Joystick | KeyRepeat
+    Keyboard = 1 << 0,
+    Joystick = 1 << 1,
+    KeyRepeat = 1 << 2,
+    All = Keyboard | Joystick | KeyRepeat,
 }
 
-public sealed class DirectionalPadAdapter : Object, IDisposable
+/// <summary>
+/// Adapter to translate gamepad axis and DPad messages along with keyboard (WASD and arrows) and externally provided
+/// directions into keyboard arrow messages.
+/// </summary>
+/// <remarks>
+/// DPadAdapter collects all inputs that it can categorize as a movement into specific direction. When at least one
+/// input received it sends a corresponding keyboard message about arrow key been pressed. When last input is
+/// released it sends a message about key been released. It can also be used as a substitute for Input as it implements
+/// GetScancodeDown and GetKeyDown methods but it only supports arrow key and scan codes.
+/// </remarks>
+public class DirectionalPadAdapter : Object
 {
-    private enum InputType { Keyboard, JoystickAxis, JoystickDPad, External }
-    private readonly record struct InputSource(InputType Type, int Id);
-
-    private sealed class AggregatedState(Scancode scancode)
+    private enum InputType
     {
-        public Scancode Scancode { get; } = scancode;
-        public HashSet<InputSource> Sources { get; } = [];
-        public float TimeToRepeat { get; set; } = float.MaxValue;
-        public bool IsActive => Sources.Count != 0;
+        External = 0,
+        Keyboard = 1,
+        JoystickAxis = 100,
+        JoystickDPad = 200,
     }
 
-    private readonly List<ContextEventSubscription> _subscriptions = [];
-    private readonly AggregatedState _up = new(Scancode.Up);
-    private readonly AggregatedState _down = new(Scancode.Down);
-    private readonly AggregatedState _left = new(Scancode.Left);
-    private readonly AggregatedState _right = new(Scancode.Right);
-    private Input? _input;
+    private class AggregatedState : ICloneable
+    {
+        public AggregatedState(Scancode scancode)
+        {
+            Scancode = scancode;
+            ActiveSources = new List<InputType>(4);
+            TimeToRepeat = float.MaxValue;
+        }
+
+        public Scancode Scancode;
+        public List<InputType> ActiveSources;
+        public float TimeToRepeat;
+
+        public bool Append(InputType inputType)
+        {
+            for (var i = 0; i < ActiveSources.Count; ++i)
+            {
+                if (ActiveSources[i] == inputType)
+                {
+                    return false;
+                }
+            }
+            ActiveSources.Add(inputType);
+            return ActiveSources.Count == 1;
+        }
+
+        public bool Remove(InputType inputType)
+        {
+            for (var i = 0; i < ActiveSources.Count; ++i)
+            {
+                if (ActiveSources[i] == inputType)
+                {
+                    ActiveSources[i] = ActiveSources[^1];
+                    ActiveSources.RemoveAt(ActiveSources.Count - 1);
+                    if (ActiveSources.Count == 0)
+                    {
+                        TimeToRepeat = float.MaxValue;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public bool RemoveIf(Predicate<InputType> predicate)
+        {
+            if (ActiveSources.Count == 0)
+            {
+                return false;
+            }
+            for (var i = ActiveSources.Count; i-- > 0;)
+            {
+                if (predicate(ActiveSources[i]))
+                {
+                    ActiveSources[i] = ActiveSources[^1];
+                    ActiveSources.RemoveAt(ActiveSources.Count - 1);
+                }
+            }
+            if (ActiveSources.Count == 0)
+            {
+                TimeToRepeat = float.MaxValue;
+                return true;
+            }
+            return false;
+        }
+
+        public bool IsActive() => ActiveSources.Count != 0;
+
+        public object Clone()
+        {
+            var clone = new AggregatedState(Scancode);
+            clone.ActiveSources.AddRange(ActiveSources);
+            clone.TimeToRepeat = TimeToRepeat;
+            return clone;
+        }
+    }
+
+    /// <summary>Is adapter enabled</summary>
     private bool _enabled;
-    private DirectionalPadAdapterMask _subscriptionMask = DirectionalPadAdapterMask.All;
+    /// <summary>Enabled subscriptions</summary>
+    private DirectionalPadAdapterMask _enabledSubscriptions = DirectionalPadAdapterMask.All;
+    /// <summary>Active subscriptions bitmask</summary>
+    private DirectionalPadAdapterMask _subscriptionFlags = DirectionalPadAdapterMask.None;
+    private readonly Input _input;
+    private readonly AggregatedState _up;
+    private readonly AggregatedState _down;
+    private readonly AggregatedState _left;
+    private readonly AggregatedState _right;
+    private int _ignoreJoystickId = int.MinValue;
     private float _axisUpperThreshold = 0.6f;
     private float _axisLowerThreshold = 0.4f;
     private float _repeatDelay = 0.5f;
     private float _repeatInterval = 0.03f;
 
-    public DirectionalPadAdapter(Input? input = null) => _input = input;
-
-    public override void Dispose()
+    /// <summary>Construct.</summary>
+    public DirectionalPadAdapter()
     {
-        ClearSubscriptions();
-        base.Dispose();
-        GC.SuppressFinalize(this);
-    }
+        _input = GetSubsystem<Input>()!;
+        _up = new AggregatedState(Scancode.Up);
+        _down = new AggregatedState(Scancode.Down);
+        _left = new AggregatedState(Scancode.Left);
+        _right = new AggregatedState(Scancode.Right);
 
-    public void SetInput(Input? input)
-    {
-        if (ReferenceEquals(_input, input)) return;
-        _input = input;
-        UpdateSubscriptions();
-    }
-
-    public Input? GetInput() => _input;
-
-    public void SetEnabled(bool enabled)
-    {
-        if (_enabled == enabled) return;
-        _enabled = enabled;
-        UpdateSubscriptions();
-    }
-
-    public bool IsEnabled() => _enabled;
-
-    public void SetSubscriptionMask(DirectionalPadAdapterMask mask)
-    {
-        if (_subscriptionMask == mask) return;
-        _subscriptionMask = mask;
-        UpdateSubscriptions();
-    }
-
-    public DirectionalPadAdapterMask GetSubscriptionMask() => _subscriptionMask;
-    public void SetAxisUpperThreshold(float threshold) => _axisUpperThreshold = threshold;
-    public float GetAxisUpperThreshold() => _axisUpperThreshold;
-    public void SetAxisLowerThreshold(float threshold) => _axisLowerThreshold = threshold;
-    public float GetAxisLowerThreshold() => _axisLowerThreshold;
-    public void SetRepeatDelay(float delayInSeconds) => _repeatDelay = Math.Max(delayInSeconds, float.Epsilon);
-    public float GetRepeatDelay() => _repeatDelay;
-    public void SetRepeatInterval(float intervalInSeconds) => _repeatInterval = Math.Max(intervalInSeconds, float.Epsilon);
-    public float GetRepeatInterval() => _repeatInterval;
-
-    public void SetExternalDirection(Vector2f direction)
-    {
-        SetSource(_left, new(InputType.External, 0), direction.X < 0.0f);
-        SetSource(_right, new(InputType.External, 0), direction.X > 0.0f);
-        SetSource(_up, new(InputType.External, 0), direction.Y < 0.0f);
-        SetSource(_down, new(InputType.External, 0), direction.Y > 0.0f);
-    }
-
-    public bool GetKeyDown(Key key) => GetScancodeDown(Input.GetScancodeFromKey(key));
-
-    public bool GetScancodeDown(Scancode scancode) => scancode switch
-    {
-        Scancode.Up => _up.IsActive,
-        Scancode.Down => _down.IsActive,
-        Scancode.Left => _left.IsActive,
-        Scancode.Right => _right.IsActive,
-        _ => false
-    };
-
-    private void UpdateSubscriptions()
-    {
-        ClearSubscriptions();
-        ClearAllSources(sendEvents: true);
-        if (!_enabled || _input is null) return;
-        _subscriptions.Add(SubscribeToEvent<InputEvents.InputFocusEvent>(_input, HandleInputFocus));
-        if ((_subscriptionMask & DirectionalPadAdapterMask.KeyRepeat) != 0)
-            _subscriptions.Add(SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate));
-        if ((_subscriptionMask & DirectionalPadAdapterMask.Keyboard) != 0)
+        var numJoysticks = _input.GetNumJoysticks();
+        for (var i = 0u; i < numJoysticks; ++i)
         {
-            _subscriptions.Add(SubscribeToEvent<InputEvents.KeyDownEvent>(_input, HandleKeyDown));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.KeyUpEvent>(_input, HandleKeyUp));
-        }
-        if ((_subscriptionMask & DirectionalPadAdapterMask.Joystick) != 0)
-        {
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(_input, HandleJoystickAxisMove));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(_input, HandleJoystickHatMove));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(_input, HandleJoystickDisconnected));
-        }
-    }
-
-    private void ClearSubscriptions()
-    {
-        foreach (var subscription in _subscriptions) subscription.Dispose();
-        _subscriptions.Clear();
-    }
-
-    private void HandleInputFocus(ref InputEvents.InputFocusEvent value) { if (!value.Focus) ClearAllSources(sendEvents: true); }
-
-    private void HandleUpdate(ref CoreEvents.UpdateEvent value)
-    {
-        foreach (var state in States())
-        {
-            if (!state.IsActive) continue;
-            state.TimeToRepeat -= value.TimeStep;
-            if (state.TimeToRepeat < 0.0f)
+            var joystick = _input.GetJoystickByIndex(i)!.Value;
+            if (joystick.GetNumAxes() == 3 && joystick.GetNumButtons() == 0 && joystick.GetNumHats() == 0)
             {
-                state.TimeToRepeat = _repeatInterval;
-                SendKeyDown(state.Scancode, repeat: true);
+                _ignoreJoystickId = joystick.JoystickID;
             }
         }
     }
 
-    private void HandleKeyDown(ref InputEvents.KeyDownEvent value) => SetKeyboard(value.Scancode, true);
-    private void HandleKeyUp(ref InputEvents.KeyUpEvent value) => SetKeyboard(value.Scancode, false);
-
-    private void SetKeyboard(Scancode scancode, bool down)
+    /// <summary>Set enabled flag. The object subscribes for events when enabled.</summary>
+    public void SetEnabled(bool enabled)
     {
-        var source = new InputSource(InputType.Keyboard, 0);
+        if (_enabled != enabled)
+        {
+            _enabled = enabled;
+            if (_enabled)
+            {
+                UpdateSubscriptions(_enabledSubscriptions);
+            }
+            else
+            {
+                UpdateSubscriptions(DirectionalPadAdapterMask.None);
+            }
+        }
+    }
+
+    /// <summary>Set input device subscription mask.</summary>
+    public void SetSubscriptionMask(DirectionalPadAdapterMask mask)
+    {
+        _enabledSubscriptions = mask;
+        if (IsEnabled())
+            UpdateSubscriptions(_enabledSubscriptions);
+    }
+
+    /// <summary>Set axis upper threshold. Axis value greater than threshold is interpreted as key press.</summary>
+    public void SetAxisUpperThreshold(float threshold) => _axisUpperThreshold = threshold;
+
+    /// <summary>Set axis lower threshold. Axis value lower than threshold is interpreted as key press.</summary>
+    public void SetAxisLowerThreshold(float threshold) => _axisLowerThreshold = threshold;
+
+    /// <summary>Set repeat delay in seconds.</summary>
+    public void SetRepeatDelay(float delayInSeconds)
+    {
+        _repeatDelay = Math.Max(delayInSeconds, MathDefs.Epsilon);
+    }
+
+    /// <summary>Set repeat interval in seconds.</summary>
+    public void SetRepeatInterval(float intervalInSeconds)
+    {
+        _repeatInterval = Math.Max(intervalInSeconds, MathDefs.Epsilon);
+    }
+
+    /// <summary>Get enabled flag.</summary>
+    public bool IsEnabled() => _enabled;
+
+    /// <summary>Get input device subscription mask.</summary>
+    public DirectionalPadAdapterMask GetSubscriptionMask() => _enabledSubscriptions;
+
+    /// <summary>Check if a key is held down by Key code. Only Up, Down, Left and Right keys are supported.</summary>
+    public bool GetKeyDown(Key key) => GetScancodeDown(Input.GetScancodeFromKey(key));
+
+    /// <summary>Check if a key is held down by scancode. Only Up, Down, Left and Right scancodes are supported.</summary>
+    public bool GetScancodeDown(Scancode scancode)
+    {
         switch (scancode)
         {
-            case Scancode.W or Scancode.Up: SetSource(_up, source, down); break;
-            case Scancode.S or Scancode.Down: SetSource(_down, source, down); break;
-            case Scancode.A or Scancode.Left: SetSource(_left, source, down); break;
-            case Scancode.D or Scancode.Right: SetSource(_right, source, down); break;
+            case Scancode.Up: return _up.IsActive();
+            case Scancode.Down: return _down.IsActive();
+            case Scancode.Left: return _left.IsActive();
+            case Scancode.Right: return _right.IsActive();
+            default: break;
+        }
+        return false;
+    }
+
+    /// <summary>Get axis upper threshold. Axis value greater than threshold is interpreted as key press.</summary>
+    public float GetAxisUpperThreshold() => _axisUpperThreshold;
+
+    /// <summary>Get axis lower threshold. Axis value lower than threshold is interpreted as key press.</summary>
+    public float GetAxisLowerThreshold() => _axisLowerThreshold;
+
+    /// <summary>Get repeat delay in seconds.</summary>
+    public float GetRepeatDelay() => _repeatDelay;
+
+    /// <summary>Get repeat interval in seconds.</summary>
+    public float GetRepeatInterval() => _repeatInterval;
+
+    private void UpdateSubscriptions(DirectionalPadAdapterMask flags)
+    {
+        var toSubscribe = flags & ~_subscriptionFlags;
+        var toUnsubscribe = _subscriptionFlags & ~flags;
+
+        if (_subscriptionFlags == DirectionalPadAdapterMask.None && flags != DirectionalPadAdapterMask.None)
+        {
+            SubscribeToEvent<InputEvents.InputFocusEvent>(_input, HandleInputFocus);
+        }
+        else if (_subscriptionFlags != DirectionalPadAdapterMask.None && flags == DirectionalPadAdapterMask.None)
+        {
+            UnsubscribeFromEvent<InputEvents.InputFocusEvent>(_input);
+        }
+
+        _subscriptionFlags = flags;
+        if ((toSubscribe & DirectionalPadAdapterMask.KeyRepeat) != 0)
+        {
+            SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+        }
+        else if ((toUnsubscribe & DirectionalPadAdapterMask.Keyboard) != 0)
+        {
+            UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
+        }
+
+        if ((toSubscribe & DirectionalPadAdapterMask.Keyboard) != 0)
+        {
+            SubscribeToEvent<InputEvents.KeyUpEvent>(_input, HandleKeyUp);
+            SubscribeToEvent<InputEvents.KeyDownEvent>(_input, HandleKeyDown);
+        }
+        else if ((toUnsubscribe & DirectionalPadAdapterMask.Keyboard) != 0)
+        {
+            UnsubscribeFromEvent<InputEvents.KeyUpEvent>();
+            UnsubscribeFromEvent<InputEvents.KeyDownEvent>();
+
+            RemoveIf(_up, static input => input == InputType.Keyboard);
+            RemoveIf(_down, static input => input == InputType.Keyboard);
+            RemoveIf(_left, static input => input == InputType.Keyboard);
+            RemoveIf(_right, static input => input == InputType.Keyboard);
+        }
+        if ((toSubscribe & DirectionalPadAdapterMask.Joystick) != 0)
+        {
+            SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(_input, HandleJoystickAxisMove);
+            SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(_input, HandleJoystickHatMove);
+            SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(_input, HandleJoystickDisconnected);
+        }
+        else if ((toUnsubscribe & DirectionalPadAdapterMask.Joystick) != 0)
+        {
+            UnsubscribeFromEvent<InputEvents.JoystickAxisMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickHatMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickDisconnectedEvent>();
+
+            RemoveIf(_up, static input => input >= InputType.JoystickAxis);
+            RemoveIf(_down, static input => input >= InputType.JoystickAxis);
+            RemoveIf(_left, static input => input >= InputType.JoystickAxis);
+            RemoveIf(_right, static input => input >= InputType.JoystickAxis);
+        }
+    }
+
+    private void HandleInputFocus(ref InputEvents.InputFocusEvent value)
+    {
+        if (!value.Focus)
+        {
+            // Clear all input and send even if necessary.
+            RemoveIf(_up, static input => true);
+            RemoveIf(_down, static input => true);
+            RemoveIf(_left, static input => true);
+            RemoveIf(_right, static input => true);
+        }
+    }
+
+    private void HandleUpdate(ref CoreEvents.UpdateEvent value)
+    {
+        var timeStep = value.TimeStep;
+        for (var i = 0; i < 4; ++i)
+        {
+            var state = i switch { 0 => _up, 1 => _down, 2 => _left, _ => _right };
+            if (state.IsActive())
+            {
+                state.TimeToRepeat -= timeStep;
+                if (state.TimeToRepeat < 0)
+                {
+                    state.TimeToRepeat = _repeatInterval;
+                    SendKeyDown(state.Scancode, true);
+                }
+            }
+        }
+    }
+
+    private void HandleKeyDown(ref InputEvents.KeyDownEvent value)
+    {
+        switch (value.Scancode)
+        {
+            case Scancode.W:
+            case Scancode.Up:
+                Append(_up, InputType.Keyboard);
+                break;
+            case Scancode.S:
+            case Scancode.Down:
+                Append(_down, InputType.Keyboard);
+                break;
+            case Scancode.A:
+            case Scancode.Left:
+                Append(_left, InputType.Keyboard);
+                break;
+            case Scancode.D:
+            case Scancode.Right:
+                Append(_right, InputType.Keyboard);
+                break;
+        }
+    }
+
+    private void HandleKeyUp(ref InputEvents.KeyUpEvent value)
+    {
+        switch (value.Scancode)
+        {
+            case Scancode.W:
+            case Scancode.Up:
+                Remove(_up, InputType.Keyboard);
+                break;
+            case Scancode.S:
+            case Scancode.Down:
+                Remove(_down, InputType.Keyboard);
+                break;
+            case Scancode.A:
+            case Scancode.Left:
+                Remove(_left, InputType.Keyboard);
+                break;
+            case Scancode.D:
+            case Scancode.Right:
+                Remove(_right, InputType.Keyboard);
+                break;
         }
     }
 
     private void HandleJoystickAxisMove(ref InputEvents.JoystickAxisMoveEvent value)
     {
-        var source = new InputSource(InputType.JoystickAxis, value.JoystickID);
-        if (value.Axis == 1)
+        var joystickId = value.JoystickID;
+        if (joystickId == _ignoreJoystickId)
+            return;
+
+        var eventId = (InputType)((int)InputType.JoystickAxis + joystickId);
+        var axisIndex = value.Axis;
+        var axisValue = value.Position;
+
+        // Up-Down
+        if (axisIndex == 1)
         {
-            if (value.Position > _axisUpperThreshold) { SetSource(_down, source, true); SetSource(_up, source, false); }
-            else if (value.Position < -_axisUpperThreshold) { SetSource(_down, source, false); SetSource(_up, source, true); }
-            else if (value.Position > -_axisLowerThreshold && value.Position < _axisLowerThreshold) { SetSource(_up, source, false); SetSource(_down, source, false); }
+            if (axisValue > _axisUpperThreshold)
+            {
+                Append(_down, eventId);
+                Remove(_up, eventId);
+            }
+            else if (axisValue < -_axisUpperThreshold)
+            {
+                Remove(_down, eventId);
+                Append(_up, eventId);
+            }
+            else if (axisValue > -_axisLowerThreshold && axisValue < _axisLowerThreshold)
+            {
+                Remove(_up, eventId);
+                Remove(_down, eventId);
+            }
         }
-        else if (value.Axis == 0)
+        // Left-Right
+        if (axisIndex == 0)
         {
-            if (value.Position > _axisUpperThreshold) { SetSource(_right, source, true); SetSource(_left, source, false); }
-            else if (value.Position < -_axisUpperThreshold) { SetSource(_right, source, false); SetSource(_left, source, true); }
-            else if (value.Position > -_axisLowerThreshold && value.Position < _axisLowerThreshold) { SetSource(_right, source, false); SetSource(_left, source, false); }
+            if (axisValue > _axisUpperThreshold)
+            {
+                Append(_right, eventId);
+                Remove(_left, eventId);
+            }
+            else if (axisValue < -_axisUpperThreshold)
+            {
+                Append(_left, eventId);
+                Remove(_right, eventId);
+            }
+            else if (axisValue > -_axisLowerThreshold && axisValue < _axisLowerThreshold)
+            {
+                Remove(_right, eventId);
+                Remove(_left, eventId);
+            }
         }
     }
 
     private void HandleJoystickHatMove(ref InputEvents.JoystickHatMoveEvent value)
     {
-        if (value.Hat != 0) return;
-        var source = new InputSource(InputType.JoystickDPad, value.JoystickID);
-        SetSource(_up, source, (value.Position & HatPosition.Up) != 0);
-        SetSource(_down, source, (value.Position & HatPosition.Down) != 0);
-        SetSource(_left, source, (value.Position & HatPosition.Left) != 0);
-        SetSource(_right, source, (value.Position & HatPosition.Right) != 0);
+        var hatIndex = value.Hat;
+        if (hatIndex != 0)
+            return;
+
+        var joystickId = value.JoystickID;
+        var eventId = (InputType)((int)InputType.JoystickDPad + joystickId);
+        var position = value.Position;
+
+        if ((position & HatPosition.Up) != 0)
+            Append(_up, eventId);
+        else
+            Remove(_up, eventId);
+
+        if ((position & HatPosition.Down) != 0)
+            Append(_down, eventId);
+        else
+            Remove(_down, eventId);
+
+        if ((position & HatPosition.Left) != 0)
+            Append(_left, eventId);
+        else
+            Remove(_left, eventId);
+
+        if ((position & HatPosition.Right) != 0)
+            Append(_right, eventId);
+        else
+            Remove(_right, eventId);
+
+        var horizontalValue = ((position & HatPosition.Right) != 0 ? 1.0f : 0.0f)
+            + ((position & HatPosition.Left) != 0 ? -1.0f : 0.0f);
+        var verticalValue = ((position & HatPosition.Down) != 0 ? 1.0f : 0.0f)
+            + ((position & HatPosition.Up) != 0 ? -1.0f : 0.0f);
     }
 
     private void HandleJoystickDisconnected(ref InputEvents.JoystickDisconnectedEvent value)
     {
         var joystickId = value.JoystickID;
-        foreach (var state in States())
-            RemoveSources(state, source => source.Id == joystickId && source.Type is InputType.JoystickAxis or InputType.JoystickDPad);
+
+        // Cancel Axis states.
+        var joyEventId = (InputType)((int)InputType.JoystickAxis + joystickId);
+        Remove(_up, joyEventId);
+        Remove(_down, joyEventId);
+        Remove(_left, joyEventId);
+        Remove(_right, joyEventId);
+
+        // Cancel DPad states.
+        var dpadEventId = (InputType)((int)InputType.JoystickDPad + joystickId);
+        Remove(_up, dpadEventId);
+        Remove(_down, dpadEventId);
+        Remove(_left, dpadEventId);
+        Remove(_right, dpadEventId);
     }
 
-    private void SetSource(AggregatedState state, InputSource source, bool active)
+    // Append input to set.
+    private void Append(AggregatedState activeInput, InputType input)
     {
-        if (active)
+        if (activeInput.Append(input))
         {
-            if (!state.Sources.Add(source) || state.Sources.Count != 1) return;
-            state.TimeToRepeat = _repeatDelay;
-            SendKeyDown(state.Scancode, repeat: false);
-        }
-        else if (state.Sources.Remove(source) && state.Sources.Count == 0)
-        {
-            state.TimeToRepeat = float.MaxValue;
-            SendKeyUp(state.Scancode);
-        }
-    }
-
-    private void RemoveSources(AggregatedState state, Predicate<InputSource> predicate)
-    {
-        if (state.Sources.RemoveWhere(source => predicate(source)) == 0 || state.Sources.Count != 0) return;
-        state.TimeToRepeat = float.MaxValue;
-        SendKeyUp(state.Scancode);
-    }
-
-    private void ClearAllSources(bool sendEvents)
-    {
-        foreach (var state in States())
-        {
-            var wasActive = state.IsActive;
-            state.Sources.Clear();
-            state.TimeToRepeat = float.MaxValue;
-            if (wasActive && sendEvents) SendKeyUp(state.Scancode);
+            SendKeyDown(activeInput.Scancode, false);
+            activeInput.TimeToRepeat = _repeatDelay;
         }
     }
 
-    private IEnumerable<AggregatedState> States() { yield return _up; yield return _down; yield return _left; yield return _right; }
-
-    private void SendKeyDown(Scancode scancode, bool repeat)
+    // Remove input from set.
+    private void Remove(AggregatedState activeInput, InputType input)
     {
-        var eventData = new InputEvents.KeyDownEvent { Key = ToKey(scancode), Scancode = scancode, Repeat = repeat };
+        if (activeInput.Remove(input))
+        {
+            SendKeyUp(activeInput.Scancode);
+        }
+    }
+
+    // Remove input from set.
+    private void RemoveIf(AggregatedState activeInput, Predicate<InputType> predicate)
+    {
+        if (activeInput.RemoveIf(predicate))
+        {
+            SendKeyUp(activeInput.Scancode);
+        }
+    }
+
+    private void SendKeyUp(Scancode key)
+    {
+        var eventData = new InputEvents.KeyUpEvent
+        {
+            Scancode = key,
+            Buttons = MouseButton.None,
+            Qualifiers = Qualifier.None,
+        };
+        switch (key)
+        {
+            case Scancode.Up: eventData.Key = Key.Up; break;
+            case Scancode.Down: eventData.Key = Key.Down; break;
+            case Scancode.Left: eventData.Key = Key.Left; break;
+            case Scancode.Right: eventData.Key = Key.Right; break;
+            default: eventData.Key = Key.Unknown; break;
+        }
         SendEvent(ref eventData);
     }
 
-    private void SendKeyUp(Scancode scancode)
+    private void SendKeyDown(Scancode key, bool repeat)
     {
-        var eventData = new InputEvents.KeyUpEvent { Key = ToKey(scancode), Scancode = scancode };
+        var eventData = new InputEvents.KeyDownEvent
+        {
+            Scancode = key,
+            Buttons = MouseButton.None,
+            Qualifiers = Qualifier.None,
+            Repeat = repeat,
+        };
+        switch (key)
+        {
+            case Scancode.Up: eventData.Key = Key.Up; break;
+            case Scancode.Down: eventData.Key = Key.Down; break;
+            case Scancode.Left: eventData.Key = Key.Left; break;
+            case Scancode.Right: eventData.Key = Key.Right; break;
+            default: eventData.Key = Key.Unknown; break;
+        }
         SendEvent(ref eventData);
     }
-
-    private static Key ToKey(Scancode scancode) => scancode switch
-    {
-        Scancode.Up => Key.Up, Scancode.Down => Key.Down,
-        Scancode.Left => Key.Left, Scancode.Right => Key.Right,
-        _ => Key.Unknown
-    };
 }

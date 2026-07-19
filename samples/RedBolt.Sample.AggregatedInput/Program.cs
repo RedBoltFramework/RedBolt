@@ -32,7 +32,7 @@ sealed class AggregatedInputApplication : Application
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => Draw());
         SetupViewport();
         _directionAggregator = new DirectionAggregator();
-        _directionalPadAdapter = new DirectionalPadAdapter(Input);
+        _directionalPadAdapter = new DirectionalPadAdapter();
         _keyDownSubscription = Context.SubscribeToEvent<InputEvents.KeyDownEvent>(_directionalPadAdapter, HandleKeyDown);
         _keyUpSubscription = Context.SubscribeToEvent<InputEvents.KeyUpEvent>(_directionalPadAdapter, HandleKeyUp);
         _directionAggregator.SetEnabled(true);

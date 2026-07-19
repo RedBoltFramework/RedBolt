@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Reflection;
 
 namespace RedBolt.Tests;
 
@@ -15,9 +16,29 @@ public sealed class DirectionalPadAdapterTests
     private RedBolt.Input Input => _fixture.Input;
 
     [Fact]
+    public void Matches_native_noncopyable_class_and_nonpod_aggregated_state_kinds()
+    {
+        Assert.True(typeof(DirectionalPadAdapter).IsClass);
+        Assert.False(typeof(DirectionalPadAdapter).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(DirectionalPadAdapter)));
+
+        var aggregatedState = typeof(DirectionalPadAdapter).GetNestedType("AggregatedState", BindingFlags.NonPublic);
+        Assert.NotNull(aggregatedState);
+        Assert.True(aggregatedState.IsClass);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(aggregatedState));
+
+        var inputType = typeof(DirectionalPadAdapter).GetNestedType("InputType", BindingFlags.NonPublic);
+        Assert.NotNull(inputType);
+        Assert.Equal(0, (int)Enum.Parse(inputType, "External"));
+        Assert.Equal(1, (int)Enum.Parse(inputType, "Keyboard"));
+        Assert.Equal(100, (int)Enum.Parse(inputType, "JoystickAxis"));
+        Assert.Equal(200, (int)Enum.Parse(inputType, "JoystickDPad"));
+    }
+
+    [Fact]
     public void Keyboard_mapping_to_dpad_works()
     {
-        using var adapter = new DirectionalPadAdapter(Input);
+        using var adapter = new DirectionalPadAdapter();
         adapter.SetEnabled(true);
         Input.SetKey(Key.W, Scancode.W, true);
         Input.SetKey(Key.D, Scancode.D, true);
@@ -32,9 +53,23 @@ public sealed class DirectionalPadAdapterTests
     }
 
     [Fact]
+    public void Keyboard_aliases_share_the_native_source()
+    {
+        using var adapter = new DirectionalPadAdapter();
+        adapter.SetEnabled(true);
+        Input.SetKey(Key.Down, Scancode.Down, true);
+        Input.SetKey(Key.S, Scancode.S, true);
+        Assert.True(adapter.GetScancodeDown(Scancode.Down));
+
+        Input.SetKey(Key.Down, Scancode.Down, false);
+        Assert.False(adapter.GetScancodeDown(Scancode.Down));
+        Input.SetKey(Key.S, Scancode.S, false);
+    }
+
+    [Fact]
     public void Joystick_thresholds_work()
     {
-        using var adapter = new DirectionalPadAdapter(Input);
+        using var adapter = new DirectionalPadAdapter();
         adapter.SetEnabled(true);
         adapter.SetAxisUpperThreshold(0.6f);
         adapter.SetAxisLowerThreshold(0.4f);
@@ -49,18 +84,18 @@ public sealed class DirectionalPadAdapterTests
     }
 
     [Fact]
-    public void Hat_and_external_direction_work()
+    public void Keyboard_and_hat_sources_are_aggregated()
     {
-        using var adapter = new DirectionalPadAdapter(Input);
+        using var adapter = new DirectionalPadAdapter();
         adapter.SetEnabled(true);
+        Input.SetKey(Key.Up, Scancode.Up, true);
         Input.SetHatPosition(HatPosition.LeftDown);
-        adapter.SetExternalDirection(new Vector2f(1.0f, -1.0f));
 
         Assert.True(adapter.GetScancodeDown(Scancode.Left));
         Assert.True(adapter.GetScancodeDown(Scancode.Down));
-        Assert.True(adapter.GetScancodeDown(Scancode.Right));
         Assert.True(adapter.GetScancodeDown(Scancode.Up));
 
+        Input.SetKey(Key.Up, Scancode.Up, false);
         Input.SetHatPosition(HatPosition.Center);
     }
 
@@ -81,12 +116,17 @@ public sealed class DirectionalPadAdapterTests
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetAxisLowerThreshold(), 0.25f));
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetRepeatDelay(), 0.4f));
         Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetRepeatInterval(), 0.05f));
+
+        adapter.SetRepeatDelay(0.0f);
+        adapter.SetRepeatInterval(0.0f);
+        Assert.Equal(MathDefs.Epsilon, adapter.GetRepeatDelay());
+        Assert.Equal(MathDefs.Epsilon, adapter.GetRepeatInterval());
     }
 
     [Fact]
     public void Axis_hysteresis_and_last_source_release_work()
     {
-        using var adapter = new DirectionalPadAdapter(Input);
+        using var adapter = new DirectionalPadAdapter();
         adapter.SetEnabled(true);
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.7f);
         Assert.True(adapter.GetScancodeDown(Scancode.Right));
@@ -103,7 +143,7 @@ public sealed class DirectionalPadAdapterTests
     [Fact]
     public void Synthesized_transitions_and_repeat_match_upstream()
     {
-        using var adapter = new DirectionalPadAdapter(Input);
+        using var adapter = new DirectionalPadAdapter();
         adapter.SetRepeatDelay(0.2f);
         adapter.SetRepeatInterval(0.1f);
         adapter.SetEnabled(true);
