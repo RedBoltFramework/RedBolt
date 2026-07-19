@@ -72,8 +72,8 @@ public sealed class Camera : Component
         RegisterAttribute("Zone Mask", typeof(uint), self => ((Camera)self).GetZoneMask(), (self, value) => ((Camera)self).SetZoneMask((uint)value!), DefaultZoneMask);
         RegisterAttribute("View Override Flags", typeof(ViewOverride), self => ((Camera)self).GetViewOverrideFlags(), (self, value) => ((Camera)self).SetViewOverrideFlags((ViewOverride)value!), ViewOverride.None);
         RegisterAttribute("Projection Offset", typeof(Vector2f), self => ((Camera)self).GetProjectionOffset(), (self, value) => ((Camera)self).SetProjectionOffset((Vector2f)value!), Vector2f.Zero);
-        RegisterAttribute("Reflection Plane", typeof(Vector4f), self => ((Camera)self).GetReflectionPlaneAttr(), (self, value) => ((Camera)self).SetReflectionPlaneAttr((Vector4f)value!), Plane.Up.Vector4f);
-        RegisterAttribute("Clip Plane", typeof(Vector4f), self => ((Camera)self).GetClipPlaneAttr(), (self, value) => ((Camera)self).SetClipPlaneAttr((Vector4f)value!), Plane.Up.Vector4f);
+        RegisterAttribute("Reflection Plane", typeof(Vector4f), self => ((Camera)self).GetReflectionPlaneAttr(), (self, value) => ((Camera)self).SetReflectionPlaneAttr((Vector4f)value!), Plane.Up.ToVector4());
+        RegisterAttribute("Clip Plane", typeof(Vector4f), self => ((Camera)self).GetClipPlaneAttr(), (self, value) => ((Camera)self).SetClipPlaneAttr((Vector4f)value!), Plane.Up.ToVector4());
         RegisterAttribute("Use Reflection", typeof(bool), self => ((Camera)self).GetUseReflection(), (self, value) => ((Camera)self).SetUseReflection(value is bool enabled && enabled), false);
         RegisterAttribute("Use Clipping", typeof(bool), self => ((Camera)self).GetUseClipping(), (self, value) => ((Camera)self).SetUseClipping(value is bool enabled && enabled), false);
         RegisterAttribute("Draw Debug Geometry", typeof(bool), self => ((Camera)self).GetDrawDebugGeometry(), (self, value) => ((Camera)self).SetDrawDebugGeometry(value is bool enabled && enabled), true);
@@ -700,7 +700,7 @@ public sealed class Camera : Component
     public void SetReflectionPlane(Plane plane)
     {
         _reflectionPlane = plane;
-        _reflectionMatrix = plane.ReflectionMatrix();
+        _reflectionMatrix = plane.ReflectionMatrix;
         _viewDirty = true;
         _viewProjDirty = true;
         _frustumDirty = true;
@@ -716,14 +716,14 @@ public sealed class Camera : Component
         SetReflectionPlane(new Plane(value));
     }
 
-    public Vector4f GetReflectionPlaneAttr() => _reflectionPlane.Vector4f;
+    public Vector4f GetReflectionPlaneAttr() => _reflectionPlane.ToVector4();
 
     public void SetClipPlaneAttr(Vector4f value)
     {
         SetClipPlane(new Plane(value));
     }
 
-    public Vector4f GetClipPlaneAttr() => _clipPlane.Vector4f;
+    public Vector4f GetClipPlaneAttr() => _clipPlane.ToVector4();
 
     public void SetViewMask(uint mask)
     {

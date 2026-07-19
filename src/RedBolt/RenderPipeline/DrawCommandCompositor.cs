@@ -55,7 +55,7 @@ internal static class BatchRendererHelpers
         if (!camera.GetUseClipping())
             return new Vector4f(0, 0, 0, 1);
         var viewProj = camera.GetGPUProjection() * camera.GetView().Matrix4;
-        return camera.GetClipPlane().Transformed(viewProj).Vector4f;
+        return camera.GetClipPlane().Transformed(viewProj).ToVector4();
     }
 }
 

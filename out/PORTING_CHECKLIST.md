@@ -122,6 +122,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `MathDefs.h` / `MathDefs.cpp` — stateless module kind, constant types/order, scalar and vector helpers, variable-length integer bit offsets, native-width zigzag semantics, documentation, and compatibility-only surface cleanup reconciled
 - [x] `NumericRange.h` — sequential reference-free pair value type, implicit independent copies, scalar aliases, invalid defaults, predicates, union/intersection operators, equality, and automatic lifetime reconciled
 - [x] `PerlinNoise.h` / `PerlinNoise.cpp` — non-final reference class shape, unsigned constant, borrowed random-engine construction, fixed permutation storage, deep copy semantics, complete noise flow, comments, and automatic lifetime reconciled
+- [x] `Plane.h` / `Plane.cpp` — reference-free value type, explicit copy construction and independent assignment semantics, complete constructor/method/field order, transforms, intersections, comments, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

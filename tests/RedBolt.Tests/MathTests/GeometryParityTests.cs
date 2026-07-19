@@ -3,6 +3,25 @@ namespace RedBolt.Tests.MathTests;
 public class GeometryParityTests
 {
     [Fact]
+    public void PlaneIsReferenceFreeValueTypeWithIndependentCopies()
+    {
+        Assert.True(typeof(Plane).IsValueType);
+        Assert.True(typeof(Plane).IsAssignableTo(typeof(ICloneable)));
+
+        var plane = new Plane(Vector3f.Up, new Vector3f(0.0f, 2.0f, 0.0f));
+        var copy = plane;
+        plane.D += 1.0f;
+
+        Assert.Equal(-2.0f, copy.D);
+        Assert.Equal(new Vector4f(Vector3f.Up, -2.0f), copy.ToVector4());
+        Assert.Equal(new Matrix3x4(
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, -1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f), Plane.Up.ReflectionMatrix);
+        Assert.Equal(default, new Plane());
+    }
+
+    [Fact]
     public void PlaneIntersectionsMatchRbfxGeometry()
     {
         var x = new Plane(Vector3f.Right, new Vector3f(2, 0, 0));
