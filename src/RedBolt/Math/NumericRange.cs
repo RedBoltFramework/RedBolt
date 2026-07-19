@@ -1,13 +1,18 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 /// <summary>
 /// Numerical range (pair of min and max value). Invalid if flipped.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct NumericRange<T> : IEquatable<NumericRange<T>>
     where T : unmanaged, INumber<T>, IMinMaxValue<T>
 {
+    public T First;
+    public T Second;
+
     /// <summary>
     /// Construct invalid.
     /// </summary>
@@ -46,18 +51,6 @@ public struct NumericRange<T> : IEquatable<NumericRange<T>>
     /// </summary>
     public readonly bool ContainsExclusive(T value) => First < value && value < Second;
 
-    public void Accumulate(NumericRange<T> rhs)
-    {
-        First = T.Min(First, rhs.First);
-        Second = T.Max(Second, rhs.Second);
-    }
-
-    public void Trim(NumericRange<T> rhs)
-    {
-        First = T.Max(First, rhs.First);
-        Second = T.Min(Second, rhs.Second);
-    }
-
     /// <summary>
     /// Accumulate range.
     /// </summary>
@@ -88,13 +81,4 @@ public struct NumericRange<T> : IEquatable<NumericRange<T>>
 
     public static bool operator !=(NumericRange<T> lhs, NumericRange<T> rhs) => !lhs.Equals(rhs);
 
-    /// <summary>
-    /// Minimum value.
-    /// </summary>
-    public T First;
-
-    /// <summary>
-    /// Maximum value.
-    /// </summary>
-    public T Second;
 }

@@ -120,6 +120,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Vector2.h` / `Vector3.h` / `Vector4.h` — `BaseIntegerVector2<T>` and `BaseIntegerVector3<T>` POD-style sequential structs, exact generic names, independent scalar copies, contiguous data views, conversions, integer lengths, hashes, and automatic lifetime reconciled
 - [x] `MathDefs.h` — `Intersection` enum kind, integer backing, ordered values, value-copy semantics, and automatic lifetime reconciled
 - [x] `MathDefs.h` / `MathDefs.cpp` — stateless module kind, constant types/order, scalar and vector helpers, variable-length integer bit offsets, native-width zigzag semantics, documentation, and compatibility-only surface cleanup reconciled
+- [x] `NumericRange.h` — sequential reference-free pair value type, implicit independent copies, scalar aliases, invalid defaults, predicates, union/intersection operators, equality, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

@@ -1,9 +1,20 @@
 using RedBolt;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt.Tests;
 
 public sealed class NumericRangeTests
 {
+    [Fact]
+    public void Range_is_sequential_reference_free_value_type()
+    {
+        Assert.True(typeof(NumericRange<int>).IsValueType);
+        Assert.Equal(LayoutKind.Sequential, typeof(NumericRange<int>).StructLayoutAttribute!.Value);
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<NumericRange<int>>());
+        Assert.Equal(8, Unsafe.SizeOf<NumericRange<int>>());
+    }
+
     [Fact]
     public void Default_range_is_invalid()
     {
@@ -40,6 +51,8 @@ public sealed class NumericRangeTests
 
         Assert.Equal(new NumericRange<int>(2, 9), union);
         Assert.Equal(new NumericRange<int>(4, 5), intersection);
+        Assert.Equal(new NumericRange<int>(2, 5), lhs);
+        Assert.Equal(new NumericRange<int>(4, 9), rhs);
     }
 
     [Fact]
