@@ -11,16 +11,16 @@ public sealed class AnimationTrackTests
         {
             ChannelMask = AnimationChannel.Position | AnimationChannel.Rotation | AnimationChannel.Scale
         };
-        track.AddKeyFrame(new AnimationKeyFrame(0.0f, Vector3f.Zero, Quaternion.Identity, Vector3f.One));
+        track.AddKeyFrame(new AnimationKeyFrame(0.0f, Vector3f.Zero, Quaternion.IDENTITY, Vector3f.One));
         track.AddKeyFrame(new AnimationKeyFrame(
-            1.0f, new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.FromAngleAxis(90.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f)));
+            1.0f, new Vector3f(10.0f, 0.0f, 0.0f), new Quaternion(90.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f)));
 
         uint frameIndex = 0;
         var transform = Transform.IDENTITY;
         track.Sample(0.5f, 1.0f, false, ref frameIndex, ref transform);
 
         Assert.Equal(5.0f, transform.Position.X);
-        Assert.True(transform.Rotation.ApproximatelyEquivalent(Quaternion.FromAngleAxis(45.0f, Vector3f.Up), 0.001f));
+        Assert.True(transform.Rotation.ApproximatelyEquivalent(new Quaternion(45.0f, Vector3f.Up), 0.001f));
         Assert.Equal(new Vector3f(1.5f, 1.5f, 1.5f), transform.Scale);
         Assert.False(track.IsLooped());
     }
@@ -36,7 +36,7 @@ public sealed class AnimationTrackTests
         };
         var rotations = new[]
         {
-            (Time: 0.5f, Value: Quaternion.FromAngleAxis(45.0f, Vector3f.Up))
+            (Time: 0.5f, Value: new Quaternion(45.0f, Vector3f.Up))
         };
 
         track.CreateMerged(AnimationChannel.Position | AnimationChannel.Rotation, positions, rotations, [], 0.001f);

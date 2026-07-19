@@ -126,7 +126,7 @@ sealed class BillboardsApplication : Application
             {
                 var mushroomNode = groupNode.CreateChild("Mushroom");
                 mushroomNode.SetPosition(new Vector3f(MathDefs.Random(25.0f) - 12.5f, 0.0f, MathDefs.Random(25.0f) - 12.5f));
-                mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random() * 360.0f, 0.0f));
+                mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random() * 360.0f, 0.0f));
                 mushroomNode.SetScale(1.0f + MathDefs.Random() * 4.0f);
                 var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
                 mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
@@ -243,7 +243,7 @@ sealed class BillboardsApplication : Application
 
         // Rotate the lights around the world Y-axis
         for (var i = 0; i < _lightNodes.Count; ++i)
-            _lightNodes[i].Rotate(Quaternion.FromEulerAngles(0.0f, lightRotationSpeed * timeStep, 0.0f), TransformSpace.World);
+            _lightNodes[i].Rotate(new Quaternion(0.0f, lightRotationSpeed * timeStep, 0.0f), TransformSpace.World);
 
         // Rotate the individual billboards within the billboard sets, then recommit to make the changes visible
         for (var i = 0; i < _billboardNodes.Count; ++i)

@@ -78,7 +78,7 @@ sealed class WindowSettingsApplication : Application
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
 
         _objectNode = _scene.CreateChild("Object");
-        _objectNode.SetRotation(Quaternion.FromEulerAngles(45.0f, 45.0f, 45.0f));
+        _objectNode.SetRotation(new Quaternion(45.0f, 45.0f, 45.0f));
         var model = _objectNode.CreateComponent<StaticModel>();
         model.SetModel(Resources.Get<Model>("Models/Box.mdl"));
         model.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));

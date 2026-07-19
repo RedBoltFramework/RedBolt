@@ -102,6 +102,6 @@ public class VectorParityTests
     public void VectorArrayConstructorsAndQuaternionZeroMatchRbfx()
     {
         Assert.Equal(new Vector3f(1, 2, 3), new Vector3f([1, 2, 3]));
-        Assert.Equal(new Quaternion(0, 0, 0, 0), Quaternion.Zero);
+        Assert.Equal(new Quaternion(0, 0, 0, 0), Quaternion.ZERO);
     }
 }

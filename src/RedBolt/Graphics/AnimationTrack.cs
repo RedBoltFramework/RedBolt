@@ -20,7 +20,7 @@ public struct AnimationKeyFrame
     public AnimationKeyFrame()
     {
         Position = Vector3f.Zero;
-        Rotation = Quaternion.Identity;
+        Rotation = Quaternion.IDENTITY;
         Scale = Vector3f.One;
     }
 
@@ -33,7 +33,7 @@ public struct AnimationKeyFrame
     }
 
     public AnimationKeyFrame(float time, Vector3f position)
-        : this(time, position, Quaternion.Identity, Vector3f.One)
+        : this(time, position, Quaternion.IDENTITY, Vector3f.One)
     {
     }
 
@@ -261,7 +261,7 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
         if (sourceKeyFrames.Length == 0)
         {
             for (var i = 0; i < destinationKeys.Count; ++i)
-                result.Add(Quaternion.Identity);
+                result.Add(Quaternion.IDENTITY);
             return result;
         }
 

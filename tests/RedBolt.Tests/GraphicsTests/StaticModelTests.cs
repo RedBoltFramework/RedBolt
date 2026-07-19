@@ -254,7 +254,7 @@ public sealed class StaticModelTests
 
         Assert.Equal(Intersection.Inside, model.GetBoundingBox().IsInside(Vector3f.Zero));
 
-        cube.Node.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f));
+        cube.Node.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 2.0f, 2.0f));
         Assert.Equal(Intersection.Inside, cube.GetWorldBoundingBox().IsInside(new Vector3f(10.5f, 0.0f, 0.0f)));
     }
 

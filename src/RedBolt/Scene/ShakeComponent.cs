@@ -14,9 +14,9 @@ public sealed class ShakeComponent : LogicComponent
     private Vector3f _rotationRange = Vector3f.Zero;
     private bool _hasOriginalPosition;
     private Vector3f _originalPosition = Vector3f.Zero;
-    private Quaternion _originalRotation = Quaternion.Identity;
+    private Quaternion _originalRotation = Quaternion.IDENTITY;
     private Vector3f _lastKnownPosition = Vector3f.Zero;
-    private Quaternion _lastKnownRotation = Quaternion.Identity;
+    private Quaternion _lastKnownRotation = Quaternion.IDENTITY;
 
     public ShakeComponent()
     {

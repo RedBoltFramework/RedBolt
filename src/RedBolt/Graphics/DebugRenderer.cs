@@ -506,7 +506,7 @@ public class DebugRenderer : Component
     /// </summary>
     public void AddCircle(Vector3f center, Vector3f normal, float radius, Color color, int steps = 64, bool depthTest = true, bool drawNormal = true)
     {
-        var orientation = Quaternion.FromRotationTo(Vector3f.Up, normal.Normalized);
+        var orientation = new Quaternion(Vector3f.Up, normal.Normalized);
         var point = orientation * new Vector3f(radius, 0.0f, 0.0f) + center;
         var uintColor = color.ToUInt();
 

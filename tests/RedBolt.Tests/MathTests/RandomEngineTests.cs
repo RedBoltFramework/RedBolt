@@ -62,7 +62,7 @@ public sealed class RandomEngineTests
         Assert.True(MathDefs.Equals(dir.Length, 1.0f, MathDefs.LargeEpsilon));
 
         var quat = new RandomEngine(3u).GetQuaternion();
-        Assert.True(MathDefs.Equals(quat.Length, 1.0f, MathDefs.LargeEpsilon));
+        Assert.True(MathDefs.Equals(quat.LengthSquared, 1.0f, MathDefs.LargeEpsilon));
 
         var vec = new RandomEngine(4u).GetVector3(new BoundingBox(Vector3f.Zero, Vector3f.One));
         Assert.True(vec.X is >= 0.0f and <= 1.0f);

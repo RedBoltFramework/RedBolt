@@ -228,7 +228,7 @@ public sealed class ControllerTests
             touches[1] = new TouchState { TouchID = 1, Position = new Vector2i(112, 94) };
             var rotate = new InputEvents.TouchMoveEvent { TouchID = 1, X = 112, Y = 94, DX = 12, DY = -6 };
             Context.Instance.SendEvent(ref rotate);
-            Assert.False(node.Rotation.Equals(Quaternion.Identity));
+            Assert.False(node.Rotation.Equals(Quaternion.IDENTITY));
 
             var previousPosition = node.Position;
             touches[2] = new TouchState { TouchID = 2, Position = new Vector2i(130, 120) };

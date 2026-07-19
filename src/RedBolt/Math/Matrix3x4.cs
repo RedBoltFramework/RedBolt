@@ -124,10 +124,10 @@ public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4
         || float.IsInfinity(M10) || float.IsInfinity(M11) || float.IsInfinity(M12) || float.IsInfinity(M13)
         || float.IsInfinity(M20) || float.IsInfinity(M21) || float.IsInfinity(M22) || float.IsInfinity(M23);
 
-    public static Matrix3x4 FromTranslation(Vector3f translation) => new(translation, Quaternion.Identity, 1.0f);
+    public static Matrix3x4 FromTranslation(Vector3f translation) => new(translation, Quaternion.IDENTITY, 1.0f);
     public static Matrix3x4 FromRotation(Quaternion rotation) => new(Vector3f.Zero, rotation, 1.0f);
-    public static Matrix3x4 FromScale(float scale) => new(Vector3f.Zero, Quaternion.Identity, scale);
-    public static Matrix3x4 FromScale(Vector3f scale) => new(Vector3f.Zero, Quaternion.Identity, scale);
+    public static Matrix3x4 FromScale(float scale) => new(Vector3f.Zero, Quaternion.IDENTITY, scale);
+    public static Matrix3x4 FromScale(Vector3f scale) => new(Vector3f.Zero, Quaternion.IDENTITY, scale);
 
     public void SetRotation(Matrix3 rotation)
     {

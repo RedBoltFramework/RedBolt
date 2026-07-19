@@ -468,7 +468,7 @@ public sealed class AnimationState : IDisposable
                 else
                 {
                     output.LocalToParent.Rotation =
-                        Quaternion.Identity.Slerp(delta, rotationWeight) * output.LocalToParent.Rotation;
+                        Quaternion.IDENTITY.Slerp(delta, rotationWeight) * output.LocalToParent.Rotation;
                 }
             }
 

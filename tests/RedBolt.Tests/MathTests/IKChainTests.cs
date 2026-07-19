@@ -7,8 +7,8 @@ public sealed class IKChainTests
     [Fact]
     public void Copy_construction_copies_containers_and_preserves_node_aliases()
     {
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var second = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var second = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
         var chain = new IKChain();
         chain.AddNode(first);
         chain.AddNode(second);
@@ -30,9 +30,9 @@ public sealed class IKChainTests
     [Fact]
     public void Add_node_builds_segments_and_updates_lengths()
     {
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var second = new IKNode(Vector3f.Right, Quaternion.Identity);
-        var third = new IKNode(new Vector3f(1.0f, 1.0f, 0.0f), Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var second = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
+        var third = new IKNode(new Vector3f(1.0f, 1.0f, 0.0f), Quaternion.IDENTITY);
         var chain = new IKChain();
 
         chain.AddNode(first);
@@ -51,7 +51,7 @@ public sealed class IKChainTests
     public void Clear_removes_nodes_and_segments()
     {
         var chain = new IKChain();
-        chain.AddNode(new IKNode(Vector3f.Zero, Quaternion.Identity));
+        chain.AddNode(new IKNode(Vector3f.Zero, Quaternion.IDENTITY));
 
         chain.Clear();
 

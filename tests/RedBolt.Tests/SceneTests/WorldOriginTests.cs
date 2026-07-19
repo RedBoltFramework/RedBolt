@@ -66,7 +66,7 @@ public sealed class WorldOriginTests
         scene.SetWorldOrigin(new Vector3i(100, -20, 300));
         var transform = new Transform(
             new Vector3f(1.5f, 2.5f, 3.5f),
-            Quaternion.FromEulerAngles(10.0f, 20.0f, 30.0f),
+            new Quaternion(10.0f, 20.0f, 30.0f),
             new Vector3f(2.0f, 3.0f, 4.0f));
 
         var absolute = scene.ToAbsoluteWorldTransform(transform);

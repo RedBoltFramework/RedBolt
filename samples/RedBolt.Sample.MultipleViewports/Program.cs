@@ -89,7 +89,7 @@ public sealed class MultipleViewportsApplication : Application
         {
             var mushroomNode = _scene.CreateChild("Mushroom");
             mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f));
+            mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
             mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
             var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
             mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
@@ -117,7 +117,7 @@ public sealed class MultipleViewportsApplication : Application
         camera.SetFarClip(300.0f);
 
         _rearCameraNode = _cameraNode.CreateChild("RearCamera");
-        _rearCameraNode.SetRotation(Quaternion.FromEulerAngles(0.0f, 180.0f, 0.0f));
+        _rearCameraNode.SetRotation(new Quaternion(0.0f, 180.0f, 0.0f));
         var rearCamera = _rearCameraNode.CreateComponent<Camera>();
         rearCamera.SetFarClip(300.0f);
         rearCamera.SetViewOverrideFlags(ViewOverride.DisableOcclusion);

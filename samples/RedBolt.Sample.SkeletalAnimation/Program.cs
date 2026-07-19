@@ -69,7 +69,7 @@ sealed class SkeletalAnimationApplication : Application
         {
             var modelNode = _scene.CreateChild("Jill");
             modelNode.SetPosition(new Vector3f(MathDefs.Random(40.0f) - 20.0f, 0.0f, MathDefs.Random(40.0f) - 20.0f));
-            modelNode.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f));
+            modelNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
             var modelObject = modelNode.CreateComponent<AnimatedModel>();
             modelObject.SetModel(cache.Get<Model>("Models/Kachujin/Kachujin.mdl"));
             modelObject.SetMaterial(cache.Get<Material>("Models/Kachujin/Materials/Kachujin.xml"));

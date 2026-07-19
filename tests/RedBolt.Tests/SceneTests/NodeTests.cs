@@ -284,7 +284,7 @@ public sealed class NodeTests
     {
         var scene = new Scene();
         var parent = scene.CreateChild("Parent");
-        parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3f(2.0f, 3.0f, 4.0f));
+        parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f));
         var child = parent.CreateChild("Child");
         child.SetPosition(new Vector3f(0.5f, 1.0f, 1.5f));
 
@@ -298,9 +298,9 @@ public sealed class NodeTests
     {
         var scene = new Scene();
         var parent = scene.CreateChild("Parent");
-        parent.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f));
+        parent.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 2.0f, 2.0f));
         var child = parent.CreateChild("Child");
-        child.SetWorldTransform(new Matrix3x4(new Vector3f(12.0f, 2.0f, 0.0f), Quaternion.Identity, new Vector3f(4.0f, 4.0f, 4.0f)));
+        child.SetWorldTransform(new Matrix3x4(new Vector3f(12.0f, 2.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(4.0f, 4.0f, 4.0f)));
 
         Assert.True(child.GetWorldPosition().ApproximatelyEquivalent(new Vector3f(12.0f, 2.0f, 0.0f)));
         Assert.True(child.GetWorldScale().ApproximatelyEquivalent(new Vector3f(4.0f, 4.0f, 4.0f)));
@@ -311,19 +311,19 @@ public sealed class NodeTests
     public void Scene_root_transform_does_not_affect_root_children()
     {
         var scene = new Scene();
-        scene.Root.SetTransform(new Vector3f(10.0f, 20.0f, 30.0f), Quaternion.FromAngleAxis(45.0f, Vector3f.Up), new Vector3f(2.0f, 3.0f, 4.0f));
+        scene.Root.SetTransform(new Vector3f(10.0f, 20.0f, 30.0f), new Quaternion(45.0f, Vector3f.Up), new Vector3f(2.0f, 3.0f, 4.0f));
 
         var child = scene.CreateChild("Child");
-        child.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(30.0f, Vector3f.Right), new Vector3f(4.0f, 5.0f, 6.0f));
+        child.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), new Quaternion(30.0f, Vector3f.Right), new Vector3f(4.0f, 5.0f, 6.0f));
 
         Assert.True(child.GetWorldPosition().ApproximatelyEquivalent(child.GetPosition()));
         Assert.True(child.GetWorldRotation().ApproximatelyEquivalent(child.GetRotation()));
         Assert.True(child.GetWorldScale().ApproximatelyEquivalent(child.GetScale()));
 
-        child.SetWorldTransform(new Vector3f(7.0f, 8.0f, 9.0f), Quaternion.FromAngleAxis(15.0f, Vector3f.Forward), new Vector3f(2.0f, 2.5f, 3.0f));
+        child.SetWorldTransform(new Vector3f(7.0f, 8.0f, 9.0f), new Quaternion(15.0f, Vector3f.Forward), new Vector3f(2.0f, 2.5f, 3.0f));
 
         Assert.True(child.GetPosition().ApproximatelyEquivalent(new Vector3f(7.0f, 8.0f, 9.0f)));
-        Assert.True(child.GetRotation().ApproximatelyEquivalent(Quaternion.FromAngleAxis(15.0f, Vector3f.Forward)));
+        Assert.True(child.GetRotation().ApproximatelyEquivalent(new Quaternion(15.0f, Vector3f.Forward)));
         Assert.True(child.GetScale().ApproximatelyEquivalent(new Vector3f(2.0f, 2.5f, 3.0f)));
     }
 
@@ -332,7 +332,7 @@ public sealed class NodeTests
     {
         var scene = new Scene();
         var node = scene.CreateChild("MatrixLocal");
-        node.SetTransformMatrix(new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3f(2.0f, 3.0f, 4.0f)));
+        node.SetTransformMatrix(new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f)));
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3f(2.0f, 3.0f, 4.0f)));
     }
@@ -343,7 +343,7 @@ public sealed class NodeTests
         var scene = new Scene();
         var node = scene.CreateChild("Rotate");
         node.SetPosition(new Vector3f(1.0f, 0.0f, 0.0f));
-        node.RotateAround(Vector3f.Zero, Quaternion.FromAngleAxis(90.0f, Vector3f.Forward), TransformSpace.Parent);
+        node.RotateAround(Vector3f.Zero, new Quaternion(90.0f, Vector3f.Forward), TransformSpace.Parent);
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3f(0.0f, 1.0f, 0.0f), MathDefs.LargeEpsilon));
     }
 
@@ -390,7 +390,7 @@ public sealed class NodeTests
         node.AddListener(listener);
         var baselineDirtyCount = listener.DirtyCount;
         node.SetPositionSilent(new Vector3f(1.0f, 2.0f, 3.0f));
-        node.SetRotationSilent(Quaternion.FromAngleAxis(30.0f, Vector3f.Up));
+        node.SetRotationSilent(new Quaternion(30.0f, Vector3f.Up));
         node.SetScaleSilent(new Vector3f(4.0f, 5.0f, 6.0f));
 
         Assert.Equal(baselineDirtyCount, listener.DirtyCount);
@@ -399,7 +399,7 @@ public sealed class NodeTests
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3f(4.0f, 5.0f, 6.0f)));
 
-        node.SetTransformSilent(new Vector3f(-1.0f, -2.0f, -3.0f), Quaternion.FromAngleAxis(15.0f, Vector3f.Right), new Vector3f(0.5f, 0.6f, 0.7f));
+        node.SetTransformSilent(new Vector3f(-1.0f, -2.0f, -3.0f), new Quaternion(15.0f, Vector3f.Right), new Vector3f(0.5f, 0.6f, 0.7f));
 
         Assert.Equal(baselineDirtyCount, listener.DirtyCount);
         Assert.False(node.IsDirty);
@@ -407,7 +407,7 @@ public sealed class NodeTests
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3f(-1.0f, -2.0f, -3.0f)));
         Assert.True(node.GetScale().ApproximatelyEquivalent(new Vector3f(0.5f, 0.6f, 0.7f)));
 
-        node.SetTransformMatrixSilent(new Matrix3x4(new Vector3f(7.0f, 8.0f, 9.0f), Quaternion.Identity, new Vector3f(2.0f, 3.0f, 4.0f)));
+        node.SetTransformMatrixSilent(new Matrix3x4(new Vector3f(7.0f, 8.0f, 9.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f)));
 
         Assert.Equal(baselineDirtyCount, listener.DirtyCount);
         Assert.False(node.IsDirty);
@@ -427,7 +427,7 @@ public sealed class NodeTests
     {
         var scene = new Scene();
         var parent = scene.CreateChild("OriginalParent");
-        parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3f(2.0f, 3.0f, 4.0f));
+        parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f));
         var child = parent.CreateChild("Child");
         child.SetPosition(new Vector3f(0.5f, 1.0f, 1.5f));
         var expectedWorld = child.WorldPosition;
@@ -597,7 +597,7 @@ public sealed class NodeTests
         var source = scene.CreateChild("Source");
         source.SetTags(["cloneable"]);
         source.SetVar("Score", 5);
-        source.SetTransform(new Vector3f(3.0f, 4.0f, 5.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f));
+        source.SetTransform(new Vector3f(3.0f, 4.0f, 5.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 2.0f, 2.0f));
         source.CreateComponent<Camera>().SetFov(65.0f);
         source.CreateComponent<Octree>().SetTemporary(true);
         source.CreateChild("CloneChild").SetPosition(new Vector3f(1.0f, 0.0f, 0.0f));

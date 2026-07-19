@@ -47,7 +47,7 @@ sealed class FirstCubeApplication : Application
         light.SetLightType(LightType.Directional);
 
         var cubeNode = scene.CreateChild("Cube");
-        cubeNode.Rotation = Quaternion.Identity;
+        cubeNode.Rotation = Quaternion.IDENTITY;
         var cube = cubeNode.CreateComponent<StaticModel>();
         cube.SetModel(Resources.Get<Model>("Models/Box.mdl"));
         cube.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));

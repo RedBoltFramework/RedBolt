@@ -62,7 +62,7 @@ sealed class PointerAdapterApplication : Application
         {
             var node = _scene.CreateChild("Mushroom");
             node.SetPosition(new Vector3f(MathDefs.Random(18.0f) - 9.0f, 0.0f, MathDefs.Random(18.0f) - 9.0f));
-            node.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f));
+            node.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
             node.SetScale(0.5f + MathDefs.Random(1.0f));
             var model = node.CreateComponent<StaticModel>();
             model.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));

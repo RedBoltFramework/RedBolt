@@ -25,7 +25,7 @@ sealed class LightAnimationApplication : Application
         // Built-in Text and Sprite are intentionally replaced by Dear ImGui in managed samples.
         // TODO: port the animated sprite frames to Dear ImGui texture rendering.
         const uint numObjects = 200;
-        for (var i = 0u; i < numObjects; ++i) { var node = _scene.CreateChild("Mushroom"); node.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f)); node.SetRotation(Quaternion.FromEulerAngles(0.0f, MathDefs.Random(360.0f), 0.0f)); node.SetScale(0.5f + MathDefs.Random(2.0f)); var model = node.CreateComponent<StaticModel>(); model.SetModel(cache.Get<Model>("Models/Mushroom.mdl")); model.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml")); }
+        for (var i = 0u; i < numObjects; ++i) { var node = _scene.CreateChild("Mushroom"); node.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f)); node.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f)); node.SetScale(0.5f + MathDefs.Random(2.0f)); var model = node.CreateComponent<StaticModel>(); model.SetModel(cache.Get<Model>("Models/Mushroom.mdl")); model.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml")); }
         _cameraNode = _scene.CreateChild("Camera"); _cameraNode.CreateComponent<FreeFlyController>(); _cameraNode.CreateComponent<Camera>(); _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
     }
     protected override void Update(float timeStep) { if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit(); _uiTime = (_uiTime + timeStep) % 4.0f; }

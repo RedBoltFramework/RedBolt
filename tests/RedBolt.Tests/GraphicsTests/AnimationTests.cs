@@ -130,8 +130,8 @@ public sealed class AnimationTests
             animation.SetLength(1.0f);
             var track = animation.CreateTrack("root");
             track.ChannelMask = AnimationChannel.Position | AnimationChannel.Scale;
-            track.KeyFrames.Add(new AnimationKeyFrame(0.0f, Vector3f.Zero, Quaternion.Identity, Vector3f.One));
-            track.KeyFrames.Add(new AnimationKeyFrame(1.0f, new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 2.0f, 2.0f)));
+            track.KeyFrames.Add(new AnimationKeyFrame(0.0f, Vector3f.Zero, Quaternion.IDENTITY, Vector3f.One));
+            track.KeyFrames.Add(new AnimationKeyFrame(1.0f, new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 2.0f, 2.0f)));
 
             var variantTrack = animation.CreateVariantTrack("speed");
             variantTrack.AddKeyFrame(new VariantCurvePoint { Time = 0.0f, Value = 1.0f });

@@ -35,7 +35,7 @@ public sealed class ShadowSplitProcessorTests
         using var scene = new Scene();
         var lightNode = scene.CreateChild("Light");
         lightNode.SetWorldPosition(new Vector3f(1, 2, 3));
-        lightNode.SetWorldRotation(Quaternion.Identity);
+        lightNode.SetWorldRotation(Quaternion.IDENTITY);
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Spot);
         light.SetRange(25.0f);

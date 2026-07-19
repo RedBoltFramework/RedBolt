@@ -159,7 +159,7 @@ public sealed class DebugGeometryTests
         debugRenderer.AddFrustum(frustum, Color.White);
         debugRenderer.AddPolyhedron(polyhedron, Color.White);
         debugRenderer.AddSphere(sphere, Color.White);
-        debugRenderer.AddSphereSector(sphere, Quaternion.Identity, 90.0f, true, Color.White);
+        debugRenderer.AddSphereSector(sphere, Quaternion.IDENTITY, 90.0f, true, Color.White);
         debugRenderer.AddCylinder(Vector3f.Zero, 1.0f, 2.0f, Color.White);
 
         Assert.True(debugRenderer.HasContent());

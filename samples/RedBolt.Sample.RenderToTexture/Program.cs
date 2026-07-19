@@ -74,7 +74,7 @@ sealed class RenderToTextureApplication : Application
         {
             var boxNode = _renderToTextureScene.CreateChild("Box");
             boxNode.SetPosition(new Vector3f(MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(100.0f), MathDefs.Random(200.0f) - 100.0f));
-            boxNode.SetRotation(Quaternion.FromEulerAngles(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
+            boxNode.SetRotation(new Quaternion(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
             var box = boxNode.CreateComponent<StaticModel>();
             box.SetModel(Resources.Get<Model>("Models/Box.mdl"));
             box.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
@@ -123,7 +123,7 @@ sealed class RenderToTextureApplication : Application
 
         var screenNode = _scene.CreateChild("Screen");
         screenNode.SetPosition(new Vector3f(0.0f, 10.0f, -0.27f));
-        screenNode.SetRotation(Quaternion.FromEulerAngles(-90.0f, 0.0f, 0.0f));
+        screenNode.SetRotation(new Quaternion(-90.0f, 0.0f, 0.0f));
         screenNode.SetScale(new Vector3f(20.0f, 0.0f, 15.0f));
         var screen = screenNode.CreateComponent<StaticModel>();
         screen.SetModel(Resources.Get<Model>("Models/Plane.mdl"));

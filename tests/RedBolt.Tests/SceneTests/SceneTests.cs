@@ -385,7 +385,7 @@ public sealed class SceneTests
         sourceChild.CreateComponent<Camera>(17).SetFov(91);
 
         var position = new Vector3f(4, 5, 6);
-        var rotation = Quaternion.FromEulerAngles(10, 20, 30);
+        var rotation = new Quaternion(10, 20, 30);
 
         var json = new JSONValue();
         Assert.True(source.Root.SaveJSON(json));

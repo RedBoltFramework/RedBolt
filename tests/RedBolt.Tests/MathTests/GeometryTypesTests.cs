@@ -174,7 +174,7 @@ public sealed class GeometryTypesTests
     [Fact]
     public void Matrix4_transform_and_inverse_work()
     {
-        var m4 = new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.Identity, new Vector3f(2.0f, 3.0f, 4.0f)).Matrix4;
+        var m4 = new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f)).Matrix4;
         var transformed = m4 * Vector3f.One;
         Assert.True(transformed.ApproximatelyEquivalent(new Vector3f(3.0f, 5.0f, 7.0f)));
         Assert.True((m4.Inverted * transformed).ApproximatelyEquivalent(Vector3f.One));
@@ -184,7 +184,7 @@ public sealed class GeometryTypesTests
     public void Plane_matrix3x4_transform_works()
     {
         var plane = new Plane(Vector3f.Up, Vector3f.Zero);
-        var moved = plane.Transformed(new Matrix3x4(new Vector3f(0.0f, 2.0f, 0.0f), Quaternion.Identity, 1.0f));
+        var moved = plane.Transformed(new Matrix3x4(new Vector3f(0.0f, 2.0f, 0.0f), Quaternion.IDENTITY, 1.0f));
         Assert.True(MathDefs.Equals(moved.Distance(new Vector3f(0.0f, 2.0f, 0.0f)), 0.0f));
     }
 
@@ -200,13 +200,13 @@ public sealed class GeometryTypesTests
     {
         var matrix = new Matrix3x4(
             new Vector3f(1.0f, 2.0f, 3.0f),
-            Quaternion.FromAngleAxis(45.0f, Vector3f.Up),
+            new Quaternion(45.0f, Vector3f.Up),
             new Vector3f(2.0f, 3.0f, 4.0f));
 
         matrix.Decompose(out var translation, out var rotation, out var scale);
 
         Assert.True(translation.ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
-        Assert.True(rotation.ApproximatelyEquivalent(Quaternion.FromAngleAxis(45.0f, Vector3f.Up), 0.001f));
+        Assert.True(rotation.ApproximatelyEquivalent(new Quaternion(45.0f, Vector3f.Up), 0.001f));
         Assert.True(scale.ApproximatelyEquivalent(new Vector3f(2.0f, 3.0f, 4.0f)));
     }
 
@@ -215,11 +215,11 @@ public sealed class GeometryTypesTests
     {
         var lhs = new Transform(
             new Vector3f(1.0f, 2.0f, 3.0f),
-            Quaternion.FromAngleAxis(30.0f, Vector3f.Up),
+            new Quaternion(30.0f, Vector3f.Up),
             new Vector3f(2.0f, 2.0f, 2.0f));
         var rhs = new Transform(
             new Vector3f(5.0f, 6.0f, 7.0f),
-            Quaternion.FromAngleAxis(60.0f, Vector3f.Right),
+            new Quaternion(60.0f, Vector3f.Right),
             new Vector3f(4.0f, 4.0f, 4.0f));
 
         var fromMatrix = Transform.FromMatrix3x4(lhs.ToMatrix3x4());
@@ -233,7 +233,7 @@ public sealed class GeometryTypesTests
 
         var invertible = new Transform(
             new Vector3f(1.0f, 2.0f, 3.0f),
-            Quaternion.FromAngleAxis(30.0f, Vector3f.Up),
+            new Quaternion(30.0f, Vector3f.Up),
             new Vector3f(2.0f, 2.0f, 2.0f));
         var transformedPoint = invertible * Vector3f.One;
         Assert.True((invertible.Inverse() * transformedPoint).ApproximatelyEquivalent(Vector3f.One, 0.001f));
@@ -242,7 +242,7 @@ public sealed class GeometryTypesTests
         var expected = lhs.ToMatrix3x4() * rhs.ToMatrix3x4();
         Assert.True(composed.ToMatrix3x4().ApproximatelyEquivalent(expected, 0.001f));
 
-        var rotated = lhs * Quaternion.Identity;
+        var rotated = lhs * Quaternion.IDENTITY;
         Assert.True(rotated.ApproximatelyEquivalent(lhs.Rotation));
     }
 
@@ -258,13 +258,13 @@ public sealed class GeometryTypesTests
         var start = new DoubleTransform
         {
             Position = new Vector3d(1.0, 2.0, 3.0),
-            Rotation = Quaternion.Identity,
+            Rotation = Quaternion.IDENTITY,
             Scale = new Vector3f(1.0f, 2.0f, 3.0f)
         };
         var end = new DoubleTransform
         {
             Position = new Vector3d(5.0, 6.0, 7.0),
-            Rotation = Quaternion.FromAngleAxis(90.0f, Vector3f.Up),
+            Rotation = new Quaternion(90.0f, Vector3f.Up),
             Scale = new Vector3f(3.0f, 4.0f, 5.0f)
         };
 

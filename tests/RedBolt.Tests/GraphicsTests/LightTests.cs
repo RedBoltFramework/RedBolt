@@ -189,7 +189,7 @@ public sealed class LightTests
         light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
 
         var worldFrustum = light.GetFrustum();
-        var view = new Matrix3x4(new Vector3f(-2.0f, 0.0f, 0.0f), Quaternion.Identity, 1.0f);
+        var view = new Matrix3x4(new Vector3f(-2.0f, 0.0f, 0.0f), Quaternion.IDENTITY, 1.0f);
         var viewFrustum = light.GetViewSpaceFrustum(view);
 
         Assert.True((view * worldFrustum.Vertices[0]).ApproximatelyEquivalent(viewFrustum.Vertices[0]));

@@ -148,7 +148,7 @@ public sealed class SceneResourceTests
         scene.SetFileName("Scenes/Sample.scene");
 
         var node = scene.CreateChild("CameraNode", 42);
-        node.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.FromAngleAxis(45.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f));
+        node.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), new Quaternion(45.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f));
         node.SetTags(["editor", "camera"]);
         node.SetVar("Health", 100);
 

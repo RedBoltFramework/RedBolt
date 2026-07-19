@@ -17,7 +17,7 @@ public class MatrixParityTests
     [Fact]
     public void AffineMatrixFactoriesAndInverseRoundTripPoint()
     {
-        var matrix = new Matrix3x4(new Vector3f(1, 2, 3), Quaternion.FromEulerAngles(10, 20, 30), new Vector3f(2, 3, 4));
+        var matrix = new Matrix3x4(new Vector3f(1, 2, 3), new Quaternion(10, 20, 30), new Vector3f(2, 3, 4));
         var point = new Vector3f(4, 5, 6);
 
         Assert.True((matrix.Inverse * (matrix * point)).ApproximatelyEquivalent(point, 0.0001f));

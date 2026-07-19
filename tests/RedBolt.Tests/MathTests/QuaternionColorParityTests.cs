@@ -9,14 +9,14 @@ public class QuaternionColorParityTests
         var rotation = Quaternion.FromAngularVelocity(velocity);
 
         Assert.True(rotation.AngularVelocity.ApproximatelyEquivalent(velocity, 0.0001f));
-        Assert.Equal(Vector3f.Up, Quaternion.Identity.Axis);
+        Assert.Equal(Vector3f.Up, Quaternion.IDENTITY.Axis);
         Assert.True(rotation.Equivalent(-rotation));
     }
 
     [Fact]
     public void QuaternionSwingTwistRecomposesOriginalRotation()
     {
-        var rotation = Quaternion.FromEulerAngles(20, 30, 40);
+        var rotation = new Quaternion(20, 30, 40);
         var parts = rotation.ToSwingTwist(Vector3f.Up);
 
         Assert.True((parts.Swing * parts.Twist).Equivalent(rotation, 0.0001f));

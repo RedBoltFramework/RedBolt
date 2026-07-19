@@ -28,7 +28,7 @@ public sealed class Rotator : LogicComponent
     {
         // Components have their scene node as a member variable for convenient access. Rotate the scene node now: construct a
         // rotation quaternion from Euler angles, scale rotation speed with the scene update time step
-        Node.Rotate(Quaternion.FromEulerAngles(
+        Node.Rotate(new Quaternion(
             _rotationSpeed.X * timeStep,
             _rotationSpeed.Y * timeStep,
             _rotationSpeed.Z * timeStep));

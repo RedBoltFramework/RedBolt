@@ -525,7 +525,7 @@ public sealed class Light : Drawable
             }
 
             case LightType.Point:
-                _volumeTransform = new Matrix3x4(Node.WorldPosition, Quaternion.Identity, _range);
+                _volumeTransform = new Matrix3x4(Node.WorldPosition, Quaternion.IDENTITY, _range);
                 break;
         }
 

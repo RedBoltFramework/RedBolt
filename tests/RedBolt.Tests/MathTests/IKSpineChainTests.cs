@@ -7,8 +7,8 @@ public sealed class IKSpineChainTests
     [Fact]
     public void Clone_preserves_derived_type_and_copies_base_containers()
     {
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var second = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var second = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
         var chain = new IKSpineChain();
         chain.AddNode(first);
         chain.AddNode(second);
@@ -25,9 +25,9 @@ public sealed class IKSpineChainTests
     [Fact]
     public void Solve_preserves_segment_lengths_and_bends_toward_target()
     {
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var middle = new IKNode(Vector3f.Right, Quaternion.Identity);
-        var last = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var middle = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
+        var last = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.IDENTITY);
         var chain = new IKSpineChain();
         chain.AddNode(first);
         chain.AddNode(middle);

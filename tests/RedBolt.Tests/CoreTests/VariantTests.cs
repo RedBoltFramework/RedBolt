@@ -193,7 +193,7 @@ public sealed class VariantTests
         Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Vector3, "1 2 3").GetVector3());
         Assert.Equal(Vector3f.ZERO, ParseVariant(VariantType.Vector3, "1 2").GetVector3());
         Assert.Equal(new Color(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Color, "1 2 3").GetColor());
-        Assert.Equal(Quaternion.FromEulerAngles(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Quaternion, "1 2 3").GetQuaternion());
+        Assert.Equal(new Quaternion(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Quaternion, "1 2 3").GetQuaternion());
         Assert.Equal(new IntRect(1, 2, 3, 4), ParseVariant(VariantType.IntRect, "1 2 3 4").GetIntRect());
         Assert.Equal(new Matrix3(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f), ParseVariant(VariantType.Matrix3, "1 2 3 4 5 6 7 8 9").GetMatrix3());
         Assert.Equal(default(Matrix3), ParseVariant(VariantType.Matrix3, "1 2 3 4 5 6 7 8").GetMatrix3());

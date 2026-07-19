@@ -9,7 +9,7 @@ public struct Transform : IEquatable<Transform>, IApproximateEquatable<Transform
     public Quaternion Rotation;
     public Vector3f Scale;
 
-    public static readonly Transform IDENTITY = new(Vector3f.Zero, Quaternion.Identity, Vector3f.One);
+    public static readonly Transform IDENTITY = new(Vector3f.Zero, Quaternion.IDENTITY, Vector3f.One);
     public static Transform Identity => IDENTITY;
 
     public Transform(Vector3f position, Quaternion rotation)
@@ -74,7 +74,7 @@ public struct DoubleTransform : IEquatable<DoubleTransform>, IApproximateEquatab
     public Quaternion Rotation;
     public Vector3f Scale;
 
-    public static readonly DoubleTransform IDENTITY = new() { Position = Vector3d.Zero, Rotation = Quaternion.Identity, Scale = Vector3f.One };
+    public static readonly DoubleTransform IDENTITY = new() { Position = Vector3d.Zero, Rotation = Quaternion.IDENTITY, Scale = Vector3f.One };
     public static DoubleTransform Identity => IDENTITY;
 
     public DoubleTransform Lerp(DoubleTransform rhs, float t) => new()

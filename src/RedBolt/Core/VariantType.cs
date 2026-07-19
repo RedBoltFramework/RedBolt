@@ -1260,7 +1260,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         if (values.Length < 3)
             return Quaternion.IDENTITY;
         if (values.Length < 4)
-            return Quaternion.FromEulerAngles(values[0], values[1], values[2]);
+            return new Quaternion(values[0], values[1], values[2]);
         return new Quaternion(values[0], values[1], values[2], values[3]);
     }
 

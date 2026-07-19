@@ -512,7 +512,8 @@ public sealed class Camera : Component
 
             case FaceCameraMode.LookAtXyz:
             {
-                Quaternion.LookRotation(position - Node.WorldPosition, Vector3f.Up, out var lookAt);
+                var lookAt = new Quaternion();
+                lookAt.FromLookRotation(position - Node.WorldPosition, Vector3f.Up);
                 return lookAt;
             }
 
@@ -521,7 +522,8 @@ public sealed class Camera : Component
             {
                 var lookAtVector = position - Node.WorldPosition;
                 var lookAtVectorXz = new Vector3f(lookAtVector.X, 0.0f, lookAtVector.Z);
-                Quaternion.LookRotation(lookAtVectorXz, Vector3f.Up, out var lookAt);
+                var lookAt = new Quaternion();
+                lookAt.FromLookRotation(lookAtVectorXz, Vector3f.Up);
 
                 var euler = rotation.EulerAngles;
                 if (mode == FaceCameraMode.LookAtMixed)

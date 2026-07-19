@@ -122,7 +122,7 @@ public class IKTrigonometricChain : ICloneable
     }
 
     private readonly IKNodeSegment[] _segments = new IKNodeSegment[2];
-    private Quaternion _currentChainRotation = Quaternion.Identity;
+    private Quaternion _currentChainRotation = Quaternion.IDENTITY;
 }
 
 /// <summary>Two-segment IK chain for eyes.</summary>

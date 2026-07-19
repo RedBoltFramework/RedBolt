@@ -123,7 +123,7 @@ public sealed class ZoneTests
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
-        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 1.0f, 1.0f));
+        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 1.0f, 1.0f));
         // World box: (3,-2,-3) to (7,2,3). Point (6,0,0) is inside.
         Assert.True(zone.IsInside(new Vector3f(6.0f, 0.0f, 0.0f)));
     }
@@ -142,7 +142,7 @@ public sealed class ZoneTests
     public void Inverse_world_transform_works()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
-        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.Identity, new Vector3f(2.0f, 1.0f, 1.0f));
+        zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 1.0f, 1.0f));
         var result = zone.GetInverseWorldTransform() * new Vector3f(6.0f, 0.0f, 0.0f);
         Assert.True(result.ApproximatelyEquivalent(new Vector3f(0.5f, 0.0f, 0.0f)));
     }

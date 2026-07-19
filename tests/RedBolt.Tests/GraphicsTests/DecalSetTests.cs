@@ -103,7 +103,7 @@ public sealed class DecalSetTests
         geometry.GetRawData(out var vertexData, out _, out _, out _, out _);
         Assert.Null(vertexData);
 
-        var ok = decals.AddDecal(target, Vector3f.Zero, Quaternion.Identity, 2.0f, 1.0f, 1.0f,
+        var ok = decals.AddDecal(target, Vector3f.Zero, Quaternion.IDENTITY, 2.0f, 1.0f, 1.0f,
             new Vector2f(0, 0), new Vector2f(1, 1));
         Assert.True(ok);
         Assert.Equal(0u, decals.GetNumDecals());

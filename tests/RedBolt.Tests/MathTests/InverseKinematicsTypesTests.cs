@@ -36,24 +36,24 @@ public sealed class InverseKinematicsTypesTests
         var node = new IKNode();
 
         Assert.Equal(Vector3f.Zero, node.LocalOriginalPosition);
-        Assert.Equal(Quaternion.Identity, node.LocalOriginalRotation);
+        Assert.Equal(Quaternion.IDENTITY, node.LocalOriginalRotation);
         Assert.Equal(Vector3f.Zero, node.OriginalPosition);
-        Assert.Equal(Quaternion.Identity, node.OriginalRotation);
+        Assert.Equal(Quaternion.IDENTITY, node.OriginalRotation);
         Assert.Equal(Vector3f.Zero, node.PreviousPosition);
-        Assert.Equal(Quaternion.Identity, node.PreviousRotation);
+        Assert.Equal(Quaternion.IDENTITY, node.PreviousRotation);
         Assert.Equal(Vector3f.Zero, node.Position);
-        Assert.Equal(Quaternion.Identity, node.Rotation);
+        Assert.Equal(Quaternion.IDENTITY, node.Rotation);
         Assert.False(node.PositionDirty);
         Assert.False(node.RotationDirty);
 
         node.LocalOriginalPosition = Vector3f.Right;
-        node.LocalOriginalRotation = Quaternion.FromAngleAxis(10.0f, Vector3f.Up);
+        node.LocalOriginalRotation = new Quaternion(10.0f, Vector3f.Up);
         node.OriginalPosition = Vector3f.Up;
-        node.OriginalRotation = Quaternion.FromAngleAxis(20.0f, Vector3f.Up);
+        node.OriginalRotation = new Quaternion(20.0f, Vector3f.Up);
         node.PreviousPosition = Vector3f.Forward;
-        node.PreviousRotation = Quaternion.FromAngleAxis(30.0f, Vector3f.Up);
+        node.PreviousRotation = new Quaternion(30.0f, Vector3f.Up);
         node.Position = Vector3f.Left;
-        node.Rotation = Quaternion.FromAngleAxis(40.0f, Vector3f.Up);
+        node.Rotation = new Quaternion(40.0f, Vector3f.Up);
         node.PositionDirty = true;
         node.RotationDirty = true;
 
@@ -80,12 +80,12 @@ public sealed class InverseKinematicsTypesTests
     {
         Assert.True(typeof(IKNodeSegment).IsValueType);
 
-        var beginNode = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var endNode = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var beginNode = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var endNode = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
         var segment = new IKNodeSegment { BeginNode = beginNode, EndNode = endNode, Length = 1.0f };
 
         var copy = segment;
-        copy.BeginNode = new IKNode(Vector3f.Up, Quaternion.Identity);
+        copy.BeginNode = new IKNode(Vector3f.Up, Quaternion.IDENTITY);
         copy.Length = 2.0f;
 
         Assert.Same(beginNode, segment.BeginNode);
@@ -98,7 +98,7 @@ public sealed class InverseKinematicsTypesTests
     [Fact]
     public void Node_tracks_original_previous_and_current_transforms()
     {
-        var node = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var node = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
         node.Position = Vector3f.Up;
         node.RotationDirty = true;
 
@@ -110,14 +110,14 @@ public sealed class InverseKinematicsTypesTests
 
         node.ResetOriginalTransform();
         Assert.Equal(Vector3f.Right, node.Position);
-        Assert.Equal(Quaternion.Identity, node.Rotation);
+        Assert.Equal(Quaternion.IDENTITY, node.Rotation);
     }
 
     [Fact]
     public void Segment_updates_length_direction_and_rotation()
     {
-        var beginNode = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var endNode = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var beginNode = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var endNode = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
         var segment = new IKNodeSegment { BeginNode = beginNode, EndNode = endNode };
 
         segment.UpdateLength();

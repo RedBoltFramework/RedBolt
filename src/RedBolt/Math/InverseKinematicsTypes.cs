@@ -51,13 +51,13 @@ public class IKNode : ICloneable
     public IKNode()
     {
         LocalOriginalPosition = new Vector3f();
-        LocalOriginalRotation = Quaternion.Identity;
+        LocalOriginalRotation = Quaternion.IDENTITY;
         OriginalPosition = new Vector3f();
-        OriginalRotation = Quaternion.Identity;
+        OriginalRotation = Quaternion.IDENTITY;
         PreviousPosition = new Vector3f();
-        PreviousRotation = Quaternion.Identity;
+        PreviousRotation = Quaternion.IDENTITY;
         Position = new Vector3f();
-        Rotation = Quaternion.Identity;
+        Rotation = Quaternion.IDENTITY;
     }
 
     public IKNode(Vector3f position, Quaternion rotation)

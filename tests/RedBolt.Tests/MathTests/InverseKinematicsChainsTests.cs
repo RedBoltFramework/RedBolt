@@ -11,9 +11,9 @@ public sealed class InverseKinematicsChainsTests
         Assert.False(typeof(IKTrigonometricChain).IsValueType);
         Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(IKTrigonometricChain)));
 
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var middle = new IKNode(Vector3f.Right, Quaternion.Identity);
-        var end = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var middle = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
+        var end = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.IDENTITY);
         var chain = new IKTrigonometricChain();
         chain.Initialize(first, middle, end);
         chain.UpdateLengths();
@@ -26,9 +26,9 @@ public sealed class InverseKinematicsChainsTests
         Assert.Equal(chain.GetFirstLength(), copy.GetFirstLength());
         Assert.Equal(chain.GetSecondLength(), copy.GetSecondLength());
 
-        var otherFirst = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var otherMiddle = new IKNode(Vector3f.Up, Quaternion.Identity);
-        var otherEnd = new IKNode(new Vector3f(0.0f, 2.0f, 0.0f), Quaternion.Identity);
+        var otherFirst = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var otherMiddle = new IKNode(Vector3f.Up, Quaternion.IDENTITY);
+        var otherEnd = new IKNode(new Vector3f(0.0f, 2.0f, 0.0f), Quaternion.IDENTITY);
         copy.Initialize(otherFirst, otherMiddle, otherEnd);
 
         Assert.Same(first, chain.GetBeginNode());
@@ -46,14 +46,14 @@ public sealed class InverseKinematicsChainsTests
         Assert.False(typeof(IKEyeChain).IsValueType);
         Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(IKEyeChain)));
 
-        var root = new IKNode(Vector3f.Zero, Quaternion.Identity);
+        var root = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
         var chain = new IKEyeChain();
         chain.Initialize(root);
         chain.SetEyeTransform(Vector3f.Right, Vector3f.Forward);
 
         var copy = (IKEyeChain)chain.Clone();
 
-        root.Rotation = Quaternion.FromAngleAxis(90.0f, Vector3f.Up);
+        root.Rotation = new Quaternion(90.0f, Vector3f.Up);
         Assert.True(chain.SolveLookTo(Vector3f.Right).Equivalent(copy.SolveLookTo(Vector3f.Right)));
 
         copy.SetEyeTransform(Vector3f.Up, Vector3f.Down);
@@ -66,9 +66,9 @@ public sealed class InverseKinematicsChainsTests
     [Fact]
     public void Trigonometric_chain_solves_two_segments()
     {
-        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
-        var middle = new IKNode(Vector3f.Right, Quaternion.Identity);
-        var end = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.Identity);
+        var first = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
+        var middle = new IKNode(Vector3f.Right, Quaternion.IDENTITY);
+        var end = new IKNode(new Vector3f(2.0f, 0.0f, 0.0f), Quaternion.IDENTITY);
         var chain = new IKTrigonometricChain();
         chain.Initialize(first, middle, end);
         chain.UpdateLengths();
@@ -85,12 +85,12 @@ public sealed class InverseKinematicsChainsTests
     [Fact]
     public void Eye_chain_solves_look_to_and_local_transform()
     {
-        var root = new IKNode(Vector3f.Zero, Quaternion.Identity);
+        var root = new IKNode(Vector3f.Zero, Quaternion.IDENTITY);
         var chain = new IKEyeChain();
         chain.Initialize(root);
         chain.SetEyeTransform(Vector3f.Zero, Vector3f.Forward);
 
-        Assert.True(chain.SolveLookTo(Vector3f.Right).Equivalent(Quaternion.FromAngleAxis(90.0f, Vector3f.Up)));
+        Assert.True(chain.SolveLookTo(Vector3f.Right).Equivalent(new Quaternion(90.0f, Vector3f.Up)));
 
         chain.SetLocalEyeTransform(Vector3f.Right, Vector3f.Up);
         Assert.Equal(Vector3f.Right, chain.GetLocalEyeOffset());

@@ -63,7 +63,7 @@ sealed class AnimatingSceneApplication : Application
             var boxNode = scene.CreateChild("Box");
             boxNode.SetPosition(new Vector3f(MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(200.0f) - 100.0f));
             // Orient using random pitch, yaw and roll Euler angles
-            boxNode.SetRotation(Quaternion.FromEulerAngles(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
+            boxNode.SetRotation(new Quaternion(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
             var boxObject = boxNode.CreateComponent<StaticModel>();
             boxObject.SetModel(Resources.Get<Model>("Models/Box.mdl"));
             boxObject.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));

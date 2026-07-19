@@ -34,7 +34,7 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
     }
 
     public Matrix3(float angle, Vector3f axis)
-        : this(Quaternion.FromAngleAxis(angle, axis).RotationMatrix)
+        : this(new Quaternion(angle, axis).RotationMatrix)
     {
     }
 
@@ -100,7 +100,7 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
     public Vector3f Row(uint row) => new(Element(row, 0), Element(row, 1), Element(row, 2));
     public Vector3f Column(uint column) => new(Element(0, column), Element(1, column), Element(2, column));
 
-    public void FromAngleAxis(float angle, Vector3f axis) => this = Quaternion.FromAngleAxis(angle, axis).RotationMatrix;
+    public void FromAngleAxis(float angle, Vector3f axis) => this = new Quaternion(angle, axis).RotationMatrix;
 
     public uint ToHash()
     {

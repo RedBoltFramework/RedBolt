@@ -578,7 +578,7 @@ public sealed class XMLElement
     private static Quaternion ParseQuaternion(string value)
     {
         var parsed = ParseFloats(value);
-        return parsed.Length >= 4 ? new Quaternion(parsed[0], parsed[1], parsed[2], parsed[3]) : Quaternion.Identity;
+        return parsed.Length >= 4 ? new Quaternion(parsed[0], parsed[1], parsed[2], parsed[3]) : Quaternion.IDENTITY;
     }
 
     private static Rect ParseRect(string value)

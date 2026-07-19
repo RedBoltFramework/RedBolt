@@ -16,7 +16,7 @@ sealed class Rotator : LogicComponent
 
     public override void Update(float timeStep)
     {
-        Node.Rotate(Quaternion.FromEulerAngles(
+        Node.Rotate(new Quaternion(
             _rotationSpeed.X * timeStep,
             _rotationSpeed.Y * timeStep,
             _rotationSpeed.Z * timeStep));

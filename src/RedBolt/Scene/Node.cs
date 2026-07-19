@@ -7,9 +7,9 @@ public sealed class Node : Animatable
     private bool _enabled = true;
     private bool _enabledPrev = true;
     private Vector3f _position = Vector3f.Zero;
-    private Quaternion _rotation = Quaternion.Identity;
+    private Quaternion _rotation = Quaternion.IDENTITY;
     private Vector3f _scale = Vector3f.One;
-    private Quaternion _worldRotation = Quaternion.Identity;
+    private Quaternion _worldRotation = Quaternion.IDENTITY;
     private readonly List<Component> _components = [];
     private readonly List<Node> _children = [];
     private readonly List<WeakReference<Component>> _listeners = [];
@@ -56,8 +56,8 @@ public sealed class Node : Animatable
             "Rotation",
             typeof(Quaternion),
             self => ((Node)self).Rotation,
-            (self, value) => ((Node)self).Rotation = value is Quaternion rotation ? rotation : Quaternion.Identity,
-            Quaternion.Identity);
+            (self, value) => ((Node)self).Rotation = value is Quaternion rotation ? rotation : Quaternion.IDENTITY,
+            Quaternion.IDENTITY);
         RegisterAttribute(
             "Scale",
             typeof(Vector3f),
@@ -1916,10 +1916,13 @@ public sealed class Node : Animatable
         };
 
         var direction = worldTarget - WorldPosition;
-        if (direction.LengthSquared <= MathDefs.Epsilon)
+        // Check if target is very close, in that case can not reliably calculate lookat direction
+        if (direction.ApproximatelyEquivalent(Vector3f.Zero))
             return false;
 
-        if (!Quaternion.LookRotation(direction, up ?? Vector3f.Up, out var newRotation))
+        var newRotation = new Quaternion();
+        // Do nothing if setting look rotation failed
+        if (!newRotation.FromLookRotation(direction, up ?? Vector3f.Up))
             return false;
 
         SetWorldRotation(newRotation);
@@ -1951,7 +1954,7 @@ public sealed class Node : Animatable
             child.MarkDirty();
     }
 
-    public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Right), space);
+    public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(angle, Vector3f.Right), space);
 
     public void RemoveAllTags()
     {
@@ -1979,7 +1982,7 @@ public sealed class Node : Animatable
 
     public bool RemoveVarByHash(StringHash key) => _variables.Remove(key);
 
-    public void Roll(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Forward), space);
+    public void Roll(float angle, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(angle, Vector3f.Forward), space);
 
     public void Rotate(Quaternion delta, TransformSpace space = TransformSpace.Local)
     {
@@ -2003,7 +2006,7 @@ public sealed class Node : Animatable
         }
     }
 
-    public void Rotate2D(float delta, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromRotation2D(delta), space);
+    public void Rotate2D(float delta, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(delta), space);
 
     public void RotateAround(Vector3f point, Quaternion delta, TransformSpace space = TransformSpace.Local)
     {
@@ -2030,7 +2033,7 @@ public sealed class Node : Animatable
         MarkDirty();
     }
 
-    public void RotateAround2D(Vector2f point, float delta, TransformSpace space = TransformSpace.Local) => RotateAround(new Vector3f(point.X, point.Y, 0.0f), Quaternion.FromRotation2D(delta), space);
+    public void RotateAround2D(Vector2f point, float delta, TransformSpace space = TransformSpace.Local) => RotateAround(new Vector3f(point.X, point.Y, 0.0f), new Quaternion(delta), space);
 
     public void SetDirection(Vector3f direction)
     {
@@ -2063,7 +2066,7 @@ public sealed class Node : Animatable
         this._rotation = rotation;
     }
 
-    public void SetRotation2D(float rotation) => SetRotation(Quaternion.FromRotation2D(rotation));
+    public void SetRotation2D(float rotation) => SetRotation(new Quaternion(rotation));
 
     public void SetScale(float scale) => SetScale(new Vector3f(scale, scale, scale));
 
@@ -2150,11 +2153,11 @@ public sealed class Node : Animatable
 
     public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
-    public void SetTransform2D(Vector2f position, float rotation) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
+    public void SetTransform2D(Vector2f position, float rotation) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation));
 
-    public void SetTransform2D(Vector2f position, float rotation, float scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale, scale, 1.0f));
+    public void SetTransform2D(Vector2f position, float rotation, float scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale, scale, 1.0f));
 
-    public void SetTransform2D(Vector2f position, float rotation, Vector2f scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
+    public void SetTransform2D(Vector2f position, float rotation, Vector2f scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
     public void SetVar(string key, object? value) => _variables[new StringHash(key)] = value;
 
@@ -2173,7 +2176,7 @@ public sealed class Node : Animatable
     public void SetWorldDirection(Vector3f direction)
     {
         if (direction.LengthSquared > 0.0f)
-            SetWorldRotation(Quaternion.FromRotationTo(Vector3f.Forward, direction.NormalizedOrDefault()));
+            SetWorldRotation(new Quaternion(Vector3f.Forward, direction.NormalizedOrDefault()));
     }
 
     public void SetWorldPosition(Vector3f position)
@@ -2190,7 +2193,7 @@ public sealed class Node : Animatable
         SetRotation(IsTransformHierarchyRoot() ? rotation : Parent!.WorldRotation.Inverse * rotation);
     }
 
-    public void SetWorldRotation2D(float rotation) => SetWorldRotation(Quaternion.FromRotation2D(rotation));
+    public void SetWorldRotation2D(float rotation) => SetWorldRotation(new Quaternion(rotation));
 
     public void SetWorldScale(float scale) => SetWorldScale(new Vector3f(scale, scale, scale));
 
@@ -2225,11 +2228,11 @@ public sealed class Node : Animatable
 
     public void SetWorldTransform(Matrix3x4 worldTransform) => SetWorldTransform(worldTransform.Translation, worldTransform.Rotation, worldTransform.Scale);
 
-    public void SetWorldTransform2D(Vector2f position, float rotation) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation));
+    public void SetWorldTransform2D(Vector2f position, float rotation) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation));
 
-    public void SetWorldTransform2D(Vector2f position, float rotation, float scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale, scale, 1.0f));
+    public void SetWorldTransform2D(Vector2f position, float rotation, float scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale, scale, 1.0f));
 
-    public void SetWorldTransform2D(Vector2f position, float rotation, Vector2f scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), Quaternion.FromRotation2D(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
+    public void SetWorldTransform2D(Vector2f position, float rotation, Vector2f scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
     public void Translate(Vector3f delta, TransformSpace space = TransformSpace.Local)
     {
@@ -2249,7 +2252,7 @@ public sealed class Node : Animatable
 
     public void Translate2D(Vector2f delta, TransformSpace space = TransformSpace.Local) => Translate(new Vector3f(delta.X, delta.Y, 0.0f), space);
 
-    public void Yaw(float angle, TransformSpace space = TransformSpace.Local) => Rotate(Quaternion.FromAngleAxis(angle, Vector3f.Up), space);
+    public void Yaw(float angle, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(angle, Vector3f.Up), space);
 
     public void SetName(string name)
     {

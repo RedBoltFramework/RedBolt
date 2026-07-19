@@ -134,7 +134,7 @@ sealed class HugeObjectCountApplication : Application
     {
         const float rotateSpeed = 15.0f;
         // Rotate about the Z axis (roll)
-        var rotateQuaternion = Quaternion.FromAngleAxis(rotateSpeed * timeStep, Vector3f.Forward);
+        var rotateQuaternion = new Quaternion(rotateSpeed * timeStep, Vector3f.Forward);
         for (var i = 0; i < _boxNodes.Count; ++i) _boxNodes[i].Rotate(rotateQuaternion);
     }
 
