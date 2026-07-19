@@ -253,7 +253,7 @@ public partial class TetrahedralMesh
             // If all the vertices are postponed again, ignore them
             if (postponedVertices.Count == verticesQueue.Count)
             {
-                Log.Logger.LogWarning(
+                Log.GetLogger().LogWarning(
                     "{Count} vertices are excluded from triangulation due to mathematical fluctuations",
                     postponedVertices.Count);
                 break;
@@ -276,7 +276,7 @@ public partial class TetrahedralMesh
         NumInnerTetrahedrons = (uint)Tetrahedrons.Count;
         Debug.Assert(IsAdjacencyValid(false));
 
-        Log.Logger.LogWarning(
+        Log.GetLogger().LogWarning(
             "Triangulation is incomplete because vertices are too sparse, {Count} vertices are ignored",
             verticesQueue.Count);
 
@@ -362,7 +362,7 @@ public partial class TetrahedralMesh
         var firstTetIndex = FindTetrahedron(position, ctx.Removed);
         if (firstTetIndex == uint.MaxValue || !ctx.IsInsideCircumsphere(firstTetIndex, position))
         {
-            Log.Logger.LogError("Cannot find tetrahedron to insert vertex at {Position}", position);
+            Log.GetLogger().LogError("Cannot find tetrahedron to insert vertex at {Position}", position);
             return false;
         }
 
@@ -487,7 +487,7 @@ public partial class TetrahedralMesh
 
         if (!holeSurface.IsClosedSurface())
         {
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Surface of the carved hole in tetrahedral mesh is incomplete for vertex at {Position}",
                 position);
             holeSurface.Clear();

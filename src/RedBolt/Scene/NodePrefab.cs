@@ -280,7 +280,7 @@ public sealed class SerializablePrefab : ICloneable, IEquatable<SerializablePref
         if ((flags & PrefabLoadFlag.CheckSerializableType) != 0
             && serializable.GetTypeName() != TypeName)
         {
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Serializable '{Serializable}' is not of type '{ExpectedType}'.",
                 serializable.GetTypeName(), TypeName);
             return;

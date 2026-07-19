@@ -127,7 +127,7 @@ public sealed class Geometry : PipelineStateTracker
     {
         if (count >= RenderApiLimits.MaxVertexStreams)
         {
-            Log.Logger.LogError("Too many vertex streams");
+            Log.GetLogger().LogError("Too many vertex streams");
             return false;
         }
 
@@ -154,7 +154,7 @@ public sealed class Geometry : PipelineStateTracker
     {
         if (index >= _vertexBuffers.Count)
         {
-            Log.Logger.LogError("Stream index out of bounds");
+            Log.GetLogger().LogError("Stream index out of bounds");
             return false;
         }
 
@@ -207,13 +207,13 @@ public sealed class Geometry : PipelineStateTracker
     {
         if (IndexBuffer is null && _rawIndexData is null)
         {
-            Log.Logger.LogError("Null index buffer and no raw index data, can not define indexed draw range");
+            Log.GetLogger().LogError("Null index buffer and no raw index data, can not define indexed draw range");
             return false;
         }
 
         if (IndexBuffer is not null && unchecked(indexStart + indexCount) > IndexBuffer.GetIndexCount())
         {
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Illegal draw range {IndexStart} to {LastIndex}, index buffer has {IndexCount} indices",
                 indexStart,
                 unchecked(indexStart + indexCount - 1),
@@ -259,7 +259,7 @@ public sealed class Geometry : PipelineStateTracker
             // We can allow setting an illegal draw range now if the caller guarantees to resize / fill the buffer later
             if (checkIllegal && unchecked(indexStart + indexCount) > IndexBuffer.GetIndexCount())
             {
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Illegal draw range {IndexStart} to {LastIndex}, index buffer has {IndexCount} indices",
                     indexStart,
                     unchecked(indexStart + indexCount - 1),
@@ -477,7 +477,7 @@ public sealed class Geometry : PipelineStateTracker
         var uvElement = VertexBuffer.GetElement(elements, VertexElementType.Vector2, VertexElementSemantic.TexCoord);
         if (requestUv && uvElement is null)
         {
-            Log.Logger.LogWarning("Illegal GetHitDistance call: UV return requested on vertex buffer without UV coords");
+            Log.GetLogger().LogWarning("Illegal GetHitDistance call: UV return requested on vertex buffer without UV coords");
             requestUv = false;
         }
 

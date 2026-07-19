@@ -474,7 +474,7 @@ public sealed class Scene : Serializable
     {
         if (file is null)
         {
-            Log.Logger.LogError("Null file for async loading");
+            Log.GetLogger().LogError("Null file for async loading");
             return false;
         }
 
@@ -485,7 +485,7 @@ public sealed class Scene : Serializable
         {
             if (mode > LoadMode.ResourcesOnly)
             {
-                Log.Logger.LogError("{FileName} is not a valid scene file", file.Name);
+                Log.GetLogger().LogError("{FileName} is not a valid scene file", file.Name);
                 return false;
             }
 
@@ -494,7 +494,7 @@ public sealed class Scene : Serializable
 
         if (mode > LoadMode.ResourcesOnly)
         {
-            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Log.GetLogger().LogInformation("Loading scene from {FileName}", file.Name);
             Clear();
         }
 
@@ -536,7 +536,7 @@ public sealed class Scene : Serializable
     {
         if (file is null)
         {
-            Log.Logger.LogError("Null file for async loading");
+            Log.GetLogger().LogError("Null file for async loading");
             return false;
         }
 
@@ -548,7 +548,7 @@ public sealed class Scene : Serializable
 
         if (mode > LoadMode.ResourcesOnly)
         {
-            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Log.GetLogger().LogInformation("Loading scene from {FileName}", file.Name);
             Clear();
         }
 
@@ -591,7 +591,7 @@ public sealed class Scene : Serializable
     {
         if (file is null)
         {
-            Log.Logger.LogError("Null file for async loading");
+            Log.GetLogger().LogError("Null file for async loading");
             return false;
         }
 
@@ -603,7 +603,7 @@ public sealed class Scene : Serializable
 
         if (mode > LoadMode.ResourcesOnly)
         {
-            Log.Logger.LogInformation("Loading scene from {FileName}", file.Name);
+            Log.GetLogger().LogInformation("Loading scene from {FileName}", file.Name);
             Clear();
         }
 

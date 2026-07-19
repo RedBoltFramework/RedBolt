@@ -137,7 +137,7 @@ public sealed class PrefabResource : SimpleResource
             return false;
 
         CopyPrefab(_prefab, tempScene.Root.GeneratePrefab(includeTemporary: true));
-        Log.Logger.LogWarning(
+        Log.GetLogger().LogWarning(
             "Legacy prefab format is used in file '{Name}'! Rename it to *.prefab, open it in the Editor as Scene, and save it normally.",
             Name);
         return true;

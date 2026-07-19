@@ -281,7 +281,7 @@ layout(std140) uniform Material
     {
         var renderDevice = GetSubsystem<RenderDevice>()!;
         var currentSettings = renderDevice.GetWindowSettings();
-        Log.Logger.LogInformation(
+        Log.GetLogger().LogInformation(
             "Set screen mode: {Width}x{Height} pixels at {RefreshRate} Hz at monitor {Monitor} [{Mode}]{Resizable}{MultiSample}",
             Width,
             Height,
@@ -1488,7 +1488,7 @@ layout(std140) uniform Material
         }
 
         if (RenderDiagnosticsEnabled)
-            Log.Logger.LogDebug(
+            Log.GetLogger().LogDebug(
                 "Render diagnostics: drawCalls={DrawCalls}, primitives={Primitives}, staticModels={StaticModels}.",
                 submittedDrawCalls, submittedPrimitives, scene.StaticModels.Count);
     }
@@ -1784,7 +1784,7 @@ layout(std140) uniform Material
                         renderDeviceVulkan, _swapChainVulkan, ref surfaceWidth, ref surfaceHeight))
                     _swapChain.Resize(surfaceWidth, surfaceHeight);
                 else
-                    Log.Logger.LogError("Cannot resize Vulkan swap chain");
+                    Log.GetLogger().LogError("Cannot resize Vulkan swap chain");
                 break;
             }
 #endif
@@ -4041,7 +4041,7 @@ layout(std140) uniform Material
 
             var hint = (texture.GetLinear() ? 1 : 0) + (texture.GetSRGB() ? 1 : 0);
             if (hint > 1)
-                Log.Logger.LogWarning("Texture {Material} cannot be both sRGB and Linear", material.GetName());
+                Log.GetLogger().LogWarning("Texture {Material} cannot be both sRGB and Linear", material.GetName());
             defines.Add($"URHO3D_TEXTURE_{textureName.ToUpperInvariant()}={Math.Min(1, hint) + 1}");
         }
         return string.Join(' ', defines);
@@ -4185,7 +4185,7 @@ layout(std140) uniform Material
             }
 
             if (elementIndex < 0)
-                Log.Logger.LogError("Attribute #{InputIndex} with semantics '{Semantic}{SemanticIndex}' is not found in the vertex layout",
+                Log.GetLogger().LogError("Attribute #{InputIndex} with semantics '{Semantic}{SemanticIndex}' is not found in the vertex layout",
                     attribute.InputIndex, RenderAPIUtils.ToShaderInputName(attribute.Semantic), attribute.SemanticIndex);
         }
 
@@ -4498,7 +4498,7 @@ layout(std140) uniform Material
             variable.Set(textureView);
         }
         else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
-            Log.Logger.LogWarning("Shader binding diagnostics: texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
+            Log.GetLogger().LogWarning("Shader binding diagnostics: texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static void BindTextureToAvailableStages(PipelineResources pipeline, string name, ITextureView textureView)
@@ -4518,7 +4518,7 @@ layout(std140) uniform Material
             variable.Set(textureView);
         }
         else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
-            Log.Logger.LogWarning("Shader binding diagnostics: fullscreen texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
+            Log.GetLogger().LogWarning("Shader binding diagnostics: fullscreen texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static void BindTextureToAvailableStages(FullscreenPipelineResources pipeline, string name, ITextureView textureView)
@@ -4535,7 +4535,7 @@ layout(std140) uniform Material
             variable.SetBufferRange(buffer, 0, size);
         }
         else if (ShaderBindingDiagnosticsEnabled)
-            Log.Logger.LogWarning("Shader binding diagnostics: dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
+            Log.GetLogger().LogWarning("Shader binding diagnostics: dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     private static void BindDynamicBuffer(FullscreenPipelineResources pipeline,
@@ -4546,7 +4546,7 @@ layout(std140) uniform Material
             variable.SetBufferRange(buffer, 0, size);
         }
         else if (ShaderBindingDiagnosticsEnabled)
-            Log.Logger.LogWarning("Shader binding diagnostics: fullscreen dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
+            Log.GetLogger().LogWarning("Shader binding diagnostics: fullscreen dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
     }
 
     internal static IShader CreateShader(IRenderDevice device, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -4760,10 +4760,10 @@ layout(std140) uniform Material
         }
         catch (Exception error)
         {
-            Log.Logger.LogWarning(error, "Shader reflection diagnostics: failed to write shader source dump.");
+            Log.GetLogger().LogWarning(error, "Shader reflection diagnostics: failed to write shader source dump.");
         }
 
-        Log.Logger.LogDebug(
+        Log.GetLogger().LogDebug(
             "Shader reflection diagnostics: first pipeline '{PassVertexShader}/{PassPixelShader}', layout='{Layout}', vertexSource='{VertexSource}', pixelSource='{PixelSource}'.",
             pass.VertexShader, pass.PixelShader, key.LayoutSignature, vertexPath, pixelPath);
         DumpShaderResources("vertex shader", vertexShader);
@@ -4774,7 +4774,7 @@ layout(std140) uniform Material
     private static void DumpShaderResources(string label, IShader shader)
     {
         var resourceCount = shader.GetResourceCount();
-        Log.Logger.LogDebug("Shader reflection diagnostics: {Label} resourceCount={ResourceCount}.", label, resourceCount);
+        Log.GetLogger().LogDebug("Shader reflection diagnostics: {Label} resourceCount={ResourceCount}.", label, resourceCount);
         for (uint resourceIndex = 0; resourceIndex < resourceCount; ++resourceIndex)
         {
             using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
@@ -4788,14 +4788,14 @@ layout(std140) uniform Material
                 line += $", size={bufferDesc.Size}, variableCount={bufferDesc.NumVariables}";
             }
 
-            Log.Logger.LogDebug(line + ".");
+            Log.GetLogger().LogDebug(line + ".");
         }
     }
 
     private static void DumpPipelineVariables(string label, IPipelineState pipelineState, IShaderResourceBinding shaderResources)
     {
         using var pipelineDesc = pipelineState.GetDesc();
-        Log.Logger.LogDebug(
+        Log.GetLogger().LogDebug(
             "Shader reflection diagnostics: {Label} defaultVariableType={DefaultVariableType}, staticSignatures={StaticSignatures}.",
             label,
             pipelineDesc.ResourceLayoutDefaultVariableType,
@@ -4818,7 +4818,7 @@ layout(std140) uniform Material
     private static void DumpVariableList(string label, string scope, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
         uint count, Func<uint, IShaderResourceVariable> getVariable)
     {
-        Log.Logger.LogDebug(
+        Log.GetLogger().LogDebug(
             "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variableCount={VariableCount}.",
             label, scope, shaderType, count);
         for (uint variableIndex = 0; variableIndex < count; ++variableIndex)
@@ -4826,7 +4826,7 @@ layout(std140) uniform Material
             var variable = getVariable(variableIndex);
             using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
             variable.GetResourceDesc(resourceDesc);
-            Log.Logger.LogDebug(
+            Log.GetLogger().LogDebug(
                 "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variable[{VariableIndex}] name='{Name}', type={Type}, arraySize={ArraySize}, variableType={VariableType}.",
                 label,
                 scope,

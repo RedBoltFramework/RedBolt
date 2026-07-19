@@ -126,7 +126,7 @@ public class Animation : ResourceWithMetadata
 
         if (!source.HasAttribute("length"))
         {
-            Log.Logger.LogError("Animation length is missing");
+            Log.GetLogger().LogError("Animation length is missing");
             return false;
         }
 
@@ -169,7 +169,7 @@ public class Animation : ResourceWithMetadata
         var fileId = input.ReadFileID();
         if (fileId != "UANI" && fileId != "UAN2")
         {
-            Log.Logger.LogError("{AnimationName} is not a valid animation file", Name);
+            Log.GetLogger().LogError("{AnimationName} is not a valid animation file", Name);
             return false;
         }
 
@@ -376,7 +376,7 @@ public class Animation : ResourceWithMetadata
             }
             else
             {
-                Log.Logger.LogWarning("Can not save animation trigger data when not saving into a file");
+                Log.GetLogger().LogWarning("Can not save animation trigger data when not saving into a file");
             }
         }
 
@@ -725,7 +725,7 @@ public class Animation : ResourceWithMetadata
         {
             if (!trackElement.HasAttribute("name"))
             {
-                Log.Logger.LogError("Animation track name is missing");
+                Log.GetLogger().LogError("Animation track name is missing");
                 continue;
             }
 
@@ -775,7 +775,7 @@ public class Animation : ResourceWithMetadata
         {
             if (!trackElement.HasAttribute("name"))
             {
-                Log.Logger.LogError("Animation track name is missing");
+                Log.GetLogger().LogError("Animation track name is missing");
                 continue;
             }
 

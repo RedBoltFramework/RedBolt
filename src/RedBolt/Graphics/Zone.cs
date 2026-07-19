@@ -368,7 +368,7 @@ public class Zone : Drawable
                 if (zoneImage is not null)
                     sh = zoneImage.GetOrCreateSphericalHarmonics();
                 else
-                    Log.Logger.LogWarning(
+                    Log.GetLogger().LogWarning(
                         "Cannot extract spherical harmonics from Zone texture without corresponding resource in cache");
             }
 

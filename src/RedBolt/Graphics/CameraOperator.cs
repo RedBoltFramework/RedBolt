@@ -423,19 +423,19 @@ public class CameraOperator : Component
     {
         if (points.Count == 0)
         {
-            Log.Logger.LogError("Can't focus on empty array of vertices");
+            Log.GetLogger().LogError("Can't focus on empty array of vertices");
             return;
         }
 
         if (camera is null)
         {
-            Log.Logger.LogError("No Camera found");
+            Log.GetLogger().LogError("No Camera found");
             return;
         }
 
         if (!IsAttached)
         {
-            Log.Logger.LogError("No Node to move");
+            Log.GetLogger().LogError("No Node to move");
             return;
         }
 

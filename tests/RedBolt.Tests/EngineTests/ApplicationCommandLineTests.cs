@@ -22,6 +22,7 @@ public sealed class ApplicationCommandLineTests
             "--screenshot-parameters=3,2",
             "--app-name=RedBolt.Tests.Override",
             "--no-log-rotate-on-open",
+            "--log=warn",
             "--log-rotate-by-size",
             "--log-rotate-max-files=7",
             "--log-rotate-max-size=4096",
@@ -35,6 +36,7 @@ public sealed class ApplicationCommandLineTests
         Assert.False(application.ObservedParameters.Borderless);
         Assert.True(application.ObservedParameters.FullScreen);
         Assert.False(application.ObservedParameters.LogRotateOnOpen);
+        Assert.Equal(LogLevel.Warning, application.ObservedParameters.LogLevel);
         Assert.True(application.ObservedParameters.LogRotateBySize);
         Assert.Equal(7u, application.ObservedParameters.LogMaxFiles);
         Assert.Equal(4096u, application.ObservedParameters.LogMaxSize);
@@ -85,6 +87,7 @@ public sealed class ApplicationCommandLineTests
                 LoadFonts = Engine.Parameters.LoadFonts,
                 LogMaxFiles = Engine.Parameters.LogMaxFiles,
                 LogMaxSize = Engine.Parameters.LogMaxSize,
+                LogLevel = Engine.Parameters.LogLevel,
                 LogRotateBySize = Engine.Parameters.LogRotateBySize,
                 LogRotateOnOpen = Engine.Parameters.LogRotateOnOpen,
                 ScreenshotCount = Engine.Parameters.ScreenshotCount,

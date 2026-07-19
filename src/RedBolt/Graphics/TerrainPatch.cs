@@ -112,7 +112,7 @@ public class TerrainPatch : Drawable
             }
 
             case RayQueryLevel.RayTriangleUv:
-                Log.Logger.LogWarning("RAY_TRIANGLE_UV query level is not supported for TerrainPatch component");
+                Log.GetLogger().LogWarning("RAY_TRIANGLE_UV query level is not supported for TerrainPatch component");
                 break;
         }
     }

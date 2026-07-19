@@ -222,7 +222,7 @@ public class MoveAndOrbitController : Component
             _component = Node.GetDerivedComponent<MoveAndOrbitComponent>();
             if (_component is null)
             {
-                Log.Logger.LogError("MoveAndOrbitComponent not found on the same node as MoveAndOrbitController");
+                Log.GetLogger().LogError("MoveAndOrbitComponent not found on the same node as MoveAndOrbitController");
             }
         }
         else

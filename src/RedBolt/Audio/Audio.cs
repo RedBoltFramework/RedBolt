@@ -108,15 +108,15 @@ public sealed class Audio : Object
         if (_deviceId == 0)
         {
             if (speakerMode == SpeakerMode.Auto)
-                Log.Logger.LogError("Could not initialize audio output");
+                Log.GetLogger().LogError("Could not initialize audio output");
             else
-                Log.Logger.LogError("Could not initialize audio output for speaker mode {SpeakerMode}", speakerMode);
+                Log.GetLogger().LogError("Could not initialize audio output for speaker mode {SpeakerMode}", speakerMode);
             return false;
         }
 
         if (obtained.Format != AudioS16Sys)
         {
-            Log.Logger.LogError("Could not initialize audio output, 16-bit buffer format not supported.");
+            Log.GetLogger().LogError("Could not initialize audio output, 16-bit buffer format not supported.");
             SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
@@ -127,7 +127,7 @@ public sealed class Audio : Object
 
         if (_speakerMode == SpeakerMode.Auto)
         {
-            Log.Logger.LogError("Could not identify channel configuration for audio output.");
+            Log.GetLogger().LogError("Could not identify channel configuration for audio output.");
             SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
@@ -140,7 +140,7 @@ public sealed class Audio : Object
         _interpolation = interpolation;
         _clipBuffer = new int[_fragmentSize * AudioNumChannels[(int)_speakerMode]];
         _outputBuffer = new short[_clipBuffer.Length];
-        Log.Logger.LogInformation("Set audio mode {MixRate} Hz {SpeakerMode} {Interpolation}",
+        Log.GetLogger().LogInformation("Set audio mode {MixRate} Hz {SpeakerMode} {Interpolation}",
             _mixRate, _speakerMode, _interpolation ? "interpolated" : "");
         return Play();
     }
@@ -186,7 +186,7 @@ public sealed class Audio : Object
         if (_playing) return true;
         if (_deviceId == 0)
         {
-            Log.Logger.LogError("No audio mode set, can not start playback");
+            Log.GetLogger().LogError("No audio mode set, can not start playback");
             return false;
         }
         SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 0);

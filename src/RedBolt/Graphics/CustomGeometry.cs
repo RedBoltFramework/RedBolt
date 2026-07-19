@@ -445,7 +445,7 @@ public sealed class CustomGeometry : Drawable
             }
 
             case RayQueryLevel.RayTriangleUv:
-                Log.Logger.LogWarning("RAY_TRIANGLE_UV query level is not supported for CustomGeometry component");
+                Log.GetLogger().LogWarning("RAY_TRIANGLE_UV query level is not supported for CustomGeometry component");
                 break;
         }
     }

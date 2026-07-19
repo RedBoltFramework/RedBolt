@@ -238,7 +238,7 @@ public class InputMap : SimpleResource
                 value = 4;
                 break;
             default:
-                Log.Logger.LogError("Can't map mouse button. Invalid MouseButton value.");
+                Log.GetLogger().LogError("Can't map mouse button. Invalid MouseButton value.");
                 return;
         }
         _ = value;

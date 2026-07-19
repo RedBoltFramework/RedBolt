@@ -653,7 +653,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         {
             GetDebugger().EndSnapshot();
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                Log.Logger, "RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+                Log.GetLogger(), "RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
         }
     }
 

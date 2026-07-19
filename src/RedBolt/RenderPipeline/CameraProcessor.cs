@@ -50,7 +50,7 @@ public sealed class CameraProcessor : Object
                     || _isCameraClipped != camera.GetUseClipping()
                     || _cameraFillMode != camera.GetFillMode())
                 {
-                    Log.Logger.Log(LogLevel.Error, default,
+                    Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default,
                         "All Cameras used in one SceneProcessor should use the same settings: "
                         + "Flip Vertical, Orthographic, Use Reflection, Use Clipping, Fill Mode",
                         null, static (state, _) => state);

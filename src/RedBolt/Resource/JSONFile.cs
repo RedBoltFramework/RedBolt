@@ -32,7 +32,7 @@ public sealed class JSONFile : Resource
         var dataSize = source.CanSeek ? source.Length - source.Position : -1;
         if (dataSize == 0 && !string.IsNullOrEmpty(Name))
         {
-            Log.Logger.LogError("Zero sized JSON data in {Name}", Name);
+            Log.GetLogger().LogError("Zero sized JSON data in {Name}", Name);
             return false;
         }
 
@@ -40,7 +40,7 @@ public sealed class JSONFile : Resource
         var text = reader.ReadToEnd();
         if (!ParseResourceJSON(text, out var value))
         {
-            Log.Logger.LogError("Could not parse JSON data from {Name}", Name);
+            Log.GetLogger().LogError("Could not parse JSON data from {Name}", Name);
             return false;
         }
 
@@ -159,7 +159,7 @@ public sealed class JSONFile : Resource
         {
             value = new JSONValue();
             if (reportError)
-                Log.Logger.LogError("Could not parse JSON data from string");
+                Log.GetLogger().LogError("Could not parse JSON data from string");
             return false;
         }
     }

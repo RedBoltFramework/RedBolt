@@ -883,9 +883,9 @@ public static partial class ArchiveSerialization
         catch (InvalidOperationException exception)
         {
             if (errorOnException)
-                Log.Logger.LogError("Serialization error: {Message}", exception.Message);
+                Log.GetLogger().LogError("Serialization error: {Message}", exception.Message);
             else
-                Log.Logger.LogDebug("Archive cannot be serialization: {Message}", exception.Message);
+                Log.GetLogger().LogDebug("Archive cannot be serialization: {Message}", exception.Message);
             return false;
         }
     }

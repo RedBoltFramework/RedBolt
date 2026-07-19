@@ -238,7 +238,7 @@ public class CubemapRenderer : Object
         if (updateParameters.OverrideFinalTexture is not null
             && !IsTextureMatching(updateParameters.OverrideFinalTexture, updateParameters.Settings))
         {
-            Log.Logger.LogError("Invalid texture is used as override for CubemapRenderer::Update");
+            Log.GetLogger().LogError("Invalid texture is used as override for CubemapRenderer::Update");
             return new CubemapUpdateResult
             {
                 NumRenderedFaces = (uint)CubeMapFace.MaxCubeMapFaces,
@@ -408,7 +408,7 @@ public class CubemapRenderer : Object
         var renderDevice = GetSubsystem<RenderDevice>();
         if (!renderDevice!.GetCaps().ComputeShaders)
         {
-            Log.Logger.LogError("CubemapRenderer::FilterCubemap cannot be executed without compute shader support");
+            Log.GetLogger().LogError("CubemapRenderer::FilterCubemap cannot be executed without compute shader support");
             return;
         }
 
@@ -483,7 +483,7 @@ public class CubemapRenderer : Object
             var pipelineState = pipelineStateCache.GetComputePipelineState(desc);
             if (pipelineState is null || !pipelineState.IsValid)
             {
-                Log.Logger.LogError("CubemapRenderer::FilterCubemap failed to create pipeline state");
+                Log.GetLogger().LogError("CubemapRenderer::FilterCubemap failed to create pipeline state");
                 return;
             }
 

@@ -885,7 +885,7 @@ public class Input : Object
     {
         if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
         {
-            Log.Logger.LogError("Can not record gesture: no touch devices");
+            Log.GetLogger().LogError("Can not record gesture: no touch devices");
             return false;
         }
         return SdlNativeBindings.SdlRecordGesture(-1) != 0;
@@ -942,7 +942,7 @@ public class Input : Object
         ArgumentNullException.ThrowIfNull(source);
         if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
         {
-            Log.Logger.LogError("Can not load gestures: no touch devices");
+            Log.GetLogger().LogError("Can not load gestures: no touch devices");
             return 0;
         }
 

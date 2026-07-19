@@ -12,7 +12,7 @@ public static class GraphicsUtils
         var numVertexBuffers = geometry.GetNumVertexBuffers() + (instancingBuffer is null ? 0u : 1u);
         if (numVertexBuffers > RenderApiLimits.MaxVertexStreams)
         {
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Too many vertex buffers: PipelineState cannot handle more than {MaxVertexStreams}",
                 RenderApiLimits.MaxVertexStreams);
             return;
@@ -59,7 +59,7 @@ public static class GraphicsUtils
 
             if (elements.Count != numElements)
             {
-                Log.Logger.LogWarning("Too many vertex elements: PipelineState cannot handle more than {MaxNumVertexElements}",
+                Log.GetLogger().LogWarning("Too many vertex elements: PipelineState cannot handle more than {MaxNumVertexElements}",
                     RenderApiLimits.MaxNumVertexElements);
             }
         }
@@ -91,7 +91,7 @@ public static class GraphicsUtils
         var vertexBuffers = geometry.GetVertexBuffers();
         if (vertexBuffers.Count + (instancingBuffer is null ? 0 : 1) > RenderApiLimits.MaxVertexStreams)
         {
-            Log.Logger.LogError("Too many vertex buffers");
+            Log.GetLogger().LogError("Too many vertex buffers");
             return;
         }
 
@@ -118,7 +118,7 @@ public static class GraphicsUtils
     {
         if (texture is null)
         {
-            Log.Logger.LogError("Trying to add null texture to DrawCommandQueue");
+            Log.GetLogger().LogError("Trying to add null texture to DrawCommandQueue");
             return;
         }
 

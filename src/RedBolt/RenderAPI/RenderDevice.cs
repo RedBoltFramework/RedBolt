@@ -146,7 +146,7 @@ public sealed class RenderDevice : Object
         var newSwapChainSize = GetSwapChainSize();
         if (oldWindowSize != newWindowSize || oldSwapChainSize != newSwapChainSize)
         {
-            Log.Logger.LogInformation(
+            Log.GetLogger().LogInformation(
                 "Swap chain is resized to {SwapChainWidth}x{SwapChainHeight}px ({WindowWidth}x{WindowHeight}dp).",
                 newSwapChainSize.X, newSwapChainSize.Y, newWindowSize.X, newWindowSize.Y);
         }
@@ -244,7 +244,7 @@ public sealed class RenderDevice : Object
         if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
         {
             InvalidateVulkanContext();
-            Log.Logger.LogInformation("Emulated context lost");
+            Log.GetLogger().LogInformation("Emulated context lost");
             SdlNativeBindings.SdlDelay(delayMs);
             return RestoreVulkanContext();
         }
@@ -253,14 +253,14 @@ public sealed class RenderDevice : Object
             System.Diagnostics.Debug.Assert(GetDeviceSettings().Backend == RenderBackend.OpenGL);
 
             InvalidateGLESContext();
-            Log.Logger.LogInformation("Emulated context lost");
+            Log.GetLogger().LogInformation("Emulated context lost");
             SdlNativeBindings.SdlDelay(delayMs);
             return RestoreGLESContext();
         }
         else
         {
             InvalidateDeviceState();
-            Log.Logger.LogInformation("Emulated context lost");
+            Log.GetLogger().LogInformation("Emulated context lost");
             RestoreDeviceState();
             return true;
         }
@@ -287,7 +287,7 @@ public sealed class RenderDevice : Object
         var resolvedBackBuffer = GetResolvedBackBuffer();
         if (resolvedBackBuffer is null)
         {
-            Log.Logger.LogError("Failed to create resolve texture for RenderDevice.TakeScreenShot");
+            Log.GetLogger().LogError("Failed to create resolve texture for RenderDevice.TakeScreenShot");
             return false;
         }
 
@@ -295,7 +295,7 @@ public sealed class RenderDevice : Object
         _ = resolvedBackBuffer.Release();
         if (stagingTexture is null)
         {
-            Log.Logger.LogError("Failed to create staging texture for RenderDevice.TakeScreenShot");
+            Log.GetLogger().LogError("Failed to create staging texture for RenderDevice.TakeScreenShot");
             return false;
         }
 
@@ -306,7 +306,7 @@ public sealed class RenderDevice : Object
 
         if (mappedData.PData == IntPtr.Zero)
         {
-            Log.Logger.LogError("Failed to map staging texture for RenderDevice.TakeScreenShot");
+            Log.GetLogger().LogError("Failed to map staging texture for RenderDevice.TakeScreenShot");
             _ = stagingTexture.Release();
             return false;
         }
@@ -316,7 +316,7 @@ public sealed class RenderDevice : Object
             DiligentNativeBindings.GetTextureFormatAttribs(desc.Format), false);
         if (formatInfo.GetElementSize() != 4 || formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
         {
-            Log.Logger.LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");
+            Log.GetLogger().LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");
             _ = stagingTexture.Release();
             return false;
         }
@@ -820,7 +820,7 @@ public sealed class RenderDevice : Object
     private void InvalidateGLESContext()
     {
 #if REDBOLT_PLATFORM_ANDROID && REDBOLT_GLES_SUPPORTED
-        Log.Logger.LogInformation("OpenGL context is lost");
+        Log.GetLogger().LogInformation("OpenGL context is lost");
         InvalidateDeviceState();
 
         using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(GetImmediateContext()!)
@@ -833,7 +833,7 @@ public sealed class RenderDevice : Object
 
         GetSubsystem<Graphics>()!.ReleaseGLContext();
 #else
-        Log.Logger.LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
+        Log.GetLogger().LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
 #endif
     }
 
@@ -843,7 +843,7 @@ public sealed class RenderDevice : Object
         if (!GetSubsystem<Graphics>()!.RestoreGLContext())
         {
             var error = System.Text.Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0');
-            Log.Logger.LogError("Could not restore OpenGL context: {Error}", error);
+            Log.GetLogger().LogError("Could not restore OpenGL context: {Error}", error);
             return false;
         }
 
@@ -851,10 +851,10 @@ public sealed class RenderDevice : Object
             ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
         renderDeviceGLES.Resume(IntPtr.Zero);
         RestoreDeviceState();
-        Log.Logger.LogInformation("OpenGL context is restored");
+        Log.GetLogger().LogInformation("OpenGL context is restored");
         return true;
 #else
-        Log.Logger.LogWarning("RenderDevice::RestoreGLESContext is supported only for Android platform");
+        Log.GetLogger().LogWarning("RenderDevice::RestoreGLESContext is supported only for Android platform");
         return true;
 #endif
     }
@@ -862,13 +862,13 @@ public sealed class RenderDevice : Object
     private void InvalidateVulkanContext()
     {
 #if REDBOLT_VULKAN_SUPPORTED
-        Log.Logger.LogInformation("Vulkan context is lost");
+        Log.GetLogger().LogInformation("Vulkan context is lost");
         InvalidateDeviceState();
 
         _oldNativeSwapChainDesc?.Dispose();
         _oldNativeSwapChainDesc = GetSubsystem<Graphics>()!.ReleaseVulkanSwapChain();
 #else
-        Log.Logger.LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
+        Log.GetLogger().LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
 #endif
     }
 
@@ -891,17 +891,17 @@ public sealed class RenderDevice : Object
         var multiSample = GetSupportedMultiSample(colorFormat, GetWindowSettings().MultiSample);
         if (!graphics.RestoreVulkanSwapChain(swapChainDesc, depthFormat, multiSample))
         {
-            Log.Logger.LogError("Failed to restore Vulkan context");
+            Log.GetLogger().LogError("Failed to restore Vulkan context");
             return false;
         }
 
         _oldNativeSwapChainDesc.Dispose();
         _oldNativeSwapChainDesc = null;
         RestoreDeviceState();
-        Log.Logger.LogInformation("Vulkan context is restored");
+        Log.GetLogger().LogInformation("Vulkan context is restored");
         return true;
 #else
-        Log.Logger.LogWarning("RenderDevice::RestoreVulkanContext is supported only for Vulkan backend");
+        Log.GetLogger().LogWarning("RenderDevice::RestoreVulkanContext is supported only for Vulkan backend");
         return true;
 #endif
     }

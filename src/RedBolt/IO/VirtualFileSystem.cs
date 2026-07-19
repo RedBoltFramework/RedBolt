@@ -137,7 +137,7 @@ public class VirtualFileSystem : Object
             if (mountPoint is MountedAliasRoot mountedAliasRoot)
             {
                 if (_aliasMountPoint is not null)
-                    Log.Logger.LogWarning("Mounted alias root when one already exists, overwriting.");
+                    Log.GetLogger().LogWarning("Mounted alias root when one already exists, overwriting.");
                 _aliasMountPoint = mountedAliasRoot;
             }
         }

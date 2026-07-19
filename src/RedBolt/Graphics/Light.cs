@@ -709,7 +709,7 @@ public sealed class Light : Drawable
                     : query.Ray.HitDistance(new Sphere(Node.WorldPosition, _range));
                 break;
             case RayQueryLevel.RayTriangleUv:
-                Log.Logger.LogWarning("RAY_TRIANGLE_UV query level is not supported for Light component");
+                Log.GetLogger().LogWarning("RAY_TRIANGLE_UV query level is not supported for Light component");
                 return;
         }
 

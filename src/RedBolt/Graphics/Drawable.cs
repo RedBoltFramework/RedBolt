@@ -757,7 +757,7 @@ public abstract class Drawable : Component
                 octree.AddDrawable(this);
             else
                 Microsoft.Extensions.Logging.LoggerExtensions.LogError(
-                    Log.Logger, "No Octree component in scene, drawable will not render.");
+                    Log.GetLogger(), "No Octree component in scene, drawable will not render.");
         }
     }
 

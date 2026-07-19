@@ -551,7 +551,7 @@ public sealed class Renderer : Object
             _frameStats = new FrameStatistics();
         });
 
-        Log.Logger.LogInformation("Initialized renderer");
+        Log.GetLogger().LogInformation("Initialized renderer");
     }
 
     private void HandleScreenMode()

@@ -95,7 +95,7 @@ public class RenderContext : Object
         var isSingleView = renderTargets.Length + (depthStencil.HasValue ? 1 : 0) == 1;
         if (isDepthSwapChain != isColorSwapChain && !isSingleView)
         {
-            Log.Logger.LogError("Cannot mix swap chain and non-swap chain views");
+            Log.GetLogger().LogError("Cannot mix swap chain and non-swap chain views");
             return;
         }
 
@@ -147,7 +147,7 @@ public class RenderContext : Object
         var size = GetCurrentRenderTargetSize();
         if (size.X <= 0 || size.Y <= 0)
         {
-            Log.Logger.LogError("Depth-stencil buffer or render target must be bound to call SetFullViewport");
+            Log.GetLogger().LogError("Depth-stencil buffer or render target must be bound to call SetFullViewport");
             return;
         }
 
@@ -188,13 +188,13 @@ public class RenderContext : Object
         // C++ RenderContext::ClearDepthStencil clears currentDepthStencil_ via handle_ directly.
         if ((flags & ClearTarget.Depth) == 0 && (flags & ClearTarget.Stencil) == 0)
         {
-            Log.Logger.LogError("At least one of CLEAR_DEPTH or CLEAR_STENCIL must be set to call ClearDepthStencil");
+            Log.GetLogger().LogError("At least one of CLEAR_DEPTH or CLEAR_STENCIL must be set to call ClearDepthStencil");
             return;
         }
 
         if (_currentDepthStencilHandle is null || _currentDepthStencilHandle.IsNull)
         {
-            Log.Logger.LogError("Depth-stencil buffer must be bound to call ClearDepthStencil");
+            Log.GetLogger().LogError("Depth-stencil buffer must be bound to call ClearDepthStencil");
             return;
         }
 
@@ -224,14 +224,14 @@ public class RenderContext : Object
     {
         if (index >= _numCurrentRenderTargets)
         {
-            Log.Logger.LogError("Render target must be bound to call ClearRenderTarget");
+            Log.GetLogger().LogError("Render target must be bound to call ClearRenderTarget");
             return;
         }
 
         var rtHandle = _currentRenderTargetHandles[index];
         if (rtHandle is null || rtHandle.IsNull)
         {
-            Log.Logger.LogError("Render target must be bound to call ClearRenderTarget");
+            Log.GetLogger().LogError("Render target must be bound to call ClearRenderTarget");
             return;
         }
 

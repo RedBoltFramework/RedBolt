@@ -427,7 +427,7 @@ public sealed class WorkQueue : Object
 
         if (item.WorkFunction == null)
         {
-            Log.Logger.LogError("Null work item submitted to the work queue");
+            Log.GetLogger().LogError("Null work item submitted to the work queue");
             return;
         }
 

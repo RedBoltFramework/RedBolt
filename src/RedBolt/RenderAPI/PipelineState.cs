@@ -27,7 +27,7 @@ public class PipelineState : DeviceObject
     {
         if (Thread.CurrentThread.ManagedThreadId != WorkQueue.GetMainThreadId())
         {
-            Log.Logger.LogWarning("Pipeline state should be released only from main thread");
+            Log.GetLogger().LogWarning("Pipeline state should be released only from main thread");
             return;
         }
 
@@ -169,7 +169,7 @@ public class PipelineState : DeviceObject
         {
             if (shader is not null && (shader.GetHandle() is null || shader.GetHandle()!.IsNull))
             {
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Failed to create PipelineState '{Name}' due to failed {Type} shader compilation",
                     GetDebugName(), shader.GetShaderType());
                 return;
@@ -277,14 +277,14 @@ public class PipelineState : DeviceObject
             if (_handle is null || _handle.IsNull)
             {
                 DestroyGPU();
-                Log.Logger.LogError("Failed to create PipelineState '{Name}'", GetDebugName());
+                Log.GetLogger().LogError("Failed to create PipelineState '{Name}'", GetDebugName());
                 return;
             }
             if (isOpenGl &&
                 !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, _handle))
             {
                 DestroyGPU();
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Failed to create PipelineState '{Name}' due to OpenGL program linking error",
                     GetDebugName());
                 return;

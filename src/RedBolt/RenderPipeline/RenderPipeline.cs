@@ -673,7 +673,7 @@ public class RenderPipeline : Component
             if (GetDebugger().IsSnapshotInProgress())
             {
                 GetDebugger().EndSnapshot();
-                Log.Logger.LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+                Log.GetLogger().LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
             }
         }
 

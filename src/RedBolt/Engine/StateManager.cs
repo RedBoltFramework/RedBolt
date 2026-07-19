@@ -391,12 +391,12 @@ public class StateManager : Object
     {
         if (gameScreen is null)
         {
-            Log.Logger.Log(LogLevel.Error, default, "No target state provided", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "No target state provided", null, static (state, _) => state);
             return;
         }
         if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
         {
-            Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
             return;
         }
         _stateQueue.Enqueue(new QueueItem(gameScreen, gameScreen.GetTypeNameHash(), bundle));
@@ -415,7 +415,7 @@ public class StateManager : Object
     {
         if (Environment.CurrentManagedThreadId != WorkQueue.GetMainThreadId())
         {
-            Log.Logger.Log(LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "State transition could only be scheduled from the main thread", null, static (state, _) => state);
             return;
         }
         _stateQueue.Enqueue(new QueueItem(null, type, bundle));
@@ -603,7 +603,7 @@ public class StateManager : Object
                     nextState = Context.CreateObject(nextQueueItem.StateType) as ApplicationState;
                     if (nextState is null)
                     {
-                        Log.Logger.Log(LogLevel.Error, default, "Can't create application state object", null, static (state, _) => state);
+                        Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can't create application state object", null, static (state, _) => state);
                         continue;
                     }
                 }

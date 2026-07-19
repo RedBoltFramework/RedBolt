@@ -102,7 +102,7 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
             }
         }
         default:
-            Log.Logger.LogError("Unsupported interpolation mode");
+            Log.GetLogger().LogError("Unsupported interpolation mode");
             return default;
         }
     }
@@ -136,7 +136,7 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
             else if (_knots.Count == 0)
                 _knots.Add(knot.Clone());
             else
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Attempted to set a Spline's Knot value of type {KnotType} where elements are already using {ExistingType}",
                     knot.Type,
                     _knots[0].Type);
@@ -151,7 +151,7 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
         else if (_knots.Count == 0)
             _knots.Add(knot.Clone());
         else
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
                 knot.Type,
                 _knots[0].Type);
@@ -168,7 +168,7 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
         else if (_knots.Count == 0)
             _knots.Add(knot.Clone());
         else
-            Log.Logger.LogError(
+            Log.GetLogger().LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
                 knot.Type,
                 _knots[0].Type);

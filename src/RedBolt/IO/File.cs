@@ -51,7 +51,7 @@ public class File : AbstractFile
 
         if (_mode == FileMode.Write)
         {
-            Log.Logger.LogError("File not opened for reading");
+            Log.GetLogger().LogError("File not opened for reading");
             return 0;
         }
 
@@ -145,7 +145,7 @@ public class File : AbstractFile
         {
             // Return to the position where the read began
             SeekInternal(Position + _offset);
-            Log.Logger.LogError("Error while reading from file {Name}", Name);
+            Log.GetLogger().LogError("Error while reading from file {Name}", Name);
             return 0;
         }
 
@@ -185,7 +185,7 @@ public class File : AbstractFile
                     Read(skipBuffer[..checked((int)Math.Min(position - Position, (uint)skipBuffer.Length))]);
             }
             else
-                Log.Logger.LogError("Seeking backward in a compressed file is not supported");
+                Log.GetLogger().LogError("Seeking backward in a compressed file is not supported");
 
             return Position;
         }
@@ -208,7 +208,7 @@ public class File : AbstractFile
 
         if (_mode == FileMode.Read)
         {
-            Log.Logger.LogError("File not opened for writing");
+            Log.GetLogger().LogError("File not opened for writing");
             return 0;
         }
 
@@ -230,7 +230,7 @@ public class File : AbstractFile
         {
             // Return to the position where the write began
             SeekInternal(Position + _offset);
-            Log.Logger.LogError("Error while writing to file {Name}", Name);
+            Log.GetLogger().LogError("Error while writing to file {Name}", Name);
             return 0;
         }
 
@@ -282,7 +282,7 @@ public class File : AbstractFile
 
         if (!OpenInternal(package.GetName(), FileMode.Read, true))
         {
-            Log.Logger.LogError("Could not open package file {FileName}", fileName);
+            Log.GetLogger().LogError("Could not open package file {FileName}", fileName);
             return false;
         }
 
@@ -399,7 +399,7 @@ public class File : AbstractFile
 
         if (string.IsNullOrEmpty(fileName))
         {
-            Log.Logger.LogError("Could not open file with empty name");
+            Log.GetLogger().LogError("Could not open file with empty name");
             return false;
         }
 
@@ -407,7 +407,7 @@ public class File : AbstractFile
         {
             if (mode != FileMode.Read)
             {
-                Log.Logger.LogError("Only read mode is supported for Android asset files");
+                Log.GetLogger().LogError("Only read mode is supported for Android asset files");
                 return false;
             }
 
@@ -416,7 +416,7 @@ public class File : AbstractFile
             _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
             if (_assetHandle.IsNull)
             {
-                Log.Logger.LogError("Could not open Android asset file {FileName}", fileName);
+                Log.GetLogger().LogError("Could not open Android asset file {FileName}", fileName);
                 _assetHandle = null;
                 return false;
             }
@@ -453,7 +453,7 @@ public class File : AbstractFile
             _handle = new FileStream(fileName, systemMode, access, FileShare.Read);
             if (!fromPackage && _handle.Length > uint.MaxValue)
             {
-                Log.Logger.LogError("Could not open file {FileName} which is larger than 4GB", fileName);
+                Log.GetLogger().LogError("Could not open file {FileName} which is larger than 4GB", fileName);
                 Close();
                 return false;
             }
@@ -471,13 +471,13 @@ public class File : AbstractFile
         }
         catch (IOException)
         {
-            Log.Logger.LogError("Could not open file {FileName}", fileName);
+            Log.GetLogger().LogError("Could not open file {FileName}", fileName);
             Close();
             return false;
         }
         catch (UnauthorizedAccessException)
         {
-            Log.Logger.LogError("Could not open file {FileName}", fileName);
+            Log.GetLogger().LogError("Could not open file {FileName}", fileName);
             Close();
             return false;
         }

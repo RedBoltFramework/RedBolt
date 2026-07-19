@@ -360,7 +360,7 @@ public class DecalSet : Drawable
 
         if (target is null || !target.IsAttached)
         {
-            Log.Logger.LogError("Null target drawable for decal");
+            Log.GetLogger().LogError("Null target drawable for decal");
             return false;
         }
 
@@ -470,13 +470,13 @@ public class DecalSet : Drawable
 
         if (newDecal.Vertices.Count > _maxVertices)
         {
-            Log.Logger.LogWarning("Can not add decal, vertex count {Count} exceeds maximum {Max}", newDecal.Vertices.Count, _maxVertices);
+            Log.GetLogger().LogWarning("Can not add decal, vertex count {Count} exceeds maximum {Max}", newDecal.Vertices.Count, _maxVertices);
             _decals.RemoveAt(_decals.Count - 1);
             return false;
         }
         if (newDecal.Indices.Count > _maxIndices)
         {
-            Log.Logger.LogWarning("Can not add decal, index count {Count} exceeds maximum {Max}", newDecal.Indices.Count, _maxIndices);
+            Log.GetLogger().LogWarning("Can not add decal, index count {Count} exceeds maximum {Max}", newDecal.Indices.Count, _maxIndices);
             _decals.RemoveAt(_decals.Count - 1);
             return false;
         }
@@ -517,7 +517,7 @@ public class DecalSet : Drawable
         while (_decals.Count != 0 && (_numVertices > _maxVertices || _numIndices > _maxIndices))
             RemoveDecals(1);
 
-        Log.Logger.LogDebug("Added decal with {Count} vertices", newDecal.Vertices.Count);
+        Log.GetLogger().LogDebug("Added decal with {Count} vertices", newDecal.Vertices.Count);
 
         if (newDecal.TimeToLive > 0.0f && !_subscribed)
             UpdateEventSubscription(false);
@@ -651,7 +651,7 @@ public class DecalSet : Drawable
             positionOffset = 0;
             if (positionData is null)
             {
-                Log.Logger.LogWarning("Can not add decal, target drawable has no CPU-side geometry data");
+                Log.GetLogger().LogWarning("Can not add decal, target drawable has no CPU-side geometry data");
                 return;
             }
         }
@@ -790,7 +790,7 @@ public class DecalSet : Drawable
 
                 if (bone is null)
                 {
-                    Log.Logger.LogWarning("Out of range bone index for skinned decal");
+                    Log.GetLogger().LogWarning("Out of range bone index for skinned decal");
                     return false;
                 }
 
@@ -810,7 +810,7 @@ public class DecalSet : Drawable
                 {
                     if (_bones.Count >= Graphics.GetMaxBones())
                     {
-                        Log.Logger.LogWarning("Maximum skinned decal bone count reached");
+                        Log.GetLogger().LogWarning("Maximum skinned decal bone count reached");
                         return false;
                     }
 

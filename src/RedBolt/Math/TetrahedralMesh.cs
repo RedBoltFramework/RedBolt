@@ -84,7 +84,7 @@ public partial class TetrahedralMesh
 
         if (Math.Abs(radiusDen) < MathDefs.Epsilon * MathDefs.Epsilon)
         {
-            Log.Logger.LogWarning("Degenerate tetrahedron in tetrahedral mesh due to error in tetrahedral mesh generation");
+            Log.GetLogger().LogWarning("Degenerate tetrahedron in tetrahedral mesh due to error in tetrahedral mesh generation");
             return new HighPrecisionSphere { Center = default, Radius = MathDefs.LargeValue * MathDefs.LargeValue };
         }
 

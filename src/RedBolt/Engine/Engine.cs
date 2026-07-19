@@ -72,9 +72,6 @@ public sealed class Engine : Object
 
         BinaryFile.RegisterObject(_context);
         resources.RegisterDefaultResources();
-        Log.Logger.LogInformation(
-            "Initializing engine with window {WindowWidth}x{WindowHeight}, headless={Headless}, backend={Backend}.",
-            applicationParameters.WindowWidth, applicationParameters.WindowHeight, applicationParameters.Headless, applicationParameters.RenderBackend);
         ApplyInitializationParameters();
 
         _context.RegisterSubsystem(new RenderDevice());
@@ -89,7 +86,7 @@ public sealed class Engine : Object
             }
             catch (Exception exception)
             {
-                Log.Logger.LogError(exception, "Graphics initialization failed.");
+                Log.GetLogger().LogError(exception, "Graphics initialization failed.");
                 input.Shutdown();
                 throw;
             }
@@ -119,7 +116,7 @@ public sealed class Engine : Object
         _currentTimeStep = 0.0f;
         _lastTimeSteps.Clear();
         _frameTimer.Reset();
-        Log.Logger.LogDebug("Engine initialized.");
+        Log.GetLogger().LogInformation("Initialized engine");
         return true;
     }
 
@@ -199,7 +196,7 @@ public sealed class Engine : Object
     /// </summary>
     public void OnCanvasResize(int width, int height, bool isFullScreen, float dpiScale)
     {
-        Log.Logger.LogInformation(
+        Log.GetLogger().LogInformation(
             "Web canvas resized to {Width}x{Height}{Fullscreen} with DPI scale={DpiScale}.",
             width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
 
@@ -304,18 +301,18 @@ public sealed class Engine : Object
     {
         if (!IsInitialized)
             return;
-        Log.Logger.LogInformation("Profiler data is not available in the managed runtime.");
+        Log.GetLogger().LogInformation("Profiler data is not available in the managed runtime.");
     }
 
     public void DumpResources(bool dumpFileName = false)
     {
         var resources = GetSubsystem<ResourceCache>()!;
-        Log.Logger.LogInformation("{ResourceUsage}", dumpFileName ? resources.PrintResources() : resources.PrintMemoryUsage());
+        Log.GetLogger().LogInformation("{ResourceUsage}", dumpFileName ? resources.PrintResources() : resources.PrintMemoryUsage());
     }
 
     public void DumpMemory()
     {
-        Log.Logger.LogInformation("Managed memory: {MemoryBytes} bytes", GC.GetTotalMemory(forceFullCollection: false));
+        Log.GetLogger().LogInformation("Managed memory: {MemoryBytes} bytes", GC.GetTotalMemory(forceFullCollection: false));
     }
 
     public void Shutdown()
@@ -357,13 +354,13 @@ public sealed class Engine : Object
         var resourceRootEntries = ReadResourceRootFile(resourceRootFile);
 
         if (string.IsNullOrEmpty(resourceRootFileName))
-            Log.Logger.LogInformation("Resource root file lookup is disabled by the application.");
+            Log.GetLogger().LogInformation("Resource root file lookup is disabled by the application.");
         else if (resourceRootEntries.Count == 0)
-            Log.Logger.LogInformation("Resource root file is not found or invalid.");
+            Log.GetLogger().LogInformation("Resource root file is not found or invalid.");
         else if (!enableResourceRootFile)
-            Log.Logger.LogInformation("Resource root file is found but ignored due to explicitly specified prefix paths.");
+            Log.GetLogger().LogInformation("Resource root file is found but ignored due to explicitly specified prefix paths.");
         else
-            Log.Logger.LogInformation("Resource root file is found and used: {ResourceRootFile}.", resourceRootFile!.Value.FullName);
+            Log.GetLogger().LogInformation("Resource root file is found and used: {ResourceRootFile}.", resourceRootFile!.Value.FullName);
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
         var resourcePaths = new StringVector(SplitPathList(Parameters.ResourcePaths));
@@ -377,7 +374,7 @@ public sealed class Engine : Object
             {
                 if (!virtualFileSystem.Exists(new FileIdentifier("file", entry.FullName)))
                 {
-                    Log.Logger.LogError("Resource directory is not found: {ResourceDirectory}.", entry.FullName);
+                    Log.GetLogger().LogError("Resource directory is not found: {ResourceDirectory}.", entry.FullName);
                     continue;
                 }
 
@@ -548,7 +545,21 @@ public sealed class Engine : Object
                 + Path.DirectorySeparatorChar;
         }
 
-        Log.Initialize(Parameters, GetLogFileName(Parameters.LogName));
+        var log = GetSubsystem<Log>()!;
+        log.SetLevel(Parameters.LogLevel);
+        log.SetQuiet(Parameters.LogQuiet);
+        var logFileName = GetLogFileName(Parameters.LogName);
+        if (!string.IsNullOrEmpty(logFileName))
+        {
+            var logFileParams = new LogFileParams
+            {
+                RotateOnOpen = Parameters.LogRotateOnOpen,
+                RotateBySize = Parameters.LogRotateBySize,
+                MaxFiles = Parameters.LogMaxFiles,
+                MaxSize = Parameters.LogMaxSize,
+            };
+            log.Open(logFileName, logFileParams);
+        }
 
         if (!string.IsNullOrEmpty(_appPreferencesDir))
             Directory.CreateDirectory(_appPreferencesDir);
@@ -672,7 +683,7 @@ public sealed class Engine : Object
             var parts = line.Split('=');
             if (parts.Length != 2)
             {
-                Log.Logger.LogError("Invalid line #{LineIndex} in {ResourceRootFile}.", lineIndex, file.Value.FullName);
+                Log.GetLogger().LogError("Invalid line #{LineIndex} in {ResourceRootFile}.", lineIndex, file.Value.FullName);
                 continue;
             }
 

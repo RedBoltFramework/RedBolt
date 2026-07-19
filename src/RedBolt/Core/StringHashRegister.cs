@@ -68,7 +68,7 @@ public sealed class StringHashRegister
         if (!_map.TryGetValue(hash, out var existingValue))
             _map.Add(hash, value);
         else if (!string.Equals(existingValue, value, StringComparison.Ordinal))
-            Log.Logger.LogWarning("StringHash collision detected! Both \"{First}\" and \"{Second}\" have hash #{Hash}", value, existingValue, hash.ToString());
+            Log.GetLogger().LogWarning("StringHash collision detected! Both \"{First}\" and \"{Second}\" have hash #{Hash}", value, existingValue, hash.ToString());
 
         return hash;
     }

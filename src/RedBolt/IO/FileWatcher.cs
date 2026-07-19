@@ -94,7 +94,7 @@ public class FileWatcher : Object
             _fileWatcher = watcher;
             watcher.EnableRaisingEvents = true;
 
-            Log.Logger.LogDebug("Started watching path {PathName}", pathName);
+            Log.GetLogger().LogDebug("Started watching path {PathName}", pathName);
             return true;
         }
         catch (IOException)
@@ -110,7 +110,7 @@ public class FileWatcher : Object
         watcher?.Dispose();
         _fileWatcher = null;
         _path = string.Empty;
-        Log.Logger.LogError("Failed to start watching path {PathName}", pathName);
+        Log.GetLogger().LogError("Failed to start watching path {PathName}", pathName);
         return false;
     }
 
@@ -127,7 +127,7 @@ public class FileWatcher : Object
             _fileWatcher.Dispose();
             _fileWatcher = null;
 
-            Log.Logger.LogDebug("Stopped watching path {Path}", _path);
+            Log.GetLogger().LogDebug("Stopped watching path {Path}", _path);
             _path = string.Empty;
         }
     }

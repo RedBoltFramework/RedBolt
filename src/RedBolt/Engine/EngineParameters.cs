@@ -30,7 +30,7 @@ public sealed class EngineParameters
 
     public bool LoadFonts { get; set; } = true;
 
-    public string LogLevel { get; set; } = "trace";
+    public LogLevel LogLevel { get; set; } = LogLevel.Trace;
 
     public string LogName { get; set; } = "conf://Urho3D.log";
 

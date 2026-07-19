@@ -48,7 +48,7 @@ public sealed class ObjectReflection : IDisposable
         var index = _attributeNames.IndexOf(nameHash);
         if (index < 0)
         {
-            Log.Logger.LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
+            Log.GetLogger().LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
             return;
         }
         var attribute = _attributes[index];
@@ -69,12 +69,12 @@ public sealed class ObjectReflection : IDisposable
     {
         if (other is null)
         {
-            Log.Logger.LogWarning("Attempt to copy base attributes from unknown base class for class {TypeName}", ClassName);
+            Log.GetLogger().LogWarning("Attempt to copy base attributes from unknown base class for class {TypeName}", ClassName);
             return;
         }
         if (ReferenceEquals(other, this))
         {
-            Log.Logger.LogWarning("Attempt to copy base attributes to itself for class {TypeName}", ClassName);
+            Log.GetLogger().LogWarning("Attempt to copy base attributes to itself for class {TypeName}", ClassName);
             return;
         }
         foreach (var attribute in other._attributes)
@@ -87,7 +87,7 @@ public sealed class ObjectReflection : IDisposable
         if (attribute is not null)
             attribute.DefaultValue = value;
         else
-            Log.Logger.LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
+            Log.GetLogger().LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
     }
 
     public uint GetAttributeIndex(StringHash nameHash)
@@ -252,7 +252,7 @@ public class ObjectReflectionRegistry : IDisposable
             reflection.Dispose();
         }
         else
-            Log.Logger.LogWarning("Reflection of object {TypeName} is not found", typeNameHash.ToDebugString());
+            Log.GetLogger().LogWarning("Reflection of object {TypeName} is not found", typeNameHash.ToDebugString());
     }
 
     public void RemoveReflection<T>()

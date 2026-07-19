@@ -608,7 +608,7 @@ public sealed class RenderBufferManager
 
         if (defaultViewportRect is null || defaultViewportRect.Value == IntRect.Zero)
         {
-            Log.Logger.LogError("Cannot set null render targets");
+            Log.GetLogger().LogError("Cannot set null render targets");
             return;
         }
 

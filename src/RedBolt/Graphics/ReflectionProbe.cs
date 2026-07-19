@@ -503,7 +503,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         if (string.IsNullOrEmpty(filePath))
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
-                Log.Logger, "Cannot save reflection probe texture to file");
+                Log.GetLogger(), "Cannot save reflection probe texture to file");
             return string.Empty;
         }
 
@@ -528,7 +528,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         catch (Exception ex)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
-                Log.Logger, ex, "Failed to save reflection probe texture");
+                Log.GetLogger(), ex, "Failed to save reflection probe texture");
             return string.Empty;
         }
 

@@ -363,7 +363,7 @@ public class LightBaker : Component
 
         if (gi is null)
         {
-            Log.Logger.LogError("GlobalIllumination scene system is required to bake light");
+            Log.GetLogger().LogError("GlobalIllumination scene system is required to bake light");
             return false;
         }
 
@@ -409,7 +409,7 @@ public class LightBaker : Component
         if (state is InternalState.ScheduledSync or InternalState.ScheduledAsync)
         {
             // Glow (URHO3D_GLOW) is not yet ported — match C++ #else path
-            Log.Logger.LogError("Enable URHO3D_GLOW in build options");
+            Log.GetLogger().LogError("Enable URHO3D_GLOW in build options");
             lock (_stateLock)
                 _state = InternalState.NotStarted;
             return;
@@ -434,7 +434,7 @@ public class LightBaker : Component
 
             // Log overall time
             var totalMSec = _taskData!.Timer.GetMSec(true);
-            Log.Logger.LogInformation("Light baking is finished in {Seconds} seconds", totalMSec / 1000);
+            Log.GetLogger().LogInformation("Light baking is finished in {Seconds} seconds", totalMSec / 1000);
 
             // Reset
             lock (_stateLock)

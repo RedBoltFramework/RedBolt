@@ -97,7 +97,7 @@ public abstract partial class Application : Object
             if (!parseResult.IsSuccess)
             {
                 ErrorExit(parseResult.ErrorMessage);
-                Log.Logger.LogError(parseResult.ErrorMessage);
+                Log.GetLogger().LogError(parseResult.ErrorMessage);
                 Console.Error.WriteLine(parseResult.ErrorMessage);
                 Console.Error.WriteLine();
                 Console.Error.Write(parser.GetUsage());
@@ -149,7 +149,7 @@ public abstract partial class Application : Object
         }
         catch (Exception exception)
         {
-            Log.Logger.LogCritical(exception, "Unhandled exception in application run loop.");
+            Log.GetLogger().LogCritical(exception, "Unhandled exception in application run loop.");
             ErrorExit(exception.Message);
         }
         finally
@@ -194,7 +194,7 @@ public abstract partial class Application : Object
                 ? "Application has been terminated due to unexpected error."
                 : _startupErrors
             : message;
-        Log.Logger.LogError(ErrorMessage);
+        Log.GetLogger().LogError(ErrorMessage);
         Exit(FailureExitCode);
     }
 

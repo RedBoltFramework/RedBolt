@@ -157,7 +157,7 @@ public class AnimatedModel : StaticModel
 
         if (!IsAttached)
         {
-            Log.Logger.LogError("Can not set model while model component is not attached to a scene node");
+            Log.GetLogger().LogError("Can not set model while model component is not attached to a scene node");
             return;
         }
 
@@ -625,7 +625,7 @@ public class AnimatedModel : StaticModel
     {
         if (createBones && Node is null)
         {
-            Log.Logger.LogError("AnimatedModel not attached to a scene node, can not create bone nodes");
+            Log.GetLogger().LogError("AnimatedModel not attached to a scene node, can not create bone nodes");
             return;
         }
 
@@ -961,7 +961,7 @@ public class AnimatedModel : StaticModel
 
         if (_softwareSkinning)
         {
-            Log.Logger.LogWarning("Geometry bone mappings are ignored in software skinning");
+            Log.GetLogger().LogWarning("Geometry bone mappings are ignored in software skinning");
             return;
         }
 
@@ -1159,7 +1159,7 @@ public class AnimatedModel : StaticModel
             // Fallback to software skinning if too many bones affect the model
             if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > Graphics.GetMaxBones())
             {
-                Log.Logger.LogWarning(
+                Log.GetLogger().LogWarning(
                     "Model {Name} have {NumBones} bones, but only {MaxBones} can be skinned on GPU. Falling back to software skinning.",
                     _model.Name, _model.GetSkeleton().GetNumBones(), Graphics.GetMaxBones());
 

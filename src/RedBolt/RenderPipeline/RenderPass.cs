@@ -144,7 +144,7 @@ public abstract class RenderPass : Serializable
             {
                 if (required)
                 {
-                    Log.Logger.LogError("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
+                    Log.GetLogger().LogError("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
                 }
                 return false;
             }

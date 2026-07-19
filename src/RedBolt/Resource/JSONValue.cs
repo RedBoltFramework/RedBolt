@@ -378,7 +378,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public void SetVariant(Variant value)
     {
         if (GetValueType() != JSONValueType.Null)
-            Log.Logger.LogWarning("JsonValue is not null");
+            Log.GetLogger().LogWarning("JsonValue is not null");
         SetType(JSONValueType.Object);
         Set("type", new JSONValue(value.GetTypeName()));
         Set("value", FromVariantValue(value));
@@ -393,7 +393,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
     public void SetVariantValue(Variant value)
     {
         if (!IsNull)
-            Log.Logger.LogWarning("JsonValue is not null");
+            Log.GetLogger().LogWarning("JsonValue is not null");
         if (value.Type == VariantType.Custom)
         {
             if (value.GetCustomVariantValue().TryGetValue<Serializable>(out var serializable))
@@ -421,7 +421,7 @@ public sealed class JSONValue : IEquatable<JSONValue>
         {
             if (context is null)
             {
-                Log.Logger.LogError("Context must not be null for Serializable");
+                Log.GetLogger().LogError("Context must not be null for Serializable");
                 return default;
             }
 
@@ -429,27 +429,27 @@ public sealed class JSONValue : IEquatable<JSONValue>
                 return default;
             if (!IsObject)
             {
-                Log.Logger.LogError("Serializable custom variant expects a JSON object");
+                Log.GetLogger().LogError("Serializable custom variant expects a JSON object");
                 return default;
             }
 
             var typeName = Get("type").GetString();
             if (string.IsNullOrEmpty(typeName))
             {
-                Log.Logger.LogError("Malformed JSON input: 'type' is required when deserializing an object");
+                Log.GetLogger().LogError("Malformed JSON input: 'type' is required when deserializing an object");
                 return default;
             }
 
             var serializable = context.CreateObject(new StringHash(typeName)) as Serializable;
             if (serializable is null)
             {
-                Log.Logger.LogError("Creation of type {TypeName} failed because it has no factory registered", typeName);
+                Log.GetLogger().LogError("Creation of type {TypeName} failed because it has no factory registered", typeName);
                 return default;
             }
 
             if (!serializable.LoadJSON(Get("value")))
             {
-                Log.Logger.LogError("Deserialization of {TypeName} failed", typeName);
+                Log.GetLogger().LogError("Deserialization of {TypeName} failed", typeName);
                 return default;
             }
 

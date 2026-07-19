@@ -922,7 +922,7 @@ public sealed class ModelView : Object
                     var numIndices = modelGeometry.GetIndexCount();
                     if (!CheckIndexCount(geometry.PrimitiveType, numIndices))
                     {
-                        Log.Logger.LogError("Incorrect number of geometry indices");
+                        Log.GetLogger().LogError("Incorrect number of geometry indices");
                         return false;
                     }
 
@@ -934,7 +934,7 @@ public sealed class ModelView : Object
                     var numIndices = modelGeometry.GetVertexCount();
                     if (!CheckIndexCount(geometry.PrimitiveType, numIndices))
                     {
-                        Log.Logger.LogError("Incorrect number of geometry vertices");
+                        Log.GetLogger().LogError("Incorrect number of geometry vertices");
                         return false;
                     }
 
@@ -958,7 +958,7 @@ public sealed class ModelView : Object
                         continue;
                     if (!CheckVertexElements(modelVertexBuffer.GetElements()))
                     {
-                        Log.Logger.LogError("Unsupported vertex elements are present");
+                        Log.GetLogger().LogError("Unsupported vertex elements are present");
                         return false;
                     }
 
@@ -1054,7 +1054,7 @@ public sealed class ModelView : Object
             {
                 if (hasRootBone)
                 {
-                    Log.Logger.LogError("Multiple root bones are present");
+                    Log.GetLogger().LogError("Multiple root bones are present");
                     return false;
                 }
                 hasRootBone = true;
@@ -1215,7 +1215,7 @@ public sealed class ModelView : Object
     {
         if ((flags & ModelViewExportFlag.Inplace) != 0)
         {
-            Log.Logger.LogWarning("ModelViewExportFlag.Inplace is ignored: Model is not provided to ModelView.ExportModel");
+            Log.GetLogger().LogWarning("ModelViewExportFlag.Inplace is ignored: Model is not provided to ModelView.ExportModel");
             flags &= ~ModelViewExportFlag.Inplace;
         }
 
@@ -1725,18 +1725,18 @@ public sealed class ModelView : Object
             var original = i < originalVertexBuffers.Count ? originalVertexBuffers[i] : null;
             if (original is null)
             {
-                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} is not found", i);
+                Log.GetLogger().LogError("Cannot create Model inplace: Vertex Buffer {Index} is not found", i);
                 return;
             }
             if (original.GetVertexCount() < builder.NumVertices)
             {
-                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} has only {Actual} vertices and {Required} are required",
+                Log.GetLogger().LogError("Cannot create Model inplace: Vertex Buffer {Index} has only {Actual} vertices and {Required} are required",
                     i, original.GetVertexCount(), builder.NumVertices);
                 return;
             }
             if (!builder.VertexFormat.ToVertexElements().SequenceEqual(original.GetElements()))
             {
-                Log.Logger.LogError("Cannot create Model inplace: Vertex Buffer {Index} elements don't match", i);
+                Log.GetLogger().LogError("Cannot create Model inplace: Vertex Buffer {Index} elements don't match", i);
                 return;
             }
             builder.Buffer = original;
@@ -1746,18 +1746,18 @@ public sealed class ModelView : Object
         var originalIndexBuffer = originalIndexBuffers.Count != 0 ? originalIndexBuffers[0] : null;
         if (originalIndexBuffer is null)
         {
-            Log.Logger.LogError("Cannot create Model inplace: Index Buffer is not found");
+            Log.GetLogger().LogError("Cannot create Model inplace: Index Buffer is not found");
             return;
         }
         if (originalIndexBuffer.GetIndexCount() < indexBufferBuilder.NumIndices)
         {
-            Log.Logger.LogError("Cannot create Model inplace: Index Buffer has only {Actual} indices and {Required} are required",
+            Log.GetLogger().LogError("Cannot create Model inplace: Index Buffer has only {Actual} indices and {Required} are required",
                 originalIndexBuffer.GetIndexCount(), indexBufferBuilder.NumIndices);
             return;
         }
         if (indexBufferBuilder.LargeIndices && originalIndexBuffer.GetIndexSize() != 4)
         {
-            Log.Logger.LogError("Cannot create Model inplace: Index Buffer index size does not match");
+            Log.GetLogger().LogError("Cannot create Model inplace: Index Buffer index size does not match");
             return;
         }
         indexBufferBuilder.Buffer = originalIndexBuffer;
@@ -1771,7 +1771,7 @@ public sealed class ModelView : Object
             var vertexElements = builder.VertexFormat.ToVertexElements();
             if (vertexElements.Count == 0)
             {
-                Log.Logger.LogError("No vertex elements in vertex buffer");
+                Log.GetLogger().LogError("No vertex elements in vertex buffer");
                 continue;
             }
             var vertexBuffer = new VertexBuffer(headless ? DeviceObjectFlag.Headless : DeviceObjectFlag.None);
@@ -1814,7 +1814,7 @@ public sealed class ModelView : Object
             return;
         if (builder.Buffer is null)
         {
-            Log.Logger.LogError("Cannot map VertexBuffer");
+            Log.GetLogger().LogError("Cannot map VertexBuffer");
             return;
         }
 
@@ -1851,7 +1851,7 @@ public sealed class ModelView : Object
             return;
         if (builder.Buffer is null)
         {
-            Log.Logger.LogError("Cannot map IndexBuffer");
+            Log.GetLogger().LogError("Cannot map IndexBuffer");
             return;
         }
 

@@ -213,7 +213,7 @@ public sealed class Skeleton : ICloneable, IDisposable
         if (index < _bones.Count)
             _rootBoneIndex = index;
         else
-            Log.Logger.LogError("Root bone index out of bounds");
+            Log.GetLogger().LogError("Root bone index out of bounds");
     }
 
     /// <summary>Set number of bones.</summary>

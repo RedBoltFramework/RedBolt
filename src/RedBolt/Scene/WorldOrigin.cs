@@ -98,7 +98,7 @@ public sealed class WorldOrigin : LogicComponent
                         && targetSelf.Node.GetWorldPosition() == oldPosition)
                     {
                         targetSelf.SetEnabled(false);
-                        Log.Logger.LogError(
+                        Log.GetLogger().LogError(
                             "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling.",
                             targetSelf.GetFullNameDebug(), targetSelf.Node.GetWorldPosition());
                     }

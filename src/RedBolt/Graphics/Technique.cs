@@ -438,7 +438,7 @@ public class Technique : Resource
         {
             if (!passElement.HasAttribute("name"))
             {
-                Log.Logger.LogError("Missing pass name");
+                Log.GetLogger().LogError("Missing pass name");
                 continue;
             }
 

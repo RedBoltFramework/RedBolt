@@ -23,7 +23,7 @@ public abstract class RenderBuffer
     {
         if (!_bufferIsReady)
         {
-            Log.Logger.LogError("RenderBuffer is not available");
+            Log.GetLogger().LogError("RenderBuffer is not available");
             return false;
         }
 

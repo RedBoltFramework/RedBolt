@@ -277,7 +277,7 @@ public class LightProbeGroup : Component
         if (maxGridSize >= (int)MaxAutoGridSize
             || gridSize.X * gridSize.Y * gridSize.Z >= (int)MaxAutoProbes)
         {
-            Log.Logger.LogError("Automatic Light Probe Grid is too big");
+            Log.GetLogger().LogError("Automatic Light Probe Grid is too big");
             return;
         }
 

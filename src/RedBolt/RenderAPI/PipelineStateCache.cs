@@ -106,7 +106,7 @@ public sealed class PipelineStateCache : DeviceObject
     public void ReleasePipelineState(PipelineStateDesc desc)
     {
         if (!_states.Remove(desc))
-            Log.Logger.LogError("Unexpected call of PipelineStateCache::ReleasePipelineState");
+            Log.GetLogger().LogError("Unexpected call of PipelineStateCache::ReleasePipelineState");
     }
 
     private void UpdateCachedData()

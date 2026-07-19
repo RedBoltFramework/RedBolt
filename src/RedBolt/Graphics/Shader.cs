@@ -105,7 +105,7 @@ public sealed class Shader : Resource
                 if (snippetEnd < 0)
                     snippetEnd = _sourceCode.Length;
 
-                Log.Logger.LogWarning(
+                Log.GetLogger().LogWarning(
                     "Unexpected character #{Code} '{Character}' in shader code:\n{Snippet}",
                     (uint)_sourceCode[invalidIndex], _sourceCode[invalidIndex],
                     _sourceCode[snippetStart..snippetEnd]);

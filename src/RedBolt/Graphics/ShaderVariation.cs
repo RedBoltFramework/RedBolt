@@ -60,7 +60,7 @@ public sealed class ShaderVariation : RawShader
         if (GetHandle() is not { IsNull: false })
         {
             if (renderBackend == RenderBackend.OpenGL)
-                Log.Logger.LogInformation("Shader files:\n{Files}", global::RedBolt.Shader.GetShaderFileList());
+                Log.GetLogger().LogInformation("Shader files:\n{Files}", global::RedBolt.Shader.GetShaderFileList());
             return false;
         }
 
@@ -244,7 +244,7 @@ public sealed class ShaderVariation : RawShader
                 new ShaderDefineArray(), targetShaderLanguage);
             if (!spirvShader)
             {
-                Log.Logger.LogError("Failed to convert shader {Shader} from GLSL to SPIR-V:\n{Files}{Output}",
+                Log.GetLogger().LogError("Failed to convert shader {Shader} from GLSL to SPIR-V:\n{Files}{Output}",
                     GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), spirvShader.CompilerOutput);
                 return false;
             }
@@ -256,7 +256,7 @@ public sealed class ShaderVariation : RawShader
                 var optimizerOutput = string.Empty;
                 if (!ShaderOptimizer.OptimizeSpirVShader(ref spirvShader, ref optimizerOutput, targetShaderLanguage))
                 {
-                    Log.Logger.LogError("Failed to optimize SPIR-V shader {Shader}:\n{Output}",
+                    Log.GetLogger().LogError("Failed to optimize SPIR-V shader {Shader}:\n{Output}",
                         GetShaderVariationName(), optimizerOutput);
                     return false;
                 }
@@ -276,7 +276,7 @@ public sealed class ShaderVariation : RawShader
                 ShaderTranslator.TranslateSpirVShader(ref targetShader, spirvShader, targetShaderLanguage);
                 if (!targetShader)
                 {
-                    Log.Logger.LogError("Failed to convert shader {Shader} from SPIR-V to HLSL:\n{Files}{Output}",
+                    Log.GetLogger().LogError("Failed to convert shader {Shader} from SPIR-V to HLSL:\n{Files}{Output}",
                         GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), targetShader.CompilerOutput);
                     return false;
                 }
@@ -288,7 +288,7 @@ public sealed class ShaderVariation : RawShader
                     if (!ShaderCompiler.CompileHLSLToBinary(out var hlslBytecode, out var compilerOutput,
                             targetShader.SourceCode, GetShaderType()))
                     {
-                        Log.Logger.LogError("Failed to compile HLSL shader {Shader}:\n{Files}{Output}",
+                        Log.GetLogger().LogError("Failed to compile HLSL shader {Shader}:\n{Files}{Output}",
                             GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), compilerOutput);
                         return false;
                     }

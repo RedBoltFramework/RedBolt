@@ -55,7 +55,7 @@ public class BinaryFile : Resource
         }
         catch (Exception exception)
         {
-            Log.Logger.LogError(exception, "Can not save binary file {Name}", Name);
+            Log.GetLogger().LogError(exception, "Can not save binary file {Name}", Name);
             return false;
         }
     }

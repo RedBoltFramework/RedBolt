@@ -600,7 +600,7 @@ public class DynamicVertexBuffer : Object
 
         if (!_vertexBuffer.SetSize(vertexCount, elements, true))
         {
-            Log.Logger.LogError("Failed to create DynamicVertexBuffer");
+            Log.GetLogger().LogError("Failed to create DynamicVertexBuffer");
             return false;
         }
 
@@ -626,7 +626,7 @@ public class DynamicVertexBuffer : Object
             _vertexBufferNeedResize = false;
             if (!_vertexBuffer.SetSize(_maxNumVertices, _vertexBuffer.GetElements(), true))
             {
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Failed to grow DynamicVertexBuffer to {MaxNumVertices} vertices with stride {VertexSize}",
                     _maxNumVertices,
                     _vertexSize);

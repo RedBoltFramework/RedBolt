@@ -196,7 +196,7 @@ public class RawTexture : DeviceObject
                 d3d11Texture2D, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
             {
-                Log.Logger.LogError("Failed to create texture from existing ID3D11Texture2D pointer");
+                Log.GetLogger().LogError("Failed to create texture from existing ID3D11Texture2D pointer");
                 return false;
             }
 
@@ -226,7 +226,7 @@ public class RawTexture : DeviceObject
                 d3d12Resource, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
             {
-                Log.Logger.LogError("Failed to create texture from existing ID3D12Resource pointer");
+                Log.GetLogger().LogError("Failed to create texture from existing ID3D12Resource pointer");
                 return false;
             }
 
@@ -280,7 +280,7 @@ public class RawTexture : DeviceObject
                 (nint)vkImage, textureDesc, ResourceState.ResourceStateUnknown, out var texture);
             if (texture is null || texture.IsNull)
             {
-                Log.Logger.LogError("Failed to create texture from existing VkImage pointer");
+                Log.GetLogger().LogError("Failed to create texture from existing VkImage pointer");
                 return false;
             }
 

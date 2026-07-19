@@ -137,6 +137,7 @@ public sealed class Context : ObjectReflectionRegistry
         RegisterSubsystem(new Time());
         RegisterSubsystem(new WorkQueue());
         RegisterSubsystem(new VirtualFileSystem());
+        RegisterSubsystem(new Log());
         RegisterSubsystem(new ResourceCache());
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
@@ -200,7 +201,7 @@ public sealed class Context : ObjectReflectionRegistry
 
         if (_sdlInitCounter == 1 && SdlNativeBindings.SdlInit(0) != 0)
         {
-            Log.Logger.LogError("Failed to initialise SDL: {SdlError}", DecodeSdlError());
+            Log.GetLogger().LogError("Failed to initialise SDL: {SdlError}", DecodeSdlError());
             return false;
         }
 
@@ -208,7 +209,7 @@ public sealed class Context : ObjectReflectionRegistry
         if (remainingFlags == 0 || SdlNativeBindings.SdlInitSubSystem(remainingFlags) == 0)
             return true;
 
-        Log.Logger.LogError("Failed to initialise SDL subsystem: {SdlError}", DecodeSdlError());
+        Log.GetLogger().LogError("Failed to initialise SDL subsystem: {SdlError}", DecodeSdlError());
         return false;
     }
 

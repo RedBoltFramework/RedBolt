@@ -304,7 +304,7 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
             var otherComponent = GetTrackedComponentByReferenceIndex(index);
             if (otherComponent is not null)
             {
-                Log.Logger.LogWarning("Another component is already tracked as {Reference}", TrackedComponent.ToString(reference));
+                Log.GetLogger().LogWarning("Another component is already tracked as {Reference}", TrackedComponent.ToString(reference));
                 reference = ComponentReference.None;
             }
             else
@@ -367,7 +367,7 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
                 return index;
         }
 
-        Log.Logger.LogError("Failed to allocate reference for component");
+        Log.GetLogger().LogError("Failed to allocate reference for component");
         Debug.Assert(false);
         return 0;
     }

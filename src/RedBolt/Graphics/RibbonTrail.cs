@@ -330,7 +330,7 @@ public class RibbonTrail : Drawable
     {
         if (tailColumn > MaxTailColumn)
         {
-            Log.Logger.LogWarning("Max ribbon trail tail column is {Column}", MaxTailColumn);
+            Log.GetLogger().LogWarning("Max ribbon trail tail column is {Column}", MaxTailColumn);
             _tailColumn = MaxTailColumn;
         }
         else if (tailColumn < 1)
@@ -804,7 +804,7 @@ public class RibbonTrail : Drawable
 
         if (type == TrailType.Bone && (Node.Parent is null || ReferenceEquals(Node.Parent, Node.Scene)))
         {
-            Log.Logger.LogWarning("No parent node found, revert back to Face Camera type");
+            Log.GetLogger().LogWarning("No parent node found, revert back to Face Camera type");
             return;
         }
 

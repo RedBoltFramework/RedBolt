@@ -353,7 +353,7 @@ public sealed class ShaderProgramCompositor : Object
         var hint = GetTextureColorSpaceHint(texture.GetLinear(), texture.GetSRGB());
         if (hint > 1)
         {
-            Log.Logger.Log(LogLevel.Warning, default, $"Texture {material.GetName()} cannot be both sRGB and Linear",
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default, $"Texture {material.GetName()} cannot be both sRGB and Linear",
                 null, static (state, _) => state);
         }
         result.AddShaderDefines(shaderType, $"URHO3D_TEXTURE_{name.ToUpperInvariant()}={Math.Min(1, hint) + 1}");

@@ -109,20 +109,20 @@ public class GlobalIllumination : Component
 
         if (file is null)
         {
-            Log.Logger.LogError("Cannot save Global Illumination data: output file doesn't exist");
+            Log.GetLogger().LogError("Cannot save Global Illumination data: output file doesn't exist");
             return;
         }
 
         file.Clear();
         if (!file.SaveObjectCallback(archive => SerializeData(archive)))
         {
-            Log.Logger.LogError("Cannot save Global Illumination data: serialization failed");
+            Log.GetLogger().LogError("Cannot save Global Illumination data: serialization failed");
             return;
         }
 
         if (!file.SaveFile(file.AbsoluteFileName))
         {
-            Log.Logger.LogError("Cannot save Global Illumination data: cannot save file");
+            Log.GetLogger().LogError("Cannot save Global Illumination data: cannot save file");
             return;
         }
     }

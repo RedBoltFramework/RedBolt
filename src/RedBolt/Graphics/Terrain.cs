@@ -1431,7 +1431,7 @@ public class Terrain : Component
     {
         if (image is not null && image.IsCompressed())
         {
-            Log.Logger.LogError("Can not use a compressed image as a terrain heightmap");
+            Log.GetLogger().LogError("Can not use a compressed image as a terrain heightmap");
             return false;
         }
 

@@ -284,21 +284,21 @@ public sealed class ConfigFile : Object
         var fileIdentifier = FileIdentifier.FromUri(fileName);
         if (!fileSystem!.Exists(fileIdentifier))
         {
-            Log.Logger.LogInformation("ConfigFile '{FileName}' is not found.", fileName);
+            Log.GetLogger().LogInformation("ConfigFile '{FileName}' is not found.", fileName);
             return false;
         }
 
         using var jsonFile = new JSONFile();
         if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
         {
-            Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
+            Log.GetLogger().LogError("Failed to load JSON settings file '{FileName}'.", fileName);
             return false;
         }
 
         if (jsonFile.Root.ToJsonNode() is not JsonObject rootObject
             || rootObject["Default"] is not JsonArray defaults)
         {
-            Log.Logger.LogError("Failed to parse settings file '{FileName}'.", fileName);
+            Log.GetLogger().LogError("Failed to parse settings file '{FileName}'.", fileName);
             return false;
         }
 
@@ -363,7 +363,7 @@ public sealed class ConfigFile : Object
         foreach (var (name, value) in flavorVariables)
             SetVariable(name, value);
 
-        Log.Logger.LogInformation("ConfigFile '{FileName}' is loaded with flavor '{Flavor}'.", fileName, flavor);
+        Log.GetLogger().LogInformation("ConfigFile '{FileName}' is loaded with flavor '{Flavor}'.", fileName, flavor);
         return true;
     }
 
@@ -374,14 +374,14 @@ public sealed class ConfigFile : Object
         var fileIdentifier = FileIdentifier.FromUri(fileName);
         if (!fileSystem!.Exists(fileIdentifier))
         {
-            Log.Logger.LogInformation("ConfigFile overrides '{FileName}' are not found.", fileName);
+            Log.GetLogger().LogInformation("ConfigFile overrides '{FileName}' are not found.", fileName);
             return false;
         }
 
         using var jsonFile = new JSONFile();
         if (!jsonFile.FromString(fileSystem.ReadAllText(fileIdentifier)))
         {
-            Log.Logger.LogError("Failed to load JSON settings file '{FileName}'.", fileName);
+            Log.GetLogger().LogError("Failed to load JSON settings file '{FileName}'.", fileName);
             return false;
         }
 
@@ -404,7 +404,7 @@ public sealed class ConfigFile : Object
                 ApplyOverride(name, value);
         }
 
-        Log.Logger.LogInformation("ConfigFile overrides '{FileName}' are loaded.", fileName);
+        Log.GetLogger().LogInformation("ConfigFile overrides '{FileName}' are loaded.", fileName);
         return true;
     }
 
@@ -487,19 +487,19 @@ public sealed class ConfigFile : Object
         var definition = GetVariableDefinition(name);
         if (definition is null)
         {
-            Log.Logger.LogWarning("Ignoring override for unknown variable '{Name}'.", name);
+            Log.GetLogger().LogWarning("Ignoring override for unknown variable '{Name}'.", name);
             return;
         }
 
         if (!definition.IsOverridable)
         {
-            Log.Logger.LogWarning("Ignoring override for non-overridable variable '{Name}'.", name);
+            Log.GetLogger().LogWarning("Ignoring override for non-overridable variable '{Name}'.", name);
             return;
         }
 
         if (definition.Type != value.Type)
         {
-            Log.Logger.LogWarning(
+            Log.GetLogger().LogWarning(
                 "Ignoring override for variable '{Name}' with invalid type {ActualType} ({ExpectedType} was expected).",
                 name, value.Type, definition.Type);
             return;

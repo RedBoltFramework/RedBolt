@@ -77,7 +77,7 @@ public sealed class IndexBuffer : PipelineStateTracker
         var shadowData = _rawBuffer.GetShadowData();
         if (shadowData.Length == 0)
         {
-            Log.Logger.LogError("Used vertex range can only be queried from an index buffer with shadow data");
+            Log.GetLogger().LogError("Used vertex range can only be queried from an index buffer with shadow data");
             minVertex = 0;
             vertexCount = 0;
             return false;
@@ -85,7 +85,7 @@ public sealed class IndexBuffer : PipelineStateTracker
 
         if (unchecked(start + count) > _indexCount)
         {
-            Log.Logger.LogError("Illegal index range for querying used vertices");
+            Log.GetLogger().LogError("Illegal index range for querying used vertices");
             minVertex = 0;
             vertexCount = 0;
             return false;
@@ -270,7 +270,7 @@ public sealed class DynamicIndexBuffer : Object
         _maxNumIndices = indexCount;
         if (!_indexBuffer.SetSize(indexCount, largeIndices, true))
         {
-            Log.Logger.LogError("Failed to create DynamicIndexBuffer");
+            Log.GetLogger().LogError("Failed to create DynamicIndexBuffer");
             return false;
         }
 
@@ -303,7 +303,7 @@ public sealed class DynamicIndexBuffer : Object
             var largeIndices = _indexBuffer.GetIndexSize() == 4;
             if (!_indexBuffer.SetSize(_maxNumIndices, largeIndices, true))
             {
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Failed to grow DynamicIndexBuffer to {MaxNumIndices} vertices with stride {IndexSize}",
                     _maxNumIndices,
                     _indexSize);

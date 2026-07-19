@@ -85,13 +85,13 @@ public sealed class Image : Resource
 
         if (IsCompressed())
         {
-            Log.Logger.LogError("Can not save compressed image {Name}", Name);
+            Log.GetLogger().LogError("Can not save compressed image {Name}", Name);
             return false;
         }
 
         if (_data.Length == 0)
         {
-            Log.Logger.LogError("Can not save zero-sized image {Name}", Name);
+            Log.GetLogger().LogError("Can not save zero-sized image {Name}", Name);
             return false;
         }
 
@@ -121,26 +121,26 @@ public sealed class Image : Resource
 
         if (IsCompressed())
         {
-            Log.Logger.Log(LogLevel.Error, default, "Can not save compressed image to WebP", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to WebP", null, static (state, _) => state);
             return false;
         }
 
         const int maxDimension = 16383;
         if (Height > maxDimension || Width > maxDimension)
         {
-            Log.Logger.Log(LogLevel.Error, default, $"Maximum dimension supported by WebP is {maxDimension}", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Maximum dimension supported by WebP is {maxDimension}", null, static (state, _) => state);
             return false;
         }
 
         if (Components is not (3 or 4))
         {
-            Log.Logger.Log(LogLevel.Error, default, $"Can not save image with {Components} components to WebP, which requires 3 or 4", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to WebP, which requires 3 or 4", null, static (state, _) => state);
             return false;
         }
 
         if (_data.Length == 0)
         {
-            Log.Logger.Log(LogLevel.Error, default, "No image data to save", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "No image data to save", null, static (state, _) => state);
             return false;
         }
 
@@ -183,13 +183,13 @@ public sealed class Image : Resource
 
         if (IsCompressed())
         {
-            Log.Logger.Log(LogLevel.Error, default, "Can not save compressed image to DDS", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to DDS", null, static (state, _) => state);
             return false;
         }
 
         if (Components != 4)
         {
-            Log.Logger.Log(LogLevel.Error, default, $"Can not save image with {Components} components to DDS", null, static (state, _) => state);
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to DDS", null, static (state, _) => state);
             return false;
         }
 
@@ -231,7 +231,7 @@ public sealed class Image : Resource
 
         if (IsCompressed())
         {
-            Log.Logger.LogError("Can not save compressed image to BMP");
+            Log.GetLogger().LogError("Can not save compressed image to BMP");
             return false;
         }
 

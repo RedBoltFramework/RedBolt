@@ -22,12 +22,12 @@ public sealed class Localization : Object
     {
         if (string.IsNullOrEmpty(language))
         {
-            Log.Logger.LogWarning("Localization.GetLanguageIndex: language name is empty");
+            Log.GetLogger().LogWarning("Localization.GetLanguageIndex: language name is empty");
             return -1;
         }
         if (_languages.Count == 0)
         {
-            Log.Logger.LogWarning("Localization.GetLanguageIndex: no loaded languages");
+            Log.GetLogger().LogWarning("Localization.GetLanguageIndex: no loaded languages");
             return -1;
         }
         return _languages.FindIndex(existing => string.Equals(existing, language, StringComparison.Ordinal));
@@ -37,7 +37,7 @@ public sealed class Localization : Object
     {
         if (_languageIndex == -1)
         {
-            Log.Logger.LogWarning("Localization.GetLanguage: no loaded languages");
+            Log.GetLogger().LogWarning("Localization.GetLanguage: no loaded languages");
             return string.Empty;
         }
         return _languages[_languageIndex];
@@ -47,12 +47,12 @@ public sealed class Localization : Object
     {
         if (_languages.Count == 0)
         {
-            Log.Logger.LogWarning("Localization.GetLanguage(index): no loaded languages");
+            Log.GetLogger().LogWarning("Localization.GetLanguage(index): no loaded languages");
             return string.Empty;
         }
         if (index < 0 || index >= _languages.Count)
         {
-            Log.Logger.LogWarning("Localization.GetLanguage(index): index out of range");
+            Log.GetLogger().LogWarning("Localization.GetLanguage(index): index out of range");
             return string.Empty;
         }
         return _languages[index];
@@ -62,12 +62,12 @@ public sealed class Localization : Object
     {
         if (_languages.Count == 0)
         {
-            Log.Logger.LogWarning("Localization.SetLanguage(index): no loaded languages");
+            Log.GetLogger().LogWarning("Localization.SetLanguage(index): no loaded languages");
             return;
         }
         if (index < 0 || index >= _languages.Count)
         {
-            Log.Logger.LogWarning("Localization.SetLanguage(index): index out of range");
+            Log.GetLogger().LogWarning("Localization.SetLanguage(index): index out of range");
             return;
         }
         if (index != _languageIndex)
@@ -81,18 +81,18 @@ public sealed class Localization : Object
     {
         if (string.IsNullOrEmpty(language))
         {
-            Log.Logger.LogWarning("Localization.SetLanguage(language): language name is empty");
+            Log.GetLogger().LogWarning("Localization.SetLanguage(language): language name is empty");
             return;
         }
         if (_languages.Count == 0)
         {
-            Log.Logger.LogWarning("Localization.SetLanguage(language): no loaded languages");
+            Log.GetLogger().LogWarning("Localization.SetLanguage(language): no loaded languages");
             return;
         }
         var index = GetLanguageIndex(language);
         if (index == -1)
         {
-            Log.Logger.LogWarning("Localization.SetLanguage(language): language not found");
+            Log.GetLogger().LogWarning("Localization.SetLanguage(language): language not found");
             return;
         }
         SetLanguage(index);
@@ -104,12 +104,12 @@ public sealed class Localization : Object
             return string.Empty;
         if (_languages.Count == 0)
         {
-            Log.Logger.LogWarning("Localization.Get(id): no loaded languages");
+            Log.GetLogger().LogWarning("Localization.Get(id): no loaded languages");
             return id;
         }
         if (index >= _languages.Count)
         {
-            Log.Logger.LogWarning("Localization.Get(id): invalid language index");
+            Log.GetLogger().LogWarning("Localization.Get(id): invalid language index");
             return id;
         }
 
@@ -117,7 +117,7 @@ public sealed class Localization : Object
         if (_strings.TryGetValue(language, out var translations) && translations.TryGetValue(new StringHash(id), out var translation) && !string.IsNullOrEmpty(translation))
             return translation;
 
-        Log.Logger.LogTrace("Localization.Get(\"{Id}\") not found translation, language=\"{Language}\"", id, language);
+        Log.GetLogger().LogTrace("Localization.Get(\"{Id}\") not found translation, language=\"{Language}\"", id, language);
         return id;
     }
 
@@ -150,9 +150,9 @@ public sealed class Localization : Object
             if (string.IsNullOrEmpty(entry.Key) || !entry.Value.IsObject)
             {
                 if (string.IsNullOrEmpty(entry.Key))
-                    Log.Logger.LogWarning("Localization.LoadMultipleLanguageJSON: string ID is empty");
+                    Log.GetLogger().LogWarning("Localization.LoadMultipleLanguageJSON: string ID is empty");
                 else
-                    Log.Logger.LogWarning("Localization.LoadMultipleLanguageJSON: failed to load values, string ID=\"{Id}\"", entry.Key);
+                    Log.GetLogger().LogWarning("Localization.LoadMultipleLanguageJSON: failed to load values, string ID=\"{Id}\"", entry.Key);
                 continue;
             }
 
@@ -160,14 +160,14 @@ public sealed class Localization : Object
             {
                 if (string.IsNullOrEmpty(translation.Key))
                 {
-                    Log.Logger.LogWarning("Localization.LoadMultipleLanguageJSON: language name is empty, string ID=\"{Id}\"", entry.Key);
+                    Log.GetLogger().LogWarning("Localization.LoadMultipleLanguageJSON: language name is empty, string ID=\"{Id}\"", entry.Key);
                     continue;
                 }
 
                 var translatedString = translation.Value.GetString();
                 if (string.IsNullOrEmpty(translatedString))
                 {
-                    Log.Logger.LogWarning("Localization.LoadMultipleLanguageJSON: translation is empty, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, translation.Key);
+                    Log.GetLogger().LogWarning("Localization.LoadMultipleLanguageJSON: translation is empty, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, translation.Key);
                     continue;
                 }
 
@@ -184,9 +184,9 @@ public sealed class Localization : Object
             if (string.IsNullOrEmpty(entry.Key) || !entry.Value.IsString)
             {
                 if (string.IsNullOrEmpty(entry.Key))
-                    Log.Logger.LogWarning("Localization.LoadSingleLanguageJSON: string ID is empty");
+                    Log.GetLogger().LogWarning("Localization.LoadSingleLanguageJSON: string ID is empty");
                 else
-                    Log.Logger.LogWarning("Localization.LoadSingleLanguageJSON: failed to load value, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, language);
+                    Log.GetLogger().LogWarning("Localization.LoadSingleLanguageJSON: failed to load value, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, language);
                 continue;
             }
 
@@ -194,7 +194,7 @@ public sealed class Localization : Object
             if (!string.IsNullOrEmpty(translatedString))
                 StoreTranslation(entry.Key, language, translatedString, false);
             else
-                Log.Logger.LogWarning("Localization.LoadSingleLanguageJSON: translation is empty, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, language);
+                Log.GetLogger().LogWarning("Localization.LoadSingleLanguageJSON: translation is empty, string ID=\"{Id}\", language=\"{Language}\"", entry.Key, language);
         }
     }
 
@@ -208,7 +208,7 @@ public sealed class Localization : Object
 
         var hash = new StringHash(id);
         if (translations.TryGetValue(hash, out var existingTranslation) && !string.IsNullOrEmpty(existingTranslation))
-            Log.Logger.LogWarning("Localization: override translation, string ID=\"{Id}\", language=\"{Language}\"", id, language);
+            Log.GetLogger().LogWarning("Localization: override translation, string ID=\"{Id}\", language=\"{Language}\"", id, language);
 
         translations[hash] = translatedString;
         var hasLanguage = false;

@@ -77,7 +77,7 @@ public class NamedPipe : AbstractFile
     /// <summary>Not supported.</summary>
     public override void SetName(string name)
     {
-        Log.Logger.LogError("Cannot change name of the NamedPipe!");
+        Log.GetLogger().LogError("Cannot change name of the NamedPipe!");
         Debug.Assert(false);
     }
 

@@ -129,12 +129,15 @@ internal static class EngineCommandLine
         parameters.ScreenshotFrameDelay = frameDelay;
     }
 
-    private static string ParseLogLevel(string value)
+    private static LogLevel ParseLogLevel(string value)
     {
-        var normalized = value.Trim().ToLowerInvariant();
-        return normalized switch
+        return value.Trim().ToUpperInvariant() switch
         {
-            "trace" or "debug" or "info" or "warning" or "error" or "critical" or "none" => normalized,
+            "TRACE" => LogLevel.Trace,
+            "DEBUG" => LogLevel.Debug,
+            "INFO" => LogLevel.Info,
+            "WARN" => LogLevel.Warning,
+            "ERROR" => LogLevel.Error,
             _ => throw new ArgumentException($"Unsupported log level '{value}'.", nameof(value))
         };
     }

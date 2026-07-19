@@ -501,13 +501,13 @@ public abstract class Deserializer : Serializer
 
                 if (context is null)
                 {
-                    Log.Logger.LogError("Context must not be null for SharedPtr<Serializable>");
+                    Log.GetLogger().LogError("Context must not be null for SharedPtr<Serializable>");
                     return default;
                 }
 
                 if (context.CreateObject(typeName) is not Serializable serializable)
                 {
-                    Log.Logger.LogError("Creation of type '{TypeName:X8}' failed because it has no factory registered",
+                    Log.GetLogger().LogError("Creation of type '{TypeName:X8}' failed because it has no factory registered",
                         typeName.Value);
                     return default;
                 }
@@ -515,7 +515,7 @@ public abstract class Deserializer : Serializer
                 if (serializable.Load(this))
                     return Variant.MakeCustomValue(serializable);
 
-                Log.Logger.LogError("Deserialization of '{TypeName:X8}' failed", typeName.Value);
+                Log.GetLogger().LogError("Deserialization of '{TypeName:X8}' failed", typeName.Value);
                 serializable.Dispose();
                 return default;
             }

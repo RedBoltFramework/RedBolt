@@ -191,7 +191,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         var fileId = source.ReadFileID();
         if (fileId is not ("UMDL" or "UMD2" or "UMD3"))
         {
-            Log.Logger.LogError("{ModelName} is not a valid model file", Name);
+            Log.GetLogger().LogError("{ModelName} is not a valid model file", Name);
             return false;
         }
 
@@ -306,7 +306,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
                 if (desc.VertexBufferRef >= _vertexBuffers.Count)
                 {
-                    Log.Logger.LogError("Vertex buffer index out of bounds");
+                    Log.GetLogger().LogError("Vertex buffer index out of bounds");
                     _loadVertexBuffers.Clear();
                     _loadIndexBuffers.Clear();
                     _loadGeometries.Clear();
@@ -314,7 +314,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 }
                 if (desc.IndexBufferRef >= _indexBuffers.Count)
                 {
-                    Log.Logger.LogError("Index buffer index out of bounds");
+                    Log.GetLogger().LogError("Index buffer index out of bounds");
                     _loadVertexBuffers.Clear();
                     _loadIndexBuffers.Clear();
                     _loadGeometries.Clear();
@@ -549,7 +549,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 virtualFileSystem.WriteAllText(new FileIdentifier(xmlName), xml.ToString());
             }
             else
-                Log.Logger.LogWarning("Can not save model metadata when not saving into a file");
+                Log.GetLogger().LogWarning("Can not save model metadata when not saving into a file");
         }
 
         return true;
@@ -582,12 +582,12 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             var buffer = buffers[i];
             if (buffer is null)
             {
-                Log.Logger.LogError("Null model vertex buffers specified");
+                Log.GetLogger().LogError("Null model vertex buffers specified");
                 return false;
             }
             if (!buffer.IsShadowed())
             {
-                Log.Logger.LogError("Model vertex buffers must be shadowed");
+                Log.GetLogger().LogError("Model vertex buffers must be shadowed");
                 return false;
             }
         }
@@ -614,12 +614,12 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             var buffer = buffers[i];
             if (buffer is null)
             {
-                Log.Logger.LogError("Null model index buffers specified");
+                Log.GetLogger().LogError("Null model index buffers specified");
                 return false;
             }
             if (!buffer.IsShadowed())
             {
-                Log.Logger.LogError("Model index buffers must be shadowed");
+                Log.GetLogger().LogError("Model index buffers must be shadowed");
                 return false;
             }
         }
@@ -704,7 +704,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             if (originalBuffer.IsShadowed())
                 cloneBuffer.Update(originalBuffer.GetShadowData());
             else
-                Log.Logger.LogError("Failed to read original vertex buffer");
+                Log.GetLogger().LogError("Failed to read original vertex buffer");
             vertexBufferMapping[originalBuffer] = cloneBuffer;
             clone._vertexBuffers.Add(cloneBuffer);
         }
@@ -722,7 +722,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 cloneBuffer.Update(originalBuffer.GetShadowData());
             }
             else
-                Log.Logger.LogError("Failed to read original index buffer");
+                Log.GetLogger().LogError("Failed to read original index buffer");
             indexBufferMapping[originalBuffer] = cloneBuffer;
             clone._indexBuffers.Add(cloneBuffer);
         }
@@ -822,12 +822,12 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
         if (index >= _geometries.Count)
         {
-            Log.Logger.LogError("Geometry index out of bounds");
+            Log.GetLogger().LogError("Geometry index out of bounds");
             return false;
         }
         if (num == 0)
         {
-            Log.Logger.LogError("Zero LOD levels not allowed");
+            Log.GetLogger().LogError("Zero LOD levels not allowed");
             return false;
         }
 
@@ -845,14 +845,14 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
         if (index >= _geometries.Count)
         {
-            Log.Logger.LogError("Geometry index out of bounds");
+            Log.GetLogger().LogError("Geometry index out of bounds");
             return false;
         }
 
         var lodLevels = _geometries[(int)index];
         if (lodLevel >= lodLevels.Count)
         {
-            Log.Logger.LogError("LOD level index out of bounds");
+            Log.GetLogger().LogError("LOD level index out of bounds");
             return false;
         }
 
@@ -881,7 +881,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
         if (index >= _geometryCenters.Count)
         {
-            Log.Logger.LogError("Geometry index out of bounds");
+            Log.GetLogger().LogError("Geometry index out of bounds");
             return false;
         }
 

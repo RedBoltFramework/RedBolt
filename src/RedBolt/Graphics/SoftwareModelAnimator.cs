@@ -192,39 +192,39 @@ public class SoftwareModelAnimator : Object
 
             if (needPosition && !(hasPositionVector3 || hasPositionVector4))
             {
-                Log.Logger.LogError("Position must be Vector3 or Vector4 for software skinning and morphing");
+                Log.GetLogger().LogError("Position must be Vector3 or Vector4 for software skinning and morphing");
                 continue;
             }
             if (needNormal && !hasNormalVector3)
             {
-                Log.Logger.LogError("Normal must be Vector3 for software skinning and morphing");
+                Log.GetLogger().LogError("Normal must be Vector3 for software skinning and morphing");
                 continue;
             }
             if (needTangent && !hasTangentVector4)
             {
-                Log.Logger.LogError("Tangent must be Vector4 for software skinning and morphing");
+                Log.GetLogger().LogError("Tangent must be Vector4 for software skinning and morphing");
                 continue;
             }
             if (clonedBufferMask == VertexMask.None)
                 continue;
             if (needPosition && originalVertexBuffer.GetElementOffset(VertexElementSemantic.Position) != 0)
             {
-                Log.Logger.LogError("Position must be at offest 0 for software skinning and morphing");
+                Log.GetLogger().LogError("Position must be at offest 0 for software skinning and morphing");
                 continue;
             }
             if (originalVertexBuffer.GetVertexSize() % sizeof(float) != 0)
             {
-                Log.Logger.LogError("Vertex size must be aligned to 4 for software skinning and morphing");
+                Log.GetLogger().LogError("Vertex size must be aligned to 4 for software skinning and morphing");
                 continue;
             }
             if (needNormal && originalVertexBuffer.GetElementOffset(VertexElementSemantic.Normal) % sizeof(float) != 0)
             {
-                Log.Logger.LogError("Normal offset within vertex must be aligned to 4 for software skinning and morphing");
+                Log.GetLogger().LogError("Normal offset within vertex must be aligned to 4 for software skinning and morphing");
                 continue;
             }
             if (needTangent && originalVertexBuffer.GetElementOffset(VertexElementSemantic.Tangent) % sizeof(float) != 0)
             {
-                Log.Logger.LogError("Tangent offset within vertex must be aligned to 4 for software skinning and morphing");
+                Log.GetLogger().LogError("Tangent offset within vertex must be aligned to 4 for software skinning and morphing");
                 continue;
             }
 

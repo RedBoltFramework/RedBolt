@@ -233,7 +233,7 @@ internal sealed class DrawCommandCompositor
             CommitInstancedDrawCalls();
         if (nextInstanceIndex != _instanceIndex)
         {
-            Log.Logger.LogError("Instancing buffer is malformed");
+            Log.GetLogger().LogError("Instancing buffer is malformed");
             System.Diagnostics.Debug.Assert(false);
         }
     }
@@ -709,7 +709,7 @@ internal sealed class DrawCommandCompositor
             GraphicsUtils.SetBuffersFromGeometry(drawQueue, _current.Geometry);
             if (_current.Geometry.IsHeadless())
             {
-                Log.Logger.LogError("Cannot render Geometry that uses headless buffers: {Name}",
+                Log.GetLogger().LogError("Cannot render Geometry that uses headless buffers: {Name}",
                     _current.Drawable?.GetFullNameDebug() ?? "unknown Drawable");
                 return;
             }
@@ -745,7 +745,7 @@ internal sealed class DrawCommandCompositor
             return;
         if (geometry.IsHeadless())
         {
-            Log.Logger.LogError("Cannot render Geometry that uses headless buffers: {Name}",
+            Log.GetLogger().LogError("Cannot render Geometry that uses headless buffers: {Name}",
                 _instancingGroup.FirstDrawable?.GetFullNameDebug() ?? "unknown Drawable");
             return;
         }

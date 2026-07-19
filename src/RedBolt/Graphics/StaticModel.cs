@@ -85,7 +85,7 @@ public class StaticModel : Drawable
         if (!IsAttached)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
-                Log.Logger, "Can not set model while model component is not attached to a scene node.");
+                Log.GetLogger(), "Can not set model while model component is not attached to a scene node.");
             return;
         }
 
@@ -140,7 +140,7 @@ public class StaticModel : Drawable
         if (index >= _batches.Count)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
-                Log.Logger, "Material index {Index} is out of bounds", index);
+                Log.GetLogger(), "Material index {Index} is out of bounds", index);
             return false;
         }
 

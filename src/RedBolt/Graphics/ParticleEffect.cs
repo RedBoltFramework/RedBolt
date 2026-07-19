@@ -135,7 +135,7 @@ public class ParticleEffect : Resource
         using var file = new XMLFile(string.Empty);
         if (!file.Load(source))
         {
-            Log.Logger.LogError("Load particle effect file failed");
+            Log.GetLogger().LogError("Load particle effect file failed");
             return false;
         }
 
@@ -173,7 +173,7 @@ public class ParticleEffect : Resource
     {
         if (dest.IsNull)
         {
-            Log.Logger.LogError("Can not save particle effect to null XML element");
+            Log.GetLogger().LogError("Can not save particle effect to null XML element");
             return false;
         }
 
@@ -320,7 +320,7 @@ public class ParticleEffect : Resource
 
         if (source.IsNull)
         {
-            Log.Logger.LogError("Can not load particle effect from null XML element");
+            Log.GetLogger().LogError("Can not load particle effect from null XML element");
             return false;
         }
 

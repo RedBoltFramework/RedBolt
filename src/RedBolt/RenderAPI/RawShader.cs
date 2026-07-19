@@ -125,7 +125,7 @@ public class RawShader : DeviceObject
         if (_handle is null || _handle.IsNull)
         {
             _handle = null;
-            Log.Logger.LogError("Failed to create shader '{Name}'", GetDebugName());
+            Log.GetLogger().LogError("Failed to create shader '{Name}'", GetDebugName());
         }
     }
 

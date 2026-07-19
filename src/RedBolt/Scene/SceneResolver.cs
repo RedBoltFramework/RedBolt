@@ -79,7 +79,7 @@ public sealed class SceneResolver
                             component.SetAttribute(j, newNodeId);
                         }
                         else
-                            Log.Logger.LogWarning("Could not resolve node ID {OldNodeId}", oldNodeId);
+                            Log.GetLogger().LogWarning("Could not resolve node ID {OldNodeId}", oldNodeId);
                     }
                 }
                 else if ((info.Mode & AttributeMode.ComponentId) != 0)
@@ -94,7 +94,7 @@ public sealed class SceneResolver
                             component.SetAttribute(j, newComponentId);
                         }
                         else
-                            Log.Logger.LogWarning("Could not resolve component ID {OldComponentId}", oldComponentId);
+                            Log.GetLogger().LogWarning("Could not resolve component ID {OldComponentId}", oldComponentId);
                     }
                 }
                 else if ((info.Mode & AttributeMode.NodeIdVector) != 0)
@@ -114,7 +114,7 @@ public sealed class SceneResolver
                             else
                             {
                                 newIds.Add(new Variant(0u));
-                                Log.Logger.LogWarning("Could not resolve node ID {OldNodeId}", oldNodeId);
+                                Log.GetLogger().LogWarning("Could not resolve node ID {OldNodeId}", oldNodeId);
                             }
                         }
 

@@ -57,7 +57,7 @@ public struct ApplicationFlavorPattern : ICloneable
             var match = FlavorComponentRegex.Match(component);
             if (!match.Success)
             {
-                Log.Logger.LogError(
+                Log.GetLogger().LogError(
                     "Invalid application flavor component: '{Component}', should be like 'component=tag1[,tag2,...]'",
                     component);
                 continue;
