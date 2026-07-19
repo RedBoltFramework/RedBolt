@@ -136,7 +136,7 @@ public class VertexBuffer : PipelineStateTracker
         for (var i = 0; i < elementCount; ++i)
             PackVertexData(data[i..], sourceStride, buffer, _vertexSize, _elements[i], 0, count);
 
-        _rawBuffer?.UpdateRange(buffer, start * _vertexSize, count * _vertexSize);
+        _rawBuffer?.UpdateRange(buffer, checked((int)(start * _vertexSize)), checked((int)(count * _vertexSize)));
     }
 
     /// <summary>Return element with specified type and semantic from a vertex element list, or null if it does not exist.</summary>
@@ -301,8 +301,8 @@ public class VertexBuffer : PipelineStateTracker
             flags |= BufferFlag.PerInstanceData;
         var success = _rawBuffer.CreateBuffer(new RawBufferParams(
             BufferType.Vertex,
-            checked((uint)size),
-            _vertexSize,
+            size,
+            checked((int)_vertexSize),
             flags));
         _rawBuffer.SetDebugName(_debugName);
         return success;
@@ -351,13 +351,13 @@ public class VertexBuffer : PipelineStateTracker
     /// <summary>Update buffer data range without allocating.</summary>
     public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
-        _rawBuffer?.UpdateRange(data, offset, size);
+        _rawBuffer?.UpdateRange(data, checked((int)offset), checked((int)size));
     }
 
     /// <summary>Update buffer data.</summary>
     public void Update(ReadOnlySpan<byte> data, uint size = 0)
     {
-        _rawBuffer?.Update(data, size);
+        _rawBuffer?.Update(data, checked((int)size));
     }
 
     /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.</summary>
@@ -365,9 +365,9 @@ public class VertexBuffer : PipelineStateTracker
 
     public BufferType GetBufferType() => _rawBuffer?.GetBufferType() ?? BufferType.Vertex;
 
-    public uint GetSize() => _rawBuffer?.GetSize() ?? 0;
+    public int GetSize() => _rawBuffer?.GetSize() ?? 0;
 
-    public uint GetStride() => _rawBuffer?.GetStride() ?? 0;
+    public int GetStride() => _rawBuffer?.GetStride() ?? 0;
 
     public BufferFlag GetFlags() => _rawBuffer?.GetFlags() ?? BufferFlag.None;
 

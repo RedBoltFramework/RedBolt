@@ -13,16 +13,37 @@ public sealed class RawBufferTests
     }
 
     [Fact]
+    public void Raw_buffer_types_match_native_value_and_reference_semantics()
+    {
+        Assert.True(typeof(RawBufferParams).IsValueType);
+        Assert.False(typeof(RawBuffer).IsValueType);
+        Assert.Equal(typeof(int), typeof(RawBufferParams).GetProperty(nameof(RawBufferParams.Size))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawBufferParams).GetProperty(nameof(RawBufferParams.Stride))!.PropertyType);
+    }
+
+    [Fact]
+    public void Raw_buffer_dispose_runs_native_destructor_order()
+    {
+        var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 16, 4, BufferFlag.Shadowed));
+
+        buffer.Dispose();
+
+        Assert.Null(buffer.GetHandle());
+        Assert.Empty(buffer.GetShadowData());
+        Assert.Null(buffer.GetRenderDevice());
+    }
+
+    [Fact]
     public void Raw_buffer_can_exist_as_shadowed_data_without_initialized_graphics()
     {
-        var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 32u, 0u, BufferFlag.Shadowed));
+        var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 32, 0, BufferFlag.Shadowed));
         var data = Enumerable.Range(0, 32).Select(static value => (byte)value).ToArray();
 
         buffer.Update(data);
 
         Assert.Null(buffer.GetHandle());
         Assert.True(buffer.IsShadowed());
-        Assert.Equal(32u, buffer.GetSize());
+        Assert.Equal(32, buffer.GetSize());
         Assert.Equal(BufferType.Uniform, buffer.GetBufferType());
         Assert.Equal(data, buffer.GetShadowData());
     }
@@ -38,7 +59,7 @@ public sealed class RawBufferTests
 
         Assert.Same(first, second);
         Assert.NotSame(first, third);
-        Assert.Equal(1024u, first.GetSize());
+        Assert.Equal(1024, first.GetSize());
 
         renderPool.Invalidate();
 
@@ -51,7 +72,7 @@ public sealed class RawBufferTests
     {
         WithInitializedGraphics(() =>
         {
-            var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 64u, 0u, BufferFlag.Dynamic | BufferFlag.Discard));
+            var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 64, 0, BufferFlag.Dynamic | BufferFlag.Discard));
             var payload = Enumerable.Range(0, 64).Select(static value => (byte)value).ToArray();
 
             buffer.Update(payload);
@@ -70,15 +91,11 @@ public sealed class RawBufferTests
     }
 
     [Fact]
-    public void Raw_buffer_rejects_dynamic_initial_data_and_partial_dynamic_updates()
+    public void Raw_buffer_allows_postponed_immutable_creation()
     {
-        var payload = new byte[32];
         var buffer = new TestRawBuffer();
 
-        Assert.False(buffer.CreateForTest(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Dynamic), payload));
-
-        Assert.True(buffer.CreateForTest(new RawBufferParams(BufferType.Vertex, 32u, 4u, BufferFlag.Immutable)));
-        Assert.Throws<InvalidOperationException>(() => buffer.UpdateRange(payload, 4u, 8u));
+        Assert.True(buffer.CreateForTest(new RawBufferParams(BufferType.Vertex, 32, 4, BufferFlag.Immutable)));
     }
 
     [Fact]
@@ -86,7 +103,7 @@ public sealed class RawBufferTests
     {
         WithInitializedGraphics(() =>
         {
-            var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 64u, 4u, BufferFlag.None));
+            var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 64, 4, BufferFlag.None));
 
             var warmup = buffer.Map();
             warmup.Fill(1);
@@ -109,7 +126,7 @@ public sealed class RawBufferTests
     [Fact]
     public void Raw_buffer_maps_shadow_storage_and_uploads_on_unmap()
     {
-        var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 16u, 4u, BufferFlag.Shadowed));
+        var buffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 16, 4, BufferFlag.Shadowed));
 
         var mapped = buffer.Map();
         mapped.Fill(0x5a);

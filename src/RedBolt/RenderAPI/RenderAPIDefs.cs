@@ -241,7 +241,7 @@ public sealed class RenderPoolSettings
 }
 
 /// <summary>Parameters of the RawBuffer.</summary>
-public readonly record struct RawBufferParams(BufferType Type, uint Size, uint Stride, BufferFlag Flags);
+public readonly record struct RawBufferParams(BufferType Type, int Size, int Stride, BufferFlag Flags);
 
 /// <param name="Size">Size of the topmost mip level of the single 2D texture for 2D and cube textures and arrays.
 /// Size of the topmost mip level for 3D textures.</param>

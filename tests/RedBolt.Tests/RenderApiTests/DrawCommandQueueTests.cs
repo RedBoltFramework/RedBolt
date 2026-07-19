@@ -30,7 +30,7 @@ public sealed class DrawCommandQueueTests
     {
         Assert.True(typeof(DrawCommandDescription).IsValueType);
 
-        var vertexBuffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32u, 16u, BufferFlag.Shadowed));
+        var vertexBuffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32, 16, BufferFlag.Shadowed));
         var source = new DrawCommandDescription();
         source.VertexBuffers[0] = vertexBuffer;
         source.ConstantBuffers[0] = new ConstantBufferCollectionRef { Index = 1, Offset = 2, Size = 3 };
@@ -50,9 +50,9 @@ public sealed class DrawCommandQueueTests
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
         var pipelineState = CreateGraphicsPipelineState();
-        var vertexBuffer0 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32u, 16u, BufferFlag.Shadowed));
-        var vertexBuffer1 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 48u, 16u, BufferFlag.Shadowed));
-        var indexBuffer = new RawBuffer(new RawBufferParams(BufferType.Index, 12u, 2u, BufferFlag.Shadowed));
+        var vertexBuffer0 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32, 16, BufferFlag.Shadowed));
+        var vertexBuffer1 = new RawBuffer(new RawBufferParams(BufferType.Vertex, 48, 16, BufferFlag.Shadowed));
+        var indexBuffer = new RawBuffer(new RawBufferParams(BufferType.Index, 12, 2, BufferFlag.Shadowed));
         var scissor0 = new IntRect(1, 2, 30, 40);
         var scissor1 = new IntRect(3, 4, 50, 60);
 

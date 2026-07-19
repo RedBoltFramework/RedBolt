@@ -1,4 +1,5 @@
-using System.Runtime.InteropServices;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
@@ -6,15 +7,17 @@ namespace RedBolt;
 /// <summary>Common class for buffer on GPU and/or CPU.</summary>
 public class RawBuffer : DeviceObject
 {
-    private IBuffer? _handle;
     private RawBufferParams _parameters;
+
+    private IBuffer? _handle;
+    private Usage _internalUsage;
     private byte[] _shadowData = [];
-    private bool _locked;
+
     private bool _needsResolve;
     private FrameIndex? _lastUpdateFrameIndex;
-    private Usage _internalUsage;
-    private nint _mappedScratchBuffer;
+
     private MapKind _mapKind;
+    private nint _mappedScratchBuffer;
 
     private enum MapKind
     {
@@ -24,57 +27,256 @@ public class RawBuffer : DeviceObject
         Scratch
     }
 
-    protected RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
-        : base(flags)
-    {
-    }
-
     public RawBuffer(RawBufferParams parameters, byte[]? data = null, DeviceObjectFlag flags = DeviceObjectFlag.None)
-        : this(flags)
+        : base(flags)
     {
         Create(parameters, data);
     }
 
+    public override void Dispose()
+    {
+        Destroy();
+        base.Dispose();
+    }
+
     public override void Invalidate()
     {
-        base.Invalidate();
+        Debug.Assert(!IsLocked());
+
         ReleaseIfNotNull(_handle);
         _handle = null;
     }
 
     public override void Restore()
     {
-        base.Restore();
+        Debug.Assert(!IsLocked());
+
         if (_parameters.Size == 0)
         {
-            ClearDataLost();
-            return;
+            _dataLost = false;
         }
-
-        if (!CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
+        else if (_shadowData.Length != 0)
         {
-            Invalidate();
-            return;
+            var isDynamic = (_parameters.Flags & BufferFlag.Dynamic) != 0;
+            if ((_parameters.Flags & BufferFlag.Dynamic) != 0)
+            {
+                CreateGPU(default);
+                Update(_shadowData);
+            }
+            else
+            {
+                CreateGPU(_shadowData);
+            }
+            _dataLost = false;
         }
-
-        if (!ShouldCreateWithInitialData() && _shadowData.Length != 0)
-            UploadRange(_shadowData, 0, _parameters.Size);
-
-        _dataLost = _shadowData.Length == 0;
+        else
+        {
+            CreateGPU(default);
+            _dataLost = true;
+        }
     }
 
     public override void Destroy()
     {
-        base.Destroy();
+        Debug.Assert(!IsLocked());
+
         ReleaseIfNotNull(_handle);
         _handle = null;
         _shadowData = [];
-        _locked = false;
-        _needsResolve = false;
-        _lastUpdateFrameIndex = null;
-        _internalUsage = default;
-        _mappedScratchBuffer = 0;
+    }
+
+    /// <summary>Update buffer data. If size is not set, the buffer size is used.</summary>
+    public void Update(byte[] data, int size = 0)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        Update(data.AsSpan(), size);
+    }
+
+    /// <summary>Update buffer data without allocating. If size is not set, the buffer size is used.</summary>
+    public void Update(ReadOnlySpan<byte> data, int size = 0)
+    {
+        var dataSize = size != 0 ? size : _parameters.Size;
+        if (dataSize != 0)
+            UpdateRange(data, 0, dataSize);
+    }
+
+    /// <summary>Update buffer data range.</summary>
+    public void UpdateRange(byte[] data, int offset, int size)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        UpdateRange(data.AsSpan(), offset, size);
+    }
+
+    /// <summary>Update buffer data range without allocating.</summary>
+    public unsafe void UpdateRange(ReadOnlySpan<byte> data, int offset, int size)
+    {
+        Debug.Assert(!IsLocked());
+        Debug.Assert(!data.IsEmpty || size == 0, "Data must not be null");
+        Debug.Assert(offset + size <= _parameters.Size, "Range must be within buffer size");
+        Debug.Assert(
+            offset == 0 || ((_parameters.Flags & BufferFlag.Dynamic) == 0 && (_parameters.Flags & BufferFlag.Immutable) == 0),
+            "Dynamic and immutable buffers cannot be partially updated");
+        Debug.Assert(size <= data.Length, "Data must contain the updated range");
+
+        if ((_parameters.Flags & BufferFlag.Immutable) != 0 && _renderDevice?.GetRenderDevice() is not null && _handle is not null)
+        {
+            Log.GetLogger().LogWarning(
+                "Recreating immutable buffer '{DebugName}' due to RawBuffer::UpdateRange call", GetDebugName());
+        }
+
+        if (size == 0)
+        {
+            Log.GetLogger().LogWarning(
+                "RawBuffer::UpdateRange is called with zero size for buffer '{DebugName}'", GetDebugName());
+            return;
+        }
+
+        if ((_parameters.Flags & BufferFlag.Shadowed) != 0)
+            data[..size].CopyTo(_shadowData.AsSpan(offset, size));
+
+        var renderDevice = _renderDevice?.GetRenderDevice();
+        if (renderDevice is not null)
+        {
+            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext()!;
+            fixed (byte* dataPointer = data)
+            {
+                if (_internalUsage == Usage.UsageDynamic)
+                {
+                    var gpuBuffer = IntPtr.Zero;
+                    immediateContext.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref gpuBuffer);
+                    if (gpuBuffer != IntPtr.Zero)
+                    {
+                        Buffer.MemoryCopy(dataPointer, (void*)gpuBuffer, size, size);
+                        immediateContext.UnmapBuffer(_handle!, MapType.MapWrite);
+                    }
+                }
+                else if (_internalUsage == Usage.UsageImmutable)
+                {
+                    CreateGPU(data);
+                }
+                else
+                {
+                    immediateContext.UpdateBuffer(_handle!, checked((ulong)offset), checked((ulong)size),
+                        (IntPtr)dataPointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+                }
+            }
+
+            _lastUpdateFrameIndex = GetRenderDevice()!.GetFrameIndex();
+        }
+
+        ClearDataLost();
+    }
+
+    /// <summary>Map buffer contents onto CPU-writeable memory. Return data pointer if successful. Old buffer data is discarded.</summary>
+    /// <remarks>Memory is not guaranteed to be CPU-readable! Consider using GetShadowData() if you need to read the data.</remarks>
+    public unsafe Span<byte> Map()
+    {
+        Debug.Assert(!IsLocked());
+
+        if (_parameters.Size == 0)
+        {
+            Log.GetLogger().LogWarning("RawBuffer::Map is called for empty buffer '{DebugName}'", GetDebugName());
+            return Span<byte>.Empty;
+        }
+
+        // If shadowed, return shadow data and upload it on unlock
+        if ((_parameters.Flags & BufferFlag.Shadowed) != 0)
+        {
+            _mapKind = MapKind.Shadow;
+            return _shadowData;
+        }
+
+        // If hardware dynamic buffer, map it
+        if (_internalUsage == Usage.UsageDynamic)
+        {
+            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext();
+            Debug.Assert(immediateContext is not null);
+
+            var gpuBuffer = IntPtr.Zero;
+            immediateContext!.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref gpuBuffer);
+            if (gpuBuffer == IntPtr.Zero)
+                return Span<byte>.Empty;
+
+            _mapKind = MapKind.Dynamic;
+            return new Span<byte>((void*)gpuBuffer, _parameters.Size);
+        }
+
+        // If hardware static buffer, return temporary buffer
+        var renderPool = GetRenderDevice()!.GetRenderPool();
+
+        _mappedScratchBuffer = renderPool.AllocateScratchBuffer(checked((uint)_parameters.Size));
+        _mapKind = MapKind.Scratch;
+        return new Span<byte>((void*)_mappedScratchBuffer, _parameters.Size);
+    }
+
+    /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
+    public unsafe void Unmap()
+    {
+        Debug.Assert(IsLocked());
+        var mapKind = _mapKind;
         _mapKind = MapKind.None;
+
+        switch (mapKind)
+        {
+            case MapKind.Shadow:
+                Update(_shadowData);
+                break;
+            case MapKind.Dynamic:
+                GetSubsystem<Graphics>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
+                break;
+            case MapKind.Scratch:
+            {
+                var renderPool = GetRenderDevice()!.GetRenderPool();
+                try
+                {
+                    Update(new ReadOnlySpan<byte>((void*)_mappedScratchBuffer, _parameters.Size));
+                }
+                finally
+                {
+                    renderPool.ReleaseScratchBuffer(_mappedScratchBuffer);
+                    _mappedScratchBuffer = 0;
+                }
+                break;
+            }
+        }
+
+        if (_renderDevice?.GetRenderDevice() is not null)
+            _lastUpdateFrameIndex = GetRenderDevice()!.GetFrameIndex();
+
+        ClearDataLost();
+    }
+
+    /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.</summary>
+    /// <remarks>Don't access the GPU buffer data until the buffer was resolved!</remarks>
+    public void Resolve()
+    {
+        if (!_needsResolve)
+            return;
+        if (_lastUpdateFrameIndex != GetRenderDevice()!.GetFrameIndex())
+            Update(_shadowData);
+    }
+
+    public BufferType GetBufferType() => _parameters.Type;
+
+    public int GetSize() => _parameters.Size;
+
+    public int GetStride() => _parameters.Stride;
+
+    public BufferFlag GetFlags() => _parameters.Flags;
+
+    public bool IsLocked() => _mapKind != MapKind.None;
+
+    public bool IsShadowed() => (_parameters.Flags & BufferFlag.Shadowed) != 0;
+
+    public byte[] GetShadowData() => _shadowData;
+
+    public byte[] GetShadowDataShared() => _shadowData;
+
+    public IBuffer? GetHandle() => _handle;
+
+    protected RawBuffer(DeviceObjectFlag flags = DeviceObjectFlag.None)
+        : base(flags)
+    {
     }
 
     /// <summary>Create buffer. If data is provided, it should contain exactly size bytes.</summary>
@@ -82,326 +284,134 @@ public class RawBuffer : DeviceObject
     {
         Destroy();
 
-        if ((parameters.Flags & BufferFlag.Dynamic) != 0 && (parameters.Flags & BufferFlag.Immutable) != 0)
-            return false;
-        if ((parameters.Flags & BufferFlag.BindUnorderedAccess) != 0 && (parameters.Flags & BufferFlag.Dynamic) != 0)
-            return false;
-        if (data is not null && data.Length != parameters.Size)
-            return false;
-
-        var renderDevice = GetRenderDevice();
-        var nativeDevice = GetSubsystem<Graphics>()?.GetNativeRenderDevice();
-        var hasNativeDevice = nativeDevice is { IsNull: false };
-        if ((parameters.Flags & BufferFlag.Dynamic) != 0 && data is not null)
-            return false;
-        if (!hasNativeDevice)
-            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
-        else if (renderDevice!.GetBackend() is not (RenderBackend.D3D11 or RenderBackend.OpenGL)
-            && (parameters.Flags & BufferFlag.Dynamic) != 0 && (parameters.Flags & BufferFlag.Discard) == 0)
-        {
-            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
-            _needsResolve = true;
-        }
-        else if ((parameters.Flags & BufferFlag.Immutable) != 0)
-            parameters = parameters with { Flags = parameters.Flags | BufferFlag.Shadowed };
-        if (renderDevice?.GetBackend() == RenderBackend.OpenGL)
-            parameters = parameters with { Flags = parameters.Flags & ~BufferFlag.Dynamic };
-
-        this._parameters = parameters;
-        if (parameters.Size == 0)
-        {
-            ClearDataLost();
+        _parameters = parameters;
+        _needsResolve = false;
+        if (_parameters.Size == 0)
             return true;
+
+        // TODO: This is a workaround for a bug in Vulkan driver, maybe it should be configured in real-time.
+        const bool disableDefaultBuffers = false;
+
+        if (disableDefaultBuffers && (_parameters.Flags & BufferFlag.Dynamic) == 0)
+            _parameters = _parameters with { Flags = _parameters.Flags | BufferFlag.Immutable };
+
+        if ((_parameters.Flags & BufferFlag.Dynamic) != 0 && (_parameters.Flags & BufferFlag.Immutable) != 0)
+        {
+            Debug.Assert(false, "Dynamic buffer cannot be immutable");
+            return false;
         }
 
-        var keepShadowData = (parameters.Flags & BufferFlag.Shadowed) != 0;
-        if (keepShadowData)
+        var renderDevice = _renderDevice?.GetRenderDevice();
+        if (renderDevice is null)
         {
-            _shadowData = new byte[parameters.Size];
-            if (data is not null)
-                Buffer.BlockCopy(data, 0, _shadowData, 0, data.Length);
-        }
-
-        var postponeGpuCreation = (parameters.Flags & BufferFlag.Immutable) != 0 && data is null;
-        if (!hasNativeDevice || postponeGpuCreation)
-        {
-            ClearDataLost();
-        }
-        else if (CreateGPU(ShouldCreateWithInitialData() ? _shadowData : null))
-        {
-            if (!ShouldCreateWithInitialData() && data is not null)
-                UploadRange(data, 0, parameters.Size);
-            ClearDataLost();
+            // If there's no render device, buffer must be shadowed
+            _parameters = _parameters with { Flags = _parameters.Flags | BufferFlag.Shadowed };
         }
         else
+        {
+            // If buffer is dynamic, next-gen backend is used, and Discard is not set, shadow buffer is required
+            var backend = GetRenderDevice()!.GetBackend();
+            var isNextGen = backend != RenderBackend.D3D11 && backend != RenderBackend.OpenGL;
+            if (isNextGen && (_parameters.Flags & BufferFlag.Dynamic) != 0 && (_parameters.Flags & BufferFlag.Discard) == 0)
+            {
+                _parameters = _parameters with { Flags = _parameters.Flags | BufferFlag.Shadowed };
+                _needsResolve = true;
+            }
+            else if ((_parameters.Flags & BufferFlag.Immutable) != 0)
+            {
+                // Immutable buffer is always shadowed
+                _parameters = _parameters with { Flags = _parameters.Flags | BufferFlag.Shadowed };
+            }
+        }
+
+        // Dynamic buffer cannot be bound as UAV
+        if ((_parameters.Flags & BufferFlag.BindUnorderedAccess) != 0 && (_parameters.Flags & BufferFlag.Dynamic) != 0)
+        {
+            Debug.Assert(false, "Dynamic buffer cannot be bound as UAV and is demoted");
             return false;
+        }
+
+        // Dynamic buffer cannot have initial data
+        if ((_parameters.Flags & BufferFlag.Dynamic) != 0 && data is not null)
+        {
+            Debug.Assert(false, "Dynamic buffer cannot have initial data");
+            return false;
+        }
+
+        // Dynamic buffers on OpenGL are weird, don't use them
+        if (renderDevice is not null && GetRenderDevice()!.GetBackend() == RenderBackend.OpenGL)
+            _parameters = _parameters with { Flags = _parameters.Flags & ~BufferFlag.Dynamic };
+
+        // Create CPU buffer
+        if ((_parameters.Flags & BufferFlag.Shadowed) != 0)
+        {
+            _shadowData = new byte[_parameters.Size];
+            if (data is not null)
+                data.AsSpan(0, _parameters.Size).CopyTo(_shadowData);
+        }
+
+        // Create GPU buffer, postpone if Immutable and no data
+        if (renderDevice is not null && ((_parameters.Flags & BufferFlag.Immutable) == 0 || data is not null))
+        {
+            if (!CreateGPU(data))
+                return false;
+        }
 
         ClearDataLost();
         return true;
     }
 
-    /// <summary>Update buffer data. If size is not set, the buffer size is used.</summary>
-    public void Update(byte[] data, uint size = 0)
+    private unsafe bool CreateGPU(ReadOnlySpan<byte> data)
     {
-        ArgumentNullException.ThrowIfNull(data);
-        Update(data.AsSpan(), size);
-    }
-
-    /// <summary>Update buffer data without allocating. If size is not set, the buffer size is used.</summary>
-    public void Update(ReadOnlySpan<byte> data, uint size = 0)
-    {
-        var dataSize = size != 0 ? size : _parameters.Size;
-        if (dataSize > data.Length)
-            throw new ArgumentOutOfRangeException(nameof(size));
-
-        UpdateRange(data, 0, dataSize);
-    }
-
-    /// <summary>Update buffer data range.</summary>
-    public void UpdateRange(byte[] data, uint offset, uint size)
-    {
-        ArgumentNullException.ThrowIfNull(data);
-        UpdateRange(data.AsSpan(), offset, size);
-    }
-
-    /// <summary>Update buffer data range without allocating.</summary>
-    public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
-    {
-        if (_locked)
-            throw new InvalidOperationException("Cannot update RawBuffer while it is mapped.");
-        if (offset + size > _parameters.Size || size > data.Length)
-            throw new ArgumentOutOfRangeException(nameof(size));
-        if (offset != 0 && (_parameters.Flags & (BufferFlag.Dynamic | BufferFlag.Immutable)) != 0)
-            throw new InvalidOperationException("Dynamic and immutable buffers cannot be partially updated.");
-        if (size == 0)
-            return;
-
-        if (_shadowData.Length != 0)
-            data[..(int)size].CopyTo(_shadowData.AsSpan((int)offset, (int)size));
-
-        if ((_parameters.Flags & BufferFlag.Immutable) != 0)
-        {
-            RecreateImmutableBuffer();
-            return;
-        }
-
-        UploadRange(data, offset, size);
-    }
-
-    /// <summary>Map buffer contents onto CPU-writeable memory. Old buffer data is discarded.
-    /// Memory is not guaranteed to be CPU-readable — consider using GetShadowData() if you need to read the data.</summary>
-    public unsafe Span<byte> Map()
-    {
-        if (_locked)
-            throw new InvalidOperationException("RawBuffer is already mapped.");
-        if (_parameters.Size == 0)
-            return Span<byte>.Empty;
-
-        if (_shadowData.Length != 0)
-        {
-            _locked = true;
-            _mapKind = MapKind.Shadow;
-            return _shadowData;
-        }
-
-        var immediateContext = GetSubsystem<Graphics>()?.GetImmediateContext();
-        if (_internalUsage == Usage.UsageDynamic && immediateContext is { IsNull: false } && _handle is { IsNull: false })
-        {
-            var mappedData = IntPtr.Zero;
-            immediateContext.MapBuffer(_handle, MapType.MapWrite, MapFlags.MapFlagDiscard, ref mappedData);
-            if (mappedData == IntPtr.Zero)
-                return Span<byte>.Empty;
-
-            _locked = true;
-            _mapKind = MapKind.Dynamic;
-            return new Span<byte>((void*)mappedData, checked((int)_parameters.Size));
-        }
-
-        var renderPool = GetRenderDevice()?.GetRenderPool();
-        if (renderPool is null)
-            return Span<byte>.Empty;
-
-        _mappedScratchBuffer = renderPool.AllocateScratchBuffer(_parameters.Size);
-        _locked = true;
-        _mapKind = MapKind.Scratch;
-        return new Span<byte>((void*)_mappedScratchBuffer, checked((int)_parameters.Size));
-    }
-
-    /// <summary>Unmap the buffer. Should always be called before buffer is used or frame ends.</summary>
-    public unsafe void Unmap()
-    {
-        if (!_locked)
-            throw new InvalidOperationException("RawBuffer is not mapped.");
-
-        _locked = false;
-        switch (_mapKind)
-        {
-            case MapKind.Shadow:
-                Update(_shadowData);
-                break;
-            case MapKind.Dynamic:
-                GetSubsystem<Graphics>()?.GetImmediateContext()?.UnmapBuffer(_handle!, MapType.MapWrite);
-                break;
-            case MapKind.Scratch:
-            {
-                var renderPool = GetRenderDevice()?.GetRenderPool();
-                try
-                {
-                    Update(new ReadOnlySpan<byte>((void*)_mappedScratchBuffer, checked((int)_parameters.Size)));
-                }
-                finally
-                {
-                    renderPool?.ReleaseScratchBuffer(_mappedScratchBuffer);
-                    _mappedScratchBuffer = 0;
-                }
-                break;
-            }
-        }
-
-        _mapKind = MapKind.None;
-        _lastUpdateFrameIndex = GetRenderDevice()?.GetFrameIndex();
-        ClearDataLost();
-    }
-
-    /// <summary>For dynamic buffers, ensure that the buffer can be used in this frame.
-    /// Don't access the GPU buffer data until the buffer was resolved!</summary>
-    public void Resolve()
-    {
-        if (!_needsResolve || _shadowData.Length == 0)
-            return;
-
-        var currentFrame = GetRenderDevice()?.GetFrameIndex();
-        if (_lastUpdateFrameIndex == currentFrame)
-            return;
-
-        UploadRange(_shadowData, 0, _parameters.Size);
-    }
-
-    public BufferType GetBufferType() => _parameters.Type;
-
-    public uint GetSize() => _parameters.Size;
-
-    public uint GetStride() => _parameters.Stride;
-
-    public BufferFlag GetFlags() => _parameters.Flags;
-
-    public bool IsLocked() => _locked;
-
-    public bool IsShadowed() => (_parameters.Flags & BufferFlag.Shadowed) != 0;
-
-    public byte[] GetShadowData() => _shadowData;
-
-    public IBuffer? GetHandle() => _handle;
-
-    private bool CreateGPU(byte[]? data)
-    {
-        ReleaseIfNotNull(_handle);
-        _handle = null;
-
-        var graphics = GetSubsystem<Graphics>();
-        var device = graphics?.GetNativeRenderDevice();
-        if (device is null || device.IsNull)
-            return false;
-
         using var nativeName = new CString(GetDebugName());
         using var bufferDesc = new BufferDesc
         {
             Name = nativeName.Pointer,
-            Size = _parameters.Size,
             BindFlags = GetBindFlags(_parameters.Type, _parameters.Flags),
-            Usage = GetUsage(_parameters.Flags),
-            CPUAccessFlags = GetCpuAccessFlags(_parameters.Flags),
-            ElementByteStride = _parameters.Stride,
-            Mode = BufferMode.BufferModeUndefined
+            Usage = (_parameters.Flags & BufferFlag.Immutable) != 0 ? Usage.UsageImmutable : Usage.UsageDefault,
+            CPUAccessFlags = CpuAccessFlags.CpuAccessNone,
+            Mode = BufferMode.BufferModeUndefined,
+            Size = checked((ulong)_parameters.Size),
+            ElementByteStride = checked((uint)_parameters.Stride)
         };
+
+        if (GetRenderDevice()!.GetBackend() != RenderBackend.OpenGL && (_parameters.Flags & BufferFlag.Dynamic) != 0)
+        {
+            bufferDesc.Usage = Usage.UsageDynamic;
+            bufferDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessWrite;
+        }
         _internalUsage = bufferDesc.Usage;
 
-        if (data is null)
+        var graphics = GetSubsystem<Graphics>()!;
+        var device = _renderDevice!.GetRenderDevice()!;
+        var immediateContext = graphics.GetImmediateContext();
+
+        ReleaseIfNotNull(_handle);
+        _handle = null;
+        if (data.IsEmpty)
         {
             device.CreateBuffer(bufferDesc, null!, out _handle);
         }
         else
         {
-            var immediateContext = graphics?.GetImmediateContext();
-            var dataHandle = default(GCHandle);
-            try
+            fixed (byte* dataPointer = data)
             {
-                dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-                using var bufferData = new BufferData(dataHandle.AddrOfPinnedObject(), _parameters.Size, immediateContext);
+                using var bufferData = new BufferData((IntPtr)dataPointer, checked((ulong)_parameters.Size), immediateContext);
                 device.CreateBuffer(bufferDesc, bufferData, out _handle);
             }
-            finally
-            {
-                if (dataHandle.IsAllocated)
-                    dataHandle.Free();
-            }
         }
-
-        if (_handle is { IsNull: true })
-            _handle = null;
-
-        return _handle is not null;
-    }
-
-    private unsafe void UploadRange(ReadOnlySpan<byte> data, uint offset, uint size)
-    {
-        if (size == 0)
-            return;
 
         if (_handle is null || _handle.IsNull)
         {
-            if (!CreateGPU(null))
-            {
-                _needsResolve = true;
-                return;
-            }
+            _handle = null;
+            Log.GetLogger().LogError(
+                "Failed to create buffer: type={Type} size={Size} stride={Stride} flags=0b{Flags}",
+                _parameters.Type, _parameters.Size, _parameters.Stride, Convert.ToString((int)_parameters.Flags, 2));
+            return false;
         }
 
-        var immediateContext = GetSubsystem<Graphics>()?.GetImmediateContext();
-        if (immediateContext is null || immediateContext.IsNull)
-        {
-            _needsResolve = true;
-            return;
-        }
-
-        fixed (byte* dataPointer = data)
-        {
-            if (_internalUsage == Usage.UsageDynamic)
-            {
-                var mappedData = IntPtr.Zero;
-                immediateContext.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref mappedData);
-                if (mappedData != IntPtr.Zero)
-                {
-                    Buffer.MemoryCopy(dataPointer, (void*)mappedData, _parameters.Size, size);
-                    immediateContext.UnmapBuffer(_handle!, MapType.MapWrite);
-                }
-            }
-            else
-            {
-                immediateContext.UpdateBuffer(_handle!, offset, size, (IntPtr)dataPointer,
-                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-            }
-            _needsResolve = false;
-            _lastUpdateFrameIndex = GetRenderDevice()?.GetFrameIndex();
-            ClearDataLost();
-        }
+        return true;
     }
-
-    private void RecreateImmutableBuffer()
-    {
-        if (_shadowData.Length == 0)
-            return;
-
-        if (!CreateGPU(_shadowData))
-            _needsResolve = true;
-        else
-        {
-            _needsResolve = false;
-            ClearDataLost();
-        }
-    }
-
-    private bool ShouldCreateWithInitialData() => (_parameters.Flags & (BufferFlag.Immutable | BufferFlag.Dynamic)) == BufferFlag.Immutable;
 
     private static BindFlags GetBindFlags(BufferType type, BufferFlag flags)
     {
@@ -416,20 +426,6 @@ public class RawBuffer : DeviceObject
         if ((flags & BufferFlag.BindUnorderedAccess) != 0)
             bindFlags |= BindFlags.BindUnorderedAccess;
         return bindFlags;
-    }
-
-    private static Usage GetUsage(BufferFlag flags)
-    {
-        if ((flags & BufferFlag.Dynamic) != 0)
-            return Usage.UsageDynamic;
-        if ((flags & BufferFlag.Immutable) != 0)
-            return Usage.UsageImmutable;
-        return Usage.UsageDefault;
-    }
-
-    private static CpuAccessFlags GetCpuAccessFlags(BufferFlag flags)
-    {
-        return (flags & BufferFlag.Dynamic) != 0 ? CpuAccessFlags.CpuAccessWrite : CpuAccessFlags.CpuAccessNone;
     }
 
     private static void ReleaseIfNotNull(IObject? value)

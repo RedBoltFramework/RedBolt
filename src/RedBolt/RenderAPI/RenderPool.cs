@@ -77,7 +77,7 @@ public class RenderPool : Object
         if (!_uniformBuffers.TryGetValue(key, out var uniformBuffer))
         {
             uniformBuffer = new RawBuffer(
-                new RawBufferParams(BufferType.Uniform, quantizedSize, 0u, BufferFlag.Dynamic | BufferFlag.Discard));
+                new RawBufferParams(BufferType.Uniform, checked((int)quantizedSize), 0, BufferFlag.Dynamic | BufferFlag.Discard));
             _uniformBuffers[key] = uniformBuffer;
         }
 

@@ -569,7 +569,7 @@ public class DrawCommandQueue
 
                     _temp.VertexBufferHandles[i] = vertexBuffer.GetHandle();
                     _temp.VertexBufferOffsets[i] = needInstanceOffset
-                        ? checked((ulong)cmd.InstanceStart * vertexBuffer.GetStride())
+                        ? checked((ulong)cmd.InstanceStart * (ulong)vertexBuffer.GetStride())
                         : 0;
                 }
 

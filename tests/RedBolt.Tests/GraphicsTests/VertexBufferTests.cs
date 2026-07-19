@@ -95,7 +95,6 @@ public sealed class VertexBufferTests
         Assert.Equal(rawBuffer.IsDataLost(), vertexBuffer.IsDataLost());
         vertexBuffer.ClearDataLost();
         Assert.False(vertexBuffer.IsDataLost());
-        vertexBuffer.Restore();
         vertexBuffer.Destroy();
         Assert.Empty(vertexBuffer.GetShadowData());
     }

@@ -50,8 +50,8 @@ public sealed class IndexBuffer : PipelineStateTracker
 
         return _rawBuffer.CreateBuffer(new RawBufferParams(
             BufferType.Index,
-            indexCount * _indexSize,
-            _indexSize,
+            checked((int)(indexCount * _indexSize)),
+            checked((int)_indexSize),
             (_shadowedPending ? BufferFlag.Shadowed : BufferFlag.None)
                 | (dynamic ? BufferFlag.Dynamic : BufferFlag.None)));
     }
@@ -69,7 +69,7 @@ public sealed class IndexBuffer : PipelineStateTracker
 
     public byte[] GetShadowData() => _rawBuffer.GetShadowData();
 
-    public void Update(ReadOnlySpan<byte> data, uint size = 0) => _rawBuffer.Update(data, size);
+    public void Update(ReadOnlySpan<byte> data, uint size = 0) => _rawBuffer.Update(data, checked((int)size));
 
     /// <summary>Return used vertex range from index range.</summary>
     public bool GetUsedVertexRange(uint start, uint count, out uint minVertex, out uint vertexCount)
@@ -154,7 +154,7 @@ public sealed class IndexBuffer : PipelineStateTracker
 
         var buffer = new byte[checked((int)(count * _indexSize))];
         PackIndexData(data, buffer, _indexSize == 4, 0, count);
-        _rawBuffer.UpdateRange(buffer, start * _indexSize, count * _indexSize);
+        _rawBuffer.UpdateRange(buffer, checked((int)(start * _indexSize)), checked((int)(count * _indexSize)));
     }
 
     /// <summary>Unpack index data from index buffer into unsigned int array.</summary>
@@ -217,7 +217,7 @@ public sealed class IndexBuffer : PipelineStateTracker
     /// <summary>Update buffer data range without allocating.</summary>
     public void UpdateRange(ReadOnlySpan<byte> data, uint offset, uint size)
     {
-        _rawBuffer.UpdateRange(data, offset, size);
+        _rawBuffer.UpdateRange(data, checked((int)offset), checked((int)size));
     }
 
     protected override uint RecalculatePipelineStateHash()
