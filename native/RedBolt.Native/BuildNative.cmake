@@ -11,9 +11,8 @@ foreach(required_variable
     endif()
 endforeach()
 
-get_filename_component(_redbolt_native_root "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
-file(MAKE_DIRECTORY "${_redbolt_native_root}")
-file(LOCK "${_redbolt_native_root}/redbolt-native.lock"
+file(MAKE_DIRECTORY "${REDBOLT_NATIVE_BUILD_DIR}")
+file(LOCK "${REDBOLT_NATIVE_BUILD_DIR}/redbolt-native.lock"
     GUARD PROCESS
     TIMEOUT 1800
     RESULT_VARIABLE _redbolt_lock_result)

@@ -9,7 +9,7 @@
     <SharpCppNativePreset Condition="'$(SharpCppNativePreset)' == ''">dev</SharpCppNativePreset>
     <SharpCppCMakeSourceDir Condition="'$(SharpCppCMakeSourceDir)' == ''">$(SharpCppRoot)</SharpCppCMakeSourceDir>
     <SharpCppNativeBuildDir Condition="'$(SharpCppNativeBuildDir)' == ''">$(SharpCppBuildRoot)/native/$(SharpCppNativePreset)</SharpCppNativeBuildDir>
-    <SharpCppNativeLockFile Condition="'$(SharpCppNativeLockFile)' == ''">$(SharpCppBuildRoot)/native/sharpcpp-native.lock</SharpCppNativeLockFile>
+    <SharpCppNativeLockFile Condition="'$(SharpCppNativeLockFile)' == ''">$(SharpCppNativeBuildDir)/sharpcpp-native.lock</SharpCppNativeLockFile>
     <SharpCppNativeTarget Condition="'$(SharpCppNativeTarget)' == ''">sharpcpp-native</SharpCppNativeTarget>
     <SharpCppConfigureNative Condition="'$(SharpCppConfigureNative)' == ''">true</SharpCppConfigureNative>
     <SharpCppBuildE2E Condition="'$(SharpCppBuildE2E)' == ''">true</SharpCppBuildE2E>

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
-    <BuildInParallel>false</BuildInParallel>
+    <BuildInParallel>true</BuildInParallel>
     <RedBoltGeneratorProject>$(MSBuildThisFileDirectory)generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj</RedBoltGeneratorProject>
     <RedBoltWebNativeProject>$(MSBuildThisFileDirectory)native/RedBolt.Native/RedBolt.Native.Web.csproj</RedBoltWebNativeProject>
   </PropertyGroup>
