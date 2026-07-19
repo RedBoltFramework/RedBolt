@@ -5,15 +5,27 @@ namespace RedBolt;
 
 public struct RawTextureHandles
 {
+    /// <summary>Main texture. If texture is multi-sampled, only one mip level is created.</summary>
     public ITexture? Texture;
+    /// <summary>If texture is multi-sampled, resolved texture is created with requested number of mip levels.</summary>
     public ITexture? ResolvedTexture;
+    /// <summary>Texture view that can be used as readable shader resource.
+    /// If resolved texture is created, it is referenced by this view.</summary>
     public ITextureView? ShaderResourceView;
+    /// <summary>Texture view that can be used as render target.</summary>
     public ITextureView? RenderTargetView;
+    /// <summary>Texture view that can be used as depth-stencil buffer.</summary>
     public ITextureView? DepthStencilView;
+    /// <summary>Texture view that can be used as read-only depth-stencil buffer.</summary>
     public ITextureView? ReadOnlyDepthStencilView;
+    /// <summary>Texture view that can be attached as unordered access resource.</summary>
     public ITextureView? UnorderedAccessView;
+    /// <summary>Array of all 2D render target views for each array slice and for each cube texture face.
+    /// Empty for 3D textures.</summary>
     public ITextureView[] RenderSurfaces;
+    /// <summary>Same as above, but read-only. Valid only for depth-stencil textures.</summary>
     public ITextureView[] ReadOnlyRenderSurfaces;
+    /// <summary>All requested UAVs.</summary>
     public Dictionary<RawTextureUAVKey, ITextureView> UnorderedAccessViews;
 
     public RawTextureHandles()
@@ -27,7 +39,10 @@ public struct RawTextureHandles
 }
 
 /// <summary>Common class for all GPU textures.
-/// By default RawTexture loses data on device lost and does not attempt to recover it.</summary>
+/// By default RawTexture loses data on device lost and does not attempt to recover it.
+/// This behavior can be changed in derived classes.
+/// RawTexture is RAII object that's not supposed to be in invalid state.
+/// However, this behavior can also be changed in derived classes.</summary>
 public class RawTexture : DeviceObject
 {
     private RawTextureParams _parameters;
@@ -42,6 +57,7 @@ public class RawTexture : DeviceObject
     private readonly Box _updateBox = new();
     private readonly TextureSubResData _updateSubresource = new();
 
+    /// <summary>Create empty texture.</summary>
     protected RawTexture()
     {
     }
@@ -55,6 +71,7 @@ public class RawTexture : DeviceObject
     /// <summary>Validate parameters and create GPU texture.</summary>
     protected bool Create(RawTextureParams parameters)
     {
+        // Optimize repeated calls.
         if (parameters == _parameters && _handles.IsValid())
             return true;
 
@@ -100,6 +117,7 @@ public class RawTexture : DeviceObject
 
     public ref readonly RawTextureHandles GetHandles() => ref _handles;
 
+    /// <summary>Create from texture handle.</summary>
     public bool CreateFromHandle(ITexture texture, TextureFormat format = TextureFormat.Unknown, int msaaLevel = 1)
     {
         ArgumentNullException.ThrowIfNull(texture);
@@ -153,6 +171,7 @@ public class RawTexture : DeviceObject
         return InitializeDefaultViews(desc.BindFlags);
     }
 
+    /// <summary>Create texture from raw ID3D11Texture2D pointer.</summary>
     public bool CreateFromD3D11Texture2D(nint d3d11Texture2D, TextureFormat format, int msaaLevel)
     {
 #if REDBOLT_D3D11_SUPPORTED
@@ -183,6 +202,7 @@ public class RawTexture : DeviceObject
         return false;
     }
 
+    /// <summary>Create texture from raw ID3D12Resource pointer.</summary>
     public bool CreateFromD3D12Resource(nint d3d12Resource, TextureFormat format, int msaaLevel)
     {
 #if REDBOLT_D3D12_SUPPORTED
@@ -213,6 +233,7 @@ public class RawTexture : DeviceObject
         return false;
     }
 
+    /// <summary>Create texture from VkImage handle.</summary>
     public bool CreateFromVulkanImage(ulong vkImage, RawTextureParams parameters)
     {
 #if REDBOLT_VULKAN_SUPPORTED
@@ -267,6 +288,7 @@ public class RawTexture : DeviceObject
         return false;
     }
 
+    /// <summary>Create texture from raw OpenGL handle.</summary>
     public bool CreateFromGLTexture(uint handle, TextureType type, TextureFlag flags, TextureFormat format,
         int arraySize, int msaaLevel)
     {
@@ -313,6 +335,7 @@ public class RawTexture : DeviceObject
 
     public bool GetResolveDirty() => _resolveDirty;
 
+    /// <summary>Generate mip levels from the topmost level. Avoid calling it during the rendering.</summary>
     public void GenerateLevels()
     {
         if (_parameters.NumLevels > 1)
@@ -324,6 +347,7 @@ public class RawTexture : DeviceObject
         _levelsDirty = false;
     }
 
+    /// <summary>Resolve multi-sampled texture to the simple resolved texture.</summary>
     public void Resolve()
     {
         if (_handles.ResolvedTexture is not null)
@@ -345,6 +369,7 @@ public class RawTexture : DeviceObject
         _resolveDirty = false;
     }
 
+    /// <summary>Update texture data. If strides are not specified, they are deduced automatically from <paramref name="size"/>.</summary>
     public unsafe void Update(int level, Vector3i offset, Vector3i size, int arraySlice, ReadOnlySpan<byte> data,
         int rowStride = 0, int sliceStride = 0)
     {
@@ -356,6 +381,17 @@ public class RawTexture : DeviceObject
         if (offset.X < 0 || offset.Y < 0 || offset.Z < 0 || size.X <= 0 || size.Y <= 0 || size.Z <= 0 ||
             offset.X + size.X > levelSize.X || offset.Y + size.Y > levelSize.Y || offset.Z + size.Z > levelSize.Z)
             throw new ArgumentOutOfRangeException(nameof(size));
+        if (_parameters.Type != TextureType.Texture3D &&
+            (offset.X % _formatBlockWidth != 0 || offset.Y % _formatBlockHeight != 0))
+            throw new ArgumentException("Unaligned update region offset", nameof(offset));
+
+        if (_renderDevice is null)
+            return;
+        if (!_handles.IsValid())
+        {
+            Log.GetLogger().LogWarning("RawTexture::Update is ignored for uninitialized texture");
+            return;
+        }
 
         var widthInBlocks = (size.X + _formatBlockWidth - 1) / _formatBlockWidth;
         var heightInBlocks = (size.Y + _formatBlockHeight - 1) / _formatBlockHeight;
@@ -366,14 +402,13 @@ public class RawTexture : DeviceObject
             throw new ArgumentOutOfRangeException(nameof(rowStride));
         if (sliceStride < rowStride * heightInBlocks)
             throw new ArgumentOutOfRangeException(nameof(sliceStride));
-        var requiredDataSize = checked(sliceStride * (size.Z - 1) + rowStride * heightInBlocks);
+        var isDataAligned = (rowStride & 3) == 0 && (sliceStride & 3) == 0;
+        var requiredDataSize = isDataAligned
+            ? checked(sliceStride * (size.Z - 1) + rowStride * heightInBlocks)
+            : checked(rowStride * heightInBlocks * size.Z);
         if (data.Length < requiredDataSize)
             throw new ArgumentException("Texture update data is smaller than the specified region and strides.", nameof(data));
 
-        if (_renderDevice is null)
-            return;
-        if (!_handles.IsValid())
-            return;
         var context = _renderDevice.GetImmediateContext()!;
 
         _updateBox.MinX = checked((uint)offset.X);
@@ -389,8 +424,13 @@ public class RawTexture : DeviceObject
             fixed (byte* sourceData = data)
             {
                 var uploadData = sourceData;
-                if ((rowStride & 3) != 0 || (sliceStride & 3) != 0)
+                if (!isDataAligned)
                 {
+                    Log.GetLogger().LogWarning(
+                        "RawTexture::Update is called with unaligned data with stride {RowStride} and depth stride {SliceStride}. " +
+                        "The data is being repacked. Consider aligning the data rows to {Alignment} bytes.",
+                        rowStride, sliceStride, 4);
+
                     var alignedRowStride = (rowStride + 3) & ~3;
                     var alignedSliceStride = checked(alignedRowStride * heightInBlocks);
                     scratchBuffer = GetRenderDevice()?.GetRenderPool().AllocateScratchBuffer(
@@ -398,13 +438,14 @@ public class RawTexture : DeviceObject
                     if (scratchBuffer == 0)
                         throw new OutOfMemoryException("Failed to allocate texture upload scratch buffer.");
                     var destination = (byte*)scratchBuffer;
+                    var source = sourceData;
                     for (var z = 0; z < size.Z; ++z)
                     {
                         for (var y = 0; y < heightInBlocks; ++y)
                         {
-                            Buffer.MemoryCopy(sourceData + z * sliceStride + y * rowStride,
-                                destination + z * alignedSliceStride + y * alignedRowStride,
-                                alignedRowStride, rowStride);
+                            Buffer.MemoryCopy(source, destination, alignedRowStride, rowStride);
+                            destination += alignedRowStride;
+                            source += rowStride;
                         }
                     }
                     uploadData = destination;
@@ -435,19 +476,35 @@ public class RawTexture : DeviceObject
         Update(level, offset, size, arraySlice, data.AsSpan(), rowStride, sliceStride);
     }
 
+    /// <summary>Read texture data from GPU. This operation is very slow and shouldn't be used in real time.</summary>
     public unsafe bool Read(int slice, int level, Span<byte> buffer)
     {
-        if (level >= _parameters.NumLevels || slice >= _parameters.ArraySize)
+        if (!_handles.IsValid())
+        {
+            Log.GetLogger().LogWarning("RawTexture::Read is ignored for uninitialized texture");
             return false;
+        }
+        if (level >= _parameters.NumLevels)
+        {
+            Log.GetLogger().LogError("Trying to read invalid mip level {Level}", level);
+            return false;
+        }
+        if (slice >= _parameters.ArraySize)
+        {
+            Log.GetLogger().LogError("Trying to read invalid array slice {Slice}", slice);
+            return false;
+        }
         var levelSize = GetMipLevelSize(_parameters.Size, level);
         var widthInBlocks = (levelSize.X + _formatBlockWidth - 1) / _formatBlockWidth;
         var heightInBlocks = (levelSize.Y + _formatBlockHeight - 1) / _formatBlockHeight;
         var rowSize = checked(widthInBlocks * _formatElementSize);
         var requiredSize = checked(rowSize * heightInBlocks * levelSize.Z);
         if (buffer.Length < requiredSize)
+        {
+            Log.GetLogger().LogError("Trying to read {SizeInBytes} bytes of texture to the buffer of size {BufferSize}",
+                requiredSize, buffer.Length);
             return false;
-        if (!_handles.IsValid())
-            return false;
+        }
         if (_resolveDirty)
             Resolve();
         if (_levelsDirty)
@@ -477,7 +534,10 @@ public class RawTexture : DeviceObject
             stagingDesc.ArraySize = 1u;
         device.CreateTexture(stagingDesc, null!, out var stagingTexture);
         if (stagingTexture is null || stagingTexture.IsNull)
+        {
+            Log.GetLogger().LogError("Failed to create staging texture for RawTexture::Read");
             return false;
+        }
 
         try
         {
@@ -496,20 +556,28 @@ public class RawTexture : DeviceObject
             using var mapped = new MappedTextureSubresource();
             context.MapTextureSubresource(stagingTexture, 0u, 0u, MapType.MapRead, MapFlags.MapFlagNone, null!, mapped);
             if (mapped.PData == IntPtr.Zero)
+            {
+                Log.GetLogger().LogError("Failed to map staging texture for RawTexture::Read");
                 return false;
+            }
             try
             {
+                var sizeInBlocks = new Vector3i(
+                    (_parameters.Size.X + _formatBlockWidth - 1) / _formatBlockWidth,
+                    (_parameters.Size.Y + _formatBlockHeight - 1) / _formatBlockHeight,
+                    _parameters.Size.Z);
+                rowSize = checked(sizeInBlocks.X * _formatElementSize);
                 var source = (byte*)mapped.PData;
                 var sourceRowStride = (nuint)mapped.Stride;
                 var sourceDepthStride = (nuint)mapped.DepthStride;
                 fixed (byte* destinationStart = buffer)
                 {
-                    for (var z = 0; z < levelSize.Z; ++z)
+                    for (var z = 0; z < sizeInBlocks.Z; ++z)
                     {
-                        for (var y = 0; y < heightInBlocks; ++y)
+                        for (var y = 0; y < sizeInBlocks.Y; ++y)
                         {
                             var sourceOffset = checked((nint)z * (nint)sourceDepthStride + (nint)y * (nint)sourceRowStride);
-                            var destinationOffset = checked((nuint)((z * heightInBlocks + y) * rowSize));
+                            var destinationOffset = checked((nuint)((z * sizeInBlocks.Y + y) * rowSize));
                             Buffer.MemoryCopy(source + sourceOffset,
                                 destinationStart + destinationOffset, rowSize, rowSize);
                         }
@@ -534,6 +602,7 @@ public class RawTexture : DeviceObject
         return Read(slice, level, buffer.AsSpan());
     }
 
+    /// <summary>Evaluate approximate memory footprint of the texture on GPU.</summary>
     public ulong CalculateMemoryUseGPU()
     {
         if (!_handles.IsValid())
@@ -560,7 +629,10 @@ public class RawTexture : DeviceObject
     public ITextureView? CreateUAV(RawTextureUAVKey key)
     {
         if (!_handles.IsValid())
+        {
+            Log.GetLogger().LogError("RawTexture::CreateUAV is ignored for uninitialized texture");
             return null;
+        }
 
         if (GetUAV(key) is { } cachedView)
             return cachedView;
@@ -594,8 +666,13 @@ public class RawTexture : DeviceObject
         if (_handles.Texture is null)
             return null;
 
+        using var name = new CString(
+            $"{GetDebugName()}:{key.FirstSlice}-{key.FirstSlice + key.NumSlices}:" +
+            $"{key.FirstLevel}-{key.FirstLevel + key.NumLevels}:" +
+            $"{(key.CanRead ? 'r' : ' ')}{(key.CanWrite ? 'w' : ' ')}");
         using var viewDesc = new TextureViewDesc
         {
+            Name = name.Pointer,
             ViewType = TextureViewType.TextureViewUnorderedAccess,
             TextureDim = GetViewResourceDimension(_parameters.Type),
             Format = Graphics.MapTextureFormat(_parameters.Format, _parameters.SRGB),
@@ -616,7 +693,10 @@ public class RawTexture : DeviceObject
         }
         _handles.Texture.CreateView(viewDesc, out var view);
         if (view is null || view.IsNull)
+        {
+            Log.GetLogger().LogError("Failed to create UAV for texture");
             return null;
+        }
         return view;
     }
 
@@ -663,16 +743,20 @@ public class RawTexture : DeviceObject
         base.Dispose();
     }
 
+    /// <summary>Called when GPU handles are created.</summary>
     protected virtual void OnCreateGPU()
     {
     }
 
+    /// <summary>Called when GPU handles are destroyed.</summary>
     protected virtual void OnDestroyGPU()
     {
     }
 
+    /// <summary>Try to recover texture data after device loss.</summary>
     protected virtual bool TryRestore() => false;
 
+    /// <summary>Create GPU texture from current parameters.</summary>
     protected bool CreateGPU()
     {
         var device = _renderDevice!.GetRenderDevice()!;
@@ -690,8 +774,6 @@ public class RawTexture : DeviceObject
             SampleCount = checked((uint)_parameters.MultiSample),
             BindFlags = BindFlags.BindShaderResource
         };
-        if (textureDesc.Format == 0)
-            return false;
         if (_parameters.Type == TextureType.Texture3D)
             textureDesc.Depth = checked((uint)_parameters.Size.Z);
         else
@@ -705,13 +787,23 @@ public class RawTexture : DeviceObject
         if (_parameters.MultiSample == 1u && (_parameters.Flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget && _parameters.NumLevelsRtv != 1u)
             textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
 
+        // Create main texture.
+        // It is used as render target for auto-resolved multi-sampled texture.
         device.CreateTexture(textureDesc, null!, out _handles.Texture);
         if (_handles.Texture is null || _handles.Texture.IsNull)
         {
             _handles.Texture = null;
+            Log.GetLogger().LogError(
+                "Failed to create texture: type={Type} format={Format} size={Width}x{Height}x{Depth} " +
+                "arraySize={ArraySize} numLevels={NumLevels} multiSample={MultiSample} flags=0b{Flags}",
+                _parameters.Type, _parameters.Format, _parameters.Size.X, _parameters.Size.Y, _parameters.Size.Z,
+                _parameters.ArraySize, _parameters.NumLevelsRtv, _parameters.MultiSample,
+                Convert.ToString((int)_parameters.Flags, 2));
             return false;
         }
 
+        // Create resolve texture if necessary.
+        // It is used as shader resource for auto-resolved multi-sampled texture.
         if (_parameters.MultiSample != 1u && (_parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != TextureFlag.NoMultiSampledAutoResolve)
         {
             textureDesc.MipLevels = checked((uint)_parameters.NumLevels);
@@ -720,7 +812,15 @@ public class RawTexture : DeviceObject
                 textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
             device.CreateTexture(textureDesc, null!, out _handles.ResolvedTexture);
             if (_handles.ResolvedTexture is null || _handles.ResolvedTexture.IsNull)
+            {
+                Log.GetLogger().LogError(
+                    "Failed to create resolve texture: type={Type} format={Format} size={Width}x{Height}x{Depth} " +
+                    "arraySize={ArraySize} numLevels={NumLevels} flags=0b{Flags}",
+                    _parameters.Type, _parameters.Format, _parameters.Size.X, _parameters.Size.Y,
+                    _parameters.Size.Z, _parameters.ArraySize, _parameters.NumLevels,
+                    Convert.ToString((int)_parameters.Flags, 2));
                 return false;
+            }
         }
 
         if (!InitializeDefaultViews(textureDesc.BindFlags))
@@ -728,6 +828,7 @@ public class RawTexture : DeviceObject
         return true;
     }
 
+    /// <summary>Destroy all GPU resources.</summary>
     protected void DestroyGPU()
     {
         OnDestroyGPU();
@@ -736,70 +837,98 @@ public class RawTexture : DeviceObject
 
     private void ReleaseHandles()
     {
+        Release(_handles.Texture);
+        Release(_handles.ResolvedTexture);
+        Release(_handles.ShaderResourceView);
+        Release(_handles.RenderTargetView);
+        Release(_handles.DepthStencilView);
+        Release(_handles.ReadOnlyDepthStencilView);
+        Release(_handles.UnorderedAccessView);
+        foreach (var view in _handles.RenderSurfaces)
+            Release(view);
+        foreach (var view in _handles.ReadOnlyRenderSurfaces)
+            Release(view);
         foreach (var view in _handles.UnorderedAccessViews.Values)
             Release(view);
-        foreach (var view in _handles.RenderSurfaces)
-        {
-            if (!ReferenceEquals(view, _handles.RenderTargetView) && !ReferenceEquals(view, _handles.DepthStencilView))
-                Release(view);
-        }
-        foreach (var view in _handles.ReadOnlyRenderSurfaces)
-        {
-            if (!ReferenceEquals(view, _handles.ReadOnlyDepthStencilView))
-                Release(view);
-        }
-        Release(_handles.UnorderedAccessView);
-        Release(_handles.ReadOnlyDepthStencilView);
-        Release(_handles.DepthStencilView);
-        Release(_handles.RenderTargetView);
-        Release(_handles.ShaderResourceView);
-        Release(_handles.ResolvedTexture);
-        Release(_handles.Texture);
         _handles = new RawTextureHandles();
     }
 
     private bool InitializeDefaultViews(BindFlags bindFlags)
     {
-        var shaderTexture = _handles.ResolvedTexture ?? _handles.Texture!;
         if ((bindFlags & BindFlags.BindShaderResource) != 0)
+        {
+            var shaderTexture = _handles.ResolvedTexture ?? _handles.Texture!;
             _handles.ShaderResourceView = GetDefaultView(shaderTexture, TextureViewType.TextureViewShaderResource);
+            if (_handles.ShaderResourceView is null)
+            {
+                Log.GetLogger().LogError("Failed to create shader resource view for texture");
+                return false;
+            }
+        }
+
         if ((bindFlags & BindFlags.BindRenderTarget) != 0)
         {
             _handles.RenderTargetView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewRenderTarget);
-            _handles.RenderSurfaces = CreateRenderSurfaces(_handles.RenderTargetView, TextureViewType.TextureViewRenderTarget);
+            if (_handles.RenderTargetView is null)
+            {
+                Log.GetLogger().LogError("Failed to create render target view for texture");
+                return false;
+            }
+            if (!CreateRenderSurfaces(_handles.RenderTargetView, TextureViewType.TextureViewRenderTarget,
+                    out _handles.RenderSurfaces))
+            {
+                Log.GetLogger().LogError("Failed to create render surfaces for texture");
+                return false;
+            }
         }
+
         if ((bindFlags & BindFlags.BindDepthStencil) != 0)
         {
             _handles.DepthStencilView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewDepthStencil);
-            _handles.RenderSurfaces = CreateRenderSurfaces(_handles.DepthStencilView, TextureViewType.TextureViewDepthStencil);
-            if (_handles.DepthStencilView is not null)
+            if (_handles.DepthStencilView is null)
             {
-                using var depthStencilDesc = _handles.DepthStencilView.GetDesc();
-                using var readOnlyDesc = depthStencilDesc.Clone();
-                readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
-                _handles.Texture!.CreateView(readOnlyDesc, out _handles.ReadOnlyDepthStencilView);
-                if (_handles.ReadOnlyDepthStencilView is { IsNull: true })
-                    _handles.ReadOnlyDepthStencilView = null;
+                Log.GetLogger().LogError("Failed to create depth-stencil view for texture");
+                return false;
             }
-            _handles.ReadOnlyRenderSurfaces = CreateRenderSurfaces(_handles.ReadOnlyDepthStencilView,
-                TextureViewType.TextureViewReadOnlyDepthStencil);
+            if (!CreateRenderSurfaces(_handles.DepthStencilView, TextureViewType.TextureViewDepthStencil,
+                    out _handles.RenderSurfaces))
+            {
+                Log.GetLogger().LogError("Failed to create render surfaces for texture");
+                return false;
+            }
+
+            using var depthStencilDesc = _handles.DepthStencilView.GetDesc();
+            using var readOnlyDesc = depthStencilDesc.Clone();
+            readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
+            _handles.Texture!.CreateView(readOnlyDesc, out _handles.ReadOnlyDepthStencilView);
+            if (_handles.ReadOnlyDepthStencilView is null || _handles.ReadOnlyDepthStencilView.IsNull)
+            {
+                _handles.ReadOnlyDepthStencilView = null;
+                Log.GetLogger().LogError("Failed to create read-only depth-stencil view for texture");
+                return false;
+            }
+            if (!CreateRenderSurfaces(_handles.ReadOnlyDepthStencilView,
+                    TextureViewType.TextureViewReadOnlyDepthStencil, out _handles.ReadOnlyRenderSurfaces))
+            {
+                Log.GetLogger().LogError("Failed to create read-only render surfaces for texture");
+                return false;
+            }
         }
+
         if ((bindFlags & BindFlags.BindUnorderedAccess) != 0)
         {
             _handles.UnorderedAccessView = GetDefaultView(_handles.Texture!, TextureViewType.TextureViewUnorderedAccess);
-            if (_handles.UnorderedAccessView is not null)
+            if (_handles.UnorderedAccessView is null)
             {
-                _ = _handles.UnorderedAccessView.AddRef();
-                _handles.UnorderedAccessViews[new RawTextureUAVKey()] = _handles.UnorderedAccessView;
+                Log.GetLogger().LogError("Failed to create unordered access view for texture");
+                return false;
             }
+            _ = _handles.UnorderedAccessView.AddRef();
+            _handles.UnorderedAccessViews[new RawTextureUAVKey()] = _handles.UnorderedAccessView;
         }
-        var result = _handles.ShaderResourceView is not null &&
-            ((bindFlags & BindFlags.BindRenderTarget) == 0 || _handles.RenderTargetView is not null) &&
-            ((bindFlags & BindFlags.BindDepthStencil) == 0 || _handles.DepthStencilView is not null && _handles.ReadOnlyDepthStencilView is not null) &&
-            ((bindFlags & BindFlags.BindUnorderedAccess) == 0 || _handles.UnorderedAccessView is not null);
-        if (result)
-            OnCreateGPU();
-        return result;
+
+        OnCreateGPU();
+        return true;
     }
 
     private ITextureView? GetDefaultView(ITexture texture, TextureViewType viewType)
@@ -839,18 +968,35 @@ public class RawTexture : DeviceObject
         return view is { IsNull: false } ? view : null;
     }
 
-    private ITextureView[] CreateRenderSurfaces(ITextureView? defaultView, TextureViewType viewType)
+    private bool CreateRenderSurfaces(ITextureView defaultView, TextureViewType viewType,
+        out ITextureView[] renderSurfaces)
     {
-        if (defaultView is null || _parameters.Type == TextureType.Texture3D)
-            return [];
         if (_parameters.Type == TextureType.Texture2D)
-            return [defaultView];
+        {
+            _ = defaultView.AddRef();
+            renderSurfaces = [defaultView];
+            return true;
+        }
+        if (_parameters.Type == TextureType.Texture3D)
+        {
+            renderSurfaces = [];
+            return true;
+        }
 
-        var surfaces = new ITextureView[_parameters.ArraySize];
+        var surfaces = new List<ITextureView>(_parameters.ArraySize);
         for (var slice = 0; slice < _parameters.ArraySize; ++slice)
-            surfaces[slice] = CreateView(_handles.Texture!, viewType, slice, 1)
-                ?? throw new InvalidOperationException("Failed to create texture render surface.");
-        return surfaces;
+        {
+            var view = CreateView(_handles.Texture!, viewType, slice, 1);
+            if (view is null)
+            {
+                Log.GetLogger().LogError("Failed to create texture view for render surface");
+                renderSurfaces = surfaces.ToArray();
+                return false;
+            }
+            surfaces.Add(view);
+        }
+        renderSurfaces = surfaces.ToArray();
+        return true;
     }
 
     private static ResourceDimension GetResourceDimension(TextureType type) => type switch
@@ -882,7 +1028,10 @@ public class RawTexture : DeviceObject
         var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) != 0;
         var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) != 0;
         if (isRenderTarget && isDepthStencil)
+        {
+            Log.GetLogger().LogError("Texture cannot be both render target and depth-stencil");
             return false;
+        }
 
         return true;
     }
@@ -896,7 +1045,11 @@ public class RawTexture : DeviceObject
         var isRenderTarget = (parameters.Flags & TextureFlag.BindRenderTarget) != 0;
         var isDepthStencil = (parameters.Flags & TextureFlag.BindDepthStencil) != 0;
         if (parameters.MultiSample != 1 && !(isRenderTarget || isDepthStencil))
+        {
+            Log.GetLogger().LogError(
+                "Multi-sampling is only supported for render target or depth-stencil textures");
             return false;
+        }
 
         return true;
     }
@@ -907,11 +1060,15 @@ public class RawTexture : DeviceObject
         var numLevels = parameters.NumLevels != 0 ? Math.Min(parameters.NumLevels, maxLevels) : maxLevels;
 
         if (numLevels > 1 && (parameters.Flags & TextureFlag.BindDepthStencil) != 0)
+        {
+            Log.GetLogger().LogWarning("Depth-stencil texture cannot have mipmaps.");
             numLevels = 1;
+        }
 
         if (numLevels > 1 && parameters.MultiSample != 1
             && (parameters.Flags & TextureFlag.NoMultiSampledAutoResolve) != 0)
         {
+            Log.GetLogger().LogWarning("Multi-sampled texture cannot have mipmaps.");
             numLevels = 1;
         }
 
@@ -945,6 +1102,8 @@ public class RawTexture : DeviceObject
 
         if (parameters.MultiSample != 1 && ((int)formatInfo.SampleCounts & parameters.MultiSample) == 0)
         {
+            Log.GetLogger().LogWarning(
+                "Multi-sampling is not supported for this texture format, demoting to simple texture.");
             parameters = parameters with
             {
                 MultiSample = 1,
@@ -955,18 +1114,21 @@ public class RawTexture : DeviceObject
         if ((parameters.Flags & TextureFlag.BindRenderTarget) != 0
             && (allowedFlags & BindFlags.BindRenderTarget) == 0)
         {
+            Log.GetLogger().LogWarning("Render target binding is not supported for this texture format.");
             return false;
         }
 
         if ((parameters.Flags & TextureFlag.BindDepthStencil) != 0
             && (allowedFlags & BindFlags.BindDepthStencil) == 0)
         {
+            Log.GetLogger().LogWarning("Depth-stencil binding is not supported for this texture format.");
             return false;
         }
 
         if ((parameters.Flags & TextureFlag.BindUnorderedAccess) != 0
             && (allowedFlags & BindFlags.BindUnorderedAccess) == 0)
         {
+            Log.GetLogger().LogWarning("Unordered access binding is not supported for this texture format.");
             return false;
         }
 
@@ -977,20 +1139,40 @@ public class RawTexture : DeviceObject
     {
         switch (parameters.Type)
         {
-            case TextureType.Texture2D when parameters.Size.X > 0 && parameters.Size.Y > 0:
+            case TextureType.Texture2D:
+                if (parameters.Size.X <= 0 || parameters.Size.Y <= 0)
+                {
+                    Log.GetLogger().LogError("Zero or negative texture dimensions");
+                    return false;
+                }
                 parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.Y, 1), ArraySize = 1 };
                 return true;
-            case TextureType.TextureCube when parameters.Size.X > 0:
+            case TextureType.TextureCube:
+                if (parameters.Size.X <= 0)
+                {
+                    Log.GetLogger().LogError("Zero or negative texture dimensions");
+                    return false;
+                }
                 parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.X, 1), ArraySize = 6 };
                 return true;
-            case TextureType.Texture3D when parameters.Size.X > 0 && parameters.Size.Y > 0 && parameters.Size.Z > 0:
+            case TextureType.Texture3D:
+                if (parameters.Size.X <= 0 || parameters.Size.Y <= 0 || parameters.Size.Z <= 0)
+                {
+                    Log.GetLogger().LogError("Zero or negative texture dimensions");
+                    return false;
+                }
                 parameters = parameters with { ArraySize = 1 };
                 return true;
-            case TextureType.Texture2DArray when parameters.Size.X > 0 && parameters.Size.Y > 0 && parameters.ArraySize != 0:
+            case TextureType.Texture2DArray:
+                if (parameters.Size.X <= 0 || parameters.Size.Y <= 0 || parameters.ArraySize == 0)
+                {
+                    Log.GetLogger().LogError("Zero or negative texture dimensions");
+                    return false;
+                }
                 parameters = parameters with { Size = new Vector3i(parameters.Size.X, parameters.Size.Y, 1) };
                 return true;
             default:
-                return false;
+                throw new ArgumentOutOfRangeException(nameof(parameters.Type));
         }
     }
 

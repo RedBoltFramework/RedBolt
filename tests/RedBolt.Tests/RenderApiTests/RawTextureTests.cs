@@ -450,6 +450,43 @@ public sealed class RawTextureTests
         });
     }
 
+    [Fact]
+    public void Raw_texture_wraps_native_handle_without_shader_resource_binding()
+    {
+        WithInitializedGraphics(() =>
+        {
+            using var name = new CString("RawTextureTests external RTV");
+            using var desc = new TextureDesc
+            {
+                Name = name.Pointer,
+                Type = ResourceDimension.ResourceDimTex2d,
+                Usage = Usage.UsageDefault,
+                Format = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
+                Width = 8,
+                Height = 4,
+                MipLevels = 1,
+                SampleCount = 1,
+                ArraySize = 1,
+                BindFlags = BindFlags.BindRenderTarget
+            };
+            _fixture.RenderDevice.GetRenderDevice()!.CreateTexture(desc, null!, out var nativeTexture);
+            Assert.NotNull(nativeTexture);
+
+            var wrapped = new TestRawTexture();
+            try
+            {
+                Assert.True(wrapped.CreateFromHandle(nativeTexture!, TextureFormat.Unknown, 1));
+                Assert.Null(wrapped.GetHandles().ShaderResourceView);
+                Assert.NotNull(wrapped.GetHandles().RenderTargetView);
+            }
+            finally
+            {
+                wrapped.Destroy();
+                _ = nativeTexture!.Release();
+            }
+        });
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters
