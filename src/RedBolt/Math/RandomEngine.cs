@@ -1,26 +1,21 @@
+using System.Diagnostics;
 using System.Globalization;
 
 namespace RedBolt;
 
-public sealed class RandomEngine
+/// <summary>Random number generator. Stable across platforms and runs for any given seed.</summary>
+public class RandomEngine : ICloneable
 {
+    /// <summary>Max number of tries to produce "good" random values.</summary>
     public const uint MaxIterations = 32;
 
-    private const uint Multiplier = 48271;
-    private const uint Modulus = 2147483647;
-    private const uint EngineMin = 1;
-    private const uint EngineMax = Modulus - 1;
-
-    [ThreadStatic]
-    private static RandomEngine _defaultEngine = null!;
-
-    private uint _state;
-
+    /// <summary>Construct with random seed.</summary>
     public RandomEngine()
         : this((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds())
     {
     }
 
+    /// <summary>Construct with seed.</summary>
     public RandomEngine(uint seed)
     {
         _state = seed % Modulus;
@@ -28,37 +23,50 @@ public sealed class RandomEngine
             _state = 1;
     }
 
+    /// <summary>Construct from state.</summary>
     public RandomEngine(string state)
     {
+        _state = EngineMin;
         Load(state);
     }
 
-    public static RandomEngine GetDefaultEngine() => _defaultEngine ??= new RandomEngine();
-
-    public static uint MaxRange() => EngineMax - EngineMin + 1;
-
-    public void Load(string state)
+    public RandomEngine(RandomEngine engine)
     {
-        if (!uint.TryParse(state, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-            parsed = 1;
-
-        _state = parsed;
+        _state = engine._state;
     }
 
+    public object Clone() => new RandomEngine(this);
+
+    /// <summary>Return default thread-local random engine.</summary>
+    public static RandomEngine GetDefaultEngine() => _defaultEngine ??= new RandomEngine();
+
+    /// <summary>Load state from string.</summary>
+    public void Load(string state)
+    {
+        if (uint.TryParse(state, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            && parsed is >= EngineMin and <= EngineMax)
+            _state = parsed;
+    }
+
+    /// <summary>Save state as string.</summary>
     public string Save() => _state.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Return random generator range (2147483646).</summary>
+    public static uint MaxRange() => EngineMax - EngineMin + 1;
+
+    /// <summary>Return random unsigned integer number in range [0, MaxRange) with uniform distribution.</summary>
     public uint GetUInt()
     {
         _state = (uint)((ulong)_state * Multiplier % Modulus);
         return _state - EngineMin;
     }
 
+    /// <summary>Return random unsigned integer number in range [0, range) with uniform distribution. Range should not exceed MaxRange.</summary>
     public uint GetUInt(uint range)
     {
+        Debug.Assert(range <= MaxRange());
         if (range == 0)
             return 0;
-        if (range > MaxRange())
-            throw new ArgumentOutOfRangeException(nameof(range), "Range must not exceed RandomEngine.MaxRange().");
 
         var repeats = MaxRange() / range;
         var limit = repeats * range;
@@ -73,20 +81,20 @@ public sealed class RandomEngine
         return result % range;
     }
 
+    /// <summary>Return random unsigned int in range [min, max) with uniform distribution. Range should not exceed MaxRange.</summary>
     public uint GetUInt(uint min, uint max)
     {
-        if (min > max)
-            throw new ArgumentOutOfRangeException(nameof(min), "Minimum must not exceed maximum.");
+        Debug.Assert(min <= max);
         return GetUInt(max - min) + min;
     }
 
+    /// <summary>Return random int in range [min, max) with uniform distribution. Range should not exceed MaxRange.</summary>
     public int GetInt(int min, int max)
     {
-        if (min > max)
-            throw new ArgumentOutOfRangeException(nameof(min), "Minimum must not exceed maximum.");
-
-        var range = unchecked((uint)((long)max - min));
-        return (int)((long)GetUInt(range) + min);
+        // Avoid signed integer overflow
+        Debug.Assert(min <= max);
+        var range = unchecked((uint)max - (uint)min);
+        return unchecked((int)(GetUInt(range) + (uint)min));
     }
 
     /// <summary>Shuffle range in random order.</summary>
@@ -100,28 +108,39 @@ public sealed class RandomEngine
         }
     }
 
+    /// <summary>Return random double in range [0, 1] with uniform distribution.</summary>
     public double GetDouble() => GetUInt() / (double)(MaxRange() - 1);
 
+    /// <summary>Return random double in range [min, max] with uniform distribution.</summary>
     public double GetDouble(double min, double max) => GetDouble() * (max - min) + min;
 
+    /// <summary>Return random boolean with given probability of returning true.</summary>
     public bool GetBool(float probability) => GetDouble() <= probability && probability != 0.0f;
 
+    /// <summary>Return random float in range [0, 1] with uniform distribution.</summary>
     public float GetFloat() => (float)GetDouble();
 
+    /// <summary>Return random float in range [min, max] with uniform distribution.</summary>
     public float GetFloat(float min, float max) => (float)GetDouble(min, max);
 
+    /// <summary>Return pair of random floats with standard normal distribution.</summary>
     public (float First, float Second) GetStandardNormalFloatPair()
     {
         var u1 = GetDouble(MathDefs.Epsilon, 1.0);
         var u2 = GetDouble();
-        var magnitude = Math.Sqrt(-2.0 * Math.Log(u1));
-        return ((float)(magnitude * MathDefs.Cos((float)(360.0 * u2))), (float)(magnitude * MathDefs.Sin((float)(360.0 * u2))));
+
+        var z0 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(360.0f * u2 * MathDefs.DegToRad);
+        var z1 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(360.0f * u2 * MathDefs.DegToRad);
+        return ((float)z0, (float)z1);
     }
 
+    /// <summary>Return random float with standard normal distribution.</summary>
     public float GetStandardNormalFloat() => GetStandardNormalFloatPair().First;
 
+    /// <summary>Return random float with normal distribution.</summary>
     public float GetNormalFloat(float mean, float sigma) => GetStandardNormalFloat() * sigma + mean;
 
+    /// <summary>Return random 2D direction (normalized).</summary>
     public Vector2f GetDirectionVector2()
     {
         Span<float> direction = stackalloc float[2];
@@ -129,6 +148,7 @@ public sealed class RandomEngine
         return new Vector2f(direction[0], direction[1]);
     }
 
+    /// <summary>Return random 3D direction (normalized).</summary>
     public Vector3f GetDirectionVector3()
     {
         Span<float> direction = stackalloc float[3];
@@ -136,6 +156,7 @@ public sealed class RandomEngine
         return new Vector3f(direction[0], direction[1], direction[2]);
     }
 
+    /// <summary>Return random quaternion (normalized).</summary>
     public Quaternion GetQuaternion()
     {
         Span<float> direction = stackalloc float[4];
@@ -143,13 +164,17 @@ public sealed class RandomEngine
         return new Quaternion(direction[0], direction[1], direction[2], direction[3]);
     }
 
+    /// <summary>Return random 2D vector in 2D volume.</summary>
     public Vector2f GetVector2(Vector2f min, Vector2f max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y));
 
+    /// <summary>Return random 3D vector in 3D volume.</summary>
     public Vector3f GetVector3(Vector3f min, Vector3f max) => new(GetFloat(min.X, max.X), GetFloat(min.Y, max.Y), GetFloat(min.Z, max.Z));
 
+    /// <summary>Return random 3D vector in 3D volume.</summary>
     public Vector3f GetVector3(BoundingBox boundingBox) => GetVector3(boundingBox.Min, boundingBox.Max);
 
-    public void GetStandardNormalFloatArray(Span<float> array)
+    /// <summary>Return random array of floats with standard normal distribution.</summary>
+    private void GetStandardNormalFloatArray(Span<float> array)
     {
         for (var i = 0; i < array.Length / 2; ++i)
         {
@@ -162,19 +187,21 @@ public sealed class RandomEngine
             array[^1] = GetStandardNormalFloat();
     }
 
-    public void GetDirection(Span<float> direction)
+    /// <summary>Return random N-dimensional direction (normalized).</summary>
+    private void GetDirection(Span<float> direction)
     {
-        if (direction.Length <= 0)
-            throw new ArgumentOutOfRangeException(nameof(direction));
+        Debug.Assert(direction.Length > 0);
 
         for (var i = 0u; i < MaxIterations; ++i)
         {
             GetStandardNormalFloatArray(direction);
 
+            // Compute length
             var length = 0.0f;
             foreach (var x in direction)
                 length += x * x;
 
+            // Normalize and return if long enough
             if (length > MathDefs.Epsilon)
             {
                 var reciprocalLength = 1.0f / MathF.Sqrt(length);
@@ -184,9 +211,21 @@ public sealed class RandomEngine
             }
         }
 
+        // Return default direction
         direction.Clear();
         direction[0] = 1.0f;
     }
+
+    private const uint Multiplier = 48271;
+    private const uint Modulus = 2147483647;
+    private const uint EngineMin = 1;
+    private const uint EngineMax = Modulus - 1;
+
+    [ThreadStatic]
+    private static RandomEngine? _defaultEngine;
+
+    /// <summary>Underlying engine.</summary>
+    private uint _state;
 }
 
 public static partial class MathDefs

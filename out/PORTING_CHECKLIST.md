@@ -125,6 +125,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Plane.h` / `Plane.cpp` — reference-free value type, explicit copy construction and independent assignment semantics, complete constructor/method/field order, transforms, intersections, comments, and automatic lifetime reconciled
 - [x] `Polyhedron.h` / `Polyhedron.cpp` — extensible non-POD class kind, independent nested-face copy construction and assignment, preserved scratch lifetimes, native face-resize identity, clipping and transform behavior, stack temporaries, and automatic container lifetime reconciled
 - [x] `Quaternion.h` / `Quaternion.cpp` — sequential four-float value kind, explicit independent copy construction, constructor and mutating definition surface, allocation-free contiguous data, exact thresholds/hash/platform interpolation, look-rotation state preservation, and automatic lifetime reconciled
+- [x] `RandomEngine.h` / `RandomEngine.cpp` — extensible non-POD class kind, independent engine-state copy construction, thread-local shared reference, constructor/load/save semantics, exact deterministic generation, assertions, helper visibility, documentation, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

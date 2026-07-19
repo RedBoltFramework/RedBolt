@@ -5,12 +5,45 @@ namespace RedBolt.Tests;
 public sealed class RandomEngineTests
 {
     [Fact]
+    public void Class_shape_matches_native()
+    {
+        Assert.False(typeof(RandomEngine).IsValueType);
+        Assert.False(typeof(RandomEngine).IsSealed);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(RandomEngine)));
+        Assert.NotNull(typeof(RandomEngine).GetMethod("GetStandardNormalFloatArray", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic));
+        Assert.NotNull(typeof(RandomEngine).GetMethod("GetDirection", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic));
+    }
+
+    [Fact]
     public void Deterministic_seed_produces_expected_sequence()
     {
         var rng = new RandomEngine(1u);
         Assert.Equal(2147483646u, RandomEngine.MaxRange());
         Assert.Equal("1", rng.Save());
         Assert.Equal(48270u, rng.GetUInt());
+
+        var nativeSequence = new RandomEngine(12u);
+        Assert.Equal(579251u, nativeSequence.GetUInt());
+        Assert.Equal(43785880u, nativeSequence.GetUInt());
+        Assert.Equal(464353102u, nativeSequence.GetUInt());
+    }
+
+    [Fact]
+    public void Copies_have_independent_engine_state()
+    {
+        var source = new RandomEngine(7u);
+        source.GetUInt();
+        var copy = new RandomEngine(source);
+        var clone = (RandomEngine)source.Clone();
+
+        Assert.NotSame(source, copy);
+        Assert.NotSame(source, clone);
+        var expected = source.GetUInt();
+        Assert.Equal(expected, copy.GetUInt());
+        Assert.Equal(expected, clone.GetUInt());
+
+        source.GetUInt();
+        Assert.Equal(copy.GetUInt(), clone.GetUInt());
     }
 
     [Fact]
@@ -20,6 +53,22 @@ public sealed class RandomEngineTests
         var a = new RandomEngine(state);
         var b = new RandomEngine(state);
         Assert.Equal(a.GetUInt(), b.GetUInt());
+    }
+
+    [Fact]
+    public void Invalid_state_does_not_replace_engine_state()
+    {
+        var rng = new RandomEngine(7u);
+        var state = rng.Save();
+
+        rng.Load("invalid");
+        Assert.Equal(state, rng.Save());
+        rng.Load("0");
+        Assert.Equal(state, rng.Save());
+        rng.Load("2147483647");
+        Assert.Equal(state, rng.Save());
+
+        Assert.Equal("1", new RandomEngine("invalid").Save());
     }
 
     [Fact]
@@ -46,18 +95,6 @@ public sealed class RandomEngineTests
     [Fact]
     public void Vector_random_produces_valid_units_and_bounds()
     {
-        Span<float> normal = stackalloc float[5];
-        new RandomEngine(5u).GetStandardNormalFloatArray(normal);
-        foreach (var value in normal)
-            Assert.True(float.IsFinite(value));
-
-        Span<float> directionArray = stackalloc float[4];
-        new RandomEngine(6u).GetDirection(directionArray);
-        var directionLength = 0.0f;
-        foreach (var value in directionArray)
-            directionLength += value * value;
-        Assert.True(MathDefs.Equals(directionLength, 1.0f, MathDefs.LargeEpsilon));
-
         var dir = new RandomEngine(2u).GetDirectionVector3();
         Assert.True(MathDefs.Equals(dir.Length, 1.0f, MathDefs.LargeEpsilon));
 
