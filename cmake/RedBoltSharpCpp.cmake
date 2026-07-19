@@ -27,9 +27,23 @@ function(redbolt_add_native_binding_generation)
     endforeach()
 
     set(owned_header_args)
+    set(owned_header_inputs)
     foreach(owned_header IN LISTS ARG_OWNED_HEADERS)
         if(NOT owned_header STREQUAL "")
             list(APPEND owned_header_args --owned-header "${owned_header}")
+            if(IS_DIRECTORY "${owned_header}")
+                file(GLOB_RECURSE owned_header_files CONFIGURE_DEPENDS
+                    LIST_DIRECTORIES FALSE
+                    "${owned_header}/*.h"
+                    "${owned_header}/*.hh"
+                    "${owned_header}/*.hpp"
+                    "${owned_header}/*.hxx"
+                    "${owned_header}/*.inc"
+                    "${owned_header}/*.inl")
+                list(APPEND owned_header_inputs ${owned_header_files})
+            else()
+                list(APPEND owned_header_inputs "${owned_header}")
+            endif()
         endif()
     endforeach()
 
@@ -60,7 +74,7 @@ function(redbolt_add_native_binding_generation)
             ${owned_header_args}
         DEPENDS
             "${ARG_HEADER}"
-            ${ARG_OWNED_HEADERS}
+            ${owned_header_inputs}
             "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
             ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}

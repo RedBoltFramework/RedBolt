@@ -26,6 +26,6 @@
   <Target Name="RedBoltCleanNative" AfterTargets="Clean">
     <Exec WorkingDirectory="$(RedBoltRoot)"
           Condition="Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')"
-          Command="cmake --build &quot;$(RedBoltNativeBuildDir)&quot; $(RedBoltCMakeConfigurationArguments) --target clean" />
+          Command="cmake -E env REDBOLT_MSBUILD_BUILD=1 cmake --build &quot;$(RedBoltNativeBuildDir)&quot; $(RedBoltCMakeConfigurationArguments) --target clean" />
   </Target>
 </Project>

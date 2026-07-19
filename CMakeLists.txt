@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.28)
 
 project(RedBoltFramework VERSION 0.1.0 LANGUAGES C CXX)
 
+add_custom_target(redbolt-msbuild-build-guard ALL
+    COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckMsBuildBuild.cmake"
+    VERBATIM)
+
 option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
 
 if(MSVC)

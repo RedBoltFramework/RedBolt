@@ -13,10 +13,17 @@ file(GLOB_RECURSE REDBOLT_SHARPCPP_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Pipeline/*.cs"
     "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Rendering/*.cs"
     "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Support/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Model/*.csproj"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Metadata/*.csproj"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Parsing/*.csproj"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Pipeline/*.csproj"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Rendering/*.csproj"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Support/*.csproj"
     "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.h"
     "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.hpp")
-file(GLOB REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.cs")
+file(GLOB_RECURSE REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.csproj")
 
 set(REDBOLT_SHARPCPP_GENERATOR_INPUTS "${REDBOLT_SHARPCPP_GENERATOR_INPUTS}" CACHE INTERNAL "SharpCpp generator inputs")
 set(REDBOLT_DEPENDENCIES_GENERATOR_INPUTS "${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}" CACHE INTERNAL "RedBolt generator inputs")
@@ -96,7 +103,7 @@ file(MAKE_DIRECTORY
     "${REDBOLT_SPIRV_OPTIMIZER_GENERATED_DIR}"
     "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}")
 
-file(WRITE "${REDBOLT_STB_PARSE_HEADER}" [=[
+file(CONFIGURE OUTPUT "${REDBOLT_STB_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #define STB_VORBIS_HEADER_ONLY
 #include <stb_vorbis.c>
@@ -104,13 +111,13 @@ file(WRITE "${REDBOLT_STB_PARSE_HEADER}" [=[
 STBIWDEF unsigned char* stbi_write_png_to_mem(
     const unsigned char* pixels, int stride_bytes, int x, int y, int n, int* out_len);
 struct stb_vorbis { int opaque; };
-]=])
-file(WRITE "${REDBOLT_LZ4_PARSE_HEADER}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_LZ4_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <lz4.h>
 #include <lz4hc.h>
-]=])
-file(WRITE "${REDBOLT_WEBP_PARSE_HEADER}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_WEBP_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
@@ -123,16 +130,16 @@ void WebPFree(void* ptr);
 #ifdef __cplusplus
 }
 #endif
-]=])
-file(WRITE "${REDBOLT_SPIRV_OPTIMIZER_PARSE_HEADER}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_SPIRV_OPTIMIZER_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <RedBolt/SpirVOptimizerSupport.hpp>
-]=])
-file(WRITE "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <RedBolt/ShaderCompilerSupport.hpp>
-]=])
-file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_SDL_PARSE_SOURCE}" CONTENT [=[
 #include <SDL_config.h>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -148,8 +155,8 @@ file(WRITE "${REDBOLT_SDL_PARSE_SOURCE}" [=[
 #if defined(REDBOLT_GENERATE_SDL_TEST_BINDINGS)
 #include <SDL_test.h>
 #endif
-]=])
-file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <cstdint>
 #if !PLATFORM_WEB
@@ -159,14 +166,14 @@ file(WRITE "${REDBOLT_DILIGENT_PARSE_HEADER}" [=[
 #include <EngineFactoryOpenGL.h>
 #include <GraphicsAccessories.hpp>
 #include <RedBolt/DiligentSupport.hpp>
-]=])
-file(WRITE "${REDBOLT_IMGUI_PARSE_SOURCE}" [=[
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <SDL.h>
 #include <imgui.h>
 #define IMGUI_IMPL_API IMGUI_API
 #include <imgui_impl_sdl2.h>
 #include <RedBolt/ImGuiBackend.hpp>
-]=])
+]=] @ONLY)
 
 set(REDBOLT_SDL_OWNED_HEADERS "${REDBOLT_SDL_BUILD_INCLUDE_DIR};${REDBOLT_SDL_IMAGE_HEADER}" CACHE INTERNAL "SDL owned headers")
 set(REDBOLT_DILIGENT_OWNED_HEADERS "${REDBOLT_DILIGENT_INCLUDE_DIRS};${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR};${REDBOLT_DILIGENT_SUPPORT_HEADER}" CACHE INTERNAL "Diligent owned headers" FORCE)

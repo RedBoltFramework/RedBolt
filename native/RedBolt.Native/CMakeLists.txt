@@ -70,7 +70,7 @@ set_source_files_properties(
                        "$<$<CXX_COMPILER_ID:Clang>:-w>"
                        "$<$<CXX_COMPILER_ID:MSVC>:/W0>")
 
-add_dependencies(RedBolt.Native redbolt-generate-native-bindings)
+add_dependencies(RedBolt.Native redbolt-msbuild-build-guard redbolt-generate-native-bindings)
 
 set_target_properties(RedBolt.Native PROPERTIES
     OUTPUT_NAME "RedBolt.Native"
