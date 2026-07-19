@@ -149,7 +149,7 @@ public sealed class GeometryGpuTests
         Assert.True(tex.SetSize(2u, 2, 2, TextureFormat.R8));
         Assert.True(tex.SetData(1u, 0u, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));
         Assert.False(tex.GetData(1u, 0u, new byte[4]));
-        Assert.Equal(2u, tex.GetRawTexture()!.GetParams().ArraySize);
+        Assert.Equal(2, tex.GetRawTexture()!.GetParams().ArraySize);
         Assert.Equal(2u, tex.Layers);
     }
 }

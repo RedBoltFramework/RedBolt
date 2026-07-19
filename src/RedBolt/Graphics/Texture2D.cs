@@ -106,7 +106,7 @@ public class Texture2D : Texture
     /// </summary>
     public bool SetData(uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), 0u, data);
+        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, 0), new Vector3i(width, height, 1), 0, data);
         return true;
     }
 
@@ -117,7 +117,7 @@ public class Texture2D : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.Texture2D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-            NumLevels: _requestedLevels);
+            NumLevels: checked((int)_requestedLevels));
         if (!CreateForImage(parameters, image))
             return false;
 
@@ -129,7 +129,7 @@ public class Texture2D : Texture
     /// </summary>
     public bool GetData(uint level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read(0, level, destination) == true;
+        return GetRawTexture()?.Read(0, checked((int)level), destination) == true;
     }
 
     /// <summary>

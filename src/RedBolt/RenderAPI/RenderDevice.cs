@@ -805,7 +805,7 @@ public sealed class RenderDevice : Object
             return;
         }
 
-        texture.Update(0u, Vector3i.Zero, Vector3i.One, 0u, data);
+        texture.Update(0, Vector3i.Zero, Vector3i.One, 0, data);
         _defaultTextures[(int)type] = texture;
     }
 

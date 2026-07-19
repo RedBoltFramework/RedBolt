@@ -428,7 +428,7 @@ public class Texture : ResourceWithMetadata
         var parameters = baseParams with
         {
             Size = new Vector3i(baseImage.Width, baseImage.Height, baseImage.Depth),
-            NumLevels = numLevels,
+            NumLevels = checked((int)numLevels),
             Format = baseImage.GetGPUFormat(),
             SRGB = _requestedSRGB
         };
@@ -439,13 +439,13 @@ public class Texture : ResourceWithMetadata
         Width = parameters.Size.X;
         Height = parameters.Size.Y;
         Depth = parameters.Size.Z;
-        Levels = parameters.NumLevels;
+        Levels = checked((uint)parameters.NumLevels);
         MultiSample = (int)parameters.MultiSample;
         _textureFlags = parameters.Flags;
         return true;
     }
 
-    protected bool UpdateFromImage(uint arraySlice, Image? image)
+    protected bool UpdateFromImage(int arraySlice, Image? image)
     {
         if (image is null || _rawTexture is null)
             return false;
@@ -457,7 +457,7 @@ public class Texture : ResourceWithMetadata
                 return false;
 
             var size = new Vector3i(mipImage.Width, mipImage.Height, mipImage.Depth);
-            _rawTexture.Update(level, Vector3i.Zero, size, arraySlice, mipImage.GetData());
+            _rawTexture.Update(checked((int)level), Vector3i.Zero, size, arraySlice, mipImage.GetData());
         }
 
         return true;
@@ -472,7 +472,7 @@ public class Texture : ResourceWithMetadata
         if (!image.SetSize(size.X, size.Y, size.Z, 4u))
             return false;
 
-        return _rawTexture.Read(arraySlice, level, image.GetData());
+        return _rawTexture.Read(checked((int)arraySlice), checked((int)level), image.GetData());
     }
 
     protected void SetDimensions(int width, int height, int depth, TextureFormat format, int multiSample = 1,
@@ -496,7 +496,8 @@ public class Texture : ResourceWithMetadata
         {
             _rawTexture = new RawTexture(new RawTextureParams(
                 GetRawTextureType(), Format, _textureFlags,
-                new Vector3i(Width, Height, Depth), GetRawTextureArraySize(), Levels, (uint)MultiSample, SRGB: _requestedSRGB));
+                new Vector3i(Width, Height, Depth), checked((int)GetRawTextureArraySize()), checked((int)Levels),
+                MultiSample, SRGB: _requestedSRGB));
             if (_rawTexture.GetHandle() is { IsNull: false })
                 OnCreateGPU();
         }

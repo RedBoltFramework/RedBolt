@@ -125,7 +125,7 @@ public sealed class CubemapRendererTests
             var destinationRaw = Assert.IsType<RawTexture>(destinationTexture.GetRawTexture());
             for (var level = 0u; level < destinationTexture.GetLevels(); ++level)
             {
-                var view = destinationRaw.GetUAV(new RawTextureUAVKey().FromLevel(level));
+                var view = destinationRaw.GetUAV(new RawTextureUAVKey().FromLevel(checked((int)level)));
                 Assert.NotNull(view);
                 using var desc = view.GetDesc();
                 Assert.Equal(level, desc.MostDetailedMip);

@@ -426,7 +426,7 @@ public class CubemapRenderer : Object
         var destRaw = destTexture.GetRawTexture()!;
 
         for (var i = 0u; i < numLevels; ++i)
-            destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(i));
+            destRaw.CreateUAV(new RawTextureUAVKey().FromLevel(checked((int)i)));
 
         drawQueue.Reset();
 
@@ -438,7 +438,8 @@ public class CubemapRenderer : Object
             drawQueue.AddShaderResource(new StringHash("SourceTexture"), sourceRaw);
             drawQueue.CommitShaderResources();
 
-            drawQueue.AddUnorderedAccessView(new StringHash("OutputTexture"), destRaw, new RawTextureUAVKey().FromLevel(i));
+            drawQueue.AddUnorderedAccessView(new StringHash("OutputTexture"), destRaw,
+                new RawTextureUAVKey().FromLevel(checked((int)i)));
             drawQueue.CommitUnorderedAccessViews();
 
             // Calculate number of threadgroups to dispatch

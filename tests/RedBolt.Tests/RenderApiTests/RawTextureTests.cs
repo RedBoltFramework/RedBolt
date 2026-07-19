@@ -41,6 +41,22 @@ public sealed class RawTextureTests
     }
 
     [Fact]
+    public void Raw_texture_value_types_and_index_types_match_port_mappings()
+    {
+        Assert.True(typeof(RawTextureParams).IsValueType);
+        Assert.True(typeof(RawTextureUAVKey).IsValueType);
+        Assert.True(typeof(RawTextureHandles).IsValueType);
+        Assert.Equal(typeof(int), typeof(RawTextureParams).GetProperty(nameof(RawTextureParams.ArraySize))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureParams).GetProperty(nameof(RawTextureParams.NumLevels))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureParams).GetProperty(nameof(RawTextureParams.MultiSample))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureParams).GetProperty(nameof(RawTextureParams.NumLevelsRtv))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureUAVKey).GetProperty(nameof(RawTextureUAVKey.FirstSlice))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureUAVKey).GetProperty(nameof(RawTextureUAVKey.FirstLevel))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureUAVKey).GetProperty(nameof(RawTextureUAVKey.NumSlices))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(RawTextureUAVKey).GetProperty(nameof(RawTextureUAVKey.NumLevels))!.PropertyType);
+    }
+
+    [Fact]
     public void Raw_texture_creates_managed_2d_texture_and_deduces_full_mip_chain()
     {
         var rawTexture = new RawTexture(new RawTextureParams(
@@ -55,8 +71,8 @@ public sealed class RawTextureTests
         Assert.Equal(16, texture.Width);
         Assert.Equal(8, texture.Height);
         Assert.Equal((uint)5, texture.Levels);
-        Assert.Equal((uint)5, parameters.NumLevels);
-        Assert.Equal((uint)5, parameters.NumLevelsRtv);
+        Assert.Equal(5, parameters.NumLevels);
+        Assert.Equal(5, parameters.NumLevelsRtv);
         Assert.Equal(TextureFormat.RGBA8, parameters.Format);
         Assert.Equal(TextureType.Texture2D, parameters.Type);
     }
@@ -133,14 +149,14 @@ public sealed class RawTextureTests
             TextureFormat.Depth24Stencil8,
             TextureFlag.BindDepthStencil,
             new Vector3i(8, 4, 1),
-            ArraySize: 3u));
+            ArraySize: 3));
 
         var cube = Assert.IsType<TextureCube>(cubeTexture.GetTexture());
         var array = Assert.IsType<Texture2DArray>(arrayTexture.GetTexture());
 
         Assert.Equal(32, cube.Width);
         Assert.Equal(32, cube.Height);
-        Assert.Equal((uint)3, arrayTexture.GetParams().ArraySize);
+        Assert.Equal(3, arrayTexture.GetParams().ArraySize);
         Assert.Equal((uint)3, array.Layers);
         Assert.Equal(TextureFormat.Depth24Stencil8, array.Format);
     }
@@ -156,7 +172,7 @@ public sealed class RawTextureTests
             TextureType.Texture2D, TextureFormat.RGBA8,
             TextureFlag.BindRenderTarget | TextureFlag.BindDepthStencil, new Vector3i(4, 4, 1))));
         Assert.False(texture.CreateForTest(new RawTextureParams(
-            TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), MultiSample: 4u)));
+            TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), MultiSample: 4)));
     }
 
     private sealed class TestRawTexture : RawTexture
@@ -169,15 +185,15 @@ public sealed class RawTextureTests
     {
         var cube = new RawTexture(new RawTextureParams(
             TextureType.TextureCube, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
-            new Vector3i(16, 8, 9), ArraySize: 2u));
+            new Vector3i(16, 8, 9), ArraySize: 2));
         var depth = new RawTexture(new RawTextureParams(
             TextureType.Texture2D, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil,
-            new Vector3i(16, 8, 1), NumLevels: 5u));
+            new Vector3i(16, 8, 1), NumLevels: 5));
 
         Assert.Equal(new Vector3i(16, 16, 1), cube.GetParams().Size);
-        Assert.Equal(6u, cube.GetParams().ArraySize);
-        Assert.Equal(1u, depth.GetParams().NumLevels);
-        Assert.Equal(1u, depth.GetParams().NumLevelsRtv);
+        Assert.Equal(6, cube.GetParams().ArraySize);
+        Assert.Equal(1, depth.GetParams().NumLevels);
+        Assert.Equal(1, depth.GetParams().NumLevelsRtv);
     }
 
     [Fact]
@@ -185,7 +201,7 @@ public sealed class RawTextureTests
     {
         var texture = new RawTexture(new RawTextureParams(
             TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
-            new Vector3i(16, 16, 1), MultiSample: 4u));
+            new Vector3i(16, 16, 1), MultiSample: 4));
 
         texture.MarkDirty();
 
@@ -307,7 +323,7 @@ public sealed class RawTextureTests
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
                 new Vector3i(16, 16, 1)));
-            var key = new RawTextureUAVKey(NumLevels: 1u);
+            var key = new RawTextureUAVKey(NumLevels: 1);
 
             var firstView = rawTexture.CreateUAV(key);
             var secondView = rawTexture.GetUAV(key);
@@ -332,10 +348,10 @@ public sealed class RawTextureTests
 
         Assert.True(key.CanWrite);
         Assert.True(key.CanRead);
-        Assert.Equal(0u, key.FirstSlice);
-        Assert.Equal(0u, key.FirstLevel);
-        Assert.Equal(0u, key.NumSlices);
-        Assert.Equal(0u, key.NumLevels);
+        Assert.Equal(0, key.FirstSlice);
+        Assert.Equal(0, key.FirstLevel);
+        Assert.Equal(0, key.NumSlices);
+        Assert.Equal(0, key.NumLevels);
     }
 
     [Fact]
@@ -348,10 +364,10 @@ public sealed class RawTextureTests
                 TextureFormat.RGBA8,
                 TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess,
                 new Vector3i(8, 8, 1),
-                ArraySize: 4u,
-                NumLevels: 3u));
-            var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstLevel: 1u);
-            var normalizedKey = requestedKey with { NumSlices = 4u, NumLevels = 2u };
+                ArraySize: 4,
+                NumLevels: 3));
+            var requestedKey = new RawTextureUAVKey(CanWrite: true, CanRead: false, FirstLevel: 1);
+            var normalizedKey = requestedKey with { NumSlices = 4, NumLevels = 2 };
 
             var firstView = rawTexture.CreateUAV(requestedKey);
             var secondView = rawTexture.GetUAV(normalizedKey);
@@ -392,13 +408,13 @@ public sealed class RawTextureTests
         WithInitializedGraphics(() =>
         {
             var rawTexture = new RawTexture(new RawTextureParams(
-                TextureType.Texture2D, TextureFormat.R8, TextureFlag.None, new Vector3i(4, 3, 1), NumLevels: 1u));
+                TextureType.Texture2D, TextureFormat.R8, TextureFlag.None, new Vector3i(4, 3, 1), NumLevels: 1));
             byte[] source = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             var destination = new byte[source.Length];
 
-            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 3, 1), 0u, source, rowStride: 4u);
+            rawTexture.Update(0, Vector3i.Zero, new Vector3i(4, 3, 1), 0, source, rowStride: 4);
 
-            Assert.True(rawTexture.Read(0u, 0u, destination));
+            Assert.True(rawTexture.Read(0, 0, destination));
             Assert.Equal(source, destination);
         });
     }
@@ -409,13 +425,13 @@ public sealed class RawTextureTests
         WithInitializedGraphics(() =>
         {
             var rawTexture = new RawTexture(new RawTextureParams(
-                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), NumLevels: 1u));
+                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None, new Vector3i(4, 4, 1), NumLevels: 1));
             var source = new byte[4 * 4 * 4];
-            rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 4, 1), 0u, source);
+            rawTexture.Update(0, Vector3i.Zero, new Vector3i(4, 4, 1), 0, source);
 
             var before = GC.GetAllocatedBytesForCurrentThread();
             for (var i = 0; i < 32; ++i)
-                rawTexture.Update(0u, Vector3i.Zero, new Vector3i(4, 4, 1), 0u, source);
+                rawTexture.Update(0, Vector3i.Zero, new Vector3i(4, 4, 1), 0, source);
             var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
             Assert.Equal(0, allocated);
@@ -429,7 +445,7 @@ public sealed class RawTextureTests
         {
             var source = new RawTexture(new RawTextureParams(
                 TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
-                new Vector3i(8, 4, 1), NumLevels: 1u));
+                new Vector3i(8, 4, 1), NumLevels: 1));
             var wrapped = new TestRawTexture();
 
             Assert.True(wrapped.CreateFromHandle(source.GetHandle()!, TextureFormat.Unknown, 1));

@@ -918,10 +918,10 @@ layout(std140) uniform Material
         textureViewDesc.ViewType = TextureViewType.TextureViewUnorderedAccess;
         textureViewDesc.TextureDim = GetViewResourceDimension(texture);
         textureViewDesc.Format = MapTextureFormat(texture.Format);
-        textureViewDesc.MostDetailedMip = key.FirstLevel;
-        textureViewDesc.NumMipLevels = key.NumLevels;
-        textureViewDesc.FirstArraySlice = key.FirstSlice;
-        textureViewDesc.NumArraySlices = key.NumSlices;
+        textureViewDesc.MostDetailedMip = checked((uint)key.FirstLevel);
+        textureViewDesc.NumMipLevels = checked((uint)key.NumLevels);
+        textureViewDesc.FirstArraySlice = checked((uint)key.FirstSlice);
+        textureViewDesc.NumArraySlices = checked((uint)key.NumSlices);
         textureViewDesc.AccessFlags = key.CanRead && key.CanWrite
             ? UavAccessFlag.UavAccessFlagReadWrite
             : key.CanRead

@@ -122,7 +122,7 @@ public class TextureCube : Texture
     /// </summary>
     public bool SetData(CubeMapFace face, uint level, int x, int y, int width, int height, ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(level, new Vector3i(x, y, 0), new Vector3i(width, height, 1), (uint)face, data);
+        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, 0), new Vector3i(width, height, 1), (int)face, data);
         return true;
     }
 
@@ -147,12 +147,12 @@ public class TextureCube : Texture
         {
             var parameters = new RawTextureParams(
                 TextureType.TextureCube, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-                NumLevels: _requestedLevels);
+                NumLevels: checked((int)_requestedLevels));
             if (!CreateForImage(parameters, image))
                 return false;
         }
 
-        return UpdateFromImage((uint)face, image);
+        return UpdateFromImage((int)face, image);
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ public class TextureCube : Texture
     /// </summary>
     public bool GetData(CubeMapFace face, uint level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read((uint)face, level, destination) == true;
+        return GetRawTexture()?.Read((int)face, checked((int)level), destination) == true;
     }
 
     /// <summary>

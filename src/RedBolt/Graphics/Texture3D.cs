@@ -152,7 +152,7 @@ public class Texture3D : Texture
     public bool SetData(uint level, int x, int y, int z, int width, int height, int depth,
         ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(level, new Vector3i(x, y, z), new Vector3i(width, height, depth), 0, data);
+        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, z), new Vector3i(width, height, depth), 0, data);
         return true;
     }
 
@@ -163,7 +163,7 @@ public class Texture3D : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.Texture3D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-            NumLevels: _requestedLevels);
+            NumLevels: checked((int)_requestedLevels));
         if (!CreateForImage(parameters, image))
             return false;
 
@@ -175,6 +175,6 @@ public class Texture3D : Texture
     /// </summary>
     public bool GetData(uint level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read(0, level, destination) == true;
+        return GetRawTexture()?.Read(0, checked((int)level), destination) == true;
     }
 }

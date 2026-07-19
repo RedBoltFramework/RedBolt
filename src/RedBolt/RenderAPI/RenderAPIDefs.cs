@@ -259,10 +259,10 @@ public readonly record struct RawTextureParams(
     TextureFormat Format,
     TextureFlag Flags,
     Vector3i Size,
-    uint ArraySize = 1u,
-    uint NumLevels = 0u,
-    uint MultiSample = 1u,
-    uint NumLevelsRtv = 0u,
+    int ArraySize = 1,
+    int NumLevels = 0,
+    int MultiSample = 1,
+    int NumLevelsRtv = 0,
     bool SRGB = false);
 
 /// <param name="FirstSlice">The first array slice or cube face to be viewed.</param>
@@ -272,13 +272,13 @@ public readonly record struct RawTextureParams(
 public readonly record struct RawTextureUAVKey(
     bool CanWrite = true,
     bool CanRead = true,
-    uint FirstSlice = 0u,
-    uint FirstLevel = 0u,
-    uint NumSlices = 0u,
-    uint NumLevels = 0u)
+    int FirstSlice = 0,
+    int FirstLevel = 0,
+    int NumSlices = 0,
+    int NumLevels = 0)
 {
     public RawTextureUAVKey()
-        : this(true, true, 0u, 0u, 0u, 0u)
+        : this(true, true, 0, 0, 0, 0)
     {
     }
 
@@ -286,9 +286,9 @@ public readonly record struct RawTextureUAVKey(
 
     public RawTextureUAVKey WriteOnly() => this with { CanRead = false };
 
-    public RawTextureUAVKey FromLevel(uint level, uint numLevels = 0u) => this with { FirstLevel = level, NumLevels = numLevels };
+    public RawTextureUAVKey FromLevel(int level, int numLevels = 0) => this with { FirstLevel = level, NumLevels = numLevels };
 
-    public RawTextureUAVKey FromSlice(uint slice, uint numSlices = 0u) => this with { FirstSlice = slice, NumSlices = numSlices };
+    public RawTextureUAVKey FromSlice(int slice, int numSlices = 0) => this with { FirstSlice = slice, NumSlices = numSlices };
 }
 
 /// <summary>GPU buffer types.</summary>
