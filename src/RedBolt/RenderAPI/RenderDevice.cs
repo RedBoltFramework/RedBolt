@@ -677,12 +677,14 @@ public sealed class RenderDevice : Object
         return result;
     }
 
-    public static uint GetClosestFullscreenModeIndex(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
+    public static int GetClosestFullscreenModeIndex(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
     {
+        System.Diagnostics.Debug.Assert(modes.Count != 0);
+
         for (var i = 0; i < modes.Count; ++i)
         {
             if (modes[i] == desiredMode)
-                return (uint)i;
+                return i;
         }
 
         var upperBound = 0;
@@ -690,26 +692,26 @@ public sealed class RenderDevice : Object
             ++upperBound;
 
         if (upperBound > 0 && modes[upperBound - 1].Size == desiredMode.Size)
-            return (uint)(upperBound - 1);
+            return upperBound - 1;
 
         if (upperBound < modes.Count)
         {
             for (var i = upperBound; i < modes.Count; ++i)
             {
                 if (modes[i].RefreshRate >= desiredMode.RefreshRate)
-                    return (uint)i;
+                    return i;
             }
 
-            return (uint)upperBound;
+            return upperBound;
         }
 
-        return (uint)(modes.Count - 1);
+        return modes.Count - 1;
     }
 
     public static FullscreenMode GetClosestFullscreenMode(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
     {
         var index = GetClosestFullscreenModeIndex(modes, desiredMode);
-        return modes[(int)index];
+        return modes[index];
     }
 
     internal ITextureView ResolveRenderTargetView(RenderTargetView view)

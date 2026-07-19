@@ -4,7 +4,8 @@ using RedBolt.Bindings.DearImGui;
 
 try
 {
-    var exitCode = new WindowSettingsApplication().Run();
+    using var application = new WindowSettingsDemo();
+    var exitCode = application.Run();
     if (exitCode == 0)
         Console.WriteLine("RedBolt WindowSettings sample finished.");
     return exitCode;
@@ -15,19 +16,202 @@ catch (Exception ex)
     return 1;
 }
 
-sealed class WindowSettingsApplication : Application
+/// <summary>
+/// Demo application for dynamic window settings change.
+/// </summary>
+public class WindowSettingsDemo : Application
 {
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private Scene? _scene;
-    private Node? _objectNode;
-    private Camera? _camera;
-    private int _monitor;
-    private int _mode;
-    private int _multiSample;
-    private bool _resizable;
-    private bool _vSync;
-    private bool _borderless;
-    private bool _fullscreen;
+    /// <summary>
+    /// Construct.
+    /// </summary>
+    public WindowSettingsDemo()
+    {
+    }
+
+    /// <summary>
+    /// Setup after engine initialization and before running the main loop.
+    /// </summary>
+    protected override void Start()
+    {
+        // Execute base class startup
+        base.Start();
+
+        // Enable OS cursor
+        Input.SetMouseVisible(true);
+
+        // Load XML file containing default UI style sheet
+        // Set the loaded style as default style
+        // The rbfx UI style is omitted with the allowed Dear ImGui replacement.
+
+        // Create window with settings.
+        InitSettings();
+        SynchronizeSettings();
+        _screenModeSubscription = Context.SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(
+            (ref GraphicsEvents.ScreenModeEvent _) => SynchronizeSettings());
+
+        // Set the mouse mode to use in the sample
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(true);
+
+        // Create scene
+        CreateScene();
+
+        // Setup viewport
+        var viewport = new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!);
+        Renderer.SetViewport(0, viewport);
+    }
+
+    /// <summary>
+    /// Construct the scene content.
+    /// </summary>
+    private void CreateScene()
+    {
+        var cache = Resources;
+
+        _scene = new Scene();
+        _scene.CreateComponent<Octree>();
+
+        var zone = _scene.CreateComponent<Zone>();
+        zone.SetAmbientColor(Color.White);
+        zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
+
+        // Create 3D object
+        var objectNode = _scene.CreateChild("Object");
+        objectNode.SetRotation(new Quaternion(45.0f, 45.0f, 45.0f));
+        var objectModel = objectNode.CreateComponent<StaticModel>();
+        objectModel.SetModel(cache.Get<Model>("Models/Box.mdl"));
+        objectModel.SetMaterial(cache.Get<Material>("Materials/Stone.xml"));
+
+        // Create camera
+        _cameraNode = _scene.CreateChild("Camera");
+        _cameraNode.CreateComponent<Camera>();
+        _cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
+
+        // Rotate object
+        _sceneUpdateSubscription = Context.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(this, _scene,
+            (ref SceneEvents.SceneUpdateEvent eventData) =>
+        {
+            var timeStep = eventData.TimeStep;
+            objectNode.Rotate(new Quaternion(0.0f, 20.0f * timeStep, 0.0f), TransformSpace.World);
+        });
+    }
+
+    /// <summary>
+    /// Create window with settings.
+    /// </summary>
+    private void InitSettings()
+    {
+        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+            (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
+
+        // Create the Window and add it to the UI's root node
+        // Set Window size and layout settings
+        // Create the Window title Text
+        // Create monitor selector
+        // Create resolution selector
+        // Create fullscreen controller
+        // Create borderless controller
+        // Create resizable controller
+        // Create resizable controller
+        // Create multi-sample controller from 1 (= 2^0) to 16 (= 2^4)
+        // Create "Apply" button
+        // Apply settings when "Apply" button is clicked
+        // The rbfx controls are replaced by the allowed Dear ImGui sample UI surface.
+    }
+
+    /// <summary>
+    /// Synchronize settings with current state of the engine.
+    /// </summary>
+    private void SynchronizeSettings()
+    {
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        var windowSettings = renderDevice.GetWindowSettings();
+
+        // Synchronize monitor
+        _monitor = windowSettings.Monitor;
+
+        // Synchronize resolution list
+        var fullscreenModes = RenderDevice.GetFullscreenModes(windowSettings.Monitor);
+
+        // Synchronize selected resolution
+        var currentSwapChainSize = renderDevice.GetSwapChainSize();
+        var currentMode = new FullscreenMode(currentSwapChainSize, windowSettings.RefreshRate);
+        _mode = RenderDevice.GetClosestFullscreenModeIndex(fullscreenModes, currentMode);
+        _resolutionLabel.FormatInPlace(
+            $"Current: {currentMode.Size.X}x{currentMode.Size.Y}, {currentMode.RefreshRate} Hz");
+
+        // Synchronize fullscreen and borderless flags
+        _fullscreen = windowSettings.Mode == WindowMode.Fullscreen;
+        _borderless = windowSettings.Mode == WindowMode.Borderless;
+        _resizable = windowSettings.Resizable;
+        _vSync = windowSettings.VSync;
+
+        // Synchronize MSAA
+        for (var i = 0; i <= 4; ++i)
+        {
+            if (windowSettings.MultiSample == 1 << i)
+                _multiSample = i;
+        }
+    }
+
+    private void ApplySettings()
+    {
+        if (_monitor < 0)
+            return;
+
+        var fullscreenModes = RenderDevice.GetFullscreenModes(_monitor);
+        if (_mode < 0 || _mode >= fullscreenModes.Count)
+            return;
+
+        var windowSettings = new WindowSettings();
+
+        if (_fullscreen)
+            windowSettings.Mode = WindowMode.Fullscreen;
+        else if (_borderless)
+            windowSettings.Mode = WindowMode.Borderless;
+        windowSettings.Resizable = _resizable;
+        windowSettings.VSync = _vSync;
+
+        windowSettings.MultiSample = _multiSample is < 0 or > 4 ? 1 : 1 << _multiSample;
+
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        var dpiScale = windowSettings.Mode == WindowMode.Fullscreen ? 1.0f : renderDevice.GetDpiScale();
+        var width = MathDefs.RoundToInt(fullscreenModes[_mode].Size.X / dpiScale);
+        var height = MathDefs.RoundToInt(fullscreenModes[_mode].Size.Y / dpiScale);
+        windowSettings.Size = new Vector2i(width, height);
+
+        windowSettings.RefreshRate = fullscreenModes[_mode].RefreshRate;
+
+        Graphics.SetDefaultWindowModes(windowSettings);
+    }
+
+    private void DrawUI()
+    {
+        if (!ImGui.Begin("Window Settings\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        {
+            ImGui.End();
+            return;
+        }
+
+        ImGui.TextUnformatted(_resolutionLabel.Bytes);
+        ImGui.InputInt("Monitor\0"u8, out _monitor);
+        ImGui.InputInt("Mode index\0"u8, out _mode);
+        ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen);
+        ImGui.Checkbox("Borderless\0"u8, out _borderless);
+        ImGui.Checkbox("Resizable\0"u8, out _resizable);
+        ImGui.Checkbox("V-Sync\0"u8, out _vSync);
+        ImGui.InputInt("MSAA index\0"u8, out _multiSample);
+        if (ImGui.Button("Apply\0"u8))
+            ApplySettings();
+        ImGui.End();
+    }
+
+    protected override void Update(float timeStep)
+    {
+        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+            Exit();
+    }
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -42,117 +226,50 @@ sealed class WindowSettingsApplication : Application
         parameters.WindowWidth = 1280;
     }
 
-    protected override void Start()
-    {
-        Input.SetMouseMode(MouseMode.Free);
-        Input.SetMouseVisible(true);
-
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
-
-        CreateScene();
-        Renderer.SetViewport(0, new Viewport(_scene!, _camera!));
-        SynchronizeSettings();
-    }
-
-    protected override void Update(float timeStep)
-    {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
-            Exit();
-        if (_objectNode is not null)
-            _objectNode.Rotate(new Quaternion(0.0f, 20.0f * timeStep, 0.0f));
-    }
-
     protected override void Stop()
     {
+        _sceneUpdateSubscription?.Dispose();
+        _sceneUpdateSubscription = null;
+        _screenModeSubscription?.Dispose();
+        _screenModeSubscription = null;
         _dearImGuiSubscription?.Dispose();
         _dearImGuiSubscription = null;
+        _resolutionLabel.Dispose();
+        Renderer.SetNumViewports(0);
+        _cameraNode = null;
+        _scene?.Dispose();
+        _scene = null;
+        base.Stop();
     }
 
-    private void CreateScene()
+    public override void Dispose()
     {
-        _scene = new Scene();
-        _scene.CreateComponent<Octree>();
-        var zone = _scene.CreateComponent<Zone>();
-        zone.SetAmbientColor(Color.White);
-        zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-
-        _objectNode = _scene.CreateChild("Object");
-        _objectNode.SetRotation(new Quaternion(45.0f, 45.0f, 45.0f));
-        var model = _objectNode.CreateComponent<StaticModel>();
-        model.SetModel(Resources.Get<Model>("Models/Box.mdl"));
-        model.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
-
-        var cameraNode = _scene.CreateChild("Camera");
-        _camera = cameraNode.CreateComponent<Camera>();
-        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
+        _sceneUpdateSubscription?.Dispose();
+        _sceneUpdateSubscription = null;
+        _screenModeSubscription?.Dispose();
+        _screenModeSubscription = null;
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+        _resolutionLabel.Dispose();
+        if (_scene is not null)
+            Renderer.SetNumViewports(0);
+        _cameraNode = null;
+        _scene?.Dispose();
+        _scene = null;
+        base.Dispose();
     }
 
-    private void SynchronizeSettings()
-    {
-        var settings = GetSubsystem<RenderDevice>()!.GetWindowSettings();
-        _monitor = settings.Monitor;
-        _fullscreen = settings.Mode == WindowMode.Fullscreen;
-        _borderless = settings.Mode == WindowMode.Borderless;
-        _resizable = settings.Resizable;
-        _vSync = settings.VSync;
-        _multiSample = settings.MultiSample;
-        var modes = RenderDevice.GetFullscreenModes(_monitor);
-        var renderDevice = GetSubsystem<RenderDevice>()!;
-        var current = new FullscreenMode(renderDevice.GetSwapChainSize(), settings.RefreshRate);
-        _mode = (int)RenderDevice.GetClosestFullscreenModeIndex(modes, current);
-        _multiSample = 0;
-        for (var i = 0; i <= 4; ++i)
-        {
-            if (settings.MultiSample == (1 << i))
-                _multiSample = i;
-        }
-    }
-
-    private void ApplySettings()
-    {
-        var modes = RenderDevice.GetFullscreenModes(_monitor);
-        if (_mode < 0 || _mode >= modes.Count)
-            return;
-
-        var mode = modes[_mode];
-        var settings = new WindowSettings
-        {
-            Mode = _fullscreen ? WindowMode.Fullscreen : _borderless ? WindowMode.Borderless : WindowMode.Windowed,
-            Monitor = _monitor,
-            Resizable = _resizable,
-            VSync = _vSync,
-            MultiSample = 1 << _multiSample,
-            RefreshRate = mode.RefreshRate,
-            Size = new Vector2i(mode.Size.X, mode.Size.Y)
-        };
-        var dpiScale = settings.Mode == WindowMode.Fullscreen ? 1.0f : GetSubsystem<RenderDevice>()!.GetDpiScale();
-        settings.Size = new Vector2i(
-            MathDefs.RoundToInt(mode.Size.X / dpiScale),
-            MathDefs.RoundToInt(mode.Size.Y / dpiScale));
-        Graphics.SetDefaultWindowModes(settings);
-    }
-
-    private void DrawUI()
-    {
-        if (!ImGui.Begin("Window Settings\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-        {
-            ImGui.End();
-            return;
-        }
-
-        ImGui.TextUnformatted("WindowSettingsDemo uses Dear ImGui instead of rbfx UI.\0"u8);
-        ImGui.InputInt("Monitor\0"u8, out _monitor);
-        ImGui.InputInt("Mode index\0"u8, out _mode);
-        ImGui.InputInt("MSAA index\0"u8, out _multiSample);
-        if (ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen))
-            ApplySettings();
-        if (ImGui.Checkbox("Borderless\0"u8, out _borderless))
-            ApplySettings();
-        if (ImGui.Checkbox("Resizable\0"u8, out _resizable))
-            ApplySettings();
-        if (ImGui.Checkbox("V-Sync\0"u8, out _vSync))
-            ApplySettings();
-        ImGui.End();
-    }
+    private Scene? _scene;
+    private Node? _cameraNode;
+    private int _monitor;
+    private readonly CString _resolutionLabel = new();
+    private int _mode;
+    private bool _fullscreen;
+    private bool _borderless;
+    private bool _resizable;
+    private bool _vSync;
+    private int _multiSample;
+    private ContextEventSubscription? _dearImGuiSubscription;
+    private ContextEventSubscription? _screenModeSubscription;
+    private ContextEventSubscription? _sceneUpdateSubscription;
 }

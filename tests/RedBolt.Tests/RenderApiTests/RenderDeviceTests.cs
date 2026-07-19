@@ -643,13 +643,13 @@ public sealed class RenderDeviceTests
             new FullscreenMode(new Vector2i(1920, 1080), 60)
         };
 
-        Assert.Equal(1u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+        Assert.Equal(1, RenderDevice.GetClosestFullscreenModeIndex(modes,
             new FullscreenMode(new Vector2i(1280, 720), 144)));
-        Assert.Equal(1u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+        Assert.Equal(1, RenderDevice.GetClosestFullscreenModeIndex(modes,
             new FullscreenMode(new Vector2i(1280, 720), 120)));
-        Assert.Equal(2u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+        Assert.Equal(2, RenderDevice.GetClosestFullscreenModeIndex(modes,
             new FullscreenMode(new Vector2i(1600, 900), 60)));
-        Assert.Equal(2u, RenderDevice.GetClosestFullscreenModeIndex(modes,
+        Assert.Equal(2, RenderDevice.GetClosestFullscreenModeIndex(modes,
             new FullscreenMode(new Vector2i(2560, 1440), 240)));
         Assert.Equal(modes[2], RenderDevice.GetClosestFullscreenMode(modes,
             new FullscreenMode(new Vector2i(1600, 900), 60)));
