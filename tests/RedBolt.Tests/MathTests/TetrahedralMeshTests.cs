@@ -1,9 +1,51 @@
 using RedBolt;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt.Tests;
 
 public sealed class TetrahedralMeshTests
 {
+    [Fact]
+    public void Implementation_helpers_match_native_value_and_reference_semantics()
+    {
+        Assert.True(typeof(TetrahedralMesh).IsClass);
+
+        var edgeType = typeof(TetrahedralMesh).GetNestedType("TetrahedralMeshEdge", BindingFlags.NonPublic)!;
+        var indicesField = edgeType.GetField("Indices", BindingFlags.Instance | BindingFlags.Public)!;
+        var elementField = indicesField.FieldType.GetField("_element0", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        Assert.True(edgeType.IsValueType);
+        var containsReferencesMethod = typeof(RuntimeHelpers)
+            .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences), BindingFlags.Public | BindingFlags.Static)!
+            .GetGenericMethodDefinition();
+        Assert.False((bool)containsReferencesMethod.MakeGenericMethod(edgeType).Invoke(null, null)!);
+        Assert.Equal(20, Marshal.SizeOf(edgeType));
+
+        var source = Activator.CreateInstance(edgeType)!;
+        var sourceIndices = indicesField.GetValue(source)!;
+        elementField.SetValue(sourceIndices, 7u);
+        indicesField.SetValue(source, sourceIndices);
+
+        var copy = typeof(object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(source, null)!;
+        var copyIndices = indicesField.GetValue(copy)!;
+        elementField.SetValue(copyIndices, 9u);
+        indicesField.SetValue(copy, copyIndices);
+
+        Assert.Equal(7u, elementField.GetValue(indicesField.GetValue(source)!));
+        Assert.Equal(9u, elementField.GetValue(indicesField.GetValue(copy)!));
+
+        var contextType = typeof(TetrahedralMesh).GetNestedType("DelaunayContext", BindingFlags.NonPublic)!;
+        Assert.True(contextType.IsValueType);
+        Assert.True((bool)containsReferencesMethod.MakeGenericMethod(contextType).Invoke(null, null)!);
+        var findMethod = typeof(TetrahedralMesh).GetMethod("FindAndRemoveIntersected", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var fillMethod = typeof(TetrahedralMesh).GetMethod("FillStarShapedHole", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Assert.Equal(contextType.MakeByRefType(), findMethod.GetParameters()[0].ParameterType);
+        Assert.Equal(contextType.MakeByRefType(), fillMethod.GetParameters()[0].ParameterType);
+    }
+
     [Fact]
     public void Define_builds_inner_and_outer_tetrahedrons_for_simple_input()
     {

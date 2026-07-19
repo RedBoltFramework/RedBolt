@@ -1,10 +1,73 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
 public partial class TetrahedralMesh
 {
+    /// <summary>Edge of tetrahedral mesh.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TetrahedralMeshEdge
+    {
+        [InlineArray(2)]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct UIntArray2
+        {
+            private uint _element0;
+        }
+
+        /// <summary>Indices. Always sorted.</summary>
+        public UIntArray2 Indices;
+        /// <summary>Degree of silver-ness. The more the worse.</summary>
+        public float SilverScore;
+        /// <summary>Tetrahedron.</summary>
+        public uint TetIndex;
+        /// <summary>How many times the edge is present in the tetrahedron.</summary>
+        public uint Cardinality;
+
+        /// <summary>Construct default.</summary>
+        public TetrahedralMeshEdge()
+        {
+            Indices = default;
+            SilverScore = 0.0f;
+            TetIndex = uint.MaxValue;
+            Cardinality = 1;
+        }
+
+        /// <summary>Construct valid.</summary>
+        public TetrahedralMeshEdge(uint i0, uint i1, uint tetIndex, float score)
+        {
+            Indices = default;
+            Indices[0] = i0;
+            Indices[1] = i1;
+            SilverScore = score;
+            TetIndex = tetIndex;
+            Cardinality = 1;
+            if (Indices[0] > Indices[1])
+                (Indices[0], Indices[1]) = (Indices[1], Indices[0]);
+        }
+
+        /// <summary>Compare for sorting.</summary>
+        public static bool operator <(TetrahedralMeshEdge lhs, TetrahedralMeshEdge rhs)
+        {
+            if (lhs.Indices[0] != rhs.Indices[0])
+                return lhs.Indices[0] < rhs.Indices[0];
+            if (lhs.Indices[1] != rhs.Indices[1])
+                return lhs.Indices[1] < rhs.Indices[1];
+            return lhs.SilverScore < rhs.SilverScore;
+        }
+
+        public static bool operator >(TetrahedralMeshEdge lhs, TetrahedralMeshEdge rhs) => rhs < lhs;
+
+        /// <summary>Compare edges.</summary>
+        public readonly bool IsSameEdge(TetrahedralMeshEdge rhs)
+        {
+            return Indices[0] == rhs.Indices[0] && Indices[1] == rhs.Indices[1];
+        }
+    }
+
     /// <summary>Solve cubic equation x^3 + a*x^2 + b*x + c = 0.</summary>
     private static int SolveCubicEquation(double[] result, double a, double b, double c, double eps)
     {
@@ -200,7 +263,12 @@ public partial class TetrahedralMesh
     private void BuildTetrahedrons(IReadOnlyList<Vector3f> positions)
     {
         // Initialize context
-        var ctx = new DelaunayContext(Tetrahedrons.Count);
+        var ctx = new DelaunayContext();
+        for (var i = 0; i < Tetrahedrons.Count; ++i)
+        {
+            ctx.Circumspheres.Add(default);
+            ctx.Removed.Add(false);
+        }
         for (var i = 0; i < Tetrahedrons.Count; ++i)
             ctx.Circumspheres[i] = GetTetrahedronCircumsphere((uint)i);
 
@@ -225,7 +293,7 @@ public partial class TetrahedralMesh
             {
                 var newVertexIndex = verticesQueue[i];
                 // Carve hole in the mesh
-                if (!FindAndRemoveIntersected(ctx, Vertices[(int)newVertexIndex], holeSurface, removedTetrahedrons))
+                if (!FindAndRemoveIntersected(ref ctx, Vertices[(int)newVertexIndex], holeSurface, removedTetrahedrons))
                 {
                     postponedVertices.Add(newVertexIndex);
                     continue;
@@ -244,7 +312,7 @@ public partial class TetrahedralMesh
                 }
 
                 // Fill hole with tetrahedrons
-                FillStarShapedHole(ctx, removedTetrahedrons, holeSurface, newVertexIndex);
+                FillStarShapedHole(ref ctx, removedTetrahedrons, holeSurface, newVertexIndex);
             }
 
             // Re-enqueue postponed vertices
@@ -263,7 +331,7 @@ public partial class TetrahedralMesh
         // Dump failed attempts for debugging
         DebugHighlightEdges.Clear();
         for (var i = 0; i < verticesQueue.Count; ++i)
-            FindAndRemoveIntersected(ctx, Vertices[(int)verticesQueue[i]], holeSurface, removedTetrahedrons, true);
+            FindAndRemoveIntersected(ref ctx, Vertices[(int)verticesQueue[i]], holeSurface, removedTetrahedrons, true);
 
         // Finalize triangulation
         DisconnectSuperMeshTetrahedrons(ctx.Removed);
@@ -276,9 +344,12 @@ public partial class TetrahedralMesh
         NumInnerTetrahedrons = (uint)Tetrahedrons.Count;
         Debug.Assert(IsAdjacencyValid(false));
 
-        Log.GetLogger().LogWarning(
-            "Triangulation is incomplete because vertices are too sparse, {Count} vertices are ignored",
-            verticesQueue.Count);
+        if (IgnoredVertices.Count > verticesQueue.Count)
+        {
+            Log.GetLogger().LogWarning(
+                "Triangulation is incomplete because vertices are too sparse, {Count} vertices are ignored",
+                verticesQueue.Count);
+        }
 
         // Build the outer space and precompute matrices
         var hullSurface = new TetrahedralMeshSurface();
@@ -328,22 +399,22 @@ public partial class TetrahedralMesh
         }
     }
 
+    /// <summary>Data used for Delaunay triangulation.</summary>
     private struct DelaunayContext
     {
+        /// <summary>Circumspheres of mesh tetrahedrons.</summary>
         public List<HighPrecisionSphere> Circumspheres;
+
+        /// <summary>Whether the tetrahedron is removed.</summary>
         public List<bool> Removed;
 
-        public DelaunayContext(int size)
+        public DelaunayContext()
         {
-            Circumspheres = new List<HighPrecisionSphere>(size);
-            Removed = new List<bool>(size);
-            for (var i = 0; i < size; ++i)
-            {
-                Circumspheres.Add(default);
-                Removed.Add(false);
-            }
+            Circumspheres = [];
+            Removed = [];
         }
 
+        /// <summary>Tests if point is inside circumsphere of tetrahedron.</summary>
         public readonly bool IsInsideCircumsphere(uint tetIndex, Vector3f position)
         {
             return Circumspheres[(int)tetIndex].Distance(position) < MathDefs.LargeEpsilon;
@@ -351,7 +422,7 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Find and remove tetrahedrons whose circumspheres intersect given point.</summary>
-    private bool FindAndRemoveIntersected(DelaunayContext ctx, Vector3f position,
+    private bool FindAndRemoveIntersected(ref DelaunayContext ctx, Vector3f position,
         TetrahedralMeshSurface holeSurface, List<uint> removedTetrahedrons, bool dumpErrors = false)
     {
         // Reset output
@@ -522,7 +593,7 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Fill star-shaped hole with tetrahedrons connected to specified vertex.</summary>
-    private void FillStarShapedHole(DelaunayContext ctx, List<uint> outputTetrahedrons,
+    private void FillStarShapedHole(ref DelaunayContext ctx, List<uint> outputTetrahedrons,
         TetrahedralMeshSurface holeSurface, uint centerIndex)
     {
         for (uint i = 0; i < holeSurface.Faces.Count; ++i)
@@ -736,14 +807,7 @@ public partial class TetrahedralMesh
             }
 
             oldToNewIndexMap[oldTetIndex] = (uint)Tetrahedrons.Count;
-            var oldTetrahedron = tetrahedronsCopy[oldTetIndex];
-            var newTetrahedron = new Tetrahedron { Matrix = oldTetrahedron.Matrix };
-            for (var i = 0; i < 4; ++i)
-            {
-                newTetrahedron.Indices[i] = oldTetrahedron.Indices[i];
-                newTetrahedron.Neighbors[i] = oldTetrahedron.Neighbors[i];
-            }
-            Tetrahedrons.Add(newTetrahedron);
+            Tetrahedrons.Add(tetrahedronsCopy[oldTetIndex]);
         }
 
         // Adjust neighbor indices
@@ -796,6 +860,7 @@ public partial class TetrahedralMesh
     private void UpdateIgnoredVertices()
     {
         var ignored = new bool[Vertices.Count];
+        Array.Fill(ignored, true);
         for (var i = 0; i < Tetrahedrons.Count; ++i)
         {
             var tetrahedron = Tetrahedrons[i];
@@ -976,50 +1041,4 @@ public partial class TetrahedralMesh
         }
     }
 
-    /// <summary>Edge of tetrahedral mesh.</summary>
-    private struct TetrahedralMeshEdge
-    {
-        /// <summary>Indices. Always sorted.</summary>
-        public uint[] Indices;
-        /// <summary>Degree of silver-ness. The more the worse.</summary>
-        public float SilverScore;
-        /// <summary>Tetrahedron.</summary>
-        public uint TetIndex;
-        /// <summary>How many times the edge is present in the tetrahedron.</summary>
-        public uint Cardinality;
-
-        /// <summary>Construct default.</summary>
-        public TetrahedralMeshEdge()
-        {
-            Indices = new uint[2];
-            SilverScore = 0.0f;
-            TetIndex = uint.MaxValue;
-            Cardinality = 1;
-        }
-
-        /// <summary>Construct valid.</summary>
-        public TetrahedralMeshEdge(uint i0, uint i1, uint tetIndex, float score)
-        {
-            Indices = [i0, i1];
-            SilverScore = score;
-            TetIndex = tetIndex;
-            Cardinality = 1;
-            if (Indices[0] > Indices[1])
-                (Indices[0], Indices[1]) = (Indices[1], Indices[0]);
-        }
-
-        /// <summary>Compare edges.</summary>
-        public readonly bool IsSameEdge(TetrahedralMeshEdge rhs) => Indices[0] == rhs.Indices[0] && Indices[1] == rhs.Indices[1];
-
-        public static bool operator <(TetrahedralMeshEdge lhs, TetrahedralMeshEdge rhs)
-        {
-            if (lhs.Indices[0] != rhs.Indices[0])
-                return lhs.Indices[0] < rhs.Indices[0];
-            if (lhs.Indices[1] != rhs.Indices[1])
-                return lhs.Indices[1] < rhs.Indices[1];
-            return lhs.SilverScore < rhs.SilverScore;
-        }
-
-        public static bool operator >(TetrahedralMeshEdge lhs, TetrahedralMeshEdge rhs) => rhs < lhs;
-    }
 }
