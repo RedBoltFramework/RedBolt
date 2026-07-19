@@ -3,12 +3,21 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Base class for generic IK chain.</summary>
-public class IKChain
+public class IKChain : ICloneable
 {
-    protected bool _isFirstSegmentIncomplete;
-    protected readonly List<IKNode> _nodes = new();
-    protected readonly List<IKNodeSegment> _segments = new();
-    protected float _totalLength;
+    public IKChain()
+    {
+    }
+
+    public IKChain(IKChain chain)
+    {
+        _isFirstSegmentIncomplete = chain._isFirstSegmentIncomplete;
+        _nodes.AddRange(chain._nodes);
+        _segments.AddRange(chain._segments);
+        _totalLength = chain._totalLength;
+    }
+
+    public object Clone() => new IKChain(this);
 
     public void Clear()
     {
@@ -105,4 +114,9 @@ public class IKChain
             _segments[i] = segment;
         }
     }
+
+    protected bool _isFirstSegmentIncomplete;
+    protected readonly List<IKNode> _nodes = new();
+    protected readonly List<IKNodeSegment> _segments = new();
+    protected float _totalLength;
 }

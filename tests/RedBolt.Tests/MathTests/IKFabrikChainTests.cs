@@ -5,6 +5,22 @@ namespace RedBolt.Tests;
 public sealed class IKFabrikChainTests
 {
     [Fact]
+    public void Clone_preserves_derived_type_and_copies_base_containers()
+    {
+        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
+        var second = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var chain = new IKFabrikChain();
+        chain.AddNode(first);
+        chain.AddNode(second);
+
+        var clone = Assert.IsType<IKFabrikChain>(((ICloneable)chain).Clone());
+
+        Assert.NotSame(chain.GetNodes(), clone.GetNodes());
+        Assert.NotSame(chain.GetSegments(), clone.GetSegments());
+        Assert.Same(chain.GetNodes()[0], clone.GetNodes()[0]);
+    }
+
+    [Fact]
     public void Solve_reaches_target_without_changing_segment_lengths()
     {
         var first = new IKNode(Vector3f.Zero, Quaternion.Identity);

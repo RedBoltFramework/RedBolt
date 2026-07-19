@@ -3,8 +3,19 @@ using System;
 namespace RedBolt;
 
 /// <summary>Generic unconstrained FABRIK chain.</summary>
-public class IKFabrikChain : IKChain
+public class IKFabrikChain : IKChain, ICloneable
 {
+    public IKFabrikChain()
+    {
+    }
+
+    public IKFabrikChain(IKFabrikChain chain)
+        : base(chain)
+    {
+    }
+
+    public new object Clone() => new IKFabrikChain(this);
+
     public void Solve(Vector3f target, IKSettings settings)
     {
         if (_segments.Count == 0)
@@ -15,6 +26,7 @@ public class IKFabrikChain : IKChain
             return;
 
         StorePreviousTransforms();
+        // Don't do more than one attempt for now
         TrySolve(target, settings);
         UpdateSegmentRotations(settings);
     }

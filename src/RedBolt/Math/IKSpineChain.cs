@@ -4,11 +4,23 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Uniformly bending IK chain.</summary>
-public class IKSpineChain : IKChain
+public class IKSpineChain : IKChain, ICloneable
 {
     public delegate float WeightFunction(float x);
 
     public static float DefaultWeightFunction(float x) => 1.0f;
+
+    public IKSpineChain()
+    {
+    }
+
+    public IKSpineChain(IKSpineChain chain)
+        : base(chain)
+    {
+        _weights.AddRange(chain._weights);
+    }
+
+    public new object Clone() => new IKSpineChain(this);
 
     public void Solve(Vector3f target, Vector3f baseDirection, float maxRotation, IKSettings settings,
         WeightFunction? weightFun = null)
@@ -21,6 +33,13 @@ public class IKSpineChain : IKChain
 
         var basePosition = _nodes[0].Position;
         var bendDirection = GetProjectionAndOffset(target, basePosition, baseDirection).Offset.Normalized;
+
+        //    Target
+        //   /|
+        //  / |
+        // o--> Base Direction (= x axis)
+        // ^
+        // Base Position
         var projectedTarget = ProjectTarget(target, basePosition, baseDirection);
         var angularTolerance = settings.Tolerance / _totalLength * MathDefs.RadToDeg;
         var totalAngle = FindBestAngle(projectedTarget, maxRotation, angularTolerance);
@@ -48,8 +67,6 @@ public class IKSpineChain : IKChain
             _segments[i] = segment;
         }
     }
-
-    private readonly List<float> _weights = new();
 
     private void UpdateSegmentWeights(WeightFunction weightFun)
     {
@@ -131,9 +148,12 @@ public class IKSpineChain : IKChain
         });
     }
 
+    private readonly List<float> _weights = new();
+
+    /// <summary>Solve error function f(x) for minimum value using bisection method.</summary>
     private static float SolveBisect(Func<float, float> function, float minValue, float maxValue, float tolerance, uint maxIterations = 100)
     {
-        var approximateNumSteps = MathF.Ceiling(MathF.Log(tolerance / (maxValue - minValue + float.Epsilon)) / MathF.Log(0.5f));
+        var approximateNumSteps = MathF.Ceiling(MathF.Log(tolerance / (maxValue - minValue + MathDefs.Epsilon)) / MathF.Log(0.5f));
         var numSteps = (uint)MathDefs.Clamp(approximateNumSteps, 1.0f, maxIterations);
         var beginValue = minValue;
         var beginError = (double)function(beginValue);

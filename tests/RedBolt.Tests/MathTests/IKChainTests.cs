@@ -5,6 +5,29 @@ namespace RedBolt.Tests;
 public sealed class IKChainTests
 {
     [Fact]
+    public void Copy_construction_copies_containers_and_preserves_node_aliases()
+    {
+        var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
+        var second = new IKNode(Vector3f.Right, Quaternion.Identity);
+        var chain = new IKChain();
+        chain.AddNode(first);
+        chain.AddNode(second);
+        chain.UpdateLengths();
+
+        var copy = (IKChain)chain.Clone();
+
+        Assert.NotSame(chain.GetNodes(), copy.GetNodes());
+        Assert.NotSame(chain.GetSegments(), copy.GetSegments());
+        Assert.Same(chain.GetNodes()[0], copy.GetNodes()[0]);
+        Assert.Same(chain.GetSegments()[0].BeginNode, copy.GetSegments()[0].BeginNode);
+
+        chain.GetNodes().Clear();
+        chain.GetSegments().Clear();
+        Assert.Equal(2, copy.GetNodes().Count);
+        Assert.Single(copy.GetSegments());
+    }
+
+    [Fact]
     public void Add_node_builds_segments_and_updates_lengths()
     {
         var first = new IKNode(Vector3f.Zero, Quaternion.Identity);
