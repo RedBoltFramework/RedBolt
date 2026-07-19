@@ -256,6 +256,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `FreeFlyController.h` / `FreeFlyController.cpp` — extensible noncopyable component and nested value-struct kinds, factory registration, owned multitouch-adapter teardown, core-update subscriptions, raw attributes, device filtering, and movement value semantics reconciled
 - [x] `InputMap.h` / `InputMap.cpp` — extensible noncopyable resource, helper POD structs, copyable non-POD action value, deep vector cloning at native value-copy sites, metadata ownership, reverse-order teardown, serialization, loading, and native mapping/evaluation quirks reconciled
 - [x] `MoveAndOrbitComponent.h` / `MoveAndOrbitComponent.cpp` — extensible noncopyable logic component, value-only field semantics, factory registration, node rotation initialization, virtual setters, pitch clamp, distance limits, and default derived teardown reconciled
+- [x] `MoveAndOrbitController.h` / `MoveAndOrbitController.cpp` — extensible noncopyable component, explicit empty destructor, retained input-map reference, borrowed component/UI aliases, input-end subscriptions, touch-state value flow, and movement/orbit evaluation reconciled; excluded built-in UI members remain exact TODOs
 - [x] `IDearImGuiInputSink.cs` — accepted stateless assembly-boundary facade for native `SystemUI::OnRawEvent` under the allowed `SystemUI` → `DearImGui` replacement; no owned or copied state
 
 ## [~] A12. Engine — top-level orchestration, depends on all Part-A above

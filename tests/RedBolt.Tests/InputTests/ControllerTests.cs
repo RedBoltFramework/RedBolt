@@ -114,24 +114,49 @@ public sealed class ControllerTests
         map.MapKeyboardKey(MoveAndOrbitController.ActionRight, Scancode.D);
         map.MapKeyboardKey(MoveAndOrbitController.ActionTurnRight, Scancode.E);
         map.MapKeyboardKey(MoveAndOrbitController.ActionLookDown, Scancode.S);
-        map.AddMetadata(MoveAndOrbitController.AxisRotationSensitivityMetadata, 50.0f);
+        map.AddMetadata(MoveAndOrbitController.AxisRotationSensitivity, 50.0f);
         controller.SetInputMap(map);
 
-        Input.BeginFrame();
-        Input.SetKey(Key.W, Scancode.W, true);
-        Input.SetKey(Key.D, Scancode.D, true);
-        Input.SetKey(Key.E, Scancode.E, true);
-        Input.SetKey(Key.S, Scancode.S, true);
-        scene.Update(0.5f);
-        Input.SetKey(Key.W, Scancode.W, false);
-        Input.SetKey(Key.D, Scancode.D, false);
-        Input.SetKey(Key.E, Scancode.E, false);
-        Input.SetKey(Key.S, Scancode.S, false);
+        _fixture.Time.BeginFrame(0.5f);
+        try
+        {
+            Input.SetKey(Key.W, Scancode.W, true);
+            Input.SetKey(Key.D, Scancode.D, true);
+            Input.SetKey(Key.E, Scancode.E, true);
+            Input.SetKey(Key.S, Scancode.S, true);
+            Input.SendEvent<InputEvents.InputEndEvent>();
+        }
+        finally
+        {
+            Input.SetKey(Key.W, Scancode.W, false);
+            Input.SetKey(Key.D, Scancode.D, false);
+            Input.SetKey(Key.E, Scancode.E, false);
+            Input.SetKey(Key.S, Scancode.S, false);
+            _fixture.Time.EndFrame();
+        }
 
         Assert.True(movement.GetVelocity().ApproximatelyEquivalent(new Vector3f(1.0f, 0.0f, 1.0f)));
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetYaw(), 25.0f));
         Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), 25.0f));
         Assert.Equal("Input/MoveController", controller.GetInputMapAttr().Name);
+    }
+
+    [Fact]
+    public void MoveAndOrbitController_matches_native_class_shape()
+    {
+        var type = typeof(MoveAndOrbitController);
+        Assert.Equal(typeof(Component), type.BaseType);
+        Assert.False(type.IsValueType);
+        Assert.False(type.IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+        Assert.DoesNotContain(type.GetInterfaces(), interfaceType => interfaceType.Name == "ISceneUpdateListener");
+        Assert.False(typeof(InputMap).IsValueType);
+        Assert.True(typeof(TouchState).IsValueType);
+        Assert.True(typeof(Vector2i).IsValueType);
+
+        MoveAndOrbitController.RegisterObject(Context.Instance);
+        using var reflected = Assert.IsType<MoveAndOrbitController>(
+            Context.Instance.CreateObject(ObjectReflection<MoveAndOrbitController>.TypeId));
     }
 
     [Fact]
@@ -207,7 +232,7 @@ public sealed class ControllerTests
     }
 
     [Fact]
-    public void MoveAndOrbitController_resource_attribute_uses_cache_and_ui_filters_roundtrip()
+    public void MoveAndOrbitController_resource_attribute_uses_cache()
     {
         var cachedMap = new InputMap("Input/CachedMoveMap");
         cachedMap.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
@@ -215,13 +240,8 @@ public sealed class ControllerTests
         Assert.True(_fixture.Resources.AddManualResource(cachedMap));
         var scene = new Scene();
         var controller = scene.CreateChild("Controller").CreateComponent<MoveAndOrbitController>();
-        controller.SetInput(Input);
         controller.SetInputMapAttr(new ResourceRef(new StringHash(nameof(InputMap)), cachedMap.Name));
-        controller.SetMovementUIElement("MovementArea");
-        controller.SetRotationUIElement("RotationArea");
 
         Assert.Same(cachedMap, controller.GetInputMap());
-        Assert.Equal("MovementArea", controller.GetMovementUIElement());
-        Assert.Equal("RotationArea", controller.GetRotationUIElement());
     }
 }
