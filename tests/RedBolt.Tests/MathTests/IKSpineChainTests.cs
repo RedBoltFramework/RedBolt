@@ -36,8 +36,8 @@ public sealed class IKSpineChainTests
 
         chain.Solve(new Vector3f(1.5f, 1.0f, 0.0f), Vector3f.Right, 90.0f, new IKSettings());
 
-        Assert.True(MathDefs.ApproximatelyEquivalent((middle.Position - first.Position).Length, 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent((last.Position - middle.Position).Length, 1.0f));
+        Assert.True(MathDefs.Equals((middle.Position - first.Position).Length, 1.0f));
+        Assert.True(MathDefs.Equals((last.Position - middle.Position).Length, 1.0f));
         Assert.True(last.Position.Y > 0.0f);
     }
 }

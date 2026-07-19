@@ -13,7 +13,7 @@ public sealed class ValueAnimationTests
 
         Assert.Equal(VariantType.Float, animation.GetValueType());
         Assert.True(animation.IsValid());
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)animation.GetAnimationValue(0.5f)!, 5.0f));
+        Assert.True(MathDefs.Equals((float)animation.GetAnimationValue(0.5f)!, 5.0f));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class ValueAnimationTests
         var loadedXml = new ValueAnimation("Animations/LoadedXml");
         Assert.True(loadedXml.Load(stream));
         Assert.Equal(InterpMethod.Spline, loadedXml.GetInterpolationMethod());
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedXml.GetSplineTension(), 0.25f));
+        Assert.True(MathDefs.Equals(loadedXml.GetSplineTension(), 0.25f));
         var xmlEventFrame = Assert.Single(loadedXml.GetEventFrames(0.0f, 1.0f));
         Assert.True(xmlEventFrame.EventData[new StringHash("flag")].GetBool());
 
@@ -83,14 +83,14 @@ public sealed class ValueAnimationTests
         info.EventTriggered += frame => lastEvent = frame;
 
         Assert.False(info.Update(0.5f));
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 5.0f));
+        Assert.True(MathDefs.Equals((float)info.LastValue!, 5.0f));
         Assert.Equal(77u, lastEvent?.EventType.Value);
         Assert.True(info.Update(0.6f));
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 10.0f));
+        Assert.True(MathDefs.Equals((float)info.LastValue!, 10.0f));
 
         var looping = new TestValueAnimationInfo(new object(), animation, WrapMode.Loop, 1.0f);
         looping.SetTime(1.25f);
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)looping.LastValue!, 2.5f));
+        Assert.True(MathDefs.Equals((float)looping.LastValue!, 2.5f));
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class ValueAnimationTests
         Assert.Equal(0.0f, info.GetSpeed());
         info.SetTime(1.0f);
         info.Update(1.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent((float)info.LastValue!, 10.0f));
+        Assert.True(MathDefs.Equals((float)info.LastValue!, 10.0f));
 
         var targetless = new TestValueAnimationInfo(animation, WrapMode.Clamp, 1.0f);
         Assert.True(targetless.Update(0.5f));

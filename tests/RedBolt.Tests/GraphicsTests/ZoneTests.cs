@@ -21,7 +21,7 @@ public sealed class ZoneTests
         Assert.Equal(DrawableFlags.Zone, zone.GetDrawableFlags());
         Assert.Equal(new Color(0.1f, 0.1f, 0.1f), zone.GetAmbientColor());
         Assert.Equal(Color.Black, zone.GetFogColor());
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), 250.0f));
+        Assert.True(MathDefs.Equals(zone.GetFogStart(), 250.0f));
     }
 
     [Fact]
@@ -86,10 +86,10 @@ public sealed class ZoneTests
         zone.SetPriority(7);
 
         Assert.Equal(new Color(0.5f, 0.6f, 0.7f), zone.GetFogColor());
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogStart(), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogEnd(), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogHeight(), 4.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(zone.GetFogHeightScale(), 5.0f));
+        Assert.True(MathDefs.Equals(zone.GetFogStart(), 0.0f));
+        Assert.True(MathDefs.Equals(zone.GetFogEnd(), 0.0f));
+        Assert.True(MathDefs.Equals(zone.GetFogHeight(), 4.0f));
+        Assert.True(MathDefs.Equals(zone.GetFogHeightScale(), 5.0f));
         Assert.Equal(7, zone.GetPriority());
     }
 

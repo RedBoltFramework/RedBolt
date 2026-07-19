@@ -42,7 +42,7 @@ public sealed class IKChainTests
 
         Assert.Equal(3, chain.GetNodes().Count);
         Assert.Equal(2, chain.GetSegments().Count);
-        Assert.True(MathDefs.ApproximatelyEquivalent(chain.GetSegments()[0].Length + chain.GetSegments()[1].Length, 2.0f, 0.00001f));
+        Assert.True(MathDefs.Equals(chain.GetSegments()[0].Length + chain.GetSegments()[1].Length, 2.0f, 0.00001f));
         Assert.True(chain.FindSegment(second).HasValue);
         Assert.Same(first, chain.FindSegment(first)!.Value.BeginNode);
     }

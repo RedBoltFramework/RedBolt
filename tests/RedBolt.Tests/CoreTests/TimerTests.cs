@@ -28,12 +28,12 @@ public sealed class TimerTests
         counter.AddSample(2.0f);
         counter.AddSample(4.0f);
         RedBolt.Time.Sleep(60);
-        Assert.True(MathDefs.ApproximatelyEquivalent(counter.GetLast(), 6.0f));
+        Assert.True(MathDefs.Equals(counter.GetLast(), 6.0f));
 
         counter.AddSample(10.0f);
         RedBolt.Time.Sleep(60);
-        Assert.True(MathDefs.ApproximatelyEquivalent(counter.GetLast(), 10.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(counter.GetAverage(), 8.0f));
+        Assert.True(MathDefs.Equals(counter.GetLast(), 10.0f));
+        Assert.True(MathDefs.Equals(counter.GetAverage(), 8.0f));
         Assert.Equal(2, counter.GetData().Count);
     }
 }

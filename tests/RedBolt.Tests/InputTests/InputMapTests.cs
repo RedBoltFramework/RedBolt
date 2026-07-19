@@ -19,7 +19,7 @@ public sealed class InputMapTests
     {
         var map = new InputMap("Input/Smoke");
         map.SetDeadZone(-1.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.GetDeadZone(), 0.0f));
+        Assert.True(MathDefs.Equals(map.GetDeadZone(), 0.0f));
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class InputMapTests
         var map = new InputMap("Input/Smoke");
         map.MapKeyboardKey("Jump", Scancode.A);
         Input.SetKey(Key.A, Scancode.A, true);
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.Evaluate("Jump"), 1.0f));
+        Assert.True(MathDefs.Equals(map.Evaluate("Jump"), 1.0f));
         Input.SetKey(Key.A, Scancode.A, false);
     }
 
@@ -39,9 +39,9 @@ public sealed class InputMapTests
         map.MapKeyboardKey("Jump", Scancode.A);
         map.MapKeyboardKey("Move", Scancode.A);
         Input.SetKey(Key.A, Scancode.A, true);
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.Evaluate("Jump"), 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.Evaluate("Move"), 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.EvaluateByHash(new StringHash("Move")), 0.0f));
+        Assert.True(MathDefs.Equals(map.Evaluate("Jump"), 1.0f));
+        Assert.True(MathDefs.Equals(map.Evaluate("Move"), 1.0f));
+        Assert.True(MathDefs.Equals(map.EvaluateByHash(new StringHash("Move")), 0.0f));
         Input.SetKey(Key.A, Scancode.A, false);
     }
 
@@ -52,7 +52,7 @@ public sealed class InputMapTests
         var map = new InputMap("Input/Smoke");
         map.MapMouseButton("Fire", MouseButton.Left);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(map.Evaluate("Fire"), 0.0f));
+        Assert.True(MathDefs.Equals(map.Evaluate("Fire"), 0.0f));
         map.MapControllerButton("Fire", ControllerButton.A);
         var mapping = map.GetMapping("Fire");
         Assert.Equal((MouseButton)(1u << (int)MouseButton.Left), mapping.MouseButtons[0].GetMask());
@@ -174,7 +174,7 @@ public sealed class InputMapTests
 
         var loaded = new InputMap("Input/Loaded");
         Assert.True(loaded.Load(stream));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetDeadZone(), 0.25f));
+        Assert.True(MathDefs.Equals(loaded.GetDeadZone(), 0.25f));
         Assert.Equal(new Variant(1.5f), loaded.GetMetadata("Sensitivity"));
         var mapping = loaded.GetMapping("Action");
         Assert.Equal(Scancode.A, Assert.Single(mapping.KeyboardKeys).Scancode);

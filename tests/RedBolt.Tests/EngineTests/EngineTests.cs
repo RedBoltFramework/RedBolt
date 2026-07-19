@@ -190,15 +190,15 @@ public sealed class EngineTests
         {
             ++beginFrameCalls;
             Assert.Equal(1u, eventData.FrameNumber);
-            Assert.True(MathDefs.ApproximatelyEquivalent(eventData.TimeStep, 0.125f));
+            Assert.True(MathDefs.Equals(eventData.TimeStep, 0.125f));
         });
         receiver.SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => ++endFrameCalls);
         receiver.SubscribeToEvent<CoreEvents.EndFramePrivateEvent>((ref CoreEvents.EndFramePrivateEvent _) => ++endFramePrivateCalls);
 
         _fixture.Engine.RunFrame(timeStep => observed = timeStep);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(observed, 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(before, 0.125f));
+        Assert.True(MathDefs.Equals(observed, 0.125f));
+        Assert.True(MathDefs.Equals(before, 0.125f));
         Assert.True(_fixture.Engine.GetNextTimeStep() >= 0.0f);
 
         _fixture.Time.SetTimerPeriod(1u);
@@ -206,9 +206,9 @@ public sealed class EngineTests
         Assert.Equal(1u, _fixture.Time.GetTimerPeriod());
 
         // Frame timing from the same RunFrame call.
-        Assert.True(MathDefs.ApproximatelyEquivalent(_fixture.Time.GetTimeStep(), 0.125f));
+        Assert.True(MathDefs.Equals(_fixture.Time.GetTimeStep(), 0.125f));
         Assert.True(_fixture.Time.GetElapsedTime() >= 0.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent(_fixture.Time.GetFramesPerSecond(), 8.0f));
+        Assert.True(MathDefs.Equals(_fixture.Time.GetFramesPerSecond(), 8.0f));
         Assert.Equal(1, beginFrameCalls);
         Assert.Equal(1, endFrameCalls);
         Assert.Equal(1, endFramePrivateCalls);

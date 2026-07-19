@@ -165,8 +165,8 @@ public sealed class SceneResourceTests
     private static void AssertSceneLoaded(Scene scene)
     {
         Assert.True(scene.IsUpdateEnabled());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetTimeScale(), 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 0.0f));
+        Assert.True(MathDefs.Equals(scene.GetTimeScale(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 0.0f));
         Assert.Equal(5, scene.GetAsyncLoadingMs());
         Assert.Equal(string.Empty, scene.GetFileName());
 
@@ -181,9 +181,9 @@ public sealed class SceneResourceTests
 
         var camera = scene.GetComponent(24) as Camera;
         Assert.NotNull(camera);
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFov(), 70.0f));
+        Assert.True(MathDefs.Equals(camera.GetFov(), 70.0f));
         Assert.True(camera.IsOrthographic());
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetNearClip(), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFarClip(), 50.0f));
+        Assert.True(MathDefs.Equals(camera.GetNearClip(), 0.0f));
+        Assert.True(MathDefs.Equals(camera.GetFarClip(), 50.0f));
     }
 }

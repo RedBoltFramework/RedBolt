@@ -106,10 +106,10 @@ public struct Vector4f : IEquatable<Vector4f>, IApproximateEquatable<Vector4f>
     public readonly IntVector3 ToIntVector3() => new((int)X, (int)Y, (int)Z);
 
     public readonly bool ApproximatelyEquivalent(Vector4f rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(X, rhs.X, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Z, rhs.Z, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(W, rhs.W, epsilon);
+        MathDefs.Equals(X, rhs.X, epsilon) &&
+        MathDefs.Equals(Y, rhs.Y, epsilon) &&
+        MathDefs.Equals(Z, rhs.Z, epsilon) &&
+        MathDefs.Equals(W, rhs.W, epsilon);
 
     public readonly bool Equals(Vector4f other) => this == other;
     public override bool Equals(object? obj) => obj is Vector4f other && Equals(other);

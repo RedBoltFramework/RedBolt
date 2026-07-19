@@ -700,7 +700,7 @@ public struct ControllerAxisMapping
     /// <summary>Translate axis value into 0..1 range. Returns 0 if the value is outside of the range.</summary>
     public float Translate(float position, float deadZone)
     {
-        if (MathDefs.ApproximatelyEquivalent(position, Pressed))
+        if (MathDefs.Equals(position, Pressed))
             return 1.0f;
 
         var positive = Pressed >= Neutral;

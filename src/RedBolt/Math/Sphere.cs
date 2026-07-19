@@ -262,7 +262,7 @@ public struct Sphere : IEquatable<Sphere>, IApproximateEquatable<Sphere>
     }
 
     public bool ApproximatelyEquivalent(Sphere rhs, float epsilon = MathDefs.Epsilon) =>
-        Center.ApproximatelyEquivalent(rhs.Center, epsilon) && MathDefs.ApproximatelyEquivalent(Radius, rhs.Radius, epsilon);
+        Center.ApproximatelyEquivalent(rhs.Center, epsilon) && MathDefs.Equals(Radius, rhs.Radius, epsilon);
 
     public bool Equals(Sphere other) => Center.Equals(other.Center) && Radius.Equals(other.Radius);
     public override bool Equals(object? obj) => obj is Sphere other && Equals(other);

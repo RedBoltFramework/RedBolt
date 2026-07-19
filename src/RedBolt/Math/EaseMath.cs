@@ -58,8 +58,8 @@ public static class EaseMath
         return BounceOut(time * 2.0f - 1.0f) * 0.5f + 0.5f;
     }
 
-    public static float SineOut(float time) => MathF.Sin(time * MathDefs.PiOver2);
-    public static float SineIn(float time) => -MathF.Cos(time * MathDefs.PiOver2) + 1.0f;
+    public static float SineOut(float time) => MathF.Sin(time * MathDefs.HalfPi);
+    public static float SineIn(float time) => -MathF.Cos(time * MathDefs.HalfPi) + 1.0f;
     public static float SineInOut(float time) => -0.5f * (MathF.Cos(MathDefs.Pi * time) - 1.0f);
 
     public static float ExponentialOut(float time) => time == 1.0f ? 1.0f : -MathF.Pow(2.0f, -10.0f * time) + 1.0f;
@@ -81,7 +81,7 @@ public static class EaseMath
 
         var s = period / 4.0f;
         time -= 1.0f;
-        return -(MathF.Pow(2.0f, 10.0f * time) * MathF.Sin((time - s) * MathDefs.TwoPi / period));
+        return -(MathF.Pow(2.0f, 10.0f * time) * MathF.Sin((time - s) * 2.0f * MathDefs.Pi / period));
     }
 
     public static float ElasticOut(float time, float period)
@@ -90,7 +90,7 @@ public static class EaseMath
             return time;
 
         var s = period / 4.0f;
-        return MathF.Pow(2.0f, -10.0f * time) * MathF.Sin((time - s) * MathDefs.TwoPi / period) + 1.0f;
+        return MathF.Pow(2.0f, -10.0f * time) * MathF.Sin((time - s) * 2.0f * MathDefs.Pi / period) + 1.0f;
     }
 
     public static float ElasticInOut(float time, float period)
@@ -105,8 +105,8 @@ public static class EaseMath
         var s = period / 4.0f;
         time -= 1.0f;
         if (time < 0.0f)
-            return -0.5f * MathF.Pow(2.0f, 10.0f * time) * MathF.Sin((time - s) * MathDefs.TwoPi / period);
+            return -0.5f * MathF.Pow(2.0f, 10.0f * time) * MathF.Sin((time - s) * 2.0f * MathDefs.Pi / period);
 
-        return MathF.Pow(2.0f, -10.0f * time) * MathF.Sin((time - s) * MathDefs.TwoPi / period) * 0.5f + 1.0f;
+        return MathF.Pow(2.0f, -10.0f * time) * MathF.Sin((time - s) * 2.0f * MathDefs.Pi / period) * 0.5f + 1.0f;
     }
 }

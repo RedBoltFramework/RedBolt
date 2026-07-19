@@ -89,10 +89,10 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         M11 * scale.Y);
 
     public bool ApproximatelyEquivalent(Matrix2 rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(M00, rhs.M00, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M01, rhs.M01, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M10, rhs.M10, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M11, rhs.M11, epsilon);
+        MathDefs.Equals(M00, rhs.M00, epsilon) &&
+        MathDefs.Equals(M01, rhs.M01, epsilon) &&
+        MathDefs.Equals(M10, rhs.M10, epsilon) &&
+        MathDefs.Equals(M11, rhs.M11, epsilon);
 
     public bool Equals(Matrix2 other) => this == other;
     public override bool Equals(object? obj) => obj is Matrix2 other && Equals(other);

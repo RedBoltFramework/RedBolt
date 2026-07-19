@@ -150,15 +150,15 @@ public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
         M20 * scale.X, M21 * scale.Y, M22 * scale.Z);
 
     public bool ApproximatelyEquivalent(Matrix3 rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(M00, rhs.M00, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M01, rhs.M01, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M02, rhs.M02, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M10, rhs.M10, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M11, rhs.M11, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M12, rhs.M12, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M20, rhs.M20, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M21, rhs.M21, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(M22, rhs.M22, epsilon);
+        MathDefs.Equals(M00, rhs.M00, epsilon) &&
+        MathDefs.Equals(M01, rhs.M01, epsilon) &&
+        MathDefs.Equals(M02, rhs.M02, epsilon) &&
+        MathDefs.Equals(M10, rhs.M10, epsilon) &&
+        MathDefs.Equals(M11, rhs.M11, epsilon) &&
+        MathDefs.Equals(M12, rhs.M12, epsilon) &&
+        MathDefs.Equals(M20, rhs.M20, epsilon) &&
+        MathDefs.Equals(M21, rhs.M21, epsilon) &&
+        MathDefs.Equals(M22, rhs.M22, epsilon);
 
     public bool Equals(Matrix3 other) => this == other;
     public override bool Equals(object? obj) => obj is Matrix3 other && Equals(other);

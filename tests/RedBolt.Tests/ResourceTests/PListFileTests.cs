@@ -62,7 +62,7 @@ public sealed class PListFileTests
         var plist = LoadSample();
         Assert.Equal(42, plist.GetRoot()["Health"].GetInt());
         Assert.True(plist.GetRoot()["Visible"].GetBool());
-        Assert.True(MathDefs.ApproximatelyEquivalent(plist.GetRoot()["Speed"].GetFloat(), 3.5f));
+        Assert.True(MathDefs.Equals(plist.GetRoot()["Speed"].GetFloat(), 3.5f));
     }
 
     [Fact]

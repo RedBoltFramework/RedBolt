@@ -46,9 +46,9 @@ public sealed class CameraTests
         camera.SetFarClip(200.0f);
         camera.SetFov(200.0f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetNearClip(), MathDefs.MinNearClip));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFarClip(), 200.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFov(), 160.0f));
+        Assert.True(MathDefs.Equals(camera.GetNearClip(), MathDefs.MinNearClip));
+        Assert.True(MathDefs.Equals(camera.GetFarClip(), 200.0f));
+        Assert.True(MathDefs.Equals(camera.GetFov(), 160.0f));
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public sealed class CameraTests
 
         Assert.False(camera.GetAutoAspectRatio());
         Assert.True(camera.IsOrthographic());
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetAspectRatio(), 2.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetOrthoSize(), 20.0f));
+        Assert.True(MathDefs.Equals(camera.GetAspectRatio(), 2.0f));
+        Assert.True(MathDefs.Equals(camera.GetOrthoSize(), 20.0f));
     }
 
     [Fact]
@@ -72,8 +72,8 @@ public sealed class CameraTests
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetZoom(0.0f);
         camera.SetLodBias(0.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetZoom(), MathDefs.Epsilon));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetLodBias(), MathDefs.Epsilon));
+        Assert.True(MathDefs.Equals(camera.GetZoom(), MathDefs.Epsilon));
+        Assert.True(MathDefs.Equals(camera.GetLodBias(), MathDefs.Epsilon));
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class CameraTests
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetFillMode(FillMode.Point);
         Assert.Equal(FillMode.Point, camera.GetFillMode());
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetDistance(new Vector3f(0.0f, 0.0f, 5.0f)), 5.0f));
+        Assert.True(MathDefs.Equals(camera.GetDistance(new Vector3f(0.0f, 0.0f, 5.0f)), 5.0f));
         Assert.True(camera.GetLodDistance(100.0f, 1.0f, 1.0f) > 0.0f);
     }
 
@@ -158,11 +158,11 @@ public sealed class CameraTests
         var q = 100.0f / (100.0f - 0.1f);
         var r = -q * 0.1f;
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M00, w));
-        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M11, h));
-        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M22, q));
-        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M23, r));
-        Assert.True(MathDefs.ApproximatelyEquivalent(projection.M32, 1.0f));
+        Assert.True(MathDefs.Equals(projection.M00, w));
+        Assert.True(MathDefs.Equals(projection.M11, h));
+        Assert.True(MathDefs.Equals(projection.M22, q));
+        Assert.True(MathDefs.Equals(projection.M23, r));
+        Assert.True(MathDefs.Equals(projection.M32, 1.0f));
     }
 
     [Fact]
@@ -178,12 +178,12 @@ public sealed class CameraTests
         var projection = camera.GetProjection(ignoreFlip: true);
         var gpuProjection = camera.GetGPUProjection();
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M00, projection.M00));
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M11, projection.M11));
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M20, 2.0f * projection.M20 - projection.M30));
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M21, 2.0f * projection.M21 - projection.M31));
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M22, 2.0f * projection.M22 - projection.M32));
-        Assert.True(MathDefs.ApproximatelyEquivalent(gpuProjection.M23, 2.0f * projection.M23 - projection.M33));
+        Assert.True(MathDefs.Equals(gpuProjection.M00, projection.M00));
+        Assert.True(MathDefs.Equals(gpuProjection.M11, projection.M11));
+        Assert.True(MathDefs.Equals(gpuProjection.M20, 2.0f * projection.M20 - projection.M30));
+        Assert.True(MathDefs.Equals(gpuProjection.M21, 2.0f * projection.M21 - projection.M31));
+        Assert.True(MathDefs.Equals(gpuProjection.M22, 2.0f * projection.M22 - projection.M32));
+        Assert.True(MathDefs.Equals(gpuProjection.M23, 2.0f * projection.M23 - projection.M33));
     }
 
     [Fact]
@@ -196,9 +196,9 @@ public sealed class CameraTests
         var projection = camera.GetProjection(ignoreFlip: true);
         var flippedProjection = camera.GetProjection();
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M11, -projection.M11));
-        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M00, projection.M00));
-        Assert.True(MathDefs.ApproximatelyEquivalent(flippedProjection.M22, projection.M22));
+        Assert.True(MathDefs.Equals(flippedProjection.M11, -projection.M11));
+        Assert.True(MathDefs.Equals(flippedProjection.M00, projection.M00));
+        Assert.True(MathDefs.Equals(flippedProjection.M22, projection.M22));
     }
 
     [Fact]

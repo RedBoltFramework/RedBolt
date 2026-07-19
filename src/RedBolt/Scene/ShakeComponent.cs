@@ -101,7 +101,7 @@ public sealed class ShakeComponent : LogicComponent
 
         _time += timeStep * _timeScale;
         _trauma = Math.Max(0.0f, _trauma - _traumaFalloff * timeStep);
-        if (MathDefs.ApproximatelyEquivalent(_trauma, 0.0f))
+        if (MathDefs.Equals(_trauma, 0.0f))
         {
             Node.SetPosition(_originalPosition);
             Node.SetRotation(_originalRotation);

@@ -243,7 +243,7 @@ public sealed class InputTests
         Assert.Equal(2, mouseDown.Clicks);
         Assert.Equal(MouseButton.Right, mouseUp.Button);
         Assert.Equal(3, axisMove.Axis);
-        Assert.True(MathDefs.ApproximatelyEquivalent(axisMove.Position, 0.75f));
+        Assert.True(MathDefs.Equals(axisMove.Position, 0.75f));
         Assert.Equal(HatPosition.RightDown, hatMove.Position);
         Input.SetHatPosition(HatPosition.Center);
     }
@@ -262,7 +262,7 @@ public sealed class InputTests
         Assert.True(joystick.Value.GetButtonDown((uint)ControllerButton.A));
         Assert.True(joystick.Value.GetButtonPress((uint)ControllerButton.A));
         Assert.True(joystick.Value.HasAxisPosition((uint)ControllerAxis.LeftX));
-        Assert.True(MathDefs.ApproximatelyEquivalent(joystick.Value.GetAxisPosition((uint)ControllerAxis.LeftX), 0.75f));
+        Assert.True(MathDefs.Equals(joystick.Value.GetAxisPosition((uint)ControllerAxis.LeftX), 0.75f));
         Assert.Equal((int)HatPosition.RightDown, joystick.Value.GetHatPosition(0));
 
         Input.BeginFrame();

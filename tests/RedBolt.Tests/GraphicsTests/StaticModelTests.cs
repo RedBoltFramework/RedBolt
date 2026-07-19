@@ -117,9 +117,9 @@ public sealed class StaticModelTests
         cube.SetOccludee(false);
 
         Assert.Equal(DrawableFlags.Geometry, cube.GetDrawableFlags());
-        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetDrawDistance(), -1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetShadowDistance(), 50.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetLodBias(), MathDefs.Epsilon));
+        Assert.True(MathDefs.Equals(cube.GetDrawDistance(), -1.0f));
+        Assert.True(MathDefs.Equals(cube.GetShadowDistance(), 50.0f));
+        Assert.True(MathDefs.Equals(cube.GetLodBias(), MathDefs.Epsilon));
         Assert.Equal(0x11u, cube.GetViewMask());
         Assert.Equal(0x22u, cube.GetLightMask());
         Assert.Equal(0x33u, cube.GetShadowMask());
@@ -146,7 +146,7 @@ public sealed class StaticModelTests
         cube.SetLightmapScaleOffset(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f));
         Assert.True(cube.GetBakeLightmap());
         Assert.True(cube.GetBakeLightmapEffective());
-        Assert.True(MathDefs.ApproximatelyEquivalent(cube.GetScaleInLightmap(), 2.0f));
+        Assert.True(MathDefs.Equals(cube.GetScaleInLightmap(), 2.0f));
         Assert.Equal(3u, cube.GetLightmapIndex());
         Assert.Equal(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f), cube.GetLightmapScaleOffset());
     }

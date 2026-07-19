@@ -101,8 +101,8 @@ public sealed class PointerAdapterTests
 
         Assert.True(adapter.IsEnabled());
         Assert.Equal(PointerAdapterMask.Keyboard | PointerAdapterMask.Joystick, adapter.GetSubscriptionMask());
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorVelocity(), maxCursorSpeed));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetCursorAcceleration(), -2.0f));
+        Assert.True(MathDefs.Equals(adapter.GetCursorVelocity(), maxCursorSpeed));
+        Assert.True(MathDefs.Equals(adapter.GetCursorAcceleration(), -2.0f));
         Assert.Same(adapter.GetDirectionAggregator(), adapter.GetDirectionAggregator());
     }
 

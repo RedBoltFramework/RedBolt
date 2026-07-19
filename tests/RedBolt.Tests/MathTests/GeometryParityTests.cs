@@ -60,10 +60,11 @@ public class GeometryParityTests
         var length = MathDefs.EncodeVariableLength(123456UL, encoded);
         ulong decoded = 0;
         uint offset = 0;
-        for (var i = 0; i < length; ++i)
-            MathDefs.DecodeVariableLength(ref decoded, ref offset, encoded[i]);
+        for (uint i = 0; i < length; ++i)
+            MathDefs.DecodeVariableLength(ref decoded, ref offset, encoded[(int)i]);
 
         Assert.Equal(123456UL, decoded);
+        Assert.Equal(21u, offset);
         Assert.Equal(-123456, MathDefs.ZigzagDecode(MathDefs.ZigzagEncode(-123456)));
         Assert.Equal(2.0f, MathDefs.Average(new[] { 1.0f, 2.0f, 3.0f }));
     }

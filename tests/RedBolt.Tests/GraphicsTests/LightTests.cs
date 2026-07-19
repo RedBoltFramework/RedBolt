@@ -25,8 +25,8 @@ public sealed class LightTests
         // Default is Realtime, so effective mask equals light mask.
         Assert.NotEqual(0u, light.GetLightMaskEffective());
         Assert.False(light.GetPerVertex());
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetRange(), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetFov(), MathDefs.MaxFov));
+        Assert.True(MathDefs.Equals(light.GetRange(), 0.0f));
+        Assert.True(MathDefs.Equals(light.GetFov(), MathDefs.MaxFov));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class LightTests
         light.SetSpecularIntensity(-1.0f);
 
         Assert.True(light.GetEffectiveColor().Equals(new Color(1.0f, 0.5f, 0.25f, 1.0f), MathDefs.Epsilon));
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetEffectiveSpecularIntensity(), 0.0f));
+        Assert.True(MathDefs.Equals(light.GetEffectiveSpecularIntensity(), 0.0f));
     }
 
     [Fact]
@@ -126,10 +126,10 @@ public sealed class LightTests
         light.SetShadowNearFarRatio(1.0f);
         light.SetShadowMaxExtrusion(-1.0f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetShadowIntensity(), 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetShadowResolution(), 0.125f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetShadowNearFarRatio(), 0.5f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(light.GetShadowMaxExtrusion(), 0.0f));
+        Assert.True(MathDefs.Equals(light.GetShadowIntensity(), 1.0f));
+        Assert.True(MathDefs.Equals(light.GetShadowResolution(), 0.125f));
+        Assert.True(MathDefs.Equals(light.GetShadowNearFarRatio(), 0.5f));
+        Assert.True(MathDefs.Equals(light.GetShadowMaxExtrusion(), 0.0f));
     }
 
     [Fact]

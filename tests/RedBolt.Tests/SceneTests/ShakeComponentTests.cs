@@ -38,9 +38,9 @@ public sealed class ShakeComponentTests
         shake.SetTraumaFalloff(2.0f);
         shake.AddTrauma(0.5f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTimeScale(), 10.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTraumaPower(), 3.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTraumaFalloff(), 3.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(shake.GetTrauma(), 0.5f));
+        Assert.True(MathDefs.Equals(shake.GetTimeScale(), 10.0f));
+        Assert.True(MathDefs.Equals(shake.GetTraumaPower(), 3.0f));
+        Assert.True(MathDefs.Equals(shake.GetTraumaFalloff(), 3.0f));
+        Assert.True(MathDefs.Equals(shake.GetTrauma(), 0.5f));
     }
 }

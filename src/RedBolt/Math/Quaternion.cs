@@ -178,13 +178,13 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     }
 
     public bool ApproximatelyEquivalent(Quaternion rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(W, rhs.W, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(X, rhs.X, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Y, rhs.Y, epsilon) &&
-        MathDefs.ApproximatelyEquivalent(Z, rhs.Z, epsilon);
+        MathDefs.Equals(W, rhs.W, epsilon) &&
+        MathDefs.Equals(X, rhs.X, epsilon) &&
+        MathDefs.Equals(Y, rhs.Y, epsilon) &&
+        MathDefs.Equals(Z, rhs.Z, epsilon);
 
     public bool Equivalent(Quaternion rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.ApproximatelyEquivalent(MathF.Abs(DotProduct(rhs)), 1.0f, epsilon);
+        MathDefs.Equals(MathF.Abs(DotProduct(rhs)), 1.0f, epsilon);
 
     public (Quaternion Swing, Quaternion Twist) ToSwingTwist(Vector3f twistAxis)
     {
@@ -217,7 +217,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
     public static Quaternion FromAngleAxis(float angle, Vector3f axis)
     {
         var normalizedAxis = axis.Normalized;
-        var halfAngle = MathDefs.DegreesToRadians2(angle);
+        var halfAngle = angle * MathDefs.DegToRad2;
         var sin = MathF.Sin(halfAngle);
         var cos = MathF.Cos(halfAngle);
         return new Quaternion(cos, normalizedAxis.X * sin, normalizedAxis.Y * sin, normalizedAxis.Z * sin);
@@ -242,9 +242,9 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
 
     public static Quaternion FromEulerAngles(float x, float y, float z)
     {
-        x = MathDefs.DegreesToRadians2(x);
-        y = MathDefs.DegreesToRadians2(y);
-        z = MathDefs.DegreesToRadians2(z);
+        x *= MathDefs.DegToRad2;
+        y *= MathDefs.DegToRad2;
+        z *= MathDefs.DegToRad2;
         var sinX = MathF.Sin(x);
         var cosX = MathF.Cos(x);
         var sinY = MathF.Sin(y);
@@ -372,7 +372,7 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         {
             return new Vector3f(
                 -90.0f,
-                MathDefs.RadiansToDegrees(-MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z))),
+                -MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z)) * MathDefs.RadToDeg,
                 0.0f);
         }
 
@@ -380,13 +380,13 @@ public struct Quaternion : IEquatable<Quaternion>, IApproximateEquatable<Quatern
         {
             return new Vector3f(
                 90.0f,
-                MathDefs.RadiansToDegrees(-MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z))),
+                -MathF.Atan2(2.0f * (X * Z - W * Y), 1.0f - 2.0f * (Y * Y + Z * Z)) * MathDefs.RadToDeg,
                 0.0f);
         }
 
         return new Vector3f(
-            MathDefs.RadiansToDegrees(MathF.Asin(check)),
-            MathDefs.RadiansToDegrees(MathF.Atan2(2.0f * (X * Z + W * Y), 1.0f - 2.0f * (X * X + Y * Y))),
-            MathDefs.RadiansToDegrees(MathF.Atan2(2.0f * (X * Y + W * Z), 1.0f - 2.0f * (X * X + Z * Z))));
+            MathF.Asin(check) * MathDefs.RadToDeg,
+            MathF.Atan2(2.0f * (X * Z + W * Y), 1.0f - 2.0f * (X * X + Y * Y)) * MathDefs.RadToDeg,
+            MathF.Atan2(2.0f * (X * Y + W * Z), 1.0f - 2.0f * (X * X + Z * Z)) * MathDefs.RadToDeg);
     }
 }

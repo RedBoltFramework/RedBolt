@@ -18,8 +18,8 @@ public sealed class LogicComponentTests
         Assert.Equal(1, logic.DelayedStartCount);
         Assert.Equal(2, logic.UpdateCount);
         Assert.Equal(2, logic.PostUpdateCount);
-        Assert.True(MathDefs.ApproximatelyEquivalent(logic.LastUpdateTimeStep, 0.5f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(logic.LastPostUpdateTimeStep, 0.5f));
+        Assert.True(MathDefs.Equals(logic.LastUpdateTimeStep, 0.5f));
+        Assert.True(MathDefs.Equals(logic.LastPostUpdateTimeStep, 0.5f));
     }
 
     [Fact]

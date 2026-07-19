@@ -31,9 +31,9 @@ public sealed class SceneTests
 
         scene.SetUpdateEnabled(false);
         scene.Update(1.0f);
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 2.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetTimeScale(), 2.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetEffectiveTimeScale(), 0.0f));
+        Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 2.0f));
+        Assert.True(MathDefs.Equals(scene.GetTimeScale(), 2.0f));
+        Assert.True(MathDefs.Equals(scene.GetEffectiveTimeScale(), 0.0f));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class SceneTests
         Assert.Equal(1, forcedUpdate);
         Assert.Equal(1, forcedPostUpdate);
         Assert.Equal(0, regularUpdate);
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetElapsedTime(), 0.0f));
+        Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 0.0f));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class SceneTests
         Assert.True(scene.IsUpdateEnabled());
         Assert.Equal(1, scene.GetAsyncLoadingMs());
         Assert.False(scene.IsAsyncLoading());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetAsyncProgress(), 1.0f));
         Assert.Equal("Scenes/Test.scene", scene.GetFileName());
         Assert.NotEqual(0u, scene.GetChecksum());
     }
@@ -251,7 +251,7 @@ public sealed class SceneTests
         Assert.NotNull(loadedChild);
         Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
         Assert.Equal(42, loadedChild.GetVar("score"));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
+        Assert.True(MathDefs.Equals(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
     }
 
     [Fact]
@@ -454,7 +454,7 @@ public sealed class SceneTests
         Assert.True(scene.LoadAsync(file, LoadMode.SceneAndResources));
         Assert.True(scene.IsAsyncLoading());
         Assert.Equal(LoadMode.SceneAndResources, scene.GetAsyncLoadMode());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetAsyncProgress(), 1.0f));
 
         scene.Update(0.0f);
 
@@ -463,7 +463,7 @@ public sealed class SceneTests
         scene.StopAsyncLoading();
 
         Assert.False(scene.IsAsyncLoading());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetAsyncProgress(), 1.0f));
     }
 
     [Fact]
@@ -483,7 +483,7 @@ public sealed class SceneTests
         scene.Update(0.0f);
 
         Assert.False(scene.IsAsyncLoading());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetAsyncProgress(), 1.0f));
     }
 
     [Fact]
@@ -503,7 +503,7 @@ public sealed class SceneTests
         scene.Update(0.0f);
 
         Assert.False(scene.IsAsyncLoading());
-        Assert.True(MathDefs.ApproximatelyEquivalent(scene.GetAsyncProgress(), 1.0f));
+        Assert.True(MathDefs.Equals(scene.GetAsyncProgress(), 1.0f));
     }
 
     [Fact]

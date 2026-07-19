@@ -33,9 +33,9 @@ public sealed class SerializableResourceTests
         Assert.True(loaded.Load(buffer));
 
         var loadedCamera = Assert.IsType<Camera>(loaded.GetValue());
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedCamera.GetFov(), 72.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedCamera.GetNearClip(), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedCamera.GetFarClip(), 250.0f));
+        Assert.True(MathDefs.Equals(loadedCamera.GetFov(), 72.0f));
+        Assert.True(MathDefs.Equals(loadedCamera.GetNearClip(), 0.0f));
+        Assert.True(MathDefs.Equals(loadedCamera.GetFarClip(), 250.0f));
         Assert.True(loadedCamera.IsOrthographic());
         }
         finally

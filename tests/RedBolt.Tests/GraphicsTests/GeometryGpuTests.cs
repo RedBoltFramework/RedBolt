@@ -61,7 +61,7 @@ public sealed class GeometryGpuTests
         Assert.Equal(2u, geometry.GetPrimitiveCount());
         Assert.Equal(1u, geometry.GetNumVertexBuffers());
         Assert.True(geometry.IsInstanced(GeometryType.Static));
-        Assert.True(MathDefs.ApproximatelyEquivalent(geometry.GetLodDistance(), 5.0f));
+        Assert.True(MathDefs.Equals(geometry.GetLodDistance(), 5.0f));
     }
 
     [Fact]

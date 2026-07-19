@@ -99,8 +99,8 @@ public sealed class GeometryTypesTests
 
         copied[2] = 6.0f;
         Assert.Equal(6.0f, copied.Z);
-        Assert.True(MathDefs.ApproximatelyEquivalent(vector.LengthSquared, 30.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(vector.ProjectOntoAxis(Vector3f.Right), 1.0f));
+        Assert.True(MathDefs.Equals(vector.LengthSquared, 30.0f));
+        Assert.True(MathDefs.Equals(vector.ProjectOntoAxis(Vector3f.Right), 1.0f));
         Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), vector.ToVector3());
         Assert.Equal(new Vector3i(1, 2, 3), vector.ToIntVector3());
         Assert.NotEqual(0u, vector.ToHash());
@@ -159,8 +159,8 @@ public sealed class GeometryTypesTests
         var box = new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f));
         var sphere = new Sphere(Vector3f.Zero, 1.0f);
         var ray = new Ray(new Vector3f(0.0f, 0.0f, -5.0f), Vector3f.Forward);
-        Assert.True(MathDefs.ApproximatelyEquivalent(ray.HitDistance(box), 4.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(ray.HitDistance(sphere), 4.0f));
+        Assert.True(MathDefs.Equals(ray.HitDistance(box), 4.0f));
+        Assert.True(MathDefs.Equals(ray.HitDistance(sphere), 4.0f));
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public sealed class GeometryTypesTests
     {
         var plane = new Plane(Vector3f.Up, Vector3f.Zero);
         var downRay = new Ray(new Vector3f(0.0f, 1.0f, 0.0f), Vector3f.Down);
-        Assert.True(MathDefs.ApproximatelyEquivalent(downRay.HitDistance(plane), 1.0f));
+        Assert.True(MathDefs.Equals(downRay.HitDistance(plane), 1.0f));
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public sealed class GeometryTypesTests
     {
         var plane = new Plane(Vector3f.Up, Vector3f.Zero);
         var moved = plane.Transformed(new Matrix3x4(new Vector3f(0.0f, 2.0f, 0.0f), Quaternion.Identity, 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(moved.Distance(new Vector3f(0.0f, 2.0f, 0.0f)), 0.0f));
+        Assert.True(MathDefs.Equals(moved.Distance(new Vector3f(0.0f, 2.0f, 0.0f)), 0.0f));
     }
 
     [Fact]

@@ -112,10 +112,10 @@ public sealed class DirectionalPadAdapterTests
 
         Assert.True(adapter.IsEnabled());
         Assert.Equal(DirectionalPadAdapterMask.Joystick | DirectionalPadAdapterMask.KeyRepeat, adapter.GetSubscriptionMask());
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetAxisUpperThreshold(), 0.75f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetAxisLowerThreshold(), 0.25f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetRepeatDelay(), 0.4f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetRepeatInterval(), 0.05f));
+        Assert.True(MathDefs.Equals(adapter.GetAxisUpperThreshold(), 0.75f));
+        Assert.True(MathDefs.Equals(adapter.GetAxisLowerThreshold(), 0.25f));
+        Assert.True(MathDefs.Equals(adapter.GetRepeatDelay(), 0.4f));
+        Assert.True(MathDefs.Equals(adapter.GetRepeatInterval(), 0.05f));
 
         adapter.SetRepeatDelay(0.0f);
         adapter.SetRepeatInterval(0.0f);

@@ -16,7 +16,7 @@ public sealed class ObjectAnimationTests
 
         Assert.Same(animation, objectAnimation.GetAttributeAnimation("FOV"));
         Assert.Equal(WrapMode.Clamp, objectAnimation.GetAttributeAnimationWrapMode("FOV"));
-        Assert.True(MathDefs.ApproximatelyEquivalent(objectAnimation.GetAttributeAnimationSpeed("FOV"), 2.0f));
+        Assert.True(MathDefs.Equals(objectAnimation.GetAttributeAnimationSpeed("FOV"), 2.0f));
 
         objectAnimation.RemoveAttributeAnimation(animation);
         Assert.Null(objectAnimation.GetAttributeAnimation("FOV"));
@@ -37,7 +37,7 @@ public sealed class ObjectAnimationTests
         var loadedXml = new ObjectAnimation("Animations/LoadedXml");
         Assert.True(loadedXml.Load(xmlStream));
         Assert.Equal(WrapMode.Once, loadedXml.GetAttributeAnimationWrapMode("Position"));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loadedXml.GetAttributeAnimationSpeed("Position"), 3.0f));
+        Assert.True(MathDefs.Equals(loadedXml.GetAttributeAnimationSpeed("Position"), 3.0f));
 
         var json = new JSONValue(JSONValueType.Object);
         Assert.True(objectAnimation.SaveJSON(json));

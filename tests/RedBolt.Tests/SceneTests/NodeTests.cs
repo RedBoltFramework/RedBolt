@@ -27,7 +27,7 @@ public sealed class NodeTests
             Assert.NotNull(loadedChild);
             Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
             Assert.Equal(42, loadedChild.GetVar("score"));
-            Assert.True(MathDefs.ApproximatelyEquivalent(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
+            Assert.True(MathDefs.Equals(loadedChild.GetComponent<Camera>()!.GetFov(), 73));
         }
         finally { Context.SetInstance(previous); }
     }
@@ -52,7 +52,7 @@ public sealed class NodeTests
         var child = destinationScene.Root.GetChild("Child");
         Assert.NotNull(child);
         Assert.Equal(42, child!.GetVar("score"));
-        Assert.True(MathDefs.ApproximatelyEquivalent(child.GetComponent<Camera>()!.GetFov(), 73));
+        Assert.True(MathDefs.Equals(child.GetComponent<Camera>()!.GetFov(), 73));
     }
 
     [Fact]
@@ -586,7 +586,7 @@ public sealed class NodeTests
         var cloned = target.CloneComponent(original) as Camera;
         Assert.NotNull(cloned);
         Assert.NotEqual(original.Id, cloned.Id);
-        Assert.True(MathDefs.ApproximatelyEquivalent(cloned.GetFov(), 75.0f));
+        Assert.True(MathDefs.Equals(cloned.GetFov(), 75.0f));
         Assert.Same(target, cloned.Node);
     }
 

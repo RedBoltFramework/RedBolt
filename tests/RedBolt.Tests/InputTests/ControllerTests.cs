@@ -136,8 +136,8 @@ public sealed class ControllerTests
         }
 
         Assert.True(movement.GetVelocity().ApproximatelyEquivalent(new Vector3f(1.0f, 0.0f, 1.0f)));
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetYaw(), 25.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), 25.0f));
+        Assert.True(MathDefs.Equals(movement.GetYaw(), 25.0f));
+        Assert.True(MathDefs.Equals(movement.GetPitch(), 25.0f));
         Assert.Equal("Input/MoveController", controller.GetInputMapAttr().Name);
     }
 
@@ -184,10 +184,10 @@ public sealed class ControllerTests
         var movement = node.CreateComponent<MoveAndOrbitComponent>();
         movement.SetDistanceLimits(2.0f, 40.0f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetYaw(), node.Rotation.YawAngle));
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetPitch(), node.Rotation.PitchAngle));
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMinDistance(), 2.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(movement.GetMaxDistance(), 40.0f));
+        Assert.True(MathDefs.Equals(movement.GetYaw(), node.Rotation.YawAngle));
+        Assert.True(MathDefs.Equals(movement.GetPitch(), node.Rotation.PitchAngle));
+        Assert.True(MathDefs.Equals(movement.GetMinDistance(), 2.0f));
+        Assert.True(MathDefs.Equals(movement.GetMaxDistance(), 40.0f));
     }
 
     [Fact]
@@ -205,8 +205,8 @@ public sealed class ControllerTests
         SendUpdate(0.5f);
 
         var transformedAxis = new AxisAdapter().Transform(0.5f);
-        Assert.True(MathDefs.ApproximatelyEquivalent(node.Position.Length, transformedAxis * 10.0f, 0.01f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(node.Rotation.YawAngle, transformedAxis * 50.0f, 0.1f));
+        Assert.True(MathDefs.Equals(node.Position.Length, transformedAxis * 10.0f, 0.01f));
+        Assert.True(MathDefs.Equals(node.Rotation.YawAngle, transformedAxis * 50.0f, 0.1f));
         Input.SetControllerAxis(ControllerAxis.LeftX, 0.0f);
         Input.SetControllerAxis(ControllerAxis.RightX, 0.0f);
     }

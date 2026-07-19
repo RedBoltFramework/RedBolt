@@ -33,9 +33,9 @@ public sealed class AnimatableTests
         camera.SetAttributeAnimation("FOV", animation, WrapMode.Clamp, 2.0f);
         camera.SetAttributeAnimationTime("FOV", 0.5f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetFov(), 67.5f));
+        Assert.True(MathDefs.Equals(camera.GetFov(), 67.5f));
         Assert.Equal(WrapMode.Clamp, camera.GetAttributeAnimationWrapMode("FOV"));
-        Assert.True(MathDefs.ApproximatelyEquivalent(camera.GetAttributeAnimationSpeed("FOV"), 2.0f));
+        Assert.True(MathDefs.Equals(camera.GetAttributeAnimationSpeed("FOV"), 2.0f));
     }
 
     [Fact]

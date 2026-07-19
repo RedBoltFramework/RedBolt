@@ -187,9 +187,9 @@ public class MoveAndOrbitController : Component
             pitch += move.Y * sensitivity;
         }
         pitch = MathDefs.Clamp(pitch, -90.0f, 90.0f);
-        if (!MathDefs.ApproximatelyEquivalent(originalPitch, pitch))
+        if (!MathDefs.Equals(originalPitch, pitch))
             _component.SetPitch(pitch);
-        if (!MathDefs.ApproximatelyEquivalent(originalYaw, yaw))
+        if (!MathDefs.Equals(originalYaw, yaw))
             _component.SetYaw(yaw);
         var velocity = new Vector3f(MathDefs.Clamp(right, -1.0f, 1.0f), 0.0f, MathDefs.Clamp(forward, -1.0f, 1.0f));
         if (!originalVelocity.ApproximatelyEquivalent(velocity))

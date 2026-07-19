@@ -145,11 +145,11 @@ public sealed class BillboardSetTests
         ref var restoredFirst = ref restored.GetBillboard(0);
         Assert.Equal(new Vector3f(1, 2, 3), restoredFirst.Position);
         Assert.Equal(new Vector2f(4, 5), restoredFirst.Size);
-        Assert.True(MathDefs.ApproximatelyEquivalent(restoredFirst.Uv.Min.X, 0.1f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(restoredFirst.Uv.Min.Y, 0.2f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(restoredFirst.Uv.Max.X, 0.3f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(restoredFirst.Uv.Max.Y, 0.4f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(restoredFirst.Color.R, 0.5f));
+        Assert.True(MathDefs.Equals(restoredFirst.Uv.Min.X, 0.1f));
+        Assert.True(MathDefs.Equals(restoredFirst.Uv.Min.Y, 0.2f));
+        Assert.True(MathDefs.Equals(restoredFirst.Uv.Max.X, 0.3f));
+        Assert.True(MathDefs.Equals(restoredFirst.Uv.Max.Y, 0.4f));
+        Assert.True(MathDefs.Equals(restoredFirst.Color.R, 0.5f));
         Assert.Equal(12.0f, restoredFirst.Rotation);
         Assert.Equal(new Vector3f(0, 0, 1), restoredFirst.Direction);
         Assert.True(restoredFirst.Enabled);

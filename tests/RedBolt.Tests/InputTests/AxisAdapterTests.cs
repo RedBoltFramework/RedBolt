@@ -60,8 +60,8 @@ public sealed class AxisAdapterTests
         adapter.SetDeadZone(0.2f);
         adapter.SetSensitivity(1.0f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.Transform(0.1f), 0.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.Transform(0.6f), 0.25f, 0.001f));
+        Assert.True(MathDefs.Equals(adapter.Transform(0.1f), 0.0f));
+        Assert.True(MathDefs.Equals(adapter.Transform(0.6f), 0.25f, 0.001f));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class AxisAdapterTests
         adapter.SetNegativeSensitivity(0.0f);
 
         Assert.True(adapter.IsInverted());
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.Transform(0.6f), -0.5f, 0.001f));
+        Assert.True(MathDefs.Equals(adapter.Transform(0.6f), -0.5f, 0.001f));
     }
 
     [Fact]
@@ -86,10 +86,10 @@ public sealed class AxisAdapterTests
         adapter.SetSensitivity(1.0f);
         adapter.SetNegativeSensitivity(-0.5f);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetDeadZone(), 0.2f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetNeutralValue(), -1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetPositiveSensitivity(), 1.0f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(adapter.GetNegativeSensitivity(), -0.5f));
+        Assert.True(MathDefs.Equals(adapter.GetDeadZone(), 0.2f));
+        Assert.True(MathDefs.Equals(adapter.GetNeutralValue(), -1.0f));
+        Assert.True(MathDefs.Equals(adapter.GetPositiveSensitivity(), 1.0f));
+        Assert.True(MathDefs.Equals(adapter.GetNegativeSensitivity(), -0.5f));
     }
 
     [Fact]
@@ -111,10 +111,10 @@ public sealed class AxisAdapterTests
         using (input.OpenUnorderedBlock("axis"))
             loaded.SerializeInBlock(input);
 
-        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetDeadZone(), 0.25f));
+        Assert.True(MathDefs.Equals(loaded.GetDeadZone(), 0.25f));
         Assert.True(loaded.IsInverted());
-        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetNeutralValue(), -0.2f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetPositiveSensitivity(), 0.75f));
-        Assert.True(MathDefs.ApproximatelyEquivalent(loaded.GetNegativeSensitivity(), -0.5f));
+        Assert.True(MathDefs.Equals(loaded.GetNeutralValue(), -0.2f));
+        Assert.True(MathDefs.Equals(loaded.GetPositiveSensitivity(), 0.75f));
+        Assert.True(MathDefs.Equals(loaded.GetNegativeSensitivity(), -0.5f));
     }
 }
