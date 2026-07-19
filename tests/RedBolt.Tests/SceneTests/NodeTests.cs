@@ -94,6 +94,26 @@ public sealed class NodeTests
         }
     }
 
+    private sealed class AttachmentProbe : Component
+    {
+        public bool WasQueryableOnNodeSet { get; private set; }
+
+        protected override void OnNodeSet(Node? previousNode, Node? currentNode)
+        {
+            WasQueryableOnNodeSet = currentNode?.GetComponent<AttachmentProbe>() == this;
+        }
+    }
+
+    [Fact]
+    public void Component_is_queryable_during_node_attachment()
+    {
+        var node = new Scene().CreateChild("Node");
+
+        var component = node.CreateComponent<AttachmentProbe>();
+
+        Assert.True(component.WasQueryableOnNodeSet);
+    }
+
     [Fact]
     public void Listener_registration_does_not_retain_component()
     {

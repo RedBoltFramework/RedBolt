@@ -114,7 +114,7 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
 
             case AnimatedAttributeType.AnimatedModelMorphs:
                 System.Diagnostics.Debug.Assert(serializable is AnimatedModel);
-                ((AnimatedModel)serializable).SetMorphWeight(SubAttributeKey, value.GetFloat());
+                ((AnimatedModel)serializable).SetMorphWeight(checked((int)SubAttributeKey), value.GetFloat());
                 break;
         }
     }

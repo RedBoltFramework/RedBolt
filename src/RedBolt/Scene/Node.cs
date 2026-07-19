@@ -987,9 +987,9 @@ public sealed class Node : Animatable
         if (component.IsAttached)
             throw new InvalidOperationException("Component already belongs to a node.");
 
+        _components.Add(component);
         component.SetId(Scene.AllocateComponentId(id));
         component.Attach(this);
-        _components.Add(component);
         Scene.ComponentAdded(component);
         component.OnMarkedDirty(this);
 

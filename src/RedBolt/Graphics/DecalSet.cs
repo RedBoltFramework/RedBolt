@@ -786,7 +786,7 @@ public class DecalSet : Drawable
                     bone = animatedModel.GetSkeleton().GetBone((uint)blendIndices[i]);
                 else if (blendIndices[i] < geometryBoneMappings[(int)batchIndex].Count)
                     bone = animatedModel.GetSkeleton().GetBone(
-                        geometryBoneMappings[(int)batchIndex][blendIndices[i]]);
+                        checked((uint)geometryBoneMappings[(int)batchIndex][blendIndices[i]]));
 
                 if (bone is null)
                 {

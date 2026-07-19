@@ -3,6 +3,14 @@ namespace RedBolt.Tests;
 public sealed class AnimatedModelTests
 {
     [Fact]
+    public void Animated_model_preserves_cpp_class_kind()
+    {
+        Assert.True(typeof(AnimatedModel).IsClass);
+        Assert.False(typeof(AnimatedModel).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(AnimatedModel).GetInterfaces());
+    }
+
+    [Fact]
     public void Animated_model_registers_geometry_factory()
     {
         using var context = new Context();
@@ -38,7 +46,7 @@ public sealed class AnimatedModelTests
         Assert.Equal(1u, animatedModel.GetSkeleton().GetNumBones());
         Assert.Equal("Root", animatedModel.GetSkeleton().GetBone(0u)!.Name);
         Assert.Equal(0.5f, animatedModel.GetMorphWeight("Smile"));
-        Assert.Equal(1u, animatedModel.GetNumMorphs());
+        Assert.Equal(1, animatedModel.GetNumMorphs());
         Assert.True(animatedModel.IsMaster());
         Assert.NotNull(animatedModel.GetSkeleton().GetBone(0u)!.Node);
     }
@@ -65,7 +73,7 @@ public sealed class AnimatedModelTests
         animatedModel.SetModel(model, true);
 
         Assert.Empty(animatedModel.GetMorphVertexBuffers());
-        animatedModel.SetMorphWeight(0u, 1.0f);
+        animatedModel.SetMorphWeight(0, 1.0f);
 
         Assert.NotSame(vertexBuffer, Assert.IsType<VertexBuffer>(Assert.Single(animatedModel.GetMorphVertexBuffers())));
         Assert.Equal(UpdateGeometryType.MainThread, animatedModel.GetUpdateGeometryType());
@@ -87,7 +95,7 @@ public sealed class AnimatedModelTests
         animatedModel.SetModel(model, false);
         animatedModel.SetMorphsAttr(new byte[] { 255 });
 
-        Assert.Equal(1.0f, animatedModel.GetMorphWeight(0u));
+        Assert.Equal(1.0f, animatedModel.GetMorphWeight(0));
         Assert.Single(animatedModel.GetBonesEnabledAttr());
         Assert.True(animatedModel.GetBonesEnabledAttr()[0].GetBool());
 
@@ -100,11 +108,11 @@ public sealed class AnimatedModelTests
     {
         var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
 
-        animatedModel.SetMorphWeight(5u, 1.0f);
+        animatedModel.SetMorphWeight(5, 1.0f);
         animatedModel.SetMorphWeight("Missing", 1.0f);
         animatedModel.SetMorphWeight(new StringHash("Missing"), 1.0f);
 
-        Assert.Equal(0.0f, animatedModel.GetMorphWeight(5u));
+        Assert.Equal(0.0f, animatedModel.GetMorphWeight(5));
         Assert.Equal(0.0f, animatedModel.GetMorphWeight("Missing"));
         Assert.Equal(0.0f, animatedModel.GetMorphWeight(new StringHash("Missing")));
     }
