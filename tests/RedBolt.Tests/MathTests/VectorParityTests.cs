@@ -5,6 +5,16 @@ namespace RedBolt.Tests.MathTests;
 public class VectorParityTests
 {
     [Fact]
+    public void IntersectionMatchesNativeEnumShapeAndValues()
+    {
+        Assert.True(typeof(Intersection).IsEnum);
+        Assert.Equal(typeof(int), Enum.GetUnderlyingType(typeof(Intersection)));
+        Assert.Equal(0, (int)Intersection.Outside);
+        Assert.Equal(1, (int)Intersection.Intersects);
+        Assert.Equal(2, (int)Intersection.Inside);
+    }
+
+    [Fact]
     public void NormalizedOrDefaultUsesConfiguredFallbackAndEpsilon()
     {
         var fallback2 = new Vector2f(2.0f, 3.0f);
