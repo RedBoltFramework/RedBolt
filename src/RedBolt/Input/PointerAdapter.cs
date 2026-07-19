@@ -16,8 +16,6 @@ public class PointerAdapter : Object
     /// <summary>Construct.</summary>
     public PointerAdapter()
     {
-        _directionAdapter = new DirectionAggregator();
-
         // Propagate default subscription mask to direction adapter.
         SetSubscriptionMask(GetSubscriptionMask());
 
@@ -331,7 +329,7 @@ public class PointerAdapter : Object
     }
 
     // Keyboard and joystick adapter to move the cursor.
-    private readonly DirectionAggregator _directionAdapter;
+    private readonly DirectionAggregator _directionAdapter = new();
     /// <summary>Is aggregator enabled</summary>
     private bool _enabled;
     /// <summary>Enabled subscriptions</summary>
