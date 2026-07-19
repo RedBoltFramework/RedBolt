@@ -113,6 +113,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `EaseMath.h` — stateless namespace function module, all 15 formulas and branches reconciled; no instance, value type, copy, or lifetime state exists
 - [x] `Frustum.h` / `Frustum.cpp` — extensible non-POD copyable class kind, independent fixed-array copies, degenerate construction, geometry operations, and automatic lifetime reconciled
 - [x] `InverseKinematics.h` / `InverseKinematics.cpp` — `IKChain`, `IKFabrikChain`, and `IKSpineChain` extensible class kinds, independent container copies with borrowed node aliases, derived clone types, weight ownership, and automatic lifetime reconciled
+- [x] `Rect.h` / `Rect.cpp` — `IntRect` and `IntRectIterator` sequential value types, independent scalar copies, contiguous data view, iterator behavior, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 
