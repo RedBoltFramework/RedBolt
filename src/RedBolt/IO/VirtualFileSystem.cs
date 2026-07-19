@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -16,6 +17,24 @@ public class VirtualFileSystem : Object
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
+        var aliasMountPoint = _aliasMountPoint;
+        var aliasIsMounted = false;
+        for (var i = 0; i < _mountPoints.Count; ++i)
+        {
+            if (ReferenceEquals(_mountPoints[i], aliasMountPoint))
+            {
+                aliasIsMounted = true;
+                break;
+            }
+        }
+
+        _aliasMountPoint = null;
+        if (aliasMountPoint is not null && !aliasIsMounted)
+            aliasMountPoint.Dispose();
+
+        for (var i = _mountPoints.Count - 1; i >= 0; --i)
+            _mountPoints[i].Dispose();
+        _mountPoints.Clear();
         base.Dispose();
     }
 
@@ -97,6 +116,7 @@ public class VirtualFileSystem : Object
             return packageFile;
         }
 
+        packageFile.Dispose();
         return null;
     }
 
@@ -115,7 +135,11 @@ public class VirtualFileSystem : Object
             mountPoint.SetWatching(_isWatching);
 
             if (mountPoint is MountedAliasRoot mountedAliasRoot)
+            {
+                if (_aliasMountPoint is not null)
+                    Log.Logger.LogWarning("Mounted alias root when one already exists, overwriting.");
                 _aliasMountPoint = mountedAliasRoot;
+            }
         }
     }
 
@@ -141,6 +165,8 @@ public class VirtualFileSystem : Object
                 {
                     // Erase the slow way because order of the mount points matters.
                     _mountPoints.RemoveAt(i);
+                    if (!ReferenceEquals(_aliasMountPoint, mountPoint))
+                        mountPoint?.Dispose();
                     break;
                 }
             }
@@ -152,7 +178,13 @@ public class VirtualFileSystem : Object
     {
         lock (_mountMutex)
         {
+            for (var i = _mountPoints.Count - 1; i >= 0; --i)
+            {
+                if (!ReferenceEquals(_mountPoints[i], _aliasMountPoint))
+                    _mountPoints[i].Dispose();
+            }
             _mountPoints.Clear();
+            _aliasMountPoint?.Dispose();
             _aliasMountPoint = null;
         }
     }
@@ -160,10 +192,7 @@ public class VirtualFileSystem : Object
     /// <summary>Get number of mount points.</summary>
     public uint NumMountPoints()
     {
-        lock (_mountMutex)
-        {
-            return checked((uint)_mountPoints.Count);
-        }
+        return checked((uint)_mountPoints.Count);
     }
 
     /// <summary>Get mount point by index.</summary>
@@ -269,7 +298,7 @@ public class VirtualFileSystem : Object
         }
         finally
         {
-            file.Close();
+            file.Dispose();
         }
     }
 
@@ -287,7 +316,7 @@ public class VirtualFileSystem : Object
         }
         finally
         {
-            file.Close();
+            file.Dispose();
         }
     }
 
@@ -440,7 +469,7 @@ public class VirtualFileSystem : Object
 }
 
 /// <summary>Helper class to mount and unmount an object automatically.</summary>
-public sealed class MountPointGuard : IDisposable
+public class MountPointGuard : IDisposable
 {
     public MountPointGuard(MountPoint? mountPoint)
     {
@@ -452,16 +481,23 @@ public sealed class MountPointGuard : IDisposable
         }
     }
 
-    public MountPointGuard(MountPointGuard other)
-    {
-        _mountPoint = other._mountPoint;
-        other._mountPoint = null;
-    }
-
     public void Dispose()
     {
         Release();
         GC.SuppressFinalize(this);
+    }
+
+    public MountPointGuard(MountPointGuard other)
+    {
+        MoveAssign(other);
+    }
+
+    public MountPointGuard MoveAssign(MountPointGuard other)
+    {
+        Release();
+        _mountPoint = other._mountPoint;
+        other._mountPoint = null;
+        return this;
     }
 
     public void Release()
