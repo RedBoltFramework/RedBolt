@@ -106,6 +106,8 @@ public class RawTexture : DeviceObject
         if (texture.IsNull)
             return false;
 
+        DestroyGPU();
+
         using var desc = texture.GetDesc();
         var type = desc.Type switch
         {
@@ -125,7 +127,8 @@ public class RawTexture : DeviceObject
         if (resolvedFormat == TextureFormat.Unknown)
             return false;
 
-        var flags = TextureFlag.NoMultiSampledAutoResolve;
+        // TODO: Revisit this flag
+        var flags = _parameters.Flags | TextureFlag.NoMultiSampledAutoResolve;
         if ((desc.BindFlags & BindFlags.BindRenderTarget) != 0)
             flags |= TextureFlag.BindRenderTarget;
         if ((desc.BindFlags & BindFlags.BindDepthStencil) != 0)
@@ -133,17 +136,18 @@ public class RawTexture : DeviceObject
         if ((desc.BindFlags & BindFlags.BindUnorderedAccess) != 0)
             flags |= TextureFlag.BindUnorderedAccess;
 
-        DestroyGPU();
-        _parameters = new RawTextureParams(
-            type.Value,
-            resolvedFormat,
-            flags,
-            new Vector3i(checked((int)desc.Width), checked((int)desc.Height), checked((int)desc.Depth)),
-            checked((int)desc.ArraySize),
-            checked((int)desc.MipLevels),
-            Math.Max(checked((int)desc.SampleCount), msaaLevel),
-            checked((int)desc.MipLevels),
-            isSrgb);
+        _parameters = _parameters with
+        {
+            Type = type.Value,
+            Format = resolvedFormat,
+            Flags = flags,
+            Size = new Vector3i(checked((int)desc.Width), checked((int)desc.Height), checked((int)desc.Depth)),
+            ArraySize = checked((int)desc.ArraySize),
+            NumLevels = checked((int)desc.MipLevels),
+            MultiSample = Math.Max(checked((int)desc.SampleCount), msaaLevel),
+            NumLevelsRtv = checked((int)desc.MipLevels),
+            SRGB = isSrgb
+        };
         _ = texture.AddRef();
         _handles.Texture = texture;
         return InitializeDefaultViews(desc.BindFlags);
@@ -281,7 +285,6 @@ public class RawTexture : DeviceObject
             Usage = Usage.UsageDefault,
             Format = Graphics.MapTextureFormat(format, _parameters.SRGB),
             ArraySize = checked((uint)(type == TextureType.Texture2DArray ? arraySize : 1)),
-            BindFlags = BindFlags.BindShaderResource
         };
         if ((flags & TextureFlag.BindRenderTarget) == TextureFlag.BindRenderTarget)
             desc.BindFlags |= BindFlags.BindRenderTarget;
@@ -292,7 +295,10 @@ public class RawTexture : DeviceObject
 
         glDevice.CreateTextureFromGLHandle(handle, 0u, desc, ResourceState.ResourceStateUnknown, out var texture);
         if (texture is null || texture.IsNull)
+        {
+            Log.GetLogger().LogError("Failed to create texture from existing GL texture handle");
             return false;
+        }
         try
         {
             return CreateFromHandle(texture, format, msaaLevel);

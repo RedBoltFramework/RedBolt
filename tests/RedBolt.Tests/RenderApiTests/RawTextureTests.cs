@@ -432,11 +432,15 @@ public sealed class RawTextureTests
                 TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindRenderTarget,
                 new Vector3i(8, 4, 1), NumLevels: 1));
             var wrapped = new TestRawTexture();
+            Assert.True(wrapped.CreateForTest(new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.BindUnorderedAccess,
+                new Vector3i(1, 1, 1), NumLevels: 1)));
 
             Assert.True(wrapped.CreateFromHandle(source.GetHandles().Texture!, TextureFormat.Unknown, 1));
             Assert.Same(source.GetHandles().Texture, wrapped.GetHandles().Texture);
             Assert.Equal(new Vector3i(8, 4, 1), wrapped.GetParams().Size);
-            Assert.Equal(TextureFlag.BindRenderTarget | TextureFlag.NoMultiSampledAutoResolve,
+            Assert.Equal(TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess |
+                TextureFlag.NoMultiSampledAutoResolve,
                 wrapped.GetParams().Flags);
             Assert.NotNull(wrapped.GetHandles().ShaderResourceView);
             Assert.NotNull(wrapped.GetHandles().RenderTargetView);
