@@ -333,7 +333,9 @@ public enum TextureType
     /// <summary>Singular 3D texture. Support is not guaranteed.</summary>
     Texture3D,
     /// <summary>Array of 2D textures. Support is not guaranteed.</summary>
-    Texture2DArray
+    Texture2DArray,
+
+    Count
 }
 
 /// <summary>Texture usage flags.</summary>

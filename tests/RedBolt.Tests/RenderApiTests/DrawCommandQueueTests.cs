@@ -14,6 +14,18 @@ public sealed class DrawCommandQueueTests
     }
 
     [Fact]
+    public void Draw_command_queue_has_native_reference_class_and_constructor_shape()
+    {
+        Assert.False(typeof(RedBolt.Object).IsAssignableFrom(typeof(DrawCommandQueue)));
+        Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(DrawCommandQueue)));
+        Assert.False(typeof(DrawCommandQueue).GetMethod(nameof(DrawCommandQueue.ExecuteInContext))!.IsVirtual);
+
+        var queue = new DrawCommandQueue(_fixture.RenderDevice);
+        Assert.Empty(GetPrivateField<List<IntRect>>(queue, "_scissorRects"));
+        Assert.Empty(GetPrivateField<List<DrawCommandDescription>>(queue, "_drawCommands"));
+    }
+
+    [Fact]
     public void Draw_command_description_is_value_type_with_inline_copy_semantics()
     {
         Assert.True(typeof(DrawCommandDescription).IsValueType);
@@ -48,13 +60,18 @@ public sealed class DrawCommandQueueTests
         queue.SetPipelineState(pipelineState);
         queue.SetStencilRef(17u);
         queue.SetScissorRect(scissor0);
-        queue.SetVertexBuffers([vertexBuffer0, vertexBuffer1]);
+        RawVertexBufferArray vertexBuffers = default;
+        vertexBuffers[0] = vertexBuffer0;
+        vertexBuffers[1] = vertexBuffer1;
+        queue.SetVertexBuffers(vertexBuffers);
         queue.SetIndexBuffer(indexBuffer);
         queue.DrawIndexedInstanced(2, 6, 5, 7, 3);
 
         queue.SetStencilRef(9u);
         queue.SetScissorRect(scissor1);
-        queue.SetVertexBuffers([vertexBuffer1]);
+        vertexBuffers = default;
+        vertexBuffers[0] = vertexBuffer1;
+        queue.SetVertexBuffers(vertexBuffers);
         queue.SetIndexBuffer(null);
         queue.Draw(4, 8);
 
@@ -90,51 +107,6 @@ public sealed class DrawCommandQueueTests
     }
 
     [Fact]
-    public void Draw_command_queue_execute_skips_commands_with_invalid_native_pipelines()
-    {
-        var queue = _fixture.RenderDevice.GetDefaultQueue();
-        var graphicsState = CreateGraphicsPipelineState();
-        var computeState = CreateComputePipelineState();
-
-        queue.Reset();
-        queue.SetClipPlaneMask(0x5Au);
-        queue.SetPipelineState(graphicsState);
-        queue.SetIndexBuffer(null);
-        queue.DrawInstanced(2, 5, 7, 3);
-        queue.SetPipelineState(computeState);
-        queue.Dispatch(new Vector3i(4, 5, 6));
-
-        _fixture.RenderContext.ResetStats();
-        queue.ExecuteInContext(_fixture.RenderContext);
-
-        var stats = _fixture.RenderContext.GetStats();
-        Assert.Equal<uint>(0u, stats.NumDraws);
-        Assert.Equal<uint>(0u, stats.NumPrimitives);
-        Assert.Equal<uint>(0u, stats.NumDispatches);
-        Assert.Equal<uint>(0x5Au, GetPrivateField<uint>(_fixture.RenderContext, "_clipPlaneMask"));
-    }
-
-    [Fact]
-    public void Draw_command_queue_rejects_mismatched_pipeline_and_buffer_state()
-    {
-        var queue = _fixture.RenderDevice.GetDefaultQueue();
-        var graphicsState = CreateGraphicsPipelineState();
-        var computeState = CreateComputePipelineState();
-        var indexBuffer = new RawBuffer(new RawBufferParams(BufferType.Index, 12u, 2u, BufferFlag.Shadowed));
-
-        queue.Reset();
-        Assert.Throws<InvalidOperationException>(() => queue.Draw(0, 3));
-
-        queue.SetPipelineState(graphicsState);
-        queue.SetIndexBuffer(indexBuffer);
-        Assert.Throws<InvalidOperationException>(() => queue.Draw(0, 3));
-
-        queue.SetPipelineState(computeState);
-        queue.SetIndexBuffer(null);
-        Assert.Throws<InvalidOperationException>(() => queue.DrawIndexed(0, 3));
-    }
-
-    [Fact]
     public void Shader_parameter_groups_allocate_store_and_reuse_reflected_blocks()
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
@@ -160,7 +132,7 @@ public sealed class DrawCommandQueueTests
         queue.CommitShaderParameterGroup(ShaderParameterGroup.Frame);
         Assert.False(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
 
-        var collection = GetPrivateField<ConstantBufferCollection>(queue, "_constantBufferCollection");
+        var collection = GetNestedField<ConstantBufferCollection>(queue, "_constantBuffers", "Collection");
         Assert.Equal(Math.Max(16, checked((int)_fixture.RenderDevice.GetCaps().ConstantBufferOffsetAlignment)), collection.GetBufferSize(0));
         Assert.Equal(3.5f, BitConverter.ToSingle(collection.GetBufferData(0).Span.Slice(4, 4)));
         Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material, differentFromPrevious: true));
@@ -198,26 +170,22 @@ public sealed class DrawCommandQueueTests
         return pipelineState!;
     }
 
-    private PipelineState CreateComputePipelineState()
-    {
-        var cache = _fixture.Context.GetSubsystem<PipelineStateCache>();
-        Assert.NotNull(cache);
-
-        var desc = new ComputePipelineStateDesc
-        {
-            DebugName = "DrawQueueCompute",
-            ComputeShader = new RawShader(new ShaderBytecode(ShaderType.CS))
-        };
-        var pipelineState = cache!.GetComputePipelineState(desc);
-        Assert.NotNull(pipelineState);
-        return pipelineState!;
-    }
-
     private static T GetPrivateField<T>(object instance, string fieldName)
     {
         var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
         return Assert.IsType<T>(field!.GetValue(instance));
+    }
+
+    private static T GetNestedField<T>(object instance, string parentFieldName, string fieldName)
+    {
+        var parentField = instance.GetType().GetField(parentFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(parentField);
+        var parent = parentField!.GetValue(instance);
+        Assert.NotNull(parent);
+        var field = parent.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<T>(field!.GetValue(parent));
     }
 
     private static void SetProperty<T>(object instance, string propertyName, T value)

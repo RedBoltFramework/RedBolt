@@ -208,7 +208,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ConstantBufferCollection.h` — extensible collection class, mutable 12-byte POD block reference, native field/default order, reusable owned buffer storage, exact block allocation and parameter copies, full GPU-buffer upload range, approved managed `int` indices/sizes, and automatic lifetime reconciled
 - [x] `DeviceObject.h` / `DeviceObject.cpp` — complete concrete class shape, construction/registration, deterministic teardown, device-event state transitions, protected state, debug name, dependency restore, implicit copy semantics, and affected shutdown/reload call paths reconciled
 - [x] `DrawCommandDescription` in `DrawCommandQueue.h` — POD class kind, exact field/default order, inline fixed arrays, implicit value copies, pointer alias identity, approved managed `int` indices/sizes, queue insertion snapshots, and automatic lifetime reconciled
-- [~] `RawTexture.h` / `RawTexture.cpp` and `RenderAPIDefs.h` — SamplerStateDesc inline value type, native field order/defaults, independent assignment/return, and immutable-sampler value insertion reconciled; complete class-wide audits remain pending
+- [x] `DrawCommandQueue.h` / `DrawCommandQueue.cpp` — extensible noncopyable reference class, exact nested/member order, constructor/reset behavior, command accumulation, shader parameter/resource diagnostics and ranges, reusable temporary storage, complete execution/state caching, automatic lifetime, and affected buffer setup/RenderDevice ownership reconciled
+- [~] `RawTexture.h` / `RawTexture.cpp` and `RenderAPIDefs.h` — SamplerStateDesc inline value type, native field order/defaults, independent assignment/return, immutable-sampler value insertion, and `TextureType::Count` sentinel reconciled; complete class-wide audits remain pending
 
 ## [x] A8. Shader — depends on Core, IO (feeds Graphics)
 

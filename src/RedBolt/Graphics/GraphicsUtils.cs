@@ -95,23 +95,14 @@ public static class GraphicsUtils
             return;
         }
 
-        var mergedVertexBuffers = ArrayPool<RawBuffer?>.Shared.Rent((int)RenderApiLimits.MaxVertexStreams);
-        try
-        {
-            Array.Clear(mergedVertexBuffers, 0, (int)RenderApiLimits.MaxVertexStreams);
-            for (var i = 0; i < vertexBuffers.Count; ++i)
-                mergedVertexBuffers[i] = vertexBuffers[i]?.GetRawBuffer();
-            if (instancingBuffer is not null)
-                mergedVertexBuffers[vertexBuffers.Count] = instancingBuffer.GetRawBuffer();
+        RawVertexBufferArray mergedVertexBuffers = default;
+        for (var i = 0; i < vertexBuffers.Count; ++i)
+            mergedVertexBuffers[i] = vertexBuffers[i]?.GetRawBuffer();
+        if (instancingBuffer is not null)
+            mergedVertexBuffers[vertexBuffers.Count] = instancingBuffer.GetRawBuffer();
 
-            drawQueue.SetVertexBuffers(mergedVertexBuffers.AsSpan(0, (int)RenderApiLimits.MaxVertexStreams));
-            drawQueue.SetIndexBuffer(geometry.GetIndexBuffer()?.GetRawBuffer());
-        }
-        finally
-        {
-            Array.Clear(mergedVertexBuffers, 0, (int)RenderApiLimits.MaxVertexStreams);
-            ArrayPool<RawBuffer?>.Shared.Return(mergedVertexBuffers);
-        }
+        drawQueue.SetVertexBuffers(mergedVertexBuffers);
+        drawQueue.SetIndexBuffer(geometry.GetIndexBuffer()?.GetRawBuffer());
     }
 
     public static void AddShaderResource(DrawCommandQueue drawQueue, StringHash name, Texture? texture)

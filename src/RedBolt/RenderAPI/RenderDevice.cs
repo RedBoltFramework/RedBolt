@@ -19,7 +19,7 @@ public sealed class RenderDevice : Object
     private readonly RenderPool _renderPool;
     private readonly RenderContext _renderContext;
     private readonly DrawCommandQueue _defaultQueue;
-    private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Texture2DArray + 1];
+    private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Count];
     private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
     private FrameIndex _frameIndex = FrameIndex.First;
     private WindowSettings? _windowSettings;
@@ -86,7 +86,6 @@ public sealed class RenderDevice : Object
         ReleaseDefaultObjects();
         _renderContext.Dispose();
         _renderPool.Dispose();
-        _defaultQueue.Dispose();
         base.Dispose();
     }
 

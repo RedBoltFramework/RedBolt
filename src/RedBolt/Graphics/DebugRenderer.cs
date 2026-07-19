@@ -19,7 +19,6 @@ public class DebugRenderer : Component
     private Matrix4 _gpuProjection;
     private Frustum _frustum = new();
     private readonly DynamicVertexBuffer _vertexBuffer = new();
-    private readonly RawBuffer?[] _vertexBuffers = new RawBuffer?[1];
     private bool _vertexBufferInitialized;
     private bool _lineAntiAlias;
     private WeakReference<Camera>? _camera;
@@ -50,7 +49,6 @@ public class DebugRenderer : Component
         _pipelineStates.Invalidate();
         _pipelineStates.Dispose();
         _camera = null;
-        _vertexBuffers[0] = null;
         _vertexBuffer.GetVertexBuffer().GetRawBuffer()?.Destroy();
         _noDepthTriangles.Clear();
         _triangles.Clear();
@@ -673,8 +671,9 @@ public class DebugRenderer : Component
             drawQueue.Draw(checked((int)startVertex), checked((int)vertexCount));
         }
 
-        _vertexBuffers[0] = _vertexBuffer.GetVertexBuffer().GetRawBuffer();
-        drawQueue.SetVertexBuffers(_vertexBuffers);
+        RawVertexBufferArray vertexBuffers = default;
+        vertexBuffers[0] = _vertexBuffer.GetVertexBuffer().GetRawBuffer();
+        drawQueue.SetVertexBuffers(vertexBuffers);
 
         var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
         var linePipeline = _lineAntiAlias ? 1 : 0;

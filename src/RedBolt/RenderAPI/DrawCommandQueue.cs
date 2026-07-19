@@ -1,58 +1,113 @@
 namespace RedBolt;
 
+using System.Diagnostics;
 using RedBolt.Bindings.Diligent;
 
 /// <summary>Queue of draw commands.</summary>
-public class DrawCommandQueue : Object
+public class DrawCommandQueue
 {
     private readonly RenderDevice _renderDevice;
+
+    /// <summary>Shader parameters data when constant buffers are used.</summary>
+    private struct ConstantBuffersData
+    {
+        /// <summary>Constant buffers.</summary>
+        public readonly ConstantBufferCollection Collection = new();
+
+        /// <summary>Current constant buffer group.</summary>
+        public ShaderParameterGroup CurrentGroup = (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups;
+        /// <summary>Current pointer to constant buffer data.</summary>
+        public Memory<byte> CurrentData;
+        /// <summary>Current constant buffer layout hashes.</summary>
+        public readonly uint[] CurrentHashes = new uint[RenderApiLimits.MaxShaderParameterGroups];
+
+        public ConstantBuffersData()
+        {
+        }
+    }
+
+    private struct ShaderResourceData
+    {
+        public IShaderResourceVariable? Variable;
+        public RawTexture? Texture;
+        public RawTexture? BackupTexture;
+        public TextureType Type;
+        public ITextureView? View;
+    }
+
+    private struct UnorderedAccessViewData
+    {
+        public IShaderResourceVariable? Variable;
+        public RawTexture? Texture;
+        public ITextureView? View;
+    }
+
+    private ConstantBuffersData _constantBuffers = new();
+
+    /// <summary>Whether to enable clip plane.</summary>
+    private uint _clipPlaneMask;
+
+    /// <summary>Shader resources.</summary>
+    private readonly List<ShaderResourceData> _shaderResources = [];
+    /// <summary>Unordered access views.</summary>
+    private readonly List<UnorderedAccessViewData> _unorderedAccessViews = [];
     /// <summary>Scissor rects.</summary>
     private readonly List<IntRect> _scissorRects = [];
     /// <summary>Draw operations.</summary>
     private readonly List<DrawCommandDescription> _drawCommands = [];
+
     /// <summary>Current draw operation.</summary>
     private DrawCommandDescription _currentDrawCommand;
-    /// <summary>Whether to enable clip plane.</summary>
-    private uint _clipPlaneMask;
-    private readonly ConstantBufferCollection _constantBufferCollection = new();
-    private readonly uint[] _constantBufferHashes = new uint[RenderApiLimits.MaxShaderParameterGroups];
-    private Memory<byte> _currentConstantBufferData;
-    private ShaderParameterGroup? _currentShaderParameterGroup;
-    private ShaderProgramReflection? _currentShaderProgramReflection;
-    private readonly List<ShaderResourceData> _shaderResources = [];
-    private readonly List<ITextureView?> _shaderResourceViews = [];
-    private readonly List<UnorderedAccessViewData> _unorderedAccessViews = [];
+    /// <summary>Current shader resource group.</summary>
     private ShaderResourceRange _currentShaderResourceGroup;
+    /// <summary>Current unordered access view group.</summary>
     private ShaderResourceRange _currentUnorderedAccessViewGroup;
-    private readonly IBuffer?[] _nativeVertexBuffers = new IBuffer?[RenderApiLimits.MaxVertexStreams];
-    private readonly ulong[] _nativeVertexBufferOffsets = new ulong[RenderApiLimits.MaxVertexStreams];
-    private readonly RawBuffer?[] _currentVertexBuffers = new RawBuffer?[RenderApiLimits.MaxVertexStreams];
+    /// <summary>Current shader program reflection.</summary>
+    private ShaderProgramReflection? _currentShaderProgramReflection;
 
-    private readonly record struct ShaderResourceData(
-        IShaderResourceVariable Variable, TextureType? Type, RawTexture? Texture, RawTexture? BackupTexture, ITextureView? View);
-    private readonly record struct UnorderedAccessViewData(IShaderResourceVariable Variable, RawTexture Texture, ITextureView View);
+    /// <summary>Temporary storage for executing draw commands.</summary>
+    private struct Temporary
+    {
+        public readonly List<IBuffer?> UniformBuffers = [];
+        public readonly List<ITextureView?> ShaderResourceViews = [];
+        public readonly IBuffer?[] VertexBufferHandles = new IBuffer?[RenderApiLimits.MaxVertexStreams];
+        public readonly ulong[] VertexBufferOffsets = new ulong[RenderApiLimits.MaxVertexStreams];
+
+        public Temporary()
+        {
+        }
+    }
+
+    private Temporary _temp = new();
 
     /// <summary>Construct.</summary>
     public DrawCommandQueue(RenderDevice renderDevice)
     {
-        this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
-        Reset();
+        _renderDevice = renderDevice;
     }
 
     /// <summary>Reset queue.</summary>
     public void Reset()
     {
         _clipPlaneMask = 0;
+
+        // Reset state accumulators
         _currentDrawCommand = default;
-        _currentShaderProgramReflection = null;
-        _currentShaderParameterGroup = null;
-        _currentConstantBufferData = default;
-        Array.Clear(_constantBufferHashes);
-        _constantBufferCollection.ClearAndInitialize(checked((int)_renderDevice.GetCaps().ConstantBufferOffsetAlignment));
-        _shaderResources.Clear();
-        _unorderedAccessViews.Clear();
         _currentShaderResourceGroup = default;
         _currentUnorderedAccessViewGroup = default;
+        _currentShaderProgramReflection = null;
+
+        // Clear shader parameters
+        _constantBuffers.Collection.ClearAndInitialize(checked((int)_renderDevice.GetCaps().ConstantBufferOffsetAlignment));
+        _constantBuffers.CurrentData = default;
+        Array.Clear(_constantBuffers.CurrentHashes);
+
+        for (var i = 0; i < RenderApiLimits.MaxShaderParameterGroups; ++i)
+            _currentDrawCommand.ConstantBuffers[i] = default;
+
+        // Clear arrays and draw commands
+        _shaderResources.Clear();
+        _unorderedAccessViews.Clear();
         _drawCommands.Clear();
         _scissorRects.Clear();
         _scissorRects.Add(IntRect.Zero);
@@ -67,115 +122,10 @@ public class DrawCommandQueue : Object
     /// <summary>Set pipeline state. Must be called first.</summary>
     public void SetPipelineState(PipelineState pipelineState)
     {
-        _currentDrawCommand.PipelineState = pipelineState ?? throw new ArgumentNullException(nameof(pipelineState));
+        Debug.Assert(pipelineState is not null);
+
+        _currentDrawCommand.PipelineState = pipelineState;
         _currentShaderProgramReflection = pipelineState.GetReflection();
-    }
-
-    public bool BeginShaderParameterGroup(ShaderParameterGroup group, bool differentFromPrevious = false)
-    {
-        var index = (int)group;
-        if ((uint)index >= RenderApiLimits.MaxShaderParameterGroups)
-            throw new ArgumentOutOfRangeException(nameof(group));
-        var uniformBuffer = _currentShaderProgramReflection?.GetUniformBuffer(group);
-        if (uniformBuffer is null)
-        {
-            if (differentFromPrevious) _constantBufferHashes[index] = 0;
-            return false;
-        }
-        if (!differentFromPrevious && uniformBuffer.Hash == _constantBufferHashes[index])
-            return false;
-
-        var block = _constantBufferCollection.AddBlock(checked((int)uniformBuffer.Size));
-        _currentDrawCommand.ConstantBuffers[index] = block.Ref;
-        _currentConstantBufferData = block.Data;
-        _constantBufferHashes[index] = uniformBuffer.Hash;
-        _currentShaderParameterGroup = group;
-        return true;
-    }
-
-    public void AddShaderParameter(StringHash name, Variant value)
-        => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
-
-    public void AddShaderParameter<T>(StringHash name, T value) where T : unmanaged
-        => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
-
-    public void AddShaderParameter(StringHash name, Matrix3 value)
-        => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
-
-    public void AddShaderParameter(StringHash name, Matrix3x4 value)
-        => AddShaderParameterCore(name, span => ConstantBufferCollection.StoreParameter(span, value));
-
-    public void AddShaderParameter(StringHash name, ReadOnlySpan<Vector4f> values)
-    {
-        if (TryGetShaderParameterDestination(name, out var destination))
-            ConstantBufferCollection.StoreParameter(destination, values);
-    }
-
-    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix3x4> values)
-    {
-        if (TryGetShaderParameterDestination(name, out var destination))
-            ConstantBufferCollection.StoreParameter(destination, values);
-    }
-
-    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix4> values)
-    {
-        if (TryGetShaderParameterDestination(name, out var destination))
-            ConstantBufferCollection.StoreParameter(destination, values);
-    }
-
-    public void CommitShaderParameterGroup(ShaderParameterGroup group)
-    {
-        _currentShaderParameterGroup = null;
-        _currentConstantBufferData = default;
-    }
-
-    public void AddShaderResource(StringHash name, ITextureView textureView)
-    {
-        ArgumentNullException.ThrowIfNull(textureView);
-        var reflection = _currentShaderProgramReflection?.GetShaderResource(name);
-        if (reflection?.Variable is null) return;
-        _shaderResources.Add(new(reflection.Variable, null, null, null, textureView));
-        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
-    }
-
-    public void AddShaderResource(StringHash name, RawTexture texture, RawTexture? backupTexture = null)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-        AddNullableShaderResource(name, texture.GetParams().Type, texture, backupTexture);
-    }
-
-    public void AddNullableShaderResource(StringHash name, TextureType type, RawTexture? texture, RawTexture? backupTexture = null)
-    {
-        var reflection = _currentShaderProgramReflection?.GetShaderResource(name);
-        if (reflection?.Variable is null) return;
-        _shaderResources.Add(new(reflection.Variable, type, texture, backupTexture, null));
-        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
-    }
-
-    public void CommitShaderResources()
-    {
-        _currentDrawCommand.ShaderResources = _currentShaderResourceGroup;
-        var end = _shaderResources.Count;
-        _currentShaderResourceGroup = new(end, end);
-    }
-
-    public void AddUnorderedAccessView(StringHash name, RawTexture texture, RawTextureUAVKey key)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-        var reflection = _currentShaderProgramReflection?.GetUnorderedAccessView(name);
-        if (reflection?.Variable is null) return;
-        var view = texture.GetUAV(key);
-        if (view is null)
-            return;
-        _unorderedAccessViews.Add(new(reflection.Variable, texture, view));
-        _currentUnorderedAccessViewGroup = _currentUnorderedAccessViewGroup with { Second = _unorderedAccessViews.Count };
-    }
-
-    public void CommitUnorderedAccessViews()
-    {
-        _currentDrawCommand.UnorderedAccessViews = _currentUnorderedAccessViewGroup;
-        var end = _unorderedAccessViews.Count;
-        _currentUnorderedAccessViewGroup = new(end, end);
     }
 
     /// <summary>Set stencil reference value.</summary>
@@ -194,14 +144,172 @@ public class DrawCommandQueue : Object
         _scissorRects.Add(scissorRect);
     }
 
-    /// <summary>Set vertex buffers.</summary>
-    public void SetVertexBuffers(ReadOnlySpan<RawBuffer?> buffers)
+    /// <summary>Begin shader parameter group. All parameters shall be set for each draw command.</summary>
+    public bool BeginShaderParameterGroup(ShaderParameterGroup group, bool differentFromPrevious = false)
     {
-        if (buffers.Length > RenderApiLimits.MaxVertexStreams)
-            throw new ArgumentOutOfRangeException(nameof(buffers));
+        var index = (int)group;
+        var uniformBuffer = _currentShaderProgramReflection!.GetUniformBuffer(group);
+        if (uniformBuffer is null)
+        {
+            // If contents changed, forget cached constant buffer
+            if (differentFromPrevious)
+                _constantBuffers.CurrentHashes[index] = 0;
+            return false;
+        }
 
-        for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
-            _currentDrawCommand.VertexBuffers[i] = i < buffers.Length ? buffers[i] : null;
+        // If data and/or layout changed, rebuild block
+        if (differentFromPrevious || uniformBuffer.Hash != _constantBuffers.CurrentHashes[index])
+        {
+            var refAndData = _constantBuffers.Collection.AddBlock(checked((int)uniformBuffer.Size));
+
+            _currentDrawCommand.ConstantBuffers[index] = refAndData.Ref;
+            _constantBuffers.CurrentData = refAndData.Data;
+            _constantBuffers.CurrentHashes[index] = uniformBuffer.Hash;
+            _constantBuffers.CurrentGroup = group;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, Variant value)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, value))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter<T>(StringHash name, T value) where T : unmanaged
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, value))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, Matrix3 value)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, value))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, Matrix3x4 value)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, value))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Vector4f> values)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, values))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix3x4> values)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, values))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void AddShaderParameter(StringHash name, ReadOnlySpan<Matrix4> values)
+    {
+        if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
+            && !ConstantBufferCollection.StoreParameter(destination, values))
+            LogUnexpectedShaderParameterType(name, expectedSize);
+    }
+
+    /// <summary>Commit shader parameter group. Shall be called only if BeginShaderParameterGroup returned true.</summary>
+    public void CommitShaderParameterGroup(ShaderParameterGroup group)
+    {
+        // All data is already stored, nothing to do
+        _constantBuffers.CurrentGroup = (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups;
+    }
+
+    /// <summary>Add shader resource with specific view.</summary>
+    public void AddShaderResource(StringHash name, ITextureView textureView)
+    {
+        var reflection = _currentShaderProgramReflection!.GetShaderResource(name);
+        if (reflection?.Variable is null) return;
+        _shaderResources.Add(new ShaderResourceData
+        {
+            Variable = reflection.Variable,
+            Type = TextureType.Count,
+            View = textureView
+        });
+        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
+    }
+
+    /// <summary>Add non-null shader resource.</summary>
+    public void AddShaderResource(StringHash name, RawTexture texture, RawTexture? backupTexture = null)
+    {
+        AddNullableShaderResource(name, texture.GetParams().Type, texture, backupTexture);
+    }
+
+    /// <summary>Add nullable shader resource.</summary>
+    public void AddNullableShaderResource(StringHash name, TextureType type, RawTexture? texture, RawTexture? backupTexture = null)
+    {
+        var reflection = _currentShaderProgramReflection!.GetShaderResource(name);
+        if (reflection?.Variable is null) return;
+        _shaderResources.Add(new ShaderResourceData
+        {
+            Variable = reflection.Variable,
+            Texture = texture,
+            BackupTexture = backupTexture,
+            Type = type
+        });
+        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
+    }
+
+    /// <summary>Commit shader resources added since previous commit.</summary>
+    public void CommitShaderResources()
+    {
+        _currentDrawCommand.ShaderResources = _currentShaderResourceGroup;
+        var end = _shaderResources.Count;
+        _currentShaderResourceGroup = new(end, end);
+    }
+
+    /// <summary>Add unordered access view.</summary>
+    public void AddUnorderedAccessView(StringHash name, RawTexture texture, RawTextureUAVKey key)
+    {
+        var reflection = _currentShaderProgramReflection!.GetUnorderedAccessView(name);
+        if (reflection?.Variable is null) return;
+        var view = texture.GetUAV(key);
+        if (view is null)
+        {
+            Debug.Assert(false, "Requested UAV for texture does not exist");
+            return;
+        }
+        _unorderedAccessViews.Add(new UnorderedAccessViewData
+        {
+            Variable = reflection.Variable,
+            Texture = texture,
+            View = view
+        });
+        _currentUnorderedAccessViewGroup = _currentUnorderedAccessViewGroup with { Second = _unorderedAccessViews.Count };
+    }
+
+    /// <summary>Commit unordered access views added since previous commit.</summary>
+    public void CommitUnorderedAccessViews()
+    {
+        _currentDrawCommand.UnorderedAccessViews = _currentUnorderedAccessViewGroup;
+        var end = _unorderedAccessViews.Count;
+        _currentUnorderedAccessViewGroup = new(end, end);
+    }
+
+    /// <summary>Set vertex buffers.</summary>
+    public void SetVertexBuffers(RawVertexBufferArray buffers)
+    {
+        _currentDrawCommand.VertexBuffers = buffers;
     }
 
     /// <summary>Set index buffer.</summary>
@@ -213,274 +321,367 @@ public class DrawCommandQueue : Object
     /// <summary>Enqueue draw non-indexed geometry.</summary>
     public void Draw(int vertexStart, int vertexCount)
     {
-        ValidateGraphicsDraw(indexed: false, vertexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is null);
+        Debug.Assert(vertexCount > 0);
+
         _currentDrawCommand.IndexStart = vertexStart;
         _currentDrawCommand.IndexCount = vertexCount;
         _currentDrawCommand.BaseVertexIndex = 0;
         _currentDrawCommand.InstanceStart = 0;
         _currentDrawCommand.InstanceCount = 0;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Enqueue draw indexed geometry.</summary>
     public void DrawIndexed(int indexStart, int indexCount)
     {
-        ValidateGraphicsDraw(indexed: true, indexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is not null);
+        Debug.Assert(indexCount > 0);
+
         _currentDrawCommand.IndexStart = indexStart;
         _currentDrawCommand.IndexCount = indexCount;
         _currentDrawCommand.BaseVertexIndex = 0;
         _currentDrawCommand.InstanceStart = 0;
         _currentDrawCommand.InstanceCount = 0;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Enqueue draw indexed geometry with vertex index offset.</summary>
     public void DrawIndexed(int indexStart, int indexCount, int baseVertexIndex)
     {
-        ValidateGraphicsDraw(indexed: true, indexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is not null);
+        Debug.Assert(indexCount > 0);
+
         _currentDrawCommand.IndexStart = indexStart;
         _currentDrawCommand.IndexCount = indexCount;
         _currentDrawCommand.BaseVertexIndex = baseVertexIndex;
         _currentDrawCommand.InstanceStart = 0;
         _currentDrawCommand.InstanceCount = 0;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Enqueue draw instanced geometry.</summary>
     public void DrawInstanced(int vertexStart, int vertexCount, int instanceStart, int instanceCount)
     {
-        ValidateGraphicsDraw(indexed: false, vertexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is null);
+        Debug.Assert(vertexCount > 0);
+
         _currentDrawCommand.IndexStart = vertexStart;
         _currentDrawCommand.IndexCount = vertexCount;
         _currentDrawCommand.BaseVertexIndex = 0;
         _currentDrawCommand.InstanceStart = instanceStart;
         _currentDrawCommand.InstanceCount = instanceCount;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Enqueue draw indexed, instanced geometry.</summary>
     public void DrawIndexedInstanced(int indexStart, int indexCount, int instanceStart, int instanceCount)
     {
-        ValidateGraphicsDraw(indexed: true, indexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is not null);
+        Debug.Assert(indexCount > 0);
+
         _currentDrawCommand.IndexStart = indexStart;
         _currentDrawCommand.IndexCount = indexCount;
         _currentDrawCommand.BaseVertexIndex = 0;
         _currentDrawCommand.InstanceStart = instanceStart;
         _currentDrawCommand.InstanceCount = instanceCount;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Enqueue draw indexed, instanced geometry with vertex index offset.</summary>
     public void DrawIndexedInstanced(int indexStart, int indexCount, int baseVertexIndex, int instanceStart, int instanceCount)
     {
-        ValidateGraphicsDraw(indexed: true, indexCount);
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Graphics);
+        Debug.Assert(_currentDrawCommand.IndexBuffer is not null);
+        Debug.Assert(indexCount > 0);
+
         _currentDrawCommand.IndexStart = indexStart;
         _currentDrawCommand.IndexCount = indexCount;
         _currentDrawCommand.BaseVertexIndex = baseVertexIndex;
         _currentDrawCommand.InstanceStart = instanceStart;
         _currentDrawCommand.InstanceCount = instanceCount;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Dispatch compute shader.</summary>
     public void Dispatch(Vector3i numGroups)
     {
-        var pipelineState = _currentDrawCommand.PipelineState ?? throw new InvalidOperationException("Pipeline state must be set before dispatch.");
-        if (pipelineState.GetPipelineType() != PipelineStateType.Compute)
-            throw new InvalidOperationException("Dispatch requires a compute pipeline state.");
+        Debug.Assert(_currentDrawCommand.PipelineState!.GetPipelineType() == PipelineStateType.Compute);
 
         _currentDrawCommand.NumGroups = numGroups;
-        EnqueueCurrentCommand();
+        _drawCommands.Add(_currentDrawCommand);
     }
 
     /// <summary>Execute commands in the queue.</summary>
-    public virtual void ExecuteInContext(RenderContext renderContext)
+    public void ExecuteInContext(RenderContext renderContext)
     {
-        ArgumentNullException.ThrowIfNull(renderContext);
         if (_drawCommands.Count == 0)
             return;
 
-        var deviceContext = renderContext.GetHandle();
-        if (deviceContext is null || deviceContext.IsNull)
-        {
-            renderContext.SetClipPlaneMask(_clipPlaneMask);
-            return;
-        }
+        var renderPool = renderContext.GetRenderPool();
+        var deviceContext = renderContext.GetHandle()!;
         var stats = renderContext.GetMutableStats();
-        var caps = renderContext.GetRenderDevice().GetCaps();
-        var uniformBuffers = UploadConstantBuffers(renderContext.GetRenderPool());
-        PrepareShaderResources(renderContext);
 
-        var blendFactors = BlendFactors.One;
-        deviceContext.SetBlendFactors(in blendFactors);
-        renderContext.SetClipPlaneMask(_clipPlaneMask);
+        var backend = renderContext.GetRenderDevice().GetBackend();
+        var caps = renderContext.GetRenderDevice().GetCaps();
+
+        // Update constant buffers to store all shader parameters for queue
+        var numUniformBuffers = _constantBuffers.Collection.GetNumBuffers();
+        while (_temp.UniformBuffers.Count < numUniformBuffers)
+            _temp.UniformBuffers.Add(null);
+        if (_temp.UniformBuffers.Count > numUniformBuffers)
+            _temp.UniformBuffers.RemoveRange(numUniformBuffers, _temp.UniformBuffers.Count - numUniformBuffers);
+        for (var i = 0; i < numUniformBuffers; ++i)
+        {
+            var size = _constantBuffers.Collection.GetGPUBufferSize(i);
+            var uniformBuffer = renderPool.GetUniformBuffer(checked((uint)i), checked((uint)size));
+            uniformBuffer.Update(_constantBuffers.Collection.GetBufferData(i).Span);
+            _temp.UniformBuffers[i] = uniformBuffer.GetHandle();
+        }
+
+        // Update shader resources
+        while (_temp.ShaderResourceViews.Count < _shaderResources.Count)
+            _temp.ShaderResourceViews.Add(null);
+        if (_temp.ShaderResourceViews.Count > _shaderResources.Count)
+            _temp.ShaderResourceViews.RemoveRange(
+                _shaderResources.Count, _temp.ShaderResourceViews.Count - _shaderResources.Count);
+        for (var i = 0; i < _shaderResources.Count; ++i)
+        {
+            var data = _shaderResources[i];
+
+            if (data.View is not null)
+            {
+                _temp.ShaderResourceViews[i] = data.View;
+                continue;
+            }
+
+            var texture = GetReadableTexture(renderContext, data.Type, data.Texture, data.BackupTexture);
+            if (texture.GetResolveDirty())
+                texture.Resolve();
+            if (texture.GetLevelsDirty())
+                texture.GenerateLevels();
+
+            _temp.ShaderResourceViews[i] = texture.GetHandles().ShaderResourceView;
+        }
 
         // Cached current state
         PipelineState? currentPipelineState = null;
         IShaderResourceBinding? currentShaderResourceBinding = null;
         ShaderProgramReflection? currentShaderReflection = null;
         RawBuffer? currentIndexBuffer = null;
-        Array.Clear(_currentVertexBuffers);
+        RawVertexBufferArray currentVertexBuffers = default;
         ShaderResourceRange currentShaderResources = default;
         ShaderResourceRange currentUnorderedAccessViews = default;
         var currentScissorRect = int.MaxValue;
         uint? currentStencilRef = null;
 
-        foreach (var command in _drawCommands)
-        {
-            var pipelineState = command.PipelineState;
-            var reflection = pipelineState?.GetReflection();
-            if (pipelineState is null || !pipelineState.IsValid || reflection is null)
-                continue;
-            if (command.BaseVertexIndex != 0 && !caps.DrawBaseVertex)
-                continue;
+        // Set common state
+        var blendFactors = BlendFactors.One;
+        deviceContext.SetBlendFactors(in blendFactors);
+        renderContext.SetClipPlaneMask(_clipPlaneMask);
 
-            if (command.PipelineState != currentPipelineState)
+        foreach (var cmd in _drawCommands)
+        {
+            if (cmd.BaseVertexIndex != 0 && !caps.DrawBaseVertex)
             {
+                Log.GetLogger().Warning("Base vertex index is not supported by current graphics API");
+                continue;
+            }
+
+            // Set pipeline state
+            if (cmd.PipelineState != currentPipelineState)
+            {
+                var pipelineState = cmd.PipelineState!;
                 var pipelineHandle = pipelineState.GetHandle();
                 if (pipelineHandle is null)
-                    continue;
+                    continue; // We shouldn't get here
 
+                // Skip this pipeline if something goes wrong.
                 deviceContext.SetPipelineState(pipelineHandle);
                 currentPipelineState = pipelineState;
                 currentShaderResourceBinding = pipelineState.GetShaderResourceBinding();
-                currentShaderReflection = reflection;
+                currentShaderReflection = pipelineState.GetReflection();
+
+                // Reset current shader resources because mapping can be different
                 currentShaderResources = default;
                 currentUnorderedAccessViews = default;
             }
 
-            if (command.ScissorRect != currentScissorRect)
+            // Set scissor
+            if (cmd.ScissorRect != currentScissorRect)
             {
-                SetScissorRect(deviceContext, command);
-                currentScissorRect = command.ScissorRect;
+                var scissorRect = _scissorRects[cmd.ScissorRect];
+                using var internalRect = new RedBolt.Bindings.Diligent.Rect
+                {
+                    Left = scissorRect.Left,
+                    Top = scissorRect.Top,
+                    Right = scissorRect.Right,
+                    Bottom = scissorRect.Bottom
+                };
+
+                deviceContext.SetScissorRects(1u, internalRect, 0u, 0u);
+                currentScissorRect = cmd.ScissorRect;
             }
 
-            if (command.StencilRef != currentStencilRef)
+            // Set stencil ref
+            if (cmd.StencilRef != currentStencilRef)
             {
-                deviceContext.SetStencilRef(command.StencilRef);
-                currentStencilRef = command.StencilRef;
+                deviceContext.SetStencilRef(cmd.StencilRef);
+                currentStencilRef = cmd.StencilRef;
             }
 
-            if (command.IndexBuffer != currentIndexBuffer)
+            // Set index buffer
+            if (cmd.IndexBuffer != currentIndexBuffer)
             {
-                SetIndexBuffer(deviceContext, command.IndexBuffer);
-                currentIndexBuffer = command.IndexBuffer;
+                if (cmd.IndexBuffer is not null)
+                    cmd.IndexBuffer.Resolve();
+
+                var indexBufferHandle = cmd.IndexBuffer?.GetHandle();
+                deviceContext.SetIndexBuffer(indexBufferHandle!, 0u,
+                    ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+
+                currentIndexBuffer = cmd.IndexBuffer;
             }
 
-            if (!VertexBuffersEqual(command.VertexBuffers, _currentVertexBuffers)
-                || (command.InstanceCount != 0 && !caps.DrawBaseInstance))
+            // Set vertex buffers
+            if (!VertexBuffersEqual(cmd.VertexBuffers, currentVertexBuffers)
+                || (cmd.InstanceCount != 0 && !caps.DrawBaseInstance))
             {
-                SetVertexBuffers(deviceContext, command, caps.DrawBaseInstance);
                 for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
-                    _currentVertexBuffers[i] = command.VertexBuffers[i];
+                {
+                    var vertexBuffer = cmd.VertexBuffers[i];
+                    if (vertexBuffer is null)
+                    {
+                        _temp.VertexBufferHandles[i] = null;
+                        _temp.VertexBufferOffsets[i] = 0;
+                        continue;
+                    }
+
+                    vertexBuffer.Resolve();
+
+                    var needInstanceOffset = !caps.DrawBaseInstance
+                        && (vertexBuffer.GetFlags() & BufferFlag.PerInstanceData) != 0;
+
+                    _temp.VertexBufferHandles[i] = vertexBuffer.GetHandle();
+                    _temp.VertexBufferOffsets[i] = needInstanceOffset
+                        ? checked((ulong)cmd.InstanceStart * vertexBuffer.GetStride())
+                        : 0;
+                }
+
+                deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _temp.VertexBufferHandles,
+                    _temp.VertexBufferOffsets, ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+                    (SetVertexBuffersFlags)0);
+
+                Array.Clear(_temp.VertexBufferHandles);
+                Array.Clear(_temp.VertexBufferOffsets);
+                currentVertexBuffers = cmd.VertexBuffers;
             }
 
-            if (currentShaderResources != command.ShaderResources)
+            // Set resources
+            if (currentShaderResources != cmd.ShaderResources)
             {
-                BindShaderResources(command.ShaderResources);
-                currentShaderResources = command.ShaderResources;
+                for (var i = cmd.ShaderResources.First; i < cmd.ShaderResources.Second; ++i)
+                    _shaderResources[i].Variable!.Set(_temp.ShaderResourceViews[i]!);
+
+                currentShaderResources = cmd.ShaderResources;
             }
 
-            if (currentUnorderedAccessViews != command.UnorderedAccessViews)
+            if (currentUnorderedAccessViews != cmd.UnorderedAccessViews)
             {
-                BindUnorderedAccessViews(command.UnorderedAccessViews);
-                currentUnorderedAccessViews = command.UnorderedAccessViews;
+                for (var i = cmd.UnorderedAccessViews.First; i < cmd.UnorderedAccessViews.Second; ++i)
+                {
+                    var data = _unorderedAccessViews[i];
+
+                    var texture = data.Texture!;
+                    if (texture.GetResolveDirty())
+                        texture.Resolve();
+                    if (texture.GetLevelsDirty())
+                        texture.GenerateLevels();
+
+                    data.Variable!.Set(data.View!);
+                }
+
+                currentUnorderedAccessViews = cmd.UnorderedAccessViews;
             }
 
-            BindConstantBuffers(currentShaderReflection!, command, uniformBuffers);
+            for (var i = 0; i < RenderApiLimits.MaxShaderParameterGroups; ++i)
+            {
+                var group = (ShaderParameterGroup)i;
+                var uniformBufferReflection = currentShaderReflection!.GetUniformBuffer(group);
+                if (uniformBufferReflection is null)
+                    continue;
+
+                var uniformBuffer = _temp.UniformBuffers[cmd.ConstantBuffers[i].Index]!;
+                foreach (var variable in uniformBufferReflection.Variables)
+                {
+                    variable.SetBufferRange(uniformBuffer, checked((nuint)cmd.ConstantBuffers[i].Offset),
+                        checked((nuint)cmd.ConstantBuffers[i].Size));
+                }
+            }
+
             deviceContext.CommitShaderResources(currentShaderResourceBinding!,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
-            switch (currentPipelineState!.GetPipelineType())
+            if (currentPipelineState!.GetPipelineType() == PipelineStateType.Graphics)
             {
-                case PipelineStateType.Graphics:
-                    var instances = Math.Max(1, command.InstanceCount);
-                    if (currentIndexBuffer is not null)
+                if (currentIndexBuffer is not null)
+                {
+                    using var drawAttrs = new DrawIndexedAttribs
                     {
-                        using var draw = new DrawIndexedAttribs
-                        {
-                            NumIndices = checked((uint)command.IndexCount),
-                            NumInstances = checked((uint)instances),
-                            FirstIndexLocation = checked((uint)command.IndexStart),
-                            FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)command.InstanceStart) : 0u,
-                            BaseVertex = checked((uint)command.BaseVertexIndex),
-                            Flags = DrawFlags.DrawFlagVerifyAll,
-                            IndexType = currentIndexBuffer.GetStride() == 2u
-                                ? RedBolt.Bindings.Diligent.ValueType.VtUint16
-                                : RedBolt.Bindings.Diligent.ValueType.VtUint32
-                        };
-                        deviceContext.DrawIndexed(draw);
-                    }
-                    else
-                    {
-                        using var draw = new DrawAttribs
-                        {
-                            NumVertices = checked((uint)command.IndexCount),
-                            NumInstances = checked((uint)instances),
-                            StartVertexLocation = checked((uint)command.IndexStart),
-                            FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)command.InstanceStart) : 0u,
-                            Flags = DrawFlags.DrawFlagVerifyAll
-                        };
-                        deviceContext.Draw(draw);
-                    }
+                        NumIndices = checked((uint)cmd.IndexCount),
+                        NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount)),
+                        FirstIndexLocation = checked((uint)cmd.IndexStart),
+                        FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u,
+                        BaseVertex = checked((uint)cmd.BaseVertexIndex),
+                        Flags = DrawFlags.DrawFlagVerifyAll,
+                        IndexType = currentIndexBuffer.GetStride() == 2u
+                            ? RedBolt.Bindings.Diligent.ValueType.VtUint16
+                            : RedBolt.Bindings.Diligent.ValueType.VtUint32
+                    };
+
+                    deviceContext.DrawIndexed(drawAttrs);
+
                     stats.NumDraws += 1u;
-                    stats.NumPrimitives += checked((uint)(command.IndexCount * instances));
-                    break;
-
-                case PipelineStateType.Compute:
-                    using (var dispatch = new DispatchComputeAttribs
+                    stats.NumPrimitives += drawAttrs.NumIndices * drawAttrs.NumInstances;
+                }
+                else
+                {
+                    using var drawAttrs = new DrawAttribs
                     {
-                        ThreadGroupCountX = (uint)command.NumGroups.X,
-                        ThreadGroupCountY = (uint)command.NumGroups.Y,
-                        ThreadGroupCountZ = (uint)command.NumGroups.Z
-                    }) deviceContext.DispatchCompute(dispatch);
-                    stats.NumDispatches += 1u;
-                    break;
+                        NumVertices = checked((uint)cmd.IndexCount),
+                        NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount)),
+                        StartVertexLocation = checked((uint)cmd.IndexStart),
+                        FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u,
+                        Flags = DrawFlags.DrawFlagVerifyAll
+                    };
 
-                default:
-                    throw new ArgumentOutOfRangeException();
+                    deviceContext.Draw(drawAttrs);
+
+                    stats.NumDraws += 1u;
+                    stats.NumPrimitives += drawAttrs.NumVertices * drawAttrs.NumInstances;
+                }
+            }
+            else if (currentPipelineState.GetPipelineType() == PipelineStateType.Compute)
+            {
+                using var dispatchAttrs = new DispatchComputeAttribs
+                {
+                    ThreadGroupCountX = (uint)cmd.NumGroups.X,
+                    ThreadGroupCountY = (uint)cmd.NumGroups.Y,
+                    ThreadGroupCountZ = (uint)cmd.NumGroups.Z
+                };
+                deviceContext.DispatchCompute(dispatchAttrs);
+
+                stats.NumDispatches += 1u;
             }
         }
     }
 
-    private void SetIndexBuffer(IDeviceContext deviceContext, RawBuffer? indexBuffer)
-    {
-        indexBuffer?.Resolve();
-        deviceContext.SetIndexBuffer(indexBuffer?.GetHandle()!, 0u,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-    }
-
-    private void SetVertexBuffers(IDeviceContext deviceContext, DrawCommandDescription command, bool drawBaseInstance)
-    {
-        for (var i = 0; i < _nativeVertexBuffers.Length; ++i)
-        {
-            var vertexBuffer = command.VertexBuffers[i];
-            vertexBuffer?.Resolve();
-            _nativeVertexBuffers[i] = vertexBuffer?.GetHandle();
-            _nativeVertexBufferOffsets[i] = !drawBaseInstance && vertexBuffer is not null
-                && (vertexBuffer.GetFlags() & BufferFlag.PerInstanceData) != 0
-                    ? checked((ulong)command.InstanceStart * vertexBuffer.GetStride())
-                    : 0u;
-        }
-        deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _nativeVertexBuffers,
-            _nativeVertexBufferOffsets, ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-            (SetVertexBuffersFlags)0);
-    }
-
-    private void SetScissorRect(IDeviceContext deviceContext, DrawCommandDescription command)
-    {
-        var source = _scissorRects[command.ScissorRect];
-        using var rect = new RedBolt.Bindings.Diligent.Rect
-        {
-            Left = source.Left,
-            Top = source.Top,
-            Right = source.Right,
-            Bottom = source.Bottom
-        };
-        deviceContext.SetScissorRects(1u, rect, 0u, 0u);
-    }
-
-    private static bool VertexBuffersEqual(in RawVertexBufferArray left, RawBuffer?[] right)
+    private static bool VertexBuffersEqual(in RawVertexBufferArray left, in RawVertexBufferArray right)
     {
         for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
         {
@@ -491,130 +692,46 @@ public class DrawCommandQueue : Object
         return true;
     }
 
-    private void ValidateGraphicsDraw(bool indexed, int count)
+    private bool TryGetShaderParameterDestination(
+        StringHash name, out Span<byte> destination, out int expectedSize)
     {
-        var pipelineState = _currentDrawCommand.PipelineState ?? throw new InvalidOperationException("Pipeline state must be set before drawing.");
-        if (pipelineState.GetPipelineType() != PipelineStateType.Graphics)
-            throw new InvalidOperationException("Draw requires a graphics pipeline state.");
-        if (indexed != (_currentDrawCommand.IndexBuffer is not null))
-            throw new InvalidOperationException(indexed
-                ? "Indexed draw requires an index buffer."
-                : "Non-indexed draw requires no index buffer.");
-        if (count == 0)
-            throw new ArgumentOutOfRangeException(nameof(count));
-    }
-
-    private delegate void StoreShaderParameter(Span<byte> destination);
-
-    private void AddShaderParameterCore(StringHash name, StoreShaderParameter store)
-    {
-        if (TryGetShaderParameterDestination(name, out var destination))
-            store(destination);
-    }
-
-    private bool TryGetShaderParameterDestination(StringHash name, out Span<byte> destination)
-    {
-        var parameter = _currentShaderProgramReflection?.GetUniform(name);
-        if (parameter is null) { destination = default; return false; }
-        if (_currentShaderParameterGroup != parameter.Value.Group)
+        var parameter = _currentShaderProgramReflection!.GetUniform(name);
+        if (parameter is null)
         {
             destination = default;
+            expectedSize = 0;
+            return false;
+        }
+        if (_constantBuffers.CurrentGroup != parameter.Value.Group)
+        {
+            Log.GetLogger().Error(
+                "Shader parameter #{Hash} '{Name}' shall be stored in group {CurrentGroup} instead of group {ExpectedGroup}",
+                name.Value, name.Reverse(), _constantBuffers.CurrentGroup, parameter.Value.Group);
+            destination = default;
+            expectedSize = 0;
             return false;
         }
         var offset = checked((int)parameter.Value.Offset);
-        var size = checked((int)parameter.Value.Size);
-        if (offset + size > _currentConstantBufferData.Length)
-            throw new InvalidOperationException("Shader parameter exceeds reflected constant-buffer bounds.");
-        destination = _currentConstantBufferData.Span.Slice(offset, size);
+        expectedSize = checked((int)parameter.Value.Size);
+        destination = _constantBuffers.CurrentData.Span.Slice(offset, expectedSize);
         return true;
     }
 
-    private void PrepareShaderResources(RenderContext renderContext)
+    private static void LogUnexpectedShaderParameterType(StringHash name, int expectedSize)
     {
-        while (_shaderResourceViews.Count < _shaderResources.Count)
-            _shaderResourceViews.Add(null);
-
-        for (var i = 0; i < _shaderResources.Count; ++i)
-        {
-            var resource = _shaderResources[i];
-            var view = resource.View;
-            if (view is null)
-            {
-                var texture = GetReadableTexture(renderContext, resource.Type!.Value, resource.Texture, resource.BackupTexture);
-                if (texture is not null)
-                {
-                    if (texture.GetResolveDirty()) texture.Resolve();
-                    if (texture.GetLevelsDirty()) texture.GenerateLevels();
-                }
-                view = texture?.GetHandles().ShaderResourceView;
-            }
-
-            _shaderResourceViews[i] = view;
-        }
+        Log.GetLogger().Error(
+            "Shader parameter #{Hash} '{Name}' has unexpected type, {ExpectedSize} bytes expected",
+            name.Value, name.Reverse(), expectedSize);
     }
 
-    private static RawTexture? GetReadableTexture(
+    private static RawTexture GetReadableTexture(
         RenderContext renderContext, TextureType type, RawTexture? texture, RawTexture? backupTexture)
     {
         if (texture is not null && !renderContext.IsBoundAsRenderTarget(texture))
             return texture;
-        if (backupTexture is not null && !renderContext.IsBoundAsRenderTarget(backupTexture))
+        else if (backupTexture is not null && !renderContext.IsBoundAsRenderTarget(backupTexture))
             return backupTexture;
-        return renderContext.GetRenderDevice().GetDefaultTexture(type);
-    }
-
-    private void BindShaderResources(ShaderResourceRange range)
-    {
-        for (var i = range.First; i < range.Second; ++i)
-        {
-            var resource = _shaderResources[i];
-            var view = _shaderResourceViews[i];
-            if (view is not null) resource.Variable.Set(view);
-        }
-    }
-
-    private void BindUnorderedAccessViews(ShaderResourceRange range)
-    {
-        for (var i = range.First; i < range.Second; ++i)
-        {
-            var resource = _unorderedAccessViews[i];
-            if (resource.Texture.GetResolveDirty()) resource.Texture.Resolve();
-            if (resource.Texture.GetLevelsDirty()) resource.Texture.GenerateLevels();
-            resource.Variable.Set(resource.View);
-        }
-    }
-
-    private RawBuffer?[] UploadConstantBuffers(RenderPool renderPool)
-    {
-        var result = new RawBuffer?[_constantBufferCollection.GetNumBuffers()];
-        for (var i = 0; i < result.Length; ++i)
-        {
-            var usedSize = _constantBufferCollection.GetBufferSize(i);
-            if (usedSize == 0) continue;
-            var buffer = renderPool.GetUniformBuffer(checked((uint)i), checked((uint)_constantBufferCollection.GetGPUBufferSize(i)));
-            buffer.Update(_constantBufferCollection.GetBufferData(i).Span);
-            result[i] = buffer;
-        }
-        return result;
-    }
-
-    private static void BindConstantBuffers(
-        ShaderProgramReflection reflection, DrawCommandDescription command, RawBuffer?[] uniformBuffers)
-    {
-        for (var i = 0; i < RenderApiLimits.MaxShaderParameterGroups; ++i)
-        {
-            var bufferReflection = reflection.GetUniformBuffer((ShaderParameterGroup)i);
-            var bufferRef = command.ConstantBuffers[i];
-            if (bufferReflection is null)
-                continue;
-            var handle = uniformBuffers[bufferRef.Index]!.GetHandle()!;
-            foreach (var variable in bufferReflection.Variables)
-                variable.SetBufferRange(handle, checked((nuint)bufferRef.Offset), checked((nuint)bufferRef.Size));
-        }
-    }
-
-    private void EnqueueCurrentCommand()
-    {
-        _drawCommands.Add(_currentDrawCommand);
+        else
+            return renderContext.GetRenderDevice().GetDefaultTexture(type)!;
     }
 }

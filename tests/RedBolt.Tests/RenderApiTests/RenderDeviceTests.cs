@@ -48,6 +48,9 @@ public sealed class RenderDeviceTests
 
             foreach (var type in Enum.GetValues<TextureType>())
             {
+                if (type == TextureType.Count)
+                    continue;
+
                 var texture = _fixture.RenderDevice.GetDefaultTexture(type);
                 Assert.NotNull(texture);
                 Assert.True(texture!.IsValid());
