@@ -255,6 +255,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `DirectionalPadAdapter.h` / `DirectionalPadAdapter.cpp` — extensible noncopyable outer class, copyable non-POD aggregated-state cloning, exact source ordinals, subsystem construction, incremental subscriptions, and synthesized directional event lifetimes reconciled
 - [x] `FreeFlyController.h` / `FreeFlyController.cpp` — extensible noncopyable component and nested value-struct kinds, factory registration, owned multitouch-adapter teardown, core-update subscriptions, raw attributes, device filtering, and movement value semantics reconciled
 - [x] `InputMap.h` / `InputMap.cpp` — extensible noncopyable resource, helper POD structs, copyable non-POD action value, deep vector cloning at native value-copy sites, metadata ownership, reverse-order teardown, serialization, loading, and native mapping/evaluation quirks reconciled
+- [x] `MoveAndOrbitComponent.h` / `MoveAndOrbitComponent.cpp` — extensible noncopyable logic component, value-only field semantics, factory registration, node rotation initialization, virtual setters, pitch clamp, distance limits, and default derived teardown reconciled
 - [x] `IDearImGuiInputSink.cs` — accepted stateless assembly-boundary facade for native `SystemUI::OnRawEvent` under the allowed `SystemUI` → `DearImGui` replacement; no owned or copied state
 
 ## [~] A12. Engine — top-level orchestration, depends on all Part-A above

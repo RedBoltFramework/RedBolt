@@ -135,6 +135,21 @@ public sealed class ControllerTests
     }
 
     [Fact]
+    public void MoveAndOrbitComponent_matches_native_class_shape()
+    {
+        var type = typeof(MoveAndOrbitComponent);
+        Assert.Equal(typeof(LogicComponent), type.BaseType);
+        Assert.False(type.IsValueType);
+        Assert.False(type.IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+        Assert.True(typeof(Vector3f).IsValueType);
+
+        MoveAndOrbitComponent.RegisterObject(Context.Instance);
+        using var reflected = Assert.IsType<MoveAndOrbitComponent>(
+            Context.Instance.CreateObject(ObjectReflection<MoveAndOrbitComponent>.TypeId));
+    }
+
+    [Fact]
     public void MoveAndOrbitComponent_initializes_rotation_and_distance_limits()
     {
         var scene = new Scene();

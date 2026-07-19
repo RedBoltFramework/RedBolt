@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class MoveAndOrbitComponent : LogicComponent
+public class MoveAndOrbitComponent : LogicComponent
 {
     private Vector3f _velocity = Vector3f.Zero;
     private float _yaw;
@@ -8,80 +8,69 @@ public sealed class MoveAndOrbitComponent : LogicComponent
     private float _minDistance = 0.5f;
     private float _maxDistance = 100.0f;
 
+    /// <summary>Construct.</summary>
     public MoveAndOrbitComponent()
     {
-        RegisterAttribute(
-            "Velocity",
-            typeof(Vector3f),
-            self => ((MoveAndOrbitComponent)self).GetVelocity(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetVelocity(value is Vector3f velocityValue ? velocityValue : Vector3f.Zero),
-            Vector3f.Zero);
-        RegisterAttribute(
-            "Yaw",
-            typeof(float),
-            self => ((MoveAndOrbitComponent)self).GetYaw(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetYaw(value is float yawValue ? yawValue : 0.0f),
-            0.0f);
-        RegisterAttribute(
-            "Pitch",
-            typeof(float),
-            self => ((MoveAndOrbitComponent)self).GetPitch(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetPitch(value is float pitchValue ? pitchValue : 0.0f),
-            0.0f);
-        RegisterAttribute(
-            "Min Distance",
-            typeof(float),
-            self => ((MoveAndOrbitComponent)self).GetMinDistance(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetDistanceLimits(value is float min ? min : 0.5f, ((MoveAndOrbitComponent)self).GetMaxDistance()),
-            0.5f);
-        RegisterAttribute(
-            "Max Distance",
-            typeof(float),
-            self => ((MoveAndOrbitComponent)self).GetMaxDistance(),
-            (self, value) => ((MoveAndOrbitComponent)self).SetDistanceLimits(((MoveAndOrbitComponent)self).GetMinDistance(), value is float max ? max : 100.0f),
-            100.0f);
     }
 
+    /// <summary>Register object factory and attributes.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<MoveAndOrbitComponent>(ObjectCategory.Category_Logic);
+    }
+
+    /// <summary>Handle scene node being assigned at creation.</summary>
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         base.OnNodeSet(previousNode, currentNode);
         if (currentNode is not null)
         {
-            SetYaw(currentNode.Rotation.YawAngle);
-            SetPitch(currentNode.Rotation.PitchAngle);
+            var currentRotation = currentNode.Rotation;
+            SetYaw(currentRotation.YawAngle);
+            SetPitch(currentRotation.PitchAngle);
         }
     }
 
-    public void SetVelocity(Vector3f velocity)
+    /// <summary>Set movement velocity in node's local space.</summary>
+    public virtual void SetVelocity(Vector3f velocity)
     {
         this._velocity = velocity;
     }
 
-    public void SetYaw(float yaw)
+    /// <summary>Set yaw angle in degrees.</summary>
+    public virtual void SetYaw(float yaw)
     {
         this._yaw = yaw;
     }
 
-    public void SetPitch(float pitch)
+    /// <summary>Set pitch angle in degrees.</summary>
+    public virtual void SetPitch(float pitch)
     {
         this._pitch = MathDefs.Clamp(pitch, -90.0f, 90.0f);
     }
 
+    /// <summary>Set distance limits.</summary>
     public void SetDistanceLimits(float minDistance, float maxDistance)
     {
         _minDistance = minDistance;
         _maxDistance = maxDistance;
     }
 
+    /// <summary>Get movement velocity in node's local space.</summary>
     public Vector3f GetVelocity() => _velocity;
 
+    /// <summary>Get yaw angle in degrees.</summary>
     public float GetYaw() => _yaw;
 
+    /// <summary>Get pitch angle in degrees.</summary>
     public float GetPitch() => _pitch;
 
+    /// <summary>Get min distance.</summary>
     public float GetMinDistance() => _minDistance;
 
+    /// <summary>Get max distance.</summary>
     public float GetMaxDistance() => _maxDistance;
 
+    /// <summary>Get yaw and pitch rotation.</summary>
     public Quaternion GetYawPitchRotation() => new(_pitch, _yaw, 0.0f);
 }
