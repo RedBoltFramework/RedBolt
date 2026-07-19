@@ -114,6 +114,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Frustum.h` / `Frustum.cpp` — extensible non-POD copyable class kind, independent fixed-array copies, degenerate construction, geometry operations, and automatic lifetime reconciled
 - [x] `InverseKinematics.h` / `InverseKinematics.cpp` — `IKChain`, `IKFabrikChain`, and `IKSpineChain` extensible class kinds, independent container copies with borrowed node aliases, derived clone types, weight ownership, and automatic lifetime reconciled
 - [x] `Rect.h` / `Rect.cpp` — `IntRect` and `IntRectIterator` sequential value types, independent scalar copies, contiguous data view, iterator behavior, and automatic lifetime reconciled
+- [x] `Vector2.h` / `Vector3.h` / `Vector4.h` — `BaseIntegerVector2<T>` and `BaseIntegerVector3<T>` POD-style sequential structs, exact generic names, independent scalar copies, contiguous data views, conversions, integer lengths, hashes, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

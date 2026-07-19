@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt.Tests.MathTests;
 
 public class VectorParityTests
@@ -35,6 +37,55 @@ public class VectorParityTests
         Assert.Equal(new Vector3i(1, 2, 3).ToHash(), value.ToHash());
         Assert.Equal(new Vector3i(1, 2, 3), Vector3i.Abs(new Vector3i(-1, -2, -3)));
         Assert.Equal(new Vector4f(1, 2, 3, 4), value.ToVector4(4));
+    }
+
+    [Fact]
+    public void IntegerVector2HasNativeValueShapeCopyLengthHashAndConversions()
+    {
+        Assert.True(typeof(Vector2i).IsValueType);
+        Assert.Equal(8, Unsafe.SizeOf<Vector2i>());
+
+        var value = new Vector2i([3, 4]);
+        var copy = value;
+        var data = value.Data();
+        value.X = 6;
+
+        Assert.Equal(new Vector2i(3, 4), copy);
+        Assert.Equal(6, data[0]);
+        Assert.Equal(4, data[1]);
+        Assert.Equal(7, value.Length);
+        Assert.Equal(3449077523u, new Vector2i(1, 2).ToHash());
+        Assert.Equal(new Vector3i(1, 2, 3), new Vector2i(1, 2).ToIntVector3(3));
+        Assert.Equal(new Vector3f(1, 2, 3), new Vector2i(1, 2).ToVector3(3));
+        Assert.Equal(new Vector4f(1, 2, 3, 4), new Vector2i(1, 2).ToVector4(3, 4));
+    }
+
+    [Fact]
+    public void IntegerVector3HasNativeValueShapeCopyLengthAndHash()
+    {
+        Assert.True(typeof(Vector3i).IsValueType);
+        Assert.Equal(12, Unsafe.SizeOf<Vector3i>());
+
+        var value = new Vector3i([2, 3, 6]);
+        var copy = value;
+        var data = value.Data();
+        value.X = 4;
+
+        Assert.Equal(new Vector3i(2, 3, 6), copy);
+        Assert.Equal(4, data[0]);
+        Assert.Equal(3, data[1]);
+        Assert.Equal(6, data[2]);
+        Assert.Equal(7, value.Length);
+        Assert.Equal(4216901971u, new Vector3i(1, 2, 3).ToHash());
+    }
+
+    [Fact]
+    public void IntegerVectorTemplatesSupportUnsignedNativeScalarSemantics()
+    {
+        Assert.Equal(uint.MaxValue, BaseIntegerVector2<uint>.Left.X);
+        Assert.Equal(uint.MaxValue, BaseIntegerVector3<uint>.Back.Z);
+        Assert.Equal("1 2", new BaseIntegerVector2<uint>(1, 2).ToString());
+        Assert.Equal(new Vector3i(1, 2, 3), new BaseIntegerVector2<uint>(1, 2).ToIntVector3(3));
     }
 
     [Fact]
