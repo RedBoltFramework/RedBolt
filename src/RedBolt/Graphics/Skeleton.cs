@@ -32,6 +32,7 @@ public sealed class Bone : ICloneable
         Animated = true;
         Radius = 0.0f;
         CollisionMask = BoneCollisionShape.None;
+        BoundingBox = new BoundingBox();
     }
 
     /// <summary>Bone name.</summary>

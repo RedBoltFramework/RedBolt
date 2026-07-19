@@ -184,6 +184,7 @@ public abstract class Drawable : Component
 
     protected Drawable(DrawableFlags drawableFlags = DrawableFlags.Undefined)
     {
+        _boundingBox = new BoundingBox(0.0f, 0.0f);
         DrawableFlags = drawableFlags;
         _pipelineStateTracker = new DrawablePipelineStateTracker(this);
     }
@@ -199,8 +200,8 @@ public abstract class Drawable : Component
         base.Dispose();
     }
 
+    protected BoundingBox _worldBoundingBox = new();
     protected BoundingBox _boundingBox;
-    protected BoundingBox _worldBoundingBox;
     protected bool _worldBoundingBoxDirty = true;
     private CachedDrawableZone _cachedZone = new();
     private bool _zoneDirty;

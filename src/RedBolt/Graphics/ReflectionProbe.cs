@@ -6,8 +6,8 @@ namespace RedBolt;
 public class InternalReflectionProbeData : ICloneable
 {
     private Matrix3x4 _worldToLocal;
-    private BoundingBox _localBoundingBox;
-    private BoundingBox _worldBoundingBox;
+    private BoundingBox _localBoundingBox = new();
+    private BoundingBox _worldBoundingBox = new();
 
     public InternalReflectionProbeData(ReflectionProbe probe)
     {

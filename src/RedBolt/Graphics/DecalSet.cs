@@ -51,6 +51,7 @@ public sealed class Decal : ICloneable
 {
     public Decal()
     {
+        BoundingBox = new BoundingBox();
     }
 
     private Decal(Decal decal)
@@ -86,7 +87,6 @@ public sealed class Decal : ICloneable
 
     public void CalculateBoundingBox()
     {
-        BoundingBox = default;
         BoundingBox.Clear();
         foreach (var vertex in Vertices)
             BoundingBox.Merge(vertex.Position);
@@ -325,7 +325,7 @@ public class DecalSet : Drawable
         }
         else
         {
-            var worldBox = default(BoundingBox);
+            var worldBox = new BoundingBox();
             foreach (var bone in _bones)
             {
                 var boneNode = bone.Node;
@@ -342,7 +342,7 @@ public class DecalSet : Drawable
 
     private void CalculateBoundingBox()
     {
-        var box = default(BoundingBox);
+        var box = new BoundingBox();
         box.Clear();
         foreach (var decal in _decals)
             box.Merge(decal.BoundingBox);

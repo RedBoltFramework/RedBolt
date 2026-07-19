@@ -40,7 +40,7 @@ public class CameraOperator : Component
     private bool _nodesDirty;
     private bool _nodeIdsDirty;
     private bool _boundingBoxEnabled;
-    private BoundingBox _boundingBox;
+    private BoundingBox _boundingBox = new();
     private Rect _padding = Rect.Zero;
     private readonly List<Vector3f> _points = [];
 

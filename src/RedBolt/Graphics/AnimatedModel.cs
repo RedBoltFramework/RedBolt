@@ -19,7 +19,7 @@ public class AnimatedModel : StaticModel
     private readonly List<List<uint>> _geometryBoneMappings = [];
     private readonly List<Matrix3x4[]> _geometrySkinMatrices = [];
     private readonly List<List<(int GeometryIndex, int MatrixIndex)>> _geometrySkinMatrixPtrs = [];
-    private BoundingBox _boneBoundingBox;
+    private BoundingBox _boneBoundingBox = new();
     private readonly VectorBuffer _attrBuffer = new();
     private uint _animationLodFrameNumber;
     private float _animationLodBias = 1.0f;
@@ -175,7 +175,7 @@ public class AnimatedModel : StaticModel
             _modelAnimator?.Dispose();
             _modelAnimator = null;
             _skeletonData.Clear();
-            SetBoundingBox(default);
+            SetBoundingBox(new BoundingBox());
             SetSkeleton(new Skeleton(), false);
             return;
         }

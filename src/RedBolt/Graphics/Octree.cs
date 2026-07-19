@@ -3,8 +3,8 @@ namespace RedBolt;
 /// <summary>Octree octant.</summary>
 public class Octant : IDisposable
 {
-    private BoundingBox _worldBoundingBox;
-    private BoundingBox _cullingBox;
+    private BoundingBox _worldBoundingBox = new();
+    private BoundingBox _cullingBox = new();
     private readonly List<Drawable> _drawables = [];
     private readonly Octant?[] _children = new Octant?[8];
     private Vector3f _center;
@@ -447,7 +447,7 @@ public sealed class Octree : Component
     private readonly object _octreeMutex;
     private readonly List<Drawable> _rayQueryDrawables;
     private uint _numLevels;
-    private BoundingBox _worldBoundingBox;
+    private BoundingBox _worldBoundingBox = new();
     private readonly ZoneLookupIndex _zones;
     private bool _locked;
 

@@ -23,7 +23,7 @@ public class Zone : Drawable
     private bool _heightFog;
     private bool _override;
     private bool _ambientGradient;
-    private BoundingBox _lastWorldBoundingBox;
+    private BoundingBox _lastWorldBoundingBox = new();
     private Color _ambientColor = DefaultAmbientColor;
     private float _ambientBrightness = 1.0f;
     private float _backgroundBrightness;

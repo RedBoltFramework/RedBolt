@@ -89,10 +89,7 @@ public sealed class LightProbeCollection : ICloneable
     /// <summary>Calculate padded bounding box.</summary>
     public BoundingBox CalculateBoundingBox(Vector3f padding = default)
     {
-        var boundingBox = default(BoundingBox);
-        boundingBox.Clear();
-        foreach (var position in WorldPositions)
-            boundingBox.Merge(position);
+        var boundingBox = new BoundingBox(WorldPositions);
         boundingBox.Min -= padding;
         boundingBox.Max += padding;
         return boundingBox;
@@ -398,7 +395,6 @@ public class LightProbeGroup : Component
     /// <summary>Update local bounding box.</summary>
     protected void UpdateLocalBoundingBox()
     {
-        _localBoundingBox = default;
         _localBoundingBox.Clear();
         foreach (var probe in _lightProbes)
             _localBoundingBox.Merge(probe.Position);
@@ -438,7 +434,7 @@ public class LightProbeGroup : Component
     /// <summary>Light probes.</summary>
     protected readonly List<LightProbe> _lightProbes = [];
     /// <summary>Bounding box in local space.</summary>
-    protected BoundingBox _localBoundingBox;
+    protected BoundingBox _localBoundingBox = new();
 
     /// <summary>Light mask of light probe group.</summary>
     protected uint _lightMask = Drawable.DefaultLightMask;

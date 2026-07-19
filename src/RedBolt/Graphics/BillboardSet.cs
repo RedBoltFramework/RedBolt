@@ -518,7 +518,7 @@ public class BillboardSet : Drawable
         var worldTransform = Node.GetWorldTransform();
         var billboardTransform = _relative ? worldTransform : Matrix3x4.Identity;
         var billboardScale = _scaled ? worldTransform.Scale : Vector3f.One;
-        var worldBox = default(BoundingBox);
+        var worldBox = new BoundingBox();
 
         for (var i = 0; i < _billboards.Count; ++i)
         {

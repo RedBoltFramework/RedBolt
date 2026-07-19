@@ -116,13 +116,14 @@ public class StaticModel : Drawable
         else
         {
             SetNumGeometries(0);
-            SetBoundingBox(default);
+            SetBoundingBox(new BoundingBox());
         }
     }
 
     public void SetBoundingBox(BoundingBox box)
     {
-        SetLocalBoundingBox(box);
+        _boundingBox = box;
+        OnMarkedDirty(Node);
     }
 
     public virtual void SetMaterial(Material? material)

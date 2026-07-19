@@ -401,7 +401,7 @@ public class RibbonTrail : Drawable
 
     protected override void OnWorldBoundingBoxUpdate()
     {
-        var worldBox = default(BoundingBox);
+        var worldBox = new BoundingBox();
 
         for (var i = 0; i < _points.Count; ++i)
         {
