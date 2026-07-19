@@ -3,10 +3,11 @@ using RedBolt;
 /// <summary>
 /// Custom logic component for rotating a scene node.
 /// </summary>
-public sealed class Rotator : LogicComponent
+public class Rotator : LogicComponent
 {
-    private Vector3f _rotationSpeed;
-
+    /// <summary>
+    /// Construct.
+    /// </summary>
     public Rotator()
     {
         // Only the scene update event is needed: unsubscribe from the rest for optimization
@@ -16,7 +17,7 @@ public sealed class Rotator : LogicComponent
     /// <summary>
     /// Set rotation speed about the Euler axes. Will be scaled with scene update time step.
     /// </summary>
-    public void SetRotationSpeed(Vector3f speed)
+    public void SetRotationSpeed(in Vector3f speed)
     {
         _rotationSpeed = speed;
     }
@@ -37,5 +38,10 @@ public sealed class Rotator : LogicComponent
     /// <summary>
     /// Return rotation speed.
     /// </summary>
-    public Vector3f GetRotationSpeed() => _rotationSpeed;
+    public ref readonly Vector3f GetRotationSpeed() => ref _rotationSpeed;
+
+    /// <summary>
+    /// Rotation speed.
+    /// </summary>
+    private Vector3f _rotationSpeed = Vector3f.Zero;
 }
