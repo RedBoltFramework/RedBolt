@@ -4,194 +4,371 @@ namespace RedBolt;
 public enum DirectionAggregatorMask : uint
 {
     None = 0,
-    Keyboard = 1u << 0,
-    Joystick = 1u << 1,
-    Touch = 1u << 2,
-    All = Keyboard | Joystick | Touch
+    Keyboard = 1 << 0,
+    Joystick = 1 << 1,
+    Touch = 1 << 2,
+    All = Keyboard | Joystick | Touch,
 }
 
-public sealed class DirectionAggregator : Object, IDisposable
+/// <summary>Class to aggregate all movement inputs into a single direction vector.</summary>
+public class DirectionAggregator : Object
 {
-    private enum InputType { Keyboard, JoystickAxis, JoystickDPad, Touch }
-    private readonly record struct AxisState(InputType Input, int Key, float Value);
+    /// <summary>Type of input source.</summary>
+    private enum InputType
+    {
+        // External input
+        External = 0,
+        // Keyboard input (WASD and arrows)
+        Keyboard = 1,
+        // Touch input
+        Touch = 2,
+        // Joystick Axis
+        JoystickAxis = 3,
+        // Joystick DPad (hat)
+        JoystickDPad = 4,
+    }
 
-    private readonly List<AxisState> _horizontalAxis = [];
-    private readonly List<AxisState> _verticalAxis = [];
-    private readonly List<ContextEventSubscription> _subscriptions = [];
-    private readonly AxisAdapter _axisAdapter = new();
-    private Input? _input;
+    // State of an axis
+    private struct AxisState
+    {
+        // Type of input device
+        public InputType Input;
+        // Additional input information: Key scan code, joystick id etc.
+        public uint Key;
+        // Value to accumulate
+        public float Value;
+    }
+
     private bool _enabled;
-    private DirectionAggregatorMask _subscriptionMask = DirectionAggregatorMask.All;
-    private Vector2f _externalDirection = Vector2f.Zero;
-    private Vector2f _touchDirection = Vector2f.Zero;
-    private object? _uiElement;
+    private DirectionAggregatorMask _enabledSubscriptions = DirectionAggregatorMask.All;
+    private DirectionAggregatorMask _subscriptionFlags = DirectionAggregatorMask.None;
+    private readonly Input _input;
+    private readonly List<AxisState> _verticalAxis = new(4);
+    private readonly List<AxisState> _horizontalAxis = new(4);
+    private readonly AxisAdapter _axisAdapter = new();
+    private int _ignoreJoystickId = -1;
+    private readonly WeakReference<object> _uiElement = new(null!);
     private int? _activeTouchId;
     private Vector2i _touchOrigin;
-    private const float TouchSensitivity = 2.0f / 96.0f;
+    private float _touchSensitivity;
 
-    public DirectionAggregator(Input? input = null) => _input = input;
+    /// <summary>Construct.</summary>
+    public DirectionAggregator()
+    {
+        _input = GetSubsystem<Input>()!;
 
+        // By default the full axis range is about 1 inch
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is not null && graphics.GetDisplayDPI().X > 0)
+            _touchSensitivity = 2.0f / graphics.GetDisplayDPI().X;
+        else
+            _touchSensitivity = 2.0f / 96.0f;
+
+        _ignoreJoystickId = _input.FindAccelerometerJoystickId();
+    }
+
+    /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        ClearSubscriptions();
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
-    public void SetInput(Input? input)
-    {
-        if (ReferenceEquals(_input, input)) return;
-        _input = input;
-        UpdateSubscriptions();
-    }
-
-    public Input? GetInput() => _input;
-
+    /// <summary>Set enabled flag. The object subscribes for events when enabled.</summary>
     public void SetEnabled(bool enabled)
     {
-        if (_enabled == enabled) return;
-        _enabled = enabled;
-        UpdateSubscriptions();
+        if (_enabled != enabled)
+        {
+            _enabled = enabled;
+            if (_enabled)
+            {
+                UpdateSubscriptions(_enabledSubscriptions);
+            }
+            else
+            {
+                UpdateSubscriptions(DirectionAggregatorMask.None);
+            }
+        }
     }
 
-    public bool IsEnabled() => _enabled;
-
+    /// <summary>Set input device subscription mask.</summary>
     public void SetSubscriptionMask(DirectionAggregatorMask mask)
     {
-        if (_subscriptionMask == mask) return;
-        _subscriptionMask = mask;
-        UpdateSubscriptions();
+        _enabledSubscriptions = mask;
+        if (IsEnabled())
+            UpdateSubscriptions(_enabledSubscriptions);
     }
 
-    public DirectionAggregatorMask GetSubscriptionMask() => _subscriptionMask;
-    public void SetUIElement(object? element) => _uiElement = element;
-    public object? GetUIElement() => _uiElement;
-    public void SetDeadZone(float deadZone) => _axisAdapter.SetDeadZone(deadZone);
-    public float GetDeadZone() => _axisAdapter.GetDeadZone();
-    public void SetExternalDirection(Vector2f direction) => _externalDirection = direction;
-    public void SetTouchDirection(Vector2f direction) => _touchDirection = direction;
+    /// <summary>Set UI element to filter touch events. Only touch events originated in the element going to be handled.</summary>
+    public void SetUIElement(object? element) => _uiElement.SetTarget(element!);
 
+    /// <summary>Set dead zone to mitigate axis drift.</summary>
+    public void SetDeadZone(float deadZone) => _axisAdapter.SetDeadZone(deadZone);
+
+    /// <summary>Get enabled flag.</summary>
+    public bool IsEnabled() => _enabled;
+
+    /// <summary>Get input device subscription mask.</summary>
+    public DirectionAggregatorMask GetSubscriptionMask() => _enabledSubscriptions;
+
+    /// <summary>Get UI element to filter touch events.</summary>
+    public object? GetUIElement() => _uiElement.TryGetTarget(out var element) ? element : null;
+
+    /// <summary>Get dead zone.</summary>
+    public float GetDeadZone() => _axisAdapter.GetDeadZone();
+
+    /// <summary>Get aggregated direction vector with X pointing right and Y pointing down (similar to gamepad axis).</summary>
     public Vector2f GetDirection()
     {
-        if (!_enabled) return Vector2f.Zero;
-        var x = _horizontalAxis.Count != 0 ? _horizontalAxis.Average(static state => state.Value) : 0.0f;
-        var y = _verticalAxis.Count != 0 ? _verticalAxis.Average(static state => state.Value) : 0.0f;
-        var direction = new Vector2f(x, y) + _externalDirection + _touchDirection;
-        return new Vector2f(MathDefs.Clamp(direction.X, -1.0f, 1.0f), MathDefs.Clamp(direction.Y, -1.0f, 1.0f));
+        var result = Vector2f.Zero;
+
+        if (_horizontalAxis.Count != 0)
+        {
+            foreach (var activeState in _horizontalAxis)
+                result.X += activeState.Value;
+            result.X *= 1.0f / _horizontalAxis.Count;
+        }
+        if (_verticalAxis.Count != 0)
+        {
+            foreach (var activeState in _verticalAxis)
+                result.Y += activeState.Value;
+            result.Y *= 1.0f / _verticalAxis.Count;
+        }
+
+        return result;
     }
 
-    private void UpdateSubscriptions()
+    private void UpdateSubscriptions(DirectionAggregatorMask flags)
     {
-        ClearSubscriptions();
-        _horizontalAxis.Clear();
-        _verticalAxis.Clear();
-        _activeTouchId = null;
-        if (!_enabled || _input is null) return;
+        var toSubscribe = flags & ~_subscriptionFlags;
+        var toUnsubscribe = _subscriptionFlags & ~flags;
 
-        _subscriptions.Add(SubscribeToEvent<InputEvents.InputFocusEvent>(HandleInputFocus));
-        if ((_subscriptionMask & DirectionAggregatorMask.Keyboard) != 0)
+        if (_subscriptionFlags == DirectionAggregatorMask.None && flags != DirectionAggregatorMask.None)
         {
-            _subscriptions.Add(SubscribeToEvent<InputEvents.KeyDownEvent>(HandleKeyDown));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.KeyUpEvent>(HandleKeyUp));
+            SubscribeToEvent<InputEvents.InputFocusEvent>(_input, HandleInputFocus);
         }
-        if ((_subscriptionMask & DirectionAggregatorMask.Joystick) != 0)
+        else if (_subscriptionFlags != DirectionAggregatorMask.None && flags == DirectionAggregatorMask.None)
         {
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(HandleJoystickAxisMove));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(HandleJoystickHatMove));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(HandleJoystickDisconnected));
+            UnsubscribeFromEvent<InputEvents.InputFocusEvent>(_input);
         }
-        if ((_subscriptionMask & DirectionAggregatorMask.Touch) != 0)
-        {
-            _subscriptions.Add(SubscribeToEvent<InputEvents.TouchBeginEvent>(HandleTouchBegin));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.TouchMoveEvent>(HandleTouchMove));
-            _subscriptions.Add(SubscribeToEvent<InputEvents.TouchEndEvent>(HandleTouchEnd));
-        }
-    }
 
-    private void ClearSubscriptions()
-    {
-        foreach (var subscription in _subscriptions) subscription.Dispose();
-        _subscriptions.Clear();
+        _subscriptionFlags = flags;
+        if ((toSubscribe & DirectionAggregatorMask.Keyboard) != 0)
+        {
+            SubscribeToEvent<InputEvents.KeyUpEvent>(_input, HandleKeyUp);
+            SubscribeToEvent<InputEvents.KeyDownEvent>(_input, HandleKeyDown);
+        }
+        else if ((toUnsubscribe & DirectionAggregatorMask.Keyboard) != 0)
+        {
+            UnsubscribeFromEvent<InputEvents.KeyUpEvent>();
+            UnsubscribeFromEvent<InputEvents.KeyDownEvent>();
+
+            _horizontalAxis.RemoveAll(static key => key.Input == InputType.Keyboard);
+            _verticalAxis.RemoveAll(static key => key.Input == InputType.Keyboard);
+        }
+        if ((toSubscribe & DirectionAggregatorMask.Joystick) != 0)
+        {
+            SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(_input, HandleJoystickAxisMove);
+            SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(_input, HandleJoystickHatMove);
+            SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(_input, HandleJoystickDisconnected);
+        }
+        else if ((toUnsubscribe & DirectionAggregatorMask.Joystick) != 0)
+        {
+            UnsubscribeFromEvent<InputEvents.JoystickAxisMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickHatMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickDisconnectedEvent>();
+
+            _horizontalAxis.RemoveAll(static key => key.Input >= InputType.JoystickAxis);
+            _verticalAxis.RemoveAll(static key => key.Input >= InputType.JoystickAxis);
+        }
+        if ((toSubscribe & DirectionAggregatorMask.Touch) != 0)
+        {
+            SubscribeToEvent<InputEvents.TouchBeginEvent>(_input, HandleTouchBegin);
+            SubscribeToEvent<InputEvents.TouchMoveEvent>(_input, HandleTouchMove);
+            SubscribeToEvent<InputEvents.TouchEndEvent>(_input, HandleTouchEnd);
+        }
+        else if ((toUnsubscribe & DirectionAggregatorMask.Touch) != 0)
+        {
+            UnsubscribeFromEvent<InputEvents.TouchBeginEvent>();
+            UnsubscribeFromEvent<InputEvents.TouchMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.TouchEndEvent>();
+
+            _horizontalAxis.RemoveAll(static key => key.Input == InputType.Touch);
+            _verticalAxis.RemoveAll(static key => key.Input == InputType.Touch);
+            _activeTouchId = null;
+        }
     }
 
     private void HandleInputFocus(ref InputEvents.InputFocusEvent value)
     {
-        if (!value.Focus) { _horizontalAxis.Clear(); _verticalAxis.Clear(); }
+        if (!value.Focus)
+        {
+            _horizontalAxis.Clear();
+            _verticalAxis.Clear();
+        }
     }
 
-    private void HandleKeyDown(ref InputEvents.KeyDownEvent value) => UpdateKey(value.Scancode, true);
-    private void HandleKeyUp(ref InputEvents.KeyUpEvent value) => UpdateKey(value.Scancode, false);
-
-    private void UpdateKey(Scancode scancode, bool down)
+    private void HandleKeyDown(ref InputEvents.KeyDownEvent value)
     {
-        var value = down ? 1.0f : 0.0f;
-        switch (scancode)
+        var scancode = (uint)value.Scancode;
+        switch (value.Scancode)
         {
-            case Scancode.W or Scancode.Up: UpdateAxis(_verticalAxis, new(InputType.Keyboard, (int)scancode, -value)); break;
-            case Scancode.S or Scancode.Down: UpdateAxis(_verticalAxis, new(InputType.Keyboard, (int)scancode, value)); break;
-            case Scancode.A or Scancode.Left: UpdateAxis(_horizontalAxis, new(InputType.Keyboard, (int)scancode, -value)); break;
-            case Scancode.D or Scancode.Right: UpdateAxis(_horizontalAxis, new(InputType.Keyboard, (int)scancode, value)); break;
+            case Scancode.W:
+            case Scancode.Up: UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = -1.0f }); break;
+            case Scancode.S:
+            case Scancode.Down: UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 1.0f }); break;
+            case Scancode.A:
+            case Scancode.Left: UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = -1.0f }); break;
+            case Scancode.D:
+            case Scancode.Right: UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 1.0f }); break;
+        }
+    }
+
+    private void HandleKeyUp(ref InputEvents.KeyUpEvent value)
+    {
+        var scancode = (uint)value.Scancode;
+        switch (value.Scancode)
+        {
+            case Scancode.W:
+            case Scancode.Up: UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 0.0f }); break;
+            case Scancode.S:
+            case Scancode.Down: UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 0.0f }); break;
+            case Scancode.A:
+            case Scancode.Left: UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 0.0f }); break;
+            case Scancode.D:
+            case Scancode.Right: UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Keyboard, Key = scancode, Value = 0.0f }); break;
         }
     }
 
     private void HandleJoystickAxisMove(ref InputEvents.JoystickAxisMoveEvent value)
     {
-        if (value.Axis == 0) UpdateAxis(_horizontalAxis, new(InputType.JoystickAxis, value.JoystickID, value.Position));
-        else if (value.Axis == 1) UpdateAxis(_verticalAxis, new(InputType.JoystickAxis, value.JoystickID, value.Position));
+        var joystickId = (uint)value.JoystickID;
+        if (value.JoystickID == _ignoreJoystickId)
+            return;
+
+        var axisIndex = (uint)value.Axis;
+        var axisValue = value.Position;
+
+        // Up-Down
+        if (axisIndex == 1)
+        {
+            UpdateAxis(_verticalAxis, new AxisState { Input = InputType.JoystickAxis, Key = joystickId, Value = axisValue });
+        }
+        // Left-Right
+        if (axisIndex == 0)
+        {
+            UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.JoystickAxis, Key = joystickId, Value = axisValue });
+        }
     }
 
     private void HandleJoystickHatMove(ref InputEvents.JoystickHatMoveEvent value)
     {
-        if (value.Hat != 0) return;
-        var x = ((value.Position & HatPosition.Right) != 0 ? 1.0f : 0.0f) - ((value.Position & HatPosition.Left) != 0 ? 1.0f : 0.0f);
-        var y = ((value.Position & HatPosition.Down) != 0 ? 1.0f : 0.0f) - ((value.Position & HatPosition.Up) != 0 ? 1.0f : 0.0f);
-        UpdateAxis(_horizontalAxis, new(InputType.JoystickDPad, value.JoystickID, x));
-        UpdateAxis(_verticalAxis, new(InputType.JoystickDPad, value.JoystickID, y));
+        var hatIndex = (uint)value.Hat;
+        if (hatIndex != 0)
+            return;
+
+        var joystickId = (uint)value.JoystickID;
+        var position = value.Position;
+
+        var horizontalValue = ((position & HatPosition.Right) != 0 ? 1.0f : 0.0f) + ((position & HatPosition.Left) != 0 ? -1.0f : 0.0f);
+        UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.JoystickDPad, Key = joystickId, Value = horizontalValue });
+        var verticalValue = ((position & HatPosition.Down) != 0 ? 1.0f : 0.0f) + ((position & HatPosition.Up) != 0 ? -1.0f : 0.0f);
+        UpdateAxis(_verticalAxis, new AxisState { Input = InputType.JoystickDPad, Key = joystickId, Value = verticalValue });
     }
 
     private void HandleJoystickDisconnected(ref InputEvents.JoystickDisconnectedEvent value)
     {
-        var joystickId = value.JoystickID;
-        _horizontalAxis.RemoveAll(state => state.Key == joystickId && state.Input is InputType.JoystickAxis or InputType.JoystickDPad);
-        _verticalAxis.RemoveAll(state => state.Key == joystickId && state.Input is InputType.JoystickAxis or InputType.JoystickDPad);
+        var joystickId = (uint)value.JoystickID;
+
+        // Cancel Axis states.
+        var joyEventId = (InputType)(uint)InputType.JoystickAxis;
+        UpdateAxis(_verticalAxis, new AxisState { Input = joyEventId, Key = joystickId, Value = 0.0f });
+        UpdateAxis(_horizontalAxis, new AxisState { Input = joyEventId, Key = joystickId, Value = 0.0f });
+
+        // Cancel DPad states.
+        var dpadEventId = (InputType)(uint)InputType.JoystickDPad;
+        UpdateAxis(_verticalAxis, new AxisState { Input = dpadEventId, Key = joystickId, Value = 0.0f });
+        UpdateAxis(_horizontalAxis, new AxisState { Input = dpadEventId, Key = joystickId, Value = 0.0f });
     }
 
     private void HandleTouchBegin(ref InputEvents.TouchBeginEvent value)
     {
-        if (_activeTouchId.HasValue) return;
-        _activeTouchId = value.TouchID;
-        _touchOrigin = new Vector2i(value.X, value.Y);
+        // Do nothing if already is tracking touch
+        if (_activeTouchId.HasValue)
+            return;
+
+        // Start tracking touch
+        var touchState = _input.GetTouchById(value.TouchID);
+        if (touchState.HasValue && ReferenceEquals(touchState.Value.TouchedElement, GetUIElement()))
+        {
+            _activeTouchId = touchState.Value.TouchID;
+            _touchOrigin = new Vector2i(value.X, value.Y);
+        }
     }
 
     private void HandleTouchMove(ref InputEvents.TouchMoveEvent value)
     {
-        if (_activeTouchId != value.TouchID) return;
+        // Do nothing if not tracking touch
+        if (!_activeTouchId.HasValue)
+            return;
+        // Validate touch id
+        var touchId = value.TouchID;
+        if (touchId != _activeTouchId.Value)
+            return;
+
         var position = new Vector2i(value.X, value.Y);
-        var dx = MathDefs.Clamp((position.X - _touchOrigin.X) * TouchSensitivity, -1.0f, 1.0f);
-        var dy = MathDefs.Clamp((position.Y - _touchOrigin.Y) * TouchSensitivity, -1.0f, 1.0f);
-        _touchOrigin = new Vector2i(position.X - (int)(dx / TouchSensitivity), position.Y - (int)(dy / TouchSensitivity));
-        UpdateAxis(_horizontalAxis, new(InputType.Touch, 0, dx));
-        UpdateAxis(_verticalAxis, new(InputType.Touch, 0, dy));
+
+        var dx = MathDefs.Clamp((position.X - _touchOrigin.X) * _touchSensitivity, -1.0f, 1.0f);
+        var dy = MathDefs.Clamp((position.Y - _touchOrigin.Y) * _touchSensitivity, -1.0f, 1.0f);
+
+        // Reset origin position if touch left the -1..1 range
+        _touchOrigin.X = position.X - (int)(dx / _touchSensitivity);
+        _touchOrigin.Y = position.Y - (int)(dy / _touchSensitivity);
+
+        UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Touch, Key = 0, Value = dx });
+        UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Touch, Key = 0, Value = dy });
     }
 
     private void HandleTouchEnd(ref InputEvents.TouchEndEvent value)
     {
-        if (_activeTouchId != value.TouchID) return;
+        // Do nothing if not tracking touch
+        if (!_activeTouchId.HasValue)
+            return;
+        // Stop tracking touch
+        var touchId = value.TouchID;
+        if (touchId != _activeTouchId.Value)
+            return;
+
         _activeTouchId = null;
-        UpdateAxis(_horizontalAxis, new(InputType.Touch, 0, 0.0f));
-        UpdateAxis(_verticalAxis, new(InputType.Touch, 0, 0.0f));
+        UpdateAxis(_horizontalAxis, new AxisState { Input = InputType.Touch, Key = 0, Value = 0.0f });
+        UpdateAxis(_verticalAxis, new AxisState { Input = InputType.Touch, Key = 0, Value = 0.0f });
     }
 
     private void UpdateAxis(List<AxisState> activeStates, AxisState state)
     {
+        // Apply dead zone
         var adjustedValue = _axisAdapter.Transform(state.Value);
-        var index = activeStates.FindIndex(value => value.Input == state.Input && value.Key == state.Key);
-        if (index >= 0)
+
+        // Find and replace value
+        for (var i = 0; i < activeStates.Count; ++i)
         {
-            if (adjustedValue == 0.0f) activeStates.RemoveAt(index);
-            else activeStates[index] = state with { Value = adjustedValue };
+            if (activeStates[i].Input == state.Input && activeStates[i].Key == state.Key)
+            {
+                if (adjustedValue == 0.0f)
+                {
+                    activeStates[i] = activeStates[^1];
+                    activeStates.RemoveAt(activeStates.Count - 1);
+                }
+                else
+                {
+                    var activeState = activeStates[i];
+                    activeState.Value = adjustedValue;
+                    activeStates[i] = activeState;
+                }
+                return;
+            }
         }
-        else if (adjustedValue != 0.0f)
-            activeStates.Add(state with { Value = adjustedValue });
+        // Add value if not found
+        if (adjustedValue != 0.0f)
+            activeStates.Add(new AxisState { Input = state.Input, Key = state.Key, Value = adjustedValue });
     }
 }

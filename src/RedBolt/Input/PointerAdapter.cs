@@ -28,7 +28,7 @@ public sealed class PointerAdapter : Object, IDisposable
     public PointerAdapter(Input? input = null)
     {
         _input = input;
-        _directionAdapter = new DirectionAggregator(input);
+        _directionAdapter = new DirectionAggregator();
         _pointerPosition = input?.GetMousePosition().ToVector2() ?? Vector2f.Zero;
         SetSubscriptionMask(_subscriptionMask);
     }
@@ -45,7 +45,6 @@ public sealed class PointerAdapter : Object, IDisposable
     {
         if (ReferenceEquals(_input, input)) return;
         _input = input;
-        _directionAdapter.SetInput(input);
         if (input is not null) _pointerPosition = input.GetMousePosition().ToVector2();
         UpdateSubscriptions();
     }

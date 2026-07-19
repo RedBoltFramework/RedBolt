@@ -37,10 +37,11 @@ public sealed class PointerAdapterTests
         adapter.SetSubscriptionMask(PointerAdapterMask.Keyboard);
         adapter.SetCursorSpeed(20.0f);
         adapter.SetCursorAcceleration(1.0f);
-        adapter.GetDirectionAggregator().SetExternalDirection(new Vector2f(1.0f, 0.0f));
+        Input.SetKey(Key.D, Scancode.D, true);
         adapter.Update(0.5f);
 
         Assert.Equal(new Vector2i(50, 0), adapter.GetPointerPosition());
+        Input.SetKey(Key.D, Scancode.D, false);
     }
 
     [Fact]
