@@ -647,7 +647,7 @@ public class RenderPipeline : Component
             if (_outlineBuffer is not null && _outlineBuffer.IsEnabled)
             {
                 _renderBufferManager.SetRenderTargets(graphics, _outlineBuffer);
-                graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
+                graphics.ClearCurrentRenderTargets(Color.TransparentBlack, clearColorTarget: true, clearDepth: false, clearStencil: false);
                 _sceneProcessor.RenderSceneBatches(
                     "Outline", camera, _outlineScenePass!.GetBatches(), default, cameraParameters, frameParameters);
                 _renderBufferManager.SetOutputRenderTargets(graphics);
@@ -825,7 +825,7 @@ public class RenderPipeline : Component
             _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = outlineRenderBuffer;
 
             _renderBufferManager.SetRenderTargets(graphics, outlineRenderBuffer);
-            graphics.ClearCurrentRenderTargets(Color.Transparent, clearColorTarget: true, clearDepth: false, clearStencil: false);
+            graphics.ClearCurrentRenderTargets(Color.TransparentBlack, clearColorTarget: true, clearDepth: false, clearStencil: false);
             graphics.RenderOutlineGroups(_viewport, materialQuality, _outlineGroups, _frameInfo.ViewportRect);
             _renderBufferManager.SetOutputRenderTargets(graphics);
         }

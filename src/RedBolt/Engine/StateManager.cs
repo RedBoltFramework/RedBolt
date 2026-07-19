@@ -11,7 +11,7 @@ public class ApplicationState : Object
     private bool _mouseGrabbed;
     private MouseMode _mouseMode = MouseMode.Free;
     private Color _fogColor = new(0.0f, 0.0f, 0.0f);
-    private Color _savedFogColor;
+    private Color _savedFogColor = new();
     private ContextEventSubscription? _updateSubscription;
     private ContextEventSubscription? _mouseButtonDownSubscription;
     private ContextEventSubscription? _mouseModeChangedSubscription;

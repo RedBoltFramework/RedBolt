@@ -460,58 +460,116 @@ public sealed class Image : Resource
 
     public Color GetPixel(int x, int y, int z)
     {
-        var offset = GetOffset(x, y, z);
-        return ReadColor(offset);
+        if (_data.Length == 0 || z < 0 || z >= Depth || IsCompressed())
+            return Color.Black;
+        x = Math.Clamp(x, 0, Width - 1);
+        y = Math.Clamp(y, 0, Height - 1);
+
+        var offset = (z * Width * Height + y * Width + x) * (int)Components;
+        var ret = new Color();
+        switch (Components)
+        {
+            case 4:
+                ret.A = _data[offset + 3] / 255.0f;
+                ret.B = _data[offset + 2] / 255.0f;
+                ret.G = _data[offset + 1] / 255.0f;
+                ret.R = _data[offset] / 255.0f;
+                break;
+            case 3:
+                ret.B = _data[offset + 2] / 255.0f;
+                ret.G = _data[offset + 1] / 255.0f;
+                ret.R = _data[offset] / 255.0f;
+                break;
+            case 2:
+                ret.G = _data[offset + 1] / 255.0f;
+                ret.R = _data[offset] / 255.0f;
+                break;
+            default:
+                ret.R = ret.G = ret.B = _data[offset] / 255.0f;
+                break;
+        }
+
+        return ret;
     }
 
     public uint GetPixelInt(int x, int y) => GetPixelInt(x, y, 0);
 
-    public uint GetPixelInt(int x, int y, int z) => GetPixel(x, y, z).ToUInt();
+    public uint GetPixelInt(int x, int y, int z)
+    {
+        if (_data.Length == 0 || z < 0 || z >= Depth || IsCompressed())
+            return 0xff000000;
+        x = Math.Clamp(x, 0, Width - 1);
+        y = Math.Clamp(y, 0, Height - 1);
+
+        var offset = (z * Width * Height + y * Width + x) * (int)Components;
+        uint ret = Components < 4 ? 0xff000000 : 0;
+        switch (Components)
+        {
+            case 4:
+                ret |= (uint)_data[offset + 3] << 24;
+                ret |= (uint)_data[offset + 2] << 16;
+                ret |= (uint)_data[offset + 1] << 8;
+                ret |= _data[offset];
+                break;
+            case 3:
+                ret |= (uint)_data[offset + 2] << 16;
+                ret |= (uint)_data[offset + 1] << 8;
+                ret |= _data[offset];
+                break;
+            case 2:
+                ret |= (uint)_data[offset + 1] << 8;
+                ret |= _data[offset];
+                break;
+            default:
+                ret |= (uint)_data[offset] << 16;
+                ret |= (uint)_data[offset] << 8;
+                ret |= _data[offset];
+                break;
+        }
+
+        return ret;
+    }
 
     public Color GetPixelBilinear(float x, float y)
     {
-        if (Width == 0 || Height == 0)
-            return Color.Transparent;
+        x = MathDefs.Clamp(x * Width - 0.5f, 0.0f, Width - 1.0f);
+        y = MathDefs.Clamp(y * Height - 0.5f, 0.0f, Height - 1.0f);
 
-        var fx = MathDefs.Clamp(x, 0.0f, 1.0f) * Math.Max(Width - 1, 0);
-        var fy = MathDefs.Clamp(y, 0.0f, 1.0f) * Math.Max(Height - 1, 0);
-        var x0 = (int)MathF.Floor(fx);
-        var y0 = (int)MathF.Floor(fy);
-        var x1 = Math.Min(x0 + 1, Width - 1);
-        var y1 = Math.Min(y0 + 1, Height - 1);
-        var tx = fx - x0;
-        var ty = fy - y0;
+        var xI = (int)x;
+        var yI = (int)y;
+        var xF = MathDefs.Fract(x);
+        var yF = MathDefs.Fract(y);
 
-        var top = GetPixel(x0, y0).Lerp(GetPixel(x1, y0), tx);
-        var bottom = GetPixel(x0, y1).Lerp(GetPixel(x1, y1), tx);
-        return top.Lerp(bottom, ty);
+        var topColor = GetPixel(xI, yI).Lerp(GetPixel(xI + 1, yI), xF);
+        var bottomColor = GetPixel(xI, yI + 1).Lerp(GetPixel(xI + 1, yI + 1), xF);
+        return topColor.Lerp(bottomColor, yF);
     }
 
     public Color GetPixelTrilinear(float x, float y, float z)
     {
-        if (Width == 0 || Height == 0 || Depth == 0)
-            return Color.Transparent;
+        if (Depth < 2)
+            return GetPixelBilinear(x, y);
 
-        var fx = MathDefs.Clamp(x, 0.0f, 1.0f) * Math.Max(Width - 1, 0);
-        var fy = MathDefs.Clamp(y, 0.0f, 1.0f) * Math.Max(Height - 1, 0);
-        var fz = MathDefs.Clamp(z, 0.0f, 1.0f) * Math.Max(Depth - 1, 0);
-        var x0 = (int)MathF.Floor(fx);
-        var y0 = (int)MathF.Floor(fy);
-        var z0 = (int)MathF.Floor(fz);
-        var x1 = Math.Min(x0 + 1, Width - 1);
-        var y1 = Math.Min(y0 + 1, Height - 1);
-        var z1 = Math.Min(z0 + 1, Depth - 1);
-        var tx = fx - x0;
-        var ty = fy - y0;
-        var tz = fz - z0;
+        x = MathDefs.Clamp(x * Width - 0.5f, 0.0f, Width - 1.0f);
+        y = MathDefs.Clamp(y * Height - 0.5f, 0.0f, Height - 1.0f);
+        z = MathDefs.Clamp(z * Depth - 0.5f, 0.0f, Depth - 1.0f);
 
-        var c00 = GetPixel(x0, y0, z0).Lerp(GetPixel(x1, y0, z0), tx);
-        var c01 = GetPixel(x0, y1, z0).Lerp(GetPixel(x1, y1, z0), tx);
-        var c10 = GetPixel(x0, y0, z1).Lerp(GetPixel(x1, y0, z1), tx);
-        var c11 = GetPixel(x0, y1, z1).Lerp(GetPixel(x1, y1, z1), tx);
-        var low = c00.Lerp(c01, ty);
-        var high = c10.Lerp(c11, ty);
-        return low.Lerp(high, tz);
+        var xI = (int)x;
+        var yI = (int)y;
+        var zI = (int)z;
+        if (zI == Depth - 1)
+            return GetPixelBilinear(x, y);
+        var xF = MathDefs.Fract(x);
+        var yF = MathDefs.Fract(y);
+        var zF = MathDefs.Fract(z);
+
+        var topColorNear = GetPixel(xI, yI, zI).Lerp(GetPixel(xI + 1, yI, zI), xF);
+        var bottomColorNear = GetPixel(xI, yI + 1, zI).Lerp(GetPixel(xI + 1, yI + 1, zI), xF);
+        var colorNear = topColorNear.Lerp(bottomColorNear, yF);
+        var topColorFar = GetPixel(xI, yI, zI + 1).Lerp(GetPixel(xI + 1, yI, zI + 1), xF);
+        var bottomColorFar = GetPixel(xI, yI + 1, zI + 1).Lerp(GetPixel(xI + 1, yI + 1, zI + 1), xF);
+        var colorFar = topColorFar.Lerp(bottomColorFar, yF);
+        return colorNear.Lerp(colorFar, zF);
     }
 
     public TextureFormat GetGPUFormat()
@@ -777,18 +835,6 @@ public sealed class Image : Resource
             throw new ArgumentOutOfRangeException();
 
         return ((((z * Height) + y) * Width) + x) * (int)Components;
-    }
-
-    private Color ReadColor(int offset)
-    {
-        return Components switch
-        {
-            1 => new Color(_data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset] / 255.0f, 1.0f),
-            2 => new Color(_data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset] / 255.0f, _data[offset + 1] / 255.0f),
-            3 => new Color(_data[offset] / 255.0f, _data[offset + 1] / 255.0f, _data[offset + 2] / 255.0f, 1.0f),
-            4 => new Color(_data[offset] / 255.0f, _data[offset + 1] / 255.0f, _data[offset + 2] / 255.0f, _data[offset + 3] / 255.0f),
-            _ => Color.Transparent
-        };
     }
 
     private void SwapPixels(int leftOffset, int rightOffset)

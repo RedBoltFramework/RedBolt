@@ -28,8 +28,8 @@ public class Zone : Drawable
     private float _ambientBrightness = 1.0f;
     private float _backgroundBrightness;
     private bool _backgroundStatic;
-    private Color _ambientStartColor;
-    private Color _ambientEndColor;
+    private Color _ambientStartColor = new();
+    private Color _ambientEndColor = new();
     private Color _fogColor = DefaultFogColor;
     private float _fogStart = DefaultFogStart;
     private float _fogEnd = DefaultFogEnd;

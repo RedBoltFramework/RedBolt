@@ -9,10 +9,10 @@ public sealed class ImageTests
     {
         var image = new Image("Images/Test");
         Assert.True(image.SetSize(2, 2, 4));
-        image.Clear(Color.Transparent);
+        image.Clear(Color.TransparentBlack);
         image.SetPixel(0, 0, new Color(1.0f, 0.5f, 0.25f, 1.0f));
 
-        Assert.True(image.GetPixel(0, 0).ApproximatelyEquivalent(new Color(1.0f, 127.0f / 255.0f, 63.0f / 255.0f, 1.0f), 0.001f));
+        Assert.True(image.GetPixel(0, 0).Equals(new Color(1.0f, 127.0f / 255.0f, 63.0f / 255.0f, 1.0f), 0.001f));
         Assert.Equal(image.GetPixel(0, 0).ToUInt(), image.GetPixelInt(0, 0));
         Assert.Equal(TextureFormat.RGBA8, image.GetGPUFormat());
     }
@@ -28,11 +28,12 @@ public sealed class ImageTests
         image.SetPixel(1, 1, new Color(1, 1, 1));
 
         var center = image.GetPixelBilinear(0.5f, 0.5f);
-        Assert.True(center.ApproximatelyEquivalent(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.01f));
+        Assert.True(center.Equals(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.01f));
+        Assert.Equal(new Color(1, 0, 0), image.GetPixelBilinear(0.25f, 0.25f));
 
         var mip = image.GetNextLevel();
         Assert.Equal(new Vector3i(1, 1, 1), mip.GetSize());
-        Assert.True(mip.GetPixel(0, 0).ApproximatelyEquivalent(center, 0.01f));
+        Assert.True(mip.GetPixel(0, 0).Equals(center, 0.01f));
 
         var subimage = image.GetSubimage(new IntRect(1, 0, 2, 1));
         Assert.NotNull(subimage);
@@ -57,7 +58,7 @@ public sealed class ImageTests
         image.SetPixelInt(1, 1, 1, 0x000000ffu);
 
         var sampled = image.GetPixelTrilinear(0.5f, 0.5f, 0.5f);
-        Assert.True(sampled.ApproximatelyEquivalent(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.02f));
+        Assert.True(sampled.Equals(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.02f));
 
         var rgba = image.ConvertToRGBA();
         Assert.Equal(4u, rgba.GetComponents());
@@ -72,9 +73,9 @@ public sealed class ImageTests
         source.Clear(new Color(1, 0, 0, 1));
         var destination = new Image("Destination");
         Assert.True(destination.SetSize(4, 4, 4));
-        destination.Clear(Color.Transparent);
+        destination.Clear(Color.TransparentBlack);
         Assert.True(destination.SetSubimage(source, new IntRect(1, 1, 3, 3)));
-        Assert.True(destination.GetPixel(1, 1).ApproximatelyEquivalent(new Color(1, 0, 0, 1), 0.001f));
+        Assert.True(destination.GetPixel(1, 1).Equals(new Color(1, 0, 0, 1), 0.001f));
 
         destination.PrecalculateLevels();
         var levels = new List<Image>();
@@ -110,8 +111,8 @@ public sealed class ImageTests
             cube.SetImage(pair.Item1, image);
         }
 
-        Assert.True(cube.SampleNearest(Vector3f.Right).ApproximatelyEquivalent(new Color(1, 0, 0), 0.001f));
-        Assert.True(cube.SampleNearest(Vector3f.Forward).ApproximatelyEquivalent(new Color(1, 0, 1), 0.001f));
+        Assert.True(cube.SampleNearest(Vector3f.Right).Equals(new Color(1, 0, 0), 0.001f));
+        Assert.True(cube.SampleNearest(Vector3f.Forward).Equals(new Color(1, 0, 1), 0.001f));
 
         var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault();
         Assert.True(projected.ApproximatelyEquivalent(Vector3f.Forward, 0.001f));

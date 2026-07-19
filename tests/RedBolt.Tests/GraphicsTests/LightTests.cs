@@ -45,7 +45,7 @@ public sealed class LightTests
         light.SetBrightness(2.0f);
         light.SetSpecularIntensity(-1.0f);
 
-        Assert.True(light.GetEffectiveColor().ApproximatelyEquivalent(new Color(1.0f, 0.5f, 0.25f, 1.0f)));
+        Assert.True(light.GetEffectiveColor().Equals(new Color(1.0f, 0.5f, 0.25f, 1.0f), MathDefs.Epsilon));
         Assert.True(MathDefs.ApproximatelyEquivalent(light.GetEffectiveSpecularIntensity(), 0.0f));
     }
 

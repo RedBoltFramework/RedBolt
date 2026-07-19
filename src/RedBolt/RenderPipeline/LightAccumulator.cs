@@ -7,6 +7,11 @@ namespace RedBolt;
 /// </summary>
 public struct LightDataForAccumulator
 {
+    public LightDataForAccumulator()
+    {
+        Color = new Color();
+    }
+
     public Color Color;
     public Vector3f Position;
     public Vector3f Direction;

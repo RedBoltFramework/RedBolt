@@ -29,12 +29,12 @@ public class QuaternionColorParityTests
         var packed = color.ToUIntMask(Color.ARGB);
         var unpacked = new Color(packed, Color.ARGB);
 
-        Assert.True(color.ApproximatelyEquivalent(unpacked, 1.0f / 255.0f + 0.0001f));
+        Assert.True(color.Equals(unpacked, 1.0f / 255.0f + 0.0001f));
 
         var hsv = color.ToHSV();
         var fromHsv = new Color();
         fromHsv.FromHSV(hsv.X, hsv.Y, hsv.Z, color.A);
-        Assert.True(color.ApproximatelyEquivalent(fromHsv, 0.0001f));
+        Assert.True(color.Equals(fromHsv, 0.0001f));
     }
 
     [Fact]
@@ -44,9 +44,9 @@ public class QuaternionColorParityTests
         var rhs = new Color(0.1f + MathDefs.Epsilon * 0.5f, 0.2f, 0.3f, 1.0f);
 
         Assert.NotEqual(lhs, rhs);
-        Assert.True(lhs.ApproximatelyEquivalent(rhs));
+        Assert.True(lhs.Equals(rhs, MathDefs.Epsilon));
         Assert.True(colorRoundTrip(lhs));
 
-        static bool colorRoundTrip(Color color) => color.GammaToLinear().LinearToGamma().ApproximatelyEquivalent(color, 0.0001f);
+        static bool colorRoundTrip(Color color) => color.GammaToLinear().LinearToGamma().Equals(color, 0.0001f);
     }
 }

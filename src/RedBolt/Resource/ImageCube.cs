@@ -194,8 +194,7 @@ public sealed class ImageCube : Resource
     public Color SampleNearest(Vector3f direction)
     {
         var (face, texel) = ProjectDirectionOnFaceTexel(direction);
-        var image = GetImage(face);
-        return image is null ? Color.Transparent : image.GetPixel(texel.X, texel.Y);
+        return GetImage(face)!.GetPixel(texel.X, texel.Y);
     }
 
     public Vector3f ProjectTexelOnCube(CubeMapFace face, int x, int y)

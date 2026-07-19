@@ -482,11 +482,11 @@ public sealed class Camera : Component
 
     public Zone? GetZone() => _zone is not null && _zone.TryGetTarget(out var zone) ? zone : null;
 
-    public Color GetEffectiveAmbientColor() => GetZone()?.GetAmbientColor() ?? Color.Transparent;
+    public Color GetEffectiveAmbientColor() => GetZone()?.GetAmbientColor() ?? Color.TransparentBlack;
 
     public float GetEffectiveAmbientBrightness() => GetZone()?.GetAmbientBrightness() ?? 1.0f;
 
-    public Color GetEffectiveFogColor() => GetZone()?.GetFogColor() ?? Color.Transparent;
+    public Color GetEffectiveFogColor() => GetZone()?.GetFogColor() ?? Color.TransparentBlack;
 
     public float GetEffectiveFogStart() => GetZone()?.GetFogStart() ?? MathDefs.LargeValue;
 

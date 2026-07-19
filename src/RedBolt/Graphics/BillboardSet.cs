@@ -6,6 +6,11 @@ namespace RedBolt;
 /// <summary>One billboard in the billboard set.</summary>
 public struct Billboard
 {
+    public Billboard()
+    {
+        Color = new Color();
+    }
+
     /// <summary>Position.</summary>
     public Vector3f Position;
     /// <summary>Two-dimensional size. If BillboardSet has fixed screen size enabled, this is measured in pixels instead of world units.</summary>
