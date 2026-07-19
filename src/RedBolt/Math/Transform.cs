@@ -2,15 +2,23 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
+/// <summary>3D transform decomposed into translation, rotation and scale components.</summary>
+/// <remarks>TODO: Expand it into something more user-friendly.</remarks>
 [StructLayout(LayoutKind.Sequential)]
-public struct Transform : IEquatable<Transform>, IApproximateEquatable<Transform>
+public struct Transform
 {
     public Vector3f Position;
     public Quaternion Rotation;
     public Vector3f Scale;
 
-    public static readonly Transform IDENTITY = new(Vector3f.Zero, Quaternion.IDENTITY, Vector3f.One);
-    public static Transform Identity => IDENTITY;
+    public static readonly Transform Identity = new(Vector3f.Zero, Quaternion.IDENTITY, Vector3f.One);
+
+    public Transform()
+    {
+        Position = Vector3f.Zero;
+        Rotation = Quaternion.IDENTITY;
+        Scale = Vector3f.One;
+    }
 
     public Transform(Vector3f position, Quaternion rotation)
     {
@@ -26,74 +34,82 @@ public struct Transform : IEquatable<Transform>, IApproximateEquatable<Transform
         Scale = scale;
     }
 
-    public static Transform FromMatrix3x4(Matrix3x4 matrix)
+    /// <summary>Construct Transform from Matrix3x4. It is not precise for non-uniform scale.</summary>
+    public static Transform FromMatrix3x4(in Matrix3x4 matrix)
     {
-        matrix.Decompose(out var position, out var rotation, out var scale);
-        return new Transform(position, rotation, scale);
+        var result = new Transform();
+        matrix.Decompose(out result.Position, out result.Rotation, out result.Scale);
+        return result;
     }
 
-    public Matrix3x4 ToMatrix3x4() => new(Position, Rotation, Scale);
+    /// <summary>Construct Matrix3x4 from Transform.</summary>
+    public readonly Matrix3x4 ToMatrix3x4() => new(Position, Rotation, Scale);
 
-    public Transform Lerp(Transform rhs, float t) => new(
+    /// <summary>Interpolate between two transforms.</summary>
+    public readonly Transform Lerp(in Transform rhs, float t) => new(
         Position.Lerp(rhs.Position, t),
         Rotation.Slerp(rhs.Rotation, t),
         Scale.Lerp(rhs.Scale, t));
 
-    public Transform Inverse()
+    /// <summary>Return inverse transform. It is not precise for non-uniform scale.</summary>
+    public readonly Transform Inverse()
     {
-        var rotation = Rotation.Inverse;
-        var scale = Vector3f.One / Scale;
-        var position = -(rotation * Position) * scale;
-        return new Transform(position, rotation, scale);
+        var ret = new Transform();
+        ret.Rotation = Rotation.Inverse;
+        ret.Scale = Vector3f.One / Scale;
+        ret.Position = -(ret.Rotation * Position) * ret.Scale;
+        return ret;
     }
 
-    public bool ApproximatelyEquivalent(Transform other, float epsilon = MathDefs.Epsilon) =>
-        Position.ApproximatelyEquivalent(other.Position, epsilon) &&
-        Rotation.ApproximatelyEquivalent(other.Rotation, epsilon) &&
-        Scale.ApproximatelyEquivalent(other.Scale, epsilon);
+    public static Transform Lerp(in Transform lhs, in Transform rhs, float t) => lhs.Lerp(rhs, t);
 
-    public bool Equals(Transform other) => Position.Equals(other.Position) && Rotation.Equals(other.Rotation) && Scale.Equals(other.Scale);
-    public override bool Equals(object? obj) => obj is Transform other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(Position, Rotation, Scale);
+    /// <summary>Return transform multiplied by another transform.</summary>
+    public static Transform operator *(Transform lhs, Transform rhs)
+    {
+        var ret = new Transform();
+        ret.Rotation = lhs.Rotation * rhs.Rotation;
+        ret.Scale = lhs.Scale * rhs.Scale;
+        ret.Position = lhs.Position + lhs.Rotation * (rhs.Position * lhs.Scale);
+        return ret;
+    }
 
-    public static bool operator ==(Transform lhs, Transform rhs) => lhs.Equals(rhs);
-    public static bool operator !=(Transform lhs, Transform rhs) => !lhs.Equals(rhs);
-    public static Transform Lerp(Transform lhs, Transform rhs, float t) => lhs.Lerp(rhs, t);
-    public static Transform operator *(Transform lhs, Transform rhs) => new(
-        lhs.Position + lhs.Rotation * (rhs.Position * lhs.Scale),
-        lhs.Rotation * rhs.Rotation,
-        lhs.Scale * rhs.Scale);
+    /// <summary>Return position multiplied by the transform.</summary>
     public static Vector3f operator *(Transform lhs, Vector3f rhs) => lhs.Position + lhs.Rotation * (rhs * lhs.Scale);
+
+    /// <summary>Return rotation multiplied by the transform.</summary>
     public static Quaternion operator *(Transform lhs, Quaternion rhs) => lhs.Rotation * rhs;
 }
 
+/// <summary>3D transform decomposed into translation, rotation and scale components.</summary>
+/// <remarks>Position uses <see langword="double"/> precision components.</remarks>
 [StructLayout(LayoutKind.Sequential)]
-public struct DoubleTransform : IEquatable<DoubleTransform>, IApproximateEquatable<DoubleTransform>
+public struct DoubleTransform
 {
     public Vector3d Position;
     public Quaternion Rotation;
     public Vector3f Scale;
 
-    public static readonly DoubleTransform IDENTITY = new() { Position = Vector3d.Zero, Rotation = Quaternion.IDENTITY, Scale = Vector3f.One };
-    public static DoubleTransform Identity => IDENTITY;
+    public static readonly DoubleTransform Identity = new()
+    {
+        Position = Vector3d.Zero,
+        Rotation = Quaternion.IDENTITY,
+        Scale = Vector3f.One
+    };
 
-    public DoubleTransform Lerp(DoubleTransform rhs, float t) => new()
+    public DoubleTransform()
+    {
+        Position = Vector3d.Zero;
+        Rotation = Quaternion.IDENTITY;
+        Scale = Vector3f.One;
+    }
+
+    /// <summary>Interpolate between two transforms.</summary>
+    public readonly DoubleTransform Lerp(in DoubleTransform rhs, float t) => new()
     {
         Position = Position.Lerp(rhs.Position, t),
         Rotation = Rotation.Slerp(rhs.Rotation, t),
         Scale = Scale.Lerp(rhs.Scale, t)
     };
 
-    public bool ApproximatelyEquivalent(DoubleTransform other, float epsilon = MathDefs.Epsilon) =>
-        Position.ApproximatelyEquivalent(other.Position, epsilon) &&
-        Rotation.ApproximatelyEquivalent(other.Rotation, epsilon) &&
-        Scale.ApproximatelyEquivalent(other.Scale, epsilon);
-
-    public bool Equals(DoubleTransform other) => Position.Equals(other.Position) && Rotation.Equals(other.Rotation) && Scale.Equals(other.Scale);
-    public override bool Equals(object? obj) => obj is DoubleTransform other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(Position, Rotation, Scale);
-
-    public static bool operator ==(DoubleTransform lhs, DoubleTransform rhs) => lhs.Equals(rhs);
-    public static bool operator !=(DoubleTransform lhs, DoubleTransform rhs) => !lhs.Equals(rhs);
-    public static DoubleTransform Lerp(DoubleTransform lhs, DoubleTransform rhs, float t) => lhs.Lerp(rhs, t);
+    public static DoubleTransform Lerp(in DoubleTransform lhs, in DoubleTransform rhs, float t) => lhs.Lerp(rhs, t);
 }

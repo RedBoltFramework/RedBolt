@@ -920,7 +920,7 @@ public sealed class Scene : Serializable
     /// <summary>
     /// Convert world transform from relative to world origin to absolute.
     /// </summary>
-    public DoubleTransform ToAbsoluteWorldTransform(Transform transform) => new()
+    public DoubleTransform ToAbsoluteWorldTransform(in Transform transform) => new()
     {
         Position = ToAbsoluteWorldPosition(transform.Position),
         Rotation = transform.Rotation,
@@ -930,7 +930,7 @@ public sealed class Scene : Serializable
     /// <summary>
     /// Convert world transform from absolute to relative to world origin.
     /// </summary>
-    public Transform ToRelativeWorldTransform(DoubleTransform transform) => new(
+    public Transform ToRelativeWorldTransform(in DoubleTransform transform) => new(
         ToRelativeWorldPosition(transform.Position),
         transform.Rotation,
         transform.Scale);

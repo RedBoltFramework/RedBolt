@@ -247,6 +247,54 @@ public sealed class GeometryTypesTests
     }
 
     [Fact]
+    public void Transform_types_are_pod_values_with_native_defaults()
+    {
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Transform>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<DoubleTransform>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<AnimationKeyFrame>());
+        Assert.Equal(40, System.Runtime.InteropServices.Marshal.SizeOf<Transform>());
+        Assert.Equal(56, System.Runtime.InteropServices.Marshal.SizeOf<DoubleTransform>());
+        Assert.Equal(44, System.Runtime.InteropServices.Marshal.SizeOf<AnimationKeyFrame>());
+        Assert.Equal(0, System.Runtime.InteropServices.Marshal.OffsetOf<Transform>(nameof(Transform.Position)).ToInt32());
+        Assert.Equal(12, System.Runtime.InteropServices.Marshal.OffsetOf<Transform>(nameof(Transform.Rotation)).ToInt32());
+        Assert.Equal(28, System.Runtime.InteropServices.Marshal.OffsetOf<Transform>(nameof(Transform.Scale)).ToInt32());
+        Assert.Equal(0, System.Runtime.InteropServices.Marshal.OffsetOf<DoubleTransform>(nameof(DoubleTransform.Position)).ToInt32());
+        Assert.Equal(24, System.Runtime.InteropServices.Marshal.OffsetOf<DoubleTransform>(nameof(DoubleTransform.Rotation)).ToInt32());
+        Assert.Equal(40, System.Runtime.InteropServices.Marshal.OffsetOf<DoubleTransform>(nameof(DoubleTransform.Scale)).ToInt32());
+        Assert.Equal(0, System.Runtime.InteropServices.Marshal.OffsetOf<AnimationKeyFrame>(nameof(AnimationKeyFrame.Position)).ToInt32());
+        Assert.Equal(12, System.Runtime.InteropServices.Marshal.OffsetOf<AnimationKeyFrame>(nameof(AnimationKeyFrame.Rotation)).ToInt32());
+        Assert.Equal(28, System.Runtime.InteropServices.Marshal.OffsetOf<AnimationKeyFrame>(nameof(AnimationKeyFrame.Scale)).ToInt32());
+        Assert.Equal(40, System.Runtime.InteropServices.Marshal.OffsetOf<AnimationKeyFrame>(nameof(AnimationKeyFrame.Time)).ToInt32());
+
+        var transform = new Transform();
+        Assert.Equal(Vector3f.Zero, transform.Position);
+        Assert.Equal(Quaternion.IDENTITY, transform.Rotation);
+        Assert.Equal(Vector3f.One, transform.Scale);
+        var transformCopy = transform;
+        transformCopy.Position = Vector3f.One;
+        Assert.Equal(Vector3f.Zero, transform.Position);
+
+        var doubleTransform = new DoubleTransform();
+        Assert.Equal(Vector3d.Zero, doubleTransform.Position);
+        Assert.Equal(Quaternion.IDENTITY, doubleTransform.Rotation);
+        Assert.Equal(Vector3f.One, doubleTransform.Scale);
+        var doubleTransformCopy = doubleTransform;
+        doubleTransformCopy.Position = Vector3d.One;
+        Assert.Equal(Vector3d.Zero, doubleTransform.Position);
+
+        var keyFrame = new AnimationKeyFrame();
+        Assert.Equal(Vector3f.Zero, keyFrame.Position);
+        Assert.Equal(Quaternion.IDENTITY, keyFrame.Rotation);
+        Assert.Equal(Vector3f.One, keyFrame.Scale);
+        Assert.Equal(0.0f, keyFrame.Time);
+        var keyFrameCopy = keyFrame;
+        keyFrameCopy.Position = Vector3f.One;
+        keyFrameCopy.Time = 1.0f;
+        Assert.Equal(Vector3f.Zero, keyFrame.Position);
+        Assert.Equal(0.0f, keyFrame.Time);
+    }
+
+    [Fact]
     public void Double_vector_and_double_transform_helpers_work()
     {
         var lhs = new Vector3d(1.0, 2.0, 3.0);

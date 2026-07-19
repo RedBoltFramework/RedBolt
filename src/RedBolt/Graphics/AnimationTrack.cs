@@ -4,24 +4,28 @@
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 using VariantAnimationKeyFrame = RedBolt.VariantCurvePoint;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 /// <summary>Skeletal animation keyframe.</summary>
+/// <remarks>TODO: Replace inheritance with composition?</remarks>
+[StructLayout(LayoutKind.Sequential)]
 public struct AnimationKeyFrame
 {
-    /// <summary>Keyframe time.</summary>
-    public float Time;
-
     public Vector3f Position;
     public Quaternion Rotation;
     public Vector3f Scale;
+
+    /// <summary>Keyframe time.</summary>
+    public float Time;
 
     public AnimationKeyFrame()
     {
         Position = Vector3f.Zero;
         Rotation = Quaternion.IDENTITY;
         Scale = Vector3f.One;
+        Time = 0.0f;
     }
 
     public AnimationKeyFrame(float time, Vector3f position, Quaternion rotation, Vector3f scale)

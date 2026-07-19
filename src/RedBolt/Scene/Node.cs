@@ -2151,7 +2151,7 @@ public sealed class Node : Animatable
 
     public void SetTransformMatrixSilent(Matrix3x4 matrix) => SetTransformSilent(matrix.Translation, matrix.Rotation, matrix.Scale);
 
-    public void SetTransform(Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
+    public void SetTransform(in Transform transform) => SetTransform(transform.Position, transform.Rotation, transform.Scale);
 
     public void SetTransform2D(Vector2f position, float rotation) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation));
 

@@ -16,7 +16,7 @@ public sealed class AnimationTrackTests
             1.0f, new Vector3f(10.0f, 0.0f, 0.0f), new Quaternion(90.0f, Vector3f.Up), new Vector3f(2.0f, 2.0f, 2.0f)));
 
         uint frameIndex = 0;
-        var transform = Transform.IDENTITY;
+        var transform = Transform.Identity;
         track.Sample(0.5f, 1.0f, false, ref frameIndex, ref transform);
 
         Assert.Equal(5.0f, transform.Position.X);
