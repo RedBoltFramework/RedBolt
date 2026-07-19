@@ -39,17 +39,29 @@ public class DirectionAggregator : Object
         public float Value;
     }
 
+    /// <summary>Is aggregator enabled</summary>
     private bool _enabled;
+    /// <summary>Enabled subscriptions</summary>
     private DirectionAggregatorMask _enabledSubscriptions = DirectionAggregatorMask.All;
+    /// <summary>Active subscriptions bitmask</summary>
     private DirectionAggregatorMask _subscriptionFlags = DirectionAggregatorMask.None;
+    /// <summary>Cached input subsystem pointer</summary>
     private readonly Input _input;
+    /// <summary>Collection of active vertical axis inputs</summary>
     private readonly List<AxisState> _verticalAxis = new(4);
+    /// <summary>Collection of active horizontal axis inputs</summary>
     private readonly List<AxisState> _horizontalAxis = new(4);
+    /// <summary>Joystick axis adapter</summary>
     private readonly AxisAdapter _axisAdapter = new();
+    /// <summary>Joystick to ignore (SDL gyroscope virtual joystick)</summary>
     private int _ignoreJoystickId = -1;
+    /// <summary>UI element to filter touch events</summary>
     private readonly WeakReference<object> _uiElement = new(null!);
+    /// <summary>Identifier of active touch</summary>
     private int? _activeTouchId;
+    /// <summary>Origin of the touch</summary>
     private Vector2i _touchOrigin;
+    /// <summary>Touch sensitivity</summary>
     private float _touchSensitivity;
 
     /// <summary>Construct.</summary>
