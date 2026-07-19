@@ -106,6 +106,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A2. Math — depends on Container
 
+- [-] `ApproximateEqualityComparer.cs` — **REMOVED** · reason: unused C#-only generic comparer with no rbfx counterpart
+
 ## [x] A3. Core — depends on Container, Math
 
 - [~] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, retained ObjectReflection destruction, and per-instance reflection-facade teardown reconciled; final closure depends on the repository-wide Variant assignment audit
