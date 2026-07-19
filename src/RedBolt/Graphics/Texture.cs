@@ -432,6 +432,11 @@ public class Texture : ResourceWithMetadata
             cache.ReleaseResources<Material>();
     }
 
+    protected bool Create(RawTextureParams parameters)
+    {
+        return _rawTexture.CreateTexture(parameters);
+    }
+
     protected bool CreateForImage(RawTextureParams baseParams, Image? image)
     {
         if (image is null)

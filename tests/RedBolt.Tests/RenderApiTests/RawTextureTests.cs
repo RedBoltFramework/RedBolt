@@ -21,9 +21,9 @@ public sealed class RawTextureTests
             Assert.True(texture.SetData(image));
 
             var readback = new byte[16];
-            Assert.True(texture.GetData(0u, readback));
+            Assert.True(texture.GetData(0, readback));
             Assert.Equal(imageData, readback);
-            Assert.False(texture.GetData(0u, new byte[15]));
+            Assert.False(texture.GetData(0, new byte[15]));
 
             var output = texture.GetImage();
             Assert.NotNull(output);

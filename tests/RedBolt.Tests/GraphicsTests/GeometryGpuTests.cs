@@ -106,6 +106,10 @@ public sealed class GeometryGpuTests
         Assert.True(tex.GetSRGB());
         Assert.Equal(3, tex.GetMipsToSkip(MaterialQuality.Low));
         Assert.Equal(1, tex.GetMipsToSkip(MaterialQuality.Medium));
+
+        Assert.False(tex.SetSize(0, 4, TextureFormat.RGBA8));
+        Assert.Equal(0, tex.Width);
+        Assert.Equal(4, tex.Height);
     }
 
     [Fact]
@@ -114,7 +118,7 @@ public sealed class GeometryGpuTests
         var tex = new Texture2D("Textures/Smoke2D");
         tex.SetSize(4, 4, TextureFormat.RGBA8);
         var data = Enumerable.Range(0, 64).Select(v => (byte)v).ToArray();
-        Assert.True(tex.SetData(0u, 0, 0, 4, 4, data));
+        Assert.True(tex.SetData(0, 0, 0, 4, 4, data));
         Assert.Equal(4, tex.GetComponents());
         Assert.Equal(64, tex.GetDataSize(4, 4));
     }
