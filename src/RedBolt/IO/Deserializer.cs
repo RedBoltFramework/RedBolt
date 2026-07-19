@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Abstract stream for reading.</summary>
-public abstract class Deserializer : Serializer, IDisposable
+public abstract class Deserializer : Serializer
 {
     /// <summary>Construct with zero size.</summary>
     public Deserializer()
@@ -20,7 +20,7 @@ public abstract class Deserializer : Serializer, IDisposable
     }
 
     /// <summary>Destruct.</summary>
-    public virtual void Dispose()
+    public override void Dispose()
     {
     }
 

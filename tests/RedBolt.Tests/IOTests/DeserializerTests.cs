@@ -43,7 +43,7 @@ public sealed class DeserializerTests
         Assert.Equal(1, deserializer.ReadCount);
 
         vectorBuffer = new VectorBuffer();
-        vectorBuffer.WriteVector3(new Vector3d(4.0, 5.0, 6.0));
+        vectorBuffer.WriteVariantData(new Variant(new Vector3d(4.0, 5.0, 6.0)));
         deserializer = new ProbeDeserializer(vectorBuffer.GetBuffer());
 
         Assert.Equal(new Vector3d(4.0, 5.0, 6.0),
