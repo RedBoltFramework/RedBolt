@@ -1,8 +1,11 @@
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
 /// <summary>
 /// Aggregated settings of the IK solver.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct IKSettings
 {
     public uint MaxIterations;
@@ -28,27 +31,55 @@ public struct IKSettings
 /// However, node may belong to multiple independet chains.
 /// Positions and rotations are in world space.
 /// </summary>
-public sealed class IKNode
+public class IKNode : ICloneable
 {
     public Vector3f LocalOriginalPosition;
     public Quaternion LocalOriginalRotation;
+
     public Vector3f OriginalPosition;
     public Quaternion OriginalRotation;
+
     public Vector3f PreviousPosition;
     public Quaternion PreviousRotation;
+
     public Vector3f Position;
     public Quaternion Rotation;
+
     public bool PositionDirty;
     public bool RotationDirty;
 
     public IKNode()
     {
+        LocalOriginalPosition = new Vector3f();
+        LocalOriginalRotation = Quaternion.Identity;
+        OriginalPosition = new Vector3f();
+        OriginalRotation = Quaternion.Identity;
+        PreviousPosition = new Vector3f();
+        PreviousRotation = Quaternion.Identity;
+        Position = new Vector3f();
+        Rotation = Quaternion.Identity;
     }
 
     public IKNode(Vector3f position, Quaternion rotation)
     {
         SetOriginalTransform(position, rotation, Matrix3x4.Identity);
     }
+
+    public IKNode(IKNode node)
+    {
+        LocalOriginalPosition = node.LocalOriginalPosition;
+        LocalOriginalRotation = node.LocalOriginalRotation;
+        OriginalPosition = node.OriginalPosition;
+        OriginalRotation = node.OriginalRotation;
+        PreviousPosition = node.PreviousPosition;
+        PreviousRotation = node.PreviousRotation;
+        Position = node.Position;
+        Rotation = node.Rotation;
+        PositionDirty = node.PositionDirty;
+        RotationDirty = node.RotationDirty;
+    }
+
+    public object Clone() => new IKNode(this);
 
     public void SetOriginalTransform(Vector3f position, Quaternion rotation, Matrix3x4 worldTransform)
     {
@@ -98,6 +129,7 @@ public sealed class IKNode
 /// <summary>
 /// Fixed-length segment that consists of two nodes.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct IKNodeSegment
 {
     public IKNode? BeginNode;
@@ -105,87 +137,95 @@ public struct IKNodeSegment
     public float Length;
 
     /// <summary>
-    /// Calculate rotation delta from the previous frame.
+    /// Calculate rotation delta from positions, using previous positions as reference.
     /// </summary>
-    public Quaternion CalculateRotationDeltaFromPrevious()
+    public readonly Quaternion CalculateRotationDeltaFromPrevious()
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
-        var previousDirection = endNode.PreviousPosition - beginNode.PreviousPosition;
-        var currentDirection = endNode.Position - beginNode.Position;
+        var previousDirection = EndNode!.PreviousPosition - BeginNode!.PreviousPosition;
+        var currentDirection = EndNode.Position - BeginNode.Position;
         return new Quaternion(previousDirection, currentDirection);
     }
 
     /// <summary>
-    /// Calculate rotation delta from the original pose.
+    /// Calculate rotation delta from positions, using original positions as reference.
     /// </summary>
-    public Quaternion CalculateRotationDeltaFromOriginal()
+    public readonly Quaternion CalculateRotationDeltaFromOriginal()
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
-        var originalDirection = endNode.OriginalPosition - beginNode.OriginalPosition;
-        var currentDirection = endNode.Position - beginNode.Position;
+        var originalDirection = EndNode!.OriginalPosition - BeginNode!.OriginalPosition;
+        var currentDirection = EndNode.Position - BeginNode.Position;
         return new Quaternion(originalDirection, currentDirection);
     }
 
     /// <summary>
-    /// Calculate rotation of the segment according to the settings.
+    /// Calculate current rotation.
     /// </summary>
-    public Quaternion CalculateRotation(IKSettings settings)
+    public readonly Quaternion CalculateRotation(IKSettings settings)
     {
-        var beginNode = BeginNode!;
-        return settings.ContinuousRotations
-            ? CalculateRotationDeltaFromPrevious() * beginNode.PreviousRotation
-            : CalculateRotationDeltaFromOriginal() * beginNode.OriginalRotation;
+        if (settings.ContinuousRotations)
+        {
+            var delta = CalculateRotationDeltaFromPrevious();
+            return delta * BeginNode!.PreviousRotation;
+        }
+        else
+        {
+            var delta = CalculateRotationDeltaFromOriginal();
+            return delta * BeginNode!.OriginalRotation;
+        }
     }
 
     /// <summary>
-    /// Calculate current segment direction.
+    /// Calculate current direction.
     /// </summary>
-    public Vector3f CalculateDirection()
+    public readonly Vector3f CalculateDirection()
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
-        return (endNode.Position - beginNode.Position).Normalized;
+        return (EndNode!.Position - BeginNode!.Position).Normalized;
     }
 
     /// <summary>
-    /// Update segment length from the original local node positions.
+    /// Update cached length.
     /// </summary>
     public void UpdateLength()
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
-        Length = (endNode.LocalOriginalPosition - beginNode.LocalOriginalPosition).Length;
+        Length = (EndNode!.LocalOriginalPosition - BeginNode!.LocalOriginalPosition).Length;
     }
 
     /// <summary>
-    /// Update rotations in segment nodes.
+    /// Update current rotation for nodes.
     /// </summary>
     public void UpdateRotationInNodes(bool fromPrevious, bool isLastSegment)
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
-        var rotation = fromPrevious ? CalculateRotationDeltaFromPrevious() : CalculateRotationDeltaFromOriginal();
-        beginNode.Rotation = rotation * (fromPrevious ? beginNode.PreviousRotation : beginNode.OriginalRotation);
-        if (isLastSegment)
-            endNode.Rotation = rotation * (fromPrevious ? endNode.PreviousRotation : endNode.OriginalRotation);
-        beginNode.MarkRotationDirty();
-        endNode.MarkRotationDirty();
+        if (fromPrevious)
+        {
+            var delta = CalculateRotationDeltaFromPrevious();
+            BeginNode!.Rotation = delta * BeginNode.PreviousRotation;
+
+            if (isLastSegment)
+                EndNode!.Rotation = delta * EndNode.PreviousRotation;
+        }
+        else
+        {
+            var delta = CalculateRotationDeltaFromOriginal();
+            BeginNode!.Rotation = delta * BeginNode.OriginalRotation;
+
+            if (isLastSegment)
+                EndNode!.Rotation = delta * EndNode.OriginalRotation;
+        }
+
+        BeginNode!.MarkRotationDirty();
+        EndNode!.MarkRotationDirty();
     }
 
     /// <summary>
-    /// Twist segment nodes around the current segment direction.
+    /// Twist the segment around its direction.
     /// </summary>
     public void Twist(float angle, bool isLastSegment)
     {
-        var beginNode = BeginNode!;
-        var endNode = EndNode!;
         var rotation = new Quaternion(angle, CalculateDirection());
-        beginNode.Rotation = rotation * beginNode.Rotation;
+        BeginNode!.Rotation = rotation * BeginNode.Rotation;
         if (isLastSegment)
-            endNode.Rotation = rotation * endNode.Rotation;
-        beginNode.MarkRotationDirty();
-        endNode.MarkRotationDirty();
+            EndNode!.Rotation = rotation * EndNode.Rotation;
+
+        BeginNode.MarkRotationDirty();
+        EndNode!.MarkRotationDirty();
     }
 }
