@@ -55,6 +55,44 @@ public class VectorParityTests
     }
 
     [Fact]
+    public void RealVector3HasNativePodShapeStorageDefaultsCopyHashAndConversions()
+    {
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Vector3f>());
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Vector3d>());
+        Assert.Equal(12, Unsafe.SizeOf<Vector3f>());
+        Assert.Equal(24, Unsafe.SizeOf<Vector3d>());
+
+        var value = new Vector3f([1.0f, 2.0f, 3.0f]);
+        var copy = value;
+        var data = value.Data();
+        value.X = 4.0f;
+
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), copy);
+        Assert.Equal(4.0f, data[0]);
+        Assert.Equal(2.0f, data[1]);
+        Assert.Equal(3.0f, data[2]);
+        value.MutableData()[2] = 5.0f;
+        Assert.Equal(new Vector3f(4.0f, 2.0f, 5.0f), value);
+        Assert.Equal(new Vector3f(), Vector3f.Zero);
+        Assert.Equal(new Vector3f(-1.0f, 0.0f, 0.0f), Vector3f.Left);
+        Assert.Equal(new Vector3f(1.0f, 1.0f, 1.0f), Vector3f.One);
+        Assert.Equal(3707772654u, new Vector3f(1.0f, 2.0f, 3.0f).ToHash());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Vector3f.VectorAbs(new Vector3f(-1.0f, -2.0f, -3.0f)));
+        Assert.Equal(new Vector2f(1.0f, 2.0f), new Vector3d(1.0, 2.0, 3.0).ToVector2());
+        Assert.Equal(new Vector2i(1, 2), new Vector3f(1.9f, 2.9f, 3.9f).ToIntVector2());
+        Assert.Equal(new Vector3i(1, 2, 3), new Vector3f(1.9f, 2.9f, 3.9f).ToIntVector3());
+
+        var axis = new Vector3f(0.0f, 0.0f, 1.0f);
+        var vectorAlpha = new Vector3f(1.0f, 0.0f, 0.0f);
+        var vectorBeta = new Vector3f(0.0f, 1.0f, 0.0f);
+        var angleAlphaToBeta = vectorAlpha.SignedAngle(vectorBeta, axis);
+        var angleBetaToAlpha = vectorBeta.SignedAngle(vectorAlpha, axis);
+        Assert.Equal(angleAlphaToBeta, -angleBetaToAlpha);
+        Assert.True((new Quaternion(angleAlphaToBeta, axis) * vectorAlpha).ApproximatelyEquivalent(vectorBeta, 0.00001f));
+        Assert.True((new Quaternion(angleBetaToAlpha, axis) * vectorBeta).ApproximatelyEquivalent(vectorAlpha, 0.00001f));
+    }
+
+    [Fact]
     public void VectorFreeFunctionsMatchRbfxBehavior()
     {
         Assert.Equal(new Vector2f(2.0f, 3.0f), Vector2f.Sqrt(new Vector2f(4.0f, 9.0f)));

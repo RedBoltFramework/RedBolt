@@ -378,9 +378,9 @@ public struct ModelVertexMorph : IEquatable<ModelVertexMorph>
     public Vector3f NormalDelta;
     public Vector3f TangentDelta;
 
-    public bool HasPosition() => PositionDelta != Vector3f.ZERO;
-    public bool HasNormal() => NormalDelta != Vector3f.ZERO;
-    public bool HasTangent() => TangentDelta != Vector3f.ZERO;
+    public bool HasPosition() => PositionDelta != Vector3f.Zero;
+    public bool HasNormal() => NormalDelta != Vector3f.Zero;
+    public bool HasTangent() => TangentDelta != Vector3f.Zero;
     public bool IsEmpty() => !HasPosition() && !HasNormal() && !HasTangent();
 
     public bool Equals(ModelVertexMorph rhs) => PositionDelta.ApproximatelyEquivalent(rhs.PositionDelta)
@@ -463,8 +463,8 @@ public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
     public Vector3f CalculateCenter()
     {
         if (Vertices.Count == 0)
-            return Vector3f.ZERO;
-        var center = Vector3f.ZERO;
+            return Vector3f.Zero;
+        var center = Vector3f.Zero;
         foreach (var vertex in Vertices)
             center += vertex.Position.ToVector3();
         return center / Vertices.Count;
@@ -511,8 +511,8 @@ public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
             for (var i = 0; i < morphs.Count; ++i)
             {
                 var morph = morphs[i];
-                morph.NormalDelta = Vector3f.ZERO;
-                morph.TangentDelta = Vector3f.ZERO;
+                morph.NormalDelta = Vector3f.Zero;
+                morph.TangentDelta = Vector3f.Zero;
                 morphs[i] = morph;
             }
         }
@@ -748,9 +748,9 @@ public struct BoneView : IEquatable<BoneView>
     {
         Name = string.Empty;
         ParentIndex = uint.MaxValue;
-        Position = Vector3f.ZERO;
+        Position = Vector3f.Zero;
         Rotation = Quaternion.IDENTITY;
-        Scale = Vector3f.ONE;
+        Scale = Vector3f.One;
         OffsetMatrix = Matrix3x4.IDENTITY;
         ShapeFlags = BoneCollisionShape.None;
         BoundingSphereRadius = 0;
@@ -1253,7 +1253,7 @@ public sealed class ModelView : Object
             }
         }
         if (!result.Defined)
-            result.Merge(Vector3f.ZERO);
+            result.Merge(Vector3f.Zero);
         return result;
     }
 

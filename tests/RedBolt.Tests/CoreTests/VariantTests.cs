@@ -146,7 +146,7 @@ public sealed class VariantTests
         Assert.Equal(1ul, new Variant(true).GetUInt64());
         Assert.True(new Variant(1.0f).GetBool());
         Assert.Equal(0.0f, new Variant("value").GetFloat());
-        Assert.Equal(Vector3f.ZERO, new Variant("value").GetVector3());
+        Assert.Equal(Vector3f.Zero, new Variant("value").GetVector3());
         Assert.Equal(Quaternion.IDENTITY, new Variant("value").GetQuaternion());
         Assert.Equal(Color.White, new Variant("value").GetColor());
         Assert.Equal(new Color(1.0f, 2.0f, 3.0f, 4.0f), new Variant(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f)).GetColor());
@@ -191,7 +191,7 @@ public sealed class VariantTests
         Assert.Equal(0.5f, ParseVariant(VariantType.Float, "0.5").GetFloat());
         Assert.Equal(new byte[] { 1, 2, 3 }, ParseVariant(VariantType.Buffer, "1 2 3").GetBuffer());
         Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Vector3, "1 2 3").GetVector3());
-        Assert.Equal(Vector3f.ZERO, ParseVariant(VariantType.Vector3, "1 2").GetVector3());
+        Assert.Equal(Vector3f.Zero, ParseVariant(VariantType.Vector3, "1 2").GetVector3());
         Assert.Equal(new Color(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Color, "1 2 3").GetColor());
         Assert.Equal(new Quaternion(1.0f, 2.0f, 3.0f), ParseVariant(VariantType.Quaternion, "1 2 3").GetQuaternion());
         Assert.Equal(new IntRect(1, 2, 3, 4), ParseVariant(VariantType.IntRect, "1 2 3 4").GetIntRect());

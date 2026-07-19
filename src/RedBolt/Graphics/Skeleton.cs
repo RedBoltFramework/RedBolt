@@ -26,9 +26,9 @@ public sealed class Bone : ICloneable
     public Bone()
     {
         ParentIndex = 0;
-        InitialPosition = Vector3f.ZERO;
+        InitialPosition = Vector3f.Zero;
         InitialRotation = Quaternion.IDENTITY;
-        InitialScale = Vector3f.ONE;
+        InitialScale = Vector3f.One;
         Animated = true;
         Radius = 0.0f;
         CollisionMask = BoneCollisionShape.None;

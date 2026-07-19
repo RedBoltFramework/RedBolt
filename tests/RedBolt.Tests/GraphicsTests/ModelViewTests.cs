@@ -243,7 +243,7 @@ public sealed class ModelViewTests
             ParentIndex = uint.MaxValue,
             Position = new Vector3f(1, 2, 3),
             Rotation = Quaternion.IDENTITY,
-            Scale = Vector3f.ONE,
+            Scale = Vector3f.One,
             OffsetMatrix = Matrix3x4.IDENTITY,
             ShapeFlags = BoneCollisionShape.Sphere,
             BoundingSphereRadius = 2.0f

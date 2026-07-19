@@ -148,7 +148,7 @@ public abstract class Deserializer : Serializer
             }
 
             default:
-                return Vector3d.ZERO;
+                return Vector3d.Zero;
         }
     }
 
