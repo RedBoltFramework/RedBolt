@@ -14,6 +14,26 @@ public sealed class DrawCommandQueueTests
     }
 
     [Fact]
+    public void Draw_command_description_is_value_type_with_inline_copy_semantics()
+    {
+        Assert.True(typeof(DrawCommandDescription).IsValueType);
+
+        var vertexBuffer = new RawBuffer(new RawBufferParams(BufferType.Vertex, 32u, 16u, BufferFlag.Shadowed));
+        var source = new DrawCommandDescription();
+        source.VertexBuffers[0] = vertexBuffer;
+        source.ConstantBuffers[0] = new ConstantBufferCollectionRef { Index = 1, Offset = 2, Size = 3 };
+
+        var copy = source;
+        source.VertexBuffers[0] = null;
+        source.ConstantBuffers[0] = default;
+
+        Assert.Same(vertexBuffer, copy.VertexBuffers[0]);
+        Assert.Equal(1, copy.ConstantBuffers[0].Index);
+        Assert.Equal(2, copy.ConstantBuffers[0].Offset);
+        Assert.Equal(3, copy.ConstantBuffers[0].Size);
+    }
+
+    [Fact]
     public void Draw_command_queue_records_graphics_commands_as_snapshots()
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
@@ -30,13 +50,13 @@ public sealed class DrawCommandQueueTests
         queue.SetScissorRect(scissor0);
         queue.SetVertexBuffers([vertexBuffer0, vertexBuffer1]);
         queue.SetIndexBuffer(indexBuffer);
-        queue.DrawIndexedInstanced(2u, 6u, 5u, 7u, 3u);
+        queue.DrawIndexedInstanced(2, 6, 5, 7, 3);
 
         queue.SetStencilRef(9u);
         queue.SetScissorRect(scissor1);
         queue.SetVertexBuffers([vertexBuffer1]);
         queue.SetIndexBuffer(null);
-        queue.Draw(4u, 8u);
+        queue.Draw(4, 8);
 
         var commands = GetPrivateField<List<DrawCommandDescription>>(queue, "_drawCommands");
         var scissorRects = GetPrivateField<List<IntRect>>(queue, "_scissorRects");
@@ -45,28 +65,28 @@ public sealed class DrawCommandQueueTests
         Assert.Equal([IntRect.Zero, scissor0, scissor1], scissorRects);
 
         Assert.Same(pipelineState, commands[0].PipelineState);
-        Assert.Equal<uint>(1u, commands[0].ScissorRect);
+        Assert.Equal(1, commands[0].ScissorRect);
         Assert.Equal<uint>(17u, commands[0].StencilRef);
         Assert.Same(indexBuffer, commands[0].IndexBuffer);
         Assert.Same(vertexBuffer0, commands[0].VertexBuffers[0]);
         Assert.Same(vertexBuffer1, commands[0].VertexBuffers[1]);
-        Assert.Equal<uint>(2u, commands[0].IndexStart);
-        Assert.Equal<uint>(6u, commands[0].IndexCount);
-        Assert.Equal<uint>(5u, commands[0].BaseVertexIndex);
-        Assert.Equal<uint>(7u, commands[0].InstanceStart);
-        Assert.Equal<uint>(3u, commands[0].InstanceCount);
+        Assert.Equal(2, commands[0].IndexStart);
+        Assert.Equal(6, commands[0].IndexCount);
+        Assert.Equal(5, commands[0].BaseVertexIndex);
+        Assert.Equal(7, commands[0].InstanceStart);
+        Assert.Equal(3, commands[0].InstanceCount);
 
         Assert.Same(pipelineState, commands[1].PipelineState);
-        Assert.Equal<uint>(2u, commands[1].ScissorRect);
+        Assert.Equal(2, commands[1].ScissorRect);
         Assert.Equal<uint>(9u, commands[1].StencilRef);
         Assert.Null(commands[1].IndexBuffer);
         Assert.Same(vertexBuffer1, commands[1].VertexBuffers[0]);
         Assert.Null(commands[1].VertexBuffers[1]);
-        Assert.Equal<uint>(4u, commands[1].IndexStart);
-        Assert.Equal<uint>(8u, commands[1].IndexCount);
-        Assert.Equal<uint>(0u, commands[1].BaseVertexIndex);
-        Assert.Equal<uint>(0u, commands[1].InstanceStart);
-        Assert.Equal<uint>(0u, commands[1].InstanceCount);
+        Assert.Equal(4, commands[1].IndexStart);
+        Assert.Equal(8, commands[1].IndexCount);
+        Assert.Equal(0, commands[1].BaseVertexIndex);
+        Assert.Equal(0, commands[1].InstanceStart);
+        Assert.Equal(0, commands[1].InstanceCount);
     }
 
     [Fact]
@@ -80,7 +100,7 @@ public sealed class DrawCommandQueueTests
         queue.SetClipPlaneMask(0x5Au);
         queue.SetPipelineState(graphicsState);
         queue.SetIndexBuffer(null);
-        queue.DrawInstanced(2u, 5u, 7u, 3u);
+        queue.DrawInstanced(2, 5, 7, 3);
         queue.SetPipelineState(computeState);
         queue.Dispatch(new Vector3i(4, 5, 6));
 
@@ -103,15 +123,15 @@ public sealed class DrawCommandQueueTests
         var indexBuffer = new RawBuffer(new RawBufferParams(BufferType.Index, 12u, 2u, BufferFlag.Shadowed));
 
         queue.Reset();
-        Assert.Throws<InvalidOperationException>(() => queue.Draw(0u, 3u));
+        Assert.Throws<InvalidOperationException>(() => queue.Draw(0, 3));
 
         queue.SetPipelineState(graphicsState);
         queue.SetIndexBuffer(indexBuffer);
-        Assert.Throws<InvalidOperationException>(() => queue.Draw(0u, 3u));
+        Assert.Throws<InvalidOperationException>(() => queue.Draw(0, 3));
 
         queue.SetPipelineState(computeState);
         queue.SetIndexBuffer(null);
-        Assert.Throws<InvalidOperationException>(() => queue.DrawIndexed(0u, 3u));
+        Assert.Throws<InvalidOperationException>(() => queue.DrawIndexed(0, 3));
     }
 
     [Fact]

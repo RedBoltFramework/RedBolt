@@ -11,7 +11,7 @@ public class DrawCommandQueue : Object
     /// <summary>Draw operations.</summary>
     private readonly List<DrawCommandDescription> _drawCommands = [];
     /// <summary>Current draw operation.</summary>
-    private DrawCommandDescription _currentDrawCommand = new();
+    private DrawCommandDescription _currentDrawCommand;
     /// <summary>Whether to enable clip plane.</summary>
     private uint _clipPlaneMask;
     private readonly ConstantBufferCollection _constantBufferCollection = new();
@@ -43,7 +43,7 @@ public class DrawCommandQueue : Object
     public void Reset()
     {
         _clipPlaneMask = 0;
-        _currentDrawCommand = new DrawCommandDescription();
+        _currentDrawCommand = default;
         _currentShaderProgramReflection = null;
         _currentShaderParameterGroup = null;
         _currentConstantBufferData = default;
@@ -135,7 +135,7 @@ public class DrawCommandQueue : Object
         var reflection = _currentShaderProgramReflection?.GetShaderResource(name);
         if (reflection?.Variable is null) return;
         _shaderResources.Add(new(reflection.Variable, null, null, null, textureView));
-        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = checked((uint)_shaderResources.Count) };
+        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
     }
 
     public void AddShaderResource(StringHash name, RawTexture texture, RawTexture? backupTexture = null)
@@ -149,13 +149,13 @@ public class DrawCommandQueue : Object
         var reflection = _currentShaderProgramReflection?.GetShaderResource(name);
         if (reflection?.Variable is null) return;
         _shaderResources.Add(new(reflection.Variable, type, texture, backupTexture, null));
-        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = checked((uint)_shaderResources.Count) };
+        _currentShaderResourceGroup = _currentShaderResourceGroup with { Second = _shaderResources.Count };
     }
 
     public void CommitShaderResources()
     {
         _currentDrawCommand.ShaderResources = _currentShaderResourceGroup;
-        var end = checked((uint)_shaderResources.Count);
+        var end = _shaderResources.Count;
         _currentShaderResourceGroup = new(end, end);
     }
 
@@ -168,13 +168,13 @@ public class DrawCommandQueue : Object
         if (view is null)
             return;
         _unorderedAccessViews.Add(new(reflection.Variable, texture, view));
-        _currentUnorderedAccessViewGroup = _currentUnorderedAccessViewGroup with { Second = checked((uint)_unorderedAccessViews.Count) };
+        _currentUnorderedAccessViewGroup = _currentUnorderedAccessViewGroup with { Second = _unorderedAccessViews.Count };
     }
 
     public void CommitUnorderedAccessViews()
     {
         _currentDrawCommand.UnorderedAccessViews = _currentUnorderedAccessViewGroup;
-        var end = checked((uint)_unorderedAccessViews.Count);
+        var end = _unorderedAccessViews.Count;
         _currentUnorderedAccessViewGroup = new(end, end);
     }
 
@@ -190,7 +190,7 @@ public class DrawCommandQueue : Object
         if (_scissorRects.Count > 1 && _scissorRects[^1] == scissorRect)
             return;
 
-        _currentDrawCommand.ScissorRect = checked((uint)_scissorRects.Count);
+        _currentDrawCommand.ScissorRect = _scissorRects.Count;
         _scissorRects.Add(scissorRect);
     }
 
@@ -200,8 +200,8 @@ public class DrawCommandQueue : Object
         if (buffers.Length > RenderApiLimits.MaxVertexStreams)
             throw new ArgumentOutOfRangeException(nameof(buffers));
 
-        Array.Clear(_currentDrawCommand.VertexBuffers, 0, _currentDrawCommand.VertexBuffers.Length);
-        buffers.CopyTo(_currentDrawCommand.VertexBuffers);
+        for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
+            _currentDrawCommand.VertexBuffers[i] = i < buffers.Length ? buffers[i] : null;
     }
 
     /// <summary>Set index buffer.</summary>
@@ -211,7 +211,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw non-indexed geometry.</summary>
-    public void Draw(uint vertexStart, uint vertexCount)
+    public void Draw(int vertexStart, int vertexCount)
     {
         ValidateGraphicsDraw(indexed: false, vertexCount);
         _currentDrawCommand.IndexStart = vertexStart;
@@ -223,7 +223,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw indexed geometry.</summary>
-    public void DrawIndexed(uint indexStart, uint indexCount)
+    public void DrawIndexed(int indexStart, int indexCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
         _currentDrawCommand.IndexStart = indexStart;
@@ -235,7 +235,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw indexed geometry with vertex index offset.</summary>
-    public void DrawIndexed(uint indexStart, uint indexCount, uint baseVertexIndex)
+    public void DrawIndexed(int indexStart, int indexCount, int baseVertexIndex)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
         _currentDrawCommand.IndexStart = indexStart;
@@ -247,7 +247,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw instanced geometry.</summary>
-    public void DrawInstanced(uint vertexStart, uint vertexCount, uint instanceStart, uint instanceCount)
+    public void DrawInstanced(int vertexStart, int vertexCount, int instanceStart, int instanceCount)
     {
         ValidateGraphicsDraw(indexed: false, vertexCount);
         _currentDrawCommand.IndexStart = vertexStart;
@@ -259,7 +259,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw indexed, instanced geometry.</summary>
-    public void DrawIndexedInstanced(uint indexStart, uint indexCount, uint instanceStart, uint instanceCount)
+    public void DrawIndexedInstanced(int indexStart, int indexCount, int instanceStart, int instanceCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
         _currentDrawCommand.IndexStart = indexStart;
@@ -271,7 +271,7 @@ public class DrawCommandQueue : Object
     }
 
     /// <summary>Enqueue draw indexed, instanced geometry with vertex index offset.</summary>
-    public void DrawIndexedInstanced(uint indexStart, uint indexCount, uint baseVertexIndex, uint instanceStart, uint instanceCount)
+    public void DrawIndexedInstanced(int indexStart, int indexCount, int baseVertexIndex, int instanceStart, int instanceCount)
     {
         ValidateGraphicsDraw(indexed: true, indexCount);
         _currentDrawCommand.IndexStart = indexStart;
@@ -323,7 +323,7 @@ public class DrawCommandQueue : Object
         Array.Clear(_currentVertexBuffers);
         ShaderResourceRange currentShaderResources = default;
         ShaderResourceRange currentUnorderedAccessViews = default;
-        var currentScissorRect = uint.MaxValue;
+        var currentScissorRect = int.MaxValue;
         uint? currentStencilRef = null;
 
         foreach (var command in _drawCommands)
@@ -332,7 +332,7 @@ public class DrawCommandQueue : Object
             var reflection = pipelineState?.GetReflection();
             if (pipelineState is null || !pipelineState.IsValid || reflection is null)
                 continue;
-            if (command.BaseVertexIndex != 0u && !caps.DrawBaseVertex)
+            if (command.BaseVertexIndex != 0 && !caps.DrawBaseVertex)
                 continue;
 
             if (command.PipelineState != currentPipelineState)
@@ -371,7 +371,8 @@ public class DrawCommandQueue : Object
                 || (command.InstanceCount != 0 && !caps.DrawBaseInstance))
             {
                 SetVertexBuffers(deviceContext, command, caps.DrawBaseInstance);
-                Array.Copy(command.VertexBuffers, _currentVertexBuffers, _currentVertexBuffers.Length);
+                for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
+                    _currentVertexBuffers[i] = command.VertexBuffers[i];
             }
 
             if (currentShaderResources != command.ShaderResources)
@@ -393,16 +394,16 @@ public class DrawCommandQueue : Object
             switch (currentPipelineState!.GetPipelineType())
             {
                 case PipelineStateType.Graphics:
-                    var instances = Math.Max(1u, command.InstanceCount);
+                    var instances = Math.Max(1, command.InstanceCount);
                     if (currentIndexBuffer is not null)
                     {
                         using var draw = new DrawIndexedAttribs
                         {
-                            NumIndices = command.IndexCount,
-                            NumInstances = instances,
-                            FirstIndexLocation = command.IndexStart,
-                            FirstInstanceLocation = caps.DrawBaseInstance ? command.InstanceStart : 0u,
-                            BaseVertex = command.BaseVertexIndex,
+                            NumIndices = checked((uint)command.IndexCount),
+                            NumInstances = checked((uint)instances),
+                            FirstIndexLocation = checked((uint)command.IndexStart),
+                            FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)command.InstanceStart) : 0u,
+                            BaseVertex = checked((uint)command.BaseVertexIndex),
                             Flags = DrawFlags.DrawFlagVerifyAll,
                             IndexType = currentIndexBuffer.GetStride() == 2u
                                 ? RedBolt.Bindings.Diligent.ValueType.VtUint16
@@ -414,16 +415,16 @@ public class DrawCommandQueue : Object
                     {
                         using var draw = new DrawAttribs
                         {
-                            NumVertices = command.IndexCount,
-                            NumInstances = instances,
-                            StartVertexLocation = command.IndexStart,
-                            FirstInstanceLocation = caps.DrawBaseInstance ? command.InstanceStart : 0u,
+                            NumVertices = checked((uint)command.IndexCount),
+                            NumInstances = checked((uint)instances),
+                            StartVertexLocation = checked((uint)command.IndexStart),
+                            FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)command.InstanceStart) : 0u,
                             Flags = DrawFlags.DrawFlagVerifyAll
                         };
                         deviceContext.Draw(draw);
                     }
                     stats.NumDraws += 1u;
-                    stats.NumPrimitives += command.IndexCount * instances;
+                    stats.NumPrimitives += checked((uint)(command.IndexCount * instances));
                     break;
 
                 case PipelineStateType.Compute:
@@ -458,7 +459,7 @@ public class DrawCommandQueue : Object
             _nativeVertexBuffers[i] = vertexBuffer?.GetHandle();
             _nativeVertexBufferOffsets[i] = !drawBaseInstance && vertexBuffer is not null
                 && (vertexBuffer.GetFlags() & BufferFlag.PerInstanceData) != 0
-                    ? command.InstanceStart * vertexBuffer.GetStride()
+                    ? checked((ulong)command.InstanceStart * vertexBuffer.GetStride())
                     : 0u;
         }
         deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _nativeVertexBuffers,
@@ -468,7 +469,7 @@ public class DrawCommandQueue : Object
 
     private void SetScissorRect(IDeviceContext deviceContext, DrawCommandDescription command)
     {
-        var source = _scissorRects[(int)command.ScissorRect];
+        var source = _scissorRects[command.ScissorRect];
         using var rect = new RedBolt.Bindings.Diligent.Rect
         {
             Left = source.Left,
@@ -479,9 +480,9 @@ public class DrawCommandQueue : Object
         deviceContext.SetScissorRects(1u, rect, 0u, 0u);
     }
 
-    private static bool VertexBuffersEqual(RawBuffer?[] left, RawBuffer?[] right)
+    private static bool VertexBuffersEqual(in RawVertexBufferArray left, RawBuffer?[] right)
     {
-        for (var i = 0; i < left.Length; ++i)
+        for (var i = 0; i < RenderApiLimits.MaxVertexStreams; ++i)
         {
             if (left[i] != right[i])
                 return false;
@@ -490,7 +491,7 @@ public class DrawCommandQueue : Object
         return true;
     }
 
-    private void ValidateGraphicsDraw(bool indexed, uint count)
+    private void ValidateGraphicsDraw(bool indexed, int count)
     {
         var pipelineState = _currentDrawCommand.PipelineState ?? throw new InvalidOperationException("Pipeline state must be set before drawing.");
         if (pipelineState.GetPipelineType() != PipelineStateType.Graphics)
@@ -566,8 +567,8 @@ public class DrawCommandQueue : Object
     {
         for (var i = range.First; i < range.Second; ++i)
         {
-            var resource = _shaderResources[(int)i];
-            var view = _shaderResourceViews[(int)i];
+            var resource = _shaderResources[i];
+            var view = _shaderResourceViews[i];
             if (view is not null) resource.Variable.Set(view);
         }
     }
@@ -576,7 +577,7 @@ public class DrawCommandQueue : Object
     {
         for (var i = range.First; i < range.Second; ++i)
         {
-            var resource = _unorderedAccessViews[(int)i];
+            var resource = _unorderedAccessViews[i];
             if (resource.Texture.GetResolveDirty()) resource.Texture.Resolve();
             if (resource.Texture.GetLevelsDirty()) resource.Texture.GenerateLevels();
             resource.Variable.Set(resource.View);
@@ -614,6 +615,6 @@ public class DrawCommandQueue : Object
 
     private void EnqueueCurrentCommand()
     {
-        _drawCommands.Add(new DrawCommandDescription(_currentDrawCommand));
+        _drawCommands.Add(_currentDrawCommand);
     }
 }

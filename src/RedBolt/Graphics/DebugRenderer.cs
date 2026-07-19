@@ -670,7 +670,7 @@ public class DebugRenderer : Component
 
             drawQueue.SetPipelineState(pipelineState);
             SetDefaultConstants();
-            drawQueue.Draw(startVertex, vertexCount);
+            drawQueue.Draw(checked((int)startVertex), checked((int)vertexCount));
         }
 
         _vertexBuffers[0] = _vertexBuffer.GetVertexBuffer().GetRawBuffer();

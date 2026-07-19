@@ -1,63 +1,53 @@
 namespace RedBolt;
 
+using System.Runtime.CompilerServices;
+
 /// <summary>Shader resource group, range in array.</summary>
-public readonly record struct ShaderResourceRange(uint First, uint Second);
+public record struct ShaderResourceRange(int First, int Second);
+
+[InlineArray((int)RenderApiLimits.MaxVertexStreams)]
+public struct RawVertexBufferArray
+{
+    private RawBuffer? _element0;
+}
+
+[InlineArray((int)RenderApiLimits.MaxShaderParameterGroups)]
+public struct ConstantBufferRefArray
+{
+    private ConstantBufferCollectionRef _element0;
+}
 
 /// <summary>Description of draw command.</summary>
-public sealed class DrawCommandDescription
+public struct DrawCommandDescription
 {
-    public PipelineState? PipelineState { get; set; }
+    public PipelineState? PipelineState;
 
-    public RawBuffer?[] VertexBuffers { get; } = new RawBuffer?[RenderApiLimits.MaxVertexStreams];
+    public RawVertexBufferArray VertexBuffers;
 
-    public RawBuffer? IndexBuffer { get; set; }
+    public RawBuffer? IndexBuffer;
 
-    public ConstantBufferCollectionRef[] ConstantBuffers { get; } = new ConstantBufferCollectionRef[RenderApiLimits.MaxShaderParameterGroups];
+    public ConstantBufferRefArray ConstantBuffers;
 
-    public ShaderResourceRange ShaderResources { get; set; }
+    public ShaderResourceRange ShaderResources;
 
-    public ShaderResourceRange UnorderedAccessViews { get; set; }
+    public ShaderResourceRange UnorderedAccessViews;
 
     /// <summary>Index of scissor rectangle. 0 if disabled.</summary>
-    public uint ScissorRect { get; set; }
+    public int ScissorRect;
 
     /// <summary>Stencil reference value.</summary>
-    public uint StencilRef { get; set; }
+    public uint StencilRef;
 
-    public uint IndexStart { get; set; }
+    /// <summary>Draw call parameters.</summary>
+    public int IndexStart;
 
-    public uint IndexCount { get; set; }
+    public int IndexCount;
 
-    public uint BaseVertexIndex { get; set; }
+    public int BaseVertexIndex;
 
-    public uint InstanceStart { get; set; }
+    public int InstanceStart;
 
-    public uint InstanceCount { get; set; }
+    public int InstanceCount;
 
-    public Vector3i NumGroups { get; set; }
-
-    public DrawCommandDescription()
-    {
-    }
-
-    public DrawCommandDescription(DrawCommandDescription? other)
-    {
-        if (other is null)
-            return;
-
-        PipelineState = other.PipelineState;
-        Array.Copy(other.VertexBuffers, VertexBuffers, other.VertexBuffers.Length);
-        IndexBuffer = other.IndexBuffer;
-        Array.Copy(other.ConstantBuffers, ConstantBuffers, other.ConstantBuffers.Length);
-        ShaderResources = other.ShaderResources;
-        UnorderedAccessViews = other.UnorderedAccessViews;
-        ScissorRect = other.ScissorRect;
-        StencilRef = other.StencilRef;
-        IndexStart = other.IndexStart;
-        IndexCount = other.IndexCount;
-        BaseVertexIndex = other.BaseVertexIndex;
-        InstanceStart = other.InstanceStart;
-        InstanceCount = other.InstanceCount;
-        NumGroups = other.NumGroups;
-    }
+    public Vector3i NumGroups;
 }

@@ -723,16 +723,20 @@ internal sealed class DrawCommandCompositor
             if (_ctx.InstanceMultiplier == 1)
             {
                 if (hasIndexBuffer)
-                    drawQueue.DrawIndexed(_current.Geometry.GetIndexStart(), _current.Geometry.GetIndexCount());
+                    drawQueue.DrawIndexed(checked((int)_current.Geometry.GetIndexStart()),
+                        checked((int)_current.Geometry.GetIndexCount()));
                 else
-                    drawQueue.Draw(_current.Geometry.GetVertexStart(), _current.Geometry.GetVertexCount());
+                    drawQueue.Draw(checked((int)_current.Geometry.GetVertexStart()),
+                        checked((int)_current.Geometry.GetVertexCount()));
             }
             else
             {
                 if (hasIndexBuffer)
-                    drawQueue.DrawIndexedInstanced(_current.Geometry.GetIndexStart(), _current.Geometry.GetIndexCount(), 0, _ctx.InstanceMultiplier);
+                    drawQueue.DrawIndexedInstanced(checked((int)_current.Geometry.GetIndexStart()),
+                        checked((int)_current.Geometry.GetIndexCount()), 0, checked((int)_ctx.InstanceMultiplier));
                 else
-                    drawQueue.DrawInstanced(_current.Geometry.GetVertexStart(), _current.Geometry.GetVertexCount(), 0, _ctx.InstanceMultiplier);
+                    drawQueue.DrawInstanced(checked((int)_current.Geometry.GetVertexStart()),
+                        checked((int)_current.Geometry.GetVertexCount()), 0, checked((int)_ctx.InstanceMultiplier));
             }
         }
     }
@@ -751,8 +755,9 @@ internal sealed class DrawCommandCompositor
         }
 
         GraphicsUtils.SetBuffersFromGeometry(_ctx.DrawQueue, geometry, _instancingBuffer?.GetVertexBuffer());
-        _ctx.DrawQueue.DrawIndexedInstanced(geometry.GetIndexStart(), geometry.GetIndexCount(),
-            _instancingGroup.Start, _instancingGroup.Count * _ctx.InstanceMultiplier);
+        _ctx.DrawQueue.DrawIndexedInstanced(checked((int)geometry.GetIndexStart()),
+            checked((int)geometry.GetIndexCount()), checked((int)_instancingGroup.Start),
+            checked((int)(_instancingGroup.Count * _ctx.InstanceMultiplier)));
         _instancingGroup.Count = 0;
     }
 

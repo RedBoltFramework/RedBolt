@@ -259,7 +259,7 @@ public sealed class RenderBufferManager
         _drawQueue.CommitShaderResources();
 
         GraphicsUtils.SetBuffersFromGeometry(_drawQueue, quadGeometry);
-        _drawQueue.DrawIndexed(quadGeometry.GetIndexStart(), quadGeometry.GetIndexCount());
+        _drawQueue.DrawIndexed(checked((int)quadGeometry.GetIndexStart()), checked((int)quadGeometry.GetIndexCount()));
 
         _renderContext.Execute(_drawQueue);
 
