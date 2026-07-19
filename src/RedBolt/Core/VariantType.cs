@@ -134,9 +134,9 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Int64 => new Variant(0L),
             VariantType.Bool => new Variant(false),
             VariantType.Float => new Variant(0.0f),
-            VariantType.Vector2 => new Variant(Vector2f.ZERO),
+            VariantType.Vector2 => new Variant(Vector2f.Zero),
             VariantType.Vector3 => new Variant(Vector3f.ZERO),
-            VariantType.DoubleVector2 => new Variant(Vector2d.ZERO),
+            VariantType.DoubleVector2 => new Variant(Vector2d.Zero),
             VariantType.DoubleVector3 => new Variant(Vector3d.ZERO),
             VariantType.Vector4 => new Variant(Vector4f.ZERO),
             VariantType.Quaternion => new Variant(Quaternion.IDENTITY),
@@ -510,9 +510,9 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         };
     }
 
-    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _vector2Value : Vector2f.ZERO;
+    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _vector2Value : Vector2f.Zero;
 
-    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _doubleVector2Value : Vector2d.ZERO;
+    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _doubleVector2Value : Vector2d.Zero;
 
     public Vector3f GetVector3() => _type == VariantType.Vector3 ? _vector3Value : Vector3f.ZERO;
 
@@ -803,8 +803,8 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Int64 => _int64Value == 0,
             VariantType.Float => _floatValue == 0.0f,
             VariantType.Double => _doubleValue == 0.0,
-            VariantType.Vector2 => _vector2Value == Vector2f.ZERO,
-            VariantType.DoubleVector2 => _doubleVector2Value == Vector2d.ZERO,
+            VariantType.Vector2 => _vector2Value == Vector2f.Zero,
+            VariantType.DoubleVector2 => _doubleVector2Value == Vector2d.Zero,
             VariantType.Vector3 => _vector3Value == Vector3f.ZERO,
             VariantType.DoubleVector3 => _doubleVector3Value == Vector3d.ZERO,
             VariantType.Vector4 => _vector4Value == Vector4f.ZERO,
@@ -1227,7 +1227,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     private static Vector2f ParseVector2(string value)
     {
         var values = ParseFloatTokens(value);
-        return values.Length < 2 ? Vector2f.ZERO : new Vector2f(values[0], values[1]);
+        return values.Length < 2 ? Vector2f.Zero : new Vector2f(values[0], values[1]);
     }
 
     private static Vector3f ParseVector3(string value)
@@ -1239,7 +1239,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     private static Vector2d ParseDoubleVector2(string value)
     {
         var values = ParseFloatTokens(value);
-        return values.Length < 2 ? Vector2d.ZERO : new Vector2d(values[0], values[1]);
+        return values.Length < 2 ? Vector2d.Zero : new Vector2d(values[0], values[1]);
     }
 
     private static Vector3d ParseDoubleVector3(string value)

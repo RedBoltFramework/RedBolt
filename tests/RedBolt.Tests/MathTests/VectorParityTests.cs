@@ -26,6 +26,35 @@ public class VectorParityTests
     }
 
     [Fact]
+    public void RealVector2HasNativePodShapeStorageDefaultsCopyHashAndConversions()
+    {
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Vector2f>());
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Vector2d>());
+        Assert.Equal(8, Unsafe.SizeOf<Vector2f>());
+        Assert.Equal(16, Unsafe.SizeOf<Vector2d>());
+
+        var value = new Vector2f([1.0f, 2.0f]);
+        var copy = value;
+        var data = value.Data();
+        value.X = 3.0f;
+
+        Assert.Equal(new Vector2f(1.0f, 2.0f), copy);
+        Assert.Equal(3.0f, data[0]);
+        Assert.Equal(2.0f, data[1]);
+        value.MutableData()[1] = 4.0f;
+        Assert.Equal(new Vector2f(3.0f, 4.0f), value);
+        Assert.Equal(new Vector2f(), Vector2f.Zero);
+        Assert.Equal(new Vector2f(-1.0f, 0.0f), Vector2f.Left);
+        Assert.Equal(new Vector2f(1.0f, 1.0f), Vector2f.One);
+        Assert.Equal(1580515294u, new Vector2f(1.0f, 2.0f).ToHash());
+        Assert.Equal(new Vector2f(1.0f, 2.0f), Vector2f.VectorAbs(new Vector2f(-1.0f, -2.0f)));
+        Assert.Equal(new Vector2i(1, 2), new Vector2f(1.0f, 2.0f).ToIntVector2());
+        Assert.Equal(new Vector3i(1, 2, 0), new Vector2f(1.0f, 2.0f).ToIntVector3());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 0.0f), new Vector2f(1.0f, 2.0f).ToVector3());
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), new Vector2d(1.0, 2.0).ToVector3(3.0f));
+    }
+
+    [Fact]
     public void VectorFreeFunctionsMatchRbfxBehavior()
     {
         Assert.Equal(new Vector2f(2.0f, 3.0f), Vector2f.Sqrt(new Vector2f(4.0f, 9.0f)));

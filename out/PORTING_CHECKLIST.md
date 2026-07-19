@@ -134,6 +134,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` public class — implicit default construction and independent copy/clone semantics for all owned containers, native field order, statically typed sampling instantiations, and automatic container lifetime reconciled
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` helper types — sequential POD sphere/triangle/edge/tetrahedron layouts with inline fixed storage, non-POD surface deep copy/clone, native reference parameter shapes, adjacency behavior, and automatic container lifetime reconciled
 - [x] `Transform.h` / `Transform.cpp` — sequential reference-free Transform and DoubleTransform POD layouts, native defaults and identities, independent assignment/return copies, const-reference call paths, derived AnimationKeyFrame layout, and automatic lifetime reconciled
+- [x] `Vector2.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/helpers, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 
