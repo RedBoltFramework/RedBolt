@@ -293,7 +293,7 @@ public partial class TetrahedralMesh
             {
                 var newVertexIndex = verticesQueue[i];
                 // Carve hole in the mesh
-                if (!FindAndRemoveIntersected(ref ctx, Vertices[(int)newVertexIndex], holeSurface, removedTetrahedrons))
+                if (!FindAndRemoveIntersected(ref ctx, Vertices[(int)newVertexIndex], ref holeSurface, removedTetrahedrons))
                 {
                     postponedVertices.Add(newVertexIndex);
                     continue;
@@ -312,7 +312,7 @@ public partial class TetrahedralMesh
                 }
 
                 // Fill hole with tetrahedrons
-                FillStarShapedHole(ref ctx, removedTetrahedrons, holeSurface, newVertexIndex);
+                FillStarShapedHole(ref ctx, removedTetrahedrons, in holeSurface, newVertexIndex);
             }
 
             // Re-enqueue postponed vertices
@@ -331,7 +331,7 @@ public partial class TetrahedralMesh
         // Dump failed attempts for debugging
         DebugHighlightEdges.Clear();
         for (var i = 0; i < verticesQueue.Count; ++i)
-            FindAndRemoveIntersected(ref ctx, Vertices[(int)verticesQueue[i]], holeSurface, removedTetrahedrons, true);
+            FindAndRemoveIntersected(ref ctx, Vertices[(int)verticesQueue[i]], ref holeSurface, removedTetrahedrons, true);
 
         // Finalize triangulation
         DisconnectSuperMeshTetrahedrons(ctx.Removed);
@@ -353,9 +353,9 @@ public partial class TetrahedralMesh
 
         // Build the outer space and precompute matrices
         var hullSurface = new TetrahedralMeshSurface();
-        BuildHullSurface(hullSurface);
-        CalculateHullNormals(hullSurface);
-        BuildOuterTetrahedrons(hullSurface);
+        BuildHullSurface(ref hullSurface);
+        CalculateHullNormals(in hullSurface);
+        BuildOuterTetrahedrons(in hullSurface);
         CalculateOuterMatrices();
     }
 
@@ -423,7 +423,7 @@ public partial class TetrahedralMesh
 
     /// <summary>Find and remove tetrahedrons whose circumspheres intersect given point.</summary>
     private bool FindAndRemoveIntersected(ref DelaunayContext ctx, Vector3f position,
-        TetrahedralMeshSurface holeSurface, List<uint> removedTetrahedrons, bool dumpErrors = false)
+        ref TetrahedralMeshSurface holeSurface, List<uint> removedTetrahedrons, bool dumpErrors = false)
     {
         // Reset output
         holeSurface.Clear();
@@ -594,7 +594,7 @@ public partial class TetrahedralMesh
 
     /// <summary>Fill star-shaped hole with tetrahedrons connected to specified vertex.</summary>
     private void FillStarShapedHole(ref DelaunayContext ctx, List<uint> outputTetrahedrons,
-        TetrahedralMeshSurface holeSurface, uint centerIndex)
+        in TetrahedralMeshSurface holeSurface, uint centerIndex)
     {
         for (uint i = 0; i < holeSurface.Faces.Count; ++i)
         {
@@ -877,7 +877,7 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Build hull surface.</summary>
-    private void BuildHullSurface(TetrahedralMeshSurface hullSurface)
+    private void BuildHullSurface(ref TetrahedralMeshSurface hullSurface)
     {
         hullSurface.Clear();
         for (var tetIndex = 0; tetIndex < Tetrahedrons.Count; ++tetIndex)
@@ -904,7 +904,7 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Calculate hull normals.</summary>
-    private void CalculateHullNormals(TetrahedralMeshSurface hullSurface)
+    private void CalculateHullNormals(in TetrahedralMeshSurface hullSurface)
     {
         if (HullNormals.Count > Vertices.Count)
             HullNormals.RemoveRange(Vertices.Count, HullNormals.Count - Vertices.Count);
@@ -937,7 +937,7 @@ public partial class TetrahedralMesh
     }
 
     /// <summary>Build outer tetrahedrons.</summary>
-    private void BuildOuterTetrahedrons(TetrahedralMeshSurface hullSurface)
+    private void BuildOuterTetrahedrons(in TetrahedralMeshSurface hullSurface)
     {
         var targetCount = (int)NumInnerTetrahedrons + hullSurface.Faces.Count;
         while (Tetrahedrons.Count < targetCount)

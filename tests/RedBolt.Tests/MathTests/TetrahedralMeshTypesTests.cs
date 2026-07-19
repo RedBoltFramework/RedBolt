@@ -1,9 +1,64 @@
 using RedBolt;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt.Tests;
 
 public sealed class TetrahedralMeshTypesTests
 {
+    [Fact]
+    public void Pod_aggregates_have_native_layout_and_independent_inline_storage()
+    {
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<HighPrecisionSphere>());
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<TetrahedralMeshSurfaceTriangle>());
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<TetrahedralMeshSurfaceEdge>());
+        Assert.Equal(32, Marshal.SizeOf<HighPrecisionSphere>());
+        Assert.Equal(36, Marshal.SizeOf<TetrahedralMeshSurfaceTriangle>());
+        Assert.Equal(16, Marshal.SizeOf<TetrahedralMeshSurfaceEdge>());
+
+        var triangle = new TetrahedralMeshSurfaceTriangle();
+        Assert.Equal(uint.MaxValue, triangle.UnusedIndex);
+        Assert.Equal(uint.MaxValue, triangle.Neighbors[0]);
+        Assert.Equal(uint.MaxValue, triangle.Neighbors[1]);
+        Assert.Equal(uint.MaxValue, triangle.Neighbors[2]);
+        Assert.Equal(uint.MaxValue, triangle.TetIndex);
+        var triangleCopy = triangle;
+        triangleCopy.Indices[0] = 1;
+        triangleCopy.Neighbors[0] = 2;
+        Assert.Equal(0u, triangle.Indices[0]);
+        Assert.Equal(uint.MaxValue, triangle.Neighbors[0]);
+
+        var edge = new TetrahedralMeshSurfaceEdge(4, 3, 2, 1);
+        var edgeCopy = edge;
+        edgeCopy.Indices[0] = 7;
+        Assert.Equal(3u, edge.Indices[0]);
+        Assert.Equal(4u, edge.Indices[1]);
+        Assert.Equal(7u, edgeCopy.Indices[0]);
+    }
+
+    [Fact]
+    public void Surface_copy_constructor_and_clone_copy_owned_vectors_independently()
+    {
+        var source = new TetrahedralMeshSurface();
+        var triangle = new TetrahedralMeshSurfaceTriangle();
+        triangle.Indices[0] = 3;
+        source.Faces.Add(triangle);
+        source.Edges.Add(new TetrahedralMeshSurfaceEdge(1, 2, 3, 4));
+
+        var copy = new TetrahedralMeshSurface(source);
+        var clone = (TetrahedralMeshSurface)source.Clone();
+
+        Assert.IsAssignableFrom<ICloneable>(source);
+        Assert.NotSame(source.Faces, copy.Faces);
+        Assert.NotSame(source.Edges, copy.Edges);
+        var copiedTriangle = copy.Faces[0];
+        copiedTriangle.Indices[0] = 9;
+        copy.Faces[0] = copiedTriangle;
+        clone.Edges.Clear();
+        Assert.Equal(3u, source.Faces[0].Indices[0]);
+        Assert.Single(source.Edges);
+    }
+
     [Fact]
     public void Tetrahedron_is_pod_and_copies_inline_arrays_independently()
     {
@@ -64,7 +119,9 @@ public sealed class TetrahedralMeshTypesTests
         tetrahedron.CalculateInnerMatrix(vertices);
         var face = tetrahedron.GetTriangleFace(0, 7, 2);
 
-        Assert.Equal(new uint[] { 1, 2, 3 }, face.Indices);
+        Assert.Equal(1u, face.Indices[0]);
+        Assert.Equal(2u, face.Indices[1]);
+        Assert.Equal(3u, face.Indices[2]);
         Assert.Equal(0u, face.UnusedIndex);
         Assert.Equal(7u, face.TetIndex);
         Assert.Equal(2u, face.TetFace);

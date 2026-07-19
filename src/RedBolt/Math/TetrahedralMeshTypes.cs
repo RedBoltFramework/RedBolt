@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
 /// <summary>Sphere with double precision components.</summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct HighPrecisionSphere
 {
     /// <summary>Center.</summary>
@@ -21,16 +24,24 @@ public struct HighPrecisionSphere
 }
 
 /// <summary>Surface triangle of tetrahedral mesh with adjacency information.</summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct TetrahedralMeshSurfaceTriangle
 {
+    [InlineArray(3)]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UIntArray3
+    {
+        private uint _element0;
+    }
+
     /// <summary>Indices of triangle vertices.</summary>
-    public uint[] Indices;
+    public UIntArray3 Indices;
 
     /// <summary>Index of the 4th vertex of underlying tetrahedron. Unspecified if there's no underlying tetrahedron.</summary>
     public uint UnusedIndex;
 
     /// <summary>Indices of neighbor triangles.</summary>
-    public uint[] Neighbors;
+    public UIntArray3 Neighbors;
 
     /// <summary>Index of underlying tetrahedron. uint.MaxValue if empty.</summary>
     public uint TetIndex;
@@ -40,9 +51,12 @@ public struct TetrahedralMeshSurfaceTriangle
 
     public TetrahedralMeshSurfaceTriangle()
     {
-        Indices = new uint[3];
+        Indices = default;
         UnusedIndex = uint.MaxValue;
-        Neighbors = [uint.MaxValue, uint.MaxValue, uint.MaxValue];
+        Neighbors = default;
+        Neighbors[0] = uint.MaxValue;
+        Neighbors[1] = uint.MaxValue;
+        Neighbors[2] = uint.MaxValue;
         TetIndex = uint.MaxValue;
         TetFace = 0;
     }
@@ -50,7 +64,7 @@ public struct TetrahedralMeshSurfaceTriangle
     /// <summary>Return whether the triangle has given neighbour.</summary>
     public readonly bool HasNeighbor(uint neighborIndex)
     {
-        for (var i = 0; i < Neighbors.Length; ++i)
+        for (var i = 0; i < 3; ++i)
         {
             if (Neighbors[i] == neighborIndex)
                 return true;
@@ -92,10 +106,18 @@ public struct TetrahedralMeshSurfaceTriangle
 }
 
 /// <summary>Edge of the surface of tetrahedral mesh.</summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct TetrahedralMeshSurfaceEdge
 {
+    [InlineArray(2)]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UIntArray2
+    {
+        private uint _element0;
+    }
+
     /// <summary>Indices.</summary>
-    public uint[] Indices;
+    public UIntArray2 Indices;
 
     /// <summary>Face that owns this edge.</summary>
     public uint FaceIndex;
@@ -106,7 +128,7 @@ public struct TetrahedralMeshSurfaceEdge
     /// <summary>Construct default.</summary>
     public TetrahedralMeshSurfaceEdge()
     {
-        Indices = new uint[2];
+        Indices = default;
         FaceIndex = uint.MaxValue;
         EdgeIndex = 0;
     }
@@ -114,7 +136,9 @@ public struct TetrahedralMeshSurfaceEdge
     /// <summary>Construct valid.</summary>
     public TetrahedralMeshSurfaceEdge(uint i0, uint i1, uint faceIndex, uint edgeIndex)
     {
-        Indices = [i0, i1];
+        Indices = default;
+        Indices[0] = i0;
+        Indices[1] = i1;
         FaceIndex = faceIndex;
         EdgeIndex = edgeIndex;
         if (Indices[0] > Indices[1])
@@ -133,7 +157,7 @@ public struct TetrahedralMeshSurfaceEdge
 }
 
 /// <summary>Surface of tetrahedral mesh. Vertices are shared with tetrahedral mesh and are not stored.</summary>
-public struct TetrahedralMeshSurface
+public struct TetrahedralMeshSurface : ICloneable
 {
     /// <summary>Faces.</summary>
     public List<TetrahedralMeshSurfaceTriangle> Faces;
@@ -146,6 +170,14 @@ public struct TetrahedralMeshSurface
         Faces = [];
         Edges = [];
     }
+
+    public TetrahedralMeshSurface(TetrahedralMeshSurface surface)
+    {
+        Faces = new List<TetrahedralMeshSurfaceTriangle>(surface.Faces);
+        Edges = new List<TetrahedralMeshSurfaceEdge>(surface.Edges);
+    }
+
+    public readonly object Clone() => new TetrahedralMeshSurface(this);
 
     /// <summary>Clear.</summary>
     public void Clear() => Faces.Clear();
@@ -221,10 +253,11 @@ public struct TetrahedralMeshSurface
 }
 
 /// <summary>Tetrahedron with adjacency information.</summary>
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential)]
 public struct Tetrahedron
 {
-    [System.Runtime.CompilerServices.InlineArray(4)]
+    [InlineArray(4)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct UIntArray4
     {
         private uint _element0;
@@ -271,7 +304,7 @@ public struct Tetrahedron
     }
 
     /// <summary>Return indices of specified triangle face of the tetrahedron.</summary>
-    public readonly void GetTriangleFaceIndices(uint faceIndex, uint[] indices)
+    public readonly void GetTriangleFaceIndices(uint faceIndex, ref TetrahedralMeshSurfaceTriangle.UIntArray3 indices)
     {
         var j = 0;
         for (var i = 0; i < 4; ++i)
@@ -285,7 +318,7 @@ public struct Tetrahedron
     public readonly TetrahedralMeshSurfaceTriangle GetTriangleFace(uint faceIndex, uint tetIndex, uint tetFace)
     {
         var face = new TetrahedralMeshSurfaceTriangle();
-        GetTriangleFaceIndices(faceIndex, face.Indices);
+        GetTriangleFaceIndices(faceIndex, ref face.Indices);
         face.UnusedIndex = Indices[(int)faceIndex];
         face.TetIndex = tetIndex;
         face.TetFace = tetFace;
