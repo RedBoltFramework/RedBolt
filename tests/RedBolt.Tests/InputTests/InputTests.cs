@@ -25,6 +25,45 @@ public sealed class InputTests
     }
 
     [Fact]
+    public void Native_input_event_payloads_are_value_types()
+    {
+        Type[] eventTypes =
+        [
+            typeof(InputEvents.MouseButtonDownEvent),
+            typeof(InputEvents.MouseButtonUpEvent),
+            typeof(InputEvents.MouseMoveEvent),
+            typeof(InputEvents.MouseWheelEvent),
+            typeof(InputEvents.KeyDownEvent),
+            typeof(InputEvents.KeyUpEvent),
+            typeof(InputEvents.TextInputEvent),
+            typeof(InputEvents.TextEditingEvent),
+            typeof(InputEvents.JoystickConnectedEvent),
+            typeof(InputEvents.JoystickDisconnectedEvent),
+            typeof(InputEvents.JoystickButtonDownEvent),
+            typeof(InputEvents.JoystickButtonUpEvent),
+            typeof(InputEvents.JoystickAxisMoveEvent),
+            typeof(InputEvents.JoystickHatMoveEvent),
+            typeof(InputEvents.TouchBeginEvent),
+            typeof(InputEvents.TouchEndEvent),
+            typeof(InputEvents.TouchMoveEvent),
+            typeof(InputEvents.GestureRecordedEvent),
+            typeof(InputEvents.GestureInputEvent),
+            typeof(InputEvents.MultiGestureEvent),
+            typeof(InputEvents.DropFileEvent),
+            typeof(InputEvents.InputFocusEvent),
+            typeof(InputEvents.MouseVisibleChangedEvent),
+            typeof(InputEvents.MouseModeChangedEvent),
+            typeof(InputEvents.ExitRequestedEvent),
+            typeof(InputEvents.SDLRawInputEvent),
+            typeof(InputEvents.InputBeginEvent),
+            typeof(InputEvents.InputEndEvent),
+            typeof(InputEvents.MultitouchEvent)
+        ];
+
+        Assert.All(eventTypes, type => Assert.True(type.IsValueType));
+    }
+
+    [Fact]
     public void Joystick_state_clone_preserves_native_value_copy_semantics()
     {
         var source = new JoystickState();

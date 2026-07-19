@@ -247,6 +247,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 
+- [x] `InputEvents.h` — all 29 native event namespaces reconciled with the allowed struct-event format as ordered mutable value-type payloads; scalar, enum, immutable string, borrowed SDL pointer, mutable consumed flag, and `Vector2i` value-copy semantics verified, with native documentation restored
+- [x] `InputConstants.h` — all eight native unsigned enum value types, declaration order, SDL-backed values, and trivial lifetime/copy semantics verified
 - [x] `Input.h` / `Input.cpp` — extensible noncopyable subsystem and nested value-struct kinds reconciled; joystick initialization now performs the native reset, borrowed joystick wrappers have native temporary scope, joystick container copies are independent, acquired SDL state is release-safe across later initialization failure, and deterministic disposal releases the managed SDL resources corresponding to native destructor and automatic field teardown
 - [x] `AxisAdapter.h` / `AxisAdapter.cpp` — extensible copyable non-POD class kind, independent scalar cloning at every native copy-construction site, optional archive defaults, and pedal/trigger local-copy flow reconciled
 - [x] `DirectionAggregator.h` / `DirectionAggregator.cpp` — extensible noncopyable class and nested value-struct kinds, subsystem construction, incremental subscriptions, input aggregation, joystick filtering, touch filtering, and unsorted axis-state lifetime semantics reconciled
