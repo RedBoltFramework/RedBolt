@@ -1016,25 +1016,14 @@ public class Input : Object
 
     public void SetMousePosition(Vector2i position)
     {
-        var delta = position - MousePosition;
-        MousePosition = position;
-        if (IsInitialized && _window is not null && !_window.IsNull)
-        {
-            var systemPosition = BackbufferToSystem(position);
-            if (_explicitWindowRect is { } rect)
-                SdlNativeBindings.SdlWarpMouseGlobal(systemPosition.X + rect.Left, systemPosition.Y + rect.Top);
-            else
-                SdlNativeBindings.SdlWarpMouseInWindow(_window, systemPosition.X, systemPosition.Y);
-        }
-        if (delta != Vector2i.Zero)
-        {
-            var eventData = new InputEvents.MouseMoveEvent
-            {
-                X = position.X, Y = position.Y, DX = delta.X, DY = delta.Y,
-                Buttons = _mouseButtonDown, Qualifiers = Qualifiers
-            };
-            SendEvent(ref eventData);
-        }
+        if (!IsInitialized || _window is null || _window.IsNull)
+            return;
+
+        var localPosition = BackbufferToSystem(position);
+        if (_explicitWindowRect is { } rect)
+            SdlNativeBindings.SdlWarpMouseGlobal(localPosition.X + rect.Left, localPosition.Y + rect.Top);
+        else
+            SdlNativeBindings.SdlWarpMouseInWindow(_window, localPosition.X, localPosition.Y);
     }
 
     public void SetKey(Key key, bool newState)

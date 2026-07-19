@@ -31,7 +31,7 @@ sealed class PointerAdapterApplication : Application
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         CreateScene();
         Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
-        _pointerAdapter = new PointerAdapter(Input);
+        _pointerAdapter = new PointerAdapter();
         _mouseMoveSubscription = Context.SubscribeToEvent<InputEvents.MouseMoveEvent>(_pointerAdapter, HandleMouseMove);
         _mouseDownSubscription = Context.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(_pointerAdapter, HandleMouseButtonDown);
         _mouseUpSubscription = Context.SubscribeToEvent<InputEvents.MouseButtonUpEvent>(_pointerAdapter, HandleMouseButtonUp);
@@ -77,10 +77,12 @@ sealed class PointerAdapterApplication : Application
 
     private void HandleMouseMove(ref InputEvents.MouseMoveEvent value)
     {
-        var ray = _cameraNode!.GetComponent<Camera>()!.GetScreenRayFromMouse();
-        var result = _octree!.RaycastSingle(ray, RayQueryLevel.RayTriangle, 1000.0f, DrawableFlags.Geometry);
+        var ray = Renderer.GetViewport(0)!.GetScreenRay(value.X, value.Y);
+        using var query = new RayOctreeQuery(ray, RayQueryLevel.RayTriangle, 100.0f, DrawableFlags.Geometry, 1);
+        _octree!.RaycastSingle(query);
         _outlineGroup!.ClearDrawables();
-        if (result?.Drawable is not null) _outlineGroup.AddDrawable(result.Drawable);
+        if (query.Result.Count != 0)
+            _outlineGroup.AddDrawable(query.Result[0].Drawable!);
     }
     private static void HandleMouseButtonDown(ref InputEvents.MouseButtonDownEvent value) { }
     private static void HandleMouseButtonUp(ref InputEvents.MouseButtonUpEvent value) { }

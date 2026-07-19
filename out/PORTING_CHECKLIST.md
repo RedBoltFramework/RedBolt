@@ -258,6 +258,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `MoveAndOrbitComponent.h` / `MoveAndOrbitComponent.cpp` — extensible noncopyable logic component, value-only field semantics, factory registration, node rotation initialization, virtual setters, pitch clamp, distance limits, and default derived teardown reconciled
 - [x] `MoveAndOrbitController.h` / `MoveAndOrbitController.cpp` — extensible noncopyable component, explicit empty destructor, retained input-map reference, borrowed component/UI aliases, input-end subscriptions, touch-state value flow, and movement/orbit evaluation reconciled; excluded built-in UI members remain exact TODOs
 - [x] `MultitouchAdapter.h` / `MultitouchAdapter.cpp` — default-int event enum, nested POD touch value, extensible noncopyable adapter, inherited event teardown, subscription transitions, input-touch filtering, unsorted erasure, and gesture payload value flow reconciled
+- [x] `PointerAdapter.h` / `PointerAdapter.cpp` — unsigned mask value enum, extensible noncopyable adapter, owned direction-adapter teardown, subsystem construction, incremental subscriptions, touch ownership, pointer value conversion, synthesized events, and native warp-only mouse positioning reconciled; excluded built-in UI members remain exact TODOs
 - [x] `IDearImGuiInputSink.cs` — accepted stateless assembly-boundary facade for native `SystemUI::OnRawEvent` under the allowed `SystemUI` → `DearImGui` replacement; no owned or copied state
 
 ## [~] A12. Engine — top-level orchestration, depends on all Part-A above
