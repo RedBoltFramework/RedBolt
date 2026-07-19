@@ -11,7 +11,7 @@ var diligentFactory = DiligentNativeBindings.GetEngineFactoryOpenGL();
 var resourcesReady = System.IO.File.Exists("CoreData/Models/Box.mdl")
     && System.IO.File.Exists("Data/Models/Mushroom.mdl")
     && System.IO.File.Exists("Data/Materials/Mushroom.xml");
-var application = new MultipleViewportsApplication();
+var application = new MultipleViewports();
 var exitCode = application.Run();
 var success = exitCode == 0
     && lz4Version > 0
