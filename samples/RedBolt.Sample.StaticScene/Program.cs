@@ -4,7 +4,8 @@ using RedBolt.Bindings.DearImGui;
 
 try
 {
-    var exitCode = new StaticSceneApplication().Run();
+    using var application = new StaticScene();
+    var exitCode = application.Run();
     if (exitCode == 0)
         Console.WriteLine("RedBolt StaticScene sample finished.");
     return exitCode;
@@ -15,33 +16,30 @@ catch (Exception ex)
     return 1;
 }
 
-sealed class StaticSceneApplication : Application
+/// <summary>
+/// Static 3D scene example.
+/// This sample demonstrates:
+///     - Creating a static 3D scene with components and resources
+///     - Displaying the scene using the Renderer subsystem
+///     - Handling keyboard and mouse input to move a freelook camera
+/// </summary>
+public class StaticScene : Application
 {
-    private Scene? _scene;
-    private Node? _cameraNode;
-    private readonly CString _instructionLine = new();
-    private ContextEventSubscription? _dearImGuiSubscription;
-
-    protected override void Setup(EngineParameters parameters)
+    /// <summary>
+    /// Construct.
+    /// </summary>
+    public StaticScene()
     {
-        parameters.ApplicationName = "RedBolt.Sample.StaticScene";
-        parameters.Borderless = false;
-        parameters.FullScreen = false;
-        parameters.WindowMaximize = false;
-        parameters.ResourcePaths = "CoreData;Data";
-        parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowMaximize = false;
-        parameters.WindowHeight = 720;
-        parameters.WindowTitle = "RedBolt Static Scene";
-        parameters.WindowWidth = 1280;
     }
 
+    /// <summary>
+    /// Setup after engine initialization and before running the main loop.
+    /// </summary>
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
-
         // Execute base class startup
+        base.Start();
+
         // Create the scene content
         CreateScene();
 
@@ -56,13 +54,19 @@ sealed class StaticSceneApplication : Application
         Input.SetMouseVisible(true);
     }
 
+    /// <summary>
+    /// Construct the scene content.
+    /// </summary>
     private void CreateScene()
     {
+        var cache = Resources;
+
+        _scene = new Scene();
+
         // Create the Octree component to the scene. This is required before adding any drawable components, or else nothing will
         // show up. The default octree volume will be from (-1000, -1000, -1000) to (1000, 1000, 1000) in world coordinates; it
         // is also legal to place objects outside the volume but their visibility can then not be checked in a hierarchically
         // optimizing manner
-        _scene = new Scene();
         _scene.CreateComponent<Octree>();
 
         // Create a child scene node (at world origin) and a StaticModel component into it. Set the StaticModel to show a simple
@@ -71,8 +75,8 @@ sealed class StaticSceneApplication : Application
         var planeNode = _scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var planeObject = planeNode.CreateComponent<StaticModel>();
-        planeObject.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
+        planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
+        planeObject.SetMaterial(cache.Get<Material>("Materials/StoneTiled.xml"));
 
         // Create a directional light to the world so that we can see something. The light scene node's orientation controls the
         // light direction; we will use the SetDirection() function which calculates the orientation from a forward direction vector.
@@ -88,39 +92,51 @@ sealed class StaticSceneApplication : Application
         // see the model get simpler as it moves further away). Finally, rendering a large number of the same object with the
         // same material allows instancing to be used, if the GPU supports it. This reduces the amount of CPU work in rendering the
         // scene.
-        const int numObjects = 200;
-        for (var i = 0; i < numObjects; ++i)
+        const int NumObjects = 200;
+        for (var i = 0; i < NumObjects; ++i)
         {
             var mushroomNode = _scene.CreateChild("Mushroom");
             mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
             mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
             mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
             var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
-            mushroomObject.SetModel(Resources.Get<Model>("Models/Mushroom.mdl"));
-            mushroomObject.SetMaterial(Resources.Get<Material>("Materials/Mushroom.xml"));
+            mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
+            mushroomObject.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
         }
 
         // Create a scene node for the camera, which we will move around
         // The camera will use default settings (1000 far clip distance, 45 degrees FOV, set aspect ratio automatically)
         _cameraNode = _scene.CreateChild("Camera");
         _cameraNode.CreateComponent<Camera>();
-        var controller = _cameraNode.CreateComponent<FreeFlyController>();
+        _cameraNode.CreateComponent<FreeFlyController>();
 
         // Set an initial position for the camera scene node above the plane
         _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
     }
 
+    /// <summary>
+    /// Construct an instruction text to the UI.
+    /// </summary>
     private void CreateInstructions()
     {
+        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        // Construct new Text object, set string to display and font to use
+        // Position the text relative to the screen center
         // The rbfx Text control is replaced by the allowed Dear ImGui sample UI surface.
     }
 
+    /// <summary>
+    /// Set up a viewport for displaying the scene.
+    /// </summary>
     private void SetupViewport()
     {
         // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen. We need to define the scene and the camera
         // at minimum. Additionally we could configure the viewport screen size and the rendering path (eg. forward / deferred) to
         // use, but now we just use full screen and default render path configured in the engine command line options
-        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
+        var viewport = new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!);
+        Renderer.SetViewport(0, viewport);
     }
 
     protected override void Update(float timeStep)
@@ -137,15 +153,46 @@ sealed class StaticSceneApplication : Application
     {
         _dearImGuiSubscription?.Dispose();
         _dearImGuiSubscription = null;
-
-        _instructionLine.Dispose();
+        Renderer.SetNumViewports(0);
+        _cameraNode = null;
+        _scene?.Dispose();
+        _scene = null;
+        base.Stop();
     }
 
     private void DrawInstructions()
     {
-        _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
         if (ImGui.Begin("Static Scene\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted(_instructionLine.Bytes);
+            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\0"u8);
         ImGui.End();
     }
+
+    protected override void Setup(EngineParameters parameters)
+    {
+        parameters.ApplicationName = "RedBolt.Sample.StaticScene";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
+        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePrefixPaths = ".;..";
+        parameters.WindowMaximize = false;
+        parameters.WindowHeight = 720;
+        parameters.WindowTitle = "RedBolt Static Scene";
+        parameters.WindowWidth = 1280;
+    }
+
+    public override void Dispose()
+    {
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+        if (_scene is not null)
+            Renderer.SetNumViewports(0);
+        _cameraNode = null;
+        _scene?.Dispose();
+        _scene = null;
+        base.Dispose();
+    }
+
+    private Scene? _scene;
+    private Node? _cameraNode;
+    private ContextEventSubscription? _dearImGuiSubscription;
 }
