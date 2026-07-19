@@ -140,9 +140,13 @@ public sealed class GeometryGpuTests
         var tex = new Texture3D("Textures/Smoke3D");
         tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
-        Assert.True(tex.SetData(0u, 0, 0, 0, 2, 2, 2,
+        Assert.True(tex.SetData(0, 0, 0, 0, 2, 2, 2,
             Enumerable.Range(0, 8).Select(v => (byte)v).ToArray()));
-        Assert.False(tex.GetData(0u, new byte[8]));
+        Assert.False(tex.GetData(0, new byte[8]));
+
+        Assert.False(tex.SetSize(0, 2, 2, TextureFormat.R8));
+        Assert.Equal(0, tex.Width);
+        Assert.Equal(2, tex.Depth);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -5,11 +7,6 @@ namespace RedBolt;
 /// </summary>
 public class Texture3D : Texture
 {
-    // Image file acquired during BeginLoad.
-    private Image? _loadImage;
-    // Parameter file acquired during BeginLoad.
-    private XMLFile? _loadParameters;
-
     /// <summary>
     /// Construct.
     /// </summary>
@@ -30,8 +27,6 @@ public class Texture3D : Texture
         base.Dispose();
     }
 
-    protected override TextureType GetRawTextureType() => TextureType.Texture3D;
-
     /// <summary>
     /// Register object factory.
     /// </summary>
@@ -49,7 +44,7 @@ public class Texture3D : Texture
         var graphics = GetSubsystem<Graphics>();
         var cache = GetSubsystem<ResourceCache>()!;
 
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (graphics?.GetNativeRenderDevice() is null)
             return true;
 
@@ -73,11 +68,12 @@ public class Texture3D : Texture
 
         if (volumeElement.NotNull)
         {
+            // If path is empty, add the XML file path
             var name = ResourceLoading.ResolveRelativeResourceName(this, volumeElement.GetAttribute("name"));
             var image = cache.GetTempResource<Image>(name);
             _loadImage?.Dispose();
             _loadImage = image;
-            // Precalculate mip levels if async loading.
+            // Precalculate mip levels if async loading
             if (_loadImage is not null && AsyncLoadState == AsyncLoadState.Loading)
                 _loadImage.PrecalculateLevels();
             cache.StoreResourceDependency(this, name);
@@ -85,6 +81,7 @@ public class Texture3D : Texture
         }
         else if (colorLutElement.NotNull)
         {
+            // If path is empty, add the XML file path
             var name = ResourceLoading.ResolveRelativeResourceName(this, colorLutElement.GetAttribute("name"));
             using var file = ResourceLoading.OpenDependentResource(this, name);
             _loadImage?.Dispose();
@@ -100,13 +97,14 @@ public class Texture3D : Texture
                 _loadImage = null;
                 return false;
             }
-            // Precalculate mip levels if async loading.
+            // Precalculate mip levels if async loading
             if (AsyncLoadState == AsyncLoadState.Loading)
                 _loadImage.PrecalculateLevels();
             cache.StoreResourceDependency(this, name);
             return true;
         }
 
+        Log.GetLogger().LogError("Texture3D XML data for {Name} did not contain either volume or colorlut element", Name);
         return false;
     }
 
@@ -115,11 +113,11 @@ public class Texture3D : Texture
     /// </summary>
     public override bool EndLoad()
     {
-        // In headless mode, do not actually load the texture, just return success.
+        // In headless mode, do not actually load the texture, just return success
         if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
             return true;
 
-        // If over the texture budget, see if materials can be freed to allow textures to be freed.
+        // If over the texture budget, see if materials can be freed to allow textures to be freed
         CheckTextureBudget(typeof(Texture3D).GetTypeId());
 
         SetParameters(_loadParameters);
@@ -139,20 +137,19 @@ public class Texture3D : Texture
     public bool SetSize(int width, int height, int depth, TextureFormat format,
         TextureFlag flags = TextureFlag.None)
     {
-        if (width <= 0 || height <= 0 || depth <= 0)
-            return false;
-
-        SetDimensions(width, height, depth, format);
-        return true;
+        var parameters = new RawTextureParams(
+            TextureType.Texture3D, format, TextureFlag.None, new Vector3i(width, height, depth),
+            NumLevels: _requestedLevels, SRGB: _requestedSRGB);
+        return Create(parameters);
     }
 
     /// <summary>
     /// Set data either partially or fully on a mip level. Return true if successful.
     /// </summary>
-    public bool SetData(uint level, int x, int y, int z, int width, int height, int depth,
+    public bool SetData(int level, int x, int y, int z, int width, int height, int depth,
         ReadOnlySpan<byte> data)
     {
-        GetRawTexture()?.Update(checked((int)level), new Vector3i(x, y, z), new Vector3i(width, height, depth), 0, data);
+        GetRawTexture().Update(level, new Vector3i(x, y, z), new Vector3i(width, height, depth), 0, data);
         return true;
     }
 
@@ -163,7 +160,7 @@ public class Texture3D : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.Texture3D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
-            NumLevels: checked((int)_requestedLevels));
+            NumLevels: _requestedLevels);
         if (!CreateForImage(parameters, image))
             return false;
 
@@ -173,8 +170,17 @@ public class Texture3D : Texture
     /// <summary>
     /// Get data from a mip level. The destination buffer must be big enough. Return true if successful.
     /// </summary>
-    public bool GetData(uint level, Span<byte> destination)
+    public bool GetData(int level, Span<byte> destination)
     {
-        return GetRawTexture()?.Read(0, checked((int)level), destination) == true;
+        return GetRawTexture().Read(0, level, destination);
     }
+
+    /// <summary>
+    /// Image file acquired during BeginLoad.
+    /// </summary>
+    private Image? _loadImage;
+    /// <summary>
+    /// Parameter file acquired during BeginLoad.
+    /// </summary>
+    private XMLFile? _loadParameters;
 }

@@ -273,7 +273,7 @@ public sealed class TextureTests
         Assert.Equal(2, texture.Depth);
 
         var readback = new byte[2 * 2 * 2 * 4];
-        Assert.False(texture.GetData(0u, readback));
+        Assert.False(texture.GetData(0, readback));
     }
 
     [Fact]
@@ -281,7 +281,7 @@ public sealed class TextureTests
     {
         var volume = new Texture3D("Textures/Volume");
         Assert.True(volume.SetSize(2, 2, 2, TextureFormat.RGBA8));
-        Assert.True(volume.SetData(0u, 0, 0, 0, 2, 2, 2, new byte[2 * 2 * 2 * 4]));
+        Assert.True(volume.SetData(0, 0, 0, 0, 2, 2, 2, new byte[2 * 2 * 2 * 4]));
         Assert.Equal(TextureType.Texture3D, volume.GetRawTexture()!.GetParams().Type);
 
         var cube = new TextureCube("Textures/Cube");
