@@ -6,6 +6,54 @@ namespace RedBolt.Tests;
 public sealed class AxisAdapterTests
 {
     [Fact]
+    public void AxisAdapter_matches_native_copyable_non_pod_class_kind()
+    {
+        Assert.True(typeof(AxisAdapter).IsClass);
+        Assert.False(typeof(AxisAdapter).IsSealed);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(AxisAdapter)));
+    }
+
+    [Fact]
+    public void Clone_has_independent_value_semantics()
+    {
+        var source = new AxisAdapter();
+        source.SetDeadZone(0.25f);
+        source.SetInverted(true);
+        source.SetNeutralValue(-0.2f);
+        source.SetPositiveSensitivity(0.75f);
+        source.SetNegativeSensitivity(-0.5f);
+
+        var clone = (AxisAdapter)source.Clone();
+        clone.SetDeadZone(0.5f);
+        clone.SetInverted(false);
+        clone.SetNeutralValue(0.4f);
+        clone.SetPositiveSensitivity(1.0f);
+        clone.SetNegativeSensitivity(0.25f);
+
+        Assert.Equal(0.25f, source.GetDeadZone());
+        Assert.True(source.IsInverted());
+        Assert.Equal(-0.2f, source.GetNeutralValue());
+        Assert.Equal(0.75f, source.GetPositiveSensitivity());
+        Assert.Equal(-0.5f, source.GetNegativeSensitivity());
+    }
+
+    [Fact]
+    public void Default_archive_configuration_is_optional()
+    {
+        var adapter = new AxisAdapter();
+        var output = new JSONOutputArchive();
+        using (output.OpenUnorderedBlock("axis"))
+            adapter.SerializeInBlock(output);
+
+        var json = output.ToJsonString();
+        Assert.DoesNotContain("deadZone", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("inverted", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("neutral", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("posSensitivity", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("negSensitivity", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Dead_zone_and_sensitivity_work()
     {
         var adapter = new AxisAdapter();

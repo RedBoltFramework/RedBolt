@@ -252,10 +252,13 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition(0)) * timeStep * _axisSensitivity;
         if (state.GetNumAxes() > 1)
         {
+            var pedalAdapter = (AxisAdapter)_axisAdapter.Clone();
+            pedalAdapter.SetInverted(true);
+            pedalAdapter.SetNeutralValue(-1.0f);
             if (state.HasAxisPosition(1))
-                movement.Translation.Z += TransformPedal(state.GetAxisPosition(1)) * speed * timeStep;
+                movement.Translation.Z += pedalAdapter.Transform(state.GetAxisPosition(1)) * speed * timeStep;
             if (state.HasAxisPosition(2))
-                movement.Translation.Z -= TransformPedal(state.GetAxisPosition(2)) * speed * timeStep;
+                movement.Translation.Z -= pedalAdapter.Transform(state.GetAxisPosition(2)) * speed * timeStep;
         }
         return movement;
     }
@@ -268,7 +271,12 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         movement.Rotation.X -= _axisAdapter.Transform(state.GetAxisPosition(1)) * timeStep * _axisSensitivity;
         movement.Rotation.Y += _axisAdapter.Transform(state.GetAxisPosition(3)) * timeStep * _axisSensitivity;
         if (state.HasAxisPosition(2))
-            movement.Translation.Z += TransformPedal(state.GetAxisPosition(2)) * speed * timeStep;
+        {
+            var pedalAdapter = (AxisAdapter)_axisAdapter.Clone();
+            pedalAdapter.SetInverted(true);
+            pedalAdapter.SetNeutralValue(-1.0f);
+            movement.Translation.Z += pedalAdapter.Transform(state.GetAxisPosition(2)) * speed * timeStep;
+        }
         if (state.HasAxisPosition(4))
             movement.Translation.X += _axisAdapter.Transform(state.GetAxisPosition(4)) * speed * timeStep;
         return movement;
@@ -280,6 +288,8 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         var speed = _speed;
         if (state.HasAxisPosition((uint)ControllerAxis.TriggerLeft))
         {
+            var triggerAdapter = (AxisAdapter)_axisAdapter.Clone();
+            triggerAdapter.SetNeutralValue(-1.0f);
             var value = _axisAdapter.Transform(state.GetAxisPosition((uint)ControllerAxis.TriggerLeft));
             speed = MathDefs.Lerp(_speed, _acceleratedSpeed, MathDefs.Clamp(value, 0.0f, 1.0f));
         }
@@ -304,6 +314,8 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
         var speed = _speed;
         if (state.HasAxisPosition(4))
         {
+            var triggerAdapter = (AxisAdapter)_axisAdapter.Clone();
+            triggerAdapter.SetNeutralValue(-1.0f);
             var value = (1.0f + _axisAdapter.Transform(state.GetAxisPosition(4))) * 0.5f;
             speed = MathDefs.Lerp(_speed, _acceleratedSpeed, MathDefs.Clamp(value, 0.0f, 1.0f));
         }
@@ -324,18 +336,6 @@ public sealed class FreeFlyController : Component, ISceneUpdateListener
             if ((hat & (int)HatPosition.Right) != 0) movement.Translation.X += speed * timeStep;
         }
         return movement;
-    }
-
-    private float TransformPedal(float value)
-    {
-        var neutral = _axisAdapter.GetNeutralValue();
-        var inverted = _axisAdapter.IsInverted();
-        _axisAdapter.SetNeutralValue(-1.0f);
-        _axisAdapter.SetInverted(true);
-        var result = _axisAdapter.Transform(value);
-        _axisAdapter.SetNeutralValue(neutral);
-        _axisAdapter.SetInverted(inverted);
-        return result;
     }
 
     private void HandleMultitouch(ref InputEvents.MultitouchEvent value)
