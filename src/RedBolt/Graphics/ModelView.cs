@@ -174,12 +174,12 @@ public struct ModelVertex : IEquatable<ModelVertex>, ICloneable
 
     public ModelVertex()
     {
-        Position = Vector4f.ZERO;
-        Normal = Vector4f.ZERO;
-        Tangent = Vector4f.ZERO;
-        Binormal = Vector4f.ZERO;
-        BlendIndices = Vector4f.ZERO;
-        BlendWeights = Vector4f.ZERO;
+        Position = Vector4f.Zero;
+        Normal = Vector4f.Zero;
+        Tangent = Vector4f.Zero;
+        Binormal = Vector4f.Zero;
+        BlendIndices = Vector4f.Zero;
+        BlendWeights = Vector4f.Zero;
         Color = new Vector4f[MaxColors];
         Uv = new Vector4f[MaxUVs];
     }
@@ -230,16 +230,16 @@ public struct ModelVertex : IEquatable<ModelVertex>, ICloneable
     }
 
     /// <summary>Return whether the vertex has normal.</summary>
-    public bool HasNormal() => Normal != Vector4f.ZERO;
+    public bool HasNormal() => Normal != Vector4f.Zero;
 
     /// <summary>Return whether the vertex has tangent.</summary>
-    public bool HasTangent() => Tangent != Vector4f.ZERO;
+    public bool HasTangent() => Tangent != Vector4f.Zero;
 
     /// <summary>Return whether the vertex has binormal.</summary>
-    public bool HasBinormal() => Binormal != Vector4f.ZERO;
+    public bool HasBinormal() => Binormal != Vector4f.Zero;
 
     /// <summary>Return whether the vertex has tangent and binormal combined.</summary>
-    public bool HasTangentBinormalCombined() => Tangent != Vector4f.ZERO && Tangent.W != 0;
+    public bool HasTangentBinormalCombined() => Tangent != Vector4f.Zero && Tangent.W != 0;
 
     /// <summary>Return vertex as an array of Vector4f elements.</summary>
     public Vector4f[] Data() =>
@@ -311,34 +311,34 @@ public struct ModelVertex : IEquatable<ModelVertex>, ICloneable
                 }
             }
             else
-                Binormal = Vector4f.ZERO;
+                Binormal = Vector4f.Zero;
         }
         else
         {
-            Tangent = Vector4f.ZERO;
-            Binormal = Vector4f.ZERO;
+            Tangent = Vector4f.Zero;
+            Binormal = Vector4f.Zero;
         }
     }
 
     /// <summary>Prune vertex elements not represented in the format.</summary>
     public void PruneElements(ModelVertexFormat format)
     {
-        if (format.Position == ModelVertexFormat.Undefined) Position = Vector4f.ZERO;
-        if (format.Normal == ModelVertexFormat.Undefined) Normal = Vector4f.ZERO;
-        if (format.Tangent == ModelVertexFormat.Undefined) Tangent = Vector4f.ZERO;
-        if (format.Binormal == ModelVertexFormat.Undefined) Binormal = Vector4f.ZERO;
-        if (format.BlendIndices == ModelVertexFormat.Undefined) BlendIndices = Vector4f.ZERO;
-        if (format.BlendWeights == ModelVertexFormat.Undefined) BlendWeights = Vector4f.ZERO;
-        if (format.Position == ModelVertexFormat.Undefined) Position = Vector4f.ZERO;
+        if (format.Position == ModelVertexFormat.Undefined) Position = Vector4f.Zero;
+        if (format.Normal == ModelVertexFormat.Undefined) Normal = Vector4f.Zero;
+        if (format.Tangent == ModelVertexFormat.Undefined) Tangent = Vector4f.Zero;
+        if (format.Binormal == ModelVertexFormat.Undefined) Binormal = Vector4f.Zero;
+        if (format.BlendIndices == ModelVertexFormat.Undefined) BlendIndices = Vector4f.Zero;
+        if (format.BlendWeights == ModelVertexFormat.Undefined) BlendWeights = Vector4f.Zero;
+        if (format.Position == ModelVertexFormat.Undefined) Position = Vector4f.Zero;
         for (var i = 0; i < MaxColors; ++i)
         {
             if (format.Color[i] == ModelVertexFormat.Undefined)
-                Color[i] = Vector4f.ZERO;
+                Color[i] = Vector4f.Zero;
         }
         for (var i = 0; i < MaxUVs; ++i)
         {
             if (format.Uv[i] == ModelVertexFormat.Undefined)
-                Uv[i] = Vector4f.ZERO;
+                Uv[i] = Vector4f.Zero;
         }
     }
 
@@ -502,8 +502,8 @@ public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
         for (var i = 0; i < Vertices.Count; ++i)
         {
             var vertex = Vertices[i];
-            vertex.Normal = Vector4f.ZERO;
-            vertex.Tangent = Vector4f.ZERO;
+            vertex.Normal = Vector4f.Zero;
+            vertex.Tangent = Vector4f.Zero;
             Vertices[i] = vertex;
         }
         foreach (var morphs in Morphs.Values)
@@ -1421,12 +1421,12 @@ public sealed class ModelView : Object
                             vertex.BlendWeights[i] = 0;
                         }
                     }
-                    var weightSum = vertex.BlendWeights.DotProduct(Vector4f.ONE);
+                    var weightSum = vertex.BlendWeights.DotProduct(Vector4f.One);
                     if (!MathDefs.Equals(weightSum, 1.0f))
                     {
                         if (weightSum < MathDefs.Epsilon)
                         {
-                            vertex.BlendIndices = Vector4f.ZERO;
+                            vertex.BlendIndices = Vector4f.Zero;
                             vertex.BlendWeights = new Vector4f(1, 0, 0, 0);
                         }
                         else

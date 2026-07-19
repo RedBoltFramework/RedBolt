@@ -138,7 +138,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Vector3 => new Variant(Vector3f.Zero),
             VariantType.DoubleVector2 => new Variant(Vector2d.Zero),
             VariantType.DoubleVector3 => new Variant(Vector3d.Zero),
-            VariantType.Vector4 => new Variant(Vector4f.ZERO),
+            VariantType.Vector4 => new Variant(Vector4f.Zero),
             VariantType.Quaternion => new Variant(Quaternion.IDENTITY),
             VariantType.Color => new Variant(Color.Black),
             VariantType.String => new Variant(string.Empty),
@@ -518,7 +518,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 
     public Vector3d GetDoubleVector3() => _type == VariantType.DoubleVector3 ? _doubleVector3Value : Vector3d.Zero;
 
-    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _vector4Value : Vector4f.ZERO;
+    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _vector4Value : Vector4f.Zero;
 
     public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _quaternionValue : Quaternion.IDENTITY;
 
@@ -807,7 +807,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.DoubleVector2 => _doubleVector2Value == Vector2d.Zero,
             VariantType.Vector3 => _vector3Value == Vector3f.Zero,
             VariantType.DoubleVector3 => _doubleVector3Value == Vector3d.Zero,
-            VariantType.Vector4 => _vector4Value == Vector4f.ZERO,
+            VariantType.Vector4 => _vector4Value == Vector4f.Zero,
             VariantType.Quaternion => _quaternionValue == Quaternion.IDENTITY,
             VariantType.Color => _colorValue == Color.White,
             VariantType.String => string.IsNullOrEmpty(_stringValue),
@@ -1251,7 +1251,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     private static Vector4f ParseVector4(string value)
     {
         var values = ParseFloatTokens(value);
-        return values.Length < 4 ? Vector4f.ZERO : new Vector4f(values[0], values[1], values[2], values[3]);
+        return values.Length < 4 ? Vector4f.Zero : new Vector4f(values[0], values[1], values[2], values[3]);
     }
 
     private static Quaternion ParseQuaternion(string value)

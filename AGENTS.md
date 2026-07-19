@@ -103,7 +103,7 @@ STEP 3A - Fixes discovered while building or testing
 
 STEP 4 - Build and test (see section 6). Do not move on until it is GREEN.
 
-STEP 5 - Update status of ported items in `out/PORTING_CHECKLIST.md`. If completed,
+STEP 5 - Update status of ported items in `PORTING_CHECKLIST.md`. If completed,
 mark them as such. If incomplete, mark them as such and clarify what is missing.
 Make a note of any accepted deviations.
 
@@ -280,6 +280,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
+- C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Do NOT re-port things C# already has, for example:
     - Threading primitives (locks, tasks, thread pools)
     - Math functions and constants

@@ -243,7 +243,7 @@ public class VertexBuffer : PipelineStateTracker
         var destElementCount = destElements.Count;
 
         if (setMissingElementsToZero)
-            dest[..checked((int)(vertexCount * (uint)destElementCount))].Fill(Vector4f.ZERO);
+            dest[..checked((int)(vertexCount * (uint)destElementCount))].Fill(Vector4f.Zero);
 
         for (var sourceElementIndex = 0; sourceElementIndex < sourceElementCount; ++sourceElementIndex)
         {
@@ -485,7 +485,7 @@ public class VertexBuffer : PipelineStateTracker
             case VertexElementType.UByte4Norm:
                 if (element.Semantic == VertexElementSemantic.BlendWeights)
                 {
-                    var weightSum = value.DotProduct(Vector4f.ONE);
+                    var weightSum = value.DotProduct(Vector4f.One);
                     if (weightSum < MathDefs.Epsilon)
                     {
                         bytes[0] = 255;

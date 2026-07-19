@@ -93,6 +93,32 @@ public class VectorParityTests
     }
 
     [Fact]
+    public void Vector4HasNativeValueShapeStorageDefaultsCopyHashAndConversions()
+    {
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Vector4f>());
+        Assert.Equal(16, Unsafe.SizeOf<Vector4f>());
+
+        var value = new Vector4f([1.0f, 2.0f, 3.0f, 4.0f]);
+        var copy = value.Clone();
+        var data = value.Data();
+        value.X = 5.0f;
+
+        Assert.Equal(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f), copy);
+        Assert.Equal(5.0f, data[0]);
+        Assert.Equal(2.0f, data[1]);
+        Assert.Equal(3.0f, data[2]);
+        Assert.Equal(4.0f, data[3]);
+        Assert.Equal(new Vector4f(), Vector4f.Zero);
+        Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Vector4f.One);
+        Assert.Equal(526523093u, new Vector4f(1.0f, 2.0f, 3.0f, 4.0f).ToHash());
+        Assert.Equal(new Vector2f(1.0f, 2.0f), new Vector4f(1.0f, 2.0f, 3.0f, 4.0f).ToVector2());
+        Assert.Equal(new Vector2i(1, 2), new Vector4f(1.9f, 2.9f, 3.9f, 4.9f).ToIntVector2());
+        Assert.Equal(new Vector3i(1, 2, 3), new Vector4f(1.9f, 2.9f, 3.9f, 4.9f).ToIntVector3());
+        Assert.Equal(new Vector4f(2.0f, 3.0f, -3.0f, 5.0f),
+            MathDefs.VectorCeil(new Vector4f(1.2f, 2.8f, -3.2f, 4.5f)));
+    }
+
+    [Fact]
     public void VectorFreeFunctionsMatchRbfxBehavior()
     {
         Assert.Equal(new Vector2f(2.0f, 3.0f), Vector2f.Sqrt(new Vector2f(4.0f, 9.0f)));

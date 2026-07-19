@@ -28,8 +28,8 @@ public sealed class VertexBufferTests
 
         vertexBuffer.SetUnpackedData(new[]
         {
-            new Vector4f(1, 2, 3, 1), new Vector4f(0.5f, 0.25f, 1, 0), new Vector4f(4, 5),
-            new Vector4f(6, 7, 8, 1), new Vector4f(0, 1, 0.5f, 0), new Vector4f(9, 10)
+            new Vector4f(1, 2, 3, 1), new Vector4f(0.5f, 0.25f, 1, 0), new Vector4f(4, 5, 0, 0),
+            new Vector4f(6, 7, 8, 1), new Vector4f(0, 1, 0.5f, 0), new Vector4f(9, 10, 0, 0)
         });
 
         Assert.Equal(24u, vertexBuffer.GetVertexSize());
@@ -123,9 +123,9 @@ public sealed class VertexBufferTests
         VertexBuffer.ShuffleUnpackedVertexData(2, new[] { new Vector4f(1, 2, 3, 1), new Vector4f(4, 5, 6, 1) },
             sourceElements, shuffled, destElements);
 
-        Assert.Equal(Vector4f.ZERO, shuffled[0]);
+        Assert.Equal(Vector4f.Zero, shuffled[0]);
         Assert.Equal(new Vector4f(1, 2, 3, 1), shuffled[1]);
-        Assert.Equal(Vector4f.ZERO, shuffled[2]);
+        Assert.Equal(Vector4f.Zero, shuffled[2]);
         Assert.Equal(new Vector4f(4, 5, 6, 1), shuffled[3]);
     }
 

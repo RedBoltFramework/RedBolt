@@ -136,6 +136,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Transform.h` / `Transform.cpp` — sequential reference-free Transform and DoubleTransform POD layouts, native defaults and identities, independent assignment/return copies, const-reference call paths, derived AnimationKeyFrame layout, and automatic lifetime reconciled
 - [x] `Vector2.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/helpers, and automatic lifetime reconciled
 - [x] `Vector3.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/signed-angle behavior/helpers, and automatic lifetime reconciled
+- [x] `Vector4.h` / `Vector4.cpp` — sequential 16-byte reference-free value layout, explicit independent copy construction, allocation-free inline data access, native constructors/constants/index/hash/conversions/free helpers, approved managed `int` indexing, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

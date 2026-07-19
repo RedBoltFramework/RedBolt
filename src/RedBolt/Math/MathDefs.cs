@@ -443,31 +443,31 @@ public static partial class MathDefs
     public static long ZigzagDecode(ulong value) => unchecked((long)(value >> 1) ^ -(long)(value & 1));
 
     /// <summary>Per-component linear interpolation between two 4-vectors.</summary>
-    public static Vector4f VectorLerp(Vector4f lhs, Vector4f rhs, Vector4f t) => lhs + (rhs - lhs) * t;
+    public static Vector4f VectorLerp(in Vector4f lhs, in Vector4f rhs, in Vector4f t) => lhs + (rhs - lhs) * t;
 
     /// <summary>Per-component min of two 4-vectors.</summary>
-    public static Vector4f VectorMin(Vector4f lhs, Vector4f rhs) => new(
+    public static Vector4f VectorMin(in Vector4f lhs, in Vector4f rhs) => new(
         lhs.X < rhs.X ? lhs.X : rhs.X,
         lhs.Y < rhs.Y ? lhs.Y : rhs.Y,
         lhs.Z < rhs.Z ? lhs.Z : rhs.Z,
         lhs.W < rhs.W ? lhs.W : rhs.W);
 
     /// <summary>Per-component max of two 4-vectors.</summary>
-    public static Vector4f VectorMax(Vector4f lhs, Vector4f rhs) => new(
+    public static Vector4f VectorMax(in Vector4f lhs, in Vector4f rhs) => new(
         lhs.X > rhs.X ? lhs.X : rhs.X,
         lhs.Y > rhs.Y ? lhs.Y : rhs.Y,
         lhs.Z > rhs.Z ? lhs.Z : rhs.Z,
         lhs.W > rhs.W ? lhs.W : rhs.W);
 
     /// <summary>Per-component floor of 4-vector.</summary>
-    public static Vector4f VectorFloor(Vector4f value) =>
+    public static Vector4f VectorFloor(in Vector4f value) =>
         new(Floor(value.X), Floor(value.Y), Floor(value.Z), Floor(value.W));
 
     /// <summary>Per-component round of 4-vector.</summary>
-    public static Vector4f VectorRound(Vector4f value) =>
+    public static Vector4f VectorRound(in Vector4f value) =>
         new(Round(value.X), Round(value.Y), Round(value.Z), Round(value.W));
 
     /// <summary>Per-component ceil of 4-vector.</summary>
-    public static Vector4f VectorCeil(Vector4f value) =>
+    public static Vector4f VectorCeil(in Vector4f value) =>
         new(Ceil(value.X), Ceil(value.Y), Ceil(value.Z), Ceil(value.W));
 }
