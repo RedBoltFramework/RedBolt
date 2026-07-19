@@ -54,10 +54,10 @@ RedBolt.Dependencies.Generator
 | Input | Source |
 |---|---|
 | SDL headers | All `SDL*.h` headers from `build/native/<preset>/deps/SDL/include` after the SDL build target prepares the build include directory. |
-| Diligent headers | `extern/thirdparty/Diligent/Graphics/GraphicsEngine/interface/*.h` selected by the generator target. |
+| Diligent headers | `extern/Diligent/Graphics/GraphicsEngine/interface/*.h` selected by the generator target. |
 | Parse umbrella headers | Generated under `build/native/<preset>/generated/redbolt-native/...` by CMake. |
 | Compile flags | CMake include directories, platform defines, compiler target, and system include discovery. |
-| SharpCpp support headers | `extern/thirdparty/SharpCpp/include/SharpCpp`. |
+| SharpCpp support headers | `extern/SharpCpp/include/SharpCpp`. |
 | Output root | `build/native/<preset>/generated/redbolt-native`. |
 
 ## Current Generated Surfaces

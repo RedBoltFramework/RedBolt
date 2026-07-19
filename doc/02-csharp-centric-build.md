@@ -65,10 +65,8 @@ CMake files are directory-local:
 | Directory | Responsibility |
 |---|---|
 | `cmake/` | shared CMake helpers and toolchain selection |
-| `extern/SDL/` | SDL and SDL_image configuration |
-| `extern/Diligent/` | Diligent and its shader toolchain |
-| `extern/ImGui/` | Dear ImGui native dependency |
-| `extern/Compression/` | LZ4 and WebP native dependencies |
+| `extern/CMakeLists.txt` | external dependency integration aggregation |
+| `extern/*.cmake` | one integration file per native dependency |
 | `generators/RedBolt.Dependencies.Generator/` | binding-generation commands and outputs |
 | `src/RedBolt.Bindings.*/` | one generated binding surface per directory |
 | `native/RedBolt.Native/` | final native library and native support code |
@@ -76,13 +74,6 @@ CMake files are directory-local:
 
 The root `CMakeLists.txt` only establishes project-wide settings and adds these directories. Third-party source trees keep their upstream CMake files.
 
-## Direct CMake Use
+## Native Build Diagnostics
 
-Direct CMake commands are useful for native-only diagnosis, but are auxiliary:
-
-```bash
-cmake --preset linux-gcc-x64-dll
-cmake --build --preset linux-gcc-x64-dll-debug
-```
-
-They require the dependency generator assembly already produced by the C# graph. Use the solution build for normal development and clean-checkout verification.
+CMake is an implementation detail of the dummy C# native projects. Use `dotnet build` with the relevant `.slnx` or `.csproj` for normal development, clean-checkout verification, and native build diagnostics.

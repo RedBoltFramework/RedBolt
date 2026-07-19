@@ -18,16 +18,12 @@ if(EMSCRIPTEN)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${_redbolt_emscripten_environment}")
 endif()
 
-set(REDBOLT_THIRDPARTY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern/thirdparty" CACHE PATH "Path to RedBolt native dependency sources" FORCE)
-set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_THIRDPARTY_ROOT}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
+set(REDBOLT_EXTERN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern" CACHE PATH "Path to RedBolt native dependency sources" FORCE)
+set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_EXTERN_ROOT}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
 set(REDBOLT_PLATFORM "linux-gcc-x64-dll" CACHE STRING "RedBolt target platform")
 set(REDBOLT_RUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/${REDBOLT_PLATFORM}" CACHE PATH "RedBolt runtime output root")
 set(REDBOLT_GENERATED_ROOT "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "RedBolt generated file root")
 set(REDBOLT_NATIVE_GENERATED_DIR "${REDBOLT_GENERATED_ROOT}/redbolt-native" CACHE INTERNAL "RedBolt generated native binding root")
-
-set(SHARPCPP_BUILD_E2E OFF CACHE BOOL "Build SharpCpp synthetic E2E fixtures" FORCE)
-set(SHARPCPP_BUILD_RBFX OFF CACHE BOOL "Build SharpCpp rbfx bindings" FORCE)
-add_subdirectory("${REDBOLT_SHARPCPP_ROOT}" "${CMAKE_BINARY_DIR}/deps/SharpCpp" EXCLUDE_FROM_ALL)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${REDBOLT_RUNTIME_OUTPUT_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${REDBOLT_RUNTIME_OUTPUT_DIR}")

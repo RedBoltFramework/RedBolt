@@ -1,6 +1,28 @@
-[submodule "extern/thirdparty/SharpCpp"]
-	path = extern/thirdparty/SharpCpp
+[submodule "extern/SharpCpp"]
+	path = extern/SharpCpp
 	url = git@github.com:RedBoltFramework/SharpCpp.git
-[submodule "extern/thirdparty/Diligent"]
-	path = extern/thirdparty/Diligent
+	branch = master
+[submodule "extern/Diligent"]
+	path = extern/Diligent
 	url = https://github.com/DiligentGraphics/DiligentCore.git
+	branch = master
+[submodule "extern/LZ4"]
+	path = extern/LZ4
+	url = https://github.com/lz4/lz4.git
+	branch = dev
+[submodule "extern/SDL_image"]
+	path = extern/SDL_image
+	url = https://github.com/libsdl-org/SDL_image.git
+	branch = release-2.8.x
+[submodule "extern/STB"]
+	path = extern/STB
+	url = https://github.com/nothings/stb.git
+	branch = master
+[submodule "extern/WebP"]
+	path = extern/WebP
+	url = https://chromium.googlesource.com/webm/libwebp
+	branch = main
+[submodule "extern/imgui"]
+	path = extern/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking

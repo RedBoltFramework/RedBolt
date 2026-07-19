@@ -178,15 +178,15 @@ implementation and MUST be ported explicitly.
 ## 6. BUILD AND VERIFY (run these commands)
 
 Build:
-  cmake --preset linux-gcc-x64-dll
-  cmake --build --preset linux-gcc-x64-dll-debug --target restore
-  cmake --build --preset linux-gcc-x64-dll-debug --target RedBolt -- -j16
+  git submodule update --init --recursive
+  dotnet build RedBolt.slnx --configuration Debug
 
-Use `-j16` for parallel builds.
+CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly
+for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
 
 Run the sample and capture a screenshot:
   rm -f /tmp/screenshot.png
-  cmake-build/linux-gcc-x64-dll/bin/Debug/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
+  build/bin/linux-gcc-x64-dll/Debug/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
@@ -194,10 +194,10 @@ Run the tests (adjust the filter to your area):
 (Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
 The build output binaries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/cmake-build/linux-gcc-x64-dll/bin/Debug
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/linux-gcc-x64-dll/Debug
 
-CMake symlinks runtime resource directories into:
-  /home/rk/Desktop/src/rbfx/RedBolt/cmake-build/linux-gcc-x64-dll/bin
+C# build targets symlink runtime resource directories into:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/linux-gcc-x64-dll
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`
@@ -229,7 +229,7 @@ with resource prefix paths `.;..`.
     - Set it with Context.SetInstance(ctx).
     - Read it with Context.Instance.
     - Do NOT pass Context through constructors.
-- Copy necessary dependencies into extern/thirdparty and wire them into build system.
+- Add necessary dependencies under `extern/` and wire them into the build system.
 
 ## 8. THINGS YOU MUST NEVER DO
 

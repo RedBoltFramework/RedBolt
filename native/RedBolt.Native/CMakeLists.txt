@@ -6,7 +6,7 @@ target_link_libraries(redbolt-diligent-support
     PRIVATE
         SDL2::SDL2)
 target_include_directories(redbolt-diligent-support PRIVATE
-    "${CMAKE_SOURCE_DIR}/extern/thirdparty/Diligent/Graphics/GraphicsEngine/include")
+    "${CMAKE_SOURCE_DIR}/extern/Diligent/Graphics/GraphicsEngine/include")
 set_target_properties(redbolt-diligent-support PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
@@ -20,7 +20,7 @@ target_compile_definitions(redbolt-imgui-backend PRIVATE
 target_include_directories(redbolt-imgui-backend PRIVATE
     include
     thirdparty
-    "${CMAKE_SOURCE_DIR}/extern/thirdparty")
+    "${CMAKE_SOURCE_DIR}/extern")
 target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
@@ -52,7 +52,7 @@ add_library(RedBolt.Native ${_redbolt_native_library_type}
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
     src/SpirVOptimizerSupport.cpp
     src/ShaderCompilerSupport.cpp
-    "${REDBOLT_STB_SOURCE_ROOT}/stb_impl.cpp")
+    src/StbImpl.cpp)
 
 set_source_files_properties(
     "${REDBOLT_SDL_BINDINGS_CPP}"
@@ -81,7 +81,7 @@ set_target_properties(RedBolt.Native PROPERTIES
     BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
-target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_STB_INCLUDE_DIR}/STB" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
+target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
 target_compile_options(RedBolt.Native PRIVATE
     "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
     "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")

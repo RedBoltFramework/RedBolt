@@ -68,10 +68,6 @@ set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp" CACHE 
 set(REDBOLT_SPIRV_OPTIMIZER_PARSE_HEADER "${REDBOLT_SPIRV_OPTIMIZER_GENERATED_DIR}/SpirVOptimizerAll.hpp" CACHE INTERNAL "SPIR-V optimizer parse header")
 set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}/ShaderCompilerAll.hpp" CACHE INTERNAL "Shader compiler parse header")
 
-set(REDBOLT_STB_SOURCE_ROOT "${REDBOLT_THIRDPARTY_ROOT}/STB" CACHE INTERNAL "STB source root")
-set(REDBOLT_STB_INCLUDE_DIR "${REDBOLT_STB_SOURCE_ROOT}/include" CACHE INTERNAL "STB include directory")
-set(REDBOLT_STB_VORBIS_HEADER "${REDBOLT_STB_INCLUDE_DIR}/STB/stb_vorbis.h" CACHE INTERNAL "stb_vorbis header")
-set(REDBOLT_STB_IMAGE_WRITE_HEADER "${REDBOLT_STB_INCLUDE_DIR}/STB/stb_image_write.h" CACHE INTERNAL "stb_image_write header")
 set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/native/RedBolt.Native/include" CACHE INTERNAL "RedBolt native support include directory" FORCE)
 set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/RedBolt/DiligentSupport.hpp" CACHE INTERNAL "RedBolt Diligent support header")
 set(REDBOLT_IMGUI_INCLUDE_DIR "${REDBOLT_IMGUI_SOURCE_ROOT}" CACHE INTERNAL "Dear ImGui include directory")
@@ -103,8 +99,8 @@ file(MAKE_DIRECTORY
 file(WRITE "${REDBOLT_STB_PARSE_HEADER}" [=[
 #pragma once
 #define STB_VORBIS_HEADER_ONLY
-#include <STB/stb_vorbis.h>
-#include <STB/stb_image_write.h>
+#include <stb_vorbis.c>
+#include <stb_image_write.h>
 STBIWDEF unsigned char* stbi_write_png_to_mem(
     const unsigned char* pixels, int stride_bytes, int x, int y, int n, int* out_len);
 struct stb_vorbis { int opaque; };

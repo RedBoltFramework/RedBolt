@@ -1,6 +1,4 @@
-redbolt_require_path("${REDBOLT_THIRDPARTY_ROOT}" "REDBOLT_THIRDPARTY_ROOT")
-redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}" "REDBOLT_SHARPCPP_ROOT")
-redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/Export.hpp" "SharpCpp native support headers")
+redbolt_require_path("${REDBOLT_EXTERN_ROOT}" "REDBOLT_EXTERN_ROOT")
 
 if(NOT COMMAND install_third_party_libs)
     function(install_third_party_libs)
@@ -12,10 +10,14 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
-add_subdirectory(SDL)
-add_subdirectory(Diligent)
-add_subdirectory(ImGui)
-add_subdirectory(Compression)
+include(SharpCpp.cmake)
+include(SDL.cmake)
+include(SDL_image.cmake)
+include(Diligent.cmake)
+include(DearImGui.cmake)
+include(STB.cmake)
+include(LZ4.cmake)
+include(WebP.cmake)
 
 add_custom_target(redbolt-native-dependency-batch
     DEPENDS SDL2 redbolt-diligent-build ImGui

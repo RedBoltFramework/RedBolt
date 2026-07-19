@@ -1,0 +1,29 @@
+set(REDBOLT_SDL_IMAGE_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/SDL_image" CACHE INTERNAL "SDL_image source root")
+redbolt_require_path("${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/CMakeLists.txt" "SDL_image source")
+
+add_library(redbolt-sdl2-image INTERFACE)
+if(TARGET SDL2 AND NOT TARGET SDL2::SDL2)
+    add_library(SDL2::SDL2 ALIAS SDL2)
+endif()
+if(TARGET SDL2 AND NOT TARGET SDL2::SDL2-static)
+    add_library(SDL2::SDL2-static ALIAS SDL2)
+endif()
+set(SDL2IMAGE_INSTALL OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_SAMPLES OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_DEPS_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_BACKEND_STB ON CACHE BOOL "" FORCE)
+set(SDL2IMAGE_AVIF OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_JXL OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_TIF OFF CACHE BOOL "" FORCE)
+set(SDL2IMAGE_WEBP OFF CACHE BOOL "" FORCE)
+redbolt_add_external_subdirectory("${REDBOLT_SDL_IMAGE_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL_image")
+target_link_libraries(redbolt-sdl2-image INTERFACE SDL2_image)
+target_include_directories(redbolt-sdl2-image SYSTEM INTERFACE
+    "${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/include")
+set(REDBOLT_SDL_IMAGE_INCLUDE_DIRS
+    "${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/include"
+    CACHE INTERNAL "SDL_image include directories used by RedBolt")
+set(REDBOLT_SDL_IMAGE_HEADER
+    "${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/include/SDL_image.h"
+    CACHE INTERNAL "Primary SDL_image header used by RedBolt")

@@ -1,0 +1,11 @@
+set(REDBOLT_LZ4_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/LZ4" CACHE INTERNAL "LZ4 source root")
+set(REDBOLT_LZ4_INCLUDE_DIR "${REDBOLT_LZ4_SOURCE_ROOT}/lib" CACHE INTERNAL "RedBolt LZ4 include directory")
+redbolt_require_path("${REDBOLT_LZ4_INCLUDE_DIR}/lz4.h" "LZ4 headers")
+
+add_library(LZ4 STATIC
+    "${REDBOLT_LZ4_INCLUDE_DIR}/lz4.c"
+    "${REDBOLT_LZ4_INCLUDE_DIR}/lz4frame.c"
+    "${REDBOLT_LZ4_INCLUDE_DIR}/lz4hc.c"
+    "${REDBOLT_LZ4_INCLUDE_DIR}/xxhash.c")
+target_include_directories(LZ4 PUBLIC "${REDBOLT_LZ4_INCLUDE_DIR}")
+set(REDBOLT_LZ4_LIBRARY LZ4 CACHE INTERNAL "RedBolt LZ4 target")
