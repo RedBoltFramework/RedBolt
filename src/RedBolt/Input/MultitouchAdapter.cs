@@ -1,6 +1,5 @@
 namespace RedBolt;
 
-/// <summary>Multitouch event type.</summary>
 public enum MultitouchEventType
 {
     MultitouchBegin,
@@ -9,8 +8,7 @@ public enum MultitouchEventType
     MultitouchCancel,
 }
 
-/// <summary>Multitouch adapter. Translates touch events into multitouch gestures.</summary>
-public sealed class MultitouchAdapter : Object, IDisposable
+public class MultitouchAdapter : Object
 {
     private struct ActiveTouch
     {
@@ -18,27 +16,11 @@ public sealed class MultitouchAdapter : Object, IDisposable
         public Vector2i Pos;
     }
 
-    private bool _enabled;
-    private bool _acceptTouches = true;
-    private Vector2i _lastKnownPosition;
-    private Vector2i _lastKnownSize;
-    private readonly List<ActiveTouch> _touches = [];
-    private readonly List<ContextEventSubscription> _subscriptions = [];
-
     /// <summary>Construct.</summary>
     public MultitouchAdapter()
     {
     }
 
-    /// <inheritdoc />
-    public override void Dispose()
-    {
-        UnsubscribeFromEvents();
-        base.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>Set whether the adapter is enabled.</summary>
     public void SetEnabled(bool enabled)
     {
         if (enabled != _enabled)
@@ -51,22 +33,20 @@ public sealed class MultitouchAdapter : Object, IDisposable
         }
     }
 
-    /// <summary>Return whether the adapter is enabled.</summary>
     public bool IsEnabled() => _enabled;
 
     private void SubscribeToEvents()
     {
-        UnsubscribeFromEvents();
-        _subscriptions.Add(SubscribeToEvent<InputEvents.TouchBeginEvent>(HandleTouchBegin));
-        _subscriptions.Add(SubscribeToEvent<InputEvents.TouchEndEvent>(HandleTouchEnd));
-        _subscriptions.Add(SubscribeToEvent<InputEvents.TouchMoveEvent>(HandleTouchMove));
+        SubscribeToEvent<InputEvents.TouchBeginEvent>(HandleTouchBegin);
+        SubscribeToEvent<InputEvents.TouchEndEvent>(HandleTouchEnd);
+        SubscribeToEvent<InputEvents.TouchMoveEvent>(HandleTouchMove);
     }
 
     private void UnsubscribeFromEvents()
     {
-        foreach (var subscription in _subscriptions)
-            subscription.Dispose();
-        _subscriptions.Clear();
+        UnsubscribeFromEvent<InputEvents.TouchBeginEvent>();
+        UnsubscribeFromEvent<InputEvents.TouchEndEvent>();
+        UnsubscribeFromEvent<InputEvents.TouchMoveEvent>();
     }
 
     private void HandleTouchBegin(ref InputEvents.TouchBeginEvent eventData)
@@ -75,21 +55,32 @@ public sealed class MultitouchAdapter : Object, IDisposable
             return;
 
         var touchId = eventData.TouchID;
+        var input = GetSubsystem<Input>()!;
 
-        foreach (var activeTouch in _touches)
+        for (var i = 0u; i < input.GetNumTouches(); ++i)
         {
-            if (activeTouch.TouchID == touchId)
-                return;
+            var touchState = input.GetTouch(i)!.Value;
+            if (touchState.TouchID == touchId)
+            {
+                if (touchState.GetTouchedElement() is not null)
+                    return;
+
+                foreach (var activeTouch in _touches)
+                {
+                    if (activeTouch.TouchID == touchId)
+                        return;
+                }
+
+                SendEvent(MultitouchEventType.MultitouchCancel);
+
+                _touches.Add(new ActiveTouch
+                {
+                    TouchID = touchId,
+                    Pos = new Vector2i(eventData.X, eventData.Y)
+                });
+                SendEvent(MultitouchEventType.MultitouchBegin);
+            }
         }
-
-        SendEvent(MultitouchEventType.MultitouchCancel);
-
-        _touches.Add(new ActiveTouch
-        {
-            TouchID = touchId,
-            Pos = new Vector2i(eventData.X, eventData.Y)
-        });
-        SendEvent(MultitouchEventType.MultitouchBegin);
     }
 
     private void HandleTouchEnd(ref InputEvents.TouchEndEvent eventData)
@@ -107,7 +98,8 @@ public sealed class MultitouchAdapter : Object, IDisposable
                 };
                 SendEvent(MultitouchEventType.MultitouchEnd);
 
-                _touches.RemoveAt(i);
+                _touches[i] = _touches[^1];
+                _touches.RemoveAt(_touches.Count - 1);
 
                 _acceptTouches = _touches.Count == 0;
 
@@ -158,8 +150,8 @@ public sealed class MultitouchAdapter : Object, IDisposable
 
         var eventData = new InputEvents.MultitouchEvent
         {
-            NumFingers = _touches.Count,
             EventType = (int)eventType,
+            NumFingers = _touches.Count,
             X = center.X,
             Y = center.Y,
             Size = size
@@ -180,4 +172,12 @@ public sealed class MultitouchAdapter : Object, IDisposable
 
         SendEvent(ref eventData);
     }
+
+    private bool _enabled;
+
+    private bool _acceptTouches = true;
+    private Vector2i _lastKnownPosition;
+    private Vector2i _lastKnownSize;
+
+    private readonly List<ActiveTouch> _touches = [];
 }

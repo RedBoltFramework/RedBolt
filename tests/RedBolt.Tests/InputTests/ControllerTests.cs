@@ -217,18 +217,33 @@ public sealed class ControllerTests
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyTouch");
         using var controller = node.CreateComponent<FreeFlyController>();
-        var firstTouch = new InputEvents.TouchBeginEvent { TouchID = 1, X = 100, Y = 100 };
-        Context.Instance.SendEvent(ref firstTouch);
-        var rotate = new InputEvents.TouchMoveEvent { TouchID = 1, X = 112, Y = 94, DX = 12, DY = -6 };
-        Context.Instance.SendEvent(ref rotate);
-        Assert.False(node.Rotation.Equals(Quaternion.Identity));
+        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(RedBolt.Input)
+            .GetField("_touches", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Input));
+        try
+        {
+            touches[1] = new TouchState { TouchID = 1, Position = new Vector2i(100, 100) };
+            var firstTouch = new InputEvents.TouchBeginEvent { TouchID = 1, X = 100, Y = 100 };
+            Context.Instance.SendEvent(ref firstTouch);
 
-        var previousPosition = node.Position;
-        var secondTouch = new InputEvents.TouchBeginEvent { TouchID = 2, X = 130, Y = 120 };
-        Context.Instance.SendEvent(ref secondTouch);
-        var pan = new InputEvents.TouchMoveEvent { TouchID = 1, X = 122, Y = 99, DX = 10, DY = 5 };
-        Context.Instance.SendEvent(ref pan);
-        Assert.False(node.Position.ApproximatelyEquivalent(previousPosition));
+            touches[1] = new TouchState { TouchID = 1, Position = new Vector2i(112, 94) };
+            var rotate = new InputEvents.TouchMoveEvent { TouchID = 1, X = 112, Y = 94, DX = 12, DY = -6 };
+            Context.Instance.SendEvent(ref rotate);
+            Assert.False(node.Rotation.Equals(Quaternion.Identity));
+
+            var previousPosition = node.Position;
+            touches[2] = new TouchState { TouchID = 2, Position = new Vector2i(130, 120) };
+            var secondTouch = new InputEvents.TouchBeginEvent { TouchID = 2, X = 130, Y = 120 };
+            Context.Instance.SendEvent(ref secondTouch);
+
+            touches[1] = new TouchState { TouchID = 1, Position = new Vector2i(122, 99) };
+            var pan = new InputEvents.TouchMoveEvent { TouchID = 1, X = 122, Y = 99, DX = 10, DY = 5 };
+            Context.Instance.SendEvent(ref pan);
+            Assert.False(node.Position.ApproximatelyEquivalent(previousPosition));
+        }
+        finally
+        {
+            touches.Clear();
+        }
     }
 
     [Fact]
