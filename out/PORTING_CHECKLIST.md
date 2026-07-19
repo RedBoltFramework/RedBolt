@@ -111,6 +111,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `BoundingBox.h` / `BoundingBox.cpp` — 32-byte all-float value layout, independent copies, native undefined construction at stored call sites, equality/merge surface, padding and intersection behavior, and automatic lifetime reconciled
 - [x] `Color.h` / `Color.cpp` — 16-byte standard-layout, trivially copyable non-POD value class, POD channel mask, opaque-white default construction, independent copies, conversions, color-space logic, and automatic lifetime reconciled
 - [x] `EaseMath.h` — stateless namespace function module, all 15 formulas and branches reconciled; no instance, value type, copy, or lifetime state exists
+- [x] `Frustum.h` / `Frustum.cpp` — extensible non-POD copyable class kind, independent fixed-array copies, degenerate construction, geometry operations, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

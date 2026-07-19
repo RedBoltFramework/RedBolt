@@ -49,14 +49,28 @@ public sealed class FrustumTests
     [Fact]
     public void Clone_and_projected_rect_preserve_frustum_geometry()
     {
+        Assert.False(typeof(Frustum).IsValueType);
+
         var frustum = new Frustum();
         frustum.Define(new Vector3f(1.0f, 1.0f, 1.0f), new Vector3f(2.0f, 2.0f, 2.0f));
+        var copy = new Frustum(frustum);
         var clone = (Frustum)frustum.Clone();
 
+        Assert.NotSame(frustum.Planes, copy.Planes);
+        Assert.NotSame(frustum.Vertices, copy.Vertices);
+        Assert.NotSame(frustum.Planes, clone.Planes);
+        Assert.NotSame(frustum.Vertices, clone.Vertices);
         Assert.Equal(frustum.Vertices, clone.Vertices);
         Assert.Equal(frustum.Planes, clone.Planes);
 
-        var projected = frustum.Projected(Matrix4.Identity);
+        var copiedVertex = copy.Vertices[0];
+        var copiedPlane = copy.Planes[0];
+        frustum.Vertices[0] = new Vector3f(10.0f, 20.0f, 30.0f);
+        frustum.Planes[0].D += 1.0f;
+        Assert.Equal(copiedVertex, copy.Vertices[0]);
+        Assert.Equal(copiedPlane, copy.Planes[0]);
+
+        var projected = clone.Projected(Matrix4.Identity);
 
         Assert.True(projected.Defined);
         Assert.True(projected.Min.X <= projected.Max.X);
