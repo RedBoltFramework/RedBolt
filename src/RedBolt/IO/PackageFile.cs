@@ -30,9 +30,11 @@ public class PackageFile : MountPoint
         Open(fileName, startOffset);
     }
 
-    /// <summary>Destruct. Close the file if open.</summary>
+    /// <summary>Destruct.</summary>
     public override void Dispose()
     {
+        _fileName = string.Empty;
+        _entries.Clear();
         base.Dispose();
     }
 
@@ -76,19 +78,16 @@ public class PackageFile : MountPoint
             var version = file.ReadUInt();
             System.Diagnostics.Debug.Assert(version == 0);
             var fileListOffset = file.ReadInt64();
-            file.Seek(checked((uint)fileListOffset));
+            file.Seek(unchecked((uint)fileListOffset));
         }
 
         for (var i = 0u; i < numFiles; ++i)
         {
             var entryName = file.ReadString();
-            var newEntry = new PackageEntry
-            {
-                Offset = file.ReadUInt() + startOffset,
-                Size = file.ReadUInt(),
-                Checksum = file.ReadUInt()
-            };
-            _totalDataSize += newEntry.Size;
+            var newEntry = new PackageEntry();
+            newEntry.Offset = file.ReadUInt() + startOffset;
+            _totalDataSize += newEntry.Size = file.ReadUInt();
+            newEntry.Checksum = file.ReadUInt();
             if (!_compressed && newEntry.Offset + newEntry.Size > _totalSize)
                 return false;
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using RedBolt;
 using Xunit;
@@ -9,6 +10,21 @@ namespace RedBolt.Tests;
 
 public sealed class PackageFileTests
 {
+    [Fact]
+    public void Package_types_match_native_class_and_pod_kinds()
+    {
+        Assert.True(typeof(PackageEntry).IsValueType);
+        Assert.False(typeof(PackageEntry).IsByRefLike);
+        Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<PackageEntry>());
+        Assert.Equal(typeof(uint), typeof(PackageEntry).GetField(nameof(PackageEntry.Offset))!.FieldType);
+        Assert.Equal(typeof(uint), typeof(PackageEntry).GetField(nameof(PackageEntry.Size))!.FieldType);
+        Assert.Equal(typeof(uint), typeof(PackageEntry).GetField(nameof(PackageEntry.Checksum))!.FieldType);
+
+        Assert.True(typeof(PackageFile).IsClass);
+        Assert.False(typeof(PackageFile).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(PackageFile)));
+    }
+
     [Fact]
     public void PackageFile_parses_entries_scans_and_opens_package_data()
     {
@@ -28,7 +44,7 @@ public sealed class PackageFileTests
         {
             System.IO.File.WriteAllBytes(packagePath, packageBytes.GetBuffer());
 
-            var packageFile = new PackageFile(packagePath);
+            using var packageFile = new PackageFile(packagePath);
             Assert.Equal(packagePath, packageFile.GetName());
             Assert.Equal(1u, packageFile.GetNumFiles());
             Assert.Equal(packageBytes.Size, packageFile.GetTotalSize());
@@ -53,7 +69,7 @@ public sealed class PackageFileTests
             var readBuffer = new byte[content.Length];
             Assert.Equal((uint)content.Length, file!.Read(readBuffer));
             Assert.Equal(content, readBuffer);
-            file.Close();
+            file.Dispose();
 
             Assert.Null(packageFile.OpenFile(new FileIdentifier(string.Empty, "folder/item.txt"), FileMode.Write));
             Assert.Null(packageFile.OpenFile(new FileIdentifier("other", "folder/item.txt"), FileMode.Read));
@@ -90,7 +106,7 @@ public sealed class PackageFileTests
         {
             System.IO.File.WriteAllBytes(packagePath, packageBytes.GetBuffer());
 
-            var packageFile = new PackageFile(packagePath);
+            using var packageFile = new PackageFile(packagePath);
             Assert.True(packageFile.IsCompressed());
             var file = packageFile.OpenFile(new FileIdentifier(string.Empty, "compressed.txt"), FileMode.Read);
             Assert.NotNull(file);
@@ -98,7 +114,30 @@ public sealed class PackageFileTests
             Assert.Equal((uint)content.Length, file!.Read(readBuffer));
             Assert.Equal(content, readBuffer);
             Assert.Equal(0u, file.Seek(0));
-            file.Close();
+            file.Dispose();
+        }
+        finally
+        {
+            System.IO.File.Delete(packagePath);
+        }
+    }
+
+    [Fact]
+    public void PackageFile_truncates_signed_file_list_offset_like_cpp()
+    {
+        using var packageBytes = new VectorBuffer();
+        packageBytes.WriteFileID("RPAK");
+        packageBytes.WriteUInt(0);
+        packageBytes.WriteUInt(0);
+        packageBytes.WriteUInt(0);
+        packageBytes.WriteInt64(-1);
+
+        var packagePath = Path.Combine(Path.GetTempPath(), $"redbolt-package-{Guid.NewGuid():N}.pak");
+        try
+        {
+            System.IO.File.WriteAllBytes(packagePath, packageBytes.GetBuffer());
+            using var packageFile = new PackageFile();
+            Assert.True(packageFile.Open(packagePath));
         }
         finally
         {
