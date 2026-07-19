@@ -589,77 +589,6 @@ public struct KeyboardKeyMapping
     public Scancode Scancode;
 }
 
-/// <summary>Helper class to translate mouse button.</summary>
-public struct MouseButtonMapping
-{
-    /// <summary>Construct.</summary>
-    public MouseButtonMapping() { MouseButton = 0; }
-
-    /// <summary>Construct.</summary>
-    public MouseButtonMapping(uint mouseButton) { MouseButton = mouseButton; }
-
-    /// <summary>Get mouse button mask.</summary>
-    public readonly MouseButton GetMask() => (MouseButton)(1u << (int)MouseButton);
-
-    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
-    public void SerializeInBlock(Archive archive)
-    {
-        var button = (RedBolt.MouseButton)MouseButton;
-        ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
-            static (Archive ar, string name, ref RedBolt.MouseButton value) =>
-                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetMouseButtonNames()));
-        MouseButton = (uint)button;
-    }
-
-    /// <summary>Mouse button.</summary>
-    public uint MouseButton;
-}
-
-/// <summary>Helper class to translate controller hat position.</summary>
-public struct ControllerHatMapping
-{
-    /// <summary>Construct.</summary>
-    public ControllerHatMapping() { HatPosition = 0; }
-
-    /// <summary>Construct.</summary>
-    public ControllerHatMapping(uint hatPosition) { HatPosition = hatPosition; }
-
-    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
-    public void SerializeInBlock(Archive archive)
-    {
-        var hatPosition = (RedBolt.HatPosition)HatPosition;
-        ArchiveSerialization.SerializeOptionalValue(archive, "hat", ref hatPosition, default,
-            static (Archive ar, string name, ref RedBolt.HatPosition value) =>
-                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetControllerHatNames()));
-        HatPosition = (uint)hatPosition;
-    }
-
-    /// <summary>Hat position.</summary>
-    public uint HatPosition;
-}
-
-/// <summary>Helper class to translate UI button to input value.</summary>
-public struct ScreenButtonMapping
-{
-    /// <summary>Construct.</summary>
-    public ScreenButtonMapping() { ElementName = string.Empty; }
-
-    /// <summary>Construct.</summary>
-    public ScreenButtonMapping(string elementName) { ElementName = elementName; }
-
-    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
-    public void SerializeInBlock(Archive archive)
-    {
-        var name = ElementName;
-        ArchiveSerialization.SerializeOptionalValue(archive, "elementName", ref name, string.Empty,
-            ArchiveSerialization.SerializeValue);
-        ElementName = name;
-    }
-
-    /// <summary>Element name.</summary>
-    public string ElementName;
-}
-
 /// <summary>Helper class to translate controller buttons.</summary>
 public struct ControllerButtonMapping
 {
@@ -789,4 +718,75 @@ public struct ControllerAxisMapping
     public uint Axis;
     public float Neutral;
     public float Pressed;
+}
+
+/// <summary>Helper class to translate controller hat position.</summary>
+public struct ControllerHatMapping
+{
+    /// <summary>Construct.</summary>
+    public ControllerHatMapping() { HatPosition = 0; }
+
+    /// <summary>Construct.</summary>
+    public ControllerHatMapping(uint hatPosition) { HatPosition = hatPosition; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var hatPosition = (RedBolt.HatPosition)HatPosition;
+        ArchiveSerialization.SerializeOptionalValue(archive, "hat", ref hatPosition, default,
+            static (Archive ar, string name, ref RedBolt.HatPosition value) =>
+                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetControllerHatNames()));
+        HatPosition = (uint)hatPosition;
+    }
+
+    /// <summary>Hat position.</summary>
+    public uint HatPosition;
+}
+
+/// <summary>Helper class to translate mouse button.</summary>
+public struct MouseButtonMapping
+{
+    /// <summary>Construct.</summary>
+    public MouseButtonMapping() { MouseButton = 0; }
+
+    /// <summary>Construct.</summary>
+    public MouseButtonMapping(uint mouseButton) { MouseButton = mouseButton; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var button = (RedBolt.MouseButton)MouseButton;
+        ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
+            static (Archive ar, string name, ref RedBolt.MouseButton value) =>
+                ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetMouseButtonNames()));
+        MouseButton = (uint)button;
+    }
+
+    /// <summary>Get mouse button mask.</summary>
+    public readonly MouseButton GetMask() => (MouseButton)(1u << (int)MouseButton);
+
+    /// <summary>Mouse button.</summary>
+    public uint MouseButton;
+}
+
+/// <summary>Helper class to translate UI button to input value.</summary>
+public struct ScreenButtonMapping
+{
+    /// <summary>Construct.</summary>
+    public ScreenButtonMapping() { ElementName = string.Empty; }
+
+    /// <summary>Construct.</summary>
+    public ScreenButtonMapping(string elementName) { ElementName = elementName; }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public void SerializeInBlock(Archive archive)
+    {
+        var name = ElementName;
+        ArchiveSerialization.SerializeOptionalValue(archive, "elementName", ref name, string.Empty,
+            ArchiveSerialization.SerializeValue);
+        ElementName = name;
+    }
+
+    /// <summary>Element name.</summary>
+    public string ElementName;
 }
