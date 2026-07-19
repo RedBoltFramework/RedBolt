@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Watches a set of directories for files being modified.</summary>
-public sealed class MultiFileWatcher : Object, IDisposable
+public class MultiFileWatcher : Object
 {
     /// <summary>Construct.</summary>
     public MultiFileWatcher()
@@ -44,15 +44,14 @@ public sealed class MultiFileWatcher : Object, IDisposable
     }
 
     /// <summary>Return a file change (true if was found, false if not).</summary>
-    public bool GetNextChange(out FileChange dest)
+    public bool GetNextChange(ref FileChange dest)
     {
         foreach (var watcher in _watchers)
         {
-            if (watcher.GetNextChange(out dest))
+            if (watcher.GetNextChange(ref dest))
                 return true;
         }
 
-        dest = default;
         return false;
     }
 
@@ -66,7 +65,6 @@ public sealed class MultiFileWatcher : Object, IDisposable
     {
         StopWatching();
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     private readonly List<FileWatcher> _watchers = new();

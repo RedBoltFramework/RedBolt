@@ -8,6 +8,14 @@ namespace RedBolt.Tests;
 public sealed class MultiFileWatcherTests
 {
     [Fact]
+    public void MultiFileWatcher_is_an_extensible_noncopyable_class()
+    {
+        Assert.True(typeof(MultiFileWatcher).IsClass);
+        Assert.False(typeof(MultiFileWatcher).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(MultiFileWatcher)));
+    }
+
+    [Fact]
     public void MultiFileWatcher_forwards_delay_and_changes_in_watcher_order()
     {
         var firstDirectory = CreateTempDirectory();
@@ -28,7 +36,8 @@ public sealed class MultiFileWatcherTests
             Assert.Equal("first.txt", change.FileName);
 
             watcher.StopWatching();
-            Assert.False(watcher.GetNextChange(out _));
+            var noChange = new FileChange();
+            Assert.False(watcher.GetNextChange(ref noChange));
         }
         finally
         {
@@ -43,20 +52,21 @@ public sealed class MultiFileWatcherTests
     {
         using var watcher = new MultiFileWatcher();
         Assert.False(watcher.StartWatching(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")), false));
-        Assert.False(watcher.GetNextChange(out _));
+        var change = new FileChange();
+        Assert.False(watcher.GetNextChange(ref change));
     }
 
     private static bool TryGetChange(MultiFileWatcher watcher, out FileChange change)
     {
+        change = new FileChange();
         for (var i = 0; i < 20; ++i)
         {
-            if (watcher.GetNextChange(out change))
+            if (watcher.GetNextChange(ref change))
                 return true;
 
             Thread.Sleep(50);
         }
 
-        change = default;
         return false;
     }
 

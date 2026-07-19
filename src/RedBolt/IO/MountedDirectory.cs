@@ -19,8 +19,8 @@ public class MountedDirectory : WatchableMountPoint
     public override void Dispose()
     {
         _fileWatcher?.Dispose();
+        _fileWatcher = null;
         base.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>Implement MountPoint.</summary>
@@ -210,7 +210,8 @@ public class MountedDirectory : WatchableMountPoint
         if (_fileWatcher is null)
             return;
 
-        while (_fileWatcher.GetNextChange(out var change))
+        var change = new FileChange();
+        while (_fileWatcher.GetNextChange(ref change))
         {
             var eventData = new ResourceEvents.FileChanged
             {

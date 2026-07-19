@@ -9,6 +9,14 @@ namespace RedBolt.Tests;
 public sealed class MountedDirectoryTests
 {
     [Fact]
+    public void MountedDirectory_is_an_extensible_noncopyable_class()
+    {
+        Assert.True(typeof(MountedDirectory).IsClass);
+        Assert.False(typeof(MountedDirectory).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(MountedDirectory)));
+    }
+
+    [Fact]
     public void MountedDirectory_sanitizes_directory_and_maps_identifiers()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"redbolt-mounted-directory-{Guid.NewGuid():N}");
@@ -17,7 +25,7 @@ public sealed class MountedDirectoryTests
         try
         {
             Context.SetInstance(new Context());
-            var mountPoint = new MountedDirectory(directory, "assets");
+            using var mountPoint = new MountedDirectory(directory, "assets");
             var identifier = new FileIdentifier("assets", "Textures/Box.png");
             var absoluteName = Path.Combine(mountPoint.GetDirectory(), "Textures/Box.png");
 
@@ -47,7 +55,7 @@ public sealed class MountedDirectoryTests
         try
         {
             System.IO.File.WriteAllText(fileName, "box");
-            var mountPoint = new MountedDirectory(directory, "assets");
+            using var mountPoint = new MountedDirectory(directory, "assets");
             var identifier = new FileIdentifier("assets", "Textures/Box.txt");
 
             Assert.True(mountPoint.Exists(identifier));
@@ -65,7 +73,7 @@ public sealed class MountedDirectoryTests
             }
             finally
             {
-                input?.Close();
+                input?.Dispose();
             }
         }
         finally
@@ -81,7 +89,7 @@ public sealed class MountedDirectoryTests
         Directory.CreateDirectory(directory);
         var context = new Context();
         Context.SetInstance(context);
-        var mountPoint = new MountedDirectory(directory, "assets");
+        using var mountPoint = new MountedDirectory(directory, "assets");
         ResourceEvents.FileChanged? observed = null;
         context.SubscribeToEvent<ResourceEvents.FileChanged>((ref ResourceEvents.FileChanged eventData) => observed = eventData);
 

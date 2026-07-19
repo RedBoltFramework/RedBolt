@@ -8,6 +8,51 @@ namespace RedBolt.Tests;
 public sealed class FileWatcherTests
 {
     [Fact]
+    public void File_change_types_and_watcher_class_match_rbfx()
+    {
+        Assert.True(typeof(FileChangeKind).IsEnum);
+        Assert.Equal(0, (int)FileChangeKind.Added);
+        Assert.Equal(1, (int)FileChangeKind.Removed);
+        Assert.Equal(2, (int)FileChangeKind.Renamed);
+        Assert.Equal(3, (int)FileChangeKind.Modified);
+
+        Assert.True(typeof(FileChange).IsValueType);
+        Assert.False(typeof(FileChange).IsClass);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(FileChange)));
+        Assert.False(typeof(FileWatcher).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(FileWatcher)));
+    }
+
+    [Fact]
+    public void File_changes_copy_independently_and_false_poll_preserves_destination()
+    {
+        using var watcher = new FileWatcher();
+        watcher.SetDelay(0.0f);
+
+        var source = new FileChange
+        {
+            Kind = FileChangeKind.Added,
+            FileName = "file.txt",
+            OldFileName = string.Empty
+        };
+        var clone = source.Clone();
+        clone.FileName = "clone.txt";
+        Assert.Equal("file.txt", source.FileName);
+
+        watcher.AddChange(source);
+        source.Kind = FileChangeKind.Modified;
+        watcher.AddChange(source);
+
+        var destination = new FileChange { FileName = "unchanged.txt" };
+        Assert.True(watcher.GetNextChange(ref destination));
+        Assert.Equal(FileChangeKind.Added, destination.Kind);
+        Assert.Equal("file.txt", destination.FileName);
+
+        Assert.False(watcher.GetNextChange(ref destination));
+        Assert.Equal("file.txt", destination.FileName);
+    }
+
+    [Fact]
     public void FileWatcher_delivers_added_changes_after_delay()
     {
         var directory = CreateTempDirectory();
@@ -59,15 +104,15 @@ public sealed class FileWatcherTests
 
     private static bool TryGetChange(FileWatcher watcher, out FileChange change)
     {
+        change = new FileChange();
         for (var i = 0; i < 20; ++i)
         {
-            if (watcher.GetNextChange(out change))
+            if (watcher.GetNextChange(ref change))
                 return true;
 
             Thread.Sleep(50);
         }
 
-        change = default;
         return false;
     }
 

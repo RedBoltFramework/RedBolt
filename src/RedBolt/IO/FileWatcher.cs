@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -19,13 +17,10 @@ public enum FileChangeKind
 }
 
 /// <summary>File change information.</summary>
-public struct FileChange
+public struct FileChange : ICloneable
 {
     public FileChange()
     {
-        Kind = FileChangeKind.Added;
-        FileName = string.Empty;
-        OldFileName = string.Empty;
     }
 
     /// <summary>File change kind.</summary>
@@ -34,10 +29,22 @@ public struct FileChange
     public string FileName = string.Empty;
     /// <summary>Previous file name in case of FILECHANGE_MODIFIED event. Empty otherwise.</summary>
     public string OldFileName = string.Empty;
+
+    public readonly FileChange Clone()
+    {
+        return new FileChange
+        {
+            Kind = Kind,
+            FileName = FileName,
+            OldFileName = OldFileName
+        };
+    }
+
+    readonly object ICloneable.Clone() => Clone();
 }
 
 /// <summary>Watches a directory and its subdirectories for files being modified.</summary>
-public sealed class FileWatcher : Object, IDisposable
+public class FileWatcher : Object
 {
     /// <summary>Construct.</summary>
     public FileWatcher()
@@ -46,23 +53,32 @@ public sealed class FileWatcher : Object, IDisposable
         _watchSubDirs = false;
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        StopWatching();
+        lock (_changesMutex)
+            _changes.Clear();
+        base.Dispose();
+    }
+
     /// <summary>Directory watching loop.</summary>
     public void ThreadFunction()
     {
-        // FileSystemWatcher dispatches changes asynchronously; no dedicated platform loop is required.
     }
 
     /// <summary>Start watching a directory. Return true if successful.</summary>
     public bool StartWatching(string pathName, bool watchSubDirs)
     {
+        // Stop any previous watching
         StopWatching();
 
-        if (!Directory.Exists(pathName))
-            return false;
+        // TODO: port SetName("Watcher for " + pathName);
 
+        FileSystemWatcher? watcher = null;
         try
         {
-            var watcher = new FileSystemWatcher(pathName)
+            watcher = new FileSystemWatcher(pathName)
             {
                 IncludeSubdirectories = watchSubDirs,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName
@@ -72,90 +88,91 @@ public sealed class FileWatcher : Object, IDisposable
             watcher.Deleted += OnDeleted;
             watcher.Changed += OnChanged;
             watcher.Renamed += OnRenamed;
-            watcher.EnableRaisingEvents = true;
 
-            _fileWatcher = watcher;
             _path = Path.EndsInDirectorySeparator(pathName) ? pathName : pathName + Path.DirectorySeparatorChar;
             _watchSubDirs = watchSubDirs;
+            _fileWatcher = watcher;
+            watcher.EnableRaisingEvents = true;
+
+            Log.Logger.LogDebug("Started watching path {PathName}", pathName);
             return true;
         }
         catch (IOException)
         {
-            return false;
         }
         catch (UnauthorizedAccessException)
         {
-            return false;
         }
         catch (ArgumentException)
         {
-            return false;
         }
+
+        watcher?.Dispose();
+        _fileWatcher = null;
+        _path = string.Empty;
+        Log.Logger.LogError("Failed to start watching path {PathName}", pathName);
+        return false;
     }
 
     /// <summary>Stop watching the directory.</summary>
     public void StopWatching()
     {
-        if (_fileWatcher is null)
-            return;
+        if (_fileWatcher is not null)
+        {
+            _fileWatcher.EnableRaisingEvents = false;
+            _fileWatcher.Created -= OnCreated;
+            _fileWatcher.Deleted -= OnDeleted;
+            _fileWatcher.Changed -= OnChanged;
+            _fileWatcher.Renamed -= OnRenamed;
+            _fileWatcher.Dispose();
+            _fileWatcher = null;
 
-        _fileWatcher.EnableRaisingEvents = false;
-        _fileWatcher.Created -= OnCreated;
-        _fileWatcher.Deleted -= OnDeleted;
-        _fileWatcher.Changed -= OnChanged;
-        _fileWatcher.Renamed -= OnRenamed;
-        _fileWatcher.Dispose();
-        _fileWatcher = null;
-        _path = string.Empty;
+            Log.Logger.LogDebug("Stopped watching path {Path}", _path);
+            _path = string.Empty;
+        }
     }
 
-    /// <summary>Set the delay in seconds before file changes are notified.</summary>
+    /// <summary>Set the delay in seconds before file changes are notified. This (hopefully) avoids notifying when a file save is still in progress. Default 1 second.</summary>
     public void SetDelay(float interval)
     {
         _delay = Math.Max(interval, 0.0f);
     }
 
     /// <summary>Add a file change into the changes queue.</summary>
-    public void AddChange(FileChange change)
+    public void AddChange(in FileChange change)
     {
         lock (_changesMutex)
         {
-            if (!_changes.TryGetValue(change.FileName, out var timedChange))
-            {
-                _changes[change.FileName] = new TimedFileChange(change, Environment.TickCount64);
-            }
+            ref var timedChange = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                _changes, change.FileName, out var exists);
+            if (!exists)
+                timedChange = new TimedFileChange(change, Environment.TickCount64);
             else
-            {
                 // Reset the timer associated with the filename. Will be notified once timer exceeds the delay
                 timedChange.Timestamp = Environment.TickCount64;
-                _changes[change.FileName] = timedChange;
-            }
         }
     }
 
     /// <summary>Return a file change (true if was found, false if not).</summary>
-    public bool GetNextChange(out FileChange dest)
+    public bool GetNextChange(ref FileChange dest)
     {
         lock (_changesMutex)
         {
-            var delayMsec = (long)(_delay * 1000.0f);
+            var delayMsec = unchecked((uint)(_delay * 1000.0f));
+
             if (_changes.Count == 0)
-            {
-                dest = default;
                 return false;
-            }
 
             foreach (var pair in _changes)
             {
                 if (Environment.TickCount64 - pair.Value.Timestamp >= delayMsec)
                 {
-                    dest = pair.Value.Change;
+                    dest = pair.Value.Change.Clone();
                     _changes.Remove(pair.Key);
                     return true;
                 }
             }
 
-            dest = default;
             return false;
         }
     }
@@ -172,26 +189,34 @@ public sealed class FileWatcher : Object, IDisposable
         return _delay;
     }
 
-    public override void Dispose()
-    {
-        StopWatching();
-        base.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
     private void OnCreated(object sender, FileSystemEventArgs args)
     {
-        AddChange(new FileChange { Kind = FileChangeKind.Added, FileName = GetInternalPath(args.FullPath), OldFileName = string.Empty });
+        AddChange(new FileChange
+        {
+            Kind = FileChangeKind.Added,
+            FileName = GetInternalPath(args.FullPath),
+            OldFileName = string.Empty
+        });
     }
 
     private void OnDeleted(object sender, FileSystemEventArgs args)
     {
-        AddChange(new FileChange { Kind = FileChangeKind.Removed, FileName = GetInternalPath(args.FullPath), OldFileName = string.Empty });
+        AddChange(new FileChange
+        {
+            Kind = FileChangeKind.Removed,
+            FileName = GetInternalPath(args.FullPath),
+            OldFileName = string.Empty
+        });
     }
 
     private void OnChanged(object sender, FileSystemEventArgs args)
     {
-        AddChange(new FileChange { Kind = FileChangeKind.Modified, FileName = GetInternalPath(args.FullPath), OldFileName = string.Empty });
+        AddChange(new FileChange
+        {
+            Kind = FileChangeKind.Modified,
+            FileName = GetInternalPath(args.FullPath),
+            OldFileName = string.Empty
+        });
     }
 
     private void OnRenamed(object sender, RenamedEventArgs args)
@@ -209,18 +234,11 @@ public sealed class FileWatcher : Object, IDisposable
         return Path.GetRelativePath(_path, fullPath).Replace('\\', '/');
     }
 
-    private readonly Dictionary<string, TimedFileChange> _changes = new();
-    private readonly object _changesMutex = new();
-    private FileSystemWatcher? _fileWatcher;
-    private string _path = string.Empty;
-    private float _delay;
-    private bool _watchSubDirs;
-
     private struct TimedFileChange
     {
-        public TimedFileChange(FileChange change, long timestamp)
+        public TimedFileChange(in FileChange change, long timestamp)
         {
-            Change = change;
+            Change = change.Clone();
             Timestamp = timestamp;
         }
 
@@ -229,4 +247,17 @@ public sealed class FileWatcher : Object, IDisposable
         /// <summary>Timer used to filter out repeated events when file is being written.</summary>
         public long Timestamp;
     }
+
+    /// <summary>The path being watched.</summary>
+    private string _path = string.Empty;
+    /// <summary>Pending changes. These will be returned and removed from the list when their timer has exceeded the delay.</summary>
+    private readonly Dictionary<string, TimedFileChange> _changes = new();
+    /// <summary>Mutex for the change buffer.</summary>
+    private readonly object _changesMutex = new();
+    /// <summary>Delay in seconds for notifying changes.</summary>
+    private float _delay;
+    /// <summary>Watch subdirectories flag.</summary>
+    private bool _watchSubDirs;
+    /// <summary>Platform file watcher for the path being watched.</summary>
+    private FileSystemWatcher? _fileWatcher;
 }
