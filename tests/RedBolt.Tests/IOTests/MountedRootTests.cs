@@ -8,6 +8,14 @@ namespace RedBolt.Tests;
 public sealed class MountedRootTests
 {
     [Fact]
+    public void MountedRoot_is_an_extensible_noncopyable_class()
+    {
+        Assert.True(typeof(MountedRoot).IsClass);
+        Assert.False(typeof(MountedRoot).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(MountedRoot)));
+    }
+
+    [Fact]
     public void MountedRoot_matches_file_scheme_and_absolute_path_behavior()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"redbolt-mounted-root-{Guid.NewGuid():N}");
@@ -17,7 +25,7 @@ public sealed class MountedRootTests
 
         try
         {
-            var mountPoint = new MountedRoot();
+            using var mountPoint = new MountedRoot();
 
             Assert.True(mountPoint.AcceptsScheme("FILE"));
             Assert.False(mountPoint.AcceptsScheme("other"));
@@ -43,7 +51,7 @@ public sealed class MountedRootTests
 
         try
         {
-            var mountPoint = new MountedRoot();
+            using var mountPoint = new MountedRoot();
             var identifier = new FileIdentifier("file", fileName);
 
             Assert.Null(mountPoint.OpenFile(identifier, FileMode.Read));
@@ -57,7 +65,7 @@ public sealed class MountedRootTests
             }
             finally
             {
-                output?.Close();
+                output?.Dispose();
             }
 
             var input = mountPoint.OpenFile(identifier, FileMode.Read);
@@ -70,7 +78,7 @@ public sealed class MountedRootTests
             }
             finally
             {
-                input?.Close();
+                input?.Dispose();
             }
         }
         finally
