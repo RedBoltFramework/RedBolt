@@ -66,7 +66,7 @@ public sealed class AnimationParametersTests
 
         Assert.NotSame(parameters, copy);
         Assert.Same(animation, copy.GetAnimation());
-        Assert.NotSame(parameters.GetAnimationTime(), copy.GetAnimationTime());
+        Assert.Equal(parameters.GetAnimationTime(), copy.GetAnimationTime());
         Assert.Equal(parameters, copy);
         Assert.Equal(parameters.Removed, copy.Removed);
         Assert.Equal(parameters.Merged, copy.Merged);

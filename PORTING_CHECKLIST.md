@@ -138,6 +138,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Vector3.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/signed-angle behavior/helpers, and automatic lifetime reconciled
 - [x] `Vector4.h` / `Vector4.cpp` — sequential 16-byte reference-free value layout, explicit independent copy construction, allocation-free inline data access, native constructors/constants/index/hash/conversions/free helpers, approved managed `int` indexing, and automatic lifetime reconciled
 - [x] Dear ImGui `ImVec2` / `ImVec4` SharpCpp marshalling — generated binding selection, matching inline float layouts, independent value conversion, borrowed const-reference duration, and automatic lifetime verified
+- [x] `WrappedScalar.h` — reference-free `WrappedScalar<T>` and `WrappedScalarRange<T>` value kinds, implicit independent copies, native constructors/member order/update and containment behavior, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 

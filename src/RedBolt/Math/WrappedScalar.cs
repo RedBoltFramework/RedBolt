@@ -6,7 +6,7 @@ namespace RedBolt;
 /// Range between two WrappedScalar values.
 /// Preserves direction of change.
 /// </summary>
-public class WrappedScalarRange<T>
+public struct WrappedScalarRange<T>
     where T : unmanaged, INumber<T>
 {
     public WrappedScalarRange(T value, T minValue, T maxValue)
@@ -38,13 +38,8 @@ public class WrappedScalarRange<T>
     public bool ContainsExcludingBegin(T value) => ContainsInternal(value, false, true);
     public bool ContainsExcludingEnd(T value) => ContainsInternal(value, true, false);
 
-    public static bool operator ==(WrappedScalarRange<T>? lhs, WrappedScalarRange<T>? rhs)
+    public static bool operator ==(WrappedScalarRange<T> lhs, WrappedScalarRange<T> rhs)
     {
-        if (ReferenceEquals(lhs, rhs))
-            return true;
-        if (lhs is null || rhs is null)
-            return false;
-
         return lhs._min == rhs._min
             && lhs._max == rhs._max
             && lhs._begin == rhs._begin
@@ -52,7 +47,7 @@ public class WrappedScalarRange<T>
             && lhs._numWraps == rhs._numWraps;
     }
 
-    public static bool operator !=(WrappedScalarRange<T>? lhs, WrappedScalarRange<T>? rhs) => !(lhs == rhs);
+    public static bool operator !=(WrappedScalarRange<T> lhs, WrappedScalarRange<T> rhs) => !(lhs == rhs);
 
     public override bool Equals(object? obj) => obj is WrappedScalarRange<T> rhs && this == rhs;
 
@@ -106,7 +101,7 @@ public class WrappedScalarRange<T>
 /// <summary>
 /// Wrapped value between min and max boundaries.
 /// </summary>
-public class WrappedScalar<T>
+public struct WrappedScalar<T>
     where T : unmanaged, INumber<T>
 {
     public WrappedScalar()
@@ -192,19 +187,14 @@ public class WrappedScalar<T>
     public T Min() => _min;
     public T Max() => _max;
 
-    public static bool operator ==(WrappedScalar<T>? lhs, WrappedScalar<T>? rhs)
+    public static bool operator ==(WrappedScalar<T> lhs, WrappedScalar<T> rhs)
     {
-        if (ReferenceEquals(lhs, rhs))
-            return true;
-        if (lhs is null || rhs is null)
-            return false;
-
         return lhs._min == rhs._min
             && lhs._max == rhs._max
             && lhs._value == rhs._value;
     }
 
-    public static bool operator !=(WrappedScalar<T>? lhs, WrappedScalar<T>? rhs) => !(lhs == rhs);
+    public static bool operator !=(WrappedScalar<T> lhs, WrappedScalar<T> rhs) => !(lhs == rhs);
 
     public override bool Equals(object? obj) => obj is WrappedScalar<T> rhs && this == rhs;
 
@@ -212,5 +202,5 @@ public class WrappedScalar<T>
 
     private T _min = T.CreateChecked(-MathDefs.LargeValue);
     private T _max = T.CreateChecked(MathDefs.LargeValue);
-    private T _value;
+    private T _value = T.Zero;
 }
