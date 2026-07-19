@@ -1,12 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using RedBolt;
 
 namespace RedBolt.Tests;
 
 public sealed class MountedAliasRootTests
 {
+    [Fact]
+    public void MountedAliasRoot_is_an_extensible_noncopyable_class()
+    {
+        Assert.True(typeof(MountedAliasRoot).IsClass);
+        Assert.False(typeof(MountedAliasRoot).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(MountedAliasRoot)));
+    }
+
     [Fact]
     public void MountedAliasRoot_forwards_aliases_to_the_selected_mount_point()
     {
@@ -17,8 +26,8 @@ public sealed class MountedAliasRootTests
 
         try
         {
-            var mountedDirectory = new MountedDirectory(directory, "assets");
-            var aliasRoot = new MountedAliasRoot();
+            using var mountedDirectory = new MountedDirectory(directory, "assets");
+            using var aliasRoot = new MountedAliasRoot();
             aliasRoot.AddAlias("Data", "assets", mountedDirectory);
             var identifier = new FileIdentifier("alias", "Data:/Textures/Box.txt");
 
@@ -41,7 +50,7 @@ public sealed class MountedAliasRootTests
             }
             finally
             {
-                input?.Close();
+                input?.Dispose();
             }
         }
         finally
@@ -53,8 +62,8 @@ public sealed class MountedAliasRootTests
     [Fact]
     public void MountedAliasRoot_removes_aliases_and_does_not_scan()
     {
-        var mountedDirectory = new MountedDirectory(Path.GetTempPath(), "assets");
-        var aliasRoot = new MountedAliasRoot();
+        using var mountedDirectory = new MountedDirectory(Path.GetTempPath(), "assets");
+        using var aliasRoot = new MountedAliasRoot();
         aliasRoot.AddAlias("Data", "assets", mountedDirectory);
         aliasRoot.AddAlias("Other", "assets", mountedDirectory);
 
@@ -66,5 +75,27 @@ public sealed class MountedAliasRootTests
         Assert.False(aliasRoot.Exists(new FileIdentifier("alias", "Data:/file.txt")));
         Assert.Equal((MountPoint?)null, aliasRoot.FindMountPoint("Data:/file.txt").MountPoint);
         Assert.Equal(FileIdentifier.Empty, aliasRoot.GetIdentifierFromAbsoluteName("/tmp/file.txt"));
+    }
+
+    [Fact]
+    public void MountedAliasRoot_aliases_do_not_own_mount_points()
+    {
+        using var aliasRoot = new MountedAliasRoot();
+        var weakMountPoint = AddTemporaryAlias(aliasRoot);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(weakMountPoint.TryGetTarget(out _));
+        Assert.Null(aliasRoot.FindMountPoint("Data:/file.txt").MountPoint);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference<MountPoint> AddTemporaryAlias(MountedAliasRoot aliasRoot)
+    {
+        var mountPoint = new MountedExternalMemory("assets");
+        aliasRoot.AddAlias("Data", "assets", mountPoint);
+        return new WeakReference<MountPoint>(mountPoint);
     }
 }
