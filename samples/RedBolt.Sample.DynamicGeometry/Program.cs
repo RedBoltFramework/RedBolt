@@ -195,7 +195,7 @@ sealed class DynamicGeometryApplication : Application
             new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position),
             new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Normal)
         ]);
-        vertexBuffer.SetData(MemoryMarshal.AsBytes(vertexData.AsSpan()));
+        vertexBuffer.Update(MemoryMarshal.AsBytes(vertexData.AsSpan()));
         indexBuffer.SetShadowed(true);
         indexBuffer.SetSize(numVertices, false);
         indexBuffer.SetUnpackedData(new uint[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 });
