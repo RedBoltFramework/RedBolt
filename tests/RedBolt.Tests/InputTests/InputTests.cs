@@ -15,6 +15,41 @@ public sealed class InputTests
     private RedBolt.Input Input => _fixture.Input;
 
     [Fact]
+    public void Native_class_shapes_are_preserved()
+    {
+        Assert.True(typeof(TouchState).IsValueType);
+        Assert.True(typeof(JoystickState).IsValueType);
+        Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(JoystickState)));
+        Assert.False(typeof(RedBolt.Input).IsSealed);
+        Assert.Equal(typeof(RedBolt.Input), typeof(RedBolt.Input).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+    }
+
+    [Fact]
+    public void Joystick_state_clone_preserves_native_value_copy_semantics()
+    {
+        var source = new JoystickState();
+        source.Initialize(1, 1, 1);
+        source.Buttons[0] = true;
+        source.ButtonPress[0] = true;
+        source.Axes[0] = 0.5f;
+        source.ValidAxis[0] = true;
+        source.Hats[0] = (int)HatPosition.Right;
+
+        var clone = (JoystickState)source.Clone();
+        clone.Buttons[0] = false;
+        clone.ButtonPress[0] = false;
+        clone.Axes[0] = -0.5f;
+        clone.ValidAxis[0] = false;
+        clone.Hats[0] = (int)HatPosition.Left;
+
+        Assert.True(source.Buttons[0]);
+        Assert.True(source.ButtonPress[0]);
+        Assert.Equal(0.5f, source.Axes[0]);
+        Assert.True(source.ValidAxis[0]);
+        Assert.Equal((int)HatPosition.Right, source.Hats[0]);
+    }
+
+    [Fact]
     public void Initial_state_is_empty()
     {
         Assert.False(Input.GetKeyDown(Key.Escape));

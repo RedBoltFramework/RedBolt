@@ -37,7 +37,7 @@ public struct TouchState
 }
 
 /// <summary>Input state for a joystick.</summary>
-public struct JoystickState
+public struct JoystickState : ICloneable
 {
     public JoystickState()
     {
@@ -62,6 +62,7 @@ public struct JoystickState
         Axes = new float[numAxes];
         ValidAxis = new bool[numAxes];
         Hats = new int[numHats];
+        Reset();
     }
 
     /// <summary>Reset button, axis and hat states to neutral.</summary>
@@ -90,6 +91,17 @@ public struct JoystickState
         }
         for (var i = 0; i < Hats.Length; i++)
             Hats[i] = (int)HatPosition.Center;
+    }
+
+    public readonly object Clone()
+    {
+        var clone = this;
+        clone.Buttons = (bool[])Buttons.Clone();
+        clone.ButtonPress = (bool[])ButtonPress.Clone();
+        clone.Axes = (float[])Axes.Clone();
+        clone.ValidAxis = (bool[])ValidAxis.Clone();
+        clone.Hats = (int[])Hats.Clone();
+        return clone;
     }
 
     /// <summary>Return whether is a game controller. Game controllers will use standardized axis and button mappings.</summary>
@@ -143,7 +155,7 @@ public struct JoystickState
     public int[] Hats = [];
 }
 
-public sealed class Input : Object
+public class Input : Object
 {
     private const uint SdlInitVideo = 0x00000020u;
     private const uint SdlInitJoystick = 0x00000200u;
@@ -213,6 +225,13 @@ public sealed class Input : Object
     public bool ToggleFullscreen { get; private set; } = true;
 
     public bool TouchEmulation { get; private set; }
+
+    public override void Dispose()
+    {
+        Shutdown();
+        base.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     internal SdlWindow Window => _window is not null && !_window.IsNull
         ? _window
