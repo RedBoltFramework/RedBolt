@@ -306,13 +306,19 @@ public static partial class MathDefs
 
     public static bool DecodeVariableLength(ref ulong value, ref uint offset, byte current)
     {
-        value |= (ulong)(current & 0x7f) << checked((int)(offset * 7));
-        ++offset;
+        value |= (ulong)(current & 0x7f) << (int)offset;
+        offset += 7;
         return (current & 0x80) == 0;
     }
 
-    public static uint ZigzagEncode(int value) => unchecked((uint)((value << 1) ^ (value >> 31)));
-    public static ulong ZigzagEncode(long value) => unchecked((ulong)((value << 1) ^ (value >> 63)));
+    public static byte ZigzagEncode(sbyte value) =>
+        unchecked((byte)(((byte)value << 1) ^ (byte)(value >> 6)));
+    public static ushort ZigzagEncode(short value) =>
+        unchecked((ushort)(((ushort)value << 1) ^ (ushort)(value >> 14)));
+    public static uint ZigzagEncode(int value) => unchecked(((uint)value << 1) ^ (uint)(value >> 30));
+    public static ulong ZigzagEncode(long value) => unchecked(((ulong)value << 1) ^ (ulong)(value >> 62));
+    public static sbyte ZigzagDecode(byte value) => unchecked((sbyte)((value >> 1) ^ -(sbyte)(value & 1)));
+    public static short ZigzagDecode(ushort value) => unchecked((short)((value >> 1) ^ -(short)(value & 1)));
     public static int ZigzagDecode(uint value) => unchecked((int)(value >> 1) ^ -(int)(value & 1));
     public static long ZigzagDecode(ulong value) => unchecked((long)(value >> 1) ^ -(long)(value & 1));
 }

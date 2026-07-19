@@ -119,6 +119,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Rect.h` / `Rect.cpp` — `IntRect` and `IntRectIterator` sequential value types, independent scalar copies, contiguous data view, iterator behavior, and automatic lifetime reconciled
 - [x] `Vector2.h` / `Vector3.h` / `Vector4.h` — `BaseIntegerVector2<T>` and `BaseIntegerVector3<T>` POD-style sequential structs, exact generic names, independent scalar copies, contiguous data views, conversions, integer lengths, hashes, and automatic lifetime reconciled
 - [x] `MathDefs.h` — `Intersection` enum kind, integer backing, ordered values, value-copy semantics, and automatic lifetime reconciled
+- [~] `MathDefs.h` / `MathDefs.cpp` — stateless module kind, variable-length integer bit offsets, and native-width zigzag semantics reconciled; constants, full member order, documentation, remaining method bodies, and compatibility-only surface cleanup remain
 
 ## [x] A3. Core — depends on Container, Math
 
