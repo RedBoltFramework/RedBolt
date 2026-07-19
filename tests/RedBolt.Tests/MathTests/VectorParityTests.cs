@@ -119,6 +119,22 @@ public class VectorParityTests
     }
 
     [Fact]
+    public void VectorMarshallersPreserveIndependentInlineValues()
+    {
+        var vector2 = new Vector2f(1.0f, 2.0f);
+        var unmanaged2 = Vector2fMarshaller.ConvertToUnmanaged(vector2);
+        unmanaged2.X = 3.0f;
+        Assert.Equal(new Vector2f(1.0f, 2.0f), vector2);
+        Assert.Equal(new Vector2f(3.0f, 2.0f), Vector2fMarshaller.ConvertToManaged(unmanaged2));
+
+        var vector4 = new Vector4f(1.0f, 2.0f, 3.0f, 4.0f);
+        var unmanaged4 = Vector4fMarshaller.ConvertToUnmanaged(vector4);
+        unmanaged4.W = 5.0f;
+        Assert.Equal(new Vector4f(1.0f, 2.0f, 3.0f, 4.0f), vector4);
+        Assert.Equal(new Vector4f(1.0f, 2.0f, 3.0f, 5.0f), Vector4fMarshaller.ConvertToManaged(unmanaged4));
+    }
+
+    [Fact]
     public void VectorFreeFunctionsMatchRbfxBehavior()
     {
         Assert.Equal(new Vector2f(2.0f, 3.0f), Vector2f.Sqrt(new Vector2f(4.0f, 9.0f)));
